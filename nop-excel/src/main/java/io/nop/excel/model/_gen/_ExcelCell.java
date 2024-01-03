@@ -1,6 +1,6 @@
 package io.nop.excel.model._gen;
 
-import io.nop.commons.collections.KeyedList; //NOPMD - suppressed UnusedImports - Used for List Prop
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 
 
@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _ExcelCell extends io.nop.core.model.table.impl.AbstractCell {
     
     /**
@@ -75,7 +75,7 @@ public abstract class _ExcelCell extends io.nop.core.model.table.impl.AbstractCe
      * xml name: type
      * 
      */
-    private io.nop.excel.model.constants.ExcelCellType _type ;
+    private io.nop.commons.type.StdDataType _type ;
     
     /**
      *  
@@ -242,12 +242,12 @@ public abstract class _ExcelCell extends io.nop.core.model.table.impl.AbstractCe
      *  
      */
     
-    public io.nop.excel.model.constants.ExcelCellType getType(){
+    public io.nop.commons.type.StdDataType getType(){
       return _type;
     }
 
     
-    public void setType(io.nop.excel.model.constants.ExcelCellType value){
+    public void setType(io.nop.commons.type.StdDataType value){
         checkAllowChange();
         
         this._type = value;
@@ -275,6 +275,7 @@ public abstract class _ExcelCell extends io.nop.core.model.table.impl.AbstractCe
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -288,6 +289,7 @@ public abstract class _ExcelCell extends io.nop.core.model.table.impl.AbstractCe
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

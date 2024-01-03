@@ -28,7 +28,8 @@ public class BlockingSinkBatchConsumer<R, C> implements IBatchConsumer<R, C> {
     public void consume(List<R> items, C context) {
         try {
             sink.sendMulti(items);
-        } catch (Exception e) {
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw NopException.adapt(e);
         }
     }

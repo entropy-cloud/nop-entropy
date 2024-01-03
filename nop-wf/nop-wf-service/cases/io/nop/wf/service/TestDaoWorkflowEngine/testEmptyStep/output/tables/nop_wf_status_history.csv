@@ -1,0 +1,3 @@
+_chgType,SID,WF_ID,FROM_STATUS,TO_STATUS,TO_APP_STATE,CHANGE_TIME,OPERATOR_ID,OPERATOR_NAME,OPERATOR_DEPT_ID,VERSION,CREATED_BY,CREATE_TIME
+A,@var:NopWfStatusHistory@sid_1,@var:NopWfInstance@wfId,30,40,,@var:NopWfStatusHistory@changeTime_1,1,user_1,,0,autotest-ref,*
+A,@var:NopWfStatusHistory@sid,@var:NopWfInstance@wfId,0,30,,@var:NopWfStatusHistory@changeTime,1,user_1,,0,autotest-ref,*

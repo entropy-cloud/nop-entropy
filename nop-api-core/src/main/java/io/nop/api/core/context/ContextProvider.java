@@ -110,7 +110,7 @@ public class ContextProvider {
      */
     public static <T> T runWithoutTenantId(Supplier<T> task) {
         IContext context = currentContext();
-        if (context == null)
+        if (context == null || context.isClosed())
             return task.get();
 
         String tenantId = context.getTenantId();
@@ -193,7 +193,7 @@ public class ContextProvider {
                 thenOnContext(handler.apply(ret, err), context).whenComplete((ret2, err2) -> {
                     FutureHelper.complete(f, ret2, err2);
                 });
-            } catch (Throwable e) {
+            } catch (Exception e) {
                 f.completeExceptionally(e);
             }
         });

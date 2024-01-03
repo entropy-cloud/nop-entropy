@@ -18,4 +18,6 @@ public interface BizFilterConstants {
 
     String BIZ_EXPR_PREFIX = "@biz:";
 
+    String VAR_VALUE = "value";
+
 }

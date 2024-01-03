@@ -16,8 +16,8 @@ import io.nop.report.dao.entity.NopReportResultFile;
 /**
  *  报表结果文件: nop_report_result_file
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopReportResultFile extends DynamicOrmEntity{
     
     /* 主键: SID VARCHAR */
@@ -89,8 +89,8 @@ public class _NopReportResultFile extends DynamicOrmEntity{
 
     
 
-    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
-    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
     private static final String[] PROP_ID_TO_NAME = new String[17];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
@@ -197,6 +197,7 @@ public class _NopReportResultFile extends DynamicOrmEntity{
     
 
     public _NopReportResultFile(){
+        // for debug
     }
 
     protected NopReportResultFile newInstance(){

@@ -39,7 +39,7 @@ public class JdkZipInput implements IZipInput {
     @Override
     public void unzipToDir(IFile dir, Predicate<ZipEntry> filter) throws IOException {
         ZipEntry zipEntry = null;
-        while ((zipEntry = zin.getNextEntry()) != null) {
+        while ((zipEntry = zin.getNextEntry()) != null) { //NOSONAR
             String entryName = zipEntry.getName();
             if (entryName.endsWith("/") || entryName.endsWith("\\"))
                 continue;
@@ -54,7 +54,7 @@ public class JdkZipInput implements IZipInput {
     @Override
     public void unzip(BiFunction<ZipEntry, InputStream, ProcessResult> processor) throws IOException {
         ZipEntry zipEntry = null;
-        while ((zipEntry = zin.getNextEntry()) != null) {
+        while ((zipEntry = zin.getNextEntry()) != null) { //NOSONAR
             if (processor.apply(zipEntry, zin) != ProcessResult.CONTINUE)
                 break;
         }

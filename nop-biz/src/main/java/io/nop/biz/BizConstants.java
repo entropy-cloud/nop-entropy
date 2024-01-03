@@ -82,10 +82,11 @@ public interface BizConstants {
 
     String EXT_MAX_PAGE_SIZE = "ext:maxPageSize";
     String EXT_RELATION = "ext:relation";
-    String EXT_CONTROL = "ext:control";
     String EXT_JOIN_LEFT_PROP = "ext:joinLeftProp";
     String EXT_JOIN_RIGHT_PROP = "ext:joinRightProp";
     String EXT_KIND = "ext:kind";
+
+    String ORM_MANY_TO_MANY_REF_PROP = "orm:manyToManyRefProp";
 
     String EXT_KIND_VALUE_COMPONENT = "component";
 

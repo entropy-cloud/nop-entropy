@@ -15,18 +15,18 @@ import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.beans.WebContentBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.context.IServiceContext;
-import io.nop.web.page.SystemJsProvider;
-
+import io.nop.web.page.DynamicWebFileProvider;
 import jakarta.inject.Inject;
 
 import static io.nop.web.WebErrors.ERR_WEB_PAGE_NOT_ALLOW_EDIT;
 import static io.nop.web.page.WebPageHelper.checkJsFile;
+import static io.nop.web.page.WebPageHelper.checkXjsFile;
 
 @BizModel("SystemJsProvider")
 public class SystemJsProviderBizModel {
 
     @Inject
-    SystemJsProvider jsProvider;
+    DynamicWebFileProvider jsProvider;
 
     @InjectValue("@cfg:nop.web.page-provider.edit-enabled|true")
     boolean editEnabled;
@@ -42,7 +42,7 @@ public class SystemJsProviderBizModel {
         if (!editEnabled)
             throw new NopException(ERR_WEB_PAGE_NOT_ALLOW_EDIT);
 
-        checkJsFile(path);
+        checkXjsFile(path);
         return WebContentBean.js(jsProvider.getJsSource(path));
     }
 
@@ -51,7 +51,7 @@ public class SystemJsProviderBizModel {
         if (!editEnabled)
             throw new NopException(ERR_WEB_PAGE_NOT_ALLOW_EDIT);
 
-        checkJsFile(path);
+        checkXjsFile(path);
         jsProvider.saveJsSource(path, source);
     }
 
@@ -60,7 +60,7 @@ public class SystemJsProviderBizModel {
         if (!editEnabled)
             throw new NopException(ERR_WEB_PAGE_NOT_ALLOW_EDIT);
 
-        checkJsFile(path);
+        checkXjsFile(path);
         jsProvider.rollback(path, null);
     }
 }

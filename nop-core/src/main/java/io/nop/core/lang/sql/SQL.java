@@ -129,6 +129,10 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         return new TreeBean(CoreConstants.FILTER_OP_SQL).attr(FilterBeanConstants.FILTER_ATTR_VALUE, this);
     }
 
+    public SqlBuilder extend(){
+        return new SqlBuilder(this);
+    }
+
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("SQL[");
@@ -231,7 +235,9 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         }
 
         public SqlBuilder cache(String cacheName, Serializable cacheKey) {
-            cacheRef = new CacheRef(cacheName, cacheKey);
+            if (!StringHelper.isEmpty(cacheName)) {
+                cacheRef = new CacheRef(cacheName, cacheKey);
+            }
             return this;
         }
 

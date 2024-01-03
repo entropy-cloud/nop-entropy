@@ -53,6 +53,8 @@ public interface IUserContext extends IDirtyFlagSupport {
      */
     String getDeptId();
 
+    String getDeptName();
+
     /**
      * 登录用户名
      */

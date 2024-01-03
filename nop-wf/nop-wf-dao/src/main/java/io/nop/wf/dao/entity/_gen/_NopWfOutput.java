@@ -16,8 +16,8 @@ import io.nop.wf.dao.entity.NopWfOutput;
 /**
  *  工作流输出变量: nop_wf_output
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopWfOutput extends AbstractOrmKeyValueTable{
     
     /* 工作流实例ID: WF_ID VARCHAR */
@@ -80,8 +80,8 @@ public class _NopWfOutput extends AbstractOrmKeyValueTable{
     public static final String PROP_NAME_wfInstance = "wfInstance";
     
 
-    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_wfId,PROP_NAME_fieldName);
-    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_wfId,PROP_ID_fieldName};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_wfId,PROP_NAME_fieldName);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_wfId,PROP_ID_fieldName};
 
     private static final String[] PROP_ID_TO_NAME = new String[14];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
@@ -170,6 +170,7 @@ public class _NopWfOutput extends AbstractOrmKeyValueTable{
     
 
     public _NopWfOutput(){
+        // for debug
     }
 
     protected NopWfOutput newInstance(){

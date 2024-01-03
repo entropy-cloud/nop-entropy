@@ -7,9 +7,7 @@
  */
 package io.nop.excel.imp.model;
 
-import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.eval.IEvalAction;
-import io.nop.core.lang.eval.IEvalScope;
 
 import java.util.Map;
 

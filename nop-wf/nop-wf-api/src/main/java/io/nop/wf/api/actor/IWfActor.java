@@ -22,6 +22,8 @@ public interface IWfActor {
      */
     String SYS_USER_ID = "0";
 
+    String SYS_USER_NAME = "SYS";
+
     String ACTOR_TYPE_USER = "user";
     String ACTOR_TYPE_DEPT = "dept";
     String ACTOR_TYPE_ROLE = "role";
@@ -89,6 +91,14 @@ public interface IWfActor {
     }
 
     default boolean isActor(String actorType, String actorId, String actorDeptId) {
-        return getActorType().equals(actorType) && getActorId().equals(actorId) && Objects.equals(getDeptId(), actorDeptId);
+        if (actorDeptId != null) {
+            if (!Objects.equals(getDeptId(), actorDeptId))
+                return false;
+        }
+        return getActorType().equals(actorType) && getActorId().equals(actorId);
+    }
+
+    default boolean isUser(String userId) {
+        return isActor(ACTOR_TYPE_USER, userId, null);
     }
 }

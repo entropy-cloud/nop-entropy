@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
-      displayName="角色" i18n-en:displayName="Role" tagSet="mapper" xmlns:ui="ui">
+      displayName="角色" i18n-en:displayName="Role" tagSet="mapper" xmlns:ui="ui" xmlns:orm="orm">
 
     <entityName>io.nop.auth.dao.entity.NopAuthRole</entityName>
 
@@ -68,14 +68,16 @@
         </prop>
         <prop name="userMappings" displayName="用户映射" i18n-en:displayName="UserMappings"
               tagSet="pub,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
-              ext:joinLeftProp="roleId" ext:joinRightProp="roleId" insertable="true" updatable="true" lazy="true">
+              ext:joinLeftProp="roleId" ext:joinRightProp="roleId" orm:manyToManyRefProp="userId" insertable="true"
+              updatable="true" lazy="true">
             <schema>
                 <item bizObjName="NopAuthUserRole"/>
             </schema>
         </prop>
         <prop name="resourceMappings" displayName="资源映射" i18n-en:displayName="Resources"
               tagSet="pub,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
-              ext:joinLeftProp="roleId" ext:joinRightProp="roleId" insertable="true" updatable="true" lazy="true">
+              ext:joinLeftProp="roleId" ext:joinRightProp="roleId" orm:manyToManyRefProp="sid" insertable="true"
+              updatable="true" lazy="true">
             <schema>
                 <item bizObjName="NopAuthRoleResource"/>
             </schema>

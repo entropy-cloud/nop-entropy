@@ -15,6 +15,7 @@ import io.nop.commons.util.CollectionHelper;
 import io.nop.core.model.table.CellRange;
 import io.nop.core.model.table.CellRangeMerger;
 import io.nop.report.core.engine.IXptRuntime;
+import jakarta.annotation.Nonnull;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -119,10 +120,11 @@ public class ExpandedCellSet implements Iterable<Object>, IValueWrapper, ISource
     public Object getValue() {
         if (cells.isEmpty())
             return null;
-        ExpandedCell cell = cells.get(0);
+        ExpandedCell cell = getCell();
         return cell.getValue();
     }
 
+    @Nonnull
     @Override
     public Iterator<Object> iterator() {
         return cells.stream().map(ExpandedCell::getValue).iterator();

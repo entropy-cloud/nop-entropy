@@ -32,6 +32,7 @@ public interface XptErrors {
 
     String ARG_REPORT_NAME = "reportName";
 
+    String ARG_SOURCE = "source";
     ErrorCode ERR_XPT_INVALID_ROW_PARENT =
             define("nop.err.xpt.invalid-row-parent",
                     "表格[{sheetName}]的单元格[{cellPos}]的行父格[{rowParent}]必须配置为行展开",
@@ -108,4 +109,8 @@ public interface XptErrors {
     ErrorCode ERR_XPT_NOT_SUPPORT_EXPR_IN_FORMULA =
             define("nop.err.xpt.not-support-expr-in-formula",
                     "Excel公式中不支持表达式:{expr}", ARG_EXPR);
+
+    ErrorCode ERR_XPT_INVALID_EXCEL_FORMULA =
+            define("nop.err.xpt.invalid-excel-formula",
+                    "非法的Excel公式:{source}", ARG_SOURCE);
 }

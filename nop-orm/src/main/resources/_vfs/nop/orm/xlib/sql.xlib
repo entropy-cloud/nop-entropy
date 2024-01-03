@@ -54,12 +54,15 @@
         </when-dialect>
 
         <invoke>
-            <attr name="sqlName" mandatory="true" />
-            <attr name="range" />
-            <attr name="args" />
+            <attr name="sqlName" mandatory="true"/>
+            <attr name="offset" type="Long" />
+            <attr name="limit" type="Long" />
+            <attr name="args"/>
 
             <source>
-                const sqlLibManager  = inject("nopSqlLibManager");
+                import io.nop.api.core.beans.LongRangeBean;
+                const range = limit > 0 ? new LongRangeBean(offset, limit) : null;
+                const sqlLibManager = inject("nopSqlLibManager");
                 return sqlLibManager.invoke(sqlName, range, args, $scope);
             </source>
         </invoke>

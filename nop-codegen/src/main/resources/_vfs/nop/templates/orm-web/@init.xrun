@@ -8,19 +8,22 @@
 
         assign("metaResources",metaResources);
 
-        builder.defineGlobalVar("metaResource",metaResources);
-        builder.defineGlobalVar("moduleName",moduleId.replace('/','-'));
-        builder.defineLoopVar("metaInfo", "metaResource",
-            resource => {
-               const objMeta = SchemaLoader.loadXMeta(resource.path)
-               return {
+        const metaInfos = metaResources.map(resource=>{
+            const objMeta = SchemaLoader.loadXMeta(resource.path)
+            return {
                 forEntity: objMeta['ext:model'] == 'orm',
                 forApi: objMeta['ext:model'] == 'api',
                 baseObjName: resource.path.$fileNameNoExt().$firstPart('_'),
                 objName: resource.path.$fileNameNoExt(),
                 objMeta: objMeta
-               }
-        });
+           }
+        })
+        assign("metaInfos", metaInfos);
+        builder.defineGlobalVar("metaInfos", metaInfos);
+
+        builder.defineGlobalVar("metaResource",metaResources);
+        builder.defineGlobalVar("moduleName",moduleId.replace('/','-'));
+        builder.defineLoopVar("metaInfo", "metaInfos");
         builder.defineGlobalVar("moduleId",moduleId);
     ]]></c:script>
 </gen:DefineLoop>

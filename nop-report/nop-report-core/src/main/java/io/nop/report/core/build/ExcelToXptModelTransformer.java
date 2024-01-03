@@ -92,6 +92,7 @@ public class ExcelToXptModelTransformer {
 
             if (ec.getComment() != null) {
                 parseCellModelFromComment(ec, cellModelNode, transformer);
+                ec.setComment(null);
             }
 
             return ProcessResult.CONTINUE;

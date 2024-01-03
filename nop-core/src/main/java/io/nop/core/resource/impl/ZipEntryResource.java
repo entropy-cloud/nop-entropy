@@ -89,7 +89,7 @@ public class ZipEntryResource extends AbstractResource {
 
     @Override
     public long length() {
-        return entry.getSize();
+        return entry.getSize(); //NOSONAR
     }
 
     @Override

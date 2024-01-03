@@ -7,6 +7,7 @@
  */
 package io.nop.batch.core.loader;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancellable;
 import io.nop.batch.core.IBatchLoader;
@@ -82,6 +83,8 @@ public class BlockingSourceBatchLoader<S, C extends ICancellable> extends Cancel
             try {
                 source.drainTo(items, batchSize, minWaitInterval, pollInterval);
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw NopException.adapt(e);
             }
 
             if (!items.isEmpty())

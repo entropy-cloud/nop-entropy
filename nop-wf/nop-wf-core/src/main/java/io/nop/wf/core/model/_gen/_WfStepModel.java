@@ -1,17 +1,17 @@
 package io.nop.wf.core.model._gen;
 
-import io.nop.commons.collections.KeyedList; //NOPMD - suppressed UnusedImports - Used for List Prop
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [172:10:0:0]/nop/schema/wf/wf.xdef <p>
+ * generate from [180:10:0:0]/nop/schema/wf/wf.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _WfStepModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
@@ -48,6 +48,13 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
      * 如果不自动迁移，则必须有assignment
      */
     private io.nop.wf.core.model.WfAssignmentModel _assignment ;
+    
+    /**
+     *  
+     * xml name: before-transition
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _beforeTransition ;
     
     /**
      *  
@@ -160,6 +167,13 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
      * 
      */
     private KeyedList<io.nop.wf.core.model.WfRefActionModel> _refActions = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: retry
+     * 执行source的时候如果发生异常，则可以重试
+     */
+    private io.nop.wf.core.model.WfRetryModel _retry ;
     
     /**
      *  
@@ -294,6 +308,25 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         checkAllowChange();
         
         this._assignment = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: before-transition
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getBeforeTransition(){
+      return _beforeTransition;
+    }
+
+    
+    public void setBeforeTransition(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._beforeTransition = value;
            
     }
 
@@ -630,6 +663,25 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
+     * xml name: retry
+     *  执行source的时候如果发生异常，则可以重试
+     */
+    
+    public io.nop.wf.core.model.WfRetryModel getRetry(){
+      return _retry;
+    }
+
+    
+    public void setRetry(io.nop.wf.core.model.WfRetryModel value){
+        checkAllowChange();
+        
+        this._retry = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: source
      *  
      */
@@ -743,6 +795,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -753,11 +806,14 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
             
            this._refActions = io.nop.api.core.util.FreezeHelper.deepFreeze(this._refActions);
             
+           this._retry = io.nop.api.core.util.FreezeHelper.deepFreeze(this._retry);
+            
            this._transition = io.nop.api.core.util.FreezeHelper.deepFreeze(this._transition);
             
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
@@ -766,6 +822,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         out.put("allowWithdraw",this.isAllowWithdraw());
         out.put("appState",this.getAppState());
         out.put("assignment",this.getAssignment());
+        out.put("beforeTransition",this.getBeforeTransition());
         out.put("bizEntityState",this.getBizEntityState());
         out.put("checkComplete",this.getCheckComplete());
         out.put("displayName",this.getDisplayName());
@@ -782,6 +839,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         out.put("optional",this.isOptional());
         out.put("priority",this.getPriority());
         out.put("refActions",this.getRefActions());
+        out.put("retry",this.getRetry());
         out.put("source",this.getSource());
         out.put("specialType",this.getSpecialType());
         out.put("tagSet",this.getTagSet());

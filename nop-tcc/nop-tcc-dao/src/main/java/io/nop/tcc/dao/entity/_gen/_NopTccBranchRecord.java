@@ -16,8 +16,8 @@ import io.nop.tcc.dao.entity.NopTccBranchRecord;
 /**
  *  TCC事务分支记录: nop_tcc_branch_record
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopTccBranchRecord extends DynamicOrmEntity{
     
     /* 事务分支ID: BRANCH_ID VARCHAR */
@@ -140,8 +140,8 @@ public class _NopTccBranchRecord extends DynamicOrmEntity{
     public static final String PROP_NAME_tccRecord = "tccRecord";
     
 
-    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_branchId);
-    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_branchId};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_branchId);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_branchId};
 
     private static final String[] PROP_ID_TO_NAME = new String[29];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
@@ -320,6 +320,7 @@ public class _NopTccBranchRecord extends DynamicOrmEntity{
     
 
     public _NopTccBranchRecord(){
+        // for debug
     }
 
     protected NopTccBranchRecord newInstance(){

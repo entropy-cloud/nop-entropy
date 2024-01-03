@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopDynModule.xmeta">
+
+    <props>
+        <prop name="basePackageName">
+            <schema stdDomain="package-name"/>
+        </prop>
+
+        <prop name="mavenGroupId">
+            <schema stdDomain="conf-name"/>
+        </prop>
+    </props>
+</meta>

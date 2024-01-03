@@ -1,17 +1,17 @@
 package io.nop.excel.imp.model._gen;
 
-import io.nop.commons.collections.KeyedList; //NOPMD - suppressed UnusedImports - Used for List Prop
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [60:18:0:0]/nop/schema/excel/imp.xdef <p>
+ * generate from [61:18:0:0]/nop/schema/excel/imp.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _ImportFieldModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
@@ -22,11 +22,18 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
     private java.util.Set<java.lang.String> _alias ;
     
     /**
-     *  
+     *  是否计算字段
      * xml name: computed
-     * 是否计算字段。计算字段不需要从文件读取，而是通过valueExpr计算
+     * 计算字段不需要从文件读取，而是通过valueExpr计算
      */
     private boolean _computed  = false;
+    
+    /**
+     *  
+     * xml name: displayMode
+     * 
+     */
+    private java.lang.String _displayMode ;
     
     /**
      *  
@@ -58,6 +65,13 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: groupField
+     * 列表表头中多个字段可能归属于一个分组字段，采用多级表头形式显示
+     */
+    private java.lang.String _groupField ;
+    
+    /**
+     *  
      * xml name: ignoreWhenEmpty
      * 当数据为空的时候自动忽略该字段，不设置到record对象上
      */
@@ -71,9 +85,9 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
     private java.lang.String _keyProp ;
     
     /**
-     *  
+     *  是否列表定义
      * xml name: list
-     * 是否列表定义，解析得到List类型，内部fields定义的是列表条目对象的属性。
+     * 解析得到List类型，内部fields定义的是列表条目对象的属性。
      */
     private boolean _list  = false;
     
@@ -183,9 +197,9 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
 
     
     /**
-     * 
+     * 是否计算字段
      * xml name: computed
-     *  是否计算字段。计算字段不需要从文件读取，而是通过valueExpr计算
+     *  计算字段不需要从文件读取，而是通过valueExpr计算
      */
     
     public boolean isComputed(){
@@ -197,6 +211,25 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._computed = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: displayMode
+     *  
+     */
+    
+    public java.lang.String getDisplayMode(){
+      return _displayMode;
+    }
+
+    
+    public void setDisplayMode(java.lang.String value){
+        checkAllowChange();
+        
+        this._displayMode = value;
            
     }
 
@@ -305,6 +338,25 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: groupField
+     *  列表表头中多个字段可能归属于一个分组字段，采用多级表头形式显示
+     */
+    
+    public java.lang.String getGroupField(){
+      return _groupField;
+    }
+
+    
+    public void setGroupField(java.lang.String value){
+        checkAllowChange();
+        
+        this._groupField = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: ignoreWhenEmpty
      *  当数据为空的时候自动忽略该字段，不设置到record对象上
      */
@@ -342,9 +394,9 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
 
     
     /**
-     * 
+     * 是否列表定义
      * xml name: list
-     *  是否列表定义，解析得到List类型，内部fields定义的是列表条目对象的属性。
+     *  解析得到List类型，内部fields定义的是列表条目对象的属性。
      */
     
     public boolean isList(){
@@ -591,6 +643,7 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -606,15 +659,18 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
         out.put("alias",this.getAlias());
         out.put("computed",this.isComputed());
+        out.put("displayMode",this.getDisplayMode());
         out.put("displayName",this.getDisplayName());
         out.put("exportExpr",this.getExportExpr());
         out.put("fieldDecider",this.getFieldDecider());
         out.put("fields",this.getFields());
+        out.put("groupField",this.getGroupField());
         out.put("ignoreWhenEmpty",this.isIgnoreWhenEmpty());
         out.put("keyProp",this.getKeyProp());
         out.put("list",this.isList());

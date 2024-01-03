@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopDynModule.xbiz">
+
+    <actions>
+        <query name="active_findPage" x:prototype="findPage">
+
+            <source>
+                <c:import class="io.nop.dyn.dao.NopDynDaoConstants"/>
+
+                <bo:DoFindPage query="${query}" selection="${selection}" xpl:lib="/nop/biz/xlib/bo.xlib">
+                    <filter>
+                        <eq name="status" value="${NopDynDaoConstants.MODULE_STATUS_PUBLISHED}"/>
+                    </filter>
+                </bo:DoFindPage>
+            </source>
+        </query>
+    </actions>
+</biz>

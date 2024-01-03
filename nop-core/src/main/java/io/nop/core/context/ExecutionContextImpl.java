@@ -112,6 +112,10 @@ public class ExecutionContextImpl extends Cancellable implements IExecutionConte
             } catch (ExecutionException e) {
                 cancelAll(results);
                 throw NopException.adapt(e.getCause());
+            } catch (InterruptedException e) {
+                cancelAll(results);
+                Thread.currentThread().interrupt();
+                throw NopException.adapt(e);
             } catch (Exception e) {
                 cancelAll(results);
                 throw NopException.adapt(e);
@@ -244,7 +248,7 @@ public class ExecutionContextImpl extends Cancellable implements IExecutionConte
     }
 
     @Override
-    public Throwable getError() {
+    public synchronized Throwable getError() {
         return error;
     }
 
@@ -254,11 +258,11 @@ public class ExecutionContextImpl extends Cancellable implements IExecutionConte
     }
 
     @Override
-    public List<ErrorBean> getErrorBeans() {
+    public synchronized List<ErrorBean> getErrorBeans() {
         return errorBeans;
     }
 
-    public void setErrorBeans(List<ErrorBean> errorBeans) {
+    public synchronized void setErrorBeans(List<ErrorBean> errorBeans) {
         this.errorBeans = errorBeans;
     }
 

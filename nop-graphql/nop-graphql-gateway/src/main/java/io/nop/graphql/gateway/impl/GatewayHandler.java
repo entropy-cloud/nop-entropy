@@ -28,21 +28,22 @@ import io.nop.xlang.XLangConstants;
 
 import java.util.List;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 
 import static io.nop.graphql.gateway.GraphqlGatewayErrors.ERR_GATEWAY_NO_RPC_SUPPORT;
 
 public class GatewayHandler {
-    private final GatewayModel model;
+    private final Supplier<GatewayModel> model;
     private final IRpcServiceLocator rpcServiceLocator;
 
-    public GatewayHandler(GatewayModel model, IRpcServiceLocator rpcServiceLocator) {
+    public GatewayHandler(Supplier<GatewayModel> model, IRpcServiceLocator rpcServiceLocator) {
         this.model = model;
         this.rpcServiceLocator = rpcServiceLocator;
     }
 
 
     public CompletionStage<ApiResponse<?>> handle(String path, ApiRequest<?> request, IServiceContext context) {
-        MatchResult<List<RouteValue<GatewayRouteModel>>> result = model.getRouter().matchPath(path);
+        MatchResult<List<RouteValue<GatewayRouteModel>>> result = model.get().getRouter().matchPath(path);
         if (result != null) {
             List<RouteValue<GatewayRouteModel>> list = result.getValue();
             for (RouteValue<GatewayRouteModel> route : list) {

@@ -25,8 +25,12 @@ public class LoginUserInfo extends ExtensibleBean {
     private String timeZone;
     private String homePath;
     private String deptId;
+
+    private String deptName;
     private Set<String> roles;
     private String openId;
+
+    private String userId;
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getOpenId() {
@@ -103,6 +107,23 @@ public class LoginUserInfo extends ExtensibleBean {
         this.timeZone = timeZone;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public String getDeptName() {
+        return deptName;
+    }
+
+    public void setDeptName(String deptName) {
+        this.deptName = deptName;
+    }
 
     @JsonAnyGetter
     public Map<String, Object> getAttrs() {

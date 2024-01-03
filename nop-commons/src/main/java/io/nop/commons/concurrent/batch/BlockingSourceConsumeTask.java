@@ -52,6 +52,7 @@ public class BlockingSourceConsumeTask<S> extends Cancellable implements Runnabl
             try {
                 source.drainTo(items, batchSize, config.getMinWaitMillis(), config.getMaxWaitMillis());
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 throw NopException.adapt(e);
             }
 

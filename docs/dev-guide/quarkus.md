@@ -96,3 +96,74 @@ mvnw install -Dnative -DskipTests -Dquarkus.native.container-build=true
             <artifactId>jakarta.mail</artifactId>
         </dependency>
 ````
+
+## 仅使用Nop平台的后端
+
+如果需要使用NopGraphQL服务，则可以引入nop-quarkus-web-starter模块
+
+````xml
+
+<pom>
+    <!--  parent 设置为nop-entropy可以集成缺省的maven plugin，缺省的包管理配置 -->
+    <parent>
+        <artifactId>nop-entropy</artifactId>
+        <groupId>io.github.entropy-cloud</groupId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+
+    <dependencies>
+        <!-- 引入 Nop平台依赖。因为设置了parent为nop-entropy，这里就不用写具体的包的版本号 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-quarkus-web-starter</artifactId>
+        </dependency>
+
+        <!-- 用户、权限管理，这是可选依赖 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-auth-service</artifactId>
+        </dependency>
+
+        <!-- 可选依赖，字典表、编码规则表、扩展字段表、全局序号表等 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-sys-service</artifactId>
+        </dependency>
+
+        <!-- 需要使用Nop平台生成的AMIS页面的时候才需要依赖xxx-web模块 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-auth-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-sys-web</artifactId>
+        </dependency>
+
+        <!-- 这里包含了nop-chaos项目打包生成的js和css，它提供了前台菜单框架包括登录页面等。如果自己实现前端，可以不依赖这个模块 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-web-site</artifactId>
+        </dependency>
+
+    </dependencies>
+</pom>
+````
+
+## 仅使用NopReport报表引擎
+
+````xml
+
+<dependencies>
+    <dependency>
+        <groupId>io.github.entropy-cloud</groupId>
+        <artifactId>nop-quarkus-core-starter</artifactId>
+    </dependency>
+
+    <dependency>
+        <groupId>io.github.entropy-cloud</groupId>
+        <artifactId>nop-report-core</artifactId>
+    </dependency>
+</dependencies>
+````

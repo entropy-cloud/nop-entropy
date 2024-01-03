@@ -6,6 +6,7 @@
 
     <import resource="_dao.beans.xml"/>
     <import resource="wf-core.beans.xml"/>
+    <import resource="/nop/auth/beans/auth-dao.beans.xml"/>
 
     <bean id="nopWorkflowStore" ioc:default="true"
           class="io.nop.wf.dao.store.DaoWorkflowStore"/>

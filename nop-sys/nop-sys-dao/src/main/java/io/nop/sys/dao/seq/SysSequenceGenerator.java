@@ -7,21 +7,27 @@
  */
 package io.nop.sys.dao.seq;
 
+import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.cache.CacheConfig;
 import io.nop.commons.cache.LocalCache;
+import io.nop.commons.crypto.HashHelper;
 import io.nop.commons.util.MathHelper;
+import io.nop.commons.util.NetHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.dao.DaoErrors;
 import io.nop.dao.seq.ISequenceGenerator;
+import io.nop.dao.seq.SnowflakeSequenceGeneator;
 import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.orm.IOrmSession;
 import io.nop.orm.IOrmTemplate;
+import io.nop.sys.dao.NopSysDaoConstants;
 import io.nop.sys.dao.entity.NopSysSequence;
+import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +36,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
+import static io.nop.api.core.ApiConfigs.CFG_HOST_ID;
 import static io.nop.sys.dao.NopSysDaoConfigs.CFG_SYS_INIT_DEFAULT_SEQUENCE;
 import static io.nop.sys.dao.NopSysDaoConstants.SEQ_DEFAULT;
 
@@ -39,10 +46,13 @@ public class SysSequenceGenerator implements ISequenceGenerator {
     private IOrmTemplate ormTemplate;
     private ITransactionTemplate transactionTemplate;
 
+    private long workerId = 0L;
+
+    private ISequenceGenerator snowflakeGenerator;
     private final Map<String, SeqItem> cache = new ConcurrentHashMap<>();
 
     private final LocalCache<String, SeqItem> defaultCache = LocalCache.newCache("default-seq-cache",
-            CacheConfig.newConfig(500, 60 * 1000));
+            CacheConfig.newConfig(500, 60 * 1000L));
 
     static class SeqItem {
         String name; // 对象类型, 如果没有找到匹配的对象类型，则使用default类型
@@ -54,6 +64,8 @@ public class SysSequenceGenerator implements ISequenceGenerator {
         // >= cacheSize时，需要获取新的nextValue
         long nextValue; // 下一个可用的sequence值
         boolean useUuid; // 是否使用UUID来生成随机id
+
+        boolean snowflake;
 
         SeqItem(NopSysSequence seq) {
             this.name = seq.getSeqName();
@@ -68,6 +80,7 @@ public class SysSequenceGenerator implements ISequenceGenerator {
 
         public void update(NopSysSequence seq) {
             this.useUuid = StringHelper.isYes(seq.getIsUuid());
+            this.snowflake = NopSysDaoConstants.SEQ_TYPE_SNOWFLAKE.equals(seq.getSeqType());
             this.cacheSize = 0;
             this.stepSize = seq.getStepSize() != null ? seq.getStepSize() : 1;
             if (this.stepSize <= 0) {
@@ -85,6 +98,11 @@ public class SysSequenceGenerator implements ISequenceGenerator {
         cache.remove(cacheKey);
     }
 
+    @InjectValue("@cfg:nop.sys.seq.snowflake-worker-id:0")
+    public void setSnowflakeWorkerId(long snowflakeWorkerId) {
+        this.workerId = snowflakeWorkerId;
+    }
+
     @Inject
     public void setOrmTemplate(IOrmTemplate ormTemplate) {
         this.ormTemplate = ormTemplate;
@@ -93,6 +111,18 @@ public class SysSequenceGenerator implements ISequenceGenerator {
     @Inject
     public void setTransactionTemplate(ITransactionTemplate transactionTemplate) {
         this.transactionTemplate = transactionTemplate;
+    }
+
+    @PostConstruct
+    public void afterPropertiesSet() {
+        // 如果没有设置workerId，则尝试根据唯一指定的hostId来动态生成
+        if (workerId == 0) {
+            String hostId = CFG_HOST_ID.get();
+            if (StringHelper.isEmpty(hostId))
+                hostId = NetHelper.findLocalIp();
+            workerId = HashHelper.murmur3_64_string().hash64(hostId);
+        }
+        this.snowflakeGenerator = new SnowflakeSequenceGeneator(workerId);
     }
 
     public void lazyInit() {
@@ -139,6 +169,9 @@ public class SysSequenceGenerator implements ISequenceGenerator {
     public long generateLong(String seqName, boolean useDefault) {
         SeqItem item = this.findSeqItem(seqName, useDefault);
         synchronized (item) {
+            if (item.snowflake) {
+                return snowflakeGenerator.generateLong(seqName, useDefault);
+            }
             if (item.useUuid)
                 return MathHelper.secureRandom().nextLong();
 
@@ -162,6 +195,9 @@ public class SysSequenceGenerator implements ISequenceGenerator {
         // 并更新数据库中的nextValue配置
         SeqItem item = this.findSeqItem(seqName, useDefault);
         synchronized (item) {
+            if (item.snowflake)
+                return snowflakeGenerator.generateString(seqName, useDefault);
+
             if (item.useUuid) {
                 return StringHelper.generateUUID();
             }

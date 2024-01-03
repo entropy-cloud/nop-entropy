@@ -242,4 +242,17 @@ public class TestEqlQuery extends AbstractOrmTestCase {
             orm().findFirst(new SQL(sql));
         });
     }
+
+    @Test
+    public void testLeftJoinOn() {
+        String sql = "select o from io.nop.app.SimsClass o left join io.nop.app.SimsCollege c1 on o.collegeId = c1.collegeId";
+        List<SimsClass> list = orm().findAll(new SQL(sql));
+        assertEquals(1, list.size());
+
+
+        String sql2 = "select o from SimsClass o left join SimsCollege c1 on o.collegeId = c1.collegeId " +
+                " left join SimsCollege c2 on c1.collegeId = c2.collegeId where c1.collegeId is not null or c2.collegeId is not null";
+        List<SimsClass> list2 = orm().findAll(new SQL(sql2));
+        assertEquals(1, list2.size());
+    }
 }

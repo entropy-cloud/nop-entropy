@@ -9,6 +9,7 @@ package io.nop.wf.core.engine;
 
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
@@ -21,10 +22,14 @@ import io.nop.wf.core.model.WfListenerModel;
 import io.nop.wf.core.model.WfModel;
 import io.nop.wf.core.store.IWorkflowActionRecord;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_NAME;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_STATUS;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_ID;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_NAME;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_VERSION;
@@ -33,9 +38,6 @@ import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_VERSION;
  * 每次调用工作流对象上的action时所创建的运行时对象。在EL表达式中可以通过wfRt变量来访问该运行时对象
  */
 public class WfRuntime implements IWfRuntime {
-
-//    static final ThreadLocal<Map<IWorkflowImplementor, ContinuationExecutor.Continuation>> s_continuation
-//            = ThreadLocal.withInitial(HashMap::new);
 
     private final IEvalScope scope;
     private final IServiceContext serviceContext;
@@ -65,14 +67,11 @@ public class WfRuntime implements IWfRuntime {
 
     private IWorkflowStepImplementor actionStep;
 
+    private IWfActor assigner;
+
     private Throwable exception;
 
-//    class WfContinuation extends ContinuationExecutor.Continuation {
-//        @Override
-//        protected void onLoopFinished() {
-//            s_continuation.get().remove(wf);
-//        }
-//    }
+    private Object bizEntity;
 
     public WfRuntime(IWorkflowImplementor wf, IServiceContext serviceContext) {
         this.serviceContext = serviceContext;
@@ -89,6 +88,14 @@ public class WfRuntime implements IWfRuntime {
         scope.setLocalValue(null, NopWfCoreConstants.VAR_WF, wf);
         scope.setLocalValue(null, NopWfCoreConstants.VAR_WF_RT, this);
         return scope;
+    }
+
+    public IWfActor getAssigner() {
+        return assigner;
+    }
+
+    public void setAssigner(IWfActor assigner) {
+        this.assigner = assigner;
     }
 
     /**
@@ -149,6 +156,14 @@ public class WfRuntime implements IWfRuntime {
     }
 
     @Override
+    public Object getBizEntity() {
+        if (bizEntity == null) {
+            bizEntity = wf.getBizEntity();
+        }
+        return bizEntity;
+    }
+
+    @Override
     public Set<String> getTargetSteps() {
         return targetSteps;
     }
@@ -192,6 +207,12 @@ public class WfRuntime implements IWfRuntime {
     public NopException newError(ErrorCode errorCode) {
         NopException e = new NopException(errorCode).param(ARG_WF_NAME, wf.getWfName())
                 .param(ARG_WF_VERSION, wf.getWfVersion()).param(ARG_WF_ID, wf.getWfId());
+
+        if (currentStep != null) {
+            e.param(ARG_STEP_NAME, currentStep.getStepName())
+                    .param(ARG_STEP_ID, currentStep.getStepId())
+                    .param(ARG_STEP_STATUS, currentStep.getStepStatus());
+        }
         return e;
     }
 
@@ -239,6 +260,34 @@ public class WfRuntime implements IWfRuntime {
         this.currentActorAssignments = currentActorAssignments;
     }
 
+    public WfActorWithWeight getActorAssignmentForUser(String userId) {
+        if (currentActorAssignments == null)
+            return null;
+        for (WfActorWithWeight actorWithWeight : this.currentActorAssignments) {
+            if (actorWithWeight.isUser(userId))
+                return actorWithWeight;
+        }
+        return null;
+    }
+
+    @Override
+    public void replaceActorAssignment(WfActorWithWeight assignment, IWfActor actor) {
+        Guard.notNull(assignment, "assignment");
+        Guard.notNull(actor, "actor");
+
+        if (currentActorAssignments == null) {
+            this.currentActorAssignments = new ArrayList<>();
+            this.currentActorAssignments.add(assignment.replaceActor(actor));
+        } else {
+            int index = this.currentActorAssignments.indexOf(assignment);
+            if (index < 0) {
+                this.currentActorAssignments.add(assignment.replaceActor(actor));
+            } else {
+                this.currentActorAssignments.set(index, assignment.replaceActor(actor));
+            }
+        }
+    }
+
     @Override
     public IWorkflowStepImplementor getCurrentStep() {
         return currentStep;
@@ -252,7 +301,7 @@ public class WfRuntime implements IWfRuntime {
     public void triggerEvent(String event) {
         WfModel wfModel = (WfModel) wf.getModel();
         List<WfListenerModel> listeners = wfModel.getListeners();
-        if (listeners != null && listeners.isEmpty()) {
+        if (listeners != null && !listeners.isEmpty()) {
             for (WfListenerModel listener : listeners) {
                 if (listener.matchPattern(event)) {
                     IEvalAction source = listener.getSource();
@@ -262,10 +311,6 @@ public class WfRuntime implements IWfRuntime {
                 }
             }
         }
-    }
-
-    private void doExecute(Runnable task) {
-
     }
 
     @Override

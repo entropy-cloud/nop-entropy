@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
+      displayName="Oauth认证记录" xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>io.nop.oauth.dao.entity.NopOauthAuthorization</entityName>
+
+    <primaryKey>id</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="id" displayName="Id" tagSet="seq" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="registeredClientId" displayName="客户端ID" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="principalName" displayName="客户端名称" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="authorizationGrantType" displayName="授权类型" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="authorizedScopes" displayName="授权范围" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="attributes" displayName="扩展属性" queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="65535"/>
+        </prop>
+        <prop name="state" displayName="状态码" queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="authorizationCodeValue" displayName="AuthorizationCode值" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="65535"/>
+        </prop>
+        <prop name="authorizationCodeIssuedAt" displayName="AuthorizationCode发放时间" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="authorizationCodeExpiresAt" displayName="AuthorizationCode过期使劲按" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="authorizationCodeMetadata" displayName="AuthorizationCode元数据" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="65535"/>
+        </prop>
+        <prop name="accessTokenValue" displayName="AccessToken" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="65535"/>
+        </prop>
+        <prop name="accessTokenIssuedAt" displayName="AccessToken发放时间" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="accessTokenExpiresAt" displayName="AccessToken过期时间" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="accessTokenMetadata" displayName="AccessToken元数据" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="65535"/>
+        </prop>
+        <prop name="accessTokenType" displayName="AccessToken类型" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="accessTokenScopes" displayName="AccessToken权限范围" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="oidcIdTokenValue" displayName="OidcIdToken值" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="65535"/>
+        </prop>
+        <prop name="oidcIdTokenIssuedAt" displayName="OidcIdToken发放时间" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="oidcIdTokenExpiresAt" displayName="OidcIdToken过期时间" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="oidcIdTokenMetadata" displayName="OidcIdToken元数据" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="65535"/>
+        </prop>
+        <prop name="refreshTokenValue" displayName="RefreshToken值" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="65535"/>
+        </prop>
+        <prop name="refreshTokenIssuedAt" displayName="RefreshToken发放时间" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="refreshTokenExpiresAt" displayName="RefreshToken过期时间" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="refreshTokenMetadata" displayName="RefreshToken元数据" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="65535"/>
+        </prop>
+        <prop name="userCodeValue" displayName="UserCode值" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="65535"/>
+        </prop>
+        <prop name="userCodeIssuedAt" displayName="UserCode发放时间" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="userCodeExpiresAt" displayName="UserCode过期时间" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="userCodeMetadata" displayName="UserCode元数据" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="65535"/>
+        </prop>
+        <prop name="deviceCodeValue" displayName="DeviceCode值" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="65535"/>
+        </prop>
+        <prop name="deviceCodeIssuedAt" displayName="DeviceCode发放时间" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="deviceCodeExpiresAt" displayName="DeviceCode过期时间" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="deviceCodeMetadata" displayName="DeviceCode元数据" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="65535"/>
+        </prop>
+    </props>
+</meta>

@@ -17,6 +17,7 @@ import io.nop.core.model.table.CellRange;
 import io.nop.core.model.table.ICell;
 import io.nop.core.model.table.ICellView;
 import io.nop.excel.ExcelConstants;
+import io.nop.excel.format.ExcelDateHelper;
 import io.nop.excel.model.ExcelCell;
 import io.nop.excel.model.ExcelColumnConfig;
 import io.nop.excel.model.ExcelImage;
@@ -153,6 +154,12 @@ public class ExcelWorkbookParser extends AbstractXlsxParser {
                     sheet.getName(), cellRef.toABString(), null));
             if (styleId >= 0) {
                 cell.setStyleId(String.valueOf(styleId));
+                if (value instanceof Double) {
+                    ExcelStyle style = workbook.getStyle(cell.getStyleId());
+                    if (style != null && style.isDateFormat()) {
+                        value = ExcelDateHelper.excelDateToLocalDateTime((Double) value);
+                    }
+                }
             }
             cell.setValue(value);
             table.setCell(cellRef.getRowIndex(), cellRef.getColIndex(), cell);

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:extends="_gen/_NopDynEntityMeta.view.xml" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <grids>
+        <grid id="list"/>
+        <grid id="pick-list"/>
+    </grids>
+
+    <forms>
+        <form id="view"/>
+        <form id="edit"/>
+    </forms>
+
+    <pages>
+        <crud name="main">
+            <rowActions>
+                <actionGroup id="row-more-button">
+                    <action id="row-edit-prop-metas" label="@i18n:NopDynEntityMeta.props.propMetas|属性列表" actionType="drawer">
+                        <dialog page="/nop/dyn/pages/NopDynPropMeta/ref-entityMeta.page.yaml" size="xl">
+                            <data>
+                                <entityMetaId>$entityMetaId</entityMetaId>
+                                <entityMeta>
+                                    <entityName>$entityName</entityName>
+                                    <displayName>$displayName</displayName>
+                                </entityMeta>
+                            </data>
+                        </dialog>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+
+        <picker name="picker"/>
+    </pages>
+</view>

@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+          xmlns:wf="wf" x:extends="/nop/wf/base/oa.xwf" bizEntityFlowIdProp="nopFlowId">
+
+    <auths>
+        <!--
+            所有用户都可以启动流程
+        -->
+        <auth id="auth1" actorType="all" actorId="all" allowStart="true"/>
+    </auths>
+
+    <steps>
+        <step displayName="发起人" name="start">
+            <transition splitType="or">
+                <to-step stepName="approve1" order="1">
+                    <when>
+                        <eq name="wfRt.starter.deptId" value="a"/>
+                    </when>
+                </to-step>
+
+                <to-step stepName="approve2" order="2">
+                    <when>
+                        <eq name="wfRt.starter.deptId" value="b"/>
+                    </when>
+                </to-step>
+
+                <to-step stepName="approve3" order="3">
+                    <when>
+                        <eq name="wfRt.starter.deptId" value="c"/>
+                    </when>
+                </to-step>
+
+                <to-step stepName="approve4" order="4">
+                </to-step>
+            </transition>
+        </step>
+
+        <step displayName="审批人1" name="approve1">
+            <assignment>
+                <actors>
+                    <actor actorType="user" actorId="2" actorModelId="m1"/>
+                </actors>
+            </assignment>
+            <transition onAppStates="agree">
+                <to-step stepName="approve-join"/>
+            </transition>
+        </step>
+
+        <step displayName="审批人2" name="approve2">
+            <assignment>
+                <actors>
+                    <actor actorType="wf-actor:StarterDeptManager" actorModelId="m1"
+                           wf:permissions="transfer,reject,add-sign"/>
+                </actors>
+            </assignment>
+            <transition onAppStates="agree">
+                <to-step stepName="approve-join"/>
+            </transition>
+        </step>
+
+        <step displayName="审批人3" name="approve3">
+            <assignment>
+                <actors>
+                    <actor actorId="3" actorType="user" actorModelId="m1"/>
+                </actors>
+            </assignment>
+
+            <transition wfAppState="agree" onAppStates="agree">
+                <to-step stepName="approve-join"/>
+            </transition>
+        </step>
+
+        <step displayName="审批人4" name="approve4">
+            <assignment selection="single">
+                <actors>
+                    <actor actorId="all" actorType="all" selectUser="true" actorModelId="m1"/>
+                </actors>
+            </assignment>
+
+            <transition onAppStates="agree">
+                <to-step stepName="approve-join"/>
+            </transition>
+        </step>
+
+        <join name="approve-join" displayName="合并" internal="true" >
+            <transition splitType="or">
+                <to-step stepName="approve21" order="1">
+                    <when>
+                        <le name="wfRt.bizEntity.salary2" value="@:30000"/>
+                    </when>
+                </to-step>
+
+                <to-step stepName="approve22" order="2">
+
+                </to-step>
+            </transition>
+        </join>
+
+        <step displayName="审批人21" name="approve21">
+            <assignment>
+                <actors>
+                    <actor actorId="4" actorType="user" actorModelId="m1"/>
+                </actors>
+            </assignment>
+
+            <transition wfAppState="agree" onAppStates="agree">
+                <to-end/>
+            </transition>
+        </step>
+
+        <step displayName="审批人22" name="approve22">
+            <assignment>
+                <actors>
+                    <actor actorId="manager" actorType="role" actorModelId="m1"/>
+                </actors>
+            </assignment>
+
+            <transition wfAppState="agree" onAppStates="agree">
+                <to-end/>
+            </transition>
+        </step>
+    </steps>
+
+</workflow>

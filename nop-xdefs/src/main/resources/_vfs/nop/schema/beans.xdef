@@ -111,6 +111,7 @@
       @ioc:aop 指定了ioc:aop=true的bean才会成为AOP pointcut的目标。
       @ioc:before 在创建这些bean之前需要先创建当前的bean。类似于depends-on设置，只是它在被依赖方设置
       @ioc:after 在这些bean创建之后立刻创建当前的bean
+      @ioc:force-init 在START_LAZY启动模式下即使设置了lazy-init=false，缺省也不会自动启动。但是如果设置了ioc:force-init，则强制新建。
      -->
     <xdef:define class="class-name" xdef:name="BeanValue" parent="bean-name"
                  autowire="enum:io.nop.ioc.model.AutowireType" autowire-candidate="!boolean=true"
@@ -118,7 +119,7 @@
                  ioc:bean-method="var-name" ioc:refresh-config-method="var-name"
                  ioc:type="word-set" ioc:proxy="!boolean=false" ioc:before="word-set" ioc:after="word-set"
                  factory-bean="var-name" factory-method="var-name"
-                 ioc:config-prefix="string" ioc:auto-refresh="!boolean=false"
+                 ioc:config-prefix="string" ioc:auto-refresh="!boolean=false" ioc:force-init="!boolean=false"
                  ioc:delay-method="var-name" lazy-init="boolean" ioc:aop="!boolean=true"
                  depends-on="word-set" xdef:key-attr="name" ioc:restart-method="var-name"
                  ioc:init-order="!#int=100">

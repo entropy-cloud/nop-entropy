@@ -429,4 +429,39 @@ public class ApiStringHelper {
         return sb.toString();
     }
 
+    @Deterministic
+    public static boolean onlyChars(String str, boolean allowAscii, boolean allowDigit, String specialChars) {
+        if (isEmpty(str))
+            return false;
+
+        for (int i = 0, n = str.length(); i < n; i++) {
+            char c = str.charAt(i);
+            if (!isAllowChar(c, allowAscii, allowDigit, specialChars))
+                return false;
+        }
+
+        return true;
+    }
+
+    @Deterministic
+    public static boolean isAsciiLetter(int c) {
+        return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z';
+    }
+
+    @Deterministic
+    public static boolean isDigit(int c) {
+        return c <= '9' && c >= '0';
+    }
+
+    private static boolean isAllowChar(char c, boolean allowAscii, boolean allowDigit, String specialChars) {
+        if (allowAscii && isAsciiLetter(c))
+            return true;
+
+        if (allowDigit && isDigit(c)) {
+            return true;
+        }
+        if (specialChars != null && specialChars.indexOf(c) >= 0)
+            return true;
+        return false;
+    }
 }

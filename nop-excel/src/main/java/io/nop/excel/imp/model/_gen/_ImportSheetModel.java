@@ -1,6 +1,6 @@
 package io.nop.excel.imp.model._gen;
 
-import io.nop.commons.collections.KeyedList; //NOPMD - suppressed UnusedImports - Used for List Prop
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 
 
@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _ImportSheetModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
@@ -34,6 +34,13 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
      * 
      */
     private java.lang.String _description ;
+    
+    /**
+     *  
+     * xml name: displayMode
+     * 
+     */
+    private java.lang.String _displayMode ;
     
     /**
      *  
@@ -200,6 +207,25 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._description = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: displayMode
+     *  
+     */
+    
+    public java.lang.String getDisplayMode(){
+      return _displayMode;
+    }
+
+    
+    public void setDisplayMode(java.lang.String value){
+        checkAllowChange();
+        
+        this._displayMode = value;
            
     }
 
@@ -535,6 +561,7 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -548,12 +575,14 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
         out.put("afterParse",this.getAfterParse());
         out.put("beforeParse",this.getBeforeParse());
         out.put("description",this.getDescription());
+        out.put("displayMode",this.getDisplayMode());
         out.put("field",this.getField());
         out.put("fieldDecider",this.getFieldDecider());
         out.put("fields",this.getFields());

@@ -20,4 +20,7 @@ public interface AuthCoreConfigs {
     IConfigReference<Boolean> CFG_AUTH_SITE_MAP_SUPPORT_DEBUG = varRef(s_loc, "nop.auth.site-map.support-debug", Boolean.class,
             false);
 
+    @Description("是否设置cookie的secure属性为true")
+    IConfigReference<Boolean> CFG_AUTH_USE_SECURE_COOKIE =
+            varRef(s_loc, "nop.auth.use-secure-cookie", Boolean.class, false);
 }

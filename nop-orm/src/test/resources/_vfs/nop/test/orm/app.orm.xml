@@ -19,7 +19,7 @@
     <entities>
         <entity name="io.nop.app.SimsClassFee" x:override="remove"/>
 
-        <entity name="io.nop.app.SimsClass">
+        <entity name="io.nop.app.SimsClass" registerShortName="true">
             <columns>
                 <column name="collegeId" propId="100" lazy="true"/>
                 <column name="jsonExt" code="JSON_EXT" propId="101" tagSet="json" stdSqlType="JSON"
@@ -28,6 +28,18 @@
             <aliases>
                 <alias name="collegeName" propPath="simsCollege.collegeName" type="String"/>
             </aliases>
+
+            <computes>
+                <compute name="collegeNameEx" type="String">
+                    <getter>
+                        return entity.collegeName + 'Ex';
+                    </getter>
+
+                    <setter>
+                        entity.collegeName = value.$removeTail('Ex')
+                    </setter>
+                </compute>
+            </computes>
             <relations>
                 <to-one name="simsCollege" refEntityName="io.nop.app.SimsCollege" refPropName="simsClasses">
                     <join>
@@ -37,7 +49,7 @@
             </relations>
         </entity>
 
-        <entity name="io.nop.app.SimsCollege">
+        <entity name="io.nop.app.SimsCollege" registerShortName="true">
             <relations>
                 <to-many name="ext" refEntityName="io.nop.app.SimsExtField" keyProp="fieldName" notGenCode="true">
                     <join>
@@ -139,6 +151,12 @@
                 <column name="majorId" tagSet="seq" mandatory="true"/>
                 <column name="delFlag" code="DEL_FLAG" stdSqlType="TINYINT" propId="20" mandatory="true"/>
             </columns>
+        </entity>
+
+        <entity name="io.nop.app.SimsInstruct">
+            <unique-keys>
+                <unique-key columns="classId,lessonId,teacherId" constraint="UK_SIMS_INSTRUCT" name="simsInstructKey"/>
+            </unique-keys>
         </entity>
     </entities>
 </orm>

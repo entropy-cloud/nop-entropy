@@ -659,7 +659,7 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
     }
 
     public int getTreeLevel() {
-        if (parent == null)
+        if (parent != null)
             return parent.getTreeLevel() + 1;
         return 0;
     }

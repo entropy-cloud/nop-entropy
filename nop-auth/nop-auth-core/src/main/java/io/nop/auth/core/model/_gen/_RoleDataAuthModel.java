@@ -1,6 +1,6 @@
 package io.nop.auth.core.model._gen;
 
-import io.nop.commons.collections.KeyedList; //NOPMD - suppressed UnusedImports - Used for List Prop
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 
 
@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _RoleDataAuthModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
@@ -39,7 +39,7 @@ public abstract class _RoleDataAuthModel extends io.nop.core.resource.component.
      *  权限规则优先级
      * xml name: priority
      * 如果一个用户存在多个角色，则按照优先级高的权限约束规则执行。
-     * 如果多个规则具有相同优先级，则它们需要同时被执行
+     * 如果多个规则具有相同优先级，则只执行第一条匹配的过滤规则
      */
     private int _priority  = 100;
     
@@ -111,7 +111,7 @@ public abstract class _RoleDataAuthModel extends io.nop.core.resource.component.
      * 权限规则优先级
      * xml name: priority
      *  如果一个用户存在多个角色，则按照优先级高的权限约束规则执行。
-     * 如果多个规则具有相同优先级，则它们需要同时被执行
+     * 如果多个规则具有相同优先级，则只执行第一条匹配的过滤规则
      */
     
     public int getPriority(){
@@ -147,6 +147,7 @@ public abstract class _RoleDataAuthModel extends io.nop.core.resource.component.
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -156,6 +157,7 @@ public abstract class _RoleDataAuthModel extends io.nop.core.resource.component.
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

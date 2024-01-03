@@ -111,7 +111,8 @@ public class JdkZipOutput implements IZipOutput {
         }
 
         os.putNextEntry(entry);
-        IoHelper.copy(is, os, CFG_IO_DEFAULT_BUF_SIZE.get(), getStepListener("zip", entry.getName(), entry.getSize()));
+        IoHelper.copy(is, os, CFG_IO_DEFAULT_BUF_SIZE.get(),
+                getStepListener("zip", entry.getName(), entry.getSize())); //NOSONAR
         firstEntry = false;
     }
 

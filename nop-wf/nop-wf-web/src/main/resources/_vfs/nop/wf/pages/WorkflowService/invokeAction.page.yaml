@@ -1,0 +1,3 @@
+
+x:gen-extends: |
+    <web:GenPage view="WorkflowService.view.xml" page="invokeAction" xpl:lib="/nop/web/xlib/web.xlib" />

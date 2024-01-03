@@ -233,6 +233,10 @@
                     <schema stdDomain="string"/>
                 </field>
 
+                <field name="querySpace" displayName="查询空间">
+                    <schema stdDomain="string"/>
+                </field>
+
                 <field name="ext:minPropId" displayName="propId的起始值">
                     <schema stdDomain="int"/>
                 </field>
@@ -281,6 +285,11 @@
                         <field name="domain" displayName="数据域">
                             <schema stdDomain="xml-name"/>
                         </field>
+
+                        <field name="stdDomain" displayName="标准域">
+                            <schema stdDomain="xml-name"/>
+                        </field>
+
                         <field name="stdSqlType" displayName="类型" mandatory="true">
                             <schema stdDomain="std-sql-type"/>
                         </field>
@@ -308,11 +317,11 @@
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="ext:control" displayName="控件">
+                        <field name="ui:control" displayName="控件">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="ext:rootLevel" displayName="根节点级别">
+                        <field name="ui:rootLevel" displayName="根节点级别">
                             <schema stdDomain="string"/>
                         </field>
 
@@ -367,7 +376,6 @@
                             <schema stdDomain="boolean"/>
                         </field>
 
-
                         <field name="type" displayName="关联类型">
                             <schema dict="core/entity-relation-type"/>
                             <valueExpr>
@@ -379,7 +387,7 @@
                             <schema stdDomain="boolFlag"/>
                         </field>
 
-                        <field name="ext:control" displayName="控件">
+                        <field name="ui:control" displayName="控件">
                             <schema stdDomain="string"/>
                         </field>
 
@@ -439,6 +447,95 @@
                             <schema stdDomain="string"/>
                         </field>
 
+                    </fields>
+                </field>
+
+                <field name="aliases" displayName="别名列表" list="true">
+                    <fields>
+                        <field name="name" displayName="名称" mandatory="true">
+                            <schema stdDomain="var-name"/>
+                        </field>
+
+                        <field name="displayName" displayName="中文名">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="i18n-en:displayName" displayName="英文名">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="propPath" displayName="属性路径">
+                            <schema stdDomain="prop-path"/>
+                        </field>
+
+                        <field name="type" displayName="数据类型">
+                            <schema stdDomain="generic-type"/>
+                        </field>
+
+                        <field name="tagSet" displayName="标签">
+                            <schema stdDomain="tag-set" />
+                        </field>
+
+                        <field name="notGenCode" displayName="不生成代码">
+                            <schema stdDomain="boolean" />
+                        </field>
+
+                    </fields>
+                </field>
+
+                <field name="computes" displayName="计算属性列表" list="true">
+                    <fields>
+                        <field name="name" displayName="名称" mandatory="true">
+                            <schema stdDomain="var-name"/>
+                        </field>
+
+                        <field name="displayName" displayName="中文名">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="i18n-en:displayName" displayName="英文名">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="type" displayName="数据类型">
+                            <schema stdDomain="generic-type"/>
+                        </field>
+
+                        <field name="tagSet" displayName="标签">
+                            <schema stdDomain="tag-set" />
+                        </field>
+
+                        <field name="notGenCode" displayName="不生成代码">
+                            <schema stdDomain="boolean" />
+                        </field>
+
+                        <field name="getter" displayName="读函数">
+                            <schema stdDomain="xpl" />
+                        </field>
+
+                        <field name="setter" displayName="写函数">
+                            <schema stdDomain="xpl" />
+                        </field>
+
+                        <field name="args" displayName="参数" list="true">
+                            <fields>
+                                <field name="name" displayName="名称" mandatory="true">
+                                    <schema stdDomain="var-name"/>
+                                </field>
+
+                                <field name="displayName" displayName="中文名">
+                                    <schema stdDomain="string"/>
+                                </field>
+
+                                <field name="i18n-en:displayName" displayName="英文名">
+                                    <schema stdDomain="string"/>
+                                </field>
+
+                                <field name="type" displayName="数据类型">
+                                    <schema stdDomain="generic-type"/>
+                                </field>
+                            </fields>
+                        </field>
                     </fields>
                 </field>
             </fields>

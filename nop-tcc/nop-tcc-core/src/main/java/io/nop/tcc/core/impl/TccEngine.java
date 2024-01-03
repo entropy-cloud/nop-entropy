@@ -67,7 +67,7 @@ public class TccEngine implements ITccEngine {
 
     @Inject
     public void setServiceLocator(IRpcServiceLocator apiServiceLocator) {
-        this.serviceLocator = serviceLocator;
+        this.serviceLocator = apiServiceLocator;
     }
 
     public IRpcServiceLocator getServiceLocator() {

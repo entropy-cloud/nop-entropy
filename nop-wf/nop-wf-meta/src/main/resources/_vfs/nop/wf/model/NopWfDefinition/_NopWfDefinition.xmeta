@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
-      displayName="工作流模型定义" i18n-en:displayName="Worflow Definition" xmlns:ui="ui">
+      displayName="工作流模型定义" i18n-en:displayName="Worflow Definition" xmlns:ui="ui" xmlns:orm="orm">
 
     <entityName>io.nop.wf.dao.entity.NopWfDefinition</entityName>
 
@@ -71,6 +71,14 @@
         <prop name="remark" displayName="备注" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="true" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="definitionAuths" displayName="工作流定义权限" i18n-en:displayName="Definition Auths"
+              tagSet="pub,grid,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
+              ui:editGrid="sub-grid-edit" ui:viewGrid="sub-grid-view" ext:joinLeftProp="wfDefId"
+              ext:joinRightProp="wfDefId" insertable="true" updatable="true" lazy="true">
+            <schema>
+                <item bizObjName="NopWfDefinitionAuth"/>
+            </schema>
         </prop>
     </props>
 </meta>

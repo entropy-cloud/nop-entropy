@@ -361,6 +361,12 @@ public enum StdDataType {
         }
     }
 
+    public static StdDataType guessFromValue(Object value) {
+        if (value == null)
+            return null;
+        return fromJavaClass(value.getClass());
+    }
+
     public static boolean isSimpleType(String className) {
         StdDataType type = fromJavaClassName(className);
         if (type == null)

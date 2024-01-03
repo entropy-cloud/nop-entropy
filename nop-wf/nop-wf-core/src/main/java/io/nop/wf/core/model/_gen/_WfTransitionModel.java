@@ -1,17 +1,17 @@
 package io.nop.wf.core.model._gen;
 
-import io.nop.commons.collections.KeyedList; //NOPMD - suppressed UnusedImports - Used for List Prop
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [127:14:0:0]/nop/schema/wf/wf.xdef <p>
+ * generate from [135:14:0:0]/nop/schema/wf/wf.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _WfTransitionModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
@@ -30,8 +30,15 @@ public abstract class _WfTransitionModel extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: onAppStates
+     * 当步骤的appState为指定值的时候才会触发transition
+     */
+    private java.util.Set<java.lang.String> _onAppStates ;
+    
+    /**
+     *  
      * xml name: splitType
-     * 分支类型，and表示每个分支都执行，or表示从上至下执行，只执行第一个满足条件的迁移目标。
+     * 分支类型，and表示每个分支都执行，or表示从上至下执行，只执行第一个满足条件的迁移目标。缺省为and
      */
     private io.nop.wf.core.model.WfSplitType _splitType ;
     
@@ -110,8 +117,27 @@ public abstract class _WfTransitionModel extends io.nop.core.resource.component.
     
     /**
      * 
+     * xml name: onAppStates
+     *  当步骤的appState为指定值的时候才会触发transition
+     */
+    
+    public java.util.Set<java.lang.String> getOnAppStates(){
+      return _onAppStates;
+    }
+
+    
+    public void setOnAppStates(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._onAppStates = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: splitType
-     *  分支类型，and表示每个分支都执行，or表示从上至下执行，只执行第一个满足条件的迁移目标。
+     *  分支类型，and表示每个分支都执行，or表示从上至下执行，只执行第一个满足条件的迁移目标。缺省为and
      */
     
     public io.nop.wf.core.model.WfSplitType getSplitType(){
@@ -249,6 +275,7 @@ public abstract class _WfTransitionModel extends io.nop.core.resource.component.
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -266,11 +293,13 @@ public abstract class _WfTransitionModel extends io.nop.core.resource.component.
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
         out.put("appState",this.getAppState());
         out.put("bizEntityState",this.getBizEntityState());
+        out.put("onAppStates",this.getOnAppStates());
         out.put("splitType",this.getSplitType());
         out.put("toAssigned",this.getToAssigned());
         out.put("toEmpty",this.getToEmpty());

@@ -207,7 +207,7 @@ public class ReportFunctions {
             ExpandedCell rangeCell = range.getCell();
             // 利用第一个单元格的计算属性来缓存汇总结果
             Number sum = (Number) rangeCell.getComputed(cellName + '_' + XptConstants.KEY_ALL_SUM,
-                    c -> SUM(rangeCell.getChildSet(cellName, xptRt)));
+                    c -> SUM(rangeCell.childSet(cellName, xptRt)));
             return MathHelper.divide(v, sum);
         }
     }
@@ -233,7 +233,7 @@ public class ReportFunctions {
             ExpandedCell rangeCell = range.getCell();
             RankCompute.RankResult rankResult = (RankCompute.RankResult) rangeCell.getComputed(
                     cellName + '_' + XptConstants.KEY_RANK,
-                    c -> computeRank(rangeCell.getChildSet(cellName, xptRt)));
+                    c -> computeRank(rangeCell.childSet(cellName, xptRt)));
             return rankResult.getRank(curCell);
         }
     }

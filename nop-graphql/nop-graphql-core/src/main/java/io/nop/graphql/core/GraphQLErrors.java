@@ -23,7 +23,7 @@ public interface GraphQLErrors {
 
     String ARG_OBJ_NAME = "objName";
     String ARG_FIELD_NAME = "fieldName";
-    String ARG_ALLOWED_NAMES = "definedFields";
+    String ARG_ALLOWED_NAMES = "allowedNames";
 
     String ARG_PARENT_NAME = "parentName";
 
@@ -50,6 +50,8 @@ public interface GraphQLErrors {
     String ARG_OLD_TYPE = "oldType";
 
     String ARG_METHOD_NAME = "methodName";
+
+    String ARG_RETURN_TYPE = "returnType";
 
     String ARG_OPERATION_NAME = "operationName";
     String ARG_OPERATION_TYPE = "operationType";
@@ -288,4 +290,9 @@ public interface GraphQLErrors {
             define("nop.err.graphql.unknown-operation-arg",
                     "操作[{operationName}]没有定义参数[{argName}],允许的参数为:{allowedNames}",
                     ARG_OPERATION_NAME, ARG_ARG_NAME, ARG_ALLOWED_NAMES);
+
+    ErrorCode ERR_GRAPHQL_ACTION_RETURN_TYPE_MUST_NOT_BE_API_RESPONSE =
+            define("nop.err.graphql.action-return-type-must-not-be-api-response",
+                    "NopGraphQL的服务方法[{methodName}]的返回值类型不需要用ApiResponse包装，直接返回内部结果类型即可",
+                    ARG_METHOD_NAME, ARG_RETURN_TYPE, ARG_CLASS);
 }

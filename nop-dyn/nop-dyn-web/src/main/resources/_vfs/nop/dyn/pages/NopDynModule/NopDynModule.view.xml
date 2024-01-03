@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:extends="_gen/_NopDynModule.view.xml" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <grids>
+        <grid id="list"/>
+        <grid id="pick-list"/>
+
+        <grid id="simple-list" affixHeader="false">
+            <cols>
+                <col id="moduleName"/>
+
+                <col id="moduleVersion"/>
+
+                <!--显示名-->
+                <col id="displayName"/>
+            </cols>
+        </grid>
+    </grids>
+
+    <forms>
+        <form id="view"/>
+        <form id="edit" size="md">
+            <cells>
+                <cell id="moduleName">
+                    <desc>Nop平台的模块ID要求是{vendor}={subName}两级结构，例如app-demo</desc>
+                    <placeholder>例如 app-demo</placeholder>
+                </cell>
+            </cells>
+        </form>
+        <form id="add"/>
+    </forms>
+
+    <pages>
+        <crud name="main"/>
+        <picker name="picker"/>
+
+        <crud name="app-modules" grid="simple-list">
+            <table loadDataOnce="true" name="app-modules-grid">
+                <api url="@query:NopDynApp__get/items:relatedModuleList{{@listSelection!}}?id=$appId">
+                </api>
+            </table>
+
+            <listActions>
+                <action id="select-module-button" label="@i18n:dyn.app.selectModule|选择模块">
+                    <dialog page="select-modules" size="md" noActions="true">
+                    </dialog>
+                </action>
+
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopDynApp__removeManyToManyRelations">
+                        <data>
+                            <propName>moduleMappings</propName>
+                            <id>$appId</id>
+                            <relValues>$ids</relValues>
+                        </data>
+                    </api>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+            </listActions>
+        </crud>
+
+        <crud name="select-modules" grid="pick-list" title="@i18n:dyn.app.selectModule|选择模块">
+            <table pickerMode="true" multiple="true" noOperations="true">
+                <api url="@query:NopDynModule__active_findPage/{@pageSelection}"/>
+            </table>
+
+            <listActions>
+                <action id="batch-add-module-button" label="@i18n:common.submit" level="primary"
+                        batch="true" close="select-modules" reload="app-modules-grid">
+                    <api url="@mutation:NopDynApp__addManyToManyRelations">
+                        <data>
+                            <propName>moduleMappings</propName>
+                            <id>$appId</id>
+                            <relValues>$ids</relValues>
+                        </data>
+                    </api>
+                </action>
+            </listActions>
+        </crud>
+    </pages>
+</view>

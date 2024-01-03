@@ -31,12 +31,7 @@ import io.nop.orm.tdengine.model.TdTableMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
@@ -97,7 +92,7 @@ public class TdEntityPersistDriver implements IEntityPersistDriver {
     }
 
     private String getQuerySpace(ShardSelection shard) {
-        if (shard == null) {
+        if (shard != null) {
             return DaoHelper.normalizeQuerySpace(shard.getQuerySpace());
         }
         return DaoHelper.normalizeQuerySpace(tableMeta.getEntityModel().getQuerySpace());

@@ -8,9 +8,11 @@
 package io.nop.core.resource.impl;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.progress.IStepProgressListener;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.store.InMemoryResourceStore;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -19,7 +21,9 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.io.StringReader;
 
+import static io.nop.core.CoreErrors.ARG_PATH;
 import static io.nop.core.CoreErrors.ARG_RESOURCE;
+import static io.nop.core.CoreErrors.ERR_RESOURCE_NOT_EXISTS;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_WRITE_TO_STREAM_FAIL;
 
 public class InMemoryTextResource extends AbstractResource {
@@ -29,13 +33,37 @@ public class InMemoryTextResource extends AbstractResource {
     private long lastModified;
     private boolean readonly;
 
+    private boolean exists = true;
+
+    private InMemoryResourceStore resourceStore;
+
     public InMemoryTextResource(String path, String text) {
         super(path);
         checkSupportStream();
-        this.text = text;
+        this.text = text == null ? "" : text;
+    }
+
+    public InMemoryResourceStore getResourceStore() {
+        return resourceStore;
+    }
+
+    public InMemoryTextResource withResourceStore(InMemoryResourceStore resourceStore) {
+        this.setResourceStore(resourceStore);
+        return this;
+    }
+
+    public void setResourceStore(InMemoryResourceStore resourceStore) {
+        this.resourceStore = resourceStore;
+    }
+
+    private void checkExists() {
+        if (!exists)
+            throw new NopException(ERR_RESOURCE_NOT_EXISTS)
+                    .param(ARG_PATH, getPath());
     }
 
     public String getText() {
+        checkExists();
         return text;
     }
 
@@ -46,6 +74,9 @@ public class InMemoryTextResource extends AbstractResource {
 
     @Override
     public long length() {
+        if (!exists)
+            return -1L;
+
         if (length < 0) {
             length = StringHelper.utf8Length(text);
         }
@@ -54,6 +85,8 @@ public class InMemoryTextResource extends AbstractResource {
 
     @Override
     public long lastModified() {
+        if (!exists)
+            return -1L;
         return lastModified;
     }
 
@@ -64,6 +97,19 @@ public class InMemoryTextResource extends AbstractResource {
 
     @Override
     public boolean exists() {
+        return exists;
+    }
+
+    @Override
+    public boolean delete() {
+        exists = false;
+        length = -1;
+        text = "";
+        lastModified = -1L;
+
+        if (resourceStore != null) {
+            resourceStore.removeResource(this);
+        }
         return true;
     }
 
@@ -72,35 +118,50 @@ public class InMemoryTextResource extends AbstractResource {
         return readonly;
     }
 
+    public void setReadOnly(boolean readonly) {
+        this.readonly = readonly;
+    }
+
     @Override
     public void saveToResource(IResource resource, IStepProgressListener listener) {
-        resource.writeText(text);
+        checkExists();
+        resource.writeText(text, null);
     }
 
     @Override
     public InputStream getInputStream() {
+        checkExists();
         return new ByteArrayInputStream(text.getBytes(StringHelper.CHARSET_UTF8));
     }
 
     @Override
     public Reader getReader(String encoding) {
+        checkExists();
         return new StringReader(text);
     }
 
     @Override
     public String readText() {
+        checkExists();
         return text;
     }
 
     @Override
-    public void writeText(String text) {
+    public void writeText(String text, String encoding) {
         checkNotReadonly();
         this.text = text == null ? "" : text;
         this.length = -1;
+        this.lastModified = CoreMetrics.currentTimeMillis();
+        this.exists = true;
+
+        if (resourceStore != null)
+            resourceStore.addResource(this);
     }
 
     @Override
     public void writeToStream(OutputStream os) {
+        checkExists();
+        String text = this.text;
         try {
             os.write(text.getBytes(StringHelper.CHARSET_UTF8));
         } catch (IOException e) {

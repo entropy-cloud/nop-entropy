@@ -209,7 +209,7 @@ public abstract class AbstractTaskStep implements ITaskStep {
         if (context.isCancelled())
             throw new NopException(ERR_TASK_CANCELLED);
 
-        IEvalScope parentScope = parentState == null ? parentState.getEvalScope() : context.getEvalScope().duplicate();
+        IEvalScope parentScope = parentState != null ? parentState.getEvalScope() : context.getEvalScope().duplicate();
 
         ITaskStepState state = null;
         try {

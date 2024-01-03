@@ -23,6 +23,7 @@ import io.nop.commons.util.IoHelper;
 
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 
 // Copied from Apache Kylin
@@ -87,6 +88,9 @@ public class SortedIteratorMerger<E> {
 
         @Override
         public E next() {
+            if(!hasNext())
+                throw new NoSuchElementException();
+
             IPeekingIterator<E> poll = heap.poll();
             E current = poll.next();
             if (poll.hasNext()) {

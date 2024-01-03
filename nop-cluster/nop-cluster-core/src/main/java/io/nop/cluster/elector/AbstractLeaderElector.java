@@ -30,8 +30,8 @@ public abstract class AbstractLeaderElector implements ILeaderElector {
     private int port;
     private IServerAddrFinder serverAddrFinder;
 
-    private volatile LeaderEpoch leaderEpoch;
-    protected volatile CompletableFuture<LeaderEpoch> electionPromise = new CompletableFuture<>();
+    private volatile LeaderEpoch leaderEpoch; //NOSONAR
+    protected volatile CompletableFuture<LeaderEpoch> electionPromise = new CompletableFuture<>(); // NOSONAR
 
     protected IScheduledExecutor scheduledExecutor;
 

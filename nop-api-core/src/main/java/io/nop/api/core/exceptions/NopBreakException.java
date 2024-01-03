@@ -11,9 +11,9 @@ import static io.nop.api.core.ApiErrors.ERR_BREAK;
 
 public class NopBreakException extends NopSingletonException {
 
-    public static NopBreakException INSTANCE = new NopBreakException();
+    public static final NopBreakException INSTANCE = new NopBreakException();
 
-    public NopBreakException() {
+    private NopBreakException() {
         super(ERR_BREAK);
     }
 }

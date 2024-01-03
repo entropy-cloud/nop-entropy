@@ -24,7 +24,9 @@ public class RenameTableMigration extends MigrationOperation {
     @Override
     public void run(AutoTestCaseData caseData) {
         forTable(caseData, oldTableName, file -> {
-            file.renameTo(new File(file.getParentFile(), newTableName + ".csv"));
+            boolean b = file.renameTo(new File(file.getParentFile(), newTableName + ".csv"));
+            if (!b)
+                throw new IllegalStateException("nop.rename-file-fail:" + file);
         });
     }
 }

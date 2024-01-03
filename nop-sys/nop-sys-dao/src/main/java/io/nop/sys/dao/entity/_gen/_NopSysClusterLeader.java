@@ -16,8 +16,8 @@ import io.nop.sys.dao.entity.NopSysClusterLeader;
 /**
  *  集群选举: nop_sys_cluster_leader
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopSysClusterLeader extends DynamicOrmEntity{
     
     /* 集群ID: CLUSTER_ID VARCHAR */
@@ -53,8 +53,8 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
 
     
 
-    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_clusterId);
-    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_clusterId};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_clusterId);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_clusterId};
 
     private static final String[] PROP_ID_TO_NAME = new String[8];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
@@ -107,6 +107,7 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
     
 
     public _NopSysClusterLeader(){
+        // for debug
     }
 
     protected NopSysClusterLeader newInstance(){

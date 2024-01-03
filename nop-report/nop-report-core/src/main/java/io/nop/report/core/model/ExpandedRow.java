@@ -14,6 +14,7 @@ import jakarta.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.function.Consumer;
 
 public class ExpandedRow implements IRowView {
@@ -129,6 +130,9 @@ public class ExpandedRow implements IRowView {
 
         @Override
         public ExpandedCell next() {
+            if (!hasNext())
+                throw new NoSuchElementException();
+
             ExpandedCell next = this.next;
             this.next = next.getRight();
             return next;
@@ -170,13 +174,6 @@ public class ExpandedRow implements IRowView {
             if (cell == null)
                 break;
         } while (true);
-    }
-
-    public void visitThreeRow(IThreeCellProcessor processor) {
-        int rowIndex = getRowIndex();
-        ExpandedRow prevRow = rowIndex <= 0 ? null : table.getRow(rowIndex - 1);
-        ExpandedRow nextRow = rowIndex >= table.getRowCount() ? null : table.getRow(rowIndex + 1);
-        visitThreeRow(prevRow, this, nextRow, processor);
     }
 
     public static void visitTwoRow(ExpandedRow row1, ExpandedRow row2,

@@ -43,7 +43,7 @@ public class WorkflowImpl implements IWorkflowImplementor {
     private final IWorkflowEngine wfEngine;
     private final IWorkflowStore wfStore;
     private final IWorkflowModel wfModel;
-    private final IWorkflowRecord wfRecord;
+    private IWorkflowRecord wfRecord;
 
     private final IWorkflowCoordinator wfCoordinator;
 
@@ -52,7 +52,7 @@ public class WorkflowImpl implements IWorkflowImplementor {
     private IWorkflowVarSet globalVars;
     private IWorkflowVarSet outputVars;
 
-    private Deque<Runnable> commandQueue = new ArrayDeque<>();
+    private final Deque<Runnable> commandQueue = new ArrayDeque<>();
 
     /**
      * 是否正在执行过程中。如果是，则待做的工作放到continuations中等待后续执行
@@ -69,6 +69,15 @@ public class WorkflowImpl implements IWorkflowImplementor {
         this.wfCoordinator = Guard.notNull(wfCoordinator, "wfCoordinator");
         this.wfModel = Guard.notNull(wfModel, "wfModel");
         this.wfRecord = Guard.notNull(wfRecord, "wfRecord");
+    }
+
+    public void reload() {
+        IWorkflowRecord newRecord = getStore().reloadWfRecord(wfRecord);
+        if (newRecord != wfRecord) {
+            wfRecord = newRecord;
+            commandQueue.clear();
+            steps.clear();
+        }
     }
 
     public String toString() {
@@ -200,7 +209,7 @@ public class WorkflowImpl implements IWorkflowImplementor {
 
 
     @Override
-    public IWorkflowStep getLatestStepByName(String stepName) {
+    public IWorkflowStepImplementor getLatestStepByName(String stepName) {
         IWorkflowStepRecord stepRecord = wfStore.getLatestStepRecordByName(wfRecord, stepName);
         return getStepByRecord(stepRecord);
     }

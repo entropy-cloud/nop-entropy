@@ -31,7 +31,7 @@ public class TestCellRangeMerger {
 
         List<CellRange> ranges = buildRanges(str);
         System.out.println(ranges);
-        assertEquals("[A2:A2, A4:A4]", ranges.toString());
+        assertEquals("[A2, A4]", ranges.toString());
     }
 
     /**
@@ -46,7 +46,7 @@ public class TestCellRangeMerger {
 
         List<CellRange> ranges = buildRanges(str);
         System.out.println(ranges);
-        assertEquals("[A1:A1, A3:A3, C1:C1, A2:C2, C3:C3, B4:C4]", ranges.toString());
+        assertEquals("[A1, A3, C1, A2:C2, C3, B4:C4]", ranges.toString());
     }
 
     /**
@@ -60,7 +60,7 @@ public class TestCellRangeMerger {
 
         List<CellRange> ranges = buildRanges(str);
         System.out.println(ranges);
-        assertEquals("[A2:A2, B1:B1, C2:C2, B3:B3]", ranges.toString());
+        assertEquals("[A2, B1, C2, B3]", ranges.toString());
     }
 
     List<CellRange> buildRanges(String str) {

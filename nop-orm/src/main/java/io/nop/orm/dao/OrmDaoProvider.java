@@ -13,8 +13,8 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.IOrmTemplate;
 import io.nop.orm.model.IEntityModel;
-
 import jakarta.inject.Inject;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,6 +29,11 @@ public class OrmDaoProvider implements IDaoProvider {
         this.ormTemplate = ormTemplate;
     }
 
+    public void clearCache() {
+        daoMap.clear();
+        daoByTableMap.clear();
+    }
+
     @Override
     public Set<String> getEntityNames() {
         return ormTemplate.getOrmModel().getEntityNames();
@@ -40,11 +45,17 @@ public class OrmDaoProvider implements IDaoProvider {
 
     @Override
     public <T extends IDaoEntity> IEntityDao<T> dao(String entityName) {
-        IEntityDao<?> dao = daoMap.get(entityName);
+        String fullName = normalizeEntityName(entityName);
+        IEntityDao<?> dao = daoMap.get(fullName);
         if (dao == null) {
-            dao = daoMap.computeIfAbsent(entityName, name -> new OrmEntityDao<>(this, ormTemplate, entityName));
+            dao = daoMap.computeIfAbsent(fullName, name -> new OrmEntityDao<>(this, ormTemplate, fullName));
         }
         return (IEntityDao<T>) dao;
+    }
+
+    @Override
+    public String normalizeEntityName(String entityName) {
+        return ormTemplate.getFullEntityName(entityName);
     }
 
     @Override

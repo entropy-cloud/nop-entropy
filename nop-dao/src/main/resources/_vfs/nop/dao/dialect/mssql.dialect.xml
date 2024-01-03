@@ -191,8 +191,8 @@
         <sqlDataType name="NVARCHAR" precision="8000" stdSqlType="VARCHAR"/>
         <sqlDataType name="DATE" stdSqlType="DATE"/>
         <sqlDataType name="DATETIME" stdSqlType="DATETIME"/>
-        <sqlDataType name="DATETIME2" stdSqlType="DATETIME" deprecated="true"/>
-        <sqlDataType name="TIMESTAMP" stdSqlType="TIMESTAMP"/>
+        <sqlDataType name="DATETIME2" stdSqlType="TIMESTAMP" />
+        <sqlDataType name="TIMESTAMP" stdSqlType="TIMESTAMP" deprecated="true"/>
         <sqlDataType name="BIT" stdSqlType="BOOLEAN"/>
         <sqlDataType name="FLOAT" stdSqlType="FLOAT"/>
         <sqlDataType name="DOUBLE PRECISION" stdSqlType="DOUBLE"/>

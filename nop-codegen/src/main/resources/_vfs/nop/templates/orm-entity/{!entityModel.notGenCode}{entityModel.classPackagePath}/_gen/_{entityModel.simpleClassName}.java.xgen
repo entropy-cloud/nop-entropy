@@ -16,8 +16,8 @@ import ${entityModel.classPackageName}.${entityModel.simpleClassName};
 /**
  *  ${entityModel.displayName}: ${entityModel.tableName}
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClass'] ||  (entityModel.kvTable ? 'AbstractOrmKeyValueTable' : 'DynamicOrmEntity')}{
     <c:for var="col" items="${entityModel.columns}">
         <c:script> if(col.notGenCode) continue</c:script>
@@ -52,8 +52,8 @@ public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClas
     public static final String PROP_NAME_${prop.name} = "${prop.name}";
     </c:for>
 
-    public static final List&lt;String> PK_PROP_NAMES = Arrays.asList(${entityModel.pkColumns.map(col=>'PROP_NAME_'+col.name).join(',')});
-    public static final int[] PK_PROP_IDS = new int[]{${entityModel.pkColumns.map(col=>'PROP_ID_'+col.name).join(',')}};
+    protected static final List&lt;String> PK_PROP_NAMES = Arrays.asList(${entityModel.pkColumns.map(col=>'PROP_NAME_'+col.name).join(',')});
+    protected static final int[] PK_PROP_IDS = new int[]{${entityModel.pkColumns.map(col=>'PROP_ID_'+col.name).join(',')}};
 
     private static final String[] PROP_ID_TO_NAME = new String[${entityModel.propIdBound}];
     private static final Map&lt;String,Integer> PROP_NAME_TO_ID = new HashMap&lt;>();
@@ -72,6 +72,7 @@ public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClas
     </c:for>
 
     public _${entityModel.simpleClassName}(){
+        // for debug
     }
 
     protected ${entityModel.simpleClassName} newInstance(){
@@ -266,13 +267,34 @@ public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClas
        </when>
 
        <otherwise>
-    private final OrmEntitySet&lt;${rel.refEntityModel.name}> _${rel.name} = new OrmEntitySet&lt;>(this, PROP_NAME_${rel.name},
-        ${rel.refPropName? rel.refEntityName + '.PROP_NAME_' + rel.refPropName : 'null'}, ${rel.keyProp? rel.refEntityName + '.PROP_NAME_' + rel.keyProp : 'null'},${rel.refEntityModel.name}.class);
+           <c:script><![CDATA[
+               function buildRefEntityParam(rel){
+                  if(rel.refEntityModel.name == rel.refEntityModel.className)
+                    return rel.refEntityModel.name + '.class';
+                  return rel.refEntityModel.className + '.class,"'+rel.refEntityModel.name+'"';
+               }
+
+               function buildRefPropName(rel){
+                    if(!rel.refPropName) return 'null'
+                    if(rel.refEntityModel.name == rel.refEntityModel.className)
+                        return rel.refEntityName + '.PROP_NAME_' + rel.refPropName;
+                    return rel.refPropName.$quote()
+               }
+
+               function buildRefKeyProp(rel){
+                   if(!rel.keyProp) return 'null';
+                    if(rel.refEntityModel.name == rel.refEntityModel.className)
+                        return rel.refEntityName + '.PROP_NAME_' + rel.keyProp;
+                    return rel.keyProp.$quote()
+               }
+           ]]></c:script>
+    private final OrmEntitySet&lt;${rel.refEntityModel.className}> _${rel.name} = new OrmEntitySet&lt;>(this, PROP_NAME_${rel.name},
+        ${buildRefPropName(rel)}, ${buildRefKeyProp(rel)},${buildRefEntityParam(rel)});
 
     /**
      * ${rel.displayName}。 refPropName: ${rel.refPropName}, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet&lt;${rel.refEntityModel.name}> ${rel.name.$methodGet()}(){
+    public IOrmEntitySet&lt;${rel.refEntityModel.className}> ${rel.name.$methodGet()}(){
        return _${rel.name};
     }
        </otherwise>

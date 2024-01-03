@@ -1,0 +1,3 @@
+/* @generate
+  <ofd-gen:GenerateCss xpl:lib="/nop/web/xlib/ofd-gen.xlib" modelPath="/nop/wf/designer/oa-flow.graph-designer.xml" />
+*/

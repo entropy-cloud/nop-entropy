@@ -19,11 +19,7 @@ package io.nop.commons.concurrent.executor;
 import io.nop.commons.CommonConstants;
 import io.nop.commons.concurrent.thread.NopThread;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.RejectedExecutionHandler;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -166,6 +162,7 @@ class StandardThreadPoolExecutor extends java.util.concurrent.ThreadPoolExecutor
                         throw new RejectedExecutionException("nop.err.thread-pool-executor.queue-full");
                     }
                 } catch (InterruptedException x) {
+                    Thread.currentThread().interrupt();
                     submittedCount.decrementAndGet();
                     throw new RejectedExecutionException(x);
                 }
@@ -192,7 +189,7 @@ class StandardThreadPoolExecutor extends java.util.concurrent.ThreadPoolExecutor
         }
 
         // setCorePoolSize(0) wakes idle threads
-        this.setCorePoolSize(0);
+        this.setCorePoolSize(0); //NOSONAR
 
         // TaskQueue.take() takes care of timing out, so that we are sure that
         // all threads of the pool are renewed in a limited time, something like

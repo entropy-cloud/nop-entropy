@@ -147,7 +147,7 @@ public class PulsarMessageService implements IMessageService {
         ConsumerBuilder<?> builder = client.newConsumer(schema);
         try {
             Consumer<?> consumer = builder.subscribe();
-            new PulsarConsumeTask(this, newConsumeExecutor(), consumer, subConfig).start();
+            new PulsarConsumeTask(this, newConsumeExecutor(), (Consumer<Object>) consumer, subConfig).start();
             return new PulsarMessageSubscription(consumer);
         } catch (Exception e) {
             throw NopException.adapt(e);
@@ -171,6 +171,7 @@ public class PulsarMessageService implements IMessageService {
             try {
                 consumer.close();
             } catch (Exception e) {
+                LOG.error("nop.message.pulsar.cancel-failed", e);
             }
             subscriptions.remove(this);
         }

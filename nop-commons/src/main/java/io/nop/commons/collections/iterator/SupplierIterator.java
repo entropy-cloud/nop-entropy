@@ -7,12 +7,9 @@
  */
 package io.nop.commons.collections.iterator;
 
-import io.nop.api.core.exceptions.NopException;
-
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.function.Supplier;
-
-import static io.nop.commons.CommonErrors.ERR_COLLECTIONS_ITERATOR_EOF;
 
 public class SupplierIterator<T> implements Iterator<T> {
 
@@ -30,15 +27,13 @@ public class SupplierIterator<T> implements Iterator<T> {
 
     @Override
     public T next() {
-        if (hasNext()) {
-            T result = (T) item;
-            item = supplier.get();
-            if (item == null)
-                end = true;
-            return result;
-        } else {
-            throw new NopException(ERR_COLLECTIONS_ITERATOR_EOF);
-        }
+        if (!hasNext())
+            throw new NoSuchElementException();
+        T result = (T) item;
+        item = supplier.get();
+        if (item == null)
+            end = true;
+        return result;
     }
 
     @Override

@@ -28,6 +28,7 @@ public class NopRuleWebCodeGen {
             XCodeGenerator.runPostcompile(new File(projectDir, "../nop-rule-codegen"), "/", false);
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-rule-meta"), "/", false);
             XCodeGenerator.runPostcompile(new File(projectDir, "../nop-rule-meta"), "/", false);
+            XCodeGenerator.runPostcompile(new File(projectDir, "../nop-rule-meta"), "/", false);
             XCodeGenerator.runPrecompile(projectDir, "/", false);
         } finally {
             CoreInitialization.destroy();

@@ -13,7 +13,12 @@ import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.auth.api.LoginApi;
-import io.nop.auth.api.messages.*;
+import io.nop.auth.api.messages.AccessTokenRequest;
+import io.nop.auth.api.messages.LoginRequest;
+import io.nop.auth.api.messages.LoginResult;
+import io.nop.auth.api.messages.LoginUserInfo;
+import io.nop.auth.api.messages.LogoutRequest;
+import io.nop.auth.api.messages.RefreshTokenRequest;
 import io.nop.auth.service.audit.AuditServiceImpl;
 import io.nop.autotest.junit.EnableVariants;
 import io.nop.autotest.junit.JunitAutoTestCase;
@@ -66,6 +71,23 @@ public class TestLoginApi extends JunitAutoTestCase {
         }.getType());
         ApiResponse<LoginResult> result = loginApi.login(request);
         output("response.json5", result);
+
+        assertTrue(FutureHelper.waitUntil(() -> auditService.isAllProcessed(), 1000));
+    }
+
+    @EnableSnapshot
+    @Test
+    public void testLogin2() {
+        LoginApi loginApi = buildLoginApi();
+
+        createTestUser();
+
+        ApiRequest<LoginRequest> request = request("request.json5", LoginRequest.class);
+        ApiResponse<LoginResult> result = loginApi.login(request);
+        output("response.json5", result);
+
+        ApiResponse<LoginResult> result2 = loginApi.login(request);
+        output("response2.json5", result2);
 
         assertTrue(FutureHelper.waitUntil(() -> auditService.isAllProcessed(), 1000));
     }

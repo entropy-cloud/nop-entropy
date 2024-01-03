@@ -174,6 +174,11 @@ public interface ApiConstants extends FilterBeanConstants {
 
     String SYS_PARAM_SELECTION = "@selection";
 
+    /**
+     * feign框架的QueryParam注解只接受编码后的参数名，
+     */
+    String ENCODED_PARAM_SELECTION = "%40selection";
+
     String META_KEY_TAGS = "tags";
 
     int BEAN_PROP_INCLUDE_JSON_IGNORE = 1;

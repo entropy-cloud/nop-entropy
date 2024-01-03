@@ -109,11 +109,12 @@ public class CsvRecordOutput<T> implements IRecordOutput<T> {
         if (headers == null || headers.isEmpty()) {
             if (record instanceof Map) {
                 headers = CollectionHelper.toStringList(((Map<?, ?>) record).keySet());
-            } else {
+            } else if (record != null) {
                 headers = BeanTool.getReadableComplexPropNames(record.getClass());
             }
         }
-        writer.printRecord(headers.toArray());
+        if (headers != null)
+            writer.printRecord(headers.toArray());
     }
 
     @Override

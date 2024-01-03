@@ -16,14 +16,17 @@ import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.exceptions.NopLoginException;
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.auth.api.AuthApiConstants;
 import io.nop.auth.api.messages.InternalLoginRequest;
 import io.nop.auth.api.messages.LoginRequest;
 import io.nop.auth.api.utils.AuthMDCHelper;
+import io.nop.auth.core.AuthCoreConfigs;
 import io.nop.auth.core.AuthCoreConstants;
 import io.nop.auth.core.login.AuthToken;
 import io.nop.auth.core.login.ILoginService;
+import io.nop.auth.core.login.UserContextImpl;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.i18n.I18nMessageManager;
@@ -65,6 +68,7 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
 
     private ILoginService loginService;
 
+    @Inject
     public void setConfig(AuthFilterConfig config) {
         this.config = config;
     }
@@ -92,8 +96,13 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
 
     private CompletionStage<Void> _filterAsync(IHttpServerContext routeContext, Supplier<CompletionStage<Void>> next) {
         String path = routeContext.getRequestPath();
-        // 如果是退出链接，则没有必要检查是否已登录。
-        if (checkLogoutUrl(routeContext))
+        boolean publicPath = config.isPublicPath(path);
+        boolean logoutPath = checkLogoutUrl(routeContext);
+        boolean servicePath = config.isServicePath(path);
+
+        boolean requireContext = !publicPath || servicePath;
+
+        if (!requireContext)
             return handlePublicPath(routeContext, next);
 
         if (config.isPublicPath(path)) {
@@ -105,49 +114,80 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         return routeContext.executeBlocking(() -> {
 
             try {
+                if (logoutPath)
+                    return handlePublicPath(routeContext, next);
+
                 if (hasOAuthCode(routeContext)) {
-                    return loginWithOAuthCode(routeContext).thenCompose(userContext -> {
-                        String accessToken = userContext.getAccessToken();
-                        AuthToken authToken = loginService.parseAuthToken(accessToken);
-                        return handleUserContext(userContext, routeContext, next, authToken);
-                    }).exceptionally(ex -> {
-                        LOG.error("nop.auth.init-user-context-fail", ex);
-                        handleError(routeContext, ex);
-                        throw NopException.adapt(ex);
-                    });
+                    return processOAuthCode(routeContext, servicePath, next);
                 }
 
                 AuthToken authToken = parseAuthToken(routeContext);
 
-                if (authToken == null) {
-                    return responseNotLogin(routeContext);
-                }
-
-                return getUserContextAsync(authToken)
+                return getUserContextAsync(authToken, routeContext)
                         .thenCompose(userContext -> {
-                            return handleUserContext(userContext, routeContext, next, authToken);
+                            if (userContext == null) {
+                                // 如果没有用户上下文，但是是公开服务，则创建一个sys用户上下文
+                                if (config.isServicePublic() && servicePath) {
+                                    userContext = newSysUserContext(routeContext);
+                                }
+                            }
+
+                            if (userContext == null) {
+                                return responseNotLogin(routeContext, servicePath);
+                            } else {
+                                return handleUserContext(userContext, routeContext, next, authToken);
+                            }
                         }).exceptionally(ex -> {
                             LOG.error("nop.auth.init-user-context-fail", ex);
-                            handleError(routeContext, ex);
+                            handleError(routeContext, ex, servicePath);
                             throw NopException.adapt(ex);
                         });
             } catch (Exception ex) {
                 LOG.error("nop.auth.init-user-context-fail", ex);
-                handleError(routeContext, ex);
+                handleError(routeContext, ex, servicePath);
                 throw NopException.adapt(ex);
             }
         }).thenApply(v -> null);
+    }
+
+    protected CompletionStage<Void> processOAuthCode(IHttpServerContext routeContext, boolean servicePath,
+                                                     Supplier<CompletionStage<Void>> next) {
+        return loginWithOAuthCode(routeContext).thenCompose(userContext -> {
+            String accessToken = userContext.getAccessToken();
+            AuthToken authToken = loginService.parseAuthToken(accessToken);
+            String redirectUri = routeContext.getQueryParam(AuthCoreConstants.PARAM_REDIRECT_URI);
+            if (redirectUri != null) {
+                routeContext.sendRedirect(redirectUri);
+                return next.get();
+            }
+            return handleUserContext(userContext, routeContext, next, authToken);
+        }).exceptionally(ex -> {
+            LOG.error("nop.auth.init-user-context-fail", ex);
+            handleError(routeContext, ex, servicePath);
+            throw NopException.adapt(ex);
+        });
+    }
+
+    protected IUserContext newSysUserContext(IHttpServerContext context) {
+        UserContextImpl userContext = new UserContextImpl();
+        userContext.setUserId(AuthCoreConstants.USER_ID_SYS);
+        userContext.setUserName(AuthCoreConstants.USER_ID_SYS);
+        String tenantId = context.getRequestStringHeader(ApiConstants.HEADER_TENANT);
+        userContext.setTenantId(tenantId);
+        userContext.setTimeZone(context.getRequestStringHeader(ApiConstants.HEADER_TIMEZONE));
+        userContext.setLocale(context.getRequestStringHeader(ApiConstants.HEADER_LOCALE));
+        return userContext;
     }
 
     protected CompletionStage<Void> handlePublicPath(IHttpServerContext routeContext, Supplier<CompletionStage<Void>> next) {
         return next.get();
     }
 
-    private void handleError(IHttpServerContext routeContext, Throwable ex) {
+    private void handleError(IHttpServerContext routeContext, Throwable ex, boolean forceJson) {
         if (ex instanceof NopLoginException) {
             NopLoginException err = (NopLoginException) ex;
             if (!routeContext.isResponseSent()) {
-                this.responseNotLogin(routeContext, err.getErrorCode(), err.getDescription());
+                this.responseNotLogin(routeContext, forceJson, err.getErrorCode(), err.getDescription());
             }
         } else {
             routeContext.sendResponse(500, "Server Error");
@@ -167,6 +207,9 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
     }
 
     protected boolean isNeedRefresh(AuthToken authToken) {
+        if (authToken == null)
+            return false;
+
         if ((authToken.getExpireAt() - CoreMetrics.currentTimeMillis()) * 2 < (authToken.getExpireSeconds() * 1000L))
             return true;
         return false;
@@ -185,9 +228,6 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
 
     CompletionStage<Void> handleUserContext(IUserContext userContext, IHttpServerContext routeContext,
                                             Supplier<CompletionStage<Void>> next, AuthToken authToken) {
-        if (userContext == null)
-            return responseNotLogin(routeContext);
-
         // 如果已经超过生命周期的一半，则需要主动更新
         boolean needRefresh = isNeedRefresh(authToken);
         if (needRefresh) {
@@ -201,12 +241,17 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         try {
             if (needRefresh) {
                 String accessToken = loginService.refreshToken(userContext, authToken);
-                routeContext.setResponseHeader(IHttpServerContext.HEADER_X_ACCESS_TOKEN, accessToken);
-                if (config.getAuthCookie() != null) {
-                    addCookie(config.getAuthCookie(), accessToken, routeContext);
+                // 如果不支持刷新，则可能返回null
+                if (accessToken != null) {
+                    routeContext.setResponseHeader(IHttpServerContext.HEADER_X_ACCESS_TOKEN, accessToken);
+                    if (config.getAuthCookie() != null) {
+                        addCookie(config.getAuthCookie(), accessToken, routeContext);
+                    }
                 }
-            } else if (config.getAuthCookie() != null) {
-                addCookie(config.getAuthCookie(), authToken.getToken(), routeContext);
+            } else if (config.getAuthCookie() != null && authToken != null) {
+                // 如果cookie不一致，则增加cookie
+                if (!authToken.getToken().equals(getAuthTokenFromCookie(routeContext)))
+                    addCookie(config.getAuthCookie(), authToken.getToken(), routeContext);
             }
 
             CompletableFuture<Void> future = new CompletableFuture<>();
@@ -228,14 +273,19 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         }
     }
 
-    private void addCookie(String name, String value, IHttpServerContext context) {
+    protected void addCookie(String name, String value, IHttpServerContext context) {
         HttpCookie cookie = new HttpCookie(name, value);
         cookie.setPath("/");
         cookie.setHttpOnly(true);
+        cookie.setSecure(AuthCoreConfigs.CFG_AUTH_USE_SECURE_COOKIE.get());
         context.addCookie("Lax", cookie);
     }
 
     protected boolean hasOAuthCode(IHttpServerContext routeContext) {
+        if (!StringHelper.isEmpty(config.getOauthCallbackPath())) {
+            if (!config.getOauthCallbackPath().equals(routeContext.getRequestPath()))
+                return false;
+        }
         return routeContext.getQueryParam(AuthCoreConstants.PARAM_CODE) != null
                 && routeContext.getQueryParam(AuthCoreConstants.PARAM_STATE) != null;
     }
@@ -257,8 +307,10 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         return authToken;
     }
 
-    protected CompletionStage<IUserContext> getUserContextAsync(AuthToken authToken) {
-        return loginService.getUserContextAsync(authToken);
+    protected CompletionStage<IUserContext> getUserContextAsync(AuthToken authToken, IHttpServerContext routeContext) {
+        if (authToken == null)
+            return FutureHelper.success(null);
+        return loginService.getUserContextAsync(authToken, routeContext.getRequestHeaders());
     }
 
     protected String getAuthToken(IHttpServerContext context) {
@@ -296,37 +348,13 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         return null;
     }
 
-    protected CompletionStage<Void> responseNotLogin(IHttpServerContext context) {
-        return responseNotLogin(context, ERR_AUTH_NOT_AUTHORIZED.getErrorCode(), ERR_AUTH_NOT_AUTHORIZED.getDescription());
+    protected CompletionStage<Void> responseNotLogin(IHttpServerContext context, boolean forceJson) {
+        return responseNotLogin(context, forceJson, ERR_AUTH_NOT_AUTHORIZED.getErrorCode(), ERR_AUTH_NOT_AUTHORIZED.getDescription());
     }
 
-    protected CompletionStage<Void> responseNotLogin(IHttpServerContext context, String errorCode, String errorDesc) {
-        if (isAjaxRequest(context) || StringHelper.isEmpty(config.getLoginUrl())) {
-            String locale = (String) context.getRequestHeader(ApiConstants.HEADER_LOCALE);
-            if (StringHelper.isEmpty(locale))
-                locale = I18nMessageManager.instance().getDefaultLocale();
-
-            ApiResponse<Object> error = new ApiResponse<>();
-            error.setStatus(401);
-            error.setCode(errorCode);
-            String msg = ErrorMessageManager.instance().getErrorDescription(locale,
-                    errorCode, Collections.emptyMap());
-            if (msg == null) {
-                msg = errorDesc;
-            }
-            error.setMsg(msg);
-            error.setData(Collections.emptyMap());
-
-            context.setResponseHeader(HttpApiConstants.HEADER_CONTENT_TYPE, HttpApiConstants.CONTENT_TYPE_JSON);
-            if (context.getRequestUrl().endsWith("/graphql")) {
-                GraphQLResponseBean response = new GraphQLResponseBean();
-                response.setErrorCode(error.getCode());
-                response.setMsg(error.getMsg());
-                response.setStatus(error.getStatus());
-                context.sendResponse(401, JsonTool.stringify(response));
-            } else {
-                context.sendResponse(401, JsonTool.stringify(error));
-            }
+    protected CompletionStage<Void> responseNotLogin(IHttpServerContext context, boolean forceJson, String errorCode, String errorDesc) {
+        if (forceJson || isAjaxRequest(context) || StringHelper.isEmpty(config.getLoginUrl())) {
+            writeJsonResponse(context, errorCode, errorDesc);
         } else {
             // auth?client_id=xx&response_type=code&state=xxx&redirect_uri=zz&scope=vv
             String url = config.getLoginUrl();
@@ -349,6 +377,34 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         return FutureHelper.success(null);
     }
 
+    protected void writeJsonResponse(IHttpServerContext context, String errorCode, String errorDesc) {
+        String locale = (String) context.getRequestHeader(ApiConstants.HEADER_LOCALE);
+        if (StringHelper.isEmpty(locale))
+            locale = I18nMessageManager.instance().getDefaultLocale();
+
+        ApiResponse<Object> error = new ApiResponse<>();
+        error.setStatus(401);
+        error.setCode(errorCode);
+        String msg = ErrorMessageManager.instance().getErrorDescription(locale,
+                errorCode, Collections.emptyMap());
+        if (msg == null) {
+            msg = errorDesc;
+        }
+        error.setMsg(msg);
+        error.setData(Collections.emptyMap());
+
+        context.setResponseHeader(HttpApiConstants.HEADER_CONTENT_TYPE, HttpApiConstants.CONTENT_TYPE_JSON);
+        if (context.getRequestUrl().endsWith("/graphql")) {
+            GraphQLResponseBean response = new GraphQLResponseBean();
+            response.setErrorCode(error.getCode());
+            response.setMsg(error.getMsg());
+            response.setStatus(error.getStatus());
+            context.sendResponse(401, JsonTool.stringify(response));
+        } else {
+            context.sendResponse(401, JsonTool.stringify(error));
+        }
+    }
+
     protected boolean isAjaxRequest(IHttpServerContext context) {
         String header = (String) context.getRequestHeader(IHttpServerContext.HEADER_X_REQUESTED_WITH);
         if (!StringHelper.isEmpty(header))
@@ -362,6 +418,9 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         String locale = context.getRequestStringHeader(ApiConstants.HEADER_LOCALE);
         if (locale == null) {
             locale = userContext.getLocale();
+        }
+        if (!StringHelper.isEmpty(locale)) {
+            ApiHeaders.checkLocaleFormat(locale);
         }
 
         IContext ctx = ContextProvider.getOrCreateContext();

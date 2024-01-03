@@ -8,7 +8,7 @@
                 <c:script><![CDATA[
                    const steps = _dsl_root.childByTag('steps');
                    const cosignSteps = steps.children.filter(step=>{
-                        return step.attrText('specialType') == 'cosign'
+                        return step.attrText('specialType') == 'co-sign'
                     });
 
                    const actions = _dsl_root.childByTag('actions');

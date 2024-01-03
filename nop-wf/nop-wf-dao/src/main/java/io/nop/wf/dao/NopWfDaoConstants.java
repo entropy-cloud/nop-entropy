@@ -11,4 +11,9 @@ public interface NopWfDaoConstants extends _NopWfDaoConstants {
     String NAMESPACE_WF = "wf";
 
     String FILE_POSTFIX_XWF = ".xwf";
+
+
+    String PROP_XUI_SCHEMA_TYPE = "xui:schema-type";
+
+    String SCHEMA_TYPE_AMIS = "AMIS";
 }

@@ -7,6 +7,7 @@
  */
 package io.nop.commons.concurrent.lock.impl;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
@@ -14,18 +15,14 @@ import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.concurrent.lock.IResourceLock;
 import io.nop.commons.concurrent.lock.IResourceLockManager;
 import io.nop.commons.concurrent.lock.IResourceLockState;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.Timestamp;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class LocalResourceLockManager implements IResourceLockManager, IResourceLockManagerImplementor {
     static final Logger LOG = LoggerFactory.getLogger(LocalResourceLockManager.class);
@@ -170,9 +167,13 @@ public class LocalResourceLockManager implements IResourceLockManager, IResource
                     existingLock, waitTime - usedTime);
 
             try {
-                existingLock.getLatch().await(waitTime - usedTime, TimeUnit.MILLISECONDS);
+                boolean b = existingLock.getLatch().await(waitTime - usedTime, TimeUnit.MILLISECONDS);
+                if (!b) {
+                    LOG.debug("nop.lock.await-timeout");
+                }
             } catch (InterruptedException e) {
-                return null;
+                Thread.currentThread().interrupt();
+                throw NopException.adapt(e);
             }
         } while (true);
     }

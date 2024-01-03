@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <x:gen-extends>
+        <api-web:DefaultGenExtends xpl:lib="/nop/web/xlib/api-web.xlib"/>
+    </x:gen-extends>
+
+    <forms>
+        <form id="WfStartRequestBean" editMode="edit">
+            <objMeta>/nop/wf/model/WorkflowService/WfStartRequestBean.xmeta</objMeta>
+            <layout>
+                        wfName
+                    
+                        wfVersion
+                    
+                        wfParams
+                    
+                        parentWfName
+                    
+                        parentWfVersion
+                    
+                        parentWfId
+                    
+                        parentWfStepId
+                    </layout>
+            <cells>
+                <cell id="wfName" label="工作流名称"/>
+                <cell id="wfVersion" label="工作流版本"/>
+                <cell id="wfParams" label="启动参数"/>
+                <cell id="parentWfName" label="父工作流名称"/>
+                <cell id="parentWfVersion" label="父工作流版本"/>
+                <cell id="parentWfId" label="父工作流ID"/>
+                <cell id="parentWfStepId" label="父工作流步骤ID"/>
+            </cells>
+        </form>
+        <form id="WfSubFlowEndRequestBean" editMode="edit">
+            <objMeta>/nop/wf/model/WorkflowService/WfSubFlowEndRequestBean.xmeta</objMeta>
+            <layout>
+                        wfName
+                    
+                        wfVersion
+                    
+                        wfId
+                    
+                        status
+                    
+                        results
+                    
+                        parentWfName
+                    
+                        parentWfVersion
+                    
+                        parentWfId
+                    
+                        parentWfStepId
+                    </layout>
+            <cells>
+                <cell id="wfName" label="工作流名称"/>
+                <cell id="wfVersion" label="工作流版本"/>
+                <cell id="wfId" label="工作流ID"/>
+                <cell id="status" label="状态"/>
+                <cell id="results" label="结果数据"/>
+                <cell id="parentWfName" label="父工作流名称"/>
+                <cell id="parentWfVersion" label="父工作流版本"/>
+                <cell id="parentWfId" label="父工作流ID"/>
+                <cell id="parentWfStepId" label="父工作流步骤ID"/>
+            </cells>
+        </form>
+        <form id="WfActionRequestBean" editMode="edit">
+            <objMeta>/nop/wf/model/WorkflowService/WfActionRequestBean.xmeta</objMeta>
+            <layout>
+                        wfName
+                    
+                        wfVersion
+                    
+                        wfId
+                    
+                        stepId
+                    
+                        actionName
+                    
+                        args
+                    </layout>
+            <cells>
+                <cell id="wfName" label="工作流名称"/>
+                <cell id="wfVersion" label="工作流版本"/>
+                <cell id="wfId" label="工作流ID"/>
+                <cell id="stepId" label="工作流步骤ID"/>
+                <cell id="actionName" label="执行动作"/>
+                <cell id="args" label="执行参数"/>
+            </cells>
+        </form>
+        <form id="WfCommandRequestBean" editMode="edit">
+            <objMeta>/nop/wf/model/WorkflowService/WfCommandRequestBean.xmeta</objMeta>
+            <layout>
+                        wfName
+                    
+                        wfVersion
+                    
+                        wfId
+                    
+                        args
+                    </layout>
+            <cells>
+                <cell id="wfName" label="工作流名称"/>
+                <cell id="wfVersion" label="工作流版本"/>
+                <cell id="wfId" label="工作流ID"/>
+                <cell id="args" label="执行参数"/>
+            </cells>
+        </form>
+    </forms>
+
+    <pages>
+        <simple name="startWorkflow" form="WfStartRequestBean">
+            <actions>
+                <action id="WorkflowService__startWorkflow-cancel" label="@i18n:common.cancel|取消" actionType="cancel"/>
+                <action id="WorkflowService__startWorkflow-submit" label="@i18n:common.submit|提交" level="primary"
+                        actionType="ajax">
+                    <api url="/r/WorkflowService__startWorkflow">
+                        <adaptor>
+                                return {...payload,data:{ __result: JSON.stringify(payload.data || '',null,"  ") }}
+                            </adaptor>
+                    </api>
+                    <messages>
+                        <success>_</success>
+                    </messages>
+                    <feedback page="json-result"/>
+                </action>
+            </actions>
+        </simple>
+        <simple name="notifySubFlowEnd" form="WfSubFlowEndRequestBean">
+            <actions>
+                <action id="WorkflowService__notifySubFlowEnd-cancel" label="@i18n:common.cancel|取消" actionType="cancel"/>
+                <action id="WorkflowService__notifySubFlowEnd-submit" label="@i18n:common.submit|提交" level="primary"
+                        actionType="ajax">
+                    <api url="/r/WorkflowService__notifySubFlowEnd">
+                        <adaptor>
+                                return {...payload,data:{ __result: JSON.stringify(payload.data || '',null,"  ") }}
+                            </adaptor>
+                    </api>
+                    <messages>
+                        <success>_</success>
+                    </messages>
+                    <feedback page="json-result"/>
+                </action>
+            </actions>
+        </simple>
+        <simple name="invokeAction" form="WfActionRequestBean">
+            <actions>
+                <action id="WorkflowService__invokeAction-cancel" label="@i18n:common.cancel|取消" actionType="cancel"/>
+                <action id="WorkflowService__invokeAction-submit" label="@i18n:common.submit|提交" level="primary"
+                        actionType="ajax">
+                    <api url="/r/WorkflowService__invokeAction">
+                        <adaptor>
+                                return {...payload,data:{ __result: JSON.stringify(payload.data || '',null,"  ") }}
+                            </adaptor>
+                    </api>
+                    <messages>
+                        <success>_</success>
+                    </messages>
+                    <feedback page="json-result"/>
+                </action>
+            </actions>
+        </simple>
+        <simple name="killWorkflow" form="WfCommandRequestBean">
+            <actions>
+                <action id="WorkflowService__killWorkflow-cancel" label="@i18n:common.cancel|取消" actionType="cancel"/>
+                <action id="WorkflowService__killWorkflow-submit" label="@i18n:common.submit|提交" level="primary"
+                        actionType="ajax">
+                    <api url="/r/WorkflowService__killWorkflow">
+                        <adaptor>
+                                return {...payload,data:{ __result: JSON.stringify(payload.data || '',null,"  ") }}
+                            </adaptor>
+                    </api>
+                    <messages>
+                        <success>_</success>
+                    </messages>
+                    <feedback page="json-result"/>
+                </action>
+            </actions>
+        </simple>
+        <simple name="suspendWorkflow" form="WfCommandRequestBean">
+            <actions>
+                <action id="WorkflowService__suspendWorkflow-cancel" label="@i18n:common.cancel|取消" actionType="cancel"/>
+                <action id="WorkflowService__suspendWorkflow-submit" label="@i18n:common.submit|提交" level="primary"
+                        actionType="ajax">
+                    <api url="/r/WorkflowService__suspendWorkflow">
+                        <adaptor>
+                                return {...payload,data:{ __result: JSON.stringify(payload.data || '',null,"  ") }}
+                            </adaptor>
+                    </api>
+                    <messages>
+                        <success>_</success>
+                    </messages>
+                    <feedback page="json-result"/>
+                </action>
+            </actions>
+        </simple>
+        <simple name="resumeWorkflow" form="WfCommandRequestBean">
+            <actions>
+                <action id="WorkflowService__resumeWorkflow-cancel" label="@i18n:common.cancel|取消" actionType="cancel"/>
+                <action id="WorkflowService__resumeWorkflow-submit" label="@i18n:common.submit|提交" level="primary"
+                        actionType="ajax">
+                    <api url="/r/WorkflowService__resumeWorkflow">
+                        <adaptor>
+                                return {...payload,data:{ __result: JSON.stringify(payload.data || '',null,"  ") }}
+                            </adaptor>
+                    </api>
+                    <messages>
+                        <success>_</success>
+                    </messages>
+                    <feedback page="json-result"/>
+                </action>
+            </actions>
+        </simple>
+        <tabs name="main" tabsMode="vertical" mountOnEnter="true" unmountOnExit="true">
+            <tab name="startWorkflow" page="startWorkflow" title="启动工作流"/>
+            <tab name="notifySubFlowEnd" page="notifySubFlowEnd" title="通知子工作流结束"/>
+            <tab name="invokeAction" page="invokeAction" title="执行动作"/>
+            <tab name="killWorkflow" page="killWorkflow" title="中止工作流"/>
+            <tab name="suspendWorkflow" page="suspendWorkflow" title="暂停工作流"/>
+            <tab name="resumeWorkflow" page="resumeWorkflow" title="继续工作流"/>
+        </tabs>
+    </pages>
+</view>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
-      displayName="会话日志" i18n-en:displayName="Session" tagSet="log" xmlns:ui="ui">
+      displayName="会话日志" i18n-en:displayName="Session" tagSet="log" xmlns:ui="ui" xmlns:orm="orm">
 
     <entityName>io.nop.auth.dao.entity.NopAuthSession</entityName>
 
@@ -23,7 +23,7 @@
             <schema type="java.lang.String" precision="100"/>
         </prop>
         <prop name="userId" displayName="用户ID" i18n-en:displayName="User ID" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false">
+              sortable="true" insertable="true" updatable="false" ext:relation="user">
             <schema domain="userId" type="java.lang.String" precision="32"/>
         </prop>
         <prop name="userName" displayName="用户名" i18n-en:displayName="User Name" mandatory="true" queryable="true"
@@ -85,6 +85,11 @@
         <prop name="remark" displayName="备注" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="false" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="user" displayName="用户" i18n-en:displayName="User" ext:kind="to-one" internal="true" queryable="true"
+              ext:joinLeftProp="userId" ext:joinRightProp="userId" ext:joinRightDisplayProp="userName" mandatory="true"
+              lazy="true" published="false">
+            <schema bizObjName="NopAuthUser"/>
         </prop>
     </props>
 </meta>

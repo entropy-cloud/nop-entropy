@@ -1,6 +1,6 @@
 package io.nop.wf.core.model._gen;
 
-import io.nop.commons.collections.KeyedList; //NOPMD - suppressed UnusedImports - Used for List Prop
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 
 
@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _WfModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
@@ -31,6 +31,20 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
     
     /**
      *  
+     * xml name: auths
+     * 
+     */
+    private KeyedList<io.nop.wf.core.model.WfModelAuth> _auths = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: bizEntityFlowIdProp
+     * 
+     */
+    private java.lang.String _bizEntityFlowIdProp ;
+    
+    /**
+     *  
      * xml name: bizEntityStateProp
      * 
      */
@@ -42,6 +56,13 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
      * 触发每一个action的时候所执行的权限验证逻辑
      */
     private io.nop.core.lang.eval.IEvalAction _checkActionAuth ;
+    
+    /**
+     *  
+     * xml name: check-edit-auth
+     * 编辑工作流定义时执行的权限验证逻辑
+     */
+    private io.nop.core.lang.eval.IEvalAction _checkEditAuth ;
     
     /**
      *  
@@ -101,13 +122,6 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
     
     /**
      *  
-     * xml name: manager-assignment
-     * 
-     */
-    private io.nop.wf.core.model.WfAssignmentModel _managerAssignment ;
-    
-    /**
-     *  
      * xml name: on-error
      * 
      */
@@ -161,6 +175,13 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
      * 
      */
     private io.nop.core.lang.eval.IEvalAction _undeploy ;
+    
+    /**
+     *  
+     * xml name: wfGroup
+     * 
+     */
+    private java.lang.String _wfGroup ;
     
     /**
      *  
@@ -243,6 +264,70 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
     
     /**
      * 
+     * xml name: auths
+     *  
+     */
+    
+    public java.util.List<io.nop.wf.core.model.WfModelAuth> getAuths(){
+      return _auths;
+    }
+
+    
+    public void setAuths(java.util.List<io.nop.wf.core.model.WfModelAuth> value){
+        checkAllowChange();
+        
+        this._auths = KeyedList.fromList(value, io.nop.wf.core.model.WfModelAuth::getId);
+           
+    }
+
+    
+    public io.nop.wf.core.model.WfModelAuth getAuth(String name){
+        return this._auths.getByKey(name);
+    }
+
+    public boolean hasAuth(String name){
+        return this._auths.containsKey(name);
+    }
+
+    public void addAuth(io.nop.wf.core.model.WfModelAuth item) {
+        checkAllowChange();
+        java.util.List<io.nop.wf.core.model.WfModelAuth> list = this.getAuths();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.wf.core.model.WfModelAuth::getId);
+            setAuths(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_auths(){
+        return this._auths.keySet();
+    }
+
+    public boolean hasAuths(){
+        return !this._auths.isEmpty();
+    }
+    
+    /**
+     * 
+     * xml name: bizEntityFlowIdProp
+     *  
+     */
+    
+    public java.lang.String getBizEntityFlowIdProp(){
+      return _bizEntityFlowIdProp;
+    }
+
+    
+    public void setBizEntityFlowIdProp(java.lang.String value){
+        checkAllowChange();
+        
+        this._bizEntityFlowIdProp = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: bizEntityStateProp
      *  
      */
@@ -275,6 +360,25 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
         checkAllowChange();
         
         this._checkActionAuth = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: check-edit-auth
+     *  编辑工作流定义时执行的权限验证逻辑
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getCheckEditAuth(){
+      return _checkEditAuth;
+    }
+
+    
+    public void setCheckEditAuth(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._checkEditAuth = value;
            
     }
 
@@ -456,25 +560,6 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
     public boolean hasListeners(){
         return !this._listeners.isEmpty();
     }
-    
-    /**
-     * 
-     * xml name: manager-assignment
-     *  
-     */
-    
-    public io.nop.wf.core.model.WfAssignmentModel getManagerAssignment(){
-      return _managerAssignment;
-    }
-
-    
-    public void setManagerAssignment(io.nop.wf.core.model.WfAssignmentModel value){
-        checkAllowChange();
-        
-        this._managerAssignment = value;
-           
-    }
-
     
     /**
      * 
@@ -682,6 +767,25 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
     
     /**
      * 
+     * xml name: wfGroup
+     *  
+     */
+    
+    public java.lang.String getWfGroup(){
+      return _wfGroup;
+    }
+
+    
+    public void setWfGroup(java.lang.String value){
+        checkAllowChange();
+        
+        this._wfGroup = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: wfName
      *  
      */
@@ -719,6 +823,7 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -727,11 +832,11 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
         
            this._actions = io.nop.api.core.util.FreezeHelper.deepFreeze(this._actions);
             
+           this._auths = io.nop.api.core.util.FreezeHelper.deepFreeze(this._auths);
+            
            this._end = io.nop.api.core.util.FreezeHelper.deepFreeze(this._end);
             
            this._listeners = io.nop.api.core.util.FreezeHelper.deepFreeze(this._listeners);
-            
-           this._managerAssignment = io.nop.api.core.util.FreezeHelper.deepFreeze(this._managerAssignment);
             
            this._start = io.nop.api.core.util.FreezeHelper.deepFreeze(this._start);
             
@@ -742,13 +847,17 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
         out.put("actions",this.getActions());
         out.put("allowStepLoop",this.isAllowStepLoop());
+        out.put("auths",this.getAuths());
+        out.put("bizEntityFlowIdProp",this.getBizEntityFlowIdProp());
         out.put("bizEntityStateProp",this.getBizEntityStateProp());
         out.put("checkActionAuth",this.getCheckActionAuth());
+        out.put("checkEditAuth",this.getCheckEditAuth());
         out.put("checkManageAuth",this.getCheckManageAuth());
         out.put("checkStartAuth",this.getCheckStartAuth());
         out.put("deploy",this.getDeploy());
@@ -757,7 +866,6 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
         out.put("displayName",this.getDisplayName());
         out.put("end",this.getEnd());
         out.put("listeners",this.getListeners());
-        out.put("managerAssignment",this.getManagerAssignment());
         out.put("onError",this.getOnError());
         out.put("onSignal",this.getOnSignal());
         out.put("priority",this.getPriority());
@@ -766,6 +874,7 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
         out.put("subscribes",this.getSubscribes());
         out.put("tagSet",this.getTagSet());
         out.put("undeploy",this.getUndeploy());
+        out.put("wfGroup",this.getWfGroup());
         out.put("wfName",this.getWfName());
         out.put("wfVersion",this.getWfVersion());
     }

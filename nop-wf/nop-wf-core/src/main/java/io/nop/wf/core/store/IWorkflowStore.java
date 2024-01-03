@@ -23,7 +23,9 @@ public interface IWorkflowStore {
 
     Object loadBizEntity(String bizObjType, String bizEntityId);
 
-    void updateBizEntityState(String bizObjType, Object bizEntity, String bizEntityStateProp, String state);
+    void updateBizEntityState(IWorkflowRecord wfRecord, String bizEntityStateProp, String state);
+
+    void bindBizEntityFlowId(IWorkflowRecord wfRecord, String bizFlowIdProp);
 
     IWorkflowRecord newWfRecord(IWorkflowModel model);
 
@@ -50,7 +52,9 @@ public interface IWorkflowStore {
 
     void addNextSpecialStep(IWorkflowStepRecord currentStep, String actionId, String specialStepId);
 
-    IWorkflowRecord getWfRecord(String wfName, String wfVersion, String wfId);
+    IWorkflowRecord getWfRecord(String wfName, Long wfVersion, String wfId);
+
+    IWorkflowRecord reloadWfRecord(IWorkflowRecord wfRecord);
 
     IWorkflowVarSet getGlobalVars(IWorkflowRecord wfRecord);
 

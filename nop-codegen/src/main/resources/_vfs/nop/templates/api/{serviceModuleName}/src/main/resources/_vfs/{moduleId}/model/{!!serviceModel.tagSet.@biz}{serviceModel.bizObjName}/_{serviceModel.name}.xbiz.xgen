@@ -13,7 +13,7 @@
         <c:for var="method" items="${serviceModel.methods}">
             <c:unit xpl:is="${method.mutation?'mutation':'query'}" displayName="${method.displayName}"
                     x:abstract="${method.tagSet?.contains('biz') ? null: true}">
-                <arg name="request" kind="RequestBean" type="${method.requestMessage}"/>
+                <arg name="request" kind="RequestBean" type="${method.requestMessage}" xpl:if="!method.voidRequest"/>
                 <source xpl:if="method['ext:source']">
                     ${raw(method['ext:source'].xml())}
                 </source>

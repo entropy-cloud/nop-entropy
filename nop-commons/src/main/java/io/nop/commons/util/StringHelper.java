@@ -142,8 +142,8 @@ public class StringHelper extends ApiStringHelper {
         if (str == null || str.length() == 0 || fromChars == null || fromChars.length == 0)
             return str == null ? null : str.toString();
 
-        Guard.checkArgument(toStrs != null && fromChars.length == toStrs.length,
-                "escape fromChars and toChars length not match");
+        if (toStrs == null || fromChars.length != toStrs.length)
+            throw new IllegalArgumentException("escape fromChars and toChars length not match");
 
         int sz = str.length();
         StringBuilder buf = null;
@@ -242,8 +242,8 @@ public class StringHelper extends ApiStringHelper {
         if (str == null || str.length() == 0 || fromChars == null || fromChars.length == 0)
             return 0;
 
-        Guard.checkArgument(toStrs != null && fromChars.length == toStrs.length,
-                "escape fromChars and toChars length not match");
+        if (toStrs == null || fromChars.length != toStrs.length)
+            throw new IllegalArgumentException("escape fromChars and toChars length not match");
 
         int count = 0;
         int sz = str.length();
@@ -722,7 +722,7 @@ public class StringHelper extends ApiStringHelper {
         if (str == null)
             return null;
 
-        if (str.length() == 0)
+        if (str.isEmpty())
             return EMPTY_BYTES;
 
         if (startsWithIgnoreCase(str, "0x"))
@@ -827,8 +827,8 @@ public class StringHelper extends ApiStringHelper {
         if (isEmpty(str) || isEmpty(searchChars)) {
             return str;
         }
-        Guard.checkArgument(replaceChars != null && searchChars.length() == replaceChars.length(),
-                "replaceChars and searchChars length not match");
+        if (replaceChars == null || searchChars.length() != replaceChars.length())
+            throw new IllegalArgumentException("replaceChars and searchChars length not match");
 
         final int strLength = str.length();
         StringBuilder buf = null;
@@ -838,7 +838,7 @@ public class StringHelper extends ApiStringHelper {
             if (index >= 0) {
                 if (buf == null) {
                     buf = new StringBuilder(strLength);
-                    buf.append(str.substring(0, i));
+                    buf.append(str, 0, i);
                 }
                 buf.append(replaceChars.charAt(index));
             } else if (buf != null) {
@@ -894,11 +894,6 @@ public class StringHelper extends ApiStringHelper {
     @Deterministic
     public static boolean containsAnyChar(CharSequence str, String chars) {
         return indexOfAnyChar(str, chars) >= 0;
-    }
-
-    @Deterministic
-    public static boolean isAsciiLetter(int c) {
-        return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z';
     }
 
     @Deterministic
@@ -1105,22 +1100,21 @@ public class StringHelper extends ApiStringHelper {
         if (str == null || str.isEmpty())
             return str;
 
+
         str = str.toLowerCase();
         if (str.indexOf(separator) < 0) {
-            if (firstUpper)
+            if (firstUpper) {
                 return Character.toUpperCase(str.charAt(0)) + str.substring(1);
+            }
             return str;
         }
 
         StringBuilder sb = new StringBuilder();
         boolean nextIsUpper = false;
-        if (str.length() > 1 && str.charAt(1) == separator) {
-            char c = firstUpper ? Character.toUpperCase(str.charAt(0)) : str.charAt(0);
-            sb.append(c);
-        } else {
-            char c = firstUpper ? Character.toUpperCase(str.charAt(0)) : str.charAt(0);
-            sb.append(c);
-        }
+
+        char cc = firstUpper ? Character.toUpperCase(str.charAt(0)) : str.charAt(0);
+        sb.append(cc);
+
         for (int i = 1, n = str.length(); i < n; i++) {
             char c = str.charAt(i);
             if (c == separator) {
@@ -1391,7 +1385,10 @@ public class StringHelper extends ApiStringHelper {
 
     @Deterministic
     public static String hmacSha256(String str, String salt) {
-        return bytesToHex(HashHelper.hmacSha256(utf8Bytes(str), utf8Bytes(salt)));
+        byte[] bytes = utf8Bytes(str);
+        if (bytes == null)
+            return null;
+        return bytesToHex(HashHelper.hmacSha256(bytes, utf8Bytes(salt)));
     }
 
     @Deterministic
@@ -1597,11 +1594,6 @@ public class StringHelper extends ApiStringHelper {
     @Deterministic
     public static Number parseNumber(String val) {
         return ConvertHelper.stringToNumber(val, NopException::new);
-    }
-
-    @Deterministic
-    public static boolean isDigit(int c) {
-        return c <= '9' && c >= '0';
     }
 
     @Deterministic
@@ -2958,6 +2950,55 @@ public class StringHelper extends ApiStringHelper {
     }
 
     @Deterministic
+    public static String limitUtf8Len(CharSequence str, int utfLen) {
+        return limitUtfLen(str, 0, utfLen);
+    }
+
+    /**
+     * 从指定位置开始截取子字符串，确保子字符串编码为UTF8之后长度小于utf8Len
+     */
+    @Deterministic
+    public static String limitUtfLen(CharSequence str, int from, int utf8Len) {
+
+        StringBuilder sb = new StringBuilder();
+        int size = 0;
+        for (int i = from, n = str.length(); i < n; i++) {
+            if (size >= utf8Len)
+                break;
+            char c = str.charAt(i);
+            // 如果 codePoint 小于 0x0080，则它使用单个字节进行编码。
+            if (c < 0x80) {
+                size++;
+            } else if (c < 0x800) {
+                // 如果 codePoint 在 0x0080 到 0x07FF 之间，则它使用两个字节进行编码。
+                size += 2;
+                if (size > utf8Len)
+                    break;
+                sb.append(c);
+            } else if (!Character.isHighSurrogate(c)) {
+                // 如果 codePoint 在 0x0800 到 0xFFFF 之间，则它使用三个字节进行编码。
+                size += 3;
+                if (size > utf8Len)
+                    break;
+                sb.append(c);
+            } else {
+                //  如果 codePoint 在 0x10000 到 0x10FFFF 之间，则它使用四个字节进行编码
+                if (i >= n - 1) {
+                    break;
+                }
+                i++;
+                char c2 = str.charAt(i);
+                size += 4;
+                if (size > utf8Len)
+                    break;
+                sb.append(c);
+                sb.append(c2);
+            }
+        }
+        return sb.toString();
+    }
+
+    @Deterministic
     public static long parseFileSizeString(String str) {
         if (str == null || str.length() <= 0)
             return -1;
@@ -3712,6 +3753,23 @@ public class StringHelper extends ApiStringHelper {
     }
 
     @Deterministic
+    public static boolean isJavaDefaultImportType(String typeName) {
+        if (isEmpty(typeName))
+            return false;
+
+        StdDataType type = StdDataType.fromJavaClassName(typeName);
+        if (type != null) {
+            // native type, such as int , float
+            if (Character.isLowerCase(typeName.charAt(0)))
+                return true;
+        }
+        if (typeName.startsWith("java.lang.") && countChar(typeName, '.') == 2) {
+            return true;
+        }
+        return false;
+    }
+
+    @Deterministic
     public static String classNameToPath(String className) {
         if (className == null)
             return null;
@@ -4359,4 +4417,35 @@ public class StringHelper extends ApiStringHelper {
         }
         return -1;
     }
+
+    @Deterministic
+    public static boolean isValidNopModuleId(String moduleId) {
+        if (moduleId.startsWith("/"))
+            return false;
+        int pos = moduleId.indexOf('/');
+        if (pos < 0)
+            return false;
+        String provider = moduleId.substring(0, pos);
+        if (!StringHelper.isValidSimpleVarName(provider))
+            return false;
+        String moduleName = moduleId.substring(pos + 1);
+        if (!StringHelper.isValidSimpleVarName(moduleName))
+            return false;
+        return true;
+    }
+
+    @Deterministic
+    public static boolean isValidNopModuleName(String moduleName) {
+        int pos = moduleName.indexOf('-');
+        if (pos <= 0)
+            return false;
+        String provider = moduleName.substring(0, pos);
+        if (!StringHelper.isValidSimpleVarName(provider))
+            return false;
+        String subName = moduleName.substring(pos + 1);
+        if (!StringHelper.isValidSimpleVarName(subName))
+            return false;
+        return true;
+    }
+
 }

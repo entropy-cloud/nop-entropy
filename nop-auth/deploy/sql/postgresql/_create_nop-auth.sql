@@ -34,6 +34,7 @@ CREATE TABLE nop_auth_user_substitution(
   SID VARCHAR(32) NOT NULL ,
   USER_ID VARCHAR(32) NOT NULL ,
   SUBSTITUTED_USER_ID VARCHAR(32) NOT NULL ,
+  WORK_SCOPE VARCHAR(50) NOT NULL ,
   START_TIME TIMESTAMP  ,
   END_TIME TIMESTAMP  ,
   VERSION INT4 NOT NULL ,
@@ -164,6 +165,7 @@ CREATE TABLE nop_auth_role(
   UPDATED_BY VARCHAR(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR(200)  ,
+  constraint UK_NOP_AUTH_ROLE_NAME unique (ROLE_NAME),
   constraint PK_nop_auth_role primary key (ROLE_ID)
 );
 
@@ -257,6 +259,7 @@ CREATE TABLE nop_auth_user(
   UPDATED_BY VARCHAR(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR(200)  ,
+  constraint UK_NOP_AUTH_USER_NAME unique (USER_NAME),
   constraint PK_nop_auth_user primary key (USER_ID)
 );
 
@@ -350,6 +353,8 @@ CREATE TABLE nop_auth_position(
       COMMENT ON COLUMN nop_auth_user_substitution.USER_ID IS '用户ID';
                     
       COMMENT ON COLUMN nop_auth_user_substitution.SUBSTITUTED_USER_ID IS '被代理的用户ID';
+                    
+      COMMENT ON COLUMN nop_auth_user_substitution.WORK_SCOPE IS '工作范围';
                     
       COMMENT ON COLUMN nop_auth_user_substitution.START_TIME IS '开始时间';
                     

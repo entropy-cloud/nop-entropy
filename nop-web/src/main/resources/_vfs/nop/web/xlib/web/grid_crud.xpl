@@ -13,7 +13,7 @@
         let gridApi = pageModel.table.api || gridModel.api
 
         $.notNull(gridApi.url,"pageModel.table.api.url is null, page:"+pageModel.name+',view='+viewModel.resourcePath());
-        gridApi.url = XuiHelper.appendFilterProps(gridApi.url,fixedProps)
+        gridApi = { ...gridApi, url : XuiHelper.appendFilterProps(gridApi.url,fixedProps)}
 
         let filter = gridModel.filter;
     ]]></c:script>

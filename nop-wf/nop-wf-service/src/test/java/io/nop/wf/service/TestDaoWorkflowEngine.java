@@ -1,18 +1,22 @@
 package io.nop.wf.service;
 
+import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.context.ContextProvider;
 import io.nop.autotest.junit.JunitAutoTestCase;
+import io.nop.orm.IOrmTemplate;
 import io.nop.wf.core.impl.WorkflowManagerImpl;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-@Disabled
-@NopTestConfig(localDb = true, initDatabaseSchema = true)
+@NopTestConfig(localDb = true, initDatabaseSchema = true, disableSnapshot = false)
 public class TestDaoWorkflowEngine extends JunitAutoTestCase {
     @Inject
     WorkflowManagerImpl workflowManager;
+
+    @Inject
+    IOrmTemplate ormTemplate;
 
     TestWorkflowEngine testCase;
 
@@ -20,29 +24,53 @@ public class TestDaoWorkflowEngine extends JunitAutoTestCase {
     public void init() {
         testCase = new TestWorkflowEngine();
         testCase.workflowManager = workflowManager;
+
+        saveUser("1");
+        saveUser("2");
+        saveRole("admin");
+
+        ContextProvider.getOrCreateContext().setUserId("1");
+        ContextProvider.getOrCreateContext().setUserName("user1");
+    }
+
+    protected void saveUser(String userId) {
+        DaoTestHelper.saveUser(userId);
+    }
+
+    protected void saveRole(String roleId) {
+        DaoTestHelper.saveRole(roleId);
+    }
+
+
+    protected void runInSession(Runnable task) {
+        ormTemplate.runInSession(task);
     }
 
     /**
      * 创建工作流时不指定wfVersion，此时会使用最新的版本
      */
+    @EnableSnapshot
     @Test
     public void testEmptyVersion() {
-        testCase.testEmptyVersion();
+        runInSession(testCase::testEmptyVersion);
     }
 
+    @EnableSnapshot
     @Test
     public void testWorkflowInvoke() {
-        testCase.testWorkflowInvoke();
+        runInSession(testCase::testWorkflowInvoke);
     }
 
+    @EnableSnapshot
     @Test
-    public void testWorkflowState() {
-        testCase.testWorkflowState();
+    public void testBasicWorkflowState() {
+        runInSession(testCase::testWorkflowState);
     }
 
+    @EnableSnapshot
     @Test
     public void testJoin() {
-        testCase.testJoin();
+        runInSession(testCase::testJoin);
     }
 
     /**
@@ -52,9 +80,10 @@ public class TestDaoWorkflowEngine extends JunitAutoTestCase {
      * wf-start->sh->join->sp->  hq->    ysp->end
      * user,1        user,1,2    user,2   user,1
      */
+    @EnableSnapshot
     @Test
     public void testCosign() {
-        testCase.testCosign();
+        runInSession(testCase::testCosign);
     }
 
     /**
@@ -64,84 +93,97 @@ public class TestDaoWorkflowEngine extends JunitAutoTestCase {
      * wf-start->sh->join->sp->  hq->    ysp->end
      * user,1        user,1,2    user,2   user,1
      */
+    @EnableSnapshot
     @Test
     public void testCosign1() {
-        testCase.testCosign1();
+        runInSession(testCase::testCosign1);
     }
 
-
+    @EnableSnapshot
     @Test
     public void testSimpleJoin() {
-        testCase.testSimpleJoin();
+        runInSession(testCase::testSimpleJoin);
     }
 
+    @EnableSnapshot
     @Test
     public void testFlow() {
-        testCase.testFlow();
+        runInSession(testCase::testFlow);
     }
 
+    @EnableSnapshot
     @Test
     public void testCurrentStep() {
-        testCase.testCurrentStep();
+        runInSession(testCase::testCurrentStep);
     }
 
+    @EnableSnapshot
     @Test
     public void testInvokableActions() {
-        testCase.testInvokableActions();
+        runInSession(testCase::testInvokableActions);
     }
 
+    @EnableSnapshot
     @Test
     public void testMultiTransition() {
-        testCase.testMultiTransition();
+        runInSession(testCase::testMultiTransition);
     }
 
+    @EnableSnapshot
     @Test
     public void testTransitionTarget() {
-        testCase.testTransitionTarget();
+        runInSession(testCase::testTransitionTarget);
     }
 
+    @EnableSnapshot
     @Test
     public void testActor() {
-        testCase.testActor();
+        runInSession(testCase::testActor);
     }
 
+    @EnableSnapshot
     @Test
     public void testNoAction() {
-        testCase.testNoAction();
-
+        runInSession(testCase::testNoAction);
     }
 
+    @EnableSnapshot
     @Test
     public void testSplitTypeAnd() {
-        testCase.testSplitTypeAnd();
+        runInSession(testCase::testSplitTypeAnd);
     }
 
+    @EnableSnapshot
     @Test
     public void testSplitTypeOr() {
-        testCase.testSplitTypeOr();
+        runInSession(testCase::testSplitTypeOr);
     }
 
+    @EnableSnapshot
     @Test
     public void testReject() {
-        testCase.testReject();
+        runInSession(testCase::testReject);
     }
 
+    @EnableSnapshot
     @Test
     public void testWithdraw() {
-        testCase.testWithdraw();
+        runInSession(testCase::testWithdraw);
     }
 
+    @EnableSnapshot
     @Test
     public void testDynamicActor() {
-        testCase.testDynamicActor();
+        runInSession(testCase::testDynamicActor);
     }
 
     /**
      * 空步骤
      */
+    @EnableSnapshot
     @Test
     public void testEmptyStep() {
-        testCase.testEmptyStep();
+        runInSession(testCase::testEmptyStep);
     }
 
     /**
@@ -149,36 +191,42 @@ public class TestDaoWorkflowEngine extends JunitAutoTestCase {
      * start -> mainStart(step) -> sh -> ysh(step)->end(step)
      * -> cyStart(step) -> cysh -> kcy(step) -> cy -> kcy(step)...
      */
+    @EnableSnapshot
     @Test
     public void testLoop() {
-        testCase.testLoop();
+        runInSession(testCase::testLoop);
     }
 
+    @EnableSnapshot
     @Test
     public void testToAssign() {
-        testCase.testToAssign();
+        runInSession(testCase::testToAssign);
     }
 
+    @EnableSnapshot
     @Test
     public void testToAssignAnd() {
-        testCase.testToAssignAnd();
+        runInSession(testCase::testToAssignAnd);
     }
 
     /**
      * 通过to-assign转换动态跳转步骤
      */
+    @EnableSnapshot
     @Test
     public void testToAssign1() {
-        testCase.testToAssign1();
+        runInSession(testCase::testToAssign1);
     }
 
+    @EnableSnapshot
     @Test
     public void testStartStepNoAssignment() {
-        testCase.testStartStepNoAssignment();
+        runInSession(testCase::testStartStepNoAssignment);
     }
 
+    @EnableSnapshot
     @Test
     public void testCommonAction() {
-        testCase.testCommonAction();
+        runInSession(testCase::testCommonAction);
     }
 }

@@ -23,7 +23,7 @@ import java.util.PrimitiveIterator;
 @DataBean
 public class IntRangeBean implements Serializable, Comparable<IntRangeBean>, Iterable<Integer> {
     private static final long serialVersionUID = 3846253782985184968L;
-    public static char SEPARATOR = ',';
+    private static final char SEPARATOR = ',';
 
     private final int offset;
     private final int limit;
@@ -122,6 +122,9 @@ public class IntRangeBean implements Serializable, Comparable<IntRangeBean>, Ite
     }
 
     public boolean equals(Object o) {
+        if(o == null)
+            return false;
+
         if (this == o)
             return true;
 

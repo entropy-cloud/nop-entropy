@@ -21,16 +21,15 @@ public interface ITableDataEventListener {
     void beginList(int rowIndex, int colIndex, int maxRowIndex, int maxColIndex,
                    IFieldContainer fieldModel, boolean cardList);
 
-    default void onColHeader(int rowIndex, int colIndex, ICellView cell, ImportFieldModel field, String fieldLabel) {
+    default void onColHeader(int rowIndex, int colIndex, LabelData labelData) {
 
     }
 
-    default void onFieldLabel(int rowIndex, int colIndex, ICellView cell, ImportFieldModel field, String fieldLabel) {
+    default void onFieldLabel(int rowIndex, int colIndex, LabelData labelData) {
 
     }
 
-    default void onFieldEnd(int rowIndex, int colIndex, ICellView labelCell, ImportFieldModel field, String fieldLabel,
-                            CellRange range) {
+    default void onFieldEnd(int rowIndex, int colIndex, LabelData labelData, CellRange range) {
 
     }
 
@@ -40,5 +39,5 @@ public interface ITableDataEventListener {
 
     void endObject(IFieldContainer fieldModel);
 
-    void simpleField(int rowIndex, int colIndex, ICellView cell, ImportFieldModel fieldModel, String label);
+    void simpleField(int rowIndex, int colIndex, ICellView cell, LabelData labelData);
 }

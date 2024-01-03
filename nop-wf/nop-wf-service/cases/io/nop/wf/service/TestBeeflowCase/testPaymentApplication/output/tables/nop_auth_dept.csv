@@ -1,0 +1,3 @@
+_chgType,DEPT_ID,DEPT_NAME,PARENT_ID,ORDER_NUM,DEPT_TYPE,MANAGER_ID,EMAIL,PHONE,DEL_FLAG,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME,REMARK
+A,@var:NopAuthDept@deptId,dept_a,@var:NopAuthDept@deptId_1,,,@var:NopAuthUser@userId_2,,,0,0,autotest-ref,*,autotest-ref,*,
+A,@var:NopAuthDept@deptId_1,dept_b,,,,@var:NopAuthUser@userId_4,,,0,0,autotest-ref,*,autotest-ref,*,

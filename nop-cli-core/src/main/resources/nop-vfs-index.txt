@@ -8,6 +8,7 @@
 /dict/core/simple-data-type.dict.yaml
 /dict/core/std-data-type.dict.yaml
 /dict/core/std-domain.dict.yaml
+/dict/rpt/data-display-mode.dict.yaml
 /i18n/en/nop-core.i18n.yaml
 /meta/test/NopAuthUser.xmeta
 /meta/test/NopAuthUser2.xmeta
@@ -72,6 +73,7 @@
 /nop/orm/beans/orm-defaults.beans.xml
 /nop/orm/imp/orm.imp.xml
 /nop/orm/imp/template.orm.xlsx
+/nop/orm/xlib/dao.xlib
 /nop/orm/xlib/ddl/ddl.xlib
 /nop/orm/xlib/ddl/ddl_h2.xlib
 /nop/orm/xlib/ddl/ddl_h2gis.xlib
@@ -210,6 +212,9 @@
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.forEntity}{metaInfo.baseObjName}/picker.page.yaml.xgen
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.forEntity}{metaInfo.baseObjName}/{metaInfo.objName}.lib.xjs
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.forEntity}{metaInfo.baseObjName}/{metaInfo.objName}.view.xml.xgen
+/nop/templates/orm/.dockerignore
+/nop/templates/orm/.gitattributes
+/nop/templates/orm/.gitignore
 /nop/templates/orm/@init.xrun
 /nop/templates/orm/deploy/sql/{dialect}/_add_tenant_{appName}.sql.xgen
 /nop/templates/orm/deploy/sql/{dialect}/_create_{appName}.sql.xgen
@@ -219,10 +224,10 @@
 /nop/templates/orm/{!!useCoreModule}{appName}-core/src/main/java/{basePackagePath}/core/{moduleClassPrefix}CoreConstants.java.xgen
 /nop/templates/orm/{appName}-api/pom.xml.xgen
 /nop/templates/orm/{appName}-app/pom.xml.xgen
-/nop/templates/orm/{appName}-app/src/main/docker/Dockerfile.jvm
-/nop/templates/orm/{appName}-app/src/main/docker/Dockerfile.legacy-jar
-/nop/templates/orm/{appName}-app/src/main/docker/Dockerfile.native
-/nop/templates/orm/{appName}-app/src/main/docker/Dockerfile.native-micro
+/nop/templates/orm/{appName}-app/src/main/docker/Dockerfile.jvm.xgen
+/nop/templates/orm/{appName}-app/src/main/docker/Dockerfile.legacy-jar.xgen
+/nop/templates/orm/{appName}-app/src/main/docker/Dockerfile.native-micro.xgen
+/nop/templates/orm/{appName}-app/src/main/docker/Dockerfile.native.xgen
 /nop/templates/orm/{appName}-app/src/main/java/{basePackagePath}/app/{moduleClassPrefix}Application.java.xgen
 /nop/templates/orm/{appName}-app/src/main/resources/META-INF/native-image/{mavenGroupId}/{mavenArtifactId}-app/jni-config.json
 /nop/templates/orm/{appName}-app/src/main/resources/META-INF/native-image/{mavenGroupId}/{mavenArtifactId}-app/native-image.properties

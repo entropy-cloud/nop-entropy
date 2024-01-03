@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopDynEntity" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="gql">
+
+    <objMeta>/nop/dyn/model/NopDynEntity/NopDynEntity.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--主键-->
+                <col id="sid" mandatory="true" sortable="true"/>
+
+                <!--对象类型-->
+                <col id="objType" mandatory="true" sortable="true"/>
+
+                <!--名称-->
+                <col id="name" mandatory="true" sortable="true"/>
+
+                <!--显示名称-->
+                <col id="displayName" sortable="true"/>
+
+                <!--排序-->
+                <col id="sortOrder" sortable="true"/>
+
+                <!--工作流实例ID-->
+                <col id="nopFlowId" sortable="true"/>
+
+                <!--业务状态码-->
+                <col id="bizStatus" sortable="true"/>
+
+                <!--业务状态-->
+                <col id="bizState" sortable="true"/>
+
+                <!--备注-->
+                <col id="remark" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="tree-list" x:prototype="list">
+            <selection>children @TreeChildren(max:5)</selection>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-动态实体" i18n-en:title="View Dynamic Entity">
+            <layout>
+ sid[主键]
+ objType[对象类型]
+ name[名称]
+ displayName[显示名称]
+ sortOrder[排序]
+ nopFlowId[工作流实例ID]
+ bizStatus[业务状态码]
+ bizState[业务状态]
+ remark[备注]
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-动态实体" i18n-en:title="Add Dynamic Entity" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-动态实体" i18n-en:title="Edit Dynamic Entity">
+            <layout>
+ sid[主键]
+ objType[对象类型]
+ name[名称]
+ displayName[显示名称]
+ sortOrder[排序]
+ nopFlowId[工作流实例ID]
+ bizStatus[业务状态码]
+ bizState[业务状态]
+ remark[备注]
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
+            <layout/>
+        </form>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
+            <layout/>
+        </form>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-动态实体" i18n-en:title="Update Dynamic Entity">
+            <layout/>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main" grid="tree-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table loadDataOnce="true" sortable="false" pager="none">
+                <api url="@query:NopDynEntity__findList?filter_parentId=__null" gql:selection="{@listSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopDynEntity__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopDynEntity__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-add-child-button" label="@i18n:common.addChild">
+                        <dialog page="add-child"/>
+                    </action>
+                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                        <api url="@mutation:NopDynEntity__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table>
+                <api url="@query:NopDynEntity__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopDynEntity__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopDynEntity__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopDynEntity__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopDynEntity__update/id?id=$id" withFormData="true"/>
+        </simple>
+        <simple name="add-child" form="add">
+            <api url="@mutation:NopDynEntity__save/id" withFormData="true"/>
+            <data>
+                <_ j:key="parentId">$id</_>
+            </data>
+        </simple>
+    </pages>
+</view>

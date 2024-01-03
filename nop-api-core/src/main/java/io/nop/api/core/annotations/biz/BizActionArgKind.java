@@ -7,6 +7,7 @@
  */
 package io.nop.api.core.annotations.biz;
 
+@SuppressWarnings("java:S115")
 public enum BizActionArgKind {
     RequestBean,
     ContextSource,

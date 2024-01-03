@@ -10,7 +10,6 @@ package io.nop.api.core.util;
 import io.nop.api.core.ApiConstants;
 import io.nop.api.core.ApiErrors;
 import io.nop.api.core.beans.ApiMessage;
-import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 
@@ -22,6 +21,9 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.nop.api.core.ApiErrors.ARG_HEADER;
+import static io.nop.api.core.ApiErrors.ARG_LOCALE;
+import static io.nop.api.core.ApiErrors.ERR_API_INVALID_LOCALE_HEADER;
+import static io.nop.api.core.util.ApiStringHelper.onlyChars;
 
 /**
  * 定义公共的消息头字段
@@ -371,5 +373,11 @@ public class ApiHeaders {
 
     public static void setBizFail(ApiMessage message, boolean fail) {
         message.setHeader(ApiConstants.HEADER_BIZ_FAIL, fail ? "1" : null);
+    }
+
+    public static void checkLocaleFormat(String locale) {
+        if (!onlyChars(locale, true, false, "-_"))
+            throw new NopException(ERR_API_INVALID_LOCALE_HEADER)
+                    .param(ARG_LOCALE, locale);
     }
 }

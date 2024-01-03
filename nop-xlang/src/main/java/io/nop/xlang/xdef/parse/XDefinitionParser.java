@@ -58,7 +58,6 @@ import static io.nop.xlang.XLangErrors.ERR_XDEF_LIST_NODE_NOT_ALLOW_VALUE;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_MAP_NODE_NOT_ALLOW_VALUE;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_REF_ONLY_ALLOW_ON_OBJ_NODE;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_SET_NODE_CHILD_NO_ATTR;
-import static io.nop.xlang.XLangErrors.ERR_XDEF_TAG_NAME_CONFLICT_WITH_ATTR_NAME;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_UNIQUE_ATTR_NOT_ALLOW_ON_XDEF_ANY_TAG;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_UNIQUE_ATTR_VALUE_MUST_BE_NODE_ATTR;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_UNKNOWN_DEFINITION_REF;

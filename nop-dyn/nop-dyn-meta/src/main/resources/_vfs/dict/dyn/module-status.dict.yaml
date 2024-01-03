@@ -1,0 +1,15 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 模块状态
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 未发布
+    value: 0
+    description: 
+  
+  - label: 已发布
+    value: 10
+    description: 
+  

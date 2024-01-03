@@ -70,7 +70,7 @@ public class XLangDebuggerInitializer implements ICoreInitializer {
 
         int waitSeconds = CFG_XLANG_DEBUGGER_WAIT_CONNECTION_SECONDS.get();
         if (waitSeconds > 0) {
-            server.waitConnected(waitSeconds * 1000);
+            server.waitConnected(waitSeconds * 1000L);
         }
         LOG.info("nop.debugger.register-debug-executor");
         EvalExprProvider.registerGlobalExecutor(new DebugExpressionExecutor(debugger));

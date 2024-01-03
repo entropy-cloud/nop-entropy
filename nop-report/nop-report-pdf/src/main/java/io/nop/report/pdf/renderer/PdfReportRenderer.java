@@ -115,7 +115,7 @@ public class PdfReportRenderer implements IBinaryTemplateOutput {
 
     private Rectangle getPageSize(ExcelPageSetup pageSetup) {
         ExcelPaperSize paperSize = pageSetup == null ? ExcelPaperSize.DEFAULT : ExcelPaperSize.of(pageSetup.getPaperSize());
-        boolean hor = pageSetup == null ? false : Boolean.TRUE.equals(pageSetup.getOrientationHorizontal());
+        boolean hor = pageSetup != null && Boolean.TRUE.equals(pageSetup.getOrientationHorizontal());
         return ExcelPdfHelper.getPageSize(paperSize, hor);
     }
 
@@ -131,7 +131,7 @@ public class PdfReportRenderer implements IBinaryTemplateOutput {
             widths[i] = size.floatValue();
         }
 
-        if (totalWidth > 0) {
+        if (totalWidth > 0 && curSize > 0) {
             for (int i = 0; i < col; i++) {
                 widths[i] = widths[i] * totalWidth / curSize;
             }

@@ -316,14 +316,6 @@
                 <version>${nop-entropy.version}</version>
             </dependency>
 
-
-            <dependency>
-                <groupId>io.github.entropy-cloud</groupId>
-                <artifactId>nop-job</artifactId>
-                <version>${nop-entropy.version}</version>
-            </dependency>
-
-
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-report-core</artifactId>
@@ -410,12 +402,6 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
-                <artifactId>nop-nosql</artifactId>
-                <version>${nop-entropy.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-shell</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
@@ -456,12 +442,6 @@
                 <version>${nop-entropy.version}</version>
             </dependency>
 
-
-            <dependency>
-                <groupId>io.github.entropy-cloud</groupId>
-                <artifactId>nop-web-core</artifactId>
-                <version>${nop-entropy.version}</version>
-            </dependency>
 
             <!--            <dependency>-->
             <!--                <groupId>io.github.entropy-cloud</groupId>-->
@@ -898,6 +878,30 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-dyn-dao</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-dyn-meta</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-dyn-service</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-dyn-web</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-cli-core</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
@@ -929,6 +933,18 @@
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-stream-checkpoint</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-gpt-core</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-gpt-llms</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
         </dependencies>

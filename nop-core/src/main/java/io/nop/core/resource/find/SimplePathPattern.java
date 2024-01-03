@@ -24,11 +24,11 @@ public class SimplePathPattern {
     }
 
     public static SimplePathPattern of(String pattern) {
-        if (StringHelper.isEmpty(pattern))
+        if (pattern == null || pattern.isEmpty())
             return new SimplePathPattern(Collections.emptyList());
 
         if (pattern.startsWith("/"))
-            pattern = pattern.substring(0);
+            pattern = pattern.substring(1);
 
         if (pattern.endsWith("/"))
             pattern = pattern.substring(0, pattern.length() - 1);

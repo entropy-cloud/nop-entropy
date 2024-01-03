@@ -229,6 +229,17 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
     }
 
     @Override
+    public void setAssigner(IWfActor assigner) {
+        if(assigner != null){
+            setAssignerId(assigner.getActorId());
+            setAssignerName(assigner.getActorName());
+        }else{
+            setAssignerId(null);
+            setAssignerName(null);
+        }
+    }
+
+    @Override
     public String getStepId() {
         return stepId;
     }

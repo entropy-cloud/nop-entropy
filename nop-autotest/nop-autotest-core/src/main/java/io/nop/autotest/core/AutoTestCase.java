@@ -122,7 +122,8 @@ public class AutoTestCase extends BaseTestCase {
         caseData.getInputDir().mkdirs();
         caseData.getOutputDir().mkdirs();
         try {
-            new File(caseDataDir, "autotest.yaml").createNewFile();
+            boolean b = new File(caseDataDir, "autotest.yaml").createNewFile();
+            LOG.debug("nop.autotest.init-file:{}",b);
         } catch (Exception e) {
             throw NopException.adapt(e);
         }
@@ -141,6 +142,7 @@ public class AutoTestCase extends BaseTestCase {
     }
 
     public void initDao() {
+        AutoTestVars.clear();
         daoProvider = initDaoProvider();
         jdbcTemplate = initJdbcTemplate();
         sessionFactory = initSessionFactory();
@@ -218,7 +220,7 @@ public class AutoTestCase extends BaseTestCase {
             if (success) {
                 if (saveOutput) {
                     new AutoTestCaseDataSaver(variant, caseData, ormHook).saveCollectedData();
-                    throw new NopException(ERR_AUTOTEST_SNAPSHOT_FINISHED);
+                    throwSnapshotFinishedError();
                 } else if (checkOutput) {
                     LOG.info("\n============ autotest run snapshot check =========================");
 
@@ -229,6 +231,10 @@ public class AutoTestCase extends BaseTestCase {
             AutoTestVars.clear();
         }
         LOG.info("nop.autotest.completed:method={},case={},success={}",getTestMethod(), this.getClass().getName(),success);
+    }
+
+    protected void throwSnapshotFinishedError(){
+        throw new NopException(ERR_AUTOTEST_SNAPSHOT_FINISHED);
     }
 
     public boolean isCheckOutput() {

@@ -35,6 +35,7 @@
         <junit-jupiter.version>5.9.2</junit-jupiter.version>
         <slf4j.version>2.0.6</slf4j.version>
 
+        <maven.plugin.validation>VERBOSE</maven.plugin.validation>
     </properties>
 
     <dependencies>
@@ -90,6 +91,16 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-site-plugin</artifactId>
                 <version>4.0.0-M2</version>
             </plugin>
@@ -100,10 +111,17 @@
                 <version>3.3.0</version>
             </plugin>
 
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>3.2.1</version>
+                <version>3.3.0</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -114,6 +132,7 @@
                 </executions>
             </plugin>
         </plugins>
+
     </build>
 
 </project>

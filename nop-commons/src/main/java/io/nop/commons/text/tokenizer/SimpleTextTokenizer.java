@@ -11,6 +11,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.text.MutableString;
 
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 public class SimpleTextTokenizer implements ITextTokenizer {
     public static SimpleTextTokenizer INSTANCE = new SimpleTextTokenizer();
@@ -26,6 +27,9 @@ public class SimpleTextTokenizer implements ITextTokenizer {
 
             @Override
             public IToken next() {
+                if (!hasNext())
+                    throw new NoSuchElementException();
+
                 SourceLocation loc = sc.location();
                 if (Character.isJavaIdentifierStart(sc.cur)) {
                     String text = sc.nextJavaVar();

@@ -35,7 +35,9 @@ public interface WebErrors {
             define("nop.err.web.page-not-allow-edit",
                     "没有开启编辑模式，不允许编辑页面文件");
 
-    ErrorCode ERR_WEB_INVALID_JS_FILE_TYPE = define("nop.err.web.invalid-js-file-types",
-            "请求路径[{path}]不是可编辑的js文件，文件后缀名必须是{allowedFileTypes}", ARG_PATH, ARG_ALLOWED_FILE_TYPES);
+    ErrorCode ERR_WEB_UNSUPPORTED_FILE_TYPE = define("nop.err.web.unsupported-file-type",
+            "请求路径[{path}]不是允许的文件类型，文件后缀名必须是{allowedFileTypes}", ARG_PATH, ARG_ALLOWED_FILE_TYPES);
 
+    ErrorCode ERR_WEB_DYNAMIC_FILE_MISSING_END_MOCK = define("nop.err.web.dynamic-file-missing-mock-block",
+            "没有找到匹配的@enc-mock部分");
 }

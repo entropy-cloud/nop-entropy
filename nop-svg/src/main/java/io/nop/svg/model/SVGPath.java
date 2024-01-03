@@ -129,8 +129,6 @@ public class SVGPath implements Shape, Cloneable {
         }
 
         Arc2D arc = computeArc(x0, y0, rx, ry, angle, largeArcFlag, sweepFlag, x, y);
-        if (arc == null)
-            return;
 
         AffineTransform t = AffineTransform.getRotateInstance(Math.toRadians(angle), arc.getCenterX(),
                 arc.getCenterY());
@@ -706,7 +704,7 @@ public class SVGPath implements Shape, Cloneable {
             return result;
         } catch (CloneNotSupportedException ex) {
         }
-        return null;
+        return this;
     }
 
     /**

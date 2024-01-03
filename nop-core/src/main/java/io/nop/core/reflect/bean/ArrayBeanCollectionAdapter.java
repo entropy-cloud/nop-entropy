@@ -9,6 +9,7 @@ package io.nop.core.reflect.bean;
 
 import java.lang.reflect.Array;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.function.ObjIntConsumer;
 
 public class ArrayBeanCollectionAdapter implements IBeanCollectionAdapter {
@@ -53,6 +54,9 @@ public class ArrayBeanCollectionAdapter implements IBeanCollectionAdapter {
 
             @Override
             public Object next() {
+                if (!hasNext())
+                    throw new NoSuchElementException();
+
                 Object value = getItem(bean, i);
                 i++;
                 return value;

@@ -16,6 +16,7 @@
         level="string" size="string" required="csv-list"
         target="string" redirect="string" reload="string" countDown="int" countDownTpl="string"
         link="string" url="string" blank="boolean" copyFormat="string" content="string"
+        xdef:bean-package="io.nop.xui.model"
         xdef:name="UiActionModel" xdef:bean-tag-prop="type" xdef:check-ns="xui,gql">
 
     <confirmText xdef:value="string"/>
@@ -31,7 +32,7 @@
 
     <initApi xdef:ref="api.xdef"/>
 
-    <messages xdef:body-type="map">
+    <messages xdef:bean-class="java.util.Map">
         <success xdef:value="string"/>
         <failed xdef:value="string"/>
     </messages>
@@ -41,7 +42,7 @@
             xdef:name="UiDialogModel">
         <data xdef:value="xjson"/>
 
-        <actions xdef:body-type="list" xdef:key-attr="id">
+        <actions xdef:body-type="list" xdef:key-attr="id" xdef:bean-body-type="List&lt;io.nop.xui.model.IUiActionModel>">
             <action id="!string" xdef:ref="UiActionModel"/>
             <actionGroup
                          id="!string" icon="string" label="string" batch="boolean" level="string"

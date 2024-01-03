@@ -8,6 +8,7 @@
 package io.nop.excel.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.nop.excel.format.ExcelDateHelper;
 import io.nop.excel.model._gen._ExcelStyle;
 import io.nop.excel.model.color.ColorHelper;
 import io.nop.excel.model.constants.ExcelHorizontalAlignment;
@@ -18,12 +19,24 @@ import io.nop.excel.util.UnitsHelper;
 import static io.nop.excel.model.ExcelBorderStyle.isSameStyle;
 
 public class ExcelStyle extends _ExcelStyle {
+    private boolean dateFormat;
+
     public ExcelStyle() {
 
     }
 
+    @JsonIgnore
+    public boolean isDateFormat() {
+        return dateFormat;
+    }
+
+    public void setNumberFormat(String format) {
+        super.setNumberFormat(format);
+        this.dateFormat = ExcelDateHelper.isADateFormat(format);
+    }
+
     public String toString() {
-        return getClass().getSimpleName() + "[id="+getId()+",loc=" + getLocation() + "]";
+        return getClass().getSimpleName() + "[id=" + getId() + ",loc=" + getLocation() + "]";
     }
 
     public boolean hasBorder() {

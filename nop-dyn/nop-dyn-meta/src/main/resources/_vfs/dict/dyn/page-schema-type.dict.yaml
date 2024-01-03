@@ -1,0 +1,19 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 页面类型
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 百度AMIS
+    value: AMIS
+    description: 
+  
+  - label: 华为OpenTiny
+    value: OpenTiny
+    description: 
+  
+  - label: 阿里Formily
+    value: Formily
+    description: 
+  

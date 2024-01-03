@@ -15,29 +15,15 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.resource.IResource;
-import io.nop.file.core.AbstractGraphQLFileService;
-import io.nop.file.core.DownloadRequestBean;
-import io.nop.file.core.FileConstants;
-import io.nop.file.core.MediaTypeHelper;
-import io.nop.file.core.UploadRequestBean;
+import io.nop.file.core.*;
 import io.nop.graphql.core.web.JaxrsHelper;
 import io.vertx.core.http.HttpServerRequest;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.*;
 import org.jboss.resteasy.plugins.providers.multipart.InputPart;
 import org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput;
 
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DefaultValue;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.HttpHeaders;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.MultivaluedMap;
-import jakarta.ws.rs.core.Response;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Locale;
@@ -64,8 +50,12 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
 
                 MultivaluedMap<String, String> headers = inputPart.getHeaders();
                 String contentType = headers.getFirst(HttpHeaders.CONTENT_TYPE);
+
                 // 获取文件名
                 String fileName = getFileName(headers);
+                if (StringHelper.isEmpty(fileName))
+                    continue;
+
                 // 修复文件名乱码
                 fileName = fixFileName(fileName);
                 // 处理上传文件
@@ -77,13 +67,13 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
                 fileInput.setFieldName(fieldName);
 
                 res = uploadAsync(buildRequest(request, fileInput));
-                break;
+                return res.thenApply(JaxrsHelper::buildJaxrsResponse);
             }
+            throw new IllegalArgumentException("No Upload File");
         } catch (Exception e) {
             res = FutureHelper.success(ErrorMessageManager.instance().buildResponse(locale, e));
+            return res.thenApply(JaxrsHelper::buildJaxrsResponse);
         }
-
-        return res.thenApply(JaxrsHelper::buildJaxrsResponse);
     }
 
     /**

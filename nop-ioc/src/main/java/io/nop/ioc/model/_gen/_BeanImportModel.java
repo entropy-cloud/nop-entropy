@@ -1,17 +1,17 @@
 package io.nop.ioc.model._gen;
 
-import io.nop.commons.collections.KeyedList; //NOPMD - suppressed UnusedImports - Used for List Prop
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [250:6:0:0]/nop/schema/beans.xdef <p>
+ * generate from [251:6:0:0]/nop/schema/beans.xdef <p>
  * 多次import同一资源只会实际执行一次。所有的bean不允许重名，从而避免出现import顺序不同导致结果不同。
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _BeanImportModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
@@ -41,6 +41,7 @@ public abstract class _BeanImportModel extends io.nop.core.resource.component.Ab
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -50,6 +51,7 @@ public abstract class _BeanImportModel extends io.nop.core.resource.component.Ab
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

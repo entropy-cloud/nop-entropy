@@ -27,6 +27,8 @@ public interface IWorkflowModel extends IComponentModel, ITagSetSupport {
 
     long getWfVersion();
 
+    String getWfGroup();
+
     @Nonnull
     List<? extends IWorkflowActionModel> getActions();
 

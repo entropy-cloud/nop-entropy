@@ -26,6 +26,9 @@ nop-xlang的开发是一个有趣的自举过程。因为codegen需要使用XLan
 
 nop-codegen工具可以独立于Nop平台被使用，生成其他框架或者其他语言的代码，比如生成mybatis代码，vue代码等，而且可以将CodeGenerator与FileWatcher结合在一起，**当发现某个目录下的模型文件发生变动时，就自动将依赖于该模型的所有文件重新生成一遍**。
 
+引入nop-xlang模块之后，我们就可以调用`ResourceComponentManager.instance().loadComponentModel(path)`来加载`src/resources/_vfs/`
+目录下的虚拟文件系统中的模型文件，自动根据xdef元模型定义实现模型解析，自动执行编译期代码生成、Delta差量合并等模型变换操作，并缓存模型解析结果。
+
 # 二. GraphQL引擎
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/arch/images/graphql-modules.png)
@@ -148,4 +151,3 @@ nop-cli命令行工具聚合了一批可以独立使用的功能，具体参见[
 
 * reverse-db指令需要用到nop-dbtool模块从数据库中逆向分析数据表定义，然后转换为nop-orm模块中定义的实体对象模型，最后利用nop-report模块提供的报表导出功能将实体对象模型保存到Excel文件中
 
-* 

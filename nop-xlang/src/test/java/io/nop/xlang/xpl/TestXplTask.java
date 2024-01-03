@@ -117,7 +117,7 @@ public class TestXplTask extends BaseTestCase {
         String text = ResourceHelper.readText(resultResource);
         if(text.equals(value.toString())){
             try {
-                Thread.sleep(500);
+                Thread.sleep(1000);
             } catch (Exception e) {
             }
             text = ResourceHelper.readText(resultResource);

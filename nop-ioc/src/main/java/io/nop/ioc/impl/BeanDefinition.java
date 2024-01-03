@@ -109,6 +109,10 @@ public class BeanDefinition implements IBeanDefinition {
         configDependants.add(beanId);
     }
 
+    public boolean isIocForceInit(){
+        return beanModel.isIocForceInit();
+    }
+
     public Function<IBeanContainerImplementor, ?> getSupplier() {
         return supplier;
     }

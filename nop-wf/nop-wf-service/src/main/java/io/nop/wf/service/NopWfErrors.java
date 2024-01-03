@@ -24,4 +24,8 @@ public interface NopWfErrors {
 
     ErrorCode ERR_WF_ACTOR_NO_DEPT_ID = define("nop.err.wf.actor-no-dept-id",
             "参与者[{actorName}]没有关联到部门", ARG_ACTOR_TYPE, ARG_ACTOR_NAME, ARG_ACTOR_ID);
+
+    ErrorCode ERR_WF_UNKNOWN_ACTOR_TYPE =
+            define("nop.err.wf.unknown-actor-type", "未知的参与者类型：{actorType}",
+                    ARG_ACTOR_TYPE, ARG_ACTOR_ID);
 }

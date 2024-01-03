@@ -20,7 +20,7 @@ public class DbEstimatedClock implements IEstimatedClock {
     private final String querySpace;
     private final IJdbcTemplate jdbc;
     private final IConfigReference<Integer> cacheTimeout;
-    private volatile TimeData timeData;
+    private volatile TimeData timeData; // NOSONAR
 
     private volatile boolean fetching;
 

@@ -72,6 +72,10 @@ public class XLangCompileTool {
         return this;
     }
 
+    public boolean isAllowUnregisteredScopeVar() {
+        return scope.isAllowUnregisteredScopeVar();
+    }
+
     public XLangCompileTool disableOptimize() {
         this.optimize = false;
         return this;

@@ -99,7 +99,7 @@ public class ResourceDependsManager {
      */
     public <T> T ignoreDepends(Supplier<T> task) {
         ResourceDependsStack stack = dependsStack.get();
-        dependsStack.set(null);
+        dependsStack.set(null); //NOSONAR
         try {
             return task.get();
         } finally {

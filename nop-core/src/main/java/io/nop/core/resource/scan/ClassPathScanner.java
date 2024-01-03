@@ -158,7 +158,7 @@ public class ClassPathScanner {
                 logger.trace("Looking for matching resources in jar file [" + jarFileUrl + "]");
             }
 
-            for (Enumeration<JarEntry> entries = jarFile.entries(); entries.hasMoreElements(); ) {
+            for (Enumeration<JarEntry> entries = jarFile.entries(); entries.hasMoreElements(); ) {//NOSONAR
                 JarEntry entry = entries.nextElement();
                 String entryPath = entry.getName();
                 if (entryPath.endsWith("/"))

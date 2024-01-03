@@ -75,10 +75,13 @@ public class ThreadHelper {
         return service.isTerminated();
     }
 
-    public static void sleep(long time) {
+    public static boolean sleep(long time) {
         try {
             Thread.sleep(time);
+            return true;
         } catch (InterruptedException e) {  //NOPMD
+            Thread.currentThread().interrupt();
+            return false;
         }
     }
 }

@@ -30,7 +30,7 @@ class TaskQueue extends LinkedBlockingQueue<Runnable> {
 
     private static final long serialVersionUID = 1L;
 
-    private transient volatile StandardThreadPoolExecutor parent = null;
+    private transient volatile StandardThreadPoolExecutor parent = null; //NOSONAR
 
     // No need to be volatile. This is written and read in a single thread
     // (when stopping a context and firing the listeners)
@@ -48,7 +48,7 @@ class TaskQueue extends LinkedBlockingQueue<Runnable> {
         super(c);
     }
 
-    public void setParent(StandardThreadPoolExecutor tp) {
+    public synchronized void setParent(StandardThreadPoolExecutor tp) {
         parent = tp;
     }
 

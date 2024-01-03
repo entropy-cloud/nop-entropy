@@ -3,7 +3,7 @@
 只需引入nop-spring-core-starter模块即可实现Spring框架和Nop平台的集成
 
 ````xml
-
+<pom>
 <dependencyManagement>
 
     <dependencies>
@@ -23,7 +23,8 @@
     <groupId>io.github.entropy-cloud</groupId>
     <artifactId>nop-spring-core-starter</artifactId>
 </dependency>
-</dependencies>    
+</dependencies>
+</pom>
 ````
 
 1. Spring框架启动完毕的时候自动调用CoreInitialization.initialize()函数来执行Nop平台的初始化.
@@ -34,7 +35,7 @@
 
 ## 仅使用NopOrm来访问数据库
 
-如果仅需要使用NopOrm平台提供的ORM引擎，可以在nop-spring-core-starer的基础上再引入nop-orm模块
+如果仅需要使用NopOrm平台提供的ORM引擎，可以在nop-spring-core-starter的基础上再引入nop-orm模块
 
 ````xml
 
@@ -82,6 +83,7 @@ nop.orm.use-parent-transaction-factory=true
     </dependency>
 </dependencies>    
 ````
+引入NopGraphQL服务会自动引入nop-orm，从而引入数据源配置，必须在application.yaml中配置nop.datasource.jdbc-url等参数，或者配置nop.orm.use-parent-data-source=true
 
 ## 集成Nop平台的AMIS前端
 

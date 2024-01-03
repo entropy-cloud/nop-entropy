@@ -18,7 +18,9 @@ import io.nop.commons.util.StringHelper;
 import io.nop.dao.exceptions.DaoException;
 import io.nop.dao.exceptions.UnknownEntityException;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -268,6 +270,10 @@ public interface IEntityDao<T extends IDaoEntity> {
     <R extends IDaoEntity> IEntityDao<R> propDao(String propName);
 
     void batchLoadProps(Collection<T> entities, Collection<String> propNames);
+
+    default void batchLoadPropsForEntity(T entity, String... propNames) {
+        batchLoadProps(Collections.singleton(entity), Arrays.asList(propNames));
+    }
 
     /**
      * 将一级缓存中的修改刷新到数据库中

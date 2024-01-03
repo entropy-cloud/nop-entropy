@@ -7,10 +7,12 @@
  */
 package io.nop.wf.core.engine;
 
+import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
@@ -23,6 +25,7 @@ import io.nop.core.type.IGenericType;
 import io.nop.wf.api.WfReference;
 import io.nop.wf.api.WfStepReference;
 import io.nop.wf.api.actor.IWfActor;
+import io.nop.wf.api.actor.WfActorAndOwner;
 import io.nop.wf.api.actor.WfActorBean;
 import io.nop.wf.api.actor.WfActorCandidatesBean;
 import io.nop.wf.core.IWorkflow;
@@ -40,6 +43,7 @@ import io.nop.wf.core.model.WfAssignmentModel;
 import io.nop.wf.core.model.WfEndModel;
 import io.nop.wf.core.model.WfJoinType;
 import io.nop.wf.core.model.WfModel;
+import io.nop.wf.core.model.WfModelAuth;
 import io.nop.wf.core.model.WfReturnVarModel;
 import io.nop.wf.core.model.WfSplitType;
 import io.nop.wf.core.model.WfStepModel;
@@ -67,20 +71,25 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletionStage;
 
 import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTION_NAME;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTOR_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTOR_TYPE;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_ARG_NAME;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_REJECT_STEP;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_ID;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_NAME;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_TARGET_CASES;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_TARGET_STEPS;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_TO_STEP_NAME;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_ID;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_NAME;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_VERSION;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ACTION_CONDITIONS_NOT_PASSED;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ACTION_NOT_ALLOWED_WHEN_SIGNAL_NOT_READY;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ACTION_TRANSITION_NO_NEXT_STEP;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ACTOR_NOT_EXISTS;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ALREADY_STARTED;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_EMPTY_ACTION_ARG;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_MISSING_STEP_INSTANCE;
@@ -89,12 +98,14 @@ import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_REMOVE;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_START;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_SUSPEND;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NO_ACTOR_ASSIGNED_FOR_TRANSFER;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_REJECT_ACTION_IS_NOT_ALLOWED;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_REJECT_STEP_IS_NOT_ANCESTOR_OF_CURRENT_STEP;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_START_WF_FAIL;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_STEP_NO_ASSIGNMENT;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_TRANSITION_TARGET_CASES_NOT_MATCH;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_TRANSITION_TARGET_STEPS_NOT_MATCH;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_TRANSIT_TO_NO_TARGETS;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_UNKNOWN_ACTION;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_UNKNOWN_ACTION_ARG;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_UNKNOWN_STEP;
@@ -127,6 +138,10 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     private void initCreateStatus(WfRuntime wfRt) {
         IWorkflowImplementor wf = wfRt.getWf();
         IWorkflowRecord wfRecord = wf.getRecord();
+
+        setDefaultTitle(wfRecord, wfRt);
+        wfRecord.setLastOperateTime(CoreMetrics.currentTimestamp());
+
         if (wfRecord.getStatus() == null || wfRecord.getStatus() <= NopWfCoreConstants.WF_STATUS_CREATED) {
             wfRt.saveWfRecord(NopWfCoreConstants.WF_STATUS_CREATED);
         }
@@ -166,13 +181,20 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         if (!passConditions(wfModel.getStart(), wfRt))
             throw wfRt.newError(ERR_WF_NOT_ALLOW_START);
 
-        WfAssignmentModel manager = wfModel.getManagerAssignment();
-        if (manager != null) {
-            // 只取assignment配置的第一个actor
-            List<WfActorWithWeight> actors = this.getAssignmentActors(manager, wfRt);
-            if (!actors.isEmpty()) {
-                IWfActor actor = actors.get(0).getActor();
-                wf.getRecord().setManager(actor);
+        List<WfModelAuth> auths = wfModel.getAuths();
+        if (auths != null) {
+            for (WfModelAuth auth : auths) {
+                if (auth.isAllowManage()) {
+                    IWfActor actor = resolveActor(auth.getActorType(), auth.getActorId(), auth.getDeptId());
+                    if (actor == null)
+                        throw new NopException(ERR_WF_ACTOR_NOT_EXISTS)
+                                .param(ARG_WF_NAME, wf.getWfName())
+                                .param(ARG_WF_VERSION, wf.getWfVersion())
+                                .param(ARG_ACTOR_TYPE, auth.getActorType())
+                                .param(ARG_ACTOR_ID, auth.getActorId());
+                    record.setManager(actor);
+                    break;
+                }
             }
         }
 
@@ -198,16 +220,23 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         args = new LinkedHashMap<>(args);
         String title = (String) args.remove(NopWfCoreConstants.PARAM_TITLE);
-        wfRecord.setTitle(title);
+        if (title != null)
+            wfRecord.setTitle(title);
 
         String bizObjName = (String) args.remove(NopWfCoreConstants.PARAM_BIZ_OBJ_NAME);
         wfRecord.setBizObjName(bizObjName);
 
         String bizEntityId = (String) args.remove(NopWfCoreConstants.PARAM_BIZ_OBJ_ID);
-        wfRecord.setBizObjId(bizEntityId);
+        if (!StringHelper.isEmpty(bizEntityId)) {
+            //VarCollector.instance().collectVar("NopWfInstance@bizEntityId",bizEntityId);
+            wfRecord.setBizObjId(bizEntityId);
+        }
 
         String bizKey = (String) args.remove(NopWfCoreConstants.PARAM_BIZ_KEY);
-        wfRecord.setBizKey(bizKey);
+        if (!StringHelper.isEmpty(bizKey)) {
+            //VarCollector.instance().collectVar("NopWfInstance@bizKey",bizKey);
+            wfRecord.setBizKey(bizKey);
+        }
         return args;
     }
 
@@ -257,9 +286,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         throw wfRt.newError(ERR_WF_STEP_NO_ASSIGNMENT).param(ARG_STEP_NAME, stepModel.getName());
     }
 
-    void newStepForActor(String stepGroup, Double execOrder,
-                         IWorkflowStepImplementor currentStep, WfStepModel stepModel, String fromAction,
-                         WfActorWithWeight actorWithWeight, IWfActor owner, WfRuntime wfRt) {
+    protected IWorkflowStepImplementor newStepForActor(String stepGroup, Double execOrder,
+                                                       IWorkflowStepImplementor currentStep, WfStepModel stepModel, String fromAction,
+                                                       WfActorWithWeight actorWithWeight, IWfActor owner, WfRuntime wfRt) {
         IWfActor actor = actorWithWeight.getActor();
 
         IWorkflowImplementor wf = wfRt.getWf();
@@ -284,7 +313,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                 if (step.isWaiting()) {
                     wfRt.delayExecute(() -> checkWaitingJoinStep(step, wfRt));
                 }
-                return;
+                return step;
             }
         }
 
@@ -295,6 +324,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         stepRecord.setStepGroup(stepGroup);
         stepRecord.setExecOrder(execOrder);
         stepRecord.setActorModelId(actorWithWeight.getActorModelId());
+        stepRecord.setAssigner(wfRt.getAssigner());
 
         IWorkflowStepImplementor step = wf.getStepByRecord(stepRecord);
         stepRecord.setActor(actor);
@@ -334,6 +364,13 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         if (currentStep != null) {
             wf.getStore().addNextStepRecord(currentStep.getRecord(), fromAction, step.getRecord());
         }
+
+        // 处于等待状态的join步骤，新增加上游步骤之后需要检查是否可以转入激活状态
+        if (stepModel.getJoinType() != null && step.isWaiting()) {
+            wfRt.delayExecute(() -> checkWaitingJoinStep(step, wfRt));
+        }
+
+        return step;
     }
 
     private String getJoinGroup(WfStepModel stepModel, IWorkflowStepImplementor step, WfRuntime wfRt) {
@@ -378,9 +415,25 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     private void saveStarted(WfRuntime wfRt) {
         IWorkflowRecord wfRecord = wfRt.getWf().getRecord();
         wfRecord.setStartTime(CoreMetrics.currentTimestamp());
-        wfRecord.setStarter(wfRt.getCaller());
+        IWfActor caller = wfRt.getCaller();
+        wfRecord.setStarter(caller);
+        wfRecord.setLastOperator(caller);
+        wfRecord.setLastOperateTime(wfRecord.getStartTime());
 
         // record的title不能为空
+        setDefaultTitle(wfRecord, wfRt);
+
+        wfRt.saveWfRecord(NopWfCoreConstants.WF_STATUS_ACTIVATED);
+
+        wfRt.triggerEvent(NopWfCoreConstants.EVENT_AFTER_START);
+
+        WfModel wfModel = wfRt.getWfModel();
+        if (!StringHelper.isEmpty(wfModel.getBizEntityFlowIdProp())) {
+            wfRt.getWf().getStore().bindBizEntityFlowId(wfRecord, wfModel.getBizEntityFlowIdProp());
+        }
+    }
+
+    void setDefaultTitle(IWorkflowRecord wfRecord, WfRuntime wfRt) {
         String title = wfRecord.getTitle();
         if (StringHelper.isEmpty(title)) {
             title = wfRt.getWfModel().getDisplayName();
@@ -388,16 +441,15 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                 title = wfRecord.getWfName();
             wfRecord.setTitle(title);
         }
-
-        wfRt.saveWfRecord(NopWfCoreConstants.WF_STATUS_ACTIVATED);
-
-        wfRt.triggerEvent(NopWfCoreConstants.EVENT_AFTER_START);
     }
 
     private boolean checkWaitingJoinStep(IWorkflowStepImplementor step, WfRuntime wfRt) {
         IWorkflowImplementor wf = wfRt.getWf();
         if (!step.isWaiting())
             return false;
+
+        LOG.info("nop.wf.check-waiting-join-step:wfName={},stepName={},stepId={}", step.getWfName(),
+                step.getStepName(), step.getStepId());
 
         if (!wf.isAllSignalOn(step.getModel().getWaitSignals()))
             return false;
@@ -414,12 +466,15 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         if (allWaitFinished) {
             step.getRecord().transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED);
             wfRt.triggerEvent(NopWfCoreConstants.EVENT_ACTIVATE_STEP);
+
+            LOG.info("nop.wf.waiting-join-step-transit-to-activated:wfName={},stepName={},stepId={}", step.getWfName(),
+                    step.getStepName(), step.getStepId());
             return true;
         }
         return false;
     }
 
-    private Object runXpl(IEvalAction action, WfRuntime wfRt) {
+    private Object runXpl(IEvalAction action, IWfRuntime wfRt) {
         if (action == null)
             return null;
         return action.invoke(wfRt);
@@ -462,7 +517,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             ISchema schema = argModel.getSchema();
             if (schema != null && value != null) {
                 if (schema.isSimpleSchema()) {
-                    SimpleSchemaValidator.INSTANCE.validate(schema, null, name, value, IValidationErrorCollector.THROW_ERROR);
+                    SimpleSchemaValidator.INSTANCE.validate(schema, null, name, value, wfRt.getEvalScope(),
+                            wfRt.getSvcCtx(), IValidationErrorCollector.THROW_ERROR);
                 }
                 IGenericType type = schema.getType();
                 if (type != null) {
@@ -514,7 +570,14 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         }
         List<IWfActor> ret = new ArrayList<>(actors.size());
         for (WfActorBean actorInfo : actors) {
-            ret.add(wf.resolveActor(actorInfo.getActorType(), actorInfo.getActorId(), actorInfo.getDeptId()));
+            IWfActor actor = resolveActor(actorInfo.getActorType(), actorInfo.getActorId(), actorInfo.getDeptId());
+            if (actor == null)
+                throw new NopException(ERR_WF_ACTOR_NOT_EXISTS)
+                        .param(ARG_WF_NAME, wf.getWfName())
+                        .param(ARG_WF_VERSION, wf.getWfVersion())
+                        .param(ARG_ACTOR_TYPE, actorInfo.getActorType())
+                        .param(ARG_ACTOR_ID, actorInfo.getActorId());
+            ret.add(actor);
         }
         return ret;
     }
@@ -594,10 +657,6 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         WfRuntime wfRt = newWfRuntime(wf, ctx);
         initArgs(wfRt, args);
         checkManageAuth(wfRt);
-
-        IWfActor caller = wfRt.getCaller();
-        wf.getRecord().setLastOperator(caller);
-        wf.getRecord().setLastOperateTime(CoreMetrics.currentTimestamp());
 
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_BEFORE_KILL);
 
@@ -688,22 +747,63 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         if (!step.isActivated())
             return false;
 
+        wfRt.setCurrentStep(step);
         WfStepModel stepModel = (WfStepModel) step.getModel();
-        if (stepModel.getTransition() != null) {
+        try {
+            if (step.getRecord().getStatus() <= NopWfCoreConstants.WF_STEP_STATUS_EXECUTED) {
+                Object value = runSource(stepModel, wfRt);
 
-            runXpl(stepModel.getSource(), wfRt);
-
-            boolean hasTrans = this.doTransition(step, step.getRecord().getFromAction(),
-                    stepModel.getTransition(), wfRt);
-            if (hasTrans) {
-                if (!step.isHistory()) {
-                    int status = NopWfCoreConstants.WF_STEP_STATUS_COMPLETED;
-                    doExitStep(step, status, wfRt);
+                if (value instanceof CompletionStage) {
+                    CompletionStage<Object> future = (CompletionStage<Object>) value;
+                    IServiceContext ctx = wfRt.getSvcCtx();
+                    IWorkflowImplementor wf = wfRt.getWf();
+                    ContextProvider.thenOnContext(future).whenComplete((ret, err) -> {
+                        wf.reload();
+                        IWorkflowStepImplementor asyncStep = wf.getStepById(step.getStepId());
+                        WfRuntime asyncRt = newWfRuntime(asyncStep, ctx);
+                        if (err != null) {
+                            handleError(err, NopWfCoreConstants.INTERNAL_ACTION_TRANSIT, stepModel, asyncRt);
+                        } else {
+                            asyncStep.getRecord().transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_EXECUTED);
+                            saveStepRecord(asyncStep);
+                            wf.runAutoTransitions(ctx);
+                        }
+                    });
+                    return false;
                 }
+
+                step.getRecord().transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_EXECUTED);
+                saveStepRecord(step);
             }
-            return hasTrans;
+
+            if (stepModel.getTransition() != null) {
+                Set<String> onStates = stepModel.getTransition().getOnAppStates();
+                if (onStates != null && !onStates.isEmpty()) {
+                    if (!onStates.contains(step.getRecord().getAppState())) {
+                        LOG.info("nop.wf.step-not-allow-transition-when-state-not-ready:stepName={},state={},onStates={},wfName={},wfId={}",
+                                step.getModel().getName(), step.getRecord().getAppState(), onStates, wfRt.getWf().getWfName(), wfRt.getWf().getWfId());
+                        return false;
+                    }
+                }
+                boolean hasTrans = this.doTransition(step, NopWfCoreConstants.INTERNAL_ACTION_TRANSIT,
+                        stepModel.getTransition(), wfRt);
+                if (hasTrans) {
+                    if (!step.isHistory()) {
+                        int status = NopWfCoreConstants.WF_STEP_STATUS_COMPLETED;
+                        doExitStep(step, status, wfRt);
+                    }
+                }
+                return hasTrans;
+            }
+            return false;
+        } catch (Exception e) {
+            this.handleError(e, NopWfCoreConstants.INTERNAL_ACTION_TRANSIT, stepModel, wfRt);
+            return false;
         }
-        return false;
+    }
+
+    protected Object runSource(WfStepModel stepModel, IWfRuntime wfRt) {
+        return FutureHelper.tryResolve(runXpl(stepModel.getSource(), wfRt));
     }
 
     @Override
@@ -721,6 +821,49 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         step.getRecord().setOwner(owner);
         saveStepRecord(step);
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_CHANGE_ACTOR);
+    }
+
+    @Override
+    public IWorkflowStepImplementor transferToActor(IWorkflowStepImplementor step, WfActorAndOwner actorAndOwner,
+                                                    IServiceContext ctx) {
+        WfRuntime wfRt = newWfRuntime(step, ctx);
+        IWfActor owner = StringHelper.isEmpty(actorAndOwner.getOwnerId()) ?
+                null : requireUser(actorAndOwner.getOwnerId(), wfRt);
+
+        wfRt.setAssigner(wfRt.getCaller());
+
+        IWfActor actor = null;
+        if (!StringHelper.isEmpty(actorAndOwner.getActorType())) {
+            actor = resolveDynamicActor(actorAndOwner, wfRt);
+            if (actor == null)
+                throw wfRt.newError(ERR_WF_ACTOR_NOT_EXISTS)
+                        .param(ARG_ACTOR_TYPE, actorAndOwner.getActorType())
+                        .param(ARG_ACTOR_ID, actorAndOwner.getActorId());
+        }
+
+        if (actor == null && owner == null)
+            throw wfRt.newError(ERR_WF_NO_ACTOR_ASSIGNED_FOR_TRANSFER);
+
+        if (actor == null)
+            actor = step.getActor();
+
+        WfActorWithWeight actorWithWeight = new WfActorWithWeight(actor,
+                step.getRecord().getActorModelId(), step.getRecord().getVoteWeight());
+
+        // 新建步骤
+        IWorkflowStepImplementor nextStep = newStepForActor(step.getRecord().getStepGroup(),
+                step.getRecord().getExecOrder(), step, (WfStepModel) step.getModel(),
+                NopWfCoreConstants.INTERNAL_ACTION_TRANSFER_TO_ACTOR, actorWithWeight, owner, wfRt);
+
+        IWfActor caller = wfRt.getCaller();
+        if (caller != null) {
+            step.getRecord().setCaller(caller);
+        }
+
+        this.doExitStep(step, NopWfCoreConstants.WF_STEP_STATUS_TRANSFERRED, wfRt);
+        wfRt.triggerEvent(NopWfCoreConstants.EVENT_TRANSFER_TO_ACTOR);
+
+        return nextStep;
     }
 
     @Override
@@ -745,11 +888,6 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     void _killStep(IWorkflowStepImplementor step, WfRuntime wfRt) {
         LOG.info("nop.wf.kill-step:step={}", step);
 
-        IWfActor caller = wfRt.getCaller();
-        if (caller != null) {
-            step.getRecord().setCaller(caller);
-        }
-
         this.doExitStep(step, NopWfCoreConstants.WF_STEP_STATUS_KILLED, wfRt);
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_KILL_STEP);
     }
@@ -758,8 +896,14 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     public boolean triggerTransition(IWorkflowStepImplementor step, Map<String, Object> args, IServiceContext ctx) {
         WfRuntime wfRt = newWfRuntime(step, ctx);
         initArgs(wfRt, args);
-        checkWaitingStep(step, wfRt);
         return runStepAutoTransition(step, wfRt);
+    }
+
+    @Override
+    public boolean triggerWaiting(IWorkflowStepImplementor step, Map<String, Object> args, IServiceContext ctx) {
+        WfRuntime wfRt = newWfRuntime(step, ctx);
+        initArgs(wfRt, args);
+        return checkWaitingStep(step, wfRt);
     }
 
     @Override
@@ -782,7 +926,30 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         args.put(NopWfCoreConstants.VAR_SUB_WF_RESULTS, results);
 
         // 触发工作流引擎检查step的状态检查，再根据状态触发auto action实现变迁
+        step.triggerWaiting(args, ctx);
         step.triggerTransition(args, ctx);
+    }
+
+    @Override
+    public boolean allowCallByUser(IWorkflowStepImplementor step, IServiceContext ctx) {
+        IWfActor owner = step.getOwner();
+        String userId = ctx.getUserId();
+
+        if (owner != null) {
+            if (owner.getActorId().equals(userId))
+                return true;
+
+            return canBeDelegatedBy(step, userId);
+        }
+
+        IWfActor actor = step.getActor();
+        if (IWfActor.ACTOR_TYPE_USER.equals(actor.getActorType())) {
+            if (actor.getActorId().equals(userId))
+                return true;
+
+            return canBeDelegatedBy(step, userId);
+        }
+        return actor.containsUser(userId);
     }
 
     @Override
@@ -813,9 +980,11 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         WfActionModel actionModel = requireActionModel(wfRt, actionName);
 
-        checkActionAuth(wfModel, wfRt);
+        ErrorCode errorCode = checkAllowedAction(actionModel, step, wfRt);
+        if (errorCode != null)
+            throw wfRt.newError(errorCode).param(ARG_ACTION_NAME, actionModel.getName());
 
-        checkAllowedAction(actionModel, step, wfRt);
+        checkActionAuth(wfModel, wfRt);
 
         initArgs(actionModel, args, actionName, wfRt);
 
@@ -823,12 +992,17 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     }
 
     private Object doInvokeAction(WfActionModel actionModel, IWorkflowStepImplementor step, WfRuntime wfRt) {
-        step.getRecord().setLastAction(actionModel.getName());
+        IWfActor caller = wfRt.getCaller();
+        if (!step.getRecord().isHistory()) {
+            step.getRecord().setLastAction(actionModel.getName());
+            step.getRecord().setCaller(caller);
+        }
 
         IWorkflowActionRecord actionRecord = null;
         if (actionModel.isSaveActionRecord()) {
             actionRecord = step.getStore().newActionRecord(step.getRecord(), actionModel);
             wfRt.setActionRecord(actionRecord);
+            actionRecord.setCaller(caller);
         }
 
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_BEFORE_ACTION);
@@ -843,6 +1017,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                 doWithdraw(step, actionModel, wfRt);
             }
             result = runXpl(actionModel.getSource(), wfRt);
+
 
             if (actionModel.isSaveActionRecord())
                 step.getStore().saveActionRecord(actionRecord);
@@ -1039,11 +1214,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     void changeBizEntityState(IWorkflowStepImplementor step, String bizEntityState) {
         WfModel wfModel = (WfModel) step.getWorkflow().getModel();
         if (bizEntityState != null && wfModel.getBizEntityStateProp() != null) {
-            Object bo = step.getWorkflow().getBizEntity();
-            if (bo != null) {
-                step.getStore().updateBizEntityState(step.getWorkflow().getBizObjName(), bo,
-                        wfModel.getBizEntityStateProp(), bizEntityState);
-            }
+            step.getStore().updateBizEntityState(step.getWorkflow().getRecord(),
+                    wfModel.getBizEntityStateProp(), bizEntityState);
         }
     }
 
@@ -1113,11 +1285,11 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             IWorkflowRecord wfRecord = wf.getRecord();
             boolean bEnd = wfRt.willEnd();
             if (bEnd) {
-                LOG.info("wf.force_end:wfRecord={}", wfRecord);
+                LOG.info("nop.wf.force-end:wfName={},wfRecord={}", wfRecord.getWfName(), wfRecord);
                 killSteps(wfRt);
             } else if (wf.getStore().isAllStepsHistory(wfRecord)) {
                 bEnd = true;
-                LOG.info("wf.auto_end_since_all_steps_finished:wfRecord={}", wfRecord);
+                LOG.info("nop.wf.auto-end-since-all-steps-finished:wfName={},wfRecord={}", wfRecord.getWfName(), wfRecord);
             }
             if (bEnd) {
                 this.doEndWorkflow(NopWfCoreConstants.WF_STATUS_COMPLETED, wfRt);
@@ -1130,10 +1302,12 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         if (wf.isEnded())
             return;
 
-        LOG.debug("wf.end-workflow:status={},wf={}", status, wf.getRecord());
+        LOG.debug("wf.end-workflow:wfName={},status={},wf={}", wf.getWfName(), status, wf.getRecord());
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_BEFORE_END);
         IWorkflowRecord wfRecord = wf.getRecord();
         wfRecord.setEndTime(CoreMetrics.currentTimestamp());
+        wfRecord.setLastOperateTime(CoreMetrics.currentTimestamp());
+        wfRecord.setLastOperator(wfRt.getCaller());
 
         WfModel wfModel = (WfModel) wf.getModel();
         WfEndModel endModel = wfModel.getEnd();
@@ -1199,7 +1373,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         wf.getStore().logError(wf.getRecord(), stepName, actionName, e);
     }
 
-    private void handleError(Exception e, String actionName, WfStepModel stepModel,
+    private void handleError(Throwable e, String actionName, WfStepModel stepModel,
                              WfRuntime wfRt) {
         this.logError(wfRt.getWf(), stepModel.getName(), actionName, e);
 
@@ -1249,8 +1423,13 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             return ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP_STATUS;
         }
 
-        if (actionModel.isCommon() && actionModel.getWhenSteps() != null && !actionModel.getWhenSteps().isEmpty()) {
-            if (!actionModel.getWhenSteps().contains(step.getStepName()))
+        if (actionModel.isCommon()) {
+            if (actionModel.getWhenSteps() != null && !actionModel.getWhenSteps().isEmpty()) {
+                if (!actionModel.getWhenSteps().contains(step.getStepName()))
+                    return ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP;
+            }
+        } else {
+            if (step.getModel().getAction(actionModel.getName()) == null)
                 return ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP;
         }
 
@@ -1279,8 +1458,10 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     private boolean isForStatus(IWorkflowStepImplementor step, WfActionModel actionModel) {
         // 如果流程被挂起，则暂停所有action的执行
-        if (step.getWorkflow().isSuspended())
+        if (step.getWorkflow().isSuspended()) {
+            LOG.info("nop.wf.workflow-is-suspended:wfName={},wfId={}", step.getWfName(), step.getWfId());
             return false;
+        }
 
         // 如果流程已结束, 一般情况下是不允许执行action的
         if (step.getWorkflow().isEnded()) {
@@ -1289,10 +1470,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         }
 
         // 分成三种情况：等待/活动/历史
-        int status = step.getRecord().getStatus();
-        if (status == NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED) {
+        if (step.isActivated()) {
             return actionModel.isForActivated();
-        } else if (status == NopWfCoreConstants.WF_STEP_STATUS_WAITING) {
+        } else if (step.isWaiting()) {
             return actionModel.isForWaiting();
         } else if (step.isHistory()) {
             return actionModel.isForHistory() || actionModel.isForWithdraw();
@@ -1392,13 +1572,26 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         WfRuntime wfRt = newWfRuntime(step, ctx);
         initArgs(wfRt, args);
 
+        wfRt.setAssigner(wfRt.getCaller());
+
         WfStepModel stepModel = wfRt.getWfModel().getStep(stepName);
         if (stepModel == null)
             throw wfRt.newError(ERR_WF_UNKNOWN_STEP).param(ARG_STEP_NAME, stepName);
 
         WfAssignmentModel assignment = stepModel.getAssignment();
         List<WfActorWithWeight> actors = getActors(assignment, stepName, wfRt);
-        this.newSteps(step, stepModel, null, actors, wfRt);
+        if (!this.newSteps(step, stepModel, null, actors, wfRt))
+            throw wfRt.newError(ERR_WF_TRANSIT_TO_NO_TARGETS)
+                    .param(ARG_TO_STEP_NAME, step.getStepName());
+    }
+
+    @Override
+    public void exitStep(IWorkflowStepImplementor step, int status,
+                         Map<String, Object> args, IServiceContext ctx) {
+        WfRuntime wfRt = newWfRuntime(step, ctx);
+        initArgs(wfRt, args);
+
+        this.doExitStep(step, status, wfRt);
     }
 
     @Override

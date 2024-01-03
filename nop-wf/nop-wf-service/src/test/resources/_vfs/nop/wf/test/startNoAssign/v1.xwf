@@ -8,9 +8,7 @@
         <step name="start">
             <assignment selection="auto" ignoreNoAssign="false">
                 <actors>
-                    <actor actorType="dynamic" actorModelId="actor1">
-                        <wf-actor:CurrentUser xpl:libs="/nop/wf/xlib/wf-actor.xlib"/>
-                    </actor>
+                    <actor actorType="wf-actor:CurrentCaller" actorModelId="actor1" />
                 </actors>
             </assignment>
             <transition>

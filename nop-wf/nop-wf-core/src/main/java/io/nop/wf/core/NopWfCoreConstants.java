@@ -20,6 +20,8 @@ public interface NopWfCoreConstants extends _NopWfCoreConstants {
 
     int WF_STATUS_HISTORY_BOUND = WF_STATUS_COMPLETED;
 
+    String DEFAULT_WF_GROUP = "default";
+
     String PARAM_BIZ_OBJ_ID = "bizObjId";
 
     String PARAM_BIZ_OBJ_NAME = "bizObjName";
@@ -36,6 +38,10 @@ public interface NopWfCoreConstants extends _NopWfCoreConstants {
 
     String VAR_SELECTED_STEP_ACTORS = "selectedStepActors";
 
+    String INTERNAL_ACTION_TRANSFER_TO_ACTOR = "_transferToActor_";
+
+    String INTERNAL_ACTION_TRANSIT = "_transit_";
+
     String VAR_ACTORS = "actors";
     String VAR_REJECT_STEPS = "rejectSteps"; // reject action的参数
     String VAR_TARGET_STEPS = "targetSteps";
@@ -49,6 +55,8 @@ public interface NopWfCoreConstants extends _NopWfCoreConstants {
 
     String EVENT_BEFORE_START = "before-start";
     String EVENT_AFTER_START = "after-start";
+
+    String EVENT_TRANSFER_TO_ACTOR = "transfer-to-actor";
 
     String EVENT_ON_NO_ASSIGN = "on-no-assign";
     String EVENT_ENTER_STEP = "enter-step";
@@ -88,8 +96,10 @@ public interface NopWfCoreConstants extends _NopWfCoreConstants {
     String WF_ACTOR_LIB_PATH = "/nop/wf/xlib/wf-actor.xlib";
     String WF_ACTOR_NS_PREFIX = "wf-actor:";
 
-    String SYS_ACTION_START = "_start";
-    String SYS_ACTION_SUSPEND = "_suspend";
-    String SYS_ACTION_RESUME = "_resume";
-    String SYS_ACTION_KILL = "_kill";
+    String SYS_ACTION_START = "_start_";
+    String SYS_ACTION_SUSPEND = "_suspend_";
+    String SYS_ACTION_RESUME = "_resume_";
+    String SYS_ACTION_KILL = "_kill_";
+
+    String DELEGATE_SCOPE_ALL = "all";
 }

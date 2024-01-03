@@ -28,6 +28,14 @@ public class OverrideResourceStore implements IResourceStore {
         this.secondStore = secondStore;
     }
 
+    public IResourceStore getFirstStore() {
+        return firstStore;
+    }
+
+    public IResourceStore getSecondStore() {
+        return secondStore;
+    }
+
     @Override
     public IResource getResource(String path, boolean returnNullIfNotExists) {
         IResource resource = firstStore.getResource(path, true);

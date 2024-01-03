@@ -29,8 +29,14 @@ public class TagsHelper {
         return new LinkedHashSet<>(list);
     }
 
+    public static String toString(Collection<String> tagSet) {
+        return toString(tagSet, ',');
+    }
+
     public static String toString(Collection<String> tagSet, char separator) {
-        if (tagSet == null || tagSet.isEmpty())
+        if (tagSet == null)
+            return null;
+        if (tagSet.isEmpty())
             return "";
 
         StringBuilder sb = new StringBuilder();

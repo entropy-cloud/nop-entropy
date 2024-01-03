@@ -24,9 +24,9 @@ import io.nop.http.api.server.IAsyncBody;
 import io.nop.http.api.server.IHttpServerContext;
 import io.nop.http.api.server.IHttpServerFilter;
 import io.nop.rpc.api.IRpcServiceLocator;
-
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
+
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
@@ -63,7 +63,7 @@ public class GatewayHttpFilter implements IHttpServerFilter {
             return FutureHelper.success(null);
         }
 
-        GatewayHandler handler = new GatewayHandler(model, rpcServiceLocator);
+        GatewayHandler handler = new GatewayHandler(() -> model, rpcServiceLocator);
         String path = context.getRequestPath();
 
         IServiceContext ctx = new ServiceContextImpl();

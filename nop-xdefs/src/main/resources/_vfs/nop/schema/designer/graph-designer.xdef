@@ -1,8 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
+<!--
+@editorType [编辑器类型] 比如flow-builder对应于类似钉钉的审批流编辑
+-->
 <designer x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-    xmlns:xdef="/nop/schema/xdef.xdef">
+          editorType="string" codeGenLib="v-path"
+    xmlns:xdef="/nop/schema/xdef.xdef" xdef:name="GraphDesignerModel" xdef:bean-package="io.nop.xui.graph_designer">
     <actions xdef:ref="../xui/actions.xdef"/>
+
+    <zoom initialValue="int" min="int" max="int" step="int" xdef:name="GraphDesignerZoomModel" />
+
+    <style xdef:value="string" />
 
     <nodes xdef:body-type="list" xdef:key-attr="name">
         <!--
@@ -10,25 +18,22 @@
         @propsForm 属性表单
         @allowParents 允许嵌入在哪些容器类型中。如果不配置，则允许嵌入到任意容器中
         -->
-        <node name="!string" icon="!string" label="!string" tagSet="csv-set" propsForm="string"
-              shape="string" minWidth="int" maxWidth="int" minHeight="int" maxHeight="int"
-              width="int" height="int" fixedAspectRatio="boolean"
+        <node name="!string" icon="string" label="!string" tagSet="csv-set" propsForm="string"
+              base="string" shape="string" minWidth="int" maxWidth="int" minHeight="int" maxHeight="int"
+              width="int" height="int" fixedAspectRatio="boolean"  start="!boolean=false" end="!boolean=false"
               draggable="boolean" resizable="boolean"
               deletable="boolean" addable="boolean=true"
               textPosition="string" textDraggable="boolean"
               minOccurs="int" maxOccurs="int"
-              allowParents="csv-set" xdef:name="DesignerNodeModel"
+              allowParents="csv-set" xdef:name="GraphDesignerNodeModel"
+              layout="string" allowChildren="csv-set"
         >
-            <style xdef:value="xjson" />
+            <style xdef:value="string" />
             <template xdef:value="xml"/>
             <anchors xdef:body-type="list" xdef:key-attr="name">
-                <anchor name="!string" positon="string" tagSet="csv-set"/>
+                <anchor name="!string" positon="string" tagSet="csv-set" xdef:name="GraphDesignerAnchorModel"/>
             </anchors>
         </node>
-
-        <container name="!string" xdef:ref="DesignerNodeModel" layout="string" allowChildren="csv-set">
-
-        </container>
     </nodes>
 
     <edges xdef:body-type="list" xdef:key-attr="name">
@@ -36,10 +41,10 @@
         @propsForm 属性表单
         -->
         <edge name="!string" icon="!string" label="!string" tagSet="csv-set" propsForm="string"
-              width="int"
+              width="int" xdef:name="GraphDesignerEdgeModel"
               deletable="boolean" addable="boolean=true" minOccurs="int" maxOccurs="int"
               allowSources="csv-set" allowTargets="csv-set" type="string">
-            <style xdef:value="xjson" />
+            <style xdef:value="string" />
             <template xdef:value="xml"/>
         </edge>
     </edges>

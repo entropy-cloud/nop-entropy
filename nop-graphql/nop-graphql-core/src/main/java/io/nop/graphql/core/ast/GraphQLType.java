@@ -32,6 +32,10 @@ public abstract class GraphQLType extends _GraphQLType {
         return false;
     }
 
+    public boolean needFieldSelection() {
+        return true;
+    }
+
     public boolean isObjectType() {
         return false;
     }

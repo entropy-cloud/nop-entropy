@@ -20,6 +20,7 @@ package io.nop.dao.seq;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.Guard;
+import io.nop.commons.util.MathHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,8 +56,6 @@ public class SnowflakeSequenceGeneator implements ISequenceGenerator {
 
     private long lastTimestamp = -1L;
 
-    private static final Random RANDOM = new Random();
-
     /**
      * @param twepoch 起始的时间戳
      */
@@ -90,6 +89,7 @@ public class SnowflakeSequenceGeneator implements ISequenceGenerator {
                                 .param(ARG_LAST_TS, lastTimestamp);
                     }
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     throw NopException.adapt(e);
                 }
 
@@ -105,12 +105,12 @@ public class SnowflakeSequenceGeneator implements ISequenceGenerator {
 
             if (sequence == 0) {
                 // seq 为0的时候表示是下一毫秒时间开始对seq做随机
-                sequence = RANDOM.nextInt(100);
+                sequence = MathHelper.secureRandom().nextInt(100);
                 timestamp = tilNextMillis(lastTimestamp);
             }
         } else {
             // 如果是新的ms开始
-            sequence = RANDOM.nextInt(100);
+            sequence = MathHelper.secureRandom().nextInt(100);
         }
 
         lastTimestamp = timestamp;

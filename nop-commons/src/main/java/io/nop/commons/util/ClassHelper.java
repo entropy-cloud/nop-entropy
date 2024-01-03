@@ -48,7 +48,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -260,6 +259,17 @@ public class ClassHelper {
 
     }
 
+    public static Object safeNewInstance(String className) {
+        try {
+            Class<?> clazz = safeLoadClass(className);
+            return clazz.newInstance();
+        } catch (InstantiationException e) {
+            throw new NopException(ERR_REFLECT_NEW_INSTANCE_FAIL, e).param(ARG_CLASS, className);
+        } catch (Exception e) {
+            throw NopException.adapt(e);
+        }
+    }
+
     public static Object newInstance(Class<?> clazz) {
         try {
             return clazz.newInstance();
@@ -349,7 +359,7 @@ public class ClassHelper {
         try {
             return (clToUse != null ? clToUse.loadClass(name) : Class.forName(name));
         } catch (ClassNotFoundException ex) {
-            LOG.debug("nop.class-not-found:class={},classLoader={}",name,clToUse);
+            LOG.debug("nop.class-not-found:class={},classLoader={}", name, clToUse);
             int lastDotIndex = name.lastIndexOf(PACKAGE_SEPARATOR);
             if (lastDotIndex != -1) {
                 String innerClassName = name.substring(0, lastDotIndex) + INNER_CLASS_SEPARATOR
@@ -749,7 +759,7 @@ public class ClassHelper {
         return clazz == null ? null : clazz.getCanonicalName();
     }
 
-    static Optional<Class<? extends Annotation>> _vertxDataObject = null;
+    private static Class<? extends Annotation> _vertxDataObject = null;
 
     public static boolean isVertxDataObject(Class<?> clazz) {
         if (_vertxDataObject == null) {
@@ -757,11 +767,15 @@ public class ClassHelper {
             try {
                 dataObject = (Class<? extends Annotation>) getSafeClassLoader().loadClass("io.vertx.codegen.annotations.DataObject");
             } catch (Exception e) {
+                LOG.trace("nop.commons.not-find-vertx-data-object");
             }
-            _vertxDataObject = Optional.ofNullable(dataObject);
+            _vertxDataObject = dataObject;
+            if (dataObject == null) {
+                _vertxDataObject = DataBean.class;
+            }
         }
-        if (_vertxDataObject.isPresent()) {
-            return clazz.getAnnotation(_vertxDataObject.get()) != null;
+        if (_vertxDataObject != DataBean.class) {
+            return clazz.getAnnotation(_vertxDataObject) != null;
         } else {
             return false;
         }

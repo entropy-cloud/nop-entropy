@@ -438,8 +438,12 @@ public class SimpleExprParser extends AbstractExprParser<Expression> implements 
         return x;
     }
 
+    protected boolean isStringStart(TextScanner sc){
+        return sc.cur == '\'' || sc.cur == '"';
+    }
+
     protected Expression primaryExpr(TextScanner sc) {
-        if (sc.cur == '\'' || sc.cur == '\"') {
+        if (isStringStart(sc)) {
             Expression x = stringExpr(sc);
             return x;
         }

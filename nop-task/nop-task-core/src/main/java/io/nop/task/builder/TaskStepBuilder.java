@@ -66,7 +66,7 @@ public class TaskStepBuilder {
 
     private ITaskStep wrap(TaskStepModel stepModel, ITaskStep step) {
         AbstractTaskStep wrap;
-        if (stepModel.getId() == step.getStepId() && step instanceof AbstractTaskStep) {
+        if (stepModel.getId().equals(step.getStepId()) && step instanceof AbstractTaskStep) {
             wrap = (AbstractTaskStep) step;
         } else {
             wrap = new WrapTaskStep(step);

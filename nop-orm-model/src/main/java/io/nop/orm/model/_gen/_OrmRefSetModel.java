@@ -1,17 +1,17 @@
 package io.nop.orm.model._gen;
 
-import io.nop.commons.collections.KeyedList; //NOPMD - suppressed UnusedImports - Used for List Prop
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [142:14:0:0]/nop/schema/orm/entity.xdef <p>
+ * generate from [150:14:0:0]/nop/schema/orm/entity.xdef <p>
  * 一对多的外键关联中父表对象可以存在集合属性来反向引用子表。集合对象可以定义keyProp，并支持排序条件。
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _OrmRefSetModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
@@ -93,6 +93,7 @@ public abstract class _OrmRefSetModel extends io.nop.core.resource.component.Abs
     }
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -104,6 +105,7 @@ public abstract class _OrmRefSetModel extends io.nop.core.resource.component.Abs
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

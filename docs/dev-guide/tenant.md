@@ -6,7 +6,7 @@
 
 * nop_auth_user, nop_auth_session, nop_auth_op_log, nop_tenant这几个表不会自动启用租户配置
 
-* 如果配置nop.orm.user-use-tenant=true，则用户表也自动进行tenant过滤
+* 如果配置nop.orm.user-use-tenant=true，则用户表也自动进行tenant过滤，按主键查询的时候也会传入租户过滤条件。缺省是不需要的。
 
 ## 用户的租户管理
 
@@ -14,7 +14,7 @@
 
 ## 迁移
 
-如果系统一开始没有启用租户，后来又启用租户。则在配置文件中配置nop.orm.auot-add-tenant-col=true，在启动的时候会自动为所有相关的表增加租户字段，
+如果系统一开始没有启用租户，后来又启用租户。则在配置文件中配置nop.orm.auto-add-tenant-col=true，在启动的时候会自动为所有相关的表增加租户字段，
 租户的缺省值为0。
 
 另外根据Excel模型生成代码时，会自动在deploy目录下建立 `_add_tenant_{appName}.sql`，其中包含有增加租户字段需要执行的SQL语句。

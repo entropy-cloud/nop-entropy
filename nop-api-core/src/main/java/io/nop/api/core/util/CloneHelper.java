@@ -108,9 +108,11 @@ public class CloneHelper {
             String key = entry.getKey();
             Object value = entry.getValue();
             Object oldValue = m1.get(key);
+            if (oldValue == null) {
+                m1.put(key,value);
+                continue;
+            }
             if (oldValue instanceof IMergeable) {
-                if (oldValue == null)
-                    continue;
                 Object merged = ((IMergeable) oldValue).merge(value);
                 if (merged != oldValue) {
                     m1.put(key, merged);

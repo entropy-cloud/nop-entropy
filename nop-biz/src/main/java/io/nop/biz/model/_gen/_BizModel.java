@@ -1,17 +1,17 @@
 package io.nop.biz.model._gen;
 
-import io.nop.commons.collections.KeyedList; //NOPMD - suppressed UnusedImports - Used for List Prop
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [8:2:0:0]/nop/schema/biz/xbiz.xdef <p>
+ * generate from [9:2:0:0]/nop/schema/biz/xbiz.xdef <p>
  * 每个业务模型(bizModel)必须关联一个对象模型(objMeta)。BizModel作为后端模型，只返回json, 不允许输出文本， 不包含具体界面实现
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _BizModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
@@ -301,6 +301,7 @@ public abstract class _BizModel extends io.nop.core.resource.component.AbstractC
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -318,6 +319,7 @@ public abstract class _BizModel extends io.nop.core.resource.component.AbstractC
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

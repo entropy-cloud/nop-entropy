@@ -53,6 +53,9 @@ public class SiteCacheData {
         this.resourceToRoles = resourceToRoles;
     }
 
+    /**
+     * 要求满足所有permission，所以取每个permission对应的roles集合的交集
+     */
     public Set<String> getRolesWithPermission(Set<String> permissions) {
         Set<String> ret = new HashSet<>();
         int index = 0;
@@ -63,6 +66,7 @@ public class SiteCacheData {
 
             if (index == 0) {
                 ret.addAll(roles);
+                index ++;
             } else {
                 ret.retainAll(roles);
                 if (ret.isEmpty())

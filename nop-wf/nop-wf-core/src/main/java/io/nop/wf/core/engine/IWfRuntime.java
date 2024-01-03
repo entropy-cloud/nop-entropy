@@ -22,6 +22,10 @@ public interface IWfRuntime extends IEvalContext {
 
     void setValue(String name, Object value);
 
+    IWfActor getAssigner();
+
+    void setAssigner(IWfActor assigner);
+
     List<IWfActor> getSelectedActors();
 
     Map<String, List<IWfActor>> getSelectedStepActors();
@@ -29,6 +33,8 @@ public interface IWfRuntime extends IEvalContext {
     Set<String> getRejectSteps();
 
     void setRejectSteps(Set<String> rejectSteps);
+
+    Object getBizEntity();
 
     Set<String> getTargetSteps();
 
@@ -48,6 +54,14 @@ public interface IWfRuntime extends IEvalContext {
 
     IWfActor getSysUser();
 
+    default IWfActor getStarter() {
+        return getWf().getStarter();
+    }
+
+    default String getStarterId(){
+        return getWf().getRecord().getStarterId();
+    }
+
     IWfActor getManagerActor();
 
     List<IWfActor> getSelectedActors(String targetStep);
@@ -59,6 +73,10 @@ public interface IWfRuntime extends IEvalContext {
     List<WfActorWithWeight> getCurrentActorAssignments();
 
     void setCurrentActorAssignments(List<WfActorWithWeight> currentActorAssignments);
+
+    WfActorWithWeight getActorAssignmentForUser(String userId);
+
+    void replaceActorAssignment(WfActorWithWeight assignment, IWfActor actor);
 
     IWorkflowStepImplementor getPrevStep();
 
@@ -91,5 +109,5 @@ public interface IWfRuntime extends IEvalContext {
 
     void logError(Throwable exp);
 
-    
+
 }

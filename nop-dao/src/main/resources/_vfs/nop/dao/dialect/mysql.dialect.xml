@@ -148,7 +148,7 @@
         <sqlDataType name="INTEGER" stdSqlType="INTEGER" alias="INT,INT UNSIGNED"/>
         <sqlDataType name="TINYINT" stdSqlType="TINYINT" />
         <sqlDataType name="TINYINT UNSIGNED" stdSqlType="INTEGER" deprecated="true"/>
-        <sqlDataType name="SMALLINT" stdSqlType="SMALLINT"/>
+        <sqlDataType name="SMALLINT" stdSqlType="SMALLINT" alias="SMALLINT UNSIGNED"/>
         <sqlDataType name="ENUM" stdSqlType="INTEGER" deprecated="true" />
         <sqlDataType name="BIGINT" stdSqlType="BIGINT" alias="BIGINT UNSIGNED"/>
         <sqlDataType name="TINYTEXT" precision="255" stdSqlType="VARCHAR" allowPrecision="false" deprecated="true"/>
@@ -158,6 +158,7 @@
         <sqlDataType name="MEDIUMTEXT" precision="16777215" allowPrecision="false" stdSqlType="VARCHAR"/>
         <sqlDataType name="LONGTEXT" allowPrecision="false" stdSqlType="VARCHAR"/>
         <sqlDataType name="DATE" stdSqlType="DATE"/>
+        <sqlDataType name="TIME" stdSqlType="TIME"/>
         <sqlDataType name="DATETIME" stdSqlType="DATETIME"/>
         <sqlDataType name="TIMESTAMP" stdSqlType="TIMESTAMP"/>
         <sqlDataType name="REAL" stdSqlType="REAL" alias="FLOAT"/>

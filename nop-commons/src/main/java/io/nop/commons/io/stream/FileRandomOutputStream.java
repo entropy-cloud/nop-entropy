@@ -91,6 +91,8 @@ public class FileRandomOutputStream extends RandomOutputStream {
                 try {
                     Thread.sleep(LOCK_SLEEP_TIME);
                 } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw NopException.adapt(e);
                 }
             } catch (Exception e) {
                 throw NopException.adapt(e);

@@ -16,8 +16,8 @@ import io.nop.wf.dao.entity.NopWfAction;
 /**
  *  工作流动作: nop_wf_action
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopWfAction extends DynamicOrmEntity{
     
     /* 主键: SID VARCHAR */
@@ -56,28 +56,36 @@ public class _NopWfAction extends DynamicOrmEntity{
     public static final String PROP_NAME_opinion = "opinion";
     public static final int PROP_ID_opinion = 9;
     
+    /* 错误码: ERR_CODE VARCHAR */
+    public static final String PROP_NAME_errCode = "errCode";
+    public static final int PROP_ID_errCode = 10;
+    
+    /* 错误消息: ERR_MSG VARCHAR */
+    public static final String PROP_NAME_errMsg = "errMsg";
+    public static final int PROP_ID_errMsg = 11;
+    
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 10;
+    public static final int PROP_ID_version = 12;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 11;
+    public static final int PROP_ID_createdBy = 13;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 12;
+    public static final int PROP_ID_createTime = 14;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 13;
+    public static final int PROP_ID_updatedBy = 15;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 14;
+    public static final int PROP_ID_updateTime = 16;
     
 
-    private static int _PROP_ID_BOUND = 15;
+    private static int _PROP_ID_BOUND = 17;
 
     
     /* relation: 工作流实例 */
@@ -87,10 +95,10 @@ public class _NopWfAction extends DynamicOrmEntity{
     public static final String PROP_NAME_wfStepInstance = "wfStepInstance";
     
 
-    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
-    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
-    private static final String[] PROP_ID_TO_NAME = new String[15];
+    private static final String[] PROP_ID_TO_NAME = new String[17];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -120,6 +128,12 @@ public class _NopWfAction extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_opinion] = PROP_NAME_opinion;
           PROP_NAME_TO_ID.put(PROP_NAME_opinion, PROP_ID_opinion);
+      
+          PROP_ID_TO_NAME[PROP_ID_errCode] = PROP_NAME_errCode;
+          PROP_NAME_TO_ID.put(PROP_NAME_errCode, PROP_ID_errCode);
+      
+          PROP_ID_TO_NAME[PROP_ID_errMsg] = PROP_NAME_errMsg;
+          PROP_NAME_TO_ID.put(PROP_NAME_errMsg, PROP_ID_errMsg);
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
@@ -166,6 +180,12 @@ public class _NopWfAction extends DynamicOrmEntity{
     /* 意见: OPINION */
     private java.lang.String _opinion;
     
+    /* 错误码: ERR_CODE */
+    private java.lang.String _errCode;
+    
+    /* 错误消息: ERR_MSG */
+    private java.lang.String _errMsg;
+    
     /* 数据版本: VERSION */
     private java.lang.Integer _version;
     
@@ -183,6 +203,7 @@ public class _NopWfAction extends DynamicOrmEntity{
     
 
     public _NopWfAction(){
+        // for debug
     }
 
     protected NopWfAction newInstance(){
@@ -277,6 +298,12 @@ public class _NopWfAction extends DynamicOrmEntity{
         
             case PROP_ID_opinion:
                return getOpinion();
+        
+            case PROP_ID_errCode:
+               return getErrCode();
+        
+            case PROP_ID_errMsg:
+               return getErrMsg();
         
             case PROP_ID_version:
                return getVersion();
@@ -391,6 +418,26 @@ public class _NopWfAction extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_opinion));
                }
                setOpinion(typedValue);
+               break;
+            }
+        
+            case PROP_ID_errCode:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_errCode));
+               }
+               setErrCode(typedValue);
+               break;
+            }
+        
+            case PROP_ID_errMsg:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_errMsg));
+               }
+               setErrMsg(typedValue);
                break;
             }
         
@@ -512,6 +559,20 @@ public class _NopWfAction extends DynamicOrmEntity{
             case PROP_ID_opinion:{
                onInitProp(propId);
                this._opinion = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_errCode:{
+               onInitProp(propId);
+               this._errCode = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_errMsg:{
+               onInitProp(propId);
+               this._errMsg = (java.lang.String)value;
                
                break;
             }
@@ -724,6 +785,44 @@ public class _NopWfAction extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_opinion,value)){
             this._opinion = value;
             internalClearRefs(PROP_ID_opinion);
+            
+        }
+    }
+    
+    /**
+     * 错误码: ERR_CODE
+     */
+    public java.lang.String getErrCode(){
+         onPropGet(PROP_ID_errCode);
+         return _errCode;
+    }
+
+    /**
+     * 错误码: ERR_CODE
+     */
+    public void setErrCode(java.lang.String value){
+        if(onPropSet(PROP_ID_errCode,value)){
+            this._errCode = value;
+            internalClearRefs(PROP_ID_errCode);
+            
+        }
+    }
+    
+    /**
+     * 错误消息: ERR_MSG
+     */
+    public java.lang.String getErrMsg(){
+         onPropGet(PROP_ID_errMsg);
+         return _errMsg;
+    }
+
+    /**
+     * 错误消息: ERR_MSG
+     */
+    public void setErrMsg(java.lang.String value){
+        if(onPropSet(PROP_ID_errMsg,value)){
+            this._errMsg = value;
+            internalClearRefs(PROP_ID_errMsg);
             
         }
     }

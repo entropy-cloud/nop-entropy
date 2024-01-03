@@ -164,7 +164,7 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
 
     @PropertySetter
     public BatchTaskBuilder transactionScope(BatchTransactionScope scope) {
-        this.batchTransactionScope = batchTransactionScope;
+        this.batchTransactionScope = scope;
         return this;
     }
 

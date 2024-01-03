@@ -9,6 +9,7 @@ package io.nop.commons.util.random;
 
 import java.util.concurrent.ThreadLocalRandom;
 
+@SuppressWarnings("java:S2245")
 public class DefaultThreadLocalRandom implements IRandom {
     public static DefaultThreadLocalRandom INSTANCE = new DefaultThreadLocalRandom();
 

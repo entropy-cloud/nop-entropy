@@ -13,7 +13,7 @@ import io.nop.api.core.exceptions.NopException;
 import java.util.function.Function;
 
 public final class IdentityTypeConverter implements ITypeConverter {
-    public static IdentityTypeConverter INSTANCE = new IdentityTypeConverter();
+    public static final IdentityTypeConverter INSTANCE = new IdentityTypeConverter();
 
     @Override
     public Object convert(Object value, Function<ErrorCode, NopException> errorFactory) {

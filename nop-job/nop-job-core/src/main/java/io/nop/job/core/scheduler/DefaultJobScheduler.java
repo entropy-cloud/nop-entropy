@@ -56,7 +56,7 @@ public class DefaultJobScheduler implements IJobScheduler {
 
     private ICalendar defaultCalendar;
 
-    private volatile ICancellable cancelFetch;
+    private volatile ICancellable cancelFetch; //NOSONAR
 
     private boolean deactivated;
 
@@ -161,7 +161,7 @@ public class DefaultJobScheduler implements IJobScheduler {
         }
 
         if (created) {
-            synchronized (execution) {
+            synchronized (execution) { //NOSONAR
                 boolean active = execution.getTriggerStatus().isActive();
                 if (active) {
                     startTrigger(execution);
@@ -199,7 +199,7 @@ public class DefaultJobScheduler implements IJobScheduler {
         String jobName = resolved.getJobName();
         JobSpec spec = resolved.getJobSpec();
 
-        synchronized (execution) {
+        synchronized (execution) { //NOSONAR
             // 忽略旧版本
             if (execution.getJobSpec().getJobSpec().getVersion() > spec.getVersion()) {
                 LOG.info("nop.job.ignore-obsolete-job-spec:jobName={},version={},currentVer={}", spec.getJobName(),
@@ -216,7 +216,7 @@ public class DefaultJobScheduler implements IJobScheduler {
             execution.setJobSpec(resolved);
             boolean active = execution.getTriggerStatus().isActive();
             execution.pauseTrigger().thenRun(() -> {
-                synchronized (execution) {
+                synchronized (execution) { //NOSONAR
                     if (forceStartJob || active) {
                         if (!execution.getTriggerStatus().isDone()) {
                             startTrigger(execution);
@@ -299,7 +299,7 @@ public class DefaultJobScheduler implements IJobScheduler {
     public TriggerStatus getTriggerStatus(String jobName) {
         JobExecution execution = jobs.get(jobName);
         if (execution != null) {
-            synchronized (execution) {
+            synchronized (execution) {//NOSONAR
                 return execution.getTriggerStatus();
             }
         }
@@ -314,7 +314,7 @@ public class DefaultJobScheduler implements IJobScheduler {
 
         JobExecution execution = jobs.get(jobName);
         if (execution != null) {
-            synchronized (execution) {
+            synchronized (execution) { //NOSONAR
                 if (execution.getTriggerStatus() == TriggerStatus.PAUSED) {
                     return startTrigger(execution);
                 }
@@ -344,7 +344,7 @@ public class DefaultJobScheduler implements IJobScheduler {
 
         JobExecution execution = jobs.get(jobName);
         if (execution != null) {
-            synchronized (execution) {
+            synchronized (execution) { //NOSONAR
                 execution.pauseTrigger();
                 return true;
             }
@@ -361,7 +361,7 @@ public class DefaultJobScheduler implements IJobScheduler {
 
         JobExecution execution = jobs.get(jobName);
         if (execution != null) {
-            synchronized (execution) {
+            synchronized (execution) { //NOSONAR
                 execution.cancelTrigger();
                 return true;
             }
@@ -383,7 +383,7 @@ public class DefaultJobScheduler implements IJobScheduler {
             return false;
         }
 
-        synchronized (execution) {
+        synchronized (execution) { //NOSONAR
             ITriggerExecution trigger = execution.getTriggerExecution();
             if (trigger != null) {
                 return trigger.fireNow();

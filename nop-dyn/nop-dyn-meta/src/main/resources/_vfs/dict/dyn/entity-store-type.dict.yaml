@@ -1,0 +1,15 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 实体存储类型
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 虚拟表
+    value: 0
+    description: 
+  
+  - label: 实体表
+    value: 10
+    description: 
+  

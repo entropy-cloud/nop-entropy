@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="GBK"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd"
+>
+
+    <!-- 测试init、destroy -->
+    <bean id="testBeanD" class="test.io.entropy.beans.MyBeanD">
+        <property name="name" value="d1" />
+    </bean>
+
+    <bean id="testBeanA" class="test.io.entropy.beans.MyBeanA">
+    </bean>
+
+</beans>

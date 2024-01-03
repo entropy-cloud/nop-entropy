@@ -16,10 +16,10 @@ import io.nop.commons.util.URLHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceRegion;
 import io.nop.core.resource.ResourceHelper;
+import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -171,7 +171,8 @@ public abstract class AbstractResource implements IResource {
         checkSupportStream();
 
         if (!this.exists())
-            throw new NopException(ERR_RESOURCE_NOT_EXISTS).param(ARG_RESOURCE, this);
+            throw new NopException(ERR_RESOURCE_NOT_EXISTS).param(ARG_RESOURCE, this)
+                    .param(ARG_RESOURCE_PATH, resource.getPath());
 
         if (this.equals(resource)) {
             LOG.debug("nop.resource.ignore-save-to-same-resource:resource={}", resource);

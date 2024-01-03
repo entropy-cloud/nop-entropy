@@ -1,0 +1,23 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 函数类型
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 查询
+    value: query
+    description: 
+  
+  - label: 修改
+    value: mutation
+    description: 
+  
+  - label: 订阅
+    value: subscription
+    description: 
+  
+  - label: 加载器
+    value: loader
+    description: 
+  

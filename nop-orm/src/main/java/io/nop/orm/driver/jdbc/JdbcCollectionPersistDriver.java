@@ -11,12 +11,12 @@ import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.collections.IntArray;
 import io.nop.core.lang.sql.SQL;
-import io.nop.dataset.binder.IDataParameterBinder;
-import io.nop.dataset.IDataRow;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.shard.ShardSelection;
 import io.nop.dao.utils.DaoHelper;
+import io.nop.dataset.IDataRow;
+import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.driver.ICollectionPersistDriver;
@@ -64,7 +64,7 @@ public class JdbcCollectionPersistDriver implements ICollectionPersistDriver {
         this.loadSql = GenSqlHelper.genCollectionLoadSql(dialect, relation, binders,
                 refEntityModel.getEagerLoadProps());
         this.batchLoadSqlPart = GenSqlHelper.genCollectionBatchLoadSqlPart(dialect, relation,
-                refEntityModel.getEagerLoadProps());
+                refEntityModel.getEagerLoadProps(), binders);
     }
 
     IJdbcTemplate jdbc() {
@@ -107,7 +107,7 @@ public class JdbcCollectionPersistDriver implements ICollectionPersistDriver {
             CollectionSQL loadSql = this.batchLoadSqlPart;
 
             if (this.dialect != dialect || !loadSql.propIds.equals(propIds)) {
-                loadSql = GenSqlHelper.genCollectionBatchLoadSqlPart(dialect, collectionModel, propIds);
+                loadSql = GenSqlHelper.genCollectionBatchLoadSqlPart(dialect, collectionModel, propIds, binders);
             }
 
             IntArray loadPropIds = loadSql.propIds;

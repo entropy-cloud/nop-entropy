@@ -16,6 +16,7 @@
 /dict/core/simple-data-type.dict.yaml
 /dict/core/std-data-type.dict.yaml
 /dict/core/std-domain.dict.yaml
+/dict/rpt/data-display-mode.dict.yaml
 /i18n/en/_nop-auth.i18n.yaml
 /i18n/en/_nop-sys.i18n.yaml
 /i18n/en/nop-auth-core.i18n.yaml
@@ -33,6 +34,7 @@
 /nop/auth/beans/_service.beans.xml
 /nop/auth/beans/app-service.beans.xml
 /nop/auth/beans/auth-core-defaults.beans.xml
+/nop/auth/beans/auth-dao.beans.xml
 /nop/auth/beans/auth-service.beans.xml
 /nop/auth/model/NopAuthDept/NopAuthDept.xbiz
 /nop/auth/model/NopAuthDept/NopAuthDept.xmeta
@@ -109,6 +111,7 @@
 /nop/autoconfig/nop-dao.beans
 /nop/autoconfig/nop-http-client-jdk.beans
 /nop/autoconfig/nop-orm.beans
+/nop/autoconfig/nop-report.beans
 /nop/biz/beans/biz-defaults.beans.xml
 /nop/biz/xlib/bo.xlib
 /nop/codegen/xlib/gen.xlib
@@ -120,11 +123,13 @@
 /nop/core/registry/api.register-model.xml
 /nop/core/registry/dialect.register-model.xml
 /nop/core/registry/dict.register-model.xml
+/nop/core/registry/imp.register-model.xml
 /nop/core/registry/orm.register-model.xml
 /nop/core/registry/validator.register-model.xml
 /nop/core/registry/xlib.register-model.xml
 /nop/core/registry/xmeta.register-model.xml
 /nop/core/registry/xpl.register-model.xml
+/nop/core/registry/xpt.register-model.xml
 /nop/core/registry/xtask.register-model.xml
 /nop/core/xlib/biz!check.xlib
 /nop/core/xlib/biz!filter.xlib
@@ -155,6 +160,7 @@
 /nop/dao/dialect/selector/postgresql.selector.yaml
 /nop/dao/dialect/tdengine.dialect.xml
 /nop/demo/app.action-auth.xml
+/nop/excel/xlib/imp-gen.xlib
 /nop/file/_module
 /nop/file/beans/_dao.beans.xml
 /nop/file/beans/app-file-core.beans.xml
@@ -171,6 +177,7 @@
 /nop/orm/beans/orm-defaults.beans.xml
 /nop/orm/imp/orm.imp.xml
 /nop/orm/imp/template.orm.xlsx
+/nop/orm/xlib/dao.xlib
 /nop/orm/xlib/ddl/ddl.xlib
 /nop/orm/xlib/ddl/ddl_h2.xlib
 /nop/orm/xlib/ddl/ddl_h2gis.xlib
@@ -183,6 +190,8 @@
 /nop/orm/xlib/orm-gen.xlib
 /nop/orm/xlib/pdman.xlib
 /nop/orm/xlib/sql.xlib
+/nop/report/beans/report-defaults.beans.xml
+/nop/report/imp/xpt.imp.xml
 /nop/schema/action-auth.xdef
 /nop/schema/api.xdef
 /nop/schema/beans.xdef
@@ -320,6 +329,8 @@
 /nop/templates/api/{serviceModuleName}/src/main/java/{servicePackagePath}/impl/{serviceModel.name}Impl.java.xgen
 /nop/templates/api/{serviceModuleName}/src/main/java/{servicePackagePath}/{serviceModel.name}Spi.java.xgen
 /nop/templates/api/{serviceModuleName}/src/main/resources/_vfs/{moduleId}/beans/_api-impl.beans.xml.xgen
+/nop/templates/api/{serviceModuleName}/src/main/resources/_vfs/{moduleId}/model/{!!serviceModel.tagSet.@biz}{serviceModel.bizObjName}/_{serviceModel.name}.xbiz.xgen
+/nop/templates/api/{serviceModuleName}/src/main/resources/_vfs/{moduleId}/model/{!!serviceModel.tagSet.@biz}{serviceModel.bizObjName}/{serviceModel.bizObjName}.xbiz.xgen
 /nop/templates/ast/@init.xrun
 /nop/templates/ast/src/main/java/{ast.packagePath}/_gen/_{astNode.name}.java.xgen
 /nop/templates/ast/src/main/java/{ast.packagePath}/{ast.name}Kind.java.xgen
@@ -328,6 +339,8 @@
 /nop/templates/ast/src/main/java/{ast.packagePath}/{ast.name}Processor.java.xgen
 /nop/templates/ast/src/main/java/{ast.packagePath}/{ast.name}Visitor.java.xgen
 /nop/templates/ast/src/main/java/{ast.packagePath}/{astNode.name}.java.xgen
+/nop/templates/backend/@init.xrun
+/nop/templates/backend/a-imp.xrun
 /nop/templates/i18n/@init.xrun
 /nop/templates/i18n/_templates/_{metaInfo.objName}.json.xgen
 /nop/templates/i18n/src/main/resources/_vfs/i18n/{defaultLocale}/_{moduleName}.i18n.yaml.xgen

@@ -7,13 +7,10 @@
  */
 package io.nop.commons.collections.iterator;
 
-import io.nop.api.core.exceptions.NopException;
-
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.function.Function;
-
-import static io.nop.commons.CommonErrors.ERR_COLLECTIONS_ITERATOR_EOF;
 
 public class FindNextPageIterator<T> implements Iterator<List<T>> {
     private final Function<T, List<T>> provider;
@@ -47,7 +44,7 @@ public class FindNextPageIterator<T> implements Iterator<List<T>> {
     @Override
     public List<T> next() {
         if (!hasNext())
-            throw new NopException(ERR_COLLECTIONS_ITERATOR_EOF);
+            throw new NoSuchElementException();
         List<T> list = entityList;
         this.entityList = null;
         return list;

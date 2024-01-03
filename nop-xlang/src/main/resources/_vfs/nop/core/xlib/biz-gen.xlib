@@ -45,6 +45,10 @@
 
             <source>
                 <biz>
+                    <xdsl:config xpl:ignoreTag="true">
+                      <c:import from="/nop/biz/xlib/bo.xlib" />
+                    </xdsl:config>
+
                     <actions>
                         <query name="findPageBase" xdsl:abstract="true">
                             <arg name="query" type="io.nop.api.core.beans.query.QueryBean"/>

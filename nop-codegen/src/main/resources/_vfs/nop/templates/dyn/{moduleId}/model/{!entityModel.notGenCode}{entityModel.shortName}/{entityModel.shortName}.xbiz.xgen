@@ -1,0 +1,15 @@
+<biz x:schema="/nop/schema/biz/xbiz.xdef" graphql:base="crud" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xpl="xpl" xmlns:biz-gen="biz-gen">
+
+    <x:gen-extends xpl:ignoreTag="true">
+        <biz-gen:DefaultBizGenExtends xpl:lib="/nop/core/xlib/biz-gen.xlib" forEntity="true"
+                                      entityName="${entityModel.name}" xpl:disableNs="xpl"/>
+    </x:gen-extends>
+
+    <x:post-extends xpl:ignoreTag="true">
+        <biz-gen:DefaultBizPostExtends xpl:lib="/nop/core/xlib/biz-gen.xlib" xpl:disableNs="xpl"/>
+    </x:post-extends>
+
+    <actions>
+
+    </actions>
+</biz>

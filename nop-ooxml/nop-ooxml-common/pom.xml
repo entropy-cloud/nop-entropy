@@ -22,9 +22,9 @@
             <artifactId>nop-xlang</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>com.zaxxer</groupId>
-            <artifactId>SparseBitSet</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.zaxxer</groupId>-->
+<!--            <artifactId>SparseBitSet</artifactId>-->
+<!--        </dependency>-->
     </dependencies>
 </project>

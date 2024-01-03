@@ -36,8 +36,6 @@ public class WfActorCandidateBean {
     public List<? extends IWfActor> getUsers() {
         if (users == null) {
             users = actor.getUsers();
-            if (users == null)
-                users = Collections.emptyList();
         }
         return users;
     }

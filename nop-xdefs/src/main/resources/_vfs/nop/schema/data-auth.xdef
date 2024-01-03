@@ -10,11 +10,11 @@
 
         <obj name="!var-name" displayName="string" xdef:name="ObjDataAuthModel">
 
-            <role-auths xdef:body-type="list" xdef:key-attr="roleId">
+            <role-auths xdef:body-type="list" xdef:key-attr="roleId" xdef:order-attr="priority">
                 <!--
                 @roleId [角色id]
                 @priority [权限规则优先级] 如果一个用户存在多个角色，则按照优先级高的权限约束规则执行。
-                    如果多个规则具有相同优先级，则它们需要同时被执行
+                    如果多个规则具有相同优先级，则只执行第一条匹配的过滤规则
                 -->
                 <role-auth roleId="!string" priority="!int=100" xdef:name="RoleDataAuthModel">
                     <description xdef:value="string" />

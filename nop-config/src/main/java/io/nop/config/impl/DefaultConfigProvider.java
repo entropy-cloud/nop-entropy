@@ -44,6 +44,7 @@ import static io.nop.config.ConfigErrors.ARG_DEFINE_TYPE;
 import static io.nop.config.ConfigErrors.ARG_VALUE_TYPE;
 import static io.nop.config.ConfigErrors.ERR_CONFIG_VALUE_TYPE_NOT_SAME_AS_DEFINED;
 
+@SuppressWarnings({"unchecked", "rawtypes", "CastCanBeRemovedNarrowingVariableType"})
 public class DefaultConfigProvider implements IConfigProvider {
     private static final Logger LOG = LoggerFactory.getLogger(DefaultConfigProvider.class);
 
@@ -51,8 +52,8 @@ public class DefaultConfigProvider implements IConfigProvider {
     private final Map<String, DefaultConfigReference<?>> usedRefs;
 
     private IConfigSource configSource;
-    private volatile Map<String, IConfigReference<?>> configRefs;
-    private volatile Map<String, ValueWithLocation> configValues;
+    private volatile Map<String, IConfigReference<?>> configRefs; //NOSONAR
+    private volatile Map<String, ValueWithLocation> configValues; //NOSONAR
     private ConfigModel configModel;
 
     private final ChangeSubscriptions subscriptions = new ChangeSubscriptions();

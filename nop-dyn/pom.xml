@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>nop-entropy</artifactId>
+        <groupId>io.github.entropy-cloud</groupId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+
+    <packaging>pom</packaging>
+
+    <artifactId>nop-dyn</artifactId>
+
+    <modules>
+        <module>nop-dyn-codegen</module>
+        <module>nop-dyn-api</module>
+        <module>nop-dyn-dao</module>
+        <module>nop-dyn-meta</module>
+        <module>nop-dyn-service</module>
+        <module>nop-dyn-web</module>
+        <module>nop-dyn-app</module>
+    </modules>
+</project>

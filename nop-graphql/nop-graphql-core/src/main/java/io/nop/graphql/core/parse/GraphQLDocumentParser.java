@@ -13,39 +13,7 @@ import io.nop.commons.text.MutableString;
 import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.core.resource.component.parse.AbstractCharReaderResourceParser;
 import io.nop.graphql.core.GraphQLErrors;
-import io.nop.graphql.core.ast.GraphQLArgument;
-import io.nop.graphql.core.ast.GraphQLArgumentDefinition;
-import io.nop.graphql.core.ast.GraphQLArrayValue;
-import io.nop.graphql.core.ast.GraphQLDefinition;
-import io.nop.graphql.core.ast.GraphQLDirective;
-import io.nop.graphql.core.ast.GraphQLDirectiveDefinition;
-import io.nop.graphql.core.ast.GraphQLDirectiveLocation;
-import io.nop.graphql.core.ast.GraphQLDocument;
-import io.nop.graphql.core.ast.GraphQLEnumDefinition;
-import io.nop.graphql.core.ast.GraphQLEnumValueDefinition;
-import io.nop.graphql.core.ast.GraphQLFieldDefinition;
-import io.nop.graphql.core.ast.GraphQLFieldSelection;
-import io.nop.graphql.core.ast.GraphQLFragment;
-import io.nop.graphql.core.ast.GraphQLFragmentSelection;
-import io.nop.graphql.core.ast.GraphQLInputDefinition;
-import io.nop.graphql.core.ast.GraphQLInputFieldDefinition;
-import io.nop.graphql.core.ast.GraphQLListType;
-import io.nop.graphql.core.ast.GraphQLLiteral;
-import io.nop.graphql.core.ast.GraphQLNamedType;
-import io.nop.graphql.core.ast.GraphQLNonNullType;
-import io.nop.graphql.core.ast.GraphQLObjectDefinition;
-import io.nop.graphql.core.ast.GraphQLObjectValue;
-import io.nop.graphql.core.ast.GraphQLOperation;
-import io.nop.graphql.core.ast.GraphQLOperationType;
-import io.nop.graphql.core.ast.GraphQLPropertyValue;
-import io.nop.graphql.core.ast.GraphQLScalarDefinition;
-import io.nop.graphql.core.ast.GraphQLSelection;
-import io.nop.graphql.core.ast.GraphQLSelectionSet;
-import io.nop.graphql.core.ast.GraphQLType;
-import io.nop.graphql.core.ast.GraphQLTypeDefinition;
-import io.nop.graphql.core.ast.GraphQLValue;
-import io.nop.graphql.core.ast.GraphQLVariable;
-import io.nop.graphql.core.ast.GraphQLVariableDefinition;
+import io.nop.graphql.core.ast.*;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -91,8 +59,10 @@ public class GraphQLDocumentParser extends AbstractCharReaderResourceParser<Grap
                 definitions.add(fragment);
             } else if (sc.tryMatchToken("extend")) {
                 GraphQLTypeDefinition def = parseType(sc);
-                if (def == null)
-                    sc.matchToken("type");
+                if (def == null) {
+                    sc.matchToken("type"); // 实际会在这一句报错，不会执行到下一句。抛出异常仅仅是为了消除编译警告
+                    throw new IllegalStateException("invalid extend syntax");
+                }
                 def.setExtension(true);
                 def.setDescription(description);
                 definitions.add(def);

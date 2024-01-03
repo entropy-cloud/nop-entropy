@@ -47,6 +47,11 @@ public interface OrmConstants {
     String TAG_ENC = "enc";
 
     /**
+     * 存储源码、模型定义等的文本字段
+     */
+    String TAG_CONTENT = "content";
+
+    /**
      * 标记字段为敏感字段，打印到log文件中时需要做mask处理，不能直接输出
      */
     String TAG_MASKED = OrmModelConstants.TAG_MASKED;
@@ -122,6 +127,20 @@ public interface OrmConstants {
 
     String USER_NAME_SYS = "sys";
 
-    String NAMESPACE_NS = "dao";
+    String NAMESPACE_DAO = "dao";
+
+    String PROP_NAME_fieldName = "fieldName"; //NOSONAR
+
+    String PROP_NAME_fieldType = "fieldType"; //NOSONAR
+
+    String PROP_NAME_decimalScale = "decimalScale"; //NOSONAR
+
+    String PROP_NAME_decimalValue = "decimalValue"; //NOSONAR
+
+    String PROP_NAME_stringValue = "stringValue"; //NOSONAR
+
+    String PROP_NAME_dateValue = "dateValue"; //NOSONAR
+
+    String PROP_NAME_timestampValue = "timestampValue"; //NOSONAR
 
 }

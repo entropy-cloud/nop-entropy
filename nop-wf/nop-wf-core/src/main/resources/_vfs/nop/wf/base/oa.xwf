@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+          xmlns:oa="oa">
+
+    <x:config>
+        <c:import from="/nop/wf/xlib/oa.xlib" />
+    </x:config>
+
+    <start startStepName="start">
+    </start>
+
+    <end/>
+
+    <steps>
+        <step displayName="发起人" name="start" x:abstract="true">
+            <assignment>
+                <actors>
+                    <actor actorType="wf-actor:CurrentCaller" actorModelId="m1"/>
+                </actors>
+            </assignment>
+        </step>
+    </steps>
+
+    <actions>
+        <action name="disagree" displayName="拒绝" common="true">
+            <when>
+                <oa:WhenAllowDisagree/>
+            </when>
+
+            <transition wfAppState="disagree" appState="disagree">
+                <to-end/>
+            </transition>
+        </action>
+
+        <action name="agree" displayName="同意" common="true" local="true">
+            <when>
+                <oa:WhenAllowAgree/>
+            </when>
+            <transition appState="agree"/>
+        </action>
+
+        <action name="reject" displayName="退回" forReject="true" common="true">
+            <when>
+                <oa:WhenAllowReject/>
+            </when>
+            <transition appState="reject"/>
+        </action>
+
+        <action name="confirm" displayName="已阅" common="true" local="true">
+            <when>
+                <oa:WhenAllowConfirm/>
+            </when>
+            <transition appState="confirm"/>
+        </action>
+    </actions>
+</workflow>

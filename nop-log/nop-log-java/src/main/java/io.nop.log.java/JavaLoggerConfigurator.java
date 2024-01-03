@@ -47,7 +47,7 @@ public class JavaLoggerConfigurator implements ILoggerConfigurator {
         Level level = toLog4jLevel(logLevel);
         java.util.logging.Logger logger = java.util.logging.Logger.getLogger(loggerName);
         if (logger != null) {
-            logger.setLevel(level);
+            logger.setLevel(level); //NOSONAR
         }
     }
 

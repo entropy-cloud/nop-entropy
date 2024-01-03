@@ -13,6 +13,7 @@ import io.nop.core.model.tree.ITreeChildrenAdapter;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.NoSuchElementException;
 import java.util.function.Predicate;
 
 public class WidthFirstIterator<T> implements IterableIterator<T> {
@@ -39,7 +40,7 @@ public class WidthFirstIterator<T> implements IterableIterator<T> {
             }
         }
         this.filter = filter;
-        next();
+        peek = _next();
     }
 
     @Override
@@ -49,6 +50,9 @@ public class WidthFirstIterator<T> implements IterableIterator<T> {
 
     @Override
     public T next() {
+        if (!hasNext())
+            throw new NoSuchElementException();
+
         T ret = peek;
         peek = _next();
         return ret;
@@ -70,8 +74,4 @@ public class WidthFirstIterator<T> implements IterableIterator<T> {
         return o;
     }
 
-    @Override
-    public void remove() {
-        throw new UnsupportedOperationException("remove");
-    }
 }

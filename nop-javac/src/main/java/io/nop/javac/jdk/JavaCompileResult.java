@@ -9,6 +9,8 @@ package io.nop.javac.jdk;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.FileHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
@@ -22,7 +24,7 @@ import java.util.Locale;
 import java.util.Set;
 
 final public class JavaCompileResult {
-
+    static final Logger LOG = LoggerFactory.getLogger(JavaCompileResult.class);
     private final boolean success;
     private final List<CompileResultMessage> messages = new ArrayList<>();
     private final JdkJavaCompiler.ClassLoaderImpl resultClassLoader;
@@ -106,7 +108,7 @@ final public class JavaCompileResult {
                     final CharSequence charSequence = simpleSourceFileObject.getCharContent(false);
                     sourceCodePreliminary = charSequence.toString();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    LOG.error("nop.java.compile-error", e);
                 }
             }
             if (sourceCodePreliminary == null) {
@@ -140,7 +142,7 @@ final public class JavaCompileResult {
             }
             for (String s : messageParts) {
                 String s2 = s.trim();
-                if (s2.length() > 0) {
+                if (!s2.isEmpty()) {
                     boolean lengthChanged;
                     do {
                         final int lBeforeReplace = s2.length();

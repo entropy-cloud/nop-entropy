@@ -34,7 +34,7 @@ public class ResourceCacheEntry<T> implements IDestroyable {
     private final ICreationListener<T> listener;
 
     // 值为null表示尚未加载，如果为占位对象NULL，则表示加载过，但是加载得到的结果是null
-    private volatile Object object;
+    private volatile Object object; //NOSONAR
 
     // 对象记载过程中所记录的依赖资源集合
     private ResourceDependencySet deps;

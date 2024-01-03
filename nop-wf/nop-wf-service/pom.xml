@@ -29,6 +29,12 @@
         </dependency>
 
         <dependency>
+            <artifactId>nop-dyn-dao</artifactId>
+            <groupId>io.github.entropy-cloud</groupId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-biz</artifactId>
         </dependency>

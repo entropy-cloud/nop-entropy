@@ -8,12 +8,7 @@
 package io.nop.message.pulsar;
 
 import io.nop.api.core.beans.ApiMessage;
-import io.nop.api.core.message.ConsumeLater;
-import io.nop.api.core.message.IMessageConsumeContext;
-import io.nop.api.core.message.IMessageConsumer;
-import io.nop.api.core.message.MessageSendOptions;
-import io.nop.api.core.message.MessageSubscriptionConfig;
-import io.nop.api.core.message.TopicMessage;
+import io.nop.api.core.message.*;
 import io.nop.api.core.util.FutureHelper;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
@@ -34,12 +29,14 @@ public class PulsarConsumeTask {
     static final Logger LOG = LoggerFactory.getLogger(PulsarConsumeTask.class);
 
     private final Executor executor;
-    private final Consumer pulsarConsumer;
+    private final Consumer<Object> pulsarConsumer;
     private final PulsarMessageService service;
     private final MessageSubscriptionConfig config;
 
+    private volatile boolean active = false;
+
     public PulsarConsumeTask(PulsarMessageService service, Executor executor,
-                             Consumer pulsarConsumer, MessageSubscriptionConfig config) {
+                             Consumer<Object> pulsarConsumer, MessageSubscriptionConfig config) {
         this.service = service;
         this.executor = executor;
         this.pulsarConsumer = pulsarConsumer;
@@ -73,7 +70,11 @@ public class PulsarConsumeTask {
                 LOG.error("nop.err.pulsar.consume-fail", e);
                 config.getConsumer().onException(e);
             }
-        } while (true);
+        } while (active);
+    }
+
+    public void stop() {
+        active = false;
     }
 
     void batchConsume() throws Exception {
@@ -82,7 +83,7 @@ public class PulsarConsumeTask {
             return;
 
         List<TopicMessage> list = new ArrayList<>(messages.size());
-        for (Message message : messages) {
+        for (Message<Object> message : messages) {
             ApiMessage apiMessage = PulsarHelper.buildApiMessage(message);
             list.add(new TopicMessage(message.getTopicName(), apiMessage));
         }
@@ -120,7 +121,7 @@ public class PulsarConsumeTask {
     }
 
     void consume() throws Exception {
-        Message message = pulsarConsumer.receive();
+        Message<Object> message = pulsarConsumer.receive();
         if (message == null)
             return;
 
@@ -161,7 +162,7 @@ public class PulsarConsumeTask {
         return new ConsumeContext(txn);
     }
 
-    CompletionStage<Void> ackAsync(ConsumeContext context, Message message) throws Exception {
+    CompletionStage<Void> ackAsync(ConsumeContext context, Message<Object> message) throws Exception {
         Transaction transaction = context.getTransaction();
         if (transaction != null) {
             return pulsarConsumer.acknowledgeAsync(message.getMessageId(), transaction);
@@ -170,7 +171,7 @@ public class PulsarConsumeTask {
         }
     }
 
-    void fail(ConsumeContext context, Message message, Throwable exception) throws Exception {
+    void fail(ConsumeContext context, Message<Object> message, Throwable exception) throws Exception {
         LOG.error("nop.err.pulsar.consume-fail:messageId={}", message.getMessageId(), exception);
         pulsarConsumer.negativeAcknowledge(message.getMessageId());
     }

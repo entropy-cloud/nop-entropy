@@ -15,7 +15,6 @@ import io.nop.core.reflect.IPropertySetter;
 import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.ioc.api.IBeanScope;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -44,11 +43,7 @@ public class BeanProperty {
 
         Set<String> configVars = new HashSet<>();
         valueResolver.collectConfigVars(configVars, true);
-        if (configVars != null) {
-            this.configVars = configVars;
-        } else {
-            this.configVars = Collections.emptySet();
-        }
+        this.configVars = configVars;
     }
 
     public boolean isAutowired() {

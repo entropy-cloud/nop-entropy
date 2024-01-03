@@ -22,6 +22,12 @@
                 <!--工作流参数-->
                 <col id="wfParams" sortable="true"/>
 
+                <!--工作流分组-->
+                <col id="wfGroup" mandatory="true" sortable="true"/>
+
+                <!--工作分类-->
+                <col id="workScope" sortable="true"/>
+
                 <!--实例标题-->
                 <col id="title" mandatory="true" sortable="true"/>
 
@@ -36,9 +42,6 @@
 
                 <!--结束时间-->
                 <col id="endTime" sortable="true"/>
-
-                <!--暂停时间-->
-                <col id="suspendTime" sortable="true"/>
 
                 <!--完成时限-->
                 <col id="dueTime" sortable="true"/>
@@ -73,17 +76,17 @@
                 <!--启动人单位ID-->
                 <col id="starterDeptId" sortable="true"/>
 
-                <!--取消人ID-->
-                <col id="cancellerId" sortable="true"/>
+                <!--上次操作者ID-->
+                <col id="lastOperatorId" sortable="true"/>
 
-                <!--取消人-->
-                <col id="cancellerName" sortable="true"/>
+                <!--上次操作者-->
+                <col id="lastOperatorName" sortable="true"/>
 
-                <!--暂停人ID-->
-                <col id="suspenderId" sortable="true"/>
+                <!--上次操作者单位ID-->
+                <col id="lastOperatorDeptId" sortable="true"/>
 
-                <!--暂停人-->
-                <col id="suspenderName" sortable="true"/>
+                <!--上次操作时间-->
+                <col id="lastOperateTime" sortable="true"/>
 
                 <!--管理者类型-->
                 <col id="managerType" sortable="true"/>
@@ -96,6 +99,9 @@
 
                 <!--管理者ID-->
                 <col id="managerId" sortable="true"/>
+
+                <!--信号集合-->
+                <col id="signalText" sortable="true"/>
 
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>
@@ -121,19 +127,20 @@
             <layout>
  wfId[主键] wfName[工作流名称]
  wfVersion[工作流版本] wfParams[工作流参数]
+ wfGroup[工作流分组] workScope[工作分类]
  title[实例标题] status[状态]
  appState[应用状态] startTime[启动时间]
- endTime[结束时间] suspendTime[暂停时间]
- dueTime[完成时限] bizKey[业务唯一键]
- bizObjName[业务对象名] bizObjId[业务对象ID]
- parentWfName[父工作流名称] parentWfVersion[父流程版本]
- parentWfId[父流程ID] parentStepId[父流程步骤ID]
- starterId[启动人ID] starterName[启动人]
- starterDeptId[启动人单位ID] cancellerId[取消人ID]
- cancellerName[取消人] suspenderId[暂停人ID]
- suspenderName[暂停人] managerType[管理者类型]
- managerDeptId[管理者单位ID] managerName[管理者]
- managerId[管理者ID] createdBy[创建人]
+ endTime[结束时间] dueTime[完成时限]
+ bizKey[业务唯一键] bizObjName[业务对象名]
+ bizObjId[业务对象ID] parentWfName[父工作流名称]
+ parentWfVersion[父流程版本] parentWfId[父流程ID]
+ parentStepId[父流程步骤ID] starterId[启动人ID]
+ starterName[启动人] starterDeptId[启动人单位ID]
+ lastOperatorId[上次操作者ID] lastOperatorName[上次操作者]
+ lastOperatorDeptId[上次操作者单位ID] lastOperateTime[上次操作时间]
+ managerType[管理者类型] managerDeptId[管理者单位ID]
+ managerName[管理者] managerId[管理者ID]
+ signalText[信号集合] createdBy[创建人]
  createTime[创建时间] updatedBy[修改人]
  updateTime[修改时间] 
                 remark[备注]
@@ -144,19 +151,20 @@
             <layout>
  wfId[主键] wfName[工作流名称]
  wfVersion[工作流版本] wfParams[工作流参数]
+ wfGroup[工作流分组] workScope[工作分类]
  title[实例标题] status[状态]
  appState[应用状态] startTime[启动时间]
- endTime[结束时间] suspendTime[暂停时间]
- dueTime[完成时限] bizKey[业务唯一键]
- bizObjName[业务对象名] bizObjId[业务对象ID]
- parentWfName[父工作流名称] parentWfVersion[父流程版本]
- parentWfId[父流程ID] parentStepId[父流程步骤ID]
- starterId[启动人ID] starterName[启动人]
- starterDeptId[启动人单位ID] cancellerId[取消人ID]
- cancellerName[取消人] suspenderId[暂停人ID]
- suspenderName[暂停人] managerType[管理者类型]
- managerDeptId[管理者单位ID] managerName[管理者]
- managerId[管理者ID] 
+ endTime[结束时间] dueTime[完成时限]
+ bizKey[业务唯一键] bizObjName[业务对象名]
+ bizObjId[业务对象ID] parentWfName[父工作流名称]
+ parentWfVersion[父流程版本] parentWfId[父流程ID]
+ parentStepId[父流程步骤ID] starterId[启动人ID]
+ starterName[启动人] starterDeptId[启动人单位ID]
+ lastOperatorId[上次操作者ID] lastOperatorName[上次操作者]
+ lastOperatorDeptId[上次操作者单位ID] lastOperateTime[上次操作时间]
+ managerType[管理者类型] managerDeptId[管理者单位ID]
+ managerName[管理者] managerId[管理者ID]
+ signalText[信号集合] 
                 remark[备注]
 </layout>
         </form>

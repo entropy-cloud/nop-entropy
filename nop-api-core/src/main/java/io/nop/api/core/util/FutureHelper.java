@@ -226,6 +226,7 @@ public class FutureHelper {
         try {
             return future.get();
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw NopException.adapt(e);
         } catch (ExecutionException | CompletionException e) {
             // 记录调用堆栈
@@ -245,6 +246,7 @@ public class FutureHelper {
         } catch (TimeoutException e) {
             throw NopException.adapt(e);
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw NopException.adapt(e);
         } catch (ExecutionException e) {
             // 记录调用堆栈
@@ -472,6 +474,7 @@ public class FutureHelper {
             try {
                 Thread.sleep(100);
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 return false;
             }
 

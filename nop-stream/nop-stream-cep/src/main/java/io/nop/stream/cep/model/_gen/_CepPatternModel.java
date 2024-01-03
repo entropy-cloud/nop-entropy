@@ -1,6 +1,6 @@
 package io.nop.stream.cep.model._gen;
 
-import io.nop.commons.collections.KeyedList; //NOPMD - suppressed UnusedImports - Used for List Prop
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 
 
@@ -13,7 +13,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 3. “not”类型的模式不能被optional所修饰；
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _CepPatternModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
@@ -199,6 +199,7 @@ public abstract class _CepPatternModel extends io.nop.core.resource.component.Ab
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -210,6 +211,7 @@ public abstract class _CepPatternModel extends io.nop.core.resource.component.Ab
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

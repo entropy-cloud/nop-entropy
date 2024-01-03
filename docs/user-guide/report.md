@@ -54,6 +54,7 @@ NopReport报表模型可以看作是对Excel模型的一种扩展。在单元格
    A. `*=fieldName` 等价于配置field=fieldName
    B. `*=^ds1!fieldName`，等价于配置 expandType=r, ds=ds1, field=fieldName
    C. `*=>ds1!fieldName` 等价于配置 expandType=c, ds=ds1, field=fieldName
+   D. `*=^fieldName@entity.children` 等价于配置expandType=r,field=fieldName,expandExpr=entity.children
 
 详细说明参见文档[xpt-report.md](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report.md)
 
@@ -269,3 +270,7 @@ output.generateToFile(outputFile, scope);
 ````
 
 可以通过scope对象向报表中传递变量。在报表表达式中即可使用这些变量，并且可以在【展开前】等处理阶段对这些变量进行进一步的加工、计算等。
+
+在【展开前】配置中可以使用xpl模板语言和XScript脚本语言来动态加工数据。
+* 可以使用import来引入Java类
+* 可以使用inject(beanName)引入IoC容器中定义的bean

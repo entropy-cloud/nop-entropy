@@ -12,7 +12,6 @@ package io.nop.core.resource;
  *
  * @param <T>
  */
-@FunctionalInterface
 public interface IResourceObjectLoader<T> {
 
     /**
@@ -21,4 +20,8 @@ public interface IResourceObjectLoader<T> {
      * @param path 有的时候需要根据传入的path经过复杂的计算才能定位IResource, 为了避免重新计算，这里传入原始的path参数
      */
     T loadObjectFromPath(String path);
+
+    default T parseFromResource(IResource resource) {
+        return loadObjectFromPath(resource.getPath());
+    }
 }

@@ -21,6 +21,7 @@ import io.nop.orm.model.OrmComponentModel;
 import io.nop.orm.model.OrmComponentPropModel;
 import io.nop.orm.model.OrmCompositePKModel;
 import io.nop.orm.model.OrmComputePropModel;
+import io.nop.orm.model.OrmEntityFilterModel;
 import io.nop.orm.model.OrmEntityModel;
 import io.nop.orm.model.OrmIndexColumnModel;
 import io.nop.orm.model.OrmIndexModel;
@@ -81,7 +82,6 @@ public class OrmEntityModelInitializer {
     int nopRevExtChangePropId;
 
     int nopFlowIdPropId;
-    int nopFlowStatusPropId;
 
     int deleteFlagPropId;
     int createrPropId;
@@ -182,10 +182,6 @@ public class OrmEntityModelInitializer {
 
     public int getNopFlowIdPropId() {
         return nopFlowIdPropId;
-    }
-
-    public int getNopFlowStatusPropId() {
-        return nopFlowStatusPropId;
     }
 
     public int getDeleteFlagPropId() {
@@ -344,8 +340,6 @@ public class OrmEntityModelInitializer {
 
         if (entityModel.isUseWorkflow()) {
             nopFlowIdPropId = addColumn(OrmModelConstants.PROP_NAME_nopFlowId, StdSqlType.VARCHAR, 32).getColumnPropId();
-            nopFlowStatusPropId = addColumn(OrmModelConstants.PROP_NAME_nopFlowStatus, StdSqlType.INTEGER, null)
-                    .getColumnPropId();
         }
 
         this.versionPropId = getColPropId(entityModel.getVersionProp());
@@ -574,6 +568,25 @@ public class OrmEntityModelInitializer {
                     throw new NopException(ERR_ORM_UNKNOWN_COLUMN).source(indexCol)
                             .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_PROP_NAME, name);
                 indexCol.setColumnModel(col);
+            }
+        }
+
+        if (entityModel.hasFilter()) {
+            for (OrmEntityFilterModel filter : entityModel.getFilters()) {
+                String name = filter.getName();
+                IEntityPropModel prop = props.get(name);
+                if (prop == null)
+                    throw new NopException(ERR_ORM_UNKNOWN_PROP).source(filter).param(ARG_ENTITY_NAME, entityModel.getName())
+                            .param(ARG_PROP_NAME, name);
+
+                if (!prop.isColumnModel()) {
+                    throw new NopException(ERR_ORM_UNKNOWN_COLUMN).source(filter)
+                            .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_COL_NAME, name);
+                }
+
+                Object value = prop.getStdDataType().convert(filter.getValue());
+                filter.setValue(value);
+                filter.setColumn((OrmColumnModel) prop);
             }
         }
     }

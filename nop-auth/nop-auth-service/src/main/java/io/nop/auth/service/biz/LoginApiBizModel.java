@@ -29,8 +29,8 @@ import io.nop.auth.core.spi.ILoginSpi;
 import io.nop.auth.service.NopAuthErrors;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.unittest.VarCollector;
-
 import jakarta.inject.Inject;
+
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -59,7 +59,7 @@ public class LoginApiBizModel implements ILoginSpi {
     public CompletionStage<LoginResult> getLoginResultAsync(@RequestBean AccessCodeRequest request,
                                                             IServiceContext context) {
         AuthToken authToken = loginService.parseAuthToken(request.getAccessCode());
-        return loginService.getUserContextAsync(authToken).thenApply(this::buildLoginResult);
+        return loginService.getUserContextAsync(authToken, context.getRequestHeaders()).thenApply(this::buildLoginResult);
     }
 
     @BizQuery
@@ -67,7 +67,7 @@ public class LoginApiBizModel implements ILoginSpi {
     public CompletionStage<LoginUserInfo> getLoginUserInfoAsync(@RequestBean AccessTokenRequest request,
                                                                 IServiceContext context) {
         AuthToken authToken = loginService.parseAuthToken(request.getAccessToken());
-        return loginService.getUserContextAsync(authToken).thenApply(loginService::getUserInfo);
+        return loginService.getUserContextAsync(authToken, context.getRequestHeaders()).thenApply(loginService::getUserInfo);
     }
 
     @BizMutation
@@ -75,7 +75,7 @@ public class LoginApiBizModel implements ILoginSpi {
     public CompletionStage<LoginResult> refreshTokenAsync(@RequestBean RefreshTokenRequest request,
                                                           IServiceContext context) {
         AuthToken token = loginService.parseAuthToken(request.getRefreshToken());
-        return loginService.getUserContextAsync(token).thenApply(this::buildLoginResult);
+        return loginService.getUserContextAsync(token, context.getRequestHeaders()).thenApply(this::buildLoginResult);
     }
 
     @BizQuery

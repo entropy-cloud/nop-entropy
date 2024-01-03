@@ -438,7 +438,7 @@
                         name:colModel.id,
                         label: '@i18n:col.'+i18nRoot+"."+colModel.id+(colModel.label ? '|'+colModel.label : ",prop.label."+bizObjName+"."+propMeta?.name+"|"+propMeta?.displayName),
                         sortable: gridModel.sortable != false and colModel.sortable,
-                        width: colModel.width || xpl('thisLib:GetColDefaultWidth',colModel,propMeta),
+                        width: (colModel.width?.$isNumber() ? colModel.width.$parseNumber(): colModel.width) || xpl('thisLib:GetColDefaultWidth',colModel,propMeta),
                         toggled:true,
                         align: colModel.align || xpl('thisLib:GetColDefaultAlign',colModel,propMeta),
                         fixed: colModel.fixed || (colIndex == 0?'left':null),
@@ -775,8 +775,11 @@
 
                const dlgProps = _.pickNotNull(dialog,["closeOnEsc","closeOnOutside","size","height",
                     "width","showCloseButton","actions"]) || {};
-               if(dlgProps.actions)
+               if(dlgProps?.actions?.length > 0){
                    dlgProps.actions = dlgProps.actions.map(a=>xpl('thisLib:NormalizeAction',a,{}));
+               }else{
+                   dlgProps.actions = null;
+               }
                if(dialog?.noActions)
                    dlgProps.actions = []
 

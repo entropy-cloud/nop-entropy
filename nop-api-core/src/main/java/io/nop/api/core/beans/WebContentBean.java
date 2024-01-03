@@ -14,12 +14,12 @@ import io.nop.api.core.annotations.graphql.GraphQLObject;
 @GraphQLObject
 @DataBean
 public class WebContentBean {
-    public static String CONTENT_TYPE_OCTET = "application/octet-stream";
-    public static String CONTENT_TYPE_HTML = "text/html";
-    public static String CONTENT_TYPE_XML = "text/xml";
-    public static String CONTENT_TYPE_JAVASCRIPT = "text/javascript";
-    public static String CONTENT_TYPE_JSON = "application/json";
-    public static String CONTENt_TYPE_TEXT = "text/plain";
+    public static final String CONTENT_TYPE_OCTET = "application/octet-stream";
+    public static final String CONTENT_TYPE_HTML = "text/html";
+    public static final String CONTENT_TYPE_XML = "text/xml";
+    public static final String CONTENT_TYPE_JAVASCRIPT = "text/javascript";
+    public static final String CONTENT_TYPE_JSON = "application/json";
+    public static final String CONTENT_TYPE_TEXT = "text/plain";
 
     private final String contentType;
     private final Object content;
@@ -60,7 +60,7 @@ public class WebContentBean {
     }
 
     public static WebContentBean text(String text) {
-        return new WebContentBean(CONTENt_TYPE_TEXT, text);
+        return new WebContentBean(CONTENT_TYPE_TEXT, text);
     }
 
     public String getContentType() {

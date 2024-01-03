@@ -332,6 +332,7 @@ public class XDslExtender {
         if (node.hasAttr()) {
             Map<String, ValueWithLocation> attrs = new LinkedHashMap<>();
             node.forEachAttr((name, vl) -> attrs.put(name, vl.addRef(ref)));
+            node.attrValueLocs(attrs);
         }
 
         for (XNode child : node.getChildren()) {
@@ -354,9 +355,11 @@ public class XDslExtender {
                         throw new NopException(ERR_XDEF_CHILD_NOT_SUPPORT_EXTENDS).param(ARG_NODE, child)
                                 .param(ARG_XDEF_PATH, childDef.getLocation());
 
-                    String ref = childDef.getXdefRef();
-                    if (!XDefHelper.isLocalRef(ref)) {
-                        subDef = SchemaLoader.loadXDefinition(ref);
+                    if(childDef != null) {
+                        String ref = childDef.getXdefRef();
+                        if (!XDefHelper.isLocalRef(ref)) {
+                            subDef = SchemaLoader.loadXDefinition(ref);
+                        }
                     }
                 }
                 XNode sub = xtend(subDef, childDef, child, XDslExtendPhase.mergeBase, genScope).getNode();

@@ -10,6 +10,7 @@ package io.nop.core.resource.component;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancellable;
 import io.nop.api.core.util.IComponentModel;
+import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.deps.ResourceDependencySet;
 
@@ -84,6 +85,10 @@ public interface IResourceComponentManager extends IResourceDependencyManager {
      * @param modelUrl 源url格式为 resourcePath?paramName=paramValue，参数为可选部分
      */
     IComponentModel loadComponentModelByUrl(String modelUrl);
+
+    IComponentModel parseComponentModel(IResource resource);
+
+    IComponentModel parseComponentModel(IResource resource, String transform);
 
     String buildComponentPath(String modelPath, String genFormat);
 

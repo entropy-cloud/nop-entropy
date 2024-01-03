@@ -9,6 +9,7 @@ package io.nop.excel.imp;
 
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ProcessResult;
 import io.nop.commons.mutable.MutableBoolean;
 import io.nop.commons.util.StringHelper;
@@ -35,6 +36,7 @@ import static io.nop.excel.ExcelErrors.ARG_ROW_NUMBER;
 import static io.nop.excel.ExcelErrors.ARG_SHEET_NAME;
 import static io.nop.excel.ExcelErrors.ERR_IMPORT_INVALID_DATA_ROW;
 import static io.nop.excel.ExcelErrors.ERR_IMPORT_UNKNOWN_FIELD;
+import static io.nop.excel.ExcelErrors.ERR_IMPORT_UNKNOWN_GROUP_FIELD;
 
 public class TreeTableDataParser {
     private final IEvalScope scope;
@@ -127,45 +129,74 @@ public class TreeTableDataParser {
 
         Map<String, ImportFieldModel> nameMap = field.getFieldNameMap();
 
-        List<ImportFieldModel> colFields = new ArrayList<>();
-        List<String> colLabels = new ArrayList<>();
+        List<LabelData> colHeaders = new ArrayList<>();
 
-        for (int j = colIndex; j <= maxColIndex; j++) {
-            ICellView headerCell = table.getCell(rowIndex, j);
-            if (headerCell == null || headerCell.isBlankCell() || headerCell.isProxyCell()) {
-                colFields.add(null);
-                colLabels.add(null);
-                continue;
-            }
-            String name = headerCell.getText().trim();
-            ImportFieldModel colField = getFieldModel(field, name);
-            if (colField == null) {
-                // 第一列，可以被忽略
-                if (j == colIndex) {
-                    colFields.add(null);
-                    colLabels.add(null);
-                    if (headerCell.getMergeAcross() > 0) {
-                        for (int i = 0, n = headerCell.getMergeAcross(); i < n; i++) {
-                            j++;
-                            colFields.add(null);
-                            colLabels.add(null);
-                        }
-                    }
-                    continue;
-                }
-            }
-            if (colField == null) {
-                throw new NopException(ERR_IMPORT_UNKNOWN_FIELD).param(ARG_SHEET_NAME, sheetName)
-                        .param(ARG_CELL_POS, getCellPosition(rowIndex, j)).param(ARG_FIELD_NAME, name)
-                        .param(ARG_ALLOWED_NAMES, nameMap.keySet());
-            }
-            colFields.add(colField);
-            colLabels.add(name);
-
-            listener.onColHeader(rowIndex, j, headerCell, colField, name);
+        int labelRowIndex = rowIndex;
+        ICellView topHeaderCell = table.getCell(rowIndex, colIndex);
+        if (topHeaderCell != null) {
+            Guard.checkArgument(!topHeaderCell.isProxyCell(), "table header not allow proxy cell");
+            // 如果第一个单元格占据多行，则表示是多级表头，具体的label列在最下面一行
+            if (topHeaderCell.getMergeDown() > 0)
+                labelRowIndex += topHeaderCell.getMergeDown();
         }
 
-        for (int i = rowIndex + 1; i <= maxRowIndex; i++) {
+        for (int j = colIndex; j <= maxColIndex; j++) {
+            ICellView headerCell = table.getCell(labelRowIndex, j);
+            if (headerCell == null) {
+                colHeaders.add(null);
+                continue;
+            }
+
+            headerCell = headerCell.getRealCell();
+            if (headerCell.isBlankCell()) {
+                colHeaders.add(null);
+                continue;
+            }
+
+            String name = headerCell.getText().trim();
+            ImportFieldModel colField = getFieldModel(field, name, headerCell);
+            if (colField == null) {
+                // 第一列，可以被忽略
+                if (j != colIndex) {
+                    throw new NopException(ERR_IMPORT_UNKNOWN_FIELD).param(ARG_SHEET_NAME, sheetName)
+                            .param(ARG_CELL_POS, getCellPosition(rowIndex, j)).param(ARG_FIELD_NAME, name)
+                            .param(ARG_ALLOWED_NAMES, nameMap.keySet());
+                }
+            }
+
+            if (colField != null) {
+                ImportFieldModel groupField = null;
+                ICellView groupCell = null;
+                if (labelRowIndex != rowIndex && colField.getGroupField() != null) {
+                    if (labelRowIndex > 0) {
+                        groupCell = table.getCell(labelRowIndex - 1, j);
+                        if (groupCell != null) {
+                            groupCell = groupCell.getRealCell();
+                        }
+                    }
+                    groupField = field.getFieldModel(colField.getGroupField());
+                    if (groupField == null)
+                        throw new NopException(ERR_IMPORT_UNKNOWN_GROUP_FIELD).source(colField)
+                                .param(ARG_FIELD_NAME, colField.getGroupField());
+
+                }
+
+                LabelData header = new LabelData(headerCell, colField, groupCell, groupField);
+                colHeaders.add(header);
+                listener.onColHeader(labelRowIndex, j, header);
+            } else {
+                colHeaders.add(null);
+            }
+
+            if (headerCell.getMergeAcross() > 0) {
+                for (int i = 0, n = headerCell.getMergeAcross(); i < n; i++) {
+                    j++;
+                    colHeaders.add(null);
+                }
+            }
+        }
+
+        for (int i = labelRowIndex + 1; i <= maxRowIndex; i++) {
             // 发现编号列不为数字，则认为表格结束
             if (!StringHelper.isNumber(table.getCellText(i, colIndex))) {
                 maxRowIndex = i - 1;
@@ -175,15 +206,13 @@ public class TreeTableDataParser {
             listener.beginObject(i, colIndex, i, maxColIndex, field);
 
             for (int j = colIndex; j <= maxColIndex; j++) {
-                ImportFieldModel colField = colFields.get(j - colIndex);
-                if (colField == null) {
+                LabelData header = colHeaders.get(j - colIndex);
+                if (header == null) {
                     continue;
                 }
 
-                String colLabel = colLabels.get(j - colIndex);
-
                 ICellView cell = table.getCell(i, j);
-                listener.simpleField(i, j, cell, colField, colLabel);
+                listener.simpleField(i, j, cell, header);
             }
 
             listener.endObject(field);
@@ -194,12 +223,13 @@ public class TreeTableDataParser {
         return new CellRange(rowIndex, colIndex, maxRowIndex, maxColIndex);
     }
 
-    private ImportFieldModel getFieldModel(IFieldContainer fields, String text) {
+    private ImportFieldModel getFieldModel(IFieldContainer fields, String text, ICellView cell) {
         ImportFieldModel field = fields.getFieldModel(text);
         if (field == null) {
             IEvalAction decider = fields.getFieldDecider();
             if (decider != null) {
                 scope.setLocalValue(ExcelConstants.VAR_FIELD_LABEL, text);
+                scope.setLocalValue(ExcelConstants.VAR_LABEL_CELL, cell);
                 String fieldName = ConvertHelper.toString(decider.invoke(scope));
                 if (!StringHelper.isEmpty(fieldName))
                     return fields.getFieldModel(fieldName);
@@ -246,7 +276,8 @@ public class TreeTableDataParser {
     private CellRange parseField(String sheetName, IFieldContainer fieldContainer, ITableView table,
                                  int rowIndex, int colIndex, int maxRowIndex, int maxColIndex,
                                  ITableDataEventListener listener) {
-        String name = StringHelper.strip(table.getCellText(rowIndex, colIndex));
+        ICellView cell = table.getCell(rowIndex, colIndex);
+        String name = cell == null ? null : StringHelper.strip(cell.getText());
         if (name == null)
             return null;
 
@@ -255,7 +286,7 @@ public class TreeTableDataParser {
             return null;
 
         // nameMap提供了从displayName到field的映射。在excel数据文件中，字段名通过displayName区分。
-        ImportFieldModel field = getFieldModel(fieldContainer, name);
+        ImportFieldModel field = getFieldModel(fieldContainer, name, cell);
         if (field == null)
             field = fieldContainer.getUnknownField(); // 尝试缺省字段配置
 
@@ -264,8 +295,8 @@ public class TreeTableDataParser {
                     .param(ARG_CELL_POS, getCellPosition(rowIndex, colIndex)).param(ARG_FIELD_NAME, name)
                     .param(ARG_ALLOWED_NAMES, fieldContainer.getFieldNameMap().keySet());
 
-        ICellView cell = table.getCell(rowIndex, colIndex).getRealCell();
-        listener.onFieldLabel(rowIndex, colIndex, cell, field, name);
+        cell = cell.getRealCell();
+        listener.onFieldLabel(rowIndex, colIndex, new LabelData(cell, field));
 
         CellRange range;
         if (field.isList()) {
@@ -275,7 +306,7 @@ public class TreeTableDataParser {
         } else {
             range = parseSimpleField(field, name, table, rowIndex, colIndex, listener);
         }
-        listener.onFieldEnd(rowIndex, colIndex, cell, field, name, range);
+        listener.onFieldEnd(rowIndex, colIndex, new LabelData(cell, field), range);
         return range;
     }
 
@@ -305,7 +336,7 @@ public class TreeTableDataParser {
         int minRowIndex = rowIndex;
         int minColIndex = colIndex;
         ICellView cell = table.getCell(rowIndex, colIndex);
-        // 如果名称占据多行，则字段值放置在右侧
+        // 如果名称占据多行，则字段值放置在右侧。如果设置了displayMode=table，则强制认为是
         boolean alignRight;
         if (cell.getMergeDown() > 0) {
             colIndex = colIndex + cell.getColSpan();
@@ -389,7 +420,7 @@ public class TreeTableDataParser {
         colIndex += cell.getColSpan();
         ICellView valueCell = table.getCell(rowIndex, colIndex);
 
-        listener.simpleField(rowIndex, colIndex, valueCell, fieldModel, fieldLabel);
+        listener.simpleField(rowIndex, colIndex, valueCell, new LabelData(cell, fieldModel));
 
         return new CellRange(rowIndex, colIndex, rowIndex + cell.getMergeDown(),
                 valueCell == null ? colIndex + 1 : colIndex + valueCell.getMergeAcross());

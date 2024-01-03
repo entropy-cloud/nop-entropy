@@ -7,14 +7,16 @@
  */
 package io.nop.auth.core.login;
 
+import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.auth.api.AuthApiConstants;
 import io.nop.auth.api.messages.LoginUserInfo;
-
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
+
+import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 public abstract class AbstractLoginService implements ILoginService {
@@ -28,6 +30,17 @@ public abstract class AbstractLoginService implements ILoginService {
     @Inject
     @Nullable
     protected ILoginSessionStore loginSessionStore;
+
+    private boolean returnUserId;
+
+    public boolean isReturnUserId() {
+        return returnUserId;
+    }
+
+    @InjectValue("@cfg:nop.login.return-user-id|true")
+    public void setReturnUserId(boolean returnUserId) {
+        this.returnUserId = returnUserId;
+    }
 
     @Override
     public CompletionStage<Void> flushUserContextAsync(IUserContext userContext) {
@@ -43,7 +56,7 @@ public abstract class AbstractLoginService implements ILoginService {
     }
 
     @Override
-    public CompletionStage<IUserContext> getUserContextAsync(AuthToken token) {
+    public CompletionStage<IUserContext> getUserContextAsync(AuthToken token, Map<String, Object> headers) {
         String sessionId = token.getSessionId();
         return doGetUserContext(sessionId);
     }
@@ -110,6 +123,10 @@ public abstract class AbstractLoginService implements ILoginService {
         info.setOpenId(userContext.getOpenId());
         info.setDeptId(userContext.getDeptId());
         info.setRoles(userContext.getRoles());
+
+        if (isReturnUserId()) {
+            info.setUserId(userContext.getUserId());
+        }
         return info;
     }
 }

@@ -20,7 +20,6 @@ import io.nop.commons.util.IoHelper;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.api.AbstractSqlExecutor;
-import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.IDialectProvider;
 import io.nop.dao.dialect.pagination.IPaginationHandler;
@@ -111,7 +110,7 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
 
     @Override
     public IDialect getDialectForQuerySpace(String querySpace) {
-        if(dialectProvider != null)
+        if (dialectProvider != null)
             return dialectProvider.getDialectForQuerySpace(querySpace);
         return transactionTemplate.getDialectForQuerySpace(querySpace);
     }
@@ -142,7 +141,7 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
 
         long diff = CoreMetrics.currentTimeMillis() - beginTime;
         LOG.info("nop.jdbc.run:usedTime={},querySpace={},range={},name={},sql={}", diff, querySpace, range,
-                sql.getName(), sql.getText());
+                sql == null ? null : sql.getName(), sql == null ? null : sql.getText());
         return ret;
     }
 
@@ -159,6 +158,8 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
     }
 
     private String getQuerySpace(SQL sql) {
+        if (sql == null)
+            return DaoConstants.DEFAULT_QUERY_SPACE;
         String querySpace = sql.getQuerySpace();
         if (querySpace == null)
             return DaoConstants.DEFAULT_QUERY_SPACE;

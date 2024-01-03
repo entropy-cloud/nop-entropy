@@ -30,7 +30,7 @@
         -->
         <sheet name="!string" namePattern="regex" sheetNameProp="string"
                xdef:name="ImportSheetModel" resultType="generic-type" ignore="!boolean=false"
-               multiple="!boolean=false" list="!boolean=false" mandatory="!boolean=false"
+               multiple="!boolean=false" list="!boolean=false" mandatory="!boolean=false" displayMode="string"
                field="string" sheetVarName="string" keyProp="string"
                imp:treeChildrenProp="string" imp:treeChildKeyProp="string" imp:treeLevelProp="string"
         >
@@ -50,16 +50,17 @@
 
             <fields xdef:body-type="list" xdef:key-attr="name">
                 <!--
-                @list 是否列表定义，解析得到List类型，内部fields定义的是列表条目对象的属性。
+                @list [是否列表定义] 解析得到List类型，内部fields定义的是列表条目对象的属性。
                 @keyProp 当list=true时，keyProp表示集合中每个对象采用这个属性作为唯一键。解析的得到的列表会使用KeyedList对象
-                @computed 是否计算字段。计算字段不需要从文件读取，而是通过valueExpr计算
+                @computed [是否计算字段]计算字段不需要从文件读取，而是通过valueExpr计算
                 @virtual 虚拟字段不会设置到实体上。只是会运行valueExpr表达式
                 @prop 实际设置到record上的属性名，如果为空，则prop与name相同
                 @ignoreWhenEmpty 当数据为空的时候自动忽略该字段，不设置到record对象上
+                @groupField 列表表头中多个字段可能归属于一个分组字段，采用多级表头形式显示
                 -->
                 <field name="!xml-name" xdef:name="ImportFieldModel" parentProp="string" typeProp="prop-name"
-                       displayName="string" stripText="boolean" mandatory="!boolean=false"
-                       list="!boolean=false" computed="!boolean=false" virtual="!boolean=false"
+                       displayName="string" stripText="boolean" mandatory="!boolean=false" displayMode="string"
+                       list="!boolean=false" computed="!boolean=false" virtual="!boolean=false" groupField="xml-name"
                        keyProp="string" alias="csv-set" prop="string" ignoreWhenEmpty="!boolean=false"
                        xpt:formatExpr="string" xpt:exportFormula="boolean"  xpt:exportFormattedValue="boolean"
                        imp:treeChildrenProp="string" imp:treeChildKeyProp="string" imp:treeLevelProp="string"

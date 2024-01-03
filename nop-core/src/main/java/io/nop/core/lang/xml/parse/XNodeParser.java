@@ -43,6 +43,7 @@ import static io.nop.core.CoreConfigs.CFG_XML_MAX_NESTED_LEVEL;
 import static io.nop.core.CoreErrors.ARG_ATTR_NAME;
 import static io.nop.core.CoreErrors.ARG_ATTR_VALUE;
 import static io.nop.core.CoreErrors.ARG_EXPECTED;
+import static io.nop.core.CoreErrors.ARG_OLD_LOC;
 import static io.nop.core.CoreErrors.ARG_PROLOG;
 import static io.nop.core.CoreErrors.ARG_START_LOC;
 import static io.nop.core.CoreErrors.ERR_XML_ATTR_VALUE_NOT_QUOTED;
@@ -626,9 +627,10 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
 
     void addAttr(Map<String, ValueWithLocation> attrs, SourceLocation loc, String name, Object v) {
         ValueWithLocation value = ValueWithLocation.of(loc, v);
-        Object oldValue = attrs.put(name, value);
+        ValueWithLocation oldValue = attrs.put(name, value);
         if (oldValue != null)
-            throw newError(ERR_XML_DUPLICATE_ATTR_NAME).param(ARG_ATTR_NAME, name).param(ARG_ATTR_VALUE, v);
+            throw newError(ERR_XML_DUPLICATE_ATTR_NAME)
+                    .param(ARG_ATTR_NAME, name).param(ARG_ATTR_VALUE, v).param(ARG_OLD_LOC, oldValue.getLocation());
     }
 
     boolean parseBody() {

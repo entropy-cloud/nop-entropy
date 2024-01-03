@@ -1,5 +1,6 @@
 package io.nop.wf.core;
 
+@SuppressWarnings({"PMD","java:S116"})
 public interface _NopWfCoreConstants {
     
     /**
@@ -21,6 +22,11 @@ public interface _NopWfCoreConstants {
      * 步骤状态: 执行中 步骤处于激活状态，一般此时在界面上才显示操作按钮
      */
     int WF_STEP_STATUS_ACTIVATED = 30;
+                    
+    /**
+     * 步骤状态: 已执行 步骤工作已经完成，等待执行步骤迁移
+     */
+    int WF_STEP_STATUS_EXECUTED = 35;
                     
     /**
      * 步骤状态: 已完成 步骤正常结束
@@ -51,6 +57,11 @@ public interface _NopWfCoreConstants {
      * 步骤状态: 已撤销 发送到下一步骤之后，在下一步骤的状态转变为历史状态之前，可以执行撤回操作，被撤回的下一步骤状态变为WITHDRAWN。
      */
     int WF_STEP_STATUS_WITHDRAWN = 90;
+                    
+    /**
+     * 步骤状态: 已转交 转交给其他人执行
+     */
+    int WF_STEP_STATUS_TRANSFERRED = 100;
                     
     /**
      * 工作流: 已创建 

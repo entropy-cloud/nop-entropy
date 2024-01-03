@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+演示对象拆分能力。根据同一个后台存储实体，可以对外暴露多个GraphQL服务对象
+-->
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      x:extends="_NopAuthUser.xmeta">
+
+    <filter>
+        <eq name="tenantId" value="@biz:tenantId" />
+    </filter>
+</meta>

@@ -7,6 +7,7 @@
  */
 package io.nop.excel.model;
 
+import io.nop.core.model.table.ICell;
 import io.nop.excel.model._gen._ExcelCell;
 
 public class ExcelCell extends _ExcelCell {
@@ -21,6 +22,7 @@ public class ExcelCell extends _ExcelCell {
     public boolean isProxyCell() {
         return realCell != null && realCell != this;
     }
+
 
     @Override
     public ExcelCell getRealCell() {
@@ -93,6 +95,71 @@ public class ExcelCell extends _ExcelCell {
     @Override
     public boolean isExportFormattedValue() {
         XptCellModel model = getModel();
-        return model != null ? model.isExportFormattedValue() : false;
+        return model != null && model.isExportFormattedValue();
+    }
+
+    public int getRowIndex() {
+        return getRow().getRowIndex();
+    }
+
+    public int getColIndex() {
+        return getRow().getCells().indexOf(this);
+    }
+
+    public ExcelCell getTopRealCell() {
+        ExcelCell real = getRealCell();
+        int rowIndex = real.getRowIndex();
+        if (rowIndex <= 0)
+            return null;
+
+        int index = real.getColIndex();
+
+        ICell cell = getRow().getTable().getRow(rowIndex - 1).getCell(index);
+        if (cell == null)
+            return null;
+        return (ExcelCell) cell.getRealCell();
+    }
+
+
+    public ExcelCell getDownRealCell() {
+        ExcelCell real = getRealCell();
+        int rowIndex = real.getRowIndex();
+        if (rowIndex == real.getRow().getTable().getRowCount() - 1)
+            return null;
+
+        int index = real.getColIndex();
+
+        ICell cell = getRow().getTable().getRow(rowIndex + 1).getCell(index);
+        if (cell == null)
+            return null;
+        return (ExcelCell) cell.getRealCell();
+    }
+
+    public ExcelCell getLeftRealCell() {
+        ExcelCell real = getRealCell();
+        int rowIndex = real.getRowIndex();
+
+        int index = real.getColIndex();
+        if (index <= 0)
+            return null;
+
+        ICell cell = getRow().getTable().getRow(rowIndex).getCell(index - 1);
+        if (cell == null)
+            return null;
+        return (ExcelCell) cell.getRealCell();
+    }
+
+    public ExcelCell getRightRealCell() {
+        ExcelCell real = getRealCell();
+        int rowIndex = real.getRowIndex();
+
+        int index = real.getColIndex();
+        if (index == real.getRow().getColCount() - 1)
+            return null;
+
+        ICell cell = getRow().getTable().getRow(rowIndex).getCell(index + 1);
+        if (cell == null)
+            return null;
+        return (ExcelCell) cell.getRealCell();
     }
 }

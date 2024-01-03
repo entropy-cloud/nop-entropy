@@ -158,7 +158,7 @@ public class ConfigStarter extends LifeCycleSupport {
                 configSources.add(jdbcSource);
                 configSources.addAll(baseSource.getConfigSources());
 
-                configSource = new CompositeConfigSource(configSources);
+                configSource = new CompositeConfigSource(configSources); //NOSONAR
             }
 
             // 7. 加载扩展配置
@@ -416,6 +416,16 @@ public class ConfigStarter extends LifeCycleSupport {
         String encKey = configSource.getConfigValue(ConfigConstants.CFG_CONFIG_ENCRYPT_KEY, "");
         if (!encKey.isEmpty()) {
             cipher.setEncKey(encKey);
+        }
+
+        String saltKey = configSource.getConfigValue(ConfigConstants.CFG_CONFIG_ENCRYPT_SALT_KEY, "");
+        if (!saltKey.isEmpty()) {
+            cipher.setSaltKey(saltKey);
+        }
+
+        boolean concatIv = configSource.getConfigValue(ConfigConstants.CFG_CONFIG_ENCRYPT_CONCAT_IV, false);
+        if (concatIv) {
+            cipher.setConcatIv(true);
         }
 
         DefaultConfigValueEnhancer enhancer = new DefaultConfigValueEnhancer(cipher);

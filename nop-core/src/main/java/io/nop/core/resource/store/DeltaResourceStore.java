@@ -39,7 +39,7 @@ import static io.nop.core.CoreErrors.ERR_RESOURCE_NOT_ALLOW_ACCESS_INTERNAL_PATH
  * <p>
  * 差量定制的多个层构成覆盖关系，程序逻辑自上而下的查找定制层，直到在某一层找到目标文件为止
  */
-public class DeltaResourceStore implements IResourceStore {
+public class DeltaResourceStore implements IDeltaResourceStore {
     /**
      * 一个展平的文件系统，它的_delta子目录对应差量定制层
      */
@@ -56,6 +56,8 @@ public class DeltaResourceStore implements IResourceStore {
      * 是否每个租户可以具有自己单独的定制层
      */
     private boolean useTenantStore;
+
+    private boolean useInMemoryLayer;
 
     private Set<String> classPathFiles;
 
@@ -83,6 +85,27 @@ public class DeltaResourceStore implements IResourceStore {
         this.tenantStoreSupplier = tenantStoreSupplier;
     }
 
+    @Override
+    public void updateInMemoryLayer(IResourceStore store) {
+        Guard.notNull(store, "inMemoryLayer");
+
+        if (this.useInMemoryLayer) {
+            OverrideResourceStore overrideStore = (OverrideResourceStore) this.store;
+            this.store = new OverrideResourceStore(store, overrideStore.getSecondStore());
+        } else {
+            this.useInMemoryLayer = true;
+            this.store = new OverrideResourceStore(store, this.store);
+        }
+    }
+
+    @Override
+    public IResourceStore getInMemoryLayer() {
+        if (this.useInMemoryLayer)
+            return ((OverrideResourceStore) store).getFirstStore();
+        return null;
+    }
+
+    @Override
     public Set<String> getClassPathFiles() {
         return classPathFiles;
     }
@@ -219,6 +242,7 @@ public class DeltaResourceStore implements IResourceStore {
     /**
      * 仅在当前层的下层查找
      */
+    @Override
     public IResource getSuperResource(String currentPath, boolean returnNullIfNotExists) {
         String path = ResourceHelper.getStdPath(currentPath);
 
@@ -260,6 +284,7 @@ public class DeltaResourceStore implements IResourceStore {
         return resource;
     }
 
+    @Override
     public IResource getRawResource(String path) {
         if (ResourceHelper.isDeltaPath(path)) {
             String deltaLayerId = ResourceHelper.getDeltaLayerId(path);

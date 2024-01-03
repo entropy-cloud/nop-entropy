@@ -405,7 +405,8 @@ public interface CoreErrors {
     ErrorCode ERR_RESOURCE_SAVE_FROM_STREAM_FAIL = define("nop.err.core.resource.save-from-stream-fail",
             "保存数据流到资源文件[{resourcePath}]失败", ARG_RESOURCE_PATH);
 
-    ErrorCode ERR_RESOURCE_NOT_EXISTS = define("nop.err.core.resource.not-exists", "资源文件[{resource}]不存在", ARG_RESOURCE);
+    ErrorCode ERR_RESOURCE_NOT_EXISTS = define("nop.err.core.resource.not-exists",
+            "资源文件[{resourcePath}]不存在", ARG_RESOURCE, ARG_RESOURCE_PATH);
 
     ErrorCode ERR_RESOURCE_GET_INPUT_STREAM_FAIL = define("nop.err.core.resource.get-input-stream-fail",
             "打开资源文件[{resource}]的输入流失败", ARG_RESOURCE);
@@ -496,6 +497,9 @@ public interface CoreErrors {
     ErrorCode ERR_RESOURCE_INVALID_PATH = define("nop.err.core.resource.invalid-path",
             "资源路径只能使用/为路径分隔符，且不能以/结尾，不能包含../等相对路径，也不能包含windows路径所不允许的特殊字符:{resourcePath}", ARG_RESOURCE_PATH);
 
+    ErrorCode ERR_RESOURCE_INVALID_RELATIVE_NAME = define("nop.err.core.resource.invalid-relative-name",
+            "相对路径不能以/开始，只能使用/为路径分隔符，不能包含../等相对路径，也不能包含windows路径所不允许的特殊字符:{resourcePath}", ARG_RESOURCE_PATH);
+
     ErrorCode ERR_RESOURCE_PATH_NOT_IN_NAMESPACE = define("nop.err.core.resource.path-not-in-namespace",
             "资源路径[{resourcePath}]不属于名字空间[{namespace}]", ARG_RESOURCE_PATH, ARG_NAMESPACE);
 
@@ -566,7 +570,7 @@ public interface CoreErrors {
             ARG_NODE, ARG_INDEX);
 
     ErrorCode ERR_XML_DUPLICATE_ATTR_NAME = define("nop.err.core.xml.duplicate-attr-name",
-            "XML节点的属性名重复：attrName={attrName},node={ARG_NODE}", ARG_ATTR_NAME, ARG_NODE);
+            "XML节点的属性名重复：attrName={attrName}", ARG_ATTR_NAME, ARG_NODE);
 
     ErrorCode ERR_XML_ATTR_VALUE_NOT_QUOTED = define("nop.err.core.xml.attr-value-not-quoted", "XML属性必须以引号包裹");
 

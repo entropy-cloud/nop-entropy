@@ -26,6 +26,7 @@ import java.util.function.Consumer;
 /**
  * 平台定义的所有异常类都统一继承此类
  */
+@SuppressWarnings("java:S1165")
 public class NopException extends RuntimeException implements IException {
     private static final long serialVersionUID = 618317480866467022L;
 
@@ -36,7 +37,7 @@ public class NopException extends RuntimeException implements IException {
     private boolean bizFatal;
 
     private int status;
-    private Map<String, Object> params = new HashMap<>();
+    private final Map<String, Object> params = new HashMap<>();
     private String description;
 
     private SourceLocation loc;
@@ -196,8 +197,6 @@ public class NopException extends RuntimeException implements IException {
 
     /**
      * standardized error code
-     *
-     * @return
      */
     public String getErrorCode() {
         return super.getMessage();
@@ -213,8 +212,6 @@ public class NopException extends RuntimeException implements IException {
 
     /**
      * get description info for Exception
-     *
-     * @return
      */
     public String getDescription() {
         return description;
@@ -306,9 +303,9 @@ public class NopException extends RuntimeException implements IException {
     /**
      * add extra param for exception
      *
-     * @param name
-     * @param value
-     * @return
+     * @param name 参数名
+     * @param value 参数值
+     * @return 当前异常对象
      */
     public NopException param(String name, Object value) {
         if (this.loc == null && value instanceof ISourceLocationGetter) {

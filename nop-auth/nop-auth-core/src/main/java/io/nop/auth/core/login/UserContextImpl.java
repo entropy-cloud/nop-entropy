@@ -30,6 +30,10 @@ public class UserContextImpl extends ExtensibleBean implements IUserContext, IJs
     private String nickName;
     private String primaryRole;
     private String deptId;
+
+    private String deptName;
+
+    private int loginType;
     private Set<String> roles;
 
     private boolean dirty;
@@ -44,11 +48,13 @@ public class UserContextImpl extends ExtensibleBean implements IUserContext, IJs
         out.putNotNull("locale", locale);
         out.putNotNull("timeZone", timeZone);
         out.putNotNull("userId", userId);
+        out.putNotNull("loginType", loginType);
         out.putNotNull("openId", openId);
         out.putNotNull("userName", userName);
         out.putNotNull("nickName", nickName);
         out.putNotNull("primaryRole", primaryRole);
         out.putNotNull("deptId", deptId);
+        out.putNotNull("deptName", deptName);
         out.putNotNull("roles", roles);
         out.putNotNull("accessToken", accessToken);
         out.putNotNull("refreshToken", refreshToken);
@@ -111,6 +117,29 @@ public class UserContextImpl extends ExtensibleBean implements IUserContext, IJs
     public void setUserId(String userId) {
         if (!Objects.equals(userId, this.userId)) {
             this.userId = userId;
+            dirty = true;
+        }
+    }
+
+    @Override
+    public String getDeptName() {
+        return deptName;
+    }
+
+    public void setDeptName(String deptName) {
+        if (!Objects.equals(deptName, this.deptName)) {
+            this.deptName = deptName;
+            dirty = true;
+        }
+    }
+
+    public int getLoginType() {
+        return loginType;
+    }
+
+    public void setLoginType(int loginType) {
+        if (!Objects.equals(loginType, this.loginType)) {
+            this.loginType = loginType;
             dirty = true;
         }
     }

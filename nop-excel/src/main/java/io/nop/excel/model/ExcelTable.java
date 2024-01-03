@@ -9,11 +9,15 @@ package io.nop.excel.model;
 
 import io.nop.api.core.util.INeedInit;
 import io.nop.api.core.util.ProcessResult;
+import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.model.table.ICell;
 import io.nop.excel.model._gen._ExcelTable;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 public class ExcelTable extends _ExcelTable implements INeedInit {
     public ExcelTable() {
@@ -39,8 +43,6 @@ public class ExcelTable extends _ExcelTable implements INeedInit {
     }
 
 
-
-
     public ExcelTable cloneInstance() {
         ExcelTable table = new ExcelTable();
         table.setLocation(getLocation());
@@ -56,5 +58,25 @@ public class ExcelTable extends _ExcelTable implements INeedInit {
     @Override
     public void init() {
         this.normalizeMergeRanges();
+    }
+
+    public Set<StdDataType> getColTypes(int colIndex) {
+        Set<StdDataType> types = new HashSet<>();
+        for (int i = 0, n = getRowCount(); i < n; i++) {
+            ExcelRow row = getRow(i);
+            ICell cell = row.getCell(colIndex);
+            if (cell == null || cell.isProxyCell())
+                continue;
+
+            ExcelCell ec = (ExcelCell) cell;
+            StdDataType dataType = ec.getType();
+            if (dataType == null && StringHelper.isEmptyObject(ec.getValue())) {
+                dataType = StdDataType.guessFromValue(ec.getValue());
+            }
+            if (dataType != null) {
+                types.add(dataType);
+            }
+        }
+        return types;
     }
 }

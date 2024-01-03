@@ -17,7 +17,7 @@
         <step displayName="end" name="end">
             <assignment selection="auto">
                 <actors>
-                    <actor actorId="actor2" actorType="user" actorModelId="actor1"/>
+                    <actor actorId="2" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <transition>

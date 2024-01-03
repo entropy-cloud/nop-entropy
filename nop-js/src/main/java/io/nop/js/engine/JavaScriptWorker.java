@@ -12,6 +12,7 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.io.stream.LogOutputStream;
 import io.nop.commons.util.IoHelper;
+import io.nop.core.resource.IResourceTextLoader;
 import io.nop.js.JsConstants;
 import io.nop.js.exceptions.ScriptError;
 import io.nop.js.fs.ResourceFileSystem;
@@ -31,7 +32,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -49,20 +55,29 @@ public class JavaScriptWorker implements Runnable, AutoCloseable {
     private final LongAdder completedTasks = new LongAdder();
     private volatile boolean closed;
     private volatile boolean shutdownGracefully;
-
+    private volatile boolean processing;
     private String initScriptPath;
 
     private Context context;
     private Value globals;
     private ResourceFileSystem fileSystem;
-    private Function<String, String> jsLibLoader;
+    private IResourceTextLoader jsLibLoader;
     private LogOutputStream outStream;
     private LogOutputStream errStream;
 
-    public void setJsLibLoader(Function<String, String> jsLibLoader) {
-        this.jsLibLoader = jsLibLoader;
+    private volatile Thread executeThread;
+
+    public Thread getExecuteThread() {
+        return executeThread;
     }
 
+    public boolean isProcessing() {
+        return processing;
+    }
+
+    public void setJsLibLoader(IResourceTextLoader jsLibLoader) {
+        this.jsLibLoader = jsLibLoader;
+    }
 
     public void setInitScriptPath(String initScriptPath) {
         this.initScriptPath = initScriptPath;
@@ -103,34 +118,44 @@ public class JavaScriptWorker implements Runnable, AutoCloseable {
         });
     }
 
-    public CompletableFuture<Object> invokeAsync(String funcName, Object... args) {
+    public CompletableFuture<Object> schedule(String funcName, Object... args) {
         CompletableFuture<Object> future = new CompletableFuture<>();
 
         Consumer<Boolean> task = closed -> {
-            if (closed) {
-                future.completeExceptionally(new CancellationException("closed"));
-            } else {
-                if (funcName.equals(JsConstants.FUNC_REINIT)) {
-                    IoHelper.safeClose(this.context);
-                    this.init();
-                } else {
-                    long beginTime = CoreMetrics.currentTimeMillis();
-                    try {
-                        Value ret = globals.invokeMember(funcName, args);
-                        asyncReturn(future, ret);
-                    } catch (Exception e) {
-                        LOG.debug("nop.js.invoke-func-error:funcName={},args={}", funcName, args, e);
-                        future.completeExceptionally(e);
-                    } finally {
-                        outStream.flush();
-                        LOG.debug("nop.js.invoke-func:funcName={},usedTime={}", funcName, CoreMetrics.currentTimeMillis() - beginTime);
-                    }
-                }
-            }
+            invokeFunction(funcName, args, future);
         };
         execute(task);
 
         return future;
+    }
+
+    public CompletableFuture<Object> invokeFunction(String funcName, Object... args) {
+        CompletableFuture<Object> future = new CompletableFuture<>();
+        invokeFunction(funcName, args, future);
+        return future;
+    }
+
+    private void invokeFunction(String funcName, Object[] args, CompletableFuture<Object> future) {
+        if (closed) {
+            future.completeExceptionally(new CancellationException("closed"));
+        } else {
+            if (funcName.equals(JsConstants.FUNC_REINIT)) {
+                IoHelper.safeClose(this.context);
+                this.init();
+            } else {
+                long beginTime = CoreMetrics.currentTimeMillis();
+                try {
+                    Value ret = globals.invokeMember(funcName, args);
+                    asyncReturn(future, ret);
+                } catch (Exception e) {
+                    LOG.debug("nop.js.invoke-func-error:funcName={},args={}", funcName, args, e);
+                    future.completeExceptionally(e);
+                } finally {
+                    outStream.flush();
+                    LOG.debug("nop.js.invoke-func:funcName={},usedTime={}", funcName, CoreMetrics.currentTimeMillis() - beginTime);
+                }
+            }
+        }
     }
 
     private void asyncReturn(CompletableFuture<Object> future, Value value) {
@@ -183,11 +208,24 @@ public class JavaScriptWorker implements Runnable, AutoCloseable {
                 }
             }
         }
-        if (error == null)
-            error = new IllegalStateException(e.toString());
+        if (error == null) {
+            if (e instanceof Map) {
+                LOG.error("nop.js.execute-fail:{}", e);
+
+                Map<String, Object> map = (Map<String, Object>) e;
+                error = buildException(map);
+            }
+            if (error == null)
+                error = new IllegalStateException(e.toString());
+        }
 
         LOG.error("nop.js.exec-fail", error);
         future.completeExceptionally(error);
+    }
+
+    protected Exception buildException(Map<String, Object> map) {
+        return new NopException(ERR_JS_ERROR).params(map);
+
     }
 
     private Object toJavaValue(Value value) {
@@ -238,6 +276,7 @@ public class JavaScriptWorker implements Runnable, AutoCloseable {
     @Override
     public void run() {
         try {
+            this.executeThread = Thread.currentThread();
             LOG.info("nop.js.worker-start");
             this.init();
 
@@ -246,9 +285,12 @@ public class JavaScriptWorker implements Runnable, AutoCloseable {
                     Consumer<Boolean> task = taskQueue.poll(1, TimeUnit.SECONDS);
                     if (task != null) {
                         try {
+                            this.processing = true;
                             task.accept(closed);
                         } catch (Exception e) {
                             LOG.error("nop.js.run-task-fail", e);
+                        } finally {
+                            this.processing = false;
                         }
                         completedTasks.increment();
                     } else {
@@ -259,7 +301,8 @@ public class JavaScriptWorker implements Runnable, AutoCloseable {
                         }
                     }
                 } catch (InterruptedException e) { //NOPMD
-                    // ignore
+                    Thread.currentThread().interrupt();
+                    throw NopException.adapt(e);
                 }
 
             } while (!closed);
@@ -268,6 +311,7 @@ public class JavaScriptWorker implements Runnable, AutoCloseable {
             cancelAllTasks();
             IoHelper.safeClose(this.context);
             LOG.info("nop.js.worker-stop");
+            this.executeThread = null;
         }
     }
 
@@ -342,7 +386,7 @@ public class JavaScriptWorker implements Runnable, AutoCloseable {
 
         bindings.putMember(JsConstants.VAR_JS_LIB_LOADER, (Function<String, Object>) path -> {
             try {
-                return jsLibLoader.apply(path);
+                return jsLibLoader.loadText(path);
             } catch (NopException ex) {
                 throw new ScriptError(ex);
             } catch (Exception e) {

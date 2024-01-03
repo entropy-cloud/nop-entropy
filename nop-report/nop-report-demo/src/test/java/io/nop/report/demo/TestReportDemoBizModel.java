@@ -17,13 +17,13 @@ import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.commons.util.FileHelper;
 import io.nop.report.core.XptConstants;
 import io.nop.report.demo.biz.ReportDemoBizModel;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
-import jakarta.inject.Inject;
 import java.io.File;
 import java.util.List;
 
-@NopTestConfig(localDb = true,disableSnapshot = false)
+@NopTestConfig(localDb = true, disableSnapshot = false)
 public class TestReportDemoBizModel extends JunitAutoTestCase {
 
     @Inject
@@ -97,6 +97,20 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
         WebContentBean result = reportDemo.download(reportName, XptConstants.RENDER_TYPE_XLSX);
         File file = (File) result.getContent();
         FileHelper.copyFile(file, getTargetFile("test-report-04.xlsx"));
+        file.delete();
+    }
+
+    @EnableSnapshot
+    @Test
+    public void testExportFilterFormula() {
+        setTestConfig(ApiConfigs.CFG_EXCEPTION_FILL_STACKTRACE, true);
+        String reportName = "/base/10-导出Excel公式.xpt.xlsx";
+        String html = reportDemo.renderHtml(reportName);
+        outputText(reportName + ".html", html);
+
+        WebContentBean result = reportDemo.download(reportName, XptConstants.RENDER_TYPE_XLSX);
+        File file = (File) result.getContent();
+        FileHelper.copyFile(file, getTargetFile("test-export-formula.xlsx"));
         file.delete();
     }
 }

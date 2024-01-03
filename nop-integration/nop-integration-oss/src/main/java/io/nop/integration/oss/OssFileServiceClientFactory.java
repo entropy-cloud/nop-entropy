@@ -38,7 +38,7 @@ public class OssFileServiceClientFactory implements IFileServiceClientFactory {
         ClientConfiguration clientConfiguration = new ClientConfiguration();
         AwsClientBuilder.EndpointConfiguration endpointConfiguration = new AwsClientBuilder.EndpointConfiguration(
                 ossConfig.getEndpoint(), ossConfig.getRegion());
-        AWSCredentials awsCredentials = new BasicAWSCredentials(ossConfig.getAccessKey(),
+        AWSCredentials awsCredentials = new BasicAWSCredentials(ossConfig.getAccessKey(), //NOSONAR
                 ossConfig.getSecretKey());
         AWSCredentialsProvider awsCredentialsProvider = new AWSStaticCredentialsProvider(awsCredentials);
         this.client = AmazonS3Client.builder().withEndpointConfiguration(endpointConfiguration)

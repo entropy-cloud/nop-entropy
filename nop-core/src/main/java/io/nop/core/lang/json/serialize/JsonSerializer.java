@@ -184,7 +184,7 @@ public class JsonSerializer implements IJsonSerializer {
             if (value == null) {
                 out.value(loc, null);
             } else {
-                if (propModel.getSerializer() != null) {
+                if (propModel.getSerializer() != null && serializerFactory != null) {
                     IJsonSerializer serializer = serializerFactory.getSerializer(propModel.getSerializer());
                     if (serializer == null) {
                         throw new NopException(ERR_JSON_UNKNOWN_SERIALIZER_FOR_PROP)

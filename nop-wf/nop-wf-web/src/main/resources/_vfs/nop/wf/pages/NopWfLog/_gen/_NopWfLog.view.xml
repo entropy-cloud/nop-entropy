@@ -16,11 +16,20 @@
                 <!--工作流实例ID-->
                 <col id="wfId" mandatory="true" sortable="true"/>
 
+                <!--工作流步骤ID-->
+                <col id="stepId" sortable="true"/>
+
+                <!--动作ID-->
+                <col id="actionId" sortable="true"/>
+
                 <!--日志级别-->
                 <col id="logLevel" mandatory="true" sortable="true"/>
 
                 <!--日志消息-->
                 <col id="logMsg" sortable="true"/>
+
+                <!--错误码-->
+                <col id="errCode" sortable="true"/>
 
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>
@@ -37,28 +46,19 @@
             <layout>
  sid[日志ID]
  wfId[工作流实例ID]
+ stepId[工作流步骤ID]
+ actionId[动作ID]
  logLevel[日志级别]
  logMsg[日志消息]
+ errCode[错误码]
  createdBy[创建人]
  createTime[创建时间]
-</layout>
-        </form>
-        <form id="add" editMode="add" title="新增-工作流日志" i18n-en:title="Add Workflow Log" x:prototype="edit"/>
-        <form id="edit" editMode="edit" title="编辑-工作流日志" i18n-en:title="Edit Workflow Log">
-            <layout>
- sid[日志ID]
- wfId[工作流实例ID]
- logLevel[日志级别]
- logMsg[日志消息]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
             <layout/>
         </form>
         <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
-            <layout/>
-        </form>
-        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-工作流日志" i18n-en:title="Update Workflow Log">
             <layout/>
         </form>
     </forms>
@@ -73,9 +73,6 @@
                     <api url="@mutation:NopWfLog__batchDelete?ids=$ids"/>
                     <confirmText>@i18n:common.confirmBatchDelete</confirmText>
                 </action>
-                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
-                    <dialog page="add"/>
-                </action>
             </listActions>
             <rowActions>
                 <action id="row-view-button" level="primary" label="@i18n:common.view">
@@ -89,7 +86,7 @@
                     <confirmText>@i18n:common.confirmDelete</confirmText>
                 </action>
                 <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
-                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                    <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
                         <dialog page="update"/>
                     </action>
                     <action id="row-delete-button" level="danger" label="@i18n:common.delete">
@@ -104,15 +101,8 @@
                 <api url="@query:NopWfLog__findPage" gql:selection="{@pageSelection}"/>
             </table>
         </picker>
-        <simple name="add" form="add">
-            <api url="@mutation:NopWfLog__save/id"/>
-        </simple>
         <simple name="view" form="view">
             <initApi url="@query:NopWfLog__get?id=$id" gql:selection="{@formSelection}"/>
-        </simple>
-        <simple name="update" form="edit">
-            <initApi url="@query:NopWfLog__get?id=$id" gql:selection="{@formSelection}"/>
-            <api url="@mutation:NopWfLog__update/id?id=$id" withFormData="true"/>
         </simple>
     </pages>
 </view>

@@ -7,6 +7,9 @@
  */
 package io.nop.wf.service;
 
+import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.exceptions.NopException;
+import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.initialize.CoreInitialization;
@@ -31,6 +34,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP_STATUS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -56,13 +61,12 @@ public class TestWorkflowEngine extends BaseTestCase {
 
         WorkflowEngineImpl engine = new WorkflowEngineImpl();
         engine.setWfActorResolver(new MockWfActorResolver());
-        //engine.setWorkflowCoordinator();
         workflowManager.setWorkflowEngine(engine);
         MockWorkflowStore store = new MockWorkflowStore();
         workflowManager.setWorkflowStore(store);
-        // workflowManager.setWorkflowModelStore(new ResourceWorkflowModelStore());
 
         workflowManager.init();
+        ContextProvider.getOrCreateContext().setUserId("1");
     }
 
     /**
@@ -88,7 +92,7 @@ public class TestWorkflowEngine extends BaseTestCase {
 
         IWorkflowStep step = workflow.getStepsByName("wf-start").get(0);
         assertEquals("user", step.getActor().getActorType());
-        assertEquals("actor1", step.getActor().getActorId());
+        assertEquals("1", step.getActor().getActorId());
 
         List<WorkflowTransitionTarget> targets = step.getTransitionTargetsForAction("action0", context);
         assertEquals(1, targets.size());
@@ -112,7 +116,7 @@ public class TestWorkflowEngine extends BaseTestCase {
         IWorkflowRecord wfRecord = workflow.getRecord();
         String bizEntityId = "1";
         wfRecord.setBizObjId(bizEntityId);
-        wfRecord.setBizObjName("test.io.entropy.wf.entity.WfEntity");
+        wfRecord.setBizObjName(NopAuthUser.class.getName());
         Map<String, Object> vars = new HashMap<>();
 
         workflow.start(vars, context);
@@ -143,13 +147,29 @@ public class TestWorkflowEngine extends BaseTestCase {
                 ysh2 = activeStep;
             }
         }
+
+        try {
+            ysh1.invokeAction("sp2", null, context);
+            assertTrue(false);
+        } catch (NopException e) {
+            assertEquals(ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP.getErrorCode(), e.getErrorCode());
+        }
+
         ysh1.invokeAction("sp1", null, context);
+        workflow.runAutoTransitions(context);
         assertFalse(workflow.isEnded());
-        ysh1.invokeAction("sp2", null, context);
+
+        try {
+            ysh1.invokeAction("sp1", null, context);
+            assertTrue(false);
+        } catch (NopException e) {
+            assertEquals(ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP_STATUS.getErrorCode(), e.getErrorCode());
+        }
+
+        ysh2.invokeAction("sp2", null, context);
         assertTrue(workflow.runAutoTransitions(context));
 
         assertTrue(workflow.isEnded());
-
     }
 
     void invokeAction(IWorkflowStep step, String actionId, String toStepId, String actorType, String actorId,
@@ -185,11 +205,11 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testCosign() {
         IServiceContext context = new ServiceContextImpl();
-        context.getContext().setUserId("userId");
+        String userId = context.getContext().getUserId();
 
         IWorkflow workflow = workflowManager.newWorkflow("test/cosign", 1L);
         workflow.start(null, context);
-        assertEquals("userId", workflow.getRecord().getStarterId());
+        assertEquals(userId, workflow.getRecord().getStarterId());
         IWorkflowStep startStep = workflow.getLatestStartStep();
         invokeAction(startStep, "sh", null, null, null, context);
         List<? extends IWorkflowStep> activeSteps = workflow.getActivatedSteps();
@@ -208,6 +228,8 @@ public class TestWorkflowEngine extends BaseTestCase {
         IWorkflowStep genHqStep = activeSteps.get(0);
 
         assertEquals(NopWfCoreConstants.WF_STEP_STATUS_WAITING, genHqStep.getRecord().getStatus());
+
+        context.getContext().setUserId("2");
         invokeAction(step2, "sp", null, null, null, context);
         List<? extends IWorkflowStep> steps = workflow.getStepsByName("join_join_");
         assertEquals(1, steps.size());
@@ -225,10 +247,10 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testCosign1() {
         IServiceContext context = new ServiceContextImpl();
-        context.getContext().setUserId("userId");
+        String userId = context.getContext().getUserId();
         IWorkflow workflow = workflowManager.newWorkflow("test/cosign1", 1L);
         workflow.start(null, context);
-        assertEquals("userId", workflow.getRecord().getStarterId());
+        assertEquals(userId, workflow.getRecord().getStarterId());
         IWorkflowStep startStep = workflow.getLatestStartStep();
         invokeAction(startStep, "sh", null, null, null, context);
         List<? extends IWorkflowStep> activeSteps = workflow.getActivatedSteps();
@@ -247,6 +269,8 @@ public class TestWorkflowEngine extends BaseTestCase {
         IWorkflowStep genHqStep = activeSteps.get(0);
 
         assertEquals(NopWfCoreConstants.WF_STEP_STATUS_WAITING, genHqStep.getRecord().getStatus());
+
+        context.getContext().setUserId("2");
         invokeAction(step2, "sp", null, "user", "1", context);
         List<? extends IWorkflowStep> steps = workflow.getStepsByName("join_join_");
         assertEquals(1, steps.size());
@@ -277,6 +301,7 @@ public class TestWorkflowEngine extends BaseTestCase {
         invokeAction(ysh1, "sp", "ysp", "user", "1", context);
         IWorkflowStep ysp = workflow.getLatestStepByName("ysp");
         assertEquals(NopWfCoreConstants.WF_STEP_STATUS_WAITING, ysp.getRecord().getStatus());
+        context.getContext().setUserId("2");
         invokeAction(ysh2, "sp", "ysp", "user", "2", context);
 
         assertTrue(workflow.getLatestStepByName("ysp").isActivated());
@@ -305,6 +330,8 @@ public class TestWorkflowEngine extends BaseTestCase {
         subFlow.runAutoTransitions(context);
 
         assertTrue(subFlow.isEnded());
+
+        workflow.runAutoTransitions(context);
 
         assertTrue(workflow.isEnded());
     }
@@ -405,7 +432,7 @@ public class TestWorkflowEngine extends BaseTestCase {
 
         List<WorkflowTransitionTarget> targets = step.getTransitionTargetsForAction("action0", context);
 
-        invokeAction(step, "action0", "end0", "user", "actor2", context);
+        invokeAction(step, "action0", "end0", "user", "2", context);
 
         workflow.runAutoTransitions(context);
         assertTrue(workflow.isEnded());
@@ -432,6 +459,7 @@ public class TestWorkflowEngine extends BaseTestCase {
         }
         assertNotNull(rejectAction);
 
+        context.getContext().setUserId("2");
         ysh.invokeAction("_rejectAction", null, context);
 
         List<? extends IWorkflowStep> activeSteps = workflow.getSteps(false);
@@ -545,8 +573,12 @@ public class TestWorkflowEngine extends BaseTestCase {
         IWorkflow workflow = workflowManager.newWorkflow("test/assignAnd", null);
         workflow.start(null, context);
         IWorkflowStep startStep = workflow.getActivatedSteps().get(0);
-        invokeAction(startStep, "sh", "ysh", "user", "1", context);
         invokeAction(startStep, "sh", "ysp", "user", "1", context);
+        workflow.runAutoTransitions(context);
+
+        IWorkflowStep ysp = workflow.getLatestStepByName("ysp");
+        invokeAction(ysp, "end", null, null, null, context);
+        assertTrue(workflow.isEnded());
     }
 
     /**

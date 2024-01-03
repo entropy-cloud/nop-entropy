@@ -76,7 +76,7 @@ public enum ExcelFontFamily {
     }
 
     public static ExcelFontFamily fromCode(int family) {
-        if (family < 0 || family > 5)
+        if (family < 1 || family > 5)
             return null;
         return values()[family - 1];
     }

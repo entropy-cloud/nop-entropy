@@ -9,6 +9,8 @@ package test.io.entropy.beans;
 
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.ioc.IBeanContainer;
+import jakarta.annotation.Nullable;
+import jakarta.inject.Inject;
 
 import java.util.List;
 import java.util.Map;
@@ -31,6 +33,10 @@ public class MyBeanA extends MyBaseBean {
 
     int x;
 
+    @Inject
+    @Nullable
+    protected MyBeanD beanD;
+
     public MyBeanC[] arrayC;
 
     public IBeanContainer container;
@@ -52,6 +58,14 @@ public class MyBeanA extends MyBaseBean {
 
     public void setListC(List<MyBeanC> listC) {
         this.listC = listC;
+    }
+
+    public MyBeanD getBeanD() {
+        return beanD;
+    }
+
+    public void setBeanD(MyBeanD beanD) {
+        this.beanD = beanD;
     }
 
     public int getX() {

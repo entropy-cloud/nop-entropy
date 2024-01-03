@@ -8,10 +8,12 @@
 package io.nop.xlang.xdef;
 
 import io.nop.api.core.json.IJsonString;
+import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.xlang.xdef.domain.DictDomainOptions;
 import io.nop.xlang.xdef.domain.GenericTypeDomainOptions;
+import io.nop.xlang.xdef.domain.StdDomainRegistry;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -144,5 +146,12 @@ public class XDefTypeDecl implements Serializable, IJsonString {
         if (options instanceof GenericTypeDomainOptions)
             return ((GenericTypeDomainOptions) options).getTypeName();
         return null;
+    }
+
+    public StdDataType getStdDataType() {
+        IStdDomainHandler handler = StdDomainRegistry.instance().getStdDomainHandler(getStdDomain());
+        if (handler == null)
+            return StdDataType.ANY;
+        return handler.getGenericType(isMandatory(), getOptions()).getStdDataType();
     }
 }

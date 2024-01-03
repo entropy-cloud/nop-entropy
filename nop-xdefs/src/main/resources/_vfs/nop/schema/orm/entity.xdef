@@ -33,21 +33,27 @@
         useTenant="!boolean=false" tenantProp="var-name"
         useWorkflow="!boolean=false" useRevision="!boolean=false"
         useLogicalDelete="!boolean=false" deleteFlagProp="var-name" deleteVersionProp="var-name"
-        versionProp="var-name"  dbCatalog="string" dbSchema="string" dbPkName="string"
+        versionProp="var-name" dbCatalog="string" dbSchema="string" dbPkName="string"
         createrProp="var-name" createTimeProp="var-name" updaterProp="var-name" updateTimeProp="var-name"
         notGenCode="!boolean=false" registerShortName="!boolean=false"
         maxBatchLoadSize="int" checkVersionWhenLazyLoad="!boolean=true"
         labelProp="string" stateProp="var-name"
         entityModeEnabled="!boolean=false" dimensionalType="string"
+        biz:moduleId="string"
         xdef:default-extends="/nop/core/defaults/default.entity.xml"
         xdef:name="OrmEntityModel" xdef:bean-package="io.nop.orm.model"
-        x:schema="/nop/schema/xdef.xdef"
+        x:schema="/nop/schema/xdef.xdef" xdef:check-ns="ui,biz"
+        xmlns:ui="ui" xmlns:biz="biz"
         xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
 >
     <!-- 当实体实际对应数据库视图时，这里为视图的定义SQL语句 -->
     <sqlText xdef:value="string"/>
 
     <comment xdef:value="string"/>
+
+    <filters xdef:body-type="list" xdef:key-attr="name">
+        <filter name="!var-name" value="any" xdef:name="OrmEntityFilterModel"/>
+    </filters>
 
     <!-- 每个column都对应实体上的一个属性。relation本身不创建新的对象属性，而是使用上的属性所覆盖 -->
     <columns xdef:body-type="list" xdef:key-attr="name">
@@ -73,6 +79,7 @@
                 primary="!boolean=false" fixedValue="string"
                 lazy="!boolean=false" sqlText="string" defaultValue="string"
                 comment="string" uiHint="string" notGenCode="!boolean=false"
+                ui:show="string" ui:control="string" ui:rootLevel="string"
                 tagSet="tag-set" mandatory="!boolean=false" xdef:name="OrmColumnModel">
         </column>
     </columns>
@@ -92,9 +99,9 @@
         compute的结果不会被自动缓存，每次访问都会重新计算。
         -->
         <compute name="!prop-name" displayName="string" type="generic-type" notGenCode="!boolean=false"
-                 xdef:name="OrmComputePropModel">
+                 xdef:name="OrmComputePropModel" tagSet="tag-set" ui:control="string">
             <args xdef:body-type="list" xdef:key-attr="name">
-                <arg name="!prop-name" type="generic-type" xdef:name="OrmComputeArgModel"/>
+                <arg name="!prop-name" displayName="string" type="!generic-type" xdef:name="OrmComputeArgModel"/>
             </args>
             <getter xdef:value="xpl"/>
             <setter xdef:value="xpl"/>
@@ -112,6 +119,7 @@
     <xdef:define xdef:name="OrmReferenceModel" name="!prop-name" displayName="string" persistDriver="string"
                  refEntityName="!class-name" refPropName="prop-name" refDisplayName="string"
                  queryable="!boolean=true" maxBatchLoadSize="int"
+                 ui:control="string"
                  tagSet="tag-set" embedded="!boolean=false" notGenCode="!boolean=false"
                  cascadeDelete="!boolean=false" autoCascadeDelete="!boolean=false" xdef:bean-tag-prop="type"
     >
@@ -175,7 +183,7 @@
          @columns 逗号分隔的列名（name）的列表
          -->
         <unique-key xdef:name="OrmUniqueKeyModel" name="!string" displayName="string" columns="!csv-list"
-                    constraint="string" >
+                    constraint="string">
             <comment xdef:value="string"/>
         </unique-key>
     </unique-keys>

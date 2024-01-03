@@ -1,5 +1,5 @@
 <lib x:schema="/nop/schema/xlib.xdef"
-     xmlns:x="/nop/schema/xdsl.xdef">
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
 
     <tags>
         <ExitCosignStep>
@@ -10,7 +10,7 @@
             </description>
 
             <source>
-                <c:script>
+                <c:script><![CDATA[
                     const actionModel = wfRt.actionModel;
                     if(actionModel.forReject){
                         const currentStep = wfRt.currentStep;
@@ -18,9 +18,121 @@
                         otherSteps.forEach(otherStep=> otherStep.kill(null, wfRt.svcCtx));
                         wfRt.wf.getLatestStepByName(currentStep.name + '_join_')?.kill(null, wfRt.svcCtx);
                     }
-                </c:script>
+                ]]></c:script>
             </source>
         </ExitCosignStep>
+
+        <SelectFirstActorAssignment>
+            <attr name="wfRt" implicit="true"/>
+            <description>
+                选择第一个备选actor
+            </description>
+
+            <source>
+                <c:script><![CDATA[
+                    const first = wfRt.currentActorAssignments[0];
+                    if(first){
+                        wfRt.currentActorAssignments = [first];
+                    }
+                ]]></c:script>
+            </source>
+        </SelectFirstActorAssignment>
+
+        <FilterWhenStarter>
+            <attr name="processType" type="Integer"/>
+            <attr name="wfRt" implicit="true"/>
+
+            <description>
+                1. 由发起人自己审批 2. 自动跳过 3. 转交给直接上级审批 4. 转交给部门负责人审批
+            </description>
+
+            <source>
+                <c:script><![CDATA[
+                    if(processType == 2){
+                        // 自动跳过不需要在这里处理
+                    }else if(processType == 3){
+                        // 转交给直接上级
+                        const assign = wfRt.getActorAssignmentForUser(wfRt.starter.userId)
+                        if(assign){
+                          const manager = wfRt.wf.getManager(wfRt.starter,0);
+                          if(manager)
+                            wfRt.replaceActorAssignment(assign, manager);
+                        }
+                    }else if(processType == 4){
+                       const assign = wfRt.getActorAssignmentForUser(wfRt.starterId);
+                       if(assign){
+                          // 转交给部门负责人
+                          const manager = wfRt.wf.getDeptManager(wfRt.starter,0);
+                          if(manager){
+                             wfRt.replaceActorAssignment(assign, manager);
+                          }
+                       }
+                    }
+                ]]></c:script>
+            </source>
+        </FilterWhenStarter>
+
+        <AutoAgreeWhenStarter>
+            <attr name="wfRt" implicit="true"/>
+            <description>
+                当是流程发起者时自动设置步骤状态为agree
+            </description>
+
+            <source>
+                <c:script>
+                    if(wfRt.currentStep.actor.isUser(wfRt.starterId)){
+                    wfRt.currentStep.record.setAppState('agree');
+                    }
+                </c:script>
+            </source>
+        </AutoAgreeWhenStarter>
+
+        <WhenAllowDisagree>
+            <attr name="wfRt" implicit="true"/>
+
+            <source>
+                <c:script>
+                    const specialType = wfRt.currentStep.specialType;
+                    // 传阅步骤不允许同意
+                    return specialType != 'cc'
+                </c:script>
+            </source>
+        </WhenAllowDisagree>
+
+        <WhenAllowAgree>
+            <attr name="wfRt" implicit="true"/>
+
+            <source>
+                <c:script>
+                    const specialType = wfRt.currentStep.specialType;
+                    // 传阅步骤不允许同意
+                    return specialType != 'cc'
+                </c:script>
+            </source>
+        </WhenAllowAgree>
+
+        <WhenAllowReject>
+            <attr name="wfRt" implicit="true"/>
+
+            <source>
+                <c:script>
+                    const specialType = wfRt.currentStep.specialType;
+                    // 传阅步骤不允许退回
+                    return specialType != 'cc'
+                </c:script>
+            </source>
+        </WhenAllowReject>
+
+        <WhenAllowConfirm>
+            <attr name="wfRt" implicit="true"/>
+
+            <source>
+                <c:script>
+                    const specialType = wfRt.currentStep.specialType;
+                    return specialType == 'cc'
+                </c:script>
+            </source>
+        </WhenAllowConfirm>
     </tags>
 
 </lib>

@@ -9,9 +9,11 @@ package io.nop.commons.util;
 
 import org.junit.jupiter.api.Test;
 
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.TimeZone;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -57,5 +59,15 @@ public class TestDateHelper {
     public void testZone() {
         LocalDateTime dt = DateHelper.toZone(LocalDateTime.now(), ZoneOffset.UTC);
         System.out.println(dt);
+    }
+
+    @Test
+    public void testMonthEnd() {
+        LocalDateTime time = LocalDateTime.of(2002, 3, 4, 1, 1, 0);
+        long ts = DateHelper.getMonthEndWithTimeZoneTs(TimeZone.getDefault(), DateHelper.dateTimeToMillis(time));
+
+        String str = new Timestamp(ts).toString();
+        System.out.println(str);
+        assertEquals("2002-04-01 00:00:00.0", str);
     }
 }

@@ -24,15 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-import static io.nop.core.CoreErrors.ARG_CELL;
-import static io.nop.core.CoreErrors.ARG_COL_INDEX;
-import static io.nop.core.CoreErrors.ARG_MERGE_ACROSS;
-import static io.nop.core.CoreErrors.ARG_MERGE_DOWN;
-import static io.nop.core.CoreErrors.ARG_ROW_INDEX;
-import static io.nop.core.CoreErrors.ERR_TABLE_INVALID_PROXY_CELL;
-import static io.nop.core.CoreErrors.ERR_TABLE_MERGE_CELL_EMPTY_OR_PROXY_CELL;
-import static io.nop.core.CoreErrors.ERR_TABLE_NOT_PROXY_CELL;
-import static io.nop.core.CoreErrors.ERR_TABLE_NO_ENOUGH_FREE_SPACE;
+import static io.nop.core.CoreErrors.*;
 
 public abstract class AbstractTable<T extends IRow> extends AbstractComponentModel implements ITable<T> {
 
@@ -661,7 +653,9 @@ public abstract class AbstractTable<T extends IRow> extends AbstractComponentMod
     @Override
     public void addToRow(int rowIndex, ICell cell) {
         checkAllowChange();
-        Guard.checkArgument(cell != null && !cell.isProxyCell(), "only RealCell is allowed");
+        if (cell == null || cell.isProxyCell()) {
+            throw new IllegalArgumentException("only RealCell is allowed");
+        }
 
         invalidateColCount();
 

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<c:script>
+codeGenerator.renderModel('/nop/oauth/orm/app.orm.xml','/nop/templates/meta', '/',$scope);
+</c:script>

@@ -1,0 +1,15 @@
+{
+  "id": "",
+  "clientId": "",
+  "clientIdIssuedAt": "2000-01-01 14:00:00",
+  "clientSecret": "",
+  "clientSecretExpiresAt": "2000-01-01 14:00:00",
+  "clientName": "",
+  "clientAuthenticationMethods": "",
+  "authorizationGrantTypes": "",
+  "redirectUris": "",
+  "postLogoutRedirectUris": "",
+  "scopes": "",
+  "clientSettings": "",
+  "tokenSettings": ""
+}

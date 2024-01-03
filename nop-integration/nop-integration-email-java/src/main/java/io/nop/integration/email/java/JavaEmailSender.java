@@ -14,11 +14,7 @@ import io.nop.integration.api.email.IEmailSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.mail.Address;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.Transport;
+import javax.mail.*;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.util.Date;
@@ -63,9 +59,12 @@ public class JavaEmailSender implements IEmailSender {
         } catch (Exception e) {
             LOG.error("nop.err.send-mail-fail", e);
         } finally {
-            try {
-                transport.close();
-            } catch (Exception e) { //NOPMD
+            if (transport != null) {
+                try {
+                    transport.close();
+                } catch (Exception e) { //NOPMD
+                    LOG.warn("nop.err.close-transport-fail", e);
+                }
             }
         }
     }
@@ -93,7 +92,7 @@ public class JavaEmailSender implements IEmailSender {
         if (this.session == null) {
             Properties props = new Properties();
             if (config.getProperties() != null) {
-                props.putAll(props);
+                props.putAll(config.getProperties());
             }
             this.session = Session.getInstance(props);
         }

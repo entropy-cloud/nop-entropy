@@ -10,6 +10,13 @@ nop:
     login:
       allow-create-default-user: true # 如果用户表为空，则自动创建缺省账户nop, 密码nop-test
 
+
+
+  spring:
+    delta:
+      mybatis:
+        enabled: true
+
 logging:
   level:
     ROOT: DEBUG

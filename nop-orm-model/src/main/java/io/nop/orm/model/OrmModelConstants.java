@@ -14,6 +14,8 @@ public interface OrmModelConstants {
 
     String PROP_ID = "id";
 
+    String PROP_SID = "sid";
+
     String ENTITY_SET_CLASS_NAME = "io.nop.orm.IOrmEntitySet";
 
     String COMPOSITE_PK_CLASS_NAME = "io.nop.orm.support.OrmCompositePk";
@@ -70,4 +72,16 @@ public interface OrmModelConstants {
 
     int MAX_PROP_ID = 2000;
     String EXT_PROP_MIN_PROP_ID = "ext:minPropId";
+
+    String EXT_BASE_PACKAGE_NAME = "ext:basePackageName";
+    String EXT_MAVEN_GROUP_ID = "ext:mavenGroupId";
+
+    String EXT_MAVEN_ARTIFACT_ID = "ext:mavenArtifactId";
+
+    String EXT_UI_CONTROL = "ui:control";
+    String EXT_UI_SHOW = "ui:show";
+
+    String VAR_ENTITY = "entity";
+
+    String VAR_VALUE = "value";
 }

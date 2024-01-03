@@ -31,6 +31,8 @@ public class MavenDirHelper {
 
     public static File projectDir(Class<?> clazz) {
         File dir = getClassesDir(clazz);
+        if (dir == null)
+            return null;
         // classes -> target -> project
         return dir.getParentFile().getParentFile();
     }

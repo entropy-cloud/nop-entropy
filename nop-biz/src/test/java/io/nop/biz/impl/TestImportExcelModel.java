@@ -109,11 +109,29 @@ public class TestImportExcelModel extends BaseTestCase {
 
         IEvalScope scope = XLang.newEvalScope();
         scope.setLocalValue("indexYears", Arrays.asList(2001, 2002, 2003, 2004));
-        scope.setLocalValue("jYears", Arrays.asList(2021,2022,2023,2024,2025));
+        scope.setLocalValue("jYears", Arrays.asList(2021, 2022, 2023, 2024, 2025));
 
         String html = ExcelReportHelper.getHtmlForXlsxObject("/nop/test/imp/test5.imp.xml", bean, scope);
         FileHelper.writeText(getTargetFile("test-exp5.html"), html, null);
         assertEquals(normalizeCRLF(attachmentText("test-exp5.html")), normalizeCRLF(html));
+
+    }
+
+    /**
+     * 导入导出具有多层表头的子表
+     */
+    @Test
+    public void testImportGroupHeader() {
+        IResource resource = attachmentResource("test-group-header.test.xlsx");
+        Object bean = ExcelHelper.loadXlsxObject("/nop/test/imp/test-group-header.imp.xml", resource);
+
+        IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValue("indexYears", Arrays.asList(2001, 2002));
+        scope.setLocalValue("groups", Arrays.asList("分组1", "分组2"));
+
+        String html = ExcelReportHelper.getHtmlForXlsxObject("/nop/test/imp/test-group-header.imp.xml", bean, scope);
+        FileHelper.writeText(getTargetFile("test-group-header.html"), html, null);
+        assertEquals(normalizeCRLF(attachmentText("test-group-header.html")), normalizeCRLF(html));
 
     }
 }

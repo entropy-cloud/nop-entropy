@@ -16,11 +16,7 @@
  */
 package io.nop.core.model.graph;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Iterates over the vertices in a directed graph in breadth-first order.
@@ -38,6 +34,7 @@ public class GraphBreadthFirstIterator<V> implements Iterator<V> {
     }
 
     // tell cpd to start ignoring code - CPD-OFF
+
     /**
      * Populates a set with the nodes reachable from a given node.
      */
@@ -68,6 +65,8 @@ public class GraphBreadthFirstIterator<V> implements Iterator<V> {
     }
 
     public V next() {
+        if (!hasNext())
+            throw new NoSuchElementException();
         return next(deque, graph, set);
     }
 }

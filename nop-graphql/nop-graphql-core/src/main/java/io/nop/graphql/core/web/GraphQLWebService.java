@@ -277,7 +277,7 @@ public class GraphQLWebService {
 
         Object data = res.getData();
         if (data instanceof String) {
-            builder.header(ApiConstants.HEADER_CONTENT_TYPE, WebContentBean.CONTENt_TYPE_TEXT);
+            builder.header(ApiConstants.HEADER_CONTENT_TYPE, WebContentBean.CONTENT_TYPE_TEXT);
             LOG.debug("nop.graphql.response:{}", data);
             builder.entity(data);
         } else if (data instanceof WebContentBean) {

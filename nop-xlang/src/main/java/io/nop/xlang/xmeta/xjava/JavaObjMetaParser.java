@@ -172,7 +172,7 @@ public class JavaObjMetaParser extends JaninoParser<ObjMetaImpl> {
 
             for (Java.ElementValuePair pair : ann.elementValuePairs) {
                 String name = pair.identifier;
-                Object value = getValue(pair.elementValue);
+                Object value = getElementValue(pair.elementValue);
                 try {
                     if (propMetaModel.getPropertyModel(name) != null) {
                         propMetaModel.setProperty(propMeta, name, value);
@@ -192,7 +192,7 @@ public class JavaObjMetaParser extends JaninoParser<ObjMetaImpl> {
         return propMeta;
     }
 
-    private Object getValue(Java.ElementValue value) {
+    private Object getElementValue(Java.ElementValue value) {
         if (value instanceof Java.Literal)
             return ((Java.Literal) value).value;
         if (value instanceof Java.ElementValueArrayInitializer) {
@@ -200,7 +200,7 @@ public class JavaObjMetaParser extends JaninoParser<ObjMetaImpl> {
             Java.ElementValue[] values = ((Java.ElementValueArrayInitializer) value).elementValues;
             Set<String> list = new HashSet<>();
             for (Java.ElementValue elementValue : values) {
-                list.add((String) getValue(elementValue));
+                list.add((String) getElementValue(elementValue));
             }
             return list;
         }

@@ -67,6 +67,7 @@ import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.model.IOrmDataType;
+import io.nop.orm.model.OrmEntityFilterModel;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -222,7 +223,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         if (from != null) {
             visitSqlFrom(from);
 
-            addLogicalDeleteFilter(node);
+            addTableFilter(node);
         } else {
             if (node.getWhere() != null || node.getHaving() != null || node.getOrderBy() != null
                     || node.getGroupBy() != null || node.getLimit() != null)
@@ -277,6 +278,11 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         currentScope = scope.getParent();
     }
 
+    void addTableFilter(SqlQuerySelect node) {
+        addLogicalDeleteFilter(node);
+        addEntityFilter(node);
+    }
+
     void addLogicalDeleteFilter(SqlQuerySelect node) {
         if (context.isDisableLogicalDelete())
             return;
@@ -300,6 +306,31 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                 Object value = tableMeta.getDeleteFlagValue(false, dialect);
                 expr.setRight(EqlASTBuilder.literal(value));
                 where.appendFilter(expr);
+            }
+        }
+    }
+
+    void addEntityFilter(SqlQuerySelect node) {
+        SqlFrom from = node.getFrom();
+
+        for (SqlSingleTableSource table : from.getEntitySources()) {
+            String alias = table.getAliasName();
+            ISqlTableMeta tableMeta = (ISqlTableMeta) table.getResolvedTableMeta();
+            if (tableMeta.hasFilter()) {
+                SqlWhere where = node.getWhere();
+                if (where == null) {
+                    where = new SqlWhere();
+                    node.setWhere(where);
+                }
+
+                for (OrmEntityFilterModel filter : tableMeta.getFilters()) {
+                    SqlBinaryExpr expr = new SqlBinaryExpr();
+                    expr.setLeft(EqlASTBuilder.colName(alias, filter.getName()));
+                    expr.setOperator(SqlOperator.EQ);
+
+                    expr.setRight(EqlASTBuilder.literal(filter.getValue()));
+                    where.appendFilter(expr);
+                }
             }
         }
     }
@@ -372,8 +403,16 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             tableScope.addTable(source.getAliasName(), source);
         } else if (table instanceof SqlJoinTableSource) {
             SqlJoinTableSource source = (SqlJoinTableSource) table;
+            boolean hasCondition = source.getCondition() != null;
             visitJoinLeft(tableScope, source);
             visitJoinRight(tableScope, source);
+
+            if (hasCondition) {
+                SqlTableScope oldScope = currentScope;
+                currentScope = tableScope;
+                visitJoinCondition(source);
+                currentScope = oldScope;
+            }
         }
     }
 
@@ -449,6 +488,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         if (right instanceof SqlSingleTableSource) {
             SqlSingleTableSource table = (SqlSingleTableSource) right;
             table.setAlias(makeTableAlias(table.getAlias()));
+
+            tableScope.addTable(table.getAliasName(), table);
 
             SqlTableName tableName = table.getTableName();
             String fullName = tableName.getFullName();
@@ -706,7 +747,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             col.setResolvedExprMeta(source.getResolvedTableMeta().getFieldExprMeta(propModel.getName()));
             SqlQualifiedName name = new SqlQualifiedName();
             name.setName(source.getAliasName());
-            col.setOwner(new SqlQualifiedName());
+            col.setOwner(name);
             return col;
         } else {
             if (value instanceof Number) {

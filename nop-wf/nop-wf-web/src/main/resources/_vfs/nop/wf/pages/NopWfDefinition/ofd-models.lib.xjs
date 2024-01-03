@@ -1,0 +1,8 @@
+/* @generate
+  <ofd-gen:GenerateJs xpl:lib="/nop/web/xlib/ofd-gen.xlib" modelPath="/nop/wf/designer/oa-flow.graph-designer.xml" />
+*/
+
+//@begin-mock
+function notIncludeInResult(){
+}
+//@end-mock

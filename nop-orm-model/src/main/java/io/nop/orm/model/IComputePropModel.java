@@ -7,8 +7,24 @@
  */
 package io.nop.orm.model;
 
+import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.type.IGenericType;
+
 import java.util.List;
+import java.util.Map;
 
 public interface IComputePropModel extends IEntityPropModel {
     List<? extends IComputedArgModel> getArgs();
+
+    IEvalAction getGetter();
+
+    IEvalAction getSetter();
+
+    IGenericType getType();
+
+    Object getValue(Object entity);
+
+    void setValue(Object entity, Object value);
+
+    Object computeValue(Object entity, Map<String, Object> args);
 }

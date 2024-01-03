@@ -77,7 +77,7 @@ public class SuspendedThread {
         return new ThreadInfo(thread.getName(), threadId, suspended);
     }
 
-    public StackInfo getStackInfo() {
+    public synchronized StackInfo getStackInfo() {
         StackInfo info = new StackInfo();
         info.setThreadId(threadId);
         info.setThreadName(thread.getName());

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:extends="_gen/_NopDynPage.view.xml" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <grids>
+        <grid id="list">
+            <cols>
+                <col id="pageSchemaType"/>
+
+                <col id="pageContent" width="180" align="center">
+                    <gen-control>
+                        <button-group>
+                            <buttons j:list="true">
+                                <xui-page-editor-button label="设计" level="success">
+                                    <api url="@mutation:NopDynPage__savePageJson?id=$id" >
+                                        <data>
+                                            <data>$data</data>
+                                        </data>
+                                    </api>
+                                    <initApi url="@query:NopDynPage__getPageJson?id=$id" />
+                                </xui-page-editor-button>
+                                <button label="预览" level="dark" actionType="dialog">
+                                    <dialog size="full" title="预览页面">
+                                        <body>
+                                            <service>
+                                                <schemaApi url="/p/NopDynPage__getPageJson?id=$id" />
+                                            </service>
+                                        </body>
+                                    </dialog>
+                                </button>
+                            </buttons>
+                        </button-group>
+                    </gen-control>
+                </col>
+            </cols>
+        </grid>
+
+        <grid id="pick-list"/>
+    </grids>
+
+    <forms>
+        <form id="view"/>
+        <form id="edit"/>
+    </forms>
+
+    <pages>
+        <crud name="main"/>
+        <picker name="picker"/>
+    </pages>
+</view>

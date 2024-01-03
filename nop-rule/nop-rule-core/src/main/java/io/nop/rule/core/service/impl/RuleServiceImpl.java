@@ -43,7 +43,7 @@ public class RuleServiceImpl implements RuleServiceSpi {
     private IRuleLogMessageSaver logMessageSaver;
 
     public void setLogMessageSaver(IRuleLogMessageSaver ruleLogMessageSaver) {
-        this.logMessageSaver = logMessageSaver;
+        this.logMessageSaver = ruleLogMessageSaver;
     }
 
     public void setSaveLogMessage(boolean saveLogMessage) {

@@ -17,22 +17,12 @@ import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.job.api.ITriggerState;
 import io.nop.job.api.TriggerFireResult;
-import io.nop.job.core.ITrigger;
-import io.nop.job.core.ITriggerAction;
-import io.nop.job.core.ITriggerContext;
-import io.nop.job.core.ITriggerExecution;
-import io.nop.job.core.ITriggerExecutor;
-import io.nop.job.core.ITriggerHook;
-import io.nop.job.core.JobCoreConstants;
+import io.nop.job.core.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_TRIGGER_FIRE_FAIL;
 
@@ -342,7 +332,7 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
         context.onException(current, error);
 
         LOG.info("nop.job.on-error:jobName={},epoch={},executionId={},error={}", context.getJobName(),
-                context.getEpoch(), context.getLastExecutionId(), result.getError(), exception);
+                context.getEpoch(), context.getLastExecutionId(), error, exception);
 
         if (globalHook != null) {
             globalHook.onException(current, exception, context);

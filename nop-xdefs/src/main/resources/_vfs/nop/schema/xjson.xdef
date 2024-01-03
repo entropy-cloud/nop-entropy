@@ -1,3 +1,2 @@
-<xdef:unknown-tag xdef:value="xjson"
-                  x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-/>
+<xdef:unknown-tag xdef:value="xjson" xdef:default-override="merge"
+                  x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"/>

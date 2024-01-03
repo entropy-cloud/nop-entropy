@@ -67,7 +67,7 @@ public class GraphQLExecutionContext extends ServiceContextImpl implements IGrap
         this.operation = operation;
     }
 
-    public ParsedGraphQLRequest getRequest() {
+    public synchronized ParsedGraphQLRequest getRequest() {
         return (ParsedGraphQLRequest) super.getRequest();
     }
 

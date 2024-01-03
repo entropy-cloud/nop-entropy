@@ -46,6 +46,7 @@ public class TestJavaScriptService extends BaseTestCase {
 
     @Test
     public void testExecute() {
+        forceStackTrace();
         JavaScriptService service = newService();
         service.start();
         CompletionStage<Object> future = service.invokeAsync("rollupTransform", "/localhost/a.mjs",
@@ -96,6 +97,21 @@ public class TestJavaScriptService extends BaseTestCase {
         String result = (String) FutureHelper.syncGet(future);
         System.out.println(result);
         assertEquals(normalizeCRLF(attachmentText("rollup-test.lib.js")),
+                normalizeCRLF(result));
+
+        service.stop();
+    }
+
+    @Test
+    public void testImportLib() {
+        JavaScriptService service = newService();
+        service.start();
+
+        String source = ResourceHelper.readText(VirtualFileSystem.instance().getResource("/nop/js/test-demo.lib.xjs"));
+        CompletionStage<Object> future = service.invokeAsync("rollupTransform", "/nop/js/test-demo.lib.js", source);
+        String result = (String) FutureHelper.syncGet(future);
+        System.out.println(result);
+        assertEquals(normalizeCRLF(attachmentText("test-demo-gen.lib.js")),
                 normalizeCRLF(result));
 
         service.stop();

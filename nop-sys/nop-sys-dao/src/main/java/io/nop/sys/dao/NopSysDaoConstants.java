@@ -11,4 +11,6 @@ public interface NopSysDaoConstants extends _NopSysDaoConstants{
     String SYS_DICT_PREFIX = "sys/";
 
     String SEQ_DEFAULT = "default";
+
+    String SEQ_TYPE_SNOWFLAKE = "snowflake";
 }

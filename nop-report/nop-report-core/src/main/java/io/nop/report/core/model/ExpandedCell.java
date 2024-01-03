@@ -8,7 +8,9 @@
 package io.nop.report.core.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.nop.api.core.annotations.lang.EvalMethod;
 import io.nop.api.core.util.Guard;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.utils.Underscore;
 import io.nop.core.model.table.ICellView;
 import io.nop.excel.model.XptCellModel;
@@ -551,7 +553,7 @@ public class ExpandedCell implements ICellView {
         return rowDescendants;
     }
 
-    public ExpandedCellSet getChildSet(String cellName, IXptRuntime xptRt) {
+    public ExpandedCellSet childSet(String cellName, IXptRuntime xptRt) {
         if (rowDescendants != null) {
             List<ExpandedCell> cells = rowDescendants.get(cellName);
             if (cells != null && !cells.isEmpty())
@@ -563,6 +565,37 @@ public class ExpandedCell implements ICellView {
                 return new ExpandedCellSet(null, cellName, cells).evaluateAll(xptRt);
         }
         return null;
+    }
+
+    public ExpandedCell childCell(String cellName, IXptRuntime xptRt) {
+        if (rowDescendants != null) {
+            List<ExpandedCell> cells = rowDescendants.get(cellName);
+            if (cells != null && !cells.isEmpty()) {
+                ExpandedCell cell = cells.get(0);
+                xptRt.evaluateCell(cell);
+                return cell;
+            }
+        }
+        if (colDescendants != null) {
+            List<ExpandedCell> cells = colDescendants.get(cellName);
+            if (cells != null && !cells.isEmpty()) {
+                ExpandedCell cell = cells.get(0);
+                xptRt.evaluateCell(cell);
+                return null;
+            }
+        }
+        return null;
+    }
+
+    public Object childValue(String cellName, IXptRuntime xptRt) {
+        ExpandedCell cell = childCell(cellName, xptRt);
+        return cell == null ? null : cell.getValue();
+    }
+
+    @EvalMethod
+    public Object cv(IEvalScope scope, String cellName) {
+        IXptRuntime xptRt = IXptRuntime.fromScope(scope);
+        return childValue(cellName, xptRt);
     }
 
     public boolean hasRowDescendant() {

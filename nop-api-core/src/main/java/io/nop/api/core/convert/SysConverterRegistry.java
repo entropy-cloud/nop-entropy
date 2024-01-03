@@ -107,11 +107,10 @@ public class SysConverterRegistry {
 
     public void unregisterTypeConverter(String name, Type targetType, ITypeConverter converter) {
         converters.remove(targetType, converter);
-        namedConverters.remove(name, converter);
 
         TargetTypeConverter old = namedConverters.get(name);
         if (old != null && old.getConverter() == converter) {
-            converters.remove(name, old);
+            namedConverters.remove(name, old);
         }
     }
 

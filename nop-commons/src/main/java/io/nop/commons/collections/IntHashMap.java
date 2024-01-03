@@ -229,8 +229,11 @@ public class IntHashMap<V> implements MapOfInt<V> {
     }
 
     public void putAll(IntHashMap<V> map) {
-        for (Entry<V> entry : map.entries())
+        Iterator<Entry<V>> it = map.entries();
+        while(it.hasNext()) {
+            Entry<V> entry = it.next();
             put(entry.key, entry.value);
+        }
     }
 
     /**
@@ -1030,7 +1033,7 @@ public class IntHashMap<V> implements MapOfInt<V> {
         }
     }
 
-    static public class Entries<V> extends MapIterator<V> implements Iterable<Entry<V>>, Iterator<Entry<V>> {
+    static public class Entries<V> extends MapIterator<V> implements Iterator<Entry<V>> {
         private Entry<V> entry = new Entry<V>();
 
         public Entries(IntHashMap<V> map, boolean reset) {
@@ -1064,19 +1067,16 @@ public class IntHashMap<V> implements MapOfInt<V> {
             return hasNext;
         }
 
-        public Iterator<Entry<V>> iterator() {
-            return this;
-        }
     }
 
-    static public class Values<V> extends MapIterator<V> implements Iterable<V>, Iterator<V> {
+    static public class Values<V> extends MapIterator<V> implements  Iterator<V> {
         public Values(IntHashMap<V> map) {
             super(map);
         }
 
-        public boolean hasNext() {
-            return hasNext;
-        }
+//        public boolean hasNext() {
+//            return hasNext;
+//        }
 
         public V next() {
             if (!hasNext)

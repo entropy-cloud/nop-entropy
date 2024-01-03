@@ -92,6 +92,7 @@ public class ContextTaskQueue {
                 try {
                     queueReady.await();
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     throw NopException.adapt(e);
                 }
             } finally {

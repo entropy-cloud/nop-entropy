@@ -4,7 +4,7 @@
     <objs>
         <obj name="NopRuleDefinition">
             <role-auths>
-                <role-auth roleId="admin">
+                <role-auth roleId="admin" priority="50" >
                 </role-auth>
 
                 <role-auth roleId="user">
@@ -15,7 +15,7 @@
 
                     <filter>
                         <filter:sql xpl:lib="/nop/core/xlib/filter.xlib">
-                            o.id in (select t.ruleId from NopRuleRole t where t.roleId in ${userContext.roles})
+                            o.id in (select t.ruleId from NopRuleRole t where t.roleId in (${userContext.roles}))
                         </filter:sql>
                     </filter>
                 </role-auth>

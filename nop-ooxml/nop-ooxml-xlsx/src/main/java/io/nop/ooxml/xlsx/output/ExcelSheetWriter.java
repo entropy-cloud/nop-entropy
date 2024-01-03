@@ -17,12 +17,14 @@ import io.nop.core.model.table.ICellView;
 import io.nop.core.model.table.IColumnConfig;
 import io.nop.core.model.table.IRowView;
 import io.nop.core.resource.tpl.AbstractXmlTemplate;
+import io.nop.excel.format.ExcelDateHelper;
 import io.nop.excel.model.ExcelPageMargins;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.IExcelSheet;
 import io.nop.excel.util.UnitsHelper;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -45,9 +47,10 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
         this.workbook = workbook;
     }
 
-    public String getDrawingRelId(){
+    public String getDrawingRelId() {
         return drawingRelId;
     }
+
     @Override
     public void generateXml(IXNodeHandler out, IEvalContext context) {
         out.beginDoc("UTF-8", null, null);
@@ -155,6 +158,8 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
                 continue;
             }
 
+            ExcelStyle style = workbook.getStyle(cell.getStyleId());
+
             ICellView ec = cell;
             String cellType = null;
 
@@ -174,6 +179,9 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
             } else if (value instanceof Collection) {
                 str = StringHelper.join((Collection) value, ",");
                 cellType = "inlineStr";
+            } else if (value instanceof LocalDateTime && style != null && style.isDateFormat()) {
+                str = String.valueOf(ExcelDateHelper.localDateTimeToExcelDate((LocalDateTime) value));
+                cellType = "n";
             } else if (value != null) {
                 str = value.toString();
                 cellType = "inlineStr";
@@ -185,7 +193,7 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
                     attrs("r", CellPosition.toABString(rowIndex, i, false, false),
                             "s", normalizeStyleId(ec), "t", cellType));
 
-            if(!StringHelper.isEmpty(formula)){
+            if (!StringHelper.isEmpty(formula)) {
                 out.beginNode(null, "f", Collections.emptyMap());
                 out.value(null, formula);
                 out.endNode("f");

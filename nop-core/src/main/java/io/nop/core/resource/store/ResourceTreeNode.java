@@ -45,6 +45,29 @@ public class ResourceTreeNode implements ITreeChildrenStructure {
             Guard.checkArgument(StringHelper.isValidFileName(name), "resourceName is not valid file name", name);
     }
 
+    public boolean isLeaf() {
+        return children == null || children.isEmpty();
+    }
+
+    public void merge(ResourceTreeNode node) {
+        if (children == null) {
+            children = new TreeMap<>();
+        }
+
+        if (node.children != null) {
+            node.children.forEach((childName, child) -> {
+                ResourceTreeNode c = children.putIfAbsent(childName, child);
+                if (c != null) {
+                    if (c.isLeaf() || child.isLeaf()) {
+                        children.put(childName, child);
+                    } else {
+                        c.merge(child);
+                    }
+                }
+            });
+        }
+    }
+
     public String getPath() {
         return resource.getPath();
     }
@@ -76,6 +99,7 @@ public class ResourceTreeNode implements ITreeChildrenStructure {
     }
 
     public void addChild(String name, IResource resource) {
+
         ResourceTreeNode child = new ResourceTreeNode(name, resource);
         addChild(child);
     }
@@ -89,7 +113,7 @@ public class ResourceTreeNode implements ITreeChildrenStructure {
         } else {
             ResourceTreeNode old = children.put(child.getName(), child);
             if (old != null) {
-                LOG.info("nop.core.resource.replace-child:newResource={},oldResource=", child.getResource(),
+                LOG.info("nop.core.resource.replace-child:newResource={},oldResource={}", child.getResource(),
                         old.getResource());
             }
         }
@@ -121,6 +145,26 @@ public class ResourceTreeNode implements ITreeChildrenStructure {
         ResourceTreeNode node = mkdirs(parentPath);
         if (!StringHelper.isEmpty(name))
             node.addChild(name, resource);
+    }
+
+    public boolean removeNode(String path) {
+        if (path.equals("/"))
+            return false;
+
+        if (path.startsWith("/"))
+            path = path.substring(1);
+
+        int pos = path.indexOf('/');
+        if (pos < 0) {
+            if (children != null)
+                return children.remove(path) != null;
+        } else {
+            String parentPath = path.substring(0, pos);
+            ResourceTreeNode child = _getNode(parentPath, 0);
+            if (child != null)
+                return child.removeNode(path.substring(pos + 1));
+        }
+        return false;
     }
 
     public boolean addNodeIfAbsent(String path, IResource resource) {

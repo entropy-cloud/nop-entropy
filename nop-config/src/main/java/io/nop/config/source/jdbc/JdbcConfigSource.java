@@ -40,7 +40,7 @@ public class JdbcConfigSource implements IConfigSource {
     private final List<Runnable> onChanges = new CopyOnWriteArrayList<>();
 
     private volatile boolean closed;
-    private volatile Map<String, ValueWithLocation> vars;
+    private volatile Map<String, ValueWithLocation> vars; //NOSONAR
 
     private int errorCount = 0;
 
@@ -121,8 +121,8 @@ public class JdbcConfigSource implements IConfigSource {
             stm = connection.createStatement();
             rs = stm.executeQuery(query);
             while (rs.next()) {
-                String name = rs.getString(0);
-                String value = rs.getString(1);
+                String name = rs.getString(1);
+                String value = rs.getString(2);
                 if (!StringHelper.isEmpty(name)) {
                     ValueWithLocation ref = ValueWithLocation.of(s_loc, value);
                     vars.put(name, ref);

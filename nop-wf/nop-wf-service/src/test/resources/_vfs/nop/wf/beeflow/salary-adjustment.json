@@ -1,0 +1,742 @@
+{
+  "nodeConfig": {
+    "name": "发起人",
+    "type": 0,
+    "childNode": {
+      "name": "路由",
+      "type": 4,
+      "childNode": {
+        "name": "路由",
+        "type": 4,
+        "childNode": null,
+        "conditionNodes": [
+          {
+            "name": "条件1",
+            "type": 3,
+            "childNode": {
+              "name": "审核人",
+              "type": 1,
+              "assignees": [
+                {
+                  "rid": "616505867981819904",
+                  "assignees": [
+                    "staffId-wangwu"
+                  ],
+                  "assigneeType": 4
+                }
+              ],
+              "childNode": null,
+              "formAuths": [
+                {
+                  "name": "STAFF_619452713050050560",
+                  "type": 13,
+                  "label": "姓名",
+                  "readable": true,
+                  "editable": false
+                },
+                {
+                  "name": "DEPT_619452724290785280",
+                  "type": 12,
+                  "label": "所属部门",
+                  "readable": true,
+                  "editable": false
+                },
+                {
+                  "name": "INPUT_616504198044848128",
+                  "type": 0,
+                  "label": "岗位名称",
+                  "readable": true,
+                  "editable": false
+                },
+                {
+                  "name": "TEXT_616504235097329664",
+                  "type": 1,
+                  "label": "调薪原因",
+                  "readable": true,
+                  "editable": false
+                },
+                {
+                  "name": "MONEY_619453193822146560",
+                  "type": 4,
+                  "label": "原基本工资",
+                  "readable": true,
+                  "editable": false
+                },
+                {
+                  "name": "MONEY_619453202672128000",
+                  "type": 4,
+                  "label": "调整后基本工资",
+                  "readable": true,
+                  "editable": false
+                }
+              ],
+              "approvalType": 0,
+              "flowNodeNoAuditorType": 0,
+              "flowNodeSelfAuditorType": 1,
+              "multiInstanceApprovalType": 0
+            },
+            "priorityLevel": 1,
+            "conditionGroups": [
+              {
+                "id": "619453602963918848",
+                "conditions": [
+                  {
+                    "id": "619453602963918849",
+                    "val": 30000,
+                    "varName": "MONEY_619453202672128000",
+                    "operator": 3,
+                    "operators": [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4,
+                      5
+                    ]
+                  }
+                ]
+              }
+            ],
+            "conditionExpression": "${(MONEY_619453202672128000<=30000)}"
+          },
+          {
+            "name": "条件2",
+            "type": 3,
+            "childNode": {
+              "name": "审核人",
+              "type": 1,
+              "assignees": [
+                {
+                  "rid": "618280300396417024",
+                  "roles": [
+                    "ADMIN"
+                  ],
+                  "assigneeType": 3
+                }
+              ],
+              "childNode": null,
+              "formAuths": [
+                {
+                  "name": "STAFF_619452713050050560",
+                  "type": 13,
+                  "label": "姓名",
+                  "readable": true,
+                  "editable": false
+                },
+                {
+                  "name": "DEPT_619452724290785280",
+                  "type": 12,
+                  "label": "所属部门",
+                  "readable": true,
+                  "editable": false
+                },
+                {
+                  "name": "INPUT_616504198044848128",
+                  "type": 0,
+                  "label": "岗位名称",
+                  "readable": true,
+                  "editable": false
+                },
+                {
+                  "name": "TEXT_616504235097329664",
+                  "type": 1,
+                  "label": "调薪原因",
+                  "readable": true,
+                  "editable": false
+                },
+                {
+                  "name": "MONEY_619453193822146560",
+                  "type": 4,
+                  "label": "原基本工资",
+                  "readable": true,
+                  "editable": false
+                },
+                {
+                  "name": "MONEY_619453202672128000",
+                  "type": 4,
+                  "label": "调整后基本工资",
+                  "readable": true,
+                  "editable": false
+                }
+              ],
+              "approvalType": 0,
+              "flowNodeNoAuditorType": 0,
+              "flowNodeSelfAuditorType": 0,
+              "multiInstanceApprovalType": 0
+            },
+            "priorityLevel": 2,
+            "conditionGroups": []
+          }
+        ]
+      },
+      "conditionNodes": [
+        {
+          "name": "条件1",
+          "type": 3,
+          "childNode": {
+            "name": "审核人",
+            "type": 1,
+            "assignees": [
+              {
+                "rid": "616505717985120256",
+                "assignees": [
+                  "staffId-caiwubuzhang"
+                ],
+                "assigneeType": 4
+              }
+            ],
+            "childNode": {
+              "name": "路由",
+              "type": 4,
+              "childNode": null,
+              "conditionNodes": [
+                {
+                  "name": "条件1",
+                  "type": 3,
+                  "childNode": {
+                    "name": "审核人",
+                    "type": 1,
+                    "assignees": [
+                      {
+                        "rid": "618627046775459840",
+                        "layerType": 0,
+                        "assigneeType": 0
+                      }
+                    ],
+                    "childNode": null,
+                    "formAuths": [
+                      {
+                        "name": "STAFF_619452713050050560",
+                        "type": 13,
+                        "label": "姓名",
+                        "readable": true,
+                        "editable": false
+                      },
+                      {
+                        "name": "DEPT_619452724290785280",
+                        "type": 12,
+                        "label": "所属部门",
+                        "readable": true,
+                        "editable": false
+                      },
+                      {
+                        "name": "INPUT_616504198044848128",
+                        "type": 0,
+                        "label": "岗位名称",
+                        "readable": true,
+                        "editable": false
+                      },
+                      {
+                        "name": "TEXT_616504235097329664",
+                        "type": 1,
+                        "label": "调薪原因",
+                        "readable": true,
+                        "editable": false
+                      },
+                      {
+                        "name": "MONEY_619453193822146560",
+                        "type": 4,
+                        "label": "原基本工资",
+                        "readable": true,
+                        "editable": false
+                      },
+                      {
+                        "name": "MONEY_619453202672128000",
+                        "type": 4,
+                        "label": "调整后基本工资",
+                        "readable": true,
+                        "editable": false
+                      }
+                    ],
+                    "approvalType": 2,
+                    "flowNodeNoAuditorType": 0,
+                    "flowNodeSelfAuditorType": 0,
+                    "multiInstanceApprovalType": 0
+                  },
+                  "priorityLevel": 1,
+                  "conditionGroups": [
+                    {
+                      "id": "619453526912798720",
+                      "conditions": [
+                        {
+                          "id": "619453526916993024",
+                          "val": 50000,
+                          "varName": "MONEY_619453202672128000",
+                          "operator": 4,
+                          "operators": [
+                            0,
+                            1,
+                            2,
+                            3,
+                            4,
+                            5
+                          ]
+                        }
+                      ]
+                    }
+                  ],
+                  "conditionExpression": "${(MONEY_619453202672128000>50000)}"
+                },
+                {
+                  "name": "条件2",
+                  "type": 3,
+                  "childNode": null,
+                  "priorityLevel": 2,
+                  "conditionGroups": []
+                }
+              ]
+            },
+            "formAuths": [
+              {
+                "name": "STAFF_619452713050050560",
+                "type": 13,
+                "label": "姓名",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "DEPT_619452724290785280",
+                "type": 12,
+                "label": "所属部门",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "INPUT_616504198044848128",
+                "type": 0,
+                "label": "岗位名称",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "TEXT_616504235097329664",
+                "type": 1,
+                "label": "调薪原因",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "MONEY_619453193822146560",
+                "type": 4,
+                "label": "原基本工资",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "MONEY_619453202672128000",
+                "type": 4,
+                "label": "调整后基本工资",
+                "readable": true,
+                "editable": false
+              }
+            ],
+            "approvalType": 0,
+            "flowNodeNoAuditorType": 0,
+            "flowNodeSelfAuditorType": 1,
+            "multiInstanceApprovalType": 0
+          },
+          "priorityLevel": 1,
+          "conditionGroups": [
+            {
+              "id": "616504643421212672",
+              "conditions": [
+                {
+                  "id": "616504643421212673",
+                  "val": [
+                    "depId-caiwu"
+                  ],
+                  "varName": "DEPT_619452724290785280",
+                  "operator": 20,
+                  "operators": [
+                    20,
+                    21
+                  ]
+                }
+              ]
+            }
+          ],
+          "conditionExpression": "${(fx.has0(DEPT_619452724290785280,\"depId-caiwu\"))}"
+        },
+        {
+          "name": "条件2",
+          "type": 3,
+          "childNode": {
+            "name": "审核人",
+            "type": 1,
+            "assignees": [
+              {
+                "rid": "616506023829573632",
+                "layer": 0,
+                "layerType": 0,
+                "assigneeType": 2
+              }
+            ],
+            "childNode": {
+              "name": "审核人",
+              "type": 1,
+              "assignees": [
+                {
+                  "rid": "616505970100539392",
+                  "assignees": [
+                    "staffId-jishubuzhang"
+                  ],
+                  "assigneeType": 4
+                }
+              ],
+              "childNode": null,
+              "formAuths": [
+                {
+                  "name": "STAFF_619452713050050560",
+                  "type": 13,
+                  "label": "姓名",
+                  "readable": true,
+                  "editable": false
+                },
+                {
+                  "name": "DEPT_619452724290785280",
+                  "type": 12,
+                  "label": "所属部门",
+                  "readable": true,
+                  "editable": false
+                },
+                {
+                  "name": "INPUT_616504198044848128",
+                  "type": 0,
+                  "label": "岗位名称",
+                  "readable": true,
+                  "editable": false
+                },
+                {
+                  "name": "TEXT_616504235097329664",
+                  "type": 1,
+                  "label": "调薪原因",
+                  "readable": true,
+                  "editable": false
+                },
+                {
+                  "name": "MONEY_619453193822146560",
+                  "type": 4,
+                  "label": "原基本工资",
+                  "readable": true,
+                  "editable": false
+                },
+                {
+                  "name": "MONEY_619453202672128000",
+                  "type": 4,
+                  "label": "调整后基本工资",
+                  "readable": true,
+                  "editable": false
+                }
+              ],
+              "approvalType": 0,
+              "flowNodeNoAuditorType": 0,
+              "flowNodeSelfAuditorType": 1,
+              "multiInstanceApprovalType": 0
+            },
+            "formAuths": [
+              {
+                "name": "STAFF_619452713050050560",
+                "type": 13,
+                "label": "姓名",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "DEPT_619452724290785280",
+                "type": 12,
+                "label": "所属部门",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "INPUT_616504198044848128",
+                "type": 0,
+                "label": "岗位名称",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "TEXT_616504235097329664",
+                "type": 1,
+                "label": "调薪原因",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "MONEY_619453193822146560",
+                "type": 4,
+                "label": "原基本工资",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "MONEY_619453202672128000",
+                "type": 4,
+                "label": "调整后基本工资",
+                "readable": true,
+                "editable": false
+              }
+            ],
+            "approvalType": 0,
+            "flowNodeNoAuditorType": 0,
+            "flowNodeSelfAuditorType": 1,
+            "multiInstanceApprovalType": 1
+          },
+          "priorityLevel": 2,
+          "conditionGroups": [
+            {
+              "id": "616504758127038464",
+              "conditions": [
+                {
+                  "id": "616504758127038465",
+                  "val": [
+                    "depId-jishu"
+                  ],
+                  "varName": "DEPT_619452724290785280",
+                  "operator": 20,
+                  "operators": [
+                    20,
+                    21
+                  ]
+                }
+              ]
+            }
+          ],
+          "conditionExpression": "${(fx.has0(DEPT_619452724290785280,\"depId-jishu\"))}"
+        },
+        {
+          "name": "条件3",
+          "type": 3,
+          "childNode": {
+            "name": "审核人",
+            "type": 1,
+            "assignees": [
+              {
+                "rid": "616506213076570112",
+                "assignees": [
+                  "staffId-caiwubuzhang",
+                  "staffId-jishubuzhang"
+                ],
+                "assigneeType": 4
+              }
+            ],
+            "childNode": null,
+            "formAuths": [
+              {
+                "name": "STAFF_619452713050050560",
+                "type": 13,
+                "label": "姓名",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "DEPT_619452724290785280",
+                "type": 12,
+                "label": "所属部门",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "INPUT_616504198044848128",
+                "type": 0,
+                "label": "岗位名称",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "TEXT_616504235097329664",
+                "type": 1,
+                "label": "调薪原因",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "MONEY_619453193822146560",
+                "type": 4,
+                "label": "原基本工资",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "MONEY_619453202672128000",
+                "type": 4,
+                "label": "调整后基本工资",
+                "readable": true,
+                "editable": false
+              }
+            ],
+            "approvalType": 0,
+            "flowNodeNoAuditorType": 0,
+            "flowNodeSelfAuditorType": 1,
+            "multiInstanceApprovalType": 0
+          },
+          "conditionList": [],
+          "priorityLevel": 3,
+          "conditionGroups": [
+            {
+              "id": "616505628319289344",
+              "conditions": [
+                {
+                  "id": "616505628323483648",
+                  "val": [
+                    "depId-renshi"
+                  ],
+                  "varName": "DEPT_619452724290785280",
+                  "operator": 20,
+                  "operators": [
+                    20,
+                    21
+                  ]
+                }
+              ]
+            }
+          ],
+          "conditionExpression": "${(fx.has0(DEPT_619452724290785280,\"depId-renshi\"))}"
+        },
+        {
+          "name": "条件4",
+          "type": 3,
+          "childNode": {
+            "name": "审核人",
+            "type": 1,
+            "assignees": [
+              {
+                "rid": "616506316512301056",
+                "assigneeType": 7
+              }
+            ],
+            "childNode": null,
+            "formAuths": [
+              {
+                "name": "STAFF_619452713050050560",
+                "type": 13,
+                "label": "姓名",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "DEPT_619452724290785280",
+                "type": 12,
+                "label": "所属部门",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "INPUT_616504198044848128",
+                "type": 0,
+                "label": "岗位名称",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "TEXT_616504235097329664",
+                "type": 1,
+                "label": "调薪原因",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "MONEY_619453193822146560",
+                "type": 4,
+                "label": "原基本工资",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "MONEY_619453202672128000",
+                "type": 4,
+                "label": "调整后基本工资",
+                "readable": true,
+                "editable": false
+              }
+            ],
+            "approvalType": 0,
+            "flowNodeNoAuditorType": 0,
+            "flowNodeSelfAuditorType": 3,
+            "multiInstanceApprovalType": 1
+          },
+          "conditionList": [],
+          "priorityLevel": 4
+        }
+      ]
+    }
+  },
+  "flowWidgets": [
+    {
+      "name": "STAFF_619452713050050560",
+      "type": 13,
+      "label": "姓名",
+      "summary": true,
+      "required": true,
+      "placeholder": "请选择"
+    },
+    {
+      "name": "DEPT_619452724290785280",
+      "type": 12,
+      "label": "所属部门",
+      "summary": true,
+      "required": true,
+      "placeholder": "请选择"
+    },
+    {
+      "name": "INPUT_616504198044848128",
+      "type": 0,
+      "label": "岗位名称",
+      "required": true,
+      "placeholder": "请输入"
+    },
+    {
+      "name": "TEXT_616504235097329664",
+      "type": 1,
+      "label": "调薪原因",
+      "required": false,
+      "placeholder": "请输入"
+    },
+    {
+      "name": "MONEY_619453193822146560",
+      "type": 4,
+      "label": "原基本工资",
+      "required": true,
+      "placeholder": "请输入金额"
+    },
+    {
+      "name": "MONEY_619453202672128000",
+      "type": 4,
+      "comma": true,
+      "label": "调整后基本工资",
+      "locale": true,
+      "summary": true,
+      "required": true,
+      "placeholder": "请输入金额"
+    }
+  ],
+  "workFlowDef": {
+    "id": "1729120512984080385",
+    "icon": "cash",
+    "name": "调薪",
+    "groupId": "1691356141171798018",
+    "cancelable": 1,
+    "flowAdmins": [
+      {
+        "id": "staffId-renshibuzhang",
+        "name": "红发",
+        "type": 2,
+        "adminId": "staffId-renshibuzhang"
+      },
+      {
+        "id": "staffId-jishubuzhang",
+        "name": "路飞",
+        "type": 2,
+        "adminId": "staffId-jishubuzhang"
+      }
+    ],
+    "flowAdminIds": [
+      "staffId-renshibuzhang",
+      "staffId-jishubuzhang"
+    ]
+  },
+  "flowPermission": {
+    "type": 0
+  },
+  "flowDefJson": "{\"nodeConfig\":{\"name\":\"发起人\",\"type\":0,\"childNode\":{\"name\":\"路由\",\"type\":4,\"childNode\":{\"name\":\"路由\",\"type\":4,\"childNode\":null,\"conditionNodes\":[{\"name\":\"条件1\",\"type\":3,\"childNode\":{\"name\":\"审核人\",\"type\":1,\"assignees\":[{\"rid\":\"616505867981819904\",\"assignees\":[\"staffId-wangwu\"],\"assigneeType\":4}],\"childNode\":null,\"formAuths\":[{\"name\":\"STAFF_619452713050050560\",\"type\":13,\"label\":\"姓名\",\"readable\":true,\"editable\":false},{\"name\":\"DEPT_619452724290785280\",\"type\":12,\"label\":\"所属部门\",\"readable\":true,\"editable\":false},{\"name\":\"INPUT_616504198044848128\",\"type\":0,\"label\":\"岗位名称\",\"readable\":true,\"editable\":false},{\"name\":\"TEXT_616504235097329664\",\"type\":1,\"label\":\"调薪原因\",\"readable\":true,\"editable\":false},{\"name\":\"MONEY_619453193822146560\",\"type\":4,\"label\":\"原基本工资\",\"readable\":true,\"editable\":false},{\"name\":\"MONEY_619453202672128000\",\"type\":4,\"label\":\"调整后基本工资\",\"readable\":true,\"editable\":false}],\"approvalType\":0,\"flowNodeNoAuditorType\":0,\"flowNodeSelfAuditorType\":1,\"multiInstanceApprovalType\":0},\"priorityLevel\":1,\"conditionGroups\":[{\"id\":\"619453602963918848\",\"conditions\":[{\"id\":\"619453602963918849\",\"val\":30000,\"varName\":\"MONEY_619453202672128000\",\"operator\":3,\"operators\":[0,1,2,3,4,5]}]}],\"conditionExpression\":\"${(MONEY_619453202672128000<=30000)}\"},{\"name\":\"条件2\",\"type\":3,\"childNode\":{\"name\":\"审核人\",\"type\":1,\"assignees\":[{\"rid\":\"618280300396417024\",\"roles\":[\"ADMIN\"],\"assigneeType\":3}],\"childNode\":null,\"formAuths\":[{\"name\":\"STAFF_619452713050050560\",\"type\":13,\"label\":\"姓名\",\"readable\":true,\"editable\":false},{\"name\":\"DEPT_619452724290785280\",\"type\":12,\"label\":\"所属部门\",\"readable\":true,\"editable\":false},{\"name\":\"INPUT_616504198044848128\",\"type\":0,\"label\":\"岗位名称\",\"readable\":true,\"editable\":false},{\"name\":\"TEXT_616504235097329664\",\"type\":1,\"label\":\"调薪原因\",\"readable\":true,\"editable\":false},{\"name\":\"MONEY_619453193822146560\",\"type\":4,\"label\":\"原基本工资\",\"readable\":true,\"editable\":false},{\"name\":\"MONEY_619453202672128000\",\"type\":4,\"label\":\"调整后基本工资\",\"readable\":true,\"editable\":false}],\"approvalType\":0,\"flowNodeNoAuditorType\":0,\"flowNodeSelfAuditorType\":0,\"multiInstanceApprovalType\":0},\"priorityLevel\":2,\"conditionGroups\":[]}]},\"conditionNodes\":[{\"name\":\"条件1\",\"type\":3,\"childNode\":{\"name\":\"审核人\",\"type\":1,\"assignees\":[{\"rid\":\"616505717985120256\",\"assignees\":[\"staffId-caiwubuzhang\"],\"assigneeType\":4}],\"childNode\":{\"name\":\"路由\",\"type\":4,\"childNode\":null,\"conditionNodes\":[{\"name\":\"条件1\",\"type\":3,\"childNode\":{\"name\":\"审核人\",\"type\":1,\"assignees\":[{\"rid\":\"618627046775459840\",\"layerType\":0,\"assigneeType\":0}],\"childNode\":null,\"formAuths\":[{\"name\":\"STAFF_619452713050050560\",\"type\":13,\"label\":\"姓名\",\"readable\":true,\"editable\":false},{\"name\":\"DEPT_619452724290785280\",\"type\":12,\"label\":\"所属部门\",\"readable\":true,\"editable\":false},{\"name\":\"INPUT_616504198044848128\",\"type\":0,\"label\":\"岗位名称\",\"readable\":true,\"editable\":false},{\"name\":\"TEXT_616504235097329664\",\"type\":1,\"label\":\"调薪原因\",\"readable\":true,\"editable\":false},{\"name\":\"MONEY_619453193822146560\",\"type\":4,\"label\":\"原基本工资\",\"readable\":true,\"editable\":false},{\"name\":\"MONEY_619453202672128000\",\"type\":4,\"label\":\"调整后基本工资\",\"readable\":true,\"editable\":false}],\"approvalType\":2,\"flowNodeNoAuditorType\":0,\"flowNodeSelfAuditorType\":0,\"multiInstanceApprovalType\":0},\"priorityLevel\":1,\"conditionGroups\":[{\"id\":\"619453526912798720\",\"conditions\":[{\"id\":\"619453526916993024\",\"val\":50000,\"varName\":\"MONEY_619453202672128000\",\"operator\":4,\"operators\":[0,1,2,3,4,5]}]}],\"conditionExpression\":\"${(MONEY_619453202672128000>50000)}\"},{\"name\":\"条件2\",\"type\":3,\"childNode\":null,\"priorityLevel\":2,\"conditionGroups\":[]}]},\"formAuths\":[{\"name\":\"STAFF_619452713050050560\",\"type\":13,\"label\":\"姓名\",\"readable\":true,\"editable\":false},{\"name\":\"DEPT_619452724290785280\",\"type\":12,\"label\":\"所属部门\",\"readable\":true,\"editable\":false},{\"name\":\"INPUT_616504198044848128\",\"type\":0,\"label\":\"岗位名称\",\"readable\":true,\"editable\":false},{\"name\":\"TEXT_616504235097329664\",\"type\":1,\"label\":\"调薪原因\",\"readable\":true,\"editable\":false},{\"name\":\"MONEY_619453193822146560\",\"type\":4,\"label\":\"原基本工资\",\"readable\":true,\"editable\":false},{\"name\":\"MONEY_619453202672128000\",\"type\":4,\"label\":\"调整后基本工资\",\"readable\":true,\"editable\":false}],\"approvalType\":0,\"flowNodeNoAuditorType\":0,\"flowNodeSelfAuditorType\":1,\"multiInstanceApprovalType\":0},\"priorityLevel\":1,\"conditionGroups\":[{\"id\":\"616504643421212672\",\"conditions\":[{\"id\":\"616504643421212673\",\"val\":[\"depId-caiwu\"],\"varName\":\"DEPT_619452724290785280\",\"operator\":20,\"operators\":[20,21]}]}],\"conditionExpression\":\"${(fx.has0(DEPT_619452724290785280,\\\"depId-caiwu\\\"))}\"},{\"name\":\"条件2\",\"type\":3,\"childNode\":{\"name\":\"审核人\",\"type\":1,\"assignees\":[{\"rid\":\"616506023829573632\",\"layer\":0,\"layerType\":0,\"assigneeType\":2}],\"childNode\":{\"name\":\"审核人\",\"type\":1,\"assignees\":[{\"rid\":\"616505970100539392\",\"assignees\":[\"staffId-jishubuzhang\"],\"assigneeType\":4}],\"childNode\":null,\"formAuths\":[{\"name\":\"STAFF_619452713050050560\",\"type\":13,\"label\":\"姓名\",\"readable\":true,\"editable\":false},{\"name\":\"DEPT_619452724290785280\",\"type\":12,\"label\":\"所属部门\",\"readable\":true,\"editable\":false},{\"name\":\"INPUT_616504198044848128\",\"type\":0,\"label\":\"岗位名称\",\"readable\":true,\"editable\":false},{\"name\":\"TEXT_616504235097329664\",\"type\":1,\"label\":\"调薪原因\",\"readable\":true,\"editable\":false},{\"name\":\"MONEY_619453193822146560\",\"type\":4,\"label\":\"原基本工资\",\"readable\":true,\"editable\":false},{\"name\":\"MONEY_619453202672128000\",\"type\":4,\"label\":\"调整后基本工资\",\"readable\":true,\"editable\":false}],\"approvalType\":0,\"flowNodeNoAuditorType\":0,\"flowNodeSelfAuditorType\":1,\"multiInstanceApprovalType\":0},\"formAuths\":[{\"name\":\"STAFF_619452713050050560\",\"type\":13,\"label\":\"姓名\",\"readable\":true,\"editable\":false},{\"name\":\"DEPT_619452724290785280\",\"type\":12,\"label\":\"所属部门\",\"readable\":true,\"editable\":false},{\"name\":\"INPUT_616504198044848128\",\"type\":0,\"label\":\"岗位名称\",\"readable\":true,\"editable\":false},{\"name\":\"TEXT_616504235097329664\",\"type\":1,\"label\":\"调薪原因\",\"readable\":true,\"editable\":false},{\"name\":\"MONEY_619453193822146560\",\"type\":4,\"label\":\"原基本工资\",\"readable\":true,\"editable\":false},{\"name\":\"MONEY_619453202672128000\",\"type\":4,\"label\":\"调整后基本工资\",\"readable\":true,\"editable\":false}],\"approvalType\":0,\"flowNodeNoAuditorType\":0,\"flowNodeSelfAuditorType\":1,\"multiInstanceApprovalType\":1},\"priorityLevel\":2,\"conditionGroups\":[{\"id\":\"616504758127038464\",\"conditions\":[{\"id\":\"616504758127038465\",\"val\":[\"depId-jishu\"],\"varName\":\"DEPT_619452724290785280\",\"operator\":20,\"operators\":[20,21]}]}],\"conditionExpression\":\"${(fx.has0(DEPT_619452724290785280,\\\"depId-jishu\\\"))}\"},{\"name\":\"条件3\",\"type\":3,\"childNode\":{\"name\":\"审核人\",\"type\":1,\"assignees\":[{\"rid\":\"616506213076570112\",\"assignees\":[\"staffId-caiwubuzhang\",\"staffId-jishubuzhang\"],\"assigneeType\":4}],\"childNode\":null,\"formAuths\":[{\"name\":\"STAFF_619452713050050560\",\"type\":13,\"label\":\"姓名\",\"readable\":true,\"editable\":false},{\"name\":\"DEPT_619452724290785280\",\"type\":12,\"label\":\"所属部门\",\"readable\":true,\"editable\":false},{\"name\":\"INPUT_616504198044848128\",\"type\":0,\"label\":\"岗位名称\",\"readable\":true,\"editable\":false},{\"name\":\"TEXT_616504235097329664\",\"type\":1,\"label\":\"调薪原因\",\"readable\":true,\"editable\":false},{\"name\":\"MONEY_619453193822146560\",\"type\":4,\"label\":\"原基本工资\",\"readable\":true,\"editable\":false},{\"name\":\"MONEY_619453202672128000\",\"type\":4,\"label\":\"调整后基本工资\",\"readable\":true,\"editable\":false}],\"approvalType\":0,\"flowNodeNoAuditorType\":0,\"flowNodeSelfAuditorType\":1,\"multiInstanceApprovalType\":0},\"conditionList\":[],\"priorityLevel\":3,\"conditionGroups\":[{\"id\":\"616505628319289344\",\"conditions\":[{\"id\":\"616505628323483648\",\"val\":[\"depId-renshi\"],\"varName\":\"DEPT_619452724290785280\",\"operator\":20,\"operators\":[20,21]}]}],\"conditionExpression\":\"${(fx.has0(DEPT_619452724290785280,\\\"depId-renshi\\\"))}\"},{\"name\":\"条件4\",\"type\":3,\"childNode\":{\"name\":\"审核人\",\"type\":1,\"assignees\":[{\"rid\":\"616506316512301056\",\"assigneeType\":7}],\"childNode\":null,\"formAuths\":[{\"name\":\"STAFF_619452713050050560\",\"type\":13,\"label\":\"姓名\",\"readable\":true,\"editable\":false},{\"name\":\"DEPT_619452724290785280\",\"type\":12,\"label\":\"所属部门\",\"readable\":true,\"editable\":false},{\"name\":\"INPUT_616504198044848128\",\"type\":0,\"label\":\"岗位名称\",\"readable\":true,\"editable\":false},{\"name\":\"TEXT_616504235097329664\",\"type\":1,\"label\":\"调薪原因\",\"readable\":true,\"editable\":false},{\"name\":\"MONEY_619453193822146560\",\"type\":4,\"label\":\"原基本工资\",\"readable\":true,\"editable\":false},{\"name\":\"MONEY_619453202672128000\",\"type\":4,\"label\":\"调整后基本工资\",\"readable\":true,\"editable\":false}],\"approvalType\":0,\"flowNodeNoAuditorType\":0,\"flowNodeSelfAuditorType\":3,\"multiInstanceApprovalType\":1},\"conditionList\":[],\"priorityLevel\":4}]}},\"flowWidgets\":[{\"name\":\"STAFF_619452713050050560\",\"type\":13,\"label\":\"姓名\",\"summary\":true,\"required\":true,\"placeholder\":\"请选择\"},{\"name\":\"DEPT_619452724290785280\",\"type\":12,\"label\":\"所属部门\",\"summary\":true,\"required\":true,\"placeholder\":\"请选择\"},{\"name\":\"INPUT_616504198044848128\",\"type\":0,\"label\":\"岗位名称\",\"required\":true,\"placeholder\":\"请输入\"},{\"name\":\"TEXT_616504235097329664\",\"type\":1,\"label\":\"调薪原因\",\"required\":false,\"placeholder\":\"请输入\"},{\"name\":\"MONEY_619453193822146560\",\"type\":4,\"label\":\"原基本工资\",\"required\":true,\"placeholder\":\"请输入金额\"},{\"name\":\"MONEY_619453202672128000\",\"type\":4,\"comma\":true,\"label\":\"调整后基本工资\",\"locale\":true,\"summary\":true,\"required\":true,\"placeholder\":\"请输入金额\"}],\"workFlowDef\":{\"id\":\"1729120512984080385\",\"icon\":\"cash\",\"name\":\"调薪\",\"groupId\":\"1691356141171798018\",\"cancelable\":1,\"flowAdmins\":[{\"id\":\"staffId-renshibuzhang\",\"name\":\"红发\",\"type\":2,\"adminId\":\"staffId-renshibuzhang\"},{\"id\":\"staffId-jishubuzhang\",\"name\":\"路飞\",\"type\":2,\"adminId\":\"staffId-jishubuzhang\"}],\"flowAdminIds\":[\"staffId-renshibuzhang\",\"staffId-jishubuzhang\"]},\"flowPermission\":{\"type\":0}}"
+}

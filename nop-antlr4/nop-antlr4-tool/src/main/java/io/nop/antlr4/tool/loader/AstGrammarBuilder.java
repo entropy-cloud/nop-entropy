@@ -532,7 +532,7 @@ public class AstGrammarBuilder {
     }
 
     private Map<String, String> parseAstAssign(String astAssign, GrammarAST ast) {
-        if (StringHelper.isEmpty(astAssign))
+        if (astAssign == null || astAssign.isEmpty())
             return Collections.emptyMap();
 
         if (astAssign.startsWith("'") || astAssign.startsWith("\""))

@@ -42,6 +42,7 @@ import io.nop.xlang.ast.Identifier;
 import io.nop.xlang.ast.IdentifierKind;
 import io.nop.xlang.ast.IfStatement;
 import io.nop.xlang.ast.Literal;
+import io.nop.xlang.ast.LogicalExpression;
 import io.nop.xlang.ast.SwitchCase;
 import io.nop.xlang.ast.SwitchStatement;
 import io.nop.xlang.ast.XLangASTKind;
@@ -284,10 +285,45 @@ public class GlobalFunctions {
         }
     }
 
+    @Description("类似于Excel的OR函数")
+    @Macro
+    public static Expression OR(@Name("scope") IEvalScope scope, @Name("expr") CallExpression expr) {
+        for (Expression arg : expr.getArguments()) {
+            arg.setASTParent(null);
+        }
+        return newLogicalExpr(expr.getArguments(), XLangOperator.OR);
+    }
+
+    @Description("类似于Excel的AND函数")
+    @Macro
+    public static Expression AND(@Name("scope") IEvalScope scope, @Name("expr") CallExpression expr) {
+        for (Expression arg : expr.getArguments()) {
+            arg.setASTParent(null);
+        }
+        return newLogicalExpr(expr.getArguments(), XLangOperator.AND);
+    }
+
+    private static Expression newLogicalExpr(List<Expression> exprs, XLangOperator op) {
+        if (exprs.isEmpty())
+            return Literal.booleanValue(null, false);
+
+        if (exprs.size() == 1)
+            return exprs.get(0);
+
+        Expression expr = exprs.get(0);
+        LogicalExpression stm = new LogicalExpression();
+        stm.setLocation(expr.getLocation());
+        stm.setOperator(op);
+        stm.setLeft(expr);
+        stm.setRight(newLogicalExpr(exprs.subList(1, exprs.size() - 1), op));
+        return stm;
+    }
+
+
     @Description("类似于Excel的IF函数")
     @Macro
     public static Expression IF(@Name("scope") IEvalScope scope, @Name("expr") CallExpression expr) {
-        if (expr.getArguments().size() != 3)
+        if (expr.getArguments().size() != 3 && expr.getArguments().size() != 2)
             throw new NopEvalException(ERR_EXEC_INVALID_ARG_COUNT).param(ARG_EXPR, expr).param(ARG_ARG_COUNT, 3);
 
         for (Expression arg : expr.getArguments()) {
@@ -298,7 +334,9 @@ public class GlobalFunctions {
         stm.setLocation(expr.getLocation());
         stm.setTest(expr.getArgument(0));
         stm.setConsequent(expr.getArgument(1));
-        stm.setAlternate(expr.getArgument(2));
+        if (expr.getArguments().size() == 3) {
+            stm.setAlternate(expr.getArgument(2));
+        }
         return stm;
     }
 

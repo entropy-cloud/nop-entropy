@@ -1,5 +1,6 @@
 <c:unit xpl:outputMode="text">package ${basePackageName}.core;
 
+@SuppressWarnings({"PMD","java:S116"})
 public interface _${moduleClassPrefix}CoreConstants {
     <c:for var="dict" items="${ormModel.dicts}">
         <c:script>

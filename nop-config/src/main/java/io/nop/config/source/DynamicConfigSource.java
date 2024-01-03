@@ -15,7 +15,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class DynamicConfigSource implements IConfigSource {
     private final String name;
-    private volatile Map<String, ValueWithLocation> configVars;
+    private volatile Map<String, ValueWithLocation> configVars; //NOSONAR
     private Runnable onClose;
 
     private final List<Runnable> onChanges = new CopyOnWriteArrayList<>();
@@ -35,7 +35,9 @@ public class DynamicConfigSource implements IConfigSource {
     }
 
     public void setConfigVars(Map<String, ValueWithLocation> configVars) {
-        this.configVars = configVars;
+        synchronized (this) {
+            this.configVars = configVars;
+        }
         triggerOnChange();
     }
 

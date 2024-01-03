@@ -1,0 +1,23 @@
+<page xmlns:x="/nop/schema/xdsl.xdef">
+
+    <!--LOC:[2:6:0:0]file:/C:/can/nop/nop-entropy/nop-xlang/target/test-classes/io/nop/xlang/delta/merge/PageSuper.xpage-->
+    <title>page6Current</title>
+
+    <body>
+        <crud>
+            <api>/amis/api/mock2/sample</api>
+            <!--LOC:[6:14:0:0]file:/C:/can/nop/nop-entropy/nop-xlang/target/test-classes/io/nop/xlang/delta/merge/PageSuper.xpage
+             @j:list=[7:34:0:0]file:/C:/can/nop/nop-entropy/nop-xlang/target/test-classes/io/nop/xlang/delta/merge/PageExt.xpage
+            -->
+            <bulkActions j:list="true">
+                <button id="batchDelete1" label="批量删除"/>
+                <!--LOC:[8:18:0:0]file:/C:/can/nop/nop-entropy/nop-xlang/target/test-classes/io/nop/xlang/delta/merge/PageSuper.xpage
+                 @id=[8:29:0:0]file:/C:/can/nop/nop-entropy/nop-xlang/target/test-classes/io/nop/xlang/delta/merge/PageExt.xpage
+                -->
+                <button id="batchUpdate1" label="批量修改-Ext"/>
+                <!--LOC:[9:18:0:0]file:/C:/can/nop/nop-entropy/nop-xlang/target/test-classes/io/nop/xlang/delta/merge/PageExt.xpage-->
+                <button id="new" label="新建"/>
+            </bulkActions>
+        </crud>
+    </body>
+</page>

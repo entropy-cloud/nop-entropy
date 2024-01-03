@@ -237,7 +237,23 @@ public class CellCoordinateHelper {
             for (int j = range.getFirstColIndex(); j <= lastCol; j++) {
                 String cellName = CellPosition.toABString(i, j);
                 List<ExpandedCell> cells = resolveCell(cell, cellName);
-                ret.addAll(cells);
+                if (cells != null)
+                    ret.addAll(cells);
+            }
+        }
+        return ret;
+    }
+
+    public static List<ExpandedCell> resolveAbsoluteCellRange(ExpandedCell cell, CellRange range) {
+        List<ExpandedCell> ret = new ArrayList<>();
+        int lastRow = range.getLastRowIndex();
+        int lastCol = range.getLastColIndex();
+        for (int i = range.getFirstRowIndex(); i <= lastRow; i++) {
+            for (int j = range.getFirstColIndex(); j <= lastCol; j++) {
+                String cellName = CellPosition.toABString(i, j);
+                List<ExpandedCell> cells = cell.getTable().getNamedCells(cellName);
+                if (cells != null)
+                    ret.addAll(cells);
             }
         }
         return ret;

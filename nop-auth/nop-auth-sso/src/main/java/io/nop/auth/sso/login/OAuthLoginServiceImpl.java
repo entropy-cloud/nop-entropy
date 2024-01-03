@@ -7,9 +7,9 @@
  */
 package io.nop.auth.sso.login;
 
-import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Header;
 import io.jsonwebtoken.JwsHeader;
-import io.jsonwebtoken.SigningKeyResolver;
+import io.jsonwebtoken.Locator;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
@@ -30,11 +30,11 @@ import io.nop.commons.util.StringHelper;
 import io.nop.http.api.HttpApiConstants;
 import io.nop.http.api.client.HttpRequest;
 import io.nop.http.api.client.IHttpClient;
+import jakarta.annotation.PostConstruct;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.inject.Inject;
 import java.security.Key;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -211,15 +211,10 @@ public class OAuthLoginServiceImpl extends AbstractLoginService {
 
     @Override
     public AuthToken parseAuthToken(String accessToken) {
-        return JwtHelper.parseToken(accessToken, new SigningKeyResolver() {
+        return JwtHelper.parseToken(accessToken, new Locator<Key>() {
             @Override
-            public Key resolveSigningKey(JwsHeader header, Claims claims) {
-                return keyLocator.getPublicKey(header.getKeyId());
-            }
-
-            @Override
-            public Key resolveSigningKey(JwsHeader header, String plaintext) {
-                return null;
+            public Key locate(Header header) {
+                return keyLocator.getPublicKey(((JwsHeader) header).getKeyId());
             }
         });
     }

@@ -9,6 +9,7 @@ package io.nop.wf.core.impl;
 
 import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowCoordinator;
+import io.nop.wf.core.IWorkflowStep;
 import io.nop.wf.core.engine.IWorkflowEngine;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 import io.nop.wf.core.store.IWorkflowStore;
@@ -23,6 +24,11 @@ public interface IWorkflowImplementor extends IWorkflow {
     IWorkflowEngine getEngine();
 
     IWorkflowCoordinator getCoordinator();
+
+    /**
+     * 根据步骤定义id获取到最近一次步骤执行对应的实例对象
+     */
+    IWorkflowStepImplementor getLatestStepByName(String stepName);
 
     IWorkflowStepImplementor getStepById(String stepId);
 

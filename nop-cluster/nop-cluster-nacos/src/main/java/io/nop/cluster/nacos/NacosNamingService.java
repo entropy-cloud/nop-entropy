@@ -44,8 +44,8 @@ public class NacosNamingService implements INamingService {
 
     private Properties properties = new Properties();
     private String groupName;
-    private volatile NamingService namingService;
-    private volatile NamingMaintainService namingMaintainService;
+    private volatile NamingService namingService; // NOSONAR
+    private volatile NamingMaintainService namingMaintainService; // NOSONAR
 
     private Map<String, ServiceInfo> instanceCache = new ConcurrentHashMap<>();
 

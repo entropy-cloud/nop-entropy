@@ -24,10 +24,10 @@ import io.nop.ioc.api.IBeanScope;
 import io.nop.ioc.loader.AliasName;
 import io.nop.ioc.loader.BeanDefinitionBuilder;
 import io.nop.xlang.api.XLang;
+import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.Nonnull;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -321,7 +321,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
             bean = beanDef.getBeanInstance(bean, onlyProducer);
             isNew = true;
         } else {
-            synchronized (beanDef) {
+            synchronized (beanDef) { //NOSONAR
                 bean = beanScope.get(beanDef.getId());
                 if (bean == null) {
                     LOG.info("nop.new-bean:{}", beanDef);
@@ -397,7 +397,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
                 if (bean.isSingleton()) {
                     if (startMode == BeanContainerStartMode.ALL_LAZY) {
                         // 只创建具有delayMethod的bean
-                        if (bean.hasDelayMethod() && !bean.isLazyInit()) {
+                        if (bean.hasDelayMethod() && !bean.isLazyInit() || bean.isIocForceInit()) {
                             getBean0(bean, true, true);
                         }
                     } else if (startMode == BeanContainerStartMode.ALL_EAGER || !bean.isLazyInit()) {

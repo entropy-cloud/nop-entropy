@@ -35,6 +35,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.NoSuchElementException;
 
 
 public class Bytes {
@@ -111,6 +112,13 @@ public class Bytes {
      */
     final public static int len(byte[] b) {
         return b == null ? 0 : b.length;
+    }
+
+    public static byte[] concat(byte[] a, byte[] b) {
+        byte[] ret = new byte[a.length + b.length];
+        System.arraycopy(a, 0, ret, 0, a.length);
+        System.arraycopy(b, 0, ret, a.length, b.length);
+        return ret;
     }
 
     /**
@@ -309,7 +317,7 @@ public class Bytes {
                     continue;
                 }
                 // turn hex ASCII digit -> number
-                byte d = (byte) ((toBinaryFromHex((byte) hd1) << 4) + (toBinaryFromHex((byte) hd2)) & 0xff);
+                byte d = (byte) ((toBinaryFromHex((byte) hd1) << 4) + (toBinaryFromHex((byte) hd2) & 0xff));
 
                 b[size++] = d;
                 i += 3; // skip 3
@@ -1067,7 +1075,7 @@ public class Bytes {
      * @return First <code>length</code> bytes from <code>a</code>
      */
     public static byte[] head(final byte[] a, final int length) {
-        if (a.length < length) {
+        if (a.length <= length) {
             return null;
         }
         byte[] result = new byte[length];
@@ -1081,7 +1089,7 @@ public class Bytes {
      * @return Last <code>length</code> bytes from <code>a</code>
      */
     public static byte[] tail(final byte[] a, final int length) {
-        if (a.length < length) {
+        if (a.length <= length) {
             return null;
         }
         byte[] result = new byte[length];
@@ -1209,6 +1217,9 @@ public class Bytes {
 
             @Override
             public byte[] next() {
+                if (!hasNext())
+                    throw new NoSuchElementException();
+
                 i++;
                 if (i == 0)
                     return a;

@@ -10,9 +10,6 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--步骤ID-->
-                <col id="stepId" mandatory="true" sortable="true"/>
-
                 <!--工作流实例ID-->
                 <col id="wfId" mandatory="true" sortable="true"/>
 
@@ -21,6 +18,9 @@
 
                 <!--步骤名称-->
                 <col id="stepName" mandatory="true" sortable="true"/>
+
+                <!--步骤显示名称-->
+                <col id="displayName" mandatory="true" sortable="true"/>
 
                 <!--状态-->
                 <col id="status" mandatory="true" sortable="true"/>
@@ -34,6 +34,9 @@
                 <!--子流程版本-->
                 <col id="subWfVersion" sortable="true"/>
 
+                <!--子流程结果状态-->
+                <col id="subWfResultStatus" sortable="true"/>
+
                 <!--是否已读-->
                 <col id="isRead" sortable="true"/>
 
@@ -43,11 +46,14 @@
                 <!--参与者部门ID-->
                 <col id="actorDeptId" sortable="true"/>
 
-                <!--参与者姓名-->
+                <!--参与者名称-->
                 <col id="actorName" sortable="true"/>
 
                 <!--拥有者姓名-->
                 <col id="ownerName" sortable="true"/>
+
+                <!--拥有者部门ID-->
+                <col id="ownerDeptId" sortable="true"/>
 
                 <!--分配者ID-->
                 <col id="assignerId" sortable="true"/>
@@ -61,12 +67,6 @@
                 <!--取消人姓名-->
                 <col id="cancellerName" sortable="true"/>
 
-                <!--来源操作-->
-                <col id="fromAction" sortable="true"/>
-
-                <!--最后一次操作-->
-                <col id="lastAction" sortable="true"/>
-
                 <!--开始时间-->
                 <col id="startTime" sortable="true"/>
 
@@ -79,8 +79,17 @@
                 <!--读取时间-->
                 <col id="readTime" sortable="true"/>
 
-                <!--优先级-->
-                <col id="priority" mandatory="true" sortable="true"/>
+                <!--提醒时间-->
+                <col id="remindTime" sortable="true" x:abstract="true"/>
+
+                <!--提醒次数-->
+                <col id="remindCount" sortable="true" x:abstract="true"/>
+
+                <!--错误码-->
+                <col id="errCode" sortable="true"/>
+
+                <!--错误消息-->
+                <col id="errMsg" sortable="true"/>
 
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true" x:abstract="true"/>
@@ -104,39 +113,43 @@
     <forms>
         <form id="view" editMode="view" title="查看-工作流步骤实例" i18n-en:title="View Workflow Step Instance">
             <layout>
- stepId[步骤ID] wfId[工作流实例ID]
- stepType[步骤类型] stepName[步骤名称]
+ wfId[工作流实例ID] stepType[步骤类型]
+ stepName[步骤名称] displayName[步骤显示名称]
  status[状态] appState[应用状态]
  subWfName[子工作流名] subWfVersion[子流程版本]
- isRead[是否已读] actorType[参与者类型]
- actorDeptId[参与者部门ID] actorName[参与者姓名]
- ownerName[拥有者姓名] assignerId[分配者ID]
+ subWfResultStatus[子流程结果状态] isRead[是否已读]
+ actorType[参与者类型] actorDeptId[参与者部门ID]
+ actorName[参与者名称] ownerName[拥有者姓名]
+ ownerDeptId[拥有者部门ID] assignerId[分配者ID]
  assignerName[分配者姓名] callerName[调用者姓名]
- cancellerName[取消人姓名] fromAction[来源操作]
- lastAction[最后一次操作] startTime[开始时间]
+ cancellerName[取消人姓名] startTime[开始时间]
  finishTime[结束时间] dueTime[到期时间]
- readTime[读取时间] priority[优先级]
- createdBy[创建人] createTime[创建时间]
- updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
+ readTime[读取时间] remindTime[提醒时间]
+ remindCount[提醒次数] errCode[错误码]
+ errMsg[错误消息] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] 
+                remark[备注]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-工作流步骤实例" i18n-en:title="Add Workflow Step Instance" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-工作流步骤实例" i18n-en:title="Edit Workflow Step Instance">
             <layout>
- stepId[步骤ID] wfId[工作流实例ID]
- stepType[步骤类型] stepName[步骤名称]
+ wfId[工作流实例ID] stepType[步骤类型]
+ stepName[步骤名称] displayName[步骤显示名称]
  status[状态] appState[应用状态]
  subWfName[子工作流名] subWfVersion[子流程版本]
- isRead[是否已读] actorType[参与者类型]
- actorDeptId[参与者部门ID] actorName[参与者姓名]
- ownerName[拥有者姓名] assignerId[分配者ID]
+ subWfResultStatus[子流程结果状态] isRead[是否已读]
+ actorType[参与者类型] actorDeptId[参与者部门ID]
+ actorName[参与者名称] ownerName[拥有者姓名]
+ ownerDeptId[拥有者部门ID] assignerId[分配者ID]
  assignerName[分配者姓名] callerName[调用者姓名]
- cancellerName[取消人姓名] fromAction[来源操作]
- lastAction[最后一次操作] startTime[开始时间]
+ cancellerName[取消人姓名] startTime[开始时间]
  finishTime[结束时间] dueTime[到期时间]
- readTime[读取时间] priority[优先级]
- remark[备注] 
+ readTime[读取时间] remindTime[提醒时间]
+ remindCount[提醒次数] errCode[错误码]
+ errMsg[错误消息] 
+                remark[备注]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">

@@ -47,11 +47,6 @@ public class MockWorkflowStore extends AbstractWorkflowStore {
     }
 
     @Override
-    public void updateBizEntityState(String bizObjType, Object bizEntity, String bizEntityStateProp, String state) {
-        BeanTool.setComplexProperty(bizEntity, bizEntityStateProp, state);
-    }
-
-    @Override
     protected IWorkflowRecord getWfRecord(IWorkflowStepRecord stepRecord) {
         return workflowBeans.get(stepRecord.getWfId());
     }
@@ -141,8 +136,13 @@ public class MockWorkflowStore extends AbstractWorkflowStore {
     }
 
     @Override
-    public IWorkflowRecord getWfRecord(String wfName, String wfVersion, String wfId) {
+    public IWorkflowRecord getWfRecord(String wfName, Long wfVersion, String wfId) {
         return workflowBeans.get(wfId);
+    }
+
+    @Override
+    public IWorkflowRecord reloadWfRecord(IWorkflowRecord wfRecord) {
+        return wfRecord;
     }
 
     @Override

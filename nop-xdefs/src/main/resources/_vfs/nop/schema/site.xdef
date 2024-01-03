@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<site id="!string" label="string" version="string"
+<site id="!string" displayName="string" configVersion="string" supportDebug="!boolean=false"
       xdef:name="SiteMapBean" xdef:bean-package="io.nop.auth.api.messages" x:schema="/nop/schema/xdef.xdef"
       xmlns:x="/nop/schema/xdsl.xdef">
     <!--

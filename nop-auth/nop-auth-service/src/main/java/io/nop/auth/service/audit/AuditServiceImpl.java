@@ -8,16 +8,16 @@
 package io.nop.auth.service.audit;
 
 import io.nop.api.core.annotations.txn.Transactional;
-import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.audit.AuditRequest;
 import io.nop.api.core.audit.IAuditService;
+import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.auth.dao.entity.NopAuthOpLog;
 import io.nop.commons.concurrent.batch.AbstractBatchProcessService;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
-
 import jakarta.inject.Inject;
+
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,6 +30,9 @@ public class AuditServiceImpl extends AbstractBatchProcessService<AuditRequest> 
     public void saveAudit(AuditRequest request) {
         try {
             getQueue().send(request);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw NopException.adapt(e);
         } catch (Exception e) {
             throw NopException.adapt(e);
         }

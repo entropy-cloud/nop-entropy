@@ -21,6 +21,7 @@ import io.nop.commons.collections.iterator.IPeekingIterator;
 
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 
 // Copied From Apache Kylin
@@ -108,7 +109,7 @@ public class SortedIteratorMergerWithLimit<E> extends SortedIteratorMerger<E> {
         @Override
         public E next() {
             if (!nextFetched) {
-                throw new IllegalStateException("Should hasNext() before next()");
+                throw new NoSuchElementException("Should hasNext() before next()");
             }
 
             // if (last != null) {

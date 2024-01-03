@@ -33,6 +33,10 @@ public abstract class AbstractEvalAction
         ExprEvalHelper.generateToWriter(this::invoke, out, context);
     }
 
+    public Object generateXjson(IEvalContext context) {
+        return ExprEvalHelper.generateXjson(this::invoke, context);
+    }
+
     @Override
     public SQL generateSql(IEvalContext context) {
         return ExprEvalHelper.generateSql(this::invoke, context);

@@ -10,6 +10,7 @@ package io.nop.dao.api;
 import io.nop.api.core.beans.LongRangeBean;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.cache.ICacheProvider;
+import io.nop.core.dataset.BeanRowMapper;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.IDialectProvider;
@@ -168,6 +169,12 @@ public interface ISqlExecutor extends IDialectProvider {
      */
     default <T> List<T> findPage(final SQL sql, final long offset, final int limit) {
         return findPage(sql, offset, limit, getDefaultRowMapper());
+    }
+
+    default <T> IRowMapper<T> getRowMapper(Class<T> rowType, boolean camelCase) {
+        if (rowType == null)
+            return getDefaultRowMapper();
+        return (IRowMapper<T>) BeanRowMapper.of(rowType, camelCase);
     }
 
     default <T> List<T> findAll(final SQL sql, IRowMapper<T> rowMapper) {

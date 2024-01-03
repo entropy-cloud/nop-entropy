@@ -34,7 +34,6 @@ package io.nop.commons.util;
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.annotations.core.NoReflection;
-import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.IWithWeight;
 import io.nop.commons.util.random.DefaultSecureRandom;
@@ -51,14 +50,8 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Objects;
 
-import static io.nop.api.core.convert.ConvertHelper.toBigDecimal;
-import static io.nop.api.core.convert.ConvertHelper.toBigInteger;
-import static io.nop.api.core.convert.ConvertHelper.toDouble;
-import static io.nop.api.core.convert.ConvertHelper.toInt;
-import static io.nop.api.core.convert.ConvertHelper.toLong;
-import static io.nop.commons.CommonErrors.ARG_V1;
-import static io.nop.commons.CommonErrors.ARG_V2;
-import static io.nop.commons.CommonErrors.ERR_MATH_NOT_COMPARABLE;
+import static io.nop.api.core.convert.ConvertHelper.*;
+import static io.nop.commons.CommonErrors.*;
 import static io.nop.commons.util.StringHelper.isEmptyObject;
 
 /**
@@ -351,13 +344,13 @@ public class MathHelper {
     public static int compareWithConversion(Object v1, Object v2) {
         int result;
 
-        if (v1 == v2) {
+        if (Objects.equals(v1, v2)) {
             result = 0;
         } else {
             // null 小于所有值
-            if (isEmptyObject(v1))
+            if (v1 == null || isEmptyObject(v1))
                 return -1;
-            if (isEmptyObject(v2))
+            if (v2 == null || isEmptyObject(v2))
                 return 1;
 
             int t1 = getNumericType(v1), t2 = getNumericType(v2), type = getNumericType(t1, t2);
@@ -1440,7 +1433,7 @@ public class MathHelper {
 
     /**
      * copy from flink MathUtils
-     *
+     * <p>
      * Pseudo-randomly maps a long (64-bit) to an integer (32-bit) using some bit-mixing for better
      * distribution.
      *

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
-      displayName="用户组" i18n-en:displayName="User Group" xmlns:ui="ui">
+      displayName="用户组" i18n-en:displayName="User Group" xmlns:ui="ui" xmlns:orm="orm">
 
     <entityName>io.nop.auth.dao.entity.NopAuthGroup</entityName>
 
@@ -31,7 +31,7 @@
             <schema type="java.lang.String" precision="100"/>
         </prop>
         <prop name="parentId" displayName="父ID" i18n-en:displayName="Parent ID" tagSet="parent" queryable="true"
-              sortable="true" insertable="true" updatable="true" ext:control="tree-parent" ext:relation="parent">
+              sortable="true" insertable="true" updatable="true" ui:control="tree-parent" ext:relation="parent">
             <schema type="java.lang.String" precision="50"/>
         </prop>
         <prop name="ownerId" displayName="所有者ID" i18n-en:displayName="Owner ID" queryable="true" sortable="true"
@@ -94,7 +94,8 @@
         </prop>
         <prop name="userMappings" displayName="用户映射" i18n-en:displayName="UserMappings"
               tagSet="pub,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
-              ext:joinLeftProp="groupId" ext:joinRightProp="groupId" insertable="true" updatable="true" lazy="true">
+              ext:joinLeftProp="groupId" ext:joinRightProp="groupId" orm:manyToManyRefProp="userId" insertable="true"
+              updatable="true" lazy="true">
             <schema>
                 <item bizObjName="NopAuthGroupDept"/>
             </schema>

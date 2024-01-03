@@ -22,6 +22,7 @@ public interface AuthCoreConstants {
 
     String PARAM_CODE = "code";
     String PARAM_STATE = "state";
+    String PARAM_REDIRECT_URI = "redirect_uri";
 
     String COOKIE_NOP_TOKEN = "nop-token";
 
@@ -30,4 +31,5 @@ public interface AuthCoreConstants {
     String VAR_USER_CONTEXT = "userContext";
     String VAR_FILTER = "filter";
 
+    String USER_ID_SYS = "sys";
 }

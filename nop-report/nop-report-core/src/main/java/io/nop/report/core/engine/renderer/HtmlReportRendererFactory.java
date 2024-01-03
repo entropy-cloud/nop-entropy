@@ -105,6 +105,8 @@ public class HtmlReportRendererFactory implements IReportRendererFactory {
             out.append(".xpt-table{\n" +
                     "   border-collapse:collapse;border-spacing:0;table-layout:fixed;\n" +
                     "}\n" + ("#" + reportId + " ") +
+                    ".xpt-row{ line-height:normal}"+ // 前台如果引入ant-design-vue会导致行高不正确，需要这里重置一下
+                    "}\n" + ("#" + reportId + " ") +
                     ".xpt-cell-num{ text-align:right; }\n" + ("#" + reportId + " ") +
                     ".xpt-cell{\n" +
                     "   word-wrap:break-word;word-break:break-all;padding:2px;box-sizing:border-box;\n" +

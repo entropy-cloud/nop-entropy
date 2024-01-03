@@ -17,6 +17,8 @@
  */
 package io.nop.commons.io.stream;
 
+import io.nop.commons.util.IoHelper;
+
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -295,6 +297,9 @@ public class ByteQueue {
             } while (true);
         } catch (IOException e) { // NOPMD
             // ignore error
+        }finally {
+            IoHelper.safeCloseObject(reader);
+            IoHelper.safeCloseObject(in);
         }
         return sb.toString();
     }

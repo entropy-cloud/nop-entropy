@@ -141,7 +141,7 @@ public class MacroForTagCompiler implements IXplTagCompiler {
                 scope.setLocalValue(var.getLocation(), var.getName(), value);
 
             if (index != null) {
-                scope.setLocalValue(var.getLocation(), index.getName(), i);
+                scope.setLocalValue(index.getLocation(), index.getName(), i);
                 i++;
             }
 

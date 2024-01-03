@@ -18,6 +18,8 @@
 
 package io.nop.stream.cep.nfa.aftermatch;
 
+import java.util.Optional;
+
 /**
  * Discards every partial match that started before the first event of emitted match mapped to
  * *PatternName*.
@@ -31,7 +33,10 @@ public final class SkipToFirstStrategy extends SkipToElementStrategy {
 
     @Override
     public SkipToElementStrategy throwExceptionOnMiss() {
-        return new SkipToFirstStrategy(getPatternName().get(), true);
+        Optional<String> name = getPatternName();
+        if(name.isEmpty())
+            throw new IllegalArgumentException("null name");
+        return new SkipToFirstStrategy(name.get(), true);
     }
 
     @Override
@@ -41,6 +46,7 @@ public final class SkipToFirstStrategy extends SkipToElementStrategy {
 
     @Override
     public String toString() {
-        return "SkipToFirstStrategy{" + "patternName='" + getPatternName().get() + '\'' + '}';
+        String name = getPatternName().orElse("");
+        return "SkipToFirstStrategy{" + "patternName='" + name + '\'' + '}';
     }
 }

@@ -208,7 +208,7 @@ public class WordTemplateParser {
                 link.getLinkNode().replaceBy(link.getSourceNode());
             } else if (link.getLinkType() == WordHyperlink.LinkType.xpl) {
                 XNode node = link.getSourceNode();
-                if (node.equals("w:p")) {
+                if (node.getTagName().equals("w:p")) {
                     link.getLinkNode().closest("w:p").replaceBy(link.getSourceNode());
                 } else {
                     link.getLinkNode().replaceBy(link.getSourceNode());

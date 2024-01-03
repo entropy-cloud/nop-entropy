@@ -1,6 +1,5 @@
 package io.nop.wf.core.impl;
 
-import io.nop.api.core.exceptions.NopException;
 import io.nop.core.context.IServiceContext;
 import io.nop.wf.api.WfReference;
 import io.nop.wf.api.WfStepReference;
@@ -12,12 +11,6 @@ import io.nop.wf.core.store.IWorkflowRecord;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import static io.nop.wf.core.NopWfCoreErrors.ARG_PARENT_STEP_ID;
-import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_ID;
-import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_NAME;
-import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_VERSION;
-import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_MISSING_PARENT_WF;
 
 public class WorkflowCoordinatorImpl implements IWorkflowCoordinator {
 
@@ -49,11 +42,11 @@ public class WorkflowCoordinatorImpl implements IWorkflowCoordinator {
     public void endSubFlow(WfReference wfRef, int status, WfStepReference parentStep, Map<String, Object> results,
                            IServiceContext ctx) {
         IWorkflow parentWf = wfManager.getWorkflow(parentStep.getWfId());
-        if (parentWf == null)
-            throw new NopException(ERR_WF_MISSING_PARENT_WF)
-                    .param(ARG_WF_NAME, parentStep.getWfName())
-                    .param(ARG_WF_VERSION, parentStep.getWfId())
-                    .param(ARG_WF_ID, parentStep.getWfId()).param(ARG_PARENT_STEP_ID, parentStep.getStepId());
+//        if (parentWf == null)
+//            throw new NopException(ERR_WF_MISSING_PARENT_WF)
+//                    .param(ARG_WF_NAME, parentStep.getWfName())
+//                    .param(ARG_WF_VERSION, parentStep.getWfId())
+//                    .param(ARG_WF_ID, parentStep.getWfId()).param(ARG_PARENT_STEP_ID, parentStep.getStepId());
 
         IWorkflowStep step = parentWf.getStepById(parentStep.getStepId());
         step.notifySubFlowEnd(status, results, ctx);

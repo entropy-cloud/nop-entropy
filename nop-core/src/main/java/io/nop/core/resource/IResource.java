@@ -12,8 +12,8 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.resource.IResourceReference;
 import io.nop.api.core.util.progress.IStepProgressListener;
 import io.nop.commons.util.IoHelper;
-
 import jakarta.annotation.Nonnull;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -133,10 +133,10 @@ public interface IResource extends IResourceReference {
         }
     }
 
-    default void writeText(String text) {
+    default void writeText(String text, String encoding) {
         Writer out = null;
         try {
-            out = getWriter(null);
+            out = getWriter(encoding);
             out.write(text);
         } catch (IOException e) {
             throw NopException.adapt(e);

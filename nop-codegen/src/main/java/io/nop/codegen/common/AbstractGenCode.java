@@ -61,7 +61,7 @@ public class AbstractGenCode {
         String key = getMethodKey(methodName, argCount);
 
         MethodBlock oldMethod = methods.put(key, method);
-        if (oldMethod == null) {
+        if (oldMethod != null) {
             throw new NopEvalException(ERR_CODE_GEN_METHOD_DECL_CONFLICTED)
                     .param(ARG_METHOD_NAME_1, oldMethod.getMethodName()).param(ARG_METHOD_NAME_2, methodName)
                     .param(ARG_LOC_1, oldMethod.getLocation()).loc(loc);

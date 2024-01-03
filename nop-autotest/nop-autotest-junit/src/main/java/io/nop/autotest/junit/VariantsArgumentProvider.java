@@ -7,6 +7,7 @@
  */
 package io.nop.autotest.junit;
 
+import io.nop.api.core.util.Guard;
 import io.nop.autotest.core.data.AutoTestDataHelper;
 import io.nop.commons.util.ArrayHelper;
 import io.nop.commons.util.MavenDirHelper;
@@ -32,8 +33,12 @@ public class VariantsArgumentProvider implements ArgumentsProvider, AnnotationCo
 
     @Override
     public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
-        Class<?> testClass = context.getTestClass().get();
-        Method testMethod = context.getTestMethod().get();
+
+        Class<?> testClass = context.getTestClass().orElse(null);
+        Method testMethod = context.getTestMethod().orElse(null);
+
+        if(testClass == null || testMethod == null)
+            throw new IllegalArgumentException("null test info");
 
         String dataDir = AutoTestDataHelper.getTestDataPath(testClass, testMethod);
 

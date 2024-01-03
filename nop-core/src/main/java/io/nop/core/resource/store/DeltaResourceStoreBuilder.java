@@ -7,7 +7,6 @@
  */
 package io.nop.core.resource.store;
 
-import io.nop.api.core.ApiConstants;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.FileHelper;
@@ -41,14 +40,13 @@ import java.util.zip.ZipFile;
 
 import static io.nop.core.CoreConfigs.CFG_CHECK_DUPLICATE_VFS_RESOURCE;
 import static io.nop.core.CoreConfigs.CFG_INCLUDE_CURRENT_PROJECT_RESOURCES;
-import static io.nop.core.CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS;
 import static io.nop.core.CoreConfigs.CFG_USE_NOP_VFS_INDEX;
 import static io.nop.core.CoreErrors.ARG_PATH;
 import static io.nop.core.CoreErrors.ARG_RESOURCE1;
 import static io.nop.core.CoreErrors.ARG_RESOURCE2;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_DUPLICATE_VFS_RESOURCE;
 
-public class DeltaResourceStoreBuilder {
+public class DeltaResourceStoreBuilder implements IDeltaResourceStoreBuilder {
     static final Logger LOG = LoggerFactory.getLogger(DeltaResourceStoreBuilder.class);
 
     private List<ZipFile> zipFiles = new ArrayList<>();
@@ -57,10 +55,12 @@ public class DeltaResourceStoreBuilder {
     public DeltaResourceStoreBuilder() {
     }
 
+    @Override
     public List<ZipFile> getZipFiles() {
         return zipFiles;
     }
 
+    @Override
     public DeltaResourceStore build(VfsConfig config) {
         DeltaResourceStore store = new DeltaResourceStore();
         store.setClassPathFiles(classPathFiles);
@@ -79,18 +79,11 @@ public class DeltaResourceStoreBuilder {
         return store;
     }
 
-    IResourceStore buildBaseStore(VfsConfig config) {
+    protected IResourceStore buildBaseStore(VfsConfig config) {
         IResourceStore store = buildCompositeStore(config);
-        String path = CFG_RESOURCE_DIR_OVERRIDE_VFS.get();
-        if (StringHelper.isEmpty(path) || ApiConstants.CONFIG_VALUE_NONE.equals(path))
+        File dir = ResourceHelper.getOverrideVFsDir();
+        if (dir == null)
             return store;
-
-        File dir;
-        if (path.startsWith("./")) {
-            dir = new File(FileHelper.currentDir(), path).getAbsoluteFile();
-        } else {
-            dir = new File(path).getAbsoluteFile();
-        }
 
         LOG.info("nop.resource.use-override-fs-dir:{}", FileHelper.getAbsolutePath(dir));
 
@@ -99,7 +92,7 @@ public class DeltaResourceStoreBuilder {
         return store;
     }
 
-    IResourceStore buildCompositeStore(VfsConfig config) {
+    protected IResourceStore buildCompositeStore(VfsConfig config) {
         if (config.getPathMappings() == null || config.getPathMappings().isEmpty()) {
             return buildInMemoryStore(config);
         }
@@ -116,7 +109,7 @@ public class DeltaResourceStoreBuilder {
         return store;
     }
 
-    IResourceStore buildInMemoryStore(VfsConfig config) {
+    protected IResourceStore buildInMemoryStore(VfsConfig config) {
         InMemoryResourceStore store = new InMemoryResourceStore();
 
         IResource indexResource = new ClassPathResource(ResourceConstants.RESOURCE_VFS_INDEX);
@@ -138,7 +131,7 @@ public class DeltaResourceStoreBuilder {
             new ClassPathScanner().scanPath(ResourceConstants.CLASS_PATH_VFS_DIR, (path, url) -> {
                 path = path.substring(ResourceConstants.CLASS_PATH_VFS_DIR.length() - 1);
                 String fileName = StringHelper.fileFullName(path);
-                if(fileName.startsWith("~"))
+                if (fileName.startsWith("~"))
                     return;
 
                 LOG.trace("nop.vfs.add:path={},url={}", path, url);
@@ -175,7 +168,7 @@ public class DeltaResourceStoreBuilder {
                         @Override
                         public TreeVisitResult beginNodeState(ResourceTreeVisitState state) {
                             IResource res = state.getCurrent();
-                            if(res.getName().startsWith("~"))
+                            if (res.getName().startsWith("~"))
                                 return TreeVisitResult.CONTINUE;
 
                             if (res.isDirectory()) {
@@ -199,7 +192,7 @@ public class DeltaResourceStoreBuilder {
         return store;
     }
 
-    IResource normalizeResource(IResource resource) {
+    protected IResource normalizeResource(IResource resource) {
         File file = resource.toFile();
         if (file != null) {
             IResource srcResource = toSrcResource(resource.getPath(), file);
@@ -213,7 +206,7 @@ public class DeltaResourceStoreBuilder {
     }
 
     // 如果是target/classes目录下的资源，则尝试转换为src/main/resources目录下是否存在同名资源。
-    IResource toSrcResource(String resourcePath, File file) {
+    protected IResource toSrcResource(String resourcePath, File file) {
         String path = FileHelper.getAbsolutePath(file);
         int pos = path.lastIndexOf("/target/classes/");
         if (pos > 0) {

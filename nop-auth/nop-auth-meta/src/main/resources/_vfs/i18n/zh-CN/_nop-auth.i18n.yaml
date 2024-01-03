@@ -16,6 +16,7 @@ entity:
     NopAuthUser: 用户
     NopAuthUserRole: 用户角色
     NopAuthUserSubstitution: 用户代理
+    NopAuthUser_tenant: 用户
 prop:
   label:
     NopAuthDept:
@@ -231,6 +232,7 @@ prop:
       logoutType_label: 退出方式
       remark: 备注
       sessionId: 会话ID
+      user: 用户
       userId: 用户ID
       userName: 用户名
       version: 数据版本
@@ -354,3 +356,62 @@ prop:
       user.userName: 用户
       userId: 用户ID
       version: 数据版本
+      workScope: 工作范围
+    NopAuthUser_tenant:
+      avatar: 头像
+      avatarComponent: null
+      birthday: 生日
+      changePwdAtLogin: 登陆后立刻修改密码
+      clientId: 设备ID
+      createTime: 创建时间
+      createdBy: 创建人
+      delFlag: 删除标识
+      dept: 部门
+      dept.deptName: 部门
+      deptId: 所属部门
+      email: 邮件
+      emailVerified: 电话已验证
+      expireAt: 用户过期时间
+      gender: 性别
+      gender_label: 性别
+      groupMappings: 分组映射
+      idNbr: 证件号
+      idType: 证件类型
+      manager: 上级
+      manager.userName: 上级
+      managerId: 上级
+      nickName: 昵称
+      openId: 用户外部标识
+      password: 密码
+      phone: 电话
+      phoneVerified: 电话已验证
+      position: 岗位
+      position.name: 岗位
+      positionId: 职务
+      pwdUpdateTime: 上次密码更新时间
+      realName: 真实姓名
+      relDeptId: 相关部门
+      relatedDept: 部门
+      relatedDept.deptName: 部门
+      relatedGroupIdList: 分组列表
+      relatedGroupList: 分组列表
+      relatedGroupList_label: 分组列表
+      relatedRoleIdList: 角色列表
+      relatedRoleList: 角色列表
+      relatedRoleList_label: 角色列表
+      remark: 备注
+      roleMappings: 角色映射
+      salt: 密码加盐
+      status: 用户状态
+      status_label: 用户状态
+      substitutionMappings: 代理人映射
+      telephone: 座机
+      tenantId: 租户ID
+      updateTime: 修改时间
+      updatedBy: 修改人
+      userId: 用户ID
+      userName: 用户名
+      userType: 用户类型
+      userType_label: 用户类型
+      version: 数据版本
+      workNo: 工号

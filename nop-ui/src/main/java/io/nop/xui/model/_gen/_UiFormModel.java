@@ -1,6 +1,6 @@
 package io.nop.xui.model._gen;
 
-import io.nop.commons.collections.KeyedList; //NOPMD - suppressed UnusedImports - Used for List Prop
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 
 
@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 表单模型
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _UiFormModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
@@ -19,14 +19,14 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
      * xml name: api
      * 
      */
-    private java.util.Map _api ;
+    private io.nop.xui.model.UiApiModel _api ;
     
     /**
      *  
      * xml name: asyncApi
      * 设置此属性后，表单提交发送保存接口后，还会继续轮询请求该接口，直到返回 finished 属性为 true 才 结束。
      */
-    private java.util.Map _asyncApi ;
+    private io.nop.xui.model.UiApiModel _asyncApi ;
     
     /**
      *  
@@ -99,14 +99,14 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
      * <saveSuccess xdef:value="string" />
      * <saveFailed xdef:value="string" />
      */
-    private java.util.Map _initApi ;
+    private io.nop.xui.model.UiApiModel _initApi ;
     
     /**
      *  
      * xml name: initAsyncApi
      * Form 用来获取初始数据的 api,与 initApi 不同的是，会一直轮询请求该接口，直到返回 finished 属性为 true 才 结束。
      */
-    private java.util.Map _initAsyncApi ;
+    private io.nop.xui.model.UiApiModel _initAsyncApi ;
     
     /**
      *  
@@ -339,12 +339,12 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
      *  
      */
     
-    public java.util.Map getApi(){
+    public io.nop.xui.model.UiApiModel getApi(){
       return _api;
     }
 
     
-    public void setApi(java.util.Map value){
+    public void setApi(io.nop.xui.model.UiApiModel value){
         checkAllowChange();
         
         this._api = value;
@@ -352,32 +352,24 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
     }
 
     
-    public boolean hasApi(){
-        return this._api != null && !this._api.isEmpty();
-    }
-    
     /**
      * 
      * xml name: asyncApi
      *  设置此属性后，表单提交发送保存接口后，还会继续轮询请求该接口，直到返回 finished 属性为 true 才 结束。
      */
     
-    public java.util.Map getAsyncApi(){
+    public io.nop.xui.model.UiApiModel getAsyncApi(){
       return _asyncApi;
     }
 
     
-    public void setAsyncApi(java.util.Map value){
+    public void setAsyncApi(io.nop.xui.model.UiApiModel value){
         checkAllowChange();
         
         this._asyncApi = value;
            
     }
 
-    
-    public boolean hasAsyncApi(){
-        return this._asyncApi != null && !this._asyncApi.isEmpty();
-    }
     
     /**
      * 
@@ -589,12 +581,12 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
      * <saveFailed xdef:value="string" />
      */
     
-    public java.util.Map getInitApi(){
+    public io.nop.xui.model.UiApiModel getInitApi(){
       return _initApi;
     }
 
     
-    public void setInitApi(java.util.Map value){
+    public void setInitApi(io.nop.xui.model.UiApiModel value){
         checkAllowChange();
         
         this._initApi = value;
@@ -602,32 +594,24 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
     }
 
     
-    public boolean hasInitApi(){
-        return this._initApi != null && !this._initApi.isEmpty();
-    }
-    
     /**
      * 
      * xml name: initAsyncApi
      *  Form 用来获取初始数据的 api,与 initApi 不同的是，会一直轮询请求该接口，直到返回 finished 属性为 true 才 结束。
      */
     
-    public java.util.Map getInitAsyncApi(){
+    public io.nop.xui.model.UiApiModel getInitAsyncApi(){
       return _initAsyncApi;
     }
 
     
-    public void setInitAsyncApi(java.util.Map value){
+    public void setInitAsyncApi(io.nop.xui.model.UiApiModel value){
         checkAllowChange();
         
         this._initAsyncApi = value;
            
     }
 
-    
-    public boolean hasInitAsyncApi(){
-        return this._initAsyncApi != null && !this._initAsyncApi.isEmpty();
-    }
     
     /**
      * 
@@ -1269,6 +1253,7 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -1292,6 +1277,7 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

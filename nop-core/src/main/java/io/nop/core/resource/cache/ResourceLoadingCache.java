@@ -158,7 +158,8 @@ public class ResourceLoadingCache<V> implements ICacheManagement<String>, IState
 
     public V get(String path, IResourceObjectLoader<V> loader) {
         ResourceCacheEntry<V> entry = cache.get(path);
-        V value = entry.getObject(checkChanged.get() && entry.isRefreshEnabled(cacheRefreshMinInterval.get()), loader);
+        boolean b = checkChanged.get() && entry.isRefreshEnabled(cacheRefreshMinInterval.get());
+        V value = entry.getObject(b, loader);
         if (value == null && !cacheNull.get()) {
             cache.remove(path, entry);
         }

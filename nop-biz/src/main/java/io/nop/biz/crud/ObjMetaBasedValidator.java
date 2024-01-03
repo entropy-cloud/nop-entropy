@@ -201,7 +201,7 @@ public class ObjMetaBasedValidator {
                     value = _validate(propSchema.getBizObjName(), propSchema, subPropName, (Map<String, Object>) value, propSelection, filter, scope);
                 }
             } else {
-                validateValue(propMeta.getSchema(), subPropName, value, propMeta);
+                validateValue(propMeta.getSchema(), subPropName, value, propMeta, scope);
                 value = convertValue(propMeta, value, data, ret);
             }
             setIn(ret, schema, propMeta, value);
@@ -269,10 +269,11 @@ public class ObjMetaBasedValidator {
         return value;
     }
 
-    private void validateValue(ISchema schema, String subPropName, Object value, IObjPropMeta propMeta) {
+    private void validateValue(ISchema schema, String subPropName, Object value, IObjPropMeta propMeta, IEvalScope scope) {
         if (schema != null) {
             if (schema.isSimpleSchema()) {
-                SimpleSchemaValidator.INSTANCE.validate(schema, null, subPropName, value, IValidationErrorCollector.THROW_ERROR);
+                SimpleSchemaValidator.INSTANCE.validate(schema, null, subPropName, value, scope, this.context,
+                        IValidationErrorCollector.THROW_ERROR);
             }
 
             String dictName = schema.getDict();

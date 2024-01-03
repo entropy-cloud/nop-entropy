@@ -13,6 +13,12 @@
                 <!--工作ID-->
                 <col id="workId" mandatory="true" sortable="true"/>
 
+                <!--工作流实例ID-->
+                <col id="wfId" sortable="true"/>
+
+                <!--工作流步骤ID-->
+                <col id="stepId" sortable="true"/>
+
                 <!--工作类型-->
                 <col id="workType" mandatory="true" sortable="true"/>
 
@@ -65,7 +71,8 @@
     <forms>
         <form id="view" editMode="view" title="查看-代办工作" i18n-en:title="View Work List">
             <layout>
- workId[工作ID] workType[工作类型]
+ workId[工作ID] wfId[工作流实例ID]
+ stepId[工作流步骤ID] workType[工作类型]
  title[工作标题] linkUrl[工作链接]
  status[状态] ownerId[拥有者ID]
  ownerName[拥有者姓名] callerId[调用者ID]
@@ -79,7 +86,8 @@
         <form id="add" editMode="add" title="新增-代办工作" i18n-en:title="Add Work List" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-代办工作" i18n-en:title="Edit Work List">
             <layout>
- workId[工作ID] workType[工作类型]
+ workId[工作ID] wfId[工作流实例ID]
+ stepId[工作流步骤ID] workType[工作类型]
  title[工作标题] linkUrl[工作链接]
  status[状态] ownerId[拥有者ID]
  ownerName[拥有者姓名] callerId[调用者ID]

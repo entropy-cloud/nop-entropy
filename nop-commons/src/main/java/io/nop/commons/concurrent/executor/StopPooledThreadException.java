@@ -28,7 +28,7 @@ public class StopPooledThreadException extends NopSingletonException {
 
     private static final long serialVersionUID = 1L;
 
-    public static StopPooledThreadException INSTANCE = new StopPooledThreadException();
+    public static final StopPooledThreadException INSTANCE = new StopPooledThreadException();
 
     private StopPooledThreadException() {
         super(ERR_CONCURRENT_STOP_POOLED_THREAD);

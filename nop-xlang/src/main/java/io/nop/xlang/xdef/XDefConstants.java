@@ -129,4 +129,9 @@ public interface XDefConstants {
     String STD_DOMAIN_XDEF_ATTR = "xdef-attr";
 
     String STD_DOMAIN_FORM_LAYOUT = "form-layout";
+
+    String STD_DOMAIN_NOP_MODULE_ID = "nop-module-id";
+
+    String STD_DOMAIN_NOP_MODULE_NAME = "nop-module-name";
+
 }

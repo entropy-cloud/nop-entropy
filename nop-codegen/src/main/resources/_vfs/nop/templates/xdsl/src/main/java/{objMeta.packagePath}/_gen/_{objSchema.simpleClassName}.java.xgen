@@ -1,6 +1,6 @@
 <c:unit xpl:outputMode="text">package ${objMeta.packageName}._gen;
 
-import io.nop.commons.collections.KeyedList; //NOPMD - suppressed UnusedImports - Used for List Prop
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 
 <c:script>
@@ -32,7 +32,7 @@ function build_defaults(prop){
  * ${objSchema.description?.$replace('*/','* /')?.$replace("\n","\n * ")}
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _${objSchema.simpleClassName} extends ${baseClass} ${implIfs}{
     <c:for var="prop" items="${objSchema.localProps}">
         <c:continue xpl:if="prop.name.indexOf(':')>0" />
@@ -61,7 +61,7 @@ public abstract class _${objSchema.simpleClassName} extends ${baseClass} ${implI
     public void ${prop.methodSetName}(${prop.schema.type} value){
         checkAllowChange();
         <c:choose>
-           <when test="${prop.schema.isKeyedListType()}">${$.checkArgument(!prop.componentType.anyType,"not define beanClass for prop:"+objSchema.simpleClassName+'.'+prop.name)}
+           <when test="${prop.schema.isKeyedListType()}">${$.checkArgument(prop.componentType and !prop.componentType.anyType,"not define beanClass for prop:"+objSchema.simpleClassName+'.'+prop.name)}
         this._${prop.name} = KeyedList.fromList(value, ${prop.componentType}::${prop.schema.keyProp.$methodGet()});
            </when>
            <otherwise>
@@ -117,6 +117,7 @@ public abstract class _${objSchema.simpleClassName} extends ${baseClass} ${implI
     </c:if>
     </c:for>
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -131,6 +132,7 @@ public abstract class _${objSchema.simpleClassName} extends ${baseClass} ${implI
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         <c:for var="prop" items="${objSchema.localProps}">

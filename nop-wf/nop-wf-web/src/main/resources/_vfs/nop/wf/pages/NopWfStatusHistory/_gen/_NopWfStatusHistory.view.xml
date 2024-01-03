@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopWfStatusHistory" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="gql">
+
+    <objMeta>/nop/wf/model/NopWfStatusHistory/NopWfStatusHistory.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--主键-->
+                <col id="wfId" mandatory="true" sortable="true"/>
+
+                <!--源状态-->
+                <col id="fromStatus" mandatory="true" sortable="true"/>
+
+                <!--目标状态-->
+                <col id="toStatus" mandatory="true" sortable="true"/>
+
+                <!--目标应用状态-->
+                <col id="toAppState" sortable="true"/>
+
+                <!--状态变动时间-->
+                <col id="changeTime" mandatory="true" sortable="true"/>
+
+                <!--操作者ID-->
+                <col id="operatorId" sortable="true"/>
+
+                <!--操作者-->
+                <col id="operatorName" sortable="true"/>
+
+                <!--操作者部门ID-->
+                <col id="operatorDeptId" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-工作流状态变迁历史" i18n-en:title="View Workflow Status History">
+            <layout>
+ wfId[主键] fromStatus[源状态]
+ toStatus[目标状态] toAppState[目标应用状态]
+ changeTime[状态变动时间] operatorId[操作者ID]
+ operatorName[操作者] operatorDeptId[操作者部门ID]
+ createdBy[创建人] createTime[创建时间]
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-工作流状态变迁历史" i18n-en:title="Add Workflow Status History"
+              x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-工作流状态变迁历史" i18n-en:title="Edit Workflow Status History">
+            <layout>
+ wfId[主键]
+ fromStatus[源状态]
+ toStatus[目标状态]
+ toAppState[目标应用状态]
+ changeTime[状态变动时间]
+ operatorId[操作者ID]
+ operatorName[操作者]
+ operatorDeptId[操作者部门ID]
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
+            <layout/>
+        </form>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
+            <layout/>
+        </form>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-工作流状态变迁历史"
+              i18n-en:title="Update Workflow Status History">
+            <layout/>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopWfStatusHistory__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopWfStatusHistory__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopWfStatusHistory__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                        <api url="@mutation:NopWfStatusHistory__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table>
+                <api url="@query:NopWfStatusHistory__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopWfStatusHistory__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopWfStatusHistory__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopWfStatusHistory__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopWfStatusHistory__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

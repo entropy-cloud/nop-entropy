@@ -9,10 +9,10 @@
     <version>1.0.0-SNAPSHOT</version>
 
     <properties>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring-boot.version>2.7.15</spring-boot.version>
+        <spring-boot.version>3.2.0</spring-boot.version>
     </properties>
 
     <dependencyManagement>
@@ -37,25 +37,43 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-all-for-spring</artifactId>
             <version>2.0.0-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>nop-auth-service</artifactId>
+                    <groupId>io.github.entropy-cloud</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>nop-report-core</artifactId>
+                    <groupId>io.github.entropy-cloud</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>nop-spring-web-starter</artifactId>
+                    <groupId>io.github.entropy-cloud</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>nop-sys-service</artifactId>
+                    <groupId>io.github.entropy-cloud</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
-        <!-- nop平台依赖高版本的jakarta annotation,而Spring2使用的是低版本，需要强制指定版本号，并引入javax版本给spring使用-->
-        <dependency>
-            <groupId>jakarta.annotation</groupId>
-            <artifactId>jakarta.annotation-api</artifactId>
-            <version>2.1.1</version>
-        </dependency>
+<!--        &lt;!&ndash; nop平台依赖高版本的jakarta annotation,而Spring2使用的是低版本，需要强制指定版本号，并引入javax版本给spring使用&ndash;&gt;-->
+<!--        <dependency>-->
+<!--            <groupId>jakarta.annotation</groupId>-->
+<!--            <artifactId>jakarta.annotation-api</artifactId>-->
+<!--            <version>2.1.1</version>-->
+<!--        </dependency>-->
 
-        <dependency>
-            <groupId>jakarta.ws.rs</groupId>
-            <artifactId>jakarta.ws.rs-api</artifactId>
-            <version>3.1.0</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>jakarta.ws.rs</groupId>-->
+<!--            <artifactId>jakarta.ws.rs-api</artifactId>-->
+<!--            <version>3.1.0</version>-->
+<!--        </dependency>-->
 
-        <dependency>
-            <groupId>javax.annotation</groupId>
-            <artifactId>javax.annotation-api</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>javax.annotation</groupId>-->
+<!--            <artifactId>javax.annotation-api</artifactId>-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -90,7 +108,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>2.7.3</version>
+                <version>${spring-boot.version}</version>
                 <configuration>
 
                 </configuration>

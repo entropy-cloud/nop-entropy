@@ -1,0 +1,12 @@
+<page x:schema="/nop/schema/xjson.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <title>page6Super</title>
+    <body>
+        <crud>
+            <api>/amis/api/mock2/sample</api>
+            <bulkActions j:list="true">
+                <button id="batchDelete1" label="批量删除"></button>
+                <button id="batchUpdate1" label="批量修改"></button>
+            </bulkActions>
+        </crud>
+    </body>
+</page>

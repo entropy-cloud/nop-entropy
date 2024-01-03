@@ -12,6 +12,7 @@ import io.nop.dataset.record.IRecordResourceMeta;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 public class BaseRecordInput<T> implements IRecordInput<T> {
     private final List<T> records;
@@ -60,6 +61,9 @@ public class BaseRecordInput<T> implements IRecordInput<T> {
 
     @Override
     public T next() {
+        if (!hasNext())
+            throw new NoSuchElementException();
+
         readCount++;
         return records.get(readCount);
     }

@@ -5,6 +5,6 @@
 
     <entities>
         <entity name="io.nop.auth.dao.entity.NopAuthUser" tenantProp="tenantId" useTenant="true"
-            feature:on="nop.orm.user-use-tenant"/>
+            feature:on="nop.orm.user-use-tenant" x:override="remove"/>
     </entities>
 </orm>

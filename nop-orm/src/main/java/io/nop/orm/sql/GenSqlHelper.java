@@ -36,6 +36,7 @@ import io.nop.orm.model.IEntityJoinConditionModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IEntityRelationModel;
+import io.nop.orm.model.OrmColumnModel;
 import io.nop.orm.support.OrmEntityHelper;
 
 import java.util.ArrayList;
@@ -89,6 +90,8 @@ public class GenSqlHelper {
             appendEq(sb, dialect, null, tenantCol, binders[tenantCol.getPropId()], ContextProvider.currentTenantId());
             sb.and();
         }
+
+        addFixedFilter(false, sb, dialect, null, entityModel, binders);
 
         int paramCount = 0;
 
@@ -205,6 +208,8 @@ public class GenSqlHelper {
         IColumnModel revCol = entityModel.getColumnByPropId(entityModel.getNopRevEndVarPropId(), false);
         appendCol(sb, dialect, null, revCol);
         sb.append('=').append(OrmConstants.NOP_VER_MAX_VALUE);
+
+        addFixedFilter(false, sb, dialect, null, entityModel, binders);
 
         MutableIntArray params = new MutableIntArray(entityModel.getPkColumns().size() + 1);
 
@@ -330,7 +335,7 @@ public class GenSqlHelper {
         sb.where();
         sb.alwaysTrue();
 
-        genCollectionFilterEx(sb, dialect, entityModel, null, true);
+        genCollectionFilterEx(sb, dialect, entityModel, null, binders);
 
         List<? extends IEntityJoinConditionModel> joins = collectionModel.getJoin();
         MutableIntArray paramPropIds = new MutableIntArray(joins.size());
@@ -358,7 +363,7 @@ public class GenSqlHelper {
     }
 
     public static CollectionSQL genCollectionBatchLoadSqlPart(IDialect dialect, IEntityRelationModel collectionModel,
-                                                              IntArray propIds) {
+                                                              IntArray propIds, IDataParameterBinder[] binders) {
         IEntityModel refEntityModel = collectionModel.getRefEntityModel();
         // 首先确保propIds中包含owner属性
         if (propIds != refEntityModel.getAllPropIds())
@@ -375,7 +380,7 @@ public class GenSqlHelper {
         sb.where();
         sb.alwaysTrue();
 
-        genCollectionFilterEx(sb, dialect, entityModel, null, true);
+        genCollectionFilterEx(sb, dialect, entityModel, null, binders);
 
         List<? extends IEntityJoinConditionModel> joins = collectionModel.getJoin();
         for (IEntityJoinConditionModel join : joins) {
@@ -394,7 +399,7 @@ public class GenSqlHelper {
         sb.and();
 
         List<? extends IEntityJoinConditionModel> ownerJoins = getOwnerBatchLoadJoins(collectionModel);
-        if (ownerJoins != null) {
+        if (ownerJoins.size() == 1) {
             IColumnModel col = (IColumnModel) ownerJoins.get(0).getRightPropModel();
             appendCol(sb, dialect, null, col);
         } else {
@@ -413,35 +418,39 @@ public class GenSqlHelper {
     }
 
     public static boolean genCollectionFilterEx(SQL.SqlBuilder sb, IDialect dialect, IEntityModel entityModel,
-                                                String owner, boolean needAnd) {
+                                                String owner, IDataParameterBinder[] binders) {
         boolean append = false;
+
+        if (entityModel.hasFilter()) {
+            entityModel.getFilters().forEach(filter -> {
+                sb.and();
+                OrmColumnModel col = filter.getColumn();
+                appendEq(sb, dialect, owner, col, binders[col.getPropId()], filter.getValue());
+            });
+        }
+
         if (entityModel.isUseRevision()) {
             IColumnModel col = entityModel.getColumnByPropId(entityModel.getNopRevEndVarPropId(), false);
-            if (needAnd)
-                sb.and();
+            sb.and();
             appendCol(sb, dialect, owner, col);
             sb.append('=');
             sb.append(OrmConstants.NOP_VER_MAX_VALUE);
             append = true;
-            needAnd = true;
         }
 
         if (entityModel.isUseTenant()) {
             IColumnModel tenantCol = entityModel.getColumnByPropId(entityModel.getTenantPropId(), false);
-            if (needAnd)
-                sb.and();
+            sb.and();
             appendCol(sb, dialect, owner, tenantCol);
             sb.append('=');
-            sb.markWithProvider("?", OrmEqlConstants.MARKER_TENANT_ID, () -> ContextProvider.currentTenantId(),false);
+            sb.markWithProvider("?", OrmEqlConstants.MARKER_TENANT_ID, () -> ContextProvider.currentTenantId(), false);
             append = true;
-            needAnd = true;
         }
 
         if (entityModel.isUseLogicalDelete()) {
             int startPos = sb.length();
             IColumnModel deleteFlagCol = entityModel.getColumnByPropId(entityModel.getDeleteFlagPropId(), false);
-            if (needAnd)
-                sb.and();
+            sb.and();
             appendCol(sb, dialect, owner, deleteFlagCol);
             String deleted = getBooleanLiteral(deleteFlagCol.getStdSqlType(), dialect, false);
             sb.append("= ").append(deleted);
@@ -594,11 +603,30 @@ public class GenSqlHelper {
     public static void genEntityFilter(MutableIntArray params, SQL.SqlBuilder sb, IDialect dialect, String owner,
                                        IEntityModel entityModel, IDataParameterBinder[] binders) {
         genIdEq(params, sb, dialect, owner, entityModel, binders);
-        genEntityFilterExt(params, sb, dialect, owner, entityModel, binders);
+        addFixedFilter(true, sb, dialect, owner, entityModel, binders);
+        genEntityTenantFilter(params, sb, dialect, owner, entityModel, binders);
     }
 
-    public static void genEntityFilterExt(MutableIntArray params, SQL.SqlBuilder sb, IDialect dialect, String owner,
-                                          IEntityModel entityModel, IDataParameterBinder[] binders) {
+    private static void addFixedFilter(boolean prependAnd, SQL.SqlBuilder sb, IDialect dialect, String owner,
+                                       IEntityModel entityModel, IDataParameterBinder[] binders) {
+        if (entityModel.hasFilter()) {
+            entityModel.getFilters().forEach(filter -> {
+                // 如果是主键的一部分，则不用增加额外的过滤条件
+                if (filter.getColumn().isPrimary())
+                    return;
+
+                if (prependAnd)
+                    sb.and();
+                OrmColumnModel col = filter.getColumn();
+                appendEq(sb, dialect, owner, col, null, filter.getValue());
+                if (!prependAnd)
+                    sb.and();
+            });
+        }
+    }
+
+    public static void genEntityTenantFilter(MutableIntArray params, SQL.SqlBuilder sb, IDialect dialect, String owner,
+                                             IEntityModel entityModel, IDataParameterBinder[] binders) {
         if (entityModel.isUseTenant()) {
             IColumnModel col = entityModel.getColumnByPropId(entityModel.getTenantPropId(), false);
             if (!col.isPrimary()) {

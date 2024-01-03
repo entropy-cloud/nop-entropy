@@ -10,7 +10,28 @@ package io.nop.graphql.core.engine;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.graphql.core.GraphQLConstants;
-import io.nop.graphql.core.ast.*;
+import io.nop.graphql.core.ast.GraphQLArgument;
+import io.nop.graphql.core.ast.GraphQLArgumentDefinition;
+import io.nop.graphql.core.ast.GraphQLArrayValue;
+import io.nop.graphql.core.ast.GraphQLDefinition;
+import io.nop.graphql.core.ast.GraphQLDirective;
+import io.nop.graphql.core.ast.GraphQLDirectiveDefinition;
+import io.nop.graphql.core.ast.GraphQLDirectiveLocation;
+import io.nop.graphql.core.ast.GraphQLDocument;
+import io.nop.graphql.core.ast.GraphQLFieldDefinition;
+import io.nop.graphql.core.ast.GraphQLFieldSelection;
+import io.nop.graphql.core.ast.GraphQLFragment;
+import io.nop.graphql.core.ast.GraphQLFragmentSelection;
+import io.nop.graphql.core.ast.GraphQLObjectDefinition;
+import io.nop.graphql.core.ast.GraphQLObjectValue;
+import io.nop.graphql.core.ast.GraphQLOperation;
+import io.nop.graphql.core.ast.GraphQLPropertyValue;
+import io.nop.graphql.core.ast.GraphQLSelection;
+import io.nop.graphql.core.ast.GraphQLSelectionSet;
+import io.nop.graphql.core.ast.GraphQLTypeDefinition;
+import io.nop.graphql.core.ast.GraphQLValue;
+import io.nop.graphql.core.ast.GraphQLVariable;
+import io.nop.graphql.core.ast.GraphQLVariableDefinition;
 import io.nop.graphql.core.fetcher.FixedValueFetcher;
 import io.nop.graphql.core.schema.GraphQLScalarType;
 import io.nop.graphql.core.utils.GraphQLTypeHelper;
@@ -23,7 +44,38 @@ import java.util.Map;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_QUERY_MAX_DEPTH;
 import static io.nop.graphql.core.GraphQLConstants.BIZ_OBJ_NAME_ROOT;
 import static io.nop.graphql.core.GraphQLConstants.OBJ_ACTION_SEPARATOR;
-import static io.nop.graphql.core.GraphQLErrors.*;
+import static io.nop.graphql.core.GraphQLErrors.ARG_ALLOWED_NAMES;
+import static io.nop.graphql.core.GraphQLErrors.ARG_ARG_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_AST_NODE;
+import static io.nop.graphql.core.GraphQLErrors.ARG_DIRECTIVE;
+import static io.nop.graphql.core.GraphQLErrors.ARG_FIELD_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_FRAGMENT_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_LEVEL;
+import static io.nop.graphql.core.GraphQLErrors.ARG_LOCATION;
+import static io.nop.graphql.core.GraphQLErrors.ARG_MAX;
+import static io.nop.graphql.core.GraphQLErrors.ARG_MAX_DEPTH;
+import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_OPERATION_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_OPERATION_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ARG_SELECTION_SET;
+import static io.nop.graphql.core.GraphQLErrors.ARG_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ARG_VAR_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_ARG_MAX_MUST_BE_POSITIVE;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_FIELD_COMPLEX_TYPE_NO_SELECTION;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_FIELD_NOT_ALLOW_SELECTION;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_INVALID_FRAGMENT;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_NOT_ALLOW_DIRECTIVE_AT_LOCATION;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_NOT_OBJ_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_QUERY_EXCEED_MAX_DEPTH;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNDEFINED_FIELD;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNDEFINED_FIELD_ARG;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNDEFINED_OBJECT;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNDEFINED_OPERATION;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_ARG_FOR_DIRECTIVE;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_DIRECTIVE;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_FRAGMENT;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_VAR;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNSUPPORTED_AST;
 
 /**
  * 验证GraphQLSelectionSet中所有字段都是模型中已经定义的字段，且参数类型与所引用的变量的类型相同
@@ -263,7 +315,7 @@ public class GraphQLSelectionResolver {
 
             resolveSelections(doc, typeName, selection.getSelectionSet(), vars, level);
         } else {
-            if (!fieldDef.getType().isScalarType() && !isEnumType(fieldDef.getType())) {
+            if (fieldDef.getType().needFieldSelection()) {
                 if (selection.getDirective(GraphQLConstants.DIRECTIVE_TREE_CHILDREN) != null) {
                     hasTreeChildren = true;
                     return;
@@ -274,19 +326,19 @@ public class GraphQLSelectionResolver {
             }
         }
     }
-
-    boolean isEnumType(GraphQLType type) {
-        if (type.isEnumType())
-            return true;
-        if (type.isObjectType())
-            return false;
-
-        String typeName = type.getNamedTypeName();
-        if (typeName == null)
-            return false;
-
-        return engine.getTypeDefinition(typeName) instanceof GraphQLEnumDefinition;
-    }
+//
+//    boolean isEnumType(GraphQLType type) {
+//        if (type.isEnumType())
+//            return true;
+//        if (type.isObjectType())
+//            return false;
+//
+//        String typeName = type.getNamedTypeName();
+//        if (typeName == null)
+//            return false;
+//
+//        return engine.getTypeDefinition(typeName) instanceof GraphQLEnumDefinition;
+//    }
 
     private void resolveArg(GraphQLArgument arg, Map<String, GraphQLVariableDefinition> vars) {
         resolveValue(arg.getValue(), vars);

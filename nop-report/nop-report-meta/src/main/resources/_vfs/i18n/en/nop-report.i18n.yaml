@@ -1,4 +1,4 @@
 
-&quot;x:extends&quot;: _nop-report.i18n.yaml
+x:extends: _nop-report.i18n.yaml
 
 # key: &quot;value&quot;

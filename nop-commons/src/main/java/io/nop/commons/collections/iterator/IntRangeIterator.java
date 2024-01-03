@@ -10,6 +10,7 @@ package io.nop.commons.collections.iterator;
 import io.nop.api.core.util.Guard;
 
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 public class IntRangeIterator implements Iterator<Integer> {
     private int current;
@@ -32,6 +33,9 @@ public class IntRangeIterator implements Iterator<Integer> {
 
     @Override
     public Integer next() {
+        if (!hasNext())
+            throw new NoSuchElementException();
+
         int ret = current;
         current += step;
         return ret;

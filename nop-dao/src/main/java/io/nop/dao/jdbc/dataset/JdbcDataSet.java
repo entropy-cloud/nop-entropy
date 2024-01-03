@@ -32,6 +32,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -105,6 +106,9 @@ public class JdbcDataSet implements IDataSet, IDataRow {
 
     @Override
     public IDataRow next() {
+        if(!hasNext())
+            throw new NoSuchElementException();
+
         if (hasNext != null) {
             if (hasNext) {
                 readCount++;

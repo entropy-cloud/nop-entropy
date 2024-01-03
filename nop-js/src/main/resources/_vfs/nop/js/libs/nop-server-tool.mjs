@@ -10452,7 +10452,7 @@ async function rollupTransform(path, source) {
           if (importee.endsWith(".xjs")) {
             importee = importee.substring(0, importee.length - ".xjs".length) + ".js";
           }
-          if (!importee.endsWith(".js") && !importee.endsWith(".mjs")){
+          if (!importee.endsWith(".js") && !importee.endsWith(".mjs")) {
             importee += ".js";
           }
           return absolutePath(importee, importer);

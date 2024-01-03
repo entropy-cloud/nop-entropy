@@ -2,6 +2,19 @@
 
 <api x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
+    <domains xdef:body-type="list" xdef:key-attr="name">
+        <!--
+        数据域定义。orm模型解析完毕之后，domain的定义会合并到column上。如果设置了domain是以domain的设置为准
+        -->
+        <domain name="!string"  displayName="string"
+                stdDomain="std-domain" stdSqlType="!std-sql-type" stdDataType="std-data-type"
+                precision="int" scale="int"/>
+    </domains>
+
+    <dicts xdef:body-type="list" xdef:key-attr="name">
+        <dict name="!string" xdef:ref="/nop/schema/orm/dict.xdef" />
+    </dicts>
+
     <!--
     服务对象
     -->
@@ -15,7 +28,7 @@
         <method name="!var-name" displayName="string" tagSet="word-set" xdef:unique-attr="name">
             <description xdef:value="string"/>
             <requestMessage xdef:value="class-name"/>
-            <responseMessage xdef:value="class-name"/>
+            <responseMessage xdef:value="!generic-type"/>
         </method>
 
     </service>

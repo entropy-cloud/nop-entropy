@@ -16,17 +16,17 @@ import java.util.List;
 public class ServiceInfo {
     private NacosNamingService.ServiceInfoListener listener;
 
-    private volatile List<ServiceInstance> serviceInstances = Collections.emptyList();
+    private List<ServiceInstance> serviceInstances = Collections.emptyList();
 
-    public List<ServiceInstance> getServiceInstances() {
+    public synchronized List<ServiceInstance> getServiceInstances() {
         return serviceInstances;
     }
 
-    public List<ServiceInstance> copyServiceInstances(){
+    public synchronized List<ServiceInstance> copyServiceInstances(){
         return new ArrayList<>(serviceInstances);
     }
 
-    public void setServiceInstances(List<ServiceInstance> instances) {
+    public synchronized void setServiceInstances(List<ServiceInstance> instances) {
         this.serviceInstances = instances;
     }
 

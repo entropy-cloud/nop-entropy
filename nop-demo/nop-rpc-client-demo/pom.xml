@@ -30,32 +30,11 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-quarkus-web-starter</artifactId>
-            <exclusions>
-                <exclusion>
-                    <artifactId>graphql-java</artifactId>
-                    <groupId>com.graphql-java</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>jackson-databind</artifactId>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>quarkus-bootstrap-gradle-resolver</artifactId>
-                    <groupId>io.quarkus</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>nop-auth-core</artifactId>
-                    <groupId>io.github.entropy-cloud</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>nop-graphql-orm</artifactId>
-                    <groupId>io.github.entropy-cloud</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>nop-orm</artifactId>
-                    <groupId>io.github.entropy-cloud</groupId>
-                </exclusion>
-            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
         </dependency>
 
     </dependencies>

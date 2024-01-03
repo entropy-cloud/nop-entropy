@@ -33,16 +33,22 @@
         <docs.main>${project.artifactId}</docs.main>
 
         <!-- Sonar -->
-        <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
-        <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
-        <sonar.jacoco.reportPath>${project.basedir}/../target/jacoco.exec</sonar.jacoco.reportPath>
+<!--        <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>-->
+<!--        <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>-->
+        <sonar.coverage.jacoco.xmlReportPaths>
+            ${maven.multiModuleProjectDirectory}/tests/target/site/jacoco-aggregate/jacoco.xml
+        </sonar.coverage.jacoco.xmlReportPaths>
         <sonar.language>java</sonar.language>
+
+        <sonar.exclusions>
+            **/_gen/**, **/*Errors.java,**/*Configs.java,**/*Constants.java
+        </sonar.exclusions>
 
         <!-- Plugins -->
         <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
         <maven-failsafe-plugin.version>3.0.0-M4</maven-failsafe-plugin.version>
         <maven-javadoc-plugin.version>3.1.0</maven-javadoc-plugin.version>
-        <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
+        <maven-source-plugin.version>3.3.0</maven-source-plugin.version>
         <maven-jar-plugin.version>3.1.0</maven-jar-plugin.version>
         <maven-antrun-plugin.version>1.8</maven-antrun-plugin.version>
         <maven-surefire-plugin.version>3.0.0-M4</maven-surefire-plugin.version>
@@ -103,6 +109,12 @@
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
                 <version>${maven-source-plugin.version}</version>
                 <executions>
@@ -116,91 +128,36 @@
             </plugin>
 
             <!-- mvn site指令生成报告 -->
-<!--            <plugin>-->
-<!--                <groupId>org.apache.maven.plugins</groupId>-->
-<!--                <artifactId>maven-site-plugin</artifactId>-->
-<!--                <version>4.0.0-M2</version>-->
-<!--            </plugin>-->
+            <!--            <plugin>-->
+            <!--                <groupId>org.apache.maven.plugins</groupId>-->
+            <!--                <artifactId>maven-site-plugin</artifactId>-->
+            <!--                <version>4.0.0-M2</version>-->
+            <!--            </plugin>-->
 
-<!--            <plugin>-->
-<!--                <groupId>org.apache.maven.plugins</groupId>-->
-<!--                <artifactId>maven-project-info-reports-plugin</artifactId>-->
-<!--                <version>3.3.0</version>-->
-<!--            </plugin>-->
+            <!--            <plugin>-->
+            <!--                <groupId>org.apache.maven.plugins</groupId>-->
+            <!--                <artifactId>maven-project-info-reports-plugin</artifactId>-->
+            <!--                <version>3.3.0</version>-->
+            <!--            </plugin>-->
+
+
 
             <!-- mvn surefire-report:report指令生成测试报告 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.0.0-M5</version>
+                <version>3.2.2</version>
 
                 <configuration>
                     <argLine>
-                        --illegal-access=permit
+                        ${jacocoArgLine}
                     </argLine>
                     <testFailureIgnore>false</testFailureIgnore>
                     <forkCount>4</forkCount>
                     <reuseForks>true</reuseForks>
-                    <argLine>${surefireArgLine}</argLine>
                 </configuration>
 
-                <dependencies>
-                    <dependency>
-                        <groupId>org.junit.jupiter</groupId>
-                        <artifactId>junit-jupiter-engine</artifactId>
-                        <version>5.3.2</version>
-                    </dependency>
-                </dependencies>
             </plugin>
-
-<!--            <plugin>-->
-<!--                <groupId>org.jacoco</groupId>-->
-<!--                <artifactId>jacoco-maven-plugin</artifactId>-->
-<!--                <version>0.8.8</version>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <id>default-prepare-agent</id>-->
-<!--                        <goals>-->
-<!--                            <goal>prepare-agent</goal>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            <destFile>${project.build.directory}/coverage-reports/jacoco.exec</destFile>-->
-<!--                            <propertyName>surefireArgLine</propertyName>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                    <execution>-->
-<!--                        <id>default-report</id>-->
-<!--                        <phase>test</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>report</goal>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            <dataFile>${project.build.directory}/coverage-reports/jacoco.exec</dataFile>-->
-<!--                            <outputDirectory>${project.reporting.outputDirectory}/jacoco</outputDirectory>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                    <execution>-->
-<!--                        <id>default-check</id>-->
-<!--                        <goals>-->
-<!--                            <goal>check</goal>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            <rules>-->
-<!--                                <rule>-->
-<!--                                    <element>BUNDLE</element>-->
-<!--                                    <limits>-->
-<!--                                        <limit>-->
-<!--                                            <counter>COMPLEXITY</counter>-->
-<!--                                            <value>COVEREDRATIO</value>-->
-<!--                                            <minimum>0.70</minimum>-->
-<!--                                        </limit>-->
-<!--                                    </limits>-->
-<!--                                </rule>-->
-<!--                            </rules>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
 
 
             <plugin>
@@ -223,57 +180,12 @@
                 </executions>
             </plugin>
 
-            <!-- 处理 ${revision} -->
-            <!--            <plugin>-->
-            <!--                <groupId>org.codehaus.mojo</groupId>-->
-            <!--                <artifactId>flatten-maven-plugin</artifactId>-->
-            <!--                &lt;!&ndash;<version>1.2.7</version>&ndash;&gt;-->
-            <!--                <configuration>-->
-            <!--                </configuration>-->
-            <!--                <executions>-->
-            <!--                    <execution>-->
-            <!--                        <id>flatten</id>-->
-            <!--                        <phase>process-resources</phase>-->
-            <!--                        <goals>-->
-            <!--                            <goal>flatten</goal>-->
-            <!--                        </goals>-->
-            <!--                    </execution>-->
-            <!--                </executions>-->
-            <!--            </plugin>-->
 
-
-
-<!--            <plugin>-->
-<!--                <groupId>org.apache.maven.plugins</groupId>-->
-<!--                <artifactId>maven-pmd-plugin</artifactId>-->
-<!--                <version>3.19.0</version>-->
-<!--                <configuration>-->
-<!--                    <analysisCache>true</analysisCache>-->
-<!--                    <rulesets>-->
-<!--                        <ruleset>nop/pmd-ruleset.xml</ruleset>-->
-<!--                    </rulesets>-->
-<!--                    <printFailingErrors>true</printFailingErrors>-->
-<!--                </configuration>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <goals>-->
-<!--                            <goal>check</goal>-->
-<!--                            <goal>cpd-check</goal>-->
-<!--                        </goals>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--                <dependencies>-->
-<!--                    <dependency>-->
-<!--                        <groupId>io.github.entropy-cloud</groupId>-->
-<!--                        <artifactId>build-tools</artifactId>-->
-<!--                        <version>2.0.0-SNAPSHOT</version>-->
-<!--                    </dependency>-->
-<!--                </dependencies>-->
-<!--            </plugin>-->
         </plugins>
 
         <pluginManagement>
             <plugins>
+
                 <plugin>
                     <groupId>org.jboss.jandex</groupId>
                     <artifactId>jandex-maven-plugin</artifactId>
@@ -378,39 +290,61 @@
                     </dependencies>
                 </plugin>
 
+                <plugin>
+                    <groupId>org.sonarsource.scanner.maven</groupId>
+                    <artifactId>sonar-maven-plugin</artifactId>
+                    <version>3.10.0.2594</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>0.8.11</version>
+                </plugin>
+
             </plugins>
+
         </pluginManagement>
 
     </build>
 
-    <reporting>
-        <plugins>
-<!--            <plugin>-->
-<!--                <groupId>org.apache.maven.plugins</groupId>-->
-<!--                <artifactId>maven-pmd-plugin</artifactId>-->
-<!--                <version>3.19.0</version>-->
-<!--                <configuration>-->
-<!--                    <rulesets>-->
-<!--                        <ruleset>nop/pmd-ruleset.xml</ruleset>-->
-<!--                    </rulesets>-->
-<!--                </configuration>-->
-<!--                <reportSets>-->
-<!--                    <reportSet>-->
-<!--                        <reports>-->
-<!--                            <report>pmd</report>-->
-<!--                        </reports>-->
-<!--                    </reportSet>-->
-<!--                </reportSets>-->
-<!--            </plugin>-->
-
-            <!--            <plugin>-->
-            <!--                <groupId>org.apache.maven.plugins</groupId>-->
-            <!--                <artifactId>maven-jxr-plugin</artifactId>-->
-            <!--                <version>3.3.0</version>-->
-            <!--            </plugin>-->
-
-        </plugins>
-    </reporting>
+    <profiles>
+        <profile>
+            <id>coverage</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>default-prepare-agent</id>
+                                <goals>
+                                    <goal>prepare-agent</goal>
+                                </goals>
+                                <!-- 与surefire共用时需要重命名argLine -->
+                                <configuration>
+                                    <propertyName>jacocoArgLine</propertyName>
+                                </configuration>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/_gen/*.*</exclude>
+                                <exclude>**/*Errors.*</exclude>
+                                <exclude>**/*Configs.*</exclude>
+                                <exclude>**/*Constants*</exclude>
+                                <exclude>**/parse/antlr/*.*</exclude>
+                            </excludes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
     <modules>
         <module>nop-dependencies</module>
@@ -418,7 +352,6 @@
         <module>nop-api-core</module>
         <module>nop-commons</module>
         <module>nop-core</module>
-        <!--        <module>nop-regex</module>-->
         <module>nop-javac</module>
         <module>nop-antlr4</module>
         <module>nop-xdefs</module>
@@ -427,58 +360,33 @@
         <module>nop-graphql</module>
         <module>nop-socket</module>
         <module>nop-web</module>
-        <!--        <module>nop-nosql</module>-->
         <module>nop-tcc</module>
         <module>nop-cluster</module>
         <module>nop-wf</module>
         <module>nop-auth</module>
         <module>nop-config</module>
-        <!--        <module>nop-boot</module>-->
         <module>nop-js</module>
         <module>nop-pdf</module>
         <module>nop-benchmark</module>
         <module>nop-cli-core</module>
         <module>nop-cli</module>
         <module>nop-message</module>
-        <!--        <module>nop-native</module>-->
-        <!--        <module>nop-quarkus</module>-->
         <module>nop-spring</module>
         <module>nop-http</module>
         <module>nop-codegen</module>
-        <!--<module>nop-txn-tcc</module>-->
-
-        <!--
-        <module>nop-app-auth</module>
-        <module>nop-app-com</module>
-        <module>nop-app-wf</module>
-        <module>nop-app-report</module>
-        <module>nop-app-etl</module>
-        <module>nop-biz</module>
-        <module>nop-poi</module>
-                -->
-        <!--        <module>nop-ioc</module>-->
         <module>nop-dao</module>
         <module>nop-orm</module>
         <module>nop-biz</module>
         <module>nop-api-debugger</module>
         <module>nop-rpc</module>
-        <!--        <module>nop-web</module>-->
         <module>nop-rule</module>
-        <!--        <module>nop-workflow</module>-->
         <module>nop-job</module>
-        <!--        <module>nop-report</module>-->
         <module>nop-batch</module>
-        <!--        <module>nop-message</module>-->
-        <!--        <module>nop-netty</module>-->
         <module>nop-nosql</module>
         <module>nop-shell</module>
         <module>nop-fsm</module>
         <module>nop-dbtool</module>
-        <!--        <module>nop-stream</module>-->
         <module>nop-svg</module>
-        <!--        <module>nop-codec</module>-->
-        <!--        <module>nop-config</module>-->
-        <!--        <module>nop-autotest</module>-->
         <module>nop-task</module>
         <module>nop-excel</module>
         <module>nop-ooxml</module>
@@ -517,5 +425,11 @@
         <module>nop-datav</module>
         <module>nop-dev</module>
         <module>nop-all-for-spring</module>
+        <module>nop-git</module>
+        <module>tests</module>
+        <module>nop-oauth</module>
+        <module>nop-dyn</module>
+        <module>nop-gpt</module>
+        <module>nop-tablesaw</module>
     </modules>
 </project>

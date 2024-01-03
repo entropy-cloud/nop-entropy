@@ -11,6 +11,7 @@ import io.nop.api.core.exceptions.NopException;
 
 import java.io.BufferedReader;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 public class LineIterator implements Iterator<String> {
     private final BufferedReader in;
@@ -29,6 +30,9 @@ public class LineIterator implements Iterator<String> {
 
     @Override
     public String next() {
+        if (!hasNext())
+            throw new NoSuchElementException();
+
         String ret = line;
         tryReadNext();
         return ret;

@@ -20,38 +20,7 @@ import java.util.function.IntConsumer;
 import java.util.function.Predicate;
 
 import static io.nop.api.core.ApiErrors.ARG_VALUE;
-import static io.nop.commons.CommonErrors.ARG_CUR;
-import static io.nop.commons.CommonErrors.ARG_EOF;
-import static io.nop.commons.CommonErrors.ARG_EXPECTED;
-import static io.nop.commons.CommonErrors.ARG_POS;
-import static io.nop.commons.CommonErrors.ARG_READER_STATE;
-import static io.nop.commons.CommonErrors.ARG_START_LOC;
-import static io.nop.commons.CommonErrors.ERR_SCAN_BLANK_EXPECTED;
-import static io.nop.commons.CommonErrors.ERR_SCAN_COMMENT_UNEXPECTED_EOF;
-import static io.nop.commons.CommonErrors.ERR_SCAN_ILLEGAL_ESCAPE_CHAR;
-import static io.nop.commons.CommonErrors.ERR_SCAN_INVALID_CHAR;
-import static io.nop.commons.CommonErrors.ERR_SCAN_INVALID_DOUBLE_STRING;
-import static io.nop.commons.CommonErrors.ERR_SCAN_INVALID_ESCAPE_UNICODE;
-import static io.nop.commons.CommonErrors.ERR_SCAN_INVALID_FLOAT_STRING;
-import static io.nop.commons.CommonErrors.ERR_SCAN_INVALID_HEX_INT_STRING;
-import static io.nop.commons.CommonErrors.ERR_SCAN_INVALID_LONG_STRING;
-import static io.nop.commons.CommonErrors.ERR_SCAN_INVALID_NUMBER_STRING;
-import static io.nop.commons.CommonErrors.ERR_SCAN_INVALID_PROP_PATH;
-import static io.nop.commons.CommonErrors.ERR_SCAN_INVALID_VAR;
-import static io.nop.commons.CommonErrors.ERR_SCAN_INVALID_XML_NAME;
-import static io.nop.commons.CommonErrors.ERR_SCAN_NEXT_UNTIL_UNEXPECTED_EOF;
-import static io.nop.commons.CommonErrors.ERR_SCAN_NOT_ALLOW_TWO_SEPARATOR_IN_XML_NAME;
-import static io.nop.commons.CommonErrors.ERR_SCAN_NOT_DIGIT;
-import static io.nop.commons.CommonErrors.ERR_SCAN_NOT_END_PROPERLY;
-import static io.nop.commons.CommonErrors.ERR_SCAN_NOT_HEX_CHAR;
-import static io.nop.commons.CommonErrors.ERR_SCAN_NUMBER_NOT_INT;
-import static io.nop.commons.CommonErrors.ERR_SCAN_STRING_NOT_END;
-import static io.nop.commons.CommonErrors.ERR_SCAN_TOKEN_END_EXPECTED;
-import static io.nop.commons.CommonErrors.ERR_SCAN_UNEXPECTED_CHAR;
-import static io.nop.commons.CommonErrors.ERR_SCAN_UNEXPECTED_STR;
-import static io.nop.commons.CommonErrors.ERR_SCAN_UNEXPECTED_TOKEN;
-import static io.nop.commons.CommonErrors.ERR_TEXT_ILLEGAL_HEX_STRING;
-import static io.nop.commons.CommonErrors.ERR_TEXT_NUMBER_STARTS_WITH_ZERO;
+import static io.nop.commons.CommonErrors.*;
 import static io.nop.commons.util.StringHelper.isGraphQLNamePart;
 import static io.nop.commons.util.StringHelper.isGraphQLNameStart;
 
@@ -989,14 +958,17 @@ public class TextScanner {
                 throw newError(ERR_SCAN_STRING_NOT_END).param(ARG_START_LOC, loc);
             if (cur == escapeChar) {
                 if (peek() == escapeChar) {
-                    consumer.accept(escapeChar);
+                    if (consumer != null)
+                        consumer.accept(escapeChar);
                     next();
                     next();
                     continue;
                 }
+                break;
             }
             if (consumer != null)
                 consumer.accept(cur);
+            next();
         } while (true);
     }
 

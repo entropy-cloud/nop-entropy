@@ -35,6 +35,7 @@ import io.nop.orm.id.IEntityIdGenerator;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityComponentModel;
 import io.nop.orm.model.IEntityModel;
+import io.nop.orm.model.OrmEntityFilterModel;
 import io.nop.orm.model.utils.OrmModelHelper;
 import io.nop.orm.session.IOrmSessionImplementor;
 
@@ -118,6 +119,9 @@ public class EntityPersisterImpl implements IEntityPersister {
     @Override
     public IOrmEntity newEntity(IOrmSessionImplementor session) {
         IOrmEntity entity = (IOrmEntity) constructor.newInstance();
+        entity.orm_entityModel(entityModel);
+        // 需要在attach之前设置值，否则实体会被标记为dirty
+        bindFilter(entity);
         entity.orm_attach(session);
         return entity;
     }
@@ -273,6 +277,7 @@ public class EntityPersisterImpl implements IEntityPersister {
     public void save(IOrmEntity entity, final IOrmSessionImplementor session) {
         LogicalDeleteHelper.onSave(entityModel, entity);
 
+        bindFilter(entity);
         processTenantId(entity);
         processOptimisticLockVersion(entity);
 
@@ -286,6 +291,7 @@ public class EntityPersisterImpl implements IEntityPersister {
 
     @Override
     public void update(IOrmEntity entity, final IOrmSessionImplementor session) {
+        bindFilter(entity);
         processTenantId(entity);
 
         if (entityModel.isUseRevision()) {
@@ -338,6 +344,14 @@ public class EntityPersisterImpl implements IEntityPersister {
             if (value == null) {
                 // 将版本字段初始化为0
                 entity.orm_propValue(versionProp, 0);
+            }
+        }
+    }
+
+    void bindFilter(IOrmEntity entity) {
+        if (entityModel.hasFilter()) {
+            for (OrmEntityFilterModel filter : entityModel.getFilters()) {
+                entity.orm_propValueByName(filter.getName(), filter.getValue());
             }
         }
     }
@@ -601,6 +615,7 @@ public class EntityPersisterImpl implements IEntityPersister {
     @Override
     public <T extends IOrmEntity> List<T> findPageByExample(T example, List<OrderFieldBean> orderBy, long offset,
                                                             int limit, IOrmSessionImplementor session) {
+        bindFilter(example);
         IOrmDaoListener daoListener = env.getDaoListener();
         if (daoListener != null)
             daoListener.onRead(entityModel);
@@ -613,6 +628,8 @@ public class EntityPersisterImpl implements IEntityPersister {
     @Override
     public <T extends IOrmEntity> List<T> findAllByExample(T example, List<OrderFieldBean> orderBy,
                                                            IOrmSessionImplementor session) {
+        bindFilter(example);
+
         IOrmDaoListener daoListener = env.getDaoListener();
         if (daoListener != null)
             daoListener.onRead(entityModel);
@@ -624,6 +641,8 @@ public class EntityPersisterImpl implements IEntityPersister {
 
     @Override
     public long deleteByExample(IOrmEntity example, IOrmSessionImplementor session) {
+        bindFilter(example);
+
         if (session.isEntityMode() && entityModel.isEntityModeEnabled()) {
             List<IOrmEntity> entities = findAllByExample(example, null, session);
             for (IOrmEntity entity : entities) {
@@ -643,6 +662,8 @@ public class EntityPersisterImpl implements IEntityPersister {
 
     @Override
     public IOrmEntity findFirstByExample(IOrmEntity example, IOrmSessionImplementor session) {
+        bindFilter(example);
+
         IOrmDaoListener daoListener = env.getDaoListener();
         if (daoListener != null)
             daoListener.onRead(entityModel);
@@ -654,6 +675,8 @@ public class EntityPersisterImpl implements IEntityPersister {
 
     @Override
     public long countByExample(IOrmEntity example, IOrmSessionImplementor session) {
+        bindFilter(example);
+
         IOrmDaoListener daoListener = env.getDaoListener();
         if (daoListener != null)
             daoListener.onRead(entityModel);
@@ -665,6 +688,8 @@ public class EntityPersisterImpl implements IEntityPersister {
 
     @Override
     public long updateByExample(IOrmEntity example, IOrmEntity updated, IOrmSessionImplementor session) {
+        bindFilter(example);
+
         if (session.isEntityMode() && entityModel.isEntityModeEnabled()) {
             List<IOrmEntity> entities = findAllByExample(example, null, session);
             for (IOrmEntity entity : entities) {

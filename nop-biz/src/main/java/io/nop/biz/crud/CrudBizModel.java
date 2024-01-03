@@ -45,6 +45,7 @@ import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.dao.utils.DaoHelper;
 import io.nop.fsm.execution.IStateMachine;
 import io.nop.graphql.core.GraphQLConstants;
+import io.nop.graphql.core.IBizModelImpl;
 import io.nop.orm.IOrmBatchLoadQueue;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
@@ -56,6 +57,7 @@ import io.nop.xlang.filter.BizExprHelper;
 import io.nop.xlang.filter.BizFilterEvaluator;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.IObjPropMeta;
+import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.impl.ObjKeyModel;
 import io.nop.xlang.xmeta.impl.ObjTreeModel;
 import jakarta.inject.Inject;
@@ -93,6 +95,7 @@ import static io.nop.biz.BizErrors.ARG_ID;
 import static io.nop.biz.BizErrors.ARG_KEY;
 import static io.nop.biz.BizErrors.ARG_OBJ_LABEL;
 import static io.nop.biz.BizErrors.ARG_PARAM_NAME;
+import static io.nop.biz.BizErrors.ARG_PROP_NAME;
 import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_SAVE;
 import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_UPDATE;
 import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_ALREADY_EXISTS;
@@ -103,10 +106,11 @@ import static io.nop.biz.BizErrors.ERR_BIZ_NOT_ALLOW_DELETE_PARENT_WHEN_CHILDREN
 import static io.nop.biz.BizErrors.ERR_BIZ_NO_BIZ_MODEL_ANNOTATION;
 import static io.nop.biz.BizErrors.ERR_BIZ_NO_MANDATORY_PARAM;
 import static io.nop.biz.BizErrors.ERR_BIZ_OBJ_NO_DICT_TAG;
+import static io.nop.biz.BizErrors.ERR_BIZ_PROP_NOT_MANY_TO_MANY_REF;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAX_PAGE_SIZE;
 
 @Locale("zh-CN")
-public abstract class CrudBizModel<T extends IOrmEntity> {
+public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImpl {
     static final Logger LOG = LoggerFactory.getLogger(CrudBizModel.class);
 
     private IDaoProvider daoProvider;
@@ -147,6 +151,13 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
             bizObjName = bizModel.value();
         }
         return bizObjName;
+    }
+
+    /**
+     * 如果强制指定BizObjName，则以指定的值为准
+     */
+    public void setBizObjName(String bizObjName) {
+        this.bizObjName = bizObjName;
     }
 
     public IBizObject getThisObj() {
@@ -983,6 +994,70 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         return ret;
     }
 
+    @Description("@i18n:biz.addManyToMany|新增多对多关联")
+    @BizMutation
+    public void addManyToManyRelations(@Name("id") String id, @Name("propName") String propName,
+                                       @Name("relValues") Collection<String> relValues, IServiceContext context) {
+        T entity = get(id, false, context);
+
+        ManyToManyPropMeta propMeta = requireManyToManyPropMeta(propName);
+        ManyToManyTool<?> tool = this.manyToMany(propMeta.getRelatedEntityName(), propMeta.getJoinRightProp(), propMeta.getJoinRefProp());
+        Object leftValue = entity.orm_propValueByName(propMeta.getJoinLeftProp());
+        tool.addRelations(leftValue, relValues);
+    }
+
+    @Description("@i18n:biz.removeManyToMany|删除多对多关联")
+    @BizMutation
+    public void removeManyToManyRelations(@Name("id") String id, @Name("propName") String propName,
+                                          @Name("relValues") Collection<String> relValues, IServiceContext context) {
+        T entity = get(id, false, context);
+        ManyToManyPropMeta propMeta = requireManyToManyPropMeta(propName);
+        ManyToManyTool<?> tool = this.manyToMany(propMeta.getRelatedEntityName(), propMeta.getJoinRightProp(), propMeta.getJoinRefProp());
+        Object leftValue = entity.orm_propValueByName(propMeta.getJoinLeftProp());
+        tool.removeRelations(leftValue, relValues);
+    }
+
+    @Description("@i18n:biz.updateManyToMany|更新多对多关联")
+    @BizMutation
+    public void updateManyToManyRelations(@Name("id") String id, @Name("propName") String propName,
+                                          @Name("relValues") Collection<String> relValues, IServiceContext context) {
+        T entity = get(id, false, context);
+        ManyToManyPropMeta propMeta = requireManyToManyPropMeta(propName);
+        ManyToManyTool<?> tool = this.manyToMany(propMeta.getRelatedEntityName(), propMeta.getJoinRightProp(), propMeta.getJoinRefProp());
+        Object leftValue = entity.orm_propValueByName(propMeta.getJoinLeftProp());
+        tool.updateRelations(leftValue, relValues);
+    }
+
+    protected ManyToManyPropMeta requireManyToManyPropMeta(String propName) {
+        IObjPropMeta propMeta = requirePropMeta(propName);
+        if (!BizConstants.PROP_KIND_TO_MANY.equals(propMeta.prop_get(BizConstants.EXT_KIND)))
+            throw new NopException(ERR_BIZ_PROP_NOT_MANY_TO_MANY_REF)
+                    .param(ARG_BIZ_OBJ_NAME, getBizObjName())
+                    .param(ARG_PROP_NAME, propName);
+
+        String joinLeftProp = (String) propMeta.prop_get(BizConstants.EXT_JOIN_LEFT_PROP);
+        String joinRightProp = (String) propMeta.prop_get(BizConstants.EXT_JOIN_RIGHT_PROP);
+        String joinRefProp = (String) propMeta.prop_get(BizConstants.ORM_MANY_TO_MANY_REF_PROP);
+
+        String relatedEntityName = null;
+        ISchema itemSchema = propMeta.getItemSchema();
+        if (itemSchema != null) {
+            relatedEntityName = itemSchema.getBizObjName();
+        }
+
+        if (StringHelper.isEmpty(joinLeftProp) || StringHelper.isEmpty(joinRightProp)
+                || StringHelper.isEmpty(joinRefProp) || StringHelper.isEmpty(relatedEntityName))
+            throw new NopException(ERR_BIZ_PROP_NOT_MANY_TO_MANY_REF)
+                    .param(ARG_BIZ_OBJ_NAME, getBizObjName())
+                    .param(ARG_PROP_NAME, propName);
+
+        return new ManyToManyPropMeta(propMeta, relatedEntityName, joinLeftProp, joinRightProp, joinRefProp);
+    }
+
+    protected IObjPropMeta requirePropMeta(String propName) {
+        return getThisObj().requireObjMeta().requireProp(propName);
+    }
+
     @Description("@i18n:biz.copyForNew|复制新建")
     @BizMutation
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
@@ -1022,85 +1097,55 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         return newEntity;
     }
 
-    protected <R extends IOrmEntity> void removeRelation(Class<R> relationClass,
-                                                         String leftProp, String rightProp,
-                                                         Object leftValue, Object rightValue) {
-        IEntityDao<R> dao = daoFor(relationClass);
-
-        R example = dao.newEntity();
-        example.orm_propValueByName(leftProp, leftValue);
-        example.orm_propValueByName(rightProp, rightValue);
-        R rel = dao.findFirstByExample(example);
-        if (rel != null) {
-            dao.deleteEntity(rel);
-        }
+    public <R extends IOrmEntity> ManyToManyTool<R> manyToMany(String relationEntityName, String leftProp, String rightProp) {
+        return new ManyToManyTool<R>(daoProvider(), relationEntityName, leftProp, rightProp);
     }
 
-    protected <R extends IOrmEntity> void removeRelations(Class<R> relationClass,
-                                                          String leftProp, String rightProp,
-                                                          Object leftValue, Collection<?> rightValues) {
-        IEntityDao<R> dao = daoFor(relationClass);
-
-        QueryBean query = new QueryBean();
-        query.addFilter(FilterBeans.eq(leftProp, leftValue));
-        query.addFilter(FilterBeans.in(rightProp, rightValues));
-        List<R> relations = dao.findAllByQuery(query);
-        dao.batchDeleteEntities(relations);
+    @BizAction
+    public <R extends IOrmEntity> void removeRelation(@Name("relationEntityName") String relationEntityName,
+                                                      @Name("leftProp") String leftProp,
+                                                      @Name("rightProp") String rightProp,
+                                                      @Name("leftValue") Object leftValue,
+                                                      @Name("rightValue") Object rightValue) {
+        manyToMany(relationEntityName, leftProp, rightProp).removeRelation(leftValue, rightValue);
     }
 
-    protected <R extends IOrmEntity> void addRelations(Class<R> relationClass,
-                                                       String leftProp, String rightProp,
-                                                       Object leftValue, Collection<?> rightValues) {
-        Map<String, Object> fixedProps = new HashMap<>();
-        fixedProps.put(leftProp, leftValue);
-        updateRelations(relationClass, fixedProps, null, false, rightProp, rightValues);
+    @BizAction
+    public <R extends IOrmEntity> void removeRelations(@Name("relationEntityName") String relationEntityName,
+                                                       @Name("leftProp") String leftProp,
+                                                       @Name("rightProp") String rightProp,
+                                                       @Name("leftValue") Object leftValue,
+                                                       @Name("rightValues") Collection<?> rightValues) {
+        manyToMany(relationEntityName, leftProp, rightProp).removeRelations(leftValue, rightValues);
     }
 
-    protected <R extends IOrmEntity> void updateRelations(Class<R> relationClass,
-                                                          String leftProp, String rightProp,
-                                                          Object leftValue, Collection<?> rightValues) {
-        Map<String, Object> fixedProps = new HashMap<>();
-        fixedProps.put(leftProp, leftValue);
-        updateRelations(relationClass, fixedProps, null, true, rightProp, rightValues);
+    @BizAction
+    public <R extends IOrmEntity> void addRelations(@Name("relationEntityName") String relationEntityName,
+                                                    @Name("leftProp") String leftProp,
+                                                    @Name("rightProp") String rightProp,
+                                                    @Name("leftValue") Object leftValue,
+                                                    @Name("rightValues") Collection<?> rightValues) {
+        manyToMany(relationEntityName, leftProp, rightProp).addRelations(leftValue, rightValues);
     }
 
-    protected <R extends IOrmEntity> void updateRelations(Class<R> relationClass,
-                                                          Map<String, Object> fixedProps,
-                                                          Predicate<R> filter,
-                                                          boolean deleteUnknown,
-                                                          String relProp, Collection<?> relValues) {
-        IEntityDao<R> dao = daoFor(relationClass);
+    @BizAction
+    public <R extends IOrmEntity> void updateRelations(@Name("relationEntityName") String relationEntityName,
+                                                       @Name("leftProp") String leftProp,
+                                                       @Name("rightProp") String rightProp,
+                                                       @Name("leftValue") Object leftValue,
+                                                       @Name("rightValues") Collection<?> rightValues) {
+        manyToMany(relationEntityName, leftProp, rightProp).updateRelations(leftValue, rightValues);
+    }
 
-        if (relValues == null) {
-            relValues = Collections.emptyList();
-        }
-
-        R example = dao.newEntity();
-        for (Map.Entry<String, Object> entry : fixedProps.entrySet()) {
-            example.orm_propValueByName(entry.getKey(), entry.getValue());
-        }
-
-        List<R> relations = dao.findAllByExample(example);
-        relValues = CollectionHelper.toStringList(relValues);
-
-        for (R relation : relations) {
-            if (filter != null && !filter.test(relation))
-                continue;
-
-            String relValue = ConvertHelper.toString(relation.orm_propValueByName(relProp));
-            if (!relValues.remove(relValue)) {
-                if (deleteUnknown)
-                    dao.deleteEntity(relation);
-            }
-        }
-
-        for (Object relValue : relValues) {
-            R relation = dao.newEntity();
-            for (Map.Entry<String, Object> entry : fixedProps.entrySet()) {
-                relation.orm_propValueByName(entry.getKey(), entry.getValue());
-            }
-            relation.orm_propValueByName(relProp, relValue);
-            dao.saveEntity(relation);
-        }
+    @BizAction
+    public <R extends IOrmEntity> void updateRelationsEx(@Name("relationEntityName") String relationEntityName,
+                                                         @Name("leftProp") String leftProp,
+                                                         @Name("fixedProps") Map<String, Object> fixedProps,
+                                                         @Name("filter") Predicate<R> filter,
+                                                         @Name("deleteUnknown") boolean deleteUnknown,
+                                                         @Name("rightProp") String rightProp,
+                                                         @Name("rightValues") Collection<?> relValues) {
+        ManyToManyTool<R> tool = manyToMany(relationEntityName, leftProp, rightProp);
+        tool.updateRelations(fixedProps, filter, deleteUnknown, rightProp, relValues);
     }
 }

@@ -4,17 +4,16 @@
   @allowStepLoop 是否允许步骤之间构成循环（除了backLink连接之外）。为了支持回退操作，需要所有步骤节点构成有向无环图。
   在回退连接上标记backLink=true可以忽略该循环依赖
 -->
-<workflow displayName="string" bizEntityStateProp="prop-name"
+<workflow displayName="string" bizEntityStateProp="prop-name" bizEntityFlowIdProp="prop-name"
           xdef:default-extends="/nop/core/defaults/default.wf.xml"
           priority="!int=100" allowStepLoop="!boolean=false"
-          wfName="string" wfVersion="!long=0" tagSet="csv-set"
+          wfName="string" wfVersion="!long=0" tagSet="csv-set" wfGroup="string"
           x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
           xmlns:xdef="/nop/schema/xdef.xdef"
           xdef:name="WfModel" xdef:bean-package="io.nop.wf.core.model"
 >
 
     <description xdef:value="string"/>
-
 
     <!-- start只对应唯一启动步骤， 避免多个地方都写判断。可以很方便的实现回退到初始节点 -->
     <start xdef:mandatory="true" startStepName="!string" xdef:name="WfStartModel">
@@ -47,6 +46,11 @@
     <check-action-auth xdef:value="xpl"/>
 
     <!--
+    编辑工作流定义时执行的权限验证逻辑
+    -->
+    <check-edit-auth xdef:value="xpl"/>
+
+    <!--
     对工作流执行管理操作的时候所执行的权限验证逻辑
     -->
     <check-manage-auth xdef:value="xpl"/>
@@ -65,7 +69,10 @@
 
     <undeploy xdef:value="xpl"/>
 
-    <manager-assignment xdef:ref="assignment.xdef"/>
+    <auths xdef:body-type="list" xdef:key-attr="id">
+        <auth xdef:name="WfModelAuth" id="!string" actorType="!string" actorId="!string" deptId="string"
+              allowEdit="!boolean=false" allowManage="!boolean=false" allowStart="!boolean=false"/>
+    </auths>
 
     <on-error xdef:value="xpl"/>
 
@@ -120,11 +127,12 @@
             <source xdef:value="xpl"/>
 
             <!--
-              @splitType 分支类型，and表示每个分支都执行，or表示从上至下执行，只执行第一个满足条件的迁移目标。
+              @splitType 分支类型，and表示每个分支都执行，or表示从上至下执行，只执行第一个满足条件的迁移目标。缺省为and
               @appState 设置步骤实例上的appState字段
               @wfAppState  设置工作流实例wfRecord上的appState字段
+              @onAppStates 当步骤的appState为指定值的时候才会触发transition
             -->
-            <transition splitType="enum:io.nop.wf.core.model.WfSplitType"
+            <transition splitType="enum:io.nop.wf.core.model.WfSplitType" onAppStates="csv-set"
                         appState="#string" wfAppState="#string" bizEntityState="#string"
                         xdef:name="WfTransitionModel">
 
@@ -201,19 +209,32 @@
             -->
             <on-error xdef:value="xpl"/>
 
+            <!--
+              执行source的时候如果发生异常，则可以重试
+            -->
+            <retry maxRetryCount="!int=0" retryDelay="!int=0" maxRetryDelay="!int=0"
+                   exponentialDelay="!boolean=true" xdef:name="WfRetryModel">
+                <!--
+                  上下文环境中存在$exception变量，返回false表示异常不可被恢复，不能继续重试
+                -->
+                <exception-filter xdef:value="xpl-predicate"/>
+            </retry>
+
             <source xdef:value="xpl"/>
+
+            <!--
+            如果check-complete不为空，则为异步任务，需要等待任务结束才能迁移到下一步骤
+            -->
+            <check-complete xdef:value="xpl"/>
 
             <!--
 
             -->
             <transition xdef:ref="WfTransitionModel"/>
 
-            <after-transition xdef:value="xpl"/>
+            <before-transition xdef:value="xpl"/>
 
-            <!--
-            如果check-complete不为空，则为异步任务，需要等待任务结束才能迁移到下一步骤
-            -->
-            <check-complete xdef:value="xpl"/>
+            <after-transition xdef:value="xpl"/>
 
         </step>
 
@@ -223,7 +244,7 @@
           @waitStepNames joinType=and时所需要等待的上游步骤，如果未设置则按照图的依赖关系自动分析得到。
           @passWeight 所有同意的参与者投票权重超过多少记为通过
         -->
-        <join name="!string" xdef:ref="WfStepModel" joinType="enum:io.nop.wf.core.model.WfJoinType"
+        <join name="!string" xdef:ref="WfStepModel" joinType="!enum:io.nop.wf.core.model.WfJoinType=and"
               waitStepNames="csv-set" passWeight="int" passPercent="double" xdef:name="WfJoinStepModel">
             <!--
             joinGroupExpr指定join时的分组条件。

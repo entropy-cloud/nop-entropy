@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
+
+    <site id="main">
+        <resource id="test-api-nop-wf" displayName="测试nop-wf" icon="ion:grid-outline" resourceType="TOPM"
+                  routePath="/test-api-nop-wf" component="layouts/default/index">
+            <children>
+                <resource id="WorkflowService-main" displayName="工作流服务" i18n-en:displayName="Worflow Service"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/wf/pages/WorkflowService/main.page.yaml"/>
+            </children>
+        </resource>
+    </site>
+</auth>

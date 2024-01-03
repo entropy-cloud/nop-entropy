@@ -89,7 +89,7 @@ public final class ContentType {
          *
          * CHAR = <any US-ASCII character (octets 0 - 127)>
          */
-        String token = "[\\x21-\\x7E&&[^()<>@,;:\\\\/\"\\[\\]?={}\\x20\\x09]]";
+        String token = "[\\x21-\\x7E&&[^()<>@,;:\\\\/\"\\[\\]?={}\\x20\\x09]]"; //NOSONAR
 
         /*
          * parameter = attribute "=" value
@@ -98,7 +98,7 @@ public final class ContentType {
          *
          * value = token | quoted-string
          */
-        String parameter = "(" + token + "+)=(\"?" + token + "+\"?)";
+        String parameter = "(" + token + "+)=(\"?" + token + "+\"?)"; //NOSONAR
         /*
          * Pattern for media type.
          *
@@ -125,7 +125,7 @@ public final class ContentType {
          */
 
         patternTypeSubType = Pattern.compile("^(" + token + "+)/(" + token + "+)$");
-        patternTypeSubTypeParams = Pattern.compile("^(" + token + "+)/(" + token + "+)(;" + parameter + ")*$");
+        patternTypeSubTypeParams = Pattern.compile("^(" + token + "+)/(" + token + "+)(;" + parameter + ")*$");//NOSONAR
         patternParams = Pattern.compile(";" + parameter);
     }
 

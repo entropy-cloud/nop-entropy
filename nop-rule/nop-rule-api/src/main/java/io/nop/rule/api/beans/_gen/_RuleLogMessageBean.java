@@ -1,7 +1,7 @@
 //__XGEN_FORCE_OVERRIDE__
     package io.nop.rule.api.beans._gen;
 
-    @SuppressWarnings({"PMD"})
+    @SuppressWarnings({"PMD","java:S116","java:S115"})
     public class _RuleLogMessageBean{
 
     

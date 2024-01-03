@@ -134,6 +134,10 @@ Quarkus框架内置了graphql-ui调试工具。以调试模式启动应用之后
  nop.xui.resolve-control-tag:controlTag=edit-int,prop=id,domain=null,stdDomain=null,stdDataType=int,mode=add
 ```
 
+### 2. 上传文件时提示 415 Unsupported Media Type
+这是Quarkus框架报错，可以将quarkus.log.level设置为DEBUG。
+后端服务需要引入 
+
 ## 后端
 
 ### 1. 后端的bean未按预期注入

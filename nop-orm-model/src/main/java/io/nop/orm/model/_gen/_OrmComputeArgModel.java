@@ -1,18 +1,25 @@
 package io.nop.orm.model._gen;
 
-import io.nop.commons.collections.KeyedList; //NOPMD - suppressed UnusedImports - Used for List Prop
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [97:18:0:0]/nop/schema/orm/entity.xdef <p>
+ * generate from [104:18:0:0]/nop/schema/orm/entity.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _OrmComputeArgModel extends io.nop.core.resource.component.AbstractComponentModel {
+    
+    /**
+     *  
+     * xml name: displayName
+     * 
+     */
+    private java.lang.String _displayName ;
     
     /**
      *  
@@ -27,6 +34,25 @@ public abstract class _OrmComputeArgModel extends io.nop.core.resource.component
      * 
      */
     private io.nop.core.type.IGenericType _type ;
+    
+    /**
+     * 
+     * xml name: displayName
+     *  
+     */
+    
+    public java.lang.String getDisplayName(){
+      return _displayName;
+    }
+
+    
+    public void setDisplayName(java.lang.String value){
+        checkAllowChange();
+        
+        this._displayName = value;
+           
+    }
+
     
     /**
      * 
@@ -67,6 +93,7 @@ public abstract class _OrmComputeArgModel extends io.nop.core.resource.component
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -76,9 +103,11 @@ public abstract class _OrmComputeArgModel extends io.nop.core.resource.component
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.put("displayName",this.getDisplayName());
         out.put("name",this.getName());
         out.put("type",this.getType());
     }

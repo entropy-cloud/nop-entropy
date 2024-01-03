@@ -32,6 +32,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Function;
@@ -41,6 +42,7 @@ import static io.nop.commons.CommonErrors.ARG_PATH;
 import static io.nop.commons.CommonErrors.ERR_FILE_WRITE_CONFLICT;
 import static io.nop.commons.CommonErrors.ERR_IO_COPY_DEST_NOT_DIRECTORY;
 import static io.nop.commons.CommonErrors.ERR_IO_COPY_DEST_NOT_FILE;
+import static io.nop.commons.CommonErrors.ERR_IO_CREATE_FILE_FAIL;
 
 public class FileHelper {
     static final Logger LOG = LoggerFactory.getLogger(FileHelper.class);
@@ -100,14 +102,21 @@ public class FileHelper {
     public static void assureParent(File file) {
         File parent = file.getParentFile();
         if (parent != null)
-            parent.mkdirs();
+            if (!parent.exists() && !parent.mkdirs())
+                LOG.warn("nop.io.file.make-dirs-fail:path={}", parent.getAbsolutePath());
     }
 
     public static void assureFileExists(File file) {
         assureParent(file);
         if (!file.exists()) {
             try {
-                file.createNewFile();
+                if (!file.createNewFile()) {
+                    if (!file.exists())
+                        throw new NopException(ERR_IO_CREATE_FILE_FAIL)
+                                .param(ARG_PATH, file.getAbsolutePath());
+                }
+            } catch (NopException e) {
+                throw e;
             } catch (Exception e) {
                 throw NopException.adapt(e);
             }
@@ -130,6 +139,15 @@ public class FileHelper {
 
     public static void writeText(File file, String text, String encoding) {
         writeText(file, text, encoding, false);
+    }
+
+    public static void writeTextIfNotMatch(File file, String text, String encoding) {
+        if (file.exists()) {
+            String content = readText(file, encoding);
+            if (Objects.equals(content, text))
+                return;
+        }
+        writeText(file, text, encoding);
     }
 
     public static Properties readProperties(@Nonnull File file) {
@@ -164,10 +182,7 @@ public class FileHelper {
         try {
             Files.move(srcFile.toPath(), dstFile.toPath());
             return true;
-        } catch (FileAlreadyExistsException e) {
-            LOG.debug("nop.commons.io.move-file-fail:src={},dest={}", srcFile, dstFile, e);
-            return false;
-        } catch (DirectoryNotEmptyException e) {
+        } catch (FileAlreadyExistsException | DirectoryNotEmptyException e) {
             LOG.debug("nop.commons.io.move-file-fail:src={},dest={}", srcFile, dstFile, e);
             return false;
         } catch (IOException e) {
@@ -253,12 +268,12 @@ public class FileHelper {
             if (overwrite) {
                 if (Files.isSymbolicLink(dest.toPath()) && unlinkSymlinkIfOverwrite) {
                     // unlink (a.k.a delete the symlink path)
-                    dest.delete();
+                    return dest.delete();
                 } else if (!dest.canWrite()) {
                     // if the file *isn't* "writable" (see javadoc of
                     // File.canWrite() on what that means)
                     // we delete it.
-                    dest.delete();
+                    return dest.delete();
                 } // if dest is writable, the copy will overwrite it without
                 // requiring a delete
             } else {
@@ -278,7 +293,8 @@ public class FileHelper {
                 deleteAll(sub);
             }
         }
-        file.delete();
+        if (!file.delete())
+            LOG.error("nop.file.delete-fail:file={}", file);
     }
 
     public static boolean deleteIfExists(File file) throws IOException {
@@ -329,13 +345,13 @@ public class FileHelper {
         }
         // add others permissions
         if ((mode & 0x0004) > 0) {
-            perms.add(PosixFilePermission.OTHERS_READ);
+            perms.add(PosixFilePermission.OTHERS_READ); //NOSONAR
         }
         if ((mode & 0x0002) > 0) {
-            perms.add(PosixFilePermission.OTHERS_WRITE);
+            perms.add(PosixFilePermission.OTHERS_WRITE); //NOSONAR
         }
         if ((mode & 0x0001) > 0) {
-            perms.add(PosixFilePermission.OTHERS_EXECUTE);
+            perms.add(PosixFilePermission.OTHERS_EXECUTE); //NOSONAR
         }
         return perms;
     }
@@ -350,6 +366,8 @@ public class FileHelper {
 
     public static File getAttachmentFile(Class<?> clazz, String attachmentFileName) {
         File file = getClassFile(clazz);
+        if (file == null)
+            throw new IllegalStateException("null class file");
         return new File(file.getParentFile(), attachmentFileName);
     }
 
@@ -386,7 +404,8 @@ public class FileHelper {
         if (children != null) {
             for (File child : children) {
                 if (child.getName().startsWith(prefix))
-                    child.delete();
+                    if (!child.delete())
+                        LOG.error("nop.err.file.remove-file-fail:file={}", child);
             }
         }
     }
@@ -447,6 +466,7 @@ public class FileHelper {
         try {
             Thread.sleep(time);
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             LOG.warn("sleep wrong", e);
         }
     }

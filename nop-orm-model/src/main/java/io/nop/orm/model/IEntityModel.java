@@ -33,6 +33,8 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
 
     String getDbCatalog();
 
+    String getDisplayName();
+
     default String getSimpleClassName() {
         return StringHelper.simpleClassName(getClassName());
     }
@@ -154,6 +156,10 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
 
     IEntityPropModel getProp(String propName, boolean ignoreUnknown);
 
+    default IEntityPropModel requireProp(String propName) {
+        return getProp(propName, false);
+    }
+
     Map<String, IEntityPropModel> getAllProps();
 
     /**
@@ -223,6 +229,8 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
 
     int getUpdateTimePropId();
 
+    int getNopFlowIdPropId();
+
     default IColumnModel getVersionPropModel() {
         int propId = getVersionPropId();
         if (propId <= 0)
@@ -246,6 +254,13 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
         return tenantPropId <= 0 ? null : getColumnByPropId(tenantPropId, false);
     }
 
+    default IColumnModel getNopFlowIdColumn() {
+        int flowIdPropId = getNopFlowIdPropId();
+        if (flowIdPropId <= 0)
+            return null;
+        return getColumnByPropId(flowIdPropId, false);
+    }
+
     /**
      * 关联到指定列上的引用对象
      *
@@ -253,6 +268,12 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
      * @return 外键定义中包含指定列的所有引用对象
      */
     List<? extends IEntityRelationModel> getColumnsRefs(int propId);
+
+    default boolean hasFilter() {
+        return getFilters() != null && !getFilters().isEmpty();
+    }
+
+    List<OrmEntityFilterModel> getFilters();
 
     int getNopRevTypePropId();
 

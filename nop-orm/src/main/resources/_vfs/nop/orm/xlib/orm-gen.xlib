@@ -129,7 +129,7 @@
                                     <thisLib:GenLocalExtFieldSupport
                                             entityNode="${entityNode}"
                                             genExtTable="${_dsl_root.childByTag('entities')
-                                                .childWithAttr('name',entityNode.getAttr('name')+'Ext') == null}"/>
+                                                .childByAttr('name',entityNode.getAttr('name')+'Ext') == null}"/>
                                 </when>
                                 <otherwise>
                                     <c:script>useSysExtFields = true;</c:script>
@@ -195,6 +195,9 @@
 
                 <!-- 自动生成一个扩展表配置 -->
                 <entity name="${entityNode.getAttr('name')}Ext" tableName="${entityNode.getAttr('tableName')}_ext"
+                        className="io.nop.orm.support.DynamicOrmKeyValueTable" versionProp="version"
+                        createTimeProp="createTime" createrProp="createdBy" tagSet="kv-table"
+                        updateTimeProp="updateTime" updaterProp="updatedBy" notGenCode="true"
                         displayName="扩展属性" i18n-en:displayName="Extension Fields" xpl:if="genExtTable"
                 >
                     <columns>

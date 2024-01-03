@@ -14,7 +14,7 @@ import io.nop.commons.concurrent.ratelimit.IRateLimiter;
 import java.util.List;
 
 public class RateLimitConsumer<R> implements IBatchConsumer<R, IBatchChunkContext> {
-    static final long RATE_LIMIT_TIMEOUT = 1000 * 60 * 20; // 20分钟
+    static final long RATE_LIMIT_TIMEOUT = 1000 * 60 * 20L; // 20分钟
 
     private final IBatchConsumer<R, IBatchChunkContext> consumer;
     private final IRateLimiter rateLimiter;

@@ -22,6 +22,7 @@ import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.web.GraphQLWebService;
 import io.nop.spring.core.resource.SpringResource;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.FileSystemResource;
@@ -39,7 +40,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -61,6 +61,8 @@ public class SpringGraphQLWebService extends GraphQLWebService {
     @Override
     protected Map<String, String> getParams() {
         ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attrs == null)
+            throw new IllegalStateException("null request context");
         HttpServletRequest request = attrs.getRequest();
         Map<String, String> ret = new HashMap<>();
         for (String paramName : request.getParameterMap().keySet()) {
@@ -72,6 +74,8 @@ public class SpringGraphQLWebService extends GraphQLWebService {
     @Override
     protected Map<String, Object> getHeaders() {
         ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attrs == null)
+            throw new IllegalStateException("null request context");
         HttpServletRequest request = attrs.getRequest();
         Map<String, Object> ret = new TreeMap<>();
         Enumeration<String> it = request.getHeaderNames();
@@ -108,7 +112,7 @@ public class SpringGraphQLWebService extends GraphQLWebService {
                                                               @RequestParam(value = SYS_PARAM_SELECTION, required = false) String selection,
                                                               @RequestBody(required = false) String body) {
         return runRest(null, operationName, () -> {
-            return (ApiRequest<?>) buildRequest(body, selection, true);
+            return buildRequest(body, selection, true);
         }, this::transformRestResponse);
     }
 
@@ -171,7 +175,7 @@ public class SpringGraphQLWebService extends GraphQLWebService {
         Object body;
         Object data = res.getData();
         if (data instanceof String) {
-            headers.set(ApiConstants.HEADER_CONTENT_TYPE, WebContentBean.CONTENt_TYPE_TEXT);
+            headers.set(ApiConstants.HEADER_CONTENT_TYPE, WebContentBean.CONTENT_TYPE_TEXT);
             LOG.debug("nop.graphql.response:{}", data);
             body = data;
         } else if (data instanceof WebContentBean) {

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm ext:mavenArtifactId="nop-oauth" ext:entityPackageName="io.nop.oauth.dao.entity"
+     ext:mavenGroupId="io.github.entropy-cloud" ext:basePackageName="io.nop.oauth" ext:appName="nop-oauth"
+     ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,postgresql,oracle" ext:mavenVersion="2.0.0-SNAPSHOT"
+     x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
+     xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl" xmlns:ui="ui">
+
+    <x:post-extends x:override="replace">
+        <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
+    </x:post-extends>
+
+    <entities>
+        <entity className="io.nop.oauth.dao.entity.NopOauthAuthorization" displayName="Oauth认证记录"
+                name="io.nop.oauth.dao.entity.NopOauthAuthorization" tableName="nop_oauth_authorization">
+            <columns>
+                <column code="ID" displayName="Id" mandatory="true" name="id" precision="100" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"/>
+                <column code="REGISTERED_CLIENT_ID" displayName="客户端ID" mandatory="true" name="registeredClientId"
+                        precision="100" propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="PRINCIPAL_NAME" displayName="客户端名称" mandatory="true" name="principalName" precision="200"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="AUTHORIZATION_GRANT_TYPE" displayName="授权类型" mandatory="true"
+                        name="authorizationGrantType" precision="100" propId="4" stdDataType="string"
+                        stdSqlType="VARCHAR"/>
+                <column code="AUTHORIZED_SCOPES" displayName="授权范围" name="authorizedScopes" precision="1000" propId="5"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="ATTRIBUTES" displayName="扩展属性" name="attributes" precision="65535" propId="6"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="STATE" displayName="状态码" name="state" precision="500" propId="7" stdDataType="string"
+                        stdSqlType="VARCHAR"/>
+                <column code="AUTHORIZATION_CODE_VALUE" displayName="AuthorizationCode值" name="authorizationCodeValue"
+                        precision="65535" propId="8" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="AUTHORIZATION_CODE_ISSUED_AT" displayName="AuthorizationCode发放时间"
+                        name="authorizationCodeIssuedAt" propId="9" stdDataType="timestamp" stdSqlType="TIMESTAMP"/>
+                <column code="AUTHORIZATION_CODE_EXPIRES_AT" displayName="AuthorizationCode过期使劲按"
+                        name="authorizationCodeExpiresAt" propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP"/>
+                <column code="AUTHORIZATION_CODE_METADATA" displayName="AuthorizationCode元数据"
+                        name="authorizationCodeMetadata" precision="65535" propId="11" stdDataType="string"
+                        stdSqlType="VARCHAR"/>
+                <column code="ACCESS_TOKEN_VALUE" displayName="AccessToken" name="accessTokenValue" precision="65535"
+                        propId="12" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="ACCESS_TOKEN_ISSUED_AT" displayName="AccessToken发放时间" name="accessTokenIssuedAt"
+                        propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP"/>
+                <column code="ACCESS_TOKEN_EXPIRES_AT" displayName="AccessToken过期时间" name="accessTokenExpiresAt"
+                        propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP"/>
+                <column code="ACCESS_TOKEN_METADATA" displayName="AccessToken元数据" name="accessTokenMetadata"
+                        precision="65535" propId="15" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="ACCESS_TOKEN_TYPE" displayName="AccessToken类型" name="accessTokenType" precision="100"
+                        propId="16" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="ACCESS_TOKEN_SCOPES" displayName="AccessToken权限范围" name="accessTokenScopes"
+                        precision="1000" propId="17" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="OIDC_ID_TOKEN_VALUE" displayName="OidcIdToken值" name="oidcIdTokenValue" precision="65535"
+                        propId="18" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="OIDC_ID_TOKEN_ISSUED_AT" displayName="OidcIdToken发放时间" name="oidcIdTokenIssuedAt"
+                        propId="19" stdDataType="timestamp" stdSqlType="TIMESTAMP"/>
+                <column code="OIDC_ID_TOKEN_EXPIRES_AT" displayName="OidcIdToken过期时间" name="oidcIdTokenExpiresAt"
+                        propId="20" stdDataType="timestamp" stdSqlType="TIMESTAMP"/>
+                <column code="OIDC_ID_TOKEN_METADATA" displayName="OidcIdToken元数据" name="oidcIdTokenMetadata"
+                        precision="65535" propId="21" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="REFRESH_TOKEN_VALUE" displayName="RefreshToken值" name="refreshTokenValue"
+                        precision="65535" propId="22" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="REFRESH_TOKEN_ISSUED_AT" displayName="RefreshToken发放时间" name="refreshTokenIssuedAt"
+                        propId="23" stdDataType="timestamp" stdSqlType="TIMESTAMP"/>
+                <column code="REFRESH_TOKEN_EXPIRES_AT" displayName="RefreshToken过期时间" name="refreshTokenExpiresAt"
+                        propId="24" stdDataType="timestamp" stdSqlType="TIMESTAMP"/>
+                <column code="REFRESH_TOKEN_METADATA" displayName="RefreshToken元数据" name="refreshTokenMetadata"
+                        precision="65535" propId="25" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="USER_CODE_VALUE" displayName="UserCode值" name="userCodeValue" precision="65535"
+                        propId="26" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="USER_CODE_ISSUED_AT" displayName="UserCode发放时间" name="userCodeIssuedAt" propId="27"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP"/>
+                <column code="USER_CODE_EXPIRES_AT" displayName="UserCode过期时间" name="userCodeExpiresAt" propId="28"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP"/>
+                <column code="USER_CODE_METADATA" displayName="UserCode元数据" name="userCodeMetadata" precision="65535"
+                        propId="29" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="DEVICE_CODE_VALUE" displayName="DeviceCode值" name="deviceCodeValue" precision="65535"
+                        propId="30" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="DEVICE_CODE_ISSUED_AT" displayName="DeviceCode发放时间" name="deviceCodeIssuedAt" propId="31"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP"/>
+                <column code="DEVICE_CODE_EXPIRES_AT" displayName="DeviceCode过期时间" name="deviceCodeExpiresAt"
+                        propId="32" stdDataType="timestamp" stdSqlType="TIMESTAMP"/>
+                <column code="DEVICE_CODE_METADATA" displayName="DeviceCode元数据" name="deviceCodeMetadata"
+                        precision="65535" propId="33" stdDataType="string" stdSqlType="VARCHAR"/>
+            </columns>
+        </entity>
+        <entity className="io.nop.oauth.dao.entity.NopOauthAuthorizationConsent" displayName="Oauth许可"
+                name="io.nop.oauth.dao.entity.NopOauthAuthorizationConsent" tableName="nop_oauth_authorization_consent">
+            <columns>
+                <column code="REGISTERED_CLIENT_ID" displayName="注册客户端ID" mandatory="true" name="registeredClientId"
+                        precision="100" primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="PRINCIPAL_NAME" displayName="客户端名称" mandatory="true" name="principalName" precision="200"
+                        primary="true" propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="AUTHORITIES" displayName="扩展属性" mandatory="true" name="authorities" precision="1000"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR"/>
+            </columns>
+        </entity>
+        <entity className="io.nop.oauth.dao.entity.NopOauthRegisteredClient" displayName="Oauth注册客户端"
+                name="io.nop.oauth.dao.entity.NopOauthRegisteredClient" tableName="nop_oauth_registered_client">
+            <columns>
+                <column code="ID" displayName="Id" mandatory="true" name="id" precision="100" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"/>
+                <column code="CLIENT_ID" displayName="客户端ID" mandatory="true" name="clientId" precision="100" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="CLIENT_ID_ISSUED_AT" displayName="客户端ID发放时间" mandatory="true" name="clientIdIssuedAt"
+                        propId="3" stdDataType="timestamp" stdSqlType="TIMESTAMP"/>
+                <column code="CLIENT_SECRET" displayName="客户端密码" name="clientSecret" precision="200" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="CLIENT_SECRET_EXPIRES_AT" displayName="客户端密码过期时间" name="clientSecretExpiresAt" propId="5"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP"/>
+                <column code="CLIENT_NAME" displayName="客户端名称" mandatory="true" name="clientName" precision="200"
+                        propId="6" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="CLIENT_AUTHENTICATION_METHODS" displayName="客户端授权方法" mandatory="true"
+                        name="clientAuthenticationMethods" precision="1000" propId="7" stdDataType="string"
+                        stdSqlType="VARCHAR"/>
+                <column code="AUTHORIZATION_GRANT_TYPES" displayName="客户端认证类型" mandatory="true"
+                        name="authorizationGrantTypes" precision="1000" propId="8" stdDataType="string"
+                        stdSqlType="VARCHAR"/>
+                <column code="REDIRECT_URIS" displayName="重定向URI" name="redirectUris" precision="1000" propId="9"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="POST_LOGOUT_REDIRECT_URIS" displayName="Logout重定向URI" name="postLogoutRedirectUris"
+                        precision="1000" propId="10" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="SCOPES" displayName="授权范围" mandatory="true" name="scopes" precision="1000" propId="11"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="CLIENT_SETTINGS" displayName="客户端设置" mandatory="true" name="clientSettings"
+                        precision="2000" propId="12" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="TOKEN_SETTINGS" displayName="Token设置" mandatory="true" name="tokenSettings"
+                        precision="2000" propId="13" stdDataType="string" stdSqlType="VARCHAR"/>
+            </columns>
+        </entity>
+    </entities>
+</orm>

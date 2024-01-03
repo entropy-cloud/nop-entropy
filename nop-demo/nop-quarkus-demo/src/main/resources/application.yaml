@@ -33,21 +33,21 @@ nop:
     #    jdbc-url: jdbc:h2:./db/test
     #    username: sa
     #    password:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    jdbc-url: jdbc:mysql://127.0.0.1:3306/dev?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC
-    username: nop
-    password: nop-test
-    #driver-class-name: org.h2.Driver
-    #jdbc-url: jdbc:h2:./db/test
-    #username: sa
-    #password:
+    # driver-class-name: com.mysql.cj.jdbc.Driver
+    # jdbc-url: jdbc:mysql://127.0.0.1:3306/dev?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC
+    # username: nop
+    # password: nop-test
+    driver-class-name: org.h2.Driver
+    jdbc-url: jdbc:h2:./db/test
+    username: sa
+    password:
 
   gateway:
     http-filter:
       enabled: true
 
   file:
-    #store-impl: oss
+  #store-impl: oss
 
   integration:
     oss:
@@ -61,12 +61,13 @@ nop:
 "%dev":
   nop:
     debug: true
-   # log:
-   #   level: trace
+    # log:
+    #   level: trace
 
     auth:
       login:
         allow-create-default-user: true # 如果用户表为空，则自动创建缺省账户nop, 密码nop-test
+
     datasource:
       driver-class-name: org.h2.Driver
       jdbc-url: jdbc:h2:./db/test
@@ -75,6 +76,7 @@ nop:
 
     web:
       validate-page-model: true
+      auto-load-dynamic-file: false
 
     orm:
       init-database-schema: true
@@ -100,6 +102,7 @@ quarkus:
 
 
   http:
+    host: 0.0.0.0
     cors: true
 
   log:
@@ -111,14 +114,14 @@ quarkus:
 
     category:
       "io.nop":
-        level: trace
+        level: DEBUG
 
     file:
       enable: false
       path: log/app-demo.log
-#      # 输出格式
-#      format: %d{yyyy-MM-dd HH:mm:ss,SSS} %h %N[%i] %-5p [%c{3.}] (%t) %s%e%n
-#      # Indicates whether to log asynchronously
+      #      # 输出格式
+      #      format: %d{yyyy-MM-dd HH:mm:ss,SSS} %h %N[%i] %-5p [%c{3.}] (%t) %s%e%n
+      #      # Indicates whether to log asynchronously
       async: true
       rotation:
         max-file-size: 100M

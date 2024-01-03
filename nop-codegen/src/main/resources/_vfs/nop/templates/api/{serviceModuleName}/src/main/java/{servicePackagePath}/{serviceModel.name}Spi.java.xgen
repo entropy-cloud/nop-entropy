@@ -29,14 +29,14 @@
      /**
       * ${method.displayName} ${method.description}
       */
-     ${method.simpleResponseMessage} ${method.name}(${method.simpleRequestMessage} request,
+     ${method.simpleResponseMessage} ${method.name}(${method.voidRequest ? '': method.simpleRequestMessage + ' request,'}
             FieldSelectionBean selection, IServiceContext ctx);
             ]]></when>
             <otherwise><![CDATA[
      /**
       * ${method.displayName} ${method.description}
       */
-     CompletionStage<${normalizeReturnType(method.simpleResponseMessage)}> ${method.name}Async(${method.simpleRequestMessage} request,
+     CompletionStage<${normalizeReturnType(method.simpleResponseMessage)}> ${method.name}Async(${method.voidRequest ? '': method.simpleRequestMessage + ' request,'}
             FieldSelectionBean selection, IServiceContext ctx);
             ]]></otherwise>
         </c:choose>

@@ -183,7 +183,7 @@ o.manager_id in (select user.id from User user, Dept dept
 
 ### 复杂查询条件的构造
 
-直接调用后台的GraphQL服务或者REST服务时，无法使用filter过滤字段约定，必须构造完整的QueryBean对象。
+直接调用后台的GraphQL服务或者REST服务时，可以构造QueryBean对象。
 
 ````
 POST /r/NopAuthUser__findPage

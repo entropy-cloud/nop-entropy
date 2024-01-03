@@ -21,10 +21,6 @@
         <!-- 编译时的编码 -->
         <maven.compiler.encoding>UTF-8</maven.compiler.encoding>
 
-        <spring-boot.version>2.7.15</spring-boot.version>
-        <spring-cloud.version>2022.0.4</spring-cloud.version>
-        <spring-cloud-alibaba.version>2021.0.4.0</spring-cloud-alibaba.version>
-
         <compiler-plugin.version>3.11.0</compiler-plugin.version>
         <quarkus.platform.version>3.4.1</quarkus.platform.version>
         <surefire-plugin.version>3.1.2</surefire-plugin.version>
@@ -40,17 +36,21 @@
         <!--        <graalvm.version>21.3.5</graalvm.version>-->
         <!--        <jackson.version>2.10.2</jackson.version>-->
         <janino.version>3.1.9</janino.version>
-        <junit-jupiter.version>5.7.0</junit-jupiter.version>
+        <!--        <junit-jupiter.version>5.7.0</junit-jupiter.version>-->
 
         <pulsar.version>2.8.0</pulsar.version>
 
-        <lettuce.version>6.1.4.RELEASE</lettuce.version>
+        <!--        <lettuce.version>6.1.4.RELEASE</lettuce.version>-->
 
-<!--        <h2.version>2.1.210</h2.version>-->
-        <nacos.version>1.4.4</nacos.version>
-        <testcontainers.version>1.16.3</testcontainers.version>
+        <!--        <h2.version>2.1.210</h2.version>-->
+        <nacos.version>2.3.0</nacos.version>
+        <!--        <testcontainers.version>1.16.3</testcontainers.version>-->
 
-        <poi.version>5.2.2</poi.version>
+        <spring-boot.version>3.2.0</spring-boot.version>
+        <spring-cloud.version>2023.0.0</spring-cloud.version>
+
+        <tablesaw.version>0.43.1</tablesaw.version>
+        <!--        <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>-->
     </properties>
 
     <dependencyManagement>
@@ -67,25 +67,57 @@
             </dependency>
 
             <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>logback-classic</artifactId>
-                <version>1.4.9</version>
+                <groupId>com.graphql-java</groupId>
+                <artifactId>java-dataloader</artifactId>
+                <version>3.2.2</version>
             </dependency>
 
             <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>logback-core</artifactId>
-                <version>1.4.9</version>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>ch.qos.logback</groupId>
+                        <artifactId>logback-core</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>ch.qos.logback</groupId>
+                        <artifactId>logback-classic</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
+
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!--            <dependency>-->
+            <!--                <groupId>ch.qos.logback</groupId>-->
+            <!--                <artifactId>logback-classic</artifactId>-->
+            <!--                <version>1.4.9</version>-->
+            <!--            </dependency>-->
+
+            <!--            <dependency>-->
+            <!--                <groupId>ch.qos.logback</groupId>-->
+            <!--                <artifactId>logback-core</artifactId>-->
+            <!--                <version>1.4.9</version>-->
+            <!--            </dependency>-->
 
             <!--
            依赖冲突: 短路径优先；先声明优先
             -->
-<!--            <dependency>-->
-<!--                <groupId>org.slf4j</groupId>-->
-<!--                <artifactId>slf4j-api</artifactId>-->
-<!--                <version>2.0.6</version>-->
-<!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>org.slf4j</groupId>-->
+            <!--                <artifactId>slf4j-api</artifactId>-->
+            <!--                <version>2.0.6</version>-->
+            <!--            </dependency>-->
 
             <dependency>
                 <groupId>com.vdurmont</groupId>
@@ -93,17 +125,17 @@
                 <version>3.1.0</version>
             </dependency>
 
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-lang3</artifactId>
-                <version>3.8.1</version>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>org.apache.commons</groupId>-->
+            <!--                <artifactId>commons-lang3</artifactId>-->
+            <!--                <version>3.8.1</version>-->
+            <!--            </dependency>-->
 
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-collections4</artifactId>
-                <version>4.2</version>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>org.apache.commons</groupId>-->
+            <!--                <artifactId>commons-collections4</artifactId>-->
+            <!--                <version>4.2</version>-->
+            <!--            </dependency>-->
 
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -111,47 +143,47 @@
                 <version>1.8</version>
             </dependency>
 
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-text</artifactId>
-                <version>1.10</version>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>org.apache.commons</groupId>-->
+            <!--                <artifactId>commons-text</artifactId>-->
+            <!--                <version>1.10</version>-->
+            <!--            </dependency>-->
 
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>1.20</version>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>org.apache.commons</groupId>-->
+            <!--                <artifactId>commons-compress</artifactId>-->
+            <!--                <version>1.20</version>-->
+            <!--            </dependency>-->
 
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-vfs2</artifactId>
-                <version>2.6.0</version>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>org.apache.commons</groupId>-->
+            <!--                <artifactId>commons-vfs2</artifactId>-->
+            <!--                <version>2.6.0</version>-->
+            <!--            </dependency>-->
 
-            <dependency>
-                <groupId>commons-io</groupId>
-                <artifactId>commons-io</artifactId>
-                <version>2.7</version>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>commons-io</groupId>-->
+            <!--                <artifactId>commons-io</artifactId>-->
+            <!--                <version>2.7</version>-->
+            <!--            </dependency>-->
 
-            <dependency>
-                <groupId>commons-codec</groupId>
-                <artifactId>commons-codec</artifactId>
-                <version>1.14</version>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>commons-codec</groupId>-->
+            <!--                <artifactId>commons-codec</artifactId>-->
+            <!--                <version>1.14</version>-->
+            <!--            </dependency>-->
 
-<!--            <dependency>-->
-<!--                <groupId>com.google.guava</groupId>-->
-<!--                <artifactId>guava</artifactId>-->
-<!--                <version>25.1-jre</version>-->
-<!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>com.google.guava</groupId>-->
+            <!--                <artifactId>guava</artifactId>-->
+            <!--                <version>25.1-jre</version>-->
+            <!--            </dependency>-->
 
-            <dependency>
-                <groupId>io.lettuce</groupId>
-                <artifactId>lettuce-core</artifactId>
-                <version>${lettuce.version}</version>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>io.lettuce</groupId>-->
+            <!--                <artifactId>lettuce-core</artifactId>-->
+            <!--                <version>${lettuce.version}</version>-->
+            <!--            </dependency>-->
 
             <!--            <dependency>-->
             <!--                <groupId>io.netty</groupId>-->
@@ -415,7 +447,7 @@
             <dependency>
                 <groupId>io.jsonwebtoken</groupId>
                 <artifactId>jjwt-impl</artifactId>
-                <version>0.11.5</version>
+                <version>0.12.3</version>
             </dependency>
 
             <dependency>
@@ -436,12 +468,12 @@
                 <version>${antlr.version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>org.junit.jupiter</groupId>
-                <artifactId>junit-jupiter</artifactId>
-                <version>${junit-jupiter.version}</version>
-                <scope>test</scope>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>org.junit.jupiter</groupId>-->
+            <!--                <artifactId>junit-jupiter</artifactId>-->
+            <!--                <version>${junit-jupiter.version}</version>-->
+            <!--                <scope>test</scope>-->
+            <!--            </dependency>-->
 
             <dependency>
                 <groupId>org.geolatte</groupId>
@@ -501,11 +533,11 @@
                 <version>${pulsar.version}</version>
             </dependency>
 
-<!--            <dependency>-->
-<!--                <groupId>com.h2database</groupId>-->
-<!--                <artifactId>h2</artifactId>-->
-<!--                <version>${h2.version}</version>-->
-<!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>com.h2database</groupId>-->
+            <!--                <artifactId>h2</artifactId>-->
+            <!--                <version>${h2.version}</version>-->
+            <!--            </dependency>-->
 
             <dependency>
                 <groupId>com.oracle.ojdbc</groupId>
@@ -514,94 +546,94 @@
             </dependency>
 
 
-            <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>testcontainers</artifactId>
-                <version>${testcontainers.version}</version>
-                <scope>test</scope>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>org.testcontainers</groupId>-->
+            <!--                <artifactId>testcontainers</artifactId>-->
+            <!--                <version>${testcontainers.version}</version>-->
+            <!--                <scope>test</scope>-->
+            <!--            </dependency>-->
 
-            <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>junit-jupiter</artifactId>
-                <version>${testcontainers.version}</version>
-                <scope>test</scope>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>org.testcontainers</groupId>-->
+            <!--                <artifactId>junit-jupiter</artifactId>-->
+            <!--                <version>${testcontainers.version}</version>-->
+            <!--                <scope>test</scope>-->
+            <!--            </dependency>-->
 
-            <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>jdbc</artifactId>
-                <version>${testcontainers.version}</version>
-                <scope>test</scope>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>org.testcontainers</groupId>-->
+            <!--                <artifactId>jdbc</artifactId>-->
+            <!--                <version>${testcontainers.version}</version>-->
+            <!--                <scope>test</scope>-->
+            <!--            </dependency>-->
 
-            <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>mysql</artifactId>
-                <version>${testcontainers.version}</version>
-                <scope>test</scope>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>org.testcontainers</groupId>-->
+            <!--                <artifactId>mysql</artifactId>-->
+            <!--                <version>${testcontainers.version}</version>-->
+            <!--                <scope>test</scope>-->
+            <!--            </dependency>-->
 
-            <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>oracle-xe</artifactId>
-                <version>${testcontainers.version}</version>
-                <scope>test</scope>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>org.testcontainers</groupId>-->
+            <!--                <artifactId>oracle-xe</artifactId>-->
+            <!--                <version>${testcontainers.version}</version>-->
+            <!--                <scope>test</scope>-->
+            <!--            </dependency>-->
 
-            <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>postgresql</artifactId>
-                <version>${testcontainers.version}</version>
-                <scope>test</scope>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>org.testcontainers</groupId>-->
+            <!--                <artifactId>postgresql</artifactId>-->
+            <!--                <version>${testcontainers.version}</version>-->
+            <!--                <scope>test</scope>-->
+            <!--            </dependency>-->
 
-            <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>mariadb</artifactId>
-                <version>${testcontainers.version}</version>
-                <scope>test</scope>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>org.testcontainers</groupId>-->
+            <!--                <artifactId>mariadb</artifactId>-->
+            <!--                <version>${testcontainers.version}</version>-->
+            <!--                <scope>test</scope>-->
+            <!--            </dependency>-->
 
-            <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>mssqlserver</artifactId>
-                <version>${testcontainers.version}</version>
-                <scope>test</scope>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>org.testcontainers</groupId>-->
+            <!--                <artifactId>mssqlserver</artifactId>-->
+            <!--                <version>${testcontainers.version}</version>-->
+            <!--                <scope>test</scope>-->
+            <!--            </dependency>-->
 
-            <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>db2</artifactId>
-                <version>${testcontainers.version}</version>
-                <scope>test</scope>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>org.testcontainers</groupId>-->
+            <!--                <artifactId>db2</artifactId>-->
+            <!--                <version>${testcontainers.version}</version>-->
+            <!--                <scope>test</scope>-->
+            <!--            </dependency>-->
 
-            <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>pulsar</artifactId>
-                <version>${testcontainers.version}</version>
-                <scope>test</scope>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>org.testcontainers</groupId>-->
+            <!--                <artifactId>pulsar</artifactId>-->
+            <!--                <version>${testcontainers.version}</version>-->
+            <!--                <scope>test</scope>-->
+            <!--            </dependency>-->
 
-            <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>elasticsearch</artifactId>
-                <version>${testcontainers.version}</version>
-                <scope>test</scope>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>org.testcontainers</groupId>-->
+            <!--                <artifactId>elasticsearch</artifactId>-->
+            <!--                <version>${testcontainers.version}</version>-->
+            <!--                <scope>test</scope>-->
+            <!--            </dependency>-->
 
-            <dependency>
-                <groupId>org.commonmark</groupId>
-                <artifactId>commonmark</artifactId>
-                <version>0.18.2</version>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>org.commonmark</groupId>-->
+            <!--                <artifactId>commonmark</artifactId>-->
+            <!--                <version>0.18.2</version>-->
+            <!--            </dependency>-->
 
-            <dependency>
-                <groupId>tech.allegro.schema.json2avro</groupId>
-                <artifactId>converter</artifactId>
-                <version>0.2.13</version>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>tech.allegro.schema.json2avro</groupId>-->
+            <!--                <artifactId>converter</artifactId>-->
+            <!--                <version>0.2.13</version>-->
+            <!--            </dependency>-->
 
             <dependency>
                 <groupId>com.jayway.jsonpath</groupId>
@@ -610,31 +642,16 @@
             </dependency>
 
             <dependency>
-                <groupId>com.graphql-java</groupId>
-                <artifactId>java-dataloader</artifactId>
-                <version>3.1.4</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-dependencies</artifactId>
-                <version>${spring-cloud.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>${spring-boot.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
+                <groupId>com.alibaba.nacos</groupId>
+                <artifactId>nacos-client</artifactId>
+                <version>${nacos.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>com.alibaba.nacos</groupId>
                 <artifactId>nacos-client</artifactId>
                 <version>${nacos.version}</version>
+                <classifier>pure</classifier>
             </dependency>
 
             <dependency>
@@ -650,39 +667,10 @@
             </dependency>
 
             <dependency>
-                <groupId>org.apache.poi</groupId>
-                <artifactId>poi</artifactId>
-                <version>${poi.version}</version>
-            </dependency>
-
-            <dependency>
                 <groupId>com.zaxxer</groupId>
                 <artifactId>SparseBitSet</artifactId>
                 <version>1.2</version>
             </dependency>
-
-            <!--            <dependency>-->
-            <!--                <groupId>com.alibaba.cloud</groupId>-->
-            <!--                <artifactId>spring-cloud-alibaba-dependencies</artifactId>-->
-            <!--                <version>${spring-cloud-alibaba.version}</version>-->
-            <!--                <type>pom</type>-->
-            <!--                <scope>import</scope>-->
-            <!--            </dependency>-->
-
-            <!--            <dependency>-->
-            <!--                <groupId>io.vertx</groupId>-->
-            <!--                <artifactId>vertx-stack-depchain</artifactId>-->
-            <!--                <version>${vertx.version}</version>-->
-            <!--                <type>pom</type>-->
-            <!--                <scope>import</scope>-->
-            <!--            </dependency>-->
-
-            <!--            <dependency>-->
-            <!--                <groupId>org.graalvm.nativeimage</groupId>-->
-            <!--                <artifactId>svm</artifactId>-->
-            <!--                <version>22.1.0</version>-->
-            <!--                <scope>provided</scope>-->
-            <!--            </dependency>-->
 
             <dependency>
                 <groupId>org.keycloak</groupId>
@@ -708,11 +696,11 @@
                 <version>1.8.6</version>
             </dependency>
 
-            <dependency>
-                <groupId>org.mybatis.spring.boot</groupId>
-                <artifactId>mybatis-spring-boot-starter</artifactId>
-                <version>2.3.1</version>
-            </dependency>
+            <!--            <dependency>-->
+            <!--                <groupId>org.mybatis.spring.boot</groupId>-->
+            <!--                <artifactId>mybatis-spring-boot-starter</artifactId>-->
+            <!--                <version>2.3.1</version>-->
+            <!--            </dependency>-->
 
             <dependency>
                 <groupId>com.amazonaws</groupId>
@@ -731,6 +719,48 @@
                 <groupId>org.apache.pdfbox</groupId>
                 <artifactId>pdfbox</artifactId>
                 <version>3.0.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>tech.tablesaw</groupId>
+                <artifactId>tablesaw-core</artifactId>
+                <version>${tablesaw.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>tech.tablesaw</groupId>
+                <artifactId>tablesaw-aggregate</artifactId>
+                <version>${tablesaw.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>tech.tablesaw</groupId>
+                <artifactId>tablesaw-json</artifactId>
+                <version>${tablesaw.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>tech.tablesaw</groupId>
+                <artifactId>tablesaw-jsplot</artifactId>
+                <version>${tablesaw.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>tech.tablesaw</groupId>
+                <artifactId>tablesaw-saw</artifactId>
+                <version>${tablesaw.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>tech.tablesaw</groupId>
+                <artifactId>tablesaw-html</artifactId>
+                <version>${tablesaw.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>tech.tablesaw</groupId>
+                <artifactId>tablesaw-beakerx</artifactId>
+                <version>${tablesaw.version}</version>
             </dependency>
 
         </dependencies>

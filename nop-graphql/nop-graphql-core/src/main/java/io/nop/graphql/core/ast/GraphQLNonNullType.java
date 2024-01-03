@@ -36,6 +36,11 @@ public class GraphQLNonNullType extends _GraphQLNonNullType {
         return getType().getScalarType();
     }
 
+    @Override
+    public boolean needFieldSelection() {
+        return getType().needFieldSelection();
+    }
+
     public boolean isObjectType() {
         return getType().isObjectType();
     }

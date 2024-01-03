@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopOauthAuthorization" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="gql">
+
+    <objMeta>/nop/oauth/model/NopOauthAuthorization/NopOauthAuthorization.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--Id-->
+                <col id="id" mandatory="true" sortable="true"/>
+
+                <!--客户端ID-->
+                <col id="registeredClientId" mandatory="true" sortable="true"/>
+
+                <!--客户端名称-->
+                <col id="principalName" mandatory="true" sortable="true"/>
+
+                <!--授权类型-->
+                <col id="authorizationGrantType" mandatory="true" sortable="true"/>
+
+                <!--授权范围-->
+                <col id="authorizedScopes" sortable="true"/>
+
+                <!--扩展属性-->
+                <col id="attributes" sortable="true"/>
+
+                <!--状态码-->
+                <col id="state" sortable="true"/>
+
+                <!--AuthorizationCode值-->
+                <col id="authorizationCodeValue" sortable="true"/>
+
+                <!--AuthorizationCode发放时间-->
+                <col id="authorizationCodeIssuedAt" sortable="true"/>
+
+                <!--AuthorizationCode过期使劲按-->
+                <col id="authorizationCodeExpiresAt" sortable="true"/>
+
+                <!--AuthorizationCode元数据-->
+                <col id="authorizationCodeMetadata" sortable="true"/>
+
+                <!--AccessToken-->
+                <col id="accessTokenValue" sortable="true"/>
+
+                <!--AccessToken发放时间-->
+                <col id="accessTokenIssuedAt" sortable="true"/>
+
+                <!--AccessToken过期时间-->
+                <col id="accessTokenExpiresAt" sortable="true"/>
+
+                <!--AccessToken元数据-->
+                <col id="accessTokenMetadata" sortable="true"/>
+
+                <!--AccessToken类型-->
+                <col id="accessTokenType" sortable="true"/>
+
+                <!--AccessToken权限范围-->
+                <col id="accessTokenScopes" sortable="true"/>
+
+                <!--OidcIdToken值-->
+                <col id="oidcIdTokenValue" sortable="true"/>
+
+                <!--OidcIdToken发放时间-->
+                <col id="oidcIdTokenIssuedAt" sortable="true"/>
+
+                <!--OidcIdToken过期时间-->
+                <col id="oidcIdTokenExpiresAt" sortable="true"/>
+
+                <!--OidcIdToken元数据-->
+                <col id="oidcIdTokenMetadata" sortable="true"/>
+
+                <!--RefreshToken值-->
+                <col id="refreshTokenValue" sortable="true"/>
+
+                <!--RefreshToken发放时间-->
+                <col id="refreshTokenIssuedAt" sortable="true"/>
+
+                <!--RefreshToken过期时间-->
+                <col id="refreshTokenExpiresAt" sortable="true"/>
+
+                <!--RefreshToken元数据-->
+                <col id="refreshTokenMetadata" sortable="true"/>
+
+                <!--UserCode值-->
+                <col id="userCodeValue" sortable="true"/>
+
+                <!--UserCode发放时间-->
+                <col id="userCodeIssuedAt" sortable="true"/>
+
+                <!--UserCode过期时间-->
+                <col id="userCodeExpiresAt" sortable="true"/>
+
+                <!--UserCode元数据-->
+                <col id="userCodeMetadata" sortable="true"/>
+
+                <!--DeviceCode值-->
+                <col id="deviceCodeValue" sortable="true"/>
+
+                <!--DeviceCode发放时间-->
+                <col id="deviceCodeIssuedAt" sortable="true"/>
+
+                <!--DeviceCode过期时间-->
+                <col id="deviceCodeExpiresAt" sortable="true"/>
+
+                <!--DeviceCode元数据-->
+                <col id="deviceCodeMetadata" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-Oauth认证记录" i18n-en:title="View ">
+            <layout>
+ id[Id] registeredClientId[客户端ID]
+ principalName[客户端名称] authorizationGrantType[授权类型]
+ authorizedScopes[授权范围] attributes[扩展属性]
+ state[状态码] authorizationCodeValue[AuthorizationCode值]
+ authorizationCodeIssuedAt[AuthorizationCode发放时间] authorizationCodeExpiresAt[AuthorizationCode过期使劲按]
+ authorizationCodeMetadata[AuthorizationCode元数据] accessTokenValue[AccessToken]
+ accessTokenIssuedAt[AccessToken发放时间] accessTokenExpiresAt[AccessToken过期时间]
+ accessTokenMetadata[AccessToken元数据] accessTokenType[AccessToken类型]
+ accessTokenScopes[AccessToken权限范围] oidcIdTokenValue[OidcIdToken值]
+ oidcIdTokenIssuedAt[OidcIdToken发放时间] oidcIdTokenExpiresAt[OidcIdToken过期时间]
+ oidcIdTokenMetadata[OidcIdToken元数据] refreshTokenValue[RefreshToken值]
+ refreshTokenIssuedAt[RefreshToken发放时间] refreshTokenExpiresAt[RefreshToken过期时间]
+ refreshTokenMetadata[RefreshToken元数据] userCodeValue[UserCode值]
+ userCodeIssuedAt[UserCode发放时间] userCodeExpiresAt[UserCode过期时间]
+ userCodeMetadata[UserCode元数据] deviceCodeValue[DeviceCode值]
+ deviceCodeIssuedAt[DeviceCode发放时间] deviceCodeExpiresAt[DeviceCode过期时间]
+ deviceCodeMetadata[DeviceCode元数据] 
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-Oauth认证记录" i18n-en:title="Add " x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-Oauth认证记录" i18n-en:title="Edit ">
+            <layout>
+ id[Id] registeredClientId[客户端ID]
+ principalName[客户端名称] authorizationGrantType[授权类型]
+ authorizedScopes[授权范围] attributes[扩展属性]
+ state[状态码] authorizationCodeValue[AuthorizationCode值]
+ authorizationCodeIssuedAt[AuthorizationCode发放时间] authorizationCodeExpiresAt[AuthorizationCode过期使劲按]
+ authorizationCodeMetadata[AuthorizationCode元数据] accessTokenValue[AccessToken]
+ accessTokenIssuedAt[AccessToken发放时间] accessTokenExpiresAt[AccessToken过期时间]
+ accessTokenMetadata[AccessToken元数据] accessTokenType[AccessToken类型]
+ accessTokenScopes[AccessToken权限范围] oidcIdTokenValue[OidcIdToken值]
+ oidcIdTokenIssuedAt[OidcIdToken发放时间] oidcIdTokenExpiresAt[OidcIdToken过期时间]
+ oidcIdTokenMetadata[OidcIdToken元数据] refreshTokenValue[RefreshToken值]
+ refreshTokenIssuedAt[RefreshToken发放时间] refreshTokenExpiresAt[RefreshToken过期时间]
+ refreshTokenMetadata[RefreshToken元数据] userCodeValue[UserCode值]
+ userCodeIssuedAt[UserCode发放时间] userCodeExpiresAt[UserCode过期时间]
+ userCodeMetadata[UserCode元数据] deviceCodeValue[DeviceCode值]
+ deviceCodeIssuedAt[DeviceCode发放时间] deviceCodeExpiresAt[DeviceCode过期时间]
+ deviceCodeMetadata[DeviceCode元数据] 
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
+            <layout/>
+        </form>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
+            <layout/>
+        </form>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-Oauth认证记录" i18n-en:title="Update ">
+            <layout/>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopOauthAuthorization__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopOauthAuthorization__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopOauthAuthorization__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                        <api url="@mutation:NopOauthAuthorization__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table>
+                <api url="@query:NopOauthAuthorization__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopOauthAuthorization__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopOauthAuthorization__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopOauthAuthorization__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopOauthAuthorization__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

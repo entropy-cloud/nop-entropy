@@ -473,6 +473,21 @@
         ]
       },
       {
+        "name": "forPrecompile2",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "forProjectTpl",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
         "name": "getTargetPath",
         "parameterTypes": [
           "java.lang.String"
@@ -509,6 +524,14 @@
       },
       {
         "name": "runPrecompile",
+        "parameterTypes": [
+          "java.io.File",
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "runPrecompile2",
         "parameterTypes": [
           "java.io.File",
           "java.lang.String",
@@ -4532,6 +4555,12 @@
         ]
       },
       {
+        "name": "checkValidRelativeName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "copy",
         "parameterTypes": [
           "io.nop.core.resource.IFile",
@@ -4587,6 +4616,13 @@
         "parameterTypes": [
           "io.nop.core.resource.IFile",
           "io.nop.api.core.util.progress.IProgressListener"
+        ]
+      },
+      {
+        "name": "dumpResource",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "java.lang.String"
         ]
       },
       {
@@ -8628,6 +8664,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getDisplayMode",
+        "parameterTypes": []
+      },
+      {
         "name": "getDisplayName",
         "parameterTypes": []
       },
@@ -8647,6 +8687,10 @@
       },
       {
         "name": "getFields",
+        "parameterTypes": []
+      },
+      {
+        "name": "getGroupField",
         "parameterTypes": []
       },
       {
@@ -8746,6 +8790,12 @@
         ]
       },
       {
+        "name": "setDisplayMode",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setDisplayName",
         "parameterTypes": [
           "java.lang.String"
@@ -8767,6 +8817,12 @@
         "name": "setFields",
         "parameterTypes": [
           "java.util.List"
+        ]
+      },
+      {
+        "name": "setGroupField",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -9044,6 +9100,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getDisplayMode",
+        "parameterTypes": []
+      },
+      {
         "name": "getField",
         "parameterTypes": []
       },
@@ -9147,6 +9207,12 @@
       },
       {
         "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDisplayMode",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -9660,6 +9726,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getFilters",
+        "parameterTypes": []
+      },
+      {
         "name": "getIdProp",
         "parameterTypes": []
       },
@@ -9673,6 +9743,10 @@
       },
       {
         "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getNopFlowIdPropId",
         "parameterTypes": []
       },
       {
@@ -10186,6 +10260,10 @@
       },
       {
         "name": "getMinimumLazyLoadProps",
+        "parameterTypes": []
+      },
+      {
+        "name": "getNopFlowIdPropId",
         "parameterTypes": []
       },
       {
@@ -11055,6 +11133,12 @@
         ]
       },
       {
+        "name": "addFilter",
+        "parameterTypes": [
+          "io.nop.orm.model.OrmEntityFilterModel"
+        ]
+      },
+      {
         "name": "addIndex",
         "parameterTypes": [
           "io.nop.orm.model.OrmIndexModel"
@@ -11160,6 +11244,16 @@
       },
       {
         "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFilter",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getFilters",
         "parameterTypes": []
       },
       {
@@ -11289,6 +11383,16 @@
         "parameterTypes": []
       },
       {
+        "name": "hasFilter",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasFilters",
+        "parameterTypes": []
+      },
+      {
         "name": "hasIndex",
         "parameterTypes": [
           "java.lang.String"
@@ -11384,6 +11488,10 @@
       },
       {
         "name": "keySet_computes",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_filters",
         "parameterTypes": []
       },
       {
@@ -11504,6 +11612,12 @@
         "name": "setEntityModeEnabled",
         "parameterTypes": [
           "boolean"
+        ]
+      },
+      {
+        "name": "setFilters",
+        "parameterTypes": [
+          "java.util.List"
         ]
       },
       {
@@ -12964,12 +13078,40 @@
         ]
       },
       {
+        "name": "childCell",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.report.core.engine.IXptRuntime"
+        ]
+      },
+      {
+        "name": "childSet",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.report.core.engine.IXptRuntime"
+        ]
+      },
+      {
+        "name": "childValue",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.report.core.engine.IXptRuntime"
+        ]
+      },
+      {
         "name": "cloneInstance",
         "parameterTypes": []
       },
       {
         "name": "colChildSet",
         "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "cv",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
           "java.lang.String"
         ]
       },

@@ -11,10 +11,7 @@ import io.nop.commons.collections.IterableIterator;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.model.tree.ITreeChildrenAdapter;
 
-import java.util.ArrayDeque;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.List;
+import java.util.*;
 import java.util.function.Predicate;
 
 public class DepthFirstIterator<T> implements IterableIterator<T> {
@@ -58,12 +55,15 @@ public class DepthFirstIterator<T> implements IterableIterator<T> {
 
     @Override
     public T next() {
+        if (!hasNext())
+            throw new NoSuchElementException();
+
         T ret = peek;
         peek = _next();
         return ret;
     }
 
-    T _next() {
+    private T _next() {
         T o = deque.pollFirst();
         if (o == null)
             return null;
@@ -77,10 +77,5 @@ public class DepthFirstIterator<T> implements IterableIterator<T> {
             }
         }
         return o;
-    }
-
-    @Override
-    public void remove() {
-        throw new UnsupportedOperationException("remove");
     }
 }

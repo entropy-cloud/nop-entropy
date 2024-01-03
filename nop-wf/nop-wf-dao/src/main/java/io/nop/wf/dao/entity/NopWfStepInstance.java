@@ -57,6 +57,17 @@ public class NopWfStepInstance extends _NopWfStepInstance implements IWorkflowSt
     }
 
     @Override
+    public void setAssigner(IWfActor assigner) {
+        if(assigner != null){
+            setAssignerId(assigner.getActorId());
+            setAssignerName(assigner.getActorName());
+        }else{
+            setAssignerId(null);
+            setAssignerName(null);
+        }
+    }
+
+    @Override
     public void setSubWfRef(WfReference wfRef) {
         if (wfRef != null) {
             setSubWfId(wfRef.getWfId());
@@ -87,15 +98,6 @@ public class NopWfStepInstance extends _NopWfStepInstance implements IWorkflowSt
         nextLink.setNextStepId(nextStepId);
         getNextLinks().add(nextLink);
         return nextLink;
-    }
-
-    public NopWfStepInstanceLink addPrevStepLink(String prevStepId) {
-        NopWfStepInstanceLink prevLink = new NopWfStepInstanceLink();
-        prevLink.setWfId(getWfId());
-        prevLink.setStepId(prevStepId);
-        prevLink.setNextStepId(getStepId());
-        getPrevLinks().add(prevLink);
-        return prevLink;
     }
 
     @Override

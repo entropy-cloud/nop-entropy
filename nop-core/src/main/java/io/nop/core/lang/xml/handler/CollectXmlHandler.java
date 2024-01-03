@@ -211,9 +211,10 @@ public class CollectXmlHandler extends XNodeHandlerAdapter {
             for (Map.Entry<String, ValueWithLocation> entry : attrs.entrySet()) {
                 String name = entry.getKey();
                 String value = ConvertHelper.toString(entry.getValue().getValue());
-                if (value != null) {
-                    value = StringHelper.escapeXmlAttr(value);
-                }
+                if (value == null)
+                    continue;
+
+                value = StringHelper.escapeXmlAttr(value);
 
                 if (indent) {
                     int n = name.length() + 4 + value.length();
@@ -280,7 +281,7 @@ public class CollectXmlHandler extends XNodeHandlerAdapter {
                 s = StringHelper.replace(s, "]]>", "]]]]><![CDATA[>");
                 out.append(s);
                 out.append("]]>");
-            }else if(value instanceof RawText){
+            } else if (value instanceof RawText) {
                 out.append(((RawText) value).getText());
             } else {
                 String s = value.toString();

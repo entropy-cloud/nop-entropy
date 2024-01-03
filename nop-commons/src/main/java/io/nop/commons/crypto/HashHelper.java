@@ -57,6 +57,13 @@ public class HashHelper {
 
    // private static final ThreadLocal<Mac> HMAC_SHA_256 = createThreadLocalMac("HmacSHA256");
 
+    public static void clear(){
+        MD5_DIGEST.remove();
+        SHA_1_DIGEST.remove();
+        SHA_256_DIGEST.remove();
+        SHA_512_DIGEST.remove();
+    }
+
     /**
      * 对输入字符串进行sha1散列，带salt达到更高的安全性.
      */

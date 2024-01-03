@@ -29,15 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
-import static io.nop.orm.OrmErrors.ARG_FUNC_NAME;
-import static io.nop.orm.OrmErrors.ARG_OWNER;
-import static io.nop.orm.OrmErrors.ARG_PROP_PATH;
-import static io.nop.orm.OrmErrors.ERR_ORM_INVALID_ENTITY_NAME;
-import static io.nop.orm.OrmErrors.ERR_ORM_INVALID_FIELD_NAME;
-import static io.nop.orm.OrmErrors.ERR_ORM_INVALID_FUNC_NAME;
-import static io.nop.orm.OrmErrors.ERR_ORM_INVALID_OWNER_NAME;
-import static io.nop.orm.OrmErrors.ERR_ORM_QUERY_EXAMPLE_PROP_NOT_INITED;
+import static io.nop.orm.OrmErrors.*;
 
 /**
  * 提供根据Query信息拼接SQL语句的帮助函数
@@ -113,6 +105,9 @@ public class DaoQueryHelper {
     }
 
     public static SQL.SqlBuilder queryToSelectFieldsSql(QueryBean query, String delFlagProp) {
+        if (query == null)
+            throw new IllegalArgumentException("null query");
+
         SQL.SqlBuilder sb = newSQL(query);
         sb.select();
 

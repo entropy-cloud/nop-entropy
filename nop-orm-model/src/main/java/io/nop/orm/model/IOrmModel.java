@@ -9,6 +9,7 @@ package io.nop.orm.model;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.model.graph.TopoEntry;
+import io.nop.core.reflect.hook.IPropGetMissingHook;
 
 import java.util.Collection;
 import java.util.List;
@@ -21,7 +22,7 @@ import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_COLLECTION_NAME;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_ENTITY_MODEL_FOR_TABLE;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_ENTITY_NAME;
 
-public interface IOrmModel {
+public interface IOrmModel extends IPropGetMissingHook {
     /**
      * 是否有实体启用了tenant支持
      */

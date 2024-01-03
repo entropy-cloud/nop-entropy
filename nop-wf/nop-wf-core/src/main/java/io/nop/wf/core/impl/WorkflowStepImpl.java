@@ -7,10 +7,12 @@
  */
 package io.nop.wf.core.impl;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.model.graph.dag.DagNode;
 import io.nop.wf.api.actor.IWfActor;
+import io.nop.wf.api.actor.WfActorAndOwner;
 import io.nop.wf.core.IWorkflowStep;
 import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.WorkflowTransitionTarget;
@@ -27,6 +29,17 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTOR_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTOR_TYPE;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_CALLER_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_OWNER_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_NAME;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_NAME;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_VERSION;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_CALL_ACTION_BY_USER;
 
 public class WorkflowStepImpl implements IWorkflowStepImplementor {
     private final IWorkflowImplementor wf;
@@ -114,6 +127,14 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
     }
 
     @Override
+    public IWorkflowStep transferToActor(WfActorAndOwner actorAndOwner, IServiceContext ctx) {
+        return wf.executeNow(() -> {
+            IWorkflowStepImplementor step = wf.getEngine().transferToActor(this, actorAndOwner, ctx);
+            return step;
+        });
+    }
+
+    @Override
     public WfAssignmentActorModel getActorModel(String actorModelId) {
         WfAssignmentModel assignment = ((WfStepModel) model).getAssignment();
         if (assignment == null)
@@ -155,10 +176,16 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
     }
 
     @Override
-    public void triggerTransition(Map<String, Object> args, IServiceContext ctx) {
-        wf.executeNow(() -> {
-            wf.getEngine().triggerTransition(this, args, ctx);
-            return null;
+    public boolean triggerTransition(Map<String, Object> args, IServiceContext ctx) {
+        return wf.executeNow(() -> {
+            return wf.getEngine().triggerTransition(this, args, ctx);
+        });
+    }
+
+    @Override
+    public boolean triggerWaiting(Map<String, Object> args, IServiceContext ctx) {
+        return wf.executeNow(() -> {
+            return wf.getEngine().triggerWaiting(this, args, ctx);
         });
     }
 
@@ -170,6 +197,11 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
         });
     }
 
+    @Override
+    public boolean allowCallByUser(IServiceContext ctx) {
+        return wf.getEngine().allowCallByUser(this, ctx);
+    }
+
     @Nonnull
     @Override
     public List<? extends IWorkflowActionModel> getAllowedActions(IServiceContext ctx) {
@@ -178,6 +210,18 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
 
     @Override
     public Object invokeAction(String actionName, Map<String, Object> args, IServiceContext ctx) {
+        if (!allowCallByUser(ctx))
+            throw new NopException(ERR_WF_NOT_ALLOW_CALL_ACTION_BY_USER)
+                    .param(ARG_WF_NAME, getWfName())
+                    .param(ARG_WF_VERSION, getWfVersion())
+                    .param(ARG_WF_ID, getWfId())
+                    .param(ARG_STEP_NAME, getStepName())
+                    .param(ARG_STEP_ID, getStepId())
+                    .param(ARG_OWNER_ID, getRecord().getOwnerId())
+                    .param(ARG_CALLER_ID, ctx.getUserId())
+                    .param(ARG_ACTOR_TYPE, getRecord().getActorType())
+                    .param(ARG_ACTOR_ID, getRecord().getActorId());
+
         return wf.executeNow(() -> {
             return wf.getEngine().invokeAction(this, actionName, args, ctx);
         });
@@ -193,6 +237,14 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
     public void transitTo(String stepName, Map<String, Object> args, IServiceContext ctx) {
         wf.executeNow(() -> {
             wf.getEngine().transitTo(this, stepName, args, ctx);
+            return null;
+        });
+    }
+
+    @Override
+    public void exitStep(int status, Map<String, Object> args, IServiceContext ctx) {
+        wf.executeNow(() -> {
+            wf.getEngine().exitStep(this, status, args, ctx);
             return null;
         });
     }

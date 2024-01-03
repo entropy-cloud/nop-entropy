@@ -9,17 +9,28 @@ package io.nop.auth.core.jwt;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.Locator;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.SigningKeyResolver;
+import io.jsonwebtoken.impl.DefaultJwtBuilder;
+import io.jsonwebtoken.impl.DefaultJwtParserBuilder;
+import io.jsonwebtoken.io.DeserializationException;
+import io.jsonwebtoken.io.Deserializer;
+import io.jsonwebtoken.io.SerializationException;
+import io.jsonwebtoken.io.Serializer;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.auth.api.AuthApiConstants;
 import io.nop.auth.core.login.AuthToken;
+import io.nop.commons.util.IoHelper;
 import io.nop.core.lang.json.JsonTool;
 
+import java.io.OutputStream;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
@@ -33,14 +44,9 @@ public class JwtHelper {
     public static final String ALG_HMAC_SHA256 = SignatureAlgorithm.HS256.getValue();
 
     public static AuthToken parseToken(Key key, String token) {
-        return parseToken(token, new SigningKeyResolver() {
+        return parseToken(token, new Locator<Key>() {
             @Override
-            public Key resolveSigningKey(JwsHeader header, Claims claims) {
-                return key;
-            }
-
-            @Override
-            public Key resolveSigningKey(JwsHeader header, String plaintext) {
+            public Key locate(Header header) {
                 return key;
             }
         });
@@ -59,12 +65,25 @@ public class JwtHelper {
         return new AuthToken(token, subject, userName, sessionId, expireAt, seconds, claims);
     }
 
-    public static AuthToken parseToken(String token, SigningKeyResolver resolver) {
+    public static AuthToken parseToken(String token, Locator<Key> keyLocator) {
         try {
-            Jws<Claims> jwt = Jwts.parserBuilder().setSigningKeyResolver(resolver)
-                    .deserializeJsonWith(
-                            bytes -> (Map<String, ?>) JsonTool.parse(new String(bytes, StandardCharsets.UTF_8)))
-                    .build().parseClaimsJws(token);
+            Jws<Claims> jwt = new DefaultJwtParserBuilder().keyLocator(keyLocator)
+                    .deserializeJsonWith(new Deserializer<Map<String, ?>>() {
+                        @Override
+                        public Map<String, ?> deserialize(byte[] bytes) throws DeserializationException {
+                            return (Map<String, ?>) JsonTool.parse(new String(bytes, StandardCharsets.UTF_8));
+                        }
+
+                        @Override
+                        public Map<String, ?> deserialize(Reader reader) throws DeserializationException {
+                            try {
+                                String str = IoHelper.readText(reader);
+                                return (Map<String, ?>) JsonTool.parse(str);
+                            } catch (Exception e) {
+                                throw new DeserializationException("deserialize-fail", e);
+                            }
+                        }
+                    }).build().parseClaimsJws(token);
 
             Claims claims = jwt.getBody();
             return toAuthToken(token, claims);
@@ -79,9 +98,22 @@ public class JwtHelper {
         long begin = CoreMetrics.currentTimeMillis();
         Map<String, Object> claims = new HashMap<>();
         claims.put(AuthApiConstants.JWT_CLAIMS_USERNAME, userName);
-        return Jwts.builder().addClaims(claims).setId(sessionId).setSubject(subject).setIssuedAt(new Date(begin)).signWith(key)
+        return new DefaultJwtBuilder().addClaims(claims).setId(sessionId).setSubject(subject).setIssuedAt(new Date(begin)).signWith(key)
                 .setExpiration(new Date(begin + expireSeconds * 1000L))
-                .serializeToJsonWith(stringMap -> JsonTool.stringify(stringMap).getBytes(StandardCharsets.UTF_8))
-                .compact();
+                .serializeToJsonWith(new Serializer<>() {
+                    @Override
+                    public byte[] serialize(Map<String, ?> stringMap) throws SerializationException {
+                        return JsonTool.stringify(stringMap).getBytes(StandardCharsets.UTF_8);
+                    }
+
+                    @Override
+                    public void serialize(Map<String, ?> stringMap, OutputStream out) throws SerializationException {
+                        try {
+                            out.write(serialize(stringMap));
+                        } catch (Exception e) {
+                            throw new SerializationException("serialize-fail", e);
+                        }
+                    }
+                }).compact();
     }
 }
