@@ -161,7 +161,7 @@ public class HashHelper {
     }
 
     public static IHash64Function<String> murmur3_64_string() {
-        HashFunction h = Hashing.murmur3_32();
+        HashFunction h = Hashing.murmur3_128();
         return str -> {
             return h.hashString(str, StringHelper.CHARSET_UTF8).asLong();
         };

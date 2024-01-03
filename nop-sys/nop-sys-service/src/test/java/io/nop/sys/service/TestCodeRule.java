@@ -16,10 +16,11 @@ import io.nop.dao.coderule.ICodeRuleGenerator;
 import io.nop.sys.dao.entity.NopSysCodeRule;
 import io.nop.sys.dao.entity.NopSysNoticeTemplate;
 import io.nop.xlang.api.XLang;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
-import jakarta.inject.Inject;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -51,6 +52,7 @@ public class TestCodeRule extends JunitBaseTestCase {
         entity.setName("abc");
         scope.setLocalValue("entity", entity);
         String code = codeRuleGenerator.generate("test", scope);
-        assertEquals("D2023abc001", code);
+        int year = LocalDate.now().getYear();
+        assertEquals("D" + year + "abc001", code);
     }
 }
