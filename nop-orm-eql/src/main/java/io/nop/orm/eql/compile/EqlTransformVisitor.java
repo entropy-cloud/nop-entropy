@@ -403,8 +403,16 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             tableScope.addTable(source.getAliasName(), source);
         } else if (table instanceof SqlJoinTableSource) {
             SqlJoinTableSource source = (SqlJoinTableSource) table;
+            boolean hasCondition = source.getCondition() != null;
             visitJoinLeft(tableScope, source);
             visitJoinRight(tableScope, source);
+
+            if (hasCondition) {
+                SqlTableScope oldScope = currentScope;
+                currentScope = tableScope;
+                visitJoinCondition(source);
+                currentScope = oldScope;
+            }
         }
     }
 
@@ -480,6 +488,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         if (right instanceof SqlSingleTableSource) {
             SqlSingleTableSource table = (SqlSingleTableSource) right;
             table.setAlias(makeTableAlias(table.getAlias()));
+
+            tableScope.addTable(table.getAliasName(), table);
 
             SqlTableName tableName = table.getTableName();
             String fullName = tableName.getFullName();
@@ -737,7 +747,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             col.setResolvedExprMeta(source.getResolvedTableMeta().getFieldExprMeta(propModel.getName()));
             SqlQualifiedName name = new SqlQualifiedName();
             name.setName(source.getAliasName());
-            col.setOwner(new SqlQualifiedName());
+            col.setOwner(name);
             return col;
         } else {
             if (value instanceof Number) {

@@ -19,7 +19,7 @@
     <entities>
         <entity name="io.nop.app.SimsClassFee" x:override="remove"/>
 
-        <entity name="io.nop.app.SimsClass">
+        <entity name="io.nop.app.SimsClass" registerShortName="true">
             <columns>
                 <column name="collegeId" propId="100" lazy="true"/>
                 <column name="jsonExt" code="JSON_EXT" propId="101" tagSet="json" stdSqlType="JSON"
@@ -49,7 +49,7 @@
             </relations>
         </entity>
 
-        <entity name="io.nop.app.SimsCollege">
+        <entity name="io.nop.app.SimsCollege" registerShortName="true">
             <relations>
                 <to-many name="ext" refEntityName="io.nop.app.SimsExtField" keyProp="fieldName" notGenCode="true">
                     <join>

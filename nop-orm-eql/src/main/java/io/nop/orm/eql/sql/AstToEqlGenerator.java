@@ -563,6 +563,8 @@ public class AstToEqlGenerator extends EqlASTVisitor {
     public void visitSqlJoinTableSource(SqlJoinTableSource node) {
         visit(node.getLeft());
         print(" ");
+        incIndent();
+        println();
         print(node.getJoinType().getText());
         print(" ");
         visit(node.getRight());
@@ -570,6 +572,7 @@ public class AstToEqlGenerator extends EqlASTVisitor {
             print(" on ");
             visit(node.getCondition());
         }
+        decIndent();
     }
 
     @Override
@@ -674,9 +677,10 @@ public class AstToEqlGenerator extends EqlASTVisitor {
     public void visitSqlIsNullExpr(SqlIsNullExpr node) {
         printLeft(node.getExpr(), SqlOperator.IS);
         if (node.getNot()) {
-            print(" not");
+            print(" is not null ");
+        }else {
+            print(" is null ");
         }
-        print(" is null ");
     }
 
     @Override
