@@ -17,3 +17,5 @@
 *.xpl text eol=lf
 *.md text eol=lf
 *.csv text eol=lf
+*.js text eol=lf
+*.xjs text eol=lf
