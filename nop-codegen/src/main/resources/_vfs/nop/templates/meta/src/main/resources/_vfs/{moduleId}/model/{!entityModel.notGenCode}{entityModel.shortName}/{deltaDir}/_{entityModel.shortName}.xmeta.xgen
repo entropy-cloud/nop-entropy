@@ -69,6 +69,7 @@
                   insertable="${xpl('meta-gen:IsColInsertable',col)}" updatable="${xpl('meta-gen:IsColUpdatable',col)}"
                   internal="${xpl('meta-gen:IsColInternal',col)||null}"
                   graphql:jsonComponentProp="${jsonCol? col.name + 'Component' : null}"
+                  graphql:type="${col.primary and col.stdDataType.toString() == 'long' ? 'String':null}"
                   ui:show="${col['ui:show']}" ui:control="${col['ui:control'] || buildColControl(col)}"
                   biz:codeRule="${col?.tagSet?.contains('code')?entityModel.shortName+'@'+col.name:null}"
                   ext:relation="${col.columnRefs?.[0]?.name}" defaultValue="${col.defaultValue}"
