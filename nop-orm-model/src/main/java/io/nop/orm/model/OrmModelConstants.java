@@ -76,6 +76,8 @@ public interface OrmModelConstants {
     String EXT_BASE_PACKAGE_NAME = "ext:basePackageName";
     String EXT_MAVEN_GROUP_ID = "ext:mavenGroupId";
 
+    String EXT_MODULE_NAME = "ext:moduleName";
+
     String EXT_APP_NAME = "ext:appName";
 
     String EXT_MAVEN_ARTIFACT_ID = "ext:mavenArtifactId";

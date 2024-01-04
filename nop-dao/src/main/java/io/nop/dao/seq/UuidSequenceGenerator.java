@@ -15,7 +15,7 @@ public class UuidSequenceGenerator implements ISequenceGenerator {
 
     @Override
     public long generateLong(String seqName, boolean useDefault) {
-        return MathHelper.secureRandom().nextLong();
+        return MathHelper.randomPositiveLong();
     }
 
     @Override

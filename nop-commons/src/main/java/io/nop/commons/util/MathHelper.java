@@ -50,8 +50,14 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Objects;
 
-import static io.nop.api.core.convert.ConvertHelper.*;
-import static io.nop.commons.CommonErrors.*;
+import static io.nop.api.core.convert.ConvertHelper.toBigDecimal;
+import static io.nop.api.core.convert.ConvertHelper.toBigInteger;
+import static io.nop.api.core.convert.ConvertHelper.toDouble;
+import static io.nop.api.core.convert.ConvertHelper.toInt;
+import static io.nop.api.core.convert.ConvertHelper.toLong;
+import static io.nop.commons.CommonErrors.ARG_V1;
+import static io.nop.commons.CommonErrors.ARG_V2;
+import static io.nop.commons.CommonErrors.ERR_MATH_NOT_COMPARABLE;
 import static io.nop.commons.util.StringHelper.isEmptyObject;
 
 /**
@@ -1445,5 +1451,14 @@ public class MathHelper {
         in = (in ^ (in >>> 27)) * 0x94d049bb133111ebL;
         in = in ^ (in >>> 31);
         return (int) in;
+    }
+
+    public static long randomPositiveLong() {
+        for (int i = 0; i < 1000; i++) {
+            long value = Math.abs(secureRandom().nextLong());
+            if (value != 0)
+                return value;
+        }
+        throw new IllegalStateException("nop.err.generate-random-long-fail");
     }
 }

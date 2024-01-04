@@ -61,6 +61,8 @@ public interface OrmConstants {
      */
     String TAG_SEQ = "seq";
 
+    String TAG_SEQ_DEFAULT = "seq-default";
+
     /**
      * 标记字段的值会被赋予随机值，在autotest录制中需要被替换为@var:varName形式
      */

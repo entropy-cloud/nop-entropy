@@ -39,23 +39,29 @@ public class OrmEntityIdGenerator implements IEntityIdGenerator {
         for (IColumnModel col : entityModel.getPkColumns()) {
             if (col.getPropId() == entityModel.getTenantPropId()) {
                 initTenantId(col, entity);
+            } else if (col.containsTag(OrmConstants.TAG_SEQ_DEFAULT)) {
+                genSeq(entity, col, true);
             } else if (col.containsTag(OrmConstants.TAG_SEQ)) {
-                Object value = OrmEntityHelper.getPropValue(col, entity);
-                if (value == null) {
-                    String key = OrmModelHelper.buildEntityPropKey(col);
-                    if (col.getStdDataType().isNumericType()) {
-                        value = sequenceGenerator.generateLong(key, false);
-                    } else {
-                        value = sequenceGenerator.generateString(key, false);
-                    }
-                    OrmEntityHelper.setPropValue(col, entity, value);
-                }
+                genSeq(entity, col, false);
             } else {
                 Object value = OrmEntityHelper.getPropValue(col, entity);
                 if (value == null)
                     throw new OrmException(ERR_ORM_ENTITY_ID_NOT_SET).param(ARG_ENTITY_NAME, entityModel.getName())
                             .param(ARG_PROP_NAME, col.getName());
             }
+        }
+    }
+
+    void genSeq(IOrmEntity entity, IColumnModel col, boolean useDefault) {
+        Object value = OrmEntityHelper.getPropValue(col, entity);
+        if (value == null) {
+            String key = OrmModelHelper.buildEntityPropKey(col);
+            if (col.getStdDataType().isNumericType()) {
+                value = sequenceGenerator.generateLong(key, useDefault);
+            } else {
+                value = sequenceGenerator.generateString(key, useDefault);
+            }
+            OrmEntityHelper.setPropValue(col, entity, value);
         }
     }
 

@@ -173,7 +173,7 @@ public class SysSequenceGenerator implements ISequenceGenerator {
                 return snowflakeGenerator.generateLong(seqName, useDefault);
             }
             if (item.useUuid)
-                return MathHelper.secureRandom().nextLong();
+                return MathHelper.randomPositiveLong();
 
             if (item.cacheSize > 0 && item.usedCount < item.cacheSize) {
                 long value = item.nextValue;
