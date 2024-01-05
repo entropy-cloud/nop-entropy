@@ -104,6 +104,7 @@ prop:
       storeType: Store Type
       storeType_label: null
       tagSet: Tag Set
+      isExternal: Is External
       status: Status
       status_label: null
       extConfig: Ext Config
@@ -161,9 +162,10 @@ prop:
       displayName: Display Name
       functionType: Function Type
       functionType_label: null
-      argsMeta: ARGS_META
-      argsMeta_label: null
+      funcMeta: Function Meta
+      funcMeta_label: null
       returnType: Return Type
+      returnGqlType: Return GraphQL Type
       tagSet: Tag Set
       source: Source
       status: Status
@@ -176,7 +178,7 @@ prop:
       remark: Remark
       entityMeta: Module
       entityMeta.entityName: Module
-      argsMetaComponent: null
+      funcMetaComponent: null
       sourceComponent: null
     NopDynModule:
       moduleId: Module ID

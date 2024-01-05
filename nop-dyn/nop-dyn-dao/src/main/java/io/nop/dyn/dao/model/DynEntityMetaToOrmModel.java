@@ -85,7 +85,10 @@ public class DynEntityMetaToOrmModel {
     }
 
     List<OrmEntityModel> toOrmEntityModels(Collection<NopDynEntityMeta> entityMetas) {
-        return entityMetas.stream().map(this::toOrmEntityModel).collect(Collectors.toList());
+        // 如果不是外部表，也没有属性，则不需要生成对应的实体定义
+        return entityMetas.stream().filter(entityMeta -> {
+            return entityMeta.isHasProp() || Boolean.TRUE.equals(entityMeta.getIsExternal());
+        }).map(this::toOrmEntityModel).collect(Collectors.toList());
     }
 
     OrmEntityModel toOrmEntityModel(NopDynEntityMeta entityMeta) {

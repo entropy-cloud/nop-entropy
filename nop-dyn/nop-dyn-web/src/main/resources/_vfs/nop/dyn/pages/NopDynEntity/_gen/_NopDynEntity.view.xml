@@ -17,7 +17,7 @@
                 <col id="nopObjType" mandatory="true" sortable="true"/>
 
                 <!--名称-->
-                <col id="name" mandatory="true" sortable="true"/>
+                <col id="name" sortable="true"/>
 
                 <!--显示名称-->
                 <col id="displayName" sortable="true"/>

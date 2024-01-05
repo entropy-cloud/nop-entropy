@@ -5,9 +5,10 @@
   "displayName": "",
   "functionType": "",
   "functionType_label": "",
-  "argsMeta": "",
-  "argsMeta_label": "",
+  "funcMeta": "",
+  "funcMeta_label": "",
   "returnType": "",
+  "returnGqlType": "",
   "tagSet": "",
   "source": "",
   "status": 0,
@@ -20,6 +21,6 @@
   "remark": "",
   "entityMeta": null,
   "entityMeta.entityName": "",
-  "argsMetaComponent": null,
+  "funcMetaComponent": null,
   "sourceComponent": null
 }

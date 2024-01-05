@@ -86,8 +86,9 @@ CREATE TABLE nop_dyn_function_meta(
   NAME VARCHAR2(50) NOT NULL ,
   DISPLAY_NAME VARCHAR2(100) NOT NULL ,
   FUNCTION_TYPE VARCHAR2(10) NOT NULL ,
-  ARGS_META VARCHAR2(4000) NOT NULL ,
+  FUNC_META VARCHAR2(4000)  ,
   RETURN_TYPE VARCHAR2(100)  ,
+  RETURN_GQL_TYPE VARCHAR2(100)  ,
   TAG_SET VARCHAR2(200)  ,
   SOURCE VARCHAR2(4000)  ,
   STATUS INTEGER NOT NULL ,
@@ -103,7 +104,7 @@ CREATE TABLE nop_dyn_function_meta(
 CREATE TABLE nop_dyn_entity(
   SID VARCHAR2(32) NOT NULL ,
   NOP_OBJ_TYPE VARCHAR2(100) NOT NULL ,
-  NAME VARCHAR2(100) NOT NULL ,
+  NAME VARCHAR2(100)  ,
   DISPLAY_NAME VARCHAR2(500)  ,
   SORT_ORDER INTEGER  ,
   NOP_FLOW_ID VARCHAR2(32)  ,
@@ -191,6 +192,7 @@ CREATE TABLE nop_dyn_entity_meta(
   QUERY_SPACE VARCHAR2(100)  ,
   STORE_TYPE INTEGER NOT NULL ,
   TAG_SET VARCHAR2(200)  ,
+  IS_EXTERNAL CHAR(1) NOT NULL ,
   STATUS INTEGER NOT NULL ,
   EXT_CONFIG VARCHAR2(1000)  ,
   VERSION INTEGER NOT NULL ,
@@ -370,9 +372,11 @@ CREATE TABLE nop_dyn_module(
                     
       COMMENT ON COLUMN nop_dyn_function_meta.FUNCTION_TYPE IS '函数类型';
                     
-      COMMENT ON COLUMN nop_dyn_function_meta.ARGS_META IS '参数定义';
+      COMMENT ON COLUMN nop_dyn_function_meta.FUNC_META IS '函数元数据';
                     
       COMMENT ON COLUMN nop_dyn_function_meta.RETURN_TYPE IS '返回类型';
+                    
+      COMMENT ON COLUMN nop_dyn_function_meta.RETURN_GQL_TYPE IS 'GraphQL返回类型';
                     
       COMMENT ON COLUMN nop_dyn_function_meta.TAG_SET IS '标签';
                     
@@ -549,6 +553,8 @@ CREATE TABLE nop_dyn_module(
       COMMENT ON COLUMN nop_dyn_entity_meta.STORE_TYPE IS '存储类型';
                     
       COMMENT ON COLUMN nop_dyn_entity_meta.TAG_SET IS '标签';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_meta.IS_EXTERNAL IS '是否外部实体';
                     
       COMMENT ON COLUMN nop_dyn_entity_meta.STATUS IS '状态';
                     

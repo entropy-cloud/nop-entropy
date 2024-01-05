@@ -53,6 +53,10 @@
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
+        <prop name="isExternal" displayName="是否外部实体" i18n-en:displayName="Is External" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
         <prop name="status" displayName="状态" i18n-en:displayName="Status" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer" dict="core/active-status"/>

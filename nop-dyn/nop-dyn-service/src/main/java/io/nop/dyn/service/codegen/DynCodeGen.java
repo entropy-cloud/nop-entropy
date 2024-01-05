@@ -3,7 +3,6 @@ package io.nop.dyn.service.codegen;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.orm.SingleSession;
 import io.nop.biz.api.IBizObjectManager;
-import io.nop.codegen.CodeGenConstants;
 import io.nop.codegen.XCodeGenerator;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.module.ModuleManager;
@@ -108,7 +107,11 @@ public class DynCodeGen {
         DynEntityMetaToOrmModel trans = new DynEntityMetaToOrmModel();
         OrmModel ormModel = trans.transformModule(module);
 
-        InMemoryResourceStore store = genModuleCoreFiles(module.getModuleName(), ormModel);
+        for (NopDynEntityMeta entityMeta : module.getEntityMetas()) {
+            entityMeta.setEntityModel(ormModel.getEntityModel(entityMeta.getEntityName()));
+        }
+
+        InMemoryResourceStore store = genModuleCoreFiles(module, ormModel);
 
         genModuleBizModels(module);
 
@@ -132,7 +135,9 @@ public class DynCodeGen {
         moduleDynBizModels.put(module.getModuleName(), bizModels);
     }
 
-    protected InMemoryResourceStore genModuleCoreFiles(String moduleName, OrmModel ormModel) {
+    protected InMemoryResourceStore genModuleCoreFiles(NopDynModule dynModule, OrmModel ormModel) {
+        String moduleName = dynModule.getModuleName();
+
         XCodeGenerator gen = new XCodeGenerator("/nop/templates/dyn", "v:/");
         gen.autoFormat(formatGenCode).forceOverride(true);
         InMemoryResourceStore store = new InMemoryResourceStore();
@@ -140,7 +145,8 @@ public class DynCodeGen {
 
         gen.targetResourceLoader(store);
         IEvalScope scope = XLang.newEvalScope();
-        scope.setLocalValue(CodeGenConstants.VAR_CODE_GEN_MODEL, ormModel);
+        scope.setLocalValue("dynModule", dynModule);
+        scope.setLocalValue("ormModel", ormModel);
         gen.execute("/", scope);
 
         moduleCoreStores.put(moduleName, store);

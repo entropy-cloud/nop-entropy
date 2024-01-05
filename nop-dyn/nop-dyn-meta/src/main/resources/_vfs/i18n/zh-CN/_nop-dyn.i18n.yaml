@@ -103,6 +103,7 @@ prop:
       extConfig: 扩展配置
       extConfigComponent: null
       functionMetas: 函数定义
+      isExternal: 是否外部实体
       module: 所属模块
       module.displayName: 所属模块
       moduleId: 模块ID
@@ -155,20 +156,21 @@ prop:
       updatedBy: 修改人
       version: 数据版本
     NopDynFunctionMeta:
-      argsMeta: 参数定义
-      argsMetaComponent: null
-      argsMeta_label: 参数定义
       createTime: 创建时间
       createdBy: 创建人
       displayName: 显示名
       entityMeta: 所属模块
       entityMeta.entityName: 所属模块
       entityMetaId: 实体定义ID
+      funcMeta: 函数元数据
+      funcMetaComponent: null
       funcMetaId: 函数定义ID
+      funcMeta_label: 函数元数据
       functionType: 函数类型
       functionType_label: 函数类型
       name: 函数名
       remark: 备注
+      returnGqlType: GraphQL返回类型
       returnType: 返回类型
       source: 源码
       sourceComponent: null

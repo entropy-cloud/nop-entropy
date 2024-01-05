@@ -31,6 +31,9 @@
                 <!--标签-->
                 <col id="tagSet" sortable="true"/>
 
+                <!--是否外部实体-->
+                <col id="isExternal" mandatory="true" sortable="true"/>
+
                 <!--状态-->
                 <col id="status" mandatory="true" sortable="true"/>
 
@@ -62,11 +65,11 @@
  moduleId[模块ID] entityName[实体名]
  displayName[显示名] tableName[表名]
  querySpace[查询空间] storeType[存储类型]
- tagSet[标签] status[状态]
- extConfig[扩展配置] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] 
-                remark[备注]
+ tagSet[标签] isExternal[是否外部实体]
+ status[状态] extConfig[扩展配置]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-实体元数据" i18n-en:title="Add Entity Meta" x:prototype="edit"/>
@@ -75,9 +78,9 @@
  moduleId[模块ID] entityName[实体名]
  displayName[显示名] tableName[表名]
  querySpace[查询空间] storeType[存储类型]
- tagSet[标签] status[状态]
- extConfig[扩展配置] 
-                remark[备注]
+ tagSet[标签] isExternal[是否外部实体]
+ status[状态] extConfig[扩展配置]
+ remark[备注] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">

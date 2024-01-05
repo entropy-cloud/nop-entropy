@@ -13,6 +13,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.dyn.dao.NopDynDaoConstants;
 import io.nop.dyn.dao.entity.NopDynEntity;
 import io.nop.dyn.dao.entity.NopDynEntityMeta;
+import io.nop.dyn.dao.entity.NopDynFunctionMeta;
 import io.nop.dyn.dao.entity.NopDynModule;
 import io.nop.dyn.dao.entity.NopDynPropMeta;
 import io.nop.graphql.core.IGraphQLExecutionContext;
@@ -55,6 +56,10 @@ public class TestDynCodeGen extends JunitBaseTestCase {
             assertEquals(true, response.isOk());
             PageBean<?> pageBean = BeanTool.castBeanToType(response.getData(), PageBean.class);
             assertEquals(0, pageBean.getTotal());
+
+            gqlContext = graphQLEngine.newRpcContext(null, "MyDynEntity__myMethod", ApiRequest.build(null));
+            response = FutureHelper.syncGet(graphQLEngine.executeRpcAsync(gqlContext));
+            assertEquals(123, response.getData());
         });
     }
 
@@ -69,6 +74,7 @@ public class TestDynCodeGen extends JunitBaseTestCase {
         entityMeta.setDisplayName("My Dynamic Entity");
         entityMeta.setModule(module);
         entityMeta.setStatus(1);
+        entityMeta.setIsExternal(false);
 
         entityMeta.setStoreType(NopDynDaoConstants.ENTITY_STORE_TYPE_VIRTUAL);
 
@@ -76,6 +82,9 @@ public class TestDynCodeGen extends JunitBaseTestCase {
         prop.setDynPropMapping(NopDynEntity.PROP_NAME_name);
 
         addProp(entityMeta, "value", StdSqlType.INTEGER, 0);
+
+        addFunc(entityMeta, "myMethod", "return 123", "Int");
+        addFunc(entityMeta, "myMethod2", "<c:unit/>", "Any");
 
         module.getEntityMetas().add(entityMeta);
 
@@ -92,5 +101,18 @@ public class TestDynCodeGen extends JunitBaseTestCase {
         propMeta.setStdSqlType(sqlType.getName());
         entityMeta.getPropMetas().add(propMeta);
         return propMeta;
+    }
+
+    private void addFunc(NopDynEntityMeta entityMeta, String funcName, String source,
+                         String gqlType) {
+        NopDynFunctionMeta funcMeta = new NopDynFunctionMeta();
+        funcMeta.setName(funcName);
+        funcMeta.setDisplayName(funcName);
+        funcMeta.setReturnGqlType(gqlType);
+        funcMeta.setSource(source);
+        funcMeta.setEntityMeta(entityMeta);
+        funcMeta.setStatus(1);
+        funcMeta.setFunctionType(NopDynDaoConstants.FUNCTION_TYPE_QUERY);
+        entityMeta.getFunctionMetas().add(funcMeta);
     }
 }

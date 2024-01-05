@@ -1,2 +1,9 @@
-<gen:DefineLoopForOrm xpl:lib="/nop/codegen/xlib/gen.xlib">
-</gen:DefineLoopForOrm>
+<gen:DefineLoop xpl:lib="/nop/codegen/xlib/gen.xlib">
+    <c:script>
+        const moduleId = dynModule.moduleName.replace('-','/');
+        builder.defineGlobalVar("dynModule",dynModule);
+        builder.defineGlobalVar("moduleId",moduleId);
+        builder.defineLoopVar("entityMeta", "dynModule", module=> module.entityMetas);
+        builder.defineLoopVar("entityModel", "entityMeta", model=> model.entityModel);
+    </c:script>
+</gen:DefineLoop>

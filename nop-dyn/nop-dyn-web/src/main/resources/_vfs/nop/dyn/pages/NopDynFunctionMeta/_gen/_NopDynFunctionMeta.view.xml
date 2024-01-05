@@ -22,11 +22,14 @@
                 <!--函数类型-->
                 <col id="functionType" mandatory="true" sortable="true"/>
 
-                <!--参数定义-->
-                <col id="argsMeta" mandatory="true" sortable="true"/>
+                <!--函数元数据-->
+                <col id="funcMeta" sortable="true"/>
 
                 <!--返回类型-->
                 <col id="returnType" sortable="true"/>
+
+                <!--GraphQL返回类型-->
+                <col id="returnGqlType" sortable="true"/>
 
                 <!--标签-->
                 <col id="tagSet" sortable="true"/>
@@ -61,12 +64,12 @@
             <layout>
  entityMetaId[实体定义ID] name[函数名]
  displayName[显示名] functionType[函数类型]
- argsMeta[参数定义] returnType[返回类型]
- tagSet[标签] source[源码]
- status[状态] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] 
-                remark[备注]
+ funcMeta[函数元数据] returnType[返回类型]
+ returnGqlType[GraphQL返回类型] tagSet[标签]
+ source[源码] status[状态]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-实体函数定义" i18n-en:title="Add Function Meta" x:prototype="edit"/>
@@ -74,10 +77,10 @@
             <layout>
  entityMetaId[实体定义ID] name[函数名]
  displayName[显示名] functionType[函数类型]
- argsMeta[参数定义] returnType[返回类型]
- tagSet[标签] source[源码]
- status[状态] 
-                remark[备注]
+ funcMeta[函数元数据] returnType[返回类型]
+ returnGqlType[GraphQL返回类型] tagSet[标签]
+ source[源码] status[状态]
+ remark[备注] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
