@@ -173,6 +173,7 @@ CREATE TABLE nop_auth_session(
   SESSION_ID VARCHAR(100) NOT NULL ,
   USER_ID VARCHAR(32) NOT NULL ,
   USER_NAME VARCHAR(100) NOT NULL ,
+  TENANT_ID VARCHAR(32) NOT NULL ,
   LOGIN_ADDR VARCHAR(100)  ,
   LOGIN_DEVICE VARCHAR(100)  ,
   LOGIN_APP VARCHAR(100)  ,
@@ -183,7 +184,9 @@ CREATE TABLE nop_auth_session(
   LOGOUT_TYPE INT4 NOT NULL ,
   LOGOUT_BY VARCHAR(100)  ,
   LAST_ACCESS_TIME TIMESTAMP  ,
-  VERSION INT4 NOT NULL ,
+  ACCESS_TOKEN VARCHAR(500)  ,
+  REFRESH_TOKEN VARCHAR(500)  ,
+  CACHE_DATA VARCHAR(4000)  ,
   CREATED_BY VARCHAR(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR(200)  ,
@@ -582,6 +585,8 @@ CREATE TABLE nop_auth_position(
                     
       COMMENT ON COLUMN nop_auth_session.USER_NAME IS '用户名';
                     
+      COMMENT ON COLUMN nop_auth_session.TENANT_ID IS '租户ID';
+                    
       COMMENT ON COLUMN nop_auth_session.LOGIN_ADDR IS '登录地址';
                     
       COMMENT ON COLUMN nop_auth_session.LOGIN_DEVICE IS '登录设备';
@@ -602,7 +607,11 @@ CREATE TABLE nop_auth_position(
                     
       COMMENT ON COLUMN nop_auth_session.LAST_ACCESS_TIME IS '最后访问时间';
                     
-      COMMENT ON COLUMN nop_auth_session.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_auth_session.ACCESS_TOKEN IS '访问令牌';
+                    
+      COMMENT ON COLUMN nop_auth_session.REFRESH_TOKEN IS '刷新令牌';
+                    
+      COMMENT ON COLUMN nop_auth_session.CACHE_DATA IS '缓存数据';
                     
       COMMENT ON COLUMN nop_auth_session.CREATED_BY IS '创建人';
                     

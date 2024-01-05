@@ -90,6 +90,10 @@ public interface IUserContext extends IDirtyFlagSupport {
 
     void setRefreshToken(String refreshToken);
 
+    long getLastAccessTime();
+
+    void setLastAccessTime(long lastAccessTime);
+
     /**
      * 附加属性
      */

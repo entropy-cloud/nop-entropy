@@ -32,64 +32,76 @@ public class _NopAuthSession extends DynamicOrmEntity{
     public static final String PROP_NAME_userName = "userName";
     public static final int PROP_ID_userName = 3;
     
+    /* 租户ID: TENANT_ID VARCHAR */
+    public static final String PROP_NAME_tenantId = "tenantId";
+    public static final int PROP_ID_tenantId = 4;
+    
     /* 登录地址: LOGIN_ADDR VARCHAR */
     public static final String PROP_NAME_loginAddr = "loginAddr";
-    public static final int PROP_ID_loginAddr = 4;
+    public static final int PROP_ID_loginAddr = 5;
     
     /* 登录设备: LOGIN_DEVICE VARCHAR */
     public static final String PROP_NAME_loginDevice = "loginDevice";
-    public static final int PROP_ID_loginDevice = 5;
+    public static final int PROP_ID_loginDevice = 6;
     
     /* 应用程序: LOGIN_APP VARCHAR */
     public static final String PROP_NAME_loginApp = "loginApp";
-    public static final int PROP_ID_loginApp = 6;
+    public static final int PROP_ID_loginApp = 7;
     
     /* 操作系统: LOGIN_OS VARCHAR */
     public static final String PROP_NAME_loginOs = "loginOs";
-    public static final int PROP_ID_loginOs = 7;
+    public static final int PROP_ID_loginOs = 8;
     
     /* 登录时间: LOGIN_TIME TIMESTAMP */
     public static final String PROP_NAME_loginTime = "loginTime";
-    public static final int PROP_ID_loginTime = 8;
+    public static final int PROP_ID_loginTime = 9;
     
     /* 登录方式: LOGIN_TYPE INTEGER */
     public static final String PROP_NAME_loginType = "loginType";
-    public static final int PROP_ID_loginType = 9;
+    public static final int PROP_ID_loginType = 10;
     
     /* 退出时间: LOGOUT_TIME TIMESTAMP */
     public static final String PROP_NAME_logoutTime = "logoutTime";
-    public static final int PROP_ID_logoutTime = 10;
+    public static final int PROP_ID_logoutTime = 11;
     
     /* 退出方式: LOGOUT_TYPE INTEGER */
     public static final String PROP_NAME_logoutType = "logoutType";
-    public static final int PROP_ID_logoutType = 11;
+    public static final int PROP_ID_logoutType = 12;
     
     /* 退出操作人: LOGOUT_BY VARCHAR */
     public static final String PROP_NAME_logoutBy = "logoutBy";
-    public static final int PROP_ID_logoutBy = 12;
+    public static final int PROP_ID_logoutBy = 13;
     
     /* 最后访问时间: LAST_ACCESS_TIME DATETIME */
     public static final String PROP_NAME_lastAccessTime = "lastAccessTime";
-    public static final int PROP_ID_lastAccessTime = 13;
+    public static final int PROP_ID_lastAccessTime = 14;
     
-    /* 数据版本: VERSION INTEGER */
-    public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 14;
+    /* 访问令牌: ACCESS_TOKEN VARCHAR */
+    public static final String PROP_NAME_accessToken = "accessToken";
+    public static final int PROP_ID_accessToken = 15;
+    
+    /* 刷新令牌: REFRESH_TOKEN VARCHAR */
+    public static final String PROP_NAME_refreshToken = "refreshToken";
+    public static final int PROP_ID_refreshToken = 16;
+    
+    /* 缓存数据: CACHE_DATA VARCHAR */
+    public static final String PROP_NAME_cacheData = "cacheData";
+    public static final int PROP_ID_cacheData = 17;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 15;
+    public static final int PROP_ID_createdBy = 18;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 16;
+    public static final int PROP_ID_createTime = 19;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 17;
+    public static final int PROP_ID_remark = 20;
     
 
-    private static int _PROP_ID_BOUND = 18;
+    private static int _PROP_ID_BOUND = 21;
 
     
     /* relation: 用户 */
@@ -99,7 +111,7 @@ public class _NopAuthSession extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sessionId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_sessionId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[18];
+    private static final String[] PROP_ID_TO_NAME = new String[21];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -111,6 +123,9 @@ public class _NopAuthSession extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_userName] = PROP_NAME_userName;
           PROP_NAME_TO_ID.put(PROP_NAME_userName, PROP_ID_userName);
+      
+          PROP_ID_TO_NAME[PROP_ID_tenantId] = PROP_NAME_tenantId;
+          PROP_NAME_TO_ID.put(PROP_NAME_tenantId, PROP_ID_tenantId);
       
           PROP_ID_TO_NAME[PROP_ID_loginAddr] = PROP_NAME_loginAddr;
           PROP_NAME_TO_ID.put(PROP_NAME_loginAddr, PROP_ID_loginAddr);
@@ -142,8 +157,14 @@ public class _NopAuthSession extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_lastAccessTime] = PROP_NAME_lastAccessTime;
           PROP_NAME_TO_ID.put(PROP_NAME_lastAccessTime, PROP_ID_lastAccessTime);
       
-          PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
-          PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
+          PROP_ID_TO_NAME[PROP_ID_accessToken] = PROP_NAME_accessToken;
+          PROP_NAME_TO_ID.put(PROP_NAME_accessToken, PROP_ID_accessToken);
+      
+          PROP_ID_TO_NAME[PROP_ID_refreshToken] = PROP_NAME_refreshToken;
+          PROP_NAME_TO_ID.put(PROP_NAME_refreshToken, PROP_ID_refreshToken);
+      
+          PROP_ID_TO_NAME[PROP_ID_cacheData] = PROP_NAME_cacheData;
+          PROP_NAME_TO_ID.put(PROP_NAME_cacheData, PROP_ID_cacheData);
       
           PROP_ID_TO_NAME[PROP_ID_createdBy] = PROP_NAME_createdBy;
           PROP_NAME_TO_ID.put(PROP_NAME_createdBy, PROP_ID_createdBy);
@@ -165,6 +186,9 @@ public class _NopAuthSession extends DynamicOrmEntity{
     
     /* 用户名: USER_NAME */
     private java.lang.String _userName;
+    
+    /* 租户ID: TENANT_ID */
+    private java.lang.String _tenantId;
     
     /* 登录地址: LOGIN_ADDR */
     private java.lang.String _loginAddr;
@@ -196,8 +220,14 @@ public class _NopAuthSession extends DynamicOrmEntity{
     /* 最后访问时间: LAST_ACCESS_TIME */
     private java.time.LocalDateTime _lastAccessTime;
     
-    /* 数据版本: VERSION */
-    private java.lang.Integer _version;
+    /* 访问令牌: ACCESS_TOKEN */
+    private java.lang.String _accessToken;
+    
+    /* 刷新令牌: REFRESH_TOKEN */
+    private java.lang.String _refreshToken;
+    
+    /* 缓存数据: CACHE_DATA */
+    private java.lang.String _cacheData;
     
     /* 创建人: CREATED_BY */
     private java.lang.String _createdBy;
@@ -288,6 +318,9 @@ public class _NopAuthSession extends DynamicOrmEntity{
             case PROP_ID_userName:
                return getUserName();
         
+            case PROP_ID_tenantId:
+               return getTenantId();
+        
             case PROP_ID_loginAddr:
                return getLoginAddr();
         
@@ -318,8 +351,14 @@ public class _NopAuthSession extends DynamicOrmEntity{
             case PROP_ID_lastAccessTime:
                return getLastAccessTime();
         
-            case PROP_ID_version:
-               return getVersion();
+            case PROP_ID_accessToken:
+               return getAccessToken();
+        
+            case PROP_ID_refreshToken:
+               return getRefreshToken();
+        
+            case PROP_ID_cacheData:
+               return getCacheData();
         
             case PROP_ID_createdBy:
                return getCreatedBy();
@@ -368,6 +407,16 @@ public class _NopAuthSession extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_userName));
                }
                setUserName(typedValue);
+               break;
+            }
+        
+            case PROP_ID_tenantId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_tenantId));
+               }
+               setTenantId(typedValue);
                break;
             }
         
@@ -471,13 +520,33 @@ public class _NopAuthSession extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_version:{
-               java.lang.Integer typedValue = null;
+            case PROP_ID_accessToken:{
+               java.lang.String typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_version));
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_accessToken));
                }
-               setVersion(typedValue);
+               setAccessToken(typedValue);
+               break;
+            }
+        
+            case PROP_ID_refreshToken:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_refreshToken));
+               }
+               setRefreshToken(typedValue);
+               break;
+            }
+        
+            case PROP_ID_cacheData:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_cacheData));
+               }
+               setCacheData(typedValue);
                break;
             }
         
@@ -537,6 +606,13 @@ public class _NopAuthSession extends DynamicOrmEntity{
             case PROP_ID_userName:{
                onInitProp(propId);
                this._userName = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_tenantId:{
+               onInitProp(propId);
+               this._tenantId = (java.lang.String)value;
                
                break;
             }
@@ -611,9 +687,23 @@ public class _NopAuthSession extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_version:{
+            case PROP_ID_accessToken:{
                onInitProp(propId);
-               this._version = (java.lang.Integer)value;
+               this._accessToken = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_refreshToken:{
+               onInitProp(propId);
+               this._refreshToken = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_cacheData:{
+               onInitProp(propId);
+               this._cacheData = (java.lang.String)value;
                
                break;
             }
@@ -698,6 +788,25 @@ public class _NopAuthSession extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_userName,value)){
             this._userName = value;
             internalClearRefs(PROP_ID_userName);
+            
+        }
+    }
+    
+    /**
+     * 租户ID: TENANT_ID
+     */
+    public java.lang.String getTenantId(){
+         onPropGet(PROP_ID_tenantId);
+         return _tenantId;
+    }
+
+    /**
+     * 租户ID: TENANT_ID
+     */
+    public void setTenantId(java.lang.String value){
+        if(onPropSet(PROP_ID_tenantId,value)){
+            this._tenantId = value;
+            internalClearRefs(PROP_ID_tenantId);
             
         }
     }
@@ -893,20 +1002,58 @@ public class _NopAuthSession extends DynamicOrmEntity{
     }
     
     /**
-     * 数据版本: VERSION
+     * 访问令牌: ACCESS_TOKEN
      */
-    public java.lang.Integer getVersion(){
-         onPropGet(PROP_ID_version);
-         return _version;
+    public java.lang.String getAccessToken(){
+         onPropGet(PROP_ID_accessToken);
+         return _accessToken;
     }
 
     /**
-     * 数据版本: VERSION
+     * 访问令牌: ACCESS_TOKEN
      */
-    public void setVersion(java.lang.Integer value){
-        if(onPropSet(PROP_ID_version,value)){
-            this._version = value;
-            internalClearRefs(PROP_ID_version);
+    public void setAccessToken(java.lang.String value){
+        if(onPropSet(PROP_ID_accessToken,value)){
+            this._accessToken = value;
+            internalClearRefs(PROP_ID_accessToken);
+            
+        }
+    }
+    
+    /**
+     * 刷新令牌: REFRESH_TOKEN
+     */
+    public java.lang.String getRefreshToken(){
+         onPropGet(PROP_ID_refreshToken);
+         return _refreshToken;
+    }
+
+    /**
+     * 刷新令牌: REFRESH_TOKEN
+     */
+    public void setRefreshToken(java.lang.String value){
+        if(onPropSet(PROP_ID_refreshToken,value)){
+            this._refreshToken = value;
+            internalClearRefs(PROP_ID_refreshToken);
+            
+        }
+    }
+    
+    /**
+     * 缓存数据: CACHE_DATA
+     */
+    public java.lang.String getCacheData(){
+         onPropGet(PROP_ID_cacheData);
+         return _cacheData;
+    }
+
+    /**
+     * 缓存数据: CACHE_DATA
+     */
+    public void setCacheData(java.lang.String value){
+        if(onPropSet(PROP_ID_cacheData,value)){
+            this._cacheData = value;
+            internalClearRefs(PROP_ID_cacheData);
             
         }
     }

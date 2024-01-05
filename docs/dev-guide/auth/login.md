@@ -61,3 +61,8 @@ authFilter中实际执行登录验证操作时使用的是ILoginService接口，
 与AuthFilter不同的是，这里无法访问到Web环境，所以一些涉及到Web环境处理的逻辑只能通过继承AuthHttpServerFilter来实现（比如修改cookie绑定逻辑等）。
 
 目前集成keycloak单点登录服务就是用通过增加OAuthLoginServiceImpl类来实现，参见[sso.md](sso.md)
+
+## 配置项
+
+1. nop.auth.login.use-dao-user-context-cache
+设置为true后会启用DaoUserContextCache，将IUserContext中的信息保存到NopAuthSession表中。

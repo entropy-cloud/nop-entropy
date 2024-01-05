@@ -30,6 +30,10 @@
               sortable="true" insertable="true" updatable="false">
             <schema domain="userName" type="java.lang.String" precision="100"/>
         </prop>
+        <prop name="tenantId" displayName="租户ID" i18n-en:displayName="Tenant ID" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
         <prop name="loginAddr" displayName="登录地址" i18n-en:displayName="Login Addr" queryable="true" sortable="true"
               insertable="true" updatable="false">
             <schema type="java.lang.String" precision="100"/>
@@ -70,9 +74,17 @@
               queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
             <schema type="java.time.LocalDateTime"/>
         </prop>
-        <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
-            <schema domain="version" type="java.lang.Integer"/>
+        <prop name="accessToken" displayName="访问令牌" i18n-en:displayName="Access Token" queryable="true" sortable="true"
+              insertable="true" updatable="false" internal="true" ui:show="X">
+            <schema type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="refreshToken" displayName="刷新令牌" i18n-en:displayName="Refresh Token" queryable="true"
+              sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
+            <schema type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="cacheData" displayName="缓存数据" i18n-en:displayName="Cache Data" tagSet="not-pub" published="false"
+              queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
+            <schema type="java.lang.String" precision="4000"/>
         </prop>
         <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
               sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">

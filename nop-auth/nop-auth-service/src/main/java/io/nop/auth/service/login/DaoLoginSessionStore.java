@@ -47,6 +47,7 @@ public class DaoLoginSessionStore implements ILoginSessionStore {
     public String saveSession(IUserContext userContext, LoginRequest request, Map<String, Object> headers) {
         NopAuthSession session = new NopAuthSession();
         session.setSessionId(sessionIdGenerator.generateId());
+        session.setTenantId(userContext.getTenantId());
         session.setUserId(userContext.getUserId());
         session.setUserName(userContext.getUserName());
         session.setLoginType(request.getLoginType());

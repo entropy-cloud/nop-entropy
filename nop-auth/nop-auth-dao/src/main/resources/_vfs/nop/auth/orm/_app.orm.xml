@@ -642,7 +642,7 @@
         </entity>
         <entity className="io.nop.auth.dao.entity.NopAuthSession" createTimeProp="createTime" createrProp="createdBy"
                 displayName="会话日志" name="io.nop.auth.dao.entity.NopAuthSession" registerShortName="true"
-                tableName="nop_auth_session" tagSet="log" versionProp="version" i18n-en:displayName="Session">
+                tableName="nop_auth_session" tagSet="log" i18n-en:displayName="Session">
             <columns>
                 <column code="SESSION_ID" displayName="会话ID" mandatory="true" name="sessionId" precision="100"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="var"
@@ -652,38 +652,45 @@
                 <column code="USER_NAME" displayName="用户名" domain="userName" mandatory="true" name="userName"
                         precision="100" propId="3" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="User Name"/>
-                <column code="LOGIN_ADDR" displayName="登录地址" name="loginAddr" precision="100" propId="4"
+                <column code="TENANT_ID" displayName="租户ID" mandatory="true" name="tenantId" precision="32" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Tenant ID" ui:show="X"/>
+                <column code="LOGIN_ADDR" displayName="登录地址" name="loginAddr" precision="100" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Login Addr"/>
-                <column code="LOGIN_DEVICE" displayName="登录设备" name="loginDevice" precision="100" propId="5"
+                <column code="LOGIN_DEVICE" displayName="登录设备" name="loginDevice" precision="100" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Login Device"/>
-                <column code="LOGIN_APP" displayName="应用程序" name="loginApp" precision="100" propId="6"
+                <column code="LOGIN_APP" displayName="应用程序" name="loginApp" precision="100" propId="7"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Application"/>
-                <column code="LOGIN_OS" displayName="操作系统" name="loginOs" precision="100" propId="7"
+                <column code="LOGIN_OS" displayName="操作系统" name="loginOs" precision="100" propId="8"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="OS"/>
-                <column code="LOGIN_TIME" displayName="登录时间" mandatory="true" name="loginTime" propId="8"
+                <column code="LOGIN_TIME" displayName="登录时间" mandatory="true" name="loginTime" propId="9"
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Login Time"/>
-                <column code="LOGIN_TYPE" displayName="登录方式" mandatory="true" name="loginType" propId="9"
+                <column code="LOGIN_TYPE" displayName="登录方式" mandatory="true" name="loginType" propId="10"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Login Type"
                         ext:dict="auth/login-type"/>
-                <column code="LOGOUT_TIME" displayName="退出时间" name="logoutTime" propId="10" stdDataType="timestamp"
+                <column code="LOGOUT_TIME" displayName="退出时间" name="logoutTime" propId="11" stdDataType="timestamp"
                         stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Logout Time"/>
-                <column code="LOGOUT_TYPE" displayName="退出方式" mandatory="true" name="logoutType" propId="11"
+                <column code="LOGOUT_TYPE" displayName="退出方式" mandatory="true" name="logoutType" propId="12"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Logout Type"
                         ext:dict="auth/logout-type"/>
                 <column code="LOGOUT_BY" displayName="退出操作人" domain="userName" name="logoutBy" precision="100"
-                        propId="12" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Logout By"/>
-                <column code="LAST_ACCESS_TIME" displayName="最后访问时间" name="lastAccessTime" propId="13"
+                        propId="13" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Logout By"/>
+                <column code="LAST_ACCESS_TIME" displayName="最后访问时间" name="lastAccessTime" propId="14"
                         stdDataType="datetime" stdSqlType="DATETIME" tagSet="clock"
                         i18n-en:displayName="Last Access Time" ui:show="X"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="14"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
+                <column code="ACCESS_TOKEN" displayName="访问令牌" name="accessToken" precision="500" propId="15"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Access Token" ui:show="X"/>
+                <column code="REFRESH_TOKEN" displayName="刷新令牌" name="refreshToken" precision="500" propId="16"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Refresh Token" ui:show="X"/>
+                <column code="CACHE_DATA" displayName="缓存数据" name="cacheData" precision="4000" propId="17"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="not-pub" i18n-en:displayName="Cache Data"
+                        ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="15" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="18" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By" ui:show="X"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="16" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
+                        propId="19" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
                         ui:show="X"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="17"
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="20"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>

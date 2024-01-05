@@ -40,6 +40,8 @@ public class UserContextImpl extends ExtensibleBean implements IUserContext, IJs
     private String accessToken;
     private String refreshToken;
 
+    private long lastAccessTime;
+
     @Override
     public void serializeToJson(IJsonHandler out) {
         out.beginObject(null);
@@ -58,6 +60,8 @@ public class UserContextImpl extends ExtensibleBean implements IUserContext, IJs
         out.putNotNull("roles", roles);
         out.putNotNull("accessToken", accessToken);
         out.putNotNull("refreshToken", refreshToken);
+        out.put("lastAccessTime", lastAccessTime);
+        out.putNotNull("attrs", getAttrs());
         out.endObject();
     }
 
@@ -225,6 +229,19 @@ public class UserContextImpl extends ExtensibleBean implements IUserContext, IJs
     public void setAccessToken(String accessToken) {
         markDirty();
         this.accessToken = accessToken;
+    }
+
+    @Override
+    public long getLastAccessTime() {
+        return lastAccessTime;
+    }
+
+    @Override
+    public void setLastAccessTime(long lastAccessTime) {
+        if (this.lastAccessTime != lastAccessTime) {
+            this.lastAccessTime = lastAccessTime;
+            dirty = true;
+        }
     }
 
     @Override

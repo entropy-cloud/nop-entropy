@@ -216,6 +216,8 @@ prop:
       updatedBy: 修改人
       version: 数据版本
     NopAuthSession:
+      accessToken: 访问令牌
+      cacheData: 缓存数据
       createTime: 创建时间
       createdBy: 创建人
       lastAccessTime: 最后访问时间
@@ -230,12 +232,13 @@ prop:
       logoutTime: 退出时间
       logoutType: 退出方式
       logoutType_label: 退出方式
+      refreshToken: 刷新令牌
       remark: 备注
       sessionId: 会话ID
+      tenantId: 租户ID
       user: 用户
       userId: 用户ID
       userName: 用户名
-      version: 数据版本
     NopAuthSite:
       configVersion: 配置版本
       createTime: 创建时间

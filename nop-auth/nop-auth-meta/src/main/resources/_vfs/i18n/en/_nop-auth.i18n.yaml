@@ -219,6 +219,7 @@ prop:
       sessionId: Session ID
       userId: User ID
       userName: User Name
+      tenantId: Tenant ID
       loginAddr: Login Addr
       loginDevice: Login Device
       loginApp: Application
@@ -231,7 +232,9 @@ prop:
       logoutType_label: null
       logoutBy: Logout By
       lastAccessTime: Last Access Time
-      version: Version
+      accessToken: Access Token
+      refreshToken: Refresh Token
+      cacheData: Cache Data
       createdBy: Created By
       createTime: Create Time
       remark: Remark
