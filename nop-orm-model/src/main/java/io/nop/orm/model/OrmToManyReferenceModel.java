@@ -9,6 +9,9 @@ package io.nop.orm.model;
 
 import io.nop.orm.model._gen._OrmToManyReferenceModel;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 public class OrmToManyReferenceModel extends _OrmToManyReferenceModel {
     private String collectionName;
 
@@ -16,19 +19,19 @@ public class OrmToManyReferenceModel extends _OrmToManyReferenceModel {
 
     }
 
-    public boolean isIgnoreDepends(){
+    public boolean isIgnoreDepends() {
         return false;
     }
 
-    public void setIgnoreDepends(boolean ignoreDepends){
+    public void setIgnoreDepends(boolean ignoreDepends) {
 
     }
 
-    public OrmRefSetModel getRefSet(){
+    public OrmRefSetModel getRefSet() {
         return null;
     }
 
-    public void setRefSet(OrmRefSetModel model){
+    public void setRefSet(OrmRefSetModel model) {
 
     }
 
@@ -46,4 +49,12 @@ public class OrmToManyReferenceModel extends _OrmToManyReferenceModel {
         this.collectionName = collectionName;
     }
 
+    @Override
+    public OrmToManyReferenceModel cloneInstance() {
+        OrmToManyReferenceModel ref = super.cloneInstance();
+        List<OrmJoinOnModel> join = ref.getJoin();
+        if (join != null)
+            ref.setJoin(join.stream().map(OrmJoinOnModel::cloneInstance).collect(Collectors.toList()));
+        return ref;
+    }
 }

@@ -7,7 +7,6 @@ import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.dao.api.DaoProvider;
-import io.nop.dao.api.IEntityDao;
 import io.nop.dyn.dao.NopDynDaoConstants;
 import io.nop.dyn.dao.entity.NopDynDomain;
 import io.nop.dyn.dao.entity.NopDynEntity;
@@ -15,20 +14,23 @@ import io.nop.dyn.dao.entity.NopDynEntityMeta;
 import io.nop.dyn.dao.entity.NopDynModule;
 import io.nop.dyn.dao.entity.NopDynPropMeta;
 import io.nop.orm.dao.IOrmEntityDao;
+import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
+import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.model.OrmAliasModel;
 import io.nop.orm.model.OrmColumnModel;
 import io.nop.orm.model.OrmDomainModel;
+import io.nop.orm.model.OrmEntityFilterModel;
 import io.nop.orm.model.OrmEntityModel;
 import io.nop.orm.model.OrmJoinOnModel;
 import io.nop.orm.model.OrmModel;
 import io.nop.orm.model.OrmModelConstants;
 import io.nop.orm.model.OrmReferenceModel;
+import io.nop.orm.model.OrmToManyReferenceModel;
 import io.nop.orm.model.OrmToOneReferenceModel;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -39,7 +41,6 @@ import static io.nop.dyn.dao.NopDynDaoErrors.ARG_PROP_MAPPING;
 import static io.nop.dyn.dao.NopDynDaoErrors.ARG_PROP_NAME;
 import static io.nop.dyn.dao.NopDynDaoErrors.ARG_STD_SQL_TYPE;
 import static io.nop.dyn.dao.NopDynDaoErrors.ERR_DYN_UNKNOWN_STD_SQL_TYPE;
-import static io.nop.dyn.dao.NopDynDaoErrors.ERR_DYN_VIRTUAL_ENTITY_PK_NOT_SID;
 import static io.nop.dyn.dao.NopDynDaoErrors.ERR_DYN_VIRTUAL_ENTITY_PROP_MAPPING_NOT_VALID;
 
 public class DynEntityMetaToOrmModel {
@@ -62,10 +63,25 @@ public class DynEntityMetaToOrmModel {
         }
 
         model.prop_set(OrmModelConstants.EXT_MAVEN_ARTIFACT_ID, module.getModuleName());
+
         model.setEntities(toOrmEntityModels(module.getEntityMetas()));
 
+        addExternalExtTable(model);
         model.init();
         return model;
+    }
+
+    void addExternalExtTable(OrmModel model) {
+        IEntityModel refModel = dynEntityModel.getRelation(NopDynEntity.PROP_NAME_extFields, false).getRefEntityModel();
+        OrmEntityModel external = new OrmEntityModel();
+        external.setTableName(refModel.getTableName());
+        external.setDisplayName(refModel.getDisplayName());
+        external.setNotGenCode(true);
+        external.setName(refModel.getName());
+        for (IColumnModel col : refModel.getColumns()) {
+            forceAddCol(external, col);
+        }
+        model.addEntity(external);
     }
 
     List<OrmEntityModel> toOrmEntityModels(Collection<NopDynEntityMeta> entityMetas) {
@@ -78,13 +94,58 @@ public class DynEntityMetaToOrmModel {
         ret.setDisplayName(entityMeta.getDisplayName());
         ret.setTableName(entityMeta.forceGetTableName());
         ret.setTagSet(ConvertHelper.toCsvSet(entityMeta.getTagSet()));
+        ret.setRegisterShortName(true);
+        ret.setUseTenant(dynEntityModel.isUseTenant());
+        ret.setComment(entityMeta.getRemark());
+
+        // 强制使用sid作为主键，从而简化用户层面的配置
+        IColumnModel idCol = dynEntityModel.getColumn(NopDynEntity.PROP_NAME_sid, false);
+        forceAddCol(ret, idCol);
 
         if (entityMeta.getStoreType() == NopDynDaoConstants.ENTITY_STORE_TYPE_VIRTUAL) {
             buildVirtualEntityModel(ret, entityMeta);
         } else {
             buildRealEntityModel(ret, entityMeta);
         }
+
+        addStdColumns(ret);
         return ret;
+    }
+
+    protected void addStdColumns(OrmEntityModel entityModel) {
+        IColumnModel versionProp = dynEntityModel.getColumn(NopDynEntity.PROP_NAME_version, false);
+        IColumnModel tenantProp = dynEntityModel.getColumn(NopDynEntity.PROP_NAME_version, false);
+        IColumnModel createdByProp = dynEntityModel.getColumn(NopDynEntity.PROP_NAME_createdBy, false);
+        IColumnModel updatedByProp = dynEntityModel.getColumn(NopDynEntity.PROP_NAME_updatedBy, false);
+        IColumnModel updateTimeProp = dynEntityModel.getColumn(NopDynEntity.PROP_NAME_updateTime, false);
+        IColumnModel createTimeProp = dynEntityModel.getColumn(NopDynEntity.PROP_NAME_createTime, false);
+
+        forceAddCol(entityModel, versionProp);
+        entityModel.setVersionProp(versionProp.getName());
+
+        forceAddCol(entityModel, tenantProp);
+        entityModel.setVersionProp(tenantProp.getName());
+
+        forceAddCol(entityModel, createTimeProp);
+        entityModel.setCreateTimeProp(createTimeProp.getName());
+
+        forceAddCol(entityModel, updateTimeProp);
+        entityModel.setUpdateTimeProp(updateTimeProp.getName());
+
+        forceAddCol(entityModel, createdByProp);
+        entityModel.setCreaterProp(createdByProp.getName());
+
+        forceAddCol(entityModel, updatedByProp);
+        entityModel.setUpdaterProp(updatedByProp.getName());
+    }
+
+    private void forceAddCol(OrmEntityModel entityModel, IColumnModel stdCol) {
+        OrmColumnModel col = entityModel.getColumn(stdCol.getName());
+        if (col == null) {
+            col = ((OrmColumnModel) stdCol).cloneInstance();
+            col.setDomain(null);
+            entityModel.addColumn(col);
+        }
     }
 
     protected void buildRealEntityModel(OrmEntityModel entityModel, NopDynEntityMeta entityMeta) {
@@ -97,20 +158,26 @@ public class DynEntityMetaToOrmModel {
     }
 
     protected void buildVirtualEntityModel(OrmEntityModel entityModel, NopDynEntityMeta entityMeta) {
-        for (NopDynPropMeta propMeta : entityMeta.getPropMetas()) {
-            if (Boolean.TRUE.equals(propMeta.getIsPrimary())) {
-                if (!propMeta.getPropName().equals(OrmModelConstants.PROP_SID))
-                    throw new NopException(ERR_DYN_VIRTUAL_ENTITY_PK_NOT_SID).param(ARG_ENTITY_NAME, entityMeta.getEntityName()).param(ARG_PROP_NAME, propMeta.getPropName());
-            }
-        }
+        entityModel.setTableView(true);
+        entityModel.setTableName(dynEntityModel.getTableName());
+
+        entityModel.setClassName(NopDynEntity.class.getName());
+        List<OrmEntityFilterModel> filters = new ArrayList<>();
+        filters.add(OrmEntityFilterModel.of(NopDynEntity.PROP_NAME_nopObjType, entityMeta.getBizObjName()));
+        entityModel.setFilters(filters);
+
+        IColumnModel objTypeCol = dynEntityModel.getColumn(NopDynEntity.PROP_NAME_nopObjType, false);
+        forceAddCol(entityModel, objTypeCol);
 
         entityMeta.getPropMetas().forEach(propMeta -> {
-            if (propMeta.getDynPropMapping() != null) {
-                if (dynEntityModel.getColumn(propMeta.getDynPropMapping(), true) == null)
+            if (propMeta.getDynPropMapping() != null && !propMeta.getPropName().equals(propMeta.getDynPropMapping())) {
+                IColumnModel col = dynEntityModel.getColumn(propMeta.getDynPropMapping(), true);
+                if (col == null)
                     throw new NopException(ERR_DYN_VIRTUAL_ENTITY_PROP_MAPPING_NOT_VALID)
                             .param(ARG_ENTITY_NAME, entityMeta.getEntityName())
                             .param(ARG_PROP_NAME, propMeta.getPropName())
                             .param(ARG_PROP_MAPPING, propMeta.getDynPropMapping());
+                entityModel.addColumn(((OrmColumnModel) col).cloneInstance());
                 entityModel.addAlias(toAliasModel(propMeta));
             } else {
                 OrmAliasModel propModel = toAliasModel(propMeta);
@@ -121,6 +188,14 @@ public class DynEntityMetaToOrmModel {
                 }
             }
         });
+
+        addExtFields(entityModel);
+    }
+
+    protected void addExtFields(OrmEntityModel entityModel) {
+        IEntityRelationModel rel = dynEntityModel.getRelation(NopDynEntity.PROP_NAME_extFields, false);
+        OrmToManyReferenceModel ref = ((OrmToManyReferenceModel) rel).cloneInstance();
+        entityModel.addRelation(ref);
     }
 
     protected String buildVirtualPropPath(OrmAliasModel alias) {
@@ -179,7 +254,7 @@ public class DynEntityMetaToOrmModel {
         ret.setComment(propMeta.getRemark());
 
         ret.setMandatory(Boolean.TRUE.equals(propMeta.getIsMandatory()));
-        ret.setPrimary(Boolean.TRUE.equals(propMeta.getIsPrimary()));
+        ret.setPrimary(false);
 
         ret.setDefaultValue(propMeta.getDefaultValue());
         ret.setStdDomain(propMeta.getStdDomainName());

@@ -16,7 +16,7 @@ ORM配置即可利用基础的NopDynEntity分化出新的ORM实体对象（实�
 
         <entity name="dyn.AppDynSalaryAdjustment" displayName="调薪申请" x:prototype="NopDynEntityTemplate">
             <filters>
-                <filter name="objType" value="AppDynSalaryAdjustment"/>
+                <filter name="nopObjType" value="AppDynSalaryAdjustment"/>
             </filters>
 
             <aliases>

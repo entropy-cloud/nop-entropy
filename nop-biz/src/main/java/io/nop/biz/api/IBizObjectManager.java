@@ -10,7 +10,9 @@ package io.nop.biz.api;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.context.IServiceContext;
+import io.nop.graphql.core.reflection.GraphQLBizModel;
 
+import java.util.Map;
 import java.util.Set;
 
 public interface IBizObjectManager {
@@ -34,4 +36,6 @@ public interface IBizObjectManager {
     ApiResponse<?> buildResponse(String locale, Object result, IServiceContext rt);
 
     void clearCache();
+
+    void setDynBizModels(Map<String, GraphQLBizModel> dynBizModels);
 }

@@ -58,7 +58,7 @@ prop:
       remark: Remark
     NopDynEntity:
       sid: SID
-      objType: Object Type
+      nopObjType: Object Type
       name: Name
       displayName: Display Name
       sortOrder: Sort Order
@@ -224,7 +224,6 @@ prop:
     NopDynPropMeta:
       propMetaId: Prop Meta ID
       entityMetaId: Entity Meta ID
-      isPrimary: Is Primary
       isMandatory: Is Mandatory
       propName: Property Name
       displayName: Display Name

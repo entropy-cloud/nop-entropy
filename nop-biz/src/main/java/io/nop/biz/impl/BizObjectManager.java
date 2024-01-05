@@ -10,6 +10,7 @@ package io.nop.biz.impl;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancellable;
 import io.nop.biz.api.IBizObject;
 import io.nop.biz.api.IBizObjectManager;
@@ -33,6 +34,7 @@ import io.nop.graphql.core.ast.GraphQLType;
 import io.nop.graphql.core.ast.GraphQLTypeDefinition;
 import io.nop.graphql.core.biz.IGraphQLBizInitializer;
 import io.nop.graphql.core.biz.IGraphQLSchemaInitializer;
+import io.nop.graphql.core.reflection.GraphQLBizModel;
 import io.nop.graphql.core.reflection.GraphQLBizModels;
 import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
 import io.nop.graphql.core.schema.TypeRegistry;
@@ -79,11 +81,17 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
 
     private IMakerCheckerProvider makerCheckerProvider;
 
+    private Map<String, GraphQLBizModel> dynBizModels = Collections.emptyMap();
+
     private final ResourceLoadingCache<IBizObject> bizObjCache = new ResourceLoadingCache<>("biz-object-cache",
             this::buildBizObject, null);
 
     public void setBizModelBeans(List<Object> bizModelBeans) {
         this.bizModelBeans = bizModelBeans;
+    }
+
+    public void setDynBizModels(Map<String, GraphQLBizModel> dynBizModels) {
+        this.dynBizModels = Guard.notNull(dynBizModels, "dynBizModels");
     }
 
     public void setBizInitializers(List<IGraphQLBizInitializer> bizInitializers) {
@@ -159,7 +167,7 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
 
     private IBizObject buildBizObject(String bizObjName) {
         try {
-            return new BizObjectBuilder(bizModels, typeRegistry, actionDecoratorCollectors, bizInitializers,
+            return new BizObjectBuilder(bizModels, dynBizModels, typeRegistry, actionDecoratorCollectors, bizInitializers,
                     makerCheckerProvider).buildBizObject(bizObjName);
         } catch (NopException e) {
             e.addXplStack("buildBizObject:" + bizObjName);

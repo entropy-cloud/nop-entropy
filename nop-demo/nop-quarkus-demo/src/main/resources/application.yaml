@@ -16,6 +16,7 @@ nop:
 
     login:
       allow-create-default-user: true # 如果用户表为空，则自动创建缺省账户nop, 密码nop-test
+      use-dao-user-context-cache: true
 
     web:
       validate-page-model: true

@@ -115,7 +115,7 @@ public class OrmModelInitializer {
 
     private void initEntities() {
         for (OrmEntityModel entityModel : ormModel.getEntities()) {
-            if (!ormModel.isMerged())
+            if (!ormModel.isMerged() && !entityModel.frozen())
                 syncDomains(entityModel);
 
             entityModel.init();
@@ -181,10 +181,16 @@ public class OrmModelInitializer {
 
     private void initRefs() {
         for (OrmEntityModel entityModel : ormModel.getEntities()) {
+            if (entityModel.frozen())
+                continue;
+
             initRef(entityModel);
         }
 
         for (OrmEntityModel entityModel : ormModel.getEntities()) {
+            if (entityModel.frozen())
+                continue;
+
             IntHashMap<List<IEntityRelationModel>> refMap = new IntHashMap<>();
             for (OrmReferenceModel ref : entityModel.getRelations()) {
                 if (ref.isToManyRelation()) {

@@ -14,7 +14,7 @@
                 <col id="sid" mandatory="true" sortable="true"/>
 
                 <!--对象类型-->
-                <col id="objType" mandatory="true" sortable="true"/>
+                <col id="nopObjType" mandatory="true" sortable="true"/>
 
                 <!--名称-->
                 <col id="name" mandatory="true" sortable="true"/>
@@ -48,7 +48,7 @@
         <form id="view" editMode="view" title="查看-动态实体" i18n-en:title="View Dynamic Entity">
             <layout>
  sid[主键]
- objType[对象类型]
+ nopObjType[对象类型]
  name[名称]
  displayName[显示名称]
  sortOrder[排序]
@@ -62,7 +62,7 @@
         <form id="edit" editMode="edit" title="编辑-动态实体" i18n-en:title="Edit Dynamic Entity">
             <layout>
  sid[主键]
- objType[对象类型]
+ nopObjType[对象类型]
  name[名称]
  displayName[显示名称]
  sortOrder[排序]

@@ -24,9 +24,9 @@ public class _NopDynEntity extends DynamicOrmEntity{
     public static final String PROP_NAME_sid = "sid";
     public static final int PROP_ID_sid = 1;
     
-    /* 对象类型: OBJ_TYPE VARCHAR */
-    public static final String PROP_NAME_objType = "objType";
-    public static final int PROP_ID_objType = 2;
+    /* 对象类型: NOP_OBJ_TYPE VARCHAR */
+    public static final String PROP_NAME_nopObjType = "nopObjType";
+    public static final int PROP_ID_nopObjType = 2;
     
     /* 名称: NAME VARCHAR */
     public static final String PROP_NAME_name = "name";
@@ -178,8 +178,8 @@ public class _NopDynEntity extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_sid] = PROP_NAME_sid;
           PROP_NAME_TO_ID.put(PROP_NAME_sid, PROP_ID_sid);
       
-          PROP_ID_TO_NAME[PROP_ID_objType] = PROP_NAME_objType;
-          PROP_NAME_TO_ID.put(PROP_NAME_objType, PROP_ID_objType);
+          PROP_ID_TO_NAME[PROP_ID_nopObjType] = PROP_NAME_nopObjType;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopObjType, PROP_ID_nopObjType);
       
           PROP_ID_TO_NAME[PROP_ID_name] = PROP_NAME_name;
           PROP_NAME_TO_ID.put(PROP_NAME_name, PROP_ID_name);
@@ -277,8 +277,8 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /* 主键: SID */
     private java.lang.String _sid;
     
-    /* 对象类型: OBJ_TYPE */
-    private java.lang.String _objType;
+    /* 对象类型: NOP_OBJ_TYPE */
+    private java.lang.String _nopObjType;
     
     /* 名称: NAME */
     private java.lang.String _name;
@@ -444,8 +444,8 @@ public class _NopDynEntity extends DynamicOrmEntity{
             case PROP_ID_sid:
                return getSid();
         
-            case PROP_ID_objType:
-               return getObjType();
+            case PROP_ID_nopObjType:
+               return getNopObjType();
         
             case PROP_ID_name:
                return getName();
@@ -558,13 +558,13 @@ public class _NopDynEntity extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_objType:{
+            case PROP_ID_nopObjType:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_objType));
+                       err-> newTypeConversionError(PROP_NAME_nopObjType));
                }
-               setObjType(typedValue);
+               setNopObjType(typedValue);
                break;
             }
         
@@ -884,9 +884,9 @@ public class _NopDynEntity extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_objType:{
+            case PROP_ID_nopObjType:{
                onInitProp(propId);
-               this._objType = (java.lang.String)value;
+               this._nopObjType = (java.lang.String)value;
                
                break;
             }
@@ -1127,20 +1127,20 @@ public class _NopDynEntity extends DynamicOrmEntity{
     }
     
     /**
-     * 对象类型: OBJ_TYPE
+     * 对象类型: NOP_OBJ_TYPE
      */
-    public java.lang.String getObjType(){
-         onPropGet(PROP_ID_objType);
-         return _objType;
+    public java.lang.String getNopObjType(){
+         onPropGet(PROP_ID_nopObjType);
+         return _nopObjType;
     }
 
     /**
-     * 对象类型: OBJ_TYPE
+     * 对象类型: NOP_OBJ_TYPE
      */
-    public void setObjType(java.lang.String value){
-        if(onPropSet(PROP_ID_objType,value)){
-            this._objType = value;
-            internalClearRefs(PROP_ID_objType);
+    public void setNopObjType(java.lang.String value){
+        if(onPropSet(PROP_ID_nopObjType,value)){
+            this._nopObjType = value;
+            internalClearRefs(PROP_ID_nopObjType);
             
         }
     }

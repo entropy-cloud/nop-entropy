@@ -25,7 +25,7 @@
               sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="objType" displayName="对象类型" i18n-en:displayName="Object Type" mandatory="true" queryable="true"
+        <prop name="nopObjType" displayName="对象类型" i18n-en:displayName="Object Type" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>

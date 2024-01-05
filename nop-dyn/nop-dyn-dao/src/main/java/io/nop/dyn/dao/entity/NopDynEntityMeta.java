@@ -16,6 +16,6 @@ public class NopDynEntityMeta extends _NopDynEntityMeta {
     }
 
     public String getBizObjName() {
-        return StringHelper.simplifyJavaType(getEntityName());
+        return StringHelper.simpleClassName(getEntityName());
     }
 }

@@ -79,7 +79,7 @@ prop:
       longFld2: 长整型字段2
       name: 名称
       nopFlowId: 工作流实例ID
-      objType: 对象类型
+      nopObjType: 对象类型
       ownerId: 拥有者ID
       ownerName: 拥有者姓名
       parent: 父对象
@@ -237,7 +237,6 @@ prop:
       extConfig: 扩展配置
       extConfigComponent: null
       isMandatory: 是否非空
-      isPrimary: 是否主键
       precision: 长度
       propMetaId: 属性定义ID
       propName: 属性名

@@ -30,7 +30,6 @@ CREATE TABLE nop_dyn_page(
 CREATE TABLE nop_dyn_prop_meta(
   PROP_META_ID VARCHAR2(32) NOT NULL ,
   ENTITY_META_ID VARCHAR2(32) NOT NULL ,
-  IS_PRIMARY CHAR(1) NOT NULL ,
   IS_MANDATORY CHAR(1) NOT NULL ,
   PROP_NAME VARCHAR2(50) NOT NULL ,
   DISPLAY_NAME VARCHAR2(100) NOT NULL ,
@@ -103,7 +102,7 @@ CREATE TABLE nop_dyn_function_meta(
 
 CREATE TABLE nop_dyn_entity(
   SID VARCHAR2(32) NOT NULL ,
-  OBJ_TYPE VARCHAR2(100) NOT NULL ,
+  NOP_OBJ_TYPE VARCHAR2(100) NOT NULL ,
   NAME VARCHAR2(100) NOT NULL ,
   DISPLAY_NAME VARCHAR2(500)  ,
   SORT_ORDER INTEGER  ,
@@ -271,8 +270,6 @@ CREATE TABLE nop_dyn_module(
                     
       COMMENT ON COLUMN nop_dyn_prop_meta.ENTITY_META_ID IS '实体定义ID';
                     
-      COMMENT ON COLUMN nop_dyn_prop_meta.IS_PRIMARY IS '是否主键';
-                    
       COMMENT ON COLUMN nop_dyn_prop_meta.IS_MANDATORY IS '是否非空';
                     
       COMMENT ON COLUMN nop_dyn_prop_meta.PROP_NAME IS '属性名';
@@ -399,7 +396,7 @@ CREATE TABLE nop_dyn_module(
                 
       COMMENT ON COLUMN nop_dyn_entity.SID IS '主键';
                     
-      COMMENT ON COLUMN nop_dyn_entity.OBJ_TYPE IS '对象类型';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_OBJ_TYPE IS '对象类型';
                     
       COMMENT ON COLUMN nop_dyn_entity.NAME IS '名称';
                     

@@ -51,6 +51,7 @@ import io.nop.orm.loader.IQueryExecutor;
 import io.nop.orm.metrics.IOrmMetrics;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IOrmModel;
+import io.nop.orm.model.init.OrmModelUpdater;
 import io.nop.orm.persister.ICollectionPersister;
 import io.nop.orm.persister.IEntityPersister;
 import io.nop.orm.persister.IPersistEnv;
@@ -491,5 +492,11 @@ public class SessionFactoryImpl implements IPersistEnv {
     public void reloadModel() {
         if (this.reloadFunction != null)
             this.reloadFunction.run();
+    }
+
+    @Override
+    public void updateDynamicModel(Set<String> moduleNames, IOrmModel dynModel) {
+        // 更新所有标记为dynamic的模型。这里需要强制要求非dynamic的模型不会引用dynModel中的实体
+        this.ormModel = new OrmModelUpdater(ormModel).updateDynamicModel(moduleNames, dynModel);
     }
 }

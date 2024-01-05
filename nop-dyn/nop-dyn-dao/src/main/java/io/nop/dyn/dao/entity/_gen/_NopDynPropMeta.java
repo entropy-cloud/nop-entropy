@@ -28,116 +28,112 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
     public static final String PROP_NAME_entityMetaId = "entityMetaId";
     public static final int PROP_ID_entityMetaId = 2;
     
-    /* 是否主键: IS_PRIMARY BOOLEAN */
-    public static final String PROP_NAME_isPrimary = "isPrimary";
-    public static final int PROP_ID_isPrimary = 3;
-    
     /* 是否非空: IS_MANDATORY BOOLEAN */
     public static final String PROP_NAME_isMandatory = "isMandatory";
-    public static final int PROP_ID_isMandatory = 4;
+    public static final int PROP_ID_isMandatory = 3;
     
     /* 属性名: PROP_NAME VARCHAR */
     public static final String PROP_NAME_propName = "propName";
-    public static final int PROP_ID_propName = 5;
+    public static final int PROP_ID_propName = 4;
     
     /* 显示名: DISPLAY_NAME VARCHAR */
     public static final String PROP_NAME_displayName = "displayName";
-    public static final int PROP_ID_displayName = 6;
+    public static final int PROP_ID_displayName = 5;
     
     /* 标准SQL数据类型: STD_SQL_TYPE VARCHAR */
     public static final String PROP_NAME_stdSqlType = "stdSqlType";
-    public static final int PROP_ID_stdSqlType = 7;
+    public static final int PROP_ID_stdSqlType = 6;
     
     /* 长度: PRECISION INTEGER */
     public static final String PROP_NAME_precision = "precision";
-    public static final int PROP_ID_precision = 8;
+    public static final int PROP_ID_precision = 7;
     
     /* 小数位数: SCALE INTEGER */
     public static final String PROP_NAME_scale = "scale";
-    public static final int PROP_ID_scale = 9;
+    public static final int PROP_ID_scale = 8;
     
     /* 显示控制: UI_SHOW VARCHAR */
     public static final String PROP_NAME_uiShow = "uiShow";
-    public static final int PROP_ID_uiShow = 10;
+    public static final int PROP_ID_uiShow = 9;
     
     /* 显示控件: UI_CONTROL VARCHAR */
     public static final String PROP_NAME_uiControl = "uiControl";
-    public static final int PROP_ID_uiControl = 11;
+    public static final int PROP_ID_uiControl = 10;
     
     /* 数据域ID: DOMAIN_ID VARCHAR */
     public static final String PROP_NAME_domainId = "domainId";
-    public static final int PROP_ID_domainId = 12;
+    public static final int PROP_ID_domainId = 11;
     
     /* 标准域: STD_DOMAIN_NAME VARCHAR */
     public static final String PROP_NAME_stdDomainName = "stdDomainName";
-    public static final int PROP_ID_stdDomainName = 13;
+    public static final int PROP_ID_stdDomainName = 12;
     
     /* 数据字典: DICT_NAME VARCHAR */
     public static final String PROP_NAME_dictName = "dictName";
-    public static final int PROP_ID_dictName = 14;
+    public static final int PROP_ID_dictName = 13;
     
     /* 动态字段映射: DYN_PROP_MAPPING VARCHAR */
     public static final String PROP_NAME_dynPropMapping = "dynPropMapping";
-    public static final int PROP_ID_dynPropMapping = 15;
+    public static final int PROP_ID_dynPropMapping = 14;
     
     /* 标签: TAG_SET VARCHAR */
     public static final String PROP_NAME_tagSet = "tagSet";
-    public static final int PROP_ID_tagSet = 16;
+    public static final int PROP_ID_tagSet = 15;
     
     /* 缺省值: DEFAULT_VALUE VARCHAR */
     public static final String PROP_NAME_defaultValue = "defaultValue";
-    public static final int PROP_ID_defaultValue = 17;
+    public static final int PROP_ID_defaultValue = 16;
     
     /* 关联实体名: REF_ENTITY_NAME VARCHAR */
     public static final String PROP_NAME_refEntityName = "refEntityName";
-    public static final int PROP_ID_refEntityName = 18;
+    public static final int PROP_ID_refEntityName = 17;
     
     /* 关联属性名: REF_PROP_NAME VARCHAR */
     public static final String PROP_NAME_refPropName = "refPropName";
-    public static final int PROP_ID_refPropName = 19;
+    public static final int PROP_ID_refPropName = 18;
     
     /* 关联属性显示名: REF_PROP_DISPLAY_NAME VARCHAR */
     public static final String PROP_NAME_refPropDisplayName = "refPropDisplayName";
-    public static final int PROP_ID_refPropDisplayName = 20;
+    public static final int PROP_ID_refPropDisplayName = 19;
     
     /* 关联属性标签: REF_TAG_SET VARCHAR */
     public static final String PROP_NAME_refTagSet = "refTagSet";
-    public static final int PROP_ID_refTagSet = 21;
+    public static final int PROP_ID_refTagSet = 20;
     
     /* 扩展配置: EXT_CONFIG VARCHAR */
     public static final String PROP_NAME_extConfig = "extConfig";
-    public static final int PROP_ID_extConfig = 22;
+    public static final int PROP_ID_extConfig = 21;
     
     /* 状态: STATUS INTEGER */
     public static final String PROP_NAME_status = "status";
-    public static final int PROP_ID_status = 23;
+    public static final int PROP_ID_status = 22;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 24;
+    public static final int PROP_ID_version = 23;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 25;
+    public static final int PROP_ID_createdBy = 24;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 26;
+    public static final int PROP_ID_createTime = 25;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 27;
+    public static final int PROP_ID_updatedBy = 26;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 28;
+    public static final int PROP_ID_updateTime = 27;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 29;
+    public static final int PROP_ID_remark = 28;
     
 
-    private static int _PROP_ID_BOUND = 30;
+    private static int _PROP_ID_BOUND = 29;
 
     
     /* relation: 所属模块 */
@@ -153,7 +149,7 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_propMetaId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_propMetaId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[30];
+    private static final String[] PROP_ID_TO_NAME = new String[29];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -162,9 +158,6 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_entityMetaId] = PROP_NAME_entityMetaId;
           PROP_NAME_TO_ID.put(PROP_NAME_entityMetaId, PROP_ID_entityMetaId);
-      
-          PROP_ID_TO_NAME[PROP_ID_isPrimary] = PROP_NAME_isPrimary;
-          PROP_NAME_TO_ID.put(PROP_NAME_isPrimary, PROP_ID_isPrimary);
       
           PROP_ID_TO_NAME[PROP_ID_isMandatory] = PROP_NAME_isMandatory;
           PROP_NAME_TO_ID.put(PROP_NAME_isMandatory, PROP_ID_isMandatory);
@@ -252,9 +245,6 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
     
     /* 实体定义ID: ENTITY_META_ID */
     private java.lang.String _entityMetaId;
-    
-    /* 是否主键: IS_PRIMARY */
-    private java.lang.Boolean _isPrimary;
     
     /* 是否非空: IS_MANDATORY */
     private java.lang.Boolean _isMandatory;
@@ -411,9 +401,6 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
             case PROP_ID_entityMetaId:
                return getEntityMetaId();
         
-            case PROP_ID_isPrimary:
-               return getIsPrimary();
-        
             case PROP_ID_isMandatory:
                return getIsMandatory();
         
@@ -520,16 +507,6 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_entityMetaId));
                }
                setEntityMetaId(typedValue);
-               break;
-            }
-        
-            case PROP_ID_isPrimary:{
-               java.lang.Boolean typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toBoolean(value,
-                       err-> newTypeConversionError(PROP_NAME_isPrimary));
-               }
-               setIsPrimary(typedValue);
                break;
             }
         
@@ -816,13 +793,6 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_isPrimary:{
-               onInitProp(propId);
-               this._isPrimary = (java.lang.Boolean)value;
-               
-               break;
-            }
-        
             case PROP_ID_isMandatory:{
                onInitProp(propId);
                this._isMandatory = (java.lang.Boolean)value;
@@ -1045,25 +1015,6 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_entityMetaId,value)){
             this._entityMetaId = value;
             internalClearRefs(PROP_ID_entityMetaId);
-            
-        }
-    }
-    
-    /**
-     * 是否主键: IS_PRIMARY
-     */
-    public java.lang.Boolean getIsPrimary(){
-         onPropGet(PROP_ID_isPrimary);
-         return _isPrimary;
-    }
-
-    /**
-     * 是否主键: IS_PRIMARY
-     */
-    public void setIsPrimary(java.lang.Boolean value){
-        if(onPropSet(PROP_ID_isPrimary,value)){
-            this._isPrimary = value;
-            internalClearRefs(PROP_ID_isPrimary);
             
         }
     }

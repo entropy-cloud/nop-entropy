@@ -28,10 +28,6 @@
               queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="entityMeta">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="isPrimary" displayName="是否主键" i18n-en:displayName="Is Primary" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.Boolean"/>
-        </prop>
         <prop name="isMandatory" displayName="是否非空" i18n-en:displayName="Is Mandatory" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Boolean"/>

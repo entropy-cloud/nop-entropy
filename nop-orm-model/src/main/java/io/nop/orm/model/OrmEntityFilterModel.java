@@ -10,6 +10,13 @@ public class OrmEntityFilterModel extends _OrmEntityFilterModel {
 
     }
 
+    public static OrmEntityFilterModel of(String colName, Object value) {
+        OrmEntityFilterModel ret = new OrmEntityFilterModel();
+        ret.setName(colName);
+        ret.setValue(value);
+        return ret;
+    }
+
     public OrmColumnModel getColumn() {
         return column;
     }

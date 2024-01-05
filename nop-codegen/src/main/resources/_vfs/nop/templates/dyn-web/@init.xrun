@@ -1,5 +1,7 @@
 <gen:DefineLoop xpl:lib="/nop/codegen/xlib/gen.xlib">
     <c:script><![CDATA[
+       import io.nop.xlang.xmeta.SchemaLoader;
+
        const metaInfos = metaResources.map(resource=>{
             const objMeta = SchemaLoader.parseXMetaFromResource(resource)
             return {
@@ -11,6 +13,7 @@
            }
         })
 
+        builder.defineGlobalVar("metaInfos",metaInfos);
         builder.defineGlobalVar("moduleName",moduleId.replace('/','-'));
         builder.defineLoopVar("metaInfo", "metaInfos");
         builder.defineGlobalVar("moduleId",moduleId);

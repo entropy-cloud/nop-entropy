@@ -61,10 +61,14 @@ public class OrmModelToDynEntityMeta {
             propMetas.put(propMeta.getPropName(), propMeta);
         });
 
-        entityModel.getAllProps().forEach((name, prop) -> {
-            NopDynPropMeta propMeta = makeProp(entityMeta, propMetas, prop.getName());
+        entityModel.getColumns().forEach(col -> {
+            // 忽略主键
+            if (col.isPrimary())
+                return;
 
-            transformPropMeta(prop, propMeta);
+            NopDynPropMeta propMeta = makeProp(entityMeta, propMetas, col.getName());
+
+            transformPropMeta(col, propMeta);
         });
     }
 
@@ -93,7 +97,6 @@ public class OrmModelToDynEntityMeta {
         propMeta.setTagSet(StringHelper.join(col.getTagSet(), ","));
         propMeta.setStdDomainName(col.getStdDomain());
         propMeta.setIsMandatory(col.isMandatory());
-        propMeta.setIsPrimary(col.isPrimary());
         propMeta.setRemark(col.getComment());
         propMeta.setUiShow((String) col.prop_get(OrmModelConstants.EXT_UI_CONTROL));
         propMeta.setUiControl((String) col.prop_get(OrmModelConstants.EXT_UI_SHOW));
