@@ -13487,6 +13487,10 @@
     "fields": [],
     "methods": [
       {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
         "name": "getCollectionName",
         "parameterTypes": []
       },

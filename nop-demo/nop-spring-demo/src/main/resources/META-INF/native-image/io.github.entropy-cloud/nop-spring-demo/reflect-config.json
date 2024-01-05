@@ -11138,6 +11138,16 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_accessToken"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_cacheData"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_createTime"
       },
       {
@@ -11198,12 +11208,22 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_refreshToken"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_remark"
       },
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_ID_sessionId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_tenantId"
       },
       {
         "allowUnsafeAccess": false,
@@ -11219,6 +11239,16 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_ID_version"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_accessToken"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_cacheData"
       },
       {
         "allowUnsafeAccess": false,
@@ -11283,12 +11313,22 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_refreshToken"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_remark"
       },
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_NAME_sessionId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_tenantId"
       },
       {
         "allowUnsafeAccess": false,
@@ -11314,6 +11354,14 @@
     "methods": [
       {
         "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "getAccessToken",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCacheData",
         "parameterTypes": []
       },
       {
@@ -11365,11 +11413,19 @@
         "parameterTypes": []
       },
       {
+        "name": "getRefreshToken",
+        "parameterTypes": []
+      },
+      {
         "name": "getRemark",
         "parameterTypes": []
       },
       {
         "name": "getSessionId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTenantId",
         "parameterTypes": []
       },
       {
@@ -11440,6 +11496,18 @@
         "parameterTypes": [
           "int",
           "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setAccessToken",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setCacheData",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -11515,6 +11583,12 @@
         ]
       },
       {
+        "name": "setRefreshToken",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setRemark",
         "parameterTypes": [
           "java.lang.String"
@@ -11522,6 +11596,12 @@
       },
       {
         "name": "setSessionId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTenantId",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -16077,6 +16157,12 @@
         "name": "setDaoProvider",
         "parameterTypes": [
           "io.nop.dao.api.IDaoProvider"
+        ]
+      },
+      {
+        "name": "setDynBizModels",
+        "parameterTypes": [
+          "java.util.Map"
         ]
       },
       {
@@ -37755,6 +37841,10 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
       {
         "name": "getCollectionName",
         "parameterTypes": []
