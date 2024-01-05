@@ -2,6 +2,8 @@ package io.nop.xlang.xdef.impl._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xdef.impl.XDefProp;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -56,6 +58,22 @@ public abstract class _XDefProp extends io.nop.core.resource.component.AbstractC
         super.outputJson(out);
         
         out.put("name",this.getName());
+    }
+
+    public XDefProp cloneInstance(){
+        XDefProp instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(XDefProp instance){
+        super.copyTo(instance);
+        
+        instance.setName(this.getName());
+    }
+
+    protected XDefProp newInstance(){
+        return (XDefProp) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

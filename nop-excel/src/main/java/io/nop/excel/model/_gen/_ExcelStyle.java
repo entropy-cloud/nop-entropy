@@ -2,6 +2,8 @@ package io.nop.excel.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.model.ExcelStyle;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -556,6 +558,40 @@ public abstract class _ExcelStyle extends io.nop.core.resource.component.Abstrac
         out.put("topBorder",this.getTopBorder());
         out.put("verticalAlign",this.getVerticalAlign());
         out.put("wrapText",this.isWrapText());
+    }
+
+    public ExcelStyle cloneInstance(){
+        ExcelStyle instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ExcelStyle instance){
+        super.copyTo(instance);
+        
+        instance.setBottomBorder(this.getBottomBorder());
+        instance.setDiagonalLeftBorder(this.getDiagonalLeftBorder());
+        instance.setDiagonalRightBorder(this.getDiagonalRightBorder());
+        instance.setFillBgColor(this.getFillBgColor());
+        instance.setFillFgColor(this.getFillFgColor());
+        instance.setFillPattern(this.getFillPattern());
+        instance.setFont(this.getFont());
+        instance.setHorizontalAlign(this.getHorizontalAlign());
+        instance.setId(this.getId());
+        instance.setIndent(this.getIndent());
+        instance.setLeftBorder(this.getLeftBorder());
+        instance.setName(this.getName());
+        instance.setNumberFormat(this.getNumberFormat());
+        instance.setRightBorder(this.getRightBorder());
+        instance.setRotate(this.getRotate());
+        instance.setShrinkToFit(this.isShrinkToFit());
+        instance.setTopBorder(this.getTopBorder());
+        instance.setVerticalAlign(this.getVerticalAlign());
+        instance.setWrapText(this.isWrapText());
+    }
+
+    protected ExcelStyle newInstance(){
+        return (ExcelStyle) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

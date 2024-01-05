@@ -2,6 +2,8 @@ package io.nop.stream.cep.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.stream.cep.model.CepPatternSingleModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -83,6 +85,23 @@ public abstract class _CepPatternSingleModel extends io.nop.stream.cep.model.Cep
         
         out.put("until",this.getUntil());
         out.put("where",this.getWhere());
+    }
+
+    public CepPatternSingleModel cloneInstance(){
+        CepPatternSingleModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(CepPatternSingleModel instance){
+        super.copyTo(instance);
+        
+        instance.setUntil(this.getUntil());
+        instance.setWhere(this.getWhere());
+    }
+
+    protected CepPatternSingleModel newInstance(){
+        return (CepPatternSingleModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

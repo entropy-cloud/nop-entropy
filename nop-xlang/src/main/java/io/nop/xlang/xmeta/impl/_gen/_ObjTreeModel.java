@@ -2,6 +2,8 @@ package io.nop.xlang.xmeta.impl._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xmeta.impl.ObjTreeModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -164,6 +166,26 @@ public abstract class _ObjTreeModel extends io.nop.core.resource.component.Abstr
         out.put("levelProp",this.getLevelProp());
         out.put("parentProp",this.getParentProp());
         out.put("rootLevelValue",this.getRootLevelValue());
+    }
+
+    public ObjTreeModel cloneInstance(){
+        ObjTreeModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ObjTreeModel instance){
+        super.copyTo(instance);
+        
+        instance.setChildrenProp(this.getChildrenProp());
+        instance.setIsLeafProp(this.getIsLeafProp());
+        instance.setLevelProp(this.getLevelProp());
+        instance.setParentProp(this.getParentProp());
+        instance.setRootLevelValue(this.getRootLevelValue());
+    }
+
+    protected ObjTreeModel newInstance(){
+        return (ObjTreeModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

@@ -2,8 +2,8 @@
 
 NopORM引擎是一个完整的ORM引擎，不是专门为LowCode开发定制的一种狭窄用途的ORM引擎。基于NopORM的通用机制，平台也内置了一些LowCode专用的动态模型。
 
-nop-wf模块提供了一个NopWfDynEntity实体，它具有nopFlowId字段，可以自动与工作流引擎关联，作为工作流实例关联的业务实体来使用。无需建表，只要调整
-ORM配置即可利用基础的NopWfDynEntity分化出新的ORM实体对象（实体名和属性名不同），实际数据保存在nop_wf_dyn_entity表（纵表）以及nop_wf_dyn_entity_ext表的扩展字段中。
+nop-dyn模块提供了一个NopDynEntity实体，它具有nopFlowId字段，可以自动与工作流引擎关联，作为工作流实例关联的业务实体来使用。无需建表，只要调整
+ORM配置即可利用基础的NopDynEntity分化出新的ORM实体对象（实体名和属性名不同），实际数据保存在nop_dyn_entity表（纵表）以及nop_dyn_entity_ext表的扩展字段中。
 
 具体使用方法如下：
 

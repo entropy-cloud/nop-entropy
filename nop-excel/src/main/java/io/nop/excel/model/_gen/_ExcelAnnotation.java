@@ -2,6 +2,8 @@ package io.nop.excel.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.model.ExcelAnnotation;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -83,6 +85,23 @@ public abstract class _ExcelAnnotation extends io.nop.core.resource.component.Ab
         
         out.put("range",this.getRange());
         out.put("type",this.getType());
+    }
+
+    public ExcelAnnotation cloneInstance(){
+        ExcelAnnotation instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ExcelAnnotation instance){
+        super.copyTo(instance);
+        
+        instance.setRange(this.getRange());
+        instance.setType(this.getType());
+    }
+
+    protected ExcelAnnotation newInstance(){
+        return (ExcelAnnotation) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

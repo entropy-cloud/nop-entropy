@@ -2,6 +2,8 @@ package io.nop.dao.dialect.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.dao.dialect.model.SqlDataTypeModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -303,6 +305,31 @@ public abstract class _SqlDataTypeModel extends io.nop.core.resource.component.A
         out.put("precision",this.getPrecision());
         out.put("scale",this.getScale());
         out.put("stdSqlType",this.getStdSqlType());
+    }
+
+    public SqlDataTypeModel cloneInstance(){
+        SqlDataTypeModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(SqlDataTypeModel instance){
+        super.copyTo(instance);
+        
+        instance.setAlias(this.getAlias());
+        instance.setAllowExceedPrecision(this.isAllowExceedPrecision());
+        instance.setAllowPrecision(this.getAllowPrecision());
+        instance.setCode(this.getCode());
+        instance.setDeprecated(this.isDeprecated());
+        instance.setJdbcBinder(this.getJdbcBinder());
+        instance.setName(this.getName());
+        instance.setPrecision(this.getPrecision());
+        instance.setScale(this.getScale());
+        instance.setStdSqlType(this.getStdSqlType());
+    }
+
+    protected SqlDataTypeModel newInstance(){
+        return (SqlDataTypeModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

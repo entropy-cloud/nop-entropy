@@ -2,6 +2,8 @@ package io.nop.wf.core.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.wf.core.model.WfTransitionToModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -164,6 +166,26 @@ public abstract class _WfTransitionToModel extends io.nop.core.resource.componen
         out.put("caseValue",this.getCaseValue());
         out.put("order",this.getOrder());
         out.put("when",this.getWhen());
+    }
+
+    public WfTransitionToModel cloneInstance(){
+        WfTransitionToModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(WfTransitionToModel instance){
+        super.copyTo(instance);
+        
+        instance.setAfterTransition(this.getAfterTransition());
+        instance.setBeforeTransition(this.getBeforeTransition());
+        instance.setCaseValue(this.getCaseValue());
+        instance.setOrder(this.getOrder());
+        instance.setWhen(this.getWhen());
+    }
+
+    protected WfTransitionToModel newInstance(){
+        return (WfTransitionToModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

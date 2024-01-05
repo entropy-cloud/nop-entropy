@@ -2,6 +2,8 @@ package io.nop.ioc.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.ioc.model.BeanPointcutModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -83,6 +85,23 @@ public abstract class _BeanPointcutModel extends io.nop.core.resource.component.
         
         out.put("annotations",this.getAnnotations());
         out.put("order",this.getOrder());
+    }
+
+    public BeanPointcutModel cloneInstance(){
+        BeanPointcutModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BeanPointcutModel instance){
+        super.copyTo(instance);
+        
+        instance.setAnnotations(this.getAnnotations());
+        instance.setOrder(this.getOrder());
+    }
+
+    protected BeanPointcutModel newInstance(){
+        return (BeanPointcutModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

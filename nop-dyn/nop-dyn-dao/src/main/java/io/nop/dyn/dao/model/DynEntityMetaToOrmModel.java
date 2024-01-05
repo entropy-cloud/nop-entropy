@@ -64,6 +64,7 @@ public class DynEntityMetaToOrmModel {
         model.prop_set(OrmModelConstants.EXT_MAVEN_ARTIFACT_ID, module.getModuleName());
         model.setEntities(toOrmEntityModels(module.getEntityMetas()));
 
+        model.init();
         return model;
     }
 

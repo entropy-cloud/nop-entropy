@@ -2,6 +2,8 @@ package io.nop.excel.imp.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.imp.model.ImportSheetModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -599,6 +601,41 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
         out.put("sheetVarName",this.getSheetVarName());
         out.put("unknownField",this.getUnknownField());
         out.put("when",this.getWhen());
+    }
+
+    public ImportSheetModel cloneInstance(){
+        ImportSheetModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ImportSheetModel instance){
+        super.copyTo(instance);
+        
+        instance.setAfterParse(this.getAfterParse());
+        instance.setBeforeParse(this.getBeforeParse());
+        instance.setDescription(this.getDescription());
+        instance.setDisplayMode(this.getDisplayMode());
+        instance.setField(this.getField());
+        instance.setFieldDecider(this.getFieldDecider());
+        instance.setFields(this.getFields());
+        instance.setIgnore(this.isIgnore());
+        instance.setKeyProp(this.getKeyProp());
+        instance.setList(this.isList());
+        instance.setMandatory(this.isMandatory());
+        instance.setMultiple(this.isMultiple());
+        instance.setName(this.getName());
+        instance.setNamePattern(this.getNamePattern());
+        instance.setNormalizeFieldsExpr(this.getNormalizeFieldsExpr());
+        instance.setResultType(this.getResultType());
+        instance.setSheetNameProp(this.getSheetNameProp());
+        instance.setSheetVarName(this.getSheetVarName());
+        instance.setUnknownField(this.getUnknownField());
+        instance.setWhen(this.getWhen());
+    }
+
+    protected ImportSheetModel newInstance(){
+        return (ImportSheetModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

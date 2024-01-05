@@ -2,6 +2,8 @@ package io.nop.excel.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.model.ExcelRow;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -195,6 +197,27 @@ public abstract class _ExcelRow extends io.nop.core.model.table.impl.AbstractRow
         out.put("model",this.getModel());
         out.put("name",this.getName());
         out.put("styleId",this.getStyleId());
+    }
+
+    public ExcelRow cloneInstance(){
+        ExcelRow instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ExcelRow instance){
+        super.copyTo(instance);
+        
+        instance.setAutoFitHeight(this.isAutoFitHeight());
+        instance.setCells(this.getCells());
+        instance.setHeight(this.getHeight());
+        instance.setModel(this.getModel());
+        instance.setName(this.getName());
+        instance.setStyleId(this.getStyleId());
+    }
+
+    protected ExcelRow newInstance(){
+        return (ExcelRow) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

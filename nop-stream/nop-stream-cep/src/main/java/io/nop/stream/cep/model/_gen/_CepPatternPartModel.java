@@ -2,6 +2,8 @@ package io.nop.stream.cep.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.stream.cep.model.CepPatternPartModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -353,6 +355,33 @@ public abstract class _CepPatternPartModel extends io.nop.core.resource.componen
         out.put("times",this.getTimes());
         out.put("timesOrMore",this.getTimesOrMore());
         out.put("windowTime",this.getWindowTime());
+    }
+
+    public CepPatternPartModel cloneInstance(){
+        CepPatternPartModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(CepPatternPartModel instance){
+        super.copyTo(instance);
+        
+        instance.setAllowCombinations(this.isAllowCombinations());
+        instance.setConsecutive(this.isConsecutive());
+        instance.setFollowKind(this.getFollowKind());
+        instance.setGreedy(this.isGreedy());
+        instance.setName(this.getName());
+        instance.setNext(this.getNext());
+        instance.setOneOrMore(this.isOneOrMore());
+        instance.setOptional(this.isOptional());
+        instance.setSubType(this.getSubType());
+        instance.setTimes(this.getTimes());
+        instance.setTimesOrMore(this.getTimesOrMore());
+        instance.setWindowTime(this.getWindowTime());
+    }
+
+    protected CepPatternPartModel newInstance(){
+        return (CepPatternPartModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

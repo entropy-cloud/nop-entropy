@@ -2,6 +2,8 @@ package io.nop.orm.sql_lib._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.orm.sql_lib.SqlItemModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -546,6 +548,38 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
         out.put("timeout",this.getTimeout());
         out.put("type",this.getType());
         out.put("validateInput",this.getValidateInput());
+    }
+
+    public SqlItemModel cloneInstance(){
+        SqlItemModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(SqlItemModel instance){
+        super.copyTo(instance);
+        
+        instance.setArgs(this.getArgs());
+        instance.setAuth(this.getAuth());
+        instance.setBatchLoadSelection(this.getBatchLoadSelection());
+        instance.setCacheKeyExpr(this.getCacheKeyExpr());
+        instance.setCacheName(this.getCacheName());
+        instance.setDescription(this.getDescription());
+        instance.setDisableLogicalDelete(this.isDisableLogicalDelete());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setFetchSize(this.getFetchSize());
+        instance.setFields(this.getFields());
+        instance.setName(this.getName());
+        instance.setQuerySpace(this.getQuerySpace());
+        instance.setRowType(this.getRowType());
+        instance.setSqlMethod(this.getSqlMethod());
+        instance.setTimeout(this.getTimeout());
+        instance.setType(this.getType());
+        instance.setValidateInput(this.getValidateInput());
+    }
+
+    protected SqlItemModel newInstance(){
+        return (SqlItemModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

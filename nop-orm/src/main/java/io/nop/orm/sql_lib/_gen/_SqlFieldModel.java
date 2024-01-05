@@ -2,6 +2,8 @@ package io.nop.orm.sql_lib._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.orm.sql_lib.SqlFieldModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -83,6 +85,23 @@ public abstract class _SqlFieldModel extends io.nop.core.resource.component.Abst
         
         out.put("index",this.getIndex());
         out.put("stdSqlType",this.getStdSqlType());
+    }
+
+    public SqlFieldModel cloneInstance(){
+        SqlFieldModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(SqlFieldModel instance){
+        super.copyTo(instance);
+        
+        instance.setIndex(this.getIndex());
+        instance.setStdSqlType(this.getStdSqlType());
+    }
+
+    protected SqlFieldModel newInstance(){
+        return (SqlFieldModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

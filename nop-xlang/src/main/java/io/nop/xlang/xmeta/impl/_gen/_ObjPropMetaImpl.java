@@ -2,6 +2,8 @@ package io.nop.xlang.xmeta.impl._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xmeta.impl.ObjPropMetaImpl;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -1069,6 +1071,57 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
         out.put("virtual",this.isVirtual());
         out.put("xmlName",this.getXmlName());
         out.put("xmlPos",this.getXmlPos());
+    }
+
+    public ObjPropMetaImpl cloneInstance(){
+        ObjPropMetaImpl instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ObjPropMetaImpl instance){
+        super.copyTo(instance);
+        
+        instance.setAllowCpExpr(this.getAllowCpExpr());
+        instance.setAllowFilterOp(this.getAllowFilterOp());
+        instance.setArgs(this.getArgs());
+        instance.setAuths(this.getAuths());
+        instance.setAutoExpr(this.getAutoExpr());
+        instance.setChildName(this.getChildName());
+        instance.setChildXmlName(this.getChildXmlName());
+        instance.setDefaultOverride(this.getDefaultOverride());
+        instance.setDefaultValue(this.getDefaultValue());
+        instance.setDepends(this.getDepends());
+        instance.setDeprecated(this.isDeprecated());
+        instance.setDescription(this.getDescription());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setGetter(this.getGetter());
+        instance.setInsertable(this.isInsertable());
+        instance.setInternal(this.isInternal());
+        instance.setKind(this.getKind());
+        instance.setLazy(this.isLazy());
+        instance.setMandatory(this.isMandatory());
+        instance.setMapToProp(this.getMapToProp());
+        instance.setName(this.getName());
+        instance.setPropId(this.getPropId());
+        instance.setPublished(this.isPublished());
+        instance.setQueryable(this.isQueryable());
+        instance.setReadable(this.isReadable());
+        instance.setSchema(this.getSchema());
+        instance.setSetter(this.getSetter());
+        instance.setSortable(this.isSortable());
+        instance.setTagSet(this.getTagSet());
+        instance.setTransformIn(this.getTransformIn());
+        instance.setTransformOut(this.getTransformOut());
+        instance.setType(this.getType());
+        instance.setUpdatable(this.isUpdatable());
+        instance.setVirtual(this.isVirtual());
+        instance.setXmlName(this.getXmlName());
+        instance.setXmlPos(this.getXmlPos());
+    }
+
+    protected ObjPropMetaImpl newInstance(){
+        return (ObjPropMetaImpl) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

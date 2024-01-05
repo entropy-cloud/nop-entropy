@@ -2,6 +2,8 @@ package io.nop.excel.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.model.ExcelPrint;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -245,6 +247,29 @@ public abstract class _ExcelPrint extends io.nop.core.resource.component.Abstrac
         out.put("rowColHeadings",this.getRowColHeadings());
         out.put("scale",this.getScale());
         out.put("verticalResolution",this.getVerticalResolution());
+    }
+
+    public ExcelPrint cloneInstance(){
+        ExcelPrint instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ExcelPrint instance){
+        super.copyTo(instance);
+        
+        instance.setFitHeight(this.isFitHeight());
+        instance.setFitWidth(this.isFitWidth());
+        instance.setGridlines(this.getGridlines());
+        instance.setHorizontalResolution(this.getHorizontalResolution());
+        instance.setPageSizeIndex(this.getPageSizeIndex());
+        instance.setRowColHeadings(this.getRowColHeadings());
+        instance.setScale(this.getScale());
+        instance.setVerticalResolution(this.getVerticalResolution());
+    }
+
+    protected ExcelPrint newInstance(){
+        return (ExcelPrint) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

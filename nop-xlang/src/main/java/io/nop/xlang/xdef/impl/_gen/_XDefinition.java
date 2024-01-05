@@ -2,6 +2,8 @@ package io.nop.xlang.xdef.impl._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xdef.impl.XDefinition;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -335,6 +337,32 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
         out.put("xdefPropNs",this.getXdefPropNs());
         out.put("xdefTransform",this.getXdefTransform());
         out.put("xdefVersion",this.getXdefVersion());
+    }
+
+    public XDefinition cloneInstance(){
+        XDefinition instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(XDefinition instance){
+        super.copyTo(instance);
+        
+        instance.setXdefBase(this.getXdefBase());
+        instance.setXdefBeanPackage(this.getXdefBeanPackage());
+        instance.setXdefCheckNs(this.getXdefCheckNs());
+        instance.setXdefDefaultExtends(this.getXdefDefaultExtends());
+        instance.setXdefParseForHtml(this.getXdefParseForHtml());
+        instance.setXdefParseKeepComment(this.getXdefParseKeepComment());
+        instance.setXdefParserClass(this.getXdefParserClass());
+        instance.setXdefPostParse(this.getXdefPostParse());
+        instance.setXdefPropNs(this.getXdefPropNs());
+        instance.setXdefTransform(this.getXdefTransform());
+        instance.setXdefVersion(this.getXdefVersion());
+    }
+
+    protected XDefinition newInstance(){
+        return (XDefinition) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

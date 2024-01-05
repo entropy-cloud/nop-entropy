@@ -2,6 +2,8 @@ package io.nop.ioc.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.ioc.model.BeansModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -578,6 +580,32 @@ public abstract class _BeansModel extends io.nop.xlang.xdsl.AbstractDslModel {
         out.put("utilLists",this.getUtilLists());
         out.put("utilMaps",this.getUtilMaps());
         out.put("utilSets",this.getUtilSets());
+    }
+
+    public BeansModel cloneInstance(){
+        BeansModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BeansModel instance){
+        super.copyTo(instance);
+        
+        instance.setAliases(this.getAliases());
+        instance.setBeans(this.getBeans());
+        instance.setDefaultLazyInit(this.isDefaultLazyInit());
+        instance.setImports(this.getImports());
+        instance.setIocConfigs(this.getIocConfigs());
+        instance.setIocListeners(this.getIocListeners());
+        instance.setIocSecurityDomain(this.getIocSecurityDomain());
+        instance.setUtilConstants(this.getUtilConstants());
+        instance.setUtilLists(this.getUtilLists());
+        instance.setUtilMaps(this.getUtilMaps());
+        instance.setUtilSets(this.getUtilSets());
+    }
+
+    protected BeansModel newInstance(){
+        return (BeansModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

@@ -2,6 +2,8 @@ package io.nop.task.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.task.model.InvokeTaskStepModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -165,6 +167,25 @@ public abstract class _InvokeTaskStepModel extends io.nop.task.model.TaskStepMod
         out.put("bean",this.getBean());
         out.put("ignoreReturn",this.isIgnoreReturn());
         out.put("method",this.getMethod());
+    }
+
+    public InvokeTaskStepModel cloneInstance(){
+        InvokeTaskStepModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(InvokeTaskStepModel instance){
+        super.copyTo(instance);
+        
+        instance.setArgs(this.getArgs());
+        instance.setBean(this.getBean());
+        instance.setIgnoreReturn(this.isIgnoreReturn());
+        instance.setMethod(this.getMethod());
+    }
+
+    protected InvokeTaskStepModel newInstance(){
+        return (InvokeTaskStepModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

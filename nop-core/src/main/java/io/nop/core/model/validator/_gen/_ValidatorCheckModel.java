@@ -2,6 +2,8 @@ package io.nop.core.model.validator._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.core.model.validator.ValidatorCheckModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -251,6 +253,29 @@ public abstract class _ValidatorCheckModel extends io.nop.core.resource.componen
         out.put("errorStatus",this.getErrorStatus());
         out.put("id",this.getId());
         out.put("severity",this.getSeverity());
+    }
+
+    public ValidatorCheckModel cloneInstance(){
+        ValidatorCheckModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ValidatorCheckModel instance){
+        super.copyTo(instance);
+        
+        instance.setBizFatal(this.getBizFatal());
+        instance.setCondition(this.getCondition());
+        instance.setErrorCode(this.getErrorCode());
+        instance.setErrorDescription(this.getErrorDescription());
+        instance.setErrorParams(this.getErrorParams());
+        instance.setErrorStatus(this.getErrorStatus());
+        instance.setId(this.getId());
+        instance.setSeverity(this.getSeverity());
+    }
+
+    protected ValidatorCheckModel newInstance(){
+        return (ValidatorCheckModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

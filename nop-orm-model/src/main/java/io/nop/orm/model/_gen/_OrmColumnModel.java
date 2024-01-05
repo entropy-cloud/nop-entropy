@@ -2,6 +2,8 @@ package io.nop.orm.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.orm.model.OrmColumnModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -683,6 +685,45 @@ public abstract class _OrmColumnModel extends io.nop.core.resource.component.Abs
         out.put("tagSet",this.getTagSet());
         out.put("uiHint",this.getUiHint());
         out.put("updatable",this.isUpdatable());
+    }
+
+    public OrmColumnModel cloneInstance(){
+        OrmColumnModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(OrmColumnModel instance){
+        super.copyTo(instance);
+        
+        instance.setCode(this.getCode());
+        instance.setComment(this.getComment());
+        instance.setDefaultValue(this.getDefaultValue());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setDomain(this.getDomain());
+        instance.setFixedValue(this.getFixedValue());
+        instance.setInsertable(this.isInsertable());
+        instance.setJsonPath(this.getJsonPath());
+        instance.setLazy(this.isLazy());
+        instance.setMandatory(this.isMandatory());
+        instance.setName(this.getName());
+        instance.setNativeSqlType(this.getNativeSqlType());
+        instance.setNotGenCode(this.isNotGenCode());
+        instance.setPrecision(this.getPrecision());
+        instance.setPrimary(this.isPrimary());
+        instance.setPropId(this.getPropId());
+        instance.setScale(this.getScale());
+        instance.setSqlText(this.getSqlText());
+        instance.setStdDataType(this.getStdDataType());
+        instance.setStdDomain(this.getStdDomain());
+        instance.setStdSqlType(this.getStdSqlType());
+        instance.setTagSet(this.getTagSet());
+        instance.setUiHint(this.getUiHint());
+        instance.setUpdatable(this.isUpdatable());
+    }
+
+    protected OrmColumnModel newInstance(){
+        return (OrmColumnModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

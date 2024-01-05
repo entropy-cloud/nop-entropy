@@ -2,6 +2,8 @@ package io.nop.orm.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.orm.model.OrmEntityModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -1505,6 +1507,67 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
         out.put("useTenant",this.isUseTenant());
         out.put("useWorkflow",this.isUseWorkflow());
         out.put("versionProp",this.getVersionProp());
+    }
+
+    public OrmEntityModel cloneInstance(){
+        OrmEntityModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(OrmEntityModel instance){
+        super.copyTo(instance);
+        
+        instance.setAliases(this.getAliases());
+        instance.setCheckVersionWhenLazyLoad(this.isCheckVersionWhenLazyLoad());
+        instance.setClassName(this.getClassName());
+        instance.setColumns(this.getColumns());
+        instance.setComment(this.getComment());
+        instance.setComponents(this.getComponents());
+        instance.setComputes(this.getComputes());
+        instance.setCreateTimeProp(this.getCreateTimeProp());
+        instance.setCreaterProp(this.getCreaterProp());
+        instance.setDbCatalog(this.getDbCatalog());
+        instance.setDbPkName(this.getDbPkName());
+        instance.setDbSchema(this.getDbSchema());
+        instance.setDeleteFlagProp(this.getDeleteFlagProp());
+        instance.setDeleteVersionProp(this.getDeleteVersionProp());
+        instance.setDimensionalType(this.getDimensionalType());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setEntityModeEnabled(this.isEntityModeEnabled());
+        instance.setFilters(this.getFilters());
+        instance.setIndexes(this.getIndexes());
+        instance.setKvTable(this.isKvTable());
+        instance.setLabelProp(this.getLabelProp());
+        instance.setMaxBatchLoadSize(this.getMaxBatchLoadSize());
+        instance.setName(this.getName());
+        instance.setNotGenCode(this.isNotGenCode());
+        instance.setPersistDriver(this.getPersistDriver());
+        instance.setQuerySpace(this.getQuerySpace());
+        instance.setReadonly(this.isReadonly());
+        instance.setRegisterShortName(this.isRegisterShortName());
+        instance.setRelations(this.getRelations());
+        instance.setShardProp(this.getShardProp());
+        instance.setSqlText(this.getSqlText());
+        instance.setStateProp(this.getStateProp());
+        instance.setTableName(this.getTableName());
+        instance.setTableView(this.isTableView());
+        instance.setTagSet(this.getTagSet());
+        instance.setTenantProp(this.getTenantProp());
+        instance.setUniqueKeys(this.getUniqueKeys());
+        instance.setUpdateTimeProp(this.getUpdateTimeProp());
+        instance.setUpdaterProp(this.getUpdaterProp());
+        instance.setUseGlobalCache(this.isUseGlobalCache());
+        instance.setUseLogicalDelete(this.isUseLogicalDelete());
+        instance.setUseRevision(this.isUseRevision());
+        instance.setUseShard(this.isUseShard());
+        instance.setUseTenant(this.isUseTenant());
+        instance.setUseWorkflow(this.isUseWorkflow());
+        instance.setVersionProp(this.getVersionProp());
+    }
+
+    protected OrmEntityModel newInstance(){
+        return (OrmEntityModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

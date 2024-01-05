@@ -2,6 +2,8 @@ package io.nop.biz.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.biz.model.BizMakerCheckerModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -83,6 +85,23 @@ public abstract class _BizMakerCheckerModel extends io.nop.core.resource.compone
         
         out.put("cancelMethod",this.getCancelMethod());
         out.put("tryMethod",this.getTryMethod());
+    }
+
+    public BizMakerCheckerModel cloneInstance(){
+        BizMakerCheckerModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BizMakerCheckerModel instance){
+        super.copyTo(instance);
+        
+        instance.setCancelMethod(this.getCancelMethod());
+        instance.setTryMethod(this.getTryMethod());
+    }
+
+    protected BizMakerCheckerModel newInstance(){
+        return (BizMakerCheckerModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

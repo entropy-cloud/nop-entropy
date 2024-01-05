@@ -2,6 +2,8 @@ package io.nop.orm.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.orm.model.OrmReferenceModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -465,6 +467,37 @@ public abstract class _OrmReferenceModel extends io.nop.core.resource.component.
         out.put("refPropName",this.getRefPropName());
         out.put("tagSet",this.getTagSet());
         out.put("type",this.getType());
+    }
+
+    public OrmReferenceModel cloneInstance(){
+        OrmReferenceModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(OrmReferenceModel instance){
+        super.copyTo(instance);
+        
+        instance.setAutoCascadeDelete(this.isAutoCascadeDelete());
+        instance.setCascadeDelete(this.isCascadeDelete());
+        instance.setComment(this.getComment());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setEmbedded(this.isEmbedded());
+        instance.setJoin(this.getJoin());
+        instance.setMaxBatchLoadSize(this.getMaxBatchLoadSize());
+        instance.setName(this.getName());
+        instance.setNotGenCode(this.isNotGenCode());
+        instance.setPersistDriver(this.getPersistDriver());
+        instance.setQueryable(this.isQueryable());
+        instance.setRefDisplayName(this.getRefDisplayName());
+        instance.setRefEntityName(this.getRefEntityName());
+        instance.setRefPropName(this.getRefPropName());
+        instance.setTagSet(this.getTagSet());
+        instance.setType(this.getType());
+    }
+
+    protected OrmReferenceModel newInstance(){
+        return (OrmReferenceModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

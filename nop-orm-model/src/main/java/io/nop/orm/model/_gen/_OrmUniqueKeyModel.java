@@ -2,6 +2,8 @@ package io.nop.orm.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.orm.model.OrmUniqueKeyModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -164,6 +166,26 @@ public abstract class _OrmUniqueKeyModel extends io.nop.core.resource.component.
         out.put("constraint",this.getConstraint());
         out.put("displayName",this.getDisplayName());
         out.put("name",this.getName());
+    }
+
+    public OrmUniqueKeyModel cloneInstance(){
+        OrmUniqueKeyModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(OrmUniqueKeyModel instance){
+        super.copyTo(instance);
+        
+        instance.setColumns(this.getColumns());
+        instance.setComment(this.getComment());
+        instance.setConstraint(this.getConstraint());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setName(this.getName());
+    }
+
+    protected OrmUniqueKeyModel newInstance(){
+        return (OrmUniqueKeyModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

@@ -2,6 +2,8 @@ package io.nop.xui.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xui.model.UiActionGroupModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -601,6 +603,41 @@ public abstract class _UiActionGroupModel extends io.nop.core.resource.component
         out.put("trigger",this.getTrigger());
         out.put("type",this.getType());
         out.put("visibleOn",this.getVisibleOn());
+    }
+
+    public UiActionGroupModel cloneInstance(){
+        UiActionGroupModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(UiActionGroupModel instance){
+        super.copyTo(instance);
+        
+        instance.setActions(this.getActions());
+        instance.setBatch(this.getBatch());
+        instance.setBlock(this.getBlock());
+        instance.setBtnClassName(this.getBtnClassName());
+        instance.setClassName(this.getClassName());
+        instance.setCloseOnClick(this.getCloseOnClick());
+        instance.setCloseOnOutside(this.getCloseOnOutside());
+        instance.setDefaultIsOpened(this.getDefaultIsOpened());
+        instance.setDisabledOn(this.getDisabledOn());
+        instance.setHideCaret(this.getHideCaret());
+        instance.setIcon(this.getIcon());
+        instance.setIconOnly(this.getIconOnly());
+        instance.setId(this.getId());
+        instance.setLabel(this.getLabel());
+        instance.setLevel(this.getLevel());
+        instance.setOnEvent(this.getOnEvent());
+        instance.setSize(this.getSize());
+        instance.setTrigger(this.getTrigger());
+        instance.setType(this.getType());
+        instance.setVisibleOn(this.getVisibleOn());
+    }
+
+    protected UiActionGroupModel newInstance(){
+        return (UiActionGroupModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

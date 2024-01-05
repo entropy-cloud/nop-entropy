@@ -2,6 +2,8 @@ package io.nop.graphql.gateway.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.graphql.gateway.model.GatewayRouteModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -300,6 +302,30 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
         out.put("onResponse",this.getOnResponse());
         out.put("rawResponse",this.isRawResponse());
         out.put("serviceName",this.getServiceName());
+    }
+
+    public GatewayRouteModel cloneInstance(){
+        GatewayRouteModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(GatewayRouteModel instance){
+        super.copyTo(instance);
+        
+        instance.setHandler(this.getHandler());
+        instance.setId(this.getId());
+        instance.setMatch(this.getMatch());
+        instance.setMock(this.isMock());
+        instance.setOnError(this.getOnError());
+        instance.setOnPaths(this.getOnPaths());
+        instance.setOnResponse(this.getOnResponse());
+        instance.setRawResponse(this.isRawResponse());
+        instance.setServiceName(this.getServiceName());
+    }
+
+    protected GatewayRouteModel newInstance(){
+        return (GatewayRouteModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

@@ -2,6 +2,8 @@ package io.nop.excel.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.model.ExcelPageSetup;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -330,6 +332,32 @@ public abstract class _ExcelPageSetup extends io.nop.core.resource.component.Abs
         out.put("paperSize",this.getPaperSize());
         out.put("scale",this.getScale());
         out.put("verticalCentered",this.getVerticalCentered());
+    }
+
+    public ExcelPageSetup cloneInstance(){
+        ExcelPageSetup instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ExcelPageSetup instance){
+        super.copyTo(instance);
+        
+        instance.setBlackAndWhite(this.getBlackAndWhite());
+        instance.setFirstPageNumber(this.getFirstPageNumber());
+        instance.setFitToHeight(this.getFitToHeight());
+        instance.setFitToWidth(this.getFitToWidth());
+        instance.setFooter(this.getFooter());
+        instance.setHeader(this.getHeader());
+        instance.setHorizontalCentered(this.getHorizontalCentered());
+        instance.setOrientationHorizontal(this.getOrientationHorizontal());
+        instance.setPaperSize(this.getPaperSize());
+        instance.setScale(this.getScale());
+        instance.setVerticalCentered(this.getVerticalCentered());
+    }
+
+    protected ExcelPageSetup newInstance(){
+        return (ExcelPageSetup) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

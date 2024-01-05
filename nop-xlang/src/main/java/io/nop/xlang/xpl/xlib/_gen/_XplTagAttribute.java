@@ -2,6 +2,8 @@ package io.nop.xlang.xpl.xlib._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xpl.xlib.XplTagAttribute;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -384,6 +386,34 @@ public abstract class _XplTagAttribute extends io.nop.core.resource.component.Ab
         out.put("stdDomain",this.getStdDomain());
         out.put("type",this.getType());
         out.put("varName",this.getVarName());
+    }
+
+    public XplTagAttribute cloneInstance(){
+        XplTagAttribute instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(XplTagAttribute instance){
+        super.copyTo(instance);
+        
+        instance.setDefaultValue(this.getDefaultValue());
+        instance.setDeprecated(this.isDeprecated());
+        instance.setDescription(this.getDescription());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setImplicit(this.isImplicit());
+        instance.setInternal(this.isInternal());
+        instance.setMandatory(this.isMandatory());
+        instance.setName(this.getName());
+        instance.setOptional(this.isOptional());
+        instance.setRuntime(this.isRuntime());
+        instance.setStdDomain(this.getStdDomain());
+        instance.setType(this.getType());
+        instance.setVarName(this.getVarName());
+    }
+
+    protected XplTagAttribute newInstance(){
+        return (XplTagAttribute) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

@@ -2,6 +2,8 @@ package io.nop.xui.graph_designer._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xui.graph_designer.GraphDesignerNodeModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -867,6 +869,51 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
         out.put("textDraggable",this.getTextDraggable());
         out.put("textPosition",this.getTextPosition());
         out.put("width",this.getWidth());
+    }
+
+    public GraphDesignerNodeModel cloneInstance(){
+        GraphDesignerNodeModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(GraphDesignerNodeModel instance){
+        super.copyTo(instance);
+        
+        instance.setAddable(this.getAddable());
+        instance.setAllowChildren(this.getAllowChildren());
+        instance.setAllowParents(this.getAllowParents());
+        instance.setAnchors(this.getAnchors());
+        instance.setBase(this.getBase());
+        instance.setDeletable(this.getDeletable());
+        instance.setDraggable(this.getDraggable());
+        instance.setEnd(this.isEnd());
+        instance.setFixedAspectRatio(this.getFixedAspectRatio());
+        instance.setHeight(this.getHeight());
+        instance.setIcon(this.getIcon());
+        instance.setLabel(this.getLabel());
+        instance.setLayout(this.getLayout());
+        instance.setMaxHeight(this.getMaxHeight());
+        instance.setMaxOccurs(this.getMaxOccurs());
+        instance.setMaxWidth(this.getMaxWidth());
+        instance.setMinHeight(this.getMinHeight());
+        instance.setMinOccurs(this.getMinOccurs());
+        instance.setMinWidth(this.getMinWidth());
+        instance.setName(this.getName());
+        instance.setPropsForm(this.getPropsForm());
+        instance.setResizable(this.getResizable());
+        instance.setShape(this.getShape());
+        instance.setStart(this.isStart());
+        instance.setStyle(this.getStyle());
+        instance.setTagSet(this.getTagSet());
+        instance.setTemplate(this.getTemplate());
+        instance.setTextDraggable(this.getTextDraggable());
+        instance.setTextPosition(this.getTextPosition());
+        instance.setWidth(this.getWidth());
+    }
+
+    protected GraphDesignerNodeModel newInstance(){
+        return (GraphDesignerNodeModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

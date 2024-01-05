@@ -2,6 +2,8 @@ package io.nop.biz.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.biz.model.BizLoaderModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -223,6 +225,27 @@ public abstract class _BizLoaderModel extends io.nop.core.resource.component.Abs
         out.put("name",this.getName());
         out.put("return",this.getReturn());
         out.put("source",this.getSource());
+    }
+
+    public BizLoaderModel cloneInstance(){
+        BizLoaderModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BizLoaderModel instance){
+        super.copyTo(instance);
+        
+        instance.setArgs(this.getArgs());
+        instance.setCache(this.getCache());
+        instance.setDisabled(this.isDisabled());
+        instance.setName(this.getName());
+        instance.setReturn(this.getReturn());
+        instance.setSource(this.getSource());
+    }
+
+    protected BizLoaderModel newInstance(){
+        return (BizLoaderModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

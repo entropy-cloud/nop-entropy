@@ -2,6 +2,8 @@ package io.nop.dao.dialect.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.dao.dialect.model.SqlFunctionModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -164,6 +166,26 @@ public abstract class _SqlFunctionModel extends io.nop.core.resource.component.A
         out.put("name",this.getName());
         out.put("testSql",this.getTestSql());
         out.put("type",this.getType());
+    }
+
+    public SqlFunctionModel cloneInstance(){
+        SqlFunctionModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(SqlFunctionModel instance){
+        super.copyTo(instance);
+        
+        instance.setClassName(this.getClassName());
+        instance.setDescription(this.getDescription());
+        instance.setName(this.getName());
+        instance.setTestSql(this.getTestSql());
+        instance.setType(this.getType());
+    }
+
+    protected SqlFunctionModel newInstance(){
+        return (SqlFunctionModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

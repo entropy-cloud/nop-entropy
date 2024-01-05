@@ -2,6 +2,8 @@ package io.nop.wf.core.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.wf.core.model.WfSubFlowReturnModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -137,6 +139,25 @@ public abstract class _WfSubFlowReturnModel extends io.nop.core.resource.compone
         out.put("source",this.getSource());
         out.put("type",this.getType());
         out.put("var",this.getVar());
+    }
+
+    public WfSubFlowReturnModel cloneInstance(){
+        WfSubFlowReturnModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(WfSubFlowReturnModel instance){
+        super.copyTo(instance);
+        
+        instance.setOutput(this.getOutput());
+        instance.setSource(this.getSource());
+        instance.setType(this.getType());
+        instance.setVar(this.getVar());
+    }
+
+    protected WfSubFlowReturnModel newInstance(){
+        return (WfSubFlowReturnModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

@@ -2,6 +2,8 @@ package io.nop.excel.imp.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.imp.model.ImportFieldModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -686,6 +688,44 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
         out.put("valueExpr",this.getValueExpr());
         out.put("virtual",this.isVirtual());
         out.put("when",this.getWhen());
+    }
+
+    public ImportFieldModel cloneInstance(){
+        ImportFieldModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ImportFieldModel instance){
+        super.copyTo(instance);
+        
+        instance.setAlias(this.getAlias());
+        instance.setComputed(this.isComputed());
+        instance.setDisplayMode(this.getDisplayMode());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setExportExpr(this.getExportExpr());
+        instance.setFieldDecider(this.getFieldDecider());
+        instance.setFields(this.getFields());
+        instance.setGroupField(this.getGroupField());
+        instance.setIgnoreWhenEmpty(this.isIgnoreWhenEmpty());
+        instance.setKeyProp(this.getKeyProp());
+        instance.setList(this.isList());
+        instance.setMandatory(this.isMandatory());
+        instance.setName(this.getName());
+        instance.setNormalizeFieldsExpr(this.getNormalizeFieldsExpr());
+        instance.setParentProp(this.getParentProp());
+        instance.setProp(this.getProp());
+        instance.setSchema(this.getSchema());
+        instance.setStripText(this.getStripText());
+        instance.setTypeProp(this.getTypeProp());
+        instance.setUnknownField(this.getUnknownField());
+        instance.setValueExpr(this.getValueExpr());
+        instance.setVirtual(this.isVirtual());
+        instance.setWhen(this.getWhen());
+    }
+
+    protected ImportFieldModel newInstance(){
+        return (ImportFieldModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

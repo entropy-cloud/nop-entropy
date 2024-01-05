@@ -2,6 +2,8 @@ package io.nop.ioc.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.ioc.model.BeanConfigModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -137,6 +139,25 @@ public abstract class _BeanConfigModel extends io.nop.ioc.model.BeanValue {
         out.put("iocAllowOverride",this.isIocAllowOverride());
         out.put("iocDefault",this.isIocDefault());
         out.put("name",this.getName());
+    }
+
+    public BeanConfigModel cloneInstance(){
+        BeanConfigModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BeanConfigModel instance){
+        super.copyTo(instance);
+        
+        instance.setId(this.getId());
+        instance.setIocAllowOverride(this.isIocAllowOverride());
+        instance.setIocDefault(this.isIocDefault());
+        instance.setName(this.getName());
+    }
+
+    protected BeanConfigModel newInstance(){
+        return (BeanConfigModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

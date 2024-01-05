@@ -2,6 +2,8 @@ package io.nop.xui.graph_designer._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xui.graph_designer.GraphDesignerEdgeModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -434,6 +436,36 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
         out.put("template",this.getTemplate());
         out.put("type",this.getType());
         out.put("width",this.getWidth());
+    }
+
+    public GraphDesignerEdgeModel cloneInstance(){
+        GraphDesignerEdgeModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(GraphDesignerEdgeModel instance){
+        super.copyTo(instance);
+        
+        instance.setAddable(this.getAddable());
+        instance.setAllowSources(this.getAllowSources());
+        instance.setAllowTargets(this.getAllowTargets());
+        instance.setDeletable(this.getDeletable());
+        instance.setIcon(this.getIcon());
+        instance.setLabel(this.getLabel());
+        instance.setMaxOccurs(this.getMaxOccurs());
+        instance.setMinOccurs(this.getMinOccurs());
+        instance.setName(this.getName());
+        instance.setPropsForm(this.getPropsForm());
+        instance.setStyle(this.getStyle());
+        instance.setTagSet(this.getTagSet());
+        instance.setTemplate(this.getTemplate());
+        instance.setType(this.getType());
+        instance.setWidth(this.getWidth());
+    }
+
+    protected GraphDesignerEdgeModel newInstance(){
+        return (GraphDesignerEdgeModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

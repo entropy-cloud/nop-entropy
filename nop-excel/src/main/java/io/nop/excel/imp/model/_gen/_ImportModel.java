@@ -2,6 +2,8 @@ package io.nop.excel.imp.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.imp.model.ImportModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -329,6 +331,31 @@ public abstract class _ImportModel extends io.nop.core.resource.component.Abstra
         out.put("templatePath",this.getTemplatePath());
         out.put("validator",this.getValidator());
         out.put("xdef",this.getXdef());
+    }
+
+    public ImportModel cloneInstance(){
+        ImportModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ImportModel instance){
+        super.copyTo(instance);
+        
+        instance.setAfterParse(this.getAfterParse());
+        instance.setBeforeParse(this.getBeforeParse());
+        instance.setDefaultStripText(this.isDefaultStripText());
+        instance.setDump(this.isDump());
+        instance.setIgnoreUnknownSheet(this.isIgnoreUnknownSheet());
+        instance.setResultType(this.getResultType());
+        instance.setSheets(this.getSheets());
+        instance.setTemplatePath(this.getTemplatePath());
+        instance.setValidator(this.getValidator());
+        instance.setXdef(this.getXdef());
+    }
+
+    protected ImportModel newInstance(){
+        return (ImportModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

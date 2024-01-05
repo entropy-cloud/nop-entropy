@@ -2,6 +2,8 @@ package io.nop.xui.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xui.model.UiActionModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -1241,6 +1243,65 @@ public abstract class _UiActionModel extends io.nop.core.resource.component.Abst
         out.put("type",this.getType());
         out.put("url",this.getUrl());
         out.put("visibleOn",this.getVisibleOn());
+    }
+
+    public UiActionModel cloneInstance(){
+        UiActionModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(UiActionModel instance){
+        super.copyTo(instance);
+        
+        instance.setActionType(this.getActionType());
+        instance.setActive(this.getActive());
+        instance.setActiveClassName(this.getActiveClassName());
+        instance.setActiveLevel(this.getActiveLevel());
+        instance.setApi(this.getApi());
+        instance.setBatch(this.getBatch());
+        instance.setBlank(this.getBlank());
+        instance.setBlock(this.getBlock());
+        instance.setBody(this.getBody());
+        instance.setClose(this.getClose());
+        instance.setConfirmText(this.getConfirmText());
+        instance.setContent(this.getContent());
+        instance.setCopyFormat(this.getCopyFormat());
+        instance.setCountDown(this.getCountDown());
+        instance.setCountDownTpl(this.getCountDownTpl());
+        instance.setDialog(this.getDialog());
+        instance.setDisabledOn(this.getDisabledOn());
+        instance.setDisabledTip(this.getDisabledTip());
+        instance.setDrawer(this.getDrawer());
+        instance.setFeedback(this.getFeedback());
+        instance.setHotKey(this.getHotKey());
+        instance.setIcon(this.getIcon());
+        instance.setIconClassName(this.getIconClassName());
+        instance.setIconOnly(this.getIconOnly());
+        instance.setId(this.getId());
+        instance.setInitApi(this.getInitApi());
+        instance.setLabel(this.getLabel());
+        instance.setLevel(this.getLevel());
+        instance.setLink(this.getLink());
+        instance.setMessages(this.getMessages());
+        instance.setOnClick(this.getOnClick());
+        instance.setOnEvent(this.getOnEvent());
+        instance.setRedirect(this.getRedirect());
+        instance.setReload(this.getReload());
+        instance.setRequired(this.getRequired());
+        instance.setRightIcon(this.getRightIcon());
+        instance.setRightIconClassName(this.getRightIconClassName());
+        instance.setSize(this.getSize());
+        instance.setTarget(this.getTarget());
+        instance.setTooltip(this.getTooltip());
+        instance.setTooltipPlacement(this.getTooltipPlacement());
+        instance.setType(this.getType());
+        instance.setUrl(this.getUrl());
+        instance.setVisibleOn(this.getVisibleOn());
+    }
+
+    protected UiActionModel newInstance(){
+        return (UiActionModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

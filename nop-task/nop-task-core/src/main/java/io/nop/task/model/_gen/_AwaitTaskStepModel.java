@@ -2,6 +2,8 @@ package io.nop.task.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.task.model.AwaitTaskStepModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -56,6 +58,22 @@ public abstract class _AwaitTaskStepModel extends io.nop.task.model.TaskStepMode
         super.outputJson(out);
         
         out.put("depends",this.getDepends());
+    }
+
+    public AwaitTaskStepModel cloneInstance(){
+        AwaitTaskStepModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(AwaitTaskStepModel instance){
+        super.copyTo(instance);
+        
+        instance.setDepends(this.getDepends());
+    }
+
+    protected AwaitTaskStepModel newInstance(){
+        return (AwaitTaskStepModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

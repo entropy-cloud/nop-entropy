@@ -2,6 +2,8 @@ package io.nop.xlang.xt.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xt.model.XtScriptModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -83,6 +85,23 @@ public abstract class _XtScriptModel extends io.nop.xlang.xt.model.XtRuleModel {
         
         out.put("body",this.getBody());
         out.put("xpath",this.getXpath());
+    }
+
+    public XtScriptModel cloneInstance(){
+        XtScriptModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(XtScriptModel instance){
+        super.copyTo(instance);
+        
+        instance.setBody(this.getBody());
+        instance.setXpath(this.getXpath());
+    }
+
+    protected XtScriptModel newInstance(){
+        return (XtScriptModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

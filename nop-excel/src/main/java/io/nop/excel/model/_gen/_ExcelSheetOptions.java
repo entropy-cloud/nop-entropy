@@ -2,6 +2,8 @@ package io.nop.excel.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.model.ExcelSheetOptions;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -110,6 +112,24 @@ public abstract class _ExcelSheetOptions extends io.nop.core.resource.component.
         out.put("fitToPage",this.isFitToPage());
         out.put("splitHorizontal",this.getSplitHorizontal());
         out.put("splitVertical",this.getSplitVertical());
+    }
+
+    public ExcelSheetOptions cloneInstance(){
+        ExcelSheetOptions instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ExcelSheetOptions instance){
+        super.copyTo(instance);
+        
+        instance.setFitToPage(this.isFitToPage());
+        instance.setSplitHorizontal(this.getSplitHorizontal());
+        instance.setSplitVertical(this.getSplitVertical());
+    }
+
+    protected ExcelSheetOptions newInstance(){
+        return (ExcelSheetOptions) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

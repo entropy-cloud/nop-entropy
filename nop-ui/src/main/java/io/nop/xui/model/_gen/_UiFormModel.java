@@ -2,6 +2,8 @@ package io.nop.xui.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xui.model.UiFormModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -1326,6 +1328,66 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
         out.put("target",this.getTarget());
         out.put("title",this.getTitle());
         out.put("wrapWithPanel",this.getWrapWithPanel());
+    }
+
+    public UiFormModel cloneInstance(){
+        UiFormModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(UiFormModel instance){
+        super.copyTo(instance);
+        
+        instance.setApi(this.getApi());
+        instance.setAsyncApi(this.getAsyncApi());
+        instance.setBodyClassName(this.getBodyClassName());
+        instance.setCanAccessSuperData(this.getCanAccessSuperData());
+        instance.setCells(this.getCells());
+        instance.setCheckInterval(this.getCheckInterval());
+        instance.setClassName(this.getClassName());
+        instance.setData(this.getData());
+        instance.setEditMode(this.getEditMode());
+        instance.setId(this.getId());
+        instance.setInheritData(this.getInheritData());
+        instance.setInitApi(this.getInitApi());
+        instance.setInitAsyncApi(this.getInitAsyncApi());
+        instance.setInitCheckInterval(this.getInitCheckInterval());
+        instance.setInitFetch(this.getInitFetch());
+        instance.setInitFetchOn(this.getInitFetchOn());
+        instance.setInterval(this.getInterval());
+        instance.setLabel(this.getLabel());
+        instance.setLabelAlign(this.getLabelAlign());
+        instance.setLabelWidth(this.getLabelWidth());
+        instance.setLayout(this.getLayout());
+        instance.setLayoutControl(this.getLayoutControl());
+        instance.setLayoutMode(this.getLayoutMode());
+        instance.setMessages(this.getMessages());
+        instance.setObjMeta(this.getObjMeta());
+        instance.setPanelClassName(this.getPanelClassName());
+        instance.setPersistData(this.getPersistData());
+        instance.setPersistDataKeys(this.getPersistDataKeys());
+        instance.setPreventEnterSubmit(this.getPreventEnterSubmit());
+        instance.setPromptPageLeave(this.getPromptPageLeave());
+        instance.setRedirect(this.getRedirect());
+        instance.setReload(this.getReload());
+        instance.setRenderer(this.getRenderer());
+        instance.setResetAfterSubmit(this.getResetAfterSubmit());
+        instance.setRules(this.getRules());
+        instance.setSelection(this.getSelection());
+        instance.setSilentPolling(this.getSilentPolling());
+        instance.setSize(this.getSize());
+        instance.setStopAutoRefreshWhen(this.getStopAutoRefreshWhen());
+        instance.setSubmitOnChange(this.getSubmitOnChange());
+        instance.setSubmitOnInit(this.getSubmitOnInit());
+        instance.setSubmitText(this.getSubmitText());
+        instance.setTarget(this.getTarget());
+        instance.setTitle(this.getTitle());
+        instance.setWrapWithPanel(this.getWrapWithPanel());
+    }
+
+    protected UiFormModel newInstance(){
+        return (UiFormModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

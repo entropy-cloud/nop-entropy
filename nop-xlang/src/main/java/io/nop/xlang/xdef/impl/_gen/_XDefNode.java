@@ -2,6 +2,8 @@ package io.nop.xlang.xdef.impl._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xdef.impl.XDefNode;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -1077,6 +1079,57 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
         out.put("xdefUnknownAttr",this.getXdefUnknownAttr());
         out.put("xdefUnknownTag",this.getXdefUnknownTag());
         out.put("xdefValue",this.getXdefValue());
+    }
+
+    public XDefNode cloneInstance(){
+        XDefNode instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(XDefNode instance){
+        super.copyTo(instance);
+        
+        instance.setAttributes(this.getAttributes());
+        instance.setChildren(this.getChildren());
+        instance.setComment(this.getComment());
+        instance.setTagName(this.getTagName());
+        instance.setXdefAllowMultiple(this.getXdefAllowMultiple());
+        instance.setXdefBeanBodyProp(this.getXdefBeanBodyProp());
+        instance.setXdefBeanBodyType(this.getXdefBeanBodyType());
+        instance.setXdefBeanChildName(this.getXdefBeanChildName());
+        instance.setXdefBeanClass(this.getXdefBeanClass());
+        instance.setXdefBeanCommentProp(this.getXdefBeanCommentProp());
+        instance.setXdefBeanExtendsType(this.getXdefBeanExtendsType());
+        instance.setXdefBeanImplementsTypes(this.getXdefBeanImplementsTypes());
+        instance.setXdefBeanProp(this.getXdefBeanProp());
+        instance.setXdefBeanRefProp(this.getXdefBeanRefProp());
+        instance.setXdefBeanSubTypeProp(this.getXdefBeanSubTypeProp());
+        instance.setXdefBeanTagProp(this.getXdefBeanTagProp());
+        instance.setXdefBeanUnknownAttrsProp(this.getXdefBeanUnknownAttrsProp());
+        instance.setXdefBeanUnknownChildrenProp(this.getXdefBeanUnknownChildrenProp());
+        instance.setXdefBodyType(this.getXdefBodyType());
+        instance.setXdefDefaultOverride(this.getXdefDefaultOverride());
+        instance.setXdefDefines(this.getXdefDefines());
+        instance.setXdefDeprecated(this.getXdefDeprecated());
+        instance.setXdefId(this.getXdefId());
+        instance.setXdefInternal(this.getXdefInternal());
+        instance.setXdefKeyAttr(this.getXdefKeyAttr());
+        instance.setXdefMandatory(this.getXdefMandatory());
+        instance.setXdefName(this.getXdefName());
+        instance.setXdefOrderAttr(this.getXdefOrderAttr());
+        instance.setXdefProps(this.getXdefProps());
+        instance.setXdefRef(this.getXdefRef());
+        instance.setXdefRefResolved(this.getXdefRefResolved());
+        instance.setXdefSupportExtends(this.getXdefSupportExtends());
+        instance.setXdefUniqueAttr(this.getXdefUniqueAttr());
+        instance.setXdefUnknownAttr(this.getXdefUnknownAttr());
+        instance.setXdefUnknownTag(this.getXdefUnknownTag());
+        instance.setXdefValue(this.getXdefValue());
+    }
+
+    protected XDefNode newInstance(){
+        return (XDefNode) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

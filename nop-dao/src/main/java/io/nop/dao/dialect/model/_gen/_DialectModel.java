@@ -2,6 +2,8 @@ package io.nop.dao.dialect.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.dao.dialect.model.DialectModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -753,6 +755,45 @@ public abstract class _DialectModel extends io.nop.core.resource.component.Abstr
         out.put("sqlExceptionTranslator",this.getSqlExceptionTranslator());
         out.put("sqls",this.getSqls());
         out.put("tableNameCase",this.getTableNameCase());
+    }
+
+    public DialectModel cloneInstance(){
+        DialectModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(DialectModel instance){
+        super.copyTo(instance);
+        
+        instance.setAllSchemaPattern(this.getAllSchemaPattern());
+        instance.setClassName(this.getClassName());
+        instance.setColumnNameCase(this.getColumnNameCase());
+        instance.setDbProductNames(this.getDbProductNames());
+        instance.setDefaultNullsFirst(this.getDefaultNullsFirst());
+        instance.setDiscoverySqls(this.getDiscoverySqls());
+        instance.setDriverClassName(this.getDriverClassName());
+        instance.setErrorCodes(this.getErrorCodes());
+        instance.setFeatures(this.getFeatures());
+        instance.setFunctions(this.getFunctions());
+        instance.setGeometryTypeHandler(this.getGeometryTypeHandler());
+        instance.setJdbcUrlPattern(this.getJdbcUrlPattern());
+        instance.setJsonTypeHandler(this.getJsonTypeHandler());
+        instance.setKeywordQuote(this.getKeywordQuote());
+        instance.setKeywordUnderscore(this.getKeywordUnderscore());
+        instance.setMaxBytesSize(this.getMaxBytesSize());
+        instance.setMaxStringSize(this.getMaxStringSize());
+        instance.setPaginationHandler(this.getPaginationHandler());
+        instance.setRename(this.getRename());
+        instance.setReservedKeywords(this.getReservedKeywords());
+        instance.setSqlDataTypes(this.getSqlDataTypes());
+        instance.setSqlExceptionTranslator(this.getSqlExceptionTranslator());
+        instance.setSqls(this.getSqls());
+        instance.setTableNameCase(this.getTableNameCase());
+    }
+
+    protected DialectModel newInstance(){
+        return (DialectModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

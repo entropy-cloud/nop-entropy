@@ -2,6 +2,8 @@ package io.nop.xlang.xt.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xt.model.XtEachModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -56,6 +58,22 @@ public abstract class _XtEachModel extends io.nop.xlang.xt.model.XtRuleGroupMode
         super.outputJson(out);
         
         out.put("xpath",this.getXpath());
+    }
+
+    public XtEachModel cloneInstance(){
+        XtEachModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(XtEachModel instance){
+        super.copyTo(instance);
+        
+        instance.setXpath(this.getXpath());
+    }
+
+    protected XtEachModel newInstance(){
+        return (XtEachModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

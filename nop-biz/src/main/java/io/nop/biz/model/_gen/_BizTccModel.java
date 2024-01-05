@@ -2,6 +2,8 @@ package io.nop.biz.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.biz.model.BizTccModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -83,6 +85,23 @@ public abstract class _BizTccModel extends io.nop.core.resource.component.Abstra
         
         out.put("cancelMethod",this.getCancelMethod());
         out.put("confirmMethod",this.getConfirmMethod());
+    }
+
+    public BizTccModel cloneInstance(){
+        BizTccModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BizTccModel instance){
+        super.copyTo(instance);
+        
+        instance.setCancelMethod(this.getCancelMethod());
+        instance.setConfirmMethod(this.getConfirmMethod());
+    }
+
+    protected BizTccModel newInstance(){
+        return (BizTccModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

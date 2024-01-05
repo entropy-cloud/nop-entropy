@@ -2,6 +2,8 @@ package io.nop.task.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.task.model.TaskOutputModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -191,6 +193,27 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
         out.put("name",this.getName());
         out.put("persist",this.isPersist());
         out.put("source",this.getSource());
+    }
+
+    public TaskOutputModel cloneInstance(){
+        TaskOutputModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(TaskOutputModel instance){
+        super.copyTo(instance);
+        
+        instance.setDescription(this.getDescription());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setForAttr(this.isForAttr());
+        instance.setName(this.getName());
+        instance.setPersist(this.isPersist());
+        instance.setSource(this.getSource());
+    }
+
+    protected TaskOutputModel newInstance(){
+        return (TaskOutputModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

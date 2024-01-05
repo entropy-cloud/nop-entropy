@@ -2,6 +2,8 @@ package io.nop.xlang.xpl.xlib._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xpl.xlib.XplTagSlotArg;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -272,6 +274,30 @@ public abstract class _XplTagSlotArg extends io.nop.core.resource.component.Abst
         out.put("name",this.getName());
         out.put("stdDomain",this.getStdDomain());
         out.put("type",this.getType());
+    }
+
+    public XplTagSlotArg cloneInstance(){
+        XplTagSlotArg instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(XplTagSlotArg instance){
+        super.copyTo(instance);
+        
+        instance.setDefaultValue(this.getDefaultValue());
+        instance.setDeprecated(this.isDeprecated());
+        instance.setDescription(this.getDescription());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setImplicit(this.isImplicit());
+        instance.setMandatory(this.isMandatory());
+        instance.setName(this.getName());
+        instance.setStdDomain(this.getStdDomain());
+        instance.setType(this.getType());
+    }
+
+    protected XplTagSlotArg newInstance(){
+        return (XplTagSlotArg) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

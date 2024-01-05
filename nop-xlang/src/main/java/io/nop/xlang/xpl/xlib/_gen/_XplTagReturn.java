@@ -2,6 +2,8 @@ package io.nop.xlang.xpl.xlib._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xpl.xlib.XplTagReturn;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -110,6 +112,24 @@ public abstract class _XplTagReturn extends io.nop.core.resource.component.Abstr
         out.put("description",this.getDescription());
         out.put("stdDomain",this.getStdDomain());
         out.put("type",this.getType());
+    }
+
+    public XplTagReturn cloneInstance(){
+        XplTagReturn instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(XplTagReturn instance){
+        super.copyTo(instance);
+        
+        instance.setDescription(this.getDescription());
+        instance.setStdDomain(this.getStdDomain());
+        instance.setType(this.getType());
+    }
+
+    protected XplTagReturn newInstance(){
+        return (XplTagReturn) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

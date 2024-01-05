@@ -2,6 +2,8 @@ package io.nop.wf.core.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.wf.core.model.WfModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -877,6 +879,47 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
         out.put("wfGroup",this.getWfGroup());
         out.put("wfName",this.getWfName());
         out.put("wfVersion",this.getWfVersion());
+    }
+
+    public WfModel cloneInstance(){
+        WfModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(WfModel instance){
+        super.copyTo(instance);
+        
+        instance.setActions(this.getActions());
+        instance.setAllowStepLoop(this.isAllowStepLoop());
+        instance.setAuths(this.getAuths());
+        instance.setBizEntityFlowIdProp(this.getBizEntityFlowIdProp());
+        instance.setBizEntityStateProp(this.getBizEntityStateProp());
+        instance.setCheckActionAuth(this.getCheckActionAuth());
+        instance.setCheckEditAuth(this.getCheckEditAuth());
+        instance.setCheckManageAuth(this.getCheckManageAuth());
+        instance.setCheckStartAuth(this.getCheckStartAuth());
+        instance.setDeploy(this.getDeploy());
+        instance.setDescription(this.getDescription());
+        instance.setDiagram(this.getDiagram());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setEnd(this.getEnd());
+        instance.setListeners(this.getListeners());
+        instance.setOnError(this.getOnError());
+        instance.setOnSignal(this.getOnSignal());
+        instance.setPriority(this.getPriority());
+        instance.setStart(this.getStart());
+        instance.setSteps(this.getSteps());
+        instance.setSubscribes(this.getSubscribes());
+        instance.setTagSet(this.getTagSet());
+        instance.setUndeploy(this.getUndeploy());
+        instance.setWfGroup(this.getWfGroup());
+        instance.setWfName(this.getWfName());
+        instance.setWfVersion(this.getWfVersion());
+    }
+
+    protected WfModel newInstance(){
+        return (WfModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

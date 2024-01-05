@@ -2,6 +2,8 @@ package io.nop.excel.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.model.ExcelClientAnchor;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -56,6 +58,22 @@ public abstract class _ExcelClientAnchor extends io.nop.core.model.table.CellAnc
         super.outputJson(out);
         
         out.put("type",this.getType());
+    }
+
+    public ExcelClientAnchor cloneInstance(){
+        ExcelClientAnchor instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ExcelClientAnchor instance){
+        super.copyTo(instance);
+        
+        instance.setType(this.getType());
+    }
+
+    protected ExcelClientAnchor newInstance(){
+        return (ExcelClientAnchor) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

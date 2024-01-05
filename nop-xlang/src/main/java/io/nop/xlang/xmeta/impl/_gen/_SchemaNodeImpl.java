@@ -2,6 +2,8 @@ package io.nop.xlang.xmeta.impl._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xmeta.impl.SchemaNodeImpl;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -328,6 +330,32 @@ public abstract class _SchemaNodeImpl extends io.nop.core.resource.component.Abs
         out.put("stdDomain",this.getStdDomain());
         out.put("type",this.getType());
         out.put("validator",this.getValidator());
+    }
+
+    public SchemaNodeImpl cloneInstance(){
+        SchemaNodeImpl instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(SchemaNodeImpl instance){
+        super.copyTo(instance);
+        
+        instance.setBizObjName(this.getBizObjName());
+        instance.setDescription(this.getDescription());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setDomain(this.getDomain());
+        instance.setId(this.getId());
+        instance.setName(this.getName());
+        instance.setRef(this.getRef());
+        instance.setRefResolved(this.getRefResolved());
+        instance.setStdDomain(this.getStdDomain());
+        instance.setType(this.getType());
+        instance.setValidator(this.getValidator());
+    }
+
+    protected SchemaNodeImpl newInstance(){
+        return (SchemaNodeImpl) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

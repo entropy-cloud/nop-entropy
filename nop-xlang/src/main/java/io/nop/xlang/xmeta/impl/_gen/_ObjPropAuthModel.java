@@ -2,6 +2,8 @@ package io.nop.xlang.xmeta.impl._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xmeta.impl.ObjPropAuthModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -114,6 +116,24 @@ public abstract class _ObjPropAuthModel extends io.nop.core.resource.component.A
         out.put("for",this.getFor());
         out.put("permissions",this.getPermissions());
         out.put("roles",this.getRoles());
+    }
+
+    public ObjPropAuthModel cloneInstance(){
+        ObjPropAuthModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ObjPropAuthModel instance){
+        super.copyTo(instance);
+        
+        instance.setFor(this.getFor());
+        instance.setPermissions(this.getPermissions());
+        instance.setRoles(this.getRoles());
+    }
+
+    protected ObjPropAuthModel newInstance(){
+        return (ObjPropAuthModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

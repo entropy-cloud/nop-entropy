@@ -2,6 +2,8 @@ package io.nop.xlang.xmeta.impl._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xmeta.impl.ObjMetaImpl;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -631,6 +633,39 @@ public abstract class _ObjMetaImpl extends io.nop.xlang.xmeta.impl.ObjSchemaImpl
         out.put("tree",this.getTree());
         out.put("version",this.getVersion());
         out.put("xmlName",this.getXmlName());
+    }
+
+    public ObjMetaImpl cloneInstance(){
+        ObjMetaImpl instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ObjMetaImpl instance){
+        super.copyTo(instance);
+        
+        instance.setCheckNs(this.getCheckNs());
+        instance.setDefaultExtends(this.getDefaultExtends());
+        instance.setDefines(this.getDefines());
+        instance.setDisplayProp(this.getDisplayProp());
+        instance.setEntityName(this.getEntityName());
+        instance.setFilter(this.getFilter());
+        instance.setKeys(this.getKeys());
+        instance.setOrderBy(this.getOrderBy());
+        instance.setParseForHtml(this.getParseForHtml());
+        instance.setParseKeepComment(this.getParseKeepComment());
+        instance.setParserClass(this.getParserClass());
+        instance.setPrimaryKey(this.getPrimaryKey());
+        instance.setPropNs(this.getPropNs());
+        instance.setSelections(this.getSelections());
+        instance.setTagSet(this.getTagSet());
+        instance.setTree(this.getTree());
+        instance.setVersion(this.getVersion());
+        instance.setXmlName(this.getXmlName());
+    }
+
+    protected ObjMetaImpl newInstance(){
+        return (ObjMetaImpl) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

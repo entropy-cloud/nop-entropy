@@ -2,6 +2,8 @@ package io.nop.orm.sql_lib._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.orm.sql_lib.NativeSqlItemModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -83,6 +85,23 @@ public abstract class _NativeSqlItemModel extends io.nop.orm.sql_lib.SqlItemMode
         
         out.put("colNameCamelCase",this.isColNameCamelCase());
         out.put("source",this.getSource());
+    }
+
+    public NativeSqlItemModel cloneInstance(){
+        NativeSqlItemModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(NativeSqlItemModel instance){
+        super.copyTo(instance);
+        
+        instance.setColNameCamelCase(this.isColNameCamelCase());
+        instance.setSource(this.getSource());
+    }
+
+    protected NativeSqlItemModel newInstance(){
+        return (NativeSqlItemModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

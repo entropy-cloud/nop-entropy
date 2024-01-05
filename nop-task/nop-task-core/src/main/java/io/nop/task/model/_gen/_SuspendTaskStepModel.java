@@ -2,6 +2,8 @@ package io.nop.task.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.task.model.SuspendTaskStepModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -56,6 +58,22 @@ public abstract class _SuspendTaskStepModel extends io.nop.task.model.TaskStepMo
         super.outputJson(out);
         
         out.put("resumeWhen",this.getResumeWhen());
+    }
+
+    public SuspendTaskStepModel cloneInstance(){
+        SuspendTaskStepModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(SuspendTaskStepModel instance){
+        super.copyTo(instance);
+        
+        instance.setResumeWhen(this.getResumeWhen());
+    }
+
+    protected SuspendTaskStepModel newInstance(){
+        return (SuspendTaskStepModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

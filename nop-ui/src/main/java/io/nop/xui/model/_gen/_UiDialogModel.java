@@ -2,6 +2,8 @@ package io.nop.xui.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xui.model.UiDialogModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -313,6 +315,31 @@ public abstract class _UiDialogModel extends io.nop.core.resource.component.Abst
         out.put("showCloseButton",this.getShowCloseButton());
         out.put("size",this.getSize());
         out.put("width",this.getWidth());
+    }
+
+    public UiDialogModel cloneInstance(){
+        UiDialogModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(UiDialogModel instance){
+        super.copyTo(instance);
+        
+        instance.setActions(this.getActions());
+        instance.setCloseOnEsc(this.getCloseOnEsc());
+        instance.setCloseOnOutside(this.getCloseOnOutside());
+        instance.setData(this.getData());
+        instance.setHeight(this.getHeight());
+        instance.setNoActions(this.getNoActions());
+        instance.setPage(this.getPage());
+        instance.setShowCloseButton(this.getShowCloseButton());
+        instance.setSize(this.getSize());
+        instance.setWidth(this.getWidth());
+    }
+
+    protected UiDialogModel newInstance(){
+        return (UiDialogModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

@@ -2,6 +2,8 @@ package io.nop.wf.core.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.wf.core.model.WfActionModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -707,6 +709,45 @@ public abstract class _WfActionModel extends io.nop.core.resource.component.Abst
         out.put("waitSignals",this.getWaitSignals());
         out.put("when",this.getWhen());
         out.put("whenSteps",this.getWhenSteps());
+    }
+
+    public WfActionModel cloneInstance(){
+        WfActionModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(WfActionModel instance){
+        super.copyTo(instance);
+        
+        instance.setAfterTransition(this.getAfterTransition());
+        instance.setArgs(this.getArgs());
+        instance.setCommon(this.isCommon());
+        instance.setDescription(this.getDescription());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setForActivated(this.isForActivated());
+        instance.setForFlowEnded(this.isForFlowEnded());
+        instance.setForHistory(this.isForHistory());
+        instance.setForReject(this.isForReject());
+        instance.setForWaiting(this.isForWaiting());
+        instance.setForWithdraw(this.isForWithdraw());
+        instance.setGroup(this.getGroup());
+        instance.setInternal(this.isInternal());
+        instance.setLocal(this.isLocal());
+        instance.setName(this.getName());
+        instance.setPersist(this.isPersist());
+        instance.setSaveActionRecord(this.isSaveActionRecord());
+        instance.setSortOrder(this.getSortOrder());
+        instance.setSource(this.getSource());
+        instance.setSpecialType(this.getSpecialType());
+        instance.setTransition(this.getTransition());
+        instance.setWaitSignals(this.getWaitSignals());
+        instance.setWhen(this.getWhen());
+        instance.setWhenSteps(this.getWhenSteps());
+    }
+
+    protected WfActionModel newInstance(){
+        return (WfActionModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

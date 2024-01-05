@@ -2,6 +2,8 @@ package io.nop.xlang.xmeta.impl._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xmeta.impl.ObjSchemaImpl;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -389,6 +391,33 @@ public abstract class _ObjSchemaImpl extends io.nop.xlang.xmeta.impl.SchemaNodeI
         out.put("uniqueProp",this.getUniqueProp());
         out.put("unknownAttrSchema",this.getUnknownAttrSchema());
         out.put("unknownTagSchema",this.getUnknownTagSchema());
+    }
+
+    public ObjSchemaImpl cloneInstance(){
+        ObjSchemaImpl instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ObjSchemaImpl instance){
+        super.copyTo(instance);
+        
+        instance.setAbstract(this.getAbstract());
+        instance.setExtendsType(this.getExtendsType());
+        instance.setImplementsTypes(this.getImplementsTypes());
+        instance.setInterface(this.getInterface());
+        instance.setMaxProperties(this.getMaxProperties());
+        instance.setMinProperties(this.getMinProperties());
+        instance.setProps(this.getProps());
+        instance.setSupportExtends(this.getSupportExtends());
+        instance.setTypeValue(this.getTypeValue());
+        instance.setUniqueProp(this.getUniqueProp());
+        instance.setUnknownAttrSchema(this.getUnknownAttrSchema());
+        instance.setUnknownTagSchema(this.getUnknownTagSchema());
+    }
+
+    protected ObjSchemaImpl newInstance(){
+        return (ObjSchemaImpl) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

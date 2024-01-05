@@ -2,6 +2,8 @@ package io.nop.excel.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.model.XptCellModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -631,6 +633,43 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         out.put("styleIdExpr",this.getStyleIdExpr());
         out.put("valueExpr",this.getValueExpr());
         out.put("viewerId",this.getViewerId());
+    }
+
+    public XptCellModel cloneInstance(){
+        XptCellModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(XptCellModel instance){
+        super.copyTo(instance);
+        
+        instance.setColExtendForSibling(this.isColExtendForSibling());
+        instance.setColParent(this.getColParent());
+        instance.setColTestExpr(this.getColTestExpr());
+        instance.setDomain(this.getDomain());
+        instance.setDs(this.getDs());
+        instance.setEditorId(this.getEditorId());
+        instance.setExpandExpr(this.getExpandExpr());
+        instance.setExpandInplaceCount(this.getExpandInplaceCount());
+        instance.setExpandOrderBy(this.getExpandOrderBy());
+        instance.setExpandType(this.getExpandType());
+        instance.setExportFormattedValue(this.isExportFormattedValue());
+        instance.setExportFormula(this.isExportFormula());
+        instance.setField(this.getField());
+        instance.setFormatExpr(this.getFormatExpr());
+        instance.setKeepExpandEmpty(this.isKeepExpandEmpty());
+        instance.setLinkExpr(this.getLinkExpr());
+        instance.setRowExtendForSibling(this.isRowExtendForSibling());
+        instance.setRowParent(this.getRowParent());
+        instance.setRowTestExpr(this.getRowTestExpr());
+        instance.setStyleIdExpr(this.getStyleIdExpr());
+        instance.setValueExpr(this.getValueExpr());
+        instance.setViewerId(this.getViewerId());
+    }
+
+    protected XptCellModel newInstance(){
+        return (XptCellModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

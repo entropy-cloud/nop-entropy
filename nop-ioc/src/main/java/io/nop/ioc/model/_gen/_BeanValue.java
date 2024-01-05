@@ -2,6 +2,8 @@ package io.nop.ioc.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.ioc.model.BeanValue;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -1095,6 +1097,57 @@ public abstract class _BeanValue extends io.nop.core.resource.component.Abstract
         out.put("parent",this.getParent());
         out.put("properties",this.getProperties());
         out.put("scope",this.getScope());
+    }
+
+    public BeanValue cloneInstance(){
+        BeanValue instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BeanValue instance){
+        super.copyTo(instance);
+        
+        instance.setAutowire(this.getAutowire());
+        instance.setAutowireCandidate(this.isAutowireCandidate());
+        instance.setClassName(this.getClassName());
+        instance.setConstructorArgs(this.getConstructorArgs());
+        instance.setDependsOn(this.getDependsOn());
+        instance.setDestroyMethod(this.getDestroyMethod());
+        instance.setFactoryBean(this.getFactoryBean());
+        instance.setFactoryMethod(this.getFactoryMethod());
+        instance.setInitMethod(this.getInitMethod());
+        instance.setIocAfter(this.getIocAfter());
+        instance.setIocAop(this.isIocAop());
+        instance.setIocAutoRefresh(this.isIocAutoRefresh());
+        instance.setIocBeanMethod(this.getIocBeanMethod());
+        instance.setIocBefore(this.getIocBefore());
+        instance.setIocBuild(this.getIocBuild());
+        instance.setIocCondition(this.getIocCondition());
+        instance.setIocConfigPrefix(this.getIocConfigPrefix());
+        instance.setIocDelayMethod(this.getIocDelayMethod());
+        instance.setIocDelayStart(this.getIocDelayStart());
+        instance.setIocDestroy(this.getIocDestroy());
+        instance.setIocForceInit(this.isIocForceInit());
+        instance.setIocInit(this.getIocInit());
+        instance.setIocInitOrder(this.getIocInitOrder());
+        instance.setIocInterceptors(this.getIocInterceptors());
+        instance.setIocOnConfigRefresh(this.getIocOnConfigRefresh());
+        instance.setIocProxy(this.isIocProxy());
+        instance.setIocRefreshConfig(this.getIocRefreshConfig());
+        instance.setIocRefreshConfigMethod(this.getIocRefreshConfigMethod());
+        instance.setIocRestart(this.getIocRestart());
+        instance.setIocRestartMethod(this.getIocRestartMethod());
+        instance.setIocSecurityDomain(this.getIocSecurityDomain());
+        instance.setIocType(this.getIocType());
+        instance.setLazyInit(this.getLazyInit());
+        instance.setParent(this.getParent());
+        instance.setProperties(this.getProperties());
+        instance.setScope(this.getScope());
+    }
+
+    protected BeanValue newInstance(){
+        return (BeanValue) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

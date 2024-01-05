@@ -2,6 +2,8 @@ package io.nop.xui.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xui.model.UiDisplayMeta;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -1148,6 +1150,62 @@ public abstract class _UiDisplayMeta extends io.nop.core.resource.component.Abst
         out.put("view",this.getView());
         out.put("visibleOn",this.getVisibleOn());
         out.put("width",this.getWidth());
+    }
+
+    public UiDisplayMeta cloneInstance(){
+        UiDisplayMeta instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(UiDisplayMeta instance){
+        super.copyTo(instance);
+        
+        instance.setBizObjName(this.getBizObjName());
+        instance.setCharCase(this.getCharCase());
+        instance.setClassName(this.getClassName());
+        instance.setClassNameExpr(this.getClassNameExpr());
+        instance.setControl(this.getControl());
+        instance.setCustom(this.isCustom());
+        instance.setDefaultValue(this.getDefaultValue());
+        instance.setDepends(this.getDepends());
+        instance.setDesc(this.getDesc());
+        instance.setDisabledOn(this.getDisabledOn());
+        instance.setDisplayProp(this.getDisplayProp());
+        instance.setDomain(this.getDomain());
+        instance.setEditMode(this.getEditMode());
+        instance.setFilterOp(this.getFilterOp());
+        instance.setGenControl(this.getGenControl());
+        instance.setHint(this.getHint());
+        instance.setHref(this.getHref());
+        instance.setId(this.getId());
+        instance.setIdProp(this.getIdProp());
+        instance.setIf(this.getIf());
+        instance.setJoinValues(this.isJoinValues());
+        instance.setLabel(this.getLabel());
+        instance.setMatchRegexp(this.getMatchRegexp());
+        instance.setMaxLength(this.getMaxLength());
+        instance.setMaxUploadSize(this.getMaxUploadSize());
+        instance.setMinLength(this.getMinLength());
+        instance.setMinRows(this.getMinRows());
+        instance.setMultiValue(this.isMultiValue());
+        instance.setPlaceholder(this.getPlaceholder());
+        instance.setProp(this.getProp());
+        instance.setReadonlyOn(this.getReadonlyOn());
+        instance.setRequiredOn(this.getRequiredOn());
+        instance.setSelectFirst(this.getSelectFirst());
+        instance.setSelection(this.getSelection());
+        instance.setSourceUrl(this.getSourceUrl());
+        instance.setStdDomain(this.getStdDomain());
+        instance.setUploadUrl(this.getUploadUrl());
+        instance.setValidator(this.getValidator());
+        instance.setView(this.getView());
+        instance.setVisibleOn(this.getVisibleOn());
+        instance.setWidth(this.getWidth());
+    }
+
+    protected UiDisplayMeta newInstance(){
+        return (UiDisplayMeta) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

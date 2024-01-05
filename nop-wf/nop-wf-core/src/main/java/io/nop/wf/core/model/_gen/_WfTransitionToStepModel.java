@@ -2,6 +2,8 @@ package io.nop.wf.core.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.wf.core.model.WfTransitionToStepModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -83,6 +85,23 @@ public abstract class _WfTransitionToStepModel extends io.nop.wf.core.model.WfTr
         
         out.put("backLink",this.isBackLink());
         out.put("stepName",this.getStepName());
+    }
+
+    public WfTransitionToStepModel cloneInstance(){
+        WfTransitionToStepModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(WfTransitionToStepModel instance){
+        super.copyTo(instance);
+        
+        instance.setBackLink(this.isBackLink());
+        instance.setStepName(this.getStepName());
+    }
+
+    protected WfTransitionToStepModel newInstance(){
+        return (WfTransitionToStepModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

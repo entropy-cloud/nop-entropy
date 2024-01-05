@@ -2,6 +2,8 @@ package io.nop.orm.model.interceptor._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.orm.model.interceptor.OrmInterceptorActionModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -137,6 +139,25 @@ public abstract class _OrmInterceptorActionModel extends io.nop.core.resource.co
         out.put("id",this.getId());
         out.put("order",this.getOrder());
         out.put("source",this.getSource());
+    }
+
+    public OrmInterceptorActionModel cloneInstance(){
+        OrmInterceptorActionModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(OrmInterceptorActionModel instance){
+        super.copyTo(instance);
+        
+        instance.setEvent(this.getEvent());
+        instance.setId(this.getId());
+        instance.setOrder(this.getOrder());
+        instance.setSource(this.getSource());
+    }
+
+    protected OrmInterceptorActionModel newInstance(){
+        return (OrmInterceptorActionModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

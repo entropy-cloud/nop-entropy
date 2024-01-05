@@ -1,6 +1,7 @@
 package io.nop.dyn.service.codegen;
 
 import io.nop.api.core.annotations.ioc.InjectValue;
+import io.nop.api.core.annotations.orm.SingleSession;
 import io.nop.biz.api.IBizObjectManager;
 import io.nop.codegen.CodeGenConstants;
 import io.nop.codegen.XCodeGenerator;
@@ -19,6 +20,7 @@ import io.nop.dyn.dao.model.DynEntityMetaToOrmModel;
 import io.nop.orm.IOrmSessionFactory;
 import io.nop.orm.model.OrmModel;
 import io.nop.xlang.api.XLang;
+import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 
 import java.util.ArrayList;
@@ -43,6 +45,12 @@ public class DynCodeGen {
 
     private final Map<String, InMemoryResourceStore> moduleCoreStores = new ConcurrentHashMap<>();
     private final Map<String, InMemoryResourceStore> moduleWebStores = new ConcurrentHashMap<>();
+
+    @PostConstruct
+    @SingleSession
+    public void init() {
+        generateForAllModules(true);
+    }
 
     public void generateForAllApps(boolean reload) {
         IEntityDao<NopDynApp> dao = daoProvider.daoFor(NopDynApp.class);
@@ -70,6 +78,23 @@ public class DynCodeGen {
             reloadModel();
     }
 
+    public void generateForAllModules(boolean reload) {
+        IEntityDao<NopDynModule> dao = daoProvider.daoFor(NopDynModule.class);
+        NopDynModule example = new NopDynModule();
+        example.setStatus(NopDynDaoConstants.MODULE_STATUS_PUBLISHED);
+        List<NopDynModule> list = dao.findAllByExample(example);
+
+        dao.batchLoadProps(list,
+                Arrays.asList("entityMetas.propMetas.domain", "entityMetas.functionMetas"));
+
+        for(NopDynModule module: list){
+            generateForModule(module, false);
+        }
+
+        if (reload)
+            reloadModel();
+    }
+
     public void generateForModule(NopDynModule module, boolean reload) {
         batchLoadModule(module);
 
@@ -86,7 +111,7 @@ public class DynCodeGen {
     }
 
     protected InMemoryResourceStore genModuleCoreFiles(String moduleName, OrmModel ormModel) {
-        XCodeGenerator gen = new XCodeGenerator("/nop/templates/dyn", "/");
+        XCodeGenerator gen = new XCodeGenerator("/nop/templates/dyn", "v:/");
         gen.autoFormat(false).forceOverride(true);
         InMemoryResourceStore store = new InMemoryResourceStore();
         store.setUseTextResourceAsUnknown(true);

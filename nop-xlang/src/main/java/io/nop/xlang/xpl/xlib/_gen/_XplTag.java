@@ -2,6 +2,8 @@ package io.nop.xlang.xpl.xlib._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xpl.xlib.XplTag;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -711,6 +713,44 @@ public abstract class _XplTag extends io.nop.core.resource.component.AbstractCom
         out.put("transformer",this.getTransformer());
         out.put("unknownAttrsVar",this.getUnknownAttrsVar());
         out.put("validator",this.getValidator());
+    }
+
+    public XplTag cloneInstance(){
+        XplTag instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(XplTag instance){
+        super.copyTo(instance);
+        
+        instance.setAttrs(this.getAttrs());
+        instance.setAttrsVar(this.getAttrsVar());
+        instance.setBodyType(this.getBodyType());
+        instance.setCallLocationVar(this.getCallLocationVar());
+        instance.setCheckNs(this.getCheckNs());
+        instance.setConditionTag(this.isConditionTag());
+        instance.setDeprecated(this.isDeprecated());
+        instance.setDescription(this.getDescription());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setDump(this.isDump());
+        instance.setExample(this.getExample());
+        instance.setIgnoreUnknownAttrs(this.isIgnoreUnknownAttrs());
+        instance.setInternal(this.isInternal());
+        instance.setMacro(this.isMacro());
+        instance.setOutputMode(this.getOutputMode());
+        instance.setSchema(this.getSchema());
+        instance.setSlots(this.getSlots());
+        instance.setSource(this.getSource());
+        instance.setTagName(this.getTagName());
+        instance.setTagReturn(this.getTagReturn());
+        instance.setTransformer(this.getTransformer());
+        instance.setUnknownAttrsVar(this.getUnknownAttrsVar());
+        instance.setValidator(this.getValidator());
+    }
+
+    protected XplTag newInstance(){
+        return (XplTag) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

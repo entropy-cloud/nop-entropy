@@ -2,6 +2,8 @@ package io.nop.biz.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.biz.model.BizCacheEvictModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -83,6 +85,23 @@ public abstract class _BizCacheEvictModel extends io.nop.core.resource.component
         
         out.put("cacheKeyExpr",this.getCacheKeyExpr());
         out.put("cacheName",this.getCacheName());
+    }
+
+    public BizCacheEvictModel cloneInstance(){
+        BizCacheEvictModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BizCacheEvictModel instance){
+        super.copyTo(instance);
+        
+        instance.setCacheKeyExpr(this.getCacheKeyExpr());
+        instance.setCacheName(this.getCacheName());
+    }
+
+    protected BizCacheEvictModel newInstance(){
+        return (BizCacheEvictModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

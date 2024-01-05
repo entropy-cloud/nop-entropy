@@ -2,6 +2,8 @@ package io.nop.dao.dialect.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.dao.dialect.model.DialectSqls;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -488,6 +490,38 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
         out.put("trueString",this.getTrueString());
         out.put("updateKeyword",this.getUpdateKeyword());
         out.put("validationQuery",this.getValidationQuery());
+    }
+
+    public DialectSqls cloneInstance(){
+        DialectSqls instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(DialectSqls instance){
+        super.copyTo(instance);
+        
+        instance.setCreateSequence(this.getCreateSequence());
+        instance.setDateLiteral(this.getDateLiteral());
+        instance.setDateTimeLiteral(this.getDateTimeLiteral());
+        instance.setDropSequence(this.getDropSequence());
+        instance.setDropTable(this.getDropTable());
+        instance.setEscapeSlash(this.getEscapeSlash());
+        instance.setFalseString(this.getFalseString());
+        instance.setForUpdate(this.getForUpdate());
+        instance.setInsertKeyword(this.getInsertKeyword());
+        instance.setLockHint(this.getLockHint());
+        instance.setSelectFromDual(this.getSelectFromDual());
+        instance.setSequenceNextVal(this.getSequenceNextVal());
+        instance.setTimeLiteral(this.getTimeLiteral());
+        instance.setTimestampLiteral(this.getTimestampLiteral());
+        instance.setTrueString(this.getTrueString());
+        instance.setUpdateKeyword(this.getUpdateKeyword());
+        instance.setValidationQuery(this.getValidationQuery());
+    }
+
+    protected DialectSqls newInstance(){
+        return (DialectSqls) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

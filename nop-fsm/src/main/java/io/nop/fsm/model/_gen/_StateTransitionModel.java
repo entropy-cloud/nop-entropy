@@ -2,6 +2,8 @@ package io.nop.fsm.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.fsm.model.StateTransitionModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -245,6 +247,29 @@ public abstract class _StateTransitionModel extends io.nop.core.resource.compone
         out.put("invoke",this.getInvoke());
         out.put("target",this.getTarget());
         out.put("when",this.getWhen());
+    }
+
+    public StateTransitionModel cloneInstance(){
+        StateTransitionModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(StateTransitionModel instance){
+        super.copyTo(instance);
+        
+        instance.setActions(this.getActions());
+        instance.setEvent(this.getEvent());
+        instance.setId(this.getId());
+        instance.setIn(this.getIn());
+        instance.setInternal(this.isInternal());
+        instance.setInvoke(this.getInvoke());
+        instance.setTarget(this.getTarget());
+        instance.setWhen(this.getWhen());
+    }
+
+    protected StateTransitionModel newInstance(){
+        return (StateTransitionModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

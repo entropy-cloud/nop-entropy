@@ -2,6 +2,8 @@ package io.nop.ioc.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.ioc.model.BeanAliasModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -83,6 +85,23 @@ public abstract class _BeanAliasModel extends io.nop.core.resource.component.Abs
         
         out.put("alias",this.getAlias());
         out.put("name",this.getName());
+    }
+
+    public BeanAliasModel cloneInstance(){
+        BeanAliasModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BeanAliasModel instance){
+        super.copyTo(instance);
+        
+        instance.setAlias(this.getAlias());
+        instance.setName(this.getName());
+    }
+
+    protected BeanAliasModel newInstance(){
+        return (BeanAliasModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

@@ -2,6 +2,8 @@ package io.nop.excel.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.model.ExcelSheet;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -478,6 +480,34 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
         out.put("print",this.getPrint());
         out.put("sheetOptions",this.getSheetOptions());
         out.put("table",this.getTable());
+    }
+
+    public ExcelSheet cloneInstance(){
+        ExcelSheet instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ExcelSheet instance){
+        super.copyTo(instance);
+        
+        instance.setAnnotations(this.getAnnotations());
+        instance.setConditionalStyles(this.getConditionalStyles());
+        instance.setDefaultColumnWidth(this.getDefaultColumnWidth());
+        instance.setDefaultRowHeight(this.getDefaultRowHeight());
+        instance.setImages(this.getImages());
+        instance.setModel(this.getModel());
+        instance.setName(this.getName());
+        instance.setPageBreaks(this.getPageBreaks());
+        instance.setPageMargins(this.getPageMargins());
+        instance.setPageSetup(this.getPageSetup());
+        instance.setPrint(this.getPrint());
+        instance.setSheetOptions(this.getSheetOptions());
+        instance.setTable(this.getTable());
+    }
+
+    protected ExcelSheet newInstance(){
+        return (ExcelSheet) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

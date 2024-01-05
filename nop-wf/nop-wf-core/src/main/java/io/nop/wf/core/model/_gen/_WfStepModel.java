@@ -2,6 +2,8 @@ package io.nop.wf.core.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.wf.core.model.WfStepModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -846,6 +848,50 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         out.put("transition",this.getTransition());
         out.put("waitSignals",this.getWaitSignals());
         out.put("wfAppState",this.getWfAppState());
+    }
+
+    public WfStepModel cloneInstance(){
+        WfStepModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(WfStepModel instance){
+        super.copyTo(instance);
+        
+        instance.setAfterTransition(this.getAfterTransition());
+        instance.setAllowReject(this.isAllowReject());
+        instance.setAllowWithdraw(this.isAllowWithdraw());
+        instance.setAppState(this.getAppState());
+        instance.setAssignment(this.getAssignment());
+        instance.setBeforeTransition(this.getBeforeTransition());
+        instance.setBizEntityState(this.getBizEntityState());
+        instance.setCheckComplete(this.getCheckComplete());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setDueAction(this.getDueAction());
+        instance.setDueTimeExpr(this.getDueTimeExpr());
+        instance.setIndependent(this.isIndependent());
+        instance.setInitAsWaiting(this.isInitAsWaiting());
+        instance.setInternal(this.isInternal());
+        instance.setMayActivated(this.getMayActivated());
+        instance.setName(this.getName());
+        instance.setOnEnter(this.getOnEnter());
+        instance.setOnError(this.getOnError());
+        instance.setOnExit(this.getOnExit());
+        instance.setOptional(this.isOptional());
+        instance.setPriority(this.getPriority());
+        instance.setRefActions(this.getRefActions());
+        instance.setRetry(this.getRetry());
+        instance.setSource(this.getSource());
+        instance.setSpecialType(this.getSpecialType());
+        instance.setTagSet(this.getTagSet());
+        instance.setTransition(this.getTransition());
+        instance.setWaitSignals(this.getWaitSignals());
+        instance.setWfAppState(this.getWfAppState());
+    }
+
+    protected WfStepModel newInstance(){
+        return (WfStepModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

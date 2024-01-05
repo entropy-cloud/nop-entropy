@@ -2,6 +2,8 @@ package io.nop.graphql.gateway.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.graphql.gateway.model.GatewayModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -84,6 +86,22 @@ public abstract class _GatewayModel extends io.nop.core.resource.component.Abstr
         super.outputJson(out);
         
         out.put("routes",this.getRoutes());
+    }
+
+    public GatewayModel cloneInstance(){
+        GatewayModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(GatewayModel instance){
+        super.copyTo(instance);
+        
+        instance.setRoutes(this.getRoutes());
+    }
+
+    protected GatewayModel newInstance(){
+        return (GatewayModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

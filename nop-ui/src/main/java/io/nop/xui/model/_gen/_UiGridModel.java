@@ -2,6 +2,8 @@ package io.nop.xui.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xui.model.UiGridModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -956,6 +958,54 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
         out.put("sortable",this.getSortable());
         out.put("stopAutoRefreshWhen",this.getStopAutoRefreshWhen());
         out.put("toolbarClassName",this.getToolbarClassName());
+    }
+
+    public UiGridModel cloneInstance(){
+        UiGridModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(UiGridModel instance){
+        super.copyTo(instance);
+        
+        instance.setAffixHeader(this.getAffixHeader());
+        instance.setAffixRow(this.getAffixRow());
+        instance.setAffixRowClassName(this.getAffixRowClassName());
+        instance.setAffixRowClassNameExpr(this.getAffixRowClassNameExpr());
+        instance.setApi(this.getApi());
+        instance.setCheckOnItemClick(this.getCheckOnItemClick());
+        instance.setClassName(this.getClassName());
+        instance.setCols(this.getCols());
+        instance.setColumnNum(this.getColumnNum());
+        instance.setCombineFromIndex(this.getCombineFromIndex());
+        instance.setCombineNum(this.getCombineNum());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setEditMode(this.getEditMode());
+        instance.setFilter(this.getFilter());
+        instance.setFooterClassName(this.getFooterClassName());
+        instance.setHeaderClassName(this.getHeaderClassName());
+        instance.setId(this.getId());
+        instance.setInitApi(this.getInitApi());
+        instance.setItemCheckableOn(this.getItemCheckableOn());
+        instance.setMultiple(this.getMultiple());
+        instance.setObjMeta(this.getObjMeta());
+        instance.setPlaceholder(this.getPlaceholder());
+        instance.setPrefixRow(this.getPrefixRow());
+        instance.setPrefixRowClassName(this.getPrefixRowClassName());
+        instance.setPrefixRowClassNameExpr(this.getPrefixRowClassNameExpr());
+        instance.setRowClassName(this.getRowClassName());
+        instance.setRowClassNameExpr(this.getRowClassNameExpr());
+        instance.setSaveOrderApi(this.getSaveOrderApi());
+        instance.setSelectable(this.getSelectable());
+        instance.setSelection(this.getSelection());
+        instance.setSortable(this.getSortable());
+        instance.setStopAutoRefreshWhen(this.getStopAutoRefreshWhen());
+        instance.setToolbarClassName(this.getToolbarClassName());
+    }
+
+    protected UiGridModel newInstance(){
+        return (UiGridModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

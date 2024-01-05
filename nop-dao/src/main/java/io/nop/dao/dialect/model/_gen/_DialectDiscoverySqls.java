@@ -2,6 +2,8 @@ package io.nop.dao.dialect.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.dao.dialect.model.DialectDiscoverySqls;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -353,6 +355,33 @@ public abstract class _DialectDiscoverySqls extends io.nop.core.resource.compone
         out.put("selectViewColumnComments",this.getSelectViewColumnComments());
         out.put("selectViewComments",this.getSelectViewComments());
         out.put("selectViews",this.getSelectViews());
+    }
+
+    public DialectDiscoverySqls cloneInstance(){
+        DialectDiscoverySqls instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(DialectDiscoverySqls instance){
+        super.copyTo(instance);
+        
+        instance.setSelectCatalogs(this.getSelectCatalogs());
+        instance.setSelectConstaints(this.getSelectConstaints());
+        instance.setSelectIndexes(this.getSelectIndexes());
+        instance.setSelectPrimaryKeys(this.getSelectPrimaryKeys());
+        instance.setSelectSchemas(this.getSelectSchemas());
+        instance.setSelectSequences(this.getSelectSequences());
+        instance.setSelectTableColumnComments(this.getSelectTableColumnComments());
+        instance.setSelectTableComments(this.getSelectTableComments());
+        instance.setSelectTables(this.getSelectTables());
+        instance.setSelectViewColumnComments(this.getSelectViewColumnComments());
+        instance.setSelectViewComments(this.getSelectViewComments());
+        instance.setSelectViews(this.getSelectViews());
+    }
+
+    protected DialectDiscoverySqls newInstance(){
+        return (DialectDiscoverySqls) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

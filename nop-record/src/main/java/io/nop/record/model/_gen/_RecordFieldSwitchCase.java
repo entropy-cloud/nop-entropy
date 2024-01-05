@@ -2,6 +2,8 @@ package io.nop.record.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.record.model.RecordFieldSwitchCase;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -83,6 +85,23 @@ public abstract class _RecordFieldSwitchCase extends io.nop.core.resource.compon
         
         out.put("type",this.getType());
         out.put("when",this.getWhen());
+    }
+
+    public RecordFieldSwitchCase cloneInstance(){
+        RecordFieldSwitchCase instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(RecordFieldSwitchCase instance){
+        super.copyTo(instance);
+        
+        instance.setType(this.getType());
+        instance.setWhen(this.getWhen());
+    }
+
+    protected RecordFieldSwitchCase newInstance(){
+        return (RecordFieldSwitchCase) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

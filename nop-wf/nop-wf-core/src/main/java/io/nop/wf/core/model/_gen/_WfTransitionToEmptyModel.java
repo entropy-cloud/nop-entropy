@@ -2,6 +2,8 @@ package io.nop.wf.core.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.wf.core.model.WfTransitionToEmptyModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -29,6 +31,21 @@ public abstract class _WfTransitionToEmptyModel extends io.nop.wf.core.model.WfT
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+    }
+
+    public WfTransitionToEmptyModel cloneInstance(){
+        WfTransitionToEmptyModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(WfTransitionToEmptyModel instance){
+        super.copyTo(instance);
+        
+    }
+
+    protected WfTransitionToEmptyModel newInstance(){
+        return (WfTransitionToEmptyModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

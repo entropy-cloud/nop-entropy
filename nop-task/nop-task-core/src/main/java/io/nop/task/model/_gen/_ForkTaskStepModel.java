@@ -2,6 +2,8 @@ package io.nop.task.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.task.model.ForkTaskStepModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -195,6 +197,27 @@ public abstract class _ForkTaskStepModel extends io.nop.task.model.TaskStepsMode
         out.put("joinType",this.getJoinType());
         out.put("producer",this.getProducer());
         out.put("var",this.getVar());
+    }
+
+    public ForkTaskStepModel cloneInstance(){
+        ForkTaskStepModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ForkTaskStepModel instance){
+        super.copyTo(instance);
+        
+        instance.setAggregateVarName(this.getAggregateVarName());
+        instance.setAggregator(this.getAggregator());
+        instance.setAutoCancelUnfinished(this.isAutoCancelUnfinished());
+        instance.setJoinType(this.getJoinType());
+        instance.setProducer(this.getProducer());
+        instance.setVar(this.getVar());
+    }
+
+    protected ForkTaskStepModel newInstance(){
+        return (ForkTaskStepModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

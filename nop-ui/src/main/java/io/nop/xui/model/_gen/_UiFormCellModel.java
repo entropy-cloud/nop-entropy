@@ -2,6 +2,8 @@ package io.nop.xui.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xui.model.UiFormCellModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -191,6 +193,27 @@ public abstract class _UiFormCellModel extends io.nop.xui.model.UiDisplayMeta {
         out.put("readonly",this.getReadonly());
         out.put("submitOnChange",this.getSubmitOnChange());
         out.put("titlePosition",this.getTitlePosition());
+    }
+
+    public UiFormCellModel cloneInstance(){
+        UiFormCellModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(UiFormCellModel instance){
+        super.copyTo(instance);
+        
+        instance.setCollapseTitle(this.getCollapseTitle());
+        instance.setMandatory(this.getMandatory());
+        instance.setNotSubmit(this.isNotSubmit());
+        instance.setReadonly(this.getReadonly());
+        instance.setSubmitOnChange(this.getSubmitOnChange());
+        instance.setTitlePosition(this.getTitlePosition());
+    }
+
+    protected UiFormCellModel newInstance(){
+        return (UiFormCellModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

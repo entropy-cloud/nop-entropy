@@ -2,6 +2,8 @@ package io.nop.rule.core.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.rule.core.model.RuleDecisionTreeModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -301,6 +303,29 @@ public abstract class _RuleDecisionTreeModel extends io.nop.core.resource.compon
         out.put("multiMatch",this.isMultiMatch());
         out.put("outputs",this.getOutputs());
         out.put("predicate",this.getPredicate());
+    }
+
+    public RuleDecisionTreeModel cloneInstance(){
+        RuleDecisionTreeModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(RuleDecisionTreeModel instance){
+        super.copyTo(instance);
+        
+        instance.setChildren(this.getChildren());
+        instance.setDescription(this.getDescription());
+        instance.setId(this.getId());
+        instance.setLabel(this.getLabel());
+        instance.setLeafIndex(this.getLeafIndex());
+        instance.setMultiMatch(this.isMultiMatch());
+        instance.setOutputs(this.getOutputs());
+        instance.setPredicate(this.getPredicate());
+    }
+
+    protected RuleDecisionTreeModel newInstance(){
+        return (RuleDecisionTreeModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

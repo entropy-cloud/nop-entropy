@@ -2,6 +2,8 @@ package io.nop.biz.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.biz.model.BizActionModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -557,6 +559,39 @@ public abstract class _BizActionModel extends io.nop.core.resource.component.Abs
         out.put("timeout",this.getTimeout());
         out.put("txn",this.getTxn());
         out.put("type",this.getType());
+    }
+
+    public BizActionModel cloneInstance(){
+        BizActionModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BizActionModel instance){
+        super.copyTo(instance);
+        
+        instance.setArgs(this.getArgs());
+        instance.setArgsNormalizer(this.getArgsNormalizer());
+        instance.setAsync(this.isAsync());
+        instance.setAuth(this.getAuth());
+        instance.setBizSequential(this.isBizSequential());
+        instance.setCache(this.getCache());
+        instance.setCacheEvicts(this.getCacheEvicts());
+        instance.setDisabled(this.isDisabled());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setExecutor(this.getExecutor());
+        instance.setMakerChecker(this.getMakerChecker());
+        instance.setName(this.getName());
+        instance.setReturn(this.getReturn());
+        instance.setSource(this.getSource());
+        instance.setTcc(this.getTcc());
+        instance.setTimeout(this.getTimeout());
+        instance.setTxn(this.getTxn());
+        instance.setType(this.getType());
+    }
+
+    protected BizActionModel newInstance(){
+        return (BizActionModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

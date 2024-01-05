@@ -2,6 +2,8 @@ package io.nop.ioc.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.ioc.model.BeanUnlessPropertyCondition;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -110,6 +112,24 @@ public abstract class _BeanUnlessPropertyCondition extends io.nop.core.resource.
         out.put("enableIfMissing",this.isEnableIfMissing());
         out.put("name",this.getName());
         out.put("value",this.getValue());
+    }
+
+    public BeanUnlessPropertyCondition cloneInstance(){
+        BeanUnlessPropertyCondition instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BeanUnlessPropertyCondition instance){
+        super.copyTo(instance);
+        
+        instance.setEnableIfMissing(this.isEnableIfMissing());
+        instance.setName(this.getName());
+        instance.setValue(this.getValue());
+    }
+
+    protected BeanUnlessPropertyCondition newInstance(){
+        return (BeanUnlessPropertyCondition) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

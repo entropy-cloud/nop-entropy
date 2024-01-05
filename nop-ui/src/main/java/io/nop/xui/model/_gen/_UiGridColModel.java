@@ -2,6 +2,8 @@ package io.nop.xui.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xui.model.UiGridColModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -272,6 +274,30 @@ public abstract class _UiGridColModel extends io.nop.xui.model.UiDisplayMeta {
         out.put("mandatory",this.isMandatory());
         out.put("readonly",this.isReadonly());
         out.put("sortable",this.isSortable());
+    }
+
+    public UiGridColModel cloneInstance(){
+        UiGridColModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(UiGridColModel instance){
+        super.copyTo(instance);
+        
+        instance.setAlign(this.getAlign());
+        instance.setBreakpoint(this.getBreakpoint());
+        instance.setFixed(this.getFixed());
+        instance.setGroupName(this.getGroupName());
+        instance.setHidden(this.isHidden());
+        instance.setLabelClassName(this.getLabelClassName());
+        instance.setMandatory(this.isMandatory());
+        instance.setReadonly(this.isReadonly());
+        instance.setSortable(this.isSortable());
+    }
+
+    protected UiGridColModel newInstance(){
+        return (UiGridColModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

@@ -2,6 +2,8 @@ package io.nop.xlang.xmeta.impl._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xmeta.impl.ObjKeyModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -110,6 +112,24 @@ public abstract class _ObjKeyModel extends io.nop.core.resource.component.Abstra
         out.put("displayName",this.getDisplayName());
         out.put("name",this.getName());
         out.put("props",this.getProps());
+    }
+
+    public ObjKeyModel cloneInstance(){
+        ObjKeyModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ObjKeyModel instance){
+        super.copyTo(instance);
+        
+        instance.setDisplayName(this.getDisplayName());
+        instance.setName(this.getName());
+        instance.setProps(this.getProps());
+    }
+
+    protected ObjKeyModel newInstance(){
+        return (ObjKeyModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

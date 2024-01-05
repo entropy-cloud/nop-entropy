@@ -2,6 +2,8 @@ package io.nop.rule.core.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.rule.core.model.RuleOutputDefineModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -83,6 +85,23 @@ public abstract class _RuleOutputDefineModel extends io.nop.xlang.xmeta.ObjVarDe
         
         out.put("aggregate",this.getAggregate());
         out.put("useWeight",this.isUseWeight());
+    }
+
+    public RuleOutputDefineModel cloneInstance(){
+        RuleOutputDefineModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(RuleOutputDefineModel instance){
+        super.copyTo(instance);
+        
+        instance.setAggregate(this.getAggregate());
+        instance.setUseWeight(this.isUseWeight());
+    }
+
+    protected RuleOutputDefineModel newInstance(){
+        return (RuleOutputDefineModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

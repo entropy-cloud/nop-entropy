@@ -2,6 +2,8 @@ package io.nop.task.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.task.model.TaskExecutableModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -526,6 +528,36 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         out.put("timeout",this.getTimeout());
         out.put("validator",this.getValidator());
         out.put("when",this.getWhen());
+    }
+
+    public TaskExecutableModel cloneInstance(){
+        TaskExecutableModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(TaskExecutableModel instance){
+        super.copyTo(instance);
+        
+        instance.setCatch(this.getCatch());
+        instance.setDecorators(this.getDecorators());
+        instance.setDescription(this.getDescription());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setExecutor(this.getExecutor());
+        instance.setFinally(this.getFinally());
+        instance.setId(this.getId());
+        instance.setInputs(this.getInputs());
+        instance.setOutputs(this.getOutputs());
+        instance.setRateLimit(this.getRateLimit());
+        instance.setRetry(this.getRetry());
+        instance.setThrottle(this.getThrottle());
+        instance.setTimeout(this.getTimeout());
+        instance.setValidator(this.getValidator());
+        instance.setWhen(this.getWhen());
+    }
+
+    protected TaskExecutableModel newInstance(){
+        return (TaskExecutableModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

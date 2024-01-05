@@ -2,6 +2,8 @@ package io.nop.record.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.record.model.RecordFieldMeta;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -1030,6 +1032,58 @@ public abstract class _RecordFieldMeta extends io.nop.core.resource.component.Ab
         out.put("type",this.getType());
         out.put("virtual",this.isVirtual());
         out.put("wrapper",this.isWrapper());
+    }
+
+    public RecordFieldMeta cloneInstance(){
+        RecordFieldMeta instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(RecordFieldMeta instance){
+        super.copyTo(instance);
+        
+        instance.setAbsoluteOffset(this.isAbsoluteOffset());
+        instance.setContent(this.getContent());
+        instance.setDoc(this.getDoc());
+        instance.setEncoder(this.getEncoder());
+        instance.setEncoding(this.getEncoding());
+        instance.setEndian(this.getEndian());
+        instance.setEnum(this.getEnum());
+        instance.setEosError(this.isEosError());
+        instance.setExcludeMax(this.getExcludeMax());
+        instance.setExcludeMin(this.getExcludeMin());
+        instance.setIfExpr(this.getIfExpr());
+        instance.setIncludeTerminator(this.isIncludeTerminator());
+        instance.setLabel(this.getLabel());
+        instance.setLazy(this.isLazy());
+        instance.setLeftPad(this.isLeftPad());
+        instance.setLength(this.getLength());
+        instance.setLengthExpr(this.getLengthExpr());
+        instance.setMandatory(this.isMandatory());
+        instance.setMax(this.getMax());
+        instance.setMaxLength(this.getMaxLength());
+        instance.setMin(this.getMin());
+        instance.setMinLength(this.getMinLength());
+        instance.setName(this.getName());
+        instance.setOffset(this.getOffset());
+        instance.setPadding(this.getPadding());
+        instance.setPattern(this.getPattern());
+        instance.setRepeat(this.getRepeat());
+        instance.setRepeatExpr(this.getRepeatExpr());
+        instance.setRepeatUntil(this.getRepeatUntil());
+        instance.setStdDomain(this.getStdDomain());
+        instance.setSwitch(this.getSwitch());
+        instance.setTerminator(this.getTerminator());
+        instance.setTillEnd(this.isTillEnd());
+        instance.setTrim(this.isTrim());
+        instance.setType(this.getType());
+        instance.setVirtual(this.isVirtual());
+        instance.setWrapper(this.isWrapper());
+    }
+
+    protected RecordFieldMeta newInstance(){
+        return (RecordFieldMeta) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

@@ -2,6 +2,8 @@ package io.nop.fsm.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.fsm.model.StateModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -548,6 +550,38 @@ public abstract class _StateModel extends io.nop.core.resource.component.Abstrac
         out.put("stateValue",this.getStateValue());
         out.put("states",this.getStates());
         out.put("transitions",this.getTransitions());
+    }
+
+    public StateModel cloneInstance(){
+        StateModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(StateModel instance){
+        super.copyTo(instance);
+        
+        instance.setActivities(this.getActivities());
+        instance.setDescription(this.getDescription());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setEntry(this.getEntry());
+        instance.setExit(this.getExit());
+        instance.setFinal(this.isFinal());
+        instance.setHandleError(this.getHandleError());
+        instance.setId(this.getId());
+        instance.setInitial(this.getInitial());
+        instance.setMeta(this.getMeta());
+        instance.setOnDone(this.getOnDone());
+        instance.setOnEntry(this.getOnEntry());
+        instance.setOnError(this.getOnError());
+        instance.setOnExit(this.getOnExit());
+        instance.setStateValue(this.getStateValue());
+        instance.setStates(this.getStates());
+        instance.setTransitions(this.getTransitions());
+    }
+
+    protected StateModel newInstance(){
+        return (StateModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON
