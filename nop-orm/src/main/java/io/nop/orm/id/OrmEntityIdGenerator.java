@@ -8,6 +8,7 @@
 package io.nop.orm.id;
 
 import io.nop.api.core.context.ContextProvider;
+import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.dao.seq.ISequenceGenerator;
 import io.nop.orm.IOrmEntity;
@@ -58,10 +59,12 @@ public class OrmEntityIdGenerator implements IEntityIdGenerator {
             String key = OrmModelHelper.buildEntityPropKey(col);
             if (col.getStdDataType().isNumericType()) {
                 value = sequenceGenerator.generateLong(key, useDefault);
+                // 如果主键是Integer类型，这里生成long再转换为integer就可能出现负数
+                value = MathHelper.abs(col.getStdDataType().convert(value));
             } else {
                 value = sequenceGenerator.generateString(key, useDefault);
             }
-            OrmEntityHelper.setPropValue(col, entity, value);
+            entity.orm_propValue(col.getColumnPropId(), value);
         }
     }
 
