@@ -205,7 +205,6 @@ public class DynCodeGen {
         ModuleManager.instance().discover();
 
         ormSessionFactory.reloadModel();
-        bizObjectManager.setDynBizModels(bizModels);
-        bizObjectManager.clearCache();
+        bizObjectManager.updateDynBizModels(bizModels);
     }
 }

@@ -90,8 +90,20 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
         this.bizModelBeans = bizModelBeans;
     }
 
-    public void setDynBizModels(Map<String, GraphQLBizModel> dynBizModels) {
-        this.dynBizModels = Guard.notNull(dynBizModels, "dynBizModels");
+    public void updateDynBizModels(Map<String, GraphQLBizModel> dynBizModels) {
+        Guard.notNull(dynBizModels, "dynBizModels");
+        Map<String, GraphQLBizModel> oldModels = this.dynBizModels;
+        if (oldModels != null) {
+            boolean checkChanged = bizObjCache.shouldCheckChanged();
+            for (String bizObjName : oldModels.keySet()) {
+                // 如果禁用了文件修改检查，则直接清空缓存
+                if (!checkChanged || !dynBizModels.containsKey(bizObjName)) {
+                    removeCache(bizObjName);
+                }
+            }
+        }
+
+        this.dynBizModels = dynBizModels;
     }
 
     public void setBizInitializers(List<IGraphQLBizInitializer> bizInitializers) {

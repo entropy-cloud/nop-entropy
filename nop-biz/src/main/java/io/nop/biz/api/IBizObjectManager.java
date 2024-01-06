@@ -37,5 +37,5 @@ public interface IBizObjectManager {
 
     void clearCache();
 
-    void setDynBizModels(Map<String, GraphQLBizModel> dynBizModels);
+    void updateDynBizModels(Map<String, GraphQLBizModel> dynBizModels);
 }
