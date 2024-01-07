@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
-      displayName="分组部门" i18n-en:displayName="Group Department" tagSet="no-web,many-to-many" xmlns:ui="ui"
-      xmlns:orm="orm">
+      displayName="分组用户" i18n-en:displayName="Group User" tagSet="no-web,many-to-many" xmlns:ui="ui" xmlns:orm="orm">
 
-    <entityName>io.nop.auth.dao.entity.NopAuthGroupDept</entityName>
+    <entityName>io.nop.auth.dao.entity.NopAuthGroupUser</entityName>
 
-    <primaryKey>deptId,groupId</primaryKey>
+    <primaryKey>userId,groupId</primaryKey>
 
     <x:gen-extends>
         <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
@@ -19,17 +18,13 @@
     <keys/>
 
     <props>
-        <prop name="deptId" displayName="部门ID" i18n-en:displayName="Department ID" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false" ext:relation="dept">
-            <schema domain="deptId" type="java.lang.String" precision="50"/>
+        <prop name="userId" displayName="用户ID" i18n-en:displayName="USER ID" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="false" ext:relation="user">
+            <schema domain="userId" type="java.lang.String" precision="50"/>
         </prop>
         <prop name="groupId" displayName="分组ID" i18n-en:displayName="Group ID" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="false" ext:relation="group">
             <schema type="java.lang.String" precision="50"/>
-        </prop>
-        <prop name="includeChild" displayName="是否包含下级" i18n-en:displayName="Include Child" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="0">
-            <schema domain="boolFlag" type="java.lang.Byte"/>
         </prop>
         <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
               sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
@@ -55,13 +50,13 @@
               insertable="true" updatable="true" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="dept" displayName="部门" i18n-en:displayName="User"
+        <prop name="user" displayName="用户" i18n-en:displayName="User"
               tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable" ext:kind="to-one" internal="true"
-              queryable="true" ext:joinLeftProp="deptId" ext:joinRightProp="deptId" ext:joinRightDisplayProp="deptName"
+              queryable="true" ext:joinLeftProp="userId" ext:joinRightProp="userId" ext:joinRightDisplayProp="userName"
               insertable="false" updatable="false" mandatory="true" lazy="true">
-            <schema bizObjName="NopAuthDept"/>
+            <schema bizObjName="NopAuthUser"/>
         </prop>
-        <prop name="dept.deptName" displayName="部门" i18n-en:displayName="User" internal="true" queryable="true"
+        <prop name="user.userName" displayName="用户" i18n-en:displayName="User" internal="true" queryable="true"
               sortable="true" lazy="true">
             <schema type="String"/>
         </prop>

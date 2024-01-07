@@ -15,7 +15,11 @@
   "owner": null,
   "owner.userName": "",
   "children": null,
+  "deptMappings": null,
   "userMappings": null,
+  "relatedDeptList": null,
+  "relatedDeptIdList": null,
+  "relatedDeptList_label": "",
   "relatedUserList": null,
   "relatedUserIdList": null,
   "relatedUserList_label": ""

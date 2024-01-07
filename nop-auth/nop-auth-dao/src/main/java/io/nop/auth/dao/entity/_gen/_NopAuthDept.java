@@ -96,6 +96,9 @@ public class _NopAuthDept extends DynamicOrmEntity{
     /* relation: 子资源 */
     public static final String PROP_NAME_children = "children";
     
+    /* relation: 分组映射 */
+    public static final String PROP_NAME_groupMappings = "groupMappings";
+    
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_deptId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_deptId};
@@ -945,5 +948,31 @@ public class _NopAuthDept extends DynamicOrmEntity{
        return _children;
     }
        
+    private final OrmEntitySet<io.nop.auth.dao.entity.NopAuthGroupDept> _groupMappings = new OrmEntitySet<>(this, PROP_NAME_groupMappings,
+        io.nop.auth.dao.entity.NopAuthGroupDept.PROP_NAME_dept, null,io.nop.auth.dao.entity.NopAuthGroupDept.class);
+
+    /**
+     * 分组映射。 refPropName: dept, keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.auth.dao.entity.NopAuthGroupDept> getGroupMappings(){
+       return _groupMappings;
+    }
+       
+        public List<io.nop.auth.dao.entity.NopAuthGroup> getRelatedGroupList(){
+            return (List<io.nop.auth.dao.entity.NopAuthGroup>)io.nop.orm.support.OrmEntityHelper.getRefProps(getGroupMappings(),io.nop.auth.dao.entity.NopAuthGroupDept.PROP_NAME_group);
+        }
+    
+        public String getRelatedGroupList_label(){
+        return io.nop.core.lang.utils.Underscore.pluckThenJoin(getRelatedGroupList(),io.nop.auth.dao.entity.NopAuthGroup.PROP_NAME_name);
+        }
+    
+        public List<java.lang.String> getRelatedGroupIdList(){
+        return (List<java.lang.String>)io.nop.orm.support.OrmEntityHelper.getRefProps(getGroupMappings(),io.nop.auth.dao.entity.NopAuthGroupDept.PROP_NAME_groupId);
+        }
+
+        public void setRelatedGroupIdList(List<java.lang.String> value){
+        io.nop.orm.support.OrmEntityHelper.setRefProps(getGroupMappings(),io.nop.auth.dao.entity.NopAuthGroupDept.PROP_NAME_groupId,value);
+        }
+    
 }
 // resume CPD analysis - CPD-ON

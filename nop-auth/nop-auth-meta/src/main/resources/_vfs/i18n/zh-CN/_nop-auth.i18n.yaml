@@ -3,7 +3,7 @@ entity:
     NopAuthDept: 部门
     NopAuthExtLogin: 扩展登录方式
     NopAuthGroup: 用户组
-    NopAuthGroupDept: 分组用户
+    NopAuthGroupDept: 分组部门
     NopAuthOpLog: 操作日志
     NopAuthPosition: 岗位
     NopAuthResource: 菜单资源
@@ -29,6 +29,7 @@ prop:
       deptType: 类型
       deptUsers: 部门用户
       email: 邮件
+      groupMappings: 分组映射
       manager: 部门负责人
       manager.userName: 部门负责人
       managerId: 部门负责人
@@ -37,6 +38,9 @@ prop:
       parent.deptName: 父资源
       parentId: 父ID
       phone: 电话
+      relatedGroupIdList: 分组列表
+      relatedGroupList: 分组列表
+      relatedGroupList_label: 分组列表
       remark: 备注
       updateTime: 修改时间
       updatedBy: 修改人
@@ -64,6 +68,7 @@ prop:
       createTime: 创建时间
       createdBy: 创建人
       delFlag: 删除标识
+      deptMappings: 部门映射
       groupId: 主键
       name: 名称
       owner: 所有者
@@ -72,6 +77,9 @@ prop:
       parent: 父分组
       parent.name: 父分组
       parentId: 父ID
+      relatedDeptIdList: 部门列表
+      relatedDeptList: 部门列表
+      relatedDeptList_label: 部门列表
       relatedUserIdList: 用户列表
       relatedUserList: 用户列表
       relatedUserList_label: 用户列表
@@ -83,15 +91,16 @@ prop:
     NopAuthGroupDept:
       createTime: 创建时间
       createdBy: 创建人
+      dept: 部门
+      dept.deptName: 部门
+      deptId: 部门ID
       group: 分组
       group.name: 分组
       groupId: 分组ID
+      includeChild: 是否包含下级
       remark: 备注
       updateTime: 修改时间
       updatedBy: 修改人
-      user: 用户
-      user.userName: 用户
-      userId: 用户ID
       version: 数据版本
     NopAuthOpLog:
       bizActionName: 业务操作

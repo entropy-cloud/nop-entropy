@@ -223,7 +223,7 @@
               ext:joinLeftProp="userId" ext:joinRightProp="userId" orm:manyToManyRefProp="groupId" insertable="true"
               updatable="true" lazy="true">
             <schema>
-                <item bizObjName="NopAuthGroupDept"/>
+                <item bizObjName="NopAuthGroupUser"/>
             </schema>
         </prop>
         <prop name="avatarComponent" ext:kind="component" internal="true" insertable="true" updatable="true" lazy="true"

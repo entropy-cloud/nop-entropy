@@ -2032,13 +2032,13 @@ public class _NopAuthUser extends DynamicOrmEntity{
        return _substitutionMappings;
     }
        
-    private final OrmEntitySet<io.nop.auth.dao.entity.NopAuthGroupDept> _groupMappings = new OrmEntitySet<>(this, PROP_NAME_groupMappings,
-        io.nop.auth.dao.entity.NopAuthGroupDept.PROP_NAME_user, null,io.nop.auth.dao.entity.NopAuthGroupDept.class);
+    private final OrmEntitySet<io.nop.auth.dao.entity.NopAuthGroupUser> _groupMappings = new OrmEntitySet<>(this, PROP_NAME_groupMappings,
+        io.nop.auth.dao.entity.NopAuthGroupUser.PROP_NAME_user, null,io.nop.auth.dao.entity.NopAuthGroupUser.class);
 
     /**
      * 分组映射。 refPropName: user, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.auth.dao.entity.NopAuthGroupDept> getGroupMappings(){
+    public IOrmEntitySet<io.nop.auth.dao.entity.NopAuthGroupUser> getGroupMappings(){
        return _groupMappings;
     }
        
@@ -2076,7 +2076,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
         }
     
         public List<io.nop.auth.dao.entity.NopAuthGroup> getRelatedGroupList(){
-            return (List<io.nop.auth.dao.entity.NopAuthGroup>)io.nop.orm.support.OrmEntityHelper.getRefProps(getGroupMappings(),io.nop.auth.dao.entity.NopAuthGroupDept.PROP_NAME_group);
+            return (List<io.nop.auth.dao.entity.NopAuthGroup>)io.nop.orm.support.OrmEntityHelper.getRefProps(getGroupMappings(),io.nop.auth.dao.entity.NopAuthGroupUser.PROP_NAME_group);
         }
     
         public String getRelatedGroupList_label(){
@@ -2084,11 +2084,11 @@ public class _NopAuthUser extends DynamicOrmEntity{
         }
     
         public List<java.lang.String> getRelatedGroupIdList(){
-        return (List<java.lang.String>)io.nop.orm.support.OrmEntityHelper.getRefProps(getGroupMappings(),io.nop.auth.dao.entity.NopAuthGroupDept.PROP_NAME_groupId);
+        return (List<java.lang.String>)io.nop.orm.support.OrmEntityHelper.getRefProps(getGroupMappings(),io.nop.auth.dao.entity.NopAuthGroupUser.PROP_NAME_groupId);
         }
 
         public void setRelatedGroupIdList(List<java.lang.String> value){
-        io.nop.orm.support.OrmEntityHelper.setRefProps(getGroupMappings(),io.nop.auth.dao.entity.NopAuthGroupDept.PROP_NAME_groupId,value);
+        io.nop.orm.support.OrmEntityHelper.setRefProps(getGroupMappings(),io.nop.auth.dao.entity.NopAuthGroupUser.PROP_NAME_groupId,value);
         }
     
 }

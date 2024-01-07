@@ -287,6 +287,19 @@ CREATE TABLE nop_auth_op_log(
 );
 
 CREATE TABLE nop_auth_group_dept(
+  DEPT_ID VARCHAR(50) NOT NULL ,
+  GROUP_ID VARCHAR(50) NOT NULL ,
+  INCLUDE_CHILD INT4 NOT NULL ,
+  VERSION INT4 NOT NULL ,
+  CREATED_BY VARCHAR(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR(200)  ,
+  constraint PK_nop_auth_group_dept primary key (DEPT_ID,GROUP_ID)
+);
+
+CREATE TABLE nop_auth_group_user(
   USER_ID VARCHAR(50) NOT NULL ,
   GROUP_ID VARCHAR(50) NOT NULL ,
   VERSION INT4 NOT NULL ,
@@ -295,7 +308,7 @@ CREATE TABLE nop_auth_group_dept(
   UPDATED_BY VARCHAR(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR(200)  ,
-  constraint PK_nop_auth_group_dept primary key (USER_ID,GROUP_ID)
+  constraint PK_nop_auth_group_user primary key (USER_ID,GROUP_ID)
 );
 
 
@@ -779,11 +792,13 @@ CREATE TABLE nop_auth_group_dept(
                     
       COMMENT ON COLUMN nop_auth_op_log.CREATE_TIME IS '创建时间';
                     
-      COMMENT ON TABLE nop_auth_group_dept IS '分组用户';
+      COMMENT ON TABLE nop_auth_group_dept IS '分组部门';
                 
-      COMMENT ON COLUMN nop_auth_group_dept.USER_ID IS '用户ID';
+      COMMENT ON COLUMN nop_auth_group_dept.DEPT_ID IS '部门ID';
                     
       COMMENT ON COLUMN nop_auth_group_dept.GROUP_ID IS '分组ID';
+                    
+      COMMENT ON COLUMN nop_auth_group_dept.INCLUDE_CHILD IS '是否包含下级';
                     
       COMMENT ON COLUMN nop_auth_group_dept.VERSION IS '数据版本';
                     
@@ -796,4 +811,22 @@ CREATE TABLE nop_auth_group_dept(
       COMMENT ON COLUMN nop_auth_group_dept.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_auth_group_dept.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_auth_group_user IS '分组用户';
+                
+      COMMENT ON COLUMN nop_auth_group_user.USER_ID IS '用户ID';
+                    
+      COMMENT ON COLUMN nop_auth_group_user.GROUP_ID IS '分组ID';
+                    
+      COMMENT ON COLUMN nop_auth_group_user.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_auth_group_user.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_auth_group_user.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_auth_group_user.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_auth_group_user.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_auth_group_user.REMARK IS '备注';
                     

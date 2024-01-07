@@ -7,6 +7,8 @@ alter table nop_auth_group add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT 
 
 alter table nop_auth_group_dept add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_auth_group_user add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_auth_position add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_auth_resource add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -35,7 +37,10 @@ alter table nop_auth_group drop primary key;
 alter table nop_auth_group add primary key (NOP_TENANT_ID, GROUP_ID);
 
 alter table nop_auth_group_dept drop primary key;
-alter table nop_auth_group_dept add primary key (NOP_TENANT_ID, USER_ID,GROUP_ID);
+alter table nop_auth_group_dept add primary key (NOP_TENANT_ID, DEPT_ID,GROUP_ID);
+
+alter table nop_auth_group_user drop primary key;
+alter table nop_auth_group_user add primary key (NOP_TENANT_ID, USER_ID,GROUP_ID);
 
 alter table nop_auth_position drop primary key;
 alter table nop_auth_position add primary key (NOP_TENANT_ID, POSITION_ID);

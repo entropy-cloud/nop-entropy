@@ -19,5 +19,9 @@
   "manager": null,
   "manager.userName": "",
   "deptUsers": null,
-  "children": null
+  "children": null,
+  "groupMappings": null,
+  "relatedGroupList": null,
+  "relatedGroupIdList": null,
+  "relatedGroupList_label": ""
 }

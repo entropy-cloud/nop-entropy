@@ -287,6 +287,19 @@ CREATE TABLE nop_auth_op_log(
 );
 
 CREATE TABLE nop_auth_group_dept(
+  DEPT_ID VARCHAR(50) NOT NULL    COMMENT '部门ID',
+  GROUP_ID VARCHAR(50) NOT NULL    COMMENT '分组ID',
+  INCLUDE_CHILD TINYINT NOT NULL    COMMENT '是否包含下级',
+  VERSION INTEGER NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_auth_group_dept primary key (DEPT_ID,GROUP_ID)
+);
+
+CREATE TABLE nop_auth_group_user(
   USER_ID VARCHAR(50) NOT NULL    COMMENT '用户ID',
   GROUP_ID VARCHAR(50) NOT NULL    COMMENT '分组ID',
   VERSION INTEGER NOT NULL    COMMENT '数据版本',
@@ -295,7 +308,7 @@ CREATE TABLE nop_auth_group_dept(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
-  constraint PK_nop_auth_group_dept primary key (USER_ID,GROUP_ID)
+  constraint PK_nop_auth_group_user primary key (USER_ID,GROUP_ID)
 );
 
 
@@ -329,5 +342,7 @@ CREATE TABLE nop_auth_group_dept(
                 
    ALTER TABLE nop_auth_op_log COMMENT '操作日志';
                 
-   ALTER TABLE nop_auth_group_dept COMMENT '分组用户';
+   ALTER TABLE nop_auth_group_dept COMMENT '分组部门';
+                
+   ALTER TABLE nop_auth_group_user COMMENT '分组用户';
                 

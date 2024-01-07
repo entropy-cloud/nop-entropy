@@ -114,5 +114,28 @@
                 <item bizObjName="NopAuthDept"/>
             </schema>
         </prop>
+        <prop name="groupMappings" displayName="分组映射" i18n-en:displayName="GroupMappings"
+              tagSet="pub,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
+              ext:joinLeftProp="deptId" ext:joinRightProp="deptId" orm:manyToManyRefProp="groupId" insertable="true"
+              updatable="true" lazy="true">
+            <schema>
+                <item bizObjName="NopAuthGroupDept"/>
+            </schema>
+        </prop>
+        <prop name="relatedGroupList" displayName="分组列表" i18n-en:displayName="Group List" ext:kind="to-many"
+              internal="true" lazy="true">
+            <schema>
+                <item bizObjName="NopAuthGroup"/>
+            </schema>
+        </prop>
+        <prop name="relatedGroupIdList" displayName="分组列表" i18n-en:displayName="Group List" insertable="true"
+              updatable="true" ext:relation="relatedGroupList" graphql:labelProp="relatedGroupList_label" lazy="true"
+              internal="true">
+            <schema type="List&lt;java.lang.String&gt;"/>
+        </prop>
+        <prop name="relatedGroupList_label" displayName="分组列表" i18n-en:displayName="Group List" lazy="true"
+              internal="true">
+            <schema type="String"/>
+        </prop>
     </props>
 </meta>

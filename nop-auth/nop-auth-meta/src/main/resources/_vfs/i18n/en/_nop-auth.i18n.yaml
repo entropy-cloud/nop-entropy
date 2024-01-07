@@ -3,7 +3,7 @@ entity:
     NopAuthDept: Department
     NopAuthExtLogin: Ext Login
     NopAuthGroup: User Group
-    NopAuthGroupDept: Group User
+    NopAuthGroupDept: Group Department
     NopAuthOpLog: Operation Log
     NopAuthPosition: Position
     NopAuthResource: Menu Resource
@@ -41,6 +41,10 @@ prop:
       manager.userName: Manager
       deptUsers: Users
       children: Children
+      groupMappings: GroupMappings
+      relatedGroupList: Group List
+      relatedGroupIdList: Group List
+      relatedGroupList_label: Group List
     NopAuthExtLogin:
       sid: ID
       userId: User ID
@@ -76,21 +80,26 @@ prop:
       owner: Owner
       owner.userName: Owner
       children: Children
+      deptMappings: Department Mappings
       userMappings: UserMappings
+      relatedDeptList: User List
+      relatedDeptIdList: User List
+      relatedDeptList_label: User List
       relatedUserList: User List
       relatedUserIdList: User List
       relatedUserList_label: User List
     NopAuthGroupDept:
-      userId: USER ID
+      deptId: Department ID
       groupId: Group ID
+      includeChild: Include Child
       version: Version
       createdBy: Created By
       createTime: Create Time
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
-      user: User
-      user.userName: User
+      dept: User
+      dept.deptName: User
       group: Group
       group.name: Group
     NopAuthOpLog:

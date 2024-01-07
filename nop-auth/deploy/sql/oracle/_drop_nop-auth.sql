@@ -15,4 +15,5 @@ drop table nop_auth_group;
 drop table nop_auth_role_resource;
 drop table nop_auth_op_log;
 drop table nop_auth_group_dept;
+drop table nop_auth_group_user;
 

@@ -10,78 +10,71 @@ import java.util.HashMap;
 import java.util.Arrays;
 import java.util.List;
 
-import io.nop.auth.dao.entity.NopAuthGroupDept;
+import io.nop.auth.dao.entity.NopAuthGroupUser;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- *  分组部门: nop_auth_group_dept
+ *  分组用户: nop_auth_group_user
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
-public class _NopAuthGroupDept extends DynamicOrmEntity{
+public class _NopAuthGroupUser extends DynamicOrmEntity{
     
-    /* 部门ID: DEPT_ID VARCHAR */
-    public static final String PROP_NAME_deptId = "deptId";
-    public static final int PROP_ID_deptId = 1;
+    /* 用户ID: USER_ID VARCHAR */
+    public static final String PROP_NAME_userId = "userId";
+    public static final int PROP_ID_userId = 1;
     
     /* 分组ID: GROUP_ID VARCHAR */
     public static final String PROP_NAME_groupId = "groupId";
     public static final int PROP_ID_groupId = 2;
     
-    /* 是否包含下级: INCLUDE_CHILD TINYINT */
-    public static final String PROP_NAME_includeChild = "includeChild";
-    public static final int PROP_ID_includeChild = 3;
-    
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 4;
+    public static final int PROP_ID_version = 3;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 5;
+    public static final int PROP_ID_createdBy = 4;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 6;
+    public static final int PROP_ID_createTime = 5;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 7;
+    public static final int PROP_ID_updatedBy = 6;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 8;
+    public static final int PROP_ID_updateTime = 7;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 9;
+    public static final int PROP_ID_remark = 8;
     
 
-    private static int _PROP_ID_BOUND = 10;
+    private static int _PROP_ID_BOUND = 9;
 
     
-    /* relation: 部门 */
-    public static final String PROP_NAME_dept = "dept";
+    /* relation: 用户 */
+    public static final String PROP_NAME_user = "user";
     
     /* relation: 分组 */
     public static final String PROP_NAME_group = "group";
     
 
-    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_deptId,PROP_NAME_groupId);
-    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_deptId,PROP_ID_groupId};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_userId,PROP_NAME_groupId);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_userId,PROP_ID_groupId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[10];
+    private static final String[] PROP_ID_TO_NAME = new String[9];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
-          PROP_ID_TO_NAME[PROP_ID_deptId] = PROP_NAME_deptId;
-          PROP_NAME_TO_ID.put(PROP_NAME_deptId, PROP_ID_deptId);
+          PROP_ID_TO_NAME[PROP_ID_userId] = PROP_NAME_userId;
+          PROP_NAME_TO_ID.put(PROP_NAME_userId, PROP_ID_userId);
       
           PROP_ID_TO_NAME[PROP_ID_groupId] = PROP_NAME_groupId;
           PROP_NAME_TO_ID.put(PROP_NAME_groupId, PROP_ID_groupId);
-      
-          PROP_ID_TO_NAME[PROP_ID_includeChild] = PROP_NAME_includeChild;
-          PROP_NAME_TO_ID.put(PROP_NAME_includeChild, PROP_ID_includeChild);
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
@@ -104,14 +97,11 @@ public class _NopAuthGroupDept extends DynamicOrmEntity{
     }
 
     
-    /* 部门ID: DEPT_ID */
-    private java.lang.String _deptId;
+    /* 用户ID: USER_ID */
+    private java.lang.String _userId;
     
     /* 分组ID: GROUP_ID */
     private java.lang.String _groupId;
-    
-    /* 是否包含下级: INCLUDE_CHILD */
-    private java.lang.Byte _includeChild;
     
     /* 数据版本: VERSION */
     private java.lang.Integer _version;
@@ -132,17 +122,17 @@ public class _NopAuthGroupDept extends DynamicOrmEntity{
     private java.lang.String _remark;
     
 
-    public _NopAuthGroupDept(){
+    public _NopAuthGroupUser(){
         // for debug
     }
 
-    protected NopAuthGroupDept newInstance(){
-       return new NopAuthGroupDept();
+    protected NopAuthGroupUser newInstance(){
+       return new NopAuthGroupUser();
     }
 
     @Override
-    public NopAuthGroupDept cloneInstance() {
-        NopAuthGroupDept entity = newInstance();
+    public NopAuthGroupUser cloneInstance() {
+        NopAuthGroupUser entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
             entity.onInitProp(propId);
         });
@@ -155,7 +145,7 @@ public class _NopAuthGroupDept extends DynamicOrmEntity{
       IEntityModel entityModel = orm_entityModel();
       if(entityModel != null)
           return entityModel.getName();
-      return "io.nop.auth.dao.entity.NopAuthGroupDept";
+      return "io.nop.auth.dao.entity.NopAuthGroupUser";
     }
 
     @Override
@@ -176,7 +166,7 @@ public class _NopAuthGroupDept extends DynamicOrmEntity{
     @Override
     public boolean orm_isPrimary(int propId) {
         
-            return propId == PROP_ID_deptId || propId == PROP_ID_groupId;
+            return propId == PROP_ID_userId || propId == PROP_ID_groupId;
           
     }
 
@@ -202,14 +192,11 @@ public class _NopAuthGroupDept extends DynamicOrmEntity{
     public Object orm_propValue(int propId) {
         switch(propId){
         
-            case PROP_ID_deptId:
-               return getDeptId();
+            case PROP_ID_userId:
+               return getUserId();
         
             case PROP_ID_groupId:
                return getGroupId();
-        
-            case PROP_ID_includeChild:
-               return getIncludeChild();
         
             case PROP_ID_version:
                return getVersion();
@@ -240,13 +227,13 @@ public class _NopAuthGroupDept extends DynamicOrmEntity{
     public void orm_propValue(int propId, Object value){
         switch(propId){
         
-            case PROP_ID_deptId:{
+            case PROP_ID_userId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_deptId));
+                       err-> newTypeConversionError(PROP_NAME_userId));
                }
-               setDeptId(typedValue);
+               setUserId(typedValue);
                break;
             }
         
@@ -257,16 +244,6 @@ public class _NopAuthGroupDept extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_groupId));
                }
                setGroupId(typedValue);
-               break;
-            }
-        
-            case PROP_ID_includeChild:{
-               java.lang.Byte typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toByte(value,
-                       err-> newTypeConversionError(PROP_NAME_includeChild));
-               }
-               setIncludeChild(typedValue);
                break;
             }
         
@@ -339,9 +316,9 @@ public class _NopAuthGroupDept extends DynamicOrmEntity{
     public void orm_internalSet(int propId, Object value) {
         switch(propId){
         
-            case PROP_ID_deptId:{
+            case PROP_ID_userId:{
                onInitProp(propId);
-               this._deptId = (java.lang.String)value;
+               this._userId = (java.lang.String)value;
                orm_id(); // 如果是设置主键字段，则触发watcher
                break;
             }
@@ -350,13 +327,6 @@ public class _NopAuthGroupDept extends DynamicOrmEntity{
                onInitProp(propId);
                this._groupId = (java.lang.String)value;
                orm_id(); // 如果是设置主键字段，则触发watcher
-               break;
-            }
-        
-            case PROP_ID_includeChild:{
-               onInitProp(propId);
-               this._includeChild = (java.lang.Byte)value;
-               
                break;
             }
         
@@ -409,20 +379,20 @@ public class _NopAuthGroupDept extends DynamicOrmEntity{
 
     
     /**
-     * 部门ID: DEPT_ID
+     * 用户ID: USER_ID
      */
-    public java.lang.String getDeptId(){
-         onPropGet(PROP_ID_deptId);
-         return _deptId;
+    public java.lang.String getUserId(){
+         onPropGet(PROP_ID_userId);
+         return _userId;
     }
 
     /**
-     * 部门ID: DEPT_ID
+     * 用户ID: USER_ID
      */
-    public void setDeptId(java.lang.String value){
-        if(onPropSet(PROP_ID_deptId,value)){
-            this._deptId = value;
-            internalClearRefs(PROP_ID_deptId);
+    public void setUserId(java.lang.String value){
+        if(onPropSet(PROP_ID_userId,value)){
+            this._userId = value;
+            internalClearRefs(PROP_ID_userId);
             orm_id();
         }
     }
@@ -443,25 +413,6 @@ public class _NopAuthGroupDept extends DynamicOrmEntity{
             this._groupId = value;
             internalClearRefs(PROP_ID_groupId);
             orm_id();
-        }
-    }
-    
-    /**
-     * 是否包含下级: INCLUDE_CHILD
-     */
-    public java.lang.Byte getIncludeChild(){
-         onPropGet(PROP_ID_includeChild);
-         return _includeChild;
-    }
-
-    /**
-     * 是否包含下级: INCLUDE_CHILD
-     */
-    public void setIncludeChild(java.lang.Byte value){
-        if(onPropSet(PROP_ID_includeChild,value)){
-            this._includeChild = value;
-            internalClearRefs(PROP_ID_includeChild);
-            
         }
     }
     
@@ -580,22 +531,22 @@ public class _NopAuthGroupDept extends DynamicOrmEntity{
     }
     
     /**
-     * 部门
+     * 用户
      */
-    public io.nop.auth.dao.entity.NopAuthDept getDept(){
-       return (io.nop.auth.dao.entity.NopAuthDept)internalGetRefEntity(PROP_NAME_dept);
+    public io.nop.auth.dao.entity.NopAuthUser getUser(){
+       return (io.nop.auth.dao.entity.NopAuthUser)internalGetRefEntity(PROP_NAME_user);
     }
 
-    public void setDept(io.nop.auth.dao.entity.NopAuthDept refEntity){
+    public void setUser(io.nop.auth.dao.entity.NopAuthUser refEntity){
    
            if(refEntity == null){
            
-                   this.setDeptId(null);
+                   this.setUserId(null);
                
            }else{
-           internalSetRefEntity(PROP_NAME_dept, refEntity,()->{
+           internalSetRefEntity(PROP_NAME_user, refEntity,()->{
            
-                           this.setDeptId(refEntity.getDeptId());
+                           this.setUserId(refEntity.getUserId());
                        
            });
            }

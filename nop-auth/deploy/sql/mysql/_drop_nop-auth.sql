@@ -15,4 +15,5 @@ drop table  if exists  nop_auth_group;
 drop table  if exists  nop_auth_role_resource;
 drop table  if exists  nop_auth_op_log;
 drop table  if exists  nop_auth_group_dept;
+drop table  if exists  nop_auth_group_user;
 
