@@ -31,7 +31,7 @@ prop:
       email: 邮件
       manager: 部门负责人
       manager.userName: 部门负责人
-      managerId: 部分负责人
+      managerId: 部门负责人
       orderNum: 排序
       parent: 父资源
       parent.deptName: 父资源

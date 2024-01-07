@@ -311,7 +311,7 @@ CREATE TABLE nop_auth_group_dept(
                     
       COMMENT ON COLUMN nop_auth_dept.DEPT_TYPE IS '类型';
                     
-      COMMENT ON COLUMN nop_auth_dept.MANAGER_ID IS '部分负责人';
+      COMMENT ON COLUMN nop_auth_dept.MANAGER_ID IS '部门负责人';
                     
       COMMENT ON COLUMN nop_auth_dept.EMAIL IS '邮件';
                     

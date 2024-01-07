@@ -764,7 +764,7 @@
                         stdSqlType="INTEGER" i18n-en:displayName="Order Number"/>
                 <column code="DEPT_TYPE" displayName="类型" name="deptType" precision="10" propId="5" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Type"/>
-                <column code="MANAGER_ID" displayName="部分负责人" name="managerId" precision="50" propId="6"
+                <column code="MANAGER_ID" displayName="部门负责人" name="managerId" precision="50" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Manager"/>
                 <column code="EMAIL" displayName="邮件" domain="email" name="email" precision="100" propId="7"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Email"/>
