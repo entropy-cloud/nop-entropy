@@ -8,6 +8,7 @@
 package io.nop.core.module;
 
 import io.nop.api.core.annotations.core.GlobalInstance;
+import io.nop.api.core.util.Guard;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
@@ -19,13 +20,14 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import static io.nop.core.CoreConfigs.CFG_MODULE_DISABLED_MODULE_IDS;
-import static io.nop.core.CoreConfigs.CFG_MODULE_ENABLED_MODULE_IDS;
+import static io.nop.core.CoreConfigs.CFG_MODULE_DISABLED_MODULE_NAMES;
+import static io.nop.core.CoreConfigs.CFG_MODULE_ENABLED_MODULE_NAMES;
 
 @GlobalInstance
 public class ModuleManager {
@@ -47,55 +49,100 @@ public class ModuleManager {
      * 在VirtualFileSystem初始化之后被调用
      */
     public void discover() {
-        Set<String> enabledModuleIds = CFG_MODULE_ENABLED_MODULE_IDS.get();
-        Set<String> disabledModuleIds = CFG_MODULE_DISABLED_MODULE_IDS.get();
+        Set<String> enabledModuleNames = CFG_MODULE_ENABLED_MODULE_NAMES.get();
+        Set<String> disabledModuleNames = CFG_MODULE_DISABLED_MODULE_NAMES.get();
 
         List<IResource> moduleFiles = VirtualFileSystem.instance().findAll("*/*/_module");
 
         Map<String, ModuleModel> modules = new TreeMap<>();
 
         for (IResource resource : moduleFiles) {
-            String moduleId = ResourceHelper.getModuleId(resource.getStdPath());
-            if (disabledModuleIds != null && disabledModuleIds.contains(moduleId)) {
-                LOG.info("nop.core.ignore-disabled-module:moduleId={}", moduleId);
+            String moduleName = ResourceHelper.getModuleName(resource.getStdPath());
+            if (disabledModuleNames != null && disabledModuleNames.contains(moduleName)) {
+                LOG.info("nop.core.ignore-disabled-module:moduleName={}", moduleName);
                 continue;
             }
-            if (enabledModuleIds != null && !enabledModuleIds.isEmpty() && !enabledModuleIds.contains(moduleId)) {
-                LOG.info("nop.core.ignore-disabled-module:moduleId={}", moduleId);
+            if (enabledModuleNames != null && !enabledModuleNames.isEmpty() && !enabledModuleNames.contains(moduleName)) {
+                LOG.info("nop.core.ignore-disabled-module:moduleName={}", moduleName);
                 continue;
             }
 
-            LOG.info("nop.core.add-module:moduleId={}", moduleId);
-            loadModule(modules, moduleId);
+            LOG.info("nop.core.add-module:moduleName={}", moduleName);
+            ModuleModel module = loadModuleById(ResourceHelper.getModuleIdFromModuleName(moduleName));
+            modules.put(moduleName, module);
         }
         this.modules = modules;
+    }
+
+    public synchronized void updateDynModules(Map<String, ModuleModel> dynModules) {
+        Guard.notNull(dynModules, "dynModules");
+
+        Map<String, ModuleModel> modules = new TreeMap<>(this.modules);
+        modules.entrySet().removeIf(entry -> {
+            if (dynModules.containsKey(entry.getKey()))
+                return false;
+            // 删除已经不存在的动态模块
+            return entry.getValue().isDynamic();
+        });
+
+        for (Map.Entry<String, ModuleModel> entry : dynModules.entrySet()) {
+            entry.getValue().setDynamic(true);
+            modules.put(entry.getKey(), entry.getValue());
+        }
+
+        Set<String> disabledModuleNames = CFG_MODULE_DISABLED_MODULE_NAMES.get();
+        if (disabledModuleNames != null) {
+            disabledModuleNames.forEach(modules::remove);
+        }
+
+        this.modules = modules;
+    }
+
+    public Map<String, ModuleModel> loadModules(Set<String> moduleNames) {
+        Map<String, ModuleModel> ret = new HashMap<>();
+        for (String moduleName : moduleNames) {
+            String moduleId = ResourceHelper.getModuleIdFromModuleName(moduleName);
+            IResource resource = VirtualFileSystem.instance().getResource("/" + moduleId + "/_module");
+            if (resource.exists()) {
+                ret.put(moduleName, loadModuleById(moduleId));
+            }
+        }
+        return ret;
     }
 
     public void clear() {
         modules.clear();
     }
 
-    private void loadModule(Map<String, ModuleModel> modules, String moduleId) {
+    private ModuleModel loadModuleById(String moduleId) {
         IResource configFile = VirtualFileSystem.instance().getResource("/" + moduleId + "/app.module.yaml");
+        ModuleModel module;
         if (configFile.exists()) {
-            ModuleModel model = JsonTool.parseBeanFromResource(configFile, ModuleModel.class);
-            modules.put(moduleId, model);
+            module = JsonTool.parseBeanFromResource(configFile, ModuleModel.class);
         } else {
-            ModuleModel model = new ModuleModel();
-            model.setVersion("1.0");
-            modules.put(moduleId, model);
+            module = new ModuleModel();
+            module.setVersion("1.0");
         }
+        module.setModuleId(moduleId);
+        return module;
     }
 
-    public Set<String> getEnabledModuleIds() {
+    public Set<String> getEnabledModuleNames() {
         return modules.keySet();
     }
 
+    public Collection<ModuleModel> getEnabledModules() {
+        return modules.values();
+    }
+
     public List<IResource> getAllModuleResources(String filePathInModule) {
-        Set<String> moduleIds = getEnabledModuleIds();
-        List<IResource> ret = new ArrayList<>(moduleIds.size());
-        for (String moduleId : moduleIds) {
-            String path = StringHelper.appendPath('/' + moduleId, filePathInModule);
+        Collection<ModuleModel> modules = getEnabledModules();
+        List<IResource> ret = new ArrayList<>(modules.size());
+        if (filePathInModule.startsWith("/"))
+            filePathInModule = filePathInModule.substring(1);
+
+        for (ModuleModel module : modules) {
+            String path = '/' + module.getModuleId() + '/' + filePathInModule;
             IResource resource = VirtualFileSystem.instance().getResource(path);
             if (resource.exists()) {
                 ret.add(resource);
@@ -105,9 +152,9 @@ public class ModuleManager {
     }
 
     public IResource getModuleResource(String filePathInModule) {
-        Set<String> moduleIds = getEnabledModuleIds();
-        for (String moduleId : moduleIds) {
-            String path = StringHelper.appendPath('/' + moduleId, filePathInModule);
+        Collection<ModuleModel> modules = getEnabledModules();
+        for (ModuleModel module : modules) {
+            String path = StringHelper.appendPath('/' + module.getModuleId(), filePathInModule);
             IResource resource = VirtualFileSystem.instance().getResource(path);
             if (resource.exists()) {
                 return resource;
@@ -117,10 +164,10 @@ public class ModuleManager {
     }
 
     public List<IResource> findModuleResources(String filePathInModule, String suffix) {
-        Set<String> moduleIds = getEnabledModuleIds();
+        Collection<ModuleModel> modules = getEnabledModules();
         List<IResource> ret = new ArrayList<>();
-        for (String moduleId : moduleIds) {
-            String path = StringHelper.appendPath('/' + moduleId, filePathInModule);
+        for (ModuleModel module : modules) {
+            String path = StringHelper.appendPath('/' + module.getModuleId(), filePathInModule);
             Collection<? extends IResource> resources = VirtualFileSystem.instance().getAllResources(path, suffix);
             ret.addAll(resources);
         }

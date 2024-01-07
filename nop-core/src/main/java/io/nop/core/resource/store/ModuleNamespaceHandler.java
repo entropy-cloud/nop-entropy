@@ -10,6 +10,7 @@ package io.nop.core.resource.store;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.module.ModuleManager;
+import io.nop.core.module.ModuleModel;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceNamespaceHandler;
 import io.nop.core.resource.IResourceStore;
@@ -36,8 +37,8 @@ public class ModuleNamespaceHandler implements IResourceNamespaceHandler {
         ResourceHelper.checkNormalVirtualPath(path);
 
         IResource resource = null;
-        for (String moduleId : ModuleManager.instance().getEnabledModuleIds()) {
-            String fullPath = "/" + moduleId + path;
+        for (ModuleModel module : ModuleManager.instance().getEnabledModules()) {
+            String fullPath = "/" + module.getModuleId() + path;
             IResource prev = resource;
             resource = locator.getResource(fullPath, true);
             if (resource != null) {

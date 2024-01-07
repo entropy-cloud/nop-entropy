@@ -7,18 +7,57 @@
  */
 package io.nop.core.module;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.core.resource.ResourceHelper;
 
 import java.util.Set;
 
 @DataBean
 public class ModuleModel {
+    private String moduleId;
     private String displayName;
     private String description;
     private String version;
     private Set<String> dependsOn;
     private String author;
     private String publishDate;
+
+    private boolean dynamic;
+
+    public ModuleModel() {
+    }
+
+    public static ModuleModel forModuleName(String moduleName) {
+        ModuleModel model = new ModuleModel();
+        model.setModuleName(moduleName);
+        return model;
+    }
+
+    public String getModuleName() {
+        return ResourceHelper.getModuleNameFromModuleId(moduleId);
+    }
+
+    public void setModuleName(String moduleName) {
+        this.moduleId = ResourceHelper.getModuleIdFromModuleName(moduleName);
+    }
+
+    @JsonIgnore
+    public String getModuleId() {
+        return moduleId;
+    }
+
+    public void setModuleId(String moduleId) {
+        this.moduleId = moduleId;
+    }
+
+    public boolean isDynamic() {
+        return dynamic;
+    }
+
+    public void setDynamic(boolean dynamic) {
+        this.dynamic = dynamic;
+    }
 
     public String getAuthor() {
         return author;

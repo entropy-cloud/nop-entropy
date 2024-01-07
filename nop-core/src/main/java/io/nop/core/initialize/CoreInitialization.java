@@ -33,7 +33,7 @@ import java.util.ServiceLoader;
 import java.util.Set;
 
 import static io.nop.core.CoreConfigs.CFG_CORE_MAX_INITIALIZE_LEVEL;
-import static io.nop.core.CoreConfigs.CFG_MODULE_DISABLED_MODULE_IDS;
+import static io.nop.core.CoreConfigs.CFG_MODULE_DISABLED_MODULE_NAMES;
 
 public class CoreInitialization {
     static final Logger LOG = LoggerFactory.getLogger(CoreInitialization.class);
@@ -246,10 +246,10 @@ public class CoreInitialization {
 
     private static Set<String> getDisabled() {
         // 通过System.properties配置
-        Object configValue = CFG_MODULE_DISABLED_MODULE_IDS.get();
+        Object configValue = CFG_MODULE_DISABLED_MODULE_NAMES.get();
         // 如果未找到，则从bootstrap.yaml配置文件中查找配置项
         if (configValue == null)
-            configValue = bootstrapConfig.get(CFG_MODULE_DISABLED_MODULE_IDS.getName());
+            configValue = bootstrapConfig.get(CFG_MODULE_DISABLED_MODULE_NAMES.getName());
 
         Set<String> disabledNames = ConvertHelper.toCsvSet(configValue);
         if (disabledNames == null)

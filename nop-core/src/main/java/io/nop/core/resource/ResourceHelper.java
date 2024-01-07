@@ -103,6 +103,25 @@ public class ResourceHelper {
         return getModuleIdFromStdPath(path);
     }
 
+    public static String getModuleName(String path) {
+        String moduleId = getModuleId(path);
+        if (moduleId == null)
+            return null;
+        return moduleId.replace('/', '-');
+    }
+
+    public static String getModuleIdFromModuleName(String moduleName) {
+        if (moduleName == null)
+            return null;
+        return moduleName.replace('-', '/');
+    }
+
+    public static String getModuleNameFromModuleId(String moduleId) {
+        if (moduleId == null)
+            return null;
+        return moduleId.replace('/', '-');
+    }
+
     public static String getModuleIdFromStdPath(String path) {
         if (path.indexOf(':') > 0)
             return null;

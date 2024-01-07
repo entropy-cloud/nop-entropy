@@ -37,8 +37,8 @@ public class XplOrmInterceptorFactoryBean {
         // event -> entityName -> actions
         Map<String, Map<String, List<OrmInterceptorActionModel>>> allActions = new HashMap<>();
 
-        ModuleManager.instance().getEnabledModuleIds().forEach(moduleId -> {
-            String path = "/" + moduleId + "/orm/app.orm-interceptor.xml";
+        ModuleManager.instance().getEnabledModules().forEach(module -> {
+            String path = "/" + module.getModuleId() + "/orm/app.orm-interceptor.xml";
 
             IResource resource = VirtualFileSystem.instance().getResource(path);
             if (resource.exists()) {
