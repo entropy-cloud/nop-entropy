@@ -9,6 +9,7 @@ entity:
     NopDynEntityRelationMeta: 实体关联元数据
     NopDynFunctionMeta: 实体函数定义
     NopDynModule: 模块定义
+    NopDynModuleDep: 模块依赖
     NopDynPage: 页面定义
     NopDynPropMeta: 属性元数据
 prop:
@@ -201,6 +202,18 @@ prop:
       relatedAppList_label: 所属应用列表
       status: 状态
       status_label: 状态
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopDynModuleDep:
+      createTime: 创建时间
+      createdBy: 创建人
+      depModule: 基础模块
+      depModule.displayName: 基础模块
+      depModuleId: 被依赖模块ID
+      module: 模块
+      module.displayName: 模块
+      moduleId: 模块ID
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

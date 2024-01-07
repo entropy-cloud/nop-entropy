@@ -9,6 +9,7 @@ entity:
     NopDynEntityRelationMeta: Entity Relation Meta
     NopDynFunctionMeta: Function Meta
     NopDynModule: Module Definition
+    NopDynModuleDep: Module Dependency
     NopDynPage: Page Definition
     NopDynPropMeta: Property Meta
 prop:
@@ -204,6 +205,18 @@ prop:
       relatedAppList: App List
       relatedAppIdList: App List
       relatedAppList_label: App List
+    NopDynModuleDep:
+      moduleId: Module ID
+      depModuleId: Dep Module ID
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      module: Module
+      module.displayName: Module
+      depModule: Dependent Module
+      depModule.displayName: Dependent Module
     NopDynPage:
       pageId: Page ID
       moduleId: Module ID

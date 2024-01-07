@@ -67,7 +67,6 @@
  baseModuleId[基础模块ID]
  basePackageName[Java包名]
  mavenGroupId[Maven组名]
- status[状态]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">

@@ -111,7 +111,7 @@
                         import io.nop.core.resource.ResourceHelper;
 
                         let ormModel = codeGenModel;
-                        let appName = ormModel['ext:appName'];
+                        let appName = ormModel['ext:appName'] || ormModel['ext:moduleName'];
                         let pkgName = ormModel['ext:basePackageName'];
                         let entityPkgName = ormModel['ext:entityPackageName'];
                         if(!pkgName){
@@ -128,11 +128,12 @@
 
                         ResourceHelper.checkValidModuleName(appName);
 
-                        let moduleId = ormModel['ext:moduleId'] || appName.replace('-','/');
+                        let moduleName = appName;
+                        let moduleId = moduleName.replace('-','/')
                         builder.defineGlobalVar("ormModel",ormModel);
                         builder.defineGlobalVar("appName", appName);
                         builder.defineGlobalVar("moduleId",moduleId);
-                        builder.defineGlobalVar("moduleName",moduleId.replace('/','-'));
+                        builder.defineGlobalVar("moduleName",moduleName);
                         builder.defineGlobalVar('mavenGroupId',ormModel['ext:mavenGroupId']);
                         builder.defineGlobalVar('mavenArtifactId', ormModel['ext:mavenArtifactId']);
                         builder.defineGlobalVar("moduleClassPrefix",moduleId.replace('/','_').$camelCase(true))

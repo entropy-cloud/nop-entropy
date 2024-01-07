@@ -17,12 +17,16 @@ import io.nop.core.reflect.bean.BeanTool;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 public class DaoUserContextCache extends LocalUserContextCache {
+    static final Logger LOG = LoggerFactory.getLogger(DaoUserContextCache.class);
+
     @Inject
     IDaoProvider daoProvider;
 
@@ -34,8 +38,15 @@ public class DaoUserContextCache extends LocalUserContextCache {
     public CompletionStage<IUserContext> getUserContextAsync(String sessionId) {
         return FutureHelper.futureCall(() -> {
             NopAuthSession session = dao().getEntityById(sessionId);
-            if (session == null || session.getLogoutType() != AuthApiConstants.LOGOUT_TYPE_NONE)
+            if (session == null) {
+                LOG.debug("nop.auth.login-session-not-exists:sessionId={}", sessionId);
                 return null;
+            }
+
+            if (session.getLogoutType() != AuthApiConstants.LOGOUT_TYPE_NONE) {
+                LOG.debug("nop.auth.login-session-already-logout:sessionId={}", sessionId);
+                return null;
+            }
 
             UserContextImpl userContext = new UserContextImpl();
 

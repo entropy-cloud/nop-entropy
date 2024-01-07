@@ -453,6 +453,9 @@ public class LoginServiceImpl extends AbstractLoginService {
 
     @Override
     public String refreshToken(IUserContext userContext, AuthToken authToken) {
-        return authTokenProvider.generateAccessToken(userContext, authToken.getExpireSeconds());
+        String accessToken = authTokenProvider.generateAccessToken(userContext, authToken.getExpireSeconds());
+        userContext.setRefreshToken(authTokenProvider.generateRefreshToken(userContext, CFG_AUTH_REFRESH_TOKEN_EXPIRE_SECONDS.get()));
+        userContext.setAccessToken(accessToken);
+        return accessToken;
     }
 }

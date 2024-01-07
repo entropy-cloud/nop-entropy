@@ -49,7 +49,7 @@
             <schema type="java.lang.String" precision="200"/>
         </prop>
         <prop name="status" displayName="状态" i18n-en:displayName="Status" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+              sortable="true" insertable="false" updatable="false" ui:show="R" defaultValue="0">
             <schema type="java.lang.Integer" dict="dyn/module-status"/>
         </prop>
         <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"

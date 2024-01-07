@@ -391,6 +391,10 @@
 /nop/dyn/model/NopDynModule/NopDynModule.xmeta
 /nop/dyn/model/NopDynModule/_NopDynModule.xbiz
 /nop/dyn/model/NopDynModule/_NopDynModule.xmeta
+/nop/dyn/model/NopDynModuleDep/NopDynModuleDep.xbiz
+/nop/dyn/model/NopDynModuleDep/NopDynModuleDep.xmeta
+/nop/dyn/model/NopDynModuleDep/_NopDynModuleDep.xbiz
+/nop/dyn/model/NopDynModuleDep/_NopDynModuleDep.xmeta
 /nop/dyn/model/NopDynPage/NopDynPage.xbiz
 /nop/dyn/model/NopDynPage/NopDynPage.xmeta
 /nop/dyn/model/NopDynPage/_NopDynPage.xbiz

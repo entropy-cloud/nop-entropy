@@ -98,6 +98,17 @@ CREATE TABLE nop_dyn_entity_relation(
   constraint PK_nop_dyn_entity_relation primary key (SID)
 );
 
+CREATE TABLE nop_dyn_module_dep(
+  MODULE_ID VARCHAR(32) NOT NULL ,
+  DEP_MODULE_ID VARCHAR(32) NOT NULL ,
+  VERSION INT4 NOT NULL ,
+  CREATED_BY VARCHAR(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  constraint PK_nop_dyn_module_dep primary key (MODULE_ID,DEP_MODULE_ID)
+);
+
 CREATE TABLE nop_dyn_app_module(
   APP_ID VARCHAR(32) NOT NULL ,
   MODULE_ID VARCHAR(32) NOT NULL ,
@@ -389,6 +400,22 @@ CREATE TABLE nop_dyn_function_meta(
       COMMENT ON COLUMN nop_dyn_entity_relation.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_dyn_entity_relation.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_dyn_module_dep IS '模块依赖';
+                
+      COMMENT ON COLUMN nop_dyn_module_dep.MODULE_ID IS '模块ID';
+                    
+      COMMENT ON COLUMN nop_dyn_module_dep.DEP_MODULE_ID IS '被依赖模块ID';
+                    
+      COMMENT ON COLUMN nop_dyn_module_dep.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_dyn_module_dep.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_dyn_module_dep.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_dyn_module_dep.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_dyn_module_dep.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON TABLE nop_dyn_app_module IS '应用模块映射';
                 

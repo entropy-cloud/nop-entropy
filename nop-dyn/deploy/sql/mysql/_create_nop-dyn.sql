@@ -98,6 +98,17 @@ CREATE TABLE nop_dyn_entity_relation(
   constraint PK_nop_dyn_entity_relation primary key (SID)
 );
 
+CREATE TABLE nop_dyn_module_dep(
+  MODULE_ID VARCHAR(32) NOT NULL    COMMENT '模块ID',
+  DEP_MODULE_ID VARCHAR(32) NOT NULL    COMMENT '被依赖模块ID',
+  VERSION INTEGER NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
+  constraint PK_nop_dyn_module_dep primary key (MODULE_ID,DEP_MODULE_ID)
+);
+
 CREATE TABLE nop_dyn_app_module(
   APP_ID VARCHAR(32) NOT NULL    COMMENT '应用ID',
   MODULE_ID VARCHAR(32) NOT NULL    COMMENT '模块ID',
@@ -231,6 +242,8 @@ CREATE TABLE nop_dyn_function_meta(
    ALTER TABLE nop_dyn_entity COMMENT '动态实体';
                 
    ALTER TABLE nop_dyn_entity_relation COMMENT '实体关联';
+                
+   ALTER TABLE nop_dyn_module_dep COMMENT '模块依赖';
                 
    ALTER TABLE nop_dyn_app_module COMMENT '应用模块映射';
                 
