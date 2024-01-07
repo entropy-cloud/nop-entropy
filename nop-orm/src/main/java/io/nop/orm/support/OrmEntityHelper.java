@@ -8,6 +8,8 @@
 package io.nop.orm.support;
 
 import io.nop.api.core.exceptions.NopEvalException;
+import io.nop.commons.type.StdDataType;
+import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.orm.IOrmCompositePk;
@@ -23,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 import static io.nop.orm.OrmErrors.ARG_COLLECTION_NAME;
 import static io.nop.orm.OrmErrors.ARG_COUNT;
@@ -101,6 +104,21 @@ public class OrmEntityHelper {
                 return true;
         }
         return false;
+    }
+
+    public static boolean isPropValueEquals(IEntityPropModel propA, Object valueA, IEntityPropModel propB, Object valueB) {
+        StdDataType typeA = propA.getStdDataType();
+        StdDataType typeB = propB.getStdDataType();
+        if (typeA == typeB)
+            return Objects.equals(valueA, valueB);
+
+        if (typeA == StdDataType.STRING)
+            return Objects.equals(valueA, StringHelper.toString(valueB, null));
+
+        if (typeB == StdDataType.STRING)
+            return Objects.equals(StringHelper.toString(valueA, null), valueB);
+
+        return MathHelper.eq(valueA, valueB);
     }
 
     public static Object castId(IEntityModel entityModel, Object id) {

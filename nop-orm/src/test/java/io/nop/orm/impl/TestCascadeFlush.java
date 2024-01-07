@@ -28,4 +28,26 @@ public class TestCascadeFlush extends AbstractOrmTestCase {
             assertEquals("ext-info", college.getCollegeEx().getExtInfo());
         });
     }
+
+    @Test
+    public void testOneToOneDelayInit() {
+        orm().runInSession(() -> {
+            SimsCollege college = (SimsCollege) orm().newEntity(SimsCollege.class.getName());
+            college.setCollegeName("main");
+            college.setIntro("main-info");
+
+            SimsCollegeEx ex = new SimsCollegeEx();
+            ex.setExtInfo("ext-info");
+            college.setCollegeEx(ex);
+
+            college.setCollegeId("123");
+
+            orm().save(college);
+            orm().flushSession();
+
+            orm().clearSession();
+            college = daoProvider().daoFor(SimsCollege.class).getEntityById("123");
+            assertEquals("ext-info", college.getCollegeEx().getExtInfo());
+        });
+    }
 }
