@@ -287,11 +287,39 @@ public class DynamicOrmEntity extends OrmEntity implements IPropSetMissingHook, 
         }
     }
 
+    protected void internalSetReverseRefEntity(String propName, IOrmEntity refEntity, Runnable pkWatcher) {
+        if (refEntity == null)
+            return;
+        pkWatcher.run();
+        refProps.put(propName, refEntity);
+
+        if (!orm_hasId())
+            this.orm_addPkWatcher(pkWatcher);
+        return;
+    }
+
     private Object internalGetRefEntity(IEntityRelationModel refModel) {
         return internalGetRefEntity(refModel.getName());
     }
 
     private void internalSetRefEntity(IEntityRelationModel refModel, IOrmEntity refEntity) {
+        if (refModel.isOneToOne() && refModel.isReverseDepends()) {
+            // 主表指向子表的关联属性
+            if (refEntity == null)
+                return;
+
+            Runnable watcher = () -> {
+                for (IEntityJoinConditionModel join : refModel.getJoin()) {
+                    if (join.getRightProp() != null) {
+                        Object value = OrmEntityHelper.getLeftValue(join, this);
+                        refEntity.orm_propValue(join.getRightPropModel().getColumnPropId(), value);
+                    }
+                }
+            };
+            internalSetReverseRefEntity(refModel.getName(), refEntity, watcher);
+            return;
+        }
+
         if (refEntity == null) {
             if (refModel.isSingleColumn()) {
                 orm_propValue(refModel.getColumnPropId(), null);
@@ -303,18 +331,20 @@ public class DynamicOrmEntity extends OrmEntity implements IPropSetMissingHook, 
             }
             refProps.remove(refModel.getName());
         } else {
-            if (refModel.isSingleColumn()) {
-                Object refValue = refEntity.orm_id();
-                orm_propValue(refModel.getColumnPropId(), refValue);
-            } else {
-                for (IEntityJoinConditionModel join : refModel.getJoin()) {
-                    if (join.getLeftProp() != null) {
-                        Object value = OrmEntityHelper.getRightValue(join, refEntity);
-                        orm_propValue(join.getLeftPropModel().getColumnPropId(), value);
+            Runnable watcher = () -> {
+                if (refModel.isSingleColumn()) {
+                    Object refValue = refEntity.orm_id();
+                    orm_propValue(refModel.getColumnPropId(), refValue);
+                } else {
+                    for (IEntityJoinConditionModel join : refModel.getJoin()) {
+                        if (join.getLeftProp() != null) {
+                            Object value = OrmEntityHelper.getRightValue(join, refEntity);
+                            orm_propValue(join.getLeftPropModel().getColumnPropId(), value);
+                        }
                     }
                 }
-            }
-            refProps.put(refModel.getName(), refEntity);
+            };
+            this.internalSetRefEntity(refModel.getName(), refEntity, watcher);
         }
     }
 }

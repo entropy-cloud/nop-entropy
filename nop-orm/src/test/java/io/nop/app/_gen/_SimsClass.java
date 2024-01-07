@@ -16,8 +16,8 @@ import io.nop.app.SimsClass;
 /**
  *  班级: sims_class
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _SimsClass extends DynamicOrmEntity{
     
     /* 所属专业ID: MAJOR_ID VARCHAR */
@@ -90,12 +90,15 @@ public class _SimsClass extends DynamicOrmEntity{
     /* alias: simsCollege.collegeName  */
     public static final String PROP_NAME_collegeName = "collegeName";
     
+    /* compute:  */
+    public static final String PROP_NAME_collegeNameEx = "collegeNameEx";
+    
     /* component:  */
     public static final String PROP_NAME_jsonExtComponent = "jsonExtComponent";
     
 
-    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_classId);
-    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_classId};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_classId);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_classId};
 
     private static final String[] PROP_ID_TO_NAME = new String[102];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
@@ -196,6 +199,7 @@ public class _SimsClass extends DynamicOrmEntity{
     
 
     public _SimsClass(){
+        // for debug
     }
 
     protected SimsClass newInstance(){
@@ -883,17 +887,19 @@ public class _SimsClass extends DynamicOrmEntity{
     }
 
     public void setSimsCollege(io.nop.app.SimsCollege refEntity){
-       if(refEntity == null){
-         
-         this.setCollegeId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_simsCollege, refEntity,()->{
-             
-                    this.setCollegeId(refEntity.getCollegeId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setCollegeId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_simsCollege, refEntity,()->{
+           
+                           this.setCollegeId(refEntity.getCollegeId());
+                       
+           });
+           }
+       
     }
        
    public java.lang.String getCollegeName(){

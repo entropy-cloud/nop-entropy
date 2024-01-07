@@ -6,6 +6,7 @@ import io.nop.biz.api.IBizObjectManager;
 import io.nop.codegen.XCodeGenerator;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.module.ModuleManager;
+import io.nop.core.module.ModuleModel;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.store.InMemoryResourceStore;
@@ -201,8 +202,17 @@ public class DynCodeGen {
         Map<String, GraphQLBizModel> bizModels = new HashMap<>();
         this.moduleDynBizModels.values().forEach(bizModels::putAll);
 
+        Map<String, ModuleModel> dynModules = new HashMap<>();
+        moduleCoreStores.keySet().forEach(moduleName -> {
+            dynModules.put(moduleName, ModuleModel.forModuleName(moduleName));
+        });
+
+        moduleDynBizModels.keySet().forEach(moduleName -> {
+            dynModules.computeIfAbsent(moduleName, ModuleModel::forModuleName);
+        });
+
         VirtualFileSystem.instance().updateInMemoryLayer(merged);
-        ModuleManager.instance().discover();
+        ModuleManager.instance().updateDynModules(dynModules);
 
         ormSessionFactory.reloadModel();
         bizObjectManager.updateDynBizModels(bizModels);

@@ -15,6 +15,7 @@ import io.nop.commons.collections.MutableIntArray;
 import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
 import io.nop.orm.model.IEntityPropModel;
+import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.model.OrmAliasModel;
 import io.nop.orm.model.OrmColumnModel;
 import io.nop.orm.model.OrmComponentModel;
@@ -273,6 +274,14 @@ public class OrmEntityModelInitializer {
             props.put(col.getName(), col);
             addToColByCode(col);
         }
+    }
+
+    public boolean hasOneToOneRelation() {
+        for (IEntityRelationModel rel : entityModel.getRelations()) {
+            if (rel.isOneToOne())
+                return true;
+        }
+        return false;
     }
 
     private void addToPropMap(IEntityPropModel prop) {

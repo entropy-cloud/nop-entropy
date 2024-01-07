@@ -780,17 +780,19 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     }
 
     public void setRole(io.nop.auth.dao.entity.NopAuthRole refEntity){
-       if(refEntity == null){
-         
-         this.setRoleId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_role, refEntity,()->{
-             
-                    this.setRoleId(refEntity.getRoleId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setRoleId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_role, refEntity,()->{
+           
+                           this.setRoleId(refEntity.getRoleId());
+                       
+           });
+           }
+       
     }
        
 }

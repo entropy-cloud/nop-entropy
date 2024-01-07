@@ -186,8 +186,8 @@
 /nop/templates/dyn-web/a-impl.xrun
 /nop/templates/dyn/@init.xrun
 /nop/templates/dyn/{moduleId}/_module
-/nop/templates/dyn/{moduleId}/model/{!entityModel.notGenCode}{entityModel.shortName}/{entityModel.shortName}.xbiz.xgen
-/nop/templates/dyn/{moduleId}/model/{!entityModel.notGenCode}{entityModel.shortName}/{entityModel.shortName}.xmeta.xgen
+/nop/templates/dyn/{moduleId}/model/{entityMeta.bizObjName}/{entityMeta.bizObjName}.xbiz.xgen
+/nop/templates/dyn/{moduleId}/model/{entityMeta.bizObjName}/{entityModel.shortName}.xmeta.xgen
 /nop/templates/dyn/{moduleId}/orm/app.orm.xml.xgen
 /nop/templates/i18n/@init.xrun
 /nop/templates/i18n/_templates/_{metaInfo.objName}.json.xgen

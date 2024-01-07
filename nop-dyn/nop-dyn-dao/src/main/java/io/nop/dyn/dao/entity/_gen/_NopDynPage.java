@@ -783,17 +783,19 @@ public class _NopDynPage extends DynamicOrmEntity{
     }
 
     public void setModule(io.nop.dyn.dao.entity.NopDynModule refEntity){
-       if(refEntity == null){
-         
-         this.setModuleId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_module, refEntity,()->{
-             
-                    this.setModuleId(refEntity.getModuleId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setModuleId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_module, refEntity,()->{
+           
+                           this.setModuleId(refEntity.getModuleId());
+                       
+           });
+           }
+       
     }
        
    private io.nop.orm.component.JsonOrmComponent _pageContentComponent;

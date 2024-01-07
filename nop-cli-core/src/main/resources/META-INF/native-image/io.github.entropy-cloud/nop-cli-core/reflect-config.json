@@ -6704,6 +6704,12 @@
     "fields": [],
     "methods": [
       {
+        "name": "forModuleName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getAuthor",
         "parameterTypes": []
       },
@@ -6720,11 +6726,23 @@
         "parameterTypes": []
       },
       {
+        "name": "getModuleId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getModuleName",
+        "parameterTypes": []
+      },
+      {
         "name": "getPublishDate",
         "parameterTypes": []
       },
       {
         "name": "getVersion",
+        "parameterTypes": []
+      },
+      {
+        "name": "isDynamic",
         "parameterTypes": []
       },
       {
@@ -6747,6 +6765,24 @@
       },
       {
         "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDynamic",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setModuleId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setModuleName",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -7265,7 +7301,25 @@
         ]
       },
       {
+        "name": "getModuleIdFromModuleName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getModuleIdFromStdPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getModuleName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getModuleNameFromModuleId",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -12640,6 +12694,10 @@
         "parameterTypes": []
       },
       {
+        "name": "hasOneToOneRelation",
+        "parameterTypes": []
+      },
+      {
         "name": "isCheckVersionWhenLazyLoad",
         "parameterTypes": []
       },
@@ -13142,6 +13200,10 @@
       },
       {
         "name": "hasLazyColumn",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasOneToOneRelation",
         "parameterTypes": []
       },
       {

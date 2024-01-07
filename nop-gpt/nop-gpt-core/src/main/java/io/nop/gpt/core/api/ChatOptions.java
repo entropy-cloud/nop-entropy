@@ -1,6 +1,8 @@
 package io.nop.gpt.core.api;
 
-public class ChatOptions {
+import io.nop.api.core.beans.ExtensibleBean;
+
+public class ChatOptions extends ExtensibleBean {
     private IChatProgressListener progressListener;
 
     public ChatOptions progressListener(IChatProgressListener progressListener) {

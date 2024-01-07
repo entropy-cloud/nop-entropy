@@ -1,4 +1,23 @@
 
+CREATE TABLE nop_tcc_record(
+  TXN_ID VARCHAR2(50) NOT NULL ,
+  TXN_GROUP VARCHAR2(50) NOT NULL ,
+  TXN_NAME VARCHAR2(128)  ,
+  STATUS INTEGER NOT NULL ,
+  EXPIRE_TIME TIMESTAMP NOT NULL ,
+  APP_ID VARCHAR2(200) NOT NULL ,
+  APP_DATA VARCHAR2(2000)  ,
+  BEGIN_TIME TIMESTAMP NOT NULL ,
+  END_TIME TIMESTAMP  ,
+  ERROR_CODE VARCHAR2(200)  ,
+  ERROR_MESSAGE VARCHAR2(1000)  ,
+  ERROR_STACK VARCHAR2(1000)  ,
+  VERSION INTEGER NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  constraint PK_nop_tcc_record primary key (TXN_ID)
+);
+
 CREATE TABLE nop_tcc_branch_record(
   BRANCH_ID VARCHAR2(50) NOT NULL ,
   TXN_ID VARCHAR2(50) NOT NULL ,
@@ -31,26 +50,39 @@ CREATE TABLE nop_tcc_branch_record(
   constraint PK_nop_tcc_branch_record primary key (BRANCH_ID)
 );
 
-CREATE TABLE nop_tcc_record(
-  TXN_ID VARCHAR2(50) NOT NULL ,
-  TXN_GROUP VARCHAR2(50) NOT NULL ,
-  TXN_NAME VARCHAR2(128)  ,
-  STATUS INTEGER NOT NULL ,
-  EXPIRE_TIME TIMESTAMP NOT NULL ,
-  APP_ID VARCHAR2(200) NOT NULL ,
-  APP_DATA VARCHAR2(2000)  ,
-  BEGIN_TIME TIMESTAMP NOT NULL ,
-  END_TIME TIMESTAMP  ,
-  ERROR_CODE VARCHAR2(200)  ,
-  ERROR_MESSAGE VARCHAR2(1000)  ,
-  ERROR_STACK VARCHAR2(1000)  ,
-  VERSION INTEGER NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  constraint PK_nop_tcc_record primary key (TXN_ID)
-);
 
-
+      COMMENT ON TABLE nop_tcc_record IS 'TCC事务记录';
+                
+      COMMENT ON COLUMN nop_tcc_record.TXN_ID IS '事务ID';
+                    
+      COMMENT ON COLUMN nop_tcc_record.TXN_GROUP IS '事务分组';
+                    
+      COMMENT ON COLUMN nop_tcc_record.TXN_NAME IS '事务名';
+                    
+      COMMENT ON COLUMN nop_tcc_record.STATUS IS '状态';
+                    
+      COMMENT ON COLUMN nop_tcc_record.EXPIRE_TIME IS '过期时间';
+                    
+      COMMENT ON COLUMN nop_tcc_record.APP_ID IS '应用ID';
+                    
+      COMMENT ON COLUMN nop_tcc_record.APP_DATA IS '应用数据';
+                    
+      COMMENT ON COLUMN nop_tcc_record.BEGIN_TIME IS '开始时间';
+                    
+      COMMENT ON COLUMN nop_tcc_record.END_TIME IS '结束时间';
+                    
+      COMMENT ON COLUMN nop_tcc_record.ERROR_CODE IS '错误码';
+                    
+      COMMENT ON COLUMN nop_tcc_record.ERROR_MESSAGE IS '错误消息';
+                    
+      COMMENT ON COLUMN nop_tcc_record.ERROR_STACK IS '错误堆栈';
+                    
+      COMMENT ON COLUMN nop_tcc_record.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_tcc_record.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_tcc_record.UPDATE_TIME IS '修改时间';
+                    
       COMMENT ON TABLE nop_tcc_branch_record IS 'TCC事务分支记录';
                 
       COMMENT ON COLUMN nop_tcc_branch_record.BRANCH_ID IS '事务分支ID';
@@ -108,36 +140,4 @@ CREATE TABLE nop_tcc_record(
       COMMENT ON COLUMN nop_tcc_branch_record.CREATE_TIME IS '创建时间';
                     
       COMMENT ON COLUMN nop_tcc_branch_record.UPDATE_TIME IS '修改时间';
-                    
-      COMMENT ON TABLE nop_tcc_record IS 'TCC事务记录';
-                
-      COMMENT ON COLUMN nop_tcc_record.TXN_ID IS '事务ID';
-                    
-      COMMENT ON COLUMN nop_tcc_record.TXN_GROUP IS '事务分组';
-                    
-      COMMENT ON COLUMN nop_tcc_record.TXN_NAME IS '事务名';
-                    
-      COMMENT ON COLUMN nop_tcc_record.STATUS IS '状态';
-                    
-      COMMENT ON COLUMN nop_tcc_record.EXPIRE_TIME IS '过期时间';
-                    
-      COMMENT ON COLUMN nop_tcc_record.APP_ID IS '应用ID';
-                    
-      COMMENT ON COLUMN nop_tcc_record.APP_DATA IS '应用数据';
-                    
-      COMMENT ON COLUMN nop_tcc_record.BEGIN_TIME IS '开始时间';
-                    
-      COMMENT ON COLUMN nop_tcc_record.END_TIME IS '结束时间';
-                    
-      COMMENT ON COLUMN nop_tcc_record.ERROR_CODE IS '错误码';
-                    
-      COMMENT ON COLUMN nop_tcc_record.ERROR_MESSAGE IS '错误消息';
-                    
-      COMMENT ON COLUMN nop_tcc_record.ERROR_STACK IS '错误堆栈';
-                    
-      COMMENT ON COLUMN nop_tcc_record.VERSION IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_tcc_record.CREATE_TIME IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_tcc_record.UPDATE_TIME IS '修改时间';
                     

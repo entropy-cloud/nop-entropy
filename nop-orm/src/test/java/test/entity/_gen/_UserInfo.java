@@ -16,8 +16,8 @@ import test.entity.UserInfo;
 /**
  *  : TEST_USER_INFO
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _UserInfo extends DynamicOrmEntity{
     
     /* : USER_PASS VARCHAR */
@@ -47,8 +47,8 @@ public class _UserInfo extends DynamicOrmEntity{
     public static final String PROP_NAME_testSubClasses = "testSubClasses";
     
 
-    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
-    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
     private static final String[] PROP_ID_TO_NAME = new String[22];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
@@ -83,6 +83,7 @@ public class _UserInfo extends DynamicOrmEntity{
     
 
     public _UserInfo(){
+        // for debug
     }
 
     protected UserInfo newInstance(){
@@ -341,17 +342,19 @@ public class _UserInfo extends DynamicOrmEntity{
     }
 
     public void setDept(test.entity.Department refEntity){
-       if(refEntity == null){
-         
-         this.setDeptId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_dept, refEntity,()->{
-             
-                    this.setDeptId(refEntity.getSid());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setDeptId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_dept, refEntity,()->{
+           
+                           this.setDeptId(refEntity.getSid());
+                       
+           });
+           }
+       
     }
        
     private final OrmEntitySet<test.entity.TestSubClass> _testSubClasses = new OrmEntitySet<>(this, PROP_NAME_testSubClasses,

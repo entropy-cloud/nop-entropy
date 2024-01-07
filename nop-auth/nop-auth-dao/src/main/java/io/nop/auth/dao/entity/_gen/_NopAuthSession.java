@@ -1123,17 +1123,19 @@ public class _NopAuthSession extends DynamicOrmEntity{
     }
 
     public void setUser(io.nop.auth.dao.entity.NopAuthUser refEntity){
-       if(refEntity == null){
-         
-         this.setUserId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_user, refEntity,()->{
-             
-                    this.setUserId(refEntity.getUserId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setUserId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_user, refEntity,()->{
+           
+                           this.setUserId(refEntity.getUserId());
+                       
+           });
+           }
+       
     }
        
 }

@@ -443,17 +443,19 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     }
 
     public void setWfInstance(io.nop.wf.dao.entity.NopWfInstance refEntity){
-       if(refEntity == null){
-         
-         this.setWfId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_wfInstance, refEntity,()->{
-             
-                    this.setWfId(refEntity.getWfId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setWfId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_wfInstance, refEntity,()->{
+           
+                           this.setWfId(refEntity.getWfId());
+                       
+           });
+           }
+       
     }
        
     /**
@@ -464,17 +466,19 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     }
 
     public void setWfStep(io.nop.wf.dao.entity.NopWfStepInstance refEntity){
-       if(refEntity == null){
-         
-         this.setStepId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_wfStep, refEntity,()->{
-             
-                    this.setStepId(refEntity.getStepId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setStepId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_wfStep, refEntity,()->{
+           
+                           this.setStepId(refEntity.getStepId());
+                       
+           });
+           }
+       
     }
        
     /**
@@ -485,17 +489,19 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     }
 
     public void setNextWfStep(io.nop.wf.dao.entity.NopWfStepInstance refEntity){
-       if(refEntity == null){
-         
-         this.setNextStepId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_nextWfStep, refEntity,()->{
-             
-                    this.setNextStepId(refEntity.getStepId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setNextStepId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_nextWfStep, refEntity,()->{
+           
+                           this.setNextStepId(refEntity.getStepId());
+                       
+           });
+           }
+       
     }
        
 }

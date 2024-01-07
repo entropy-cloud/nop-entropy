@@ -18,15 +18,10 @@ CREATE TABLE nop_sys_sequence(
   constraint PK_nop_sys_sequence primary key (SEQ_NAME)
 );
 
-CREATE TABLE nop_sys_dict_option(
+CREATE TABLE nop_sys_dict(
   SID VARCHAR(32) NOT NULL ,
-  DICT_ID VARCHAR(32) NOT NULL ,
-  LABEL VARCHAR(150) NOT NULL ,
-  VALUE VARCHAR(150) NOT NULL ,
-  CODE_VALUE VARCHAR(100)  ,
-  GROUP_NAME VARCHAR(50)  ,
-  IS_INTERNAL INT4 NOT NULL ,
-  IS_DEPRECATED INT4 NOT NULL ,
+  DICT_NAME VARCHAR(150) NOT NULL ,
+  DISPLAY_NAME VARCHAR(50) NOT NULL ,
   DEL_FLAG INT4 NOT NULL ,
   VERSION INT4 NOT NULL ,
   CREATED_BY VARCHAR(50) NOT NULL ,
@@ -34,7 +29,7 @@ CREATE TABLE nop_sys_dict_option(
   UPDATED_BY VARCHAR(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR(200)  ,
-  constraint PK_nop_sys_dict_option primary key (SID)
+  constraint PK_nop_sys_dict primary key (SID)
 );
 
 CREATE TABLE nop_sys_i18n(
@@ -179,10 +174,15 @@ CREATE TABLE nop_sys_cluster_leader(
   constraint PK_nop_sys_cluster_leader primary key (CLUSTER_ID)
 );
 
-CREATE TABLE nop_sys_dict(
+CREATE TABLE nop_sys_dict_option(
   SID VARCHAR(32) NOT NULL ,
-  DICT_NAME VARCHAR(150) NOT NULL ,
-  DISPLAY_NAME VARCHAR(50) NOT NULL ,
+  DICT_ID VARCHAR(32) NOT NULL ,
+  LABEL VARCHAR(150) NOT NULL ,
+  VALUE VARCHAR(150) NOT NULL ,
+  CODE_VALUE VARCHAR(100)  ,
+  GROUP_NAME VARCHAR(50)  ,
+  IS_INTERNAL INT4 NOT NULL ,
+  IS_DEPRECATED INT4 NOT NULL ,
   DEL_FLAG INT4 NOT NULL ,
   VERSION INT4 NOT NULL ,
   CREATED_BY VARCHAR(50) NOT NULL ,
@@ -190,7 +190,7 @@ CREATE TABLE nop_sys_dict(
   UPDATED_BY VARCHAR(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR(200)  ,
-  constraint PK_nop_sys_dict primary key (SID)
+  constraint PK_nop_sys_dict_option primary key (SID)
 );
 
 
@@ -226,37 +226,27 @@ CREATE TABLE nop_sys_dict(
                     
       COMMENT ON COLUMN nop_sys_sequence.REMARK IS '备注';
                     
-      COMMENT ON TABLE nop_sys_dict_option IS '字典明细';
+      COMMENT ON TABLE nop_sys_dict IS '字典表';
                 
-      COMMENT ON COLUMN nop_sys_dict_option.SID IS '主键';
+      COMMENT ON COLUMN nop_sys_dict.SID IS '主键';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.DICT_ID IS '字典ID';
+      COMMENT ON COLUMN nop_sys_dict.DICT_NAME IS '字典名';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.LABEL IS '显示名';
+      COMMENT ON COLUMN nop_sys_dict.DISPLAY_NAME IS '显示名';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.VALUE IS '值';
+      COMMENT ON COLUMN nop_sys_dict.DEL_FLAG IS '删除标识';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.CODE_VALUE IS '内部编码';
+      COMMENT ON COLUMN nop_sys_dict.VERSION IS '数据版本';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.GROUP_NAME IS '分组名';
+      COMMENT ON COLUMN nop_sys_dict.CREATED_BY IS '创建人';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.IS_INTERNAL IS '是否内部';
+      COMMENT ON COLUMN nop_sys_dict.CREATE_TIME IS '创建时间';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.IS_DEPRECATED IS '是否已废弃';
+      COMMENT ON COLUMN nop_sys_dict.UPDATED_BY IS '修改人';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.DEL_FLAG IS '删除标识';
+      COMMENT ON COLUMN nop_sys_dict.UPDATE_TIME IS '修改时间';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.VERSION IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_sys_dict_option.CREATED_BY IS '创建人';
-                    
-      COMMENT ON COLUMN nop_sys_dict_option.CREATE_TIME IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_sys_dict_option.UPDATED_BY IS '修改人';
-                    
-      COMMENT ON COLUMN nop_sys_dict_option.UPDATE_TIME IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_sys_dict_option.REMARK IS '备注';
+      COMMENT ON COLUMN nop_sys_dict.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_sys_i18n IS '多语言消息';
                 
@@ -488,25 +478,35 @@ CREATE TABLE nop_sys_dict(
                     
       COMMENT ON COLUMN nop_sys_cluster_leader.APP_ID IS '应用ID';
                     
-      COMMENT ON TABLE nop_sys_dict IS '字典表';
+      COMMENT ON TABLE nop_sys_dict_option IS '字典明细';
                 
-      COMMENT ON COLUMN nop_sys_dict.SID IS '主键';
+      COMMENT ON COLUMN nop_sys_dict_option.SID IS '主键';
                     
-      COMMENT ON COLUMN nop_sys_dict.DICT_NAME IS '字典名';
+      COMMENT ON COLUMN nop_sys_dict_option.DICT_ID IS '字典ID';
                     
-      COMMENT ON COLUMN nop_sys_dict.DISPLAY_NAME IS '显示名';
+      COMMENT ON COLUMN nop_sys_dict_option.LABEL IS '显示名';
                     
-      COMMENT ON COLUMN nop_sys_dict.DEL_FLAG IS '删除标识';
+      COMMENT ON COLUMN nop_sys_dict_option.VALUE IS '值';
                     
-      COMMENT ON COLUMN nop_sys_dict.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_sys_dict_option.CODE_VALUE IS '内部编码';
                     
-      COMMENT ON COLUMN nop_sys_dict.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_sys_dict_option.GROUP_NAME IS '分组名';
                     
-      COMMENT ON COLUMN nop_sys_dict.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_sys_dict_option.IS_INTERNAL IS '是否内部';
                     
-      COMMENT ON COLUMN nop_sys_dict.UPDATED_BY IS '修改人';
+      COMMENT ON COLUMN nop_sys_dict_option.IS_DEPRECATED IS '是否已废弃';
                     
-      COMMENT ON COLUMN nop_sys_dict.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_sys_dict_option.DEL_FLAG IS '删除标识';
                     
-      COMMENT ON COLUMN nop_sys_dict.REMARK IS '备注';
+      COMMENT ON COLUMN nop_sys_dict_option.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_sys_dict_option.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_sys_dict_option.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_sys_dict_option.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_sys_dict_option.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_sys_dict_option.REMARK IS '备注';
                     

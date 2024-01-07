@@ -16188,6 +16188,12 @@
         "parameterTypes": [
           "io.nop.graphql.core.schema.TypeRegistry"
         ]
+      },
+      {
+        "name": "updateDynBizModels",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
       }
     ],
     "name": "io.nop.biz.impl.BizObjectManager",
@@ -24611,6 +24617,12 @@
     "fields": [],
     "methods": [
       {
+        "name": "forModuleName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getAuthor",
         "parameterTypes": []
       },
@@ -24627,11 +24639,23 @@
         "parameterTypes": []
       },
       {
+        "name": "getModuleId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getModuleName",
+        "parameterTypes": []
+      },
+      {
         "name": "getPublishDate",
         "parameterTypes": []
       },
       {
         "name": "getVersion",
+        "parameterTypes": []
+      },
+      {
+        "name": "isDynamic",
         "parameterTypes": []
       },
       {
@@ -24654,6 +24678,24 @@
       },
       {
         "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDynamic",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setModuleId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setModuleName",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -36821,6 +36863,10 @@
         "parameterTypes": []
       },
       {
+        "name": "hasOneToOneRelation",
+        "parameterTypes": []
+      },
+      {
         "name": "isCheckVersionWhenLazyLoad",
         "parameterTypes": []
       },
@@ -37532,6 +37578,10 @@
       },
       {
         "name": "hasLazyColumn",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasOneToOneRelation",
         "parameterTypes": []
       },
       {
@@ -40670,6 +40720,14 @@
       },
       {
         "name": "internalSetRefEntity",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.orm.IOrmEntity",
+          "java.lang.Runnable"
+        ]
+      },
+      {
+        "name": "internalSetReverseRefEntity",
         "parameterTypes": [
           "java.lang.String",
           "io.nop.orm.IOrmEntity",

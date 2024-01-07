@@ -682,17 +682,19 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     }
 
     public void setTask(io.nop.batch.dao.entity.NopBatchTask refEntity){
-       if(refEntity == null){
-         
-         this.setTaskId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_task, refEntity,()->{
-             
-                    this.setTaskId(refEntity.getSid());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setTaskId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_task, refEntity,()->{
+           
+                           this.setTaskId(refEntity.getSid());
+                       
+           });
+           }
+       
     }
        
 }

@@ -1515,17 +1515,19 @@ public class _NopTccBranchRecord extends DynamicOrmEntity{
     }
 
     public void setTccRecord(io.nop.tcc.dao.entity.NopTccRecord refEntity){
-       if(refEntity == null){
-         
-         this.setTxnId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_tccRecord, refEntity,()->{
-             
-                    this.setTxnId(refEntity.getTxnId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setTxnId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_tccRecord, refEntity,()->{
+           
+                           this.setTxnId(refEntity.getTxnId());
+                       
+           });
+           }
+       
     }
        
 }

@@ -234,20 +234,20 @@ public class CascadeFlusher {
         flushComponent(entity, entityModel);
 
         boolean deleting = state.isDeleting();
-        // 1. 删除实体有可能是级联删除，因此需要处理集合属性
-        // 2. 如果集合属性被修改了，则也需要处理集合属性
-        if (deleting || entity.orm_extDirty()) {
 
-            for (IEntityRelationModel propModel : entityModel.getRelations()) {
-                boolean deleteProp = deleting && propModel.isCascadeDelete();
 
-                // toOne引用不需要在这里处理。外层循环会逐个表进行遍历。
-                // 这里只要处理集合属性的变动即可
-                if (propModel.isToManyRelation()) {
-                    IOrmEntitySet coll = entity.orm_refEntitySet(propModel.getName());
-                    if (coll != null) {
-                        cascadeCollection(coll, deleteProp);
-                    }
+        for (IEntityRelationModel propModel : entityModel.getRelations()) {
+            boolean deleteProp = deleting && propModel.isCascadeDelete();
+
+            if (propModel.isToManyRelation()) {
+                IOrmEntitySet coll = entity.orm_refEntitySet(propModel.getName());
+                if (coll != null) {
+                    cascadeCollection(coll, deleteProp);
+                }
+            } else if(entity.orm_refLoaded(propModel.getName())){
+                IOrmEntity refEntity = entity.orm_refEntity(propModel.getName());
+                if (refEntity != null && refEntity.orm_state().isTransient()) {
+                    cascadeEntity(refEntity, false);
                 }
             }
         }
@@ -285,14 +285,14 @@ public class CascadeFlusher {
                     // 如果已经和父元素解除了绑定则不会级联删除子元素。只有owner==parent的时候才需要被处理
                     if (isOrphan(entity, coll)) {
                         if (entity.orm_proxy()) {
-                            LOG.debug("nop.orm.delete-orphan-entity:entity={}",entity);
+                            LOG.debug("nop.orm.delete-orphan-entity:entity={}", entity);
                             // 如果要删除的对象尚未加载，则将对象放入加载对象，并标记为待删除
                             waitDeletes.add(entity);
                             session.getBatchLoadQueue().enqueue(entity);
                         } else {
                             // gone包含deleting状态
                             if (!entity.orm_state().isGone()) {
-                                LOG.debug("nop.orm.delete-orphan-entity:entity={}",entity);
+                                LOG.debug("nop.orm.delete-orphan-entity:entity={}", entity);
                                 session.internalDelete(entity);
                                 // 此前可能已经遍历过，但是现在因为集合级联删除要把实体删除，则需要重新标记。
                                 // 下面的cascadeEntity会处理针对此entity的级联删除的情况

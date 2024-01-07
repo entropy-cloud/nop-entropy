@@ -16,8 +16,8 @@ import io.nop.app.SimsInstruct;
 /**
  *  授课: sims_instruct
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _SimsInstruct extends DynamicOrmEntity{
     
     /* 授课号: INSTRUCT_ID VARCHAR */
@@ -65,8 +65,8 @@ public class _SimsInstruct extends DynamicOrmEntity{
 
     
 
-    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_instructId);
-    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_instructId};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_instructId);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_instructId};
 
     private static final String[] PROP_ID_TO_NAME = new String[11];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
@@ -137,6 +137,7 @@ public class _SimsInstruct extends DynamicOrmEntity{
     
 
     public _SimsInstruct(){
+        // for debug
     }
 
     protected SimsInstruct newInstance(){

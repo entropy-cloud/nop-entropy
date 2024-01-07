@@ -780,17 +780,19 @@ public class _NopAuthOpLog extends DynamicOrmEntity{
     }
 
     public void setSession(io.nop.auth.dao.entity.NopAuthSession refEntity){
-       if(refEntity == null){
-         
-         this.setSessionId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_session, refEntity,()->{
-             
-                    this.setSessionId(refEntity.getSessionId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setSessionId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_session, refEntity,()->{
+           
+                           this.setSessionId(refEntity.getSessionId());
+                       
+           });
+           }
+       
     }
        
 }

@@ -982,17 +982,19 @@ public class _NopDynFunctionMeta extends DynamicOrmEntity{
     }
 
     public void setEntityMeta(io.nop.dyn.dao.entity.NopDynEntityMeta refEntity){
-       if(refEntity == null){
-         
-         this.setEntityMetaId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_entityMeta, refEntity,()->{
-             
-                    this.setEntityMetaId(refEntity.getEntityMetaId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setEntityMetaId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_entityMeta, refEntity,()->{
+           
+                           this.setEntityMetaId(refEntity.getEntityMetaId());
+                       
+           });
+           }
+       
     }
        
    private io.nop.orm.component.JsonOrmComponent _funcMetaComponent;

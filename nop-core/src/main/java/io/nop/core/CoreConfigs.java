@@ -160,11 +160,11 @@ public interface CoreConfigs {
     IConfigReference<Integer> CFG_REFLECT_MODEL_CACHE_SIZE = varRef(s_loc, "nop.core.reflect.model-cache-size", Integer.class,
             10000);
 
-    @Description("明确指定启用的模块ID列表，采用逗号分隔")
-    IConfigReference<Set> CFG_MODULE_ENABLED_MODULE_IDS = varRef(s_loc, "nop.core.module.enabled-module-ids", Set.class, null);
+    @Description("明确指定启用的模块名称列表，采用逗号分隔")
+    IConfigReference<Set> CFG_MODULE_ENABLED_MODULE_NAMES = varRef(s_loc, "nop.core.module.enabled-module-names", Set.class, null);
 
-    @Description("明确指定禁用的模块ID列表，采用逗号分隔")
-    IConfigReference<Set> CFG_MODULE_DISABLED_MODULE_IDS = varRef(s_loc, "nop.core.module.disabled-module-ids", Set.class,
+    @Description("明确指定禁用的模块名称列表，采用逗号分隔")
+    IConfigReference<Set> CFG_MODULE_DISABLED_MODULE_NAMES = varRef(s_loc, "nop.core.module.disabled-module-names", Set.class,
             null);
 
     @Description("xpath编译缓存的大小")

@@ -16,8 +16,8 @@ import test.entity.TestOrmTable;
 /**
  *  : TEST_ORM_TABLE
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _TestOrmTable extends DynamicOrmEntity{
     
     /* : SID INTEGER */
@@ -109,8 +109,8 @@ public class _TestOrmTable extends DynamicOrmEntity{
     public static final String PROP_NAME_otherTables = "otherTables";
     
 
-    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
-    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
     private static final String[] PROP_ID_TO_NAME = new String[16];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
@@ -211,6 +211,7 @@ public class _TestOrmTable extends DynamicOrmEntity{
     
 
     public _TestOrmTable(){
+        // for debug
     }
 
     protected TestOrmTable newInstance(){
@@ -898,17 +899,19 @@ public class _TestOrmTable extends DynamicOrmEntity{
     }
 
     public void setShardTable(test.entity.TestOrmShardTable refEntity){
-       if(refEntity == null){
-         
-         this.setShardId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_shardTable, refEntity,()->{
-             
-                    this.setShardId(refEntity.getSid());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setShardId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_shardTable, refEntity,()->{
+           
+                           this.setShardId(refEntity.getSid());
+                       
+           });
+           }
+       
     }
        
     /**
@@ -919,17 +922,19 @@ public class _TestOrmTable extends DynamicOrmEntity{
     }
 
     public void setUser(test.entity.UserInfo refEntity){
-       if(refEntity == null){
-         
-         this.setUserId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_user, refEntity,()->{
-             
-                    this.setUserId(refEntity.getSid());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setUserId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_user, refEntity,()->{
+           
+                           this.setUserId(refEntity.getSid());
+                       
+           });
+           }
+       
     }
        
     /**
@@ -940,18 +945,20 @@ public class _TestOrmTable extends DynamicOrmEntity{
     }
 
     public void setParent(test.entity.TestOrmTable refEntity){
-       if(refEntity == null){
-         
-         this.setParentId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_parent, refEntity,()->{
-             
-              this.orm_propValue(PROP_ID_parentId,
-                refEntity.getSid());
-                
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setParentId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_parent, refEntity,()->{
+           
+                           this.orm_propValue(PROP_ID_parentId,
+                           refEntity.getSid());
+                       
+           });
+           }
+       
     }
        
     /**
@@ -962,18 +969,14 @@ public class _TestOrmTable extends DynamicOrmEntity{
     }
 
     public void setTestOrmToOne(test.entity.TestOrmToOne refEntity){
-       if(refEntity == null){
-         
-         this.setSid(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_testOrmToOne, refEntity,()->{
-             
-              this.orm_propValue(PROP_ID_sid,
-                refEntity.getSid());
-                
-          });
-       }
+   
+            internalSetReverseRefEntity(PROP_NAME_testOrmToOne, refEntity, ()->{
+            
+                            refEntity.orm_propValue(test.entity.TestOrmToOne.PROP_ID_sid,
+                            this.getSid());
+                        
+            });
+        
     }
        
     private final OrmEntitySet<test.entity.TestManyToManyLeft> _lefts = new OrmEntitySet<>(this, PROP_NAME_lefts,
@@ -994,17 +997,19 @@ public class _TestOrmTable extends DynamicOrmEntity{
     }
 
     public void setSubClass(test.entity.TestSubClass refEntity){
-       if(refEntity == null){
-         
-         this.setSubClassId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_subClass, refEntity,()->{
-             
-                    this.setSubClassId(refEntity.getSid());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setSubClassId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_subClass, refEntity,()->{
+           
+                           this.setSubClassId(refEntity.getSid());
+                       
+           });
+           }
+       
     }
        
     private final OrmEntitySet<test.entity.TestOrmSubTable> _subTables = new OrmEntitySet<>(this, PROP_NAME_subTables,

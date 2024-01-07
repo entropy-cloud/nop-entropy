@@ -18,15 +18,10 @@ CREATE TABLE nop_sys_sequence(
   constraint PK_nop_sys_sequence primary key (SEQ_NAME)
 );
 
-CREATE TABLE nop_sys_dict_option(
+CREATE TABLE nop_sys_dict(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
-  DICT_ID VARCHAR(32) NOT NULL    COMMENT '字典ID',
-  LABEL VARCHAR(150) NOT NULL    COMMENT '显示名',
-  VALUE VARCHAR(150) NOT NULL    COMMENT '值',
-  CODE_VALUE VARCHAR(100) NULL    COMMENT '内部编码',
-  GROUP_NAME VARCHAR(50) NULL    COMMENT '分组名',
-  IS_INTERNAL TINYINT NOT NULL    COMMENT '是否内部',
-  IS_DEPRECATED TINYINT NOT NULL    COMMENT '是否已废弃',
+  DICT_NAME VARCHAR(150) NOT NULL    COMMENT '字典名',
+  DISPLAY_NAME VARCHAR(50) NOT NULL    COMMENT '显示名',
   DEL_FLAG TINYINT NOT NULL    COMMENT '删除标识',
   VERSION INTEGER NOT NULL    COMMENT '数据版本',
   CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
@@ -34,7 +29,7 @@ CREATE TABLE nop_sys_dict_option(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
-  constraint PK_nop_sys_dict_option primary key (SID)
+  constraint PK_nop_sys_dict primary key (SID)
 );
 
 CREATE TABLE nop_sys_i18n(
@@ -179,10 +174,15 @@ CREATE TABLE nop_sys_cluster_leader(
   constraint PK_nop_sys_cluster_leader primary key (CLUSTER_ID)
 );
 
-CREATE TABLE nop_sys_dict(
+CREATE TABLE nop_sys_dict_option(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
-  DICT_NAME VARCHAR(150) NOT NULL    COMMENT '字典名',
-  DISPLAY_NAME VARCHAR(50) NOT NULL    COMMENT '显示名',
+  DICT_ID VARCHAR(32) NOT NULL    COMMENT '字典ID',
+  LABEL VARCHAR(150) NOT NULL    COMMENT '显示名',
+  VALUE VARCHAR(150) NOT NULL    COMMENT '值',
+  CODE_VALUE VARCHAR(100) NULL    COMMENT '内部编码',
+  GROUP_NAME VARCHAR(50) NULL    COMMENT '分组名',
+  IS_INTERNAL TINYINT NOT NULL    COMMENT '是否内部',
+  IS_DEPRECATED TINYINT NOT NULL    COMMENT '是否已废弃',
   DEL_FLAG TINYINT NOT NULL    COMMENT '删除标识',
   VERSION INTEGER NOT NULL    COMMENT '数据版本',
   CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
@@ -190,13 +190,13 @@ CREATE TABLE nop_sys_dict(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
-  constraint PK_nop_sys_dict primary key (SID)
+  constraint PK_nop_sys_dict_option primary key (SID)
 );
 
 
    ALTER TABLE nop_sys_sequence COMMENT '序列号';
                 
-   ALTER TABLE nop_sys_dict_option COMMENT '字典明细';
+   ALTER TABLE nop_sys_dict COMMENT '字典表';
                 
    ALTER TABLE nop_sys_i18n COMMENT '多语言消息';
                 
@@ -216,5 +216,5 @@ CREATE TABLE nop_sys_dict(
                 
    ALTER TABLE nop_sys_cluster_leader COMMENT '集群选举';
                 
-   ALTER TABLE nop_sys_dict COMMENT '字典表';
+   ALTER TABLE nop_sys_dict_option COMMENT '字典明细';
                 

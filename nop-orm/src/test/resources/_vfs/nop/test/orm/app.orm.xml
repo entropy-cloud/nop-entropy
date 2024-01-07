@@ -57,6 +57,27 @@
                         <on leftValue="io.nop.app.SimsCollege" rightProp="entityName"/>
                     </join>
                 </to-many>
+
+                <to-one name="collegeEx" refEntityName="io.nop.app.SimsCollegeEx" reverseDepends="true">
+                    <join>
+                        <on leftProp="collegeId" rightProp="sid"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+
+        <entity name="io.nop.app.SimsCollegeEx" registerShortName="true" tableName="sims_college_ex">
+            <columns>
+                <column propId="1" name="sid" code="SID" stdSqlType="INTEGER" primary="true"/>
+                <column propId="2" name="extInfo" code="EXT_INFO" stdSqlType="VARCHAR" precision="10"/>
+            </columns>
+
+            <relations>
+                <to-one name="college" refEntityName="io.nop.app.SimsCollege">
+                    <join>
+                        <on leftProp="sid" rightProp="collegeId"/>
+                    </join>
+                </to-one>
             </relations>
         </entity>
 

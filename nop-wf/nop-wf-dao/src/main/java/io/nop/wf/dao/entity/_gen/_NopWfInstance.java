@@ -2069,17 +2069,19 @@ public class _NopWfInstance extends DynamicOrmEntity{
     }
 
     public void setWfInstance(io.nop.wf.dao.entity.NopWfInstance refEntity){
-       if(refEntity == null){
-         
-         this.setParentWfId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_wfInstance, refEntity,()->{
-             
-                    this.setParentWfId(refEntity.getWfId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setParentWfId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_wfInstance, refEntity,()->{
+           
+                           this.setParentWfId(refEntity.getWfId());
+                       
+           });
+           }
+       
     }
        
     private final OrmEntitySet<io.nop.wf.dao.entity.NopWfStatusHistory> _statusHistories = new OrmEntitySet<>(this, PROP_NAME_statusHistories,

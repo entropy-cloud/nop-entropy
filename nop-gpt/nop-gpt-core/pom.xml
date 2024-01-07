@@ -12,4 +12,10 @@
     <artifactId>nop-gpt-core</artifactId>
 
 
+    <dependencies>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-api-core</artifactId>
+        </dependency>
+    </dependencies>
 </project>

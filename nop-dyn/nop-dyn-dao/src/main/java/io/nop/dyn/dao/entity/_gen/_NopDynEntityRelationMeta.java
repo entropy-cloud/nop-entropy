@@ -982,17 +982,19 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
     }
 
     public void setEntityMeta1(io.nop.dyn.dao.entity.NopDynEntityMeta refEntity){
-       if(refEntity == null){
-         
-         this.setEntity1MetaId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_entityMeta1, refEntity,()->{
-             
-                    this.setEntity1MetaId(refEntity.getEntityMetaId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setEntity1MetaId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_entityMeta1, refEntity,()->{
+           
+                           this.setEntity1MetaId(refEntity.getEntityMetaId());
+                       
+           });
+           }
+       
     }
        
     /**
@@ -1003,17 +1005,19 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
     }
 
     public void setEntityMeta2(io.nop.dyn.dao.entity.NopDynEntityMeta refEntity){
-       if(refEntity == null){
-         
-         this.setEntity2MetaId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_entityMeta2, refEntity,()->{
-             
-                    this.setEntity2MetaId(refEntity.getEntityMetaId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setEntity2MetaId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_entityMeta2, refEntity,()->{
+           
+                           this.setEntity2MetaId(refEntity.getEntityMetaId());
+                       
+           });
+           }
+       
     }
        
    private io.nop.orm.component.JsonOrmComponent _extConfigComponent;

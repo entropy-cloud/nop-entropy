@@ -1371,17 +1371,19 @@ public class _NopBatchTask extends DynamicOrmEntity{
     }
 
     public void setInputFile(io.nop.batch.dao.entity.NopBatchFile refEntity){
-       if(refEntity == null){
-         
-         this.setInputFileId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_inputFile, refEntity,()->{
-             
-                    this.setInputFileId(refEntity.getSid());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setInputFileId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_inputFile, refEntity,()->{
+           
+                           this.setInputFileId(refEntity.getSid());
+                       
+           });
+           }
+       
     }
        
     private final OrmEntitySet<io.nop.batch.dao.entity.NopBatchTaskState> _taskStates = new OrmEntitySet<>(this, PROP_NAME_taskStates,

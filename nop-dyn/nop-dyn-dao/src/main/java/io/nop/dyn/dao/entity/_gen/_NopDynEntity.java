@@ -1723,17 +1723,19 @@ public class _NopDynEntity extends DynamicOrmEntity{
     }
 
     public void setParent(io.nop.dyn.dao.entity.NopDynEntity refEntity){
-       if(refEntity == null){
-         
-         this.setParentId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_parent, refEntity,()->{
-             
-                    this.setParentId(refEntity.getSid());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setParentId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_parent, refEntity,()->{
+           
+                           this.setParentId(refEntity.getSid());
+                       
+           });
+           }
+       
     }
        
     private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynEntity> _children = new OrmEntitySet<>(this, PROP_NAME_children,

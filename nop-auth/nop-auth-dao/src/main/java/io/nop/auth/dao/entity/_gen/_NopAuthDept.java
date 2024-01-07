@@ -887,17 +887,19 @@ public class _NopAuthDept extends DynamicOrmEntity{
     }
 
     public void setParent(io.nop.auth.dao.entity.NopAuthDept refEntity){
-       if(refEntity == null){
-         
-         this.setParentId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_parent, refEntity,()->{
-             
-                    this.setParentId(refEntity.getDeptId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setParentId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_parent, refEntity,()->{
+           
+                           this.setParentId(refEntity.getDeptId());
+                       
+           });
+           }
+       
     }
        
     /**
@@ -908,17 +910,19 @@ public class _NopAuthDept extends DynamicOrmEntity{
     }
 
     public void setManager(io.nop.auth.dao.entity.NopAuthUser refEntity){
-       if(refEntity == null){
-         
-         this.setManagerId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_manager, refEntity,()->{
-             
-                    this.setManagerId(refEntity.getUserId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setManagerId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_manager, refEntity,()->{
+           
+                           this.setManagerId(refEntity.getUserId());
+                       
+           });
+           }
+       
     }
        
     private final OrmEntitySet<io.nop.auth.dao.entity.NopAuthUser> _deptUsers = new OrmEntitySet<>(this, PROP_NAME_deptUsers,

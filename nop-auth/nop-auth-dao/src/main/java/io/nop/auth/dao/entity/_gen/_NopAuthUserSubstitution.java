@@ -734,17 +734,19 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     }
 
     public void setUser(io.nop.auth.dao.entity.NopAuthUser refEntity){
-       if(refEntity == null){
-         
-         this.setUserId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_user, refEntity,()->{
-             
-                    this.setUserId(refEntity.getUserId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setUserId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_user, refEntity,()->{
+           
+                           this.setUserId(refEntity.getUserId());
+                       
+           });
+           }
+       
     }
        
     /**
@@ -755,17 +757,19 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     }
 
     public void setSubstitutedUser(io.nop.auth.dao.entity.NopAuthUser refEntity){
-       if(refEntity == null){
-         
-         this.setSubstitutedUserId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_substitutedUser, refEntity,()->{
-             
-                    this.setSubstitutedUserId(refEntity.getUserId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setSubstitutedUserId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_substitutedUser, refEntity,()->{
+           
+                           this.setSubstitutedUserId(refEntity.getUserId());
+                       
+           });
+           }
+       
     }
        
 }

@@ -464,6 +464,9 @@ public class OrmModelInitializer {
             topoMap.put(entry, entityModel);
         }
 
+        List<String> tableNames = topoMap.values().stream().map(IEntityModel::getTableName).collect(Collectors.toList());
+        LOG.debug("nop.orm.entity-topology-order:model={},tables={}", ormModel.getLocation(), tableNames);
+
         if (!it.getRemaining().isEmpty()) {
             Set<String> names = it.getRemaining().stream().map(IEntityModel::getName).collect(Collectors.toSet());
             throw new NopException(ERR_ORM_MODEL_REF_DEPENDS_CONTAINS_LOOP).param(ARG_LOOP_ENTITY_NAMES, names);
@@ -487,7 +490,8 @@ public class OrmModelInitializer {
 
                     if (!rel.isReverseDepends()) {
                         IEntityModel refEntityModel = entityMap.get(rel.getRefEntityName());
-                        graph.addEdge(entityModel, refEntityModel);
+                        // 子表依赖主表
+                        graph.addEdge(refEntityModel, entityModel);
                     }
                 }
             }

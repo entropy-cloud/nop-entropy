@@ -1521,17 +1521,19 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
     }
 
     public void setEntityMeta(io.nop.dyn.dao.entity.NopDynEntityMeta refEntity){
-       if(refEntity == null){
-         
-         this.setEntityMetaId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_entityMeta, refEntity,()->{
-             
-                    this.setEntityMetaId(refEntity.getEntityMetaId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setEntityMetaId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_entityMeta, refEntity,()->{
+           
+                           this.setEntityMetaId(refEntity.getEntityMetaId());
+                       
+           });
+           }
+       
     }
        
     /**
@@ -1542,17 +1544,19 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
     }
 
     public void setDomain(io.nop.dyn.dao.entity.NopDynDomain refEntity){
-       if(refEntity == null){
-         
-         this.setDomainId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_domain, refEntity,()->{
-             
-                    this.setDomainId(refEntity.getDomainId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setDomainId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_domain, refEntity,()->{
+           
+                           this.setDomainId(refEntity.getDomainId());
+                       
+           });
+           }
+       
     }
        
    private io.nop.orm.component.JsonOrmComponent _extConfigComponent;
