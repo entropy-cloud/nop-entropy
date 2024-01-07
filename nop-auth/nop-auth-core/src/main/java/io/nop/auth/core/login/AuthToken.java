@@ -7,6 +7,8 @@
  */
 package io.nop.auth.core.login;
 
+import io.nop.api.core.util.Guard;
+
 import java.util.Map;
 
 public class AuthToken {
@@ -23,7 +25,7 @@ public class AuthToken {
                      long expireAt, int expireSeconds, Map<String, Object> claims) {
         this.token = token;
         this.subject = subject;
-        this.sessionId = sessionId;
+        this.sessionId = Guard.notEmpty(sessionId,"sessionId");
         this.expireAt = expireAt;
         this.userName = userName;
         this.expireSeconds = expireSeconds;

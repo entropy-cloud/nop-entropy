@@ -55,6 +55,7 @@ public class DaoUserContextCache extends LocalUserContextCache {
                 BeanTool.instance().setProperties(userContext, map);
             }
 
+            userContext.setSessionId(session.getSessionId());
             userContext.setUserId(session.getUserId());
             userContext.setUserName(session.getUserName());
             userContext.setTenantId(session.getTenantId());
