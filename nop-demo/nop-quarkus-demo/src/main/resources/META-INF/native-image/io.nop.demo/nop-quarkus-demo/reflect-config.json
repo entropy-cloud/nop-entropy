@@ -6123,6 +6123,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getLastAccessTime",
+        "parameterTypes": []
+      },
+      {
         "name": "getLocale",
         "parameterTypes": []
       },
@@ -6227,6 +6231,12 @@
         "name": "setDeptName",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setLastAccessTime",
+        "parameterTypes": [
+          "long"
         ]
       },
       {
@@ -14364,6 +14374,16 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.login.DaoUserContextCache__aop",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowUnsafeAccess": false,
@@ -16143,6 +16163,12 @@
         "name": "setTypeRegistry",
         "parameterTypes": [
           "io.nop.graphql.core.schema.TypeRegistry"
+        ]
+      },
+      {
+        "name": "updateDynBizModels",
+        "parameterTypes": [
+          "java.util.Map"
         ]
       }
     ],
@@ -23233,6 +23259,14 @@
         "parameterTypes": []
       },
       {
+        "name": "getEnabledModuleNames",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEnabledModules",
+        "parameterTypes": []
+      },
+      {
         "name": "getModuleResource",
         "parameterTypes": [
           "java.lang.String"
@@ -23243,9 +23277,21 @@
         "parameterTypes": []
       },
       {
+        "name": "loadModules",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      },
+      {
         "name": "registerInstance",
         "parameterTypes": [
           "io.nop.core.module.ModuleManager"
+        ]
+      },
+      {
+        "name": "updateDynModules",
+        "parameterTypes": [
+          "java.util.Map"
         ]
       }
     ],
@@ -23259,6 +23305,12 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "forModuleName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
       {
         "name": "getAuthor",
         "parameterTypes": []
@@ -23276,11 +23328,23 @@
         "parameterTypes": []
       },
       {
+        "name": "getModuleId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getModuleName",
+        "parameterTypes": []
+      },
+      {
         "name": "getPublishDate",
         "parameterTypes": []
       },
       {
         "name": "getVersion",
+        "parameterTypes": []
+      },
+      {
+        "name": "isDynamic",
         "parameterTypes": []
       },
       {
@@ -23303,6 +23367,24 @@
       },
       {
         "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDynamic",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setModuleId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setModuleName",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -23841,7 +23923,25 @@
         ]
       },
       {
+        "name": "getModuleIdFromModuleName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getModuleIdFromStdPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getModuleName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getModuleNameFromModuleId",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -29090,7 +29190,13 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "XDEF_BIZ"
+      }
+    ],
     "methods": [],
     "name": "io.nop.dyn.dao.NopDynDaoConstants",
     "unsafeAllocated": false
@@ -29237,6 +29343,20 @@
       {
         "name": "getBizObjName",
         "parameterTypes": []
+      },
+      {
+        "name": "getEntityModel",
+        "parameterTypes": []
+      },
+      {
+        "name": "isHasProp",
+        "parameterTypes": []
+      },
+      {
+        "name": "setEntityModel",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityModel"
+        ]
       }
     ],
     "name": "io.nop.dyn.dao.entity.NopDynEntityMeta",
@@ -29268,7 +29388,16 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [],
+    "methods": [
+      {
+        "name": "getFuncMetaNode",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSourceXml",
+        "parameterTypes": []
+      }
+    ],
     "name": "io.nop.dyn.dao.entity.NopDynFunctionMeta",
     "unsafeAllocated": false
   },
@@ -31030,6 +31159,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_isExternal"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_metaContent"
       },
       {
@@ -31126,6 +31260,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_NAME_functionMetas"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_isExternal"
       },
       {
         "allowUnsafeAccess": false,
@@ -31237,6 +31376,10 @@
       },
       {
         "name": "getFunctionMetas",
+        "parameterTypes": []
+      },
+      {
+        "name": "getIsExternal",
         "parameterTypes": []
       },
       {
@@ -31389,6 +31532,12 @@
         "name": "setExtConfig",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setIsExternal",
+        "parameterTypes": [
+          "java.lang.Boolean"
         ]
       },
       {
@@ -32290,6 +32439,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_funcMeta"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_funcMetaId"
       },
       {
@@ -32306,6 +32460,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_ID_remark"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_returnGqlType"
       },
       {
         "allowUnsafeAccess": false,
@@ -32380,6 +32539,16 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_funcMeta"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_funcMetaComponent"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_funcMetaId"
       },
       {
@@ -32396,6 +32565,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_NAME_remark"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_returnGqlType"
       },
       {
         "allowUnsafeAccess": false,
@@ -32472,6 +32646,14 @@
         "parameterTypes": []
       },
       {
+        "name": "getFuncMeta",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFuncMetaComponent",
+        "parameterTypes": []
+      },
+      {
         "name": "getFuncMetaId",
         "parameterTypes": []
       },
@@ -32485,6 +32667,10 @@
       },
       {
         "name": "getRemark",
+        "parameterTypes": []
+      },
+      {
+        "name": "getReturnGqlType",
         "parameterTypes": []
       },
       {
@@ -32610,6 +32796,12 @@
         ]
       },
       {
+        "name": "setFuncMeta",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setFuncMetaId",
         "parameterTypes": [
           "java.lang.String"
@@ -32629,6 +32821,12 @@
       },
       {
         "name": "setRemark",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setReturnGqlType",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -34303,9 +34501,22 @@
         ]
       },
       {
+        "name": "genModuleBizModels",
+        "parameterTypes": [
+          "io.nop.dyn.dao.entity.NopDynModule"
+        ]
+      },
+      {
         "name": "genModuleCoreFiles",
         "parameterTypes": [
           "io.nop.dyn.dao.entity.NopDynModule"
+        ]
+      },
+      {
+        "name": "genModuleCoreFiles",
+        "parameterTypes": [
+          "io.nop.dyn.dao.entity.NopDynModule",
+          "io.nop.orm.model.OrmModel"
         ]
       },
       {
@@ -44427,6 +44638,10 @@
         "parameterTypes": []
       },
       {
+        "name": "hasOneToOneRelation",
+        "parameterTypes": []
+      },
+      {
         "name": "isCheckVersionWhenLazyLoad",
         "parameterTypes": []
       },
@@ -45155,6 +45370,10 @@
       },
       {
         "name": "hasLazyColumn",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasOneToOneRelation",
         "parameterTypes": []
       },
       {
@@ -48346,6 +48565,14 @@
       },
       {
         "name": "internalSetRefEntity",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.orm.IOrmEntity",
+          "java.lang.Runnable"
+        ]
+      },
+      {
+        "name": "internalSetReverseRefEntity",
         "parameterTypes": [
           "java.lang.String",
           "io.nop.orm.IOrmEntity",

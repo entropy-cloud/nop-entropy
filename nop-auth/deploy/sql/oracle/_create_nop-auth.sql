@@ -94,7 +94,7 @@ CREATE TABLE nop_auth_user(
   EMAIL VARCHAR2(100)  ,
   EMAIL_VERIFIED SMALLINT  ,
   PHONE VARCHAR2(50)  ,
-  PHONE_VERIFIED SMALLINT NOT NULL ,
+  PHONE_VERIFIED SMALLINT  ,
   BIRTHDAY DATE  ,
   USER_TYPE INTEGER NOT NULL ,
   STATUS INTEGER NOT NULL ,
@@ -453,7 +453,7 @@ CREATE TABLE nop_auth_group_dept(
                     
       COMMENT ON COLUMN nop_auth_user.EMAIL IS '邮件';
                     
-      COMMENT ON COLUMN nop_auth_user.EMAIL_VERIFIED IS '电话已验证';
+      COMMENT ON COLUMN nop_auth_user.EMAIL_VERIFIED IS '邮件已验证';
                     
       COMMENT ON COLUMN nop_auth_user.PHONE IS '电话';
                     

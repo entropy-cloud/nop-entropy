@@ -64,7 +64,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     public static final String PROP_NAME_email = "email";
     public static final int PROP_ID_email = 11;
     
-    /* 电话已验证: EMAIL_VERIFIED TINYINT */
+    /* 邮件已验证: EMAIL_VERIFIED TINYINT */
     public static final String PROP_NAME_emailVerified = "emailVerified";
     public static final int PROP_ID_emailVerified = 12;
     
@@ -344,7 +344,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /* 邮件: EMAIL */
     private java.lang.String _email;
     
-    /* 电话已验证: EMAIL_VERIFIED */
+    /* 邮件已验证: EMAIL_VERIFIED */
     private java.lang.Byte _emailVerified;
     
     /* 电话: PHONE */
@@ -1446,7 +1446,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     }
     
     /**
-     * 电话已验证: EMAIL_VERIFIED
+     * 邮件已验证: EMAIL_VERIFIED
      */
     public java.lang.Byte getEmailVerified(){
          onPropGet(PROP_ID_emailVerified);
@@ -1454,7 +1454,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     }
 
     /**
-     * 电话已验证: EMAIL_VERIFIED
+     * 邮件已验证: EMAIL_VERIFIED
      */
     public void setEmailVerified(java.lang.Byte value){
         if(onPropSet(PROP_ID_emailVerified,value)){

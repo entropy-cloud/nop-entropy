@@ -62,13 +62,13 @@
                         ui:show="X"/>
                 <column code="EMAIL" displayName="邮件" domain="email" name="email" precision="100" propId="11"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Email" ui:show="L"/>
-                <column code="EMAIL_VERIFIED" defaultValue="0" displayName="电话已验证" domain="boolFlag"
-                        name="emailVerified" precision="1" propId="12" stdDataType="byte" stdSqlType="TINYINT"
+                <column code="EMAIL_VERIFIED" defaultValue="0" displayName="邮件已验证" domain="boolFlag"
+                        name="emailVerified" propId="12" stdDataType="byte" stdSqlType="TINYINT"
                         i18n-en:displayName="Email Verified" ui:show="X"/>
                 <column code="PHONE" displayName="电话" domain="phone" name="phone" precision="50" propId="13"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Phone"/>
-                <column code="PHONE_VERIFIED" defaultValue="0" displayName="电话已验证" domain="boolFlag" mandatory="true"
-                        name="phoneVerified" precision="1" propId="14" stdDataType="byte" stdSqlType="TINYINT"
+                <column code="PHONE_VERIFIED" defaultValue="0" displayName="电话已验证" domain="boolFlag"
+                        name="phoneVerified" propId="14" stdDataType="byte" stdSqlType="TINYINT"
                         i18n-en:displayName="Phone Verified" ui:show="X"/>
                 <column code="BIRTHDAY" displayName="生日" name="birthday" propId="15" stdDataType="date"
                         stdSqlType="DATE" i18n-en:displayName="Birthday" ui:show="L"/>

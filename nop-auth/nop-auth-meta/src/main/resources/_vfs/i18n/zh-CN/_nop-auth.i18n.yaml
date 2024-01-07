@@ -284,7 +284,7 @@ prop:
       dept.deptName: 部门
       deptId: 所属部门
       email: 邮件
-      emailVerified: 电话已验证
+      emailVerified: 邮件已验证
       expireAt: 用户过期时间
       gender: 性别
       gender_label: 性别
@@ -373,7 +373,7 @@ prop:
       dept.deptName: 部门
       deptId: 所属部门
       email: 邮件
-      emailVerified: 电话已验证
+      emailVerified: 邮件已验证
       expireAt: 用户过期时间
       gender: 性别
       gender_label: 性别
