@@ -58,11 +58,12 @@
             <schema type="java.lang.String" precision="200"/>
         </prop>
         <prop name="funcMeta" displayName="函数元数据" i18n-en:displayName="Function Meta" queryable="true" sortable="true"
-              insertable="true" updatable="true" graphql:jsonComponentProp="funcMetaComponent" ui:show="S">
+              insertable="true" updatable="true" internal="true" graphql:jsonComponentProp="funcMetaComponent"
+              ui:show="X">
             <schema stdDomain="json" domain="json-4K" type="java.lang.String" precision="4000"/>
         </prop>
-        <prop name="source" displayName="源码" i18n-en:displayName="Source" queryable="true" sortable="true"
-              insertable="true" updatable="true" ui:show="S">
+        <prop name="source" displayName="源码" i18n-en:displayName="Source" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true" ui:show="S">
             <schema type="java.lang.String" precision="4000"/>
         </prop>
         <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"

@@ -99,6 +99,10 @@
 /nop/auth/model/NopAuthGroupDept/NopAuthGroupDept.xmeta
 /nop/auth/model/NopAuthGroupDept/_NopAuthGroupDept.xbiz
 /nop/auth/model/NopAuthGroupDept/_NopAuthGroupDept.xmeta
+/nop/auth/model/NopAuthGroupUser/NopAuthGroupUser.xbiz
+/nop/auth/model/NopAuthGroupUser/NopAuthGroupUser.xmeta
+/nop/auth/model/NopAuthGroupUser/_NopAuthGroupUser.xbiz
+/nop/auth/model/NopAuthGroupUser/_NopAuthGroupUser.xmeta
 /nop/auth/model/NopAuthOpLog/NopAuthOpLog.xbiz
 /nop/auth/model/NopAuthOpLog/NopAuthOpLog.xmeta
 /nop/auth/model/NopAuthOpLog/_NopAuthOpLog.xbiz
@@ -860,8 +864,8 @@
 /nop/templates/dyn-web/a-impl.xrun
 /nop/templates/dyn/@init.xrun
 /nop/templates/dyn/{moduleId}/_module
+/nop/templates/dyn/{moduleId}/model/{entityMeta.bizObjName}/{!!entityModel}{entityModel.shortName}.xmeta.xgen
 /nop/templates/dyn/{moduleId}/model/{entityMeta.bizObjName}/{entityMeta.bizObjName}.xbiz.xgen
-/nop/templates/dyn/{moduleId}/model/{entityMeta.bizObjName}/{entityModel.shortName}.xmeta.xgen
 /nop/templates/dyn/{moduleId}/orm/app.orm.xml.xgen
 /nop/templates/i18n/@init.xrun
 /nop/templates/i18n/_templates/_{metaInfo.objName}.json.xgen

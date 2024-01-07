@@ -9,6 +9,12 @@
     <forms>
         <form id="view"/>
         <form id="edit"/>
+
+        <form id="query">
+            <layout>
+                entityName
+            </layout>
+        </form>
     </forms>
 
     <pages>

@@ -2,14 +2,17 @@ package io.nop.dyn.service.codegen;
 
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.orm.SingleSession;
+import io.nop.api.core.config.AppConfig;
 import io.nop.biz.api.IBizObjectManager;
 import io.nop.codegen.XCodeGenerator;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.module.ModuleManager;
 import io.nop.core.module.ModuleModel;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.store.InMemoryResourceStore;
+import io.nop.core.resource.store.ResourceStoreHelper;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dyn.dao.NopDynDaoConstants;
@@ -22,6 +25,7 @@ import io.nop.graphql.core.reflection.GraphQLBizModel;
 import io.nop.orm.IOrmSessionFactory;
 import io.nop.orm.model.OrmModel;
 import io.nop.xlang.api.XLang;
+import io.nop.xlang.api.XplModel;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 
@@ -122,14 +126,17 @@ public class DynCodeGen {
     protected void genModuleBizModels(NopDynModule module) {
         Map<String, GraphQLBizModel> bizModels = new HashMap<>();
 
+        String modulePath = module.getModuleName().replace('-', '/');
         for (NopDynEntityMeta entityMeta : module.getEntityMetas()) {
             String bizObjName = entityMeta.getBizObjName();
-            String modulePath = module.getModuleName().replace('-', '/');
             GraphQLBizModel bizModel = new GraphQLBizModel(bizObjName);
             String bizPath = "/" + modulePath + "/model/" + bizObjName + "/" + bizObjName + ".xbiz";
-            String metaPath = "/" + modulePath + "/model/" + bizObjName + "/" + bizObjName + ".xmeta";
             bizModel.setBizPath(bizPath);
-            bizModel.setMetaPath(metaPath);
+
+            if (entityMeta.getEntityModel() != null) {
+                String metaPath = "/" + modulePath + "/model/" + bizObjName + "/" + bizObjName + ".xmeta";
+                bizModel.setMetaPath(metaPath);
+            }
 
             bizModels.put(bizObjName, bizModel);
         }
@@ -169,6 +176,9 @@ public class DynCodeGen {
 
         List<IResource> metaResources = new ArrayList<>();
         for (NopDynEntityMeta entityMeta : module.getEntityMetas()) {
+            if (entityMeta.getEntityModel() == null || Boolean.TRUE.equals(entityMeta.getIsExternal()))
+                continue;
+
             String bizObjName = entityMeta.getBizObjName();
             String path = "/" + module.getModuleName().replace('-', '/') + "/model/" + bizObjName + "/" + bizObjName + ".xmeta";
             IResource resource = coreStore.getResource(path);
@@ -192,6 +202,35 @@ public class DynCodeGen {
         IEntityDao<NopDynAppModule> dao = daoProvider.daoFor(NopDynAppModule.class);
         dao.batchLoadProps(app.getModuleMappings(),
                 Arrays.asList("module.entityMetas.propMetas.domain", "module.entityMetas.functionMetas"));
+    }
+
+    public synchronized void generateBizModel(NopDynEntityMeta entityMeta) {
+        String moduleName = entityMeta.getModule().getModuleName();
+        String moduleId = ResourceHelper.getModuleIdFromModuleName(moduleName);
+        String bizObjName = entityMeta.getBizObjName();
+
+        InMemoryResourceStore coreStore = moduleCoreStores.get(moduleName);
+        // 如果模块未发布，则直接返回
+        if (coreStore == null) {
+            return;
+        }
+
+        String bizTpl = "/nop/templates/dyn/{moduleId}/model/{entityMeta.bizObjName}/{entityMeta.bizObjName}.xbiz.xgen";
+        String bizPath = "/" + moduleId + "/model/" + bizObjName + "/" + bizObjName + ".xbiz";
+
+        XplModel xplModel = XCodeGenerator.loadTpl(bizTpl);
+
+        IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValue("entityMeta", entityMeta);
+        scope.setLocalValue("moduleId", moduleId);
+        scope.setLocalValue("moduleName", moduleName);
+
+        IResource resource = coreStore.getResource(bizPath);
+        String text = xplModel.generateText(scope);
+
+        if (!resource.exists() || !resource.readText().equals(text)) {
+            resource.writeText(text, null);
+        }
     }
 
     public synchronized void removeDynModule(NopDynModule module) {
@@ -222,5 +261,9 @@ public class DynCodeGen {
 
         ormSessionFactory.reloadModel();
         bizObjectManager.updateDynBizModels(bizModels);
+
+        if (AppConfig.isDebugMode()) {
+            ResourceStoreHelper.dumpStore(merged, "/");
+        }
     }
 }

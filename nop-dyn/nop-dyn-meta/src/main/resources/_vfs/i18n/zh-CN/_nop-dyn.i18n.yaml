@@ -157,6 +157,7 @@ prop:
       updatedBy: 修改人
       version: 数据版本
     NopDynFunctionMeta:
+      args: 参数定义
       createTime: 创建时间
       createdBy: 创建人
       displayName: 显示名

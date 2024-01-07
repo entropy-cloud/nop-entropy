@@ -7049,6 +7049,21 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [
+      {
+        "name": "newPk",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.auth.dao.entity.NopAuthGroupUser",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [],
     "name": "io.nop.auth.dao.entity.NopAuthOpLog",
     "unsafeAllocated": false
@@ -7328,6 +7343,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_groupMappings"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_manager"
       },
       {
@@ -7418,6 +7438,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getGroupMappings",
+        "parameterTypes": []
+      },
+      {
         "name": "getManager",
         "parameterTypes": []
       },
@@ -7439,6 +7463,18 @@
       },
       {
         "name": "getPhone",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedGroupIdList",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedGroupList",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedGroupList_label",
         "parameterTypes": []
       },
       {
@@ -7587,6 +7623,12 @@
         "name": "setPhone",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRelatedGroupIdList",
+        "parameterTypes": [
+          "java.util.List"
         ]
       },
       {
@@ -8106,6 +8148,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_deptMappings"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_groupId"
       },
       {
@@ -8181,6 +8228,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getDeptMappings",
+        "parameterTypes": []
+      },
+      {
         "name": "getGroupId",
         "parameterTypes": []
       },
@@ -8202,6 +8253,18 @@
       },
       {
         "name": "getParentId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedDeptIdList",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedDeptList",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedDeptList_label",
         "parameterTypes": []
       },
       {
@@ -8345,6 +8408,12 @@
         ]
       },
       {
+        "name": "setRelatedDeptIdList",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
         "name": "setRelatedUserIdList",
         "parameterTypes": [
           "java.util.List"
@@ -8376,6 +8445,331 @@
       }
     ],
     "name": "io.nop.auth.dao.entity._gen._NopAuthGroup",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PK_PROP_IDS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PK_PROP_NAMES"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_createTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_createdBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_deptId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_groupId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_includeChild"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_remark"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_updateTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_updatedBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_userId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_version"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_createTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_createdBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_dept"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_deptId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_group"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_groupId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_includeChild"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_remark"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_updateTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_updatedBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_user"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_userId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_version"
+      }
+    ],
+    "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCreateTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCreatedBy",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDept",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDeptId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getGroup",
+        "parameterTypes": []
+      },
+      {
+        "name": "getGroupId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getIncludeChild",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRemark",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUpdateTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUpdatedBy",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUser",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUserId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getVersion",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_entityName",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_id",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_internalSet",
+        "parameterTypes": [
+          "int",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "orm_isPrimary",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "orm_propId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "orm_propIdBound",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_propName",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "orm_propValue",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "orm_propValue",
+        "parameterTypes": [
+          "int",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setCreateTime",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "setCreatedBy",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDept",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthDept"
+        ]
+      },
+      {
+        "name": "setDeptId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setGroup",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthGroup"
+        ]
+      },
+      {
+        "name": "setGroupId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setIncludeChild",
+        "parameterTypes": [
+          "java.lang.Byte"
+        ]
+      },
+      {
+        "name": "setRemark",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUpdateTime",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "setUpdatedBy",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUser",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthUser"
+        ]
+      },
+      {
+        "name": "setUserId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setVersion",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      }
+    ],
+    "name": "io.nop.auth.dao.entity._gen._NopAuthGroupDept",
     "unsafeAllocated": false
   },
   {
@@ -8645,7 +9039,7 @@
         ]
       }
     ],
-    "name": "io.nop.auth.dao.entity._gen._NopAuthGroupDept",
+    "name": "io.nop.auth.dao.entity._gen._NopAuthGroupUser",
     "unsafeAllocated": false
   },
   {
@@ -14007,6 +14401,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.auth.service.entity.NopAuthGroupUserBizModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.auth.service.entity.NopAuthOpLogBizModel",
     "unsafeAllocated": false
   },
@@ -16996,6 +17400,18 @@
       },
       {
         "name": "loadTpl",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "loadTpl",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "loadTplFromResource",
         "parameterTypes": [
           "io.nop.core.resource.IResource"
         ]
@@ -35363,6 +35779,12 @@
         ]
       },
       {
+        "name": "generateBizModel",
+        "parameterTypes": [
+          "io.nop.dyn.dao.entity.NopDynEntityMeta"
+        ]
+      },
+      {
         "name": "generateForAllApps",
         "parameterTypes": []
       },
@@ -35505,8 +35927,22 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "codeGen"
+      }
+    ],
+    "methods": [
+      {
+        "name": "afterEntityChange",
+        "parameterTypes": [
+          "io.nop.dyn.dao.entity.NopDynFunctionMeta",
+          "io.nop.core.context.IServiceContext"
+        ]
+      }
+    ],
     "name": "io.nop.dyn.service.entity.NopDynFunctionMetaBizModel",
     "unsafeAllocated": false
   },
@@ -44220,6 +44656,120 @@
       }
     ],
     "name": "io.nop.orm.component.AbstractOrmComponent",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "NOT_INITED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME__jsonText"
+      }
+    ],
+    "methods": [
+      {
+        "name": "flushToEntity",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStringList",
+        "parameterTypes": []
+      },
+      {
+        "name": "getValue",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "get_jsonMap",
+        "parameterTypes": []
+      },
+      {
+        "name": "get_jsonText",
+        "parameterTypes": []
+      },
+      {
+        "name": "get_jsonValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "isJsonList",
+        "parameterTypes": []
+      },
+      {
+        "name": "isJsonMap",
+        "parameterTypes": []
+      },
+      {
+        "name": "prop_get",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "prop_has",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "prop_names",
+        "parameterTypes": []
+      },
+      {
+        "name": "prop_set",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "require_jsonMap",
+        "parameterTypes": []
+      },
+      {
+        "name": "serializeToJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setStringList",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setValue",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "set_jsonText",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "set_jsonValue",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.orm.component.JsonOrmComponent",
     "unsafeAllocated": false
   },
   {

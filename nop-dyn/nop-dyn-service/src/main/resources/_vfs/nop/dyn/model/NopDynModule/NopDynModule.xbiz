@@ -28,6 +28,7 @@
 
                     entityList.forEach(entity=>{
                         codeGen.generateForModule(entity);
+                        codeGen.reloadModel();
                         entity.status = NopDynDaoConstants.APP_STATUS_PUBLISHED;
                     })
                 </c:script>

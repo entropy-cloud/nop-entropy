@@ -63,6 +63,35 @@ public class TestDynCodeGen extends JunitBaseTestCase {
         });
     }
 
+    @Test
+    public void testGenBizModel() {
+        saveModule();
+
+        ormTemplate.runInSession(() -> {
+            codeGen.generateForAllModules();
+            codeGen.reloadModel();
+
+            NopDynFunctionMeta func = getFuncMeta("myMethod");
+            func.setSource("return 321");
+            ormTemplate.flushSession();
+
+            codeGen.generateBizModel(func.getEntityMeta());
+
+            IGraphQLExecutionContext gqlContext;
+
+            gqlContext = graphQLEngine.newRpcContext(null, "MyDynEntity__myMethod", ApiRequest.build(null));
+            ApiResponse<?> response = FutureHelper.syncGet(graphQLEngine.executeRpcAsync(gqlContext));
+            assertEquals(321, response.getData());
+        });
+    }
+
+    private NopDynFunctionMeta getFuncMeta(String name) {
+        IEntityDao<NopDynFunctionMeta> dao = daoProvider.daoFor(NopDynFunctionMeta.class);
+        NopDynFunctionMeta example = new NopDynFunctionMeta();
+        example.setName(name);
+        return dao.findFirstByExample(example);
+    }
+
     private void saveModule() {
         NopDynModule module = new NopDynModule();
         module.setModuleName("app-demo");

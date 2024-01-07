@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopDynEntityMeta.xmeta">
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopDynEntityMeta.xmeta"
+    xmlns:ui="ui">
 
     <props>
-        <prop name="entityName">
+        <prop name="entityName" ui:filterOp="contains" ui:allowFilterOp="contains,eq">
             <schema stdDomain="class-name"/>
         </prop>
     </props>

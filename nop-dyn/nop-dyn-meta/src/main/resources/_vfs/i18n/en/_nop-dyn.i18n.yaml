@@ -179,6 +179,7 @@ prop:
       entityMeta: Module
       entityMeta.entityName: Module
       funcMetaComponent: null
+      args: null
     NopDynModule:
       moduleId: Module ID
       moduleName: Module Name

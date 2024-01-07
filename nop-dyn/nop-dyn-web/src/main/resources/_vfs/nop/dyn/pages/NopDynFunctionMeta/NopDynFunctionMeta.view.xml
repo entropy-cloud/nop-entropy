@@ -9,7 +9,30 @@
 
     <forms>
         <form id="view"/>
-        <form id="edit"/>
+        <form id="edit">
+            <layout>
+                entityMetaId[实体定义ID] name[函数名]
+                displayName[显示名] functionType[函数类型]
+                returnType[返回类型] returnGqlType[GraphQL返回类型]
+                status[状态] tagSet[标签]
+                args
+                source[源码]
+                remark[备注]
+            </layout>
+            <cells>
+                <cell id="args">
+                    <gen-control>
+                        <input-table removeable="@:true" addable="@:true" editable="@:true">
+                            <columns j:list="true">
+                                <input-text name="name" label="名称" required="true"/>
+                                <input-text name="type" label="类型" required="true"/>
+                            </columns>
+                        </input-table>
+                    </gen-control>
+                </cell>
+                <cell id="source" control="textarea"/>
+            </cells>
+        </form>
     </forms>
 
     <pages>

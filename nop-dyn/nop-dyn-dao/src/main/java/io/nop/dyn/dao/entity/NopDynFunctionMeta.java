@@ -42,10 +42,10 @@ public class NopDynFunctionMeta extends _NopDynFunctionMeta {
     private IObjSchema getFuncSchema(IObjMeta objMeta) {
         if (NopDynDaoConstants.FUNCTION_TYPE_LOADER.equals(getFunctionType())) {
             return objMeta.getProp("loaders")
-                    .getSchema().getProp("loader").getSchema();
+                    .getItemSchema();
         } else {
             return objMeta.getProp("actions")
-                    .getSchema().getProp("action").getSchema();
+                    .getItemSchema();
         }
     }
 }

@@ -61,11 +61,15 @@ public class XCodeGenerator extends TemplateFileGenerator {
     }
 
     public XCodeGenerator(String tplRootPath, String targetRootPath) {
-        this(XCodeGenerator::loadTpl, tplRootPath, targetRootPath);
+        this(XCodeGenerator::loadTplFromResource, tplRootPath, targetRootPath);
     }
 
-    static XplModel loadTpl(IResource resource) {
+    public static XplModel loadTplFromResource(IResource resource) {
         return (XplModel) ResourceComponentManager.instance().loadComponentModel(resource.getStdPath());
+    }
+
+    public static XplModel loadTpl(String path) {
+        return (XplModel) ResourceComponentManager.instance().loadComponentModel(path);
     }
 
     public static XCodeGenerator forProjectTpl(String projectPath, String tplDir, boolean toTarget) {
@@ -210,7 +214,7 @@ public class XCodeGenerator extends TemplateFileGenerator {
     private boolean runInit(IEvalScope scope) {
         IResource resource = getTplResource(CodeGenConstants.INIT_FILE_NAME);
         if (resource.exists()) {
-            XplModel xpl = loadTpl(resource);
+            XplModel xpl = loadTplFromResource(resource);
             if (xpl != null) {
                 xpl.invoke(scope);
             }

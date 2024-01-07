@@ -7,6 +7,7 @@
  */
 package io.nop.core.resource;
 
+import io.nop.commons.util.StringHelper;
 import io.nop.core.model.tree.ITreeChildrenAdapter;
 import io.nop.core.model.tree.TreeVisitState;
 import io.nop.core.resource.impl.ResourceChildrenAdapter;
@@ -40,6 +41,23 @@ public class ResourceTreeVisitState extends TreeVisitState<IResource> {
             return getCurrent().getName();
 
         StringBuilder sb = new StringBuilder();
+        for (IResource parent : parents) {
+            sb.append(parent.getName()).append('/');
+        }
+        sb.append(getCurrent().getName());
+        return sb.toString();
+    }
+
+    public String buildFullPath(String basePath) {
+        List<IResource> parents = getParents();
+        if (parents.isEmpty())
+            return StringHelper.appendPath(basePath, getCurrent().getName());
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(basePath);
+        if (!basePath.endsWith("/"))
+            sb.append("/");
+
         for (IResource parent : parents) {
             sb.append(parent.getName()).append('/');
         }

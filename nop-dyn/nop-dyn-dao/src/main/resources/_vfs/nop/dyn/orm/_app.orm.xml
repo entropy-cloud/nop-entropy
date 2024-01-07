@@ -560,9 +560,9 @@
                         stdSqlType="VARCHAR" i18n-en:displayName="Tag Set"/>
                 <column code="FUNC_META" displayName="函数元数据" domain="json-4K" name="funcMeta" precision="4000"
                         propId="10" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Function Meta" ui:show="S"/>
-                <column code="SOURCE" displayName="源码" name="source" precision="4000" propId="11" stdDataType="string"
-                        stdSqlType="VARCHAR" i18n-en:displayName="Source" ui:show="S"/>
+                        i18n-en:displayName="Function Meta" ui:show="X"/>
+                <column code="SOURCE" displayName="源码" mandatory="true" name="source" precision="4000" propId="11"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Source" ui:show="S"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="12"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"

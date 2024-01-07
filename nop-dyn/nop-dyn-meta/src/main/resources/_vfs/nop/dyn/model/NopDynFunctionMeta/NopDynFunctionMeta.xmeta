@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopDynFunctionMeta.xmeta">
 
-    <props/>
+    <props>
+        <prop name="funcMetaComponent" internal="true" />
+
+        <prop name="args" mapToProp="funcMetaComponent.args" displayName="参数定义" />
+    </props>
 </meta>
