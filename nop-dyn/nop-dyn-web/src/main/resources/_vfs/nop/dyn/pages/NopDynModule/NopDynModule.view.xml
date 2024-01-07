@@ -62,6 +62,32 @@
                     <action id="row-delete-button">
                         <visibleOn>this.status == 0</visibleOn>
                     </action>
+
+                    <action id="row-entity-list-button" label="对象列表" actionType="drawer">
+                        <visibleOn>this.status == 0</visibleOn>
+                        <dialog page="/nop/dyn/pages/NopDynEntityMeta/ref-module.page.yaml" size="xl">
+                            <data>
+                                <moduleId>$moduleId</moduleId>
+                                <module>
+                                    <moduleName>$moduleName</moduleName>
+                                    <displayName>$displayName</displayName>
+                                </module>
+                            </data>
+                        </dialog>
+                    </action>
+
+                    <action id="row-page-list-button" label="页面列表" actionType="drawer">
+                        <visibleOn>this.status == 0</visibleOn>
+                        <dialog page="/nop/dyn/pages/NopDynPage/ref-module.page.yaml" size="xl">
+                            <data>
+                                <moduleId>moduleId</moduleId>
+                                <module>
+                                    <moduleName>$moduleName</moduleName>
+                                    <displayName>$displayName</displayName>
+                                </module>
+                            </data>
+                        </dialog>
+                    </action>
                 </actionGroup>
             </rowActions>
         </crud>
