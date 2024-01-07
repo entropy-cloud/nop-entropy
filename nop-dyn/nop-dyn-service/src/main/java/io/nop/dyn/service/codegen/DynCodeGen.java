@@ -194,6 +194,12 @@ public class DynCodeGen {
                 Arrays.asList("module.entityMetas.propMetas.domain", "module.entityMetas.functionMetas"));
     }
 
+    public synchronized void removeDynModule(NopDynModule module) {
+        this.moduleCoreStores.remove(module.getModuleName());
+        this.moduleWebStores.remove(module.getModuleName());
+        this.moduleDynBizModels.remove(module.getModuleName());
+    }
+
     public synchronized void reloadModel() {
         InMemoryResourceStore merged = new InMemoryResourceStore();
         this.moduleCoreStores.values().forEach(merged::merge);

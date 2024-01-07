@@ -155,7 +155,7 @@ xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="g
                 <actionGroup id="row-more-button" label="@i18n:common.more" level="primary"
                     xpl:if="supportDelete or supportUpdate">
 
-                    <action id="row-update-button" level="primary" label="@i18n:common.edit"
+                    <action id="row-update-button" label="@i18n:common.edit"
                                         x:abstract="${supportUpdate?null:'true'}">
                         <dialog page="update" />
                     </action>
@@ -164,7 +164,7 @@ xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="g
                         <dialog page="add-child"/>
                     </action>
 
-                    <action id="row-delete-button" level="danger" label="@i18n:common.delete"
+                    <action id="row-delete-button" label="@i18n:common.delete"
                                         x:abstract="${supportDelete?null:'true'}">
                         <api url="@mutation:${metaInfo.objName}__delete?id=$id" />
                         <confirmText>@i18n:common.confirmDelete</confirmText>

@@ -205,13 +205,13 @@ public class BizModelToGraphQLDefinition {
                                                                    BizActionArgModel argModel, TypeRegistry registry) {
         GraphQLType type = getArgType(thisObjName, argModel, registry);
         if (!(type instanceof GraphQLNamedType)) {
-            throw new NopException(ERR_GRAPHQL_ACTION_ARG_TYPE_NOT_OBJ_TYPE).param(ARG_ACTION_NAME, actionName)
+            throw new NopException(ERR_GRAPHQL_ACTION_ARG_TYPE_NOT_OBJ_TYPE).source(argModel).param(ARG_ACTION_NAME, actionName)
                     .param(ARG_ARG_NAME, argModel.getName()).param(ARG_TYPE, type);
         }
 
         GraphQLDefinition def = registry.getType(type.toString());
         if (!(def instanceof GraphQLObjectDefinition)) {
-            throw new NopException(ERR_GRAPHQL_ACTION_ARG_TYPE_NOT_OBJ_TYPE).param(ARG_ACTION_NAME, actionName)
+            throw new NopException(ERR_GRAPHQL_ACTION_ARG_TYPE_NOT_OBJ_TYPE).source(argModel).param(ARG_ACTION_NAME, actionName)
                     .param(ARG_ARG_NAME, argModel.getName()).param(ARG_TYPE, type);
         }
 

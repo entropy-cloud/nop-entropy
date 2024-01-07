@@ -12,10 +12,10 @@
 
     <actions>
         <c:for var="funcMeta" items="${entityMeta.functionMetas}">
-            <c:script>
+            <c:script><![CDATA[
                 if(funcMeta.functionType == 'loader')
-                continue;
-            </c:script>
+                    continue;
+            ]]></c:script>
             <c:unit xpl:is="${funcMeta.functionType}" name="${funcMeta.name}" displayName="${funcMeta.displayName}">
                 ${raw(funcMeta.funcMetaNode?.innerXml())}
                 <arg name="selection" kind="FieldSelection"/>
@@ -37,7 +37,7 @@
                 <arg name="selection" kind="FieldSelection"/>
                 <arg name="svcCtx" kind="ServiceContext"/>
 
-                <return graphql:type="${funcMeta.returnGqlType || 'Any'}"/>
+                <return graphql:type="${funcMeta.returnGqlType}" type="${funcMeta.returnType}"/>
 
                 <source>${raw(funcMeta.sourceXml)}</source>
             </loader>

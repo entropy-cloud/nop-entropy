@@ -163,14 +163,13 @@ prop:
       displayName: Display Name
       functionType: Function Type
       functionType_label: null
-      funcMeta: Function Meta
-      funcMeta_label: null
       returnType: Return Type
       returnGqlType: Return GraphQL Type
-      tagSet: Tag Set
-      source: Source
       status: Status
       status_label: null
+      tagSet: Tag Set
+      funcMeta: Function Meta
+      source: Source
       version: Version
       createdBy: Created By
       createTime: Create Time
@@ -180,7 +179,6 @@ prop:
       entityMeta: Module
       entityMeta.entityName: Module
       funcMetaComponent: null
-      sourceComponent: null
     NopDynModule:
       moduleId: Module ID
       moduleName: Module Name

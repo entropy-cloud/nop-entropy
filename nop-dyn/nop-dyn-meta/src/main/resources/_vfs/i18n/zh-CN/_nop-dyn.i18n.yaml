@@ -166,7 +166,6 @@ prop:
       funcMeta: 函数元数据
       funcMetaComponent: null
       funcMetaId: 函数定义ID
-      funcMeta_label: 函数元数据
       functionType: 函数类型
       functionType_label: 函数类型
       name: 函数名
@@ -174,7 +173,6 @@ prop:
       returnGqlType: GraphQL返回类型
       returnType: 返回类型
       source: 源码
-      sourceComponent: null
       status: 状态
       status_label: 状态
       tagSet: 标签

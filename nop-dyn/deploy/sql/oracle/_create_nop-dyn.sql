@@ -217,12 +217,12 @@ CREATE TABLE nop_dyn_function_meta(
   NAME VARCHAR2(50) NOT NULL ,
   DISPLAY_NAME VARCHAR2(100) NOT NULL ,
   FUNCTION_TYPE VARCHAR2(10) NOT NULL ,
-  FUNC_META VARCHAR2(4000)  ,
   RETURN_TYPE VARCHAR2(100)  ,
   RETURN_GQL_TYPE VARCHAR2(100)  ,
-  TAG_SET VARCHAR2(200)  ,
-  SOURCE VARCHAR2(4000)  ,
   STATUS INTEGER NOT NULL ,
+  TAG_SET VARCHAR2(200)  ,
+  FUNC_META VARCHAR2(4000)  ,
+  SOURCE VARCHAR2(4000)  ,
   VERSION INTEGER NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
@@ -603,17 +603,17 @@ CREATE TABLE nop_dyn_function_meta(
                     
       COMMENT ON COLUMN nop_dyn_function_meta.FUNCTION_TYPE IS '函数类型';
                     
-      COMMENT ON COLUMN nop_dyn_function_meta.FUNC_META IS '函数元数据';
-                    
       COMMENT ON COLUMN nop_dyn_function_meta.RETURN_TYPE IS '返回类型';
                     
       COMMENT ON COLUMN nop_dyn_function_meta.RETURN_GQL_TYPE IS 'GraphQL返回类型';
                     
+      COMMENT ON COLUMN nop_dyn_function_meta.STATUS IS '状态';
+                    
       COMMENT ON COLUMN nop_dyn_function_meta.TAG_SET IS '标签';
                     
-      COMMENT ON COLUMN nop_dyn_function_meta.SOURCE IS '源码';
+      COMMENT ON COLUMN nop_dyn_function_meta.FUNC_META IS '函数元数据';
                     
-      COMMENT ON COLUMN nop_dyn_function_meta.STATUS IS '状态';
+      COMMENT ON COLUMN nop_dyn_function_meta.SOURCE IS '源码';
                     
       COMMENT ON COLUMN nop_dyn_function_meta.VERSION IS '数据版本';
                     

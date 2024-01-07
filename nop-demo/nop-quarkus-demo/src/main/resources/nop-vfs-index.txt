@@ -446,6 +446,7 @@
 /nop/dyn/pages/NopDynFunctionMeta/_gen/_NopDynFunctionMeta.view.xml
 /nop/dyn/pages/NopDynFunctionMeta/main.page.yaml
 /nop/dyn/pages/NopDynFunctionMeta/picker.page.yaml
+/nop/dyn/pages/NopDynFunctionMeta/ref-entityMeta.page.yaml
 /nop/dyn/pages/NopDynModule/NopDynModule.lib.xjs
 /nop/dyn/pages/NopDynModule/NopDynModule.view.xml
 /nop/dyn/pages/NopDynModule/_gen/_NopDynModule.view.xml

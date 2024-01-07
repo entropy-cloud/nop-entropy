@@ -37,13 +37,33 @@
                     <messages>
                         <success>发布成功</success>
                     </messages>
-                    <api url="@mutation:NopDynModule__publish" >
+                    <api url="@mutation:NopDynModule__publish">
                         <data>
                             <ids>$ids</ids>
                         </data>
                     </api>
                 </action>
             </listActions>
+
+            <rowActions>
+                <actionGroup id="row-more-button">
+                    <action id="row-unpublish-button" label="取消发布">
+                        <visibleOn>this.status != 0</visibleOn>
+                        <api url="@mutation:NopDynModule__unpublish">
+                            <data>
+                                <id>$id</id>
+                            </data>
+                        </api>
+                    </action>
+                    <action id="row-update-button">
+                        <visibleOn>this.status == 0</visibleOn>
+                    </action>
+
+                    <action id="row-delete-button">
+                        <visibleOn>this.status == 0</visibleOn>
+                    </action>
+                </actionGroup>
+            </rowActions>
         </crud>
 
         <picker name="picker"/>

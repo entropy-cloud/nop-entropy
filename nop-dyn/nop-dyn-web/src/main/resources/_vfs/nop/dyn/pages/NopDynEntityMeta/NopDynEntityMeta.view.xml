@@ -26,6 +26,18 @@
                             </data>
                         </dialog>
                     </action>
+
+                    <action id="row-edit-func-metas" label="@i18n:NopDynEntityMeta.props.funcMetas|函数列表" actionType="drawer">
+                        <dialog page="/nop/dyn/pages/NopDynFunctionMeta/ref-entityMeta.page.yaml" size="xl">
+                            <data>
+                                <entityMetaId>$entityMetaId</entityMetaId>
+                                <entityMeta>
+                                    <entityName>$entityName</entityName>
+                                    <displayName>$displayName</displayName>
+                                </entityMeta>
+                            </data>
+                        </dialog>
+                    </action>
                 </actionGroup>
             </rowActions>
         </crud>

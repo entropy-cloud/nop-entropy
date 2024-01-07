@@ -27,9 +27,26 @@
                     const entityList = thisObj.invoke("batchGet",{ids},null, svcCtx);
 
                     entityList.forEach(entity=>{
-                        codeGen.generateForModule(entity, true);
+                        codeGen.generateForModule(entity);
                         entity.status = NopDynDaoConstants.APP_STATUS_PUBLISHED;
                     })
+                </c:script>
+            </source>
+        </mutation>
+
+        <mutation name="unpublish" displayName="取消发布">
+            <arg name="id" type="String"/>
+            <arg name="svcCtx" kind="ServiceContext" />
+
+            <source>
+                <c:script>
+                    import io.nop.dyn.dao.NopDynDaoConstants;
+                    const codeGen = inject('nopDynCodeGen');
+                    const entity = thisObj.invoke("get",{id},null, svcCtx);
+
+                    codeGen.removeDynModule(entity);
+                    codeGen.reloadModel();
+                    entity.status = NopDynDaoConstants.APP_STATUS_UNPUBLISHED;
                 </c:script>
             </source>
         </mutation>

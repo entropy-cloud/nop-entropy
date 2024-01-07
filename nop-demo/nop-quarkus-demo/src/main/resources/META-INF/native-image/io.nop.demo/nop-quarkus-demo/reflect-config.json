@@ -16925,6 +16925,150 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "s_loc"
+      }
+    ],
+    "methods": [
+      {
+        "name": "execute",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "execute",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.util.Map",
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "forPostcompile",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "forPrecompile",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "forPrecompile2",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "forProjectTpl",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "getTargetPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getTplPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "loadTpl",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "newCodeGenerator",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "renderModel",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "runPostcompile",
+        "parameterTypes": [
+          "java.io.File",
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "runPrecompile",
+        "parameterTypes": [
+          "java.io.File",
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "runPrecompile2",
+        "parameterTypes": [
+          "java.io.File",
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "runProjectFile",
+        "parameterTypes": [
+          "java.io.File",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "withTargetDir",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "withTplDir",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.codegen.XCodeGenerator",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [
       {
@@ -25275,6 +25419,107 @@
     "fields": [],
     "methods": [
       {
+        "name": "delete",
+        "parameterTypes": []
+      },
+      {
+        "name": "exists",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInputStream",
+        "parameterTypes": []
+      },
+      {
+        "name": "getReader",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getResourceStore",
+        "parameterTypes": []
+      },
+      {
+        "name": "getText",
+        "parameterTypes": []
+      },
+      {
+        "name": "internalObj",
+        "parameterTypes": []
+      },
+      {
+        "name": "isReadOnly",
+        "parameterTypes": []
+      },
+      {
+        "name": "lastModified",
+        "parameterTypes": []
+      },
+      {
+        "name": "length",
+        "parameterTypes": []
+      },
+      {
+        "name": "readText",
+        "parameterTypes": []
+      },
+      {
+        "name": "saveToResource",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "io.nop.api.core.util.progress.IStepProgressListener"
+        ]
+      },
+      {
+        "name": "setLastModified",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "setReadOnly",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setResourceStore",
+        "parameterTypes": [
+          "io.nop.core.resource.store.InMemoryResourceStore"
+        ]
+      },
+      {
+        "name": "withResourceStore",
+        "parameterTypes": [
+          "io.nop.core.resource.store.InMemoryResourceStore"
+        ]
+      },
+      {
+        "name": "writeText",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "writeToStream",
+        "parameterTypes": [
+          "java.io.OutputStream"
+        ]
+      }
+    ],
+    "name": "io.nop.core.resource.impl.InMemoryTextResource",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "createNewFile",
         "parameterTypes": []
       },
@@ -25465,6 +25710,279 @@
       }
     ],
     "name": "io.nop.core.resource.tpl.ITextTemplateOutput",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "contentCache"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "dependencyManager"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "s_loc"
+      }
+    ],
+    "methods": [
+      {
+        "name": "autoFormat",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "buildLoop",
+        "parameterTypes": [
+          "io.nop.core.resource.tpl.TemplateGenPath",
+          "io.nop.core.model.loop.INestedLoop"
+        ]
+      },
+      {
+        "name": "checkOverrideHead",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "deleteTargetResource",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "executeWithLoop",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.core.model.loop.INestedLoop",
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "forceOverride",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getLoader",
+        "parameterTypes": []
+      },
+      {
+        "name": "getResourceChildren",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "getTargetResource",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getTargetResourceLoader",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTargetRootPath",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTplResource",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getTplResourceLoader",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTplRootPath",
+        "parameterTypes": []
+      },
+      {
+        "name": "isAllowWrite",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "io.nop.core.resource.IResource",
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "isAutoFormat",
+        "parameterTypes": []
+      },
+      {
+        "name": "isCheckOverrideHead",
+        "parameterTypes": []
+      },
+      {
+        "name": "isForceOverride",
+        "parameterTypes": []
+      },
+      {
+        "name": "isNotChange",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isTargetUpToDate",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "isTextFile",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "isTplFile",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "maybeXml",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "normalizeTargetRootDir",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "normalizeText",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "processDir",
+        "parameterTypes": [
+          "io.nop.core.resource.tpl.TemplateGenPath",
+          "io.nop.core.resource.IResource",
+          "io.nop.core.model.loop.INestedLoop",
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "processDirOrFile",
+        "parameterTypes": [
+          "io.nop.core.resource.tpl.TemplateGenPath",
+          "io.nop.core.resource.IResource",
+          "io.nop.core.model.loop.INestedLoop",
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "processFile",
+        "parameterTypes": [
+          "io.nop.core.resource.tpl.TemplateGenPath",
+          "io.nop.core.resource.IResource",
+          "io.nop.core.model.loop.INestedLoop",
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "processTpl",
+        "parameterTypes": [
+          "io.nop.core.resource.tpl.TemplateGenPath",
+          "io.nop.core.resource.IResource",
+          "io.nop.core.model.loop.INestedLoop",
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.util.function.Consumer"
+        ]
+      },
+      {
+        "name": "readTextHeader",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "renderTemplate",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "io.nop.core.resource.IResource",
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "shouldIgnoreTpl",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "shouldKeepEmptyTargetFile",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "targetResourceLoader",
+        "parameterTypes": [
+          "io.nop.core.resource.IResourceLoader"
+        ]
+      },
+      {
+        "name": "tplResourceLoader",
+        "parameterTypes": [
+          "io.nop.core.resource.IResourceLoader"
+        ]
+      },
+      {
+        "name": "withContentCache",
+        "parameterTypes": []
+      },
+      {
+        "name": "withContentCache",
+        "parameterTypes": [
+          "io.nop.core.resource.cache.IResourceContentCache"
+        ]
+      },
+      {
+        "name": "withDependencyManager",
+        "parameterTypes": []
+      },
+      {
+        "name": "withDependencyManager",
+        "parameterTypes": [
+          "io.nop.core.resource.component.IResourceDependencyManager"
+        ]
+      },
+      {
+        "name": "withDependsCache",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.core.resource.tpl.TemplateFileGenerator",
     "unsafeAllocated": false
   },
   {
@@ -34891,6 +35409,12 @@
       {
         "name": "reloadModel",
         "parameterTypes": []
+      },
+      {
+        "name": "removeDynModule",
+        "parameterTypes": [
+          "io.nop.dyn.dao.entity.NopDynModule"
+        ]
       }
     ],
     "name": "io.nop.dyn.service.codegen.DynCodeGen",
@@ -68766,6 +69290,100 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "g_excelModelLoaderClass"
+      }
+    ],
+    "methods": [
+      {
+        "name": "dslJsonListToNodeList",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.ISchema",
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "dslJsonToNode",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.ISchema",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "dslModelToXNode",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "dslNodeToJson",
+        "parameterTypes": [
+          "io.nop.xlang.xdef.IXDefNode",
+          "io.nop.core.lang.xml.XNode"
+        ]
+      },
+      {
+        "name": "getXdefPath",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "loadDslModel",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "loadDslModelAsJson",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "boolean"
+        ]
+      },
+      {
+        "name": "newExcelModelLoader",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "registerExcelModelLoaderClass",
+        "parameterTypes": [
+          "java.lang.Class"
+        ]
+      },
+      {
+        "name": "saveDslModel",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object",
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "supportExcelModelLoader",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.xlang.xdsl.DslModelHelper",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [
       {
@@ -75938,6 +76556,31 @@
       }
     ],
     "name": "java.lang.Iterable",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "equals",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "hashCode",
+        "parameterTypes": []
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
+      }
+    ],
+    "name": "java.lang.Object",
     "unsafeAllocated": false
   },
   {

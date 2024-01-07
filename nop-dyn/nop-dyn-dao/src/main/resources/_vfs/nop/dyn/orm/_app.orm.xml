@@ -550,19 +550,19 @@
                 <column code="FUNCTION_TYPE" displayName="函数类型" mandatory="true" name="functionType" precision="10"
                         propId="5" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Function Type"
                         ext:dict="dyn/function-type"/>
-                <column code="FUNC_META" displayName="函数元数据" domain="json-4K" name="funcMeta" precision="4000"
-                        propId="6" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Function Meta" ext:dict="core/std-domain"/>
-                <column code="RETURN_TYPE" displayName="返回类型" name="returnType" precision="100" propId="7"
+                <column code="RETURN_TYPE" displayName="返回类型" name="returnType" precision="100" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Return Type"/>
-                <column code="RETURN_GQL_TYPE" displayName="GraphQL返回类型" name="returnGqlType" precision="100" propId="8"
+                <column code="RETURN_GQL_TYPE" displayName="GraphQL返回类型" name="returnGqlType" precision="100" propId="7"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Return GraphQL Type"/>
+                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="8" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="core/active-status"/>
                 <column code="TAG_SET" displayName="标签" name="tagSet" precision="200" propId="9" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Tag Set"/>
-                <column code="SOURCE" displayName="源码" domain="json-4K" name="source" precision="4000" propId="10"
-                        stdDataType="string" stdDomain="json" stdSqlType="VARCHAR" i18n-en:displayName="Source"/>
-                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="11" stdDataType="int"
-                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="core/active-status"/>
+                <column code="FUNC_META" displayName="函数元数据" domain="json-4K" name="funcMeta" precision="4000"
+                        propId="10" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Function Meta" ui:show="S"/>
+                <column code="SOURCE" displayName="源码" name="source" precision="4000" propId="11" stdDataType="string"
+                        stdSqlType="VARCHAR" i18n-en:displayName="Source" ui:show="S"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="12"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
