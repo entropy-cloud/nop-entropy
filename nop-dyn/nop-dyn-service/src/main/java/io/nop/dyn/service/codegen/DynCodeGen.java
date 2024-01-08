@@ -168,7 +168,7 @@ public class DynCodeGen {
     }
 
     protected void genModuleWebFiles(NopDynModule module, InMemoryResourceStore coreStore) {
-        XCodeGenerator gen = new XCodeGenerator("/nop/templates/dyn-web", "/");
+        XCodeGenerator gen = new XCodeGenerator("/nop/templates/dyn-web", "v:/");
         gen.autoFormat(formatGenCode).forceOverride(true);
         InMemoryResourceStore store = new InMemoryResourceStore();
         store.setUseTextResourceAsUnknown(true);

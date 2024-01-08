@@ -1,9 +1,11 @@
 package io.nop.dyn.dao.model;
 
 import io.nop.commons.util.StringHelper;
+import io.nop.dyn.dao.NopDynDaoConstants;
 import io.nop.dyn.dao.entity.NopDynEntityMeta;
 import io.nop.dyn.dao.entity.NopDynModule;
 import io.nop.dyn.dao.entity.NopDynPropMeta;
+import io.nop.orm.OrmConstants;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
@@ -31,6 +33,8 @@ public class OrmModelToDynEntityMeta {
             if (entityMeta == null) {
                 entityMeta = new NopDynEntityMeta();
                 entityMeta.setEntityName(entityModel.getName());
+                entityMeta.setStatus(1);
+                entityMeta.setStoreType(NopDynDaoConstants.ENTITY_STORE_TYPE_VIRTUAL);
                 dynModule.getEntityMetas().add(entityMeta);
             }
             transformEntityMeta(entityModel, entityMeta);
@@ -53,8 +57,8 @@ public class OrmModelToDynEntityMeta {
         entityMeta.setTableName(entityModel.getTableName());
         entityMeta.setTagSet(StringHelper.join(entityModel.getTagSet(), ","));
         entityMeta.setRemark(entityModel.getComment());
-        entityMeta.setStatus(1);
         entityMeta.setDisplayName(entityModel.getDisplayName());
+        entityMeta.setIsExternal(entityModel.containsTag(OrmModelConstants.TAG_NOT_GEN));
 
         Map<String, NopDynPropMeta> propMetas = new HashMap<>();
         entityMeta.getPropMetas().forEach(propMeta -> {
@@ -100,5 +104,6 @@ public class OrmModelToDynEntityMeta {
         propMeta.setRemark(col.getComment());
         propMeta.setUiShow((String) col.prop_get(OrmModelConstants.EXT_UI_CONTROL));
         propMeta.setUiControl((String) col.prop_get(OrmModelConstants.EXT_UI_SHOW));
+        propMeta.setStatus(1);
     }
 }

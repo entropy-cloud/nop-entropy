@@ -30,6 +30,7 @@ import io.nop.orm.model.OrmToManyReferenceModel;
 import io.nop.orm.model.OrmToOneReferenceModel;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -45,6 +46,10 @@ import static io.nop.dyn.dao.NopDynDaoErrors.ERR_DYN_VIRTUAL_ENTITY_PROP_MAPPING
 
 public class DynEntityMetaToOrmModel {
     private final IEntityModel dynEntityModel;
+
+    static final List<String> STD_PROPS = Arrays.asList(NopDynEntity.PROP_NAME_version,
+            NopDynEntity.PROP_NAME_createdBy, NopDynEntity.PROP_NAME_createTime,
+            NopDynEntity.PROP_NAME_updatedBy, NopDynEntity.PROP_NAME_updateTime);
 
     public DynEntityMetaToOrmModel() {
         this.dynEntityModel = ((IOrmEntityDao<?>) DaoProvider.instance().daoFor(NopDynEntity.class)).getEntityModel();
@@ -117,7 +122,6 @@ public class DynEntityMetaToOrmModel {
 
     protected void addStdColumns(OrmEntityModel entityModel) {
         IColumnModel versionProp = dynEntityModel.getColumn(NopDynEntity.PROP_NAME_version, false);
-        IColumnModel tenantProp = dynEntityModel.getColumn(NopDynEntity.PROP_NAME_version, false);
         IColumnModel createdByProp = dynEntityModel.getColumn(NopDynEntity.PROP_NAME_createdBy, false);
         IColumnModel updatedByProp = dynEntityModel.getColumn(NopDynEntity.PROP_NAME_updatedBy, false);
         IColumnModel updateTimeProp = dynEntityModel.getColumn(NopDynEntity.PROP_NAME_updateTime, false);
@@ -126,8 +130,10 @@ public class DynEntityMetaToOrmModel {
         forceAddCol(entityModel, versionProp);
         entityModel.setVersionProp(versionProp.getName());
 
-        forceAddCol(entityModel, tenantProp);
-        entityModel.setVersionProp(tenantProp.getName());
+        if(dynEntityModel.getTenantColumn() != null) {
+            forceAddCol(entityModel, dynEntityModel.getTenantColumn());
+            entityModel.setTenantProp(dynEntityModel.getTenantColumn().getName());
+        }
 
         forceAddCol(entityModel, createTimeProp);
         entityModel.setCreateTimeProp(createTimeProp.getName());
@@ -183,6 +189,9 @@ public class DynEntityMetaToOrmModel {
                 entityModel.addColumn(((OrmColumnModel) col).cloneInstance());
                 entityModel.addAlias(toAliasModel(propMeta));
             } else {
+                if (STD_PROPS.contains(propMeta.getPropName()))
+                    return;
+
                 OrmAliasModel propModel = toAliasModel(propMeta);
                 propModel.setPropPath(buildVirtualPropPath(propModel));
                 entityModel.addAlias(propModel);

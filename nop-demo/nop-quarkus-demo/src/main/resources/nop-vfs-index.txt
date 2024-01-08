@@ -435,6 +435,7 @@
 /nop/dyn/pages/NopDynEntityMeta/_gen/_NopDynEntityMeta.view.xml
 /nop/dyn/pages/NopDynEntityMeta/main.page.yaml
 /nop/dyn/pages/NopDynEntityMeta/picker.page.yaml
+/nop/dyn/pages/NopDynEntityMeta/ref-module.page.yaml
 /nop/dyn/pages/NopDynEntityRelation/NopDynEntityRelation.lib.xjs
 /nop/dyn/pages/NopDynEntityRelation/NopDynEntityRelation.view.xml
 /nop/dyn/pages/NopDynEntityRelation/_gen/_NopDynEntityRelation.view.xml
@@ -461,6 +462,7 @@
 /nop/dyn/pages/NopDynPage/_gen/_NopDynPage.view.xml
 /nop/dyn/pages/NopDynPage/main.page.yaml
 /nop/dyn/pages/NopDynPage/picker.page.yaml
+/nop/dyn/pages/NopDynPage/ref-module.page.yaml
 /nop/dyn/pages/NopDynPropMeta/NopDynPropMeta.lib.xjs
 /nop/dyn/pages/NopDynPropMeta/NopDynPropMeta.view.xml
 /nop/dyn/pages/NopDynPropMeta/_gen/_NopDynPropMeta.view.xml
@@ -861,7 +863,7 @@
 /nop/templates/backend/@init.xrun
 /nop/templates/backend/a-impl.xrun
 /nop/templates/dyn-web/@init.xrun
-/nop/templates/dyn-web/a-impl.xrun
+/nop/templates/dyn-web/{moduleId}/a-impl.xrun
 /nop/templates/dyn/@init.xrun
 /nop/templates/dyn/{moduleId}/_module
 /nop/templates/dyn/{moduleId}/model/{entityMeta.bizObjName}/{!!entityModel}{entityModel.shortName}.xmeta.xgen

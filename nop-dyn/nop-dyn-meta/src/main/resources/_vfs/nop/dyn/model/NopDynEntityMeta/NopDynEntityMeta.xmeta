@@ -3,7 +3,7 @@
     xmlns:ui="ui">
 
     <props>
-        <prop name="entityName" ui:filterOp="contains" ui:allowFilterOp="contains,eq">
+        <prop name="entityName" ui:filterOp="contains" allowFilterOp="contains,eq,in">
             <schema stdDomain="class-name"/>
         </prop>
     </props>

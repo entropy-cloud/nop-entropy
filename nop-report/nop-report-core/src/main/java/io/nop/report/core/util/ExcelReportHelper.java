@@ -7,6 +7,9 @@
  */
 package io.nop.report.core.util;
 
+import io.nop.api.core.beans.WebContentBean;
+import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.resource.IResource;
@@ -22,14 +25,16 @@ import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
 import io.nop.ooxml.xlsx.util.ExcelHelper;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.build.XptModelInitializer;
-import io.nop.report.core.engine.IReportEngine;
 import io.nop.report.core.engine.ExpandedSheetGenerator;
+import io.nop.report.core.engine.IReportEngine;
 import io.nop.report.core.engine.renderer.HtmlReportRendererFactory;
 import io.nop.report.core.engine.renderer.XlsxReportRendererFactory;
 import io.nop.report.core.imp.ExcelTemplateToXptModelTransformer;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.xdsl.DslModelHelper;
+
+import java.util.concurrent.TimeUnit;
 
 public class ExcelReportHelper extends ExcelHelper {
 
@@ -94,5 +99,25 @@ public class ExcelReportHelper extends ExcelHelper {
 
         IResource resource = VirtualFileSystem.instance().getResource(path);
         DslModelHelper.saveDslModel(XptConstants.XDSL_SCHEMA_WORKBOOK, workbook, resource);
+    }
+
+    public static WebContentBean downloadXlsx(String fileName, String impModelPath, Object bean, int waitMinutes) {
+        IResource resource = ResourceHelper.getTempResource("download");
+        try {
+            ExcelReportHelper.saveXlsxObject(impModelPath, resource, bean);
+
+            WebContentBean content = new WebContentBean("application/octet-stream",
+                    resource.toFile(), fileName);
+
+            GlobalExecutors.globalTimer().schedule(() -> {
+                resource.delete();
+                return null;
+            }, waitMinutes, TimeUnit.MINUTES);
+
+            return content;
+        } catch (Exception e) {
+            resource.delete();
+            throw NopException.adapt(e);
+        }
     }
 }

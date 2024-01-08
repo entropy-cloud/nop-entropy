@@ -8,6 +8,7 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.commons.type.StdSqlType;
 import io.nop.core.reflect.bean.BeanTool;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dyn.dao.NopDynDaoConstants;
@@ -23,6 +24,7 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = true)
 public class TestDynCodeGen extends JunitBaseTestCase {
@@ -60,6 +62,8 @@ public class TestDynCodeGen extends JunitBaseTestCase {
             gqlContext = graphQLEngine.newRpcContext(null, "MyDynEntity__myMethod", ApiRequest.build(null));
             response = FutureHelper.syncGet(graphQLEngine.executeRpcAsync(gqlContext));
             assertEquals(123, response.getData());
+
+            assertTrue(VirtualFileSystem.instance().getResource("/app/demo/pages/MyDynEntity/main.page.yaml").exists());
         });
     }
 

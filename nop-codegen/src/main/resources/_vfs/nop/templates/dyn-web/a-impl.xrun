@@ -1,5 +1,0 @@
-<c:unit>
-    <gen:Render template="/nop/templates/orm/{appName}-web/src/main/resource/_vfs/{moduleId}" targetDir="${targetResource.path.$filePath()}"
-                xpl:lib="/nop/codegen/xlib/gen.xlib" inheritCodeGenLoop="true"/>
-
-</c:unit>

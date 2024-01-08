@@ -10,6 +10,8 @@ package io.nop.orm.model;
 public interface OrmModelConstants {
     String XDSL_SCHEMA_ORM = "/nop/schema/orm/orm.xdef";
 
+    String ORM_IMPL_PATH = "/nop/orm/imp/orm.imp.xml";
+
     String DEFAULT_QUERY_SPACE = "default";
 
     String PROP_ID = "id";
@@ -31,6 +33,8 @@ public interface OrmModelConstants {
      * 标记需要掩码的字段
      */
     String TAG_MASKED = "masked";
+
+    String TAG_NOT_GEN = "not-gen";
 
 
     /**
