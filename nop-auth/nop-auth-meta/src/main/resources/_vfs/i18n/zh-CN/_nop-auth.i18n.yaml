@@ -4,6 +4,7 @@ entity:
     NopAuthExtLogin: 扩展登录方式
     NopAuthGroup: 用户组
     NopAuthGroupDept: 分组部门
+    NopAuthGroupUser: 分组用户
     NopAuthOpLog: 操作日志
     NopAuthPosition: 岗位
     NopAuthResource: 菜单资源
@@ -101,6 +102,19 @@ prop:
       remark: 备注
       updateTime: 修改时间
       updatedBy: 修改人
+      version: 数据版本
+    NopAuthGroupUser:
+      createTime: 创建时间
+      createdBy: 创建人
+      group: 分组
+      group.name: 分组
+      groupId: 分组ID
+      remark: 备注
+      updateTime: 修改时间
+      updatedBy: 修改人
+      user: 用户
+      user.userName: 用户
+      userId: 用户ID
       version: 数据版本
     NopAuthOpLog:
       bizActionName: 业务操作

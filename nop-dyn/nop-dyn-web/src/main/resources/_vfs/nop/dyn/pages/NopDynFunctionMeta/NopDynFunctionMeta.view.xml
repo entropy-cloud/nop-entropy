@@ -14,7 +14,7 @@
                 entityMetaId[实体定义ID] name[函数名]
                 displayName[显示名] functionType[函数类型]
                 returnType[返回类型] returnGqlType[GraphQL返回类型]
-                status[状态] tagSet[标签]
+                status[状态] tagsText[标签]
                 args
                 source[源码]
                 remark[备注]

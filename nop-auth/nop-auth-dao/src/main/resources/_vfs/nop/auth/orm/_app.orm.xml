@@ -152,23 +152,23 @@
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-many displayName="角色映射" name="roleMappings" refEntityName="io.nop.auth.dao.entity.NopAuthUserRole"
-                         refPropName="user" tagSet="pub,cascade-delete,insertable,updatable"
-                         i18n-en:displayName="RoleMappings">
+                <to-many cascadeDelete="true" displayName="角色映射" name="roleMappings"
+                         refEntityName="io.nop.auth.dao.entity.NopAuthUserRole" refPropName="user"
+                         tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="RoleMappings">
                     <join>
                         <on leftProp="userId" rightProp="userId"/>
                     </join>
                 </to-many>
-                <to-many displayName="代理人映射" name="substitutionMappings"
+                <to-many cascadeDelete="true" displayName="代理人映射" name="substitutionMappings"
                          refEntityName="io.nop.auth.dao.entity.NopAuthUserSubstitution" refPropName="user"
                          tagSet="pub,cascade-delete" i18n-en:displayName="Substitution Mappings">
                     <join>
                         <on leftProp="userId" rightProp="userId"/>
                     </join>
                 </to-many>
-                <to-many displayName="分组映射" name="groupMappings" refEntityName="io.nop.auth.dao.entity.NopAuthGroupUser"
-                         refPropName="user" tagSet="pub,cascade-delete,insertable,updatable"
-                         i18n-en:displayName="GroupMappings">
+                <to-many cascadeDelete="true" displayName="分组映射" name="groupMappings"
+                         refEntityName="io.nop.auth.dao.entity.NopAuthGroupUser" refPropName="user"
+                         tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="GroupMappings">
                     <join>
                         <on leftProp="userId" rightProp="userId"/>
                     </join>
@@ -268,14 +268,14 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>
-                <to-many displayName="用户映射" name="userMappings" refEntityName="io.nop.auth.dao.entity.NopAuthUserRole"
-                         refPropName="role" tagSet="pub,cascade-delete,insertable,updatable"
-                         i18n-en:displayName="UserMappings">
+                <to-many cascadeDelete="true" displayName="用户映射" name="userMappings"
+                         refEntityName="io.nop.auth.dao.entity.NopAuthUserRole" refPropName="role"
+                         tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="UserMappings">
                     <join>
                         <on leftProp="roleId" rightProp="roleId"/>
                     </join>
                 </to-many>
-                <to-many displayName="资源映射" name="resourceMappings"
+                <to-many cascadeDelete="true" displayName="资源映射" name="resourceMappings"
                          refEntityName="io.nop.auth.dao.entity.NopAuthRoleResource" refPropName="role"
                          tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="Resources">
                     <join>
@@ -421,8 +421,9 @@
             </columns>
             <comment>整个应用系统可以拆分为多个子站点</comment>
             <relations>
-                <to-many displayName="资源列表" name="resources" refEntityName="io.nop.auth.dao.entity.NopAuthResource"
-                         refPropName="site" tagSet="pub,cascade-delete,connection" i18n-en:displayName="Resources">
+                <to-many cascadeDelete="true" displayName="资源列表" name="resources"
+                         refEntityName="io.nop.auth.dao.entity.NopAuthResource" refPropName="site"
+                         tagSet="pub,cascade-delete,connection" i18n-en:displayName="Resources">
                     <join>
                         <on leftProp="siteId" rightProp="siteId"/>
                     </join>
@@ -527,13 +528,14 @@
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-many displayName="子资源" name="children" refEntityName="io.nop.auth.dao.entity.NopAuthResource"
-                         refPropName="parent" tagSet="pub,cascade-delete" i18n-en:displayName="Children">
+                <to-many cascadeDelete="true" displayName="子资源" name="children"
+                         refEntityName="io.nop.auth.dao.entity.NopAuthResource" refPropName="parent"
+                         tagSet="pub,cascade-delete" i18n-en:displayName="Children">
                     <join>
                         <on leftProp="resourceId" rightProp="parentId"/>
                     </join>
                 </to-many>
-                <to-many displayName="角色映射" name="roleMappings"
+                <to-many cascadeDelete="true" displayName="角色映射" name="roleMappings"
                          refEntityName="io.nop.auth.dao.entity.NopAuthRoleResource" refPropName="resource"
                          tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="Roles">
                     <join>
@@ -818,9 +820,9 @@
                         <on leftProp="deptId" rightProp="parentId"/>
                     </join>
                 </to-many>
-                <to-many displayName="分组映射" name="groupMappings" refEntityName="io.nop.auth.dao.entity.NopAuthGroupDept"
-                         refPropName="dept" tagSet="pub,cascade-delete,insertable,updatable"
-                         i18n-en:displayName="GroupMappings">
+                <to-many cascadeDelete="true" displayName="分组映射" name="groupMappings"
+                         refEntityName="io.nop.auth.dao.entity.NopAuthGroupDept" refPropName="dept"
+                         tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="GroupMappings">
                     <join>
                         <on leftProp="deptId" rightProp="deptId"/>
                     </join>
@@ -882,16 +884,16 @@
                         <on leftProp="groupId" rightProp="parentId"/>
                     </join>
                 </to-many>
-                <to-many displayName="部门映射" name="deptMappings" refEntityName="io.nop.auth.dao.entity.NopAuthGroupDept"
-                         refPropName="group" tagSet="pub,cascade-delete,insertable,updatable"
-                         i18n-en:displayName="Department Mappings">
+                <to-many cascadeDelete="true" displayName="部门映射" name="deptMappings"
+                         refEntityName="io.nop.auth.dao.entity.NopAuthGroupDept" refPropName="group"
+                         tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="Department Mappings">
                     <join>
                         <on leftProp="groupId" rightProp="groupId"/>
                     </join>
                 </to-many>
-                <to-many displayName="用户映射" name="userMappings" refEntityName="io.nop.auth.dao.entity.NopAuthGroupUser"
-                         refPropName="group" tagSet="pub,cascade-delete,insertable,updatable"
-                         i18n-en:displayName="UserMappings">
+                <to-many cascadeDelete="true" displayName="用户映射" name="userMappings"
+                         refEntityName="io.nop.auth.dao.entity.NopAuthGroupUser" refPropName="group"
+                         tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="UserMappings">
                     <join>
                         <on leftProp="groupId" rightProp="groupId"/>
                     </join>

@@ -212,7 +212,7 @@ public class CascadeFlusher {
     void _cascadeEntity(IOrmEntity entity, boolean autoCascadeDelete) {
         OrmEntityState state = entity.orm_state();
 
-        // 如果是只读实体, 则没有必要递归查找。注意，只读实体的to-many集合中即使被修改，这里也不会察觉。
+        // 如果是只读实体, 则没有必要递归查找。注意，只读实体的to-many和to-one关联即使被修改，这里也不会察觉。
         if (entity.orm_readonly())
             return;
 
@@ -230,11 +230,10 @@ public class CascadeFlusher {
             session.internalSave(entity);
         }
 
-        IEntityModel entityModel = session.getEntityModel(entity.orm_entityName());
+        IEntityModel entityModel = entity.orm_entityModel();
         flushComponent(entity, entityModel);
 
         boolean deleting = state.isDeleting();
-
 
         for (IEntityRelationModel propModel : entityModel.getRelations()) {
             boolean deleteProp = deleting && propModel.isCascadeDelete();
@@ -244,12 +243,35 @@ public class CascadeFlusher {
                 if (coll != null) {
                     cascadeCollection(coll, deleteProp);
                 }
-            } else if(entity.orm_refLoaded(propModel.getName())){
+            } else if (entity.orm_refLoaded(propModel.getName())) {
                 IOrmEntity refEntity = entity.orm_refEntity(propModel.getName());
-                if (refEntity != null && refEntity.orm_state().isTransient()) {
-                    cascadeEntity(refEntity, false);
+                if (deleteProp) {
+                    cascadeDeleteEntity(entity, propModel.isAutoCascadeDelete());
+                } else {
+                    if (refEntity.orm_state().isTransient()) {
+                        cascadeEntity(refEntity, false);
+                    }
                 }
             }
+        }
+    }
+
+    void cascadeDeleteEntity(IOrmEntity entity, boolean autoCascadeDelete) {
+        if (entity.orm_proxy()) {
+            LOG.debug("nop.orm.cascade-delete-entity:entity={}", entity);
+            // 如果要删除的对象尚未加载，则将对象放入加载对象，并标记为待删除
+            waitDeletes.add(entity);
+            session.getBatchLoadQueue().enqueue(entity);
+        } else {
+            // gone包含deleting状态
+            if (!entity.orm_state().isGone()) {
+                LOG.debug("nop.orm.cascade-delete-entity:entity={}", entity);
+                session.internalDelete(entity);
+                // 此前可能已经遍历过，但是现在因为集合级联删除要把实体删除，则需要重新标记。
+                // 下面的cascadeEntity会处理针对此entity的级联删除的情况
+                entity.orm_flushVisiting(false);
+            }
+            cascadeEntity(entity, autoCascadeDelete);
         }
     }
 
@@ -284,22 +306,7 @@ public class CascadeFlusher {
 
                     // 如果已经和父元素解除了绑定则不会级联删除子元素。只有owner==parent的时候才需要被处理
                     if (isOrphan(entity, coll)) {
-                        if (entity.orm_proxy()) {
-                            LOG.debug("nop.orm.delete-orphan-entity:entity={}", entity);
-                            // 如果要删除的对象尚未加载，则将对象放入加载对象，并标记为待删除
-                            waitDeletes.add(entity);
-                            session.getBatchLoadQueue().enqueue(entity);
-                        } else {
-                            // gone包含deleting状态
-                            if (!entity.orm_state().isGone()) {
-                                LOG.debug("nop.orm.delete-orphan-entity:entity={}", entity);
-                                session.internalDelete(entity);
-                                // 此前可能已经遍历过，但是现在因为集合级联删除要把实体删除，则需要重新标记。
-                                // 下面的cascadeEntity会处理针对此entity的级联删除的情况
-                                entity.orm_flushVisiting(false);
-                            }
-                            cascadeEntity(entity, rel.isAutoCascadeDelete());
-                        }
+                        cascadeDeleteEntity(entity, rel.isAutoCascadeDelete());
                     }
                 }
             }

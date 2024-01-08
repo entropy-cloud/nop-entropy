@@ -214,6 +214,10 @@ public class OrmModelInitializer {
                         }
                     }
                 }
+
+                if(ref.containsTag(OrmModelConstants.TAG_CASCADE_DELETE)){
+                    ref.setCascadeDelete(true);
+                }
             }
 
             refMap.forEachEntry((list, propId) -> {

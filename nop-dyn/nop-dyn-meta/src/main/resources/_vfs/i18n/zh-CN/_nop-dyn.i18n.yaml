@@ -105,6 +105,7 @@ prop:
       extConfigComponent: null
       functionMetas: 函数定义
       isExternal: 是否外部实体
+      mainPagePath: 测试页面
       module: 所属模块
       module.displayName: 所属模块
       moduleId: 模块ID
@@ -116,7 +117,7 @@ prop:
       storeType: 存储类型
       storeType_label: 存储类型
       tableName: 表名
-      tagSet: 标签
+      tagsText: 标签
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
@@ -152,7 +153,8 @@ prop:
       relationName: 关联名
       remark: 备注
       status: 状态
-      tagSet: 标签
+      tableName: 中间表表名
+      tagsText: 标签
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
@@ -176,7 +178,7 @@ prop:
       source: 源码
       status: 状态
       status_label: 状态
-      tagSet: 标签
+      tagsText: 标签
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
@@ -191,6 +193,7 @@ prop:
       derivedModules: 派生模块
       displayName: 显示名
       entityMetas: 模块实体定义
+      importFile: 导入文件
       mavenGroupId: Maven组名
       moduleId: 模块ID
       moduleName: 模块名
@@ -252,12 +255,13 @@ prop:
       extConfigComponent: null
       isMandatory: 是否非空
       precision: 长度
+      propId: 属性编号
       propMetaId: 属性定义ID
       propName: 属性名
       refEntityName: 关联实体名
       refPropDisplayName: 关联属性显示名
       refPropName: 关联属性名
-      refTagSet: 关联属性标签
+      refSetSort: 关联集合排序条件
       remark: 备注
       scale: 小数位数
       status: 状态
@@ -266,7 +270,7 @@ prop:
       stdDomainName_label: 标准域
       stdSqlType: 标准SQL数据类型
       stdSqlType_label: 标准SQL数据类型
-      tagSet: 标签
+      tagsText: 标签
       uiControl: 显示控件
       uiShow: 显示控制
       updateTime: 修改时间

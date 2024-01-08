@@ -2,7 +2,29 @@
 <view x:extends="_gen/_NopDynEntityMeta.view.xml" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
     <grids>
-        <grid id="list"/>
+        <grid id="list">
+            <cols>
+                <col id="status" />
+                <col id="mainPagePath" >
+                    <gen-control>
+                        <button actionType="dialog" level="primary">
+                            <dialog title="测试页面" size="xl">
+                                <body>
+                                    <service>
+                                        <schemaApi url="/p/PageProvider__getPage" method="get">
+                                            <data>
+                                                <path>$mainPagePath</path>
+                                            </data>
+                                        </schemaApi>
+                                    </service>
+                                </body>
+                            </dialog>
+                        </button>
+                    </gen-control>
+                </col>
+            </cols>
+        </grid>
+
         <grid id="pick-list"/>
     </grids>
 

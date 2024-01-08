@@ -57,7 +57,7 @@
                         <actions>
                             <action id="cancel-button" label="取消" actionType="cancel"/>
 
-                            <action id="submit-button" label="提交" level="primary">
+                            <action id="submit-button" label="提交" level="primary" close="true" reload="crud-grid">
                                 <api url="@mutation:NopDynModule__importExcel/id"/>
                             </action>
                         </actions>
@@ -93,7 +93,7 @@
                     </action>
 
                     <action id="row-entity-list-button" label="实体列表" actionType="drawer">
-                        <visibleOn>this.status == 0</visibleOn>
+<!--                        <visibleOn>this.status == 0</visibleOn>-->
                         <dialog page="/nop/dyn/pages/NopDynEntityMeta/ref-module.page.yaml" size="xl">
                             <data>
                                 <moduleId>$moduleId</moduleId>
@@ -106,7 +106,7 @@
                     </action>
 
                     <action id="row-page-list-button" label="页面列表" actionType="drawer">
-                        <visibleOn>this.status == 0</visibleOn>
+<!--                        <visibleOn>this.status == 0</visibleOn>-->
                         <dialog page="/nop/dyn/pages/NopDynPage/ref-module.page.yaml" size="xl">
                             <data>
                                 <moduleId>$moduleId</moduleId>

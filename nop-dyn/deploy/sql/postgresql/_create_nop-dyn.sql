@@ -145,7 +145,7 @@ CREATE TABLE nop_dyn_entity_meta(
   TABLE_NAME VARCHAR(100)  ,
   QUERY_SPACE VARCHAR(100)  ,
   STORE_TYPE INT4 NOT NULL ,
-  TAG_SET VARCHAR(200)  ,
+  TAGS_TEXT VARCHAR(200)  ,
   IS_EXTERNAL BOOLEAN NOT NULL ,
   STATUS INT4 NOT NULL ,
   EXT_CONFIG VARCHAR(1000)  ,
@@ -167,18 +167,19 @@ CREATE TABLE nop_dyn_prop_meta(
   STD_SQL_TYPE VARCHAR(10) NOT NULL ,
   PRECISION INT4  ,
   SCALE INT4  ,
+  PROP_ID INT4 NOT NULL ,
   UI_SHOW VARCHAR(10)  ,
   UI_CONTROL VARCHAR(100)  ,
   DOMAIN_ID VARCHAR(32)  ,
   STD_DOMAIN_NAME VARCHAR(50)  ,
   DICT_NAME VARCHAR(100)  ,
   DYN_PROP_MAPPING VARCHAR(100)  ,
-  TAG_SET VARCHAR(200)  ,
+  TAGS_TEXT VARCHAR(200)  ,
   DEFAULT_VALUE VARCHAR(100)  ,
   REF_ENTITY_NAME VARCHAR(200)  ,
   REF_PROP_NAME VARCHAR(100)  ,
   REF_PROP_DISPLAY_NAME VARCHAR(100)  ,
-  REF_TAG_SET VARCHAR(200)  ,
+  REF_SET_SORT VARCHAR(200)  ,
   EXT_CONFIG VARCHAR(1000)  ,
   STATUS INT4 NOT NULL ,
   VERSION INT4 NOT NULL ,
@@ -199,7 +200,8 @@ CREATE TABLE nop_dyn_entity_relation_meta(
   ENTITY1_DISPLAY_NAME VARCHAR(100) NOT NULL ,
   ENTITY2_PROP_NAME VARCHAR(100)  ,
   ENTITY2_DISPLAY_NAME VARCHAR(100)  ,
-  TAG_SET VARCHAR(200)  ,
+  TABLE_NAME VARCHAR(100)  ,
+  TAGS_TEXT VARCHAR(200)  ,
   STATUS INT4 NOT NULL ,
   EXT_CONFIG VARCHAR(1000)  ,
   VERSION INT4 NOT NULL ,
@@ -220,7 +222,7 @@ CREATE TABLE nop_dyn_function_meta(
   RETURN_TYPE VARCHAR(100)  ,
   RETURN_GQL_TYPE VARCHAR(100)  ,
   STATUS INT4 NOT NULL ,
-  TAG_SET VARCHAR(200)  ,
+  TAGS_TEXT VARCHAR(200)  ,
   FUNC_META VARCHAR(4000)  ,
   SOURCE VARCHAR(4000) NOT NULL ,
   VERSION INT4 NOT NULL ,
@@ -477,7 +479,7 @@ CREATE TABLE nop_dyn_function_meta(
                     
       COMMENT ON COLUMN nop_dyn_entity_meta.STORE_TYPE IS '存储类型';
                     
-      COMMENT ON COLUMN nop_dyn_entity_meta.TAG_SET IS '标签';
+      COMMENT ON COLUMN nop_dyn_entity_meta.TAGS_TEXT IS '标签';
                     
       COMMENT ON COLUMN nop_dyn_entity_meta.IS_EXTERNAL IS '是否外部实体';
                     
@@ -515,6 +517,8 @@ CREATE TABLE nop_dyn_function_meta(
                     
       COMMENT ON COLUMN nop_dyn_prop_meta.SCALE IS '小数位数';
                     
+      COMMENT ON COLUMN nop_dyn_prop_meta.PROP_ID IS '属性编号';
+                    
       COMMENT ON COLUMN nop_dyn_prop_meta.UI_SHOW IS '显示控制';
                     
       COMMENT ON COLUMN nop_dyn_prop_meta.UI_CONTROL IS '显示控件';
@@ -527,7 +531,7 @@ CREATE TABLE nop_dyn_function_meta(
                     
       COMMENT ON COLUMN nop_dyn_prop_meta.DYN_PROP_MAPPING IS '动态字段映射';
                     
-      COMMENT ON COLUMN nop_dyn_prop_meta.TAG_SET IS '标签';
+      COMMENT ON COLUMN nop_dyn_prop_meta.TAGS_TEXT IS '标签';
                     
       COMMENT ON COLUMN nop_dyn_prop_meta.DEFAULT_VALUE IS '缺省值';
                     
@@ -537,7 +541,7 @@ CREATE TABLE nop_dyn_function_meta(
                     
       COMMENT ON COLUMN nop_dyn_prop_meta.REF_PROP_DISPLAY_NAME IS '关联属性显示名';
                     
-      COMMENT ON COLUMN nop_dyn_prop_meta.REF_TAG_SET IS '关联属性标签';
+      COMMENT ON COLUMN nop_dyn_prop_meta.REF_SET_SORT IS '关联集合排序条件';
                     
       COMMENT ON COLUMN nop_dyn_prop_meta.EXT_CONFIG IS '扩展配置';
                     
@@ -573,7 +577,9 @@ CREATE TABLE nop_dyn_function_meta(
                     
       COMMENT ON COLUMN nop_dyn_entity_relation_meta.ENTITY2_DISPLAY_NAME IS '实体2上属性显示名';
                     
-      COMMENT ON COLUMN nop_dyn_entity_relation_meta.TAG_SET IS '标签';
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.TABLE_NAME IS '中间表表名';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.TAGS_TEXT IS '标签';
                     
       COMMENT ON COLUMN nop_dyn_entity_relation_meta.STATUS IS '状态';
                     
@@ -609,7 +615,7 @@ CREATE TABLE nop_dyn_function_meta(
                     
       COMMENT ON COLUMN nop_dyn_function_meta.STATUS IS '状态';
                     
-      COMMENT ON COLUMN nop_dyn_function_meta.TAG_SET IS '标签';
+      COMMENT ON COLUMN nop_dyn_function_meta.TAGS_TEXT IS '标签';
                     
       COMMENT ON COLUMN nop_dyn_function_meta.FUNC_META IS '函数元数据';
                     

@@ -95,8 +95,4 @@ public class OrmAliasModel extends _OrmAliasModel implements IEntityAliasModel {
         return null;
     }
 
-    @Override
-    public Set<String> getTagSet() {
-        return null;
-    }
 }

@@ -5,7 +5,6 @@ import io.nop.dyn.dao.NopDynDaoConstants;
 import io.nop.dyn.dao.entity.NopDynEntityMeta;
 import io.nop.dyn.dao.entity.NopDynModule;
 import io.nop.dyn.dao.entity.NopDynPropMeta;
-import io.nop.orm.OrmConstants;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
@@ -55,7 +54,7 @@ public class OrmModelToDynEntityMeta {
 
     private void transformEntityMeta(IEntityModel entityModel, NopDynEntityMeta entityMeta) {
         entityMeta.setTableName(entityModel.getTableName());
-        entityMeta.setTagSet(StringHelper.join(entityModel.getTagSet(), ","));
+        entityMeta.setTagsText(StringHelper.join(entityModel.getTagSet(), ","));
         entityMeta.setRemark(entityModel.getComment());
         entityMeta.setDisplayName(entityModel.getDisplayName());
         entityMeta.setIsExternal(entityModel.containsTag(OrmModelConstants.TAG_NOT_GEN));
@@ -94,11 +93,12 @@ public class OrmModelToDynEntityMeta {
 
     void transformColumnMeta(IColumnModel col, NopDynPropMeta propMeta) {
         propMeta.setPropName(col.getName());
+        propMeta.setPropId(col.getPropId());
         propMeta.setStdSqlType(col.getStdSqlType().getName());
         propMeta.setPrecision(col.getPrecision());
         propMeta.setScale(col.getScale());
         propMeta.setDisplayName(col.getDisplayName());
-        propMeta.setTagSet(StringHelper.join(col.getTagSet(), ","));
+        propMeta.setTagSet(col.getTagSet());
         propMeta.setStdDomainName(col.getStdDomain());
         propMeta.setIsMandatory(col.isMandatory());
         propMeta.setRemark(col.getComment());

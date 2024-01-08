@@ -99,7 +99,7 @@
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-many displayName="任务状态变量" name="taskStates"
+                <to-many cascadeDelete="true" displayName="任务状态变量" name="taskStates"
                          refEntityName="io.nop.batch.dao.entity.NopBatchTaskState" refPropName="task"
                          tagSet="pub,cascade-delete" i18n-en:displayName="Task State Vars">
                     <join>

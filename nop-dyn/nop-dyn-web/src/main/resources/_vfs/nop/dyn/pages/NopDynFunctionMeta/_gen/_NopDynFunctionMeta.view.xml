@@ -32,7 +32,7 @@
                 <col id="status" mandatory="true" sortable="true"/>
 
                 <!--标签-->
-                <col id="tagSet" sortable="true"/>
+                <col id="tagsText" sortable="true"/>
 
                 <!--源码-->
                 <col id="source" mandatory="true" sortable="true"/>
@@ -62,7 +62,7 @@
  entityMetaId[实体定义ID] name[函数名]
  displayName[显示名] functionType[函数类型]
  returnType[返回类型] returnGqlType[GraphQL返回类型]
- status[状态] tagSet[标签]
+ status[状态] tagsText[标签]
  source[源码] 
                 createdBy[创建人]
  createTime[创建时间] updatedBy[修改人]
@@ -76,7 +76,7 @@
  entityMetaId[实体定义ID] name[函数名]
  displayName[显示名] functionType[函数类型]
  returnType[返回类型] returnGqlType[GraphQL返回类型]
- status[状态] tagSet[标签]
+ status[状态] tagsText[标签]
  source[源码] 
                 remark[备注]
 </layout>

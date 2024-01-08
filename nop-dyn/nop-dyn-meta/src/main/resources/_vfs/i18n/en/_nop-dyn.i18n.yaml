@@ -104,10 +104,11 @@ prop:
       querySpace: Query Space
       storeType: Store Type
       storeType_label: null
-      tagSet: Tag Set
+      tagsText: Tag Set
       isExternal: Is External
       status: Status
       status_label: null
+      mainPagePath: null
       extConfig: Ext Config
       version: Version
       createdBy: Created By
@@ -142,7 +143,8 @@ prop:
       entity1DisplayName: Entity1 Display Name
       entity2PropName: Entity2 Prop Name
       entity2DisplayName: Entity2 Display Name
-      tagSet: Tag Set
+      tableName: Table Name
+      tagsText: Tag Set
       status: Status
       extConfig: Ext Config
       version: Version
@@ -167,7 +169,7 @@ prop:
       returnGqlType: Return GraphQL Type
       status: Status
       status_label: null
-      tagSet: Tag Set
+      tagsText: Tag Set
       funcMeta: Function Meta
       source: Source
       version: Version
@@ -188,6 +190,7 @@ prop:
       baseModuleId: Base Module ID
       basePackageName: Base Package Name
       mavenGroupId: Maven Group Id
+      importFile: null
       status: Status
       status_label: null
       version: Version
@@ -245,6 +248,7 @@ prop:
       stdSqlType_label: null
       precision: PRECISION
       scale: Scale
+      propId: Prop Id
       uiShow: UI Show
       uiControl: UI Control
       domainId: Domain ID
@@ -253,12 +257,12 @@ prop:
       stdDomainName_label: null
       dictName: Dict Name
       dynPropMapping: Dynamic Property Mapping
-      tagSet: Tag Set
+      tagsText: Tag Set
       defaultValue: Default Value
       refEntityName: Ref Entity Name
       refPropName: Ref Property Name
       refPropDisplayName: Ref Property Display Name
-      refTagSet: Ref Tag Set
+      refSetSort: Ret Set Sort Expression
       extConfig: Ext Config
       status: Status
       status_label: null

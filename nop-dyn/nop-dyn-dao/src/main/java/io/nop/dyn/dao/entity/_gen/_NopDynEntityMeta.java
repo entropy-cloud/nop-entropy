@@ -48,9 +48,9 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     public static final String PROP_NAME_storeType = "storeType";
     public static final int PROP_ID_storeType = 7;
     
-    /* 标签: TAG_SET VARCHAR */
-    public static final String PROP_NAME_tagSet = "tagSet";
-    public static final int PROP_ID_tagSet = 8;
+    /* 标签: TAGS_TEXT VARCHAR */
+    public static final String PROP_NAME_tagsText = "tagsText";
+    public static final int PROP_ID_tagsText = 8;
     
     /* 是否外部实体: IS_EXTERNAL BOOLEAN */
     public static final String PROP_NAME_isExternal = "isExternal";
@@ -133,8 +133,8 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_storeType] = PROP_NAME_storeType;
           PROP_NAME_TO_ID.put(PROP_NAME_storeType, PROP_ID_storeType);
       
-          PROP_ID_TO_NAME[PROP_ID_tagSet] = PROP_NAME_tagSet;
-          PROP_NAME_TO_ID.put(PROP_NAME_tagSet, PROP_ID_tagSet);
+          PROP_ID_TO_NAME[PROP_ID_tagsText] = PROP_NAME_tagsText;
+          PROP_NAME_TO_ID.put(PROP_NAME_tagsText, PROP_ID_tagsText);
       
           PROP_ID_TO_NAME[PROP_ID_isExternal] = PROP_NAME_isExternal;
           PROP_NAME_TO_ID.put(PROP_NAME_isExternal, PROP_ID_isExternal);
@@ -187,8 +187,8 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /* 存储类型: STORE_TYPE */
     private java.lang.Integer _storeType;
     
-    /* 标签: TAG_SET */
-    private java.lang.String _tagSet;
+    /* 标签: TAGS_TEXT */
+    private java.lang.String _tagsText;
     
     /* 是否外部实体: IS_EXTERNAL */
     private java.lang.Boolean _isExternal;
@@ -309,8 +309,8 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
             case PROP_ID_storeType:
                return getStoreType();
         
-            case PROP_ID_tagSet:
-               return getTagSet();
+            case PROP_ID_tagsText:
+               return getTagsText();
         
             case PROP_ID_isExternal:
                return getIsExternal();
@@ -420,13 +420,13 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_tagSet:{
+            case PROP_ID_tagsText:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_tagSet));
+                       err-> newTypeConversionError(PROP_NAME_tagsText));
                }
-               setTagSet(typedValue);
+               setTagsText(typedValue);
                break;
             }
         
@@ -578,9 +578,9 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_tagSet:{
+            case PROP_ID_tagsText:{
                onInitProp(propId);
-               this._tagSet = (java.lang.String)value;
+               this._tagsText = (java.lang.String)value;
                
                break;
             }
@@ -788,20 +788,20 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     }
     
     /**
-     * 标签: TAG_SET
+     * 标签: TAGS_TEXT
      */
-    public java.lang.String getTagSet(){
-         onPropGet(PROP_ID_tagSet);
-         return _tagSet;
+    public java.lang.String getTagsText(){
+         onPropGet(PROP_ID_tagsText);
+         return _tagsText;
     }
 
     /**
-     * 标签: TAG_SET
+     * 标签: TAGS_TEXT
      */
-    public void setTagSet(java.lang.String value){
-        if(onPropSet(PROP_ID_tagSet,value)){
-            this._tagSet = value;
-            internalClearRefs(PROP_ID_tagSet);
+    public void setTagsText(java.lang.String value){
+        if(onPropSet(PROP_ID_tagsText,value)){
+            this._tagsText = value;
+            internalClearRefs(PROP_ID_tagsText);
             
         }
     }

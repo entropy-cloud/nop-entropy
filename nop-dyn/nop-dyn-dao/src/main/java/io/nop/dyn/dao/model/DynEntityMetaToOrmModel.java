@@ -5,6 +5,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
+import io.nop.commons.util.TagsHelper;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.dao.api.DaoProvider;
 import io.nop.dyn.dao.NopDynDaoConstants;
@@ -101,23 +102,36 @@ public class DynEntityMetaToOrmModel {
         ret.setName(entityMeta.getEntityName());
         ret.setDisplayName(entityMeta.getDisplayName());
         ret.setTableName(entityMeta.forceGetTableName());
-        ret.setTagSet(ConvertHelper.toCsvSet(entityMeta.getTagSet()));
+        ret.setTagSet(ConvertHelper.toCsvSet(entityMeta.getTagsText()));
         ret.setRegisterShortName(true);
         ret.setUseTenant(dynEntityModel.isUseTenant());
         ret.setComment(entityMeta.getRemark());
 
         // 强制使用sid作为主键，从而简化用户层面的配置
-        IColumnModel idCol = dynEntityModel.getColumn(NopDynEntity.PROP_NAME_sid, false);
-        forceAddCol(ret, idCol);
+        OrmColumnModel idCol = forceAddCol(ret, dynEntityModel.getColumn(NopDynEntity.PROP_NAME_sid, false));
+        idCol.prop_set(OrmModelConstants.EXT_UI_SHOW, "X");
 
         if (entityMeta.getStoreType() == NopDynDaoConstants.ENTITY_STORE_TYPE_VIRTUAL) {
             buildVirtualEntityModel(ret, entityMeta);
+            addStdColumns(ret);
         } else {
             buildRealEntityModel(ret, entityMeta);
+            addStdColumns(ret);
+            normalizePropIds(ret);
         }
 
-        addStdColumns(ret);
         return ret;
+    }
+
+    protected void normalizePropIds(OrmEntityModel entityModel) {
+        int nextPropId = 1;
+        for (OrmColumnModel col : entityModel.getColumns()) {
+            int colPropId = col.getPropId();
+            if (colPropId < nextPropId) {
+                colPropId = nextPropId++;
+                col.setPropId(colPropId);
+            }
+        }
     }
 
     protected void addStdColumns(OrmEntityModel entityModel) {
@@ -130,7 +144,7 @@ public class DynEntityMetaToOrmModel {
         forceAddCol(entityModel, versionProp);
         entityModel.setVersionProp(versionProp.getName());
 
-        if(dynEntityModel.getTenantColumn() != null) {
+        if (dynEntityModel.getTenantColumn() != null) {
             forceAddCol(entityModel, dynEntityModel.getTenantColumn());
             entityModel.setTenantProp(dynEntityModel.getTenantColumn().getName());
         }
@@ -148,13 +162,14 @@ public class DynEntityMetaToOrmModel {
         entityModel.setUpdaterProp(updatedByProp.getName());
     }
 
-    private void forceAddCol(OrmEntityModel entityModel, IColumnModel stdCol) {
+    private OrmColumnModel forceAddCol(OrmEntityModel entityModel, IColumnModel stdCol) {
         OrmColumnModel col = entityModel.getColumn(stdCol.getName());
         if (col == null) {
             col = ((OrmColumnModel) stdCol).cloneInstance();
             col.setDomain(null);
             entityModel.addColumn(col);
         }
+        return col;
     }
 
     protected void buildRealEntityModel(OrmEntityModel entityModel, NopDynEntityMeta entityMeta) {
@@ -175,8 +190,9 @@ public class DynEntityMetaToOrmModel {
         filters.add(OrmEntityFilterModel.of(NopDynEntity.PROP_NAME_nopObjType, entityMeta.getBizObjName()));
         entityModel.setFilters(filters);
 
-        IColumnModel objTypeCol = dynEntityModel.getColumn(NopDynEntity.PROP_NAME_nopObjType, false);
-        forceAddCol(entityModel, objTypeCol);
+        OrmColumnModel objTypeCol = forceAddCol(entityModel,
+                dynEntityModel.getColumn(NopDynEntity.PROP_NAME_nopObjType, false));
+        objTypeCol.setTagSet(TagsHelper.add(objTypeCol.getTagSet(), OrmModelConstants.TAG_NOT_PUB));
 
         entityMeta.getPropMetas().forEach(propMeta -> {
             if (propMeta.getDynPropMapping() != null && !propMeta.getPropName().equals(propMeta.getDynPropMapping())) {
@@ -186,13 +202,15 @@ public class DynEntityMetaToOrmModel {
                             .param(ARG_ENTITY_NAME, entityMeta.getEntityName())
                             .param(ARG_PROP_NAME, propMeta.getPropName())
                             .param(ARG_PROP_MAPPING, propMeta.getDynPropMapping());
-                entityModel.addColumn(((OrmColumnModel) col).cloneInstance());
+                OrmColumnModel baseCol = ((OrmColumnModel) col).cloneInstance();
+                entityModel.addColumn(baseCol);
                 entityModel.addAlias(toAliasModel(propMeta));
             } else {
                 if (STD_PROPS.contains(propMeta.getPropName()))
                     return;
 
                 OrmAliasModel propModel = toAliasModel(propMeta);
+                propModel.setTagSet(TagsHelper.add(propModel.getTagSet(), OrmModelConstants.TAG_EAGER));
                 propModel.setPropPath(buildVirtualPropPath(propModel));
                 entityModel.addAlias(propModel);
                 if (propMeta.getRefEntityName() != null) {
@@ -222,7 +240,7 @@ public class DynEntityMetaToOrmModel {
         ret.setRefEntityName(propMeta.getRefEntityName());
         ret.setRefPropName(propMeta.getRefPropName());
         ret.setRefDisplayName(propMeta.getRefPropDisplayName());
-        ret.setTagSet(StringHelper.parseCsvSet(propMeta.getTagSet()));
+        ret.setTagSet(propMeta.getTagSet());
 
         List<OrmJoinOnModel> join = new ArrayList<>(1);
         OrmJoinOnModel joinOn = new OrmJoinOnModel();
@@ -249,7 +267,7 @@ public class DynEntityMetaToOrmModel {
         OrmAliasModel ret = new OrmAliasModel();
         ret.setName(propMeta.getPropName());
         ret.setDisplayName(propMeta.getDisplayName());
-        ret.setTagSet(StringHelper.parseCsvSet(propMeta.getTagSet()));
+        ret.setTagSet(TagsHelper.add(propMeta.getTagSet(), OrmModelConstants.TAG_EAGER));
 
         StdSqlType sqlType = toStdSqlType(propMeta.getStdSqlType());
         ret.setType(ReflectionManager.instance().buildRawType(sqlType.getStdDataType().getJavaClass()));
@@ -261,7 +279,7 @@ public class DynEntityMetaToOrmModel {
         OrmColumnModel ret = new OrmColumnModel();
         ret.setName(propMeta.getPropName());
         ret.setCode(StringHelper.camelCaseToUnderscore(propMeta.getPropName(), false));
-        Set<String> tagSet = StringHelper.parseCsvSet(propMeta.getTagSet());
+        Set<String> tagSet = propMeta.getTagSet();
         ret.setTagSet(tagSet);
         ret.setComment(propMeta.getRemark());
 
@@ -270,6 +288,7 @@ public class DynEntityMetaToOrmModel {
 
         ret.setDefaultValue(propMeta.getDefaultValue());
         ret.setStdDomain(propMeta.getStdDomainName());
+        ret.setPropId(propMeta.getPropId());
 
         StdSqlType sqlType = toStdSqlType(propMeta.getStdSqlType());
         ret.setStdSqlType(sqlType);

@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopDynEntityMeta.xmeta"
-    xmlns:ui="ui">
+      xmlns:ui="ui">
 
     <props>
         <prop name="entityName" ui:filterOp="contains" allowFilterOp="contains,eq,in">
             <schema stdDomain="class-name"/>
+        </prop>
+
+        <prop name="status"/>
+
+        <prop name="mainPagePath" displayName="测试页面">
+            <schema stdDomain="string"/>
         </prop>
     </props>
 </meta>

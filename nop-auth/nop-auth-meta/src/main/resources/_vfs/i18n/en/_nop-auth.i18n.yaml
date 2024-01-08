@@ -4,6 +4,7 @@ entity:
     NopAuthExtLogin: Ext Login
     NopAuthGroup: User Group
     NopAuthGroupDept: Group Department
+    NopAuthGroupUser: Group User
     NopAuthOpLog: Operation Log
     NopAuthPosition: Position
     NopAuthResource: Menu Resource
@@ -100,6 +101,19 @@ prop:
       remark: Remark
       dept: User
       dept.deptName: User
+      group: Group
+      group.name: Group
+    NopAuthGroupUser:
+      userId: USER ID
+      groupId: Group ID
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      user: User
+      user.userName: User
       group: Group
       group.name: Group
     NopAuthOpLog:

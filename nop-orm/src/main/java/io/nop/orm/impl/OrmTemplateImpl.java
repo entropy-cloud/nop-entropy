@@ -246,7 +246,7 @@ public class OrmTemplateImpl extends AbstractSqlExecutor implements IOrmTemplate
         }
         return ContextProvider.thenOnContext(future).whenComplete((ret, err) -> {
             try {
-                if (err != null) {
+                if (err == null) {
                     session.flush();
                 }
             } finally {

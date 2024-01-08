@@ -110,7 +110,7 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>
-                <to-many displayName="工作流定义权限" name="definitionAuths"
+                <to-many cascadeDelete="true" displayName="工作流定义权限" name="definitionAuths"
                          refEntityName="io.nop.wf.dao.entity.NopWfDefinitionAuth" refPropName="wfDefinition"
                          tagSet="pub,grid,cascade-delete,insertable,updatable" i18n-en:displayName="Definition Auths">
                     <join>
@@ -267,26 +267,27 @@
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-many name="statusHistories" refEntityName="io.nop.wf.dao.entity.NopWfStatusHistory"
+                <to-many cascadeDelete="true" name="statusHistories"
+                         refEntityName="io.nop.wf.dao.entity.NopWfStatusHistory" refPropName="wfInstance"
+                         tagSet="pub,cascade-delete">
+                    <join>
+                        <on leftProp="wfId" rightProp="wfId"/>
+                    </join>
+                </to-many>
+                <to-many cascadeDelete="true" name="steps" refEntityName="io.nop.wf.dao.entity.NopWfStepInstance"
                          refPropName="wfInstance" tagSet="pub,cascade-delete">
                     <join>
                         <on leftProp="wfId" rightProp="wfId"/>
                     </join>
                 </to-many>
-                <to-many name="steps" refEntityName="io.nop.wf.dao.entity.NopWfStepInstance" refPropName="wfInstance"
-                         tagSet="pub,cascade-delete">
+                <to-many cascadeDelete="true" name="outputs" refEntityName="io.nop.wf.dao.entity.NopWfOutput"
+                         refPropName="wfInstance" tagSet="pub,cascade-delete">
                     <join>
                         <on leftProp="wfId" rightProp="wfId"/>
                     </join>
                 </to-many>
-                <to-many name="outputs" refEntityName="io.nop.wf.dao.entity.NopWfOutput" refPropName="wfInstance"
-                         tagSet="pub,cascade-delete">
-                    <join>
-                        <on leftProp="wfId" rightProp="wfId"/>
-                    </join>
-                </to-many>
-                <to-many name="globalVars" refEntityName="io.nop.wf.dao.entity.NopWfVar" refPropName="wfInstance"
-                         tagSet="pub,cascade-delete">
+                <to-many cascadeDelete="true" name="globalVars" refEntityName="io.nop.wf.dao.entity.NopWfVar"
+                         refPropName="wfInstance" tagSet="pub,cascade-delete">
                     <join>
                         <on leftProp="wfId" rightProp="wfId"/>
                     </join>
@@ -477,19 +478,21 @@
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-many name="nextLinks" refEntityName="io.nop.wf.dao.entity.NopWfStepInstanceLink"
-                         refPropName="wfStep" tagSet="pub,cascade-delete">
+                <to-many cascadeDelete="true" name="nextLinks"
+                         refEntityName="io.nop.wf.dao.entity.NopWfStepInstanceLink" refPropName="wfStep"
+                         tagSet="pub,cascade-delete">
                     <join>
                         <on leftProp="stepId" rightProp="stepId"/>
                     </join>
                 </to-many>
-                <to-many name="prevLinks" refEntityName="io.nop.wf.dao.entity.NopWfStepInstanceLink"
-                         refPropName="nextWfStep" tagSet="pub,cascade-delete">
+                <to-many cascadeDelete="true" name="prevLinks"
+                         refEntityName="io.nop.wf.dao.entity.NopWfStepInstanceLink" refPropName="nextWfStep"
+                         tagSet="pub,cascade-delete">
                     <join>
                         <on leftProp="stepId" rightProp="nextStepId"/>
                     </join>
                 </to-many>
-                <to-many name="stepActions" refEntityName="io.nop.wf.dao.entity.NopWfAction"
+                <to-many cascadeDelete="true" name="stepActions" refEntityName="io.nop.wf.dao.entity.NopWfAction"
                          refPropName="wfStepInstance" tagSet="pub,cascade-delete">
                     <join>
                         <on leftProp="stepId" rightProp="stepId"/>

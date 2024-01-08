@@ -36,6 +36,14 @@ public interface OrmModelConstants {
 
     String TAG_NOT_GEN = "not-gen";
 
+    String TAG_NOT_PUB = "not-pub";
+
+    String TAG_LAZY = "lazy";
+
+    String TAG_EAGER = "eager";
+
+    String TAG_CASCADE_DELETE = "cascade-delete";
+
 
     /**
      * 在to-one关联的tagSet可以通过ref-xxx来为一对多一侧的关联对象指定tagSet。在orm模型中，可以只在to-one一侧定义关联对象，在OrmModel

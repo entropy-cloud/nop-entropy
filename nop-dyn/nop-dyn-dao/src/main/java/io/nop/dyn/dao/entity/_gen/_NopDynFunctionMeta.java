@@ -52,9 +52,9 @@ public class _NopDynFunctionMeta extends DynamicOrmEntity{
     public static final String PROP_NAME_status = "status";
     public static final int PROP_ID_status = 8;
     
-    /* 标签: TAG_SET VARCHAR */
-    public static final String PROP_NAME_tagSet = "tagSet";
-    public static final int PROP_ID_tagSet = 9;
+    /* 标签: TAGS_TEXT VARCHAR */
+    public static final String PROP_NAME_tagsText = "tagsText";
+    public static final int PROP_ID_tagsText = 9;
     
     /* 函数元数据: FUNC_META VARCHAR */
     public static final String PROP_NAME_funcMeta = "funcMeta";
@@ -130,8 +130,8 @@ public class _NopDynFunctionMeta extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
           PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
       
-          PROP_ID_TO_NAME[PROP_ID_tagSet] = PROP_NAME_tagSet;
-          PROP_NAME_TO_ID.put(PROP_NAME_tagSet, PROP_ID_tagSet);
+          PROP_ID_TO_NAME[PROP_ID_tagsText] = PROP_NAME_tagsText;
+          PROP_NAME_TO_ID.put(PROP_NAME_tagsText, PROP_ID_tagsText);
       
           PROP_ID_TO_NAME[PROP_ID_funcMeta] = PROP_NAME_funcMeta;
           PROP_NAME_TO_ID.put(PROP_NAME_funcMeta, PROP_ID_funcMeta);
@@ -184,8 +184,8 @@ public class _NopDynFunctionMeta extends DynamicOrmEntity{
     /* 状态: STATUS */
     private java.lang.Integer _status;
     
-    /* 标签: TAG_SET */
-    private java.lang.String _tagSet;
+    /* 标签: TAGS_TEXT */
+    private java.lang.String _tagsText;
     
     /* 函数元数据: FUNC_META */
     private java.lang.String _funcMeta;
@@ -306,8 +306,8 @@ public class _NopDynFunctionMeta extends DynamicOrmEntity{
             case PROP_ID_status:
                return getStatus();
         
-            case PROP_ID_tagSet:
-               return getTagSet();
+            case PROP_ID_tagsText:
+               return getTagsText();
         
             case PROP_ID_funcMeta:
                return getFuncMeta();
@@ -424,13 +424,13 @@ public class _NopDynFunctionMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_tagSet:{
+            case PROP_ID_tagsText:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_tagSet));
+                       err-> newTypeConversionError(PROP_NAME_tagsText));
                }
-               setTagSet(typedValue);
+               setTagsText(typedValue);
                break;
             }
         
@@ -579,9 +579,9 @@ public class _NopDynFunctionMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_tagSet:{
+            case PROP_ID_tagsText:{
                onInitProp(propId);
-               this._tagSet = (java.lang.String)value;
+               this._tagsText = (java.lang.String)value;
                
                break;
             }
@@ -801,20 +801,20 @@ public class _NopDynFunctionMeta extends DynamicOrmEntity{
     }
     
     /**
-     * 标签: TAG_SET
+     * 标签: TAGS_TEXT
      */
-    public java.lang.String getTagSet(){
-         onPropGet(PROP_ID_tagSet);
-         return _tagSet;
+    public java.lang.String getTagsText(){
+         onPropGet(PROP_ID_tagsText);
+         return _tagsText;
     }
 
     /**
-     * 标签: TAG_SET
+     * 标签: TAGS_TEXT
      */
-    public void setTagSet(java.lang.String value){
-        if(onPropSet(PROP_ID_tagSet,value)){
-            this._tagSet = value;
-            internalClearRefs(PROP_ID_tagSet);
+    public void setTagsText(java.lang.String value){
+        if(onPropSet(PROP_ID_tagsText,value)){
+            this._tagsText = value;
+            internalClearRefs(PROP_ID_tagsText);
             
         }
     }

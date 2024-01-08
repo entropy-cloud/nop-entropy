@@ -144,9 +144,9 @@
             </c:script>
             <prop name="${alias.name}" displayName="${alias.displayName}"
                   i18n-en:displayName="${alias['i18n-en:displayName']}" tagSet="${_.join(alias.tagSet,',')}"
-                  ext:kind="alias" internal="true" ui:control="${alias['ui:control']}"
+                  ext:kind="alias" internal="${alias.tagSet?.contains('sys')}" ui:control="${alias['ui:control']}"
                   insertable="${insertable}" updatable="${updatable}"
-                  mandatory="${alias.mandatory || null}" lazy="true"
+                  mandatory="${alias.mandatory || null}" lazy="${alias.tagSet?.contains('eager')?false:true}"
                   published="${alias.tagSet?.contains('not-pub') ? false : null}">
                 <schema type="${alias.javaTypeName}"/>
             </prop>

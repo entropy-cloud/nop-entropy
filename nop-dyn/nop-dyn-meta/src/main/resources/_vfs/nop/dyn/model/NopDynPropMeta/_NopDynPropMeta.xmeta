@@ -19,6 +19,10 @@
 
     <keys/>
 
+    <orderBy>
+        <field name="propId" desc="false"/>
+    </orderBy>
+
     <props>
         <prop name="propMetaId" displayName="属性定义ID" i18n-en:displayName="Prop Meta ID" tagSet="seq" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
@@ -52,6 +56,10 @@
               insertable="true" updatable="true" defaultValue="0">
             <schema type="java.lang.Integer"/>
         </prop>
+        <prop name="propId" displayName="属性编号" i18n-en:displayName="Prop Id" tagSet="sort" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
         <prop name="uiShow" displayName="显示控制" i18n-en:displayName="UI Show" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="10"/>
@@ -76,7 +84,7 @@
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="tagSet" displayName="标签" i18n-en:displayName="Tag Set" queryable="true" sortable="true"
+        <prop name="tagsText" displayName="标签" i18n-en:displayName="Tag Set" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
@@ -96,8 +104,8 @@
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="refTagSet" displayName="关联属性标签" i18n-en:displayName="Ref Tag Set" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="refSetSort" displayName="关联集合排序条件" i18n-en:displayName="Ret Set Sort Expression" queryable="true"
+              sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
         <prop name="extConfig" displayName="扩展配置" i18n-en:displayName="Ext Config" queryable="true" sortable="true"
