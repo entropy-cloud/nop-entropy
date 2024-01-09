@@ -47,13 +47,15 @@ import static io.nop.dyn.dao.NopDynDaoErrors.ERR_DYN_VIRTUAL_ENTITY_PROP_MAPPING
 
 public class DynEntityMetaToOrmModel {
     private final IEntityModel dynEntityModel;
+    private final boolean forceRealTable;
 
     static final List<String> STD_PROPS = Arrays.asList(NopDynEntity.PROP_NAME_version,
             NopDynEntity.PROP_NAME_createdBy, NopDynEntity.PROP_NAME_createTime,
             NopDynEntity.PROP_NAME_updatedBy, NopDynEntity.PROP_NAME_updateTime);
 
-    public DynEntityMetaToOrmModel() {
+    public DynEntityMetaToOrmModel(boolean forceRealTable) {
         this.dynEntityModel = ((IOrmEntityDao<?>) DaoProvider.instance().daoFor(NopDynEntity.class)).getEntityModel();
+        this.forceRealTable = forceRealTable;
     }
 
     public OrmModel transformModule(NopDynModule module) {
@@ -111,8 +113,9 @@ public class DynEntityMetaToOrmModel {
         OrmColumnModel idCol = forceAddCol(ret, dynEntityModel.getColumn(NopDynEntity.PROP_NAME_sid, false));
         idCol.prop_set(OrmModelConstants.EXT_UI_SHOW, "X");
 
-        if (entityMeta.getStoreType() == NopDynDaoConstants.ENTITY_STORE_TYPE_VIRTUAL) {
+        if (!forceRealTable && entityMeta.getStoreType() == NopDynDaoConstants.ENTITY_STORE_TYPE_VIRTUAL) {
             buildVirtualEntityModel(ret, entityMeta);
+            // 动态表的propId使用的是NopDynEntity实体已经定义的propId，不可能重复
             addStdColumns(ret);
         } else {
             buildRealEntityModel(ret, entityMeta);
@@ -126,11 +129,7 @@ public class DynEntityMetaToOrmModel {
     protected void normalizePropIds(OrmEntityModel entityModel) {
         int nextPropId = 1;
         for (OrmColumnModel col : entityModel.getColumns()) {
-            int colPropId = col.getPropId();
-            if (colPropId < nextPropId) {
-                colPropId = nextPropId++;
-                col.setPropId(colPropId);
-            }
+            col.setPropId(nextPropId++);
         }
     }
 

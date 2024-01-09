@@ -59,7 +59,7 @@ Engine）、任务调度引擎(Job Scheduler)、批处理引擎（Batch Prcessin
 | nop-cli         | 将代码生成器、文件监听等功能封装为命令行工具    | 基本可用 |
 | nop-cluster     | 分布式集群支持                   | 50%  |
 | nop-tcc         | 分布式事务                     | 50%  |
-| nop-dyn         | 在线设计表单和数据模型、服务函数          | 20%  |
+| nop-dyn         | 在线设计表单和数据模型、服务函数          | 40%  |
 | nop-workflow    | 工作流引擎                     | 65%  |
 | nop-task        | 逻辑流编排                     | 30%  |
 | nop-job         | 分布式任务调度                   | 40%  |
@@ -70,7 +70,7 @@ Engine）、任务调度引擎(Job Scheduler)、批处理引擎（Batch Prcessin
 | nop-stream      | 简化的流处理，可以集成Flink          | 0%   |
 | nop-netty       | TCP/IP服务处理框架              | 0%   |
 | nop-datav       | BI数据分析                    | 0%   |
-| nop-gpt         | 与AI大模型集成，实现AIGC        | 0%   |
+| nop-gpt         | 与AI大模型集成，实现AIGC        | 1%   |
 | nop-js          | GraalVM Js引擎封装，在Java中运行JS | 50%  |
 | nop-integration | 邮件、短信、文件服务等外部服务封装         | 30%  |
 | nop-auth        | 用户权限管理                    | 已完成  |

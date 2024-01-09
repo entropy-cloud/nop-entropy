@@ -76,7 +76,7 @@ public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> {
 
         NopDynModule entity = get(id, false, context);
 
-        OrmModel model = new DynEntityMetaToOrmModel().transformModule(entity);
+        OrmModel model = new DynEntityMetaToOrmModel(true).transformModule(entity);
 
         String fileName = entity.getModuleName() + ".orm.xlsx";
 

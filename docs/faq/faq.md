@@ -265,6 +265,53 @@ ext名字空间一般用于临时添加扩展属性。如果该扩展属性经�
 如果使用了ORM引擎，理想情况下我们可以仅在实体层面进行操作，然后ORM引擎自动跟踪这些实体的当前属性值，并自动计算出它们和数据库中表数据之间的差量，
 然后自动将差量转化为相应的SQL语句。整个过程类似于前台的虚拟DOM Diff过程。
 
+## 19. 新生成的一个xx-meta模块为什么src目录下时钟为空，没有根据orm.xml生成meta文件？
+
+meta文件是通过exec-maven-plugin插件执行postcompile代码生成模板来自动生成的。因此pom文件中必须配置这个plugin。
+一般情况下我们选择从nop-entropy的pom文件继承，从而减少maven插件的配置
+
+````xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <parent>
+        <artifactId>nop-entropy</artifactId>
+        <groupId>io.github.entropy-cloud</groupId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+      ...
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <configuration>
+                    <classpathScope>test</classpathScope>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+````
+
+## 20. Java类的函数上增加了`@SingleSession`和`@Transactional`等注解，为什么没有自动生成对应的aop类？
+生成aop是通过exec-maven-plugin触发aop代码生成实现的。因此pom文件中必须配置exec-maven-plugin插件，如果是
+从nop-entropy的根pom继承，则只需要引入exec-maven-plugin插件即可
+
+````xml
+   <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <configuration>
+                    <classpathScope>test</classpathScope>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+````
 
 # 部署问题
 

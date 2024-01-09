@@ -109,7 +109,7 @@ public class DynCodeGen {
     public InMemoryResourceStore genModuleCoreFiles(NopDynModule module) {
         batchLoadModule(module);
 
-        DynEntityMetaToOrmModel trans = new DynEntityMetaToOrmModel();
+        DynEntityMetaToOrmModel trans = new DynEntityMetaToOrmModel(false);
         OrmModel ormModel = trans.transformModule(module);
 
         for (NopDynEntityMeta entityMeta : module.getEntityMetas()) {
