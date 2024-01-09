@@ -49,30 +49,30 @@ CREATE TABLE nop_dyn_domain(
 CREATE TABLE nop_dyn_entity(
   SID VARCHAR(32) NOT NULL ,
   NOP_OBJ_TYPE VARCHAR(100) NOT NULL ,
-  NAME VARCHAR(100)  ,
-  DISPLAY_NAME VARCHAR(500)  ,
-  SORT_ORDER INT4  ,
+  NOP_NAME VARCHAR(100)  ,
+  NOP_DISPLAY_NAME VARCHAR(500)  ,
+  NOP_SORT_ORDER INT4  ,
   NOP_FLOW_ID VARCHAR(32)  ,
-  BIZ_STATUS INT4  ,
-  BIZ_STATE VARCHAR(50)  ,
-  PARENT_ID VARCHAR(32)  ,
-  OWNER_NAME VARCHAR(50)  ,
-  OWNER_ID VARCHAR(50)  ,
-  DEPT_ID VARCHAR(50)  ,
-  STRING_FLD1 VARCHAR(4000)  ,
-  DECIMAL_FLD1 NUMERIC(30,6)  ,
-  INT_FLD1 INT4  ,
-  LONG_FLD1 INT8  ,
-  DATE_FLD1 DATE  ,
-  TIMESTAMP_FLD1 TIMESTAMP  ,
-  FILE_FLD1 VARCHAR(200)  ,
-  STRING_FLD2 VARCHAR(4000)  ,
-  DECIMAL_FLD2 NUMERIC(30,6)  ,
-  INT_FLD2 INT4  ,
-  LONG_FLD2 INT8  ,
-  DATE_FLD2 DATE  ,
-  TIMESTAMP_FLD2 TIMESTAMP  ,
-  FILE_FLD2 VARCHAR(200)  ,
+  NOP_STATUS INT4  ,
+  NOP_BIZ_STATE VARCHAR(50)  ,
+  NOP_PARENT_ID VARCHAR(32)  ,
+  NOP_OWNER_NAME VARCHAR(50)  ,
+  NOP_OWNER_ID VARCHAR(50)  ,
+  NOP_DEPT_ID VARCHAR(50)  ,
+  NOP_STRING_FLD1 VARCHAR(4000)  ,
+  NOP_DECIMAL_FLD1 NUMERIC(30,6)  ,
+  NOP_INT_FLD1 INT4  ,
+  NOP_LONG_FLD1 INT8  ,
+  NOP_DATE_FLD1 DATE  ,
+  NOP_TIMESTAMP_FLD1 TIMESTAMP  ,
+  NOP_FILE_FLD1 VARCHAR(200)  ,
+  NOP_STRING_FLD2 VARCHAR(4000)  ,
+  NOP_DECIMAL_FLD2 NUMERIC(30,6)  ,
+  NOP_INT_FLD2 INT4  ,
+  NOP_LONG_FLD2 INT8  ,
+  NOP_DATE_FLD2 DATE  ,
+  NOP_TIMESTAMP_FLD2 TIMESTAMP  ,
+  NOP_FILE_FLD2 VARCHAR(200)  ,
   VERSION INT4 NOT NULL ,
   CREATED_BY VARCHAR(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
@@ -317,53 +317,53 @@ CREATE TABLE nop_dyn_function_meta(
                     
       COMMENT ON COLUMN nop_dyn_entity.NOP_OBJ_TYPE IS '对象类型';
                     
-      COMMENT ON COLUMN nop_dyn_entity.NAME IS '名称';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_NAME IS '名称';
                     
-      COMMENT ON COLUMN nop_dyn_entity.DISPLAY_NAME IS '显示名称';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_DISPLAY_NAME IS '显示名称';
                     
-      COMMENT ON COLUMN nop_dyn_entity.SORT_ORDER IS '排序';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_SORT_ORDER IS '排序';
                     
       COMMENT ON COLUMN nop_dyn_entity.NOP_FLOW_ID IS '工作流实例ID';
                     
-      COMMENT ON COLUMN nop_dyn_entity.BIZ_STATUS IS '业务状态码';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_STATUS IS '业务状态码';
                     
-      COMMENT ON COLUMN nop_dyn_entity.BIZ_STATE IS '业务状态';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_BIZ_STATE IS '业务状态';
                     
-      COMMENT ON COLUMN nop_dyn_entity.PARENT_ID IS '父ID';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_PARENT_ID IS '父ID';
                     
-      COMMENT ON COLUMN nop_dyn_entity.OWNER_NAME IS '拥有者姓名';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_OWNER_NAME IS '拥有者姓名';
                     
-      COMMENT ON COLUMN nop_dyn_entity.OWNER_ID IS '拥有者ID';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_OWNER_ID IS '拥有者ID';
                     
-      COMMENT ON COLUMN nop_dyn_entity.DEPT_ID IS '部门ID';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_DEPT_ID IS '部门ID';
                     
-      COMMENT ON COLUMN nop_dyn_entity.STRING_FLD1 IS '字符串字段1';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_STRING_FLD1 IS '字符串字段1';
                     
-      COMMENT ON COLUMN nop_dyn_entity.DECIMAL_FLD1 IS '浮点型字段1';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_DECIMAL_FLD1 IS '浮点型字段1';
                     
-      COMMENT ON COLUMN nop_dyn_entity.INT_FLD1 IS '整数型字段1';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_INT_FLD1 IS '整数型字段1';
                     
-      COMMENT ON COLUMN nop_dyn_entity.LONG_FLD1 IS '长整型字段1';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_LONG_FLD1 IS '长整型字段1';
                     
-      COMMENT ON COLUMN nop_dyn_entity.DATE_FLD1 IS '日期字段1';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_DATE_FLD1 IS '日期字段1';
                     
-      COMMENT ON COLUMN nop_dyn_entity.TIMESTAMP_FLD1 IS '时间戳字段1';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_TIMESTAMP_FLD1 IS '时间戳字段1';
                     
-      COMMENT ON COLUMN nop_dyn_entity.FILE_FLD1 IS '文件字段1';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_FILE_FLD1 IS '文件字段1';
                     
-      COMMENT ON COLUMN nop_dyn_entity.STRING_FLD2 IS '字符串字段2';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_STRING_FLD2 IS '字符串字段2';
                     
-      COMMENT ON COLUMN nop_dyn_entity.DECIMAL_FLD2 IS '浮点型字段2';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_DECIMAL_FLD2 IS '浮点型字段2';
                     
-      COMMENT ON COLUMN nop_dyn_entity.INT_FLD2 IS '整数型字段2';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_INT_FLD2 IS '整数型字段2';
                     
-      COMMENT ON COLUMN nop_dyn_entity.LONG_FLD2 IS '长整型字段2';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_LONG_FLD2 IS '长整型字段2';
                     
-      COMMENT ON COLUMN nop_dyn_entity.DATE_FLD2 IS '日期字段2';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_DATE_FLD2 IS '日期字段2';
                     
-      COMMENT ON COLUMN nop_dyn_entity.TIMESTAMP_FLD2 IS '时间戳字段2';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_TIMESTAMP_FLD2 IS '时间戳字段2';
                     
-      COMMENT ON COLUMN nop_dyn_entity.FILE_FLD2 IS '文件字段2';
+      COMMENT ON COLUMN nop_dyn_entity.NOP_FILE_FLD2 IS '文件字段2';
                     
       COMMENT ON COLUMN nop_dyn_entity.VERSION IS '数据版本';
                     

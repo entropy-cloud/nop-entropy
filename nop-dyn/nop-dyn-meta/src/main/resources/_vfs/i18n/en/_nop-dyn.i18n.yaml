@@ -60,41 +60,41 @@ prop:
     NopDynEntity:
       sid: SID
       nopObjType: Object Type
-      name: Name
-      displayName: Display Name
-      sortOrder: Sort Order
+      nopName: Name
+      nopDisplayName: Display Name
+      nopSortOrder: Sort Order
       nopFlowId: Workflow ID
-      bizStatus: Biz Status
-      bizState: Biz State
-      parentId: Parent ID
-      ownerName: Owner Name
-      ownerId: Owner ID
-      deptId: Department ID
-      stringFld1: String Field1
-      decimalFld1: Decimal Field1
-      intFld1: Integer Field1
-      longFld1: Long Field1
-      dateFld1: Date Field1
-      timestampFld1: Timestamp Field1
-      fileFld1: File Field1
-      stringFld2: String Field2
-      decimalFld2: Decimal Field2
-      intFld2: Integer Field2
-      longFld2: Long Field2
-      dateFld2: Date Field2
-      timestampFld2: Timestamp Field2
-      fileFld2: File Field2
+      nopStatus: Biz Status
+      nopBizState: Biz State
+      nopParentId: Parent ID
+      nopOwnerName: Owner Name
+      nopOwnerId: Owner ID
+      nopDeptId: Department ID
+      nopStringFld1: String Field1
+      nopDecimalFld1: Decimal Field1
+      nopIntFld1: Integer Field1
+      nopLongFld1: Long Field1
+      nopDateFld1: Date Field1
+      nopTimestampFld1: Timestamp Field1
+      nopFileFld1: File Field1
+      nopStringFld2: String Field2
+      nopDecimalFld2: Decimal Field2
+      nopIntFld2: Integer Field2
+      nopLongFld2: Long Field2
+      nopDateFld2: Date Field2
+      nopTimestampFld2: Timestamp Field2
+      nopFileFld2: File Field2
       version: Version
       createdBy: Created By
       createTime: Create Time
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
-      parent: Parent
-      children: Children
+      nopParent: Parent
+      nopChildren: Children
       extFields: null
-      fileFld1Component: null
-      fileFld2Component: null
+      nopFileFld1Component: null
+      nopFileFld2Component: null
     NopDynEntityMeta:
       entityMetaId: Entity Meta ID
       moduleId: Module ID

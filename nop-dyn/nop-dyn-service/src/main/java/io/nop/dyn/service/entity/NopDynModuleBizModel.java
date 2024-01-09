@@ -18,6 +18,8 @@ import io.nop.dyn.dao.NopDynDaoConstants;
 import io.nop.dyn.dao.entity.NopDynModule;
 import io.nop.dyn.dao.model.DynEntityMetaToOrmModel;
 import io.nop.dyn.dao.model.OrmModelToDynEntityMeta;
+import io.nop.dyn.service.codegen.DynCodeGen;
+import io.nop.dyn.service.codegen.GptCodeGen;
 import io.nop.file.core.FileConstants;
 import io.nop.orm.IOrmEntityFileStore;
 import io.nop.orm.model.OrmModel;
@@ -32,6 +34,9 @@ public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> {
 
     @Inject
     IOrmEntityFileStore fileStore;
+
+    @Inject
+    DynCodeGen dynCodeGen;
 
     public NopDynModuleBizModel() {
         setEntityName(NopDynModule.class.getName());
@@ -66,7 +71,7 @@ public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> {
 
     @BizQuery
     public WebContentBean exportExcel(@Optional @Name("ids") List<String> ids, @Optional @Name("id") String id, IServiceContext context) {
-        if(StringHelper.isEmpty(id))
+        if (StringHelper.isEmpty(id))
             id = CollectionHelper.first(ids);
 
         NopDynModule entity = get(id, false, context);
@@ -76,5 +81,24 @@ public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> {
         String fileName = entity.getModuleName() + ".orm.xlsx";
 
         return ExcelReportHelper.downloadXlsx(fileName, OrmModelConstants.ORM_IMPL_PATH, model, 5);
+    }
+
+    @BizMutation
+    public void generateByAI(@Name("response") String response) {
+        OrmModel ormModel = new GptCodeGen().generateOrmModel(response);
+        IEntityDao<NopDynModule> dao = dao();
+        NopDynModule entity = dao.newEntity();
+        entity.setStatus(NopDynDaoConstants.APP_STATUS_UNPUBLISHED);
+        entity.setModuleName("app-demo");
+        entity.setDisplayName(entity.getModuleName());
+        entity.setBasePackageName((String) ormModel.prop_get(OrmModelConstants.EXT_BASE_PACKAGE_NAME));
+        entity.setMavenGroupId((String) ormModel.prop_get(OrmModelConstants.EXT_MAVEN_GROUP_ID));
+        entity.setModuleVersion(1);
+
+        new OrmModelToDynEntityMeta().transformModule(ormModel, entity);
+        dao.saveEntity(entity);
+
+        dynCodeGen.generateForModule(entity);
+        dynCodeGen.reloadModel();
     }
 }

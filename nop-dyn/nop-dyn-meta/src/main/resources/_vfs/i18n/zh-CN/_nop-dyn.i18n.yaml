@@ -58,40 +58,40 @@ prop:
       updatedBy: 修改人
       version: 数据版本
     NopDynEntity:
-      bizState: 业务状态
-      bizStatus: 业务状态码
-      children: 子对象
       createTime: 创建时间
       createdBy: 创建人
-      dateFld1: 日期字段1
-      dateFld2: 日期字段2
-      decimalFld1: 浮点型字段1
-      decimalFld2: 浮点型字段2
-      deptId: 部门ID
-      displayName: 显示名称
       extFields: null
-      fileFld1: 文件字段1
-      fileFld1Component: null
-      fileFld2: 文件字段2
-      fileFld2Component: null
-      intFld1: 整数型字段1
-      intFld2: 整数型字段2
-      longFld1: 长整型字段1
-      longFld2: 长整型字段2
-      name: 名称
+      nopBizState: 业务状态
+      nopChildren: 子对象
+      nopDateFld1: 日期字段1
+      nopDateFld2: 日期字段2
+      nopDecimalFld1: 浮点型字段1
+      nopDecimalFld2: 浮点型字段2
+      nopDeptId: 部门ID
+      nopDisplayName: 显示名称
+      nopFileFld1: 文件字段1
+      nopFileFld1Component: null
+      nopFileFld2: 文件字段2
+      nopFileFld2Component: null
       nopFlowId: 工作流实例ID
+      nopIntFld1: 整数型字段1
+      nopIntFld2: 整数型字段2
+      nopLongFld1: 长整型字段1
+      nopLongFld2: 长整型字段2
+      nopName: 名称
       nopObjType: 对象类型
-      ownerId: 拥有者ID
-      ownerName: 拥有者姓名
-      parent: 父对象
-      parentId: 父ID
+      nopOwnerId: 拥有者ID
+      nopOwnerName: 拥有者姓名
+      nopParent: 父对象
+      nopParentId: 父ID
+      nopSortOrder: 排序
+      nopStatus: 业务状态码
+      nopStringFld1: 字符串字段1
+      nopStringFld2: 字符串字段2
+      nopTimestampFld1: 时间戳字段1
+      nopTimestampFld2: 时间戳字段2
       remark: 备注
       sid: 主键
-      sortOrder: 排序
-      stringFld1: 字符串字段1
-      stringFld2: 字符串字段2
-      timestampFld1: 时间戳字段1
-      timestampFld2: 时间戳字段2
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

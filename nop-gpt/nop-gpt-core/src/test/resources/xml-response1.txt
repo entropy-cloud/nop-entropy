@@ -1,0 +1,15 @@
+响应结果
+
+ <entity name="nop_auth_user" displayName="用户">
+   <columns>
+      <column name="USER_NAME" displayName="用户名" mandatory="true" precision="50" stdSqlType="VARCHAR" />
+      <column name="PASSWORD" displayName="密码" mandatory="true" precision="80" stdSqlType="VARCHAR" />
+   </columns>
+</entity>
+
+ <entity name="nop_auth_user" displayName="用户">
+   <columns>
+      <column name="USER_NAME" displayName="用户名" mandatory="true" precision="50" stdSqlType="VARCHAR" />
+      <column name="PASSWORD" displayName="密码" mandatory="true" precision="80" stdSqlType="VARCHAR" />
+   </columns>
+</entity>

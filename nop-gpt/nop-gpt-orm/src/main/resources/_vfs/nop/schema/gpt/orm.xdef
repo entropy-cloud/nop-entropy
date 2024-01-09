@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<orm x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+    xmlns:orm="orm">
+    <entities xdef:body-type="list" xdef:key-attr="name">
+        <entity name="!string" displayName="!string">
+            <columns xdef:body-type="list" xdef:key-attr="name">
+                <column name="!string" displayName="!string" primary="boolean" mandatory="boolean" orm:ref-table="string"
+                        sqlType="string" precision="int" scale="int"/>
+            </columns>
+        </entity>
+    </entities>
+</orm>

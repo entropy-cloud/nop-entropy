@@ -1,5 +1,6 @@
 package io.nop.dyn.dao.model;
 
+import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
 import io.nop.dyn.dao.NopDynDaoConstants;
 import io.nop.dyn.dao.entity.NopDynEntityMeta;
@@ -94,7 +95,10 @@ public class OrmModelToDynEntityMeta {
     void transformColumnMeta(IColumnModel col, NopDynPropMeta propMeta) {
         propMeta.setPropName(col.getName());
         propMeta.setPropId(col.getPropId());
-        propMeta.setStdSqlType(col.getStdSqlType().getName());
+        StdSqlType sqlType = col.getStdSqlType();
+        if(sqlType == null)
+            sqlType = StdSqlType.VARCHAR;
+        propMeta.setStdSqlType(sqlType.getName());
         propMeta.setPrecision(col.getPrecision());
         propMeta.setScale(col.getScale());
         propMeta.setDisplayName(col.getDisplayName());

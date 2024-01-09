@@ -661,4 +661,19 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
         flushText();
         handler.endNode(CoreConstants.DUMMY_TAG_NAME);
     }
+
+    @Override
+    public XNode parseSingleNode(TextScanner sc) {
+        this.sc = sc;
+        if (this.handler == null)
+            this.handler = new CollectXNodeHandler();
+
+        handler.beginNode(null, CoreConstants.DUMMY_TAG_NAME, Collections.emptyMap());
+        parseNode();
+        handler.endNode(CoreConstants.DUMMY_TAG_NAME);
+        XNode node = handler.endDoc();
+        if (node.hasChild())
+            return node.child(0);
+        return null;
+    }
 }

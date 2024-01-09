@@ -455,6 +455,7 @@
 /nop/dyn/pages/NopDynModule/NopDynModule.lib.xjs
 /nop/dyn/pages/NopDynModule/NopDynModule.view.xml
 /nop/dyn/pages/NopDynModule/_gen/_NopDynModule.view.xml
+/nop/dyn/pages/NopDynModule/ai-gen.page.yaml
 /nop/dyn/pages/NopDynModule/main.page.yaml
 /nop/dyn/pages/NopDynModule/picker.page.yaml
 /nop/dyn/pages/NopDynPage/NopDynPage.lib.xjs
@@ -651,6 +652,7 @@
 /nop/schema/excel/imp.xdef
 /nop/schema/excel/workbook.xdef
 /nop/schema/gateway.xdef
+/nop/schema/gpt/orm.xdef
 /nop/schema/message.xdef
 /nop/schema/orm/dialect.xdef
 /nop/schema/orm/dict.xdef
@@ -861,7 +863,11 @@
 /nop/templates/ast/src/main/java/{ast.packagePath}/{ast.name}Visitor.java.xgen
 /nop/templates/ast/src/main/java/{ast.packagePath}/{astNode.name}.java.xgen
 /nop/templates/backend/@init.xrun
-/nop/templates/backend/a-impl.xrun
+/nop/templates/backend/c-impl.xrun
+/nop/templates/backend/pom.xml.xgen
+/nop/templates/backend/{appName}-codegen/pom.xml.xgen
+/nop/templates/backend/{appName}-codegen/postcompile/gen-orm.xgen.xgen
+/nop/templates/backend/{appName}-codegen/src/test/java/{basePackagePath}/codegen/{moduleClassPrefix}CodeGen.java.xgen
 /nop/templates/dyn-web/@init.xrun
 /nop/templates/dyn-web/{moduleId}/a-impl.xrun
 /nop/templates/dyn/@init.xrun

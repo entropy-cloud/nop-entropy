@@ -72,6 +72,10 @@
                     </api>
                 </action>
 
+                <action id="chat-button" label="AI智能生成" actionType="dialog">
+                    <dialog page="ai-gen.page.yaml" />
+                </action>
+
             </listActions>
 
             <rowActions>

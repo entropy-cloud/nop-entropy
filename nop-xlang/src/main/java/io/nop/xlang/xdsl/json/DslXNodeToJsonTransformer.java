@@ -48,12 +48,19 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
     protected final XLangCompileTool compileTool;
     protected final IXDefinition rootDefNode;
 
+    private boolean ignoreUnknown;
+
     public DslXNodeToJsonTransformer(boolean forEditor, IXDefinition rootDefNode, XLangCompileTool compileTool) {
         this.forEditor = forEditor;
         this.rootDefNode = rootDefNode;
         if (compileTool == null)
             compileTool = XLang.newCompileTool();
         this.compileTool = compileTool.allowUnregisteredScopeVar(true);
+    }
+
+    public DslXNodeToJsonTransformer ignoreUnknown(boolean ignoreUnknown) {
+        this.ignoreUnknown = ignoreUnknown;
+        return this;
     }
 
     public XLangCompileTool getCompileTool() {
@@ -130,6 +137,9 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
                     Object obj = transformToObject(childDef, child);
                     list.add(obj);
                 } else {
+                    if (ignoreUnknown)
+                        continue;
+
                     throw new NopException(ERR_XDSL_NODE_UNEXPECTED_TAG_NAME).param(ARG_NODE, child)
                             .param(ARG_TAG_NAME, child.getTagName())
                             .param(ARG_ALLOWED_NAMES, defNode.getChildren().keySet());
@@ -145,6 +155,8 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
                     Object obj = parseObject(childDef, child);
                     list.add(obj);
                 } else {
+                    if (ignoreUnknown)
+                        continue;
                     throw new NopException(ERR_XDSL_NODE_UNEXPECTED_TAG_NAME).param(ARG_NODE, child)
                             .param(ARG_TAG_NAME, child.getTagName())
                             .param(ARG_ALLOWED_NAMES, defNode.getChildren().keySet());
@@ -209,7 +221,8 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
 
             IXDefAttribute attr = defNode.getAttribute(name);
             if (attr == null) {
-                obj.addProp(name, vl.getValue());
+                if (!ignoreUnknown)
+                    obj.addProp(name, vl.getValue());
             } else {
                 Object value = parseValue(vl, name, attr.getType());
                 String propName = attr.getPropName();

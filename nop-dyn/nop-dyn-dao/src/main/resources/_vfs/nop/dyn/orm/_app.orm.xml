@@ -653,59 +653,61 @@
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
                 <column code="NOP_OBJ_TYPE" displayName="对象类型" mandatory="true" name="nopObjType" precision="100"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Object Type"/>
-                <column code="NAME" displayName="名称" name="name" precision="100" propId="3" stdDataType="string"
+                <column code="NOP_NAME" displayName="名称" name="nopName" precision="100" propId="3" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Name"/>
-                <column code="DISPLAY_NAME" displayName="显示名称" name="displayName" precision="500" propId="4"
+                <column code="NOP_DISPLAY_NAME" displayName="显示名称" name="nopDisplayName" precision="500" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Display Name"/>
-                <column code="SORT_ORDER" displayName="排序" name="sortOrder" propId="5" stdDataType="int"
+                <column code="NOP_SORT_ORDER" displayName="排序" name="nopSortOrder" propId="5" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Sort Order"/>
                 <column code="NOP_FLOW_ID" displayName="工作流实例ID" name="nopFlowId" precision="32" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Workflow ID"/>
-                <column code="BIZ_STATUS" displayName="业务状态码" name="bizStatus" propId="7" stdDataType="int"
+                <column code="NOP_STATUS" displayName="业务状态码" name="nopStatus" propId="7" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Biz Status"/>
-                <column code="BIZ_STATE" comment="业务状态是由业务自由定义" displayName="业务状态" name="bizState" precision="50"
+                <column code="NOP_BIZ_STATE" comment="业务状态是由业务自由定义" displayName="业务状态" name="nopBizState" precision="50"
                         propId="8" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Biz State"/>
-                <column code="PARENT_ID" displayName="父ID" name="parentId" precision="32" propId="9"
+                <column code="NOP_PARENT_ID" displayName="父ID" name="nopParentId" precision="32" propId="9"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="parent" i18n-en:displayName="Parent ID"
                         ui:show="X"/>
-                <column code="OWNER_NAME" displayName="拥有者姓名" name="ownerName" precision="50" propId="10"
+                <column code="NOP_OWNER_NAME" displayName="拥有者姓名" name="nopOwnerName" precision="50" propId="10"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner Name" ui:show="X"/>
-                <column code="OWNER_ID" displayName="拥有者ID" name="ownerId" precision="50" propId="11"
+                <column code="NOP_OWNER_ID" displayName="拥有者ID" name="nopOwnerId" precision="50" propId="11"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner ID" ui:show="X"/>
-                <column code="DEPT_ID" displayName="部门ID" name="deptId" precision="50" propId="12" stdDataType="string"
-                        stdSqlType="VARCHAR" i18n-en:displayName="Department ID" ui:show="X"/>
-                <column code="STRING_FLD1" displayName="字符串字段1" name="stringFld1" precision="4000" propId="13"
+                <column code="NOP_DEPT_ID" displayName="部门ID" name="nopDeptId" precision="50" propId="12"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Department ID" ui:show="X"/>
+                <column code="NOP_STRING_FLD1" displayName="字符串字段1" name="nopStringFld1" precision="4000" propId="13"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="String Field1" ui:show="X"/>
-                <column code="DECIMAL_FLD1" displayName="浮点型字段1" name="decimalFld1" precision="30" propId="14" scale="6"
-                        stdDataType="decimal" stdSqlType="DECIMAL" i18n-en:displayName="Decimal Field1" ui:show="X"/>
-                <column code="INT_FLD1" displayName="整数型字段1" name="intFld1" propId="15" stdDataType="int"
+                <column code="NOP_DECIMAL_FLD1" displayName="浮点型字段1" name="nopDecimalFld1" precision="30" propId="14"
+                        scale="6" stdDataType="decimal" stdSqlType="DECIMAL" i18n-en:displayName="Decimal Field1"
+                        ui:show="X"/>
+                <column code="NOP_INT_FLD1" displayName="整数型字段1" name="nopIntFld1" propId="15" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Integer Field1" ui:show="X"/>
-                <column code="LONG_FLD1" displayName="长整型字段1" name="longFld1" propId="16" stdDataType="long"
+                <column code="NOP_LONG_FLD1" displayName="长整型字段1" name="nopLongFld1" propId="16" stdDataType="long"
                         stdSqlType="BIGINT" i18n-en:displayName="Long Field1" ui:show="X"/>
-                <column code="DATE_FLD1" displayName="日期字段1" name="dateFld1" propId="17" stdDataType="date"
+                <column code="NOP_DATE_FLD1" displayName="日期字段1" name="nopDateFld1" propId="17" stdDataType="date"
                         stdSqlType="DATE" i18n-en:displayName="Date Field1" ui:show="X"/>
-                <column code="TIMESTAMP_FLD1" displayName="时间戳字段1" name="timestampFld1" propId="18"
+                <column code="NOP_TIMESTAMP_FLD1" displayName="时间戳字段1" name="nopTimestampFld1" propId="18"
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Timestamp Field1"
                         ui:show="X"/>
-                <column code="FILE_FLD1" displayName="文件字段1" domain="file" name="fileFld1" precision="200" propId="19"
-                        stdDataType="string" stdDomain="file" stdSqlType="VARCHAR" i18n-en:displayName="File Field1"
-                        ui:show="X"/>
-                <column code="STRING_FLD2" displayName="字符串字段2" name="stringFld2" precision="4000" propId="20"
+                <column code="NOP_FILE_FLD1" displayName="文件字段1" domain="file" name="nopFileFld1" precision="200"
+                        propId="19" stdDataType="string" stdDomain="file" stdSqlType="VARCHAR"
+                        i18n-en:displayName="File Field1" ui:show="X"/>
+                <column code="NOP_STRING_FLD2" displayName="字符串字段2" name="nopStringFld2" precision="4000" propId="20"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="String Field2" ui:show="X"/>
-                <column code="DECIMAL_FLD2" displayName="浮点型字段2" name="decimalFld2" precision="30" propId="21" scale="6"
-                        stdDataType="decimal" stdSqlType="DECIMAL" i18n-en:displayName="Decimal Field2" ui:show="X"/>
-                <column code="INT_FLD2" displayName="整数型字段2" name="intFld2" propId="22" stdDataType="int"
+                <column code="NOP_DECIMAL_FLD2" displayName="浮点型字段2" name="nopDecimalFld2" precision="30" propId="21"
+                        scale="6" stdDataType="decimal" stdSqlType="DECIMAL" i18n-en:displayName="Decimal Field2"
+                        ui:show="X"/>
+                <column code="NOP_INT_FLD2" displayName="整数型字段2" name="nopIntFld2" propId="22" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Integer Field2" ui:show="X"/>
-                <column code="LONG_FLD2" displayName="长整型字段2" name="longFld2" propId="23" stdDataType="long"
+                <column code="NOP_LONG_FLD2" displayName="长整型字段2" name="nopLongFld2" propId="23" stdDataType="long"
                         stdSqlType="BIGINT" i18n-en:displayName="Long Field2" ui:show="X"/>
-                <column code="DATE_FLD2" displayName="日期字段2" name="dateFld2" propId="24" stdDataType="date"
+                <column code="NOP_DATE_FLD2" displayName="日期字段2" name="nopDateFld2" propId="24" stdDataType="date"
                         stdSqlType="DATE" i18n-en:displayName="Date Field2" ui:show="X"/>
-                <column code="TIMESTAMP_FLD2" displayName="时间戳字段2" name="timestampFld2" propId="25"
+                <column code="NOP_TIMESTAMP_FLD2" displayName="时间戳字段2" name="nopTimestampFld2" propId="25"
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Timestamp Field2"
                         ui:show="X"/>
-                <column code="FILE_FLD2" displayName="文件字段2" domain="file" name="fileFld2" precision="200" propId="26"
-                        stdDataType="string" stdDomain="file" stdSqlType="VARCHAR" i18n-en:displayName="File Field2"
-                        ui:show="X"/>
+                <column code="NOP_FILE_FLD2" displayName="文件字段2" domain="file" name="nopFileFld2" precision="200"
+                        propId="26" stdDataType="string" stdDomain="file" stdSqlType="VARCHAR"
+                        i18n-en:displayName="File Field2" ui:show="X"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="27"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
@@ -724,18 +726,18 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>
-                <to-one displayName="父对象" name="parent" refEntityName="io.nop.dyn.dao.entity.NopDynEntity"
-                        refPropName="children" tagSet="pub,ref-pub" i18n-en:displayName="Parent"
+                <to-one displayName="父对象" name="nopParent" refEntityName="io.nop.dyn.dao.entity.NopDynEntity"
+                        refPropName="nopChildren" tagSet="pub,ref-pub" i18n-en:displayName="Parent"
                         ref-i18n-en:displayName="Children">
                     <join>
-                        <on leftProp="parentId" rightProp="sid"/>
+                        <on leftProp="nopParentId" rightProp="sid"/>
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-many displayName="子对象" name="children" refEntityName="io.nop.dyn.dao.entity.NopDynEntity"
-                         refPropName="parent" tagSet="pub" i18n-en:displayName="Children">
+                <to-many displayName="子对象" name="nopChildren" refEntityName="io.nop.dyn.dao.entity.NopDynEntity"
+                         refPropName="nopParent" tagSet="pub" i18n-en:displayName="Children">
                     <join>
-                        <on leftProp="sid" rightProp="parentId"/>
+                        <on leftProp="sid" rightProp="nopParentId"/>
                     </join>
                 </to-many>
             </relations>

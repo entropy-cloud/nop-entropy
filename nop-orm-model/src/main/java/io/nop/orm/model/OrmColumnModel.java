@@ -19,6 +19,8 @@ public class OrmColumnModel extends _OrmColumnModel implements IColumnModel {
 
     private List<IEntityRelationModel> columnRefs;
 
+    private String sqlType;
+
     public OrmColumnModel() {
         setInsertable(true);
         setUpdatable(true);
@@ -99,5 +101,13 @@ public class OrmColumnModel extends _OrmColumnModel implements IColumnModel {
 
         SQLDataType sqlType = dialect.stdToNativeSqlType(getStdSqlType(), precision, scale);
         return sqlType;
+    }
+
+    public String getSqlType() {
+        return sqlType;
+    }
+
+    public void setSqlType(String sqlType) {
+        this.sqlType = sqlType;
     }
 }

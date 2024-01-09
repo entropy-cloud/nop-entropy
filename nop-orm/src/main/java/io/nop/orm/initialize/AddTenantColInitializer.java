@@ -43,7 +43,7 @@ public class AddTenantColInitializer {
     @PostConstruct
     public void init() {
         IOrmModel ormModel = ormSessionFactory.getOrmModel();
-        Collection<IEntityModel> tables = ormModel.getEntityModels();
+        Collection<? extends IEntityModel> tables = ormModel.getEntityModels();
         Map<String, List<IEntityModel>> querySpaceTables = splitByQuerySpace(tables);
 
         long beginTime = CoreMetrics.currentTimeMillis();
@@ -73,7 +73,7 @@ public class AddTenantColInitializer {
         LOG.info("nop.orm.add-tenant-col-finished:usedTime={}ms", diff);
     }
 
-    Map<String, List<IEntityModel>> splitByQuerySpace(Collection<IEntityModel> tables) {
+    Map<String, List<IEntityModel>> splitByQuerySpace(Collection<? extends IEntityModel> tables) {
         Map<String, List<IEntityModel>> map = new TreeMap<>();
         for (IEntityModel entityModel : tables) {
             String querySpace = DaoHelper.normalizeQuerySpace(entityModel.getQuerySpace());
