@@ -96,6 +96,7 @@ public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> {
         entity.setModuleVersion(1);
 
         new OrmModelToDynEntityMeta().transformModule(ormModel, entity);
+        entity.setStatus(NopDynDaoConstants.MODULE_STATUS_PUBLISHED);
         dao.saveEntity(entity);
 
         dynCodeGen.generateForModule(entity);
