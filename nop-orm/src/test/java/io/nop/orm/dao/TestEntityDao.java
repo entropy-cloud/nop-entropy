@@ -20,6 +20,7 @@ import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.OrmEntityState;
 import io.nop.orm.OrmErrors;
+import io.nop.orm.model.IEntityModel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -331,4 +332,10 @@ public class TestEntityDao extends AbstractOrmTestCase {
         assertEquals("CollegeCCC", loaded.getCollegeName());
     }
 
+    @Test
+    public void testSyncDomainOnId() {
+        IEntityDao<SimsCollege> dao = daoProvider().daoFor(SimsCollege.class);
+        IEntityModel entityModel = dao.newEntity().orm_entityModel();
+        assertEquals(90, entityModel.getColumns().get(0).getPrecision());
+    }
 }

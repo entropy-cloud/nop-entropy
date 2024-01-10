@@ -167,6 +167,14 @@ public class OrmModelInitializer {
                                 .param(ARG_DATA_TYPE, col.getStdDataType())
                                 .param(ARG_DOMAIN_DATA_TYPE, domainModel.getStdDataType());
                 }
+
+                if (domainModel.getPrecision() != null && col.getPrecision() == null) {
+                    col.setPrecision(domainModel.getPrecision());
+                }
+
+                if (domainModel.getScale() != null && col.getScale() == null) {
+                    col.setScale(domainModel.getScale());
+                }
             }
 
             if (col.getStdSqlType() == null)
@@ -215,7 +223,7 @@ public class OrmModelInitializer {
                     }
                 }
 
-                if(ref.containsTag(OrmModelConstants.TAG_CASCADE_DELETE)){
+                if (ref.containsTag(OrmModelConstants.TAG_CASCADE_DELETE)) {
                     ref.setCascadeDelete(true);
                 }
             }
