@@ -1,6 +1,6 @@
 <c:unit>
 
-    <gen:Render template="/nop/templates/orm/deploy.sql.{dialect}"
+    <gen:Render template="/nop/templates/orm/deploy"
                 targetDir="${targetResource.path.$filePath() + '/deploy'}"
       xpl:lib="/nop/codegen/xlib/gen.xlib" inheritCodeGenLoop="true"/>
 
