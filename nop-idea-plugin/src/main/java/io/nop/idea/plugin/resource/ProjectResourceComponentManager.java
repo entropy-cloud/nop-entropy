@@ -9,6 +9,7 @@ package io.nop.idea.plugin.resource;
 
 import io.nop.api.core.util.ICancellable;
 import io.nop.api.core.util.IComponentModel;
+import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ComponentModelLoader;
@@ -76,6 +77,16 @@ public class ProjectResourceComponentManager implements IResourceComponentManage
     @Override
     public IComponentModel loadComponentModelByUrl(String modelUrl) {
         return getImpl().loadComponentModelByUrl(modelUrl);
+    }
+
+    @Override
+    public IComponentModel parseComponentModel(IResource resource) {
+        return getImpl().parseComponentModel(resource);
+    }
+
+    @Override
+    public IComponentModel parseComponentModel(IResource resource, String transform) {
+        return getImpl().parseComponentModel(resource, transform);
     }
 
     @Override
