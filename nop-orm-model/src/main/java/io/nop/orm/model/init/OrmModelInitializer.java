@@ -428,9 +428,12 @@ public class OrmModelInitializer {
             // 必须引用对象的主键
             for (OrmJoinOnModel join : ref.getJoin()) {
                 OrmColumnModel col = join.getRightProp() == null ? null : refEntityModel.getColumn(join.getRightProp());
+                if (col == null && OrmModelConstants.PROP_ID.endsWith(join.getRightProp())) {
+                    col = refEntityModel.getIdProp().isColumnModel() ? (OrmColumnModel) refEntityModel.getIdProp() : null;
+                }
                 if (col == null || !col.isPrimary())
                     throw new NopException(ERR_ORM_MODEL_REF_ENTITY_PROP_NOT_PRIMARY_KEY).loc(join.getLocation())
-                            .param(ARG_PROP_NAME, join.getRightProp()).param(ARG_ENTITY_NAME, refEntityModel.getName());
+                            .param(ARG_PROP_NAME, join.getRightProp()).param(ARG_REF_ENTITY_NAME, refEntityModel.getName());
                 join.setRightPropModel(col);
             }
 

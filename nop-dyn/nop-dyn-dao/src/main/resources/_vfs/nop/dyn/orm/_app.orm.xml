@@ -440,26 +440,28 @@
                         i18n-en:displayName="Ref Property Display Name"/>
                 <column code="REF_SET_SORT" displayName="关联集合排序条件" name="refSetSort" precision="200" propId="21"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Ret Set Sort Expression"/>
+                <column code="REF_TAGS_TEXT" displayName="关联属性标签" name="refTagsText" precision="200" propId="22"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Ref Tag Set"/>
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-1000" name="extConfig" precision="1000"
-                        propId="22" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        propId="23" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>
-                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="23" stdDataType="int"
+                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="24" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="core/active-status"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="24"
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="25"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="25" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="26" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By" ui:show="R"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="26" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
+                        propId="27" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
                         ui:show="R"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="27" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="28" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By" ui:show="R"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="28" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"
+                        propId="29" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"
                         ui:show="R"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="29"
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="30"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>

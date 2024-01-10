@@ -70,6 +70,9 @@
                 <!--关联集合排序条件-->
                 <col id="refSetSort" sortable="true"/>
 
+                <!--关联属性标签-->
+                <col id="refTagsText" sortable="true"/>
+
                 <!--扩展配置-->
                 <col id="extConfig" sortable="true"/>
 
@@ -108,10 +111,11 @@
  tagsText[标签] defaultValue[缺省值]
  refEntityName[关联实体名] refPropName[关联属性名]
  refPropDisplayName[关联属性显示名] refSetSort[关联集合排序条件]
- extConfig[扩展配置] status[状态]
- createdBy[创建人] createTime[创建时间]
- updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
+ refTagsText[关联属性标签] extConfig[扩展配置]
+ status[状态] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] 
+                remark[备注]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-属性元数据" i18n-en:title="Add Property Meta" x:prototype="edit"/>
@@ -127,8 +131,9 @@
  tagsText[标签] defaultValue[缺省值]
  refEntityName[关联实体名] refPropName[关联属性名]
  refPropDisplayName[关联属性显示名] refSetSort[关联集合排序条件]
- extConfig[扩展配置] status[状态]
- remark[备注] 
+ refTagsText[关联属性标签] extConfig[扩展配置]
+ status[状态] 
+                remark[备注]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">

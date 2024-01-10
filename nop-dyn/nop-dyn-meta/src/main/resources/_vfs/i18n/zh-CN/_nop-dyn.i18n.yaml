@@ -262,6 +262,7 @@ prop:
       refPropDisplayName: 关联属性显示名
       refPropName: 关联属性名
       refSetSort: 关联集合排序条件
+      refTagsText: 关联属性标签
       remark: 备注
       scale: 小数位数
       status: 状态

@@ -7,7 +7,9 @@
  */
 package io.nop.orm.dao;
 
+import io.nop.app.SimsCollege;
 import io.nop.app.SimsExam;
+import io.nop.core.lang.sql.SQL;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.AbstractOrmTestCase;
@@ -21,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * 如果修改了app.orm.xml，需要重新运行OrmCodeGen来生成实体代码
@@ -107,6 +110,30 @@ public class TestExtFields extends AbstractOrmTestCase {
             SimsExam exam = dao.getEntityById("100");
             assertEquals(true, exam.prop_get("extFldB"));
             assertEquals("fldAA", exam.getExtFldA());
+        });
+    }
+
+    @Test
+    public void testJoinOnExtField() {
+        IEntityDao<SimsExam> dao = daoProvider().daoFor(SimsExam.class);
+
+        SimsExam entity = dao.newEntity();
+        entity.setExamId("100");
+        entity.setExtFldA("fldAA");
+        BeanTool.setComplexProperty(entity, "extFldB", "true");
+
+        dao.saveEntity(entity);
+
+        orm().runInSession(() -> {
+            SimsExam exam = dao.getEntityById("100");
+            SimsCollege college = (SimsCollege) exam.prop_get("extRefCollege");
+            assertNull(college);
+
+            college = (SimsCollege) exam.prop_get("extRefCollege2");
+            assertEquals("fldAA", college.getCollegeId());
+
+            SQL sql = SQL.begin().sql("select o.extRefCollege.collegeName from io.nop.app.SimsExam o").end();
+            orm().findFirst(sql);
         });
     }
 }

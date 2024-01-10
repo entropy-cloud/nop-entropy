@@ -158,5 +158,16 @@ public interface OrmEqlErrors {
 
     ErrorCode ERR_EQL_NOT_SUPPORT_ILIKE = define("nop.err.eql.not-support-ilike-operator", "数据库不支持ilike运算符", ARG_FUNC_NAME);
 
+    ErrorCode ERR_EQL_UNKNOWN_FIELD_IN_SELECTION =
+            define("nop.err.eql.unknown-field-in-selection", "字段选择列表中没有属性:{propName}", ARG_PROP_NAME);
 
+    ErrorCode ERR_EQL_UNKNOWN_FIELD_IN_ENTITY =
+            define("nop.err.eql.unknown-field-in-entity", "实体[{entityName}]上没有属性:{propName}",
+                    ARG_ENTITY_NAME, ARG_PROP_NAME);
+
+    ErrorCode ERR_EQL_NOT_SUPPORT_MULTI_JOIN_ON_ALIAS =
+            define("nop.err.eql.not-support-multi-join-on-alias", "表关联不支持多个别名字段关联条件");
+
+    ErrorCode ERR_EQL_FIELD_NOT_PROP =
+            define("nop.err.eql.field-not-prop", "字段不是实体上的属性:{fieldName}", ARG_FIELD_NAME);
 }

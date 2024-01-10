@@ -69,4 +69,17 @@ public interface IEntityRelationModel extends IEntityPropModel {
     boolean isDynamicRelation();
 
     boolean isUseGlobalCache();
+
+    /**
+     * 使用计算属性或者alias属性进行join
+     */
+    default boolean isDynamicJoin() {
+        for (IEntityJoinConditionModel on : getJoin()) {
+            if (on.getLeftPropModel() != null && !on.getLeftPropModel().isColumnModel())
+                return true;
+            if (on.getRightPropModel() != null && !on.getRightPropModel().isColumnModel())
+                return true;
+        }
+        return false;
+    }
 }

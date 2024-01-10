@@ -17,7 +17,7 @@
     </x:post-extends>
 
     <domains>
-        <domain name="collegeId" displayName="collegeId" stdSqlType="VARCHAR" precision="50" />
+        <domain name="collegeId" displayName="collegeId" stdSqlType="VARCHAR" precision="50"/>
     </domains>
 
     <entities>
@@ -55,7 +55,7 @@
 
         <entity name="io.nop.app.SimsCollege" registerShortName="true">
             <columns>
-                <column name="collegeId" domain="collegeId" />
+                <column name="collegeId" domain="collegeId"/>
             </columns>
 
             <relations>
@@ -117,6 +117,7 @@
                 <alias name="examScoreNormalized" propPath="examScoreDecimal.normalizedValue" type="BigDecimal"/>
                 <alias name="extFldA" propPath="ext.fldA.string" type="String"/>
                 <alias name="extFldB" propPath="ext.fldB.boolean" type="Boolean" notGenCode="true"/>
+                <alias name="extFldC" propPath="ext.fldC.string" type="String"/>
             </aliases>
 
             <relations>
@@ -132,6 +133,18 @@
                         <on leftProp="examId" rightProp="examId"/>
                     </join>
                 </to-many>
+
+                <to-one name="extRefCollege" refEntityName="SimsCollege">
+                    <join>
+                        <on leftProp="extFldC" rightProp="id"/>
+                    </join>
+                </to-one>
+
+                <to-one name="extRefCollege2" refEntityName="SimsCollege">
+                    <join>
+                        <on leftProp="extFldA" rightProp="id"/>
+                    </join>
+                </to-one>
             </relations>
         </entity>
 

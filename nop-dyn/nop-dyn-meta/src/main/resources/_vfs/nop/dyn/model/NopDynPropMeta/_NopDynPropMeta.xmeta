@@ -108,6 +108,10 @@
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
+        <prop name="refTagsText" displayName="关联属性标签" i18n-en:displayName="Ref Tag Set" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
         <prop name="extConfig" displayName="扩展配置" i18n-en:displayName="Ext Config" queryable="true" sortable="true"
               insertable="true" updatable="true" graphql:jsonComponentProp="extConfigComponent">
             <schema stdDomain="json" domain="json-1000" type="java.lang.String" precision="1000"/>

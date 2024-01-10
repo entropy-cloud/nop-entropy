@@ -7,9 +7,13 @@
  */
 package io.nop.orm.eql.meta;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.objects.PropPath;
 
 import java.util.Map;
+
+import static io.nop.orm.eql.OrmEqlErrors.ARG_PROP_NAME;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_FIELD_IN_SELECTION;
 
 public class SelectResultTableMeta implements ISqlSelectionMeta {
     private final Map<String, ISqlExprMeta> fieldExprMetas;
@@ -26,6 +30,15 @@ public class SelectResultTableMeta implements ISqlSelectionMeta {
     @Override
     public ISqlExprMeta getFieldExprMeta(String name) {
         return fieldExprMetas.get(name);
+    }
+
+    @Override
+    public ISqlExprMeta requireFieldExprMeta(String name) {
+        ISqlExprMeta exprMeta = getFieldExprMeta(name);
+        if (exprMeta == null)
+            throw new NopException(ERR_EQL_UNKNOWN_FIELD_IN_SELECTION)
+                    .param(ARG_PROP_NAME, name);
+        return exprMeta;
     }
 
     @Override

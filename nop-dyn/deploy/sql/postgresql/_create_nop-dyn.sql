@@ -180,6 +180,7 @@ CREATE TABLE nop_dyn_prop_meta(
   REF_PROP_NAME VARCHAR(100)  ,
   REF_PROP_DISPLAY_NAME VARCHAR(100)  ,
   REF_SET_SORT VARCHAR(200)  ,
+  REF_TAGS_TEXT VARCHAR(200)  ,
   EXT_CONFIG VARCHAR(1000)  ,
   STATUS INT4 NOT NULL ,
   VERSION INT4 NOT NULL ,
@@ -542,6 +543,8 @@ CREATE TABLE nop_dyn_function_meta(
       COMMENT ON COLUMN nop_dyn_prop_meta.REF_PROP_DISPLAY_NAME IS '关联属性显示名';
                     
       COMMENT ON COLUMN nop_dyn_prop_meta.REF_SET_SORT IS '关联集合排序条件';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.REF_TAGS_TEXT IS '关联属性标签';
                     
       COMMENT ON COLUMN nop_dyn_prop_meta.EXT_CONFIG IS '扩展配置';
                     

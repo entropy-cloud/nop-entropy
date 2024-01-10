@@ -216,9 +216,47 @@ public class DynEntityMetaToOrmModel {
                     entityModel.addRelation(toRefModel(propMeta));
                 }
             }
+
+            if (!StringHelper.isEmpty(propMeta.getRefEntityName())) {
+                addRelation(entityModel, propMeta);
+            }
         });
 
         addExtFields(entityModel);
+    }
+
+    protected void addRelation(OrmEntityModel entityModel, NopDynPropMeta propMeta) {
+        OrmToOneReferenceModel ref = new OrmToOneReferenceModel();
+        ref.setName(getRefObjName(propMeta));
+        ref.setDisplayName(getRefObjDisplayName(propMeta));
+        ref.setTagSet(propMeta.getTagSet());
+        ref.setRefEntityName(propMeta.getRefEntityName());
+        ref.setRefPropName(propMeta.getRefPropName());
+        ref.setRefDisplayName(propMeta.getRefPropDisplayName());
+
+        OrmJoinOnModel join = new OrmJoinOnModel();
+        join.setLeftProp(propMeta.getPropName());
+        join.setRightProp(OrmModelConstants.PROP_ID);
+
+        ref.setJoin(Arrays.asList(join));
+        entityModel.addRelation(ref);
+    }
+
+    private String getRefObjName(NopDynPropMeta propMeta) {
+        if (propMeta.getPropName().endsWith("Id"))
+            return StringHelper.removeTail(propMeta.getPropName(), "Id");
+        return propMeta.getPropName() + "Obj";
+    }
+
+    private String getRefObjDisplayName(NopDynPropMeta propMeta) {
+        String displayName = propMeta.getDisplayName();
+        if (displayName == null)
+            return null;
+        if (displayName.endsWith("Id") || displayName.endsWith("ID")) {
+            displayName = displayName.substring(0, displayName.length() - 2);
+            displayName = displayName.trim();
+        }
+        return displayName;
     }
 
     protected void addExtFields(OrmEntityModel entityModel) {

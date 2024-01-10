@@ -263,6 +263,7 @@ prop:
       refPropName: Ref Property Name
       refPropDisplayName: Ref Property Display Name
       refSetSort: Ret Set Sort Expression
+      refTagsText: Ref Tag Set
       extConfig: Ext Config
       status: Status
       status_label: null

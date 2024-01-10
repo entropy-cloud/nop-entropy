@@ -7,6 +7,7 @@ import io.nop.dyn.dao.entity.NopDynEntityMeta;
 import io.nop.dyn.dao.entity.NopDynModule;
 import io.nop.dyn.dao.entity.NopDynPropMeta;
 import io.nop.orm.model.IColumnModel;
+import io.nop.orm.model.IEntityJoinConditionModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IOrmModel;
@@ -74,6 +75,21 @@ public class OrmModelToDynEntityMeta {
 
             transformPropMeta(col, propMeta);
         });
+
+        // 只考虑单字段关联
+        entityModel.getToOneRelations().forEach(rel -> {
+            if (rel.getJoin().size() == 1) {
+                IEntityJoinConditionModel join = rel.getJoin().get(0);
+                if (join.getLeftProp() != null) {
+                    NopDynPropMeta propMeta = propMetas.get(join.getLeftProp());
+                    if (propMeta != null) {
+                        propMeta.setRefEntityName(rel.getRefEntityName());
+                        propMeta.setRefPropName(rel.getRefPropName());
+                        //propMeta.setRefPropDisplayName(rel.getDisplayName());
+                    }
+                }
+            }
+        });
     }
 
     NopDynPropMeta makeProp(NopDynEntityMeta entityMeta, Map<String, NopDynPropMeta> propMetas, String propName) {
@@ -96,7 +112,7 @@ public class OrmModelToDynEntityMeta {
         propMeta.setPropName(col.getName());
         propMeta.setPropId(col.getPropId());
         StdSqlType sqlType = col.getStdSqlType();
-        if(sqlType == null)
+        if (sqlType == null)
             sqlType = StdSqlType.VARCHAR;
         propMeta.setStdSqlType(sqlType.getName());
         propMeta.setPrecision(col.getPrecision());
@@ -109,5 +125,11 @@ public class OrmModelToDynEntityMeta {
         propMeta.setUiShow((String) col.prop_get(OrmModelConstants.EXT_UI_CONTROL));
         propMeta.setUiControl((String) col.prop_get(OrmModelConstants.EXT_UI_SHOW));
         propMeta.setStatus(1);
+
+        // 只有AI生成的模型会使用这个属性，假定实体名已经正确设置
+        String refTable = (String) col.prop_get(NopDynDaoConstants.EXT_ORM_REF_TABLE);
+        if (refTable != null) {
+            propMeta.setRefEntityName(StringHelper.camelCase(refTable, true));
+        }
     }
 }

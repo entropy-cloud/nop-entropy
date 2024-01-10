@@ -620,11 +620,14 @@ public class OrmEntityModelInitializer {
                     throw new NopException(ERR_ORM_UNKNOWN_PROP).source(ref)
                             .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_PROP_NAME, leftProp);
 
-                if (!propModel.getKind().isColumn() && !propModel.getKind().isId())
+                if (!propModel.getKind().isColumn() && !propModel.getKind().isId() && !propModel.getKind().isAlias())
                     throw new NopException(ERR_ORM_MODEL_REF_JOIN_MUST_ON_COLUMNS_OR_ID).source(join)
-                            .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_REF_NAME, ref.getName());
+                            .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_REF_NAME, ref.getName())
+                            .param(ARG_PROP_NAME, propModel.getName());
 
-                cols.addAll((List) propModel.getColumns());
+                if(propModel.getColumns() != null) {
+                    cols.addAll((List) propModel.getColumns());
+                }
 
                 join.setLeftPropModel(propModel);
                 if (join.getRightProp() == null) {
