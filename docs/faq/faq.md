@@ -224,7 +224,7 @@ NopIoC不支持对于private变量进行注入。目前Spring也不推荐这种�
 
 ## 15. 除了系统内置自动加载的`app-xxx.beans.xml`，如何加载指定的beans.xml文件？
 
-NopIoC的入口文件全部是自动发现，可以在自动发现的beans.xmⅠ中import其它的文件。
+NopIoC的入口文件全部是自动发现，可以在自动发现的beans.xml中import其它的文件。
 * 注意，NopIoC中多次导入同一个文件会自动去重，这一点优于Spring的处理。Spring中import节点对应于include语义，而不是程序语言中常用的导入语义。
 在多个文件中多次导入同一个包应该等价于只导入一次。而include语义是每次执行都完整导入一次，会导致bean的定义出现冲突。
 
