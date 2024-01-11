@@ -1,3 +1,29 @@
+# 统一响应格式
+
+Nop平台的REST服务和RPC服务，统一使用`ApiResponse<T>`形式返回结果数据，同步模式直接返回`ApiResponse`，异步模式返回`CompletionStage<ApiResponse<T>>`。
+
+ApiResponse的基本结构如下：
+```java
+class ApiResponse<T>{
+    Map<String,Object> headers;
+    int status;
+    String code;
+    String msg;
+    T data;
+}
+```
+
+* 正常返回时`status==0`，通过data属性返回结果数据。
+* 失败时status不为0，通过code返回错误码，通过msg返回错误的详细消息。
+
+status相当于是提供一个粗粒度的正确或者失败的信息表示，而且它采用整数类型，便于和命令行程序的exitCode对应。Nop平台的服务实现不仅仅是作为Http服务来使用，
+它还可以直接发布为命令行服务，此时命令行程序的exitCode就使用这里的status来返回。
+
+code为错误码，它采用字符串格式，便于扩展到各种使用场景。在Nop平台中可以通过错误码映射将系统内置的错误码映射为满足外部规范要求的错误码。
+
+
+## 错误码定义
+
 
 1. 在常量类中定义ErrorCode，例如NopAuthErrors.java中
 ```

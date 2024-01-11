@@ -53,7 +53,7 @@ authFilter使用AuthFilterConfig中的配置来确定哪些路径是公开路径
 <bean id="nopAuthServerFilter" class="xxx.MyFilter" />
 ````
 
-> 因为平台内置的nopAuthServerFilter标记了`ioc:default=true`，所以只有发现有其他同名的bean，就会自动覆盖平台内置的authFilter
+> 因为平台内置的nopAuthServerFilter标记了`ioc:default=true`，所以只要发现有其他同名的bean，就会自动覆盖平台内置的authFilter
 
 ### 2. 定制ILoginService
 
