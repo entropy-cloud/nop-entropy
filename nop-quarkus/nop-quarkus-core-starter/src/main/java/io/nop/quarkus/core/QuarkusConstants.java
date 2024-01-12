@@ -9,4 +9,6 @@ package io.nop.quarkus.core;
 
 public interface QuarkusConstants {
     String CONFIG_KEY_PROFILE_PARENT = "quarkus.config.profile.parent";
+
+    String QUARKUS_ID_PREFIX = "$QUARKUS$";
 }
