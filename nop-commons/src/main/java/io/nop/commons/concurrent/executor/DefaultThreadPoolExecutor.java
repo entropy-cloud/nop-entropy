@@ -8,8 +8,8 @@
 package io.nop.commons.concurrent.executor;
 
 import io.nop.api.core.util.Guard;
-
 import jakarta.annotation.PostConstruct;
+
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -39,6 +39,10 @@ public class DefaultThreadPoolExecutor implements IThreadPoolExecutor {
         config.setThreadDaemon(daemon);
         config.setQueueCapacity(queueSize);
 
+        return newExecutor(config);
+    }
+
+    public static DefaultThreadPoolExecutor newExecutor(ThreadPoolConfig config) {
         DefaultThreadPoolExecutor executor = new DefaultThreadPoolExecutor();
         executor.setConfig(config);
         executor.init();

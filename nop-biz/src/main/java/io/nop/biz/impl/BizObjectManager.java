@@ -292,6 +292,12 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
     }
 
     @Override
+    public Map<String, GraphQLFieldDefinition> getBizOperationDefinitions(String bizObjName) {
+        IBizObject bizObj = getBizObject(bizObjName);
+        return bizObj.getOperationDefinitions();
+    }
+
+    @Override
     public Collection<GraphQLTypeDefinition> getTypeDefinitions() {
         Map<String, GraphQLTypeDefinition> types = new TreeMap<>();
         for (String bizObjName : getBizObjNames()) {

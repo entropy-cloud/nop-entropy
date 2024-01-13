@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class MockGraphQLSchemaLoader implements IGraphQLSchemaLoader {
@@ -68,7 +69,7 @@ public class MockGraphQLSchemaLoader implements IGraphQLSchemaLoader {
 
     private void merge(GraphQLObjectDefinition obj) {
         GraphQLObjectDefinition old = defs.get(obj.getName());
-        old.merge(obj,false);
+        old.merge(obj, false);
     }
 
     @Override
@@ -112,4 +113,8 @@ public class MockGraphQLSchemaLoader implements IGraphQLSchemaLoader {
         return doc;
     }
 
+    @Override
+    public Set<String> getBizObjNames() {
+        return this.defs.keySet();
+    }
 }

@@ -50,6 +50,7 @@
         <spring-cloud.version>2023.0.0</spring-cloud.version>
 
         <tablesaw.version>0.43.1</tablesaw.version>
+        <grpc.version>1.60.0</grpc.version>
         <!--        <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>-->
     </properties>
 
@@ -761,6 +762,30 @@
                 <groupId>tech.tablesaw</groupId>
                 <artifactId>tablesaw-beakerx</artifactId>
                 <version>${tablesaw.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-core</artifactId>
+                <version>${grpc.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-services</artifactId>
+                <version>${grpc.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-netty</artifactId>
+                <version>${grpc.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.protostuff</groupId>
+                <artifactId>protostuff-runtime</artifactId>
+                <version>1.8.0</version>
             </dependency>
 
         </dependencies>

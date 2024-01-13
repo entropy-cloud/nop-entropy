@@ -186,6 +186,7 @@ public class BizObjectImpl implements IBizObject, IMethodMissingHook {
         return ret;
     }
 
+    @Override
     public Map<String, GraphQLFieldDefinition> getOperationDefinitions() {
         return operations;
     }
