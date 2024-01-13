@@ -46,15 +46,15 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopWfInstance-main" displayName="工作流模型定义" orderNo="10010"
+                <resource id="NopWfInstance-main" displayName="工作流实例" orderNo="10010"
                           i18n-en:displayName="Worflow Instance" icon="ant-design:appstore-twotone" component="AMIS"
                           resourceType="SUBM" url="/nop/wf/pages/NopWfInstance/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopWfInstance:query" displayName="查询工作流模型定义" orderNo="10011"
+                        <resource id="FNPT:NopWfInstance:query" displayName="查询工作流实例" orderNo="10011"
                                   resourceType="FNPT">
                             <permissions>NopWfInstance:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopWfInstance:mutation" displayName="修改工作流模型定义" orderNo="10012"
+                        <resource id="FNPT:NopWfInstance:mutation" displayName="修改工作流实例" orderNo="10012"
                                   resourceType="FNPT">
                             <permissions>NopWfInstance:mutation</permissions>
                         </resource>
@@ -114,41 +114,27 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopWfStepInstanceLink-main" displayName="工作流步骤关联" orderNo="10025"
-                          i18n-en:displayName="Workflow Step Instance Link" icon="ant-design:appstore-twotone"
-                          component="AMIS" resourceType="SUBM" url="/nop/wf/pages/NopWfStepInstanceLink/main.page.yaml">
-                    <children>
-                        <resource id="FNPT:NopWfStepInstanceLink:query" displayName="查询工作流步骤关联" orderNo="10026"
-                                  resourceType="FNPT">
-                            <permissions>NopWfStepInstanceLink:query</permissions>
-                        </resource>
-                        <resource id="FNPT:NopWfStepInstanceLink:mutation" displayName="修改工作流步骤关联" orderNo="10027"
-                                  resourceType="FNPT">
-                            <permissions>NopWfStepInstanceLink:mutation</permissions>
-                        </resource>
-                    </children>
-                </resource>
-                <resource id="NopWfVar-main" displayName="工作流状态变量" orderNo="10028"
+                <resource id="NopWfVar-main" displayName="工作流状态变量" orderNo="10025"
                           i18n-en:displayName="Workflow Variables" icon="ant-design:appstore-twotone" component="AMIS"
                           resourceType="SUBM" url="/nop/wf/pages/NopWfVar/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopWfVar:query" displayName="查询工作流状态变量" orderNo="10029" resourceType="FNPT">
+                        <resource id="FNPT:NopWfVar:query" displayName="查询工作流状态变量" orderNo="10026" resourceType="FNPT">
                             <permissions>NopWfVar:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopWfVar:mutation" displayName="修改工作流状态变量" orderNo="10030"
+                        <resource id="FNPT:NopWfVar:mutation" displayName="修改工作流状态变量" orderNo="10027"
                                   resourceType="FNPT">
                             <permissions>NopWfVar:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopWfWork-main" displayName="代办工作" orderNo="10031" i18n-en:displayName="Work List"
+                <resource id="NopWfWork-main" displayName="代办工作" orderNo="10028" i18n-en:displayName="Work List"
                           icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
                           url="/nop/wf/pages/NopWfWork/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopWfWork:query" displayName="查询代办工作" orderNo="10032" resourceType="FNPT">
+                        <resource id="FNPT:NopWfWork:query" displayName="查询代办工作" orderNo="10029" resourceType="FNPT">
                             <permissions>NopWfWork:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopWfWork:mutation" displayName="修改代办工作" orderNo="10033" resourceType="FNPT">
+                        <resource id="FNPT:NopWfWork:mutation" displayName="修改代办工作" orderNo="10030" resourceType="FNPT">
                             <permissions>NopWfWork:mutation</permissions>
                         </resource>
                     </children>

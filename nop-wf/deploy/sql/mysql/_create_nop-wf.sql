@@ -252,7 +252,7 @@ CREATE TABLE nop_wf_log(
 
    ALTER TABLE nop_wf_definition COMMENT '工作流模型定义';
                 
-   ALTER TABLE nop_wf_instance COMMENT '工作流模型定义';
+   ALTER TABLE nop_wf_instance COMMENT '工作流实例';
                 
    ALTER TABLE nop_wf_definition_auth COMMENT '工作流定义权限';
                 

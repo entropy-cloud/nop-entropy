@@ -11,5 +11,20 @@
 
     <artifactId>nop-rpc-grpc</artifactId>
 
+    <dependencies>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-graphql-core</artifactId>
+        </dependency>
 
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-services</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-netty</artifactId>
+        </dependency>
+    </dependencies>
 </project>

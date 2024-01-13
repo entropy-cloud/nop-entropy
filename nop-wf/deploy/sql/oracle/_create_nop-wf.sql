@@ -278,7 +278,7 @@ CREATE TABLE nop_wf_log(
                     
       COMMENT ON COLUMN nop_wf_definition.REMARK IS '备注';
                     
-      COMMENT ON TABLE nop_wf_instance IS '工作流模型定义';
+      COMMENT ON TABLE nop_wf_instance IS '工作流实例';
                 
       COMMENT ON COLUMN nop_wf_instance.WF_ID IS '主键';
                     

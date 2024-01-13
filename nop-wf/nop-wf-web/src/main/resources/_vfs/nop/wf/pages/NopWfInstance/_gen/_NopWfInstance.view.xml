@@ -10,9 +10,6 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--主键-->
-                <col id="wfId" mandatory="true" sortable="true"/>
-
                 <!--工作流名称-->
                 <col id="wfName" mandatory="true" sortable="true"/>
 
@@ -123,49 +120,47 @@
     </grids>
 
     <forms>
-        <form id="view" editMode="view" title="查看-工作流模型定义" i18n-en:title="View Worflow Instance">
+        <form id="view" editMode="view" title="查看-工作流实例" i18n-en:title="View Worflow Instance">
             <layout>
- wfId[主键] wfName[工作流名称]
- wfVersion[工作流版本] wfParams[工作流参数]
- wfGroup[工作流分组] workScope[工作分类]
- title[实例标题] status[状态]
- appState[应用状态] startTime[启动时间]
- endTime[结束时间] dueTime[完成时限]
- bizKey[业务唯一键] bizObjName[业务对象名]
- bizObjId[业务对象ID] parentWfName[父工作流名称]
- parentWfVersion[父流程版本] parentWfId[父流程ID]
- parentStepId[父流程步骤ID] starterId[启动人ID]
- starterName[启动人] starterDeptId[启动人单位ID]
- lastOperatorId[上次操作者ID] lastOperatorName[上次操作者]
- lastOperatorDeptId[上次操作者单位ID] lastOperateTime[上次操作时间]
- managerType[管理者类型] managerDeptId[管理者单位ID]
- managerName[管理者] managerId[管理者ID]
- signalText[信号集合] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] 
-                remark[备注]
+ wfName[工作流名称] wfVersion[工作流版本]
+ wfParams[工作流参数] wfGroup[工作流分组]
+ workScope[工作分类] title[实例标题]
+ status[状态] appState[应用状态]
+ startTime[启动时间] endTime[结束时间]
+ dueTime[完成时限] bizKey[业务唯一键]
+ bizObjName[业务对象名] bizObjId[业务对象ID]
+ parentWfName[父工作流名称] parentWfVersion[父流程版本]
+ parentWfId[父流程ID] parentStepId[父流程步骤ID]
+ starterId[启动人ID] starterName[启动人]
+ starterDeptId[启动人单位ID] lastOperatorId[上次操作者ID]
+ lastOperatorName[上次操作者] lastOperatorDeptId[上次操作者单位ID]
+ lastOperateTime[上次操作时间] managerType[管理者类型]
+ managerDeptId[管理者单位ID] managerName[管理者]
+ managerId[管理者ID] signalText[信号集合]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
 </layout>
         </form>
-        <form id="add" editMode="add" title="新增-工作流模型定义" i18n-en:title="Add Worflow Instance" x:prototype="edit"/>
-        <form id="edit" editMode="edit" title="编辑-工作流模型定义" i18n-en:title="Edit Worflow Instance">
+        <form id="add" editMode="add" title="新增-工作流实例" i18n-en:title="Add Worflow Instance" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-工作流实例" i18n-en:title="Edit Worflow Instance">
             <layout>
- wfId[主键] wfName[工作流名称]
- wfVersion[工作流版本] wfParams[工作流参数]
- wfGroup[工作流分组] workScope[工作分类]
- title[实例标题] status[状态]
- appState[应用状态] startTime[启动时间]
- endTime[结束时间] dueTime[完成时限]
- bizKey[业务唯一键] bizObjName[业务对象名]
- bizObjId[业务对象ID] parentWfName[父工作流名称]
- parentWfVersion[父流程版本] parentWfId[父流程ID]
- parentStepId[父流程步骤ID] starterId[启动人ID]
- starterName[启动人] starterDeptId[启动人单位ID]
- lastOperatorId[上次操作者ID] lastOperatorName[上次操作者]
- lastOperatorDeptId[上次操作者单位ID] lastOperateTime[上次操作时间]
- managerType[管理者类型] managerDeptId[管理者单位ID]
- managerName[管理者] managerId[管理者ID]
- signalText[信号集合] 
-                remark[备注]
+ wfName[工作流名称] wfVersion[工作流版本]
+ wfParams[工作流参数] wfGroup[工作流分组]
+ workScope[工作分类] title[实例标题]
+ status[状态] appState[应用状态]
+ startTime[启动时间] endTime[结束时间]
+ dueTime[完成时限] bizKey[业务唯一键]
+ bizObjName[业务对象名] bizObjId[业务对象ID]
+ parentWfName[父工作流名称] parentWfVersion[父流程版本]
+ parentWfId[父流程ID] parentStepId[父流程步骤ID]
+ starterId[启动人ID] starterName[启动人]
+ starterDeptId[启动人单位ID] lastOperatorId[上次操作者ID]
+ lastOperatorName[上次操作者] lastOperatorDeptId[上次操作者单位ID]
+ lastOperateTime[上次操作时间] managerType[管理者类型]
+ managerDeptId[管理者单位ID] managerName[管理者]
+ managerId[管理者ID] signalText[信号集合]
+ remark[备注] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
@@ -174,7 +169,7 @@
         <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
             <layout/>
         </form>
-        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-工作流模型定义"
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-工作流实例"
               i18n-en:title="Update Worflow Instance">
             <layout/>
         </form>
@@ -206,10 +201,10 @@
                     <confirmText>@i18n:common.confirmDelete</confirmText>
                 </action>
                 <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
-                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                    <action id="row-update-button" label="@i18n:common.edit">
                         <dialog page="update"/>
                     </action>
-                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                    <action id="row-delete-button" label="@i18n:common.delete">
                         <api url="@mutation:NopWfInstance__delete?id=$id"/>
                         <confirmText>@i18n:common.confirmDelete</confirmText>
                     </action>

@@ -10,9 +10,6 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--工作ID-->
-                <col id="workId" mandatory="true" sortable="true"/>
-
                 <!--工作流实例ID-->
                 <col id="wfId" sortable="true"/>
 
@@ -71,29 +68,27 @@
     <forms>
         <form id="view" editMode="view" title="查看-代办工作" i18n-en:title="View Work List">
             <layout>
- workId[工作ID] wfId[工作流实例ID]
- stepId[工作流步骤ID] workType[工作类型]
- title[工作标题] linkUrl[工作链接]
- status[状态] ownerId[拥有者ID]
- ownerName[拥有者姓名] callerId[调用者ID]
- callerName[调用者姓名] readTime[读取时间]
- finishTime[完成时间] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] 
-                remark[备注]
+ wfId[工作流实例ID] stepId[工作流步骤ID]
+ workType[工作类型] title[工作标题]
+ linkUrl[工作链接] status[状态]
+ ownerId[拥有者ID] ownerName[拥有者姓名]
+ callerId[调用者ID] callerName[调用者姓名]
+ readTime[读取时间] finishTime[完成时间]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-代办工作" i18n-en:title="Add Work List" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-代办工作" i18n-en:title="Edit Work List">
             <layout>
- workId[工作ID] wfId[工作流实例ID]
- stepId[工作流步骤ID] workType[工作类型]
- title[工作标题] linkUrl[工作链接]
- status[状态] ownerId[拥有者ID]
- ownerName[拥有者姓名] callerId[调用者ID]
- callerName[调用者姓名] readTime[读取时间]
- finishTime[完成时间] 
-                remark[备注]
+ wfId[工作流实例ID] stepId[工作流步骤ID]
+ workType[工作类型] title[工作标题]
+ linkUrl[工作链接] status[状态]
+ ownerId[拥有者ID] ownerName[拥有者姓名]
+ callerId[调用者ID] callerName[调用者姓名]
+ readTime[读取时间] finishTime[完成时间]
+ remark[备注] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
@@ -133,10 +128,10 @@
                     <confirmText>@i18n:common.confirmDelete</confirmText>
                 </action>
                 <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
-                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                    <action id="row-update-button" label="@i18n:common.edit">
                         <dialog page="update"/>
                     </action>
-                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                    <action id="row-delete-button" label="@i18n:common.delete">
                         <api url="@mutation:NopWfWork__delete?id=$id"/>
                         <confirmText>@i18n:common.confirmDelete</confirmText>
                     </action>

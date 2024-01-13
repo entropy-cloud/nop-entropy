@@ -19,7 +19,7 @@
 
     <props>
         <prop name="sid" displayName="日志ID" i18n-en:displayName="SID" tagSet="seq" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false">
+              sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="wfId" displayName="工作流实例ID" i18n-en:displayName="Workflow ID" mandatory="true" queryable="true"

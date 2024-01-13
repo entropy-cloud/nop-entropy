@@ -23,10 +23,11 @@
           @executor executor + "Executor"为BeanLoader中的bean的id, 用于控制异步执行时的分组
           @timeout 异步执行时的超时时间
           @async 是否异步调用。如果是异步调用，则返回CompletionStage。return部分描述的是异步返回的数据的类型
+          @idempotent 多次执行不会产生不同的结果
         -->
         <query xdef:name="BizActionModel" name="!string" displayName="string"
                executor="string" bizSequential="!boolean=false"
-               timeout="long" disabled="!boolean=false"
+               timeout="long" disabled="!boolean=false" idempotent="!boolean=false" safe="!boolean=false"
                async="!boolean=false" xdef:bean-tag-prop="type">
 
             <auth xdef:ref="../schema/auth.xdef"/>

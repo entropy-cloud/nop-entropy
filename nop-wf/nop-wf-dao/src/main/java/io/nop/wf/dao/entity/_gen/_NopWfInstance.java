@@ -14,7 +14,7 @@ import io.nop.wf.dao.entity.NopWfInstance;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- *  工作流模型定义: nop_wf_instance
+ *  工作流实例: nop_wf_instance
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
