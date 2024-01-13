@@ -39485,6 +39485,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getDefaultValue",
+        "parameterTypes": []
+      },
+      {
         "name": "getJavaTypeName",
         "parameterTypes": []
       },

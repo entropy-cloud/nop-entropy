@@ -50,7 +50,7 @@ public class DynCodeGen {
     @InjectValue("@cfg:nop.dyn.gen-web-files|true")
     boolean genWebFiles;
 
-    @InjectValue("@cfg:nop.dyn.format-gen-code|false")
+    @InjectValue("@cfg:nop.dyn.format-gen-code|true")
     boolean formatGenCode;
 
     private final Map<String, InMemoryResourceStore> moduleCoreStores = new ConcurrentHashMap<>();
