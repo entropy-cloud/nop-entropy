@@ -44,7 +44,7 @@ public class ServiceSchemaManager {
     }
 
     private <S, R> MethodDescriptor<S, R> buildMethodDescriptor(String methodName, GraphQLFieldDefinition fieldDef) {
-        return MethodDescriptor.newBuilder().setFullMethodName(methodName).setRequestMarshaller().build();
+        return null;//MethodDescriptor.newBuilder().setFullMethodName(methodName).setRequestMarshaller().build();
     }
 
     private <S, R> ServerCallHandler<S, R> buildServerCall(GraphQLFieldDefinition fieldDef) {

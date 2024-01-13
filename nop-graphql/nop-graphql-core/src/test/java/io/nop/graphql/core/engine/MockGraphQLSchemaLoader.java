@@ -117,4 +117,9 @@ public class MockGraphQLSchemaLoader implements IGraphQLSchemaLoader {
     public Set<String> getBizObjNames() {
         return this.defs.keySet();
     }
+
+    @Override
+    public Map<String, GraphQLFieldDefinition> getBizOperationDefinitions(String bizObjName) {
+        return Collections.emptyMap();
+    }
 }
