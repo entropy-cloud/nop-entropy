@@ -28,6 +28,8 @@
 
     <jsonTypeHandler xdef:value="class-name" />
 
+    <upsertHandler xdef:value="class-name" />
+
     <!--
     @supportUpdateTableAlias update语句是否允许表别名。例如 update my_table a where ...
     @supportDeleteTableAlias delete语句是否允许表别名。例如 delete my_table a where ...
