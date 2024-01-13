@@ -313,6 +313,19 @@ meta文件是通过exec-maven-plugin插件执行postcompile代码生成模板来
     </build>
 ````
 
+## 21. 报表引擎中的Excel公式支持嵌套调用吗？如何增加自己的报表函数？
+手工编写一个top-down的表达式解析器只需要1000多行代码。nop-xlang包中的SimpleExprParser提供了一个基本的表达式解析器，可以通过feature flag定制它支持的语法特性。
+可选的语法特性如下：
+````
+public static final int ALL = LAMBDA_FUNCTION | FUNCTION_DEF | STATEMENT | FUNCTION_CALL | OBJECT_CALL | BIT_OP
+| SELF_ASSIGN | CP_EXPR | TAG_FUNC | JSON | OBJECT_PROP | ARRAY_INDEX | SELF_INC | IMPORT | NEW;
+````
+
+ExcelFormulaParser就是对从SimpleExprParser继承，实现一些剪裁并加上对报表层次坐标表达式的识别。 
+
+目前NopReport中内置实现的Excel函数比较少，它们全部定义在ReportFunctions类中。
+如有需要可以自行扩编写静态函数，然后类似ReportFunctions注册到ReportFunctionProvider中。
+
 # 部署问题
 
 
