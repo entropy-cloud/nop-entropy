@@ -490,12 +490,21 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
                 _enqueueEntity((IOrmEntity) obj, selection);
             } else if (obj instanceof IOrmEntitySet) {
                 _enqueueCollection((IOrmEntitySet) obj, selection);
+            } else if (obj instanceof Map) {
+                _enqueueMap((Map<String, Object>) obj, selection);
             }
         }
         return this;
     }
 
+    private void _enqueueMap(Map<String, Object> map, FieldSelectionBean selection) {
+        for (Map.Entry<String, FieldSelectionBean> entry : selection.getFields().entrySet()) {
+            _enqueueProp(map, entry.getKey());
+        }
+    }
+
     private void _enqueueEntity(IOrmEntity entity, FieldSelectionBean selection) {
+        EntityLoad entityLoad = _enqueueEntity(entity);
         for (Map.Entry<String, FieldSelectionBean> entry : selection.getFields().entrySet()) {
             String name = entry.getKey();
             FieldSelectionBean field = entry.getValue();

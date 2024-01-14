@@ -16,5 +16,12 @@
                 </bo:DoFindPage>
             </source>
         </query>
+
+        <query name="test">
+            <return type="io.nop.auth.dao.entity.NopAuthUser" />
+            <source>
+                return null;
+            </source>
+        </query>
     </actions>
 </biz>
