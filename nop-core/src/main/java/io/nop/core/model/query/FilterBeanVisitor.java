@@ -11,6 +11,7 @@ import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.IVariableScope;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
 
@@ -192,20 +193,20 @@ public class FilterBeanVisitor<T> {
     }
 
     protected Object getValue(ITreeBean filter) {
-        return normalizeValue(FILTER_ATTR_VALUE, filter.getAttr(FILTER_ATTR_VALUE));
+        return normalizeValue(filter.getLocation(), FILTER_ATTR_VALUE, filter.getAttr(FILTER_ATTR_VALUE));
     }
 
     protected Object getMin(ITreeBean filter) {
         Object min = filter.getAttr(FILTER_ATTR_MIN);
-        return normalizeValue(FILTER_ATTR_MIN, min);
+        return normalizeValue(filter.getLocation(), FILTER_ATTR_MIN, min);
     }
 
     protected Object getMax(ITreeBean filter) {
         Object max = filter.getAttr(FILTER_ATTR_MAX);
-        return normalizeValue(FILTER_ATTR_MAX, max);
+        return normalizeValue(filter.getLocation(), FILTER_ATTR_MAX, max);
     }
 
-    protected Object normalizeValue(String name, Object value) {
+    protected Object normalizeValue(SourceLocation loc, String name, Object value) {
         if (value instanceof String) {
             String str = value.toString();
             if (str.startsWith(CoreConstants.ATTR_JSON_PREFIX)) {
@@ -217,7 +218,8 @@ public class FilterBeanVisitor<T> {
                     return true;
                 if (str.equals("false"))
                     return false;
-                throw new NopException(ERR_FILTER_INVALID_VALUE_FORMAT).param(ARG_NAME, name).param(ARG_VALUE, value);
+                throw new NopException(ERR_FILTER_INVALID_VALUE_FORMAT).loc(loc)
+                        .param(ARG_NAME, name).param(ARG_VALUE, value);
             }
         }
         return value;

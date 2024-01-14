@@ -75,4 +75,15 @@ public class BizExprHelper {
             }
         }
     }
+
+    public static Object resolveBizValue(SourceLocation loc, String name, Object value,
+                                         Lazy<DictBean> dict, ISecurityContext context) {
+        if (value instanceof String) {
+            String str = value.toString();
+            if (str.startsWith(BizFilterConstants.BIZ_EXPR_PREFIX)) {
+                value = getBizExprValue(dict.get(), loc, name, str, context);
+            }
+        }
+        return value;
+    }
 }
