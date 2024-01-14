@@ -129,3 +129,6 @@ quarkus:
         max-backup-index: 3
         file-suffix: .yyyy-MM-dd
 
+
+  redis:
+    hosts: redis://localhost/

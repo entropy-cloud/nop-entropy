@@ -8,9 +8,11 @@ import io.grpc.Status;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.engine.IGraphQLEngine;
+import io.nop.rpc.grpc.status.GrpcStatusMapping;
 import io.nop.rpc.grpc.utils.GrpcHelper;
 
 import java.util.Map;
@@ -27,8 +29,12 @@ public class GraphQLServerCallHandler<S, R> implements ServerCallHandler<S, R> {
 
     private final GraphQLFieldDefinition fieldDefinition;
 
-    public GraphQLServerCallHandler(IGraphQLEngine graphQLEngine, GraphQLFieldDefinition fieldDefinition) {
+    private final GrpcStatusMapping statusMapping;
+
+    public GraphQLServerCallHandler(IGraphQLEngine graphQLEngine, GrpcStatusMapping statusMapping,
+                                    GraphQLFieldDefinition fieldDefinition) {
         this.graphQLEngine = graphQLEngine;
+        this.statusMapping = statusMapping;
         this.fieldDefinition = fieldDefinition;
     }
 
@@ -37,7 +43,7 @@ public class GraphQLServerCallHandler<S, R> implements ServerCallHandler<S, R> {
         Map<String, Object> reqHeaders = GrpcHelper.parseHeaders(headers);
 
         ServerCallStreamObserverImpl<S, R> responseObserver =
-                new ServerCallStreamObserverImpl<>(call, false);
+                new ServerCallStreamObserverImpl<>(call, false, statusMapping);
         // We expect only 1 request, but we ask for 2 requests here so that if a misbehaving client
         // sends more than 1 requests, ServerCall will catch it. Note that disabling auto
         // inbound flow control has no effect on unary calls.
@@ -83,6 +89,7 @@ public class GraphQLServerCallHandler<S, R> implements ServerCallHandler<S, R> {
 
                 IGraphQLExecutionContext ctx = graphQLEngine.newRpcContext(fieldDefinition.getOperationType(),
                         fieldDefinition.getOperationName(), req);
+                responseObserver.context = ctx;
 
                 graphQLEngine.executeRpcAsync(ctx).whenComplete((res, err) -> {
                     if (err != null) {
@@ -133,10 +140,16 @@ public class GraphQLServerCallHandler<S, R> implements ServerCallHandler<S, R> {
         private boolean completed = false;
         private Runnable onCloseHandler;
 
+        private final GrpcStatusMapping statusMapping;
+
+        private IGraphQLExecutionContext context;
+
         // Non private to avoid synthetic class
-        ServerCallStreamObserverImpl(ServerCall<ReqT, RespT> call, boolean serverStreamingOrBidi) {
+        ServerCallStreamObserverImpl(ServerCall<ReqT, RespT> call, boolean serverStreamingOrBidi,
+                                     GrpcStatusMapping statusMapping) {
             this.call = call;
             this.serverStreamingOrBidi = serverStreamingOrBidi;
+            this.statusMapping = statusMapping;
         }
 
         private void freeze() {
@@ -177,17 +190,12 @@ public class GraphQLServerCallHandler<S, R> implements ServerCallHandler<S, R> {
             call.sendMessage(response.getData());
         }
 
-        public void sendHeaders(ApiResponse<?> res) {
-
-        }
-
         @Override
         public void onError(Throwable t) {
-            Metadata metadata = Status.trailersFromThrowable(t);
-            if (metadata == null) {
-                metadata = new Metadata();
-            }
-            call.close(Status.fromThrowable(t), metadata);
+            String locale = context == null ? null : context.getContext().getLocale();
+            ApiResponse<?> err = ErrorMessageManager.instance().buildResponse(locale, t);
+
+            call.close(statusMapping.mapToStatus(err), GrpcHelper.buildHeaders(err.getHeaders()));
             aborted = true;
         }
 

@@ -1141,6 +1141,7 @@
 /nop/wf/pages/WorkflowService/resumeWorkflow.page.yaml
 /nop/wf/pages/WorkflowService/startWorkflow.page.yaml
 /nop/wf/pages/WorkflowService/suspendWorkflow.page.yaml
+/nop/wf/xlib/beeflow.xlib
 /nop/wf/xlib/oa.xlib
 /nop/wf/xlib/wf-actor.xlib
 /nop/wf/xlib/wf-gen.xlib

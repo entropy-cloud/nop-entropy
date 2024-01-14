@@ -6,6 +6,7 @@ import io.grpc.ServerServiceDefinition;
 import io.nop.core.resource.cache.ResourceLoadingCache;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.engine.IGraphQLEngine;
+import io.nop.rpc.grpc.status.GrpcStatusMapping;
 import jakarta.inject.Inject;
 
 import java.util.Map;
@@ -14,12 +15,19 @@ import java.util.Set;
 public class ServiceSchemaManager {
     private IGraphQLEngine graphQLEngine;
 
+    private GrpcStatusMapping statusMapping;
+
     private final ResourceLoadingCache<ServerServiceDefinition> cache =
             new ResourceLoadingCache<>("grpc-schema-cache", this::loadServiceDefinition, null);
 
     @Inject
     public void setGraphQLEngine(IGraphQLEngine graphQLEngine) {
         this.graphQLEngine = graphQLEngine;
+    }
+
+    @Inject
+    public void setStatusMapping(GrpcStatusMapping statusMapping) {
+        this.statusMapping = statusMapping;
     }
 
     public Set<String> getGraphQLObjectTypes() {
@@ -44,10 +52,14 @@ public class ServiceSchemaManager {
     }
 
     private <S, R> MethodDescriptor<S, R> buildMethodDescriptor(String methodName, GraphQLFieldDefinition fieldDef) {
-        return null;//MethodDescriptor.newBuilder().setFullMethodName(methodName).setRequestMarshaller().build();
+        var builder = MethodDescriptor.newBuilder().setFullMethodName(methodName);
+
+        //builder.setRequestMarshaller();
+        //return builder.build();
+        return null;
     }
 
     private <S, R> ServerCallHandler<S, R> buildServerCall(GraphQLFieldDefinition fieldDef) {
-        return new GraphQLServerCallHandler<>(graphQLEngine, fieldDef);
+        return new GraphQLServerCallHandler<>(graphQLEngine, statusMapping, fieldDef);
     }
 }

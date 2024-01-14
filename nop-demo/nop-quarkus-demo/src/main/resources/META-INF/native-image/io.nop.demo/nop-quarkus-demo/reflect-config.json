@@ -16162,6 +16162,12 @@
         ]
       },
       {
+        "name": "getBizOperationDefinitions",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getGraphQLDocument",
         "parameterTypes": []
       },
@@ -28650,7 +28656,13 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "redisDataSource"
+      }
+    ],
     "methods": [
       {
         "name": "changeLogLevel",
@@ -28658,6 +28670,10 @@
           "io.nop.api.core.util.LogLevel",
           "java.lang.String"
         ]
+      },
+      {
+        "name": "init",
+        "parameterTypes": []
       },
       {
         "name": "loadProcessCard",
