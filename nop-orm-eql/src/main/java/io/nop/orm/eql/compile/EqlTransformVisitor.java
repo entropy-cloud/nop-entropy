@@ -290,8 +290,10 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
         SqlFrom from = node.getFrom();
 
-        for (SqlSingleTableSource table : from.getEntitySources()) {
-            String alias = table.getAliasName();
+        from.forEachSingleTableSource(table -> {
+            if (table.isFilterAlreadyAdded())
+                return;
+
             ISqlTableMeta tableMeta = (ISqlTableMeta) table.getResolvedTableMeta();
             if (tableMeta.isUseLogicalDelete()) {
                 SqlWhere where = node.getWhere();
@@ -300,15 +302,25 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                     node.setWhere(where);
                 }
 
-                SqlBinaryExpr expr = new SqlBinaryExpr();
-                expr.setLeft(EqlASTBuilder.colName(alias, tableMeta.getDeleteFlagPropName()));
-                expr.setOperator(SqlOperator.EQ);
-
-                Object value = tableMeta.getDeleteFlagValue(false, dialect);
-                expr.setRight(EqlASTBuilder.literal(value));
+                SqlBinaryExpr expr = buildLogicalDeleteFilter(table, tableMeta);
                 where.appendFilter(expr);
             }
-        }
+        });
+    }
+
+    SqlBinaryExpr buildLogicalDeleteFilter(SqlSingleTableSource table, ISqlTableMeta tableMeta) {
+        SqlColumnName col = EqlASTBuilder.colName(table.getAliasName(), tableMeta.getDeleteFlagPropName());
+        col.setTableSource(table);
+
+        col.setResolvedExprMeta(tableMeta.getFieldExprMeta(tableMeta.getDeleteFlagPropName()));
+
+        SqlBinaryExpr expr = new SqlBinaryExpr();
+        expr.setLeft(col);
+        expr.setOperator(SqlOperator.EQ);
+
+        Object value = tableMeta.getDeleteFlagValue(false, dialect);
+        expr.setRight(EqlASTBuilder.literal(value));
+        return expr;
     }
 
     void addEntityFilter(SqlQuerySelect node) {
@@ -414,6 +426,29 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                 visitJoinCondition(source);
                 currentScope = oldScope;
             }
+            addTableFilterForJoin(source);
+        }
+    }
+
+    void addTableFilterForJoin(SqlJoinTableSource source) {
+        if (source.getLeft().isEntityTableSource()) {
+            addTableFilterForJoinTable((SqlSingleTableSource) source.getLeft(), source);
+        }
+
+        if (source.getRight().isEntityTableSource()) {
+            addTableFilterForJoinTable((SqlSingleTableSource) source.getRight(), source);
+        }
+    }
+
+    void addTableFilterForJoinTable(SqlSingleTableSource table, SqlJoinTableSource join) {
+        if (table.isFilterAlreadyAdded())
+            return;
+
+        table.setFilterAlreadyAdded(true);
+        ISqlTableMeta tableMeta = (ISqlTableMeta) table.getResolvedTableMeta();
+        if (tableMeta.isUseLogicalDelete()) {
+            SqlBinaryExpr expr = buildLogicalDeleteFilter(table, tableMeta);
+            join.addConditionFilter(expr);
         }
     }
 
@@ -664,8 +699,32 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         join.setExplicit(false);
         join.setCondition(condition);
 
+        addTableFilterForPropJoin(join);
+
         source.addPropJoin(ref.getName(), join);
         return join;
+    }
+
+    void addTableFilterForPropJoin(SqlPropJoin join) {
+        if (join.getLeft().isEntityTableSource()) {
+            addTableFilterForPropJoinTable(join.getLeft(), join);
+        }
+
+        if (join.getRight().isEntityTableSource()) {
+            addTableFilterForPropJoinTable(join.getRight(), join);
+        }
+    }
+
+    void addTableFilterForPropJoinTable(SqlSingleTableSource table, SqlPropJoin join) {
+        if (table.isFilterAlreadyAdded())
+            return;
+
+        table.setFilterAlreadyAdded(true);
+        ISqlTableMeta tableMeta = (ISqlTableMeta) table.getResolvedTableMeta();
+        if (tableMeta.isUseLogicalDelete()) {
+            SqlBinaryExpr expr = buildLogicalDeleteFilter(table, tableMeta);
+            join.addConditionFilter(expr);
+        }
     }
 
     SqlPropJoin addToOneDynamicRelationJoin(SqlSingleTableSource source, IEntityRelationModel ref) {
@@ -730,6 +789,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         join.setExplicit(false);
         join.setCondition(condition);
 
+        addTableFilterForPropJoin(join);
+
         leftSource.addPropJoin(ref.getName(), join);
         return join;
     }
@@ -752,6 +813,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
         join.setExplicit(false);
         join.setCondition(condition);
+
+        addTableFilterForPropJoin(join);
 
         source.addPropJoin(propJoinName, join);
         return join;

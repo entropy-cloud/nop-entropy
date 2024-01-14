@@ -7,9 +7,11 @@
  */
 package io.nop.orm.eql.compile;
 
+import io.nop.orm.eql.ast.SqlBinaryExpr;
 import io.nop.orm.eql.ast.SqlExpr;
 import io.nop.orm.eql.ast.SqlSingleTableSource;
 import io.nop.orm.eql.enums.SqlJoinType;
+import io.nop.orm.eql.enums.SqlOperator;
 import io.nop.orm.eql.meta.ISqlSelectionMeta;
 
 public class SqlPropJoin {
@@ -66,6 +68,21 @@ public class SqlPropJoin {
 
     public void setCondition(SqlExpr condition) {
         this.condition = condition;
+    }
+
+    public void addConditionFilter(SqlExpr filter) {
+        if (filter == null)
+            return;
+
+        if (this.getCondition() == null) {
+            this.setCondition(filter);
+        } else {
+            SqlBinaryExpr and = new SqlBinaryExpr();
+            and.setOperator(SqlOperator.AND);
+            and.setLeft(getCondition());
+            and.setRight(filter);
+            setCondition(and);
+        }
     }
 
     public int getRefCount() {

@@ -759,6 +759,18 @@
         ]
       },
       {
+        "name": "loadTpl",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "loadTplFromResource",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
         "name": "newCodeGenerator",
         "parameterTypes": [
           "java.lang.String",
@@ -10361,6 +10373,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getUpsertHandler",
+        "parameterTypes": []
+      },
+      {
         "name": "hasErrorCode",
         "parameterTypes": [
           "java.lang.String"
@@ -10558,6 +10574,12 @@
         "name": "setTableNameCase",
         "parameterTypes": [
           "io.nop.commons.text.CharacterCase"
+        ]
+      },
+      {
+        "name": "setUpsertHandler",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       }
     ],
@@ -12985,6 +13007,10 @@
       },
       {
         "name": "getSqlType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSqlType",
         "parameterTypes": [
           "io.nop.dao.dialect.IDialect"
         ]
@@ -13014,6 +13040,12 @@
         "parameterTypes": [
           "io.nop.orm.IOrmEntity",
           "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setSqlType",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -17210,6 +17242,13 @@
         "name": "newExcelModelLoader",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseDslModelNode",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.core.lang.xml.XNode"
         ]
       },
       {

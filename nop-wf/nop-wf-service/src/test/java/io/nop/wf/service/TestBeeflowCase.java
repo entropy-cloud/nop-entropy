@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * 测试类钉钉审批流相关用例
  */
-@NopTestConfig //(localDb = true, initDatabaseSchema = true)
+@NopTestConfig(localDb = true, initDatabaseSchema = true,disableSnapshot = false)
 public class TestBeeflowCase extends JunitAutoTestCase {
 
     @Inject

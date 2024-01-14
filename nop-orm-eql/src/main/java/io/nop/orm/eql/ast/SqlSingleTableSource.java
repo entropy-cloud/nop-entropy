@@ -13,6 +13,15 @@ import io.nop.orm.eql.meta.ISqlSelectionMeta;
 
 public class SqlSingleTableSource extends _SqlSingleTableSource {
     private boolean forPropJoin;
+    private boolean filterAlreadyAdded;
+
+    public boolean isFilterAlreadyAdded() {
+        return filterAlreadyAdded;
+    }
+
+    public void setFilterAlreadyAdded(boolean filterAlreadyAdded) {
+        this.filterAlreadyAdded = filterAlreadyAdded;
+    }
 
     public boolean isForPropJoin() {
         return forPropJoin;

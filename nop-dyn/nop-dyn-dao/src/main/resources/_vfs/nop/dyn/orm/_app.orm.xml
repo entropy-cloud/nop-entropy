@@ -662,7 +662,7 @@
                 <column code="NOP_SORT_ORDER" displayName="排序" name="nopSortOrder" propId="5" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Sort Order"/>
                 <column code="NOP_FLOW_ID" displayName="工作流实例ID" name="nopFlowId" precision="32" propId="6"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Workflow ID"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="var" i18n-en:displayName="Workflow ID"/>
                 <column code="NOP_STATUS" displayName="业务状态码" name="nopStatus" propId="7" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Biz Status"/>
                 <column code="NOP_BIZ_STATE" comment="业务状态是由业务自由定义" displayName="业务状态" name="nopBizState" precision="50"

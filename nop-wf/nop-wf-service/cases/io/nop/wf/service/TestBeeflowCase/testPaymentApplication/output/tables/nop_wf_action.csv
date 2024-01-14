@@ -1,5 +1,5 @@
 _chgType,SID,WF_ID,STEP_ID,ACTION_NAME,DISPLAY_NAME,EXEC_TIME,CALLER_ID,CALLER_NAME,OPINION,ERR_CODE,ERR_MSG,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME
+A,@var:NopWfAction@sid_1,@var:NopWfInstance@wfId,@var:NopWfStepInstance@stepId_2,agree,同意,@var:NopWfAction@execTime_1,3,user_3,,,,0,autotest-ref,*,autotest-ref,*
 A,@var:NopWfAction@sid_2,@var:NopWfInstance@wfId,@var:NopWfStepInstance@stepId_3,confirm,已阅,@var:NopWfAction@execTime_2,4,user_4,,,,0,autotest-ref,*,autotest-ref,*
 A,@var:NopWfAction@sid_3,@var:NopWfInstance@wfId,@var:NopWfStepInstance@stepId_4,agree,同意,@var:NopWfAction@execTime_3,5,user_5,,,,0,autotest-ref,*,autotest-ref,*
-A,@var:NopWfAction@sid_1,@var:NopWfInstance@wfId,@var:NopWfStepInstance@stepId_2,agree,同意,@var:NopWfAction@execTime_1,3,user_3,,,,0,autotest-ref,*,autotest-ref,*
 A,@var:NopWfAction@sid,@var:NopWfInstance@wfId,@var:NopWfStepInstance@stepId_1,agree,同意,@var:NopWfAction@execTime,2,user_2,,,,0,autotest-ref,*,autotest-ref,*

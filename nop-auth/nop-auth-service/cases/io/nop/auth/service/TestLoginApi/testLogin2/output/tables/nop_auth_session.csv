@@ -1,3 +1,3 @@
 _chgType,SESSION_ID,USER_ID,USER_NAME,TENANT_ID,LOGIN_ADDR,LOGIN_DEVICE,LOGIN_APP,LOGIN_OS,LOGIN_TIME,LOGIN_TYPE,LOGOUT_TIME,LOGOUT_TYPE,LOGOUT_BY,LAST_ACCESS_TIME,ACCESS_TOKEN,REFRESH_TOKEN,CACHE_DATA,CREATED_BY,CREATE_TIME,REMARK
-A,@var:NopAuthSession@sessionId_1,@var:NopAuthUser@userId,auto_test1,0,,,,,@var:NopAuthSession@loginTime_1,1,,0,,,,,,autotest-ref,*,
 A,@var:NopAuthSession@sessionId,@var:NopAuthUser@userId,auto_test1,0,,,,,@var:NopAuthSession@loginTime,1,@var:NopAuthSession@logoutTime,4,autotest-ref,,,,,autotest-ref,*,
+A,@var:NopAuthSession@sessionId_1,@var:NopAuthUser@userId,auto_test1,0,,,,,@var:NopAuthSession@loginTime_1,1,,0,,,,,,autotest-ref,*,

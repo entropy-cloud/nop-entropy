@@ -41,8 +41,8 @@
               insertable="true" updatable="true">
             <schema type="java.lang.Integer"/>
         </prop>
-        <prop name="nopFlowId" displayName="工作流实例ID" i18n-en:displayName="Workflow ID" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="nopFlowId" displayName="工作流实例ID" i18n-en:displayName="Workflow ID" tagSet="var" queryable="true"
+              sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="nopStatus" displayName="业务状态码" i18n-en:displayName="Biz Status" queryable="true" sortable="true"

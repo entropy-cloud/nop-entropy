@@ -10,6 +10,7 @@
             </filters>
 
             <aliases>
+                <alias name="name" type="String" propPath="nopName" />
                 <alias name="employeeId" type="String" propPath="extFields.employeeId.string"/>
                 <alias name="salary1" type="Double" propPath="extFields.salary1.double"/>
                 <alias name="salary2" type="Double" propPath="extFields.salary2.double"/>
