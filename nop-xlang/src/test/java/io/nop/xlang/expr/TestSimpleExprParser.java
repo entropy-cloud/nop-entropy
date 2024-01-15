@@ -12,6 +12,8 @@ import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.config.AppConfig;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.objects.Pair;
+import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.xlang.api.ExprEvalAction;
@@ -23,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -99,6 +102,22 @@ public class TestSimpleExprParser {
         AppConfig.getConfigProvider().updateConfigValue(ApiConfigs.CFG_EXCEPTION_FILL_STACKTRACE, true);
         String text = "a ?. b  ?.  [3] ?. \n(3)";
         SimpleExprParser.newDefault().parseExpr(null, text);
+    }
+
+    @Test
+    public void testFunctionCall() {
+        BaseTestCase.forceStackTrace();
+        Function<Integer, String> test = this::test;
+        IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValue("test", test);
+
+        String expr = "test(3)";
+        IEvalAction action = XLang.newCompileTool().allowUnregisteredScopeVar(true).compileSimpleExpr(null, expr);
+        assertEquals("4", action.invoke(scope));
+    }
+
+    String test(int value) {
+        return String.valueOf(value + 1);
     }
 
     Object eval(String expr) {
