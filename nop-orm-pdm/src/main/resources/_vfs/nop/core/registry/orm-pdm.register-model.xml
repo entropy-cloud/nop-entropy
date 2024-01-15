@@ -1,4 +1,4 @@
-<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+.x<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        name="orm">
     <loaders>
         <!-- 追加pdm解析器。系统初始化时会将这里的配置与orm.register-model.xml中的配置合并 -->

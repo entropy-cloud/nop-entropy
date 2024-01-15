@@ -326,6 +326,19 @@ ExcelFormulaParser就是对从SimpleExprParser继承，实现一些剪裁并加�
 目前NopReport中内置实现的Excel函数比较少，它们全部定义在ReportFunctions类中。
 如有需要可以自行扩编写静态函数，然后类似ReportFunctions注册到ReportFunctionProvider中。
 
+## 22. 如何使用Quarkus中定义的RedisDataSource
+
+在NopIoC管理的bean中可以直接通过  `@Inject RedisDataSource redisDataSource;`来注入Quarkus所管理的bean。
+需要注意的是，Quark的IoC是在编译期完成扫描和注册，所以在Quarkus的环境中使用到RedisDataSource才会完成自动发现和注册。例如增加一个QuarkusConfig类
+
+````java
+@ApplicationScoped
+public class QuarkusConfig {
+    @Inject
+    RedisDataSource redisDataSource;
+}
+````
+
 # 部署问题
 
 

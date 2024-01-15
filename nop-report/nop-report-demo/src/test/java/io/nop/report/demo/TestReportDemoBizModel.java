@@ -15,6 +15,8 @@ import io.nop.api.core.beans.WebContentBean;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.commons.util.FileHelper;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.impl.ClassPathResource;
 import io.nop.report.core.XptConstants;
 import io.nop.report.demo.biz.ReportDemoBizModel;
 import jakarta.inject.Inject;
