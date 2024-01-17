@@ -17,7 +17,7 @@ public class BytesFieldMarshaller implements IFieldMarshaller {
 
     @Override
     public Object readField(CodedInputStream in) throws IOException {
-        return in.readBytes();
+        return in.readByteArray();
     }
 
     @Override
@@ -26,7 +26,17 @@ public class BytesFieldMarshaller implements IFieldMarshaller {
     }
 
     @Override
+    public void writeFieldNoTag(CodedOutputStream out, Object value) throws IOException {
+        out.writeByteArrayNoTag((byte[]) value);
+    }
+
+    @Override
     public int computeSize(int propId, Object value) {
         return CodedOutputStream.computeByteArraySize(propId, (byte[]) value);
+    }
+
+    @Override
+    public int computeSizeNoTag(Object value) {
+        return CodedOutputStream.computeByteArraySizeNoTag((byte[]) value);
     }
 }

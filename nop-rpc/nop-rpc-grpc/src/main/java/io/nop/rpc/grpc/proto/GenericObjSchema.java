@@ -15,6 +15,8 @@ import java.util.Map;
 
 import static io.nop.rpc.grpc.GrpcErrors.ARG_NAME;
 import static io.nop.rpc.grpc.GrpcErrors.ARG_PROP_ID;
+import static io.nop.rpc.grpc.GrpcErrors.ERR_GRPC_FIELD_NAME_DUPLICATE;
+import static io.nop.rpc.grpc.GrpcErrors.ERR_GRPC_FIELD_PROP_ID_DUPLICATE;
 import static io.nop.rpc.grpc.GrpcErrors.ERR_GRPC_UNKNOWN_FIELD_FOR_NAME;
 import static io.nop.rpc.grpc.GrpcErrors.ERR_GRPC_UNKNOWN_FIELD_FOR_PROP_ID;
 
@@ -34,19 +36,39 @@ public class GenericObjSchema implements IFieldMarshaller {
         return true;
     }
 
-    public int computeSize(Object value) {
-        Map<String, Object> map = (Map<String, Object>) value;
-        return ProtobufMarshallerHelper.computeSize(this, map);
-    }
-
     @Override
     public int computeSize(int propId, Object value) {
+        int len = computeSizeNoTag(value);
+        return CodedOutputStream.computeTagSize(propId) + CodedOutputStream.computeUInt32SizeNoTag(len) + len;
+    }
+
+
+    @Override
+    public int computeSizeNoTag(Object value) {
         Map<String, Object> map = (Map<String, Object>) value;
         return ProtobufMarshallerHelper.computeSize(this, map);
     }
 
     public Map<String, Object> parseObject(CodedInputStream in) throws IOException {
         return ProtobufMarshallerHelper.parseObject(in, this);
+    }
+
+    public void writeObject(CodedOutputStream out, Object value) throws IOException {
+        ProtobufMarshallerHelper.writeObject(out, this, (Map<String, Object>) value);
+    }
+
+    public byte[] toByteArray(Object value) {
+        Map<String, Object> map = (Map<String, Object>) value;
+        int size = ProtobufMarshallerHelper.computeSize(this, map);
+        byte[] data = new byte[size];
+        CodedOutputStream out = CodedOutputStream.newInstance(data);
+        try {
+            ProtobufMarshallerHelper.writeObject(out, this, map);
+            out.flush();
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        }
+        return data;
     }
 
     @Override
@@ -59,10 +81,21 @@ public class GenericObjSchema implements IFieldMarshaller {
         out.writeMessage(propId, new DynamicMessage(this, (Map<String, Object>) value));
     }
 
+    @Override
+    public void writeFieldNoTag(CodedOutputStream out, Object value) throws IOException {
+        writeObject(out, value);
+    }
+
+
     public void setFieldList(List<GenericFieldSchema> fields) {
         fields.sort(Comparator.comparing(GenericFieldSchema::getPropId));
         this.fieldsByPropId = buildFieldsByPropId(fields);
         this.fieldsByName = buildFieldsByName(fields);
+        if (this.fieldsByName.size() != fields.size())
+            throw new NopException(ERR_GRPC_FIELD_NAME_DUPLICATE);
+
+        if (this.fieldsByPropId.size() != fields.size())
+            throw new NopException(ERR_GRPC_FIELD_PROP_ID_DUPLICATE);
     }
 
     private MapOfInt<GenericFieldSchema> buildFieldsByPropId(List<GenericFieldSchema> fields) {

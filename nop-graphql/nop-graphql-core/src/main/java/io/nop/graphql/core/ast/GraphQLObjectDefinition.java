@@ -33,6 +33,16 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
 
     private IObjMeta objMeta;
 
+    private Object grpcSchema;
+
+    public Object getGrpcSchema() {
+        return grpcSchema;
+    }
+
+    public void setGrpcSchema(Object grpcSchema) {
+        this.grpcSchema = grpcSchema;
+    }
+
     public IObjMeta getObjMeta() {
         return objMeta;
     }

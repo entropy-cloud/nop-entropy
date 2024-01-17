@@ -32,8 +32,14 @@ public class GraphQLNonNullType extends _GraphQLNonNullType {
         return getType().isEnumType();
     }
 
+    @Override
     public GraphQLScalarType getScalarType() {
         return getType().getScalarType();
+    }
+
+    @Override
+    public GraphQLType getItemType() {
+        return getType().getItemType();
     }
 
     @Override

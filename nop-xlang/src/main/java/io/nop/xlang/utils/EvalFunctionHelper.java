@@ -17,7 +17,7 @@ public class EvalFunctionHelper {
                 Object arg = args.length > 0 ? args[0] : null;
                 return ((Function) value).apply(arg);
             };
-        
+
         if (value instanceof BiFunction) {
             return (thisObj, args, scope) -> {
                 Object arg0 = args.length > 0 ? args[0] : null;

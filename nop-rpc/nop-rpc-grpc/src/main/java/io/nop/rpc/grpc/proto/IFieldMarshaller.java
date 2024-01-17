@@ -12,5 +12,9 @@ public interface IFieldMarshaller {
 
     void writeField(CodedOutputStream out, int propId, Object value) throws IOException;
 
+    void writeFieldNoTag(CodedOutputStream out, Object value) throws IOException;
+
     int computeSize(int propId, Object value);
+
+    int computeSizeNoTag(Object value);
 }

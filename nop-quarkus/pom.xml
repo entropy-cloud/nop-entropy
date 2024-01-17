@@ -18,6 +18,7 @@
         <module>nop-quarkus-autoconfig</module>
         <module>nop-quarkus-core-starter</module>
         <module>nop-quarkus-web-starter</module>
+        <module>nop-quarkus-grpc</module>
     </modules>
 
 </project>

@@ -26,7 +26,17 @@ public class LongFieldMarshaller implements IFieldMarshaller {
     }
 
     @Override
+    public void writeFieldNoTag(CodedOutputStream out, Object value) throws IOException {
+        out.writeInt64NoTag((Long) value);
+    }
+
+    @Override
     public int computeSize(int propId, Object value) {
         return CodedOutputStream.computeInt64Size(propId, (Long) value);
+    }
+
+    @Override
+    public int computeSizeNoTag(Object value) {
+        return CodedOutputStream.computeInt64SizeNoTag((Long) value);
     }
 }

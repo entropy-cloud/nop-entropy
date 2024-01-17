@@ -49,6 +49,11 @@ public class GraphQLListType extends _GraphQLListType {
     }
 
     @Override
+    public GraphQLType getItemType() {
+        return getType();
+    }
+
+    @Override
     public GraphQLType getNullableType() {
         GraphQLType elementType = getType().getNullableType();
         if (elementType == getType())

@@ -64,6 +64,7 @@ import static io.nop.graphql.core.GraphQLErrors.ARG_TYPE_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_NOT_OBJ_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNDEFINED_OBJECT;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_BUILTIN_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_OBJ_TYPE;
 
 public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader {
     private List<Object> bizModelBeans;
@@ -271,7 +272,10 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
             return (GraphQLObjectDefinition) def;
         }
 
-        return getObjectTypeDefinition(namedType.getName());
+        GraphQLObjectDefinition objDef = getObjectTypeDefinition(namedType.getName());
+        if (objDef == null)
+            throw new NopException(ERR_GRAPHQL_UNKNOWN_OBJ_TYPE).param(ARG_TYPE_NAME, namedType.getName());
+        return objDef;
     }
 
     @Override

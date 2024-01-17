@@ -9,7 +9,6 @@ import java.io.IOException;
 public class StringFieldMarshaller implements IFieldMarshaller {
     public static StringFieldMarshaller INSTANCE = new StringFieldMarshaller();
 
-
     @Override
     public boolean isObject() {
         return false;
@@ -26,7 +25,17 @@ public class StringFieldMarshaller implements IFieldMarshaller {
     }
 
     @Override
+    public void writeFieldNoTag(CodedOutputStream out, Object value) throws IOException {
+        out.writeStringNoTag((String) value);
+    }
+
+    @Override
     public int computeSize(int propId, Object value) {
         return CodedOutputStream.computeStringSize(propId, (String) value);
+    }
+
+    @Override
+    public int computeSizeNoTag(Object value) {
+        return CodedOutputStream.computeStringSizeNoTag((String) value);
     }
 }

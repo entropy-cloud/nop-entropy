@@ -183,11 +183,17 @@ public class GraphQLServerCallHandler<S, R> implements ServerCallHandler<S, R> {
             }
             checkState(!aborted, "Stream was terminated by error, no further calls are allowed");
             checkState(!completed, "Stream is already completed, no further calls are allowed");
-            if (!sentHeaders) {
-                call.sendHeaders(GrpcHelper.buildHeaders(response.getHeaders()));
-                sentHeaders = true;
+
+            if (response.isOk()) {
+                if (!sentHeaders) {
+                    call.sendHeaders(GrpcHelper.buildHeaders(response.getHeaders()));
+                    sentHeaders = true;
+                }
+                call.sendMessage(response.getData());
+            } else {
+                call.close(statusMapping.mapToStatus(response), GrpcHelper.buildHeaders(response.getHeaders()));
+                completed = true;
             }
-            call.sendMessage(response.getData());
         }
 
         @Override
@@ -201,8 +207,10 @@ public class GraphQLServerCallHandler<S, R> implements ServerCallHandler<S, R> {
 
         @Override
         public void onCompleted() {
-            call.close(Status.OK, new Metadata());
-            completed = true;
+            if (!completed) {
+                call.close(Status.OK, new Metadata());
+                completed = true;
+            }
         }
 
         @Override

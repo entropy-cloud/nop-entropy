@@ -25,7 +25,17 @@ public class BooleanFieldMarshaller implements IFieldMarshaller {
     }
 
     @Override
+    public void writeFieldNoTag(CodedOutputStream out, Object value) throws IOException {
+        out.writeBoolNoTag((Boolean) value);
+    }
+
+    @Override
     public int computeSize(int propId, Object value) {
         return CodedOutputStream.computeBoolSize(propId, (Boolean) value);
+    }
+
+    @Override
+    public int computeSizeNoTag(Object value) {
+        return CodedOutputStream.computeBoolSizeNoTag((Boolean) value);
     }
 }

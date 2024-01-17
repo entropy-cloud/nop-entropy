@@ -26,7 +26,17 @@ public class FloatFieldMarshaller implements IFieldMarshaller {
     }
 
     @Override
+    public void writeFieldNoTag(CodedOutputStream out, Object value) throws IOException {
+        out.writeFloatNoTag((Float) value);
+    }
+
+    @Override
     public int computeSize(int propId, Object value) {
         return CodedOutputStream.computeFloatSize(propId, (Float) value);
+    }
+
+    @Override
+    public int computeSizeNoTag(Object value) {
+        return CodedOutputStream.computeFloatSizeNoTag((Float) value);
     }
 }

@@ -13,15 +13,12 @@ import io.nop.commons.service.LifeCycleSupport;
 import io.nop.commons.util.StringHelper;
 import io.nop.rpc.grpc.proto.ServiceSchemaManager;
 import jakarta.inject.Inject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.TimeUnit;
 
 public class GrpcServer extends LifeCycleSupport {
-    static final Logger LOG = LoggerFactory.getLogger(GrpcServer.class);
     private Server server;
 
     private IThreadPoolExecutor executor;

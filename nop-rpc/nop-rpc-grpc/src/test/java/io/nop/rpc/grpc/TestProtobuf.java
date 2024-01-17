@@ -75,6 +75,33 @@ public class TestProtobuf {
         }
     }
 
+    @Test
+    public void testSerialize(){
+        Message.InnerMessage inner = Message.InnerMessage.newBuilder()
+                .setName("abc").setAge(3).build();
+
+        Message.OuterMessage out = Message.OuterMessage.newBuilder()
+                .addInnerList(inner).addValue(4).build();
+
+        byte[] data = out.toByteArray();
+
+        try {
+            Map<String, Object> ret = buildOuterSchema().parseObject(CodedInputStream.newInstance(data));
+            List<Map<String, Object>> list = (List<Map<String, Object>>) ret.get("inner_list");
+            assertEquals(1, list.size());
+            assertEquals("abc", list.get(0).get("name"));
+            assertEquals("[4]", ret.get("value").toString());
+
+            data = buildOuterSchema().toByteArray(ret);
+
+            out = Message.OuterMessage.parseFrom(data);
+            assertEquals(4, out.getValue(0));
+            assertEquals(3, out.getInnerList(0).getAge());
+        } catch (Exception e) {
+            throw NopException.adapt(e);
+        }
+    }
+
     private GenericObjSchema buildOuterSchema() {
         GenericObjSchema schema = new GenericObjSchema();
 

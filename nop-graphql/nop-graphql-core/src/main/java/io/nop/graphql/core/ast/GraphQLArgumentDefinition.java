@@ -10,5 +10,13 @@ package io.nop.graphql.core.ast;
 import io.nop.graphql.core.ast._gen._GraphQLArgumentDefinition;
 
 public class GraphQLArgumentDefinition extends _GraphQLArgumentDefinition {
+    private int propId;
 
+    public int getPropId() {
+        return propId;
+    }
+
+    public void setPropId(int propId) {
+        this.propId = propId;
+    }
 }

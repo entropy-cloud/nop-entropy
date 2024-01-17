@@ -44,6 +44,10 @@ public abstract class GraphQLType extends _GraphQLType {
         return null;
     }
 
+    public GraphQLType getItemType(){
+        return null;
+    }
+
     public GraphQLScalarType getScalarType() {
         return null;
     }

@@ -21,7 +21,7 @@ public class GenericFieldSchema {
         return name;
     }
 
-    public boolean isObject(){
+    public boolean isObject() {
         return marshaller.isObject();
     }
 
@@ -51,5 +51,9 @@ public class GenericFieldSchema {
 
     public int computeSize(Object value) {
         return marshaller.computeSize(propId, value);
+    }
+
+    public int computeSizeNoTag(Object value) {
+        return marshaller.computeSizeNoTag(value);
     }
 }

@@ -6,8 +6,8 @@ import io.nop.rpc.grpc.proto.IFieldMarshaller;
 
 import java.io.IOException;
 
-public class EnumFieldMarshaller implements IFieldMarshaller {
-    public static EnumFieldMarshaller INSTANCE = new EnumFieldMarshaller();
+public class ShortFieldMarshaller implements IFieldMarshaller {
+    public static ShortFieldMarshaller INSTANCE = new ShortFieldMarshaller();
 
 
     @Override
@@ -17,26 +17,27 @@ public class EnumFieldMarshaller implements IFieldMarshaller {
 
     @Override
     public Object readField(CodedInputStream in) throws IOException {
-        return in.readEnum();
+        return in.readInt32();
     }
 
     @Override
     public void writeField(CodedOutputStream out, int propId, Object value) throws IOException {
-        out.writeEnum(propId, (Integer) value);
+        out.writeInt32(propId, ((Short) value).intValue());
     }
 
     @Override
     public void writeFieldNoTag(CodedOutputStream out, Object value) throws IOException {
-        out.writeEnumNoTag((Integer) value);
+        out.writeInt32NoTag(((Short) value).intValue());
     }
 
     @Override
     public int computeSize(int propId, Object value) {
-        return CodedOutputStream.computeEnumSize(propId, (Integer) value);
+        return CodedOutputStream.computeInt32Size(propId, ((Short) value).intValue());
     }
 
     @Override
     public int computeSizeNoTag(Object value) {
-        return CodedOutputStream.computeEnumSizeNoTag((Integer) value);
+        return CodedOutputStream.computeInt32SizeNoTag(((Short) value).intValue());
     }
+
 }

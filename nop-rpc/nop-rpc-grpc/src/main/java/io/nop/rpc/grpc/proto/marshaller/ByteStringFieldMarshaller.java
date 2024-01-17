@@ -2,12 +2,13 @@ package io.nop.rpc.grpc.proto.marshaller;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import io.nop.commons.bytes.ByteString;
 import io.nop.rpc.grpc.proto.IFieldMarshaller;
 
 import java.io.IOException;
 
-public class EnumFieldMarshaller implements IFieldMarshaller {
-    public static EnumFieldMarshaller INSTANCE = new EnumFieldMarshaller();
+public class ByteStringFieldMarshaller implements IFieldMarshaller {
+    public static ByteStringFieldMarshaller INSTANCE = new ByteStringFieldMarshaller();
 
 
     @Override
@@ -17,26 +18,30 @@ public class EnumFieldMarshaller implements IFieldMarshaller {
 
     @Override
     public Object readField(CodedInputStream in) throws IOException {
-        return in.readEnum();
+        return ByteString.of(in.readByteArray());
     }
 
     @Override
     public void writeField(CodedOutputStream out, int propId, Object value) throws IOException {
-        out.writeEnum(propId, (Integer) value);
+        out.writeByteArray(propId, toBytes(value));
     }
 
     @Override
     public void writeFieldNoTag(CodedOutputStream out, Object value) throws IOException {
-        out.writeEnumNoTag((Integer) value);
+        out.writeByteArrayNoTag(toBytes(value));
+    }
+
+    byte[] toBytes(Object value) {
+        return ((ByteString) value).toByteArray();
     }
 
     @Override
     public int computeSize(int propId, Object value) {
-        return CodedOutputStream.computeEnumSize(propId, (Integer) value);
+        return CodedOutputStream.computeByteArraySize(propId, toBytes(value));
     }
 
     @Override
     public int computeSizeNoTag(Object value) {
-        return CodedOutputStream.computeEnumSizeNoTag((Integer) value);
+        return CodedOutputStream.computeByteArraySizeNoTag(toBytes(value));
     }
 }
