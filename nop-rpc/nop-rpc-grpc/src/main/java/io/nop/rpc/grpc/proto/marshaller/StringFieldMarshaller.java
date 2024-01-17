@@ -10,6 +10,11 @@ public class StringFieldMarshaller implements IFieldMarshaller {
     public static StringFieldMarshaller INSTANCE = new StringFieldMarshaller();
 
     @Override
+    public String getGrpcTypeName(){
+        return "string";
+    }
+
+    @Override
     public boolean isObject() {
         return false;
     }

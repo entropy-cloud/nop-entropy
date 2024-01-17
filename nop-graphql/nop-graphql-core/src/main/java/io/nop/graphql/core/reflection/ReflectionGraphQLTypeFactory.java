@@ -13,6 +13,7 @@ import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.graphql.GraphQLMap;
 import io.nop.api.core.annotations.graphql.GraphQLScalar;
+import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.graphql.GraphQLConnection;
@@ -327,6 +328,7 @@ public class ReflectionGraphQLTypeFactory {
             GraphQLType gqlType = buildGraphQLType(type, propModel.getBizObjName(), registry, creatingTypes, false);
             field.setType(gqlType);
             field.setFetcher(BeanPropertyFetcher.INSTANCE);
+            field.setBeanPropMeta(propModel.getAnnotation(PropMeta.class));
             fields.add(field);
         });
         def.setFields(fields);

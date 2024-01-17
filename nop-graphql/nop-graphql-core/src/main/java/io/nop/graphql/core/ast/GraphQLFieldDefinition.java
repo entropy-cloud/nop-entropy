@@ -8,6 +8,7 @@
 package io.nop.graphql.core.ast;
 
 import io.nop.api.core.annotations.biz.BizMakerCheckerMeta;
+import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.auth.ActionAuthMeta;
 import io.nop.core.context.action.IServiceAction;
 import io.nop.core.reflect.IClassModel;
@@ -28,6 +29,8 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition {
      * 如果把所有propMeta上的信息都转换为GraphQL的directive定义，则会产生很多重复性工作。
      */
     private IObjPropMeta propMeta;
+
+    private PropMeta beanPropMeta;
 
     private Boolean lazy;
 
@@ -52,14 +55,16 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition {
 
     private IGraphQLArgsNormalizer argsNormalizer;
 
-    private int propId;
-
     public int getPropId() {
-        return propId;
-    }
-
-    public void setPropId(int propId) {
-        this.propId = propId;
+        if (propMeta != null) {
+            Integer propId = propMeta.getPropId();
+            if (propId == null)
+                return 0;
+            return propId;
+        }
+        if (beanPropMeta != null)
+            return beanPropMeta.propId();
+        return 0;
     }
 
     public IGraphQLArgsNormalizer getArgsNormalizer() {
@@ -168,6 +173,15 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition {
     public void setPropMeta(IObjPropMeta propMeta) {
         checkAllowChange();
         this.propMeta = propMeta;
+    }
+
+    public PropMeta getBeanPropMeta() {
+        return beanPropMeta;
+    }
+
+    public void setBeanPropMeta(PropMeta beanPropMeta) {
+        checkAllowChange();
+        this.beanPropMeta = beanPropMeta;
     }
 
     public GraphQLArgumentDefinition getArg(String name) {

@@ -17,4 +17,6 @@ public interface IFieldMarshaller {
     int computeSize(int propId, Object value);
 
     int computeSizeNoTag(Object value);
+
+    String getGrpcTypeName();
 }

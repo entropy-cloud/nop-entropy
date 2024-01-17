@@ -9,6 +9,10 @@ import java.io.IOException;
 public class DoubleFieldMarshaller implements IFieldMarshaller {
     public static DoubleFieldMarshaller INSTANCE = new DoubleFieldMarshaller();
 
+    @Override
+    public String getGrpcTypeName(){
+        return "double";
+    }
 
     @Override
     public boolean isObject() {

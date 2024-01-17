@@ -10,12 +10,14 @@ package io.nop.core.reflect.accessor;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.ReflectionHelper;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.reflect.IAnnotationSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 
-public class FieldPropertyAccessor implements ISpecializedPropertyGetter, ISpecializedPropertySetter {
+public class FieldPropertyAccessor implements ISpecializedPropertyGetter, ISpecializedPropertySetter, IAnnotationSupport {
     static final Logger LOG = LoggerFactory.getLogger(FieldPropertyAccessor.class);
 
     private final Field field;
@@ -23,6 +25,11 @@ public class FieldPropertyAccessor implements ISpecializedPropertyGetter, ISpeci
     public FieldPropertyAccessor(Field field) {
         this.field = field;
         ReflectionHelper.makeAccessible(field);
+    }
+
+    @Override
+    public <T extends Annotation> T getAnnotation(Class<T> annotationClass) {
+        return field.getAnnotation(annotationClass);
     }
 
     @Override

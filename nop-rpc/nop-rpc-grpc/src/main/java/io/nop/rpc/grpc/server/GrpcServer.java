@@ -11,7 +11,6 @@ import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.ThreadPoolConfig;
 import io.nop.commons.service.LifeCycleSupport;
 import io.nop.commons.util.StringHelper;
-import io.nop.rpc.grpc.proto.ServiceSchemaManager;
 import jakarta.inject.Inject;
 
 import java.io.IOException;

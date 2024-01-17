@@ -9,6 +9,10 @@ import java.io.IOException;
 public class IntFieldMarshaller implements IFieldMarshaller {
     public static IntFieldMarshaller INSTANCE = new IntFieldMarshaller();
 
+    @Override
+    public String getGrpcTypeName(){
+        return "int32";
+    }
 
     @Override
     public boolean isObject() {

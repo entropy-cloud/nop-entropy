@@ -9,6 +9,10 @@ import java.io.IOException;
 public class EnumFieldMarshaller implements IFieldMarshaller {
     public static EnumFieldMarshaller INSTANCE = new EnumFieldMarshaller();
 
+    @Override
+    public String getGrpcTypeName(){
+        return "enum";
+    }
 
     @Override
     public boolean isObject() {

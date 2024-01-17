@@ -9,6 +9,10 @@ import java.io.IOException;
 public class LongFieldMarshaller implements IFieldMarshaller {
     public static LongFieldMarshaller INSTANCE = new LongFieldMarshaller();
 
+    @Override
+    public String getGrpcTypeName(){
+        return "int64";
+    }
 
     @Override
     public boolean isObject() {

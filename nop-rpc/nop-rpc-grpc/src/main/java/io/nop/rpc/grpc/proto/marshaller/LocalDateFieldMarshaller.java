@@ -13,6 +13,11 @@ public class LocalDateFieldMarshaller implements IFieldMarshaller {
     static final int SIZE_NO_TAG = CodedOutputStream.computeStringSizeNoTag("2002-01-02");
 
     @Override
+    public String getGrpcTypeName(){
+        return "string";
+    }
+
+    @Override
     public boolean isObject() {
         return false;
     }

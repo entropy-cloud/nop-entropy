@@ -40,7 +40,7 @@
              xdef:name="ApiMessageModel" xdef:unique-attr="name">
         <description xdef:value="string"/>
 
-        <field name="!string" mandatory="!boolean=false" tagSet="word-set"
+        <field name="!string" mandatory="!boolean=false" tagSet="word-set" propId="!int"
                displayName="string" xdef:unique-attr="name">
             <description xdef:value="string"/>
             <schema xdef:ref="/nop/schema/schema/schema.xdef"/>

@@ -257,6 +257,10 @@
                     </normalizeFieldsExpr>
 
                     <fields>
+                        <field name="propId" displayName="编号" mandatory="true">
+                            <schema stdDomain="int" />
+                        </field>
+
                         <field name="mandatory" displayName="非空" xpt:formatExpr="cell.value ? 'M': ''">
                             <schema stdDomain="boolean"/>
                             <valueExpr>

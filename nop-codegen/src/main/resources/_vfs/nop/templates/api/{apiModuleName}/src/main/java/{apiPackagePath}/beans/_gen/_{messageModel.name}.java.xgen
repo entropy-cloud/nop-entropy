@@ -1,6 +1,8 @@
 <c:unit xpl:outputMode="text">//__XGEN_FORCE_OVERRIDE__
     package ${apiPackageName}.beans._gen;
 
+    import io.nop.api.core.annotations.meta.PropMeta;
+
     @SuppressWarnings({"PMD","java:S116","java:S115"})
     public class _${messageModel.name}{
 
@@ -10,6 +12,7 @@
         /**
          * ${field.displayName} ${field.description}
          */
+        @PropMeta(propId=${field.propId},displayName="${field.displayName.$escapeJava()}")
         public ${field.schema.type.toString().$simplifyJavaType()} ${field.name.$methodGet()}(){
             return _${field.name};
         }

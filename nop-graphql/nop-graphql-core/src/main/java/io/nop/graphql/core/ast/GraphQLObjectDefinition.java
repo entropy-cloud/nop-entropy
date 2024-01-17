@@ -172,6 +172,10 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
                     old.setPropMeta(field.getPropMeta());
                 }
 
+                if (field.getBeanPropMeta() != null) {
+                    old.setBeanPropMeta(field.getBeanPropMeta());
+                }
+
 
                 if (field.getAuth() != null) {
                     old.setAuth(field.getAuth());
@@ -203,6 +207,9 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
                 if (old.getPropMeta() == null) {
                     old.setPropMeta(field.getPropMeta());
                 }
+
+                if (old.getBeanPropMeta() == null)
+                    old.setBeanPropMeta(field.getBeanPropMeta());
 
 
                 if (old.getAuth() == null) {

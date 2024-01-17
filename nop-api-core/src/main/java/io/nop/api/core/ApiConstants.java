@@ -160,6 +160,8 @@ public interface ApiConstants extends FilterBeanConstants {
      */
     String HEADER_BIZ_KEY = "nop-biz-key";
 
+    String HEADER_SELECTION = "nop-selection";
+
     /**
      * 业务层面发现不可恢复的异常，分布式服务调用失败时如果发现返回这个header，则表示不应该发起重试。
      */

@@ -9,7 +9,10 @@ import java.io.IOException;
 public class BytesFieldMarshaller implements IFieldMarshaller {
     public static BytesFieldMarshaller INSTANCE = new BytesFieldMarshaller();
 
-
+    @Override
+    public String getGrpcTypeName(){
+        return "bytes";
+    }
     @Override
     public boolean isObject() {
         return false;

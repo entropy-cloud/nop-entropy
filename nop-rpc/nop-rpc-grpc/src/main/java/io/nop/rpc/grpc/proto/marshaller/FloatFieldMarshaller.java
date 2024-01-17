@@ -9,7 +9,10 @@ import java.io.IOException;
 public class FloatFieldMarshaller implements IFieldMarshaller {
     public static FloatFieldMarshaller INSTANCE = new FloatFieldMarshaller();
 
-
+    @Override
+    public String getGrpcTypeName(){
+        return "float";
+    }
     @Override
     public boolean isObject() {
         return false;

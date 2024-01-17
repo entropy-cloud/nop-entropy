@@ -10,6 +10,11 @@ public class BooleanFieldMarshaller implements IFieldMarshaller {
     public static BooleanFieldMarshaller INSTANCE = new BooleanFieldMarshaller();
 
     @Override
+    public String getGrpcTypeName(){
+        return "boolean";
+    }
+
+    @Override
     public boolean isObject() {
         return false;
     }

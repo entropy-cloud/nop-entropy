@@ -11,6 +11,11 @@ public class JsonFieldMarshaller implements IFieldMarshaller {
     public static JsonFieldMarshaller INSTANCE = new JsonFieldMarshaller();
 
     @Override
+    public String getGrpcTypeName(){
+        return "string";
+    }
+
+    @Override
     public boolean isObject() {
         return false;
     }

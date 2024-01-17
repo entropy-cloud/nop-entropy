@@ -21,6 +21,7 @@ import static io.nop.rpc.grpc.GrpcErrors.ERR_GRPC_UNKNOWN_FIELD_FOR_NAME;
 import static io.nop.rpc.grpc.GrpcErrors.ERR_GRPC_UNKNOWN_FIELD_FOR_PROP_ID;
 
 public class GenericObjSchema implements IFieldMarshaller {
+    private String name;
     private MapOfInt<GenericFieldSchema> fieldsByPropId;
 
     private Map<String, GenericFieldSchema> fieldsByName;
@@ -29,6 +30,19 @@ public class GenericObjSchema implements IFieldMarshaller {
 
     public MapOfInt<GenericFieldSchema> getFieldsByPropId() {
         return fieldsByPropId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String getGrpcTypeName() {
+        return name;
     }
 
     @Override

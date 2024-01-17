@@ -7,14 +7,22 @@
  */
 package io.nop.core.reflect.accessor;
 
-import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.reflect.IAnnotationSupport;
+import io.nop.core.reflect.IFunctionModel;
 
-public class FunctionSpecializedPropertySetter implements ISpecializedPropertySetter {
-    private final IEvalFunction func;
+import java.lang.annotation.Annotation;
 
-    public FunctionSpecializedPropertySetter(IEvalFunction func) {
+public class FunctionSpecializedPropertySetter implements ISpecializedPropertySetter, IAnnotationSupport {
+    private final IFunctionModel func;
+
+    public FunctionSpecializedPropertySetter(IFunctionModel func) {
         this.func = func;
+    }
+
+    @Override
+    public <T extends Annotation> T getAnnotation(Class<T> annotationClass) {
+        return func.getAnnotation(annotationClass);
     }
 
     @Override

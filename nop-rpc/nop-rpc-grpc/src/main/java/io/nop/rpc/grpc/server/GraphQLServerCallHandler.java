@@ -1,4 +1,4 @@
-package io.nop.rpc.grpc.proto;
+package io.nop.rpc.grpc.server;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.grpc.Metadata;
@@ -8,6 +8,7 @@ import io.grpc.Status;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
@@ -41,6 +42,7 @@ public class GraphQLServerCallHandler<S, R> implements ServerCallHandler<S, R> {
     @Override
     public ServerCall.Listener<S> startCall(ServerCall<S, R> call, Metadata headers) {
         Map<String, Object> reqHeaders = GrpcHelper.parseHeaders(headers);
+        FieldSelectionBean selection = GrpcHelper.getSelection(reqHeaders);
 
         ServerCallStreamObserverImpl<S, R> responseObserver =
                 new ServerCallStreamObserverImpl<>(call, false, statusMapping);
@@ -85,6 +87,7 @@ public class GraphQLServerCallHandler<S, R> implements ServerCallHandler<S, R> {
 
                 ApiRequest<S> req = new ApiRequest<>();
                 req.setHeaders(reqHeaders);
+                req.setSelection(selection);
                 req.setData(request);
 
                 IGraphQLExecutionContext ctx = graphQLEngine.newRpcContext(fieldDefinition.getOperationType(),

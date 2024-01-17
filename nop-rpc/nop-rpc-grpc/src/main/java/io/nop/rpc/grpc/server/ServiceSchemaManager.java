@@ -1,10 +1,11 @@
-package io.nop.rpc.grpc.proto;
+package io.nop.rpc.grpc.server;
 
 import com.google.protobuf.DescriptorProtos;
 import io.grpc.MethodDescriptor;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerServiceDefinition;
 import io.nop.commons.type.StdDataType;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.cache.ResourceLoadingCache;
 import io.nop.graphql.core.ast.GraphQLArgumentDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
@@ -12,10 +13,16 @@ import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.ast.GraphQLType;
 import io.nop.graphql.core.engine.IGraphQLEngine;
+import io.nop.rpc.grpc.proto.GenericFieldSchema;
+import io.nop.rpc.grpc.proto.GenericObjSchema;
+import io.nop.rpc.grpc.proto.IFieldMarshaller;
+import io.nop.rpc.grpc.proto.ProtobufMarshallerHelper;
 import io.nop.rpc.grpc.proto.marshaller.EmptyMarshaller;
 import io.nop.rpc.grpc.proto.marshaller.GenericMessageMarshaller;
 import io.nop.rpc.grpc.status.GrpcStatusMapping;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class ServiceSchemaManager {
+    static final Logger LOG = LoggerFactory.getLogger(ServiceSchemaManager.class);
     private IGraphQLEngine graphQLEngine;
 
     private GrpcStatusMapping statusMapping;
@@ -66,16 +74,46 @@ public class ServiceSchemaManager {
         MethodDescriptor.Builder<S, R> builder = MethodDescriptor.<S, R>newBuilder().setFullMethodName(methodName);
         builder.setType(MethodDescriptor.MethodType.UNARY);
         builder.setSafe(fieldDef.getOperationType() == GraphQLOperationType.query);
-        builder.setRequestMarshaller((MethodDescriptor.Marshaller<S>) buildRequestMarshaller(fieldDef.getArguments()));
-        builder.setResponseMarshaller((MethodDescriptor.Marshaller<R>) buildResponseMarshaller(fieldDef.getType()));
+
+        String requestName = getRequestName(methodName, fieldDef);
+        String responseName = getResponseName(methodName, fieldDef);
+
+        GenericObjSchema requestSchema = buildRequestSchema(requestName, fieldDef.getArguments());
+        GenericObjSchema responseSchema = buildResponseSchema(responseName, fieldDef.getType());
+
+        builder.setRequestMarshaller((MethodDescriptor.Marshaller<S>) buildSchemaMarshaller(requestSchema));
+        builder.setResponseMarshaller((MethodDescriptor.Marshaller<R>) buildSchemaMarshaller(responseSchema));
         return builder.build();
     }
 
-    private MethodDescriptor.Marshaller<?> buildRequestMarshaller(List<GraphQLArgumentDefinition> args) {
-        if (args == null || args.isEmpty())
+    private String getRequestName(String methodName, GraphQLFieldDefinition fieldDef) {
+        return methodName + "_request";
+    }
+
+    private String getResponseName(String methodName, GraphQLFieldDefinition fieldDef) {
+        GraphQLType type = fieldDef.getType();
+        if (type.isScalarType() || type.isListType())
+            return methodName + "_response";
+
+        String name = type.getNamedTypeName();
+        if (name.startsWith("g_")) {
+            return StringHelper.lastPart(name, '_');
+        }
+        return name;
+    }
+
+    private MethodDescriptor.Marshaller<?> buildSchemaMarshaller(GenericObjSchema schema) {
+        if (schema == null)
             return EmptyMarshaller.INSTANCE;
+        return new GenericMessageMarshaller(schema);
+    }
+
+    private GenericObjSchema buildRequestSchema(String requestName, List<GraphQLArgumentDefinition> args) {
+        if (args == null || args.isEmpty())
+            return null;
 
         GenericObjSchema objSchema = new GenericObjSchema();
+        objSchema.setName(requestName);
         List<GenericFieldSchema> fields = new ArrayList<>(args.size());
         int index = 0;
         for (GraphQLArgumentDefinition arg : args) {
@@ -85,27 +123,29 @@ public class ServiceSchemaManager {
             fields.add(field);
         }
         objSchema.setFieldList(fields);
-        return new GenericMessageMarshaller(objSchema);
+        return objSchema;
     }
 
-    private MethodDescriptor.Marshaller<?> buildResponseMarshaller(GraphQLType type) {
+    private GenericObjSchema buildResponseSchema(String responseName, GraphQLType type) {
         if (type == null)
-            return EmptyMarshaller.INSTANCE;
+            return null;
         IFieldMarshaller marshaller = buildTypeMarshaller(type, false);
         if (type.isScalarType()) {
             GenericObjSchema objSchema = new GenericObjSchema();
+            objSchema.setName(responseName);
             GenericFieldSchema fieldSchema = new GenericFieldSchema(1, "value",
                     DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL, marshaller);
             objSchema.setFieldList(Collections.singletonList(fieldSchema));
-            return new GenericMessageMarshaller(objSchema);
+            return objSchema;
         } else if (type.isListType()) {
             GenericObjSchema objSchema = new GenericObjSchema();
+            objSchema.setName(responseName);
             GenericFieldSchema fieldSchema = new GenericFieldSchema(1, "value",
                     DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED, marshaller);
             objSchema.setFieldList(Collections.singletonList(fieldSchema));
-            return new GenericMessageMarshaller(objSchema);
+            return objSchema;
         } else {
-            return new GenericMessageMarshaller((GenericObjSchema) marshaller);
+            return (GenericObjSchema) marshaller;
         }
     }
 
@@ -137,13 +177,14 @@ public class ServiceSchemaManager {
     private GenericObjSchema buildObjSchema(GraphQLObjectDefinition objDef, boolean allowRequired) {
         GenericObjSchema objSchema = new GenericObjSchema();
         List<GenericFieldSchema> fieldList = new ArrayList<>(objDef.getFields().size());
-        int maxPropId = getMaxPropId(objDef);
+
         for (GraphQLFieldDefinition fieldDef : objDef.getFields()) {
             int propId = fieldDef.getPropId();
-            if (propId == 0) {
-                propId = ++maxPropId;
-                fieldDef.setPropId(propId);
+            if (propId <= 0) {
+                LOG.debug("nop.ignore-field-no-propId:objType={},prop={}", objDef.getName(), fieldDef.getName());
+                continue;
             }
+
             GenericFieldSchema fieldSchema = new GenericFieldSchema(propId, fieldDef.getName(),
                     buildLabel(fieldDef.getType(), allowRequired),
                     buildTypeMarshaller(fieldDef.getType(), allowRequired));
@@ -151,15 +192,6 @@ public class ServiceSchemaManager {
         }
         objSchema.setFieldList(fieldList);
         return objSchema;
-    }
-
-    private int getMaxPropId(GraphQLObjectDefinition objDef) {
-        int max = 0;
-        for (GraphQLFieldDefinition fieldDef : objDef.getFields()) {
-            if (fieldDef.getPropId() > max)
-                max = fieldDef.getPropId();
-        }
-        return max;
     }
 
     private DescriptorProtos.FieldDescriptorProto.Label buildLabel(GraphQLType type, boolean allowRequired) {

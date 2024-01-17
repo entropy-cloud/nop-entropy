@@ -12,7 +12,10 @@ import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.IPropertyGetter;
 import io.nop.core.reflect.IPropertySetter;
+import io.nop.core.reflect.impl.AnnotationBeanModelBuilder;
 import io.nop.core.type.IGenericType;
+
+import java.lang.annotation.Annotation;
 
 public interface IBeanPropertyModel {
     String getName();
@@ -94,6 +97,8 @@ public interface IBeanPropertyModel {
     }
 
     Object makePropertyValue(Object bean, IEvalScope scope);
+
+    <T extends Annotation> T  getAnnotation(Class<T> annotationClass);
 
     default Object makePropertyValue(Object bean) {
         return makePropertyValue(bean, DisabledEvalScope.INSTANCE);
