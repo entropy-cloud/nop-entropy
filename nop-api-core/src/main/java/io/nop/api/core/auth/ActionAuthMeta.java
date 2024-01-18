@@ -17,12 +17,22 @@ import java.util.Set;
 @ImmutableBean
 @DataBean
 public class ActionAuthMeta {
-    private final Set<String> roles;
-    private final MultiCsvSet permissions;
+    private Set<String> roles;
+    private MultiCsvSet permissions;
 
     public ActionAuthMeta(@JsonProperty("roles") Set<String> roles,
                           @JsonProperty("permissions") MultiCsvSet permissions) {
         this.roles = roles;
+        this.permissions = permissions;
+    }
+
+    public ActionAuthMeta(){}
+
+    public void setRoles(Set<String> roles) {
+        this.roles = roles;
+    }
+
+    public void setPermissions(MultiCsvSet permissions) {
         this.permissions = permissions;
     }
 

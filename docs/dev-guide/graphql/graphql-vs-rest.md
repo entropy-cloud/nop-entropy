@@ -1,4 +1,4 @@
-# 为什么在数学的意义上GraphQL优于REST？
+# 为什么在数学的意义上GraphQL严格的优于REST？
 
 GraphQL是Facebook公司所提出的一种用于API的查询语言，很多人把它看作是REST的替代品，但也有很多人认为GraphQL比REST复杂得多，且没有明显收益。
 GraphQL到底具有哪些独特的能力超越了REST的能力范围？有没有一种客观的、严谨的评判标准可以帮助我们做出判断？
@@ -8,7 +8,7 @@ Nop平台中通过严密的数学推理，对于GraphQL的定位进行了重新�
 
 > 关于NopGraphQL的介绍，可以参见我此前的文章 [低代码平台中的GraphQL引擎](https://zhuanlan.zhihu.com/p/589565334)
 
-简单的说，GraphQL可以看作是REST的面向pull mode的改进，它在某种程度上是反转了信息流向。
+简单的说，**GraphQL可以看作是REST的面向pull mode的改进**，它在某种程度上是**反转了信息流向**。
 
 ```graphql
 query{
@@ -42,7 +42,7 @@ NopGraphQL的定位是作为后端服务函数的一种通用分解、派发机�
           }
           ....
   }  
-````
+```
 
 如果前端不要求返回total，则可以跳过total属性的计算
 
