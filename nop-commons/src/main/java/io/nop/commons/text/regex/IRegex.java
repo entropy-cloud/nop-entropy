@@ -7,6 +7,10 @@
  */
 package io.nop.commons.text.regex;
 
+import java.util.List;
+
 public interface IRegex {
     boolean test(String text);
+
+    List<String> exec(String text);
 }
