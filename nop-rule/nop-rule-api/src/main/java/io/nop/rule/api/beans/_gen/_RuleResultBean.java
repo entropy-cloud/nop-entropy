@@ -1,6 +1,8 @@
 //__XGEN_FORCE_OVERRIDE__
     package io.nop.rule.api.beans._gen;
 
+    import io.nop.api.core.annotations.meta.PropMeta;
+
     @SuppressWarnings({"PMD","java:S116","java:S115"})
     public class _RuleResultBean{
 
@@ -10,6 +12,7 @@
         /**
          * 规则名称 
          */
+        @PropMeta(propId=1,displayName="规则名称")
         public String getRuleName(){
             return _ruleName;
         }
@@ -26,6 +29,7 @@
         /**
          * 规则版本 
          */
+        @PropMeta(propId=2,displayName="规则版本")
         public Long getRuleVersion(){
             return _ruleVersion;
         }
@@ -42,6 +46,7 @@
         /**
          * 是否匹配 是否匹配了所有业务条件
          */
+        @PropMeta(propId=3,displayName="是否匹配")
         public boolean getRuleMatch(){
             return _ruleMatch;
         }
@@ -58,6 +63,7 @@
         /**
          * 输出结果 
          */
+        @PropMeta(propId=4,displayName="输出结果")
         public java.util.Map<java.lang.String,java.lang.Object> getOutputs(){
             return _outputs;
         }
@@ -74,6 +80,7 @@
         /**
          * 日志消息 
          */
+        @PropMeta(propId=5,displayName="日志消息")
         public java.util.List<io.nop.rule.api.beans.RuleLogMessageBean> getLogMessages(){
             return _logMessages;
         }

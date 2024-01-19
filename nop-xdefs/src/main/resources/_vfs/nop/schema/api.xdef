@@ -1,49 +1,65 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<api x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<api x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xdef:name="ApiModel"
+     xdef:bean-package="io.nop.rpc.model" apiPackageName="package-name">
+
+    <imports xdef:body-type="list" xdef:key-attr="from">
+        <import from="!string" as="var-name" public="boolean" xdef:name="ApiImportModel"/>
+    </imports>
+
+    <options xdef:body-type="list" xdef:key-attr="name">
+        <option name="!string" value="!string" xdef:name="ApiOptionModel"/>
+    </options>
 
     <domains xdef:body-type="list" xdef:key-attr="name">
         <!--
         数据域定义。orm模型解析完毕之后，domain的定义会合并到column上。如果设置了domain是以domain的设置为准
         -->
-        <domain name="!string"  displayName="string"
+        <domain name="!string" displayName="string" xdef:name="ApiDomainModel"
                 stdDomain="std-domain" stdSqlType="!std-sql-type" stdDataType="std-data-type"
                 precision="int" scale="int"/>
     </domains>
 
     <dicts xdef:body-type="list" xdef:key-attr="name">
-        <dict name="!string" xdef:ref="/nop/schema/orm/dict.xdef" />
+        <dict name="!string" xdef:ref="/nop/schema/orm/dict.xdef"/>
     </dicts>
 
     <!--
     服务对象
     -->
-    <service name="!var-name" className="!class-name" displayName="string" xdef:unique-attr="name"
-             tagSet="word-set">
-        <description xdef:value="string"/>
-
-        <!--
-        服务方法。接收ApiRequest<T>类型的请求，返回ApiResponse<R>类型的响应
-        -->
-        <method name="!var-name" displayName="string" tagSet="word-set" xdef:unique-attr="name">
+    <services xdef:body-type="list" xdef:key-attr="name">
+        <service name="!var-name" className="!class-name" displayName="string" xdef:unique-attr="name"
+                 tagSet="word-set" xdef:name="ApiServiceModel">
             <description xdef:value="string"/>
-            <requestMessage xdef:value="class-name"/>
-            <responseMessage xdef:value="!generic-type"/>
-        </method>
 
-    </service>
+            <!--
+            服务方法。接收ApiRequest<T>类型的请求，返回ApiResponse<R>类型的响应
+            -->
+            <method name="!var-name" displayName="string" tagSet="word-set" xdef:unique-attr="name"
+                    streamRequest="!boolean=false" streamResponse="!boolean=false"
+                    xdef:name="ApiMethodModel">
+                <description xdef:value="string"/>
+                <requestMessage xdef:value="class-name"/>
+                <responseMessage xdef:value="!generic-type"/>
+            </method>
+
+        </service>
+    </services>
 
     <!--
     @name 服务消息的类名。在整个API定义范围内应该是唯一的。
     -->
-    <message name="!class-name" displayName="string" tagSet="word-set"
-             xdef:name="ApiMessageModel" xdef:unique-attr="name">
-        <description xdef:value="string"/>
-
-        <field name="!string" mandatory="!boolean=false" tagSet="word-set" propId="!int"
-               displayName="string" xdef:unique-attr="name">
+    <messages xdef:body-type="list" xdef:key-attr="name">
+        <message name="!class-name" displayName="string" tagSet="word-set"
+                 xdef:name="ApiMessageModel" xdef:unique-attr="name">
             <description xdef:value="string"/>
-            <schema xdef:ref="/nop/schema/schema/schema.xdef"/>
-        </field>
-    </message>
+
+            <field name="!string" mandatory="!boolean=false" tagSet="word-set" propId="!int"
+                   displayName="string" binaryScalarType="enum:io.nop.commons.type.BinaryScalarType"
+                   xdef:unique-attr="name" xdef:name="ApiMessageFieldModel">
+                <description xdef:value="string"/>
+                <schema xdef:ref="/nop/schema/schema/schema.xdef"/>
+            </field>
+        </message>
+    </messages>
 </api>

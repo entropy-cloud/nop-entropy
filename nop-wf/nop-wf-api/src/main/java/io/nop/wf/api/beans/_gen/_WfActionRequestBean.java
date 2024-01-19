@@ -1,6 +1,8 @@
 //__XGEN_FORCE_OVERRIDE__
     package io.nop.wf.api.beans._gen;
 
+    import io.nop.api.core.annotations.meta.PropMeta;
+
     @SuppressWarnings({"PMD","java:S116","java:S115"})
     public class _WfActionRequestBean{
 
@@ -10,6 +12,7 @@
         /**
          * 工作流名称 
          */
+        @PropMeta(propId=1,displayName="工作流名称")
         public String getWfName(){
             return _wfName;
         }
@@ -26,6 +29,7 @@
         /**
          * 工作流版本 
          */
+        @PropMeta(propId=2,displayName="工作流版本")
         public Long getWfVersion(){
             return _wfVersion;
         }
@@ -42,6 +46,7 @@
         /**
          * 工作流ID 
          */
+        @PropMeta(propId=3,displayName="工作流ID")
         public String getWfId(){
             return _wfId;
         }
@@ -58,6 +63,7 @@
         /**
          * 工作流步骤ID 
          */
+        @PropMeta(propId=4,displayName="工作流步骤ID")
         public String getStepId(){
             return _stepId;
         }
@@ -74,6 +80,7 @@
         /**
          * 执行动作 
          */
+        @PropMeta(propId=5,displayName="执行动作")
         public String getActionName(){
             return _actionName;
         }
@@ -90,6 +97,7 @@
         /**
          * 执行参数 
          */
+        @PropMeta(propId=6,displayName="执行参数")
         public java.util.Map<java.lang.String,java.lang.Object> getArgs(){
             return _args;
         }

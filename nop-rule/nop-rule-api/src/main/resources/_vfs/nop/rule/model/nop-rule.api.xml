@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--__XGEN_FORCE_OVERRIDE__-->
+<api ext:appName="nop-rule" ext:serviceModuleName="nop-rule-core" ext:servicePackageName="io.nop.rule.core.service"
+     apiPackageName="io.nop.rule.api" ext:apiModuleName="nop-rule-api" ext:mavenGroupId="io.github.entropy-cloud"
+     ext:mavenArtifactId="nop-rule" ext:mavenVersion="2.0.0-SNAPSHOT" ext:platformVersion="2.0.0-SNAPSHOT"
+     x:schema="/nop/schema/api.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
+     xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:xpl="xpl" xmlns:ui="ui">
+
+    <services>
+        <service name="RuleService" displayName="规则引擎服务" i18n-en:displayName="Rule Service"
+                 className="io.nop.rule.api.RuleService">
+            <method tagSet="sync" name="executeRule" i18n-en:displayName="Execute Rule" displayName="执行规则">
+                <requestMessage>io.nop.rule.api.beans.RuleRequestBean</requestMessage>
+                <responseMessage>io.nop.rule.api.beans.RuleResultBean</responseMessage>
+            </method>
+            <method tagSet="sync" name="getRuleMeta" i18n-en:displayName="Get Rule Meta" displayName="得到规则元数据">
+                <requestMessage>io.nop.rule.api.beans.RuleKeyBean</requestMessage>
+                <responseMessage>io.nop.rule.api.beans.RuleMetaBean</responseMessage>
+            </method>
+        </service>
+    </services>
+
+    <messages>
+        <message name="RuleRequestBean" displayName="规则执行请求" i18n-en:displayName="Rule Request">
+            <field propId="1" name="ruleName" i18n-en:displayName="Rule Name" displayName="规则名称" mandatory="true">
+                <schema type="String" precision="500"/>
+            </field>
+            <field propId="2" name="ruleVersion" i18n-en:displayName="Rule Version" displayName="规则版本">
+                <schema type="Long"/>
+            </field>
+            <field propId="3" name="inputs" i18n-en:displayName="Inputs" displayName="输入参数">
+                <schema type="Map&lt;java.lang.String,java.lang.Object&gt;" precision="160000"/>
+            </field>
+        </message>
+        <message name="RuleResultBean" displayName="规则执行结果" i18n-en:displayName="Rule Response">
+            <field propId="1" name="ruleName" i18n-en:displayName="Rule Name" displayName="规则名称" mandatory="true">
+                <schema type="String" precision="500"/>
+            </field>
+            <field propId="2" name="ruleVersion" i18n-en:displayName="Rule Version" displayName="规则版本" mandatory="true">
+                <schema type="Long"/>
+            </field>
+            <field propId="3" name="ruleMatch" i18n-en:displayName="Rule Match" displayName="是否匹配" mandatory="true">
+                <schema type="boolean"/>
+                <description>是否匹配了所有业务条件</description>
+            </field>
+            <field propId="4" name="outputs" i18n-en:displayName="Outputs" displayName="输出结果">
+                <schema type="Map&lt;java.lang.String,java.lang.Object&gt;" precision="160000"/>
+            </field>
+            <field propId="5" name="logMessages" i18n-en:displayName="Log Messages" displayName="日志消息">
+                <schema type="List&lt;io.nop.rule.api.beans.RuleLogMessageBean&gt;" precision="160000"/>
+            </field>
+        </message>
+        <message name="RuleLogMessageBean" displayName="日志消息" i18n-en:displayName="Rule Log Message">
+            <field propId="1" name="logTime" i18n-en:displayName="Log Time" displayName="日志时间" mandatory="true">
+                <schema type="Timestamp"/>
+            </field>
+            <field propId="2" name="message" i18n-en:displayName="Message" displayName="消息">
+                <schema type="String" precision="2000"/>
+            </field>
+            <field propId="3" name="ruleNodeId" i18n-en:displayName="Rule Node Id" displayName="规则节点Id">
+                <schema type="String" precision="200"/>
+            </field>
+            <field propId="4" name="ruleNodeLabel" i18n-en:displayName="Rule Node Label" displayName="规则节点标题">
+                <schema type="String" precision="200"/>
+            </field>
+        </message>
+        <message name="RuleKeyBean" displayName="规则唯一标识" i18n-en:displayName="Rule Key">
+            <field propId="1" name="ruleName" i18n-en:displayName="Rule Name" displayName="规则名称" mandatory="true">
+                <schema type="String" precision="500"/>
+            </field>
+            <field propId="2" name="ruleVersion" i18n-en:displayName="Rule Version" displayName="规则版本">
+                <schema type="Long"/>
+            </field>
+        </message>
+        <message name="RuleMetaBean" displayName="规则元数据" i18n-en:displayName="Rule Meta">
+            <field propId="1" name="ruleName" i18n-en:displayName="Rule Name" displayName="规则名称" mandatory="true">
+                <schema type="String" precision="500"/>
+            </field>
+            <field propId="2" name="ruleVersion" i18n-en:displayName="Rule Version" displayName="规则版本">
+                <schema type="Long"/>
+            </field>
+            <field propId="3" name="displayName" i18n-en:displayName="Display Name" displayName="显示名称">
+                <schema type="String" precision="200"/>
+            </field>
+            <field propId="4" name="description" i18n-en:displayName="Description" displayName="描述">
+                <schema type="String" precision="2000"/>
+            </field>
+            <field propId="5" name="inputs" i18n-en:displayName="Inputs" displayName="输入数据类型">
+                <schema type="List&lt;io.nop.api.core.beans.VarMetaBean&gt;" precision="4000"/>
+            </field>
+            <field propId="6" name="outputs" i18n-en:displayName="Outputs" displayName="输出数据类型">
+                <schema type="List&lt;io.nop.api.core.beans.VarMetaBean&gt;" precision="4000"/>
+            </field>
+        </message>
+    </messages>
+</api>

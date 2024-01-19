@@ -17,11 +17,11 @@
                 </field>
 
                 <field name="ext:servicePackageName" displayName="servicePackageName" mandatory="true">
-                    <schema stdDomain="class-name"/>
+                    <schema stdDomain="package-name"/>
                 </field>
 
-                <field name="ext:apiPackageName" displayName="apiPackageName" mandatory="true">
-                    <schema stdDomain="class-name"/>
+                <field name="apiPackageName" displayName="apiPackageName" mandatory="true">
+                    <schema stdDomain="package-name"/>
                 </field>
 
                 <field name="ext:apiModuleName" displayName="apiModuleName" mandatory="true">
@@ -130,7 +130,7 @@
             <normalizeFieldsExpr>
                 <c:script><![CDATA[
                     record.className = record.name.$normalizeClassName(
-                                           rootRecord['ext:apiPackageName'],false)
+                                           rootRecord['apiPackageName'],false)
                     record.bizObjName = record.bizObjName || record.name
                 ]]></c:script>
             </normalizeFieldsExpr>
@@ -165,7 +165,7 @@
                 <field name="methods" displayName="方法列表" list="true" keyProp="name">
                     <normalizeFieldsExpr>
                         <c:script><![CDATA[
-                    const beanPackage = rootRecord['ext:apiPackageName']+'.beans';
+                    const beanPackage = rootRecord['apiPackageName']+'.beans';
                     record.requestMessage = record.requestMessage.$normalizeClassName(
                                            beanPackage,false)
                     record.responseMessage.resolveClassName(typeName=> typeName.$normalizeClassName(beanPackage,true));
@@ -227,7 +227,7 @@
                 <field name="name" displayName="对象名">
                     <schema stdDomain="class-name"/>
                     <valueExpr>
-                        record.className = value.$fullClassName(rootRecord['ext:apiPackageName'] + '.beans');
+                        record.className = value.$fullClassName(rootRecord['apiPackageName'] + '.beans');
                         return value
                     </valueExpr>
                 </field>
@@ -251,7 +251,7 @@
                 <field name="fields" displayName="字段列表" list="true" keyProp="name">
                     <normalizeFieldsExpr>
                         <c:script><![CDATA[
-                    const beanPackage = rootRecord['ext:apiPackageName']+'.beans';
+                    const beanPackage = rootRecord['apiPackageName']+'.beans';
                     record.schema.type.resolveClassName(typeName=> typeName.$normalizeClassName(beanPackage,true));
                 ]]></c:script>
                     </normalizeFieldsExpr>

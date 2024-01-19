@@ -71,6 +71,10 @@ public interface CommonErrors {
 
     String ARG_MAX_SIZE = "maxSize";
 
+    String ARG_TYPE_NAME = "typeName";
+
+    String ARG_ALLOWED_NAMES = "allowedNames";
+
     ErrorCode ERR_IO_UNEXPECTED_EOF = define("nop.err.commons.io.unexpected-eof", "数据流已关闭，无法读取到更多数据");
 
     ErrorCode ERR_IO_NOT_FIND_EXPECTED_BYTE = define("nop.err.commons.io.not-find-expected-byte",
@@ -298,4 +302,8 @@ public interface CommonErrors {
 
     ErrorCode ERR_LOAD_CLASS_NOT_EXPECTED_TYPE = define("nop.err.commons.load-class-not-expected-type",
             "加载的类[{className}]不是期望的类型:{expectedType}", ARG_CLASS_NAME, ARG_EXPECTED_TYPE);
+
+    ErrorCode ERR_COMMONS_UNKNOWN_BINARY_SCALAR_TYPE =
+            define("nop.err.commons.unknown-binary-scalar-type",
+                    "未知的二进制标量类型:{typeName}, 允许的类型为:{allowedNames}", ARG_TYPE_NAME, ARG_ALLOWED_NAMES);
 }

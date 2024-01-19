@@ -224,6 +224,38 @@ public enum StdDataType {
         return name;
     }
 
+    public BinaryScalarType toBinaryScalarType() {
+        switch (this) {
+            case ANY:
+            case UNKNOWN:
+            case MAP:
+            case LIST:
+                return BinaryScalarType.ANY;
+            case VOID:
+            case NULL:
+            case NEVER:
+                return BinaryScalarType.VOID;
+            case BOOLEAN:
+                return BinaryScalarType.BOOL;
+            case BYTE:
+                return BinaryScalarType.INT8;
+            case SHORT:
+                return BinaryScalarType.INT16;
+            case INT:
+                return BinaryScalarType.INT32;
+            case LONG:
+                return BinaryScalarType.INT64;
+            case FLOAT:
+                return BinaryScalarType.FLOAT;
+            case DOUBLE:
+                return BinaryScalarType.DOUBLE;
+            case BYTES:
+                return BinaryScalarType.BYTES;
+            default:
+                return BinaryScalarType.STRING;
+        }
+    }
+
     private static final Map<String, StdDataType> stdNameMap = new HashMap<>();
     private static final Map<Class<?>, StdDataType> javaTypeMap = new HashMap<>();
     private static final Map<String, StdDataType> javaClassMap = new HashMap<>();
