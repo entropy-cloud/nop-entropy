@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [38:14:0:0]/nop/schema/api.xdef <p>
+ * generate from [43:14:0:0]/nop/schema/api.xdef <p>
  * 服务方法。接收ApiRequest<T>类型的请求，返回ApiResponse<R>类型的响应
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -36,6 +36,13 @@ public abstract class _ApiMethodModel extends io.nop.core.resource.component.Abs
      * 
      */
     private java.lang.String _name ;
+    
+    /**
+     *  
+     * xml name: option
+     * 
+     */
+    private KeyedList<io.nop.rpc.model.ApiOptionModel> _options = KeyedList.emptyList();
     
     /**
      *  
@@ -128,6 +135,51 @@ public abstract class _ApiMethodModel extends io.nop.core.resource.component.Abs
            
     }
 
+    
+    /**
+     * 
+     * xml name: option
+     *  
+     */
+    
+    public java.util.List<io.nop.rpc.model.ApiOptionModel> getOptions(){
+      return _options;
+    }
+
+    
+    public void setOptions(java.util.List<io.nop.rpc.model.ApiOptionModel> value){
+        checkAllowChange();
+        
+        this._options = KeyedList.fromList(value, io.nop.rpc.model.ApiOptionModel::getName);
+           
+    }
+
+    
+    public io.nop.rpc.model.ApiOptionModel getOption(String name){
+        return this._options.getByKey(name);
+    }
+
+    public boolean hasOption(String name){
+        return this._options.containsKey(name);
+    }
+
+    public void addOption(io.nop.rpc.model.ApiOptionModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.rpc.model.ApiOptionModel> list = this.getOptions();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.rpc.model.ApiOptionModel::getName);
+            setOptions(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_options(){
+        return this._options.keySet();
+    }
+
+    public boolean hasOptions(){
+        return !this._options.isEmpty();
+    }
     
     /**
      * 
@@ -232,6 +284,8 @@ public abstract class _ApiMethodModel extends io.nop.core.resource.component.Abs
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._options = io.nop.api.core.util.FreezeHelper.deepFreeze(this._options);
+            
         }
     }
 
@@ -242,6 +296,7 @@ public abstract class _ApiMethodModel extends io.nop.core.resource.component.Abs
         out.put("description",this.getDescription());
         out.put("displayName",this.getDisplayName());
         out.put("name",this.getName());
+        out.put("options",this.getOptions());
         out.put("requestMessage",this.getRequestMessage());
         out.put("responseMessage",this.getResponseMessage());
         out.put("streamRequest",this.isStreamRequest());
@@ -261,6 +316,7 @@ public abstract class _ApiMethodModel extends io.nop.core.resource.component.Abs
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
         instance.setName(this.getName());
+        instance.setOptions(this.getOptions());
         instance.setRequestMessage(this.getRequestMessage());
         instance.setResponseMessage(this.getResponseMessage());
         instance.setStreamRequest(this.isStreamRequest());

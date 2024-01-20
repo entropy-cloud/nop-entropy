@@ -78,6 +78,11 @@ public enum BinaryScalarType {
         }
     }
 
+    public String getJavaTypeName(boolean mandatory) {
+        StdDataType dataType = toStdDataType();
+        return mandatory ? dataType.getMandatoryJavaTypeName() : dataType.getJavaTypeName();
+    }
+
     public BinaryScalarType toProtoBufType() {
         if (isProtoBufType())
             return this;

@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [53:10:0:0]/nop/schema/api.xdef <p>
+ * generate from [61:10:0:0]/nop/schema/api.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -43,6 +43,13 @@ public abstract class _ApiMessageModel extends io.nop.core.resource.component.Ab
      * 
      */
     private java.lang.String _name ;
+    
+    /**
+     *  
+     * xml name: option
+     * 
+     */
+    private KeyedList<io.nop.rpc.model.ApiOptionModel> _options = KeyedList.emptyList();
     
     /**
      *  
@@ -155,6 +162,51 @@ public abstract class _ApiMessageModel extends io.nop.core.resource.component.Ab
     
     /**
      * 
+     * xml name: option
+     *  
+     */
+    
+    public java.util.List<io.nop.rpc.model.ApiOptionModel> getOptions(){
+      return _options;
+    }
+
+    
+    public void setOptions(java.util.List<io.nop.rpc.model.ApiOptionModel> value){
+        checkAllowChange();
+        
+        this._options = KeyedList.fromList(value, io.nop.rpc.model.ApiOptionModel::getName);
+           
+    }
+
+    
+    public io.nop.rpc.model.ApiOptionModel getOption(String name){
+        return this._options.getByKey(name);
+    }
+
+    public boolean hasOption(String name){
+        return this._options.containsKey(name);
+    }
+
+    public void addOption(io.nop.rpc.model.ApiOptionModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.rpc.model.ApiOptionModel> list = this.getOptions();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.rpc.model.ApiOptionModel::getName);
+            setOptions(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_options(){
+        return this._options.keySet();
+    }
+
+    public boolean hasOptions(){
+        return !this._options.isEmpty();
+    }
+    
+    /**
+     * 
      * xml name: tagSet
      *  
      */
@@ -182,6 +234,8 @@ public abstract class _ApiMessageModel extends io.nop.core.resource.component.Ab
         
            this._fields = io.nop.api.core.util.FreezeHelper.deepFreeze(this._fields);
             
+           this._options = io.nop.api.core.util.FreezeHelper.deepFreeze(this._options);
+            
         }
     }
 
@@ -193,6 +247,7 @@ public abstract class _ApiMessageModel extends io.nop.core.resource.component.Ab
         out.put("displayName",this.getDisplayName());
         out.put("fields",this.getFields());
         out.put("name",this.getName());
+        out.put("options",this.getOptions());
         out.put("tagSet",this.getTagSet());
     }
 
@@ -209,6 +264,7 @@ public abstract class _ApiMessageModel extends io.nop.core.resource.component.Ab
         instance.setDisplayName(this.getDisplayName());
         instance.setFields(this.getFields());
         instance.setName(this.getName());
+        instance.setOptions(this.getOptions());
         instance.setTagSet(this.getTagSet());
     }
 

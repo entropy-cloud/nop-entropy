@@ -25,6 +25,13 @@ public abstract class _ApiModel extends io.nop.core.resource.component.AbstractC
     
     /**
      *  
+     * xml name: description
+     * 
+     */
+    private java.lang.String _description ;
+    
+    /**
+     *  
      * xml name: dicts
      * 
      */
@@ -39,7 +46,7 @@ public abstract class _ApiModel extends io.nop.core.resource.component.AbstractC
     
     /**
      *  
-     * xml name: imports
+     * xml name: import
      * 
      */
     private KeyedList<io.nop.rpc.model.ApiImportModel> _imports = KeyedList.emptyList();
@@ -53,7 +60,7 @@ public abstract class _ApiModel extends io.nop.core.resource.component.AbstractC
     
     /**
      *  
-     * xml name: options
+     * xml name: option
      * 
      */
     private KeyedList<io.nop.rpc.model.ApiOptionModel> _options = KeyedList.emptyList();
@@ -80,6 +87,25 @@ public abstract class _ApiModel extends io.nop.core.resource.component.AbstractC
         checkAllowChange();
         
         this._apiPackageName = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: description
+     *  
+     */
+    
+    public java.lang.String getDescription(){
+      return _description;
+    }
+
+    
+    public void setDescription(java.lang.String value){
+        checkAllowChange();
+        
+        this._description = value;
            
     }
 
@@ -176,7 +202,7 @@ public abstract class _ApiModel extends io.nop.core.resource.component.AbstractC
     
     /**
      * 
-     * xml name: imports
+     * xml name: import
      *  
      */
     
@@ -266,7 +292,7 @@ public abstract class _ApiModel extends io.nop.core.resource.component.AbstractC
     
     /**
      * 
-     * xml name: options
+     * xml name: option
      *  
      */
     
@@ -382,6 +408,7 @@ public abstract class _ApiModel extends io.nop.core.resource.component.AbstractC
         super.outputJson(out);
         
         out.put("apiPackageName",this.getApiPackageName());
+        out.put("description",this.getDescription());
         out.put("dicts",this.getDicts());
         out.put("domains",this.getDomains());
         out.put("imports",this.getImports());
@@ -400,6 +427,7 @@ public abstract class _ApiModel extends io.nop.core.resource.component.AbstractC
         super.copyTo(instance);
         
         instance.setApiPackageName(this.getApiPackageName());
+        instance.setDescription(this.getDescription());
         instance.setDicts(this.getDicts());
         instance.setDomains(this.getDomains());
         instance.setImports(this.getImports());

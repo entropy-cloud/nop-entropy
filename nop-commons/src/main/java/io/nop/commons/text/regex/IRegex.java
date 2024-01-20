@@ -15,6 +15,6 @@ public interface IRegex {
     default boolean find(String text){
         return exec(text) != null;
     }
-    
+
     List<String> exec(String text);
 }

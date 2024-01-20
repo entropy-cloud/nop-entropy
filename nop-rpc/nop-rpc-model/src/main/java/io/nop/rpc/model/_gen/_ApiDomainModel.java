@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [18:10:0:0]/nop/schema/api.xdef <p>
+ * generate from [21:10:0:0]/nop/schema/api.xdef <p>
  * 数据域定义。orm模型解析完毕之后，domain的定义会合并到column上。如果设置了domain是以domain的设置为准
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

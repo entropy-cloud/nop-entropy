@@ -9,12 +9,19 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [11:10:0:0]/nop/schema/api.xdef <p>
+ * generate from [13:6:0:0]/nop/schema/api.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _ApiOptionModel extends io.nop.core.resource.component.AbstractComponentModel {
+    
+    /**
+     *  
+     * xml name: description
+     * 
+     */
+    private java.lang.String _description ;
     
     /**
      *  
@@ -28,7 +35,26 @@ public abstract class _ApiOptionModel extends io.nop.core.resource.component.Abs
      * xml name: value
      * 
      */
-    private java.lang.String _value ;
+    private java.lang.Object _value ;
+    
+    /**
+     * 
+     * xml name: description
+     *  
+     */
+    
+    public java.lang.String getDescription(){
+      return _description;
+    }
+
+    
+    public void setDescription(java.lang.String value){
+        checkAllowChange();
+        
+        this._description = value;
+           
+    }
+
     
     /**
      * 
@@ -55,12 +81,12 @@ public abstract class _ApiOptionModel extends io.nop.core.resource.component.Abs
      *  
      */
     
-    public java.lang.String getValue(){
+    public java.lang.Object getValue(){
       return _value;
     }
 
     
-    public void setValue(java.lang.String value){
+    public void setValue(java.lang.Object value){
         checkAllowChange();
         
         this._value = value;
@@ -83,6 +109,7 @@ public abstract class _ApiOptionModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.put("description",this.getDescription());
         out.put("name",this.getName());
         out.put("value",this.getValue());
     }
@@ -96,6 +123,7 @@ public abstract class _ApiOptionModel extends io.nop.core.resource.component.Abs
     protected void copyTo(ApiOptionModel instance){
         super.copyTo(instance);
         
+        instance.setDescription(this.getDescription());
         instance.setName(this.getName());
         instance.setValue(this.getValue());
     }

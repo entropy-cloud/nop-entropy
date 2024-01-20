@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [7:10:0:0]/nop/schema/api.xdef <p>
+ * generate from [9:6:0:0]/nop/schema/api.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -22,6 +22,13 @@ public abstract class _ApiImportModel extends io.nop.core.resource.component.Abs
      * 
      */
     private java.lang.String _as ;
+    
+    /**
+     *  
+     * xml name: description
+     * 
+     */
+    private java.lang.String _description ;
     
     /**
      *  
@@ -52,6 +59,25 @@ public abstract class _ApiImportModel extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._as = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: description
+     *  
+     */
+    
+    public java.lang.String getDescription(){
+      return _description;
+    }
+
+    
+    public void setDescription(java.lang.String value){
+        checkAllowChange();
+        
+        this._description = value;
            
     }
 
@@ -110,6 +136,7 @@ public abstract class _ApiImportModel extends io.nop.core.resource.component.Abs
         super.outputJson(out);
         
         out.put("as",this.getAs());
+        out.put("description",this.getDescription());
         out.put("from",this.getFrom());
         out.put("public",this.getPublic());
     }
@@ -124,6 +151,7 @@ public abstract class _ApiImportModel extends io.nop.core.resource.component.Abs
         super.copyTo(instance);
         
         instance.setAs(this.getAs());
+        instance.setDescription(this.getDescription());
         instance.setFrom(this.getFrom());
         instance.setPublic(this.getPublic());
     }
