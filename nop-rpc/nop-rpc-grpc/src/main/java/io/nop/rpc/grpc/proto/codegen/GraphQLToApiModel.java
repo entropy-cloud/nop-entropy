@@ -148,7 +148,7 @@ public class GraphQLToApiModel {
             if (responseType != null) {
                 if (responseType.isVoidType()) {
                     method.setResponseMessage(PredefinedGenericTypes.VOID_TYPE);
-                } else if (responseType.isScalarType() || responseType.isEnumType()) {
+                } else if (responseType.isScalarType() || responseType.isEnumType() || responseType.isListType()) {
                     method.setResponseMessage(new GenericRawTypeReferenceImpl(field.getOperationName() + "_response"));
                     addResponseMessage(model, field);
                 } else {
