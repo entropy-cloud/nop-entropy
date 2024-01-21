@@ -3,10 +3,14 @@ package io.nop.rpc.grpc.proto;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.collections.IntArrayMap;
 import io.nop.commons.collections.IntHashMap;
 import io.nop.commons.collections.MapOfInt;
+import io.nop.commons.type.BinaryScalarType;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.rpc.grpc.proto.marshaller.GenericMessageParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Comparator;
@@ -21,6 +25,7 @@ import static io.nop.rpc.grpc.GrpcErrors.ERR_GRPC_UNKNOWN_FIELD_FOR_NAME;
 import static io.nop.rpc.grpc.GrpcErrors.ERR_GRPC_UNKNOWN_FIELD_FOR_PROP_ID;
 
 public class GenericObjSchema implements IFieldMarshaller {
+    static final Logger LOG = LoggerFactory.getLogger(GenericObjSchema.class);
     private String name;
     private MapOfInt<GenericFieldSchema> fieldsByPropId;
 
@@ -64,7 +69,15 @@ public class GenericObjSchema implements IFieldMarshaller {
     }
 
     public Map<String, Object> parseObject(CodedInputStream in) throws IOException {
-        return ProtobufMarshallerHelper.parseObject(in, this);
+        try {
+            return ProtobufMarshallerHelper.parseObject(in, this);
+        } catch (NopException e) {
+            if (!e.isAlreadyTraced()) {
+                e.setAlreadyTraced(true);
+                LOG.error("nop.grpc.parse-object-fail", e);
+            }
+            throw e;
+        }
     }
 
     public void writeObject(CodedOutputStream out, Object value) throws IOException {
@@ -72,22 +85,38 @@ public class GenericObjSchema implements IFieldMarshaller {
     }
 
     public byte[] toByteArray(Object value) {
-        Map<String, Object> map = (Map<String, Object>) value;
-        int size = ProtobufMarshallerHelper.computeSize(this, map);
-        byte[] data = new byte[size];
-        CodedOutputStream out = CodedOutputStream.newInstance(data);
         try {
-            ProtobufMarshallerHelper.writeObject(out, this, map);
-            out.flush();
-        } catch (IOException e) {
-            throw NopException.adapt(e);
+            Map<String, Object> map = (Map<String, Object>) value;
+            int size = ProtobufMarshallerHelper.computeSize(this, map);
+            byte[] data = new byte[size];
+            CodedOutputStream out = CodedOutputStream.newInstance(data);
+            try {
+                ProtobufMarshallerHelper.writeObject(out, this, map);
+                out.flush();
+            } catch (IOException e) {
+                throw NopException.adapt(e);
+            }
+            return data;
+        } catch (NopException e) {
+            if (!e.isAlreadyTraced()) {
+                e.setAlreadyTraced(true);
+                LOG.error("nop.grpc.serialize-object-fail", e);
+            }
+            throw e;
         }
-        return data;
     }
 
     @Override
     public Object readField(CodedInputStream in) throws IOException {
-        return in.readMessage(parser, null).getObj();
+        try {
+            return in.readMessage(parser, null).getObj();
+        } catch (NopException e) {
+            if (!e.isAlreadyTraced()) {
+                e.setAlreadyTraced(true);
+                LOG.error("nop.grpc.parse-object-fail", e);
+            }
+            throw e;
+        }
     }
 
     @Override
@@ -113,10 +142,13 @@ public class GenericObjSchema implements IFieldMarshaller {
     }
 
     private MapOfInt<GenericFieldSchema> buildFieldsByPropId(List<GenericFieldSchema> fields) {
+        if (fields.isEmpty())
+            return new IntArrayMap<>(0);
+
         int maxPropId = fields.get(fields.size() - 1).getPropId();
         MapOfInt<GenericFieldSchema> fieldsMap;
         if (maxPropId < 256) {
-            fieldsMap = new IntHashMap<>(maxPropId + 1);
+            fieldsMap = new IntArrayMap<>(maxPropId + 1);
         } else {
             fieldsMap = new IntHashMap<>();
         }
@@ -161,5 +193,8 @@ public class GenericObjSchema implements IFieldMarshaller {
         return field;
     }
 
-
+    @Override
+    public BinaryScalarType getBinaryScalarType() {
+        return null;
+    }
 }

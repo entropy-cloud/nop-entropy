@@ -2,6 +2,7 @@ package io.nop.rpc.grpc.proto.marshaller;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import io.nop.commons.type.BinaryScalarType;
 import io.nop.rpc.grpc.proto.IFieldMarshaller;
 
 import java.io.IOException;
@@ -10,7 +11,7 @@ public class EnumFieldMarshaller implements IFieldMarshaller {
     public static EnumFieldMarshaller INSTANCE = new EnumFieldMarshaller();
 
     @Override
-    public String getGrpcTypeName(){
+    public String getGrpcTypeName() {
         return "enum";
     }
 
@@ -42,5 +43,10 @@ public class EnumFieldMarshaller implements IFieldMarshaller {
     @Override
     public int computeSizeNoTag(Object value) {
         return CodedOutputStream.computeEnumSizeNoTag((Integer) value);
+    }
+
+    @Override
+    public BinaryScalarType getBinaryScalarType() {
+        return BinaryScalarType.INT32;
     }
 }

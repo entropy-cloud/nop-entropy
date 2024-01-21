@@ -9,6 +9,7 @@ package io.nop.ioc.loader;
 
 import io.nop.api.core.ioc.BeanContainerStartMode;
 import io.nop.api.core.ioc.IBeanContainer;
+import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.lang.IClassLoader;
 import io.nop.core.lang.xml.XNode;
@@ -22,6 +23,7 @@ import io.nop.ioc.impl.BeanDefinition;
 import io.nop.ioc.impl.IBeanClassIntrospection;
 import io.nop.ioc.model.BeanAliasModel;
 import io.nop.ioc.model.BeanConditionModel;
+import io.nop.ioc.model.BeanConfigModel;
 import io.nop.ioc.model.BeanConstantModel;
 import io.nop.ioc.model.BeanConstantValue;
 import io.nop.ioc.model.BeanImportModel;
@@ -201,6 +203,16 @@ public class BeanContainerBuilder implements IBeanContainerBuilder {
             beans.addBean(bean);
         }
 
+        for (BeanConfigModel configModel : beansModel.getIocConfigs()) {
+            BeanDefinition bean = new BeanDefinition(configModel);
+            bean.setTrace(trace);
+
+            Guard.notEmpty(bean.getId(), "id");
+
+            normalizeDefaultBean(configModel);
+            beans.addBean(bean);
+        }
+
         return beans;
     }
 
@@ -218,9 +230,27 @@ public class BeanContainerBuilder implements IBeanContainerBuilder {
 
     /**
      * 条件构建的bean的id可能和default bean相同，为了最后能融合在一个全局bean配置文件中，自动为default bean的id增加一个前缀。
-     *
      */
     void normalizeDefaultBean(BeanModel beanModel) {
+        if (!beanModel.isIocDefault())
+            return;
+
+        beanModel.setIocDefault(false);
+        String id = beanModel.getId();
+        if (!id.startsWith(IocConstants.DEFAULT_ID_PREFIX)) {
+            beanModel.setId(IocConstants.DEFAULT_ID_PREFIX + id);
+            beanModel.addName(id);
+
+            BeanConditionModel condition = beanModel.getIocCondition();
+            if (condition == null) {
+                condition = new BeanConditionModel();
+                beanModel.setIocCondition(condition);
+            }
+            condition.addMissingBean(id);
+        }
+    }
+
+    void normalizeDefaultBean(BeanConfigModel beanModel) {
         if (!beanModel.isIocDefault())
             return;
 

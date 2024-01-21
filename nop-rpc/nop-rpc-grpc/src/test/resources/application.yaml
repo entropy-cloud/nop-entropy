@@ -1,0 +1,21 @@
+nop:
+  debug: true
+
+  application:
+    name: test
+
+  server:
+    grpc-port: 8090
+    port: 8080
+
+  datasource:
+    driver-class-name: org.h2.Driver
+    jdbc-url: jdbc:h2:./db/test
+    username: sa
+    password:
+
+  web:
+    validate-page-model: true
+
+  orm:
+    init-database-schema: true

@@ -98,7 +98,12 @@ public class GraphQLServerCallHandler<S, R> implements ServerCallHandler<S, R> {
                     if (err != null) {
                         responseObserver.onError(err);
                     } else {
-                        responseObserver.onNext((ApiResponse<R>) res);
+                        try {
+                            responseObserver.onNext((ApiResponse<R>) res);
+                        } catch (Exception e) {
+                            responseObserver.onError(e);
+                        }
+                        responseObserver.onCompleted();
                     }
                 });
 
@@ -210,7 +215,7 @@ public class GraphQLServerCallHandler<S, R> implements ServerCallHandler<S, R> {
 
         @Override
         public void onCompleted() {
-            if (!completed) {
+            if (!completed && !aborted) {
                 call.close(Status.OK, new Metadata());
                 completed = true;
             }

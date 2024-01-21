@@ -5,7 +5,6 @@ import io.grpc.MethodDescriptor;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerServiceDefinition;
 import io.nop.commons.type.StdDataType;
-import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.cache.ResourceLoadingCache;
 import io.nop.graphql.core.ast.GraphQLArgumentDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
@@ -29,6 +28,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static io.nop.rpc.grpc.GrpcConstants.GRPAHQL_API_PACKAGE_NAME;
 
 public class ServiceSchemaManager {
     static final Logger LOG = LoggerFactory.getLogger(ServiceSchemaManager.class);
@@ -61,19 +62,21 @@ public class ServiceSchemaManager {
         Map<String, GraphQLFieldDefinition> operations = graphQLEngine.getSchemaLoader()
                 .getBizOperationDefinitions(bizObjName);
 
-        ServerServiceDefinition.Builder builder = ServerServiceDefinition.builder(bizObjName);
+        String serviceName = GRPAHQL_API_PACKAGE_NAME + '.' + bizObjName;
+        ServerServiceDefinition.Builder builder = ServerServiceDefinition.builder(serviceName);
         for (Map.Entry<String, GraphQLFieldDefinition> entry : operations.entrySet()) {
             String fieldName = entry.getKey();
             GraphQLFieldDefinition fieldDef = entry.getValue();
-            builder.addMethod(buildMethodDescriptor(fieldName, fieldDef), buildServerCall(fieldDef));
+            builder.addMethod(buildMethodDescriptor(serviceName, fieldName, fieldDef), buildServerCall(fieldDef));
         }
         return builder.build();
     }
 
-    private <S, R> MethodDescriptor<S, R> buildMethodDescriptor(String methodName, GraphQLFieldDefinition fieldDef) {
+    private <S, R> MethodDescriptor<S, R> buildMethodDescriptor(String serviceName, String methodName, GraphQLFieldDefinition fieldDef) {
         MethodDescriptor.Builder<S, R> builder = MethodDescriptor.<S, R>newBuilder().setFullMethodName(methodName);
         builder.setType(MethodDescriptor.MethodType.UNARY);
         builder.setSafe(fieldDef.getOperationType() == GraphQLOperationType.query);
+        builder.setFullMethodName(serviceName + "/" + methodName);
 
         String requestName = getRequestName(methodName, fieldDef);
         String responseName = getResponseName(methodName, fieldDef);
@@ -87,7 +90,7 @@ public class ServiceSchemaManager {
     }
 
     private String getRequestName(String methodName, GraphQLFieldDefinition fieldDef) {
-        return methodName + "_request";
+        return fieldDef.getOperationName() + "_request";
     }
 
     private String getResponseName(String methodName, GraphQLFieldDefinition fieldDef) {
@@ -96,9 +99,6 @@ public class ServiceSchemaManager {
             return methodName + "_response";
 
         String name = type.getNamedTypeName();
-        if (name.startsWith("g_")) {
-            return StringHelper.lastPart(name, '_');
-        }
         return name;
     }
 
@@ -167,6 +167,7 @@ public class ServiceSchemaManager {
             GraphQLObjectDefinition objDef = (GraphQLObjectDefinition) graphQLEngine.getSchemaLoader().resolveTypeDefinition(type);
             GenericObjSchema objSchema = (GenericObjSchema) objDef.getGrpcSchema();
             if (objSchema == null) {
+                objDef.initPropId();
                 objSchema = buildObjSchema(objDef, allowRequired);
                 objDef.setGrpcSchema(objSchema);
             }

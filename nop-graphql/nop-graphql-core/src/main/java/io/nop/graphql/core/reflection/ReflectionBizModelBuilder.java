@@ -48,7 +48,6 @@ import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IBizModelImpl;
 import io.nop.graphql.core.IDataFetcher;
 import io.nop.graphql.core.IDataFetchingEnvironment;
-import io.nop.graphql.core.ast.GraphQLArgumentDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLOperationType;
@@ -275,9 +274,8 @@ public class ReflectionBizModelBuilder {
         GraphQLFieldDefinition field = new GraphQLFieldDefinition();
         field.setFunctionModel(func);
 
-        List<GraphQLArgumentDefinition> argDefs = ReflectionGraphQLTypeFactory.INSTANCE.getArgDefinitions(func,
+        ReflectionGraphQLTypeFactory.INSTANCE.getArgDefinitions(field, func,
                 registry);
-        field.setArguments(argDefs);
 
         Description description = func.getAnnotation(Description.class);
         if (description != null)
@@ -360,9 +358,8 @@ public class ReflectionBizModelBuilder {
         def.setLocation(loc);
         def.setFunctionModel(func);
 
-        List<GraphQLArgumentDefinition> argDefs = ReflectionGraphQLTypeFactory.INSTANCE.getArgDefinitions(func,
+        ReflectionGraphQLTypeFactory.INSTANCE.getArgDefinitions(def, func,
                 registry);
-        def.setArguments(argDefs);
 
         IDataFetcher fetcher = buildFetcher(bean, loc, name, func);
         def.setFetcher(fetcher);

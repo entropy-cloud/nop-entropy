@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +25,10 @@ import java.util.Set;
 
 import static io.nop.graphql.core.GraphQLErrors.ARG_FIELD_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ARG_PROP_ID;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_FIELD_NO_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_FIELD_PROP_ID_CONFLICT;
 
 public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements INeedInit {
     static final Logger LOG = LoggerFactory.getLogger(GraphQLObjectDefinition.class);
@@ -59,6 +63,31 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
 
         for (GraphQLFieldDefinition field : fields) {
             fieldsMap.put(field.getName(), field);
+        }
+    }
+
+    public void initPropId() {
+        BitSet propIds = new BitSet();
+        int maxPropId = 0;
+        for (GraphQLFieldDefinition field : fields) {
+            int propId = field.getPropIdFromMeta();
+            if (propId > 0) {
+                if (propIds.get(propId))
+                    throw new NopException(ERR_GRAPHQL_FIELD_PROP_ID_CONFLICT)
+                            .param(ARG_FIELD_NAME, field.getName())
+                            .param(ARG_PROP_ID, propId)
+                            .param(ARG_OBJ_TYPE, getName());
+                propIds.set(propId);
+                maxPropId = Math.max(propId, maxPropId);
+                field.setPropId(propId);
+            }
+        }
+
+        for (GraphQLFieldDefinition field : fields) {
+            int propId = field.getPropId();
+            if (propId <= 0) {
+                field.setPropId(++maxPropId);
+            }
         }
     }
 
@@ -222,6 +251,7 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
                 if (old.getType() == null) {
                     old.setType(field.getType());
                 }
+
 
                 if (old.getArgsNormalizer() == null) {
                     old.setArgsNormalizer(field.getArgsNormalizer());

@@ -55,17 +55,20 @@ import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_METHOD_ARG_TYPE_NOT_
 public class ReflectionGraphQLTypeFactory {
     public static ReflectionGraphQLTypeFactory INSTANCE = new ReflectionGraphQLTypeFactory();
 
-    public List<GraphQLArgumentDefinition> getArgDefinitions(IFunctionModel func, TypeRegistry registry) {
-        return getArgDefinitions(func, registry, new HashMap<>());
+    public void getArgDefinitions(GraphQLFieldDefinition field, IFunctionModel func, TypeRegistry registry) {
+        getArgDefinitions(field, func, registry, new HashMap<>());
     }
 
-    private List<GraphQLArgumentDefinition> getArgDefinitions(IFunctionModel func, TypeRegistry registry,
-                                                              Map<String, GraphQLTypeDefinition> creatingTypes) {
+    private void getArgDefinitions(GraphQLFieldDefinition field, IFunctionModel func, TypeRegistry registry,
+                                   Map<String, GraphQLTypeDefinition> creatingTypes) {
         List<GraphQLArgumentDefinition> argDefs = new ArrayList<>();
 
         for (IFunctionArgument arg : func.getArgs()) {
             if (arg.isAnnotationPresent(RequestBean.class)) {
-                return getArgTypes(func.getName(), arg, arg.getType(), registry, creatingTypes);
+                List<GraphQLArgumentDefinition> args = getArgTypes(func.getName(), arg, arg.getType(), registry, creatingTypes);
+                field.setArguments(args);
+
+                break;
             } else if (arg.isAnnotationPresent(Name.class)) {
                 GraphQLType type = buildGraphQLType(arg.getType(), null, registry, creatingTypes, true);
                 GraphQLArgumentDefinition argDef = new GraphQLArgumentDefinition();
@@ -77,11 +80,12 @@ public class ReflectionGraphQLTypeFactory {
 
                 argDefs.add(argDef);
             } else if (arg.getType().getRawClass() == ApiRequest.class) {
-                return getArgTypes(func.getName(), arg, arg.getType().getTypeParameters().get(0), registry,
+                List<GraphQLArgumentDefinition> args = getArgTypes(func.getName(), arg, arg.getType().getTypeParameters().get(0), registry,
                         creatingTypes);
+                field.setArguments(args);
+                break;
             }
         }
-        return argDefs;
     }
 
     private List<GraphQLArgumentDefinition> getArgTypes(String funcName, IFunctionArgument arg, IGenericType type,

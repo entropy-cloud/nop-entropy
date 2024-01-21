@@ -3,6 +3,7 @@ package io.nop.rpc.grpc.proto.marshaller;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
 import io.nop.commons.bytes.ByteString;
+import io.nop.commons.type.BinaryScalarType;
 import io.nop.rpc.grpc.proto.IFieldMarshaller;
 
 import java.io.IOException;
@@ -11,9 +12,10 @@ public class ByteStringFieldMarshaller implements IFieldMarshaller {
     public static ByteStringFieldMarshaller INSTANCE = new ByteStringFieldMarshaller();
 
     @Override
-    public String getGrpcTypeName(){
+    public String getGrpcTypeName() {
         return "bytes";
     }
+
     @Override
     public boolean isObject() {
         return false;
@@ -46,5 +48,10 @@ public class ByteStringFieldMarshaller implements IFieldMarshaller {
     @Override
     public int computeSizeNoTag(Object value) {
         return CodedOutputStream.computeByteArraySizeNoTag(toBytes(value));
+    }
+
+    @Override
+    public BinaryScalarType getBinaryScalarType() {
+        return BinaryScalarType.BYTES;
     }
 }

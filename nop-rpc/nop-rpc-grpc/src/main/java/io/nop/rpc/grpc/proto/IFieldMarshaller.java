@@ -2,6 +2,7 @@ package io.nop.rpc.grpc.proto;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import io.nop.commons.type.BinaryScalarType;
 
 import java.io.IOException;
 
@@ -19,4 +20,6 @@ public interface IFieldMarshaller {
     int computeSizeNoTag(Object value);
 
     String getGrpcTypeName();
+
+    BinaryScalarType getBinaryScalarType();
 }

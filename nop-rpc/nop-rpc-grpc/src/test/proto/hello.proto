@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package helloworld.v1;
+package graphql.api;
 
 import "google/protobuf/empty.proto";
 

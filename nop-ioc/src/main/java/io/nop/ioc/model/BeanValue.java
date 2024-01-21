@@ -22,6 +22,10 @@ public class BeanValue extends _BeanValue implements IBeanPropValue {
 
     }
 
+    public String getId(){
+        return null;
+    }
+
     @JsonIgnore
     public String getEmbeddedId() {
         return embeddedId;

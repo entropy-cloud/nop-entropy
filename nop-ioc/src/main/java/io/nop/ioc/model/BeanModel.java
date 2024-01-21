@@ -13,7 +13,7 @@ import io.nop.ioc.model._gen._BeanModel;
 import java.util.HashSet;
 import java.util.Set;
 
-public class BeanModel extends _BeanModel {
+public class BeanModel extends _BeanModel implements IBeanModel {
 
     public BeanModel() {
 

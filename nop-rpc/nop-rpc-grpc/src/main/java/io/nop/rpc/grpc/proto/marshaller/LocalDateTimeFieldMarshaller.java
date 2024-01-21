@@ -2,6 +2,7 @@ package io.nop.rpc.grpc.proto.marshaller;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import io.nop.commons.type.BinaryScalarType;
 import io.nop.commons.util.DateHelper;
 import io.nop.rpc.grpc.proto.IFieldMarshaller;
 
@@ -13,7 +14,7 @@ public class LocalDateTimeFieldMarshaller implements IFieldMarshaller {
     static final int SIZE_NO_TAG = CodedOutputStream.computeStringSizeNoTag("2002-01-02 11:02:03");
 
     @Override
-    public String getGrpcTypeName(){
+    public String getGrpcTypeName() {
         return "string";
     }
 
@@ -45,5 +46,10 @@ public class LocalDateTimeFieldMarshaller implements IFieldMarshaller {
     @Override
     public int computeSizeNoTag(Object value) {
         return SIZE_NO_TAG;
+    }
+
+    @Override
+    public BinaryScalarType getBinaryScalarType() {
+        return BinaryScalarType.STRING;
     }
 }

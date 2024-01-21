@@ -1,12 +1,12 @@
 package io.nop.rpc.grpc;
 
-import helloworld.v1.GreeterGrpc;
-import helloworld.v1.Hello;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
+import graphql.api.GreeterGrpc;
+import graphql.api.Hello;
 import org.junit.jupiter.api.Test;
 
 public class TestGrpcClient {

@@ -55,7 +55,17 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition {
 
     private IGraphQLArgsNormalizer argsNormalizer;
 
+    private int propId;
+
     public int getPropId() {
+        return propId;
+    }
+
+    public void setPropId(int propId) {
+        this.propId = propId;
+    }
+
+    public int getPropIdFromMeta() {
         if (propMeta != null) {
             Integer propId = propMeta.getPropId();
             if (propId == null)

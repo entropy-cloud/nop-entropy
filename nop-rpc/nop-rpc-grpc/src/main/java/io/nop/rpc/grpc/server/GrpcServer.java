@@ -102,7 +102,7 @@ public class GrpcServer extends LifeCycleSupport {
             builder.permitKeepAliveTime(config.getPermitKeepAliveTime().get(ChronoUnit.MILLIS), TimeUnit.MILLISECONDS);
         }
 
-        if (config.getPermitKeepAliveWithoutCalls()) {
+        if (config.getPermitKeepAliveWithoutCalls() != null) {
             builder.permitKeepAliveWithoutCalls(config.getPermitKeepAliveWithoutCalls());
         }
 
