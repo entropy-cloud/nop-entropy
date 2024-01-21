@@ -11,6 +11,14 @@
           feature:on="nop.cluster.registration.enabled" parent="nopAutoRegistration">
         <property name="serviceName" value="{@cfg:nop.application.name}-grpc"/>
         <property name="port" value="@cfg:nop.server.grpc-port|9000"/>
+        <property name="metadata">
+            <map>
+                <entry key="version" value="@cfg:nop.application.version|1.0.0"/>
+                <entry key="group" value="@cfg:nop.application.group|default"/>
+                <entry key="zone" value="@cfg:nop.application.zone|"/>
+                <entry key="kind" value="grpc" />
+            </map>
+        </property>
     </bean>
 
     <bean id="nopGrpcServer" class="io.nop.rpc.grpc.server.GrpcServer">
