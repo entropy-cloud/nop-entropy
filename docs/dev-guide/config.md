@@ -74,6 +74,13 @@ dev模式下，`%dev.a.b.c`的值将会覆盖配置项`a.b.c`的值
 9. 通过ServiceLoader机制装载IConfigPlugin插件，并按照优先级顺序启动。
    IoC模块提供了IocConfigPlugin，在这个插件中初始化并启动IoC容器。同时，IoC容器也负责管理ClassLoader。
 
+## 与spring和quarkus框架共享配置
+Nop平台的缺省配置文件名为application.yaml，它与quarkus框架和spring框架的配置文件名相同。因此在这个配置文件中配置的内容实际上在spring/quarkus框架以及Nop平台中都可以读到。
+不过需要注意的是，spring的配置有一个命名规范化的过程，它会自动将大小写混排的变量名规范化为通过减号分隔，例如spring.datasource.jdbcUrl会被规范化为spring.datasource.jdbc-url，
+但是Nop平台为了提高一致性并没有引入这种规范化过程，所以表现出来的配置行为会有差异。另外spring框架对于通过环境变量传递的配置参数，会采用猜测的方法多次读取，对性能有一定影响，
+而Nop平台的做法是按照确定性的规则对环境变量名进行规范化，例如nop.datasource.jdbc_url对应的环境变量名固定为NOP_DATASOURCE_JDBC__URL，这种规范化方式与spring也不同。
+具体规范化的语法规则参见 `StringHelper.envToConfigVar(envName)`
+
 ## 常见配置参数
 
 * nop.orm.init-database-schema: true 

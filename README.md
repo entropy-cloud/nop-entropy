@@ -131,6 +131,8 @@ mvn clean install -DskipTests -Dquarkus.package.type=uber-jar
 
 注意: **编译运行需要JDK17以上版本，不支持JDK8**, **在PowerShell中执行的时候需要用引号将参数包裹起来**
 
+据反馈，有些JDK版本编译会报错，如jdk:17.0.9-graal会报错IndexOutOfBound异常，所以如果编译出现问题时可以先尝试一下OpenJDK。
+
 ```
 mvn clean install "-DskipTests" "-Dquarkus.package.type=uber-jar"
 ```
