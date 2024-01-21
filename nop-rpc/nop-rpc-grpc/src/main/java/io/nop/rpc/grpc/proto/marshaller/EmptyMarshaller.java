@@ -1,11 +1,18 @@
 package io.nop.rpc.grpc.proto.marshaller;
 
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.Empty;
 import io.grpc.MethodDescriptor;
+import io.nop.commons.type.BinaryScalarType;
+import io.nop.rpc.grpc.proto.IFieldMarshaller;
+import io.nop.rpc.model.RpcModelConstants;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 
-public class EmptyMarshaller implements MethodDescriptor.Marshaller<Object> {
+public class EmptyMarshaller implements MethodDescriptor.Marshaller<Object>, IFieldMarshaller {
     public static final EmptyMarshaller INSTANCE = new EmptyMarshaller();
 
     @Override
@@ -16,5 +23,45 @@ public class EmptyMarshaller implements MethodDescriptor.Marshaller<Object> {
     @Override
     public Object parse(InputStream stream) {
         return null;
+    }
+
+    @Override
+    public boolean isObject() {
+        return false;
+    }
+
+    @Override
+    public Object readField(CodedInputStream in) throws IOException {
+        return null;
+    }
+
+    @Override
+    public void writeField(CodedOutputStream out, int propId, Object value) throws IOException {
+        Empty.getDefaultInstance().writeTo(out);
+    }
+
+    @Override
+    public void writeFieldNoTag(CodedOutputStream out, Object value) throws IOException {
+        Empty.getDefaultInstance().writeTo(out);
+    }
+
+    @Override
+    public int computeSize(int propId, Object value) {
+        return 0;
+    }
+
+    @Override
+    public int computeSizeNoTag(Object value) {
+        return 0;
+    }
+
+    @Override
+    public String getGrpcTypeName() {
+        return RpcModelConstants.PROTO_TYPE_EMPTY;
+    }
+
+    @Override
+    public BinaryScalarType getBinaryScalarType() {
+        return BinaryScalarType.VOID;
     }
 }

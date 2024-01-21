@@ -25,7 +25,8 @@ public enum GraphQLScalarType {
     Float(StdDataType.DOUBLE), //
     String(StdDataType.STRING), //
     Map(StdDataType.MAP), //
-    Any(StdDataType.ANY);
+    Any(StdDataType.ANY),
+    Void(StdDataType.VOID);
     // BigInteger(StdDataType.BIGINT),
     // BigDecimal(StdDataType.DECIMAL);
 
@@ -48,7 +49,7 @@ public enum GraphQLScalarType {
             stdMap.put(type.getStdDataType(), type);
             textMap.put(type.name(), type);
         }
-       // stdMap.put(StdDataType.LONG, GraphQLScalarType.String);
+        // stdMap.put(StdDataType.LONG, GraphQLScalarType.String);
         stdMap.put(StdDataType.BIGINT, GraphQLScalarType.String);
         stdMap.put(StdDataType.DECIMAL, GraphQLScalarType.Float);
         stdMap.put(StdDataType.BYTE, GraphQLScalarType.Int);
@@ -67,7 +68,7 @@ public enum GraphQLScalarType {
         stdMap.put(StdDataType.GEOMETRY, GraphQLScalarType.String);
         stdMap.put(StdDataType.FILE, GraphQLScalarType.String);
         stdMap.put(StdDataType.FILES, GraphQLScalarType.String);
-        stdMap.put(StdDataType.VOID, GraphQLScalarType.String);
+        stdMap.put(StdDataType.VOID, GraphQLScalarType.Void);
 
         for (Map.Entry<StdDataType, GraphQLScalarType> entry : stdMap.entrySet()) {
             typeMap.put(entry.getKey().getJavaClass(), entry.getValue());

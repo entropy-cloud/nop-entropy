@@ -121,10 +121,12 @@ public class ProtoFileGenerator extends IndentPrinter {
         append("enum ").append(enumModel.getName()).append(" {").br();
         incIndent();
         for (DictOptionBean item : enumModel.getOptions()) {
+            br();
             indent();
             append(item.getLabel()).append(" = ").append(String.valueOf(item.getValue())).append(';');
         }
         decIndent();
+        br();
         indent();
         append("}").br();
     }
@@ -142,9 +144,11 @@ public class ProtoFileGenerator extends IndentPrinter {
         append("message ").append(messageModel.getName()).append(" {");
         incIndent();
         for (ApiMessageFieldModel fieldModel : messageModel.getFields()) {
+            br();
             printField(fieldModel);
         }
         decIndent();
+        br();
         indent();
         append("}").br();
     }
@@ -196,9 +200,11 @@ public class ProtoFileGenerator extends IndentPrinter {
         append("service ").append(serviceModel.getName()).append(" {");
         incIndent();
         for (ApiMethodModel methodModel : serviceModel.getMethods()) {
+            br();
             printMethod(methodModel);
         }
         decIndent();
+        br();
         indent();
         append("}").append('\n');
     }

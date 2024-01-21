@@ -8,9 +8,11 @@ import io.nop.commons.type.StdDataType;
 import io.nop.core.resource.cache.ResourceLoadingCache;
 import io.nop.graphql.core.ast.GraphQLArgumentDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
-import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.ast.GraphQLType;
+import io.nop.graphql.core.ast.GraphQLTypeDefinition;
+import io.nop.graphql.core.ast.IGraphQLFieldDefinition;
+import io.nop.graphql.core.ast.IGraphQLObjectDefinition;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.rpc.grpc.proto.GenericFieldSchema;
 import io.nop.rpc.grpc.proto.GenericObjSchema;
@@ -18,6 +20,7 @@ import io.nop.rpc.grpc.proto.IFieldMarshaller;
 import io.nop.rpc.grpc.proto.ProtobufMarshallerHelper;
 import io.nop.rpc.grpc.proto.marshaller.EmptyMarshaller;
 import io.nop.rpc.grpc.proto.marshaller.GenericMessageMarshaller;
+import io.nop.rpc.grpc.proto.marshaller.IntFieldMarshaller;
 import io.nop.rpc.grpc.status.GrpcStatusMapping;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
@@ -164,22 +167,27 @@ public class ServiceSchemaManager {
             return ProtobufMarshallerHelper.getMarshallerForType(dataType);
         } else {
             // handle non-scalar types
-            GraphQLObjectDefinition objDef = (GraphQLObjectDefinition) graphQLEngine.getSchemaLoader().resolveTypeDefinition(type);
+            GraphQLTypeDefinition objDef = graphQLEngine.getSchemaLoader().resolveTypeDefinition(type);
+            if(objDef.isEnumDefinition())
+                return IntFieldMarshaller.INSTANCE;
+
             GenericObjSchema objSchema = (GenericObjSchema) objDef.getGrpcSchema();
             if (objSchema == null) {
-                objDef.initPropId();
-                objSchema = buildObjSchema(objDef, allowRequired);
-                objDef.setGrpcSchema(objSchema);
+                objSchema = buildObjSchema((IGraphQLObjectDefinition) objDef, allowRequired);
             }
             return objSchema;
         }
     }
 
-    private GenericObjSchema buildObjSchema(GraphQLObjectDefinition objDef, boolean allowRequired) {
+    private GenericObjSchema buildObjSchema(IGraphQLObjectDefinition objDef, boolean allowRequired) {
         GenericObjSchema objSchema = new GenericObjSchema();
+        objDef.setGrpcSchema(objSchema);
+
+        objDef.initPropId();
+
         List<GenericFieldSchema> fieldList = new ArrayList<>(objDef.getFields().size());
 
-        for (GraphQLFieldDefinition fieldDef : objDef.getFields()) {
+        for (IGraphQLFieldDefinition fieldDef : objDef.getFields()) {
             int propId = fieldDef.getPropId();
             if (propId <= 0) {
                 LOG.debug("nop.ignore-field-no-propId:objType={},prop={}", objDef.getName(), fieldDef.getName());

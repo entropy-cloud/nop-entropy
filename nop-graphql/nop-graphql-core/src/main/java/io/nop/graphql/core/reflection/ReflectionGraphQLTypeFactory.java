@@ -68,7 +68,7 @@ public class ReflectionGraphQLTypeFactory {
                 List<GraphQLArgumentDefinition> args = getArgTypes(func.getName(), arg, arg.getType(), registry, creatingTypes);
                 field.setArguments(args);
 
-                break;
+                return;
             } else if (arg.isAnnotationPresent(Name.class)) {
                 GraphQLType type = buildGraphQLType(arg.getType(), null, registry, creatingTypes, true);
                 GraphQLArgumentDefinition argDef = new GraphQLArgumentDefinition();
@@ -83,9 +83,10 @@ public class ReflectionGraphQLTypeFactory {
                 List<GraphQLArgumentDefinition> args = getArgTypes(func.getName(), arg, arg.getType().getTypeParameters().get(0), registry,
                         creatingTypes);
                 field.setArguments(args);
-                break;
+                return;
             }
         }
+        field.setArguments(argDefs);
     }
 
     private List<GraphQLArgumentDefinition> getArgTypes(String funcName, IFunctionArgument arg, IGenericType type,

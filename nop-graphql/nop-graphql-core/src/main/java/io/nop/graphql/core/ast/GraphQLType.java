@@ -32,6 +32,10 @@ public abstract class GraphQLType extends _GraphQLType {
         return false;
     }
 
+    public boolean isVoidType() {
+        return getScalarType() == GraphQLScalarType.Void;
+    }
+
     public boolean needFieldSelection() {
         return true;
     }
@@ -44,7 +48,7 @@ public abstract class GraphQLType extends _GraphQLType {
         return null;
     }
 
-    public GraphQLType getItemType(){
+    public GraphQLType getItemType() {
         return null;
     }
 

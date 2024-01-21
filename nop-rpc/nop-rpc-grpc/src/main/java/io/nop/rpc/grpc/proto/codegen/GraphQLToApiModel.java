@@ -2,15 +2,23 @@ package io.nop.rpc.grpc.proto.codegen;
 
 import io.nop.commons.type.BinaryScalarType;
 import io.nop.commons.type.StdDataType;
+import io.nop.core.reflect.ReflectionManager;
+import io.nop.core.type.IGenericType;
+import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.core.type.impl.GenericRawTypeReferenceImpl;
+import io.nop.core.type.utils.JavaGenericTypeBuilder;
+import io.nop.graphql.core.ast.GraphQLArgumentDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
-import io.nop.graphql.core.ast.GraphQLObjectDefinition;
+import io.nop.graphql.core.ast.GraphQLInputDefinition;
 import io.nop.graphql.core.ast.GraphQLType;
 import io.nop.graphql.core.ast.GraphQLTypeDefinition;
+import io.nop.graphql.core.ast.IGraphQLFieldDefinition;
+import io.nop.graphql.core.ast.IGraphQLObjectDefinition;
 import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
 import io.nop.rpc.grpc.GrpcConstants;
 import io.nop.rpc.grpc.proto.IFieldMarshaller;
 import io.nop.rpc.grpc.proto.ProtobufMarshallerHelper;
+import io.nop.rpc.grpc.proto.marshaller.EmptyMarshaller;
 import io.nop.rpc.model.ApiMessageFieldModel;
 import io.nop.rpc.model.ApiMessageModel;
 import io.nop.rpc.model.ApiMethodModel;
@@ -38,15 +46,15 @@ public class GraphQLToApiModel {
     }
 
     private void addType(ApiModel model, GraphQLTypeDefinition typeDef) {
-        if (typeDef instanceof GraphQLObjectDefinition) {
-            GraphQLObjectDefinition objDef =
-                    (GraphQLObjectDefinition) typeDef;
+        if (typeDef instanceof IGraphQLObjectDefinition) {
+            IGraphQLObjectDefinition objDef =
+                    (IGraphQLObjectDefinition) typeDef;
             ApiMessageModel messageModel = toMessageModel(objDef);
             model.addMessage(messageModel);
         }
     }
 
-    private ApiMessageModel toMessageModel(GraphQLObjectDefinition objDef) {
+    private ApiMessageModel toMessageModel(IGraphQLObjectDefinition objDef) {
         objDef.initPropId();
 
         ApiMessageModel messageModel = new ApiMessageModel();
@@ -54,52 +62,72 @@ public class GraphQLToApiModel {
         messageModel.setDescription(objDef.getDescription());
         messageModel.setDisplayName(objDef.getDisplayString());
 
-        for (GraphQLFieldDefinition field : objDef.getFields()) {
-            messageModel.addField(toFieldModel(field));
+        for (IGraphQLFieldDefinition field : objDef.getFields()) {
+            messageModel.addField(toFieldModel(field, objDef instanceof GraphQLInputDefinition));
         }
         return messageModel;
     }
 
-    private ApiMessageFieldModel toFieldModel(GraphQLFieldDefinition field) {
+    private ApiMessageFieldModel toFieldModel(IGraphQLFieldDefinition field, boolean input) {
         ApiMessageFieldModel fieldModel = new ApiMessageFieldModel();
         fieldModel.setName(field.getName());
         fieldModel.setDisplayName(field.getDisplayString());
         fieldModel.setDescription(field.getDescription());
-        fieldModel.setMandatory(field.getType().isNonNullType());
+        // 考虑到selection机制，所有字段都是可选字段
+        fieldModel.setMandatory(input ? field.getType().isNonNullType() : false);
         fieldModel.setPropId(field.getPropId());
 
-        StdDataType dataType = field.getType().getStdDataType();
-        if (dataType != null) {
+        setFieldType(fieldModel, field.getType());
+        return fieldModel;
+    }
+
+    private void setFieldType(ApiMessageFieldModel fieldModel, GraphQLType type) {
+        StdDataType dataType = type.getStdDataType();
+        if (dataType != null && !type.isListType()) {
             IFieldMarshaller marshaller = ProtobufMarshallerHelper.getMarshallerForType(dataType);
-            fieldModel.setBinaryScalarType(marshaller.getBinaryScalarType());
+            if (marshaller != null && marshaller != EmptyMarshaller.INSTANCE)
+                fieldModel.setBinaryScalarType(marshaller.getBinaryScalarType());
         } else {
             GraphQLType itemType;
-            if (field.getType().isListType()) {
-                itemType = field.getType().getItemType();
+            boolean repeated;
+            if (type.isListType()) {
+                itemType = type.getItemType();
+                repeated = true;
             } else {
-                itemType = field.getType();
+                itemType = type;
+                repeated = false;
             }
             if (itemType.isScalarType()) {
                 IFieldMarshaller marshaller = ProtobufMarshallerHelper.getMarshallerForType(itemType.getStdDataType());
                 fieldModel.setBinaryScalarType(marshaller.getBinaryScalarType());
+                if (repeated) {
+                    IGenericType javaType = ReflectionManager.instance().buildRawType(marshaller.getBinaryScalarType().toStdDataType().getJavaClass());
+                    javaType = JavaGenericTypeBuilder.buildListType(javaType);
+                    fieldModel.setType(javaType);
+                }
             } else if (itemType.isEnumType()) {
                 fieldModel.setBinaryScalarType(BinaryScalarType.INT32);
+                if (repeated) {
+                    fieldModel.setType(JavaGenericTypeBuilder.buildListType(PredefinedGenericTypes.INT_TYPE));
+                }
             } else {
                 String namedType = itemType.getNamedTypeName();
-                fieldModel.setType(new GenericRawTypeReferenceImpl(namedType));
+                IGenericType javaType = new GenericRawTypeReferenceImpl(namedType);
+                if (repeated)
+                    javaType = JavaGenericTypeBuilder.buildListType(javaType);
+                fieldModel.setType(javaType);
             }
         }
-        return fieldModel;
     }
 
     private void addService(ApiModel model, String bizObjName, Collection<GraphQLFieldDefinition> operations) {
         ApiServiceModel serviceModel = new ApiServiceModel();
         serviceModel.setName(bizObjName);
-        serviceModel.setMethods(operations.stream().map(this::toMethodModel).collect(Collectors.toList()));
+        serviceModel.setMethods(operations.stream().map(m -> toMethodModel(m, model)).collect(Collectors.toList()));
         model.addService(serviceModel);
     }
 
-    private ApiMethodModel toMethodModel(GraphQLFieldDefinition field) {
+    private ApiMethodModel toMethodModel(GraphQLFieldDefinition field, ApiModel model) {
         ApiMethodModel method = new ApiMethodModel();
         method.setName(field.getName());
         method.setDescription(field.getDisplayString());
@@ -108,18 +136,59 @@ public class GraphQLToApiModel {
             method.setRequestMessage(PROTO_TYPE_EMPTY);
         } else {
             method.setRequestMessage(field.getOperationName() + "_request");
+
+            if (model.getMessage(method.getRequestMessage()) == null)
+                addRequestMessage(model, field);
         }
 
         if (field.getType() == null) {
             method.setRequestMessage(PROTO_TYPE_EMPTY);
         } else {
             GraphQLType responseType = field.getType();
-            if (responseType.isScalarType() || responseType.isEnumType()) {
-                method.setResponseMessage(new GenericRawTypeReferenceImpl(field.getOperationName() + "_response"));
-            } else {
-                method.setResponseMessage(new GenericRawTypeReferenceImpl(responseType.getNamedTypeName()));
+            if (responseType != null) {
+                if (responseType.isVoidType()) {
+                    method.setResponseMessage(PredefinedGenericTypes.VOID_TYPE);
+                } else if (responseType.isScalarType() || responseType.isEnumType()) {
+                    method.setResponseMessage(new GenericRawTypeReferenceImpl(field.getOperationName() + "_response"));
+                    addResponseMessage(model, field);
+                } else {
+                    method.setResponseMessage(new GenericRawTypeReferenceImpl(responseType.getNamedTypeName()));
+                }
             }
         }
         return method;
+    }
+
+    void addRequestMessage(ApiModel model, GraphQLFieldDefinition field) {
+        ApiMessageModel messageModel = new ApiMessageModel();
+        messageModel.setName(field.getOperationName() + "_request");
+
+        field.initArgPropId();
+
+        for (GraphQLArgumentDefinition arg : field.getArguments()) {
+            ApiMessageFieldModel propertyModel = new ApiMessageFieldModel();
+            propertyModel.setName(arg.getName());
+            propertyModel.setDescription(arg.getDescription());
+            propertyModel.setMandatory(arg.getType().isNonNullType());
+            propertyModel.setPropId(arg.getPropId());
+
+            setFieldType(propertyModel, arg.getType());
+            messageModel.addField(propertyModel);
+        }
+        model.addMessage(messageModel);
+    }
+
+    void addResponseMessage(ApiModel model, GraphQLFieldDefinition field) {
+        ApiMessageModel messageModel = new ApiMessageModel();
+        messageModel.setName(field.getOperationName() + "_response");
+
+        ApiMessageFieldModel propertyModel = new ApiMessageFieldModel();
+        propertyModel.setName("value");
+        propertyModel.setMandatory(false);
+        propertyModel.setPropId(1);
+
+        setFieldType(propertyModel, field.getType());
+        messageModel.addField(propertyModel);
+        model.addMessage(messageModel);
     }
 }

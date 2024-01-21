@@ -21,7 +21,7 @@ import io.nop.xlang.xmeta.IObjPropMeta;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class GraphQLFieldDefinition extends _GraphQLFieldDefinition {
+public class GraphQLFieldDefinition extends _GraphQLFieldDefinition implements IGraphQLFieldDefinition {
     private IDataFetcher fetcher;
 
     /**
@@ -75,6 +75,15 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition {
         if (beanPropMeta != null)
             return beanPropMeta.propId();
         return 0;
+    }
+
+    public void initArgPropId() {
+        List<GraphQLArgumentDefinition> args = getArguments();
+        if (args != null) {
+            for (int i = 0, n = args.size(); i < n; i++) {
+                args.get(i).setPropId(i + 1);
+            }
+        }
     }
 
     public IGraphQLArgsNormalizer getArgsNormalizer() {

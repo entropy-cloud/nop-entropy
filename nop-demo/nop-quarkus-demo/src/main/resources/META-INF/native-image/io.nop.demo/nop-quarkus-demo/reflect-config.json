@@ -248,6 +248,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "HEADER_SELECTION"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "HEADER_SHARD"
       },
       {
@@ -14896,6 +14901,10 @@
       },
       {
         "name": "getOperationDefinitions",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOperationDefinitions",
         "parameterTypes": [
           "io.nop.graphql.core.ast.GraphQLOperationType"
         ]
@@ -16605,6 +16614,14 @@
         "parameterTypes": []
       },
       {
+        "name": "isIdempotent",
+        "parameterTypes": []
+      },
+      {
+        "name": "isSafe",
+        "parameterTypes": []
+      },
+      {
         "name": "keySet_args",
         "parameterTypes": []
       },
@@ -16679,6 +16696,12 @@
         ]
       },
       {
+        "name": "setIdempotent",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
         "name": "setMakerChecker",
         "parameterTypes": [
           "io.nop.biz.model.BizMakerCheckerModel"
@@ -16694,6 +16717,12 @@
         "name": "setReturn",
         "parameterTypes": [
           "io.nop.biz.model.BizReturnModel"
+        ]
+      },
+      {
+        "name": "setSafe",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -17809,6 +17838,138 @@
     "fields": [],
     "methods": [
       {
+        "name": "getAwaitTerminationSeconds",
+        "parameterTypes": []
+      },
+      {
+        "name": "isWaitForTasksToCompleteOnShutdown",
+        "parameterTypes": []
+      },
+      {
+        "name": "setAwaitTerminationSeconds",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setWaitForTasksToCompleteOnShutdown",
+        "parameterTypes": [
+          "boolean"
+        ]
+      }
+    ],
+    "name": "io.nop.commons.concurrent.executor.BaseThreadPoolConfig",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getCorePoolSize",
+        "parameterTypes": []
+      },
+      {
+        "name": "getKeepAliveSeconds",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMaxPoolSize",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getQueueCapacity",
+        "parameterTypes": []
+      },
+      {
+        "name": "getThreadPriority",
+        "parameterTypes": []
+      },
+      {
+        "name": "isAllowCoreThreadTimeOut",
+        "parameterTypes": []
+      },
+      {
+        "name": "isEnableMetrics",
+        "parameterTypes": []
+      },
+      {
+        "name": "isThreadDaemon",
+        "parameterTypes": []
+      },
+      {
+        "name": "setAllowCoreThreadTimeOut",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setCorePoolSize",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setEnableMetrics",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setKeepAliveSeconds",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setMaxPoolSize",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setQueueCapacity",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setThreadDaemon",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setThreadPriority",
+        "parameterTypes": [
+          "int"
+        ]
+      }
+    ],
+    "name": "io.nop.commons.concurrent.executor.ThreadPoolConfig",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "getAttributes",
         "parameterTypes": []
       },
@@ -17836,6 +17997,92 @@
       }
     ],
     "name": "io.nop.commons.lang.ITagSetSupport",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "start",
+        "parameterTypes": []
+      },
+      {
+        "name": "stop",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.commons.service.ILifeCycle",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "beginStop",
+        "parameterTypes": []
+      },
+      {
+        "name": "checkIsActive",
+        "parameterTypes": []
+      },
+      {
+        "name": "doStart",
+        "parameterTypes": []
+      },
+      {
+        "name": "doStop",
+        "parameterTypes": []
+      },
+      {
+        "name": "getId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStatus",
+        "parameterTypes": []
+      },
+      {
+        "name": "isActive",
+        "parameterTypes": []
+      },
+      {
+        "name": "isAllowRestart",
+        "parameterTypes": []
+      },
+      {
+        "name": "setAllowRestart",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "start",
+        "parameterTypes": []
+      },
+      {
+        "name": "stop",
+        "parameterTypes": []
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.commons.service.LifeCycleSupport",
     "unsafeAllocated": false
   },
   {
@@ -18168,6 +18415,10 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "toBinaryScalarType",
+        "parameterTypes": []
       },
       {
         "name": "toInitializer",
@@ -27166,6 +27417,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getUpsertHandler",
+        "parameterTypes": []
+      },
+      {
         "name": "hasErrorCode",
         "parameterTypes": [
           "java.lang.String"
@@ -27357,6 +27612,12 @@
         "name": "setTableNameCase",
         "parameterTypes": [
           "io.nop.commons.text.CharacterCase"
+        ]
+      },
+      {
+        "name": "setUpsertHandler",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       }
     ],
@@ -40445,6 +40706,23 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [
+      {
+        "name": "addName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.ioc.model.BeanConfigModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [],
     "name": "io.nop.ioc.model.BeanConstantModel",
     "unsafeAllocated": false
@@ -40631,6 +40909,10 @@
       },
       {
         "name": "getEmbeddedId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getId",
         "parameterTypes": []
       },
       {
@@ -41059,6 +41341,83 @@
       }
     ],
     "name": "io.nop.ioc.model._gen._BeanConditionModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.ioc.model.BeanConfigModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "isIocAllowOverride",
+        "parameterTypes": []
+      },
+      {
+        "name": "isIocDefault",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setIocAllowOverride",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setIocDefault",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      }
+    ],
+    "name": "io.nop.ioc.model._gen._BeanConfigModel",
     "unsafeAllocated": false
   },
   {
@@ -44958,6 +45317,10 @@
       },
       {
         "name": "getComment",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDefaultValue",
         "parameterTypes": []
       },
       {
@@ -51953,6 +52316,287 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.report.service.entity.NopReportResultFileBizModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "doStart",
+        "parameterTypes": []
+      },
+      {
+        "name": "doStop",
+        "parameterTypes": []
+      },
+      {
+        "name": "newBuilder",
+        "parameterTypes": []
+      },
+      {
+        "name": "setConfig",
+        "parameterTypes": [
+          "io.nop.rpc.grpc.server.GrpcServerConfig"
+        ]
+      },
+      {
+        "name": "setExecutor",
+        "parameterTypes": [
+          "io.nop.commons.concurrent.executor.IThreadPoolExecutor"
+        ]
+      },
+      {
+        "name": "setServiceSchemaManager",
+        "parameterTypes": [
+          "io.nop.rpc.grpc.server.ServiceSchemaManager"
+        ]
+      }
+    ],
+    "name": "io.nop.rpc.grpc.server.GrpcServer",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getCertChain",
+        "parameterTypes": []
+      },
+      {
+        "name": "getHandshakeTimeout",
+        "parameterTypes": []
+      },
+      {
+        "name": "getKeepAliveTimeout",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMaxConnectionAge",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMaxConnectionArgGrace",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMaxConnectionIdle",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMaxInboundMessageSize",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMaxInboundMetadataSize",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPermitKeepAliveTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPermitKeepAliveWithoutCalls",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPort",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPrivateKey",
+        "parameterTypes": []
+      },
+      {
+        "name": "getThreadPool",
+        "parameterTypes": []
+      },
+      {
+        "name": "setCertChain",
+        "parameterTypes": [
+          "java.io.File"
+        ]
+      },
+      {
+        "name": "setHandshakeTimeout",
+        "parameterTypes": [
+          "java.time.Duration"
+        ]
+      },
+      {
+        "name": "setKeepAliveTimeout",
+        "parameterTypes": [
+          "java.time.Duration"
+        ]
+      },
+      {
+        "name": "setMaxConnectionAge",
+        "parameterTypes": [
+          "java.time.Duration"
+        ]
+      },
+      {
+        "name": "setMaxConnectionArgGrace",
+        "parameterTypes": [
+          "java.time.Duration"
+        ]
+      },
+      {
+        "name": "setMaxConnectionIdle",
+        "parameterTypes": [
+          "java.time.Duration"
+        ]
+      },
+      {
+        "name": "setMaxInboundMessageSize",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setMaxInboundMetadataSize",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setPermitKeepAliveTime",
+        "parameterTypes": [
+          "java.time.Duration"
+        ]
+      },
+      {
+        "name": "setPermitKeepAliveWithoutCalls",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setPort",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setPrivateKey",
+        "parameterTypes": [
+          "java.io.File"
+        ]
+      },
+      {
+        "name": "setThreadPool",
+        "parameterTypes": [
+          "io.nop.commons.concurrent.executor.ThreadPoolConfig"
+        ]
+      }
+    ],
+    "name": "io.nop.rpc.grpc.server.GrpcServerConfig",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      }
+    ],
+    "methods": [
+      {
+        "name": "getGraphQLObjectTypes",
+        "parameterTypes": []
+      },
+      {
+        "name": "getServiceDefinition",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setGraphQLEngine",
+        "parameterTypes": [
+          "io.nop.graphql.core.engine.IGraphQLEngine"
+        ]
+      },
+      {
+        "name": "setStatusMapping",
+        "parameterTypes": [
+          "io.nop.rpc.grpc.status.GrpcStatusMapping"
+        ]
+      }
+    ],
+    "name": "io.nop.rpc.grpc.server.ServiceSchemaManager",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "graphQLEngine"
+      }
+    ],
+    "methods": [
+      {
+        "name": "grpc",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.rpc.grpc.service.DevDocGrpcBizModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "mapToStatus",
+        "parameterTypes": [
+          "io.nop.api.core.beans.ApiResponse"
+        ]
+      },
+      {
+        "name": "ok",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.rpc.grpc.status.GrpcStatusMapping",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "doParseText",
+        "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation",
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.rpc.model.proto.ProtoFileParser",
     "unsafeAllocated": false
   },
   {

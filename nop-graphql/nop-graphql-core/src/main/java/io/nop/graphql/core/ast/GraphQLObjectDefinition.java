@@ -30,22 +30,12 @@ import static io.nop.graphql.core.GraphQLErrors.ARG_PROP_ID;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_FIELD_NO_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_FIELD_PROP_ID_CONFLICT;
 
-public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements INeedInit {
+public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements INeedInit, IGraphQLObjectDefinition {
     static final Logger LOG = LoggerFactory.getLogger(GraphQLObjectDefinition.class);
 
     private Map<String, GraphQLFieldDefinition> fieldsMap;
 
     private IObjMeta objMeta;
-
-    private Object grpcSchema;
-
-    public Object getGrpcSchema() {
-        return grpcSchema;
-    }
-
-    public void setGrpcSchema(Object grpcSchema) {
-        this.grpcSchema = grpcSchema;
-    }
 
     public IObjMeta getObjMeta() {
         return objMeta;

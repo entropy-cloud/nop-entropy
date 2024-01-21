@@ -264,6 +264,7 @@
 /nop/autoconfig/nop-orm.beans
 /nop/autoconfig/nop-quarkus-web-starter.beans
 /nop/autoconfig/nop-report.beans
+/nop/autoconfig/nop-rpc-grpc.beans
 /nop/autoconfig/nop-rule-core.beans
 /nop/autoconfig/nop-web.beans
 /nop/biz/beans/biz-defaults.beans.xml
@@ -481,8 +482,6 @@
 /nop/gateway/beans/gateway-defaults.beans.xml
 /nop/graphql/base.graphql
 /nop/graphql/default.graphql
-/nop/graphql/imp/api.imp.xml
-/nop/graphql/imp/template.api.xlsx
 /nop/graphql/introspection.graphql
 /nop/http/beans/http-client-jdk.beans.xml
 /nop/main/app.gateway.xml
@@ -563,6 +562,9 @@
 /nop/report/pages/NopReportResultFile/_gen/_NopReportResultFile.view.xml
 /nop/report/pages/NopReportResultFile/main.page.yaml
 /nop/report/pages/NopReportResultFile/picker.page.yaml
+/nop/rpc/beans/grpc-defaults.beans.xml
+/nop/rpc/imp/api.imp.xml
+/nop/rpc/imp/template.api.xlsx
 /nop/rule/_module
 /nop/rule/auth/_nop-rule-api.action-auth.xml
 /nop/rule/auth/_nop-rule.action-auth.xml
@@ -604,6 +606,7 @@
 /nop/rule/model/RuleService/_RuleMetaBean.xmeta
 /nop/rule/model/RuleService/_RuleRequestBean.xmeta
 /nop/rule/model/RuleService/_RuleResultBean.xmeta
+/nop/rule/model/nop-rule.api.xml
 /nop/rule/orm/_app.orm.xml
 /nop/rule/orm/app.orm.xml
 /nop/rule/pages/NopRuleDefinition/NopRuleDefinition.lib.js
@@ -847,6 +850,7 @@
 /nop/templates/api/{apiModuleName}/src/main/java/{apiPackagePath}/beans/_gen/_{messageModel.name}.java.xgen
 /nop/templates/api/{apiModuleName}/src/main/java/{apiPackagePath}/beans/{messageModel.name}.java.xgen
 /nop/templates/api/{apiModuleName}/src/main/java/{apiPackagePath}/{serviceModel.name}.java.xgen
+/nop/templates/api/{apiModuleName}/src/main/resources/_vfs/{moduleId}/model/{appName}.api.xml.xgen
 /nop/templates/api/{metaModuleName}/src/main/resources/_vfs/{moduleId}/model/{serviceModel.name}/_{messageModel.name}.xmeta.xgen
 /nop/templates/api/{metaModuleName}/src/main/resources/_vfs/{moduleId}/model/{serviceModel.name}/{messageModel.name}.xmeta.xgen
 /nop/templates/api/{serviceModuleName}/src/main/java/{servicePackagePath}/impl/{serviceModel.name}Impl.java.xgen
@@ -1060,6 +1064,7 @@
 /nop/wf/model/WorkflowService/_WfStartRequestBean.xmeta
 /nop/wf/model/WorkflowService/_WfStartResponseBean.xmeta
 /nop/wf/model/WorkflowService/_WfSubFlowEndRequestBean.xmeta
+/nop/wf/model/nop-wf.api.xml
 /nop/wf/orm/_app.orm.xml
 /nop/wf/orm/app.orm.xml
 /nop/wf/pages/NopWfAction/NopWfAction.lib.js

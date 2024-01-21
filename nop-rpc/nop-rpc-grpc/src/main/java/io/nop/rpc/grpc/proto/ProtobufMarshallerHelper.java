@@ -7,6 +7,7 @@ import io.nop.commons.type.StdDataType;
 import io.nop.rpc.grpc.proto.marshaller.BooleanFieldMarshaller;
 import io.nop.rpc.grpc.proto.marshaller.ByteStringFieldMarshaller;
 import io.nop.rpc.grpc.proto.marshaller.DoubleFieldMarshaller;
+import io.nop.rpc.grpc.proto.marshaller.EmptyMarshaller;
 import io.nop.rpc.grpc.proto.marshaller.FloatFieldMarshaller;
 import io.nop.rpc.grpc.proto.marshaller.IntFieldMarshaller;
 import io.nop.rpc.grpc.proto.marshaller.JsonFieldMarshaller;
@@ -156,6 +157,8 @@ public class ProtobufMarshallerHelper {
             case MAP:
             case ANY:
                 return JsonFieldMarshaller.INSTANCE;
+            case VOID:
+                return EmptyMarshaller.INSTANCE;
             default:
                 throw new NopException(ERR_GRPC_NOT_SUPPORT_DATA_TYPE)
                         .param(ARG_DATA_TYPE, dataType);

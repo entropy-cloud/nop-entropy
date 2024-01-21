@@ -257,7 +257,7 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
     }
 
     @Override
-    public GraphQLObjectDefinition resolveTypeDefinition(GraphQLType type) {
+    public GraphQLTypeDefinition resolveTypeDefinition(GraphQLType type) {
         GraphQLType baseType = type.getNullableType();
         if (!(baseType instanceof GraphQLNamedType)) {
             throw new NopException(ERR_GRAPHQL_NOT_OBJ_TYPE).param(ARG_TYPE, type);
@@ -266,13 +266,13 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
         GraphQLNamedType namedType = (GraphQLNamedType) baseType;
         if (namedType.getResolvedType() != null) {
             GraphQLDefinition def = namedType.getResolvedType();
-            if (!(def instanceof GraphQLObjectDefinition))
+            if (!(def instanceof GraphQLTypeDefinition))
                 throw new NopException(ERR_GRAPHQL_NOT_OBJ_TYPE).param(ARG_TYPE, type);
 
-            return (GraphQLObjectDefinition) def;
+            return (GraphQLTypeDefinition) def;
         }
 
-        GraphQLObjectDefinition objDef = getObjectTypeDefinition(namedType.getName());
+        GraphQLTypeDefinition objDef = getTypeDefinition(namedType.getName());
         if (objDef == null)
             throw new NopException(ERR_GRAPHQL_UNKNOWN_OBJ_TYPE).param(ARG_TYPE_NAME, namedType.getName());
         return objDef;
