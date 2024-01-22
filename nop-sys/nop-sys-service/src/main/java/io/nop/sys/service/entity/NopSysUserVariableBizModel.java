@@ -34,7 +34,6 @@ public class NopSysUserVariableBizModel extends CrudBizModel<NopSysUserVariable>
     }
 
     @BizMutation
-    @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
     public void setVar(@Name("varName") String varName,
                        @Name("varValue") String varValue,
                        @Name("varType") String varType,

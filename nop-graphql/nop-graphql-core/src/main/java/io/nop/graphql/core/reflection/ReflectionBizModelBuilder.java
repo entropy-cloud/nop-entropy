@@ -310,8 +310,13 @@ public class ReflectionBizModelBuilder {
                     .param(ARG_CLASS, func.getDeclaringClass().getName())
                     .param(ARG_RETURN_TYPE, func.getReturnType());
 
-        field.setType(ReflectionGraphQLTypeFactory.INSTANCE.buildGraphQLType(func.getReturnType(), bizObjName,
-                getReturnBizObjName(func), registry, false));
+        try {
+            field.setType(ReflectionGraphQLTypeFactory.INSTANCE.buildGraphQLType(func.getReturnType(), bizObjName,
+                    getReturnBizObjName(func), registry, false));
+        } catch (NopException e) {
+            e.addXplStack("buildActionField:"+func.getName());
+            throw e;
+        }
         return field;
     }
 
