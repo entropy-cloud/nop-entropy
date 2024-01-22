@@ -9,6 +9,7 @@ package io.nop.api.core.beans.graphql;
 
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLInput;
+import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 
@@ -35,6 +36,7 @@ public class GraphQLConnectionInput {
     private TreeBean filter;
     private List<OrderFieldBean> orderBy;
 
+    @PropMeta(propId = 1)
     public int getFirst() {
         return first;
     }
@@ -43,6 +45,7 @@ public class GraphQLConnectionInput {
         this.first = first;
     }
 
+    @PropMeta(propId = 2)
     public int getLast() {
         return last;
     }
@@ -51,6 +54,7 @@ public class GraphQLConnectionInput {
         this.last = last;
     }
 
+    @PropMeta(propId = 3)
     public String getAfter() {
         return after;
     }
@@ -59,6 +63,7 @@ public class GraphQLConnectionInput {
         this.after = after;
     }
 
+    @PropMeta(propId = 4)
     public String getBefore() {
         return before;
     }
@@ -67,6 +72,7 @@ public class GraphQLConnectionInput {
         this.before = before;
     }
 
+    @PropMeta(propId = 5)
     public long getOffset() {
         return offset;
     }
@@ -75,6 +81,7 @@ public class GraphQLConnectionInput {
         this.offset = offset;
     }
 
+    @PropMeta(propId = 6)
     public TreeBean getFilter() {
         return filter;
     }
@@ -83,6 +90,7 @@ public class GraphQLConnectionInput {
         this.filter = filter;
     }
 
+    @PropMeta(propId = 7)
     public List<OrderFieldBean> getOrderBy() {
         return orderBy;
     }

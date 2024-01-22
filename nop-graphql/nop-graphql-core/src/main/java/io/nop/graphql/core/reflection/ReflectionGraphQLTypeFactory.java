@@ -11,6 +11,7 @@ import io.nop.api.core.annotations.biz.BizObjName;
 import io.nop.api.core.annotations.biz.RequestBean;
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.graphql.GraphQLMap;
 import io.nop.api.core.annotations.graphql.GraphQLScalar;
 import io.nop.api.core.annotations.meta.PropMeta;
@@ -71,6 +72,9 @@ public class ReflectionGraphQLTypeFactory {
                 return;
             } else if (arg.isAnnotationPresent(Name.class)) {
                 GraphQLType type = buildGraphQLType(arg.getType(), null, registry, creatingTypes, true);
+                if (!arg.isAnnotationPresent(Optional.class)) {
+                    type = GraphQLTypeHelper.nonNullType(type);
+                }
                 GraphQLArgumentDefinition argDef = new GraphQLArgumentDefinition();
                 argDef.setName(arg.getName());
                 argDef.setType(type);
@@ -108,6 +112,10 @@ public class ReflectionGraphQLTypeFactory {
         beanModel.forEachSerializableProp(propModel -> {
             String propName = propModel.getName();
             GraphQLType graphqlType = buildGraphQLType(propModel.getType(), null, registry, creatingTypes, true);
+            PropMeta propMeta = propModel.getAnnotation(PropMeta.class);
+            if (propMeta != null && propMeta.mandatory()) {
+                graphqlType = GraphQLTypeHelper.nonNullType(graphqlType);
+            }
             argDefs.add(buildArgDef(propName, graphqlType));
 
         });

@@ -9,12 +9,14 @@ package io.nop.api.core.beans.graphql;
 
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
+import io.nop.api.core.annotations.meta.PropMeta;
 
 @DataBean
 @GraphQLObject
 public class GraphQLNode {
     private String id;
 
+    @PropMeta(propId = 1)
     public String getId() {
         return id;
     }

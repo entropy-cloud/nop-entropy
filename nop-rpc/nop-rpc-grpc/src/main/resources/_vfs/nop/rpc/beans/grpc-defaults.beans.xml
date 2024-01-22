@@ -8,15 +8,21 @@
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
     <bean id="nopGrpcAutoRegistration" class="io.nop.cluster.naming.AutoRegistration"
-          feature:on="nop.cluster.registration.enabled" parent="nopAutoRegistration">
-        <property name="serviceName" value="{@cfg:nop.application.name}-grpc"/>
-        <property name="port" value="@cfg:nop.server.grpc-port|9000"/>
+          feature:on="nop.cluster.registration.enabled">
+        <ioc:condition>
+            <on-class>io.nop.cluster.naming.AutoRegistration</on-class>
+        </ioc:condition>
+
+        <property name="addr" value="@cfg:nop.server.addr|"/>
+        <property name="port" value="@cfg:nop.server.port"/>
+        <property name="serviceName" value="@cfg:nop.application.name"/>
+        <property name="tags" value="@cfg:nop.cluster.registration.tags|"/>
         <property name="metadata">
             <map>
                 <entry key="version" value="@cfg:nop.application.version|1.0.0"/>
                 <entry key="group" value="@cfg:nop.application.group|default"/>
                 <entry key="zone" value="@cfg:nop.application.zone|"/>
-                <entry key="kind" value="grpc" />
+                <entry key="kind" value="grpc"/>
             </map>
         </property>
     </bean>

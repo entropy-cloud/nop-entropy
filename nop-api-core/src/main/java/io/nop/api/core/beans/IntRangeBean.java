@@ -12,6 +12,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.nop.api.core.ApiErrors;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
@@ -105,10 +106,12 @@ public class IntRangeBean implements Serializable, Comparable<IntRangeBean>, Ite
         return offset + limit - 1;
     }
 
+    @PropMeta(propId = 1)
     public int getOffset() {
         return offset;
     }
 
+    @PropMeta(propId = 2)
     public int getLimit() {
         return limit;
     }
@@ -122,7 +125,7 @@ public class IntRangeBean implements Serializable, Comparable<IntRangeBean>, Ite
     }
 
     public boolean equals(Object o) {
-        if(o == null)
+        if (o == null)
             return false;
 
         if (this == o)

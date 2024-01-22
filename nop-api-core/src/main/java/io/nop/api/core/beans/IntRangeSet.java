@@ -7,6 +7,7 @@
  */
 package io.nop.api.core.beans;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.annotations.core.StaticFactoryMethod;
 import io.nop.api.core.json.IJsonString;
 import io.nop.api.core.util.ApiStringHelper;
@@ -56,14 +57,17 @@ public class IntRangeSet implements IJsonString {
         return ApiStringHelper.join(ranges, "|");
     }
 
+    @JsonIgnore
     public int getFirstBegin() {
         return ranges.get(0).getBegin();
     }
 
+    @JsonIgnore
     public int getLastEnd() {
         return ranges.get(ranges.size() - 1).getEnd();
     }
 
+    @JsonIgnore
     public int getTotalSize() {
         int n = 0;
         for (IntRangeBean range : ranges) {

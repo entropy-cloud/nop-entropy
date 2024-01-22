@@ -9,6 +9,7 @@ package io.nop.api.core.beans;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.meta.PropMeta;
 
 import java.io.Serializable;
 
@@ -20,6 +21,7 @@ public class ServiceCallBean implements Serializable {
     private String serviceMethod;
     private Object request;
 
+    @PropMeta(propId = 1)
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getServiceName() {
         return serviceName;
@@ -29,6 +31,7 @@ public class ServiceCallBean implements Serializable {
         this.serviceName = serviceName;
     }
 
+    @PropMeta(propId = 2)
     public String getServiceMethod() {
         return serviceMethod;
     }
@@ -37,6 +40,7 @@ public class ServiceCallBean implements Serializable {
         this.serviceMethod = serviceMethod;
     }
 
+    @PropMeta(propId = 3)
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public Object getRequest() {
         return request;

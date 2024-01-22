@@ -1,17 +1,23 @@
 # NopGraphQL对外暴露为Grpc
 
-引入nop-rpc-grpc模块后，NopGraphQL服务将对外暴露为grpc服务。
+引入nop-rpc-grpc模块后，NopGraphQL服务将对外暴露grpc服务。
 
 1. 对象和服务都位于`graphql.api`包中
 2. 请求消息名一般为 `{bizObjName}__{bizMethod}_request`，响应消息名为GraphQL对象类型名
 3. 如果GraphQL服务函数返回标量类型，则响应消息名称为 `{bizObjName}__{bizMethod}_response`，其中通过value属性来返回标量字段
 4. 在调试模式下，访问/p/DevDoc__grpc可以返回grpc的proto定义
 
+> grpc的设计目前缺少一个namespace的概念，导致无法将多个proto文件中声明的所有message和service合并到一个统一的输出文件中
+
+## 结果选择
+因为采用了NopGraphQL引擎，所以它为grpc也自动引入了结果选择能力，可以通过grpc的metadata传递nop-selection，通过它可以实现结果选择。
+为了与结果选择的能力相匹配，所有响应消息中的字段都自动设置为optional。
+
 ## Grpc服务器
 
 目前是使用grpc-java来启动单独的grpc服务器，它的服务实现类从GraphQL服务转化而来。目前的实现中grpc服务的端口与rest的服务端口是分离的
 
-* 如果配置了`nop.cluster.registration.enabled`，则启动时会注册到服务注册中心，服务名为`{nop.application.name}-grpc`。
+* 如果配置了`nop.cluster.registration.enabled`且引入了nop-rpc-cluster依赖，则启动时会注册到服务注册中心，服务名为`{nop.application.name}-grpc`。
 * 通过nop.server.grpc-port来配置Grpc服务端口，缺省为9000
 * 在配置文件中通过nop.grpc.server.xxx来配置GrpcServerConfig中的各项属性。
 

@@ -10,6 +10,7 @@ package io.nop.api.core.beans.query;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
+import io.nop.api.core.annotations.meta.PropMeta;
 
 @DataBean
 @GraphQLObject
@@ -23,6 +24,7 @@ public class GroupFieldBean {
         return field;
     }
 
+    @PropMeta(propId = 1)
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getOwner() {
         return owner;
@@ -32,6 +34,7 @@ public class GroupFieldBean {
         this.owner = owner;
     }
 
+    @PropMeta(propId = 2)
     public String getName() {
         return name;
     }

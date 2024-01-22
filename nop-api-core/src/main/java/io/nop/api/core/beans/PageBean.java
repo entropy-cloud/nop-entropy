@@ -9,6 +9,7 @@ package io.nop.api.core.beans;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.meta.PropMeta;
 
 import java.io.Serializable;
 import java.util.List;
@@ -27,33 +28,7 @@ public final class PageBean<T> implements Serializable {
     private String prevCursor;
     private String nextCursor;
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public Boolean getHasPrev() {
-        return hasPrev;
-    }
-
-    public void setHasPrev(Boolean hasPrev) {
-        this.hasPrev = hasPrev;
-    }
-
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public Boolean getHasNext() {
-        return hasNext;
-    }
-
-    public void setHasNext(Boolean hasNext) {
-        this.hasNext = hasNext;
-    }
-
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public String getPrevCursor() {
-        return prevCursor;
-    }
-
-    public void setPrevCursor(String prevCursor) {
-        this.prevCursor = prevCursor;
-    }
-
+    @PropMeta(propId = 1)
     public long getOffset() {
         return offset;
     }
@@ -62,14 +37,7 @@ public final class PageBean<T> implements Serializable {
         this.offset = offset;
     }
 
-    public List<T> getItems() {
-        return items;
-    }
-
-    public void setItems(List<T> items) {
-        this.items = items;
-    }
-
+    @PropMeta(propId = 2)
     public int getLimit() {
         return limit;
     }
@@ -78,6 +46,7 @@ public final class PageBean<T> implements Serializable {
         this.limit = limit;
     }
 
+    @PropMeta(propId = 3)
     public long getTotal() {
         return total;
     }
@@ -86,6 +55,16 @@ public final class PageBean<T> implements Serializable {
         this.total = total;
     }
 
+    @PropMeta(propId = 4)
+    public List<T> getItems() {
+        return items;
+    }
+
+    public void setItems(List<T> items) {
+        this.items = items;
+    }
+
+    @PropMeta(propId = 5)
     public long getPageCount() {
         if (total <= 0)
             return 1;
@@ -95,6 +74,7 @@ public final class PageBean<T> implements Serializable {
         return (total + limit - 1) / limit;
     }
 
+    @PropMeta(propId = 6)
     public long getPage() {
         if (offset <= 0)
             return 1;
@@ -104,6 +84,7 @@ public final class PageBean<T> implements Serializable {
         return (offset + limit - 1) / limit + 1;
     }
 
+    @PropMeta(propId = 7)
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getNextCursor() {
         return nextCursor;
@@ -112,4 +93,35 @@ public final class PageBean<T> implements Serializable {
     public void setNextCursor(String nextCursor) {
         this.nextCursor = nextCursor;
     }
+
+    @PropMeta(propId = 8)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Boolean getHasPrev() {
+        return hasPrev;
+    }
+
+    public void setHasPrev(Boolean hasPrev) {
+        this.hasPrev = hasPrev;
+    }
+
+    @PropMeta(propId = 9)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Boolean getHasNext() {
+        return hasNext;
+    }
+
+    public void setHasNext(Boolean hasNext) {
+        this.hasNext = hasNext;
+    }
+
+    @PropMeta(propId = 10)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public String getPrevCursor() {
+        return prevCursor;
+    }
+
+    public void setPrevCursor(String prevCursor) {
+        this.prevCursor = prevCursor;
+    }
+
 }

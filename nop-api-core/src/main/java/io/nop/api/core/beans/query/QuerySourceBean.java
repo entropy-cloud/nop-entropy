@@ -10,6 +10,7 @@ package io.nop.api.core.beans.query;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
+import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.beans.TreeBean;
 
 import java.util.List;
@@ -24,6 +25,7 @@ public class QuerySourceBean {
     private TreeBean filter;
     private List<String> dimFields;
 
+    @PropMeta(propId = 1)
     public String getSourceName() {
         return sourceName;
     }
@@ -32,6 +34,7 @@ public class QuerySourceBean {
         this.sourceName = sourceName;
     }
 
+    @PropMeta(propId = 2)
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public TreeBean getFilter() {
         return filter;
@@ -41,6 +44,7 @@ public class QuerySourceBean {
         this.filter = filter;
     }
 
+    @PropMeta(propId = 3)
     public List<String> getDimFields() {
         return dimFields;
     }
@@ -49,6 +53,7 @@ public class QuerySourceBean {
         this.dimFields = dimFields;
     }
 
+    @PropMeta(propId = 4)
     public String getAlias() {
         return alias;
     }

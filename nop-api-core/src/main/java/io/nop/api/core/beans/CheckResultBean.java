@@ -8,6 +8,7 @@
 package io.nop.api.core.beans;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.meta.PropMeta;
 
 import java.io.Serializable;
 import java.util.List;
@@ -20,6 +21,7 @@ public class CheckResultBean implements Serializable {
 
     private List<ErrorBean> details;
 
+    @PropMeta(propId = 1)
     public boolean isSuccess() {
         return success;
     }
@@ -28,6 +30,7 @@ public class CheckResultBean implements Serializable {
         this.success = success;
     }
 
+    @PropMeta(propId = 2)
     public String getErrorCode() {
         return errorCode;
     }
@@ -36,6 +39,7 @@ public class CheckResultBean implements Serializable {
         this.errorCode = errorCode;
     }
 
+    @PropMeta(propId = 3)
     public String getDescription() {
         return description;
     }
@@ -44,6 +48,7 @@ public class CheckResultBean implements Serializable {
         this.description = description;
     }
 
+    @PropMeta(propId = 4)
     public List<ErrorBean> getDetails() {
         return details;
     }

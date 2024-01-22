@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
+import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.util.ICloneable;
 
 @DataBean
@@ -48,14 +49,6 @@ public class QueryFieldBean implements ICloneable {
         return field;
     }
 
-    public boolean isInternal() {
-        return internal;
-    }
-
-    public void setInternal(boolean internal) {
-        this.internal = internal;
-    }
-
     @JsonIgnore
     public String getLabel() {
         if (alias != null)
@@ -66,6 +59,26 @@ public class QueryFieldBean implements ICloneable {
         return name;
     }
 
+    @PropMeta(propId = 1)
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @PropMeta(propId = 2)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public String getAggFunc() {
+        return aggFunc;
+    }
+
+    public void setAggFunc(String aggFunc) {
+        this.aggFunc = aggFunc;
+    }
+
+    @PropMeta(propId = 3)
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getAlias() {
         return alias;
@@ -75,6 +88,7 @@ public class QueryFieldBean implements ICloneable {
         this.alias = alias;
     }
 
+    @PropMeta(propId = 4)
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getOwner() {
         return owner;
@@ -84,20 +98,13 @@ public class QueryFieldBean implements ICloneable {
         this.owner = owner;
     }
 
-    public String getName() {
-        return name;
+    @PropMeta(propId = 5)
+    public boolean isInternal() {
+        return internal;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setInternal(boolean internal) {
+        this.internal = internal;
     }
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    public String getAggFunc() {
-        return aggFunc;
-    }
-
-    public void setAggFunc(String aggFunc) {
-        this.aggFunc = aggFunc;
-    }
 }

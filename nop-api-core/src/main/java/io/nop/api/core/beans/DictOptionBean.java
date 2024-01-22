@@ -13,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
+import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.util.CloneHelper;
 import io.nop.api.core.util.FreezeHelper;
 import io.nop.api.core.util.IDeepCloneable;
@@ -64,36 +65,7 @@ public class DictOptionBean implements Serializable, IFreezable, IDeepCloneable 
             attrs = FreezeHelper.freezeMap(attrs, true);
     }
 
-    @JsonInclude(Include.NON_DEFAULT)
-    public boolean isDeprecated() {
-        return deprecated;
-    }
-
-    public void setDeprecated(boolean deprecated) {
-        checkNotFrozen(this);
-        this.deprecated = deprecated;
-    }
-
-    @JsonInclude(Include.NON_DEFAULT)
-    public boolean isInternal() {
-        return internal;
-    }
-
-    public void setInternal(boolean internal) {
-        checkNotFrozen(this);
-        this.internal = internal;
-    }
-
-    @JsonInclude(Include.NON_EMPTY)
-    public String getGroup() {
-        return group;
-    }
-
-    public void setGroup(String group) {
-        checkNotFrozen(this);
-        this.group = group;
-    }
-
+    @PropMeta(propId = 1)
     public String getLabel() {
         return label;
     }
@@ -103,6 +75,7 @@ public class DictOptionBean implements Serializable, IFreezable, IDeepCloneable 
         this.label = label;
     }
 
+    @PropMeta(propId = 2)
     public Object getValue() {
         return value;
     }
@@ -112,6 +85,7 @@ public class DictOptionBean implements Serializable, IFreezable, IDeepCloneable 
         this.value = value;
     }
 
+    @PropMeta(propId = 3)
     @JsonInclude(Include.NON_EMPTY)
     public String getDescription() {
         return description;
@@ -122,6 +96,7 @@ public class DictOptionBean implements Serializable, IFreezable, IDeepCloneable 
         this.description = description;
     }
 
+    @PropMeta(propId = 4)
     @JsonInclude(Include.NON_EMPTY)
     public String getCode() {
         return code;
@@ -132,6 +107,40 @@ public class DictOptionBean implements Serializable, IFreezable, IDeepCloneable 
         this.code = code;
     }
 
+    @PropMeta(propId = 5)
+    @JsonInclude(Include.NON_DEFAULT)
+    public boolean isDeprecated() {
+        return deprecated;
+    }
+
+    public void setDeprecated(boolean deprecated) {
+        checkNotFrozen(this);
+        this.deprecated = deprecated;
+    }
+
+    @PropMeta(propId = 6)
+    @JsonInclude(Include.NON_DEFAULT)
+    public boolean isInternal() {
+        return internal;
+    }
+
+    public void setInternal(boolean internal) {
+        checkNotFrozen(this);
+        this.internal = internal;
+    }
+
+    @PropMeta(propId = 7)
+    @JsonInclude(Include.NON_EMPTY)
+    public String getGroup() {
+        return group;
+    }
+
+    public void setGroup(String group) {
+        checkNotFrozen(this);
+        this.group = group;
+    }
+
+    @PropMeta(propId = 8)
     @JsonAnyGetter
     public Map<String, Object> getAttrs() {
         return attrs;

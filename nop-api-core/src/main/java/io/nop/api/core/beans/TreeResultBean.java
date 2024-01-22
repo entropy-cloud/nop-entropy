@@ -7,10 +7,9 @@
  */
 package io.nop.api.core.beans;
 
-import com.fasterxml.jackson.annotation.JsonAnyGetter;
-import com.fasterxml.jackson.annotation.JsonAnySetter;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
+import io.nop.api.core.annotations.meta.PropMeta;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,6 +25,7 @@ public class TreeResultBean {
 
     private List<TreeResultBean> children;
 
+    @PropMeta(propId = 1)
     public String getValue() {
         return value;
     }
@@ -34,6 +34,7 @@ public class TreeResultBean {
         this.value = value;
     }
 
+    @PropMeta(propId = 2)
     public String getLabel() {
         return label;
     }
@@ -42,6 +43,7 @@ public class TreeResultBean {
         this.label = label;
     }
 
+    @PropMeta(propId = 3)
     public List<TreeResultBean> getChildren() {
         return children;
     }
@@ -50,7 +52,7 @@ public class TreeResultBean {
         this.children = children;
     }
 
-    @JsonAnyGetter
+    @PropMeta(propId = 4)
     public Map<String, Object> getAttrs() {
         return attrs;
     }
@@ -61,7 +63,6 @@ public class TreeResultBean {
         return attrs.get(name);
     }
 
-    @JsonAnySetter
     public void setAttr(String name, Object value) {
         if (value == null) {
             if (attrs != null)
