@@ -57,7 +57,7 @@
 如果希望和Spring共用DataSource，而不是在Nop平台中使用自己管理的nopDataSource，则可以配置
 
 ````
-nop.orm.use-parent-data-source=true
+nop.dao.use-parent-data-source=true
 ````
 
 这个配置会禁用Nop平台内部的nopDataSource定义，然后将nopDataSource对应于别名dataSource。因此要求Spring容器中提供一个名称为dataSource的数据源定义。
@@ -67,7 +67,7 @@ nop.orm.use-parent-data-source=true
 需要注意的时，如果使用Spring事务，则NopORM的异步执行逻辑会不正确，只能采用同步执行。
 
 ````
-nop.orm.use-parent-transaction-factory=true
+nop.dao.use-parent-transaction-factory=true
 ````
 
 ## 使用NopGraphQL服务
