@@ -2,7 +2,7 @@
 
 引入nop-rpc-grpc模块后，NopGraphQL服务将对外暴露grpc服务。
 
-1. 对象和服务都位于`graphql.api`包中
+1. 对象和服务都位于`graphql.api`包中，可以通过nop.grpc.graphql-api-package来配置。
 2. 请求消息名一般为 `{bizObjName}__{bizMethod}_request`，响应消息名为GraphQL对象类型名
 3. 如果GraphQL服务函数返回标量类型，则响应消息名称为 `{bizObjName}__{bizMethod}_response`，其中通过value属性来返回标量字段
 4. 在调试模式下，访问/p/DevDoc__grpc可以返回grpc的proto定义
@@ -10,8 +10,21 @@
 > grpc的设计目前缺少一个namespace的概念，导致无法将多个proto文件中声明的所有message和service合并到一个统一的输出文件中
 
 ## 结果选择
-因为采用了NopGraphQL引擎，所以它为grpc也自动引入了结果选择能力，可以通过grpc的metadata传递nop-selection，通过它可以实现结果选择。
-为了与结果选择的能力相匹配，所有响应消息中的字段都自动设置为optional。
+因为采用了NopGraphQL引擎，所以它为grpc也自动引入了结果字段选择能力，可以通过grpc的metadata传递nop-selection，通过它可以实现结果选择。
+为了与结果选择的能力相匹配，所有响应消息中的字段都自动设置为optional。例如：
+
+REST请求可以通过@selection参数来实现结果字段选择 /r/NopAuthUser_findList?@selection=userName,userStatus。
+在使用grpc时，可以使用Metadata传递nop-selection=userName,userStatus这个header，实现同样的选择功能，返回的数据中就只包含userName和userStatus两个字段。
+
+## propId配置
+grpc所使用的protobuf编码协议要求每个字段都具有确定的唯一编号propId。Nop平台在代码生成时为每个实体中的数据库字段生成了propId，根据api模型生成的
+Javabean中每个字段也生成了对应的propId。但是其他情况下需要自己手工增加对应的propId
+
+* 自己在meta中自己增加的属性需要自己手工增加propId配置
+* 在javabean中为get方法增加`@PropMeta(propId=xx)`配置
+
+如果全局开启了nop.grpc.auto-init-prop-id=true，则会自动为没有propId的字段按照name字符串顺序增加propId，但是这种情况下如果后期增加字段，
+则可能导致与此前规定的顺序不同。
 
 ## Grpc服务器
 
