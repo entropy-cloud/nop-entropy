@@ -48,6 +48,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
+import static io.nop.auth.core.AuthCoreConfigs.CFG_AUTH_USE_USER_ID_FOR_AUDIT_FIELDS;
 import static io.nop.auth.core.AuthCoreErrors.ERR_AUTH_NOT_AUTHORIZED;
 
 /**
@@ -428,9 +429,12 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         ctx.setUserId(userContext.getUserId());
         ctx.setUserName(userContext.getUserName());
         ctx.setTenantId(userContext.getTenantId());
-        ctx.setUserRefNo(userContext.getUserName());
         ctx.setLocale(locale);
         ctx.setTimezone(userContext.getTimeZone());
+
+        if (CFG_AUTH_USE_USER_ID_FOR_AUDIT_FIELDS.get()) {
+            ctx.setUserRefNo(userContext.getUserId());
+        }
 
         IUserContext.set(userContext);
         return ctx;
