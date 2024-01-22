@@ -75,6 +75,7 @@ public enum GraphQLScalarType {
             typeMap.put(entry.getKey().getJavaClass(), entry.getValue());
             typeMap.put(entry.getKey().getMandatoryJavaClass(), entry.getValue());
         }
+        typeMap.put(void.class, GraphQLScalarType.Void);
     }
 
     public static GraphQLScalarType fromStdDataType(StdDataType dataType) {
