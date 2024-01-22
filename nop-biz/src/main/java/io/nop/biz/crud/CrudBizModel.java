@@ -16,6 +16,7 @@ import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.graphql.GraphQLReturn;
 import io.nop.api.core.auth.IDataAuthChecker;
 import io.nop.api.core.beans.DictBean;
@@ -202,7 +203,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @BizQuery
     @BizArgsNormalizer(BizConstants.BEAN_nopQueryBeanArgsNormalizer)
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
-    public PageBean<T> findPage(@Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
+    public PageBean<T> findPage(@Optional @Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
                                 FieldSelectionBean selection, IServiceContext context) {
         if (query != null)
             query.setDisableLogicalDelete(false);
@@ -318,7 +319,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @BizQuery
     @BizArgsNormalizer(BizConstants.BEAN_nopQueryBeanArgsNormalizer)
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
-    public T findFirst(@Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
+    public T findFirst(@Optional @Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
                        @Name("selection") FieldSelectionBean selection, IServiceContext context) {
         if (query != null)
             query.setDisableLogicalDelete(false);
@@ -655,7 +656,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @BizQuery
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
     public T get(@Name("id") @Description("@i18n:biz.id|对象的主键标识") String id,
-                 @Name("ignoreUnknown") @Description("@i18n:biz.ignoreUnknown|未找到对象时是返回null还是抛出异常") boolean ignoreUnknown,
+                 @Optional @Name("ignoreUnknown") @Description("@i18n:biz.ignoreUnknown|未找到对象时是返回null还是抛出异常") boolean ignoreUnknown,
                  IServiceContext context) {
         checkMandatoryParam("get", "id", id);
 
@@ -817,7 +818,6 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
     @Description("@i18n:biz.batchUpdate|批量修改")
     @BizMutation
-    @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
     public void batchUpdate(@Name("ids") Set<String> ids, @Name("data") Map<String, Object> data,
                             IServiceContext context) {
         if (CollectionHelper.isEmpty(ids) || CollectionHelper.isEmptyMap(data))
@@ -852,7 +852,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @Description("@i18n:biz.batchModify|批量增删改")
     @BizMutation
     public void batchModify(@Name("data") List<Map<String, Object>> data,
-                            @Name("delIds") @Description("@i18n:biz.delIds|待删除的实体主键列表") Set<String> delIds, IServiceContext context) {
+                            @Optional @Name("delIds") @Description("@i18n:biz.delIds|待删除的实体主键列表") Set<String> delIds, IServiceContext context) {
         if (data != null) {
             List<Object> idList = new ArrayList<>();
             for (Map<String, Object> item : data) {
@@ -901,7 +901,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @BizQuery
     @BizArgsNormalizer(BizConstants.BEAN_nopQueryBeanArgsNormalizer)
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
-    public PageBean<T> deleted_findPage(@Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
+    public PageBean<T> deleted_findPage(@Optional @Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
                                         FieldSelectionBean selection, IServiceContext context) {
         if (query == null) {
             query = new QueryBean();
@@ -968,7 +968,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @BizQuery
     @BizArgsNormalizer(BizConstants.BEAN_nopQueryBeanArgsNormalizer)
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
-    public List<T> findList(@Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context) {
+    public List<T> findList(@Optional @Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context) {
         if (query != null)
             query.setDisableLogicalDelete(false);
         return doFindList(query, this::defaultPrepareQuery, selection, context);

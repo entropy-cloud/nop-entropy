@@ -5,6 +5,8 @@ import graphql.api.Hello;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.graphql.core.ast.GraphQLObjectDefinition;
+import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.rpc.grpc.server.GrpcServer;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -16,6 +18,9 @@ public class TestGrpcServer extends JunitBaseTestCase {
 
     @Inject
     GrpcServer grpcServer;
+
+    @Inject
+    IGraphQLEngine graphQLEngine;
 
     @Test
     public void testService() {
@@ -35,5 +40,14 @@ public class TestGrpcServer extends JunitBaseTestCase {
         assertEquals("John-result", response.getMessage());
         // 关闭通道
         channel.shutdown();
+    }
+
+    @Test
+    public void testInitPropId() {
+        GraphQLObjectDefinition objDef = (GraphQLObjectDefinition) graphQLEngine.getTypeDefinition("DictBean");
+        objDef.initPropId();
+
+        assertEquals(1, objDef.getField("name").getPropId());
+        assertEquals(10, objDef.getField("static").getPropId());
     }
 }

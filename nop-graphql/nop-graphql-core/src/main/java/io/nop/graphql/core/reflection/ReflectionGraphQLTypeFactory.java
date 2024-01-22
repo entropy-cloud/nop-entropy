@@ -19,6 +19,7 @@ import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.graphql.GraphQLConnection;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.json.IJsonString;
 import io.nop.core.reflect.IFunctionArgument;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.ReflectionManager;
@@ -310,6 +311,7 @@ public class ReflectionGraphQLTypeFactory {
         beanModel.forEachSerializableProp(propModel -> {
             GraphQLInputFieldDefinition field = new GraphQLInputFieldDefinition();
             field.setName(propModel.getName());
+            field.setBeanPropMeta(propModel.getAnnotation(PropMeta.class));
 
             IGenericType type = propModel.getType();
             GraphQLType gqlType = buildGraphQLType(type, propModel.getBizObjName(), registry, creatingTypes, true);

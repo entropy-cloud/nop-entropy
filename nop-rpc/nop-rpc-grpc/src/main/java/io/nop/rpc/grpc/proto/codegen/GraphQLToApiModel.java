@@ -15,7 +15,6 @@ import io.nop.graphql.core.ast.GraphQLTypeDefinition;
 import io.nop.graphql.core.ast.IGraphQLFieldDefinition;
 import io.nop.graphql.core.ast.IGraphQLObjectDefinition;
 import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
-import io.nop.rpc.grpc.GrpcConstants;
 import io.nop.rpc.grpc.proto.IFieldMarshaller;
 import io.nop.rpc.grpc.proto.ProtobufMarshallerHelper;
 import io.nop.rpc.grpc.proto.marshaller.EmptyMarshaller;
@@ -24,16 +23,23 @@ import io.nop.rpc.model.ApiMessageModel;
 import io.nop.rpc.model.ApiMethodModel;
 import io.nop.rpc.model.ApiModel;
 import io.nop.rpc.model.ApiServiceModel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.stream.Collectors;
 
+import static io.nop.rpc.grpc.GrpcConfigs.CFG_GRAPHQL_API_PACKAGE;
+import static io.nop.rpc.grpc.GrpcConfigs.CFG_GRPC_AUTO_INIT_PROP_ID;
 import static io.nop.rpc.model.RpcModelConstants.PROTO_TYPE_EMPTY;
 
 public class GraphQLToApiModel {
+    static final Logger LOG = LoggerFactory.getLogger(GraphQLToApiModel.class);
+
     public ApiModel transformToApi(IGraphQLSchemaLoader schemaLoader) {
         ApiModel model = new ApiModel();
-        model.setApiPackageName(GrpcConstants.GRPAHQL_API_PACKAGE_NAME);
+        model.setApiPackageName(CFG_GRAPHQL_API_PACKAGE.get());
 
         for (GraphQLTypeDefinition typeDef : schemaLoader.getTypeDefinitions()) {
             addType(model, typeDef);
@@ -55,7 +61,8 @@ public class GraphQLToApiModel {
     }
 
     private ApiMessageModel toMessageModel(IGraphQLObjectDefinition objDef) {
-        objDef.initPropId();
+        if (CFG_GRPC_AUTO_INIT_PROP_ID.get())
+            objDef.initPropId();
 
         ApiMessageModel messageModel = new ApiMessageModel();
         messageModel.setName(objDef.getName());
@@ -63,8 +70,14 @@ public class GraphQLToApiModel {
         messageModel.setDisplayName(objDef.getDisplayString());
 
         for (IGraphQLFieldDefinition field : objDef.getFields()) {
+            if (field.getPropId() <= 0) {
+                LOG.debug("nop.ignore-field-no-propId:objType={},prop={}", objDef.getName(), field.getName());
+                continue;
+            }
             messageModel.addField(toFieldModel(field, objDef instanceof GraphQLInputDefinition));
         }
+
+        messageModel.getFields().sort(Comparator.comparing(ApiMessageFieldModel::getPropId));
         return messageModel;
     }
 

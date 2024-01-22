@@ -30,6 +30,7 @@ import io.nop.commons.util.objects.Pair;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -89,6 +90,13 @@ public class CollectionHelper {
         if (capacity <= Integer.SIZE || expectedSize * 2 >= capacity)
             return new IntArrayMap<>(capacity);
         return new IntHashMap<>((int) (expectedSize / 0.8));
+    }
+
+    public static int nextFreeIndex(BitSet bs, int fromIndex) {
+        while (bs.get(fromIndex)) {
+            fromIndex++;
+        }
+        return fromIndex;
     }
 
     public static boolean isEmpty(Collection<?> c) {

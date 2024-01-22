@@ -554,6 +554,37 @@
     "fields": [],
     "methods": [
       {
+        "name": "getPermissions",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRoles",
+        "parameterTypes": []
+      },
+      {
+        "name": "setPermissions",
+        "parameterTypes": [
+          "io.nop.api.core.util.MultiCsvSet"
+        ]
+      },
+      {
+        "name": "setRoles",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.auth.ActionAuthMeta",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "getEvalScope",
         "parameterTypes": []
       },
@@ -4079,6 +4110,65 @@
       }
     ],
     "name": "io.nop.api.core.util.IWithIdentifier",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "EMPTY"
+      }
+    ],
+    "methods": [
+      {
+        "name": "allContainsTag",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "anyContainsTag",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "fromText",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getFirst",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSets",
+        "parameterTypes": []
+      },
+      {
+        "name": "isEmpty",
+        "parameterTypes": []
+      },
+      {
+        "name": "iterator",
+        "parameterTypes": []
+      },
+      {
+        "name": "size",
+        "parameterTypes": []
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.api.core.util.MultiCsvSet",
     "unsafeAllocated": false
   },
   {
@@ -13942,6 +14032,12 @@
         "parameterTypes": [
           "io.nop.auth.service.sitemap.SiteMapProviderImpl"
         ]
+      },
+      {
+        "name": "setSkipCheckForAdmin",
+        "parameterTypes": [
+          "boolean"
+        ]
       }
     ],
     "name": "io.nop.auth.service.auth.DefaultActionAuthChecker",
@@ -17633,6 +17729,21 @@
     "fields": [],
     "methods": [
       {
+        "name": "key",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.commons.collections.IKeyedElement",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "add",
         "parameterTypes": [
           "int",
@@ -19067,6 +19178,29 @@
       }
     ],
     "name": "io.nop.core.lang.ast.IASTNode",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "NULL_ACTION"
+      }
+    ],
+    "methods": [
+      {
+        "name": "invoke",
+        "parameterTypes": [
+          "io.nop.core.context.IEvalContext"
+        ]
+      }
+    ],
+    "name": "io.nop.core.lang.eval.IEvalAction",
     "unsafeAllocated": false
   },
   {
@@ -25448,6 +25582,235 @@
       }
     ],
     "name": "io.nop.core.type.IGenericType",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "equals",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "getGenericType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getInterfaces",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRawClass",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSuperType",
+        "parameterTypes": []
+      },
+      {
+        "name": "hashCode",
+        "parameterTypes": []
+      },
+      {
+        "name": "resolve",
+        "parameterTypes": [
+          "io.nop.core.type.IRawTypeResolver"
+        ]
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.core.type.impl.AbstractGenericType",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getComponentType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFuncArgTypes",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFuncReturnType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getGenericType",
+        "parameterTypes": [
+          "java.lang.Class"
+        ]
+      },
+      {
+        "name": "getGenericType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getInterfaces",
+        "parameterTypes": []
+      },
+      {
+        "name": "getKind",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMapKeyType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMapValueType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRawClass",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRawType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRawTypeName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStdDataType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSuperType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTypeName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTypeParameters",
+        "parameterTypes": []
+      },
+      {
+        "name": "isArray",
+        "parameterTypes": []
+      },
+      {
+        "name": "isCollectionLike",
+        "parameterTypes": []
+      },
+      {
+        "name": "isFunctionalClass",
+        "parameterTypes": []
+      },
+      {
+        "name": "isListLike",
+        "parameterTypes": []
+      },
+      {
+        "name": "isMapLike",
+        "parameterTypes": []
+      },
+      {
+        "name": "isResolved",
+        "parameterTypes": []
+      },
+      {
+        "name": "isSetLike",
+        "parameterTypes": []
+      },
+      {
+        "name": "refine",
+        "parameterTypes": [
+          "io.nop.core.type.ITypeScope"
+        ]
+      },
+      {
+        "name": "resolve",
+        "parameterTypes": [
+          "io.nop.core.type.IRawTypeResolver"
+        ]
+      }
+    ],
+    "name": "io.nop.core.type.impl.GenericParameterizedType",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getClassName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getGenericType",
+        "parameterTypes": [
+          "java.lang.Class"
+        ]
+      },
+      {
+        "name": "getGenericType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getKind",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRawClass",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRawTypeName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getResolvedType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStdDataType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTypeName",
+        "parameterTypes": []
+      },
+      {
+        "name": "isResolved",
+        "parameterTypes": []
+      },
+      {
+        "name": "resolve",
+        "parameterTypes": [
+          "io.nop.core.type.IRawTypeResolver"
+        ]
+      }
+    ],
+    "name": "io.nop.core.type.impl.GenericRawTypeReferenceImpl",
     "unsafeAllocated": false
   },
   {
@@ -41626,6 +41989,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isEnableIfDebug",
+        "parameterTypes": []
+      },
+      {
         "name": "isEnableIfMissing",
         "parameterTypes": []
       },
@@ -41637,6 +42004,12 @@
         "name": "outputJson",
         "parameterTypes": [
           "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setEnableIfDebug",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -52565,6 +52938,27 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "graphQLEngine"
+      }
+    ],
+    "methods": [
+      {
+        "name": "apiModel",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.rpc.grpc.service.DevModelGrpcBizModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [
       {
@@ -52579,6 +52973,1235 @@
       }
     ],
     "name": "io.nop.rpc.grpc.status.GrpcStatusMapping",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.rpc.model.ApiDomainModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.rpc.model.ApiImportModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
+        "name": "setType",
+        "parameterTypes": [
+          "io.nop.core.type.IGenericType"
+        ]
+      }
+    ],
+    "name": "io.nop.rpc.model.ApiMessageFieldModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.rpc.model.ApiMessageModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.rpc.model.ApiMethodModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.rpc.model.ApiModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.rpc.model.ApiOptionModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.rpc.model.ApiServiceModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.rpc.model.ApiDomainModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPrecision",
+        "parameterTypes": []
+      },
+      {
+        "name": "getScale",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStdDataType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStdDomain",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStdSqlType",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setPrecision",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setScale",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setStdDataType",
+        "parameterTypes": [
+          "io.nop.commons.type.StdDataType"
+        ]
+      },
+      {
+        "name": "setStdDomain",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setStdSqlType",
+        "parameterTypes": [
+          "io.nop.commons.type.StdSqlType"
+        ]
+      }
+    ],
+    "name": "io.nop.rpc.model._gen._ApiDomainModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.rpc.model.ApiImportModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getAs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFrom",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPublic",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setAs",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFrom",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setPublic",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      }
+    ],
+    "name": "io.nop.rpc.model._gen._ApiImportModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addOption",
+        "parameterTypes": [
+          "io.nop.rpc.model.ApiOptionModel"
+        ]
+      },
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.rpc.model.ApiMessageFieldModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getBinaryScalarType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOption",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getOptions",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPropId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSchema",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTagSet",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasOption",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasOptions",
+        "parameterTypes": []
+      },
+      {
+        "name": "isMandatory",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_options",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setBinaryScalarType",
+        "parameterTypes": [
+          "io.nop.commons.type.BinaryScalarType"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setMandatory",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setOptions",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setPropId",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setSchema",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.ISchema"
+        ]
+      },
+      {
+        "name": "setTagSet",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      }
+    ],
+    "name": "io.nop.rpc.model._gen._ApiMessageFieldModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addField",
+        "parameterTypes": [
+          "io.nop.rpc.model.ApiMessageFieldModel"
+        ]
+      },
+      {
+        "name": "addOption",
+        "parameterTypes": [
+          "io.nop.rpc.model.ApiOptionModel"
+        ]
+      },
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.rpc.model.ApiMessageModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getField",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getFields",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOption",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getOptions",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTagSet",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasField",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasFields",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasOption",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasOptions",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_fields",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_options",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFields",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setOptions",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setTagSet",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      }
+    ],
+    "name": "io.nop.rpc.model._gen._ApiMessageModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addOption",
+        "parameterTypes": [
+          "io.nop.rpc.model.ApiOptionModel"
+        ]
+      },
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.rpc.model.ApiMethodModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOption",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getOptions",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRequestMessage",
+        "parameterTypes": []
+      },
+      {
+        "name": "getResponseMessage",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTagSet",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasOption",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasOptions",
+        "parameterTypes": []
+      },
+      {
+        "name": "isStreamRequest",
+        "parameterTypes": []
+      },
+      {
+        "name": "isStreamResponse",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_options",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setOptions",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setRequestMessage",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setResponseMessage",
+        "parameterTypes": [
+          "io.nop.core.type.IGenericType"
+        ]
+      },
+      {
+        "name": "setStreamRequest",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setStreamResponse",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setTagSet",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      }
+    ],
+    "name": "io.nop.rpc.model._gen._ApiMethodModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addDict",
+        "parameterTypes": [
+          "io.nop.api.core.beans.DictBean"
+        ]
+      },
+      {
+        "name": "addDomain",
+        "parameterTypes": [
+          "io.nop.rpc.model.ApiDomainModel"
+        ]
+      },
+      {
+        "name": "addImport",
+        "parameterTypes": [
+          "io.nop.rpc.model.ApiImportModel"
+        ]
+      },
+      {
+        "name": "addMessage",
+        "parameterTypes": [
+          "io.nop.rpc.model.ApiMessageModel"
+        ]
+      },
+      {
+        "name": "addOption",
+        "parameterTypes": [
+          "io.nop.rpc.model.ApiOptionModel"
+        ]
+      },
+      {
+        "name": "addService",
+        "parameterTypes": [
+          "io.nop.rpc.model.ApiServiceModel"
+        ]
+      },
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.rpc.model.ApiModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getApiPackageName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDict",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getDicts",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDomain",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getDomains",
+        "parameterTypes": []
+      },
+      {
+        "name": "getImport",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getImports",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMessage",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getMessages",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOption",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getOptions",
+        "parameterTypes": []
+      },
+      {
+        "name": "getService",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getServices",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasDict",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasDicts",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasDomain",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasDomains",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasImport",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasImports",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasMessage",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasMessages",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasOption",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasOptions",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasService",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasServices",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_dicts",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_domains",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_imports",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_messages",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_options",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_services",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setApiPackageName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDicts",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setDomains",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setImports",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setMessages",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setOptions",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setServices",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      }
+    ],
+    "name": "io.nop.rpc.model._gen._ApiModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.rpc.model.ApiOptionModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setValue",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.rpc.model._gen._ApiOptionModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addMethod",
+        "parameterTypes": [
+          "io.nop.rpc.model.ApiMethodModel"
+        ]
+      },
+      {
+        "name": "addOption",
+        "parameterTypes": [
+          "io.nop.rpc.model.ApiOptionModel"
+        ]
+      },
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.rpc.model.ApiServiceModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getClassName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMethod",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getMethods",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOption",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getOptions",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTagSet",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasMethod",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasMethods",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasOption",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasOptions",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_methods",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_options",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setClassName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setMethods",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setOptions",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setTagSet",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      }
+    ],
+    "name": "io.nop.rpc.model._gen._ApiServiceModel",
     "unsafeAllocated": false
   },
   {
@@ -68349,6 +69972,187 @@
     "fields": [],
     "methods": [
       {
+        "name": "getAllowCpExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getAllowFilterOp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getArgs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getAuth",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getAuths",
+        "parameterTypes": []
+      },
+      {
+        "name": "getAutoExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getChildName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getChildXmlName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDefaultOverride",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDefaultValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDeleteAuth",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDepends",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getGetter",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMapToProp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPropId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getReadAuth",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSchema",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSetter",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTagSet",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTransformIn",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTransformOut",
+        "parameterTypes": []
+      },
+      {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getWriteAuth",
+        "parameterTypes": []
+      },
+      {
+        "name": "getXmlName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getXmlPos",
+        "parameterTypes": []
+      },
+      {
+        "name": "isDeprecated",
+        "parameterTypes": []
+      },
+      {
+        "name": "isInsertable",
+        "parameterTypes": []
+      },
+      {
+        "name": "isInternal",
+        "parameterTypes": []
+      },
+      {
+        "name": "isLazy",
+        "parameterTypes": []
+      },
+      {
+        "name": "isMandatory",
+        "parameterTypes": []
+      },
+      {
+        "name": "isPublished",
+        "parameterTypes": []
+      },
+      {
+        "name": "isQueryable",
+        "parameterTypes": []
+      },
+      {
+        "name": "isReadable",
+        "parameterTypes": []
+      },
+      {
+        "name": "isSortable",
+        "parameterTypes": []
+      },
+      {
+        "name": "isUpdatable",
+        "parameterTypes": []
+      },
+      {
+        "name": "isVirtual",
+        "parameterTypes": []
+      },
+      {
+        "name": "setType",
+        "parameterTypes": [
+          "io.nop.core.type.IGenericType"
+        ]
+      },
+      {
+        "name": "toNode",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      }
+    ],
+    "name": "io.nop.xlang.xmeta.IObjPropMeta",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "getClassName",
         "parameterTypes": []
       },
@@ -68837,6 +70641,31 @@
       }
     ],
     "name": "io.nop.xlang.xmeta.impl.ObjMetaToXDef",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.xmeta.impl.ObjPropArgModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "toActionAuthMeta",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.xlang.xmeta.impl.ObjPropAuthModel",
     "unsafeAllocated": false
   },
   {
@@ -69782,6 +71611,160 @@
       }
     ],
     "name": "io.nop.xlang.xmeta.impl._gen._ObjMetaImpl",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.impl.ObjPropArgModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSchema",
+        "parameterTypes": []
+      },
+      {
+        "name": "isMandatory",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setMandatory",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSchema",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.ISchema"
+        ]
+      }
+    ],
+    "name": "io.nop.xlang.xmeta.impl._gen._ObjPropArgModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.impl.ObjPropAuthModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getFor",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPermissions",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRoles",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setFor",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setPermissions",
+        "parameterTypes": [
+          "io.nop.api.core.util.MultiCsvSet"
+        ]
+      },
+      {
+        "name": "setRoles",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      }
+    ],
+    "name": "io.nop.xlang.xmeta.impl._gen._ObjPropAuthModel",
     "unsafeAllocated": false
   },
   {
@@ -75252,6 +77235,16 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "java.lang.Class",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "compareTo",
@@ -77647,6 +79640,16 @@
     "fields": [],
     "methods": [],
     "name": "java.util.TreeMap$Values",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "void",
     "unsafeAllocated": false
   }
 ]

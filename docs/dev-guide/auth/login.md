@@ -66,3 +66,9 @@ authFilter中实际执行登录验证操作时使用的是ILoginService接口，
 
 1. nop.auth.login.use-dao-user-context-cache
 设置为true后会启用DaoUserContextCache，将IUserContext中的信息保存到NopAuthSession表中。
+
+2. nop.auth.access-token-expire-seconds
+访问令牌(access token)超时时间，缺省为30*60，即30分钟
+
+3. nop.auth.refresh-token-expire-seconds
+刷新令牌(refresh token)的超时时间，缺省为300*60，即5个小时

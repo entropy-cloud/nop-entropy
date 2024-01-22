@@ -18,6 +18,13 @@ public abstract class _BeanIfPropertyCondition extends io.nop.core.resource.comp
     
     /**
      *  
+     * xml name: enableIfDebug
+     * 
+     */
+    private boolean _enableIfDebug  = false;
+    
+    /**
+     *  
      * xml name: enableIfMissing
      * 当配置变量的值为空时，是否认为条件为true
      */
@@ -36,6 +43,25 @@ public abstract class _BeanIfPropertyCondition extends io.nop.core.resource.comp
      * 如果不指定，则缺省为true
      */
     private java.lang.String _value ;
+    
+    /**
+     * 
+     * xml name: enableIfDebug
+     *  
+     */
+    
+    public boolean isEnableIfDebug(){
+      return _enableIfDebug;
+    }
+
+    
+    public void setEnableIfDebug(boolean value){
+        checkAllowChange();
+        
+        this._enableIfDebug = value;
+           
+    }
+
     
     /**
      * 
@@ -109,6 +135,7 @@ public abstract class _BeanIfPropertyCondition extends io.nop.core.resource.comp
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.put("enableIfDebug",this.isEnableIfDebug());
         out.put("enableIfMissing",this.isEnableIfMissing());
         out.put("name",this.getName());
         out.put("value",this.getValue());
@@ -123,6 +150,7 @@ public abstract class _BeanIfPropertyCondition extends io.nop.core.resource.comp
     protected void copyTo(BeanIfPropertyCondition instance){
         super.copyTo(instance);
         
+        instance.setEnableIfDebug(this.isEnableIfDebug());
         instance.setEnableIfMissing(this.isEnableIfMissing());
         instance.setName(this.getName());
         instance.setValue(this.getValue());

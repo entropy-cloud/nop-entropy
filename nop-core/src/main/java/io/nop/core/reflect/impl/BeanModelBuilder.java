@@ -45,10 +45,11 @@ import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.accessor.ArrayLengthGetter;
 import io.nop.core.reflect.accessor.CollectionSizeGetter;
 import io.nop.core.reflect.accessor.FunctionSpecializedPropertyGetter;
-import io.nop.core.reflect.accessor.FunctionSpecializedPropertySetter;
 import io.nop.core.reflect.accessor.JsonAnyPropertyGetter;
 import io.nop.core.reflect.accessor.JsonAnyPropertySetter;
 import io.nop.core.reflect.accessor.MapPropertyAccessor;
+import io.nop.core.reflect.accessor.MethodPropertyGetter;
+import io.nop.core.reflect.accessor.MethodPropertySetter;
 import io.nop.core.reflect.accessor.MissingHookExtPropertyGetter;
 import io.nop.core.reflect.accessor.MissingHookExtPropertyMaker;
 import io.nop.core.reflect.accessor.MissingHookExtPropertySetter;
@@ -302,7 +303,7 @@ public class BeanModelBuilder {
         }
 
         if (candidate.setMethod != null) {
-            prop.setSetter(new FunctionSpecializedPropertySetter(candidate.setMethod));
+            prop.setSetter(new MethodPropertySetter(candidate.setMethod));
             prop.setType(candidate.setMethod.getArgs().get(0).getType());
         }
 
@@ -313,7 +314,7 @@ public class BeanModelBuilder {
 
         // 属性类型以get方法为准
         if (candidate.getMethod != null) {
-            prop.setGetter(new FunctionSpecializedPropertyGetter(candidate.getMethod.getInvoker()));
+            prop.setGetter(new MethodPropertyGetter(candidate.getMethod));
             prop.setType(candidate.getMethod.getReturnType());
             prop.setLazyLoad(candidate.getMethod.isAnnotationPresent(LazyLoad.class));
         }

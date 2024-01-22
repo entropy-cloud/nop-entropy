@@ -7,8 +7,6 @@
  */
 package io.nop.api.core.beans;
 
-import com.fasterxml.jackson.annotation.JsonAnyGetter;
-import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -92,17 +90,6 @@ public class DictBean implements Serializable, IFreezable, IDeepCloneable,
         this.location = location;
     }
 
-    @JsonAnyGetter
-    public Map<String, Object> getAttrs() {
-        return attrs;
-    }
-
-    public void setAttrs(Map<String, Object> attrs) {
-        checkNotFrozen(this);
-        this.attrs = attrs;
-    }
-
-    @JsonAnySetter
     public void setAttr(String name, Object value) {
         checkNotFrozen(this);
         if (attrs == null)
@@ -328,5 +315,15 @@ public class DictBean implements Serializable, IFreezable, IDeepCloneable,
     public void setStatic(boolean aStatic) {
         checkNotFrozen(this);
         isStatic = aStatic;
+    }
+
+    @PropMeta(propId = 11)
+    public Map<String, Object> getAttrs() {
+        return attrs;
+    }
+
+    public void setAttrs(Map<String, Object> attrs) {
+        checkNotFrozen(this);
+        this.attrs = attrs;
     }
 }

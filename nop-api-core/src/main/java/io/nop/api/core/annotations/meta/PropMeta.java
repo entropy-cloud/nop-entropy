@@ -107,6 +107,8 @@ public @interface PropMeta {
      */
     String validate() default "";
 
+    String stdDomain() default "";
+
     /**
      * 编辑页面上的提示信息
      */

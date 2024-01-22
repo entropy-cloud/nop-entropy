@@ -57,6 +57,15 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition implements I
 
     private int propId;
 
+    @Override
+    public GraphQLFieldDefinition deepClone(){
+        GraphQLFieldDefinition field = super.deepClone();
+        field.setPropMeta(propMeta);
+        field.setBeanPropMeta(beanPropMeta);
+        field.setPropId(propId);
+        return field;
+    }
+
     public int getPropId() {
         return propId;
     }

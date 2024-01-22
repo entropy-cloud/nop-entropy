@@ -14,6 +14,7 @@ import io.nop.api.core.ApiConstants;
 import io.nop.api.core.ApiErrors;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.json.IJsonString;
 import io.nop.api.core.util.CloneHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.IDeepCloneable;
@@ -39,7 +40,8 @@ import static io.nop.api.core.util.FreezeHelper.freezeMap;
  */
 @DataBean
 @SuppressWarnings("PMD.TooManyStaticImports")
-public class FieldSelectionBean implements Serializable, IDeepCloneable, IFreezable, IMergeable<FieldSelectionBean> {
+public class FieldSelectionBean implements Serializable, IDeepCloneable, IFreezable,
+        IMergeable<FieldSelectionBean>, IJsonString {
     private static final long serialVersionUID = -3939122561810898355L;
     public static final FieldSelectionBean DEFAULT_SELECTION = new FieldSelectionBean(true, false);
     public static final FieldSelectionBean HIDDEN_SELECTION = new FieldSelectionBean(true, true);

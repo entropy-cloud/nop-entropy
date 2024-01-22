@@ -8,6 +8,7 @@
 package io.nop.graphql.core.schema;
 
 import io.nop.api.core.annotations.core.StaticFactoryMethod;
+import io.nop.api.core.json.IJsonString;
 import io.nop.commons.type.StdDataType;
 
 import java.util.HashMap;
@@ -74,9 +75,6 @@ public enum GraphQLScalarType {
             typeMap.put(entry.getKey().getJavaClass(), entry.getValue());
             typeMap.put(entry.getKey().getMandatoryJavaClass(), entry.getValue());
         }
-
-        // void类型被映射为String
-        typeMap.put(void.class, GraphQLScalarType.String);
     }
 
     public static GraphQLScalarType fromStdDataType(StdDataType dataType) {
@@ -89,6 +87,8 @@ public enum GraphQLScalarType {
 
         GraphQLScalarType type = typeMap.get(clazz);
         if (type == null) {
+            if (IJsonString.class.isAssignableFrom(clazz))
+                return GraphQLScalarType.String;
             if (Map.class.isAssignableFrom(clazz))
                 return Map;
         }

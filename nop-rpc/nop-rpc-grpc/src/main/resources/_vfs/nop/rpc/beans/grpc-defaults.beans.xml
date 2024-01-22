@@ -14,8 +14,8 @@
         </ioc:condition>
 
         <property name="addr" value="@cfg:nop.server.addr|"/>
-        <property name="port" value="@cfg:nop.server.port"/>
-        <property name="serviceName" value="@cfg:nop.application.name"/>
+        <property name="port" value="@cfg:nop.server.grpc-port|9000"/>
+        <property name="serviceName" value="${nop.application.name}-grpc"/>
         <property name="tags" value="@cfg:nop.cluster.registration.tags|"/>
         <property name="metadata">
             <map>
@@ -44,6 +44,12 @@
     <bean id="nopDevDocGrpcBizModel" class="io.nop.rpc.grpc.service.DevDocGrpcBizModel">
         <ioc:condition>
             <if-property name="nop.debug"/>
+        </ioc:condition>
+    </bean>
+
+    <bean id="nopDevModelGrpcBizModel" class="io.nop.rpc.grpc.service.DevModelGrpcBizModel">
+        <ioc:condition>
+            <if-property name="nop.dev-model.enabled" enableIfMissing="false" enableIfDebug="true"/>
         </ioc:condition>
     </bean>
 

@@ -9,6 +9,7 @@ package io.nop.core.type;
 
 import io.nop.api.core.annotations.data.ImmutableBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.json.IJsonString;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.StringHelper;
@@ -35,7 +36,7 @@ import static io.nop.core.CoreErrors.ERR_TYPE_NOT_STRUCTURE_TYPE;
  * 泛型声明必须是Immutable的
  */
 @ImmutableBean
-public interface IGenericType extends Serializable, Type {
+public interface IGenericType extends Serializable, Type , IJsonString {
 
     /**
      * 对于泛型声明，包含所有泛型参数信息。对于StdDataType中包含的类型，因为系统中使用非常频繁，这里去除了包名部分以减少输出长度。 例如java.lang.String对应的typeName是String。

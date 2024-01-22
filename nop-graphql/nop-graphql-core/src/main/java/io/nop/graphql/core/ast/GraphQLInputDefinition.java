@@ -8,6 +8,7 @@
 package io.nop.graphql.core.ast;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.graphql.core.ast._gen._GraphQLInputDefinition;
 import io.nop.graphql.core.schema.utils.GraphQLSourcePrinter;
 
@@ -34,7 +35,7 @@ public class GraphQLInputDefinition extends _GraphQLInputDefinition implements I
 
     public void initPropId() {
         BitSet propIds = new BitSet();
-        int maxPropId = 0;
+        int count = 0;
         for (GraphQLInputFieldDefinition field : fields) {
             int propId = field.getPropIdFromMeta();
             if (propId > 0) {
@@ -44,15 +45,20 @@ public class GraphQLInputDefinition extends _GraphQLInputDefinition implements I
                             .param(ARG_PROP_ID, propId)
                             .param(ARG_OBJ_TYPE, getName());
                 propIds.set(propId);
-                maxPropId = Math.max(propId, maxPropId);
+                count++;
                 field.setPropId(propId);
             }
         }
 
+        if (count == fields.size())
+            return;
+
+        int nextPropId = 1;
         for (GraphQLInputFieldDefinition field : fields) {
             int propId = field.getPropId();
             if (propId <= 0) {
-                field.setPropId(++maxPropId);
+                nextPropId = CollectionHelper.nextFreeIndex(propIds, nextPropId);
+                field.setPropId(nextPropId++);
             }
         }
     }

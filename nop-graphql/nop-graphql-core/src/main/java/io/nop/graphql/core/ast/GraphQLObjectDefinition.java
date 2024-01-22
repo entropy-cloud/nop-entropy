@@ -9,6 +9,7 @@ package io.nop.graphql.core.ast;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.INeedInit;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.graphql.core.ast._gen._GraphQLObjectDefinition;
 import io.nop.graphql.core.fetcher.BeanPropertyFetcher;
 import io.nop.graphql.core.schema.utils.GraphQLSourcePrinter;
@@ -58,7 +59,7 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
 
     public void initPropId() {
         BitSet propIds = new BitSet();
-        int maxPropId = 0;
+        int count = 0;
         for (GraphQLFieldDefinition field : fields) {
             int propId = field.getPropIdFromMeta();
             if (propId > 0) {
@@ -68,15 +69,20 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
                             .param(ARG_PROP_ID, propId)
                             .param(ARG_OBJ_TYPE, getName());
                 propIds.set(propId);
-                maxPropId = Math.max(propId, maxPropId);
                 field.setPropId(propId);
+                count++;
             }
         }
 
+        if (count == fields.size())
+            return;
+
+        int nextPropId = 1;
         for (GraphQLFieldDefinition field : fields) {
             int propId = field.getPropId();
             if (propId <= 0) {
-                field.setPropId(++maxPropId);
+                nextPropId = CollectionHelper.nextFreeIndex(propIds, nextPropId);
+                field.setPropId(nextPropId++);
             }
         }
     }

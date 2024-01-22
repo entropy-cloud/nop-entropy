@@ -18,6 +18,13 @@ public abstract class _BeanUnlessPropertyCondition extends io.nop.core.resource.
     
     /**
      *  
+     * xml name: enableIfDebug
+     * 
+     */
+    private boolean _enableIfDebug  = false;
+    
+    /**
+     *  
      * xml name: enableIfMissing
      * 
      */
@@ -36,6 +43,25 @@ public abstract class _BeanUnlessPropertyCondition extends io.nop.core.resource.
      * 
      */
     private java.lang.String _value ;
+    
+    /**
+     * 
+     * xml name: enableIfDebug
+     *  
+     */
+    
+    public boolean isEnableIfDebug(){
+      return _enableIfDebug;
+    }
+
+    
+    public void setEnableIfDebug(boolean value){
+        checkAllowChange();
+        
+        this._enableIfDebug = value;
+           
+    }
+
     
     /**
      * 
@@ -109,6 +135,7 @@ public abstract class _BeanUnlessPropertyCondition extends io.nop.core.resource.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.put("enableIfDebug",this.isEnableIfDebug());
         out.put("enableIfMissing",this.isEnableIfMissing());
         out.put("name",this.getName());
         out.put("value",this.getValue());
@@ -123,6 +150,7 @@ public abstract class _BeanUnlessPropertyCondition extends io.nop.core.resource.
     protected void copyTo(BeanUnlessPropertyCondition instance){
         super.copyTo(instance);
         
+        instance.setEnableIfDebug(this.isEnableIfDebug());
         instance.setEnableIfMissing(this.isEnableIfMissing());
         instance.setName(this.getName());
         instance.setValue(this.getValue());

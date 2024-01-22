@@ -32,7 +32,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static io.nop.rpc.grpc.GrpcConstants.GRPAHQL_API_PACKAGE_NAME;
+import static io.nop.rpc.grpc.GrpcConfigs.CFG_GRAPHQL_API_PACKAGE;
+import static io.nop.rpc.grpc.GrpcConfigs.CFG_GRPC_AUTO_INIT_PROP_ID;
 
 public class ServiceSchemaManager {
     static final Logger LOG = LoggerFactory.getLogger(ServiceSchemaManager.class);
@@ -65,7 +66,7 @@ public class ServiceSchemaManager {
         Map<String, GraphQLFieldDefinition> operations = graphQLEngine.getSchemaLoader()
                 .getBizOperationDefinitions(bizObjName);
 
-        String serviceName = GRPAHQL_API_PACKAGE_NAME + '.' + bizObjName;
+        String serviceName = CFG_GRAPHQL_API_PACKAGE.get() + '.' + bizObjName;
         ServerServiceDefinition.Builder builder = ServerServiceDefinition.builder(serviceName);
         for (Map.Entry<String, GraphQLFieldDefinition> entry : operations.entrySet()) {
             String fieldName = entry.getKey();
@@ -183,7 +184,8 @@ public class ServiceSchemaManager {
         GenericObjSchema objSchema = new GenericObjSchema();
         objDef.setGrpcSchema(objSchema);
 
-        objDef.initPropId();
+        if (CFG_GRPC_AUTO_INIT_PROP_ID.get())
+            objDef.initPropId();
 
         List<GenericFieldSchema> fieldList = new ArrayList<>(objDef.getFields().size());
 

@@ -18,6 +18,22 @@ public class GraphQLInputFieldDefinition extends _GraphQLInputFieldDefinition im
 
     private PropMeta beanPropMeta;
 
+    public IObjPropMeta getPropMeta() {
+        return propMeta;
+    }
+
+    public void setPropMeta(IObjPropMeta propMeta) {
+        this.propMeta = propMeta;
+    }
+
+    public PropMeta getBeanPropMeta() {
+        return beanPropMeta;
+    }
+
+    public void setBeanPropMeta(PropMeta beanPropMeta) {
+        this.beanPropMeta = beanPropMeta;
+    }
+
     public int getPropId() {
         return propId;
     }
