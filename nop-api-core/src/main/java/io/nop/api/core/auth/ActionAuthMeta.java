@@ -17,22 +17,51 @@ import java.util.Set;
 @ImmutableBean
 @DataBean
 public class ActionAuthMeta {
+
+    private boolean publicAccess;
     private Set<String> roles;
     private MultiCsvSet permissions;
 
-    public ActionAuthMeta(@JsonProperty("roles") Set<String> roles,
+    private boolean frozen;
+
+    public ActionAuthMeta(@JsonProperty("publicAccess") boolean publicAccess,
+                          @JsonProperty("roles") Set<String> roles,
                           @JsonProperty("permissions") MultiCsvSet permissions) {
+        this.publicAccess = publicAccess;
         this.roles = roles;
         this.permissions = permissions;
+        this.frozen = true;
     }
 
-    public ActionAuthMeta(){}
+    public ActionAuthMeta() {
+    }
+
+    public ActionAuthMeta freeze(){
+        frozen = true;
+        return this;
+    }
+
+    private void checkFrozen(){
+        if(frozen)
+            throw new IllegalStateException("action auth meta is frozen");
+    }
+
+    public boolean isPublicAccess() {
+        return publicAccess;
+    }
+
+    public void setPublicAccess(boolean publicAccess) {
+        checkFrozen();
+        this.publicAccess = publicAccess;
+    }
 
     public void setRoles(Set<String> roles) {
+        checkFrozen();
         this.roles = roles;
     }
 
     public void setPermissions(MultiCsvSet permissions) {
+        checkFrozen();
         this.permissions = permissions;
     }
 

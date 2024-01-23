@@ -283,10 +283,10 @@ public class ReflectionBizModelBuilder {
 
         Auth auth = func.getAnnotation(Auth.class);
         if (auth != null) {
-            field.setAuth(new ActionAuthMeta(ConvertHelper.toCsvSet(auth.roles()), MultiCsvSet.fromText(auth.permissions())));
+            field.setAuth(new ActionAuthMeta(auth.publicAccess(), ConvertHelper.toCsvSet(auth.roles()), MultiCsvSet.fromText(auth.permissions())));
         } else {
             String permission = bizObjName + ':' + opType + "|" + bizObjName + ':' + name;
-            field.setAuth(new ActionAuthMeta(Collections.emptySet(), MultiCsvSet.fromText(permission)));
+            field.setAuth(new ActionAuthMeta(false, Collections.emptySet(), MultiCsvSet.fromText(permission)));
         }
 
         BizMakerChecker makerChecker = func.getAnnotation(BizMakerChecker.class);
@@ -314,7 +314,7 @@ public class ReflectionBizModelBuilder {
             field.setType(ReflectionGraphQLTypeFactory.INSTANCE.buildGraphQLType(func.getReturnType(), bizObjName,
                     getReturnBizObjName(func), registry, false));
         } catch (NopException e) {
-            e.addXplStack("buildActionField:"+func.getName());
+            e.addXplStack("buildActionField:" + func.getName());
             throw e;
         }
         return field;

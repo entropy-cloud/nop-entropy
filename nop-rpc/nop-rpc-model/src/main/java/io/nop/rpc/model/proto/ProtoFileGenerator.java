@@ -3,6 +3,8 @@ package io.nop.rpc.model.proto;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
 import io.nop.commons.text.IndentPrinter;
+import io.nop.commons.type.BinaryScalarType;
+import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
@@ -215,10 +217,24 @@ public class ProtoFileGenerator extends IndentPrinter {
         indent();
         append("rpc ").append(methodModel.getName());
         append('(');
-        append(methodModel.getRequestMessage());
+        append(getProtoBufType(methodModel.getRequestMessage()));
         append(')').append(' ');
         append("returns (");
-        append(methodModel.getResponseMessage().toString());
+        append(getResponseTypeName(methodModel.getResponseMessage()));
         append(");");
+    }
+
+    private String getProtoBufType(String typeName) {
+        StdDataType dataType = StdDataType.fromJavaClassName(typeName);
+        if (dataType == null)
+            return typeName;
+        BinaryScalarType scalarType = dataType.toBinaryScalarType();
+        if (scalarType == null)
+            return typeName;
+        return scalarType.toProtoBufTypeName();
+    }
+
+    private String getResponseTypeName(IGenericType type) {
+        return type.toString();
     }
 }

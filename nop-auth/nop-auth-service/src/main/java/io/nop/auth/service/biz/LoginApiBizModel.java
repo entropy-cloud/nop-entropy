@@ -43,7 +43,7 @@ public class LoginApiBizModel implements ILoginSpi {
     ILoginService loginService;
 
     @BizMutation("login")
-    @Auth(noAuth = true)
+    @Auth(publicAccess = true)
     public CompletionStage<LoginResult> loginAsync(@RequestBean LoginRequest request, IServiceContext context) {
         return loginService.loginAsync(request, context.getRequestHeaders()).thenApply(this::buildLoginResult);
     }

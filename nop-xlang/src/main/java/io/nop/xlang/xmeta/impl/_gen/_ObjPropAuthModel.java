@@ -34,6 +34,13 @@ public abstract class _ObjPropAuthModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: publicAccess
+     * 
+     */
+    private boolean _publicAccess  = false;
+    
+    /**
+     *  
      * xml name: roles
      * 
      */
@@ -81,6 +88,25 @@ public abstract class _ObjPropAuthModel extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: publicAccess
+     *  
+     */
+    
+    public boolean isPublicAccess(){
+      return _publicAccess;
+    }
+
+    
+    public void setPublicAccess(boolean value){
+        checkAllowChange();
+        
+        this._publicAccess = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: roles
      *  
      */
@@ -115,6 +141,7 @@ public abstract class _ObjPropAuthModel extends io.nop.core.resource.component.A
         
         out.put("for",this.getFor());
         out.put("permissions",this.getPermissions());
+        out.put("publicAccess",this.isPublicAccess());
         out.put("roles",this.getRoles());
     }
 
@@ -129,6 +156,7 @@ public abstract class _ObjPropAuthModel extends io.nop.core.resource.component.A
         
         instance.setFor(this.getFor());
         instance.setPermissions(this.getPermissions());
+        instance.setPublicAccess(this.isPublicAccess());
         instance.setRoles(this.getRoles());
     }
 

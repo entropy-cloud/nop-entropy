@@ -143,7 +143,7 @@ public class GraphQLToApiModel {
     private ApiMethodModel toMethodModel(GraphQLFieldDefinition field, ApiModel model) {
         ApiMethodModel method = new ApiMethodModel();
         method.setName(field.getName());
-        method.setDescription(field.getDisplayString());
+        method.setDisplayName(field.getDisplayString());
         method.setDescription(field.getDescription());
         if (field.getArguments().isEmpty()) {
             method.setRequestMessage(PROTO_TYPE_EMPTY);

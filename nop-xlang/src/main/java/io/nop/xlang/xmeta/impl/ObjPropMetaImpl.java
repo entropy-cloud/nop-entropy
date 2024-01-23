@@ -22,10 +22,8 @@ import io.nop.xlang.xmeta.impl._gen._ObjPropMetaImpl;
 import java.util.Map;
 
 public class ObjPropMetaImpl extends _ObjPropMetaImpl implements IObjPropMeta {
-    static final ActionAuthMeta NULL_AUTH = new ActionAuthMeta(null, null);
+    static final ActionAuthMeta NULL_AUTH = new ActionAuthMeta(false, null, null);
     private ActionAuthMeta writeAuth;
-
-    private ActionAuthMeta deleteAuth;
 
     public ActionAuthMeta getReadAuth() {
         ObjPropAuthModel authModel = getAuth(ApiConstants.AUTH_FOR_READ);
@@ -57,7 +55,7 @@ public class ObjPropMetaImpl extends _ObjPropMetaImpl implements IObjPropMeta {
     }
 
     public ActionAuthMeta getDeleteAuth() {
-        ObjPropAuthModel authModel = getAuth(ApiConstants.AUTH_FOR_WRITE);
+        ObjPropAuthModel authModel = getAuth(ApiConstants.AUTH_FOR_DELETE);
         if (authModel != null) {
             return authModel.toActionAuthMeta();
         }
