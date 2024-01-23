@@ -49,6 +49,11 @@ Javabean中每个字段也生成了对应的propId。但是其他情况下需要
 | nop.grpc.server.max-inbound-metadata-size       | 最大入站元数据大小                 |
 | nop.grpc.server.thread-pool                     | 连接池的配置，参见ThreadPoolConfig |
 
+## 服务注册
+grpc-defaults.beans.xml中通过nopGrpcAutoConfiguration注册类会向nacos注册grpc服务实现。
+目前Nop平台的grpc服务端口和rest服务端口是分离的，注册的服务名也不同。grpc服务名是
+`${nop.application.name}-rpc`，而REST服务名是是`${nop.application.name}`，不带http后缀，这样和springcloud的习惯符合
+
 # 服务函数
 
 MethodDescriptor提供了generateFullMethodName方法来生成全方法名
