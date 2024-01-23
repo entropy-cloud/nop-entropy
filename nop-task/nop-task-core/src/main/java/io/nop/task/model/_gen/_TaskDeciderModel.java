@@ -83,8 +83,8 @@ public abstract class _TaskDeciderModel extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("bean",this.getBean());
-        out.put("source",this.getSource());
+        out.putNotNull("bean",this.getBean());
+        out.putNotNull("source",this.getSource());
     }
 
     public TaskDeciderModel cloneInstance(){

@@ -265,15 +265,15 @@ public abstract class _BeanCollectBeansValue extends io.nop.core.resource.compon
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("asMap",this.isAsMap());
-        out.put("byAnnotation",this.getByAnnotation());
-        out.put("byType",this.getByType());
-        out.put("excludeTag",this.getExcludeTag());
-        out.put("includeTag",this.getIncludeTag());
-        out.put("iocIgnoreDepends",this.isIocIgnoreDepends());
-        out.put("iocOptional",this.isIocOptional());
-        out.put("namePrefix",this.getNamePrefix());
-        out.put("onlyConcreteClasses",this.isOnlyConcreteClasses());
+        out.putNotNull("asMap",this.isAsMap());
+        out.putNotNull("byAnnotation",this.getByAnnotation());
+        out.putNotNull("byType",this.getByType());
+        out.putNotNull("excludeTag",this.getExcludeTag());
+        out.putNotNull("includeTag",this.getIncludeTag());
+        out.putNotNull("iocIgnoreDepends",this.isIocIgnoreDepends());
+        out.putNotNull("iocOptional",this.isIocOptional());
+        out.putNotNull("namePrefix",this.getNamePrefix());
+        out.putNotNull("onlyConcreteClasses",this.isOnlyConcreteClasses());
     }
 
     public BeanCollectBeansValue cloneInstance(){

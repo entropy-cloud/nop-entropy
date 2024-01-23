@@ -109,9 +109,9 @@ public abstract class _GraphDesignerAnchorModel extends io.nop.core.resource.com
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("name",this.getName());
-        out.put("positon",this.getPositon());
-        out.put("tagSet",this.getTagSet());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("positon",this.getPositon());
+        out.putNotNull("tagSet",this.getTagSet());
     }
 
     public GraphDesignerAnchorModel cloneInstance(){

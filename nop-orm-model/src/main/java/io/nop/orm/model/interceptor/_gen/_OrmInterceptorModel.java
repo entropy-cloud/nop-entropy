@@ -85,7 +85,7 @@ public abstract class _OrmInterceptorModel extends io.nop.core.resource.componen
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("entities",this.getEntities());
+        out.putNotNull("entities",this.getEntities());
     }
 
     public OrmInterceptorModel cloneInstance(){

@@ -325,15 +325,15 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("afterExecute",this.getAfterExecute());
-        out.put("beforeExecute",this.getBeforeExecute());
-        out.put("decisionMatrix",this.getDecisionMatrix());
-        out.put("decisionTree",this.getDecisionTree());
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("inputs",this.getInputs());
-        out.put("outputs",this.getOutputs());
-        out.put("ruleVersion",this.getRuleVersion());
+        out.putNotNull("afterExecute",this.getAfterExecute());
+        out.putNotNull("beforeExecute",this.getBeforeExecute());
+        out.putNotNull("decisionMatrix",this.getDecisionMatrix());
+        out.putNotNull("decisionTree",this.getDecisionTree());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("inputs",this.getInputs());
+        out.putNotNull("outputs",this.getOutputs());
+        out.putNotNull("ruleVersion",this.getRuleVersion());
     }
 
     public RuleModel cloneInstance(){

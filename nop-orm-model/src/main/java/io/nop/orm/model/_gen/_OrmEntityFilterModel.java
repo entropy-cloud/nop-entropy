@@ -83,8 +83,8 @@ public abstract class _OrmEntityFilterModel extends io.nop.core.resource.compone
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("name",this.getName());
-        out.put("value",this.getValue());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("value",this.getValue());
     }
 
     public OrmEntityFilterModel cloneInstance(){

@@ -295,14 +295,14 @@ public abstract class _RuleDecisionTreeModel extends io.nop.core.resource.compon
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("children",this.getChildren());
-        out.put("description",this.getDescription());
-        out.put("id",this.getId());
-        out.put("label",this.getLabel());
-        out.put("leafIndex",this.getLeafIndex());
-        out.put("multiMatch",this.isMultiMatch());
-        out.put("outputs",this.getOutputs());
-        out.put("predicate",this.getPredicate());
+        out.putNotNull("children",this.getChildren());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("label",this.getLabel());
+        out.putNotNull("leafIndex",this.getLeafIndex());
+        out.putNotNull("multiMatch",this.isMultiMatch());
+        out.putNotNull("outputs",this.getOutputs());
+        out.putNotNull("predicate",this.getPredicate());
     }
 
     public RuleDecisionTreeModel cloneInstance(){

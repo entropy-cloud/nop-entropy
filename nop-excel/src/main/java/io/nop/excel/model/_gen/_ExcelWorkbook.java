@@ -249,11 +249,11 @@ public abstract class _ExcelWorkbook extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("defaultFont",this.getDefaultFont());
-        out.put("model",this.getModel());
-        out.put("props",this.getProps());
-        out.put("sheets",this.getSheets());
-        out.put("styles",this.getStyles());
+        out.putNotNull("defaultFont",this.getDefaultFont());
+        out.putNotNull("model",this.getModel());
+        out.putNotNull("props",this.getProps());
+        out.putNotNull("sheets",this.getSheets());
+        out.putNotNull("styles",this.getStyles());
     }
 
     public ExcelWorkbook cloneInstance(){

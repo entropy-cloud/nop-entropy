@@ -83,8 +83,8 @@ public abstract class _ObjConditionExpr extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("source",this.getSource());
-        out.put("when",this.getWhen());
+        out.putNotNull("source",this.getSource());
+        out.putNotNull("when",this.getWhen());
     }
 
     public ObjConditionExpr cloneInstance(){

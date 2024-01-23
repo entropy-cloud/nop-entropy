@@ -111,8 +111,8 @@ public abstract class _OrmRefSetModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("keyProp",this.getKeyProp());
-        out.put("sort",this.getSort());
+        out.putNotNull("keyProp",this.getKeyProp());
+        out.putNotNull("sort",this.getSort());
     }
 
     public OrmRefSetModel cloneInstance(){

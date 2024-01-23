@@ -83,8 +83,8 @@ public abstract class _OrmComponentPropModel extends io.nop.core.resource.compon
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("column",this.getColumn());
-        out.put("name",this.getName());
+        out.putNotNull("column",this.getColumn());
+        out.putNotNull("name",this.getName());
     }
 
     public OrmComponentPropModel cloneInstance(){

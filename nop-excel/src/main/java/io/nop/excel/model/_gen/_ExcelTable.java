@@ -87,8 +87,8 @@ public abstract class _ExcelTable extends io.nop.core.model.table.impl.AbstractT
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("cols",this.getCols());
-        out.put("rows",this.getRows());
+        out.putNotNull("cols",this.getCols());
+        out.putNotNull("rows",this.getRows());
     }
 
     public ExcelTable cloneInstance(){

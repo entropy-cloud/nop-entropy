@@ -109,9 +109,9 @@ public abstract class _WfSubFlowArgModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("displayName",this.getDisplayName());
-        out.put("name",this.getName());
-        out.put("source",this.getSource());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("source",this.getSource());
     }
 
     public WfSubFlowArgModel cloneInstance(){

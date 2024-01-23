@@ -17,6 +17,10 @@
     "fields": [],
     "methods": [
       {
+        "name": "attrs",
+        "parameterTypes": []
+      },
+      {
         "name": "containsLabel",
         "parameterTypes": [
           "java.lang.String"
@@ -16638,6 +16642,24 @@
       }
     ],
     "name": "io.nop.report.core.model.ExpandedCell",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "doParseText",
+        "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation",
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.rpc.model.proto.ProtoFileParser",
     "unsafeAllocated": false
   },
   {

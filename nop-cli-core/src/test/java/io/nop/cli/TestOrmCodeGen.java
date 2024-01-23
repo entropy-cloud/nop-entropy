@@ -54,7 +54,7 @@ public class TestOrmCodeGen extends BaseTestCase {
         Object model = ResourceComponentManager.instance().loadComponentModel(resource.getPath());
 
         IReportEngine reportEngine = newReportEngine();
-        ExcelWorkbook xptModel = reportEngine.buildXptModelFromImpModel("/nop/graphql/imp/api.imp.xml");
+        ExcelWorkbook xptModel = reportEngine.buildXptModelFromImpModel("/nop/rpc/imp/api.imp.xml");
         // XNode node = DslModelHelper.dslModelToXNode("/nop/schema/excel/workbook.xdef", xptModel);
         // node.dump();
 

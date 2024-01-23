@@ -109,9 +109,9 @@ public abstract class _BeanIocInjectValue extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("iocIgnoreDepends",this.isIocIgnoreDepends());
-        out.put("iocOptional",this.isIocOptional());
-        out.put("type",this.getType());
+        out.putNotNull("iocIgnoreDepends",this.isIocIgnoreDepends());
+        out.putNotNull("iocOptional",this.isIocOptional());
+        out.putNotNull("type",this.getType());
     }
 
     public BeanIocInjectValue cloneInstance(){

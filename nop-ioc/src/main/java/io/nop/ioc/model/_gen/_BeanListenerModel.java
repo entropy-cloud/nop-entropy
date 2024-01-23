@@ -189,12 +189,12 @@ public abstract class _BeanListenerModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("events",this.getEvents());
-        out.put("id",this.getId());
-        out.put("iocAllowOverride",this.isIocAllowOverride());
-        out.put("iocCondition",this.getIocCondition());
-        out.put("ref",this.getRef());
-        out.put("source",this.getSource());
+        out.putNotNull("events",this.getEvents());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("iocAllowOverride",this.isIocAllowOverride());
+        out.putNotNull("iocCondition",this.getIocCondition());
+        out.putNotNull("ref",this.getRef());
+        out.putNotNull("source",this.getSource());
     }
 
     public BeanListenerModel cloneInstance(){

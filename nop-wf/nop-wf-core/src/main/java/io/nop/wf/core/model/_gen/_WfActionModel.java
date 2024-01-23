@@ -685,30 +685,30 @@ public abstract class _WfActionModel extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("afterTransition",this.getAfterTransition());
-        out.put("args",this.getArgs());
-        out.put("common",this.isCommon());
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("forActivated",this.isForActivated());
-        out.put("forFlowEnded",this.isForFlowEnded());
-        out.put("forHistory",this.isForHistory());
-        out.put("forReject",this.isForReject());
-        out.put("forWaiting",this.isForWaiting());
-        out.put("forWithdraw",this.isForWithdraw());
-        out.put("group",this.getGroup());
-        out.put("internal",this.isInternal());
-        out.put("local",this.isLocal());
-        out.put("name",this.getName());
-        out.put("persist",this.isPersist());
-        out.put("saveActionRecord",this.isSaveActionRecord());
-        out.put("sortOrder",this.getSortOrder());
-        out.put("source",this.getSource());
-        out.put("specialType",this.getSpecialType());
-        out.put("transition",this.getTransition());
-        out.put("waitSignals",this.getWaitSignals());
-        out.put("when",this.getWhen());
-        out.put("whenSteps",this.getWhenSteps());
+        out.putNotNull("afterTransition",this.getAfterTransition());
+        out.putNotNull("args",this.getArgs());
+        out.putNotNull("common",this.isCommon());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("forActivated",this.isForActivated());
+        out.putNotNull("forFlowEnded",this.isForFlowEnded());
+        out.putNotNull("forHistory",this.isForHistory());
+        out.putNotNull("forReject",this.isForReject());
+        out.putNotNull("forWaiting",this.isForWaiting());
+        out.putNotNull("forWithdraw",this.isForWithdraw());
+        out.putNotNull("group",this.getGroup());
+        out.putNotNull("internal",this.isInternal());
+        out.putNotNull("local",this.isLocal());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("persist",this.isPersist());
+        out.putNotNull("saveActionRecord",this.isSaveActionRecord());
+        out.putNotNull("sortOrder",this.getSortOrder());
+        out.putNotNull("source",this.getSource());
+        out.putNotNull("specialType",this.getSpecialType());
+        out.putNotNull("transition",this.getTransition());
+        out.putNotNull("waitSignals",this.getWaitSignals());
+        out.putNotNull("when",this.getWhen());
+        out.putNotNull("whenSteps",this.getWhenSteps());
     }
 
     public WfActionModel cloneInstance(){

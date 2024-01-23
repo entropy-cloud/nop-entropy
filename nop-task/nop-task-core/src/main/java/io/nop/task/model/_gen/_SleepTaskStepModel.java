@@ -57,7 +57,7 @@ public abstract class _SleepTaskStepModel extends io.nop.task.model.TaskStepMode
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("sleepMillisExpr",this.getSleepMillisExpr());
+        out.putNotNull("sleepMillisExpr",this.getSleepMillisExpr());
     }
 
     public SleepTaskStepModel cloneInstance(){

@@ -195,12 +195,12 @@ public abstract class _UiComponentModel extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("import",this.getImport());
-        out.put("scopedStyle",this.getScopedStyle());
-        out.put("script",this.getScript());
-        out.put("setup",this.getSetup());
-        out.put("style",this.getStyle());
-        out.put("template",this.getTemplate());
+        out.putNotNull("import",this.getImport());
+        out.putNotNull("scopedStyle",this.getScopedStyle());
+        out.putNotNull("script",this.getScript());
+        out.putNotNull("setup",this.getSetup());
+        out.putNotNull("style",this.getStyle());
+        out.putNotNull("template",this.getTemplate());
     }
 
     public UiComponentModel cloneInstance(){

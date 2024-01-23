@@ -139,8 +139,8 @@ public abstract class _SqlLibModel extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("fragments",this.getFragments());
-        out.put("sqls",this.getSqls());
+        out.putNotNull("fragments",this.getFragments());
+        out.putNotNull("sqls",this.getSqls());
     }
 
     public SqlLibModel cloneInstance(){

@@ -109,9 +109,9 @@ public abstract class _XplTagReturn extends io.nop.core.resource.component.Abstr
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("description",this.getDescription());
-        out.put("stdDomain",this.getStdDomain());
-        out.put("type",this.getType());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("stdDomain",this.getStdDomain());
+        out.putNotNull("type",this.getType());
     }
 
     public XplTagReturn cloneInstance(){

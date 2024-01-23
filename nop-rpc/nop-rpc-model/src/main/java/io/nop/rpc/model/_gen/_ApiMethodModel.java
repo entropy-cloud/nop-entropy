@@ -293,15 +293,15 @@ public abstract class _ApiMethodModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("name",this.getName());
-        out.put("options",this.getOptions());
-        out.put("requestMessage",this.getRequestMessage());
-        out.put("responseMessage",this.getResponseMessage());
-        out.put("streamRequest",this.isStreamRequest());
-        out.put("streamResponse",this.isStreamResponse());
-        out.put("tagSet",this.getTagSet());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("options",this.getOptions());
+        out.putNotNull("requestMessage",this.getRequestMessage());
+        out.putNotNull("responseMessage",this.getResponseMessage());
+        out.putNotNull("streamRequest",this.isStreamRequest());
+        out.putNotNull("streamResponse",this.isStreamResponse());
+        out.putNotNull("tagSet",this.getTagSet());
     }
 
     public ApiMethodModel cloneInstance(){

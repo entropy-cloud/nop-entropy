@@ -163,11 +163,11 @@ public abstract class _RoleDataAuthModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("check",this.getCheck());
-        out.put("description",this.getDescription());
-        out.put("filter",this.getFilter());
-        out.put("priority",this.getPriority());
-        out.put("roleId",this.getRoleId());
+        out.putNotNull("check",this.getCheck());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("filter",this.getFilter());
+        out.putNotNull("priority",this.getPriority());
+        out.putNotNull("roleId",this.getRoleId());
     }
 
     public RoleDataAuthModel cloneInstance(){

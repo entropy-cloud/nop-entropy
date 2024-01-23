@@ -111,8 +111,8 @@ public abstract class _WfEndModel extends io.nop.core.resource.component.Abstrac
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("outputs",this.getOutputs());
-        out.put("source",this.getSource());
+        out.putNotNull("outputs",this.getOutputs());
+        out.putNotNull("source",this.getSource());
     }
 
     public WfEndModel cloneInstance(){

@@ -59,7 +59,7 @@ public abstract class _BeanPropValue extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("body",this.getBody());
+        out.putNotNull("body",this.getBody());
     }
 
     public BeanPropValue cloneInstance(){

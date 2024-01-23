@@ -137,9 +137,9 @@ public abstract class _ObjDataAuthModel extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("displayName",this.getDisplayName());
-        out.put("name",this.getName());
-        out.put("roleAuths",this.getRoleAuths());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("roleAuths",this.getRoleAuths());
     }
 
     public ObjDataAuthModel cloneInstance(){

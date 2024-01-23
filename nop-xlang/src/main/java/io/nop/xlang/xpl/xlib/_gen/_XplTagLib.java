@@ -176,11 +176,11 @@ public abstract class _XplTagLib extends io.nop.xlang.xdsl.AbstractDslModel {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("interfaces",this.getInterfaces());
-        out.put("namespace",this.getNamespace());
-        out.put("tags",this.getTags());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("interfaces",this.getInterfaces());
+        out.putNotNull("namespace",this.getNamespace());
+        out.putNotNull("tags",this.getTags());
     }
 
     public XplTagLib cloneInstance(){

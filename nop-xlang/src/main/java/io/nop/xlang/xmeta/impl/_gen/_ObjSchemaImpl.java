@@ -379,18 +379,18 @@ public abstract class _ObjSchemaImpl extends io.nop.xlang.xmeta.impl.SchemaNodeI
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("abstract",this.getAbstract());
-        out.put("extendsType",this.getExtendsType());
-        out.put("implementsTypes",this.getImplementsTypes());
-        out.put("interface",this.getInterface());
-        out.put("maxProperties",this.getMaxProperties());
-        out.put("minProperties",this.getMinProperties());
-        out.put("props",this.getProps());
-        out.put("supportExtends",this.getSupportExtends());
-        out.put("typeValue",this.getTypeValue());
-        out.put("uniqueProp",this.getUniqueProp());
-        out.put("unknownAttrSchema",this.getUnknownAttrSchema());
-        out.put("unknownTagSchema",this.getUnknownTagSchema());
+        out.putNotNull("abstract",this.getAbstract());
+        out.putNotNull("extendsType",this.getExtendsType());
+        out.putNotNull("implementsTypes",this.getImplementsTypes());
+        out.putNotNull("interface",this.getInterface());
+        out.putNotNull("maxProperties",this.getMaxProperties());
+        out.putNotNull("minProperties",this.getMinProperties());
+        out.putNotNull("props",this.getProps());
+        out.putNotNull("supportExtends",this.getSupportExtends());
+        out.putNotNull("typeValue",this.getTypeValue());
+        out.putNotNull("uniqueProp",this.getUniqueProp());
+        out.putNotNull("unknownAttrSchema",this.getUnknownAttrSchema());
+        out.putNotNull("unknownTagSchema",this.getUnknownTagSchema());
     }
 
     public ObjSchemaImpl cloneInstance(){

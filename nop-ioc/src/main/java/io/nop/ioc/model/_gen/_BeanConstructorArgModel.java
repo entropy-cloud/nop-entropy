@@ -135,10 +135,10 @@ public abstract class _BeanConstructorArgModel extends io.nop.ioc.model.BeanProp
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("index",this.getIndex());
-        out.put("iocSkipIfEmpty",this.isIocSkipIfEmpty());
-        out.put("ref",this.getRef());
-        out.put("value",this.getValue());
+        out.putNotNull("index",this.getIndex());
+        out.putNotNull("iocSkipIfEmpty",this.isIocSkipIfEmpty());
+        out.putNotNull("ref",this.getRef());
+        out.putNotNull("value",this.getValue());
     }
 
     public BeanConstructorArgModel cloneInstance(){

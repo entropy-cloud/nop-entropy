@@ -615,24 +615,24 @@ public abstract class _ObjMetaImpl extends io.nop.xlang.xmeta.impl.ObjSchemaImpl
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("checkNs",this.getCheckNs());
-        out.put("defaultExtends",this.getDefaultExtends());
-        out.put("defines",this.getDefines());
-        out.put("displayProp",this.getDisplayProp());
-        out.put("entityName",this.getEntityName());
-        out.put("filter",this.getFilter());
-        out.put("keys",this.getKeys());
-        out.put("orderBy",this.getOrderBy());
-        out.put("parseForHtml",this.getParseForHtml());
-        out.put("parseKeepComment",this.getParseKeepComment());
-        out.put("parserClass",this.getParserClass());
-        out.put("primaryKey",this.getPrimaryKey());
-        out.put("propNs",this.getPropNs());
-        out.put("selections",this.getSelections());
-        out.put("tagSet",this.getTagSet());
-        out.put("tree",this.getTree());
-        out.put("version",this.getVersion());
-        out.put("xmlName",this.getXmlName());
+        out.putNotNull("checkNs",this.getCheckNs());
+        out.putNotNull("defaultExtends",this.getDefaultExtends());
+        out.putNotNull("defines",this.getDefines());
+        out.putNotNull("displayProp",this.getDisplayProp());
+        out.putNotNull("entityName",this.getEntityName());
+        out.putNotNull("filter",this.getFilter());
+        out.putNotNull("keys",this.getKeys());
+        out.putNotNull("orderBy",this.getOrderBy());
+        out.putNotNull("parseForHtml",this.getParseForHtml());
+        out.putNotNull("parseKeepComment",this.getParseKeepComment());
+        out.putNotNull("parserClass",this.getParserClass());
+        out.putNotNull("primaryKey",this.getPrimaryKey());
+        out.putNotNull("propNs",this.getPropNs());
+        out.putNotNull("selections",this.getSelections());
+        out.putNotNull("tagSet",this.getTagSet());
+        out.putNotNull("tree",this.getTree());
+        out.putNotNull("version",this.getVersion());
+        out.putNotNull("xmlName",this.getXmlName());
     }
 
     public ObjMetaImpl cloneInstance(){

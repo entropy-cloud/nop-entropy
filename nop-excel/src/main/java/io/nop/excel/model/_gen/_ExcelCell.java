@@ -295,16 +295,16 @@ public abstract class _ExcelCell extends io.nop.core.model.table.impl.AbstractCe
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("comment",this.getComment());
-        out.put("formula",this.getFormula());
-        out.put("mergeAcross",this.getMergeAcross());
-        out.put("mergeDown",this.getMergeDown());
-        out.put("model",this.getModel());
-        out.put("name",this.getName());
-        out.put("richText",this.getRichText());
-        out.put("styleId",this.getStyleId());
-        out.put("type",this.getType());
-        out.put("value",this.getValue());
+        out.putNotNull("comment",this.getComment());
+        out.putNotNull("formula",this.getFormula());
+        out.putNotNull("mergeAcross",this.getMergeAcross());
+        out.putNotNull("mergeDown",this.getMergeDown());
+        out.putNotNull("model",this.getModel());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("richText",this.getRichText());
+        out.putNotNull("styleId",this.getStyleId());
+        out.putNotNull("type",this.getType());
+        out.putNotNull("value",this.getValue());
     }
 
     public ExcelCell cloneInstance(){

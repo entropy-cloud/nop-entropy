@@ -219,10 +219,10 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("computedFields",this.getComputedFields());
-        out.put("fields",this.getFields());
-        out.put("params",this.getParams());
-        out.put("recordType",this.getRecordType());
+        out.putNotNull("computedFields",this.getComputedFields());
+        out.putNotNull("fields",this.getFields());
+        out.putNotNull("params",this.getParams());
+        out.putNotNull("recordType",this.getRecordType());
     }
 
     public RecordObjectMeta cloneInstance(){

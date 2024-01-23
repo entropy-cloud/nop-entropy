@@ -139,7 +139,7 @@ public abstract class _${objSchema.simpleClassName} extends ${baseClass} ${implI
         super.outputJson(out);
         <c:for var="prop" items="${objSchema.localProps}">
             <c:continue xpl:if="prop.name.indexOf(':')>0" />
-        out.put("${prop.name}",this.${prop.methodGetName}());</c:for>
+        out.putNotNull("${prop.name}",this.${prop.methodGetName}());</c:for>
     }
 
     public ${objSchema.simpleClassName} cloneInstance(){

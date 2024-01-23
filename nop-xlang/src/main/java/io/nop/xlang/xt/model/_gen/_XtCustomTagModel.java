@@ -141,10 +141,10 @@ public abstract class _XtCustomTagModel extends io.nop.xlang.xt.model.XtRuleGrou
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("attrs",this.getAttrs());
-        out.put("tagName",this.getTagName());
-        out.put("xtAttrs",this.getXtAttrs());
-        out.put("xtXpath",this.getXtXpath());
+        out.putNotNull("attrs",this.getAttrs());
+        out.putNotNull("tagName",this.getTagName());
+        out.putNotNull("xtAttrs",this.getXtAttrs());
+        out.putNotNull("xtXpath",this.getXtXpath());
     }
 
     public XtCustomTagModel cloneInstance(){

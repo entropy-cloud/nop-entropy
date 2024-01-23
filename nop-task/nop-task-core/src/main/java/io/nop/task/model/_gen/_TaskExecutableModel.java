@@ -513,21 +513,21 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("catch",this.getCatch());
-        out.put("decorators",this.getDecorators());
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("executor",this.getExecutor());
-        out.put("finally",this.getFinally());
-        out.put("id",this.getId());
-        out.put("inputs",this.getInputs());
-        out.put("outputs",this.getOutputs());
-        out.put("rateLimit",this.getRateLimit());
-        out.put("retry",this.getRetry());
-        out.put("throttle",this.getThrottle());
-        out.put("timeout",this.getTimeout());
-        out.put("validator",this.getValidator());
-        out.put("when",this.getWhen());
+        out.putNotNull("catch",this.getCatch());
+        out.putNotNull("decorators",this.getDecorators());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("executor",this.getExecutor());
+        out.putNotNull("finally",this.getFinally());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("inputs",this.getInputs());
+        out.putNotNull("outputs",this.getOutputs());
+        out.putNotNull("rateLimit",this.getRateLimit());
+        out.putNotNull("retry",this.getRetry());
+        out.putNotNull("throttle",this.getThrottle());
+        out.putNotNull("timeout",this.getTimeout());
+        out.putNotNull("validator",this.getValidator());
+        out.putNotNull("when",this.getWhen());
     }
 
     public TaskExecutableModel cloneInstance(){

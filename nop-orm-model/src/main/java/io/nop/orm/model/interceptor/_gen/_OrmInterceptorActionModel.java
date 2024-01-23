@@ -135,10 +135,10 @@ public abstract class _OrmInterceptorActionModel extends io.nop.core.resource.co
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("event",this.getEvent());
-        out.put("id",this.getId());
-        out.put("order",this.getOrder());
-        out.put("source",this.getSource());
+        out.putNotNull("event",this.getEvent());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("order",this.getOrder());
+        out.putNotNull("source",this.getSource());
     }
 
     public OrmInterceptorActionModel cloneInstance(){

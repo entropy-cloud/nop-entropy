@@ -189,12 +189,12 @@ public abstract class _ForkNTaskStepModel extends io.nop.task.model.TaskStepsMod
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("aggregateVarName",this.getAggregateVarName());
-        out.put("aggregator",this.getAggregator());
-        out.put("autoCancelUnfinished",this.isAutoCancelUnfinished());
-        out.put("countExpr",this.getCountExpr());
-        out.put("joinType",this.getJoinType());
-        out.put("var",this.getVar());
+        out.putNotNull("aggregateVarName",this.getAggregateVarName());
+        out.putNotNull("aggregator",this.getAggregator());
+        out.putNotNull("autoCancelUnfinished",this.isAutoCancelUnfinished());
+        out.putNotNull("countExpr",this.getCountExpr());
+        out.putNotNull("joinType",this.getJoinType());
+        out.putNotNull("var",this.getVar());
     }
 
     public ForkNTaskStepModel cloneInstance(){

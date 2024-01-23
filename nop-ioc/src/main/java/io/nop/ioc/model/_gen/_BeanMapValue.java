@@ -189,11 +189,11 @@ public abstract class _BeanMapValue extends io.nop.core.resource.component.Abstr
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("body",this.getBody());
-        out.put("keyType",this.getKeyType());
-        out.put("mapClass",this.getMapClass());
-        out.put("merge",this.isMerge());
-        out.put("valueType",this.getValueType());
+        out.putNotNull("body",this.getBody());
+        out.putNotNull("keyType",this.getKeyType());
+        out.putNotNull("mapClass",this.getMapClass());
+        out.putNotNull("merge",this.isMerge());
+        out.putNotNull("valueType",this.getValueType());
     }
 
     public BeanMapValue cloneInstance(){

@@ -83,8 +83,8 @@ public abstract class _XptXplModel extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("body",this.getBody());
-        out.put("id",this.getId());
+        out.putNotNull("body",this.getBody());
+        out.putNotNull("id",this.getId());
     }
 
     public XptXplModel cloneInstance(){

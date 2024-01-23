@@ -349,17 +349,17 @@ public abstract class _ValidatorModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("bizFatal",this.getBizFatal());
-        out.put("checkLibPath",this.getCheckLibPath());
-        out.put("checks",this.getChecks());
-        out.put("condition",this.getCondition());
-        out.put("errorCode",this.getErrorCode());
-        out.put("errorDescription",this.getErrorDescription());
-        out.put("errorParams",this.getErrorParams());
-        out.put("errorStatus",this.getErrorStatus());
-        out.put("fatalSeverity",this.getFatalSeverity());
-        out.put("obj",this.getObj());
-        out.put("severity",this.getSeverity());
+        out.putNotNull("bizFatal",this.getBizFatal());
+        out.putNotNull("checkLibPath",this.getCheckLibPath());
+        out.putNotNull("checks",this.getChecks());
+        out.putNotNull("condition",this.getCondition());
+        out.putNotNull("errorCode",this.getErrorCode());
+        out.putNotNull("errorDescription",this.getErrorDescription());
+        out.putNotNull("errorParams",this.getErrorParams());
+        out.putNotNull("errorStatus",this.getErrorStatus());
+        out.putNotNull("fatalSeverity",this.getFatalSeverity());
+        out.putNotNull("obj",this.getObj());
+        out.putNotNull("severity",this.getSeverity());
     }
 
     public ValidatorModel cloneInstance(){

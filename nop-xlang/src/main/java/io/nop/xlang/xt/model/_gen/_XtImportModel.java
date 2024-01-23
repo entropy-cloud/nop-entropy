@@ -83,8 +83,8 @@ public abstract class _XtImportModel extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("from",this.getFrom());
-        out.put("prefix",this.getPrefix());
+        out.putNotNull("from",this.getFrom());
+        out.putNotNull("prefix",this.getPrefix());
     }
 
     public XtImportModel cloneInstance(){

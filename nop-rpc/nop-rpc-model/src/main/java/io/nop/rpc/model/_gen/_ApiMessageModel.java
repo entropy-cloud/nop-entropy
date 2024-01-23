@@ -243,12 +243,12 @@ public abstract class _ApiMessageModel extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("fields",this.getFields());
-        out.put("name",this.getName());
-        out.put("options",this.getOptions());
-        out.put("tagSet",this.getTagSet());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("fields",this.getFields());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("options",this.getOptions());
+        out.putNotNull("tagSet",this.getTagSet());
     }
 
     public ApiMessageModel cloneInstance(){

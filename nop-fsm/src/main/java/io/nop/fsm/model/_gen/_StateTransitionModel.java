@@ -239,14 +239,14 @@ public abstract class _StateTransitionModel extends io.nop.core.resource.compone
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("actions",this.getActions());
-        out.put("event",this.getEvent());
-        out.put("id",this.getId());
-        out.put("in",this.getIn());
-        out.put("internal",this.isInternal());
-        out.put("invoke",this.getInvoke());
-        out.put("target",this.getTarget());
-        out.put("when",this.getWhen());
+        out.putNotNull("actions",this.getActions());
+        out.putNotNull("event",this.getEvent());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("in",this.getIn());
+        out.putNotNull("internal",this.isInternal());
+        out.putNotNull("invoke",this.getInvoke());
+        out.putNotNull("target",this.getTarget());
+        out.putNotNull("when",this.getWhen());
     }
 
     public StateTransitionModel cloneInstance(){

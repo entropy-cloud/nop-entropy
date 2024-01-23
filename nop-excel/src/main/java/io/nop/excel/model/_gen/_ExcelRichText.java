@@ -59,7 +59,7 @@ public abstract class _ExcelRichText extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("parts",this.getParts());
+        out.putNotNull("parts",this.getParts());
     }
 
     public ExcelRichText cloneInstance(){

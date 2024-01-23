@@ -59,7 +59,7 @@ public abstract class _XtRuleGroupModel extends io.nop.xlang.xt.model.XtRuleMode
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("body",this.getBody());
+        out.putNotNull("body",this.getBody());
     }
 
     public XtRuleGroupModel cloneInstance(){

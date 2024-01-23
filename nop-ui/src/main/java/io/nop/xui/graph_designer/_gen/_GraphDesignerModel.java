@@ -361,15 +361,15 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("actions",this.getActions());
-        out.put("codeGenLib",this.getCodeGenLib());
-        out.put("edges",this.getEdges());
-        out.put("editorType",this.getEditorType());
-        out.put("forms",this.getForms());
-        out.put("nodes",this.getNodes());
-        out.put("script",this.getScript());
-        out.put("style",this.getStyle());
-        out.put("zoom",this.getZoom());
+        out.putNotNull("actions",this.getActions());
+        out.putNotNull("codeGenLib",this.getCodeGenLib());
+        out.putNotNull("edges",this.getEdges());
+        out.putNotNull("editorType",this.getEditorType());
+        out.putNotNull("forms",this.getForms());
+        out.putNotNull("nodes",this.getNodes());
+        out.putNotNull("script",this.getScript());
+        out.putNotNull("style",this.getStyle());
+        out.putNotNull("zoom",this.getZoom());
     }
 
     public GraphDesignerModel cloneInstance(){

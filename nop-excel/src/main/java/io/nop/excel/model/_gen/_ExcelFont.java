@@ -295,16 +295,16 @@ public abstract class _ExcelFont extends io.nop.core.resource.component.Abstract
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("bold",this.isBold());
-        out.put("charSet",this.getCharSet());
-        out.put("fontColor",this.getFontColor());
-        out.put("fontFamily",this.getFontFamily());
-        out.put("fontName",this.getFontName());
-        out.put("fontSize",this.getFontSize());
-        out.put("italic",this.isItalic());
-        out.put("strikeout",this.isStrikeout());
-        out.put("underlineStyle",this.getUnderlineStyle());
-        out.put("verticalAlign",this.getVerticalAlign());
+        out.putNotNull("bold",this.isBold());
+        out.putNotNull("charSet",this.getCharSet());
+        out.putNotNull("fontColor",this.getFontColor());
+        out.putNotNull("fontFamily",this.getFontFamily());
+        out.putNotNull("fontName",this.getFontName());
+        out.putNotNull("fontSize",this.getFontSize());
+        out.putNotNull("italic",this.isItalic());
+        out.putNotNull("strikeout",this.isStrikeout());
+        out.putNotNull("underlineStyle",this.getUnderlineStyle());
+        out.putNotNull("verticalAlign",this.getVerticalAlign());
     }
 
     public ExcelFont cloneInstance(){

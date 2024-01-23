@@ -135,10 +135,10 @@ public abstract class _ExcelColumnConfig extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("hidden",this.isHidden());
-        out.put("styleId",this.getStyleId());
-        out.put("styleIdExpr",this.getStyleIdExpr());
-        out.put("width",this.getWidth());
+        out.putNotNull("hidden",this.isHidden());
+        out.putNotNull("styleId",this.getStyleId());
+        out.putNotNull("styleIdExpr",this.getStyleIdExpr());
+        out.putNotNull("width",this.getWidth());
     }
 
     public ExcelColumnConfig cloneInstance(){

@@ -109,9 +109,9 @@ public abstract class _BeanRefValue extends io.nop.core.resource.component.Abstr
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("bean",this.getBean());
-        out.put("iocIgnoreDepends",this.isIocIgnoreDepends());
-        out.put("iocOptional",this.isIocOptional());
+        out.putNotNull("bean",this.getBean());
+        out.putNotNull("iocIgnoreDepends",this.isIocIgnoreDepends());
+        out.putNotNull("iocOptional",this.isIocOptional());
     }
 
     public BeanRefValue cloneInstance(){

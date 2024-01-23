@@ -112,9 +112,9 @@ public abstract class _UiImportModel extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("from",this.getFrom());
-        out.put("id",this.getId());
-        out.put("items",this.getItems());
+        out.putNotNull("from",this.getFrom());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("items",this.getItems());
     }
 
     public UiImportModel cloneInstance(){

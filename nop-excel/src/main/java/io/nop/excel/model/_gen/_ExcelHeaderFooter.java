@@ -215,13 +215,13 @@ public abstract class _ExcelHeaderFooter extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("center",this.getCenter());
-        out.put("centerExpr",this.getCenterExpr());
-        out.put("left",this.getLeft());
-        out.put("leftExpr",this.getLeftExpr());
-        out.put("right",this.getRight());
-        out.put("rightExpr",this.getRightExpr());
-        out.put("style",this.getStyle());
+        out.putNotNull("center",this.getCenter());
+        out.putNotNull("centerExpr",this.getCenterExpr());
+        out.putNotNull("left",this.getLeft());
+        out.putNotNull("leftExpr",this.getLeftExpr());
+        out.putNotNull("right",this.getRight());
+        out.putNotNull("rightExpr",this.getRightExpr());
+        out.putNotNull("style",this.getStyle());
     }
 
     public ExcelHeaderFooter cloneInstance(){

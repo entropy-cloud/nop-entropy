@@ -83,8 +83,8 @@ public abstract class _BizCacheModel extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("cacheKeyExpr",this.getCacheKeyExpr());
-        out.put("cacheName",this.getCacheName());
+        out.putNotNull("cacheKeyExpr",this.getCacheKeyExpr());
+        out.putNotNull("cacheName",this.getCacheName());
     }
 
     public BizCacheModel cloneInstance(){

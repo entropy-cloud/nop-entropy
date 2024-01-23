@@ -57,7 +57,7 @@ public abstract class _ExcelClientAnchor extends io.nop.core.model.table.CellAnc
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("type",this.getType());
+        out.putNotNull("type",this.getType());
     }
 
     public ExcelClientAnchor cloneInstance(){

@@ -187,12 +187,12 @@ public abstract class _BeanConstantModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("id",this.getId());
-        out.put("iocAllowOverride",this.isIocAllowOverride());
-        out.put("iocDefault",this.isIocDefault());
-        out.put("name",this.getName());
-        out.put("scope",this.getScope());
-        out.put("staticField",this.getStaticField());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("iocAllowOverride",this.isIocAllowOverride());
+        out.putNotNull("iocDefault",this.isIocDefault());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("scope",this.getScope());
+        out.putNotNull("staticField",this.getStaticField());
     }
 
     public BeanConstantModel cloneInstance(){

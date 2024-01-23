@@ -109,9 +109,9 @@ public abstract class _TaskRateLimitModel extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("keyExpr",this.getKeyExpr());
-        out.put("maxWait",this.getMaxWait());
-        out.put("requestPerSecond",this.getRequestPerSecond());
+        out.putNotNull("keyExpr",this.getKeyExpr());
+        out.putNotNull("maxWait",this.getMaxWait());
+        out.putNotNull("requestPerSecond",this.getRequestPerSecond());
     }
 
     public TaskRateLimitModel cloneInstance(){

@@ -87,8 +87,8 @@ public abstract class _XtChooseModel extends io.nop.xlang.xt.model.XtRuleModel {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("otherwise",this.getOtherwise());
-        out.put("when",this.getWhen());
+        out.putNotNull("otherwise",this.getOtherwise());
+        out.putNotNull("when",this.getWhen());
     }
 
     public XtChooseModel cloneInstance(){

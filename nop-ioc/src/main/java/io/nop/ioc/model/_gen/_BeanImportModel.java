@@ -57,7 +57,7 @@ public abstract class _BeanImportModel extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("resource",this.getResource());
+        out.putNotNull("resource",this.getResource());
     }
 
     public BeanImportModel cloneInstance(){

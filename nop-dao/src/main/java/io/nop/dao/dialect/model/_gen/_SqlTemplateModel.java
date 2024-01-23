@@ -213,13 +213,13 @@ public abstract class _SqlTemplateModel extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("argTypes",this.getArgTypes());
-        out.put("description",this.getDescription());
-        out.put("name",this.getName());
-        out.put("returnType",this.getReturnType());
-        out.put("source",this.getSource());
-        out.put("testSql",this.getTestSql());
-        out.put("type",this.getType());
+        out.putNotNull("argTypes",this.getArgTypes());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("returnType",this.getReturnType());
+        out.putNotNull("source",this.getSource());
+        out.putNotNull("testSql",this.getTestSql());
+        out.putNotNull("type",this.getType());
     }
 
     public SqlTemplateModel cloneInstance(){

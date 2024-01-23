@@ -113,9 +113,9 @@ public abstract class _ExcelConditionalStyle extends io.nop.core.resource.compon
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("range",this.getRange());
-        out.put("style",this.getStyle());
-        out.put("when",this.getWhen());
+        out.putNotNull("range",this.getRange());
+        out.putNotNull("style",this.getStyle());
+        out.putNotNull("when",this.getWhen());
     }
 
     public ExcelConditionalStyle cloneInstance(){

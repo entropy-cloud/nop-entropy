@@ -57,7 +57,7 @@ public abstract class _WfTransitionToAssignedModel extends io.nop.wf.core.model.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("backLink",this.getBackLink());
+        out.putNotNull("backLink",this.getBackLink());
     }
 
     public WfTransitionToAssignedModel cloneInstance(){

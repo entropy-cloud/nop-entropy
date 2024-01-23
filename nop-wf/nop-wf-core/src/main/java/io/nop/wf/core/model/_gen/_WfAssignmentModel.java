@@ -267,14 +267,14 @@ public abstract class _WfAssignmentModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("actors",this.getActors());
-        out.put("defaultActorExpr",this.getDefaultActorExpr());
-        out.put("defaultOwnerExpr",this.getDefaultOwnerExpr());
-        out.put("ignoreNoAssign",this.isIgnoreNoAssign());
-        out.put("mustInAssignment",this.isMustInAssignment());
-        out.put("selectExpr",this.getSelectExpr());
-        out.put("selection",this.getSelection());
-        out.put("useManagerWhenNoAssign",this.isUseManagerWhenNoAssign());
+        out.putNotNull("actors",this.getActors());
+        out.putNotNull("defaultActorExpr",this.getDefaultActorExpr());
+        out.putNotNull("defaultOwnerExpr",this.getDefaultOwnerExpr());
+        out.putNotNull("ignoreNoAssign",this.isIgnoreNoAssign());
+        out.putNotNull("mustInAssignment",this.isMustInAssignment());
+        out.putNotNull("selectExpr",this.getSelectExpr());
+        out.putNotNull("selection",this.getSelection());
+        out.putNotNull("useManagerWhenNoAssign",this.isUseManagerWhenNoAssign());
     }
 
     public WfAssignmentModel cloneInstance(){

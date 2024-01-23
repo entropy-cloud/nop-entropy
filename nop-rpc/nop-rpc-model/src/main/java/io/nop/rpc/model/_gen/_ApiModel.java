@@ -407,14 +407,14 @@ public abstract class _ApiModel extends io.nop.core.resource.component.AbstractC
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("apiPackageName",this.getApiPackageName());
-        out.put("description",this.getDescription());
-        out.put("dicts",this.getDicts());
-        out.put("domains",this.getDomains());
-        out.put("imports",this.getImports());
-        out.put("messages",this.getMessages());
-        out.put("options",this.getOptions());
-        out.put("services",this.getServices());
+        out.putNotNull("apiPackageName",this.getApiPackageName());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("dicts",this.getDicts());
+        out.putNotNull("domains",this.getDomains());
+        out.putNotNull("imports",this.getImports());
+        out.putNotNull("messages",this.getMessages());
+        out.putNotNull("options",this.getOptions());
+        out.putNotNull("services",this.getServices());
     }
 
     public ApiModel cloneInstance(){

@@ -83,8 +83,8 @@ public abstract class _RuleOutputValueModel extends io.nop.core.resource.compone
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("name",this.getName());
-        out.put("valueExpr",this.getValueExpr());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("valueExpr",this.getValueExpr());
     }
 
     public RuleOutputValueModel cloneInstance(){

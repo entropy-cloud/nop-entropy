@@ -135,10 +135,10 @@ public abstract class _ApiImportModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("as",this.getAs());
-        out.put("description",this.getDescription());
-        out.put("from",this.getFrom());
-        out.put("public",this.getPublic());
+        out.putNotNull("as",this.getAs());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("from",this.getFrom());
+        out.putNotNull("public",this.getPublic());
     }
 
     public ApiImportModel cloneInstance(){

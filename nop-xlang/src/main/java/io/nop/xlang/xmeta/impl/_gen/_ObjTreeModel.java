@@ -161,11 +161,11 @@ public abstract class _ObjTreeModel extends io.nop.core.resource.component.Abstr
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("childrenProp",this.getChildrenProp());
-        out.put("isLeafProp",this.getIsLeafProp());
-        out.put("levelProp",this.getLevelProp());
-        out.put("parentProp",this.getParentProp());
-        out.put("rootLevelValue",this.getRootLevelValue());
+        out.putNotNull("childrenProp",this.getChildrenProp());
+        out.putNotNull("isLeafProp",this.getIsLeafProp());
+        out.putNotNull("levelProp",this.getLevelProp());
+        out.putNotNull("parentProp",this.getParentProp());
+        out.putNotNull("rootLevelValue",this.getRootLevelValue());
     }
 
     public ObjTreeModel cloneInstance(){

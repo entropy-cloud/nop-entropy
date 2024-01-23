@@ -165,11 +165,11 @@ public abstract class _ObjPropArgModel extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("mandatory",this.isMandatory());
-        out.put("name",this.getName());
-        out.put("schema",this.getSchema());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("mandatory",this.isMandatory());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("schema",this.getSchema());
     }
 
     public ObjPropArgModel cloneInstance(){

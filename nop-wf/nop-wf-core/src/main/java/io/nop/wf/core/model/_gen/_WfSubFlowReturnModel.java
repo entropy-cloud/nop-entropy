@@ -135,10 +135,10 @@ public abstract class _WfSubFlowReturnModel extends io.nop.core.resource.compone
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("output",this.getOutput());
-        out.put("source",this.getSource());
-        out.put("type",this.getType());
-        out.put("var",this.getVar());
+        out.putNotNull("output",this.getOutput());
+        out.putNotNull("source",this.getSource());
+        out.putNotNull("type",this.getType());
+        out.putNotNull("var",this.getVar());
     }
 
     public WfSubFlowReturnModel cloneInstance(){

@@ -221,10 +221,10 @@ public abstract class _XtTransformModel extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("imports",this.getImports());
-        out.put("main",this.getMain());
-        out.put("mappings",this.getMappings());
-        out.put("templates",this.getTemplates());
+        out.putNotNull("imports",this.getImports());
+        out.putNotNull("main",this.getMain());
+        out.putNotNull("mappings",this.getMappings());
+        out.putNotNull("templates",this.getTemplates());
     }
 
     public XtTransformModel cloneInstance(){

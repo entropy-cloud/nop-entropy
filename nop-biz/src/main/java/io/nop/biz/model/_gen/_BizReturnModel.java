@@ -139,10 +139,10 @@ public abstract class _BizReturnModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("mandatory",this.isMandatory());
-        out.put("name",this.getName());
-        out.put("schema",this.getSchema());
-        out.put("type",this.getType());
+        out.putNotNull("mandatory",this.isMandatory());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("schema",this.getSchema());
+        out.putNotNull("type",this.getType());
     }
 
     public BizReturnModel cloneInstance(){

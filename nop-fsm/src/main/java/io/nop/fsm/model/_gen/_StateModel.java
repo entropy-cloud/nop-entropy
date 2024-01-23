@@ -533,23 +533,23 @@ public abstract class _StateModel extends io.nop.core.resource.component.Abstrac
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("activities",this.getActivities());
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("entry",this.getEntry());
-        out.put("exit",this.getExit());
-        out.put("final",this.isFinal());
-        out.put("handleError",this.getHandleError());
-        out.put("id",this.getId());
-        out.put("initial",this.getInitial());
-        out.put("meta",this.getMeta());
-        out.put("onDone",this.getOnDone());
-        out.put("onEntry",this.getOnEntry());
-        out.put("onError",this.getOnError());
-        out.put("onExit",this.getOnExit());
-        out.put("stateValue",this.getStateValue());
-        out.put("states",this.getStates());
-        out.put("transitions",this.getTransitions());
+        out.putNotNull("activities",this.getActivities());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("entry",this.getEntry());
+        out.putNotNull("exit",this.getExit());
+        out.putNotNull("final",this.isFinal());
+        out.putNotNull("handleError",this.getHandleError());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("initial",this.getInitial());
+        out.putNotNull("meta",this.getMeta());
+        out.putNotNull("onDone",this.getOnDone());
+        out.putNotNull("onEntry",this.getOnEntry());
+        out.putNotNull("onError",this.getOnError());
+        out.putNotNull("onExit",this.getOnExit());
+        out.putNotNull("stateValue",this.getStateValue());
+        out.putNotNull("states",this.getStates());
+        out.putNotNull("transitions",this.getTransitions());
     }
 
     public StateModel cloneInstance(){

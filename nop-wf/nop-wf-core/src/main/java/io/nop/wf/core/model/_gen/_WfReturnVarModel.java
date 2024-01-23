@@ -161,11 +161,11 @@ public abstract class _WfReturnVarModel extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("name",this.getName());
-        out.put("source",this.getSource());
-        out.put("type",this.getType());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("source",this.getSource());
+        out.putNotNull("type",this.getType());
     }
 
     public WfReturnVarModel cloneInstance(){

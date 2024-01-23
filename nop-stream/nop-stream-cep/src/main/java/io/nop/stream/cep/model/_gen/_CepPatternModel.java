@@ -217,12 +217,12 @@ public abstract class _CepPatternModel extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("afterMatchSkipStrategy",this.getAfterMatchSkipStrategy());
-        out.put("afterMatchSkipTo",this.getAfterMatchSkipTo());
-        out.put("gapWithin",this.getGapWithin());
-        out.put("parts",this.getParts());
-        out.put("start",this.getStart());
-        out.put("within",this.getWithin());
+        out.putNotNull("afterMatchSkipStrategy",this.getAfterMatchSkipStrategy());
+        out.putNotNull("afterMatchSkipTo",this.getAfterMatchSkipTo());
+        out.putNotNull("gapWithin",this.getGapWithin());
+        out.putNotNull("parts",this.getParts());
+        out.putNotNull("start",this.getStart());
+        out.putNotNull("within",this.getWithin());
     }
 
     public CepPatternModel cloneInstance(){

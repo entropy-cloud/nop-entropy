@@ -83,8 +83,8 @@ public abstract class _ExcelPageBreaks extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("cols",this.getCols());
-        out.put("rows",this.getRows());
+        out.putNotNull("cols",this.getCols());
+        out.putNotNull("rows",this.getRows());
     }
 
     public ExcelPageBreaks cloneInstance(){

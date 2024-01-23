@@ -581,26 +581,26 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("afterParse",this.getAfterParse());
-        out.put("beforeParse",this.getBeforeParse());
-        out.put("description",this.getDescription());
-        out.put("displayMode",this.getDisplayMode());
-        out.put("field",this.getField());
-        out.put("fieldDecider",this.getFieldDecider());
-        out.put("fields",this.getFields());
-        out.put("ignore",this.isIgnore());
-        out.put("keyProp",this.getKeyProp());
-        out.put("list",this.isList());
-        out.put("mandatory",this.isMandatory());
-        out.put("multiple",this.isMultiple());
-        out.put("name",this.getName());
-        out.put("namePattern",this.getNamePattern());
-        out.put("normalizeFieldsExpr",this.getNormalizeFieldsExpr());
-        out.put("resultType",this.getResultType());
-        out.put("sheetNameProp",this.getSheetNameProp());
-        out.put("sheetVarName",this.getSheetVarName());
-        out.put("unknownField",this.getUnknownField());
-        out.put("when",this.getWhen());
+        out.putNotNull("afterParse",this.getAfterParse());
+        out.putNotNull("beforeParse",this.getBeforeParse());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayMode",this.getDisplayMode());
+        out.putNotNull("field",this.getField());
+        out.putNotNull("fieldDecider",this.getFieldDecider());
+        out.putNotNull("fields",this.getFields());
+        out.putNotNull("ignore",this.isIgnore());
+        out.putNotNull("keyProp",this.getKeyProp());
+        out.putNotNull("list",this.isList());
+        out.putNotNull("mandatory",this.isMandatory());
+        out.putNotNull("multiple",this.isMultiple());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("namePattern",this.getNamePattern());
+        out.putNotNull("normalizeFieldsExpr",this.getNormalizeFieldsExpr());
+        out.putNotNull("resultType",this.getResultType());
+        out.putNotNull("sheetNameProp",this.getSheetNameProp());
+        out.putNotNull("sheetVarName",this.getSheetVarName());
+        out.putNotNull("unknownField",this.getUnknownField());
+        out.putNotNull("when",this.getWhen());
     }
 
     public ImportSheetModel cloneInstance(){

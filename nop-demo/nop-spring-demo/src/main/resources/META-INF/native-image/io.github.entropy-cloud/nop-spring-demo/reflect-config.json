@@ -743,6 +743,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "HEADER_SELECTION"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "HEADER_SHARD"
       },
       {
@@ -1401,6 +1406,10 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "attrs",
+        "parameterTypes": []
+      },
       {
         "name": "containsLabel",
         "parameterTypes": [
@@ -5140,6 +5149,10 @@
     "methods": [
       {
         "name": "getAccessToken",
+        "parameterTypes": []
+      },
+      {
+        "name": "getAttrs",
         "parameterTypes": []
       },
       {
@@ -14344,6 +14357,12 @@
         "name": "setSiteMapProvider",
         "parameterTypes": [
           "io.nop.auth.service.sitemap.SiteMapProviderImpl"
+        ]
+      },
+      {
+        "name": "setSkipCheckForAdmin",
+        "parameterTypes": [
+          "boolean"
         ]
       }
     ],
@@ -33350,6 +33369,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getId",
+        "parameterTypes": []
+      },
+      {
         "name": "setEmbeddedId",
         "parameterTypes": [
           "java.lang.String"
@@ -33983,6 +34006,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isEnableIfDebug",
+        "parameterTypes": []
+      },
+      {
         "name": "isEnableIfMissing",
         "parameterTypes": []
       },
@@ -33994,6 +34021,12 @@
         "name": "outputJson",
         "parameterTypes": [
           "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setEnableIfDebug",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -42014,6 +42047,24 @@
       }
     ],
     "name": "io.nop.report.demo.biz.ReportDemoBizModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "doParseText",
+        "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation",
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.rpc.model.proto.ProtoFileParser",
     "unsafeAllocated": false
   },
   {

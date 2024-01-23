@@ -83,8 +83,8 @@ public abstract class _BeanAliasModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("alias",this.getAlias());
-        out.put("name",this.getName());
+        out.putNotNull("alias",this.getAlias());
+        out.putNotNull("name",this.getName());
     }
 
     public BeanAliasModel cloneInstance(){

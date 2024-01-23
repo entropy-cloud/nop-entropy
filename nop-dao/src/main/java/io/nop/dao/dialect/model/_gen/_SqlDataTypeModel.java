@@ -295,16 +295,16 @@ public abstract class _SqlDataTypeModel extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("alias",this.getAlias());
-        out.put("allowExceedPrecision",this.isAllowExceedPrecision());
-        out.put("allowPrecision",this.getAllowPrecision());
-        out.put("code",this.getCode());
-        out.put("deprecated",this.isDeprecated());
-        out.put("jdbcBinder",this.getJdbcBinder());
-        out.put("name",this.getName());
-        out.put("precision",this.getPrecision());
-        out.put("scale",this.getScale());
-        out.put("stdSqlType",this.getStdSqlType());
+        out.putNotNull("alias",this.getAlias());
+        out.putNotNull("allowExceedPrecision",this.isAllowExceedPrecision());
+        out.putNotNull("allowPrecision",this.getAllowPrecision());
+        out.putNotNull("code",this.getCode());
+        out.putNotNull("deprecated",this.isDeprecated());
+        out.putNotNull("jdbcBinder",this.getJdbcBinder());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("precision",this.getPrecision());
+        out.putNotNull("scale",this.getScale());
+        out.putNotNull("stdSqlType",this.getStdSqlType());
     }
 
     public SqlDataTypeModel cloneInstance(){

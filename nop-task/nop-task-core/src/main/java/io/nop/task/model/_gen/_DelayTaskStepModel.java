@@ -57,7 +57,7 @@ public abstract class _DelayTaskStepModel extends io.nop.task.model.TaskStepMode
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("delayMillisExpr",this.getDelayMillisExpr());
+        out.putNotNull("delayMillisExpr",this.getDelayMillisExpr());
     }
 
     public DelayTaskStepModel cloneInstance(){

@@ -757,31 +757,31 @@ public abstract class _DialectModel extends io.nop.core.resource.component.Abstr
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("allSchemaPattern",this.getAllSchemaPattern());
-        out.put("className",this.getClassName());
-        out.put("columnNameCase",this.getColumnNameCase());
-        out.put("dbProductNames",this.getDbProductNames());
-        out.put("defaultNullsFirst",this.getDefaultNullsFirst());
-        out.put("discoverySqls",this.getDiscoverySqls());
-        out.put("driverClassName",this.getDriverClassName());
-        out.put("errorCodes",this.getErrorCodes());
-        out.put("features",this.getFeatures());
-        out.put("functions",this.getFunctions());
-        out.put("geometryTypeHandler",this.getGeometryTypeHandler());
-        out.put("jdbcUrlPattern",this.getJdbcUrlPattern());
-        out.put("jsonTypeHandler",this.getJsonTypeHandler());
-        out.put("keywordQuote",this.getKeywordQuote());
-        out.put("keywordUnderscore",this.getKeywordUnderscore());
-        out.put("maxBytesSize",this.getMaxBytesSize());
-        out.put("maxStringSize",this.getMaxStringSize());
-        out.put("paginationHandler",this.getPaginationHandler());
-        out.put("rename",this.getRename());
-        out.put("reservedKeywords",this.getReservedKeywords());
-        out.put("sqlDataTypes",this.getSqlDataTypes());
-        out.put("sqlExceptionTranslator",this.getSqlExceptionTranslator());
-        out.put("sqls",this.getSqls());
-        out.put("tableNameCase",this.getTableNameCase());
-        out.put("upsertHandler",this.getUpsertHandler());
+        out.putNotNull("allSchemaPattern",this.getAllSchemaPattern());
+        out.putNotNull("className",this.getClassName());
+        out.putNotNull("columnNameCase",this.getColumnNameCase());
+        out.putNotNull("dbProductNames",this.getDbProductNames());
+        out.putNotNull("defaultNullsFirst",this.getDefaultNullsFirst());
+        out.putNotNull("discoverySqls",this.getDiscoverySqls());
+        out.putNotNull("driverClassName",this.getDriverClassName());
+        out.putNotNull("errorCodes",this.getErrorCodes());
+        out.putNotNull("features",this.getFeatures());
+        out.putNotNull("functions",this.getFunctions());
+        out.putNotNull("geometryTypeHandler",this.getGeometryTypeHandler());
+        out.putNotNull("jdbcUrlPattern",this.getJdbcUrlPattern());
+        out.putNotNull("jsonTypeHandler",this.getJsonTypeHandler());
+        out.putNotNull("keywordQuote",this.getKeywordQuote());
+        out.putNotNull("keywordUnderscore",this.getKeywordUnderscore());
+        out.putNotNull("maxBytesSize",this.getMaxBytesSize());
+        out.putNotNull("maxStringSize",this.getMaxStringSize());
+        out.putNotNull("paginationHandler",this.getPaginationHandler());
+        out.putNotNull("rename",this.getRename());
+        out.putNotNull("reservedKeywords",this.getReservedKeywords());
+        out.putNotNull("sqlDataTypes",this.getSqlDataTypes());
+        out.putNotNull("sqlExceptionTranslator",this.getSqlExceptionTranslator());
+        out.putNotNull("sqls",this.getSqls());
+        out.putNotNull("tableNameCase",this.getTableNameCase());
+        out.putNotNull("upsertHandler",this.getUpsertHandler());
     }
 
     public DialectModel cloneInstance(){

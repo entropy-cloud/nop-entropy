@@ -109,9 +109,9 @@ public abstract class _ExcelSheetOptions extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("fitToPage",this.isFitToPage());
-        out.put("splitHorizontal",this.getSplitHorizontal());
-        out.put("splitVertical",this.getSplitVertical());
+        out.putNotNull("fitToPage",this.isFitToPage());
+        out.putNotNull("splitHorizontal",this.getSplitHorizontal());
+        out.putNotNull("splitVertical",this.getSplitVertical());
     }
 
     public ExcelSheetOptions cloneInstance(){

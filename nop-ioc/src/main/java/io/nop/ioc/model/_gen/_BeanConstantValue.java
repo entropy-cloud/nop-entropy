@@ -57,7 +57,7 @@ public abstract class _BeanConstantValue extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("staticField",this.getStaticField());
+        out.putNotNull("staticField",this.getStaticField());
     }
 
     public BeanConstantValue cloneInstance(){

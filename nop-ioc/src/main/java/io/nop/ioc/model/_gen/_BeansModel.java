@@ -569,17 +569,17 @@ public abstract class _BeansModel extends io.nop.xlang.xdsl.AbstractDslModel {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("aliases",this.getAliases());
-        out.put("beans",this.getBeans());
-        out.put("defaultLazyInit",this.isDefaultLazyInit());
-        out.put("imports",this.getImports());
-        out.put("iocConfigs",this.getIocConfigs());
-        out.put("iocListeners",this.getIocListeners());
-        out.put("iocSecurityDomain",this.getIocSecurityDomain());
-        out.put("utilConstants",this.getUtilConstants());
-        out.put("utilLists",this.getUtilLists());
-        out.put("utilMaps",this.getUtilMaps());
-        out.put("utilSets",this.getUtilSets());
+        out.putNotNull("aliases",this.getAliases());
+        out.putNotNull("beans",this.getBeans());
+        out.putNotNull("defaultLazyInit",this.isDefaultLazyInit());
+        out.putNotNull("imports",this.getImports());
+        out.putNotNull("iocConfigs",this.getIocConfigs());
+        out.putNotNull("iocListeners",this.getIocListeners());
+        out.putNotNull("iocSecurityDomain",this.getIocSecurityDomain());
+        out.putNotNull("utilConstants",this.getUtilConstants());
+        out.putNotNull("utilLists",this.getUtilLists());
+        out.putNotNull("utilMaps",this.getUtilMaps());
+        out.putNotNull("utilSets",this.getUtilSets());
     }
 
     public BeansModel cloneInstance(){

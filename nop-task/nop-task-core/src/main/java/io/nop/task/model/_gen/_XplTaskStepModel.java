@@ -57,7 +57,7 @@ public abstract class _XplTaskStepModel extends io.nop.task.model.TaskStepModel 
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("source",this.getSource());
+        out.putNotNull("source",this.getSource());
     }
 
     public XplTaskStepModel cloneInstance(){

@@ -57,7 +57,7 @@ public abstract class _RecordTypeMeta extends io.nop.record.model.RecordObjectMe
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("name",this.getName());
+        out.putNotNull("name",this.getName());
     }
 
     public RecordTypeMeta cloneInstance(){

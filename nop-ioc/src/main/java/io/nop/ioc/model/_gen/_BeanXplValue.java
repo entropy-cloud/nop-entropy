@@ -83,8 +83,8 @@ public abstract class _BeanXplValue extends io.nop.core.resource.component.Abstr
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("outputMode",this.getOutputMode());
-        out.put("source",this.getSource());
+        out.putNotNull("outputMode",this.getOutputMode());
+        out.putNotNull("source",this.getSource());
     }
 
     public BeanXplValue cloneInstance(){

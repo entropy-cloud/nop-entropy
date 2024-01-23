@@ -109,9 +109,9 @@ public abstract class _ObjSelectionMeta extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("displayName",this.getDisplayName());
-        out.put("id",this.getId());
-        out.put("mapping",this.getMapping());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("mapping",this.getMapping());
     }
 
     public ObjSelectionMeta cloneInstance(){

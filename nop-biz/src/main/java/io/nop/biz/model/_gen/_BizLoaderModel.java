@@ -219,12 +219,12 @@ public abstract class _BizLoaderModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("args",this.getArgs());
-        out.put("cache",this.getCache());
-        out.put("disabled",this.isDisabled());
-        out.put("name",this.getName());
-        out.put("return",this.getReturn());
-        out.put("source",this.getSource());
+        out.putNotNull("args",this.getArgs());
+        out.putNotNull("cache",this.getCache());
+        out.putNotNull("disabled",this.isDisabled());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("return",this.getReturn());
+        out.putNotNull("source",this.getSource());
     }
 
     public BizLoaderModel cloneInstance(){

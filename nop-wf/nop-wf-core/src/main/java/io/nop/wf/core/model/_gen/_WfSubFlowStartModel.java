@@ -191,10 +191,10 @@ public abstract class _WfSubFlowStartModel extends io.nop.core.resource.componen
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("args",this.getArgs());
-        out.put("returns",this.getReturns());
-        out.put("wfName",this.getWfName());
-        out.put("wfVersion",this.getWfVersion());
+        out.putNotNull("args",this.getArgs());
+        out.putNotNull("returns",this.getReturns());
+        out.putNotNull("wfName",this.getWfName());
+        out.putNotNull("wfVersion",this.getWfVersion());
     }
 
     public WfSubFlowStartModel cloneInstance(){

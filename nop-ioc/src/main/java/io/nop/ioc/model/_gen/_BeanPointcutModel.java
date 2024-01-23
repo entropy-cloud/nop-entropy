@@ -83,8 +83,8 @@ public abstract class _BeanPointcutModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("annotations",this.getAnnotations());
-        out.put("order",this.getOrder());
+        out.putNotNull("annotations",this.getAnnotations());
+        out.putNotNull("order",this.getOrder());
     }
 
     public BeanPointcutModel cloneInstance(){

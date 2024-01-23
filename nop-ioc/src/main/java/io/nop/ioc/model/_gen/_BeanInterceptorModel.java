@@ -83,8 +83,8 @@ public abstract class _BeanInterceptorModel extends io.nop.core.resource.compone
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("bean",this.getBean());
-        out.put("order",this.getOrder());
+        out.putNotNull("bean",this.getBean());
+        out.putNotNull("order",this.getOrder());
     }
 
     public BeanInterceptorModel cloneInstance(){

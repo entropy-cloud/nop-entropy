@@ -819,35 +819,35 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("afterTransition",this.getAfterTransition());
-        out.put("allowReject",this.isAllowReject());
-        out.put("allowWithdraw",this.isAllowWithdraw());
-        out.put("appState",this.getAppState());
-        out.put("assignment",this.getAssignment());
-        out.put("beforeTransition",this.getBeforeTransition());
-        out.put("bizEntityState",this.getBizEntityState());
-        out.put("checkComplete",this.getCheckComplete());
-        out.put("displayName",this.getDisplayName());
-        out.put("dueAction",this.getDueAction());
-        out.put("dueTimeExpr",this.getDueTimeExpr());
-        out.put("independent",this.isIndependent());
-        out.put("initAsWaiting",this.isInitAsWaiting());
-        out.put("internal",this.isInternal());
-        out.put("mayActivated",this.getMayActivated());
-        out.put("name",this.getName());
-        out.put("onEnter",this.getOnEnter());
-        out.put("onError",this.getOnError());
-        out.put("onExit",this.getOnExit());
-        out.put("optional",this.isOptional());
-        out.put("priority",this.getPriority());
-        out.put("refActions",this.getRefActions());
-        out.put("retry",this.getRetry());
-        out.put("source",this.getSource());
-        out.put("specialType",this.getSpecialType());
-        out.put("tagSet",this.getTagSet());
-        out.put("transition",this.getTransition());
-        out.put("waitSignals",this.getWaitSignals());
-        out.put("wfAppState",this.getWfAppState());
+        out.putNotNull("afterTransition",this.getAfterTransition());
+        out.putNotNull("allowReject",this.isAllowReject());
+        out.putNotNull("allowWithdraw",this.isAllowWithdraw());
+        out.putNotNull("appState",this.getAppState());
+        out.putNotNull("assignment",this.getAssignment());
+        out.putNotNull("beforeTransition",this.getBeforeTransition());
+        out.putNotNull("bizEntityState",this.getBizEntityState());
+        out.putNotNull("checkComplete",this.getCheckComplete());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("dueAction",this.getDueAction());
+        out.putNotNull("dueTimeExpr",this.getDueTimeExpr());
+        out.putNotNull("independent",this.isIndependent());
+        out.putNotNull("initAsWaiting",this.isInitAsWaiting());
+        out.putNotNull("internal",this.isInternal());
+        out.putNotNull("mayActivated",this.getMayActivated());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("onEnter",this.getOnEnter());
+        out.putNotNull("onError",this.getOnError());
+        out.putNotNull("onExit",this.getOnExit());
+        out.putNotNull("optional",this.isOptional());
+        out.putNotNull("priority",this.getPriority());
+        out.putNotNull("refActions",this.getRefActions());
+        out.putNotNull("retry",this.getRetry());
+        out.putNotNull("source",this.getSource());
+        out.putNotNull("specialType",this.getSpecialType());
+        out.putNotNull("tagSet",this.getTagSet());
+        out.putNotNull("transition",this.getTransition());
+        out.putNotNull("waitSignals",this.getWaitSignals());
+        out.putNotNull("wfAppState",this.getWfAppState());
     }
 
     public WfStepModel cloneInstance(){

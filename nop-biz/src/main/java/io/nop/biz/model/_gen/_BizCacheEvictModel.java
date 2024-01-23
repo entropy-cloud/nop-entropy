@@ -83,8 +83,8 @@ public abstract class _BizCacheEvictModel extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("cacheKeyExpr",this.getCacheKeyExpr());
-        out.put("cacheName",this.getCacheName());
+        out.putNotNull("cacheKeyExpr",this.getCacheKeyExpr());
+        out.putNotNull("cacheName",this.getCacheName());
     }
 
     public BizCacheEvictModel cloneInstance(){

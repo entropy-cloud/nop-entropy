@@ -83,8 +83,8 @@ public abstract class _RuleOutputDefineModel extends io.nop.xlang.xmeta.ObjVarDe
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("aggregate",this.getAggregate());
-        out.put("useWeight",this.isUseWeight());
+        out.putNotNull("aggregate",this.getAggregate());
+        out.putNotNull("useWeight",this.isUseWeight());
     }
 
     public RuleOutputDefineModel cloneInstance(){

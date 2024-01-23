@@ -161,11 +161,11 @@ public abstract class _SqlFunctionModel extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("className",this.getClassName());
-        out.put("description",this.getDescription());
-        out.put("name",this.getName());
-        out.put("testSql",this.getTestSql());
-        out.put("type",this.getType());
+        out.putNotNull("className",this.getClassName());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("testSql",this.getTestSql());
+        out.putNotNull("type",this.getType());
     }
 
     public SqlFunctionModel cloneInstance(){

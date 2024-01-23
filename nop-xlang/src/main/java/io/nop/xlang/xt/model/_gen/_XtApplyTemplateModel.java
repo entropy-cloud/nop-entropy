@@ -109,9 +109,9 @@ public abstract class _XtApplyTemplateModel extends io.nop.xlang.xt.model.XtRule
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("id",this.getId());
-        out.put("mandatory",this.isMandatory());
-        out.put("xpath",this.getXpath());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("mandatory",this.isMandatory());
+        out.putNotNull("xpath",this.getXpath());
     }
 
     public XtApplyTemplateModel cloneInstance(){

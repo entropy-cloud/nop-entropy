@@ -83,8 +83,8 @@ public abstract class _XtCopyNodeModel extends io.nop.xlang.xt.model.XtRuleModel
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("mandatory",this.isMandatory());
-        out.put("xpath",this.getXpath());
+        out.putNotNull("mandatory",this.isMandatory());
+        out.putNotNull("xpath",this.getXpath());
     }
 
     public XtCopyNodeModel cloneInstance(){

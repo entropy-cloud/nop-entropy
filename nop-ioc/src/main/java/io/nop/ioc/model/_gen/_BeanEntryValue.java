@@ -109,9 +109,9 @@ public abstract class _BeanEntryValue extends io.nop.ioc.model.BeanPropValue {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("key",this.getKey());
-        out.put("value",this.getValue());
-        out.put("valueRef",this.getValueRef());
+        out.putNotNull("key",this.getKey());
+        out.putNotNull("value",this.getValue());
+        out.putNotNull("valueRef",this.getValueRef());
     }
 
     public BeanEntryValue cloneInstance(){

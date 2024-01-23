@@ -583,26 +583,26 @@ public abstract class _UiActionGroupModel extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("actions",this.getActions());
-        out.put("batch",this.getBatch());
-        out.put("block",this.getBlock());
-        out.put("btnClassName",this.getBtnClassName());
-        out.put("className",this.getClassName());
-        out.put("closeOnClick",this.getCloseOnClick());
-        out.put("closeOnOutside",this.getCloseOnOutside());
-        out.put("defaultIsOpened",this.getDefaultIsOpened());
-        out.put("disabledOn",this.getDisabledOn());
-        out.put("hideCaret",this.getHideCaret());
-        out.put("icon",this.getIcon());
-        out.put("iconOnly",this.getIconOnly());
-        out.put("id",this.getId());
-        out.put("label",this.getLabel());
-        out.put("level",this.getLevel());
-        out.put("onEvent",this.getOnEvent());
-        out.put("size",this.getSize());
-        out.put("trigger",this.getTrigger());
-        out.put("type",this.getType());
-        out.put("visibleOn",this.getVisibleOn());
+        out.putNotNull("actions",this.getActions());
+        out.putNotNull("batch",this.getBatch());
+        out.putNotNull("block",this.getBlock());
+        out.putNotNull("btnClassName",this.getBtnClassName());
+        out.putNotNull("className",this.getClassName());
+        out.putNotNull("closeOnClick",this.getCloseOnClick());
+        out.putNotNull("closeOnOutside",this.getCloseOnOutside());
+        out.putNotNull("defaultIsOpened",this.getDefaultIsOpened());
+        out.putNotNull("disabledOn",this.getDisabledOn());
+        out.putNotNull("hideCaret",this.getHideCaret());
+        out.putNotNull("icon",this.getIcon());
+        out.putNotNull("iconOnly",this.getIconOnly());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("label",this.getLabel());
+        out.putNotNull("level",this.getLevel());
+        out.putNotNull("onEvent",this.getOnEvent());
+        out.putNotNull("size",this.getSize());
+        out.putNotNull("trigger",this.getTrigger());
+        out.putNotNull("type",this.getType());
+        out.putNotNull("visibleOn",this.getVisibleOn());
     }
 
     public UiActionGroupModel cloneInstance(){

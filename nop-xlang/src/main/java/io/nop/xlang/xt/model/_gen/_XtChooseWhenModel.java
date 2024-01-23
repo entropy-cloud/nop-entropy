@@ -57,7 +57,7 @@ public abstract class _XtChooseWhenModel extends io.nop.xlang.xt.model.XtRuleGro
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("test",this.getTest());
+        out.putNotNull("test",this.getTest());
     }
 
     public XtChooseWhenModel cloneInstance(){

@@ -83,8 +83,8 @@ public abstract class _ScriptTaskStepModel extends io.nop.task.model.TaskStepMod
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("lang",this.getLang());
-        out.put("source",this.getSource());
+        out.putNotNull("lang",this.getLang());
+        out.putNotNull("source",this.getSource());
     }
 
     public ScriptTaskStepModel cloneInstance(){

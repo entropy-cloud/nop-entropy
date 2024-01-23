@@ -269,13 +269,13 @@ public abstract class _ApiServiceModel extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("className",this.getClassName());
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("methods",this.getMethods());
-        out.put("name",this.getName());
-        out.put("options",this.getOptions());
-        out.put("tagSet",this.getTagSet());
+        out.putNotNull("className",this.getClassName());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("methods",this.getMethods());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("options",this.getOptions());
+        out.putNotNull("tagSet",this.getTagSet());
     }
 
     public ApiServiceModel cloneInstance(){

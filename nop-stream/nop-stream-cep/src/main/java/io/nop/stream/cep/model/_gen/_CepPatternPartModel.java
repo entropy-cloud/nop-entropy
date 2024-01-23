@@ -343,18 +343,18 @@ public abstract class _CepPatternPartModel extends io.nop.core.resource.componen
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("allowCombinations",this.isAllowCombinations());
-        out.put("consecutive",this.isConsecutive());
-        out.put("followKind",this.getFollowKind());
-        out.put("greedy",this.isGreedy());
-        out.put("name",this.getName());
-        out.put("next",this.getNext());
-        out.put("oneOrMore",this.isOneOrMore());
-        out.put("optional",this.isOptional());
-        out.put("subType",this.getSubType());
-        out.put("times",this.getTimes());
-        out.put("timesOrMore",this.getTimesOrMore());
-        out.put("windowTime",this.getWindowTime());
+        out.putNotNull("allowCombinations",this.isAllowCombinations());
+        out.putNotNull("consecutive",this.isConsecutive());
+        out.putNotNull("followKind",this.getFollowKind());
+        out.putNotNull("greedy",this.isGreedy());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("next",this.getNext());
+        out.putNotNull("oneOrMore",this.isOneOrMore());
+        out.putNotNull("optional",this.isOptional());
+        out.putNotNull("subType",this.getSubType());
+        out.putNotNull("times",this.getTimes());
+        out.putNotNull("timesOrMore",this.getTimesOrMore());
+        out.putNotNull("windowTime",this.getWindowTime());
     }
 
     public CepPatternPartModel cloneInstance(){

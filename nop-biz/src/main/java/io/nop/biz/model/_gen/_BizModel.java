@@ -325,14 +325,14 @@ public abstract class _BizModel extends io.nop.core.resource.component.AbstractC
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("actions",this.getActions());
-        out.put("disabledActions",this.getDisabledActions());
-        out.put("inheritActions",this.getInheritActions());
-        out.put("loaders",this.getLoaders());
-        out.put("metaDir",this.getMetaDir());
-        out.put("observes",this.getObserves());
-        out.put("stateMachine",this.getStateMachine());
-        out.put("wfName",this.getWfName());
+        out.putNotNull("actions",this.getActions());
+        out.putNotNull("disabledActions",this.getDisabledActions());
+        out.putNotNull("inheritActions",this.getInheritActions());
+        out.putNotNull("loaders",this.getLoaders());
+        out.putNotNull("metaDir",this.getMetaDir());
+        out.putNotNull("observes",this.getObserves());
+        out.putNotNull("stateMachine",this.getStateMachine());
+        out.putNotNull("wfName",this.getWfName());
     }
 
     public BizModel cloneInstance(){

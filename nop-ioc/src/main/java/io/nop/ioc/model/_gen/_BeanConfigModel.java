@@ -135,10 +135,10 @@ public abstract class _BeanConfigModel extends io.nop.ioc.model.BeanValue {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("id",this.getId());
-        out.put("iocAllowOverride",this.isIocAllowOverride());
-        out.put("iocDefault",this.isIocDefault());
-        out.put("name",this.getName());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("iocAllowOverride",this.isIocAllowOverride());
+        out.putNotNull("iocDefault",this.isIocDefault());
+        out.putNotNull("name",this.getName());
     }
 
     public BeanConfigModel cloneInstance(){

@@ -83,8 +83,8 @@ public abstract class _WfTransitionToStepModel extends io.nop.wf.core.model.WfTr
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("backLink",this.isBackLink());
-        out.put("stepName",this.getStepName());
+        out.putNotNull("backLink",this.isBackLink());
+        out.putNotNull("stepName",this.getStepName());
     }
 
     public WfTransitionToStepModel cloneInstance(){

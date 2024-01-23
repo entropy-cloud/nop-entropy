@@ -593,26 +593,26 @@ public abstract class _BizActionModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("args",this.getArgs());
-        out.put("argsNormalizer",this.getArgsNormalizer());
-        out.put("async",this.isAsync());
-        out.put("auth",this.getAuth());
-        out.put("bizSequential",this.isBizSequential());
-        out.put("cache",this.getCache());
-        out.put("cacheEvicts",this.getCacheEvicts());
-        out.put("disabled",this.isDisabled());
-        out.put("displayName",this.getDisplayName());
-        out.put("executor",this.getExecutor());
-        out.put("idempotent",this.isIdempotent());
-        out.put("makerChecker",this.getMakerChecker());
-        out.put("name",this.getName());
-        out.put("return",this.getReturn());
-        out.put("safe",this.isSafe());
-        out.put("source",this.getSource());
-        out.put("tcc",this.getTcc());
-        out.put("timeout",this.getTimeout());
-        out.put("txn",this.getTxn());
-        out.put("type",this.getType());
+        out.putNotNull("args",this.getArgs());
+        out.putNotNull("argsNormalizer",this.getArgsNormalizer());
+        out.putNotNull("async",this.isAsync());
+        out.putNotNull("auth",this.getAuth());
+        out.putNotNull("bizSequential",this.isBizSequential());
+        out.putNotNull("cache",this.getCache());
+        out.putNotNull("cacheEvicts",this.getCacheEvicts());
+        out.putNotNull("disabled",this.isDisabled());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("executor",this.getExecutor());
+        out.putNotNull("idempotent",this.isIdempotent());
+        out.putNotNull("makerChecker",this.getMakerChecker());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("return",this.getReturn());
+        out.putNotNull("safe",this.isSafe());
+        out.putNotNull("source",this.getSource());
+        out.putNotNull("tcc",this.getTcc());
+        out.putNotNull("timeout",this.getTimeout());
+        out.putNotNull("txn",this.getTxn());
+        out.putNotNull("type",this.getType());
     }
 
     public BizActionModel cloneInstance(){

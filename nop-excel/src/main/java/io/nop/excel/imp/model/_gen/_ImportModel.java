@@ -321,16 +321,16 @@ public abstract class _ImportModel extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("afterParse",this.getAfterParse());
-        out.put("beforeParse",this.getBeforeParse());
-        out.put("defaultStripText",this.isDefaultStripText());
-        out.put("dump",this.isDump());
-        out.put("ignoreUnknownSheet",this.isIgnoreUnknownSheet());
-        out.put("resultType",this.getResultType());
-        out.put("sheets",this.getSheets());
-        out.put("templatePath",this.getTemplatePath());
-        out.put("validator",this.getValidator());
-        out.put("xdef",this.getXdef());
+        out.putNotNull("afterParse",this.getAfterParse());
+        out.putNotNull("beforeParse",this.getBeforeParse());
+        out.putNotNull("defaultStripText",this.isDefaultStripText());
+        out.putNotNull("dump",this.isDump());
+        out.putNotNull("ignoreUnknownSheet",this.isIgnoreUnknownSheet());
+        out.putNotNull("resultType",this.getResultType());
+        out.putNotNull("sheets",this.getSheets());
+        out.putNotNull("templatePath",this.getTemplatePath());
+        out.putNotNull("validator",this.getValidator());
+        out.putNotNull("xdef",this.getXdef());
     }
 
     public ImportModel cloneInstance(){

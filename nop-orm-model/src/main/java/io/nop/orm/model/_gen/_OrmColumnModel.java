@@ -661,30 +661,30 @@ public abstract class _OrmColumnModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("code",this.getCode());
-        out.put("comment",this.getComment());
-        out.put("defaultValue",this.getDefaultValue());
-        out.put("displayName",this.getDisplayName());
-        out.put("domain",this.getDomain());
-        out.put("fixedValue",this.getFixedValue());
-        out.put("insertable",this.isInsertable());
-        out.put("jsonPath",this.getJsonPath());
-        out.put("lazy",this.isLazy());
-        out.put("mandatory",this.isMandatory());
-        out.put("name",this.getName());
-        out.put("nativeSqlType",this.getNativeSqlType());
-        out.put("notGenCode",this.isNotGenCode());
-        out.put("precision",this.getPrecision());
-        out.put("primary",this.isPrimary());
-        out.put("propId",this.getPropId());
-        out.put("scale",this.getScale());
-        out.put("sqlText",this.getSqlText());
-        out.put("stdDataType",this.getStdDataType());
-        out.put("stdDomain",this.getStdDomain());
-        out.put("stdSqlType",this.getStdSqlType());
-        out.put("tagSet",this.getTagSet());
-        out.put("uiHint",this.getUiHint());
-        out.put("updatable",this.isUpdatable());
+        out.putNotNull("code",this.getCode());
+        out.putNotNull("comment",this.getComment());
+        out.putNotNull("defaultValue",this.getDefaultValue());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("domain",this.getDomain());
+        out.putNotNull("fixedValue",this.getFixedValue());
+        out.putNotNull("insertable",this.isInsertable());
+        out.putNotNull("jsonPath",this.getJsonPath());
+        out.putNotNull("lazy",this.isLazy());
+        out.putNotNull("mandatory",this.isMandatory());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("nativeSqlType",this.getNativeSqlType());
+        out.putNotNull("notGenCode",this.isNotGenCode());
+        out.putNotNull("precision",this.getPrecision());
+        out.putNotNull("primary",this.isPrimary());
+        out.putNotNull("propId",this.getPropId());
+        out.putNotNull("scale",this.getScale());
+        out.putNotNull("sqlText",this.getSqlText());
+        out.putNotNull("stdDataType",this.getStdDataType());
+        out.putNotNull("stdDomain",this.getStdDomain());
+        out.putNotNull("stdSqlType",this.getStdSqlType());
+        out.putNotNull("tagSet",this.getTagSet());
+        out.putNotNull("uiHint",this.getUiHint());
+        out.putNotNull("updatable",this.isUpdatable());
     }
 
     public OrmColumnModel cloneInstance(){

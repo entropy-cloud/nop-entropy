@@ -59,7 +59,7 @@ public abstract class _WfSubFlowModel extends io.nop.wf.core.model.WfStepModel {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("start",this.getStart());
+        out.putNotNull("start",this.getStart());
     }
 
     public WfSubFlowModel cloneInstance(){

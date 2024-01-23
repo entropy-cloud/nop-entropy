@@ -265,15 +265,15 @@ public abstract class _XplTagSlotArg extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("defaultValue",this.getDefaultValue());
-        out.put("deprecated",this.isDeprecated());
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("implicit",this.isImplicit());
-        out.put("mandatory",this.isMandatory());
-        out.put("name",this.getName());
-        out.put("stdDomain",this.getStdDomain());
-        out.put("type",this.getType());
+        out.putNotNull("defaultValue",this.getDefaultValue());
+        out.putNotNull("deprecated",this.isDeprecated());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("implicit",this.isImplicit());
+        out.putNotNull("mandatory",this.isMandatory());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("stdDomain",this.getStdDomain());
+        out.putNotNull("type",this.getType());
     }
 
     public XplTagSlotArg cloneInstance(){

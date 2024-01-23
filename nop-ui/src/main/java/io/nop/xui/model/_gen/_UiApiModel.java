@@ -461,22 +461,22 @@ public abstract class _UiApiModel extends io.nop.core.resource.component.Abstrac
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("adaptor",this.getAdaptor());
-        out.put("autoRefresh",this.getAutoRefresh());
-        out.put("cache",this.getCache());
-        out.put("convertKeyToPath",this.getConvertKeyToPath());
-        out.put("data",this.getData());
-        out.put("dataType",this.getDataType());
-        out.put("headers",this.getHeaders());
-        out.put("method",this.getMethod());
-        out.put("replaceData",this.getReplaceData());
-        out.put("requestAdaptor",this.getRequestAdaptor());
-        out.put("responseData",this.getResponseData());
-        out.put("responseType",this.getResponseType());
-        out.put("sendOn",this.getSendOn());
-        out.put("trackExpression",this.getTrackExpression());
-        out.put("url",this.getUrl());
-        out.put("withFormData",this.getWithFormData());
+        out.putNotNull("adaptor",this.getAdaptor());
+        out.putNotNull("autoRefresh",this.getAutoRefresh());
+        out.putNotNull("cache",this.getCache());
+        out.putNotNull("convertKeyToPath",this.getConvertKeyToPath());
+        out.putNotNull("data",this.getData());
+        out.putNotNull("dataType",this.getDataType());
+        out.putNotNull("headers",this.getHeaders());
+        out.putNotNull("method",this.getMethod());
+        out.putNotNull("replaceData",this.getReplaceData());
+        out.putNotNull("requestAdaptor",this.getRequestAdaptor());
+        out.putNotNull("responseData",this.getResponseData());
+        out.putNotNull("responseType",this.getResponseType());
+        out.putNotNull("sendOn",this.getSendOn());
+        out.putNotNull("trackExpression",this.getTrackExpression());
+        out.putNotNull("url",this.getUrl());
+        out.putNotNull("withFormData",this.getWithFormData());
     }
 
     public UiApiModel cloneInstance(){

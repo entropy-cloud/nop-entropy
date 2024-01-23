@@ -187,12 +187,12 @@ public abstract class _OrmAliasModel extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("displayName",this.getDisplayName());
-        out.put("name",this.getName());
-        out.put("notGenCode",this.isNotGenCode());
-        out.put("propPath",this.getPropPath());
-        out.put("tagSet",this.getTagSet());
-        out.put("type",this.getType());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("notGenCode",this.isNotGenCode());
+        out.putNotNull("propPath",this.getPropPath());
+        out.putNotNull("tagSet",this.getTagSet());
+        out.putNotNull("type",this.getType());
     }
 
     public OrmAliasModel cloneInstance(){

@@ -161,11 +161,11 @@ public abstract class _OrmUniqueKeyModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("columns",this.getColumns());
-        out.put("comment",this.getComment());
-        out.put("constraint",this.getConstraint());
-        out.put("displayName",this.getDisplayName());
-        out.put("name",this.getName());
+        out.putNotNull("columns",this.getColumns());
+        out.putNotNull("comment",this.getComment());
+        out.putNotNull("constraint",this.getConstraint());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("name",this.getName());
     }
 
     public OrmUniqueKeyModel cloneInstance(){

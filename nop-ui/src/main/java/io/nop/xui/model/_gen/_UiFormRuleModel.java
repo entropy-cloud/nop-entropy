@@ -135,10 +135,10 @@ public abstract class _UiFormRuleModel extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("id",this.getId());
-        out.put("message",this.getMessage());
-        out.put("name",this.getName());
-        out.put("rule",this.getRule());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("message",this.getMessage());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("rule",this.getRule());
     }
 
     public UiFormRuleModel cloneInstance(){

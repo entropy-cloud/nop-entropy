@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ExtensibleBean;
 
+import java.util.Map;
 import java.util.Set;
 
 @DataBean
@@ -122,4 +123,8 @@ public class LoginUserInfo extends ExtensibleBean {
         this.deptName = deptName;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public Map<String, Object> getAttrs() {
+        return super.getAttrs();
+    }
 }

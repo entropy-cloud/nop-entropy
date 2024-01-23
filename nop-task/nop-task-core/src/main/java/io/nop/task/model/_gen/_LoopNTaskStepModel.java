@@ -161,11 +161,11 @@ public abstract class _LoopNTaskStepModel extends io.nop.task.model.TaskStepsMod
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("beginExpr",this.getBeginExpr());
-        out.put("endExpr",this.getEndExpr());
-        out.put("index",this.getIndex());
-        out.put("step",this.getStep());
-        out.put("var",this.getVar());
+        out.putNotNull("beginExpr",this.getBeginExpr());
+        out.putNotNull("endExpr",this.getEndExpr());
+        out.putNotNull("index",this.getIndex());
+        out.putNotNull("step",this.getStep());
+        out.putNotNull("var",this.getVar());
     }
 
     public LoopNTaskStepModel cloneInstance(){

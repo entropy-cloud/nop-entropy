@@ -239,14 +239,14 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("allowStartIfComplete",this.isAllowStartIfComplete());
-        out.put("extType",this.getExtType());
-        out.put("internal",this.isInternal());
-        out.put("next",this.getNext());
-        out.put("onError",this.getOnError());
-        out.put("returnAs",this.getReturnAs());
-        out.put("saveState",this.isSaveState());
-        out.put("tagSet",this.getTagSet());
+        out.putNotNull("allowStartIfComplete",this.isAllowStartIfComplete());
+        out.putNotNull("extType",this.getExtType());
+        out.putNotNull("internal",this.isInternal());
+        out.putNotNull("next",this.getNext());
+        out.putNotNull("onError",this.getOnError());
+        out.putNotNull("returnAs",this.getReturnAs());
+        out.putNotNull("saveState",this.isSaveState());
+        out.putNotNull("tagSet",this.getTagSet());
     }
 
     public TaskStepModel cloneInstance(){

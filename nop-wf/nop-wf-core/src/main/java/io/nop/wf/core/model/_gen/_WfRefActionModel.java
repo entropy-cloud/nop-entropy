@@ -57,7 +57,7 @@ public abstract class _WfRefActionModel extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("name",this.getName());
+        out.putNotNull("name",this.getName());
     }
 
     public WfRefActionModel cloneInstance(){

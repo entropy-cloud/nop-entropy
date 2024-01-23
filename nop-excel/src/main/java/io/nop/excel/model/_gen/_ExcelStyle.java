@@ -539,25 +539,25 @@ public abstract class _ExcelStyle extends io.nop.core.resource.component.Abstrac
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("bottomBorder",this.getBottomBorder());
-        out.put("diagonalLeftBorder",this.getDiagonalLeftBorder());
-        out.put("diagonalRightBorder",this.getDiagonalRightBorder());
-        out.put("fillBgColor",this.getFillBgColor());
-        out.put("fillFgColor",this.getFillFgColor());
-        out.put("fillPattern",this.getFillPattern());
-        out.put("font",this.getFont());
-        out.put("horizontalAlign",this.getHorizontalAlign());
-        out.put("id",this.getId());
-        out.put("indent",this.getIndent());
-        out.put("leftBorder",this.getLeftBorder());
-        out.put("name",this.getName());
-        out.put("numberFormat",this.getNumberFormat());
-        out.put("rightBorder",this.getRightBorder());
-        out.put("rotate",this.getRotate());
-        out.put("shrinkToFit",this.isShrinkToFit());
-        out.put("topBorder",this.getTopBorder());
-        out.put("verticalAlign",this.getVerticalAlign());
-        out.put("wrapText",this.isWrapText());
+        out.putNotNull("bottomBorder",this.getBottomBorder());
+        out.putNotNull("diagonalLeftBorder",this.getDiagonalLeftBorder());
+        out.putNotNull("diagonalRightBorder",this.getDiagonalRightBorder());
+        out.putNotNull("fillBgColor",this.getFillBgColor());
+        out.putNotNull("fillFgColor",this.getFillFgColor());
+        out.putNotNull("fillPattern",this.getFillPattern());
+        out.putNotNull("font",this.getFont());
+        out.putNotNull("horizontalAlign",this.getHorizontalAlign());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("indent",this.getIndent());
+        out.putNotNull("leftBorder",this.getLeftBorder());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("numberFormat",this.getNumberFormat());
+        out.putNotNull("rightBorder",this.getRightBorder());
+        out.putNotNull("rotate",this.getRotate());
+        out.putNotNull("shrinkToFit",this.isShrinkToFit());
+        out.putNotNull("topBorder",this.getTopBorder());
+        out.putNotNull("verticalAlign",this.getVerticalAlign());
+        out.putNotNull("wrapText",this.isWrapText());
     }
 
     public ExcelStyle cloneInstance(){

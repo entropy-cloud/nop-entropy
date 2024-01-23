@@ -83,8 +83,8 @@ public abstract class _GatewayOnPathModel extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("id",this.getId());
-        out.put("path",this.getPath());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("path",this.getPath());
     }
 
     public GatewayOnPathModel cloneInstance(){

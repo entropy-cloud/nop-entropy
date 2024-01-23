@@ -11,6 +11,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ExtensibleBean;
 
+import java.util.Map;
+
 /**
  * 返回的结果数据与OAuth响应相同
  */
@@ -96,4 +98,10 @@ public class LoginResult extends ExtensibleBean {
     public void setSessionState(String sessionState) {
         this.sessionState = sessionState;
     }
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public Map<String, Object> getAttrs() {
+        return super.getAttrs();
+    }
+
 }

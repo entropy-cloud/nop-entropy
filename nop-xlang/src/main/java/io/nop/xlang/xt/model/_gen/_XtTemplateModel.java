@@ -57,7 +57,7 @@ public abstract class _XtTemplateModel extends io.nop.xlang.xt.model.XtRuleGroup
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("id",this.getId());
+        out.putNotNull("id",this.getId());
     }
 
     public XtTemplateModel cloneInstance(){

@@ -68,8 +68,6 @@
 /nop/excel/xlib/imp-gen.xlib
 /nop/graphql/base.graphql
 /nop/graphql/default.graphql
-/nop/graphql/imp/api.imp.xml
-/nop/graphql/imp/template.api.xlsx
 /nop/graphql/introspection.graphql
 /nop/orm/beans/orm-defaults.beans.xml
 /nop/orm/imp/orm.imp.xml
@@ -89,6 +87,8 @@
 /nop/orm/xlib/sql.xlib
 /nop/report/beans/report-defaults.beans.xml
 /nop/report/imp/xpt.imp.xml
+/nop/rpc/imp/api.imp.xml
+/nop/rpc/imp/template.api.xlsx
 /nop/schema/action-auth.xdef
 /nop/schema/api.xdef
 /nop/schema/beans.xdef
@@ -165,6 +165,7 @@
 /nop/templates/api/{apiModuleName}/src/main/java/{apiPackagePath}/beans/_gen/_{messageModel.name}.java.xgen
 /nop/templates/api/{apiModuleName}/src/main/java/{apiPackagePath}/beans/{messageModel.name}.java.xgen
 /nop/templates/api/{apiModuleName}/src/main/java/{apiPackagePath}/{serviceModel.name}.java.xgen
+/nop/templates/api/{apiModuleName}/src/main/resources/_vfs/{moduleId}/model/{appName}.api.xml.xgen
 /nop/templates/api/{metaModuleName}/src/main/resources/_vfs/{moduleId}/model/{serviceModel.name}/_{messageModel.name}.xmeta.xgen
 /nop/templates/api/{metaModuleName}/src/main/resources/_vfs/{moduleId}/model/{serviceModel.name}/{messageModel.name}.xmeta.xgen
 /nop/templates/api/{serviceModuleName}/src/main/java/{servicePackagePath}/impl/{serviceModel.name}Impl.java.xgen

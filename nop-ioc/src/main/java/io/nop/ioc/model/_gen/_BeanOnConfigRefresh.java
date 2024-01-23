@@ -109,9 +109,9 @@ public abstract class _BeanOnConfigRefresh extends io.nop.core.resource.componen
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("invoke",this.getInvoke());
-        out.put("observe",this.getObserve());
-        out.put("source",this.getSource());
+        out.putNotNull("invoke",this.getInvoke());
+        out.putNotNull("observe",this.getObserve());
+        out.putNotNull("source",this.getSource());
     }
 
     public BeanOnConfigRefresh cloneInstance(){

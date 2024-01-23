@@ -135,10 +135,10 @@ public abstract class _BizObserveModel extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("eventPattern",this.getEventPattern());
-        out.put("from",this.getFrom());
-        out.put("id",this.getId());
-        out.put("source",this.getSource());
+        out.putNotNull("eventPattern",this.getEventPattern());
+        out.putNotNull("from",this.getFrom());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("source",this.getSource());
     }
 
     public BizObserveModel cloneInstance(){

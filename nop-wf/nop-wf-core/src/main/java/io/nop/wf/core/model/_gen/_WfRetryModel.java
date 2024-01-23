@@ -161,11 +161,11 @@ public abstract class _WfRetryModel extends io.nop.core.resource.component.Abstr
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("exceptionFilter",this.getExceptionFilter());
-        out.put("exponentialDelay",this.isExponentialDelay());
-        out.put("maxRetryCount",this.getMaxRetryCount());
-        out.put("maxRetryDelay",this.getMaxRetryDelay());
-        out.put("retryDelay",this.getRetryDelay());
+        out.putNotNull("exceptionFilter",this.getExceptionFilter());
+        out.putNotNull("exponentialDelay",this.isExponentialDelay());
+        out.putNotNull("maxRetryCount",this.getMaxRetryCount());
+        out.putNotNull("maxRetryDelay",this.getMaxRetryDelay());
+        out.putNotNull("retryDelay",this.getRetryDelay());
     }
 
     public WfRetryModel cloneInstance(){

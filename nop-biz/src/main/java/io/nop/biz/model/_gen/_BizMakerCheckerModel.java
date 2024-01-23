@@ -83,8 +83,8 @@ public abstract class _BizMakerCheckerModel extends io.nop.core.resource.compone
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("cancelMethod",this.getCancelMethod());
-        out.put("tryMethod",this.getTryMethod());
+        out.putNotNull("cancelMethod",this.getCancelMethod());
+        out.putNotNull("tryMethod",this.getTryMethod());
     }
 
     public BizMakerCheckerModel cloneInstance(){

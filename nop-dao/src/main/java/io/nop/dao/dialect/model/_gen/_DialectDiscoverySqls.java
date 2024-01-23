@@ -343,18 +343,18 @@ public abstract class _DialectDiscoverySqls extends io.nop.core.resource.compone
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("selectCatalogs",this.getSelectCatalogs());
-        out.put("selectConstaints",this.getSelectConstaints());
-        out.put("selectIndexes",this.getSelectIndexes());
-        out.put("selectPrimaryKeys",this.getSelectPrimaryKeys());
-        out.put("selectSchemas",this.getSelectSchemas());
-        out.put("selectSequences",this.getSelectSequences());
-        out.put("selectTableColumnComments",this.getSelectTableColumnComments());
-        out.put("selectTableComments",this.getSelectTableComments());
-        out.put("selectTables",this.getSelectTables());
-        out.put("selectViewColumnComments",this.getSelectViewColumnComments());
-        out.put("selectViewComments",this.getSelectViewComments());
-        out.put("selectViews",this.getSelectViews());
+        out.putNotNull("selectCatalogs",this.getSelectCatalogs());
+        out.putNotNull("selectConstaints",this.getSelectConstaints());
+        out.putNotNull("selectIndexes",this.getSelectIndexes());
+        out.putNotNull("selectPrimaryKeys",this.getSelectPrimaryKeys());
+        out.putNotNull("selectSchemas",this.getSelectSchemas());
+        out.putNotNull("selectSequences",this.getSelectSequences());
+        out.putNotNull("selectTableColumnComments",this.getSelectTableColumnComments());
+        out.putNotNull("selectTableComments",this.getSelectTableComments());
+        out.putNotNull("selectTables",this.getSelectTables());
+        out.putNotNull("selectViewColumnComments",this.getSelectViewColumnComments());
+        out.putNotNull("selectViewComments",this.getSelectViewComments());
+        out.putNotNull("selectViews",this.getSelectViews());
     }
 
     public DialectDiscoverySqls cloneInstance(){

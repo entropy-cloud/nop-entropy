@@ -83,8 +83,8 @@ public abstract class _ExcelAnnotation extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("range",this.getRange());
-        out.put("type",this.getType());
+        out.putNotNull("range",this.getRange());
+        out.putNotNull("type",this.getType());
     }
 
     public ExcelAnnotation cloneInstance(){

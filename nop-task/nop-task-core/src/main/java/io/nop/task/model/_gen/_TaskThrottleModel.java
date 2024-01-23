@@ -109,9 +109,9 @@ public abstract class _TaskThrottleModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("keyExpr",this.getKeyExpr());
-        out.put("maxConcurrent",this.getMaxConcurrent());
-        out.put("maxWait",this.getMaxWait());
+        out.putNotNull("keyExpr",this.getKeyExpr());
+        out.putNotNull("maxConcurrent",this.getMaxConcurrent());
+        out.putNotNull("maxWait",this.getMaxWait());
     }
 
     public TaskThrottleModel cloneInstance(){

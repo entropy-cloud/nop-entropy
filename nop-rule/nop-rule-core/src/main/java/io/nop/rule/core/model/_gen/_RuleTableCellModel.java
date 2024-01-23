@@ -111,8 +111,8 @@ public abstract class _RuleTableCellModel extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("outputs",this.getOutputs());
-        out.put("pos",this.getPos());
+        out.putNotNull("outputs",this.getOutputs());
+        out.putNotNull("pos",this.getPos());
     }
 
     public RuleTableCellModel cloneInstance(){

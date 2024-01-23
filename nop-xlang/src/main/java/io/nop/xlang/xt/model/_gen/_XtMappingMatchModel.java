@@ -57,7 +57,7 @@ public abstract class _XtMappingMatchModel extends io.nop.xlang.xt.model.XtRuleG
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("tag",this.getTag());
+        out.putNotNull("tag",this.getTag());
     }
 
     public XtMappingMatchModel cloneInstance(){

@@ -319,17 +319,17 @@ public abstract class _SqlNativeFunctionModel extends io.nop.core.resource.compo
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("argTypes",this.getArgTypes());
-        out.put("description",this.getDescription());
-        out.put("hasParenthesis",this.getHasParenthesis());
-        out.put("maxArgCount",this.getMaxArgCount());
-        out.put("minArgCount",this.getMinArgCount());
-        out.put("name",this.getName());
-        out.put("realName",this.getRealName());
-        out.put("returnType",this.getReturnType());
-        out.put("special",this.getSpecial());
-        out.put("testSql",this.getTestSql());
-        out.put("type",this.getType());
+        out.putNotNull("argTypes",this.getArgTypes());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("hasParenthesis",this.getHasParenthesis());
+        out.putNotNull("maxArgCount",this.getMaxArgCount());
+        out.putNotNull("minArgCount",this.getMinArgCount());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("realName",this.getRealName());
+        out.putNotNull("returnType",this.getReturnType());
+        out.putNotNull("special",this.getSpecial());
+        out.putNotNull("testSql",this.getTestSql());
+        out.putNotNull("type",this.getType());
     }
 
     public SqlNativeFunctionModel cloneInstance(){

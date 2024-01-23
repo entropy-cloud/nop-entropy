@@ -321,17 +321,17 @@ public abstract class _BeanConditionModel extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("ifProperty",this.getIfProperty());
-        out.put("missingBean",this.getMissingBean());
-        out.put("missingClass",this.getMissingClass());
-        out.put("missingResource",this.getMissingResource());
-        out.put("onBean",this.getOnBean());
-        out.put("onBeanType",this.getOnBeanType());
-        out.put("onClass",this.getOnClass());
-        out.put("onExpr",this.getOnExpr());
-        out.put("onMissingBeanType",this.getOnMissingBeanType());
-        out.put("onResource",this.getOnResource());
-        out.put("unlessProperty",this.getUnlessProperty());
+        out.putNotNull("ifProperty",this.getIfProperty());
+        out.putNotNull("missingBean",this.getMissingBean());
+        out.putNotNull("missingClass",this.getMissingClass());
+        out.putNotNull("missingResource",this.getMissingResource());
+        out.putNotNull("onBean",this.getOnBean());
+        out.putNotNull("onBeanType",this.getOnBeanType());
+        out.putNotNull("onClass",this.getOnClass());
+        out.putNotNull("onExpr",this.getOnExpr());
+        out.putNotNull("onMissingBeanType",this.getOnMissingBeanType());
+        out.putNotNull("onResource",this.getOnResource());
+        out.putNotNull("unlessProperty",this.getUnlessProperty());
     }
 
     public BeanConditionModel cloneInstance(){

@@ -83,8 +83,8 @@ public abstract class _BeanPropEntryValue extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("body",this.getBody());
-        out.put("key",this.getKey());
+        out.putNotNull("body",this.getBody());
+        out.putNotNull("key",this.getKey());
     }
 
     public BeanPropEntryValue cloneInstance(){

@@ -109,9 +109,9 @@ public abstract class _ObjKeyModel extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("displayName",this.getDisplayName());
-        out.put("name",this.getName());
-        out.put("props",this.getProps());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("props",this.getProps());
     }
 
     public ObjKeyModel cloneInstance(){

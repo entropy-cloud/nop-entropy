@@ -57,7 +57,7 @@ public abstract class _BeanSetValue extends io.nop.ioc.model.BeanCollectionValue
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("setClass",this.getSetClass());
+        out.putNotNull("setClass",this.getSetClass());
     }
 
     public BeanSetValue cloneInstance(){

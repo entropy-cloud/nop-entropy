@@ -109,9 +109,9 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("repeat",this.getRepeat());
-        out.put("repeatExpr",this.getRepeatExpr());
-        out.put("repeatUntil",this.getRepeatUntil());
+        out.putNotNull("repeat",this.getRepeat());
+        out.putNotNull("repeatExpr",this.getRepeatExpr());
+        out.putNotNull("repeatUntil",this.getRepeatUntil());
     }
 
     public RecordFileBodyMeta cloneInstance(){

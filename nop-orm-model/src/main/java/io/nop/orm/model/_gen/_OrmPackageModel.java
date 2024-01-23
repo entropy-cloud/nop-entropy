@@ -161,11 +161,11 @@ public abstract class _OrmPackageModel extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("comment",this.getComment());
-        out.put("diagram",this.getDiagram());
-        out.put("displayName",this.getDisplayName());
-        out.put("entities",this.getEntities());
-        out.put("name",this.getName());
+        out.putNotNull("comment",this.getComment());
+        out.putNotNull("diagram",this.getDiagram());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("entities",this.getEntities());
+        out.putNotNull("name",this.getName());
     }
 
     public OrmPackageModel cloneInstance(){

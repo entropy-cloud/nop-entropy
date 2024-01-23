@@ -161,11 +161,11 @@ public abstract class _WfTransitionToModel extends io.nop.core.resource.componen
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("afterTransition",this.getAfterTransition());
-        out.put("beforeTransition",this.getBeforeTransition());
-        out.put("caseValue",this.getCaseValue());
-        out.put("order",this.getOrder());
-        out.put("when",this.getWhen());
+        out.putNotNull("afterTransition",this.getAfterTransition());
+        out.putNotNull("beforeTransition",this.getBeforeTransition());
+        out.putNotNull("caseValue",this.getCaseValue());
+        out.putNotNull("order",this.getOrder());
+        out.putNotNull("when",this.getWhen());
     }
 
     public WfTransitionToModel cloneInstance(){

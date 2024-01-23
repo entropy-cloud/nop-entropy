@@ -109,9 +109,9 @@ public abstract class _DialectErrorCodeModel extends io.nop.core.resource.compon
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("name",this.getName());
-        out.put("useSqlState",this.getUseSqlState());
-        out.put("values",this.getValues());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("useSqlState",this.getUseSqlState());
+        out.putNotNull("values",this.getValues());
     }
 
     public DialectErrorCodeModel cloneInstance(){

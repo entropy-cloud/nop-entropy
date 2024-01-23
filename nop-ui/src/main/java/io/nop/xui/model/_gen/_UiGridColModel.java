@@ -265,15 +265,15 @@ public abstract class _UiGridColModel extends io.nop.xui.model.UiDisplayMeta {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("align",this.getAlign());
-        out.put("breakpoint",this.getBreakpoint());
-        out.put("fixed",this.getFixed());
-        out.put("groupName",this.getGroupName());
-        out.put("hidden",this.isHidden());
-        out.put("labelClassName",this.getLabelClassName());
-        out.put("mandatory",this.isMandatory());
-        out.put("readonly",this.isReadonly());
-        out.put("sortable",this.isSortable());
+        out.putNotNull("align",this.getAlign());
+        out.putNotNull("breakpoint",this.getBreakpoint());
+        out.putNotNull("fixed",this.getFixed());
+        out.putNotNull("groupName",this.getGroupName());
+        out.putNotNull("hidden",this.isHidden());
+        out.putNotNull("labelClassName",this.getLabelClassName());
+        out.putNotNull("mandatory",this.isMandatory());
+        out.putNotNull("readonly",this.isReadonly());
+        out.putNotNull("sortable",this.isSortable());
     }
 
     public UiGridColModel cloneInstance(){

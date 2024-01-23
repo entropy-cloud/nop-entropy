@@ -213,13 +213,13 @@ public abstract class _BeanListModel extends io.nop.ioc.model.BeanListValue {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("id",this.getId());
-        out.put("iocAllowOverride",this.isIocAllowOverride());
-        out.put("iocDefault",this.isIocDefault());
-        out.put("iocInitOrder",this.getIocInitOrder());
-        out.put("lazyInit",this.getLazyInit());
-        out.put("name",this.getName());
-        out.put("scope",this.getScope());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("iocAllowOverride",this.isIocAllowOverride());
+        out.putNotNull("iocDefault",this.isIocDefault());
+        out.putNotNull("iocInitOrder",this.getIocInitOrder());
+        out.putNotNull("lazyInit",this.getLazyInit());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("scope",this.getScope());
     }
 
     public BeanListModel cloneInstance(){

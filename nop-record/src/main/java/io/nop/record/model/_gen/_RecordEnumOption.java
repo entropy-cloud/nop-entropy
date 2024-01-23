@@ -135,10 +135,10 @@ public abstract class _RecordEnumOption extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("doc",this.getDoc());
-        out.put("docRef",this.getDocRef());
-        out.put("label",this.getLabel());
-        out.put("value",this.getValue());
+        out.putNotNull("doc",this.getDoc());
+        out.putNotNull("docRef",this.getDocRef());
+        out.putNotNull("label",this.getLabel());
+        out.putNotNull("value",this.getValue());
     }
 
     public RecordEnumOption cloneInstance(){

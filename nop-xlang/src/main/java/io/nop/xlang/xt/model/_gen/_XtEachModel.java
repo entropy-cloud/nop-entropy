@@ -57,7 +57,7 @@ public abstract class _XtEachModel extends io.nop.xlang.xt.model.XtRuleGroupMode
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("xpath",this.getXpath());
+        out.putNotNull("xpath",this.getXpath());
     }
 
     public XtEachModel cloneInstance(){

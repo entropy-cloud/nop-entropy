@@ -83,8 +83,8 @@ public abstract class _XtValueModel extends io.nop.xlang.xt.model.XtRuleModel {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("body",this.getBody());
-        out.put("mandatory",this.isMandatory());
+        out.putNotNull("body",this.getBody());
+        out.putNotNull("mandatory",this.isMandatory());
     }
 
     public XtValueModel cloneInstance(){

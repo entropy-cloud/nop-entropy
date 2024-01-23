@@ -305,16 +305,16 @@ public abstract class _UiDialogModel extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("actions",this.getActions());
-        out.put("closeOnEsc",this.getCloseOnEsc());
-        out.put("closeOnOutside",this.getCloseOnOutside());
-        out.put("data",this.getData());
-        out.put("height",this.getHeight());
-        out.put("noActions",this.getNoActions());
-        out.put("page",this.getPage());
-        out.put("showCloseButton",this.getShowCloseButton());
-        out.put("size",this.getSize());
-        out.put("width",this.getWidth());
+        out.putNotNull("actions",this.getActions());
+        out.putNotNull("closeOnEsc",this.getCloseOnEsc());
+        out.putNotNull("closeOnOutside",this.getCloseOnOutside());
+        out.putNotNull("data",this.getData());
+        out.putNotNull("height",this.getHeight());
+        out.putNotNull("noActions",this.getNoActions());
+        out.putNotNull("page",this.getPage());
+        out.putNotNull("showCloseButton",this.getShowCloseButton());
+        out.putNotNull("size",this.getSize());
+        out.putNotNull("width",this.getWidth());
     }
 
     public UiDialogModel cloneInstance(){

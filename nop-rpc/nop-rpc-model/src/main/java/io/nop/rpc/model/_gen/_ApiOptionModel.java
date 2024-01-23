@@ -109,9 +109,9 @@ public abstract class _ApiOptionModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("description",this.getDescription());
-        out.put("name",this.getName());
-        out.put("value",this.getValue());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("value",this.getValue());
     }
 
     public ApiOptionModel cloneInstance(){

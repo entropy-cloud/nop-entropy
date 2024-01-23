@@ -57,7 +57,7 @@ public abstract class _XtIfModel extends io.nop.xlang.xt.model.XtRuleGroupModel 
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("test",this.getTest());
+        out.putNotNull("test",this.getTest());
     }
 
     public XtIfModel cloneInstance(){

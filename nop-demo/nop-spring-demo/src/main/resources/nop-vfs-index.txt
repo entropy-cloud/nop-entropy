@@ -288,8 +288,6 @@
 /nop/gateway/beans/gateway-defaults.beans.xml
 /nop/graphql/base.graphql
 /nop/graphql/default.graphql
-/nop/graphql/imp/api.imp.xml
-/nop/graphql/imp/template.api.xlsx
 /nop/graphql/introspection.graphql
 /nop/http/beans/http-client-jdk.beans.xml
 /nop/orm/beans/orm-defaults.beans.xml
@@ -324,6 +322,8 @@
 /nop/report/demo/pages/demo.page.yaml
 /nop/report/demo/performance/测试同比环比.xpt.xlsx
 /nop/report/imp/xpt.imp.xml
+/nop/rpc/imp/api.imp.xml
+/nop/rpc/imp/template.api.xlsx
 /nop/schema/action-auth.xdef
 /nop/schema/api.xdef
 /nop/schema/beans.xdef
@@ -537,6 +537,7 @@
 /nop/templates/api/{apiModuleName}/src/main/java/{apiPackagePath}/beans/_gen/_{messageModel.name}.java.xgen
 /nop/templates/api/{apiModuleName}/src/main/java/{apiPackagePath}/beans/{messageModel.name}.java.xgen
 /nop/templates/api/{apiModuleName}/src/main/java/{apiPackagePath}/{serviceModel.name}.java.xgen
+/nop/templates/api/{apiModuleName}/src/main/resources/_vfs/{moduleId}/model/{appName}.api.xml.xgen
 /nop/templates/api/{metaModuleName}/src/main/resources/_vfs/{moduleId}/model/{serviceModel.name}/_{messageModel.name}.xmeta.xgen
 /nop/templates/api/{metaModuleName}/src/main/resources/_vfs/{moduleId}/model/{serviceModel.name}/{messageModel.name}.xmeta.xgen
 /nop/templates/api/{serviceModuleName}/src/main/java/{servicePackagePath}/impl/{serviceModel.name}Impl.java.xgen

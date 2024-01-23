@@ -83,8 +83,8 @@ public abstract class _ExcelProperty extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("name",this.getName());
-        out.put("value",this.getValue());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("value",this.getValue());
     }
 
     public ExcelProperty cloneInstance(){

@@ -109,9 +109,9 @@ public abstract class _UiHrefModel extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("blank",this.getBlank());
-        out.put("label",this.getLabel());
-        out.put("url",this.getUrl());
+        out.putNotNull("blank",this.getBlank());
+        out.putNotNull("label",this.getLabel());
+        out.putNotNull("url",this.getUrl());
     }
 
     public UiHrefModel cloneInstance(){

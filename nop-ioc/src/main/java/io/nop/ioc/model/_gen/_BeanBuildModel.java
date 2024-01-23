@@ -61,7 +61,7 @@ public abstract class _BeanBuildModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("body",this.getBody());
+        out.putNotNull("body",this.getBody());
     }
 
     public BeanBuildModel cloneInstance(){

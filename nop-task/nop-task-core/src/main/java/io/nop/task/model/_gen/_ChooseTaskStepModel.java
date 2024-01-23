@@ -141,9 +141,9 @@ public abstract class _ChooseTaskStepModel extends io.nop.task.model.TaskStepMod
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("cases",this.getCases());
-        out.put("decider",this.getDecider());
-        out.put("otherwise",this.getOtherwise());
+        out.putNotNull("cases",this.getCases());
+        out.putNotNull("decider",this.getDecider());
+        out.putNotNull("otherwise",this.getOtherwise());
     }
 
     public ChooseTaskStepModel cloneInstance(){

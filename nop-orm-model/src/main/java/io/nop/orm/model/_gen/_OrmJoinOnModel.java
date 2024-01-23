@@ -135,10 +135,10 @@ public abstract class _OrmJoinOnModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("leftProp",this.getLeftProp());
-        out.put("leftValue",this.getLeftValue());
-        out.put("rightProp",this.getRightProp());
-        out.put("rightValue",this.getRightValue());
+        out.putNotNull("leftProp",this.getLeftProp());
+        out.putNotNull("leftValue",this.getLeftValue());
+        out.putNotNull("rightProp",this.getRightProp());
+        out.putNotNull("rightValue",this.getRightValue());
     }
 
     public OrmJoinOnModel cloneInstance(){

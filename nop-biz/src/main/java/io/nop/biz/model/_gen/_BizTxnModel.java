@@ -109,9 +109,9 @@ public abstract class _BizTxnModel extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("propagation",this.getPropagation());
-        out.put("transactional",this.getTransactional());
-        out.put("txnGroup",this.getTxnGroup());
+        out.putNotNull("propagation",this.getPropagation());
+        out.putNotNull("transactional",this.getTransactional());
+        out.putNotNull("txnGroup",this.getTxnGroup());
     }
 
     public BizTxnModel cloneInstance(){

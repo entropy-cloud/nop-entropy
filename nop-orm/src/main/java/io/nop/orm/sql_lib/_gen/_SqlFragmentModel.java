@@ -83,8 +83,8 @@ public abstract class _SqlFragmentModel extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("id",this.getId());
-        out.put("source",this.getSource());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("source",this.getSource());
     }
 
     public SqlFragmentModel cloneInstance(){

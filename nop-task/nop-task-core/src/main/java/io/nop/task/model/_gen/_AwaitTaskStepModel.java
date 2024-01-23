@@ -57,7 +57,7 @@ public abstract class _AwaitTaskStepModel extends io.nop.task.model.TaskStepMode
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("depends",this.getDepends());
+        out.putNotNull("depends",this.getDepends());
     }
 
     public AwaitTaskStepModel cloneInstance(){

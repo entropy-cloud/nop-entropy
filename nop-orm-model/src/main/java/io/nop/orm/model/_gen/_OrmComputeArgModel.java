@@ -109,9 +109,9 @@ public abstract class _OrmComputeArgModel extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("displayName",this.getDisplayName());
-        out.put("name",this.getName());
-        out.put("type",this.getType());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("type",this.getType());
     }
 
     public OrmComputeArgModel cloneInstance(){

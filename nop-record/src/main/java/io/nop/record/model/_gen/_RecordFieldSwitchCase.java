@@ -83,8 +83,8 @@ public abstract class _RecordFieldSwitchCase extends io.nop.core.resource.compon
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("type",this.getType());
-        out.put("when",this.getWhen());
+        out.putNotNull("type",this.getType());
+        out.putNotNull("when",this.getWhen());
     }
 
     public RecordFieldSwitchCase cloneInstance(){

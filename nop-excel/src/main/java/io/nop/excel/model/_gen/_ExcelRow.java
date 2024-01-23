@@ -191,12 +191,12 @@ public abstract class _ExcelRow extends io.nop.core.model.table.impl.AbstractRow
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("autoFitHeight",this.isAutoFitHeight());
-        out.put("cells",this.getCells());
-        out.put("height",this.getHeight());
-        out.put("model",this.getModel());
-        out.put("name",this.getName());
-        out.put("styleId",this.getStyleId());
+        out.putNotNull("autoFitHeight",this.isAutoFitHeight());
+        out.putNotNull("cells",this.getCells());
+        out.putNotNull("height",this.getHeight());
+        out.putNotNull("model",this.getModel());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("styleId",this.getStyleId());
     }
 
     public ExcelRow cloneInstance(){

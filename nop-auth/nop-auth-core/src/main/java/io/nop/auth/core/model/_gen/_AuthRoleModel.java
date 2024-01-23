@@ -135,10 +135,10 @@ public abstract class _AuthRoleModel extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("name",this.getName());
-        out.put("primary",this.isPrimary());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("primary",this.isPrimary());
     }
 
     public AuthRoleModel cloneInstance(){

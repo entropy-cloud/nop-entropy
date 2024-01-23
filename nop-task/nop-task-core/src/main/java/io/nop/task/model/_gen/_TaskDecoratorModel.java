@@ -109,9 +109,9 @@ public abstract class _TaskDecoratorModel extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("bean",this.getBean());
-        out.put("order",this.getOrder());
-        out.put("source",this.getSource());
+        out.putNotNull("bean",this.getBean());
+        out.putNotNull("order",this.getOrder());
+        out.putNotNull("source",this.getSource());
     }
 
     public TaskDecoratorModel cloneInstance(){

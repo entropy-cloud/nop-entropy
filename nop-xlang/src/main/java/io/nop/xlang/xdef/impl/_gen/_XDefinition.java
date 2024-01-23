@@ -326,17 +326,17 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("xdefBase",this.getXdefBase());
-        out.put("xdefBeanPackage",this.getXdefBeanPackage());
-        out.put("xdefCheckNs",this.getXdefCheckNs());
-        out.put("xdefDefaultExtends",this.getXdefDefaultExtends());
-        out.put("xdefParseForHtml",this.getXdefParseForHtml());
-        out.put("xdefParseKeepComment",this.getXdefParseKeepComment());
-        out.put("xdefParserClass",this.getXdefParserClass());
-        out.put("xdefPostParse",this.getXdefPostParse());
-        out.put("xdefPropNs",this.getXdefPropNs());
-        out.put("xdefTransform",this.getXdefTransform());
-        out.put("xdefVersion",this.getXdefVersion());
+        out.putNotNull("xdefBase",this.getXdefBase());
+        out.putNotNull("xdefBeanPackage",this.getXdefBeanPackage());
+        out.putNotNull("xdefCheckNs",this.getXdefCheckNs());
+        out.putNotNull("xdefDefaultExtends",this.getXdefDefaultExtends());
+        out.putNotNull("xdefParseForHtml",this.getXdefParseForHtml());
+        out.putNotNull("xdefParseKeepComment",this.getXdefParseKeepComment());
+        out.putNotNull("xdefParserClass",this.getXdefParserClass());
+        out.putNotNull("xdefPostParse",this.getXdefPostParse());
+        out.putNotNull("xdefPropNs",this.getXdefPropNs());
+        out.putNotNull("xdefTransform",this.getXdefTransform());
+        out.putNotNull("xdefVersion",this.getXdefVersion());
     }
 
     public XDefinition cloneInstance(){

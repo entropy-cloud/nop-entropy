@@ -57,7 +57,7 @@ public abstract class _SimpleTaskStepModel extends io.nop.task.model.TaskStepMod
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("bean",this.getBean());
+        out.putNotNull("bean",this.getBean());
     }
 
     public SimpleTaskStepModel cloneInstance(){

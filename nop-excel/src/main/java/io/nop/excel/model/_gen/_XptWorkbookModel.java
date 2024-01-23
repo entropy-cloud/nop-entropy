@@ -321,15 +321,15 @@ public abstract class _XptWorkbookModel extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("afterExpand",this.getAfterExpand());
-        out.put("beforeExpand",this.getBeforeExpand());
-        out.put("beginLoop",this.getBeginLoop());
-        out.put("editors",this.getEditors());
-        out.put("endLoop",this.getEndLoop());
-        out.put("loopIndexName",this.getLoopIndexName());
-        out.put("loopItemsName",this.getLoopItemsName());
-        out.put("loopVarName",this.getLoopVarName());
-        out.put("viewers",this.getViewers());
+        out.putNotNull("afterExpand",this.getAfterExpand());
+        out.putNotNull("beforeExpand",this.getBeforeExpand());
+        out.putNotNull("beginLoop",this.getBeginLoop());
+        out.putNotNull("editors",this.getEditors());
+        out.putNotNull("endLoop",this.getEndLoop());
+        out.putNotNull("loopIndexName",this.getLoopIndexName());
+        out.putNotNull("loopItemsName",this.getLoopItemsName());
+        out.putNotNull("loopVarName",this.getLoopVarName());
+        out.putNotNull("viewers",this.getViewers());
     }
 
     public XptWorkbookModel cloneInstance(){

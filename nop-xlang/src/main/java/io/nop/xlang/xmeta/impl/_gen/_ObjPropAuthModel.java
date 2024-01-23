@@ -139,10 +139,10 @@ public abstract class _ObjPropAuthModel extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("for",this.getFor());
-        out.put("permissions",this.getPermissions());
-        out.put("publicAccess",this.isPublicAccess());
-        out.put("roles",this.getRoles());
+        out.putNotNull("for",this.getFor());
+        out.putNotNull("permissions",this.getPermissions());
+        out.putNotNull("publicAccess",this.isPublicAccess());
+        out.putNotNull("roles",this.getRoles());
     }
 
     public ObjPropAuthModel cloneInstance(){

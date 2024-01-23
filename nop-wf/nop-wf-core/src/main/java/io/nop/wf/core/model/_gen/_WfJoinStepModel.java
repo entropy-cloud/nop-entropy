@@ -169,11 +169,11 @@ public abstract class _WfJoinStepModel extends io.nop.wf.core.model.WfStepModel 
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("joinGroupExpr",this.getJoinGroupExpr());
-        out.put("joinType",this.getJoinType());
-        out.put("passPercent",this.getPassPercent());
-        out.put("passWeight",this.getPassWeight());
-        out.put("waitStepNames",this.getWaitStepNames());
+        out.putNotNull("joinGroupExpr",this.getJoinGroupExpr());
+        out.putNotNull("joinType",this.getJoinType());
+        out.putNotNull("passPercent",this.getPassPercent());
+        out.putNotNull("passWeight",this.getPassWeight());
+        out.putNotNull("waitStepNames",this.getWaitStepNames());
     }
 
     public WfJoinStepModel cloneInstance(){

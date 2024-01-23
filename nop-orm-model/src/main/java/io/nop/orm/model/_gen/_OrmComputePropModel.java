@@ -268,14 +268,14 @@ public abstract class _OrmComputePropModel extends io.nop.core.resource.componen
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("args",this.getArgs());
-        out.put("displayName",this.getDisplayName());
-        out.put("getter",this.getGetter());
-        out.put("name",this.getName());
-        out.put("notGenCode",this.isNotGenCode());
-        out.put("setter",this.getSetter());
-        out.put("tagSet",this.getTagSet());
-        out.put("type",this.getType());
+        out.putNotNull("args",this.getArgs());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("getter",this.getGetter());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("notGenCode",this.isNotGenCode());
+        out.putNotNull("setter",this.getSetter());
+        out.putNotNull("tagSet",this.getTagSet());
+        out.putNotNull("type",this.getType());
     }
 
     public OrmComputePropModel cloneInstance(){

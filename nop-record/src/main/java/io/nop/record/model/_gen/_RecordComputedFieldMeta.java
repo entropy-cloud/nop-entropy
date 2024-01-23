@@ -109,9 +109,9 @@ public abstract class _RecordComputedFieldMeta extends io.nop.core.resource.comp
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("name",this.getName());
-        out.put("source",this.getSource());
-        out.put("type",this.getType());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("source",this.getSource());
+        out.putNotNull("type",this.getType());
     }
 
     public RecordComputedFieldMeta cloneInstance(){

@@ -531,23 +531,23 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("args",this.getArgs());
-        out.put("auth",this.getAuth());
-        out.put("batchLoadSelection",this.getBatchLoadSelection());
-        out.put("cacheKeyExpr",this.getCacheKeyExpr());
-        out.put("cacheName",this.getCacheName());
-        out.put("description",this.getDescription());
-        out.put("disableLogicalDelete",this.isDisableLogicalDelete());
-        out.put("displayName",this.getDisplayName());
-        out.put("fetchSize",this.getFetchSize());
-        out.put("fields",this.getFields());
-        out.put("name",this.getName());
-        out.put("querySpace",this.getQuerySpace());
-        out.put("rowType",this.getRowType());
-        out.put("sqlMethod",this.getSqlMethod());
-        out.put("timeout",this.getTimeout());
-        out.put("type",this.getType());
-        out.put("validateInput",this.getValidateInput());
+        out.putNotNull("args",this.getArgs());
+        out.putNotNull("auth",this.getAuth());
+        out.putNotNull("batchLoadSelection",this.getBatchLoadSelection());
+        out.putNotNull("cacheKeyExpr",this.getCacheKeyExpr());
+        out.putNotNull("cacheName",this.getCacheName());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("disableLogicalDelete",this.isDisableLogicalDelete());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("fetchSize",this.getFetchSize());
+        out.putNotNull("fields",this.getFields());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("querySpace",this.getQuerySpace());
+        out.putNotNull("rowType",this.getRowType());
+        out.putNotNull("sqlMethod",this.getSqlMethod());
+        out.putNotNull("timeout",this.getTimeout());
+        out.putNotNull("type",this.getType());
+        out.putNotNull("validateInput",this.getValidateInput());
     }
 
     public SqlItemModel cloneInstance(){

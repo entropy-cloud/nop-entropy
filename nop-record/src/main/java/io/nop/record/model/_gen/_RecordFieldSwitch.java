@@ -137,9 +137,9 @@ public abstract class _RecordFieldSwitch extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("cases",this.getCases());
-        out.put("default",this.getDefault());
-        out.put("on",this.getOn());
+        out.putNotNull("cases",this.getCases());
+        out.putNotNull("default",this.getDefault());
+        out.putNotNull("on",this.getOn());
     }
 
     public RecordFieldSwitch cloneInstance(){

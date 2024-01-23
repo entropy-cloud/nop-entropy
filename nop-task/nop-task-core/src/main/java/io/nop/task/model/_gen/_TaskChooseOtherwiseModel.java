@@ -57,7 +57,7 @@ public abstract class _TaskChooseOtherwiseModel extends io.nop.task.model.TaskSt
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("to",this.getTo());
+        out.putNotNull("to",this.getTo());
     }
 
     public TaskChooseOtherwiseModel cloneInstance(){

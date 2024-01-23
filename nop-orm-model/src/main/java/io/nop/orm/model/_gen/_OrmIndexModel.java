@@ -215,12 +215,12 @@ public abstract class _OrmIndexModel extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("columns",this.getColumns());
-        out.put("comment",this.getComment());
-        out.put("displayName",this.getDisplayName());
-        out.put("indexType",this.getIndexType());
-        out.put("name",this.getName());
-        out.put("unique",this.getUnique());
+        out.putNotNull("columns",this.getColumns());
+        out.putNotNull("comment",this.getComment());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("indexType",this.getIndexType());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("unique",this.getUnique());
     }
 
     public OrmIndexModel cloneInstance(){

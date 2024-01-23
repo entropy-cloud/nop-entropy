@@ -83,8 +83,8 @@ public abstract class _BizTccModel extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("cancelMethod",this.getCancelMethod());
-        out.put("confirmMethod",this.getConfirmMethod());
+        out.putNotNull("cancelMethod",this.getCancelMethod());
+        out.putNotNull("confirmMethod",this.getConfirmMethod());
     }
 
     public BizTccModel cloneInstance(){

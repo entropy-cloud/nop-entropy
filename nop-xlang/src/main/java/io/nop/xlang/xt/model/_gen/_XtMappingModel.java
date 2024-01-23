@@ -165,10 +165,10 @@ public abstract class _XtMappingModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("default",this.getDefault());
-        out.put("id",this.getId());
-        out.put("inherits",this.getInherits());
-        out.put("matchs",this.getMatchs());
+        out.putNotNull("default",this.getDefault());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("inherits",this.getInherits());
+        out.putNotNull("matchs",this.getMatchs());
     }
 
     public XtMappingModel cloneInstance(){

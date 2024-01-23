@@ -135,10 +135,10 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("defaultSaveState",this.isDefaultSaveState());
-        out.put("firstStep",this.getFirstStep());
-        out.put("restartable",this.isRestartable());
-        out.put("version",this.getVersion());
+        out.putNotNull("defaultSaveState",this.isDefaultSaveState());
+        out.putNotNull("firstStep",this.getFirstStep());
+        out.putNotNull("restartable",this.isRestartable());
+        out.putNotNull("version",this.getVersion());
     }
 
     public TaskFlowModel cloneInstance(){

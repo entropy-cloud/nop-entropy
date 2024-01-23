@@ -83,8 +83,8 @@ public abstract class _NativeSqlItemModel extends io.nop.orm.sql_lib.SqlItemMode
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("colNameCamelCase",this.isColNameCamelCase());
-        out.put("source",this.getSource());
+        out.putNotNull("colNameCamelCase",this.isColNameCamelCase());
+        out.putNotNull("source",this.getSource());
     }
 
     public NativeSqlItemModel cloneInstance(){

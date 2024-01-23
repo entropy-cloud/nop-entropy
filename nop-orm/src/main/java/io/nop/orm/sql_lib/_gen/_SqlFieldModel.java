@@ -83,8 +83,8 @@ public abstract class _SqlFieldModel extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("index",this.getIndex());
-        out.put("stdSqlType",this.getStdSqlType());
+        out.putNotNull("index",this.getIndex());
+        out.putNotNull("stdSqlType",this.getStdSqlType());
     }
 
     public SqlFieldModel cloneInstance(){

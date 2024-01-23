@@ -245,14 +245,14 @@ public abstract class _ValidatorCheckModel extends io.nop.core.resource.componen
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("bizFatal",this.getBizFatal());
-        out.put("condition",this.getCondition());
-        out.put("errorCode",this.getErrorCode());
-        out.put("errorDescription",this.getErrorDescription());
-        out.put("errorParams",this.getErrorParams());
-        out.put("errorStatus",this.getErrorStatus());
-        out.put("id",this.getId());
-        out.put("severity",this.getSeverity());
+        out.putNotNull("bizFatal",this.getBizFatal());
+        out.putNotNull("condition",this.getCondition());
+        out.putNotNull("errorCode",this.getErrorCode());
+        out.putNotNull("errorDescription",this.getErrorDescription());
+        out.putNotNull("errorParams",this.getErrorParams());
+        out.putNotNull("errorStatus",this.getErrorStatus());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("severity",this.getSeverity());
     }
 
     public ValidatorCheckModel cloneInstance(){

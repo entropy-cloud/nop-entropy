@@ -163,10 +163,10 @@ public abstract class _RecordEnum extends io.nop.core.resource.component.Abstrac
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("doc",this.getDoc());
-        out.put("name",this.getName());
-        out.put("options",this.getOptions());
-        out.put("valueType",this.getValueType());
+        out.putNotNull("doc",this.getDoc());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("options",this.getOptions());
+        out.putNotNull("valueType",this.getValueType());
     }
 
     public RecordEnum cloneInstance(){

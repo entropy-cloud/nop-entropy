@@ -433,18 +433,18 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("binary",this.isBinary());
-        out.put("bitEndian",this.getBitEndian());
-        out.put("body",this.getBody());
-        out.put("defaultTextEncoding",this.getDefaultTextEncoding());
-        out.put("doc",this.getDoc());
-        out.put("docRef",this.getDocRef());
-        out.put("endian",this.getEndian());
-        out.put("enums",this.getEnums());
-        out.put("header",this.getHeader());
-        out.put("params",this.getParams());
-        out.put("trailer",this.getTrailer());
-        out.put("types",this.getTypes());
+        out.putNotNull("binary",this.isBinary());
+        out.putNotNull("bitEndian",this.getBitEndian());
+        out.putNotNull("body",this.getBody());
+        out.putNotNull("defaultTextEncoding",this.getDefaultTextEncoding());
+        out.putNotNull("doc",this.getDoc());
+        out.putNotNull("docRef",this.getDocRef());
+        out.putNotNull("endian",this.getEndian());
+        out.putNotNull("enums",this.getEnums());
+        out.putNotNull("header",this.getHeader());
+        out.putNotNull("params",this.getParams());
+        out.putNotNull("trailer",this.getTrailer());
+        out.putNotNull("types",this.getTypes());
     }
 
     public RecordFileMeta cloneInstance(){

@@ -163,10 +163,10 @@ public abstract class _InvokeTaskStepModel extends io.nop.task.model.TaskStepMod
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("args",this.getArgs());
-        out.put("bean",this.getBean());
-        out.put("ignoreReturn",this.isIgnoreReturn());
-        out.put("method",this.getMethod());
+        out.putNotNull("args",this.getArgs());
+        out.putNotNull("bean",this.getBean());
+        out.putNotNull("ignoreReturn",this.isIgnoreReturn());
+        out.putNotNull("method",this.getMethod());
     }
 
     public InvokeTaskStepModel cloneInstance(){

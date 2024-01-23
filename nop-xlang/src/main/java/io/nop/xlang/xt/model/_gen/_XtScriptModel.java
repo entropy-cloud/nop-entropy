@@ -83,8 +83,8 @@ public abstract class _XtScriptModel extends io.nop.xlang.xt.model.XtRuleModel {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("body",this.getBody());
-        out.put("xpath",this.getXpath());
+        out.putNotNull("body",this.getBody());
+        out.putNotNull("xpath",this.getXpath());
     }
 
     public XtScriptModel cloneInstance(){

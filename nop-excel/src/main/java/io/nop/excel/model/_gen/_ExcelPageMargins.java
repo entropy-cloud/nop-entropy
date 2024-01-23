@@ -187,12 +187,12 @@ public abstract class _ExcelPageMargins extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("bottom",this.getBottom());
-        out.put("footer",this.getFooter());
-        out.put("header",this.getHeader());
-        out.put("left",this.getLeft());
-        out.put("right",this.getRight());
-        out.put("top",this.getTop());
+        out.putNotNull("bottom",this.getBottom());
+        out.putNotNull("footer",this.getFooter());
+        out.putNotNull("header",this.getHeader());
+        out.putNotNull("left",this.getLeft());
+        out.putNotNull("right",this.getRight());
+        out.putNotNull("top",this.getTop());
     }
 
     public ExcelPageMargins cloneInstance(){

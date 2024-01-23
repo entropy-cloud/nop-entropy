@@ -85,8 +85,8 @@ public abstract class _BeanCollectionValue extends io.nop.core.resource.componen
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("body",this.getBody());
-        out.put("merge",this.isMerge());
+        out.putNotNull("body",this.getBody());
+        out.putNotNull("merge",this.isMerge());
     }
 
     public BeanCollectionValue cloneInstance(){

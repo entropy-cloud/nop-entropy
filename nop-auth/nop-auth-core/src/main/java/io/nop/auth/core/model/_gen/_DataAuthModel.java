@@ -85,7 +85,7 @@ public abstract class _DataAuthModel extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("objs",this.getObjs());
+        out.putNotNull("objs",this.getObjs());
     }
 
     public DataAuthModel cloneInstance(){

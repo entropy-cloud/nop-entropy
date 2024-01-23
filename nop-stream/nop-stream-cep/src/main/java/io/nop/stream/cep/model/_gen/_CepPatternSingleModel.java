@@ -83,8 +83,8 @@ public abstract class _CepPatternSingleModel extends io.nop.stream.cep.model.Cep
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("until",this.getUntil());
-        out.put("where",this.getWhere());
+        out.putNotNull("until",this.getUntil());
+        out.putNotNull("where",this.getWhere());
     }
 
     public CepPatternSingleModel cloneInstance(){

@@ -135,10 +135,10 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("name",this.getName());
-        out.put("source",this.getSource());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("source",this.getSource());
     }
 
     public TaskInputModel cloneInstance(){

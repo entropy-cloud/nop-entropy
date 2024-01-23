@@ -163,10 +163,10 @@ public abstract class _CepPatternGroupModel extends io.nop.stream.cep.model.CepP
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("afterMatchSkipStrategy",this.getAfterMatchSkipStrategy());
-        out.put("afterMatchSkipTo",this.getAfterMatchSkipTo());
-        out.put("parts",this.getParts());
-        out.put("start",this.getStart());
+        out.putNotNull("afterMatchSkipStrategy",this.getAfterMatchSkipStrategy());
+        out.putNotNull("afterMatchSkipTo",this.getAfterMatchSkipTo());
+        out.putNotNull("parts",this.getParts());
+        out.putNotNull("start",this.getStart());
     }
 
     public CepPatternGroupModel cloneInstance(){

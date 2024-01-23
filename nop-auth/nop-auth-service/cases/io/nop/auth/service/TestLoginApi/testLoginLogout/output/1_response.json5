@@ -1,7 +1,6 @@
 {
   "data": {
     "accessToken": "@var:accessToken",
-    "attrs": null,
     "expiresIn": 1800,
     "refreshExpiresIn": 0,
     "refreshToken": "@var:refreshToken",

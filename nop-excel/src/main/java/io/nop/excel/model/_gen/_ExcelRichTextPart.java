@@ -85,8 +85,8 @@ public abstract class _ExcelRichTextPart extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("font",this.getFont());
-        out.put("text",this.getText());
+        out.putNotNull("font",this.getFont());
+        out.putNotNull("text",this.getText());
     }
 
     public ExcelRichTextPart cloneInstance(){

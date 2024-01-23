@@ -137,10 +137,10 @@ public abstract class _ParallelTaskStepModel extends io.nop.task.model.TaskSteps
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("aggregateVarName",this.getAggregateVarName());
-        out.put("aggregator",this.getAggregator());
-        out.put("autoCancelUnfinished",this.isAutoCancelUnfinished());
-        out.put("joinType",this.getJoinType());
+        out.putNotNull("aggregateVarName",this.getAggregateVarName());
+        out.putNotNull("aggregator",this.getAggregator());
+        out.putNotNull("autoCancelUnfinished",this.isAutoCancelUnfinished());
+        out.putNotNull("joinType",this.getJoinType());
     }
 
     public ParallelTaskStepModel cloneInstance(){

@@ -109,9 +109,9 @@ public abstract class _WfListenerModel extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("eventPattern",this.getEventPattern());
-        out.put("id",this.getId());
-        out.put("source",this.getSource());
+        out.putNotNull("eventPattern",this.getEventPattern());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("source",this.getSource());
     }
 
     public WfListenerModel cloneInstance(){

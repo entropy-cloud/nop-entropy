@@ -501,24 +501,24 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("supportBatchUpdate",this.getSupportBatchUpdate());
-        out.put("supportBatchUpdateCount",this.getSupportBatchUpdateCount());
-        out.put("supportDeleteFromJoin",this.getSupportDeleteFromJoin());
-        out.put("supportDeleteTableAlias",this.getSupportDeleteTableAlias());
-        out.put("supportExecuteLargeUpdate",this.getSupportExecuteLargeUpdate());
-        out.put("supportILike",this.getSupportILike());
-        out.put("supportLargeMaxRows",this.getSupportLargeMaxRows());
-        out.put("supportNullsFirst",this.getSupportNullsFirst());
-        out.put("supportQueryTimeout",this.getSupportQueryTimeout());
-        out.put("supportRowValueConstructor",this.getSupportRowValueConstructor());
-        out.put("supportSavePoint",this.getSupportSavePoint());
-        out.put("supportSequence",this.getSupportSequence());
-        out.put("supportTransaction",this.getSupportTransaction());
-        out.put("supportTruncateTable",this.getSupportTruncateTable());
-        out.put("supportUpdateFromJoin",this.getSupportUpdateFromJoin());
-        out.put("supportUpdateTableAlias",this.getSupportUpdateTableAlias());
-        out.put("supportWithAsClause",this.getSupportWithAsClause());
-        out.put("useGetStringForDate",this.getUseGetStringForDate());
+        out.putNotNull("supportBatchUpdate",this.getSupportBatchUpdate());
+        out.putNotNull("supportBatchUpdateCount",this.getSupportBatchUpdateCount());
+        out.putNotNull("supportDeleteFromJoin",this.getSupportDeleteFromJoin());
+        out.putNotNull("supportDeleteTableAlias",this.getSupportDeleteTableAlias());
+        out.putNotNull("supportExecuteLargeUpdate",this.getSupportExecuteLargeUpdate());
+        out.putNotNull("supportILike",this.getSupportILike());
+        out.putNotNull("supportLargeMaxRows",this.getSupportLargeMaxRows());
+        out.putNotNull("supportNullsFirst",this.getSupportNullsFirst());
+        out.putNotNull("supportQueryTimeout",this.getSupportQueryTimeout());
+        out.putNotNull("supportRowValueConstructor",this.getSupportRowValueConstructor());
+        out.putNotNull("supportSavePoint",this.getSupportSavePoint());
+        out.putNotNull("supportSequence",this.getSupportSequence());
+        out.putNotNull("supportTransaction",this.getSupportTransaction());
+        out.putNotNull("supportTruncateTable",this.getSupportTruncateTable());
+        out.putNotNull("supportUpdateFromJoin",this.getSupportUpdateFromJoin());
+        out.putNotNull("supportUpdateTableAlias",this.getSupportUpdateTableAlias());
+        out.putNotNull("supportWithAsClause",this.getSupportWithAsClause());
+        out.putNotNull("useGetStringForDate",this.getUseGetStringForDate());
     }
 
     public DialectFeatures cloneInstance(){

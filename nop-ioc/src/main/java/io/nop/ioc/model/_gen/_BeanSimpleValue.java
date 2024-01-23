@@ -83,8 +83,8 @@ public abstract class _BeanSimpleValue extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("body",this.getBody());
-        out.put("type",this.getType());
+        out.putNotNull("body",this.getBody());
+        out.putNotNull("type",this.getType());
     }
 
     public BeanSimpleValue cloneInstance(){

@@ -135,10 +135,10 @@ public abstract class _BeanUnlessPropertyCondition extends io.nop.core.resource.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("enableIfDebug",this.isEnableIfDebug());
-        out.put("enableIfMissing",this.isEnableIfMissing());
-        out.put("name",this.getName());
-        out.put("value",this.getValue());
+        out.putNotNull("enableIfDebug",this.isEnableIfDebug());
+        out.putNotNull("enableIfMissing",this.isEnableIfMissing());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("value",this.getValue());
     }
 
     public BeanUnlessPropertyCondition cloneInstance(){

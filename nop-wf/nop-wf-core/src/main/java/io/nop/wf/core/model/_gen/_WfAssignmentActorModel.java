@@ -213,13 +213,13 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("actorId",this.getActorId());
-        out.put("actorModelId",this.getActorModelId());
-        out.put("actorType",this.getActorType());
-        out.put("assignForUser",this.isAssignForUser());
-        out.put("deptId",this.getDeptId());
-        out.put("selectUser",this.isSelectUser());
-        out.put("voteWeight",this.getVoteWeight());
+        out.putNotNull("actorId",this.getActorId());
+        out.putNotNull("actorModelId",this.getActorModelId());
+        out.putNotNull("actorType",this.getActorType());
+        out.putNotNull("assignForUser",this.isAssignForUser());
+        out.putNotNull("deptId",this.getDeptId());
+        out.putNotNull("selectUser",this.isSelectUser());
+        out.putNotNull("voteWeight",this.getVoteWeight());
     }
 
     public WfAssignmentActorModel cloneInstance(){

@@ -67,7 +67,7 @@ public abstract class _TaskStepsModel extends io.nop.task.model.TaskStepModel {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("steps",this.getSteps());
+        out.putNotNull("steps",this.getSteps());
     }
 
     public TaskStepsModel cloneInstance(){

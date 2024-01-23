@@ -135,10 +135,10 @@ public abstract class _GraphDesignerZoomModel extends io.nop.core.resource.compo
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("initialValue",this.getInitialValue());
-        out.put("max",this.getMax());
-        out.put("min",this.getMin());
-        out.put("step",this.getStep());
+        out.putNotNull("initialValue",this.getInitialValue());
+        out.putNotNull("max",this.getMax());
+        out.putNotNull("min",this.getMin());
+        out.putNotNull("step",this.getStep());
     }
 
     public GraphDesignerZoomModel cloneInstance(){

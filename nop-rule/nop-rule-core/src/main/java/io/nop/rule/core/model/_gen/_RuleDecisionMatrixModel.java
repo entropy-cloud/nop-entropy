@@ -141,9 +141,9 @@ public abstract class _RuleDecisionMatrixModel extends io.nop.core.resource.comp
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("cells",this.getCells());
-        out.put("colDecider",this.getColDecider());
-        out.put("rowDecider",this.getRowDecider());
+        out.putNotNull("cells",this.getCells());
+        out.putNotNull("colDecider",this.getColDecider());
+        out.putNotNull("rowDecider",this.getRowDecider());
     }
 
     public RuleDecisionMatrixModel cloneInstance(){

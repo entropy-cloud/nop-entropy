@@ -135,10 +135,10 @@ public abstract class _RecordParamMeta extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("mandatory",this.isMandatory());
-        out.put("name",this.getName());
-        out.put("stdDomain",this.getStdDomain());
-        out.put("type",this.getType());
+        out.putNotNull("mandatory",this.isMandatory());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("stdDomain",this.getStdDomain());
+        out.putNotNull("type",this.getType());
     }
 
     public RecordParamMeta cloneInstance(){

@@ -83,8 +83,8 @@ public abstract class _RuleInputDefineModel extends io.nop.xlang.xmeta.ObjVarDef
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("computed",this.isComputed());
-        out.put("mandatory",this.isMandatory());
+        out.putNotNull("computed",this.isComputed());
+        out.putNotNull("mandatory",this.isMandatory());
     }
 
     public RuleInputDefineModel cloneInstance(){

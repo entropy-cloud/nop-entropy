@@ -140,8 +140,8 @@ public abstract class _ActionAuthModel extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("roles",this.getRoles());
-        out.put("sites",this.getSites());
+        out.putNotNull("roles",this.getRoles());
+        out.putNotNull("sites",this.getSites());
     }
 
     public ActionAuthModel cloneInstance(){

@@ -57,7 +57,7 @@ public abstract class _QuerySqlItemModel extends io.nop.orm.sql_lib.SqlItemModel
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("source",this.getSource());
+        out.putNotNull("source",this.getSource());
     }
 
     public QuerySqlItemModel cloneInstance(){

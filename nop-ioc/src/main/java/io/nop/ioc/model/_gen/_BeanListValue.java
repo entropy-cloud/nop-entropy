@@ -57,7 +57,7 @@ public abstract class _BeanListValue extends io.nop.ioc.model.BeanCollectionValu
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("listClass",this.getListClass());
+        out.putNotNull("listClass",this.getListClass());
     }
 
     public BeanListValue cloneInstance(){

@@ -83,8 +83,8 @@ public abstract class _TaskInvokeArgModel extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("index",this.getIndex());
-        out.put("valueExpr",this.getValueExpr());
+        out.putNotNull("index",this.getIndex());
+        out.putNotNull("valueExpr",this.getValueExpr());
     }
 
     public TaskInvokeArgModel cloneInstance(){

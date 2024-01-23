@@ -137,9 +137,9 @@ public abstract class _BeanPropsValue extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("body",this.getBody());
-        out.put("iocLocation",this.getIocLocation());
-        out.put("merge",this.isMerge());
+        out.putNotNull("body",this.getBody());
+        out.putNotNull("iocLocation",this.getIocLocation());
+        out.putNotNull("merge",this.isMerge());
     }
 
     public BeanPropsValue cloneInstance(){

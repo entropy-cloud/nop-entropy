@@ -853,32 +853,32 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("actions",this.getActions());
-        out.put("allowStepLoop",this.isAllowStepLoop());
-        out.put("auths",this.getAuths());
-        out.put("bizEntityFlowIdProp",this.getBizEntityFlowIdProp());
-        out.put("bizEntityStateProp",this.getBizEntityStateProp());
-        out.put("checkActionAuth",this.getCheckActionAuth());
-        out.put("checkEditAuth",this.getCheckEditAuth());
-        out.put("checkManageAuth",this.getCheckManageAuth());
-        out.put("checkStartAuth",this.getCheckStartAuth());
-        out.put("deploy",this.getDeploy());
-        out.put("description",this.getDescription());
-        out.put("diagram",this.getDiagram());
-        out.put("displayName",this.getDisplayName());
-        out.put("end",this.getEnd());
-        out.put("listeners",this.getListeners());
-        out.put("onError",this.getOnError());
-        out.put("onSignal",this.getOnSignal());
-        out.put("priority",this.getPriority());
-        out.put("start",this.getStart());
-        out.put("steps",this.getSteps());
-        out.put("subscribes",this.getSubscribes());
-        out.put("tagSet",this.getTagSet());
-        out.put("undeploy",this.getUndeploy());
-        out.put("wfGroup",this.getWfGroup());
-        out.put("wfName",this.getWfName());
-        out.put("wfVersion",this.getWfVersion());
+        out.putNotNull("actions",this.getActions());
+        out.putNotNull("allowStepLoop",this.isAllowStepLoop());
+        out.putNotNull("auths",this.getAuths());
+        out.putNotNull("bizEntityFlowIdProp",this.getBizEntityFlowIdProp());
+        out.putNotNull("bizEntityStateProp",this.getBizEntityStateProp());
+        out.putNotNull("checkActionAuth",this.getCheckActionAuth());
+        out.putNotNull("checkEditAuth",this.getCheckEditAuth());
+        out.putNotNull("checkManageAuth",this.getCheckManageAuth());
+        out.putNotNull("checkStartAuth",this.getCheckStartAuth());
+        out.putNotNull("deploy",this.getDeploy());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("diagram",this.getDiagram());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("end",this.getEnd());
+        out.putNotNull("listeners",this.getListeners());
+        out.putNotNull("onError",this.getOnError());
+        out.putNotNull("onSignal",this.getOnSignal());
+        out.putNotNull("priority",this.getPriority());
+        out.putNotNull("start",this.getStart());
+        out.putNotNull("steps",this.getSteps());
+        out.putNotNull("subscribes",this.getSubscribes());
+        out.putNotNull("tagSet",this.getTagSet());
+        out.putNotNull("undeploy",this.getUndeploy());
+        out.putNotNull("wfGroup",this.getWfGroup());
+        out.putNotNull("wfName",this.getWfName());
+        out.putNotNull("wfVersion",this.getWfVersion());
     }
 
     public WfModel cloneInstance(){

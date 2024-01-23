@@ -57,7 +57,7 @@ public abstract class _SubTaskStepModel extends io.nop.task.model.TaskStepModel 
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("taskName",this.getTaskName());
+        out.putNotNull("taskName",this.getTaskName());
     }
 
     public SubTaskStepModel cloneInstance(){

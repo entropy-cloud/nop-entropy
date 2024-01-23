@@ -137,10 +137,10 @@ public abstract class _OrmToOneReferenceModel extends io.nop.orm.model.OrmRefere
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("constraint",this.getConstraint());
-        out.put("ignoreDepends",this.isIgnoreDepends());
-        out.put("refSet",this.getRefSet());
-        out.put("reverseDepends",this.isReverseDepends());
+        out.putNotNull("constraint",this.getConstraint());
+        out.putNotNull("ignoreDepends",this.isIgnoreDepends());
+        out.putNotNull("refSet",this.getRefSet());
+        out.putNotNull("reverseDepends",this.isReverseDepends());
     }
 
     public OrmToOneReferenceModel cloneInstance(){

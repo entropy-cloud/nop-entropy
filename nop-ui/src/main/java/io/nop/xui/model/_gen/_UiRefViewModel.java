@@ -165,11 +165,11 @@ public abstract class _UiRefViewModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("buttonLabel",this.getButtonLabel());
-        out.put("form",this.getForm());
-        out.put("grid",this.getGrid());
-        out.put("page",this.getPage());
-        out.put("path",this.getPath());
+        out.putNotNull("buttonLabel",this.getButtonLabel());
+        out.putNotNull("form",this.getForm());
+        out.putNotNull("grid",this.getGrid());
+        out.putNotNull("page",this.getPage());
+        out.putNotNull("path",this.getPath());
     }
 
     public UiRefViewModel cloneInstance(){

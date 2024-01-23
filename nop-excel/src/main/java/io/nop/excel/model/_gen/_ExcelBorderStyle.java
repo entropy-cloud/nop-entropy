@@ -109,9 +109,9 @@ public abstract class _ExcelBorderStyle extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("color",this.getColor());
-        out.put("type",this.getType());
-        out.put("weight",this.getWeight());
+        out.putNotNull("color",this.getColor());
+        out.putNotNull("type",this.getType());
+        out.putNotNull("weight",this.getWeight());
     }
 
     public ExcelBorderStyle cloneInstance(){

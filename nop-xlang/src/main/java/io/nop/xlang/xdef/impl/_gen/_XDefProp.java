@@ -57,7 +57,7 @@ public abstract class _XDefProp extends io.nop.core.resource.component.AbstractC
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("name",this.getName());
+        out.putNotNull("name",this.getName());
     }
 
     public XDefProp cloneInstance(){

@@ -421,21 +421,21 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("addable",this.getAddable());
-        out.put("allowSources",this.getAllowSources());
-        out.put("allowTargets",this.getAllowTargets());
-        out.put("deletable",this.getDeletable());
-        out.put("icon",this.getIcon());
-        out.put("label",this.getLabel());
-        out.put("maxOccurs",this.getMaxOccurs());
-        out.put("minOccurs",this.getMinOccurs());
-        out.put("name",this.getName());
-        out.put("propsForm",this.getPropsForm());
-        out.put("style",this.getStyle());
-        out.put("tagSet",this.getTagSet());
-        out.put("template",this.getTemplate());
-        out.put("type",this.getType());
-        out.put("width",this.getWidth());
+        out.putNotNull("addable",this.getAddable());
+        out.putNotNull("allowSources",this.getAllowSources());
+        out.putNotNull("allowTargets",this.getAllowTargets());
+        out.putNotNull("deletable",this.getDeletable());
+        out.putNotNull("icon",this.getIcon());
+        out.putNotNull("label",this.getLabel());
+        out.putNotNull("maxOccurs",this.getMaxOccurs());
+        out.putNotNull("minOccurs",this.getMinOccurs());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("propsForm",this.getPropsForm());
+        out.putNotNull("style",this.getStyle());
+        out.putNotNull("tagSet",this.getTagSet());
+        out.putNotNull("template",this.getTemplate());
+        out.putNotNull("type",this.getType());
+        out.putNotNull("width",this.getWidth());
     }
 
     public GraphDesignerEdgeModel cloneInstance(){

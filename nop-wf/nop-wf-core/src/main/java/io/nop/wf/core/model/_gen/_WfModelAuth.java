@@ -213,13 +213,13 @@ public abstract class _WfModelAuth extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("actorId",this.getActorId());
-        out.put("actorType",this.getActorType());
-        out.put("allowEdit",this.isAllowEdit());
-        out.put("allowManage",this.isAllowManage());
-        out.put("allowStart",this.isAllowStart());
-        out.put("deptId",this.getDeptId());
-        out.put("id",this.getId());
+        out.putNotNull("actorId",this.getActorId());
+        out.putNotNull("actorType",this.getActorType());
+        out.putNotNull("allowEdit",this.isAllowEdit());
+        out.putNotNull("allowManage",this.isAllowManage());
+        out.putNotNull("allowStart",this.isAllowStart());
+        out.putNotNull("deptId",this.getDeptId());
+        out.putNotNull("id",this.getId());
     }
 
     public WfModelAuth cloneInstance(){

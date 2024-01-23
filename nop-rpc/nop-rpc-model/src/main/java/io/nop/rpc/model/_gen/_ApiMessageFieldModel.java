@@ -297,15 +297,15 @@ public abstract class _ApiMessageFieldModel extends io.nop.core.resource.compone
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("binaryScalarType",this.getBinaryScalarType());
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("mandatory",this.isMandatory());
-        out.put("name",this.getName());
-        out.put("options",this.getOptions());
-        out.put("propId",this.getPropId());
-        out.put("schema",this.getSchema());
-        out.put("tagSet",this.getTagSet());
+        out.putNotNull("binaryScalarType",this.getBinaryScalarType());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("mandatory",this.isMandatory());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("options",this.getOptions());
+        out.putNotNull("propId",this.getPropId());
+        out.putNotNull("schema",this.getSchema());
+        out.putNotNull("tagSet",this.getTagSet());
     }
 
     public ApiMessageFieldModel cloneInstance(){

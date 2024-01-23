@@ -167,10 +167,10 @@ public abstract class _OrmToManyReferenceModel extends io.nop.orm.model.OrmRefer
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("keyProp",this.getKeyProp());
-        out.put("maxSize",this.getMaxSize());
-        out.put("sort",this.getSort());
-        out.put("useGlobalCache",this.isUseGlobalCache());
+        out.putNotNull("keyProp",this.getKeyProp());
+        out.putNotNull("maxSize",this.getMaxSize());
+        out.putNotNull("sort",this.getSort());
+        out.putNotNull("useGlobalCache",this.isUseGlobalCache());
     }
 
     public OrmToManyReferenceModel cloneInstance(){

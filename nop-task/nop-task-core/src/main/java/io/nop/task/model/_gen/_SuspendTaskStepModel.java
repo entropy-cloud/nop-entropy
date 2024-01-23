@@ -57,7 +57,7 @@ public abstract class _SuspendTaskStepModel extends io.nop.task.model.TaskStepMo
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("resumeWhen",this.getResumeWhen());
+        out.putNotNull("resumeWhen",this.getResumeWhen());
     }
 
     public SuspendTaskStepModel cloneInstance(){

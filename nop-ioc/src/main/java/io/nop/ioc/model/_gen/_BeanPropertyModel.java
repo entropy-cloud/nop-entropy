@@ -135,10 +135,10 @@ public abstract class _BeanPropertyModel extends io.nop.ioc.model.BeanPropValue 
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("iocSkipIfEmpty",this.isIocSkipIfEmpty());
-        out.put("name",this.getName());
-        out.put("ref",this.getRef());
-        out.put("value",this.getValue());
+        out.putNotNull("iocSkipIfEmpty",this.isIocSkipIfEmpty());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("ref",this.getRef());
+        out.putNotNull("value",this.getValue());
     }
 
     public BeanPropertyModel cloneInstance(){

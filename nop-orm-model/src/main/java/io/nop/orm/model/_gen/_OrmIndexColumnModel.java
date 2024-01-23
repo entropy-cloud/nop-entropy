@@ -83,8 +83,8 @@ public abstract class _OrmIndexColumnModel extends io.nop.core.resource.componen
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("desc",this.getDesc());
-        out.put("name",this.getName());
+        out.putNotNull("desc",this.getDesc());
+        out.putNotNull("name",this.getName());
     }
 
     public OrmIndexColumnModel cloneInstance(){

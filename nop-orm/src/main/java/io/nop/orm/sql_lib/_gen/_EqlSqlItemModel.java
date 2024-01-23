@@ -57,7 +57,7 @@ public abstract class _EqlSqlItemModel extends io.nop.orm.sql_lib.SqlItemModel {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("source",this.getSource());
+        out.putNotNull("source",this.getSource());
     }
 
     public EqlSqlItemModel cloneInstance(){

@@ -373,19 +373,19 @@ public abstract class _XplTagAttribute extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("defaultValue",this.getDefaultValue());
-        out.put("deprecated",this.isDeprecated());
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("implicit",this.isImplicit());
-        out.put("internal",this.isInternal());
-        out.put("mandatory",this.isMandatory());
-        out.put("name",this.getName());
-        out.put("optional",this.isOptional());
-        out.put("runtime",this.isRuntime());
-        out.put("stdDomain",this.getStdDomain());
-        out.put("type",this.getType());
-        out.put("varName",this.getVarName());
+        out.putNotNull("defaultValue",this.getDefaultValue());
+        out.putNotNull("deprecated",this.isDeprecated());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("implicit",this.isImplicit());
+        out.putNotNull("internal",this.isInternal());
+        out.putNotNull("mandatory",this.isMandatory());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("optional",this.isOptional());
+        out.putNotNull("runtime",this.isRuntime());
+        out.putNotNull("stdDomain",this.getStdDomain());
+        out.putNotNull("type",this.getType());
+        out.putNotNull("varName",this.getVarName());
     }
 
     public XplTagAttribute cloneInstance(){

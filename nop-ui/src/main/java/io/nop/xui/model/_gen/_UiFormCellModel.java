@@ -187,12 +187,12 @@ public abstract class _UiFormCellModel extends io.nop.xui.model.UiDisplayMeta {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("collapseTitle",this.getCollapseTitle());
-        out.put("mandatory",this.getMandatory());
-        out.put("notSubmit",this.isNotSubmit());
-        out.put("readonly",this.getReadonly());
-        out.put("submitOnChange",this.getSubmitOnChange());
-        out.put("titlePosition",this.getTitlePosition());
+        out.putNotNull("collapseTitle",this.getCollapseTitle());
+        out.putNotNull("mandatory",this.getMandatory());
+        out.putNotNull("notSubmit",this.isNotSubmit());
+        out.putNotNull("readonly",this.getReadonly());
+        out.putNotNull("submitOnChange",this.getSubmitOnChange());
+        out.putNotNull("titlePosition",this.getTitlePosition());
     }
 
     public UiFormCellModel cloneInstance(){

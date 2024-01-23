@@ -690,29 +690,29 @@ public abstract class _XplTag extends io.nop.core.resource.component.AbstractCom
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("attrs",this.getAttrs());
-        out.put("attrsVar",this.getAttrsVar());
-        out.put("bodyType",this.getBodyType());
-        out.put("callLocationVar",this.getCallLocationVar());
-        out.put("checkNs",this.getCheckNs());
-        out.put("conditionTag",this.isConditionTag());
-        out.put("deprecated",this.isDeprecated());
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("dump",this.isDump());
-        out.put("example",this.getExample());
-        out.put("ignoreUnknownAttrs",this.isIgnoreUnknownAttrs());
-        out.put("internal",this.isInternal());
-        out.put("macro",this.isMacro());
-        out.put("outputMode",this.getOutputMode());
-        out.put("schema",this.getSchema());
-        out.put("slots",this.getSlots());
-        out.put("source",this.getSource());
-        out.put("tagName",this.getTagName());
-        out.put("tagReturn",this.getTagReturn());
-        out.put("transformer",this.getTransformer());
-        out.put("unknownAttrsVar",this.getUnknownAttrsVar());
-        out.put("validator",this.getValidator());
+        out.putNotNull("attrs",this.getAttrs());
+        out.putNotNull("attrsVar",this.getAttrsVar());
+        out.putNotNull("bodyType",this.getBodyType());
+        out.putNotNull("callLocationVar",this.getCallLocationVar());
+        out.putNotNull("checkNs",this.getCheckNs());
+        out.putNotNull("conditionTag",this.isConditionTag());
+        out.putNotNull("deprecated",this.isDeprecated());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("dump",this.isDump());
+        out.putNotNull("example",this.getExample());
+        out.putNotNull("ignoreUnknownAttrs",this.isIgnoreUnknownAttrs());
+        out.putNotNull("internal",this.isInternal());
+        out.putNotNull("macro",this.isMacro());
+        out.putNotNull("outputMode",this.getOutputMode());
+        out.putNotNull("schema",this.getSchema());
+        out.putNotNull("slots",this.getSlots());
+        out.putNotNull("source",this.getSource());
+        out.putNotNull("tagName",this.getTagName());
+        out.putNotNull("tagReturn",this.getTagReturn());
+        out.putNotNull("transformer",this.getTransformer());
+        out.putNotNull("unknownAttrsVar",this.getUnknownAttrsVar());
+        out.putNotNull("validator",this.getValidator());
     }
 
     public XplTag cloneInstance(){

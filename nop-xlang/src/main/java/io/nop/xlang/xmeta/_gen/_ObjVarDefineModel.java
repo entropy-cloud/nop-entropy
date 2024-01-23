@@ -191,12 +191,12 @@ public abstract class _ObjVarDefineModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("defaultExpr",this.getDefaultExpr());
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("name",this.getName());
-        out.put("schema",this.getSchema());
-        out.put("type",this.getType());
+        out.putNotNull("defaultExpr",this.getDefaultExpr());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("schema",this.getSchema());
+        out.putNotNull("type",this.getType());
     }
 
     public ObjVarDefineModel cloneInstance(){

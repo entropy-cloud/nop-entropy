@@ -187,12 +187,12 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("forAttr",this.isForAttr());
-        out.put("name",this.getName());
-        out.put("persist",this.isPersist());
-        out.put("source",this.getSource());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("forAttr",this.isForAttr());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("persist",this.isPersist());
+        out.putNotNull("source",this.getSource());
     }
 
     public TaskOutputModel cloneInstance(){
