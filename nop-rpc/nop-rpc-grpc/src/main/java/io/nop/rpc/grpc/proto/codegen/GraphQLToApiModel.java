@@ -15,6 +15,7 @@ import io.nop.graphql.core.ast.GraphQLTypeDefinition;
 import io.nop.graphql.core.ast.IGraphQLFieldDefinition;
 import io.nop.graphql.core.ast.IGraphQLObjectDefinition;
 import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
+import io.nop.rpc.grpc.GrpcConstants;
 import io.nop.rpc.grpc.proto.IFieldMarshaller;
 import io.nop.rpc.grpc.proto.ProtobufMarshallerHelper;
 import io.nop.rpc.grpc.proto.marshaller.EmptyMarshaller;
@@ -40,6 +41,9 @@ public class GraphQLToApiModel {
     public ApiModel transformToApi(IGraphQLSchemaLoader schemaLoader) {
         ApiModel model = new ApiModel();
         model.setApiPackageName(CFG_GRAPHQL_API_PACKAGE.get());
+
+        model.addImportPath(GrpcConstants.IMPORT_EMPTY_PROTO);
+        model.addImportPath(GrpcConstants.IMPORT_ANY_PROTO);
 
         for (GraphQLTypeDefinition typeDef : schemaLoader.getTypeDefinitions()) {
             addType(model, typeDef);

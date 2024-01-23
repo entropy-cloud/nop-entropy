@@ -3,8 +3,6 @@ package io.nop.rpc.model.proto;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
 import io.nop.commons.text.IndentPrinter;
-import io.nop.commons.type.BinaryScalarType;
-import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
@@ -203,7 +201,7 @@ public class ProtoFileGenerator extends IndentPrinter {
         incIndent();
         for (ApiMethodModel methodModel : serviceModel.getMethods()) {
             br();
-            printMethod(methodModel);
+            printMethod(serviceModel.getName() + "__" + methodModel.getName(), methodModel);
         }
         decIndent();
         br();
@@ -211,7 +209,7 @@ public class ProtoFileGenerator extends IndentPrinter {
         append("}").append('\n');
     }
 
-    void printMethod(ApiMethodModel methodModel) {
+    void printMethod(String fullMethodName, ApiMethodModel methodModel) {
         printDescAndOptions(methodModel);
 
         indent();
@@ -220,21 +218,15 @@ public class ProtoFileGenerator extends IndentPrinter {
         append(getProtoBufType(methodModel.getRequestMessage()));
         append(')').append(' ');
         append("returns (");
-        append(getResponseTypeName(methodModel.getResponseMessage()));
+        append(getResponseTypeName(fullMethodName, methodModel.getResponseMessage()));
         append(");");
     }
 
     private String getProtoBufType(String typeName) {
-        StdDataType dataType = StdDataType.fromJavaClassName(typeName);
-        if (dataType == null)
-            return typeName;
-        BinaryScalarType scalarType = dataType.toBinaryScalarType();
-        if (scalarType == null)
-            return typeName;
-        return scalarType.toProtoBufTypeName();
+        return ProtoHelper.getRequestProtoTypeName(typeName);
     }
 
-    private String getResponseTypeName(IGenericType type) {
-        return type.toString();
+    private String getResponseTypeName(String fullMethodName, IGenericType type) {
+        return ProtoHelper.getResponseProtoTypeName(fullMethodName, type);
     }
 }

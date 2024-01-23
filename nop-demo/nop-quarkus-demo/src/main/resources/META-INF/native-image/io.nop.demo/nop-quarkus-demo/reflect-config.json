@@ -554,6 +554,10 @@
     "fields": [],
     "methods": [
       {
+        "name": "freeze",
+        "parameterTypes": []
+      },
+      {
         "name": "getPermissions",
         "parameterTypes": []
       },
@@ -562,9 +566,19 @@
         "parameterTypes": []
       },
       {
+        "name": "isPublicAccess",
+        "parameterTypes": []
+      },
+      {
         "name": "setPermissions",
         "parameterTypes": [
           "io.nop.api.core.util.MultiCsvSet"
+        ]
+      },
+      {
+        "name": "setPublicAccess",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -937,6 +951,10 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "attrs",
+        "parameterTypes": []
+      },
       {
         "name": "containsLabel",
         "parameterTypes": [
@@ -4563,6 +4581,10 @@
     "methods": [
       {
         "name": "getAccessToken",
+        "parameterTypes": []
+      },
+      {
+        "name": "getAttrs",
         "parameterTypes": []
       },
       {
@@ -52887,6 +52909,10 @@
     ],
     "methods": [
       {
+        "name": "dumpProtoFile",
+        "parameterTypes": []
+      },
+      {
         "name": "getGraphQLObjectTypes",
         "parameterTypes": []
       },
@@ -53042,7 +53068,14 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [],
+    "methods": [
+      {
+        "name": "addImportPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
     "name": "io.nop.rpc.model.ApiModel",
     "unsafeAllocated": false
   },
@@ -71736,6 +71769,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isPublicAccess",
+        "parameterTypes": []
+      },
+      {
         "name": "newInstance",
         "parameterTypes": []
       },
@@ -71755,6 +71792,12 @@
         "name": "setPermissions",
         "parameterTypes": [
           "io.nop.api.core.util.MultiCsvSet"
+        ]
+      },
+      {
+        "name": "setPublicAccess",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {

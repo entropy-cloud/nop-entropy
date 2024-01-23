@@ -16,7 +16,7 @@ import java.util.Map;
 
 public class GraphQLDirective extends _GraphQLDirective {
 
-    public void addArgument(String name, GraphQLValue value){
+    public void addArgument(String name, GraphQLValue value) {
         GraphQLArgument arg = new GraphQLArgument();
         arg.setName(name);
         arg.setValue(value);
@@ -39,6 +39,20 @@ public class GraphQLDirective extends _GraphQLDirective {
         if (arg == null)
             return null;
         return arg.getValue().buildValue(vars);
+    }
+
+    public Object getArgValue(String name) {
+        return getArgValue(name, Collections.emptyMap());
+    }
+
+    public void setArgValue(String name, Object value) {
+        GraphQLArgument arg = getArg(name);
+        if (arg == null) {
+            arg = new GraphQLArgument();
+            arg.setName(name);
+            makeArguments().add(arg);
+        }
+        arg.setValue(GraphQLLiteral.valueOf(null, value));
     }
 
     public Map<String, Object> buildArgs(Map<String, Object> vars) {

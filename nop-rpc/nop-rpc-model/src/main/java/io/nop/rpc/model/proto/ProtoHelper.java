@@ -11,6 +11,9 @@ import static io.nop.rpc.model.RpcModelErrors.ERR_PROTO_NOT_SUPPORT_DATA_TYPE;
 
 public class ProtoHelper {
     public static String getProtoTypeName(IGenericType type) {
+        if (type == null || type.isVoidType())
+            return RpcModelConstants.PROTO_TYPE_EMPTY;
+
         if (type.isAnyType())
             return RpcModelConstants.PROTO_TYPE_ANY;
 
@@ -21,6 +24,33 @@ public class ProtoHelper {
                 return scalarType.getText();
         }
         return type.getTypeName();
+    }
+
+    public static String getRequestProtoTypeName(String typeName) {
+        StdDataType dataType = StdDataType.fromJavaClassName(typeName);
+        if (dataType == null)
+            return typeName;
+        BinaryScalarType scalarType = dataType.toBinaryScalarType();
+        if (scalarType == null)
+            return typeName;
+        return scalarType.toProtoBufTypeName();
+    }
+
+    public static String getResponseProtoTypeName(String fullMethodName, IGenericType type) {
+        if (type == null || type.isVoidType())
+            return RpcModelConstants.PROTO_TYPE_EMPTY;
+
+        if (type.isAnyType())
+            return RpcModelConstants.PROTO_TYPE_ANY;
+
+        if (type.isCollectionLike()) {
+            return fullMethodName + "_response";
+        }
+
+        StdDataType dataType = type.getStdDataType();
+        if (dataType == StdDataType.ANY)
+            return type.getTypeName();
+        return fullMethodName + "_response";
     }
 
     public static BinaryScalarType toBinaryScalarType(StdDataType dataType) {

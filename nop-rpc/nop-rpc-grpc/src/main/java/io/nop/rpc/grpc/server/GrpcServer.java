@@ -51,12 +51,18 @@ public class GrpcServer extends LifeCycleSupport {
                 .addService(ProtoReflectionService.newInstance()) // 添加Proto Reflection服务
                 .build();
 
+        dumpProtoFile();
+
         // 启动服务器
         try {
             server.start();
         } catch (IOException e) {
             throw NopException.adapt(e);
         }
+    }
+
+    private void dumpProtoFile() {
+        schemaManager.dumpProtoFile();
     }
 
     protected ServerBuilder<?> newBuilder() {

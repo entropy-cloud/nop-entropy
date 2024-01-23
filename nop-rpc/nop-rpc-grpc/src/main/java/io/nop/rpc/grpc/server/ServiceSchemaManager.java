@@ -4,7 +4,11 @@ import com.google.protobuf.DescriptorProtos;
 import io.grpc.MethodDescriptor;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerServiceDefinition;
+import io.nop.api.core.config.AppConfig;
 import io.nop.commons.type.StdDataType;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.ResourceHelper;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.cache.ResourceLoadingCache;
 import io.nop.graphql.core.ast.GraphQLArgumentDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
@@ -18,10 +22,13 @@ import io.nop.rpc.grpc.proto.GenericFieldSchema;
 import io.nop.rpc.grpc.proto.GenericObjSchema;
 import io.nop.rpc.grpc.proto.IFieldMarshaller;
 import io.nop.rpc.grpc.proto.ProtobufMarshallerHelper;
+import io.nop.rpc.grpc.proto.codegen.GraphQLToApiModel;
 import io.nop.rpc.grpc.proto.marshaller.EmptyMarshaller;
 import io.nop.rpc.grpc.proto.marshaller.GenericMessageMarshaller;
 import io.nop.rpc.grpc.proto.marshaller.IntFieldMarshaller;
 import io.nop.rpc.grpc.status.GrpcStatusMapping;
+import io.nop.rpc.model.ApiModel;
+import io.nop.rpc.model.proto.ProtoFileGenerator;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +59,15 @@ public class ServiceSchemaManager {
     @Inject
     public void setStatusMapping(GrpcStatusMapping statusMapping) {
         this.statusMapping = statusMapping;
+    }
+
+    public void dumpProtoFile() {
+        if (AppConfig.isDebugMode()) {
+            ApiModel apiModel = new GraphQLToApiModel().transformToApi(graphQLEngine.getSchemaLoader());
+            String protoFile = new ProtoFileGenerator().generateProtoFile(apiModel);
+            IResource resource = VirtualFileSystem.instance().getResource("/nop/main/graphql/graphql-api.proto");
+            ResourceHelper.dumpResource(resource, protoFile);
+        }
     }
 
     public Set<String> getGraphQLObjectTypes() {
@@ -169,7 +185,7 @@ public class ServiceSchemaManager {
         } else {
             // handle non-scalar types
             GraphQLTypeDefinition objDef = graphQLEngine.getSchemaLoader().resolveTypeDefinition(type);
-            if(objDef.isEnumDefinition())
+            if (objDef.isEnumDefinition())
                 return IntFieldMarshaller.INSTANCE;
 
             GenericObjSchema objSchema = (GenericObjSchema) objDef.getGrpcSchema();

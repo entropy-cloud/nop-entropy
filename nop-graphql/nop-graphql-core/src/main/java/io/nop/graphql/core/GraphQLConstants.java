@@ -53,6 +53,8 @@ public interface GraphQLConstants {
 
     String DIRECTIVE_MASK = "Mask";
 
+    String DIRECTIVE_LABEL = "Label";
+
     String ARG_ID = "id";
     String ARG_IDS = "ids";
     String ARG_QUERY = "query";

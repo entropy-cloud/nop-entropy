@@ -54,6 +54,10 @@ grpc-defaults.beans.xml中通过nopGrpcAutoConfiguration注册类会向nacos注�
 目前Nop平台的grpc服务端口和rest服务端口是分离的，注册的服务名也不同。grpc服务名是
 `${nop.application.name}-rpc`，而REST服务名是是`${nop.application.name}`，不带http后缀，这样和springcloud的习惯符合
 
+## 调试
+
+在调试模式下，在dump目录下会生成`/nop/main/graphql/graphql-api.proto`定义文件
+
 # 服务函数
 
 MethodDescriptor提供了generateFullMethodName方法来生成全方法名
