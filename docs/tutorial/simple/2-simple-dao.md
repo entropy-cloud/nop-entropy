@@ -14,8 +14,7 @@ Nop平台启动时会自动加载所有模块的orm目录下的app.orm.xml文件
 
 > 例如`/_vfs/nop/demo/orm/app.orm.xml`。 nop/orm目录下具有文件_module，表示它是一个Nop模块。
 
-````xml
-
+```xml
 <orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <entities>
         <entity name="app.demo.DemoEntity" tableName="demo_entity"
@@ -29,7 +28,7 @@ Nop平台启动时会自动加载所有模块的orm目录下的app.orm.xml文件
         </entity>
     </entities>
 </orm>
-````
+```
 
 1. 如果不生成特定的Java实体类，可以使用系统内置的动态实体类DynamicEntity
 2. 每个字段都必须指定propId属性，不要求连续，但是不能重复。
@@ -41,7 +40,7 @@ Nop平台启动时会自动加载所有模块的orm目录下的app.orm.xml文件
 我们可以增加一个DemoEntityBizModel，在其中通过`@Inject`自动注入IDaoProvider。一般情况下实现增删改查的BizModel会从CrudBizModel继承，它已经实现了
 大量标准的CRUD操作。这里为了演示功能，我们选择不继承已有的CrudBizModel，完全手工编写。
 
-````java
+```java
 @BizModel("DemoEntity")
 public class DemoEntityBizModel {
 
@@ -51,15 +50,15 @@ public class DemoEntityBizModel {
 
     @BizQuery
     @GraphQLReturn(bizObjName = "DemoEntity")
-    public OrmEntity getEntity(@Name("id") String id) {
-        IEntityDao<OrmEntity> dao = daoProvider.dao("app.demo.DemoEntity");
+    public IOrmEntity getEntity(@Name("id") String id) {
+        IEntityDao<IOrmEntity> dao = daoProvider.dao("app.demo.DemoEntity");
         return dao.getEntityById(id);
     }
 
     @BizMutation
     @GraphQLReturn(bizObjName = "DemoEntity")
-    public OrmEntity saveEntity(@Name("data") Map<String, Object> data) {
-        IEntityDao<OrmEntity> dao = daoProvider.dao("app.demo.DemoEntity");
+    public IOrmEntity saveEntity(@Name("data") Map<String, Object> data) {
+        IEntityDao<IOrmEntity> dao = daoProvider.dao("app.demo.DemoEntity");
         OrmEntity entity = dao.newEntity();
         BeanTool.instance().setProperties(entity, data);
         dao.saveEntity(entity);
@@ -68,52 +67,54 @@ public class DemoEntityBizModel {
 
     @BizQuery
     @GraphQLReturn(bizObjName = "DemoEntity")
-    public List<OrmEntity> findByName(@Name("name") String name) {
-        IEntityDao<OrmEntity> dao = daoProvider.dao("app.demo.DemoEntity");
+    public List<IOrmEntity> findByName(@Name("name") String name) {
+        IEntityDao<IOrmEntity> dao = daoProvider.dao("app.demo.DemoEntity");
 
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.contains("name", name));
         return dao.findAllByQuery(query);
     }
 }
-````
+```
 
 * 一般情况下`@BizModel`注解指定的对象名与实体对象名相同，便于代码定位。
 
 * 通过`daoProvider.dao(entityName)`可以获取到指定实体类对应的Dao对象。在Nop平台中我们只会使用平台内置的IEntityDao接口，它已经提供了足够丰富的方法，
-不需要业务开发人员再去扩展Dao接口。如果有些功能IEntityDao接口无法满足需求，可以使用`IOrmTemplate`或者`SqlLibMapper`机制。
+  不需要业务开发人员再去扩展Dao接口。如果有些功能IEntityDao接口无法满足需求，可以使用`IOrmTemplate`或者`SqlLibMapper`机制。
 
 * 服务函数可以返回实体对象。这一点与SpringMVC的Controller不同。Controller一般只能返回可以自动序列化为JSON的DTO对象，否则无法控制哪些字段可以返回到前台。
-当我们不是直接返回字段，而是返回某种动态处理结果的时候，在Spring框架中也需要通过DTO进行适配。但是在使用NopGraphQL框架时，我们可以直接返回实体，然后通过xmeta元数据来控制返回
-字段，并且增加额外的转换逻辑。
-需要注意的是，我们现在使用的是动态实体对象，因此无法根据类名来确定是哪个实体类型，所以需要通过`@GraphQLReturn`注解来指明返回的对象类型是什么。
+  当我们不是直接返回字段，而是返回某种动态处理结果的时候，在Spring框架中也需要通过DTO进行适配。但是在使用NopGraphQL框架时，我们可以直接返回实体，然后通过xmeta元数据来控制返回
+  字段，并且增加额外的转换逻辑。
+  需要注意的是，我们现在使用的是动态实体对象，因此无法根据类名来确定是哪个实体类型，所以需要通过`@GraphQLReturn`注解来指明返回的对象类型是什么。
+
 * 在`/_vfs/nop/demo/model/`目录下需要增加一个`DemoEntity/DemoEntity.xmeta`元数据文件。当GraphQL服务函数返回的类型为指定对象类型时，会加载这里的元数据文件来获取对象信息。
-在这个文件中我们也可以增加实体上没有的字段，通过`getter`等配置实现动态计算。
+  在这个文件中我们也可以增加实体上没有的字段，通过`getter`等配置实现动态计算。
 
 ## 三. 通过SqlLibMapper接口调用SQL语句
 
 ### 1. 声明接口DemoMapper, 通过`@SqlLibMapper`注解与sql文件关联
 
-````java
+```java
 @SqlLibMapper("/nop/demo/sql/demo.sql-lib.xml")
 public interface DemoMapper {
     IOrmEntity findFirstByName(@Name("name") String name);
 }
-````
+```
 
 ### 2. 在beans.xml中注册Mapper接口类
+
 因为NopIoC并不使用类扫描机制，所以我们需要手动在app-simple-demo.beans.xml中增加bean的定义。
 
-````xml
+```xml
     <bean id="io.nop.auth.dao.mapper.NopAuthRoleMapper" class="io.nop.orm.sql_lib.proxy.SqlLibProxyFactoryBean"
           ioc:type="@bean:id" ioc:bean-method="build">
         <property name="mapperClass" value="@bean:type"/>
     </bean>
-````
+```
 
 ### 3. 在demo.sql-lib.xml增加SQL语句或者EQL对象查询语句
 
-````xml
+```xml
 <sql-lib x:scheme="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <sqls>
         <eql name="findFirstByName" sqlMethod="findFirst">
@@ -123,19 +124,19 @@ public interface DemoMapper {
         </eql>
     </sqls>
 </sql-lib>
-````
+```
 
-### 4. 在BizModel中调用SqlMapper
+### 4. 在BizModel中调用SqlLibMapper
 
-````java
+```java
 class DemoEntityBizModel{
     @Inject
     DemoMapper demoMapper;
-    
+
     @BizQuery
     @GraphQLReturn(bizObjName = "DemoEntity")
     public IOrmEntity findBySql(@Name("name") String name) {
         return demoMapper.findFirstByName(name);
     }
 }
-````
+```

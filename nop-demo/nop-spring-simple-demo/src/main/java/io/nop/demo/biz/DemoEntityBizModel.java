@@ -47,6 +47,7 @@ public class DemoEntityBizModel {
 
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.contains("name", name));
+        // <contains name="name" value="a" />  name like '%a%'
         return dao.findAllByQuery(query);
     }
 
