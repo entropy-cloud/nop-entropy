@@ -203,7 +203,6 @@ public class ReflectionBizModelBuilder {
     GraphQLObjectDefinition getLoaderForType(BizLoader loader, TypeRegistry registry) {
         if (loader.forType() != Object.class)
             return ReflectionGraphQLTypeFactory.INSTANCE.buildDef(loader.forType(), registry);
-
         return null;
     }
 

@@ -1,0 +1,26 @@
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <props>
+        <prop name="sid" displayName="SID" queryable="true">
+            <schema type="String"/>
+        </prop>
+
+        <prop name="name" displayName="名称" queryable="true" insertable="true" updatable="true">
+            <schema type="String"/>
+        </prop>
+
+        <prop name="status" displayName="状态" queryable="true" insertable="true" updatable="true">
+            <schema type="Integer"/>
+        </prop>
+
+        <prop name="status_label" displayName="状态文本">
+            <schema type="String"/>
+            <getter>
+                <c:script><![CDATA[
+                    if(entity.status == 1)
+                        return "ACTIVE";
+                    return "INACTIVE";
+                ]]></c:script>
+            </getter>
+        </prop>
+    </props>
+</meta>
