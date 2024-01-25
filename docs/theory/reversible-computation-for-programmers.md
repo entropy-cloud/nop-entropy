@@ -57,7 +57,7 @@ class BankAccountEx extends BankAccount{
 我们可以增加一个扩展账户对象，它从原有的账户对象继承，从而具有原有账户对象的所有字段，然后在扩展对象上我们可以引入扩展字段。然后我们在ORM配置中使用扩展对象，
 
 ```xml
-  <entity name="bank.BankAccount" class="mybank.BankAccountEx">...</entity>
+  <entity name="bank.BankAccount" className="mybank.BankAccountEx">...</entity>
 ```
 
 以上配置表示保持原有的实体名不变，将实体所对应的Java实体类改成BankAccountExt。这样的话，如果我们此前编程中创建实体对象的时候都是使用如下方法
@@ -80,7 +80,7 @@ BankAccount parentAccount = account.getParent(); // parent返回的是BankAccoun
 
 ```xml
 <orm x:extends="super">
-  <entity name="bank.BankAccount" class="mybank.BankAccountEx"  >
+  <entity name="bank.BankAccount" className="mybank.BankAccountEx"  >
     <columns>
        <column name="refAccountId" code="REF_ACCOUNT_ID" sqlType="VARCHAR" length="20" />
        <column name="phone3" code="PHONE3" x:override="remove" />        

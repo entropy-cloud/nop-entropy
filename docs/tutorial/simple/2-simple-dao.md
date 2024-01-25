@@ -90,7 +90,43 @@ public class DemoEntityBizModel {
 * 在`/_vfs/nop/demo/model/`目录下需要增加一个`DemoEntity/DemoEntity.xmeta`元数据文件。当GraphQL服务函数返回的类型为指定对象类型时，会加载这里的元数据文件来获取对象信息。
   在这个文件中我们也可以增加实体上没有的字段，通过`getter`等配置实现动态计算。
 
-## 三. 通过SqlLibMapper接口调用SQL语句
+## 三. 通过XMeta模型增加自定义字段
+
+NopGraphQL框架实际返回的业务对象的属性可以由xmeta模型来控制。通过它还可以控制访问权限、转换逻辑等。通过getter属性我们可以为业务对象增加自定义字段。
+
+````xml
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <props>
+        <prop name="sid" displayName="SID" queryable="true">
+            <schema type="String"/>
+        </prop>
+
+        <prop name="name" displayName="名称" queryable="true" insertable="true" updatable="true">
+            <schema type="String"/>
+        </prop>
+
+        <prop name="status" displayName="状态" queryable="true" insertable="true" updatable="true">
+            <schema type="Integer"/>
+        </prop>
+
+        <prop name="status_label" displayName="状态文本">
+            <schema type="String"/>
+            <getter>
+                <c:script><![CDATA[
+                    if(entity.status == 1)
+                        return "ACTIVE";
+                    return "INACTIVE";
+                ]]></c:script>
+            </getter>
+        </prop>
+    </props>
+</meta>
+````
+
+可以看出xmeta中的信息与orm模型中的信息有一定的重叠之处，但是它们用于不同的目的，一般并不会完全一致。Nop平台中的标准做法是使用编译期元编程自动实现两者之间的信息同步，
+并利用Delta合并来引入差异信息。在本文中我们不会涉及这些细节，感兴趣的读者可以参考[Nop平台元编程](../../dev-guide/xlang/meta-programming.md)
+
+## 四. 通过SqlLibMapper接口调用SQL语句
 
 ### 1. 声明接口DemoMapper, 通过`@SqlLibMapper`注解与sql文件关联
 
