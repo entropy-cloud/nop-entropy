@@ -4,6 +4,8 @@ Nop平台的后端服务采用NopGraphQL引擎来实现，它的设计相比于S
 
 NopGraphQL引擎的实现原理可以参考文章： [为什么在数学的意义上GraphQL严格的优于REST？](https://zhuanlan.zhihu.com/p/678597287)和[低代码平台中的GraphQL引擎](https://zhuanlan.zhihu.com/p/589565334)
 
+讲解视频：https://www.bilibili.com/video/BV1EC4y1k7s2/
+
 以下介绍如何集成spring框架，并实现一个最简单的后台服务函数。
 
 ## 一. 引入nop-spring-web-starter依赖
