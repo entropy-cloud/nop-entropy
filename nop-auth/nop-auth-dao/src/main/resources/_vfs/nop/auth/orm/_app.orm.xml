@@ -696,7 +696,7 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>
-                <to-one displayName="用户" name="user" refEntityName="io.nop.auth.dao.entity.NopAuthUser"
+                <to-one displayName="用户" name="user" refEntityName="io.nop.auth.dao.entity.NopAuthUser" tagSet="pub"
                         i18n-en:displayName="User">
                     <join>
                         <on leftProp="userId" rightProp="userId"/>

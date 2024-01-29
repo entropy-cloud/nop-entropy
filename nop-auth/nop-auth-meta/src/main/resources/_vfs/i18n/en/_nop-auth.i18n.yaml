@@ -262,6 +262,7 @@ prop:
       createTime: Create Time
       remark: Remark
       user: User
+      user.userName: User
     NopAuthSite:
       siteId: Site ID
       displayName: Display Name

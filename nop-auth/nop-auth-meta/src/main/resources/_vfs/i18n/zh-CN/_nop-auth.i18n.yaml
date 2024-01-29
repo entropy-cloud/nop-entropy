@@ -260,6 +260,7 @@ prop:
       sessionId: 会话ID
       tenantId: 租户ID
       user: 用户
+      user.userName: 用户
       userId: 用户ID
       userName: 用户名
     NopAuthSite:

@@ -21,5 +21,6 @@
   "createdBy": "",
   "createTime": "2000-01-01 14:00:00",
   "remark": "",
-  "user": null
+  "user": null,
+  "user.userName": ""
 }

@@ -98,10 +98,14 @@
               insertable="true" updatable="false" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="user" displayName="用户" i18n-en:displayName="User" ext:kind="to-one" internal="true" queryable="true"
-              ext:joinLeftProp="userId" ext:joinRightProp="userId" ext:joinRightDisplayProp="userName" mandatory="true"
-              lazy="true" published="false">
+        <prop name="user" displayName="用户" i18n-en:displayName="User" tagSet="pub" ext:kind="to-one" internal="true"
+              queryable="true" ext:joinLeftProp="userId" ext:joinRightProp="userId" ext:joinRightDisplayProp="userName"
+              insertable="false" updatable="false" mandatory="true" lazy="true">
             <schema bizObjName="NopAuthUser"/>
+        </prop>
+        <prop name="user.userName" displayName="用户" i18n-en:displayName="User" internal="true" queryable="true"
+              sortable="true" lazy="true">
+            <schema type="String"/>
         </prop>
     </props>
 </meta>

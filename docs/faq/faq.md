@@ -360,6 +360,10 @@ action-auth.xml可以配置缺省的角色和permission之间的绑定关系。�
 poi很大，最少有10几M，而且很慢。nop-ooxml-xlsx是利用Nop平台自己实现的XML解析器来解析xlsx文件，它的底层没有使用POI库，
 比POI快很多，内存消耗也小很多，但是支持的功能不多，只支持目前report开发中用到的xlsx特性。
 
+## 28. Excel模型中updateTime等系统约定的特殊字段能改成自己定义的名称吗？比如updateTime修改为updatedAt
+代码生成的时候会特殊识别如下数据域:createdBy 、 updateTime 、 updatedBy 、 delFlagversion 、createTime tenantId 。标记了这些数据域的字段会被自动识别为ORM引擎所支持的乐观锁字段、创建时间字段等。
+数据域不能改，数据库字段名可以改.
+
 # 部署问题
 
 
@@ -494,3 +498,14 @@ starter提供了与spring框架以及quarkus框架的自动集成机制。只要
 Nop平台中后台服务函数的命名方式是标准化的，/r/{bizObjName}_{bizMethodName}?@selection={selectionSet}
 
 有了数据供体，前台可以自由的决定它是作为默认值使用，还是固定的数据联动
+
+## 9. 模块化，子系统的概念在Nop平台中如何体现？像企业应用，财务，crm，hr，客户不一定，同时购买，是三个独立的子系统。
+采用微服务架构之后，模块化更多的是通过服务划分来解决。Nop平台内部支持两级模块系统，通过虚拟文件系统中的子目录来区分不同的模块。也就是说/nop/auth目录对应于 {vendor}/{subModule}这种模式的模块id.
+合理安排模块路径，可以实现ap/fin, app/crm, app/hr三个模块独立进行开发、管理。
+Nop平台采用可分可合的设计。如果引入了app/fin模块，就自动具有它的功能。可以每个子模块部署为一个exe，也可以多个子模块打包成单体应用部署为一个exe
+
+概念层面上Nop平台类似于一种微内核设计，可以动态加载、卸载业务模块。但是在目前的实现中如果模块中包含java类，还需要重启。
+不过也可以通过一个Java ClassLoader去加载模块中的class类。如果模块中没有包含自己的java类，则不需要重启。
+不过这些属于细化特性，Nop平台核心可能不会去处理得这么细致
+
+在开发模式下，Quarkus框架内置了hot load机制。在开发模式下修改java，它会自动reload。所以Nop开发一般模块时可以使用Quarkus集成模式。
