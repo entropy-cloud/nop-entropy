@@ -57,6 +57,8 @@ public interface DaoErrors {
     String ARG_OPTIONS = "options";
     String ARG_PATTERN = "pattern";
 
+    String ARG_SQL_DATA_TYPE = "sqlDataType";
+
     ErrorCode ERR_TXN_NOT_IN_TRANSACTION = define("nop.err.dao.txn.not-in-transaction",
             "要求上下文环境必须存在已经启动的事务:{querySpace}", ARG_QUERY_SPACE);
 
@@ -157,4 +159,7 @@ public interface DaoErrors {
     ErrorCode ERR_DAO_INVALID_TIMESTAMP =
             define("nop.err.dao.invalid-snowflake-timestamp",
                     "非法的时间戳，系统时钟不允许回拨；ts={},lastTs={}", ARG_TS, ARG_LAST_TS);
+
+    ErrorCode ERR_DAO_INVALID_SQL_DATA_TYPE =
+            define("nop.err.dao.invalid-sql-data-type", "非法的SQL数据类型：{sqlDataType}", ARG_SQL_DATA_TYPE);
 }

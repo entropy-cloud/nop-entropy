@@ -29,12 +29,12 @@
             <attr name="codeGenerator" implicit="true"/>
             <attr name="codeGenLoop" implicit="true"/>
             <source>
-                <c:script>
+                <c:script><![CDATA[
                     const vars = {}
                     if(inheritCodeGenLoop)
-                    vars.codeGenLoop = codeGenLoop;
+                        vars.codeGenLoop = codeGenLoop;
                     codeGenerator.withTplDir(template).withTargetDir(targetDir).execute("",vars,$scope);
-                </c:script>
+                ]]></c:script>
             </source>
         </Render>
 
@@ -111,10 +111,13 @@
                         import io.nop.core.resource.ResourceHelper;
 
                         let ormModel = codeGenModel;
-                        let appName = ormModel['ext:appName'];
+                        let appName = ormModel['ext:appName'] || ormModel['ext:moduleName'];
                         let pkgName = ormModel['ext:basePackageName'];
                         let entityPkgName = ormModel['ext:entityPackageName'];
                         if(!pkgName){
+                            if(!entityPkgName)
+                               entityPkgName = "app.dyn.entity";
+
                             if(entityPkgName.endsWith('.dao.entity')){
                                 pkgName = entityPkgName.$removeTail('.dao.entity');
                             }else if(entityPkgName.endsWith('.entity')){
@@ -125,11 +128,12 @@
 
                         ResourceHelper.checkValidModuleName(appName);
 
-                        let moduleId = ormModel['ext:moduleId'] || appName.replace('-','/');
+                        let moduleName = appName;
+                        let moduleId = moduleName.replace('-','/')
                         builder.defineGlobalVar("ormModel",ormModel);
                         builder.defineGlobalVar("appName", appName);
                         builder.defineGlobalVar("moduleId",moduleId);
-                        builder.defineGlobalVar("moduleName",moduleId.replace('/','-'));
+                        builder.defineGlobalVar("moduleName",moduleName);
                         builder.defineGlobalVar('mavenGroupId',ormModel['ext:mavenGroupId']);
                         builder.defineGlobalVar('mavenArtifactId', ormModel['ext:mavenArtifactId']);
                         builder.defineGlobalVar("moduleClassPrefix",moduleId.replace('/','_').$camelCase(true))

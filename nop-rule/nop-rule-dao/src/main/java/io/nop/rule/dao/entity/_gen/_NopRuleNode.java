@@ -841,17 +841,19 @@ public class _NopRuleNode extends DynamicOrmEntity{
     }
 
     public void setParent(io.nop.rule.dao.entity.NopRuleNode refEntity){
-       if(refEntity == null){
-         
-         this.setParentId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_parent, refEntity,()->{
-             
-                    this.setParentId(refEntity.getSid());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setParentId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_parent, refEntity,()->{
+           
+                           this.setParentId(refEntity.getSid());
+                       
+           });
+           }
+       
     }
        
     /**
@@ -862,17 +864,19 @@ public class _NopRuleNode extends DynamicOrmEntity{
     }
 
     public void setRuleDefinition(io.nop.rule.dao.entity.NopRuleDefinition refEntity){
-       if(refEntity == null){
-         
-         this.setRuleId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_ruleDefinition, refEntity,()->{
-             
-                    this.setRuleId(refEntity.getRuleId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setRuleId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_ruleDefinition, refEntity,()->{
+           
+                           this.setRuleId(refEntity.getRuleId());
+                       
+           });
+           }
+       
     }
        
     private final OrmEntitySet<io.nop.rule.dao.entity.NopRuleNode> _children = new OrmEntitySet<>(this, PROP_NAME_children,

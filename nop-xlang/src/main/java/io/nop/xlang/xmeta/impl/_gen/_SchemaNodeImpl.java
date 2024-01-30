@@ -2,6 +2,8 @@ package io.nop.xlang.xmeta.impl._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xmeta.impl.SchemaNodeImpl;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -317,17 +319,43 @@ public abstract class _SchemaNodeImpl extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("bizObjName",this.getBizObjName());
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("domain",this.getDomain());
-        out.put("id",this.getId());
-        out.put("name",this.getName());
-        out.put("ref",this.getRef());
-        out.put("refResolved",this.getRefResolved());
-        out.put("stdDomain",this.getStdDomain());
-        out.put("type",this.getType());
-        out.put("validator",this.getValidator());
+        out.putNotNull("bizObjName",this.getBizObjName());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("domain",this.getDomain());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("ref",this.getRef());
+        out.putNotNull("refResolved",this.getRefResolved());
+        out.putNotNull("stdDomain",this.getStdDomain());
+        out.putNotNull("type",this.getType());
+        out.putNotNull("validator",this.getValidator());
+    }
+
+    public SchemaNodeImpl cloneInstance(){
+        SchemaNodeImpl instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(SchemaNodeImpl instance){
+        super.copyTo(instance);
+        
+        instance.setBizObjName(this.getBizObjName());
+        instance.setDescription(this.getDescription());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setDomain(this.getDomain());
+        instance.setId(this.getId());
+        instance.setName(this.getName());
+        instance.setRef(this.getRef());
+        instance.setRefResolved(this.getRefResolved());
+        instance.setStdDomain(this.getStdDomain());
+        instance.setType(this.getType());
+        instance.setValidator(this.getValidator());
+    }
+
+    protected SchemaNodeImpl newInstance(){
+        return (SchemaNodeImpl) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

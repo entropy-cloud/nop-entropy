@@ -94,6 +94,10 @@ public class GraphQLActionAuthChecker {
         if (auth == null)
             return;
 
+        // 如果是公开方法，则不检查用户权限
+        if (auth.isPublicAccess())
+            return;
+
         IUserContext userContext = context.getUserContext();
         if (userContext == null)
             throw new IllegalStateException("nop.err.auth.no-user-context");

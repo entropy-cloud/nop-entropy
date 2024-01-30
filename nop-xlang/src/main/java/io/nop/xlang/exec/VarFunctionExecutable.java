@@ -14,6 +14,7 @@ import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
+import io.nop.xlang.utils.EvalFunctionHelper;
 
 import static io.nop.xlang.XLangErrors.ARG_CLASS_NAME;
 import static io.nop.xlang.XLangErrors.ARG_FUNC_EXPR;
@@ -75,10 +76,11 @@ public class VarFunctionExecutable extends AbstractExecutable {
         Object o = executor.execute(funcExpr, scope);
         if (o == null)
             return null;
-        if (!(o instanceof IEvalFunction))
+        IEvalFunction fn = EvalFunctionHelper.toEvalFunction(o);
+        if (fn == null)
             throw newError(ERR_EXEC_EXPR_NOT_RETURN_FUNC).param(ARG_FUNC_EXPR, funcExpr).param(ARG_CLASS_NAME,
                     o.getClass().getName());
-        return (IEvalFunction) o;
+        return fn;
     }
 
     @Override

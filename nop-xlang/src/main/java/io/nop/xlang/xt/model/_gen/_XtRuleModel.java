@@ -2,6 +2,8 @@ package io.nop.xlang.xt.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xt.model.XtRuleModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -29,6 +31,21 @@ public abstract class _XtRuleModel extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+    }
+
+    public XtRuleModel cloneInstance(){
+        XtRuleModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(XtRuleModel instance){
+        super.copyTo(instance);
+        
+    }
+
+    protected XtRuleModel newInstance(){
+        return (XtRuleModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

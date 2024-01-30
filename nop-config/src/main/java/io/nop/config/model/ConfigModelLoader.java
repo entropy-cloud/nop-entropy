@@ -24,8 +24,8 @@ public class ConfigModelLoader {
     public ConfigModel loadConfigModel() {
         Map<String, ConfigVarModel> merged = new HashMap<>();
 
-        ModuleManager.instance().getEnabledModuleIds().forEach(moduleId -> {
-            Map<String, ConfigVarModel> moduleVars = loadModuleConfigVars(moduleId);
+        ModuleManager.instance().getEnabledModules().forEach(module -> {
+            Map<String, ConfigVarModel> moduleVars = loadModuleConfigVars(module.getModuleId());
             if (moduleVars != null) {
                 merge(merged, moduleVars);
             }

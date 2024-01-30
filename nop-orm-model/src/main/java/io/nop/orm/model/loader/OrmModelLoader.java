@@ -10,6 +10,7 @@ package io.nop.orm.model.loader;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.core.module.ModuleManager;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
@@ -23,8 +24,9 @@ import io.nop.xlang.xdsl.DslModelHelper;
 import io.nop.xlang.xdsl.DslModelParser;
 
 public class OrmModelLoader {
+    static final SourceLocation merged_loc = SourceLocation.fromPath("/nop/main/orm/merged-app.orm.xml");
 
-    public OrmModel loadFromResource(IResource resource, boolean ignoreUnknown) {
+    private OrmModel loadFromResource(IResource resource, boolean ignoreUnknown) {
         OrmModel model = (OrmModel) new DslModelParser(OrmModelConstants.XDSL_SCHEMA_ORM).parseFromResource(resource,
                 ignoreUnknown);
         return model;
@@ -32,10 +34,11 @@ public class OrmModelLoader {
 
     public OrmModel loadOrmModel() {
         OrmModel model = new OrmModel();
+        model.setLocation(merged_loc);
         model.setMerged(true);
 
-        ModuleManager.instance().getEnabledModuleIds().forEach(moduleId -> {
-            OrmModel moduleModel = loadModuleOrmModel(moduleId);
+        ModuleManager.instance().getAllModuleResources("orm/app.orm.xml").forEach(resource -> {
+            OrmModel moduleModel = loadFromResource(resource,true);
             if (moduleModel != null) {
                 merge(model, moduleModel, false);
             }
@@ -51,17 +54,11 @@ public class OrmModelLoader {
         model.freeze(true);
 
         if (AppConfig.isDebugMode()) {
-            String dumpPath = ResourceHelper.getDumpPath("/nop/main/orm/merged-app.orm.xml");
+            String dumpPath = ResourceHelper.getDumpPath(merged_loc.getPath());
             IResource resource = VirtualFileSystem.instance().getResource(dumpPath);
             DslModelHelper.saveDslModel(OrmModelConstants.XDSL_SCHEMA_ORM, model, resource);
         }
         return model;
-    }
-
-    private OrmModel loadModuleOrmModel(String moduleId) {
-        String path = '/' + moduleId + "/orm/app.orm.xml";
-        IResource resource = VirtualFileSystem.instance().getResource(path);
-        return loadFromResource(resource, true);
     }
 
     private void merge(OrmModel baseModel, OrmModel extModel, boolean replace) {

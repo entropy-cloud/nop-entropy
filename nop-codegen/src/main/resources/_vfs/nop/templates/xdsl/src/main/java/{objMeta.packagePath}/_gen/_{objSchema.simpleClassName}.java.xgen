@@ -2,6 +2,8 @@
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import ${objMeta.packageName}.${objSchema.simpleClassName};
+import io.nop.commons.util.ClassHelper;
 
 <c:script>
 import io.nop.commons.type.StdDataType;
@@ -137,7 +139,24 @@ public abstract class _${objSchema.simpleClassName} extends ${baseClass} ${implI
         super.outputJson(out);
         <c:for var="prop" items="${objSchema.localProps}">
             <c:continue xpl:if="prop.name.indexOf(':')>0" />
-        out.put("${prop.name}",this.${prop.methodGetName}());</c:for>
+        out.putNotNull("${prop.name}",this.${prop.methodGetName}());</c:for>
+    }
+
+    public ${objSchema.simpleClassName} cloneInstance(){
+        ${objSchema.simpleClassName} instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(${objSchema.simpleClassName} instance){
+        super.copyTo(instance);
+        <c:for var="prop" items="${objSchema.localProps}">
+          <c:continue xpl:if="prop.name.indexOf(':')>0" />
+        instance.${prop.methodSetName}(this.${prop.methodGetName}());</c:for>
+    }
+
+    protected ${objSchema.simpleClassName} newInstance(){
+        return (${objSchema.simpleClassName}) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

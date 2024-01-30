@@ -2,6 +2,8 @@ package io.nop.core.model.validator._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.core.model.validator.ValidatorModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -347,17 +349,43 @@ public abstract class _ValidatorModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("bizFatal",this.getBizFatal());
-        out.put("checkLibPath",this.getCheckLibPath());
-        out.put("checks",this.getChecks());
-        out.put("condition",this.getCondition());
-        out.put("errorCode",this.getErrorCode());
-        out.put("errorDescription",this.getErrorDescription());
-        out.put("errorParams",this.getErrorParams());
-        out.put("errorStatus",this.getErrorStatus());
-        out.put("fatalSeverity",this.getFatalSeverity());
-        out.put("obj",this.getObj());
-        out.put("severity",this.getSeverity());
+        out.putNotNull("bizFatal",this.getBizFatal());
+        out.putNotNull("checkLibPath",this.getCheckLibPath());
+        out.putNotNull("checks",this.getChecks());
+        out.putNotNull("condition",this.getCondition());
+        out.putNotNull("errorCode",this.getErrorCode());
+        out.putNotNull("errorDescription",this.getErrorDescription());
+        out.putNotNull("errorParams",this.getErrorParams());
+        out.putNotNull("errorStatus",this.getErrorStatus());
+        out.putNotNull("fatalSeverity",this.getFatalSeverity());
+        out.putNotNull("obj",this.getObj());
+        out.putNotNull("severity",this.getSeverity());
+    }
+
+    public ValidatorModel cloneInstance(){
+        ValidatorModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ValidatorModel instance){
+        super.copyTo(instance);
+        
+        instance.setBizFatal(this.getBizFatal());
+        instance.setCheckLibPath(this.getCheckLibPath());
+        instance.setChecks(this.getChecks());
+        instance.setCondition(this.getCondition());
+        instance.setErrorCode(this.getErrorCode());
+        instance.setErrorDescription(this.getErrorDescription());
+        instance.setErrorParams(this.getErrorParams());
+        instance.setErrorStatus(this.getErrorStatus());
+        instance.setFatalSeverity(this.getFatalSeverity());
+        instance.setObj(this.getObj());
+        instance.setSeverity(this.getSeverity());
+    }
+
+    protected ValidatorModel newInstance(){
+        return (ValidatorModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

@@ -2,6 +2,8 @@ package io.nop.orm.sql_lib._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.orm.sql_lib.SqlItemModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -529,23 +531,55 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("args",this.getArgs());
-        out.put("auth",this.getAuth());
-        out.put("batchLoadSelection",this.getBatchLoadSelection());
-        out.put("cacheKeyExpr",this.getCacheKeyExpr());
-        out.put("cacheName",this.getCacheName());
-        out.put("description",this.getDescription());
-        out.put("disableLogicalDelete",this.isDisableLogicalDelete());
-        out.put("displayName",this.getDisplayName());
-        out.put("fetchSize",this.getFetchSize());
-        out.put("fields",this.getFields());
-        out.put("name",this.getName());
-        out.put("querySpace",this.getQuerySpace());
-        out.put("rowType",this.getRowType());
-        out.put("sqlMethod",this.getSqlMethod());
-        out.put("timeout",this.getTimeout());
-        out.put("type",this.getType());
-        out.put("validateInput",this.getValidateInput());
+        out.putNotNull("args",this.getArgs());
+        out.putNotNull("auth",this.getAuth());
+        out.putNotNull("batchLoadSelection",this.getBatchLoadSelection());
+        out.putNotNull("cacheKeyExpr",this.getCacheKeyExpr());
+        out.putNotNull("cacheName",this.getCacheName());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("disableLogicalDelete",this.isDisableLogicalDelete());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("fetchSize",this.getFetchSize());
+        out.putNotNull("fields",this.getFields());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("querySpace",this.getQuerySpace());
+        out.putNotNull("rowType",this.getRowType());
+        out.putNotNull("sqlMethod",this.getSqlMethod());
+        out.putNotNull("timeout",this.getTimeout());
+        out.putNotNull("type",this.getType());
+        out.putNotNull("validateInput",this.getValidateInput());
+    }
+
+    public SqlItemModel cloneInstance(){
+        SqlItemModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(SqlItemModel instance){
+        super.copyTo(instance);
+        
+        instance.setArgs(this.getArgs());
+        instance.setAuth(this.getAuth());
+        instance.setBatchLoadSelection(this.getBatchLoadSelection());
+        instance.setCacheKeyExpr(this.getCacheKeyExpr());
+        instance.setCacheName(this.getCacheName());
+        instance.setDescription(this.getDescription());
+        instance.setDisableLogicalDelete(this.isDisableLogicalDelete());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setFetchSize(this.getFetchSize());
+        instance.setFields(this.getFields());
+        instance.setName(this.getName());
+        instance.setQuerySpace(this.getQuerySpace());
+        instance.setRowType(this.getRowType());
+        instance.setSqlMethod(this.getSqlMethod());
+        instance.setTimeout(this.getTimeout());
+        instance.setType(this.getType());
+        instance.setValidateInput(this.getValidateInput());
+    }
+
+    protected SqlItemModel newInstance(){
+        return (SqlItemModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

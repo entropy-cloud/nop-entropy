@@ -1,10 +1,13 @@
 package io.nop.dyn.dao.model;
 
+import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
+import io.nop.dyn.dao.NopDynDaoConstants;
 import io.nop.dyn.dao.entity.NopDynEntityMeta;
 import io.nop.dyn.dao.entity.NopDynModule;
 import io.nop.dyn.dao.entity.NopDynPropMeta;
 import io.nop.orm.model.IColumnModel;
+import io.nop.orm.model.IEntityJoinConditionModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IOrmModel;
@@ -31,6 +34,8 @@ public class OrmModelToDynEntityMeta {
             if (entityMeta == null) {
                 entityMeta = new NopDynEntityMeta();
                 entityMeta.setEntityName(entityModel.getName());
+                entityMeta.setStatus(1);
+                entityMeta.setStoreType(NopDynDaoConstants.ENTITY_STORE_TYPE_VIRTUAL);
                 dynModule.getEntityMetas().add(entityMeta);
             }
             transformEntityMeta(entityModel, entityMeta);
@@ -51,20 +56,39 @@ public class OrmModelToDynEntityMeta {
 
     private void transformEntityMeta(IEntityModel entityModel, NopDynEntityMeta entityMeta) {
         entityMeta.setTableName(entityModel.getTableName());
-        entityMeta.setTagSet(StringHelper.join(entityModel.getTagSet(), ","));
+        entityMeta.setTagsText(StringHelper.join(entityModel.getTagSet(), ","));
         entityMeta.setRemark(entityModel.getComment());
-        entityMeta.setStatus(1);
         entityMeta.setDisplayName(entityModel.getDisplayName());
+        entityMeta.setIsExternal(entityModel.containsTag(OrmModelConstants.TAG_NOT_GEN));
 
         Map<String, NopDynPropMeta> propMetas = new HashMap<>();
         entityMeta.getPropMetas().forEach(propMeta -> {
             propMetas.put(propMeta.getPropName(), propMeta);
         });
 
-        entityModel.getAllProps().forEach((name, prop) -> {
-            NopDynPropMeta propMeta = makeProp(entityMeta, propMetas, prop.getName());
+        entityModel.getColumns().forEach(col -> {
+            // 忽略主键
+            if (col.isPrimary())
+                return;
 
-            transformPropMeta(prop, propMeta);
+            NopDynPropMeta propMeta = makeProp(entityMeta, propMetas, col.getName());
+
+            transformPropMeta(col, propMeta);
+        });
+
+        // 只考虑单字段关联
+        entityModel.getToOneRelations().forEach(rel -> {
+            if (rel.getJoin().size() == 1) {
+                IEntityJoinConditionModel join = rel.getJoin().get(0);
+                if (join.getLeftProp() != null) {
+                    NopDynPropMeta propMeta = propMetas.get(join.getLeftProp());
+                    if (propMeta != null) {
+                        propMeta.setRefEntityName(rel.getRefEntityName());
+                        propMeta.setRefPropName(rel.getRefPropName());
+                        //propMeta.setRefPropDisplayName(rel.getDisplayName());
+                    }
+                }
+            }
         });
     }
 
@@ -86,16 +110,26 @@ public class OrmModelToDynEntityMeta {
 
     void transformColumnMeta(IColumnModel col, NopDynPropMeta propMeta) {
         propMeta.setPropName(col.getName());
-        propMeta.setStdSqlType(col.getStdSqlType().getName());
+        propMeta.setPropId(col.getPropId());
+        StdSqlType sqlType = col.getStdSqlType();
+        if (sqlType == null)
+            sqlType = StdSqlType.VARCHAR;
+        propMeta.setStdSqlType(sqlType.getName());
         propMeta.setPrecision(col.getPrecision());
         propMeta.setScale(col.getScale());
         propMeta.setDisplayName(col.getDisplayName());
-        propMeta.setTagSet(StringHelper.join(col.getTagSet(), ","));
+        propMeta.setTagSet(col.getTagSet());
         propMeta.setStdDomainName(col.getStdDomain());
         propMeta.setIsMandatory(col.isMandatory());
-        propMeta.setIsPrimary(col.isPrimary());
         propMeta.setRemark(col.getComment());
         propMeta.setUiShow((String) col.prop_get(OrmModelConstants.EXT_UI_CONTROL));
         propMeta.setUiControl((String) col.prop_get(OrmModelConstants.EXT_UI_SHOW));
+        propMeta.setStatus(1);
+
+        // 只有AI生成的模型会使用这个属性，假定实体名已经正确设置
+        String refTable = (String) col.prop_get(NopDynDaoConstants.EXT_ORM_REF_TABLE);
+        if (refTable != null) {
+            propMeta.setRefEntityName(StringHelper.camelCase(refTable, true));
+        }
     }
 }

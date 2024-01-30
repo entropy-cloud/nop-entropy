@@ -138,7 +138,7 @@ public interface IEvalScope extends IVariableScope, IEvalContext {
     void setLocalValues(SourceLocation loc, Map<String, Object> values);
 
     default void setLocalValues(Map<String, Object> values) {
-        setLocalValue(null, values);
+        setLocalValues(null, values);
     }
 
     /**

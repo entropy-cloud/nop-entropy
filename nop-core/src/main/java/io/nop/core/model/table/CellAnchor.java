@@ -166,4 +166,15 @@ public class CellAnchor extends AbstractFreezable implements Serializable, IJson
         out.put("dy1", dy1);
         out.put("dy2", dy2);
     }
+
+    protected void copyTo(CellAnchor anchor) {
+        anchor.setRow1(getRow1());
+        anchor.setCol1(getCol1());
+        anchor.setRowDelta(getRowDelta());
+        anchor.setColDelta(getColDelta());
+        anchor.setDx1(getDx1());
+        anchor.setDx2(getDx2());
+        anchor.setDy1(getDy1());
+        anchor.setDy2(getDy2());
+    }
 }

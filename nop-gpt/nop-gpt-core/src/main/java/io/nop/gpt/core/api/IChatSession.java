@@ -5,5 +5,5 @@ import java.util.concurrent.CompletionStage;
 public interface IChatSession extends AutoCloseable {
     String getSessionId();
 
-    CompletionStage<String> sendChatAsync(String question, ChatOptions options);
+    CompletionStage<String> sendChatAsync(String role, String question, ChatOptions options);
 }

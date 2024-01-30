@@ -3,6 +3,9 @@
 * 配置`nop.auth.enable-action-auth=true`后启用操作权限。字段级别权限也利用这一开关
 * 配置`nop.auth.enable-data-auth=true`后启用数据权限。
 * 配置`nop.auth.use-data-auth-table=true`启用数据权限配置表`NopAuthRoleDataAuth`，数据库中配置的数据权限规则可以和配置文件中的权限规则合并
+* 缺省会加载/nop/main/auth/main.action-auth.xml 静态权限配置文件，可以通过nop.auth.site-map.static-config-path定制为不同的值
+* 在main.action-auth.xml可以通过`x:extends`来引入已有的权限配置文件。
+* 如果配置`nop.auth.skip-check-for-admin=true`,则对于具有admin角色的用户会跳过操作权限检查，缺省为true。
 
 > 平台在调试模式下启动时会打印出所有已知配置变量以及它对应的配置位置
 
@@ -89,6 +92,8 @@ public boolean delete(@Name("id") @Description("@i18n:biz.id|对象的主键标�
 
 通过这里的配置可以实现字段级别的读写权限控制. `for="read"`表示控制字段读权限，`for="write"`控制字段写权限，而`for="all"`同时允许读和写
 
+## 公开访问
+如果`@Auth`注解或者xbiz中的auth配置指定了publicAccess=true，则该方法为公开可访问方法，会自动跳过操作权限检查。但是数据权限仍然会应用。
 
 # 操作权限检查接口
 

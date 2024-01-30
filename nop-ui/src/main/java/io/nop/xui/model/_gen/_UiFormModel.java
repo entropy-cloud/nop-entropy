@@ -2,6 +2,8 @@ package io.nop.xui.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xui.model.UiFormModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -1281,51 +1283,111 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("api",this.getApi());
-        out.put("asyncApi",this.getAsyncApi());
-        out.put("bodyClassName",this.getBodyClassName());
-        out.put("canAccessSuperData",this.getCanAccessSuperData());
-        out.put("cells",this.getCells());
-        out.put("checkInterval",this.getCheckInterval());
-        out.put("className",this.getClassName());
-        out.put("data",this.getData());
-        out.put("editMode",this.getEditMode());
-        out.put("id",this.getId());
-        out.put("inheritData",this.getInheritData());
-        out.put("initApi",this.getInitApi());
-        out.put("initAsyncApi",this.getInitAsyncApi());
-        out.put("initCheckInterval",this.getInitCheckInterval());
-        out.put("initFetch",this.getInitFetch());
-        out.put("initFetchOn",this.getInitFetchOn());
-        out.put("interval",this.getInterval());
-        out.put("label",this.getLabel());
-        out.put("labelAlign",this.getLabelAlign());
-        out.put("labelWidth",this.getLabelWidth());
-        out.put("layout",this.getLayout());
-        out.put("layoutControl",this.getLayoutControl());
-        out.put("layoutMode",this.getLayoutMode());
-        out.put("messages",this.getMessages());
-        out.put("objMeta",this.getObjMeta());
-        out.put("panelClassName",this.getPanelClassName());
-        out.put("persistData",this.getPersistData());
-        out.put("persistDataKeys",this.getPersistDataKeys());
-        out.put("preventEnterSubmit",this.getPreventEnterSubmit());
-        out.put("promptPageLeave",this.getPromptPageLeave());
-        out.put("redirect",this.getRedirect());
-        out.put("reload",this.getReload());
-        out.put("renderer",this.getRenderer());
-        out.put("resetAfterSubmit",this.getResetAfterSubmit());
-        out.put("rules",this.getRules());
-        out.put("selection",this.getSelection());
-        out.put("silentPolling",this.getSilentPolling());
-        out.put("size",this.getSize());
-        out.put("stopAutoRefreshWhen",this.getStopAutoRefreshWhen());
-        out.put("submitOnChange",this.getSubmitOnChange());
-        out.put("submitOnInit",this.getSubmitOnInit());
-        out.put("submitText",this.getSubmitText());
-        out.put("target",this.getTarget());
-        out.put("title",this.getTitle());
-        out.put("wrapWithPanel",this.getWrapWithPanel());
+        out.putNotNull("api",this.getApi());
+        out.putNotNull("asyncApi",this.getAsyncApi());
+        out.putNotNull("bodyClassName",this.getBodyClassName());
+        out.putNotNull("canAccessSuperData",this.getCanAccessSuperData());
+        out.putNotNull("cells",this.getCells());
+        out.putNotNull("checkInterval",this.getCheckInterval());
+        out.putNotNull("className",this.getClassName());
+        out.putNotNull("data",this.getData());
+        out.putNotNull("editMode",this.getEditMode());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("inheritData",this.getInheritData());
+        out.putNotNull("initApi",this.getInitApi());
+        out.putNotNull("initAsyncApi",this.getInitAsyncApi());
+        out.putNotNull("initCheckInterval",this.getInitCheckInterval());
+        out.putNotNull("initFetch",this.getInitFetch());
+        out.putNotNull("initFetchOn",this.getInitFetchOn());
+        out.putNotNull("interval",this.getInterval());
+        out.putNotNull("label",this.getLabel());
+        out.putNotNull("labelAlign",this.getLabelAlign());
+        out.putNotNull("labelWidth",this.getLabelWidth());
+        out.putNotNull("layout",this.getLayout());
+        out.putNotNull("layoutControl",this.getLayoutControl());
+        out.putNotNull("layoutMode",this.getLayoutMode());
+        out.putNotNull("messages",this.getMessages());
+        out.putNotNull("objMeta",this.getObjMeta());
+        out.putNotNull("panelClassName",this.getPanelClassName());
+        out.putNotNull("persistData",this.getPersistData());
+        out.putNotNull("persistDataKeys",this.getPersistDataKeys());
+        out.putNotNull("preventEnterSubmit",this.getPreventEnterSubmit());
+        out.putNotNull("promptPageLeave",this.getPromptPageLeave());
+        out.putNotNull("redirect",this.getRedirect());
+        out.putNotNull("reload",this.getReload());
+        out.putNotNull("renderer",this.getRenderer());
+        out.putNotNull("resetAfterSubmit",this.getResetAfterSubmit());
+        out.putNotNull("rules",this.getRules());
+        out.putNotNull("selection",this.getSelection());
+        out.putNotNull("silentPolling",this.getSilentPolling());
+        out.putNotNull("size",this.getSize());
+        out.putNotNull("stopAutoRefreshWhen",this.getStopAutoRefreshWhen());
+        out.putNotNull("submitOnChange",this.getSubmitOnChange());
+        out.putNotNull("submitOnInit",this.getSubmitOnInit());
+        out.putNotNull("submitText",this.getSubmitText());
+        out.putNotNull("target",this.getTarget());
+        out.putNotNull("title",this.getTitle());
+        out.putNotNull("wrapWithPanel",this.getWrapWithPanel());
+    }
+
+    public UiFormModel cloneInstance(){
+        UiFormModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(UiFormModel instance){
+        super.copyTo(instance);
+        
+        instance.setApi(this.getApi());
+        instance.setAsyncApi(this.getAsyncApi());
+        instance.setBodyClassName(this.getBodyClassName());
+        instance.setCanAccessSuperData(this.getCanAccessSuperData());
+        instance.setCells(this.getCells());
+        instance.setCheckInterval(this.getCheckInterval());
+        instance.setClassName(this.getClassName());
+        instance.setData(this.getData());
+        instance.setEditMode(this.getEditMode());
+        instance.setId(this.getId());
+        instance.setInheritData(this.getInheritData());
+        instance.setInitApi(this.getInitApi());
+        instance.setInitAsyncApi(this.getInitAsyncApi());
+        instance.setInitCheckInterval(this.getInitCheckInterval());
+        instance.setInitFetch(this.getInitFetch());
+        instance.setInitFetchOn(this.getInitFetchOn());
+        instance.setInterval(this.getInterval());
+        instance.setLabel(this.getLabel());
+        instance.setLabelAlign(this.getLabelAlign());
+        instance.setLabelWidth(this.getLabelWidth());
+        instance.setLayout(this.getLayout());
+        instance.setLayoutControl(this.getLayoutControl());
+        instance.setLayoutMode(this.getLayoutMode());
+        instance.setMessages(this.getMessages());
+        instance.setObjMeta(this.getObjMeta());
+        instance.setPanelClassName(this.getPanelClassName());
+        instance.setPersistData(this.getPersistData());
+        instance.setPersistDataKeys(this.getPersistDataKeys());
+        instance.setPreventEnterSubmit(this.getPreventEnterSubmit());
+        instance.setPromptPageLeave(this.getPromptPageLeave());
+        instance.setRedirect(this.getRedirect());
+        instance.setReload(this.getReload());
+        instance.setRenderer(this.getRenderer());
+        instance.setResetAfterSubmit(this.getResetAfterSubmit());
+        instance.setRules(this.getRules());
+        instance.setSelection(this.getSelection());
+        instance.setSilentPolling(this.getSilentPolling());
+        instance.setSize(this.getSize());
+        instance.setStopAutoRefreshWhen(this.getStopAutoRefreshWhen());
+        instance.setSubmitOnChange(this.getSubmitOnChange());
+        instance.setSubmitOnInit(this.getSubmitOnInit());
+        instance.setSubmitText(this.getSubmitText());
+        instance.setTarget(this.getTarget());
+        instance.setTitle(this.getTitle());
+        instance.setWrapWithPanel(this.getWrapWithPanel());
+    }
+
+    protected UiFormModel newInstance(){
+        return (UiFormModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

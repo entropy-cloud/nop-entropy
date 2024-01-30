@@ -2,6 +2,8 @@ package io.nop.excel.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.model.ExcelPageBreaks;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -81,8 +83,25 @@ public abstract class _ExcelPageBreaks extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("cols",this.getCols());
-        out.put("rows",this.getRows());
+        out.putNotNull("cols",this.getCols());
+        out.putNotNull("rows",this.getRows());
+    }
+
+    public ExcelPageBreaks cloneInstance(){
+        ExcelPageBreaks instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ExcelPageBreaks instance){
+        super.copyTo(instance);
+        
+        instance.setCols(this.getCols());
+        instance.setRows(this.getRows());
+    }
+
+    protected ExcelPageBreaks newInstance(){
+        return (ExcelPageBreaks) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

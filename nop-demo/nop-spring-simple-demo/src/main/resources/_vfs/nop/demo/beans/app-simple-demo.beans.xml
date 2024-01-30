@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <bean id="DemoBizModel" class="io.nop.demo.biz.DemoBizModel"/>
+
+    <bean id="DemoEntityBizModel" class="io.nop.demo.biz.DemoEntityBizModel"/>
+
+    <bean id="io.nop.demo.biz.DemoMapper" class="io.nop.orm.sql_lib.proxy.SqlLibProxyFactoryBean"
+          ioc:type="@bean:id" ioc:bean-method="build">
+        <property name="mapperClass" value="@bean:type"/>
+    </bean>
+</beans>

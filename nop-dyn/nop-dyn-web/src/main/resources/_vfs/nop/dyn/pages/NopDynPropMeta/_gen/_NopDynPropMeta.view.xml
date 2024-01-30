@@ -13,9 +13,6 @@
                 <!--实体定义ID-->
                 <col id="entityMetaId" mandatory="true" sortable="true"/>
 
-                <!--是否主键-->
-                <col id="isPrimary" mandatory="true" sortable="true"/>
-
                 <!--是否非空-->
                 <col id="isMandatory" mandatory="true" sortable="true"/>
 
@@ -33,6 +30,9 @@
 
                 <!--小数位数-->
                 <col id="scale" sortable="true"/>
+
+                <!--属性编号-->
+                <col id="propId" mandatory="true" sortable="true"/>
 
                 <!--显示控制-->
                 <col id="uiShow" sortable="true"/>
@@ -53,7 +53,7 @@
                 <col id="dynPropMapping" sortable="true"/>
 
                 <!--标签-->
-                <col id="tagSet" sortable="true"/>
+                <col id="tagsText" sortable="true"/>
 
                 <!--缺省值-->
                 <col id="defaultValue" sortable="true"/>
@@ -67,8 +67,11 @@
                 <!--关联属性显示名-->
                 <col id="refPropDisplayName" sortable="true"/>
 
+                <!--关联集合排序条件-->
+                <col id="refSetSort" sortable="true"/>
+
                 <!--关联属性标签-->
-                <col id="refTagSet" sortable="true"/>
+                <col id="refTagsText" sortable="true"/>
 
                 <!--扩展配置-->
                 <col id="extConfig" sortable="true"/>
@@ -98,37 +101,39 @@
     <forms>
         <form id="view" editMode="view" title="查看-属性元数据" i18n-en:title="View Property Meta">
             <layout>
- entityMetaId[实体定义ID] isPrimary[是否主键]
- isMandatory[是否非空] propName[属性名]
- displayName[显示名] stdSqlType[标准SQL数据类型]
- precision[长度] scale[小数位数]
+ entityMetaId[实体定义ID] isMandatory[是否非空]
+ propName[属性名] displayName[显示名]
+ stdSqlType[标准SQL数据类型] precision[长度]
+ scale[小数位数] propId[属性编号]
  uiShow[显示控制] uiControl[显示控件]
  domainId[数据域ID] stdDomainName[标准域]
  dictName[数据字典] dynPropMapping[动态字段映射]
- tagSet[标签] defaultValue[缺省值]
+ tagsText[标签] defaultValue[缺省值]
  refEntityName[关联实体名] refPropName[关联属性名]
- refPropDisplayName[关联属性显示名] refTagSet[关联属性标签]
- extConfig[扩展配置] status[状态]
- createdBy[创建人] createTime[创建时间]
- updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
+ refPropDisplayName[关联属性显示名] refSetSort[关联集合排序条件]
+ refTagsText[关联属性标签] extConfig[扩展配置]
+ status[状态] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] 
+                remark[备注]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-属性元数据" i18n-en:title="Add Property Meta" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-属性元数据" i18n-en:title="Edit Property Meta">
             <layout>
- entityMetaId[实体定义ID] isPrimary[是否主键]
- isMandatory[是否非空] propName[属性名]
- displayName[显示名] stdSqlType[标准SQL数据类型]
- precision[长度] scale[小数位数]
+ entityMetaId[实体定义ID] isMandatory[是否非空]
+ propName[属性名] displayName[显示名]
+ stdSqlType[标准SQL数据类型] precision[长度]
+ scale[小数位数] propId[属性编号]
  uiShow[显示控制] uiControl[显示控件]
  domainId[数据域ID] stdDomainName[标准域]
  dictName[数据字典] dynPropMapping[动态字段映射]
- tagSet[标签] defaultValue[缺省值]
+ tagsText[标签] defaultValue[缺省值]
  refEntityName[关联实体名] refPropName[关联属性名]
- refPropDisplayName[关联属性显示名] refTagSet[关联属性标签]
- extConfig[扩展配置] status[状态]
- remark[备注] 
+ refPropDisplayName[关联属性显示名] refSetSort[关联集合排序条件]
+ refTagsText[关联属性标签] extConfig[扩展配置]
+ status[状态] 
+                remark[备注]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
@@ -168,10 +173,10 @@
                     <confirmText>@i18n:common.confirmDelete</confirmText>
                 </action>
                 <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
-                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                    <action id="row-update-button" label="@i18n:common.edit">
                         <dialog page="update"/>
                     </action>
-                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                    <action id="row-delete-button" label="@i18n:common.delete">
                         <api url="@mutation:NopDynPropMeta__delete?id=$id"/>
                         <confirmText>@i18n:common.confirmDelete</confirmText>
                     </action>

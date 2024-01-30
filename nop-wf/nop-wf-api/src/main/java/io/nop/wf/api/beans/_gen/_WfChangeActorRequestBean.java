@@ -1,6 +1,8 @@
 //__XGEN_FORCE_OVERRIDE__
     package io.nop.wf.api.beans._gen;
 
+    import io.nop.api.core.annotations.meta.PropMeta;
+
     @SuppressWarnings({"PMD","java:S116","java:S115"})
     public class _WfChangeActorRequestBean{
 
@@ -10,6 +12,7 @@
         /**
          * 工作流名称 
          */
+        @PropMeta(propId=1,displayName="工作流名称")
         public String getWfName(){
             return _wfName;
         }
@@ -26,6 +29,7 @@
         /**
          * 工作流版本 
          */
+        @PropMeta(propId=2,displayName="工作流版本")
         public Long getWfVersion(){
             return _wfVersion;
         }
@@ -42,6 +46,7 @@
         /**
          * 工作流ID 
          */
+        @PropMeta(propId=3,displayName="工作流ID")
         public String getWfId(){
             return _wfId;
         }
@@ -58,6 +63,7 @@
         /**
          * 工作流步骤ID 
          */
+        @PropMeta(propId=4,displayName="工作流步骤ID")
         public String getStepId(){
             return _stepId;
         }
@@ -74,6 +80,7 @@
         /**
          * 参与者类型 
          */
+        @PropMeta(propId=5,displayName="参与者类型")
         public String getActorType(){
             return _actorType;
         }
@@ -90,6 +97,7 @@
         /**
          * 参与者ID 
          */
+        @PropMeta(propId=6,displayName="参与者ID")
         public String getActorId(){
             return _actorId;
         }
@@ -106,6 +114,7 @@
         /**
          * 参与者部门ID 
          */
+        @PropMeta(propId=6,displayName="参与者部门ID")
         public String getActorDeptId(){
             return _actorDeptId;
         }
@@ -122,6 +131,7 @@
         /**
          * 拥有者ID 
          */
+        @PropMeta(propId=7,displayName="拥有者ID")
         public String getOwnerId(){
             return _ownerId;
         }
@@ -138,6 +148,7 @@
         /**
          * 扩展属性 
          */
+        @PropMeta(propId=9,displayName="扩展属性")
         public java.util.Map<java.lang.String,java.lang.Object> getAttrs(){
             return _attrs;
         }

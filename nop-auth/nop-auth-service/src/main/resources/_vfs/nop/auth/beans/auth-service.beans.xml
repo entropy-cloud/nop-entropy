@@ -23,6 +23,12 @@
 
     </bean>
 
+    <bean id="nopUserContextCache" class="io.nop.auth.service.login.DaoUserContextCache">
+        <ioc:condition>
+            <if-property name="nop.auth.login.use-dao-user-context-cache"/>
+        </ioc:condition>
+    </bean>
+
     <bean id="nopAuditService" class="io.nop.auth.service.audit.AuditServiceImpl"/>
 
     <bean id="nopUserIdGenerator" class="io.nop.auth.dao.generator.DefaultUserIdGenerator"

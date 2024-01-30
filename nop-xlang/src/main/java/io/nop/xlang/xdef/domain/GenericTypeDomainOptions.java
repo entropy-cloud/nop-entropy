@@ -9,6 +9,9 @@ package io.nop.xlang.xdef.domain;
 
 import io.nop.api.core.beans.DictBean;
 import io.nop.core.dict.EnumDictLoader;
+import io.nop.core.reflect.IClassModel;
+import io.nop.core.reflect.IFunctionModel;
+import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.impl.DefaultClassResolver;
 import io.nop.core.type.IGenericType;
 import io.nop.xlang.xdef.IStdDomainOptions;
@@ -32,6 +35,11 @@ public class GenericTypeDomainOptions implements IStdDomainOptions {
     @Override
     public String toString() {
         return genericType.toString();
+    }
+
+    public IFunctionModel getFactoryMethod() {
+        IClassModel classModel = ReflectionManager.instance().loadClassModel(genericType.getTypeName());
+        return classModel.getFactoryMethod();
     }
 
     public DictBean loadDictBean() {

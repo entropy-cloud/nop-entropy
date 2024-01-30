@@ -10,6 +10,7 @@ package io.nop.orm.sql_lib;
 import io.nop.api.core.beans.LongRangeBean;
 import io.nop.app.SimsClass;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.sql.SQL;
 import io.nop.orm.AbstractOrmTestCase;
 import io.nop.xlang.api.XLang;
 import org.junit.jupiter.api.Test;
@@ -39,5 +40,11 @@ public class TestOrmSqlLib extends AbstractOrmTestCase {
     public void checkDialectCondition() {
         sqlLibManager.invoke("test2.findWithDialect",
                 LongRangeBean.of(0, 1), XLang.newEvalScope());
+    }
+
+    @Test
+    public void testFragment() {
+        SQL sql = sqlLibManager.buildSql("test2.generateWithFragment", XLang.newEvalScope());
+        assertEquals("select a, b, c from MyTable o", sql.getText().trim());
     }
 }

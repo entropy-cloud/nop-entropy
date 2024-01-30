@@ -54,7 +54,9 @@ public class OrmModel extends _OrmModel implements IOrmModel, INeedInit {
     }
 
     @Override
-    public List<IEntityModel> getEntityModels() {
+    public List<? extends IEntityModel> getEntityModels() {
+        if(topoEntryMap == null)
+            return getEntities();
         return topoEntryMap.values().stream().map(TopoEntry::getValue).collect(Collectors.toList());
     }
 

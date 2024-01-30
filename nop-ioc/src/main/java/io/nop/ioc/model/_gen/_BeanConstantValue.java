@@ -2,6 +2,8 @@ package io.nop.ioc.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.ioc.model.BeanConstantValue;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -55,7 +57,23 @@ public abstract class _BeanConstantValue extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("staticField",this.getStaticField());
+        out.putNotNull("staticField",this.getStaticField());
+    }
+
+    public BeanConstantValue cloneInstance(){
+        BeanConstantValue instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BeanConstantValue instance){
+        super.copyTo(instance);
+        
+        instance.setStaticField(this.getStaticField());
+    }
+
+    protected BeanConstantValue newInstance(){
+        return (BeanConstantValue) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

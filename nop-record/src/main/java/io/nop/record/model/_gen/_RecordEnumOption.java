@@ -2,6 +2,8 @@ package io.nop.record.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.record.model.RecordEnumOption;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -133,10 +135,29 @@ public abstract class _RecordEnumOption extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("doc",this.getDoc());
-        out.put("docRef",this.getDocRef());
-        out.put("label",this.getLabel());
-        out.put("value",this.getValue());
+        out.putNotNull("doc",this.getDoc());
+        out.putNotNull("docRef",this.getDocRef());
+        out.putNotNull("label",this.getLabel());
+        out.putNotNull("value",this.getValue());
+    }
+
+    public RecordEnumOption cloneInstance(){
+        RecordEnumOption instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(RecordEnumOption instance){
+        super.copyTo(instance);
+        
+        instance.setDoc(this.getDoc());
+        instance.setDocRef(this.getDocRef());
+        instance.setLabel(this.getLabel());
+        instance.setValue(this.getValue());
+    }
+
+    protected RecordEnumOption newInstance(){
+        return (RecordEnumOption) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

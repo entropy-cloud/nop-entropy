@@ -114,7 +114,7 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
                 map(sc);
                 break;
             default:
-                handler.value(sc.location(), literal(sc));
+                handler.value(sc.location(), parseLiteral(sc));
         }
         if (!sc.isEnd())
             throw sc.newError(ERR_JSON_DOC_NOT_END_PROPERLY);
@@ -138,12 +138,12 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
                 return;
             default:
                 SourceLocation loc = sc.location();
-                Object value = literal(sc);
+                Object value = parseLiteral(sc);
                 handler.value(loc, value);
         }
     }
 
-    Object literal(TextScanner sc) {
+    public Object parseLiteral(TextScanner sc) {
         switch (sc.cur) {
             case '\"':
             case '\'':
@@ -254,13 +254,13 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
         return false;
     }
 
-    void skipBlankAndComment(TextScanner sc){
+    void skipBlankAndComment(TextScanner sc) {
         sc.skipBlank();
         skipComment(sc);
     }
 
-    void skipComment(TextScanner sc){
-        if(!strictMode){
+    void skipComment(TextScanner sc) {
+        if (!strictMode) {
             parseComment(sc);
         }
     }

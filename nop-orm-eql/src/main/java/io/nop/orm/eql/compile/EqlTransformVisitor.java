@@ -107,6 +107,7 @@ import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FUNC_TOO_MANY_ARGS;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_JOIN_NO_CONDITION;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_JOIN_PROP_PATH_IS_DUPLICATED;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_ALLOW_MULTIPLE_QUERY_SPACE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_SUPPORT_MULTI_JOIN_ON_ALIAS;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_ONLY_SUPPORT_SINGLE_TABLE_SOURCE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_OWNER_NOT_REF_TO_ENTITY;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_PROP_PATH_JOIN_NOT_ALLOW_CONDITION;
@@ -289,8 +290,10 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
         SqlFrom from = node.getFrom();
 
-        for (SqlSingleTableSource table : from.getEntitySources()) {
-            String alias = table.getAliasName();
+        from.forEachSingleTableSource(table -> {
+            if (table.isFilterAlreadyAdded())
+                return;
+
             ISqlTableMeta tableMeta = (ISqlTableMeta) table.getResolvedTableMeta();
             if (tableMeta.isUseLogicalDelete()) {
                 SqlWhere where = node.getWhere();
@@ -299,15 +302,25 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                     node.setWhere(where);
                 }
 
-                SqlBinaryExpr expr = new SqlBinaryExpr();
-                expr.setLeft(EqlASTBuilder.colName(alias, tableMeta.getDeleteFlagPropName()));
-                expr.setOperator(SqlOperator.EQ);
-
-                Object value = tableMeta.getDeleteFlagValue(false, dialect);
-                expr.setRight(EqlASTBuilder.literal(value));
+                SqlBinaryExpr expr = buildLogicalDeleteFilter(table, tableMeta);
                 where.appendFilter(expr);
             }
-        }
+        });
+    }
+
+    SqlBinaryExpr buildLogicalDeleteFilter(SqlSingleTableSource table, ISqlTableMeta tableMeta) {
+        SqlColumnName col = EqlASTBuilder.colName(table.getAliasName(), tableMeta.getDeleteFlagPropName());
+        col.setTableSource(table);
+
+        col.setResolvedExprMeta(tableMeta.getFieldExprMeta(tableMeta.getDeleteFlagPropName()));
+
+        SqlBinaryExpr expr = new SqlBinaryExpr();
+        expr.setLeft(col);
+        expr.setOperator(SqlOperator.EQ);
+
+        Object value = tableMeta.getDeleteFlagValue(false, dialect);
+        expr.setRight(EqlASTBuilder.literal(value));
+        return expr;
     }
 
     void addEntityFilter(SqlQuerySelect node) {
@@ -413,6 +426,29 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                 visitJoinCondition(source);
                 currentScope = oldScope;
             }
+            addTableFilterForJoin(source);
+        }
+    }
+
+    void addTableFilterForJoin(SqlJoinTableSource source) {
+        if (source.getLeft().isEntityTableSource()) {
+            addTableFilterForJoinTable((SqlSingleTableSource) source.getLeft(), source);
+        }
+
+        if (source.getRight().isEntityTableSource()) {
+            addTableFilterForJoinTable((SqlSingleTableSource) source.getRight(), source);
+        }
+    }
+
+    void addTableFilterForJoinTable(SqlSingleTableSource table, SqlJoinTableSource join) {
+        if (table.isFilterAlreadyAdded())
+            return;
+
+        table.setFilterAlreadyAdded(true);
+        ISqlTableMeta tableMeta = (ISqlTableMeta) table.getResolvedTableMeta();
+        if (tableMeta.isUseLogicalDelete()) {
+            SqlBinaryExpr expr = buildLogicalDeleteFilter(table, tableMeta);
+            join.addConditionFilter(expr);
         }
     }
 
@@ -622,13 +658,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                 }
             } else {
                 // 如果不是实体的直接属性，检查是否是复合属性的别名
-                PropPath aliasPath = table.getAliasPropPath(propPath.getName());
-                if (aliasPath != null) {
-                    join = resolvePropPath(source, aliasPath);
-                } else {
-                    throw new NopException(ERR_EQL_PROP_PATH_NOT_VALID_TO_ONE_REFERENCE).source(source)
-                            .param(ARG_PROP_PATH, propPath).param(ARG_ENTITY_NAME, tableMeta.getEntityName());
-                }
+                join = requireAliasPropPathForRef(source, tableMeta, propPath.getName());
             }
         }
 
@@ -638,7 +668,20 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         return resolvePropPath(join.getRight(), propPath.getNext());
     }
 
+    SqlPropJoin requireAliasPropPathForRef(SqlSingleTableSource source, ISqlTableMeta tableMeta, String aliasName) {
+        PropPath aliasPath = tableMeta.getAliasPropPath(aliasName);
+        if (aliasPath != null) {
+            return resolvePropPath(source, aliasPath);
+        } else {
+            throw new NopException(ERR_EQL_PROP_PATH_NOT_VALID_TO_ONE_REFERENCE).source(source)
+                    .param(ARG_PROP_PATH, aliasName).param(ARG_ENTITY_NAME, tableMeta.getEntityName());
+        }
+    }
+
     SqlPropJoin addToOneRelationJoin(SqlSingleTableSource source, IEntityRelationModel ref) {
+        if (ref.isDynamicJoin())
+            return addToOneDynamicRelationJoin(source, ref);
+
         SqlSingleTableSource refTable = makeTableSource(source.getLocation(), ref.getRefEntityModel(), null);
         SqlExpr condition = makeCondition(ref.getJoin(), source, refTable);
 
@@ -656,7 +699,99 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         join.setExplicit(false);
         join.setCondition(condition);
 
+        addTableFilterForPropJoin(join);
+
         source.addPropJoin(ref.getName(), join);
+        return join;
+    }
+
+    void addTableFilterForPropJoin(SqlPropJoin join) {
+        if (join.getLeft().isEntityTableSource()) {
+            addTableFilterForPropJoinTable(join.getLeft(), join);
+        }
+
+        if (join.getRight().isEntityTableSource()) {
+            addTableFilterForPropJoinTable(join.getRight(), join);
+        }
+    }
+
+    void addTableFilterForPropJoinTable(SqlSingleTableSource table, SqlPropJoin join) {
+        if (table.isFilterAlreadyAdded())
+            return;
+
+        table.setFilterAlreadyAdded(true);
+        ISqlTableMeta tableMeta = (ISqlTableMeta) table.getResolvedTableMeta();
+        if (tableMeta.isUseLogicalDelete()) {
+            SqlBinaryExpr expr = buildLogicalDeleteFilter(table, tableMeta);
+            join.addConditionFilter(expr);
+        }
+    }
+
+    SqlPropJoin addToOneDynamicRelationJoin(SqlSingleTableSource source, IEntityRelationModel ref) {
+        SqlSingleTableSource refTable = makeTableSource(source.getLocation(), ref.getRefEntityModel(), null);
+
+        SqlSingleTableSource leftSource = source, rightSource = refTable;
+
+        SqlExpr condition = null;
+        if (ref.getJoin().size() != 1) {
+            throw new NopException(ERR_EQL_NOT_SUPPORT_MULTI_JOIN_ON_ALIAS)
+                    .param(ARG_ENTITY_NAME, ref.getOwnerEntityModel().getName())
+                    .param(ARG_PROP_NAME, ref.getName());
+        }
+
+        IEntityJoinConditionModel on = ref.getJoin().get(0);
+
+        IEntityPropModel leftProp = on.getLeftPropModel();
+        IEntityPropModel rightProp = on.getRightPropModel();
+
+        if (leftProp != null) {
+            if (leftProp.isAliasModel()) {
+                PropPath propPath = PropPath.parse(leftProp.getAliasPropPath());
+                if (propPath.getNext() == null) {
+                    leftProp = on.getLeftPropModel().getOwnerEntityModel().getColumn(propPath.getName(), false);
+                } else {
+                    SqlPropJoin join = resolvePropPath(source, propPath.getOwner());
+                    leftSource = join.getRight();
+                    leftProp = leftSource.getResolvedTableMeta().requirePropMeta(propPath.getLast());
+                }
+            }
+        }
+        if (rightProp != null) {
+            if (rightProp.isAliasModel()) {
+                PropPath propPath = PropPath.parse(rightProp.getAliasPropPath());
+                if (propPath.getNext() == null) {
+                    rightProp = on.getRightPropModel().getOwnerEntityModel().getColumn(propPath.getName(), false);
+                } else {
+                    SqlPropJoin join = resolvePropPath(refTable, propPath.getOwner());
+                    rightSource = join.getRight();
+                    rightProp = rightSource.getResolvedTableMeta().requirePropMeta(propPath.getLast());
+                }
+            }
+
+            SqlBinaryExpr eq = new SqlBinaryExpr();
+            eq.setOperator(SqlOperator.EQ);
+            eq.setLeft(makePropExpr(leftSource, leftProp, null));
+            eq.setRight(makePropExpr(rightSource, rightProp, null));
+            condition = eq;
+        }
+
+        rightSource.setForPropJoin(true);
+        SqlPropJoin join = new SqlPropJoin();
+        join.setLeft(leftSource);
+        join.setRight(rightSource);
+        join.setJoinType(SqlJoinType.JOIN); // 暂时设置为inner join
+
+        // 如果仅在order by中使用，且属性可空，则使用left join
+        if (inOrderBy && !ref.isMandatory()) {
+            join.setJoinType(SqlJoinType.LEFT_JOIN);
+        }
+
+        join.setExplicit(false);
+        join.setCondition(condition);
+
+        addTableFilterForPropJoin(join);
+
+        leftSource.addPropJoin(ref.getName(), join);
         return join;
     }
 
@@ -678,6 +813,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
         join.setExplicit(false);
         join.setCondition(condition);
+
+        addTableFilterForPropJoin(join);
 
         source.addPropJoin(propJoinName, join);
         return join;
@@ -706,6 +843,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         table.setLocation(loc);
         SqlTableName tableName = new SqlTableName();
         ISqlSelectionMeta tableMeta = context.resolveEntityTableMeta(entityModel.getName());
+        if (tableMeta == null)
+            throw new NopException(ERR_EQL_UNKNOWN_ENTITY_NAME).param(ARG_ENTITY_NAME, entityModel.getName());
         tableName.setResolvedTableMeta(tableMeta);
 
         tableName.setName(entityModel.getName());
@@ -744,7 +883,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             col.setPropModel(propModel);
             col.setName(propModel.getName());
             col.setTableSource(source);
-            col.setResolvedExprMeta(source.getResolvedTableMeta().getFieldExprMeta(propModel.getName()));
+            col.setResolvedExprMeta(source.getResolvedTableMeta().requireFieldExprMeta(propModel.getName()));
             SqlQualifiedName name = new SqlQualifiedName();
             name.setName(source.getAliasName());
             col.setOwner(name);

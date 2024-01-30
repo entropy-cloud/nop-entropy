@@ -33,7 +33,7 @@
             <schema type="java.lang.String" precision="200"/>
         </prop>
         <prop name="pageGroup" displayName="页面分组" i18n-en:displayName="Page Group" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X" defaultValue="pages">
             <schema type="java.lang.String" precision="100"/>
         </prop>
         <prop name="pageSchemaType" displayName="页面类型" i18n-en:displayName="Page Schema Type" mandatory="true"

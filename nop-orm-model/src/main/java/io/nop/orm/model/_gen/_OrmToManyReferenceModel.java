@@ -2,6 +2,8 @@ package io.nop.orm.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.orm.model.OrmToManyReferenceModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -165,10 +167,29 @@ public abstract class _OrmToManyReferenceModel extends io.nop.orm.model.OrmRefer
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("keyProp",this.getKeyProp());
-        out.put("maxSize",this.getMaxSize());
-        out.put("sort",this.getSort());
-        out.put("useGlobalCache",this.isUseGlobalCache());
+        out.putNotNull("keyProp",this.getKeyProp());
+        out.putNotNull("maxSize",this.getMaxSize());
+        out.putNotNull("sort",this.getSort());
+        out.putNotNull("useGlobalCache",this.isUseGlobalCache());
+    }
+
+    public OrmToManyReferenceModel cloneInstance(){
+        OrmToManyReferenceModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(OrmToManyReferenceModel instance){
+        super.copyTo(instance);
+        
+        instance.setKeyProp(this.getKeyProp());
+        instance.setMaxSize(this.getMaxSize());
+        instance.setSort(this.getSort());
+        instance.setUseGlobalCache(this.isUseGlobalCache());
+    }
+
+    protected OrmToManyReferenceModel newInstance(){
+        return (OrmToManyReferenceModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

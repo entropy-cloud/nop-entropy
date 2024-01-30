@@ -2,6 +2,8 @@ package io.nop.task.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.task.model.LoopTaskStepModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -159,11 +161,31 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("index",this.getIndex());
-        out.put("items",this.getItems());
-        out.put("maxCount",this.getMaxCount());
-        out.put("until",this.getUntil());
-        out.put("var",this.getVar());
+        out.putNotNull("index",this.getIndex());
+        out.putNotNull("items",this.getItems());
+        out.putNotNull("maxCount",this.getMaxCount());
+        out.putNotNull("until",this.getUntil());
+        out.putNotNull("var",this.getVar());
+    }
+
+    public LoopTaskStepModel cloneInstance(){
+        LoopTaskStepModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(LoopTaskStepModel instance){
+        super.copyTo(instance);
+        
+        instance.setIndex(this.getIndex());
+        instance.setItems(this.getItems());
+        instance.setMaxCount(this.getMaxCount());
+        instance.setUntil(this.getUntil());
+        instance.setVar(this.getVar());
+    }
+
+    protected LoopTaskStepModel newInstance(){
+        return (LoopTaskStepModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

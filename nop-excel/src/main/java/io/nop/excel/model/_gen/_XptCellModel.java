@@ -2,6 +2,8 @@ package io.nop.excel.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.model.XptCellModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -609,28 +611,65 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("colExtendForSibling",this.isColExtendForSibling());
-        out.put("colParent",this.getColParent());
-        out.put("colTestExpr",this.getColTestExpr());
-        out.put("domain",this.getDomain());
-        out.put("ds",this.getDs());
-        out.put("editorId",this.getEditorId());
-        out.put("expandExpr",this.getExpandExpr());
-        out.put("expandInplaceCount",this.getExpandInplaceCount());
-        out.put("expandOrderBy",this.getExpandOrderBy());
-        out.put("expandType",this.getExpandType());
-        out.put("exportFormattedValue",this.isExportFormattedValue());
-        out.put("exportFormula",this.isExportFormula());
-        out.put("field",this.getField());
-        out.put("formatExpr",this.getFormatExpr());
-        out.put("keepExpandEmpty",this.isKeepExpandEmpty());
-        out.put("linkExpr",this.getLinkExpr());
-        out.put("rowExtendForSibling",this.isRowExtendForSibling());
-        out.put("rowParent",this.getRowParent());
-        out.put("rowTestExpr",this.getRowTestExpr());
-        out.put("styleIdExpr",this.getStyleIdExpr());
-        out.put("valueExpr",this.getValueExpr());
-        out.put("viewerId",this.getViewerId());
+        out.putNotNull("colExtendForSibling",this.isColExtendForSibling());
+        out.putNotNull("colParent",this.getColParent());
+        out.putNotNull("colTestExpr",this.getColTestExpr());
+        out.putNotNull("domain",this.getDomain());
+        out.putNotNull("ds",this.getDs());
+        out.putNotNull("editorId",this.getEditorId());
+        out.putNotNull("expandExpr",this.getExpandExpr());
+        out.putNotNull("expandInplaceCount",this.getExpandInplaceCount());
+        out.putNotNull("expandOrderBy",this.getExpandOrderBy());
+        out.putNotNull("expandType",this.getExpandType());
+        out.putNotNull("exportFormattedValue",this.isExportFormattedValue());
+        out.putNotNull("exportFormula",this.isExportFormula());
+        out.putNotNull("field",this.getField());
+        out.putNotNull("formatExpr",this.getFormatExpr());
+        out.putNotNull("keepExpandEmpty",this.isKeepExpandEmpty());
+        out.putNotNull("linkExpr",this.getLinkExpr());
+        out.putNotNull("rowExtendForSibling",this.isRowExtendForSibling());
+        out.putNotNull("rowParent",this.getRowParent());
+        out.putNotNull("rowTestExpr",this.getRowTestExpr());
+        out.putNotNull("styleIdExpr",this.getStyleIdExpr());
+        out.putNotNull("valueExpr",this.getValueExpr());
+        out.putNotNull("viewerId",this.getViewerId());
+    }
+
+    public XptCellModel cloneInstance(){
+        XptCellModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(XptCellModel instance){
+        super.copyTo(instance);
+        
+        instance.setColExtendForSibling(this.isColExtendForSibling());
+        instance.setColParent(this.getColParent());
+        instance.setColTestExpr(this.getColTestExpr());
+        instance.setDomain(this.getDomain());
+        instance.setDs(this.getDs());
+        instance.setEditorId(this.getEditorId());
+        instance.setExpandExpr(this.getExpandExpr());
+        instance.setExpandInplaceCount(this.getExpandInplaceCount());
+        instance.setExpandOrderBy(this.getExpandOrderBy());
+        instance.setExpandType(this.getExpandType());
+        instance.setExportFormattedValue(this.isExportFormattedValue());
+        instance.setExportFormula(this.isExportFormula());
+        instance.setField(this.getField());
+        instance.setFormatExpr(this.getFormatExpr());
+        instance.setKeepExpandEmpty(this.isKeepExpandEmpty());
+        instance.setLinkExpr(this.getLinkExpr());
+        instance.setRowExtendForSibling(this.isRowExtendForSibling());
+        instance.setRowParent(this.getRowParent());
+        instance.setRowTestExpr(this.getRowTestExpr());
+        instance.setStyleIdExpr(this.getStyleIdExpr());
+        instance.setValueExpr(this.getValueExpr());
+        instance.setViewerId(this.getViewerId());
+    }
+
+    protected XptCellModel newInstance(){
+        return (XptCellModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

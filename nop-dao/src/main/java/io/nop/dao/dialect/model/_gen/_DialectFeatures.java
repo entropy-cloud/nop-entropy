@@ -2,12 +2,14 @@ package io.nop.dao.dialect.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.dao.dialect.model.DialectFeatures;
+import io.nop.commons.util.ClassHelper;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [37:6:0:0]/nop/schema/orm/dialect.xdef <p>
+ * generate from [39:6:0:0]/nop/schema/orm/dialect.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -499,24 +501,57 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("supportBatchUpdate",this.getSupportBatchUpdate());
-        out.put("supportBatchUpdateCount",this.getSupportBatchUpdateCount());
-        out.put("supportDeleteFromJoin",this.getSupportDeleteFromJoin());
-        out.put("supportDeleteTableAlias",this.getSupportDeleteTableAlias());
-        out.put("supportExecuteLargeUpdate",this.getSupportExecuteLargeUpdate());
-        out.put("supportILike",this.getSupportILike());
-        out.put("supportLargeMaxRows",this.getSupportLargeMaxRows());
-        out.put("supportNullsFirst",this.getSupportNullsFirst());
-        out.put("supportQueryTimeout",this.getSupportQueryTimeout());
-        out.put("supportRowValueConstructor",this.getSupportRowValueConstructor());
-        out.put("supportSavePoint",this.getSupportSavePoint());
-        out.put("supportSequence",this.getSupportSequence());
-        out.put("supportTransaction",this.getSupportTransaction());
-        out.put("supportTruncateTable",this.getSupportTruncateTable());
-        out.put("supportUpdateFromJoin",this.getSupportUpdateFromJoin());
-        out.put("supportUpdateTableAlias",this.getSupportUpdateTableAlias());
-        out.put("supportWithAsClause",this.getSupportWithAsClause());
-        out.put("useGetStringForDate",this.getUseGetStringForDate());
+        out.putNotNull("supportBatchUpdate",this.getSupportBatchUpdate());
+        out.putNotNull("supportBatchUpdateCount",this.getSupportBatchUpdateCount());
+        out.putNotNull("supportDeleteFromJoin",this.getSupportDeleteFromJoin());
+        out.putNotNull("supportDeleteTableAlias",this.getSupportDeleteTableAlias());
+        out.putNotNull("supportExecuteLargeUpdate",this.getSupportExecuteLargeUpdate());
+        out.putNotNull("supportILike",this.getSupportILike());
+        out.putNotNull("supportLargeMaxRows",this.getSupportLargeMaxRows());
+        out.putNotNull("supportNullsFirst",this.getSupportNullsFirst());
+        out.putNotNull("supportQueryTimeout",this.getSupportQueryTimeout());
+        out.putNotNull("supportRowValueConstructor",this.getSupportRowValueConstructor());
+        out.putNotNull("supportSavePoint",this.getSupportSavePoint());
+        out.putNotNull("supportSequence",this.getSupportSequence());
+        out.putNotNull("supportTransaction",this.getSupportTransaction());
+        out.putNotNull("supportTruncateTable",this.getSupportTruncateTable());
+        out.putNotNull("supportUpdateFromJoin",this.getSupportUpdateFromJoin());
+        out.putNotNull("supportUpdateTableAlias",this.getSupportUpdateTableAlias());
+        out.putNotNull("supportWithAsClause",this.getSupportWithAsClause());
+        out.putNotNull("useGetStringForDate",this.getUseGetStringForDate());
+    }
+
+    public DialectFeatures cloneInstance(){
+        DialectFeatures instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(DialectFeatures instance){
+        super.copyTo(instance);
+        
+        instance.setSupportBatchUpdate(this.getSupportBatchUpdate());
+        instance.setSupportBatchUpdateCount(this.getSupportBatchUpdateCount());
+        instance.setSupportDeleteFromJoin(this.getSupportDeleteFromJoin());
+        instance.setSupportDeleteTableAlias(this.getSupportDeleteTableAlias());
+        instance.setSupportExecuteLargeUpdate(this.getSupportExecuteLargeUpdate());
+        instance.setSupportILike(this.getSupportILike());
+        instance.setSupportLargeMaxRows(this.getSupportLargeMaxRows());
+        instance.setSupportNullsFirst(this.getSupportNullsFirst());
+        instance.setSupportQueryTimeout(this.getSupportQueryTimeout());
+        instance.setSupportRowValueConstructor(this.getSupportRowValueConstructor());
+        instance.setSupportSavePoint(this.getSupportSavePoint());
+        instance.setSupportSequence(this.getSupportSequence());
+        instance.setSupportTransaction(this.getSupportTransaction());
+        instance.setSupportTruncateTable(this.getSupportTruncateTable());
+        instance.setSupportUpdateFromJoin(this.getSupportUpdateFromJoin());
+        instance.setSupportUpdateTableAlias(this.getSupportUpdateTableAlias());
+        instance.setSupportWithAsClause(this.getSupportWithAsClause());
+        instance.setUseGetStringForDate(this.getUseGetStringForDate());
+    }
+
+    protected DialectFeatures newInstance(){
+        return (DialectFeatures) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

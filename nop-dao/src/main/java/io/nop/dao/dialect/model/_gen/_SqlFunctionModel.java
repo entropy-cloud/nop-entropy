@@ -2,12 +2,14 @@ package io.nop.dao.dialect.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.dao.dialect.model.SqlFunctionModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [109:10:0:0]/nop/schema/orm/dialect.xdef <p>
+ * generate from [111:10:0:0]/nop/schema/orm/dialect.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -159,11 +161,31 @@ public abstract class _SqlFunctionModel extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("className",this.getClassName());
-        out.put("description",this.getDescription());
-        out.put("name",this.getName());
-        out.put("testSql",this.getTestSql());
-        out.put("type",this.getType());
+        out.putNotNull("className",this.getClassName());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("testSql",this.getTestSql());
+        out.putNotNull("type",this.getType());
+    }
+
+    public SqlFunctionModel cloneInstance(){
+        SqlFunctionModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(SqlFunctionModel instance){
+        super.copyTo(instance);
+        
+        instance.setClassName(this.getClassName());
+        instance.setDescription(this.getDescription());
+        instance.setName(this.getName());
+        instance.setTestSql(this.getTestSql());
+        instance.setType(this.getType());
+    }
+
+    protected SqlFunctionModel newInstance(){
+        return (SqlFunctionModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

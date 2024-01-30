@@ -8,6 +8,7 @@
 package io.nop.core.lang.xml.parse;
 
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.core.lang.xml.IXNodeHandler;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
@@ -49,4 +50,6 @@ public interface IXNodeParser extends IResourceParser<XNode> {
     XNode parseFromResource(IResource resource, boolean ignoreUnknown);
 
     XNode parseFromText(SourceLocation loc, String text);
+
+    XNode parseSingleNode(TextScanner sc);
 }

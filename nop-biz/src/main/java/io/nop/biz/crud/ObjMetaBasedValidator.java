@@ -20,6 +20,7 @@ import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.auth.api.AuthApiErrors;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObjectManager;
+import io.nop.commons.functional.Lazy;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
@@ -33,6 +34,7 @@ import io.nop.dao.DaoConstants;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.orm.OrmConstants;
 import io.nop.xlang.api.XLang;
+import io.nop.xlang.filter.BizExprHelper;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.ISchema;
@@ -79,6 +81,8 @@ public class ObjMetaBasedValidator {
 
     private final boolean checkWriteAuth;
 
+    private final Lazy<DictBean> dictLoader;
+
     public ObjMetaBasedValidator(IBizObjectManager bizObjManager, String bizObjName, IObjMeta objMeta,
                                  IServiceContext context, boolean checkWriteAuth) {
         this.bizObjectManager = bizObjManager;
@@ -86,6 +90,7 @@ public class ObjMetaBasedValidator {
         this.objMeta = objMeta;
         this.context = context;
         this.checkWriteAuth = checkWriteAuth;
+        this.dictLoader = Lazy.of(() -> BizExprHelper.getBizExprDict(context));
     }
 
     public Map<String, Object> validateAndConvert(Map<String, Object> data, FieldSelectionBean selection,
@@ -112,6 +117,7 @@ public class ObjMetaBasedValidator {
             if (FilterBeanConstants.FILTER_OP_EQ.equals(child.getTagName())) {
                 String name = (String) child.getAttr(FilterBeanConstants.FILTER_ATTR_NAME);
                 Object value = child.getAttr(FilterBeanConstants.FILTER_ATTR_VALUE);
+                value = BizExprHelper.resolveBizValue(child.getLocation(), name, value, dictLoader, context);
                 Object propValue = map.get(name);
                 if (propValue != null && !Objects.equals(value, propValue))
                     throw new NopException(ERR_BIZ_PROP_VALUE_NOT_MATCH_FILTER_CONDITION)

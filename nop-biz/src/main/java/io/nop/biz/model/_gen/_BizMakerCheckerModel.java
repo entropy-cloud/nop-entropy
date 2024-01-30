@@ -2,12 +2,14 @@ package io.nop.biz.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.biz.model.BizMakerCheckerModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [42:14:0:0]/nop/schema/biz/xbiz.xdef <p>
+ * generate from [43:14:0:0]/nop/schema/biz/xbiz.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -81,8 +83,25 @@ public abstract class _BizMakerCheckerModel extends io.nop.core.resource.compone
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("cancelMethod",this.getCancelMethod());
-        out.put("tryMethod",this.getTryMethod());
+        out.putNotNull("cancelMethod",this.getCancelMethod());
+        out.putNotNull("tryMethod",this.getTryMethod());
+    }
+
+    public BizMakerCheckerModel cloneInstance(){
+        BizMakerCheckerModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BizMakerCheckerModel instance){
+        super.copyTo(instance);
+        
+        instance.setCancelMethod(this.getCancelMethod());
+        instance.setTryMethod(this.getTryMethod());
+    }
+
+    protected BizMakerCheckerModel newInstance(){
+        return (BizMakerCheckerModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

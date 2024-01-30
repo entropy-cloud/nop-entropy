@@ -7,4 +7,5 @@
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc">
 
     <bean id="io.nop.auth.service.biz.DemoAuthBizModel" ioc:type="@bean:id" />
+    <bean id="io.nop.auth.service.biz.TestService" ioc:type="@bean:id"/>
 </beans>

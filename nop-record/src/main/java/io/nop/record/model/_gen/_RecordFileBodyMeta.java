@@ -2,6 +2,8 @@ package io.nop.record.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.record.model.RecordFileBodyMeta;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -107,9 +109,27 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("repeat",this.getRepeat());
-        out.put("repeatExpr",this.getRepeatExpr());
-        out.put("repeatUntil",this.getRepeatUntil());
+        out.putNotNull("repeat",this.getRepeat());
+        out.putNotNull("repeatExpr",this.getRepeatExpr());
+        out.putNotNull("repeatUntil",this.getRepeatUntil());
+    }
+
+    public RecordFileBodyMeta cloneInstance(){
+        RecordFileBodyMeta instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(RecordFileBodyMeta instance){
+        super.copyTo(instance);
+        
+        instance.setRepeat(this.getRepeat());
+        instance.setRepeatExpr(this.getRepeatExpr());
+        instance.setRepeatUntil(this.getRepeatUntil());
+    }
+
+    protected RecordFileBodyMeta newInstance(){
+        return (RecordFileBodyMeta) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

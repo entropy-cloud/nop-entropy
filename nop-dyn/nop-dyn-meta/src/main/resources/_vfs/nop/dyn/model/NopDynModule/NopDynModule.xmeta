@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopDynModule.xmeta">
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopDynModule.xmeta"
+      xmlns:ui="ui">
 
     <props>
         <prop name="basePackageName">
@@ -8,6 +9,10 @@
 
         <prop name="mavenGroupId">
             <schema stdDomain="conf-name"/>
+        </prop>
+
+        <prop name="importFile" virtual="true" displayName="导入文件" ui:uploadAccept=".xlsx" internal="true">
+            <schema stdDomain="file"/>
         </prop>
     </props>
 </meta>

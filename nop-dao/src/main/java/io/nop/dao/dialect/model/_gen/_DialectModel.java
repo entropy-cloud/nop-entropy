@@ -2,6 +2,8 @@ package io.nop.dao.dialect.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.dao.dialect.model.DialectModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -181,6 +183,13 @@ public abstract class _DialectModel extends io.nop.core.resource.component.Abstr
      * 
      */
     private io.nop.commons.text.CharacterCase _tableNameCase ;
+    
+    /**
+     *  
+     * xml name: upsertHandler
+     * 
+     */
+    private java.lang.String _upsertHandler ;
     
     /**
      * 
@@ -702,6 +711,25 @@ public abstract class _DialectModel extends io.nop.core.resource.component.Abstr
     }
 
     
+    /**
+     * 
+     * xml name: upsertHandler
+     *  
+     */
+    
+    public java.lang.String getUpsertHandler(){
+      return _upsertHandler;
+    }
+
+    
+    public void setUpsertHandler(java.lang.String value){
+        checkAllowChange();
+        
+        this._upsertHandler = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -729,30 +757,71 @@ public abstract class _DialectModel extends io.nop.core.resource.component.Abstr
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("allSchemaPattern",this.getAllSchemaPattern());
-        out.put("className",this.getClassName());
-        out.put("columnNameCase",this.getColumnNameCase());
-        out.put("dbProductNames",this.getDbProductNames());
-        out.put("defaultNullsFirst",this.getDefaultNullsFirst());
-        out.put("discoverySqls",this.getDiscoverySqls());
-        out.put("driverClassName",this.getDriverClassName());
-        out.put("errorCodes",this.getErrorCodes());
-        out.put("features",this.getFeatures());
-        out.put("functions",this.getFunctions());
-        out.put("geometryTypeHandler",this.getGeometryTypeHandler());
-        out.put("jdbcUrlPattern",this.getJdbcUrlPattern());
-        out.put("jsonTypeHandler",this.getJsonTypeHandler());
-        out.put("keywordQuote",this.getKeywordQuote());
-        out.put("keywordUnderscore",this.getKeywordUnderscore());
-        out.put("maxBytesSize",this.getMaxBytesSize());
-        out.put("maxStringSize",this.getMaxStringSize());
-        out.put("paginationHandler",this.getPaginationHandler());
-        out.put("rename",this.getRename());
-        out.put("reservedKeywords",this.getReservedKeywords());
-        out.put("sqlDataTypes",this.getSqlDataTypes());
-        out.put("sqlExceptionTranslator",this.getSqlExceptionTranslator());
-        out.put("sqls",this.getSqls());
-        out.put("tableNameCase",this.getTableNameCase());
+        out.putNotNull("allSchemaPattern",this.getAllSchemaPattern());
+        out.putNotNull("className",this.getClassName());
+        out.putNotNull("columnNameCase",this.getColumnNameCase());
+        out.putNotNull("dbProductNames",this.getDbProductNames());
+        out.putNotNull("defaultNullsFirst",this.getDefaultNullsFirst());
+        out.putNotNull("discoverySqls",this.getDiscoverySqls());
+        out.putNotNull("driverClassName",this.getDriverClassName());
+        out.putNotNull("errorCodes",this.getErrorCodes());
+        out.putNotNull("features",this.getFeatures());
+        out.putNotNull("functions",this.getFunctions());
+        out.putNotNull("geometryTypeHandler",this.getGeometryTypeHandler());
+        out.putNotNull("jdbcUrlPattern",this.getJdbcUrlPattern());
+        out.putNotNull("jsonTypeHandler",this.getJsonTypeHandler());
+        out.putNotNull("keywordQuote",this.getKeywordQuote());
+        out.putNotNull("keywordUnderscore",this.getKeywordUnderscore());
+        out.putNotNull("maxBytesSize",this.getMaxBytesSize());
+        out.putNotNull("maxStringSize",this.getMaxStringSize());
+        out.putNotNull("paginationHandler",this.getPaginationHandler());
+        out.putNotNull("rename",this.getRename());
+        out.putNotNull("reservedKeywords",this.getReservedKeywords());
+        out.putNotNull("sqlDataTypes",this.getSqlDataTypes());
+        out.putNotNull("sqlExceptionTranslator",this.getSqlExceptionTranslator());
+        out.putNotNull("sqls",this.getSqls());
+        out.putNotNull("tableNameCase",this.getTableNameCase());
+        out.putNotNull("upsertHandler",this.getUpsertHandler());
+    }
+
+    public DialectModel cloneInstance(){
+        DialectModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(DialectModel instance){
+        super.copyTo(instance);
+        
+        instance.setAllSchemaPattern(this.getAllSchemaPattern());
+        instance.setClassName(this.getClassName());
+        instance.setColumnNameCase(this.getColumnNameCase());
+        instance.setDbProductNames(this.getDbProductNames());
+        instance.setDefaultNullsFirst(this.getDefaultNullsFirst());
+        instance.setDiscoverySqls(this.getDiscoverySqls());
+        instance.setDriverClassName(this.getDriverClassName());
+        instance.setErrorCodes(this.getErrorCodes());
+        instance.setFeatures(this.getFeatures());
+        instance.setFunctions(this.getFunctions());
+        instance.setGeometryTypeHandler(this.getGeometryTypeHandler());
+        instance.setJdbcUrlPattern(this.getJdbcUrlPattern());
+        instance.setJsonTypeHandler(this.getJsonTypeHandler());
+        instance.setKeywordQuote(this.getKeywordQuote());
+        instance.setKeywordUnderscore(this.getKeywordUnderscore());
+        instance.setMaxBytesSize(this.getMaxBytesSize());
+        instance.setMaxStringSize(this.getMaxStringSize());
+        instance.setPaginationHandler(this.getPaginationHandler());
+        instance.setRename(this.getRename());
+        instance.setReservedKeywords(this.getReservedKeywords());
+        instance.setSqlDataTypes(this.getSqlDataTypes());
+        instance.setSqlExceptionTranslator(this.getSqlExceptionTranslator());
+        instance.setSqls(this.getSqls());
+        instance.setTableNameCase(this.getTableNameCase());
+        instance.setUpsertHandler(this.getUpsertHandler());
+    }
+
+    protected DialectModel newInstance(){
+        return (DialectModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

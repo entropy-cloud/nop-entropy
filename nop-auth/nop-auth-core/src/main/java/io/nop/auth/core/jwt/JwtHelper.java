@@ -24,6 +24,7 @@ import io.jsonwebtoken.io.SerializationException;
 import io.jsonwebtoken.io.Serializer;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.api.core.util.Guard;
 import io.nop.auth.api.AuthApiConstants;
 import io.nop.auth.core.login.AuthToken;
 import io.nop.commons.util.IoHelper;
@@ -95,6 +96,8 @@ public class JwtHelper {
     }
 
     public static String genToken(Key key, String subject, String userName, String sessionId, long expireSeconds) {
+        Guard.notEmpty(sessionId,"sessionId");
+
         long begin = CoreMetrics.currentTimeMillis();
         Map<String, Object> claims = new HashMap<>();
         claims.put(AuthApiConstants.JWT_CLAIMS_USERNAME, userName);

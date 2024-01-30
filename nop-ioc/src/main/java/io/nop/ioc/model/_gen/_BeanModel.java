@@ -2,6 +2,8 @@ package io.nop.ioc.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.ioc.model.BeanModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -267,15 +269,39 @@ public abstract class _BeanModel extends io.nop.ioc.model.BeanValue {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("abstract",this.isAbstract());
-        out.put("id",this.getId());
-        out.put("iocAllowOverride",this.isIocAllowOverride());
-        out.put("iocDefault",this.isIocDefault());
-        out.put("iocPointcut",this.getIocPointcut());
-        out.put("iocPriority",this.getIocPriority());
-        out.put("iocTags",this.getIocTags());
-        out.put("name",this.getName());
-        out.put("primary",this.isPrimary());
+        out.putNotNull("abstract",this.isAbstract());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("iocAllowOverride",this.isIocAllowOverride());
+        out.putNotNull("iocDefault",this.isIocDefault());
+        out.putNotNull("iocPointcut",this.getIocPointcut());
+        out.putNotNull("iocPriority",this.getIocPriority());
+        out.putNotNull("iocTags",this.getIocTags());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("primary",this.isPrimary());
+    }
+
+    public BeanModel cloneInstance(){
+        BeanModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BeanModel instance){
+        super.copyTo(instance);
+        
+        instance.setAbstract(this.isAbstract());
+        instance.setId(this.getId());
+        instance.setIocAllowOverride(this.isIocAllowOverride());
+        instance.setIocDefault(this.isIocDefault());
+        instance.setIocPointcut(this.getIocPointcut());
+        instance.setIocPriority(this.getIocPriority());
+        instance.setIocTags(this.getIocTags());
+        instance.setName(this.getName());
+        instance.setPrimary(this.isPrimary());
+    }
+
+    protected BeanModel newInstance(){
+        return (BeanModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

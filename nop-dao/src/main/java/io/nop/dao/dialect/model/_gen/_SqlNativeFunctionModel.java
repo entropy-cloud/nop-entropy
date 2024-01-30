@@ -2,12 +2,14 @@ package io.nop.dao.dialect.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.dao.dialect.model.SqlNativeFunctionModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [122:10:0:0]/nop/schema/orm/dialect.xdef <p>
+ * generate from [124:10:0:0]/nop/schema/orm/dialect.xdef <p>
  * sql数据库内部支持的原生函数。
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -317,17 +319,43 @@ public abstract class _SqlNativeFunctionModel extends io.nop.core.resource.compo
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("argTypes",this.getArgTypes());
-        out.put("description",this.getDescription());
-        out.put("hasParenthesis",this.getHasParenthesis());
-        out.put("maxArgCount",this.getMaxArgCount());
-        out.put("minArgCount",this.getMinArgCount());
-        out.put("name",this.getName());
-        out.put("realName",this.getRealName());
-        out.put("returnType",this.getReturnType());
-        out.put("special",this.getSpecial());
-        out.put("testSql",this.getTestSql());
-        out.put("type",this.getType());
+        out.putNotNull("argTypes",this.getArgTypes());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("hasParenthesis",this.getHasParenthesis());
+        out.putNotNull("maxArgCount",this.getMaxArgCount());
+        out.putNotNull("minArgCount",this.getMinArgCount());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("realName",this.getRealName());
+        out.putNotNull("returnType",this.getReturnType());
+        out.putNotNull("special",this.getSpecial());
+        out.putNotNull("testSql",this.getTestSql());
+        out.putNotNull("type",this.getType());
+    }
+
+    public SqlNativeFunctionModel cloneInstance(){
+        SqlNativeFunctionModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(SqlNativeFunctionModel instance){
+        super.copyTo(instance);
+        
+        instance.setArgTypes(this.getArgTypes());
+        instance.setDescription(this.getDescription());
+        instance.setHasParenthesis(this.getHasParenthesis());
+        instance.setMaxArgCount(this.getMaxArgCount());
+        instance.setMinArgCount(this.getMinArgCount());
+        instance.setName(this.getName());
+        instance.setRealName(this.getRealName());
+        instance.setReturnType(this.getReturnType());
+        instance.setSpecial(this.getSpecial());
+        instance.setTestSql(this.getTestSql());
+        instance.setType(this.getType());
+    }
+
+    protected SqlNativeFunctionModel newInstance(){
+        return (SqlNativeFunctionModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

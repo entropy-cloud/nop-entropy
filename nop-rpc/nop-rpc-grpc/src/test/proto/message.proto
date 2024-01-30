@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package io.nop.rpc.grpc.test;
+
+message InnerMessage {
+  optional string name = 1;
+  int32 age = 2;
+}
+
+message OuterMessage {
+  optional InnerMessage inner = 1;
+  repeated InnerMessage inner_list = 2;
+  repeated int32 value = 3;
+}

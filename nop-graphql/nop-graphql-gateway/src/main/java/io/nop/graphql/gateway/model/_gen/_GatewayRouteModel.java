@@ -2,6 +2,8 @@ package io.nop.graphql.gateway.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.graphql.gateway.model.GatewayRouteModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -291,15 +293,39 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("handler",this.getHandler());
-        out.put("id",this.getId());
-        out.put("match",this.getMatch());
-        out.put("mock",this.isMock());
-        out.put("onError",this.getOnError());
-        out.put("onPaths",this.getOnPaths());
-        out.put("onResponse",this.getOnResponse());
-        out.put("rawResponse",this.isRawResponse());
-        out.put("serviceName",this.getServiceName());
+        out.putNotNull("handler",this.getHandler());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("match",this.getMatch());
+        out.putNotNull("mock",this.isMock());
+        out.putNotNull("onError",this.getOnError());
+        out.putNotNull("onPaths",this.getOnPaths());
+        out.putNotNull("onResponse",this.getOnResponse());
+        out.putNotNull("rawResponse",this.isRawResponse());
+        out.putNotNull("serviceName",this.getServiceName());
+    }
+
+    public GatewayRouteModel cloneInstance(){
+        GatewayRouteModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(GatewayRouteModel instance){
+        super.copyTo(instance);
+        
+        instance.setHandler(this.getHandler());
+        instance.setId(this.getId());
+        instance.setMatch(this.getMatch());
+        instance.setMock(this.isMock());
+        instance.setOnError(this.getOnError());
+        instance.setOnPaths(this.getOnPaths());
+        instance.setOnResponse(this.getOnResponse());
+        instance.setRawResponse(this.isRawResponse());
+        instance.setServiceName(this.getServiceName());
+    }
+
+    protected GatewayRouteModel newInstance(){
+        return (GatewayRouteModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

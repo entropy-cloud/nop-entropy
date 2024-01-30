@@ -12,6 +12,8 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.eval.DisabledEvalScope;
+import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.core.type.impl.GenericRawTypeReferenceImpl;
@@ -62,6 +64,10 @@ public class EnumStdDomainHandler implements IStdDomainHandler {
             return null;
 
         GenericTypeDomainOptions opts = (GenericTypeDomainOptions) options;
+        IFunctionModel factoryMethod = opts.getFactoryMethod();
+        if(factoryMethod != null)
+            return factoryMethod.call1(null, text, DisabledEvalScope.INSTANCE);
+
         DictBean dict = opts.loadDictBean();
         if (dict.getOptionByValue(text) == null)
             throw new NopException(ERR_XDEF_INVALID_ENUM_VALUE_FOR_PROP).loc(loc).param(ARG_PROP_NAME, propName)

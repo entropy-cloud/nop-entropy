@@ -4,9 +4,7 @@
     </x:config>
 
     <fragments>
-        <fragment id="colList">
-            a, b, c
-        </fragment>
+        <fragment id="colList">a, b, c</fragment>
     </fragments>
 
     <sqls>
@@ -19,6 +17,12 @@
                 <sql:when-dialect name="h2">
                     a = 1
                 </sql:when-dialect>
+            </source>
+        </sql>
+
+        <sql name="generateWithFragment">
+            <source>
+                select <sql:fragment id="colList" /> from MyTable o
             </source>
         </sql>
     </sqls>

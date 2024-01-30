@@ -16,9 +16,6 @@
                 <!--页面名称-->
                 <col id="pageName" mandatory="true" sortable="true"/>
 
-                <!--页面分组-->
-                <col id="pageGroup" mandatory="true" sortable="true"/>
-
                 <!--页面类型-->
                 <col id="pageSchemaType" mandatory="true" sortable="true"/>
 
@@ -47,12 +44,15 @@
     <forms>
         <form id="view" editMode="view" title="查看-页面定义" i18n-en:title="View Page Definition">
             <layout>
- moduleId[模块ID] pageName[页面名称]
- pageGroup[页面分组] pageSchemaType[页面类型]
- status[状态] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] 
-                remark[备注]
+ moduleId[模块ID]
+ pageName[页面名称]
+ pageSchemaType[页面类型]
+ status[状态]
+ createdBy[创建人]
+ createTime[创建时间]
+ updatedBy[修改人]
+ updateTime[修改时间]
+ remark[备注]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-页面定义" i18n-en:title="Add Page Definition" x:prototype="edit"/>
@@ -60,7 +60,6 @@
             <layout>
  moduleId[模块ID]
  pageName[页面名称]
- pageGroup[页面分组]
  pageSchemaType[页面类型]
  status[状态]
  remark[备注]
@@ -103,10 +102,10 @@
                     <confirmText>@i18n:common.confirmDelete</confirmText>
                 </action>
                 <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
-                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                    <action id="row-update-button" label="@i18n:common.edit">
                         <dialog page="update"/>
                     </action>
-                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                    <action id="row-delete-button" label="@i18n:common.delete">
                         <api url="@mutation:NopDynPage__delete?id=$id"/>
                         <confirmText>@i18n:common.confirmDelete</confirmText>
                     </action>

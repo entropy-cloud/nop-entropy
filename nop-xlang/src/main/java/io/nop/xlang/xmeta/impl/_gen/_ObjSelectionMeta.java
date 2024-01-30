@@ -2,6 +2,8 @@ package io.nop.xlang.xmeta.impl._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xmeta.impl.ObjSelectionMeta;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -107,9 +109,27 @@ public abstract class _ObjSelectionMeta extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("displayName",this.getDisplayName());
-        out.put("id",this.getId());
-        out.put("mapping",this.getMapping());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("mapping",this.getMapping());
+    }
+
+    public ObjSelectionMeta cloneInstance(){
+        ObjSelectionMeta instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ObjSelectionMeta instance){
+        super.copyTo(instance);
+        
+        instance.setDisplayName(this.getDisplayName());
+        instance.setId(this.getId());
+        instance.setMapping(this.getMapping());
+    }
+
+    protected ObjSelectionMeta newInstance(){
+        return (ObjSelectionMeta) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

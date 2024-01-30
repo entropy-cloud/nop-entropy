@@ -8,6 +8,7 @@
 package io.nop.graphql.core.ast;
 
 import io.nop.api.core.annotations.biz.BizMakerCheckerMeta;
+import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.auth.ActionAuthMeta;
 import io.nop.core.context.action.IServiceAction;
 import io.nop.core.reflect.IClassModel;
@@ -20,7 +21,7 @@ import io.nop.xlang.xmeta.IObjPropMeta;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class GraphQLFieldDefinition extends _GraphQLFieldDefinition {
+public class GraphQLFieldDefinition extends _GraphQLFieldDefinition implements IGraphQLFieldDefinition {
     private IDataFetcher fetcher;
 
     /**
@@ -28,6 +29,8 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition {
      * 如果把所有propMeta上的信息都转换为GraphQL的directive定义，则会产生很多重复性工作。
      */
     private IObjPropMeta propMeta;
+
+    private PropMeta beanPropMeta;
 
     private Boolean lazy;
 
@@ -51,6 +54,46 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition {
     private BizMakerCheckerMeta makerCheckerMeta;
 
     private IGraphQLArgsNormalizer argsNormalizer;
+
+    private int propId;
+
+    @Override
+    public GraphQLFieldDefinition deepClone(){
+        GraphQLFieldDefinition field = super.deepClone();
+        field.setPropMeta(propMeta);
+        field.setBeanPropMeta(beanPropMeta);
+        field.setPropId(propId);
+        return field;
+    }
+
+    public int getPropId() {
+        return propId;
+    }
+
+    public void setPropId(int propId) {
+        this.propId = propId;
+    }
+
+    public int getPropIdFromMeta() {
+        if (propMeta != null) {
+            Integer propId = propMeta.getPropId();
+            if (propId == null)
+                return 0;
+            return propId;
+        }
+        if (beanPropMeta != null)
+            return beanPropMeta.propId();
+        return 0;
+    }
+
+    public void initArgPropId() {
+        List<GraphQLArgumentDefinition> args = getArguments();
+        if (args != null) {
+            for (int i = 0, n = args.size(); i < n; i++) {
+                args.get(i).setPropId(i + 1);
+            }
+        }
+    }
 
     public IGraphQLArgsNormalizer getArgsNormalizer() {
         return argsNormalizer;
@@ -158,6 +201,15 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition {
     public void setPropMeta(IObjPropMeta propMeta) {
         checkAllowChange();
         this.propMeta = propMeta;
+    }
+
+    public PropMeta getBeanPropMeta() {
+        return beanPropMeta;
+    }
+
+    public void setBeanPropMeta(PropMeta beanPropMeta) {
+        checkAllowChange();
+        this.beanPropMeta = beanPropMeta;
     }
 
     public GraphQLArgumentDefinition getArg(String name) {

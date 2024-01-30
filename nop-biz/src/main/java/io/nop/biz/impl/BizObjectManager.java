@@ -10,6 +10,7 @@ package io.nop.biz.impl;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancellable;
 import io.nop.biz.api.IBizObject;
 import io.nop.biz.api.IBizObjectManager;
@@ -33,6 +34,7 @@ import io.nop.graphql.core.ast.GraphQLType;
 import io.nop.graphql.core.ast.GraphQLTypeDefinition;
 import io.nop.graphql.core.biz.IGraphQLBizInitializer;
 import io.nop.graphql.core.biz.IGraphQLSchemaInitializer;
+import io.nop.graphql.core.reflection.GraphQLBizModel;
 import io.nop.graphql.core.reflection.GraphQLBizModels;
 import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
 import io.nop.graphql.core.schema.TypeRegistry;
@@ -62,6 +64,7 @@ import static io.nop.graphql.core.GraphQLErrors.ARG_TYPE_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_NOT_OBJ_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNDEFINED_OBJECT;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_BUILTIN_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_OBJ_TYPE;
 
 public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader {
     private List<Object> bizModelBeans;
@@ -79,11 +82,29 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
 
     private IMakerCheckerProvider makerCheckerProvider;
 
+    private Map<String, GraphQLBizModel> dynBizModels = Collections.emptyMap();
+
     private final ResourceLoadingCache<IBizObject> bizObjCache = new ResourceLoadingCache<>("biz-object-cache",
             this::buildBizObject, null);
 
     public void setBizModelBeans(List<Object> bizModelBeans) {
         this.bizModelBeans = bizModelBeans;
+    }
+
+    public void updateDynBizModels(Map<String, GraphQLBizModel> dynBizModels) {
+        Guard.notNull(dynBizModels, "dynBizModels");
+        Map<String, GraphQLBizModel> oldModels = this.dynBizModels;
+        if (oldModels != null) {
+            boolean checkChanged = bizObjCache.shouldCheckChanged();
+            for (String bizObjName : oldModels.keySet()) {
+                // 如果禁用了文件修改检查，则直接清空缓存
+                if (!checkChanged || !dynBizModels.containsKey(bizObjName)) {
+                    removeCache(bizObjName);
+                }
+            }
+        }
+
+        this.dynBizModels = dynBizModels;
     }
 
     public void setBizInitializers(List<IGraphQLBizInitializer> bizInitializers) {
@@ -159,7 +180,7 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
 
     private IBizObject buildBizObject(String bizObjName) {
         try {
-            return new BizObjectBuilder(bizModels, typeRegistry, actionDecoratorCollectors, bizInitializers,
+            return new BizObjectBuilder(bizModels, dynBizModels, typeRegistry, actionDecoratorCollectors, bizInitializers,
                     makerCheckerProvider).buildBizObject(bizObjName);
         } catch (NopException e) {
             e.addXplStack("buildBizObject:" + bizObjName);
@@ -236,7 +257,7 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
     }
 
     @Override
-    public GraphQLObjectDefinition resolveTypeDefinition(GraphQLType type) {
+    public GraphQLTypeDefinition resolveTypeDefinition(GraphQLType type) {
         GraphQLType baseType = type.getNullableType();
         if (!(baseType instanceof GraphQLNamedType)) {
             throw new NopException(ERR_GRAPHQL_NOT_OBJ_TYPE).param(ARG_TYPE, type);
@@ -245,13 +266,16 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
         GraphQLNamedType namedType = (GraphQLNamedType) baseType;
         if (namedType.getResolvedType() != null) {
             GraphQLDefinition def = namedType.getResolvedType();
-            if (!(def instanceof GraphQLObjectDefinition))
+            if (!(def instanceof GraphQLTypeDefinition))
                 throw new NopException(ERR_GRAPHQL_NOT_OBJ_TYPE).param(ARG_TYPE, type);
 
-            return (GraphQLObjectDefinition) def;
+            return (GraphQLTypeDefinition) def;
         }
 
-        return getObjectTypeDefinition(namedType.getName());
+        GraphQLTypeDefinition objDef = getTypeDefinition(namedType.getName());
+        if (objDef == null)
+            throw new NopException(ERR_GRAPHQL_UNKNOWN_OBJ_TYPE).param(ARG_TYPE_NAME, namedType.getName());
+        return objDef;
     }
 
     @Override
@@ -269,6 +293,12 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
             defs.addAll(ops);
         }
         return defs;
+    }
+
+    @Override
+    public Map<String, GraphQLFieldDefinition> getBizOperationDefinitions(String bizObjName) {
+        IBizObject bizObj = getBizObject(bizObjName);
+        return bizObj.getOperationDefinitions();
     }
 
     @Override

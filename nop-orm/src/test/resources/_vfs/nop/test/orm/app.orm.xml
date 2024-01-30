@@ -16,6 +16,10 @@
         <orm-gen:JsonComponentSupport xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
     </x:post-extends>
 
+    <domains>
+        <domain name="collegeId" displayName="collegeId" stdSqlType="VARCHAR" precision="50"/>
+    </domains>
+
     <entities>
         <entity name="io.nop.app.SimsClassFee" x:override="remove"/>
 
@@ -50,6 +54,10 @@
         </entity>
 
         <entity name="io.nop.app.SimsCollege" registerShortName="true">
+            <columns>
+                <column name="collegeId" domain="collegeId"/>
+            </columns>
+
             <relations>
                 <to-many name="ext" refEntityName="io.nop.app.SimsExtField" keyProp="fieldName" notGenCode="true">
                     <join>
@@ -57,6 +65,27 @@
                         <on leftValue="io.nop.app.SimsCollege" rightProp="entityName"/>
                     </join>
                 </to-many>
+
+                <to-one name="collegeEx" refEntityName="io.nop.app.SimsCollegeEx" reverseDepends="true">
+                    <join>
+                        <on leftProp="collegeId" rightProp="sid"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+
+        <entity name="io.nop.app.SimsCollegeEx" registerShortName="true" tableName="sims_college_ex">
+            <columns>
+                <column propId="1" name="sid" code="SID" stdSqlType="INTEGER" primary="true"/>
+                <column propId="2" name="extInfo" code="EXT_INFO" stdSqlType="VARCHAR" precision="10"/>
+            </columns>
+
+            <relations>
+                <to-one name="college" refEntityName="io.nop.app.SimsCollege">
+                    <join>
+                        <on leftProp="sid" rightProp="collegeId"/>
+                    </join>
+                </to-one>
             </relations>
         </entity>
 
@@ -88,6 +117,7 @@
                 <alias name="examScoreNormalized" propPath="examScoreDecimal.normalizedValue" type="BigDecimal"/>
                 <alias name="extFldA" propPath="ext.fldA.string" type="String"/>
                 <alias name="extFldB" propPath="ext.fldB.boolean" type="Boolean" notGenCode="true"/>
+                <alias name="extFldC" propPath="ext.fldC.string" type="String"/>
             </aliases>
 
             <relations>
@@ -103,6 +133,18 @@
                         <on leftProp="examId" rightProp="examId"/>
                     </join>
                 </to-many>
+
+                <to-one name="extRefCollege" refEntityName="SimsCollege">
+                    <join>
+                        <on leftProp="extFldC" rightProp="id"/>
+                    </join>
+                </to-one>
+
+                <to-one name="extRefCollege2" refEntityName="SimsCollege">
+                    <join>
+                        <on leftProp="extFldA" rightProp="id"/>
+                    </join>
+                </to-one>
             </relations>
         </entity>
 

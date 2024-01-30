@@ -2,6 +2,8 @@ package io.nop.xui.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xui.model.UiRefViewModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -163,11 +165,31 @@ public abstract class _UiRefViewModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("buttonLabel",this.getButtonLabel());
-        out.put("form",this.getForm());
-        out.put("grid",this.getGrid());
-        out.put("page",this.getPage());
-        out.put("path",this.getPath());
+        out.putNotNull("buttonLabel",this.getButtonLabel());
+        out.putNotNull("form",this.getForm());
+        out.putNotNull("grid",this.getGrid());
+        out.putNotNull("page",this.getPage());
+        out.putNotNull("path",this.getPath());
+    }
+
+    public UiRefViewModel cloneInstance(){
+        UiRefViewModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(UiRefViewModel instance){
+        super.copyTo(instance);
+        
+        instance.setButtonLabel(this.getButtonLabel());
+        instance.setForm(this.getForm());
+        instance.setGrid(this.getGrid());
+        instance.setPage(this.getPage());
+        instance.setPath(this.getPath());
+    }
+
+    protected UiRefViewModel newInstance(){
+        return (UiRefViewModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

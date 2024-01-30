@@ -2,6 +2,8 @@ package io.nop.xlang.xdef.impl._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xdef.impl.XDefNode;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -1041,42 +1043,93 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("attributes",this.getAttributes());
-        out.put("children",this.getChildren());
-        out.put("comment",this.getComment());
-        out.put("tagName",this.getTagName());
-        out.put("xdefAllowMultiple",this.getXdefAllowMultiple());
-        out.put("xdefBeanBodyProp",this.getXdefBeanBodyProp());
-        out.put("xdefBeanBodyType",this.getXdefBeanBodyType());
-        out.put("xdefBeanChildName",this.getXdefBeanChildName());
-        out.put("xdefBeanClass",this.getXdefBeanClass());
-        out.put("xdefBeanCommentProp",this.getXdefBeanCommentProp());
-        out.put("xdefBeanExtendsType",this.getXdefBeanExtendsType());
-        out.put("xdefBeanImplementsTypes",this.getXdefBeanImplementsTypes());
-        out.put("xdefBeanProp",this.getXdefBeanProp());
-        out.put("xdefBeanRefProp",this.getXdefBeanRefProp());
-        out.put("xdefBeanSubTypeProp",this.getXdefBeanSubTypeProp());
-        out.put("xdefBeanTagProp",this.getXdefBeanTagProp());
-        out.put("xdefBeanUnknownAttrsProp",this.getXdefBeanUnknownAttrsProp());
-        out.put("xdefBeanUnknownChildrenProp",this.getXdefBeanUnknownChildrenProp());
-        out.put("xdefBodyType",this.getXdefBodyType());
-        out.put("xdefDefaultOverride",this.getXdefDefaultOverride());
-        out.put("xdefDefines",this.getXdefDefines());
-        out.put("xdefDeprecated",this.getXdefDeprecated());
-        out.put("xdefId",this.getXdefId());
-        out.put("xdefInternal",this.getXdefInternal());
-        out.put("xdefKeyAttr",this.getXdefKeyAttr());
-        out.put("xdefMandatory",this.getXdefMandatory());
-        out.put("xdefName",this.getXdefName());
-        out.put("xdefOrderAttr",this.getXdefOrderAttr());
-        out.put("xdefProps",this.getXdefProps());
-        out.put("xdefRef",this.getXdefRef());
-        out.put("xdefRefResolved",this.getXdefRefResolved());
-        out.put("xdefSupportExtends",this.getXdefSupportExtends());
-        out.put("xdefUniqueAttr",this.getXdefUniqueAttr());
-        out.put("xdefUnknownAttr",this.getXdefUnknownAttr());
-        out.put("xdefUnknownTag",this.getXdefUnknownTag());
-        out.put("xdefValue",this.getXdefValue());
+        out.putNotNull("attributes",this.getAttributes());
+        out.putNotNull("children",this.getChildren());
+        out.putNotNull("comment",this.getComment());
+        out.putNotNull("tagName",this.getTagName());
+        out.putNotNull("xdefAllowMultiple",this.getXdefAllowMultiple());
+        out.putNotNull("xdefBeanBodyProp",this.getXdefBeanBodyProp());
+        out.putNotNull("xdefBeanBodyType",this.getXdefBeanBodyType());
+        out.putNotNull("xdefBeanChildName",this.getXdefBeanChildName());
+        out.putNotNull("xdefBeanClass",this.getXdefBeanClass());
+        out.putNotNull("xdefBeanCommentProp",this.getXdefBeanCommentProp());
+        out.putNotNull("xdefBeanExtendsType",this.getXdefBeanExtendsType());
+        out.putNotNull("xdefBeanImplementsTypes",this.getXdefBeanImplementsTypes());
+        out.putNotNull("xdefBeanProp",this.getXdefBeanProp());
+        out.putNotNull("xdefBeanRefProp",this.getXdefBeanRefProp());
+        out.putNotNull("xdefBeanSubTypeProp",this.getXdefBeanSubTypeProp());
+        out.putNotNull("xdefBeanTagProp",this.getXdefBeanTagProp());
+        out.putNotNull("xdefBeanUnknownAttrsProp",this.getXdefBeanUnknownAttrsProp());
+        out.putNotNull("xdefBeanUnknownChildrenProp",this.getXdefBeanUnknownChildrenProp());
+        out.putNotNull("xdefBodyType",this.getXdefBodyType());
+        out.putNotNull("xdefDefaultOverride",this.getXdefDefaultOverride());
+        out.putNotNull("xdefDefines",this.getXdefDefines());
+        out.putNotNull("xdefDeprecated",this.getXdefDeprecated());
+        out.putNotNull("xdefId",this.getXdefId());
+        out.putNotNull("xdefInternal",this.getXdefInternal());
+        out.putNotNull("xdefKeyAttr",this.getXdefKeyAttr());
+        out.putNotNull("xdefMandatory",this.getXdefMandatory());
+        out.putNotNull("xdefName",this.getXdefName());
+        out.putNotNull("xdefOrderAttr",this.getXdefOrderAttr());
+        out.putNotNull("xdefProps",this.getXdefProps());
+        out.putNotNull("xdefRef",this.getXdefRef());
+        out.putNotNull("xdefRefResolved",this.getXdefRefResolved());
+        out.putNotNull("xdefSupportExtends",this.getXdefSupportExtends());
+        out.putNotNull("xdefUniqueAttr",this.getXdefUniqueAttr());
+        out.putNotNull("xdefUnknownAttr",this.getXdefUnknownAttr());
+        out.putNotNull("xdefUnknownTag",this.getXdefUnknownTag());
+        out.putNotNull("xdefValue",this.getXdefValue());
+    }
+
+    public XDefNode cloneInstance(){
+        XDefNode instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(XDefNode instance){
+        super.copyTo(instance);
+        
+        instance.setAttributes(this.getAttributes());
+        instance.setChildren(this.getChildren());
+        instance.setComment(this.getComment());
+        instance.setTagName(this.getTagName());
+        instance.setXdefAllowMultiple(this.getXdefAllowMultiple());
+        instance.setXdefBeanBodyProp(this.getXdefBeanBodyProp());
+        instance.setXdefBeanBodyType(this.getXdefBeanBodyType());
+        instance.setXdefBeanChildName(this.getXdefBeanChildName());
+        instance.setXdefBeanClass(this.getXdefBeanClass());
+        instance.setXdefBeanCommentProp(this.getXdefBeanCommentProp());
+        instance.setXdefBeanExtendsType(this.getXdefBeanExtendsType());
+        instance.setXdefBeanImplementsTypes(this.getXdefBeanImplementsTypes());
+        instance.setXdefBeanProp(this.getXdefBeanProp());
+        instance.setXdefBeanRefProp(this.getXdefBeanRefProp());
+        instance.setXdefBeanSubTypeProp(this.getXdefBeanSubTypeProp());
+        instance.setXdefBeanTagProp(this.getXdefBeanTagProp());
+        instance.setXdefBeanUnknownAttrsProp(this.getXdefBeanUnknownAttrsProp());
+        instance.setXdefBeanUnknownChildrenProp(this.getXdefBeanUnknownChildrenProp());
+        instance.setXdefBodyType(this.getXdefBodyType());
+        instance.setXdefDefaultOverride(this.getXdefDefaultOverride());
+        instance.setXdefDefines(this.getXdefDefines());
+        instance.setXdefDeprecated(this.getXdefDeprecated());
+        instance.setXdefId(this.getXdefId());
+        instance.setXdefInternal(this.getXdefInternal());
+        instance.setXdefKeyAttr(this.getXdefKeyAttr());
+        instance.setXdefMandatory(this.getXdefMandatory());
+        instance.setXdefName(this.getXdefName());
+        instance.setXdefOrderAttr(this.getXdefOrderAttr());
+        instance.setXdefProps(this.getXdefProps());
+        instance.setXdefRef(this.getXdefRef());
+        instance.setXdefRefResolved(this.getXdefRefResolved());
+        instance.setXdefSupportExtends(this.getXdefSupportExtends());
+        instance.setXdefUniqueAttr(this.getXdefUniqueAttr());
+        instance.setXdefUnknownAttr(this.getXdefUnknownAttr());
+        instance.setXdefUnknownTag(this.getXdefUnknownTag());
+        instance.setXdefValue(this.getXdefValue());
+    }
+
+    protected XDefNode newInstance(){
+        return (XDefNode) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

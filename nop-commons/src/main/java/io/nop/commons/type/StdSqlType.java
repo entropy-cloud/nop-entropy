@@ -88,7 +88,7 @@ public enum StdSqlType implements ISqlDataType {
     // ROW(PrecScale.NO_NO, false, Types.STRUCT, null),
     OTHER(false, false, Types.OTHER, StdDataType.ANY),
 
-    JSON(false, false, Types.JAVA_OBJECT,StdDataType.ANY),
+    JSON(false, false, Types.JAVA_OBJECT, StdDataType.ANY),
 
     ANY(false, false, Types.JAVA_OBJECT, StdDataType.ANY),
     // CURSOR(PrecScale.NO_NO, false, ExtraSqlTypes.REF_CURSOR,
@@ -152,6 +152,20 @@ public enum StdSqlType implements ISqlDataType {
 
         jdbcTypeMap.put(Types.CLOB, VARCHAR);
         jdbcTypeMap.put(Types.BLOB, VARBINARY);
+    }
+
+    public boolean isCompatibleWith(StdSqlType type) {
+        if (this == type)
+            return true;
+
+        switch (this) {
+            case BIGINT:
+                return type == INTEGER || type == SMALLINT;
+            case DOUBLE:
+                return type == FLOAT;
+        }
+
+        return false;
     }
 
     public static Set<String> getNames() {

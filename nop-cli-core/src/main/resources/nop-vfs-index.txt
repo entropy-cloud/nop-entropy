@@ -8,6 +8,7 @@
 /dict/core/simple-data-type.dict.yaml
 /dict/core/std-data-type.dict.yaml
 /dict/core/std-domain.dict.yaml
+/dict/core/std-sql-type.dict.yaml
 /dict/rpt/data-display-mode.dict.yaml
 /i18n/en/nop-core.i18n.yaml
 /meta/test/NopAuthUser.xmeta
@@ -67,8 +68,6 @@
 /nop/excel/xlib/imp-gen.xlib
 /nop/graphql/base.graphql
 /nop/graphql/default.graphql
-/nop/graphql/imp/api.imp.xml
-/nop/graphql/imp/template.api.xlsx
 /nop/graphql/introspection.graphql
 /nop/orm/beans/orm-defaults.beans.xml
 /nop/orm/imp/orm.imp.xml
@@ -88,6 +87,8 @@
 /nop/orm/xlib/sql.xlib
 /nop/report/beans/report-defaults.beans.xml
 /nop/report/imp/xpt.imp.xml
+/nop/rpc/imp/api.imp.xml
+/nop/rpc/imp/template.api.xlsx
 /nop/schema/action-auth.xdef
 /nop/schema/api.xdef
 /nop/schema/beans.xdef
@@ -164,6 +165,7 @@
 /nop/templates/api/{apiModuleName}/src/main/java/{apiPackagePath}/beans/_gen/_{messageModel.name}.java.xgen
 /nop/templates/api/{apiModuleName}/src/main/java/{apiPackagePath}/beans/{messageModel.name}.java.xgen
 /nop/templates/api/{apiModuleName}/src/main/java/{apiPackagePath}/{serviceModel.name}.java.xgen
+/nop/templates/api/{apiModuleName}/src/main/resources/_vfs/{moduleId}/model/{appName}.api.xml.xgen
 /nop/templates/api/{metaModuleName}/src/main/resources/_vfs/{moduleId}/model/{serviceModel.name}/_{messageModel.name}.xmeta.xgen
 /nop/templates/api/{metaModuleName}/src/main/resources/_vfs/{moduleId}/model/{serviceModel.name}/{messageModel.name}.xmeta.xgen
 /nop/templates/api/{serviceModuleName}/src/main/java/{servicePackagePath}/impl/{serviceModel.name}Impl.java.xgen
@@ -180,7 +182,18 @@
 /nop/templates/ast/src/main/java/{ast.packagePath}/{ast.name}Visitor.java.xgen
 /nop/templates/ast/src/main/java/{ast.packagePath}/{astNode.name}.java.xgen
 /nop/templates/backend/@init.xrun
-/nop/templates/backend/a-imp.xrun
+/nop/templates/backend/c-impl.xrun
+/nop/templates/backend/pom.xml.xgen
+/nop/templates/backend/{appName}-codegen/pom.xml.xgen
+/nop/templates/backend/{appName}-codegen/postcompile/gen-orm.xgen.xgen
+/nop/templates/backend/{appName}-codegen/src/test/java/{basePackagePath}/codegen/{moduleClassPrefix}CodeGen.java.xgen
+/nop/templates/dyn-web/@init.xrun
+/nop/templates/dyn-web/{moduleId}/a-impl.xrun
+/nop/templates/dyn/@init.xrun
+/nop/templates/dyn/{moduleId}/_module
+/nop/templates/dyn/{moduleId}/model/{entityMeta.bizObjName}/{!!entityModel}{entityModel.shortName}.xmeta.xgen
+/nop/templates/dyn/{moduleId}/model/{entityMeta.bizObjName}/{entityMeta.bizObjName}.xbiz.xgen
+/nop/templates/dyn/{moduleId}/orm/app.orm.xml.xgen
 /nop/templates/i18n/@init.xrun
 /nop/templates/i18n/_templates/_{metaInfo.objName}.json.xgen
 /nop/templates/i18n/src/main/resources/_vfs/i18n/{defaultLocale}/_{moduleName}.i18n.yaml.xgen

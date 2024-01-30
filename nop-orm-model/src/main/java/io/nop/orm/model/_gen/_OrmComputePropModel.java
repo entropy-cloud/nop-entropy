@@ -2,6 +2,8 @@ package io.nop.orm.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.orm.model.OrmComputePropModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -266,14 +268,37 @@ public abstract class _OrmComputePropModel extends io.nop.core.resource.componen
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("args",this.getArgs());
-        out.put("displayName",this.getDisplayName());
-        out.put("getter",this.getGetter());
-        out.put("name",this.getName());
-        out.put("notGenCode",this.isNotGenCode());
-        out.put("setter",this.getSetter());
-        out.put("tagSet",this.getTagSet());
-        out.put("type",this.getType());
+        out.putNotNull("args",this.getArgs());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("getter",this.getGetter());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("notGenCode",this.isNotGenCode());
+        out.putNotNull("setter",this.getSetter());
+        out.putNotNull("tagSet",this.getTagSet());
+        out.putNotNull("type",this.getType());
+    }
+
+    public OrmComputePropModel cloneInstance(){
+        OrmComputePropModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(OrmComputePropModel instance){
+        super.copyTo(instance);
+        
+        instance.setArgs(this.getArgs());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setGetter(this.getGetter());
+        instance.setName(this.getName());
+        instance.setNotGenCode(this.isNotGenCode());
+        instance.setSetter(this.getSetter());
+        instance.setTagSet(this.getTagSet());
+        instance.setType(this.getType());
+    }
+
+    protected OrmComputePropModel newInstance(){
+        return (OrmComputePropModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

@@ -66,7 +66,7 @@
                         propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
             </columns>
             <relations>
-                <to-many displayName="分支事务记录" name="branchRecords"
+                <to-many cascadeDelete="true" displayName="分支事务记录" name="branchRecords"
                          refEntityName="io.nop.tcc.dao.entity.NopTccBranchRecord" refPropName="tccRecord"
                          tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="TCC Branch Records">
                     <join>

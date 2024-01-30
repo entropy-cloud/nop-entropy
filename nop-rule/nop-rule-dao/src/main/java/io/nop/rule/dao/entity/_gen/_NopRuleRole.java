@@ -633,17 +633,19 @@ public class _NopRuleRole extends DynamicOrmEntity{
     }
 
     public void setRuleDefinition(io.nop.rule.dao.entity.NopRuleDefinition refEntity){
-       if(refEntity == null){
-         
-         this.setRuleId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_ruleDefinition, refEntity,()->{
-             
-                    this.setRuleId(refEntity.getRuleId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setRuleId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_ruleDefinition, refEntity,()->{
+           
+                           this.setRuleId(refEntity.getRuleId());
+                       
+           });
+           }
+       
     }
        
 }

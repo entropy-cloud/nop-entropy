@@ -122,6 +122,11 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-rpc-grpc</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-wf-service</artifactId>
         </dependency>
 
@@ -202,6 +207,11 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-auth-sso</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-redis-client</artifactId>
         </dependency>
 
         <dependency>

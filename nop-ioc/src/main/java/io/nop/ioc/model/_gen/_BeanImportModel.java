@@ -2,6 +2,8 @@ package io.nop.ioc.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.ioc.model.BeanImportModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -55,7 +57,23 @@ public abstract class _BeanImportModel extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("resource",this.getResource());
+        out.putNotNull("resource",this.getResource());
+    }
+
+    public BeanImportModel cloneInstance(){
+        BeanImportModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BeanImportModel instance){
+        super.copyTo(instance);
+        
+        instance.setResource(this.getResource());
+    }
+
+    protected BeanImportModel newInstance(){
+        return (BeanImportModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

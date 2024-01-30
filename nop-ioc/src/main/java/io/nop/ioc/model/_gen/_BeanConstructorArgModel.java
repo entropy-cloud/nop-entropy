@@ -2,6 +2,8 @@ package io.nop.ioc.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.ioc.model.BeanConstructorArgModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -133,10 +135,29 @@ public abstract class _BeanConstructorArgModel extends io.nop.ioc.model.BeanProp
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("index",this.getIndex());
-        out.put("iocSkipIfEmpty",this.isIocSkipIfEmpty());
-        out.put("ref",this.getRef());
-        out.put("value",this.getValue());
+        out.putNotNull("index",this.getIndex());
+        out.putNotNull("iocSkipIfEmpty",this.isIocSkipIfEmpty());
+        out.putNotNull("ref",this.getRef());
+        out.putNotNull("value",this.getValue());
+    }
+
+    public BeanConstructorArgModel cloneInstance(){
+        BeanConstructorArgModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BeanConstructorArgModel instance){
+        super.copyTo(instance);
+        
+        instance.setIndex(this.getIndex());
+        instance.setIocSkipIfEmpty(this.isIocSkipIfEmpty());
+        instance.setRef(this.getRef());
+        instance.setValue(this.getValue());
+    }
+
+    protected BeanConstructorArgModel newInstance(){
+        return (BeanConstructorArgModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

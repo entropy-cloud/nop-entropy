@@ -2,6 +2,8 @@ package io.nop.excel.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.model.ExcelSheet;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -465,19 +467,47 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("annotations",this.getAnnotations());
-        out.put("conditionalStyles",this.getConditionalStyles());
-        out.put("defaultColumnWidth",this.getDefaultColumnWidth());
-        out.put("defaultRowHeight",this.getDefaultRowHeight());
-        out.put("images",this.getImages());
-        out.put("model",this.getModel());
-        out.put("name",this.getName());
-        out.put("pageBreaks",this.getPageBreaks());
-        out.put("pageMargins",this.getPageMargins());
-        out.put("pageSetup",this.getPageSetup());
-        out.put("print",this.getPrint());
-        out.put("sheetOptions",this.getSheetOptions());
-        out.put("table",this.getTable());
+        out.putNotNull("annotations",this.getAnnotations());
+        out.putNotNull("conditionalStyles",this.getConditionalStyles());
+        out.putNotNull("defaultColumnWidth",this.getDefaultColumnWidth());
+        out.putNotNull("defaultRowHeight",this.getDefaultRowHeight());
+        out.putNotNull("images",this.getImages());
+        out.putNotNull("model",this.getModel());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("pageBreaks",this.getPageBreaks());
+        out.putNotNull("pageMargins",this.getPageMargins());
+        out.putNotNull("pageSetup",this.getPageSetup());
+        out.putNotNull("print",this.getPrint());
+        out.putNotNull("sheetOptions",this.getSheetOptions());
+        out.putNotNull("table",this.getTable());
+    }
+
+    public ExcelSheet cloneInstance(){
+        ExcelSheet instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ExcelSheet instance){
+        super.copyTo(instance);
+        
+        instance.setAnnotations(this.getAnnotations());
+        instance.setConditionalStyles(this.getConditionalStyles());
+        instance.setDefaultColumnWidth(this.getDefaultColumnWidth());
+        instance.setDefaultRowHeight(this.getDefaultRowHeight());
+        instance.setImages(this.getImages());
+        instance.setModel(this.getModel());
+        instance.setName(this.getName());
+        instance.setPageBreaks(this.getPageBreaks());
+        instance.setPageMargins(this.getPageMargins());
+        instance.setPageSetup(this.getPageSetup());
+        instance.setPrint(this.getPrint());
+        instance.setSheetOptions(this.getSheetOptions());
+        instance.setTable(this.getTable());
+    }
+
+    protected ExcelSheet newInstance(){
+        return (ExcelSheet) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

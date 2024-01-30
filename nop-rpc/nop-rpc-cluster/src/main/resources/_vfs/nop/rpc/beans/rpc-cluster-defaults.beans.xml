@@ -21,6 +21,7 @@
                 <entry key="version" value="@cfg:nop.application.version|1.0.0"/>
                 <entry key="group" value="@cfg:nop.application.group|default"/>
                 <entry key="zone" value="@cfg:nop.application.zone|"/>
+                <entry key="kind" value="@cfg:nop.application.kind|http" />
             </map>
         </property>
     </bean>

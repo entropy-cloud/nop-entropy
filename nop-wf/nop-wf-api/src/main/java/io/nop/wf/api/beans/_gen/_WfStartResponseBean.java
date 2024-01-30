@@ -1,6 +1,8 @@
 //__XGEN_FORCE_OVERRIDE__
     package io.nop.wf.api.beans._gen;
 
+    import io.nop.api.core.annotations.meta.PropMeta;
+
     @SuppressWarnings({"PMD","java:S116","java:S115"})
     public class _WfStartResponseBean{
 
@@ -10,6 +12,7 @@
         /**
          * 工作流名称 
          */
+        @PropMeta(propId=1,displayName="工作流名称")
         public String getWfName(){
             return _wfName;
         }
@@ -26,6 +29,7 @@
         /**
          * 工作流版本 
          */
+        @PropMeta(propId=2,displayName="工作流版本")
         public long getWfVersion(){
             return _wfVersion;
         }
@@ -42,6 +46,7 @@
         /**
          * 工作流ID 
          */
+        @PropMeta(propId=3,displayName="工作流ID")
         public String getWfId(){
             return _wfId;
         }
@@ -58,6 +63,7 @@
         /**
          * 管理者类型 
          */
+        @PropMeta(propId=4,displayName="管理者类型")
         public String getManagerType(){
             return _managerType;
         }
@@ -74,6 +80,7 @@
         /**
          * 管理者名称 
          */
+        @PropMeta(propId=5,displayName="管理者名称")
         public String getManagerName(){
             return _managerName;
         }
@@ -90,6 +97,7 @@
         /**
          * 管理者ID 
          */
+        @PropMeta(propId=6,displayName="管理者ID")
         public String getManagerId(){
             return _managerId;
         }
@@ -106,6 +114,7 @@
         /**
          * 管理者部门ID 
          */
+        @PropMeta(propId=7,displayName="管理者部门ID")
         public String getManagerDeptId(){
             return _managerDeptId;
         }

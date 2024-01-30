@@ -2,6 +2,8 @@ package io.nop.xui.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xui.model.UiHrefModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -107,9 +109,27 @@ public abstract class _UiHrefModel extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("blank",this.getBlank());
-        out.put("label",this.getLabel());
-        out.put("url",this.getUrl());
+        out.putNotNull("blank",this.getBlank());
+        out.putNotNull("label",this.getLabel());
+        out.putNotNull("url",this.getUrl());
+    }
+
+    public UiHrefModel cloneInstance(){
+        UiHrefModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(UiHrefModel instance){
+        super.copyTo(instance);
+        
+        instance.setBlank(this.getBlank());
+        instance.setLabel(this.getLabel());
+        instance.setUrl(this.getUrl());
+    }
+
+    protected UiHrefModel newInstance(){
+        return (UiHrefModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

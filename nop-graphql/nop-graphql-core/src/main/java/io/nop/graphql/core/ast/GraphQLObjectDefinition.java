@@ -9,6 +9,7 @@ package io.nop.graphql.core.ast;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.INeedInit;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.graphql.core.ast._gen._GraphQLObjectDefinition;
 import io.nop.graphql.core.fetcher.BeanPropertyFetcher;
 import io.nop.graphql.core.schema.utils.GraphQLSourcePrinter;
@@ -17,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,9 +26,12 @@ import java.util.Set;
 
 import static io.nop.graphql.core.GraphQLErrors.ARG_FIELD_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ARG_PROP_ID;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_FIELD_NO_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_FIELD_PROP_ID_CONFLICT;
 
-public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements INeedInit {
+public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements INeedInit, IGraphQLObjectDefinition {
     static final Logger LOG = LoggerFactory.getLogger(GraphQLObjectDefinition.class);
 
     private Map<String, GraphQLFieldDefinition> fieldsMap;
@@ -49,6 +54,36 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
 
         for (GraphQLFieldDefinition field : fields) {
             fieldsMap.put(field.getName(), field);
+        }
+    }
+
+    public void initPropId() {
+        BitSet propIds = new BitSet();
+        int count = 0;
+        for (GraphQLFieldDefinition field : fields) {
+            int propId = field.getPropIdFromMeta();
+            if (propId > 0) {
+                if (propIds.get(propId))
+                    throw new NopException(ERR_GRAPHQL_FIELD_PROP_ID_CONFLICT)
+                            .param(ARG_FIELD_NAME, field.getName())
+                            .param(ARG_PROP_ID, propId)
+                            .param(ARG_OBJ_TYPE, getName());
+                propIds.set(propId);
+                field.setPropId(propId);
+                count++;
+            }
+        }
+
+        if (count == fields.size())
+            return;
+
+        int nextPropId = 1;
+        for (GraphQLFieldDefinition field : fields) {
+            int propId = field.getPropId();
+            if (propId <= 0) {
+                nextPropId = CollectionHelper.nextFreeIndex(propIds, nextPropId);
+                field.setPropId(nextPropId++);
+            }
         }
     }
 
@@ -162,6 +197,10 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
                     old.setPropMeta(field.getPropMeta());
                 }
 
+                if (field.getBeanPropMeta() != null) {
+                    old.setBeanPropMeta(field.getBeanPropMeta());
+                }
+
 
                 if (field.getAuth() != null) {
                     old.setAuth(field.getAuth());
@@ -194,6 +233,9 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
                     old.setPropMeta(field.getPropMeta());
                 }
 
+                if (old.getBeanPropMeta() == null)
+                    old.setBeanPropMeta(field.getBeanPropMeta());
+
 
                 if (old.getAuth() == null) {
                     old.setAuth(field.getAuth());
@@ -205,6 +247,7 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
                 if (old.getType() == null) {
                     old.setType(field.getType());
                 }
+
 
                 if (old.getArgsNormalizer() == null) {
                     old.setArgsNormalizer(field.getArgsNormalizer());

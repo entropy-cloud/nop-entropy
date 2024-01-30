@@ -14,6 +14,7 @@ import io.nop.commons.bytes.ByteString;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -184,6 +185,14 @@ public interface IDataParameters {
     default Timestamp getTimestamp(int index) {
         return toTimestamp(getObject(index), err -> handleConvertError(err, index));
     }
+
+    default Instant getInstant(int index) {
+        Timestamp timestamp = getTimestamp(index);
+        if (timestamp == null)
+            return null;
+        return timestamp.toInstant();
+    }
+
 
     default void setTimestamp(int index, Timestamp value) {
         setObject(index, value);

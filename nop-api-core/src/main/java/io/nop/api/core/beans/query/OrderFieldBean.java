@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
+import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.Guard;
@@ -65,21 +66,7 @@ public class OrderFieldBean implements Serializable {
         return ret;
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public Boolean getNullsFirst() {
-        return nullsFirst;
-    }
-
-    public boolean shouldNullsFirst() {
-        if (nullsFirst != null)
-            return nullsFirst;
-        return !desc;
-    }
-
-    public void setNullsFirst(Boolean value) {
-        nullsFirst = value;
-    }
-
+    @PropMeta(propId = 1)
     public String getName() {
         return name;
     }
@@ -88,6 +75,7 @@ public class OrderFieldBean implements Serializable {
         this.name = Guard.notEmpty(name, "name");
     }
 
+    @PropMeta(propId = 2)
     public boolean isDesc() {
         return desc;
     }
@@ -105,6 +93,7 @@ public class OrderFieldBean implements Serializable {
         this.desc = !asc;
     }
 
+    @PropMeta(propId = 3)
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getOwner() {
         return owner;
@@ -113,4 +102,21 @@ public class OrderFieldBean implements Serializable {
     public void setOwner(String owner) {
         this.owner = owner;
     }
+
+    @PropMeta(propId = 4)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Boolean getNullsFirst() {
+        return nullsFirst;
+    }
+
+    public boolean shouldNullsFirst() {
+        if (nullsFirst != null)
+            return nullsFirst;
+        return !desc;
+    }
+
+    public void setNullsFirst(Boolean value) {
+        nullsFirst = value;
+    }
+
 }

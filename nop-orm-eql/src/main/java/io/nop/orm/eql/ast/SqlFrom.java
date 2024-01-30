@@ -46,4 +46,12 @@ public class SqlFrom extends _SqlFrom {
         });
         return entitySources;
     }
+
+    public void forEachSingleTableSource(Consumer<SqlSingleTableSource> consumer) {
+        for (SqlTableSource source : getTableSources()) {
+            if (source.isEntityTableSource()) {
+                consumer.accept((SqlSingleTableSource) source);
+            }
+        }
+    }
 }

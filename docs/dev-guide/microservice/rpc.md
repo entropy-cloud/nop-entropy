@@ -37,6 +37,14 @@ Nop平台通过基于HttpClient实现了简单的分布式RPC机制。具体设�
 报送到sentinel可视化管理端。
 
 * 如果要使用sentinel限流，需要引入nop-cluster-sentinel模块。
+* Nop平台的REST服务实现依赖于spring或者quarkus框架，所以实际起作用的服务端口配置是quarkus.http.port，但是Nop平台中内部使用的是nop.server.port，
+所以需要通过参数别名机制关联一下。
+````yaml
+quarkus:
+  http:
+    host: 0.0.0.0
+    port: ${nop.server.port}
+````
 
 ## 1.3 实现服务
 

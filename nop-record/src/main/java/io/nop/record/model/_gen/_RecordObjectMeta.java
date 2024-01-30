@@ -2,6 +2,8 @@ package io.nop.record.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.record.model.RecordObjectMeta;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -217,10 +219,29 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("computedFields",this.getComputedFields());
-        out.put("fields",this.getFields());
-        out.put("params",this.getParams());
-        out.put("recordType",this.getRecordType());
+        out.putNotNull("computedFields",this.getComputedFields());
+        out.putNotNull("fields",this.getFields());
+        out.putNotNull("params",this.getParams());
+        out.putNotNull("recordType",this.getRecordType());
+    }
+
+    public RecordObjectMeta cloneInstance(){
+        RecordObjectMeta instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(RecordObjectMeta instance){
+        super.copyTo(instance);
+        
+        instance.setComputedFields(this.getComputedFields());
+        instance.setFields(this.getFields());
+        instance.setParams(this.getParams());
+        instance.setRecordType(this.getRecordType());
+    }
+
+    protected RecordObjectMeta newInstance(){
+        return (RecordObjectMeta) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

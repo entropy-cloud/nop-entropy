@@ -2,6 +2,8 @@ package io.nop.rule.core.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.rule.core.model.RuleModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -323,15 +325,39 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("afterExecute",this.getAfterExecute());
-        out.put("beforeExecute",this.getBeforeExecute());
-        out.put("decisionMatrix",this.getDecisionMatrix());
-        out.put("decisionTree",this.getDecisionTree());
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("inputs",this.getInputs());
-        out.put("outputs",this.getOutputs());
-        out.put("ruleVersion",this.getRuleVersion());
+        out.putNotNull("afterExecute",this.getAfterExecute());
+        out.putNotNull("beforeExecute",this.getBeforeExecute());
+        out.putNotNull("decisionMatrix",this.getDecisionMatrix());
+        out.putNotNull("decisionTree",this.getDecisionTree());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("inputs",this.getInputs());
+        out.putNotNull("outputs",this.getOutputs());
+        out.putNotNull("ruleVersion",this.getRuleVersion());
+    }
+
+    public RuleModel cloneInstance(){
+        RuleModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(RuleModel instance){
+        super.copyTo(instance);
+        
+        instance.setAfterExecute(this.getAfterExecute());
+        instance.setBeforeExecute(this.getBeforeExecute());
+        instance.setDecisionMatrix(this.getDecisionMatrix());
+        instance.setDecisionTree(this.getDecisionTree());
+        instance.setDescription(this.getDescription());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setInputs(this.getInputs());
+        instance.setOutputs(this.getOutputs());
+        instance.setRuleVersion(this.getRuleVersion());
+    }
+
+    protected RuleModel newInstance(){
+        return (RuleModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

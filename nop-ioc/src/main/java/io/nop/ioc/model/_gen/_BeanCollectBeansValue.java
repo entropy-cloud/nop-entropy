@@ -2,6 +2,8 @@ package io.nop.ioc.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.ioc.model.BeanCollectBeansValue;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -263,15 +265,39 @@ public abstract class _BeanCollectBeansValue extends io.nop.core.resource.compon
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("asMap",this.isAsMap());
-        out.put("byAnnotation",this.getByAnnotation());
-        out.put("byType",this.getByType());
-        out.put("excludeTag",this.getExcludeTag());
-        out.put("includeTag",this.getIncludeTag());
-        out.put("iocIgnoreDepends",this.isIocIgnoreDepends());
-        out.put("iocOptional",this.isIocOptional());
-        out.put("namePrefix",this.getNamePrefix());
-        out.put("onlyConcreteClasses",this.isOnlyConcreteClasses());
+        out.putNotNull("asMap",this.isAsMap());
+        out.putNotNull("byAnnotation",this.getByAnnotation());
+        out.putNotNull("byType",this.getByType());
+        out.putNotNull("excludeTag",this.getExcludeTag());
+        out.putNotNull("includeTag",this.getIncludeTag());
+        out.putNotNull("iocIgnoreDepends",this.isIocIgnoreDepends());
+        out.putNotNull("iocOptional",this.isIocOptional());
+        out.putNotNull("namePrefix",this.getNamePrefix());
+        out.putNotNull("onlyConcreteClasses",this.isOnlyConcreteClasses());
+    }
+
+    public BeanCollectBeansValue cloneInstance(){
+        BeanCollectBeansValue instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BeanCollectBeansValue instance){
+        super.copyTo(instance);
+        
+        instance.setAsMap(this.isAsMap());
+        instance.setByAnnotation(this.getByAnnotation());
+        instance.setByType(this.getByType());
+        instance.setExcludeTag(this.getExcludeTag());
+        instance.setIncludeTag(this.getIncludeTag());
+        instance.setIocIgnoreDepends(this.isIocIgnoreDepends());
+        instance.setIocOptional(this.isIocOptional());
+        instance.setNamePrefix(this.getNamePrefix());
+        instance.setOnlyConcreteClasses(this.isOnlyConcreteClasses());
+    }
+
+    protected BeanCollectBeansValue newInstance(){
+        return (BeanCollectBeansValue) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

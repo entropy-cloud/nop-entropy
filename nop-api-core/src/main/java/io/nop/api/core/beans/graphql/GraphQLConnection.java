@@ -9,6 +9,7 @@ package io.nop.api.core.beans.graphql;
 
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
+import io.nop.api.core.annotations.meta.PropMeta;
 
 import java.util.List;
 
@@ -23,6 +24,7 @@ public class GraphQLConnection<T> {
 
     private GraphQLPageInfo pageInfo;
 
+    @PropMeta(propId = 1)
     public long getTotal() {
         return total;
     }
@@ -31,6 +33,7 @@ public class GraphQLConnection<T> {
         this.total = total;
     }
 
+    @PropMeta(propId = 2)
     public List<GraphQLEdgeBean> getEdges() {
         return edges;
     }
@@ -39,6 +42,7 @@ public class GraphQLConnection<T> {
         this.edges = edges;
     }
 
+    @PropMeta(propId = 3)
     public List<T> getItems() {
         return items;
     }
@@ -47,6 +51,7 @@ public class GraphQLConnection<T> {
         this.items = items;
     }
 
+    @PropMeta(propId = 4)
     public GraphQLPageInfo getPageInfo() {
         return pageInfo;
     }

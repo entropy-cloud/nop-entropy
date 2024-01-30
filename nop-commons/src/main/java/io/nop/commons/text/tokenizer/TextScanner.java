@@ -20,7 +20,38 @@ import java.util.function.IntConsumer;
 import java.util.function.Predicate;
 
 import static io.nop.api.core.ApiErrors.ARG_VALUE;
-import static io.nop.commons.CommonErrors.*;
+import static io.nop.commons.CommonErrors.ARG_CUR;
+import static io.nop.commons.CommonErrors.ARG_EOF;
+import static io.nop.commons.CommonErrors.ARG_EXPECTED;
+import static io.nop.commons.CommonErrors.ARG_POS;
+import static io.nop.commons.CommonErrors.ARG_READER_STATE;
+import static io.nop.commons.CommonErrors.ARG_START_LOC;
+import static io.nop.commons.CommonErrors.ERR_SCAN_BLANK_EXPECTED;
+import static io.nop.commons.CommonErrors.ERR_SCAN_COMMENT_UNEXPECTED_EOF;
+import static io.nop.commons.CommonErrors.ERR_SCAN_ILLEGAL_ESCAPE_CHAR;
+import static io.nop.commons.CommonErrors.ERR_SCAN_INVALID_CHAR;
+import static io.nop.commons.CommonErrors.ERR_SCAN_INVALID_DOUBLE_STRING;
+import static io.nop.commons.CommonErrors.ERR_SCAN_INVALID_ESCAPE_UNICODE;
+import static io.nop.commons.CommonErrors.ERR_SCAN_INVALID_FLOAT_STRING;
+import static io.nop.commons.CommonErrors.ERR_SCAN_INVALID_HEX_INT_STRING;
+import static io.nop.commons.CommonErrors.ERR_SCAN_INVALID_LONG_STRING;
+import static io.nop.commons.CommonErrors.ERR_SCAN_INVALID_NUMBER_STRING;
+import static io.nop.commons.CommonErrors.ERR_SCAN_INVALID_PROP_PATH;
+import static io.nop.commons.CommonErrors.ERR_SCAN_INVALID_VAR;
+import static io.nop.commons.CommonErrors.ERR_SCAN_INVALID_XML_NAME;
+import static io.nop.commons.CommonErrors.ERR_SCAN_NEXT_UNTIL_UNEXPECTED_EOF;
+import static io.nop.commons.CommonErrors.ERR_SCAN_NOT_ALLOW_TWO_SEPARATOR_IN_XML_NAME;
+import static io.nop.commons.CommonErrors.ERR_SCAN_NOT_DIGIT;
+import static io.nop.commons.CommonErrors.ERR_SCAN_NOT_END_PROPERLY;
+import static io.nop.commons.CommonErrors.ERR_SCAN_NOT_HEX_CHAR;
+import static io.nop.commons.CommonErrors.ERR_SCAN_NUMBER_NOT_INT;
+import static io.nop.commons.CommonErrors.ERR_SCAN_STRING_NOT_END;
+import static io.nop.commons.CommonErrors.ERR_SCAN_TOKEN_END_EXPECTED;
+import static io.nop.commons.CommonErrors.ERR_SCAN_UNEXPECTED_CHAR;
+import static io.nop.commons.CommonErrors.ERR_SCAN_UNEXPECTED_STR;
+import static io.nop.commons.CommonErrors.ERR_SCAN_UNEXPECTED_TOKEN;
+import static io.nop.commons.CommonErrors.ERR_TEXT_ILLEGAL_HEX_STRING;
+import static io.nop.commons.CommonErrors.ERR_TEXT_NUMBER_STARTS_WITH_ZERO;
 import static io.nop.commons.util.StringHelper.isGraphQLNamePart;
 import static io.nop.commons.util.StringHelper.isGraphQLNameStart;
 
@@ -723,6 +754,44 @@ public class TextScanner {
         return buf.toString();
     }
 
+    static boolean isWordStart(int c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c == '_');
+    }
+
+    static boolean isWordPart(int c) {
+        return isWordStart(c) || (c >= '0' && c <= '9');
+    }
+
+    public String nextWord() {
+        MutableString buf = useBuf();
+
+        if (!isWordStart(cur)) {
+            throw newError(ERR_SCAN_INVALID_VAR).param(ARG_VALUE, buf.toString());
+        }
+        consumeToBuf(buf);
+
+        while (isWordPart(cur)) {
+            consumeToBuf(buf);
+        }
+
+        return buf.toString();
+    }
+
+    public String nextWordPath() {
+        MutableString buf = useBuf();
+
+        if (!isWordStart(cur)) {
+            throw newError(ERR_SCAN_INVALID_VAR).param(ARG_VALUE, buf.toString());
+        }
+        consumeToBuf(buf);
+
+        while (isWordPart(cur) || cur == '.') {
+            consumeToBuf(buf);
+        }
+
+        return buf.toString();
+    }
+
     /**
      * 读取一个java变量名
      */
@@ -1210,6 +1279,10 @@ public class TextScanner {
             return ch - 'A' + 10;
 
         return ch - '0';
+    }
+
+    public NopException newUnexpectedError() {
+        return newError(ERR_SCAN_UNEXPECTED_CHAR).param(ARG_CUR, cur);
     }
 
     public void checkNotNull(Object o, ErrorCode errorCode) {

@@ -2,6 +2,8 @@ package io.nop.xlang.xpl.xlib._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xpl.xlib.XplTagSlot;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -475,21 +477,51 @@ public abstract class _XplTagSlot extends io.nop.core.resource.component.Abstrac
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("args",this.getArgs());
-        out.put("attrs",this.getAttrs());
-        out.put("deprecated",this.isDeprecated());
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("mandatory",this.isMandatory());
-        out.put("multiple",this.isMultiple());
-        out.put("name",this.getName());
-        out.put("outputMode",this.getOutputMode());
-        out.put("runtime",this.isRuntime());
-        out.put("schema",this.getSchema());
-        out.put("slotType",this.getSlotType());
-        out.put("stdDomain",this.getStdDomain());
-        out.put("type",this.getType());
-        out.put("varName",this.getVarName());
+        out.putNotNull("args",this.getArgs());
+        out.putNotNull("attrs",this.getAttrs());
+        out.putNotNull("deprecated",this.isDeprecated());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("mandatory",this.isMandatory());
+        out.putNotNull("multiple",this.isMultiple());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("outputMode",this.getOutputMode());
+        out.putNotNull("runtime",this.isRuntime());
+        out.putNotNull("schema",this.getSchema());
+        out.putNotNull("slotType",this.getSlotType());
+        out.putNotNull("stdDomain",this.getStdDomain());
+        out.putNotNull("type",this.getType());
+        out.putNotNull("varName",this.getVarName());
+    }
+
+    public XplTagSlot cloneInstance(){
+        XplTagSlot instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(XplTagSlot instance){
+        super.copyTo(instance);
+        
+        instance.setArgs(this.getArgs());
+        instance.setAttrs(this.getAttrs());
+        instance.setDeprecated(this.isDeprecated());
+        instance.setDescription(this.getDescription());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setMandatory(this.isMandatory());
+        instance.setMultiple(this.isMultiple());
+        instance.setName(this.getName());
+        instance.setOutputMode(this.getOutputMode());
+        instance.setRuntime(this.isRuntime());
+        instance.setSchema(this.getSchema());
+        instance.setSlotType(this.getSlotType());
+        instance.setStdDomain(this.getStdDomain());
+        instance.setType(this.getType());
+        instance.setVarName(this.getVarName());
+    }
+
+    protected XplTagSlot newInstance(){
+        return (XplTagSlot) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

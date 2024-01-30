@@ -15,6 +15,7 @@ import io.nop.commons.collections.MutableIntArray;
 import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
 import io.nop.orm.model.IEntityPropModel;
+import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.model.OrmAliasModel;
 import io.nop.orm.model.OrmColumnModel;
 import io.nop.orm.model.OrmComponentModel;
@@ -273,6 +274,14 @@ public class OrmEntityModelInitializer {
             props.put(col.getName(), col);
             addToColByCode(col);
         }
+    }
+
+    public boolean hasOneToOneRelation() {
+        for (IEntityRelationModel rel : entityModel.getRelations()) {
+            if (rel.isOneToOne())
+                return true;
+        }
+        return false;
     }
 
     private void addToPropMap(IEntityPropModel prop) {
@@ -611,11 +620,14 @@ public class OrmEntityModelInitializer {
                     throw new NopException(ERR_ORM_UNKNOWN_PROP).source(ref)
                             .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_PROP_NAME, leftProp);
 
-                if (!propModel.getKind().isColumn() && !propModel.getKind().isId())
+                if (!propModel.getKind().isColumn() && !propModel.getKind().isId() && !propModel.getKind().isAlias())
                     throw new NopException(ERR_ORM_MODEL_REF_JOIN_MUST_ON_COLUMNS_OR_ID).source(join)
-                            .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_REF_NAME, ref.getName());
+                            .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_REF_NAME, ref.getName())
+                            .param(ARG_PROP_NAME, propModel.getName());
 
-                cols.addAll((List) propModel.getColumns());
+                if(propModel.getColumns() != null) {
+                    cols.addAll((List) propModel.getColumns());
+                }
 
                 join.setLeftPropModel(propModel);
                 if (join.getRightProp() == null) {

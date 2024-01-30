@@ -2,6 +2,8 @@ package io.nop.excel.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.model.ExcelBorderStyle;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -107,9 +109,27 @@ public abstract class _ExcelBorderStyle extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("color",this.getColor());
-        out.put("type",this.getType());
-        out.put("weight",this.getWeight());
+        out.putNotNull("color",this.getColor());
+        out.putNotNull("type",this.getType());
+        out.putNotNull("weight",this.getWeight());
+    }
+
+    public ExcelBorderStyle cloneInstance(){
+        ExcelBorderStyle instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ExcelBorderStyle instance){
+        super.copyTo(instance);
+        
+        instance.setColor(this.getColor());
+        instance.setType(this.getType());
+        instance.setWeight(this.getWeight());
+    }
+
+    protected ExcelBorderStyle newInstance(){
+        return (ExcelBorderStyle) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

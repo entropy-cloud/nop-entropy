@@ -41,8 +41,8 @@ import io.nop.dbtool.core.DataBaseMeta;
 import io.nop.dbtool.core.discovery.jdbc.JdbcMetaDiscovery;
 import io.nop.dbtool.exp.config.ImportDbConfig;
 import io.nop.dbtool.exp.config.ImportTableConfig;
+import io.nop.orm.eql.utils.OrmDialectHelper;
 import io.nop.orm.model.OrmEntityModel;
-import io.nop.orm.model.utils.OrmModelHelper;
 
 import javax.sql.DataSource;
 import java.io.File;
@@ -68,7 +68,7 @@ public class ImportDbTool {
     }
 
     public void execute() {
-        Guard.notEmpty(config.getCatalog(),"catalog");
+        Guard.notEmpty(config.getCatalog(), "catalog");
 
         this.inputResourceLoader = new FileResource(new File(config.getInputDir()));
 
@@ -145,7 +145,7 @@ public class ImportDbTool {
         builder.consumer(newConsumer(tableModel, jdbc));
 
         if (config.isIgnoreDuplicate()) {
-            Map<String, IDataParameterBinder> colBinders = OrmModelHelper.getPkColBinders(tableModel, dialect, true);
+            Map<String, IDataParameterBinder> colBinders = OrmDialectHelper.getPkColBinders(tableModel, dialect, true);
             builder.historyStore(new JdbcInsertDuplicateFilter(jdbc, tableConfig.getName(), colBinders));
         }
 
@@ -177,7 +177,7 @@ public class ImportDbTool {
     private IBatchConsumer<Map<String, Object>, IBatchChunkContext> newConsumer(OrmEntityModel tableModel,
                                                                                 IJdbcTemplate jdbc) {
 
-        Map<String, IDataParameterBinder> binders = OrmModelHelper.getEntityColBinders(tableModel, dialect, true);
+        Map<String, IDataParameterBinder> binders = OrmDialectHelper.getEntityColBinders(tableModel, dialect, true);
         JdbcInsertBatchConsumer<Map<String, Object>, IBatchChunkContext> consumer =
                 new JdbcInsertBatchConsumer<>(jdbc, this.dialect, tableModel.getTableName(), binders);
         return consumer;

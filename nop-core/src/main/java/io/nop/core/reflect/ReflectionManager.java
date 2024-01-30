@@ -9,6 +9,7 @@ package io.nop.core.reflect;
 
 import io.nop.api.core.annotations.core.GlobalInstance;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.convert.ITypeConverter;
 import io.nop.api.core.convert.IdentityTypeConverter;
@@ -29,6 +30,7 @@ import io.nop.commons.util.DateHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.functions.EvalFunctionalAdapter;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.model.selection.FieldSelectionBeanConverter;
 import io.nop.core.reflect.bean.BeanModel;
 import io.nop.core.reflect.bean.BeanPropertyModel;
 import io.nop.core.reflect.bean.IBeanModel;
@@ -74,6 +76,7 @@ public class ReflectionManager implements IBeanModelManager, IGenericTypeBuilder
         _instance.registerHelperMethods(String.class, StringHelper.class, "$");
         _instance.registerHelperMethods(LocalDate.class, DateHelper.class, "$");
         _instance.registerBeanModelEnhancer(new StringBeanModelEnhancer());
+        _instance.registerTypeConverter(FieldSelectionBean.class,new FieldSelectionBeanConverter());
     }
 
     public static ReflectionManager instance() {

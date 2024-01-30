@@ -20,6 +20,7 @@ import io.nop.graphql.core.biz.IGraphQLBizObject;
 import io.nop.xlang.xmeta.IObjMeta;
 
 import java.util.Collection;
+import java.util.Map;
 
 import static io.nop.biz.BizErrors.ARG_ACTION_NAME;
 import static io.nop.biz.BizErrors.ARG_BIZ_OBJ_NAME;
@@ -72,6 +73,8 @@ public interface IBizObject extends IComponentModel, IGraphQLBizObject {
     GraphQLFieldDefinition getOperationDefinition(GraphQLOperationType opType, String name);
 
     Collection<GraphQLFieldDefinition> getOperationDefinitions(GraphQLOperationType opType);
+
+    Map<String, GraphQLFieldDefinition> getOperationDefinitions();
 
     GraphQLObjectDefinition getObjectDefinition();
 }

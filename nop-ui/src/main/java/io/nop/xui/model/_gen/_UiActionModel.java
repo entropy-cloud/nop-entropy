@@ -2,6 +2,8 @@ package io.nop.xui.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xui.model.UiActionModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -1197,50 +1199,109 @@ public abstract class _UiActionModel extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("actionType",this.getActionType());
-        out.put("active",this.getActive());
-        out.put("activeClassName",this.getActiveClassName());
-        out.put("activeLevel",this.getActiveLevel());
-        out.put("api",this.getApi());
-        out.put("batch",this.getBatch());
-        out.put("blank",this.getBlank());
-        out.put("block",this.getBlock());
-        out.put("body",this.getBody());
-        out.put("close",this.getClose());
-        out.put("confirmText",this.getConfirmText());
-        out.put("content",this.getContent());
-        out.put("copyFormat",this.getCopyFormat());
-        out.put("countDown",this.getCountDown());
-        out.put("countDownTpl",this.getCountDownTpl());
-        out.put("dialog",this.getDialog());
-        out.put("disabledOn",this.getDisabledOn());
-        out.put("disabledTip",this.getDisabledTip());
-        out.put("drawer",this.getDrawer());
-        out.put("feedback",this.getFeedback());
-        out.put("hotKey",this.getHotKey());
-        out.put("icon",this.getIcon());
-        out.put("iconClassName",this.getIconClassName());
-        out.put("iconOnly",this.getIconOnly());
-        out.put("id",this.getId());
-        out.put("initApi",this.getInitApi());
-        out.put("label",this.getLabel());
-        out.put("level",this.getLevel());
-        out.put("link",this.getLink());
-        out.put("messages",this.getMessages());
-        out.put("onClick",this.getOnClick());
-        out.put("onEvent",this.getOnEvent());
-        out.put("redirect",this.getRedirect());
-        out.put("reload",this.getReload());
-        out.put("required",this.getRequired());
-        out.put("rightIcon",this.getRightIcon());
-        out.put("rightIconClassName",this.getRightIconClassName());
-        out.put("size",this.getSize());
-        out.put("target",this.getTarget());
-        out.put("tooltip",this.getTooltip());
-        out.put("tooltipPlacement",this.getTooltipPlacement());
-        out.put("type",this.getType());
-        out.put("url",this.getUrl());
-        out.put("visibleOn",this.getVisibleOn());
+        out.putNotNull("actionType",this.getActionType());
+        out.putNotNull("active",this.getActive());
+        out.putNotNull("activeClassName",this.getActiveClassName());
+        out.putNotNull("activeLevel",this.getActiveLevel());
+        out.putNotNull("api",this.getApi());
+        out.putNotNull("batch",this.getBatch());
+        out.putNotNull("blank",this.getBlank());
+        out.putNotNull("block",this.getBlock());
+        out.putNotNull("body",this.getBody());
+        out.putNotNull("close",this.getClose());
+        out.putNotNull("confirmText",this.getConfirmText());
+        out.putNotNull("content",this.getContent());
+        out.putNotNull("copyFormat",this.getCopyFormat());
+        out.putNotNull("countDown",this.getCountDown());
+        out.putNotNull("countDownTpl",this.getCountDownTpl());
+        out.putNotNull("dialog",this.getDialog());
+        out.putNotNull("disabledOn",this.getDisabledOn());
+        out.putNotNull("disabledTip",this.getDisabledTip());
+        out.putNotNull("drawer",this.getDrawer());
+        out.putNotNull("feedback",this.getFeedback());
+        out.putNotNull("hotKey",this.getHotKey());
+        out.putNotNull("icon",this.getIcon());
+        out.putNotNull("iconClassName",this.getIconClassName());
+        out.putNotNull("iconOnly",this.getIconOnly());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("initApi",this.getInitApi());
+        out.putNotNull("label",this.getLabel());
+        out.putNotNull("level",this.getLevel());
+        out.putNotNull("link",this.getLink());
+        out.putNotNull("messages",this.getMessages());
+        out.putNotNull("onClick",this.getOnClick());
+        out.putNotNull("onEvent",this.getOnEvent());
+        out.putNotNull("redirect",this.getRedirect());
+        out.putNotNull("reload",this.getReload());
+        out.putNotNull("required",this.getRequired());
+        out.putNotNull("rightIcon",this.getRightIcon());
+        out.putNotNull("rightIconClassName",this.getRightIconClassName());
+        out.putNotNull("size",this.getSize());
+        out.putNotNull("target",this.getTarget());
+        out.putNotNull("tooltip",this.getTooltip());
+        out.putNotNull("tooltipPlacement",this.getTooltipPlacement());
+        out.putNotNull("type",this.getType());
+        out.putNotNull("url",this.getUrl());
+        out.putNotNull("visibleOn",this.getVisibleOn());
+    }
+
+    public UiActionModel cloneInstance(){
+        UiActionModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(UiActionModel instance){
+        super.copyTo(instance);
+        
+        instance.setActionType(this.getActionType());
+        instance.setActive(this.getActive());
+        instance.setActiveClassName(this.getActiveClassName());
+        instance.setActiveLevel(this.getActiveLevel());
+        instance.setApi(this.getApi());
+        instance.setBatch(this.getBatch());
+        instance.setBlank(this.getBlank());
+        instance.setBlock(this.getBlock());
+        instance.setBody(this.getBody());
+        instance.setClose(this.getClose());
+        instance.setConfirmText(this.getConfirmText());
+        instance.setContent(this.getContent());
+        instance.setCopyFormat(this.getCopyFormat());
+        instance.setCountDown(this.getCountDown());
+        instance.setCountDownTpl(this.getCountDownTpl());
+        instance.setDialog(this.getDialog());
+        instance.setDisabledOn(this.getDisabledOn());
+        instance.setDisabledTip(this.getDisabledTip());
+        instance.setDrawer(this.getDrawer());
+        instance.setFeedback(this.getFeedback());
+        instance.setHotKey(this.getHotKey());
+        instance.setIcon(this.getIcon());
+        instance.setIconClassName(this.getIconClassName());
+        instance.setIconOnly(this.getIconOnly());
+        instance.setId(this.getId());
+        instance.setInitApi(this.getInitApi());
+        instance.setLabel(this.getLabel());
+        instance.setLevel(this.getLevel());
+        instance.setLink(this.getLink());
+        instance.setMessages(this.getMessages());
+        instance.setOnClick(this.getOnClick());
+        instance.setOnEvent(this.getOnEvent());
+        instance.setRedirect(this.getRedirect());
+        instance.setReload(this.getReload());
+        instance.setRequired(this.getRequired());
+        instance.setRightIcon(this.getRightIcon());
+        instance.setRightIconClassName(this.getRightIconClassName());
+        instance.setSize(this.getSize());
+        instance.setTarget(this.getTarget());
+        instance.setTooltip(this.getTooltip());
+        instance.setTooltipPlacement(this.getTooltipPlacement());
+        instance.setType(this.getType());
+        instance.setUrl(this.getUrl());
+        instance.setVisibleOn(this.getVisibleOn());
+    }
+
+    protected UiActionModel newInstance(){
+        return (UiActionModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

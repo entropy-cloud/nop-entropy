@@ -239,30 +239,52 @@ public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClas
     }
 
     public void ${rel.name.$methodSet()}(${rel.refEntityModel.name} refEntity){
-       if(refEntity == null){
-         <c:for var="join" items="${rel.join}">
-         <c:if test="${join.leftProp}">
-         this.${join.leftProp.$methodSet()}(null);
-         </c:if>
-         </c:for>
-       }else{
-          internalSetRefEntity(PROP_NAME_${rel.name}, refEntity,()->{
-             <c:for var="join" items="${rel.join}">
-              <c:if test="${join.leftProp}">
-              <c:choose>
-                 <when test="${join.leftType == join.rightType}">
-                    this.${join.leftProp.$methodSet()}(${join.rightProp? 'refEntity.'+join.rightProp.$methodGet()+'()'
-                                    : JSON.stringify(join.rightValue)});
-                 </when>
-                 <otherwise>
-              this.orm_propValue(PROP_ID_${join.leftProp},
-                ${join.rightProp? 'refEntity.'+join.rightProp.$methodGet()+'()': JSON.stringify(join.rightValue)});
-                </otherwise>
-              </c:choose>
-              </c:if>
-              </c:for>
-          });
-       }
+   <c:choose>
+        <when test="${rel.oneToOne and rel.reverseDepends}">
+            internalSetReverseRefEntity(PROP_NAME_${rel.name}, refEntity, ()->{
+            <c:for var="join" items="${rel.join}">
+                <c:if test="${join.rightProp}">
+                    <c:choose>
+                        <when test="${join.leftType == join.rightType}">
+                            refEntity.${join.rightProp.$methodSet()}(${join.leftProp? 'this.'+join.leftProp.$methodGet()+'()'
+                                            : JSON.stringify(join.leftValue)});
+                        </when>
+                        <otherwise>
+                            refEntity.orm_propValue(${rel.refEntityModel.name}.PROP_ID_${join.rightProp},
+                            ${join.leftProp? 'this.'+join.leftProp.$methodGet()+'()': JSON.stringify(join.leftValue)});
+                        </otherwise>
+                    </c:choose>
+                </c:if>
+            </c:for>
+            });
+        </when>
+       <otherwise>
+           if(refEntity == null){
+           <c:for var="join" items="${rel.join}">
+               <c:if test="${join.leftProp}">
+                   this.${join.leftProp.$methodSet()}(null);
+               </c:if>
+           </c:for>
+           }else{
+           internalSetRefEntity(PROP_NAME_${rel.name}, refEntity,()->{
+           <c:for var="join" items="${rel.join}">
+               <c:if test="${join.leftProp}">
+                   <c:choose>
+                       <when test="${join.leftType == join.rightType}">
+                           this.${join.leftProp.$methodSet()}(${join.rightProp? 'refEntity.'+join.rightProp.$methodGet()+'()'
+                                           : JSON.stringify(join.rightValue)});
+                       </when>
+                       <otherwise>
+                           this.orm_propValue(PROP_ID_${join.leftProp},
+                           ${join.rightProp? 'refEntity.'+join.rightProp.$methodGet()+'()': JSON.stringify(join.rightValue)});
+                       </otherwise>
+                   </c:choose>
+               </c:if>
+           </c:for>
+           });
+           }
+       </otherwise>
+   </c:choose>
     }
        </when>
 

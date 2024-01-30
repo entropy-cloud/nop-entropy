@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--__XGEN_FORCE_OVERRIDE__-->
+<api ext:appName="nop-wf" ext:serviceModuleName="nop-wf-core" ext:servicePackageName="io.nop.wf.core.service"
+     apiPackageName="io.nop.wf.api" ext:apiModuleName="nop-wf-api" ext:mavenGroupId="io.github.entropy-cloud"
+     ext:mavenArtifactId="nop-wf" ext:mavenVersion="2.0.0-SNAPSHOT" ext:platformVersion="2.0.0-SNAPSHOT"
+     x:schema="/nop/schema/api.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
+     xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:xpl="xpl" xmlns:ui="ui">
+
+    <services>
+        <service name="WorkflowService" displayName="工作流服务" i18n-en:displayName="Worflow Service"
+                 className="io.nop.wf.api.WorkflowService">
+            <method name="startWorkflow" i18n-en:displayName="Start" displayName="启动工作流">
+                <requestMessage>io.nop.wf.api.beans.WfStartRequestBean</requestMessage>
+                <responseMessage>io.nop.wf.api.beans.WfStartResponseBean</responseMessage>
+            </method>
+            <method name="notifySubFlowEnd" i18n-en:displayName="Notify SubFlow End" displayName="通知子工作流结束">
+                <requestMessage>io.nop.wf.api.beans.WfSubFlowEndRequestBean</requestMessage>
+                <responseMessage>void</responseMessage>
+            </method>
+            <method name="invokeAction" i18n-en:displayName="Invoke Action" displayName="执行动作">
+                <requestMessage>io.nop.wf.api.beans.WfActionRequestBean</requestMessage>
+                <responseMessage>java.lang.Object</responseMessage>
+            </method>
+            <method name="killWorkflow" i18n-en:displayName="Kill" displayName="中止工作流">
+                <requestMessage>io.nop.wf.api.beans.WfCommandRequestBean</requestMessage>
+                <responseMessage>void</responseMessage>
+            </method>
+            <method name="suspendWorkflow" i18n-en:displayName="Suspend" displayName="暂停工作流">
+                <requestMessage>io.nop.wf.api.beans.WfCommandRequestBean</requestMessage>
+                <responseMessage>void</responseMessage>
+            </method>
+            <method name="resumeWorkflow" i18n-en:displayName="Resume" displayName="继续工作流">
+                <requestMessage>io.nop.wf.api.beans.WfCommandRequestBean</requestMessage>
+                <responseMessage>void</responseMessage>
+            </method>
+        </service>
+    </services>
+
+    <messages>
+        <message name="WfStartRequestBean" displayName="启动工作流请求消息" i18n-en:displayName="Workflow Start Request">
+            <field propId="1" name="wfName" i18n-en:displayName="Workflow Name" displayName="工作流名称" mandatory="true">
+                <schema type="String" precision="500"/>
+            </field>
+            <field propId="2" name="wfVersion" i18n-en:displayName="Workflow Version" displayName="工作流版本"
+                   mandatory="true">
+                <schema type="long"/>
+            </field>
+            <field propId="3" name="wfParams" i18n-en:displayName="Workflow Params" displayName="启动参数">
+                <schema type="Map&lt;java.lang.String,java.lang.Object&gt;" precision="4000"/>
+            </field>
+            <field propId="4" name="parentWfName" i18n-en:displayName="Parent Workflow Name" displayName="父工作流名称">
+                <schema type="String" precision="500"/>
+            </field>
+            <field propId="5" name="parentWfVersion" i18n-en:displayName="Parent Workflow Version" displayName="父工作流版本">
+                <schema type="Long"/>
+            </field>
+            <field propId="6" name="parentWfId" i18n-en:displayName="Parent Workflow ID" displayName="父工作流ID">
+                <schema type="String" precision="500"/>
+            </field>
+            <field propId="7" name="parentWfStepId" i18n-en:displayName="Parent Workflow Step ID" displayName="父工作流步骤ID">
+                <schema type="String" precision="50"/>
+            </field>
+        </message>
+        <message name="WfStartResponseBean" displayName="启动工作流响应消息" i18n-en:displayName="Workflow Start Response">
+            <field propId="1" name="wfName" i18n-en:displayName="Workflow Name" displayName="工作流名称" mandatory="true">
+                <schema type="String" precision="500"/>
+            </field>
+            <field propId="2" name="wfVersion" i18n-en:displayName="Workflow Version" displayName="工作流版本"
+                   mandatory="true">
+                <schema type="long"/>
+            </field>
+            <field propId="3" name="wfId" i18n-en:displayName="Workflow ID" displayName="工作流ID" mandatory="true">
+                <schema type="String" precision="50"/>
+            </field>
+            <field propId="4" name="managerType" i18n-en:displayName="Manager Type" displayName="管理者类型">
+                <schema type="String" precision="50"/>
+            </field>
+            <field propId="5" name="managerName" i18n-en:displayName="Manager Name" displayName="管理者名称">
+                <schema type="String" precision="50"/>
+            </field>
+            <field propId="6" name="managerId" i18n-en:displayName="Manager ID" displayName="管理者ID">
+                <schema type="String" precision="50"/>
+            </field>
+            <field propId="7" name="managerDeptId" i18n-en:displayName="Manager Dept ID" displayName="管理者部门ID">
+                <schema type="String" precision="50"/>
+            </field>
+        </message>
+        <message name="WfSubFlowEndRequestBean" displayName="通知子工作流完成请求消息"
+                 i18n-en:displayName="Notify SubFlow End Request">
+            <field propId="1" name="wfName" i18n-en:displayName="Workflow Name" displayName="工作流名称">
+                <schema type="String" precision="500"/>
+            </field>
+            <field propId="2" name="wfVersion" i18n-en:displayName="Workflow Version" displayName="工作流版本">
+                <schema type="Long"/>
+            </field>
+            <field propId="3" name="wfId" i18n-en:displayName="Workflow ID" displayName="工作流ID" mandatory="true">
+                <schema type="String" precision="50"/>
+            </field>
+            <field propId="4" name="status" i18n-en:displayName="Status" displayName="状态" mandatory="true">
+                <schema type="Integer"/>
+            </field>
+            <field propId="5" name="results" i18n-en:displayName="Results" displayName="结果数据">
+                <schema type="Map&lt;java.lang.String,java.lang.Object&gt;" precision="4000"/>
+            </field>
+            <field propId="6" name="parentWfName" i18n-en:displayName="Parent Workflow Name" displayName="父工作流名称">
+                <schema type="String" precision="500"/>
+            </field>
+            <field propId="7" name="parentWfVersion" i18n-en:displayName="Parent Workflow Version" displayName="父工作流版本">
+                <schema type="Long"/>
+            </field>
+            <field propId="8" name="parentWfId" i18n-en:displayName="Parent Workflow ID" displayName="父工作流ID">
+                <schema type="String" precision="500"/>
+            </field>
+            <field propId="9" name="parentWfStepId" i18n-en:displayName="Parent Workflow Step ID" displayName="父工作流步骤ID">
+                <schema type="String" precision="50"/>
+            </field>
+        </message>
+        <message name="WfChangeActorRequestBean" displayName="执行动作请求消息" i18n-en:displayName="Change Actor Request">
+            <field propId="1" name="wfName" i18n-en:displayName="Workflow Name" displayName="工作流名称">
+                <schema type="String" precision="500"/>
+            </field>
+            <field propId="2" name="wfVersion" i18n-en:displayName="Workflow Version" displayName="工作流版本">
+                <schema type="Long"/>
+            </field>
+            <field propId="3" name="wfId" i18n-en:displayName="Workflow ID" displayName="工作流ID" mandatory="true">
+                <schema type="String" precision="50"/>
+            </field>
+            <field propId="4" name="stepId" i18n-en:displayName="Step ID" displayName="工作流步骤ID" mandatory="true">
+                <schema type="String" precision="50"/>
+            </field>
+            <field propId="5" name="actorType" i18n-en:displayName="Action Type" displayName="参与者类型">
+                <schema type="String" precision="100"/>
+            </field>
+            <field propId="6" name="actorId" i18n-en:displayName="Action ID" displayName="参与者ID">
+                <schema type="String" precision="100"/>
+            </field>
+            <field propId="6" name="actorDeptId" i18n-en:displayName="Action Dept ID" displayName="参与者部门ID">
+                <schema type="String" precision="100"/>
+            </field>
+            <field propId="7" name="ownerId" i18n-en:displayName="Owner ID" displayName="拥有者ID">
+                <schema type="String" precision="50"/>
+            </field>
+            <field propId="9" name="attrs" i18n-en:displayName="Attributes" displayName="扩展属性">
+                <schema type="Map&lt;java.lang.String,java.lang.Object&gt;" precision="200"/>
+            </field>
+        </message>
+        <message name="WfActionRequestBean" displayName="执行动作请求消息" i18n-en:displayName="Workflow Action Request">
+            <field propId="1" name="wfName" i18n-en:displayName="Workflow Name" displayName="工作流名称">
+                <schema type="String" precision="500"/>
+            </field>
+            <field propId="2" name="wfVersion" i18n-en:displayName="Workflow Version" displayName="工作流版本">
+                <schema type="Long"/>
+            </field>
+            <field propId="3" name="wfId" i18n-en:displayName="Workflow ID" displayName="工作流ID" mandatory="true">
+                <schema type="String" precision="50"/>
+            </field>
+            <field propId="4" name="stepId" i18n-en:displayName="Step ID" displayName="工作流步骤ID" mandatory="true">
+                <schema type="String" precision="50"/>
+            </field>
+            <field propId="5" name="actionName" i18n-en:displayName="Action Name" displayName="执行动作" mandatory="true">
+                <schema type="String" precision="100"/>
+            </field>
+            <field propId="6" name="args" i18n-en:displayName="Action Args" displayName="执行参数">
+                <schema type="Map&lt;java.lang.String,java.lang.Object&gt;" precision="4000"/>
+            </field>
+        </message>
+        <message name="WfCommandRequestBean" displayName="执行命令请求消息" i18n-en:displayName="Workflow Command Request">
+            <field propId="1" name="wfName" i18n-en:displayName="Workflow Name" displayName="工作流名称">
+                <schema type="String" precision="500"/>
+            </field>
+            <field propId="2" name="wfVersion" i18n-en:displayName="Workflow Version" displayName="工作流版本">
+                <schema type="Long"/>
+            </field>
+            <field propId="3" name="wfId" i18n-en:displayName="Workflow ID" displayName="工作流ID" mandatory="true">
+                <schema type="String" precision="50"/>
+            </field>
+            <field propId="5" name="args" i18n-en:displayName="Action Args" displayName="执行参数">
+                <schema type="Map&lt;java.lang.String,java.lang.Object&gt;" precision="4000"/>
+            </field>
+        </message>
+    </messages>
+</api>

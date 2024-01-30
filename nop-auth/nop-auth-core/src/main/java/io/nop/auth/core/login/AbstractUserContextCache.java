@@ -75,6 +75,7 @@ public class AbstractUserContextCache implements IUserContextCache, IConfigRefre
 
     @Override
     public CompletionStage<Void> saveUserContextAsync(IUserContext userContext) {
+        userContext.clearDirty();
         return userSessionCache.putAsync(userContext.getUserName(), userContext.getSessionId())
                 .thenCompose(v -> userContextCache.putAsync(userContext.getSessionId(), userContext));
     }

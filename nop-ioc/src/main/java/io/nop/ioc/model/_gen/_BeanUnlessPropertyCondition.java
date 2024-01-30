@@ -2,6 +2,8 @@ package io.nop.ioc.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.ioc.model.BeanUnlessPropertyCondition;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -13,6 +15,13 @@ import io.nop.core.lang.json.IJsonHandler;
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _BeanUnlessPropertyCondition extends io.nop.core.resource.component.AbstractComponentModel {
+    
+    /**
+     *  
+     * xml name: enableIfDebug
+     * 
+     */
+    private boolean _enableIfDebug  = false;
     
     /**
      *  
@@ -34,6 +43,25 @@ public abstract class _BeanUnlessPropertyCondition extends io.nop.core.resource.
      * 
      */
     private java.lang.String _value ;
+    
+    /**
+     * 
+     * xml name: enableIfDebug
+     *  
+     */
+    
+    public boolean isEnableIfDebug(){
+      return _enableIfDebug;
+    }
+
+    
+    public void setEnableIfDebug(boolean value){
+        checkAllowChange();
+        
+        this._enableIfDebug = value;
+           
+    }
+
     
     /**
      * 
@@ -107,9 +135,29 @@ public abstract class _BeanUnlessPropertyCondition extends io.nop.core.resource.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("enableIfMissing",this.isEnableIfMissing());
-        out.put("name",this.getName());
-        out.put("value",this.getValue());
+        out.putNotNull("enableIfDebug",this.isEnableIfDebug());
+        out.putNotNull("enableIfMissing",this.isEnableIfMissing());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("value",this.getValue());
+    }
+
+    public BeanUnlessPropertyCondition cloneInstance(){
+        BeanUnlessPropertyCondition instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BeanUnlessPropertyCondition instance){
+        super.copyTo(instance);
+        
+        instance.setEnableIfDebug(this.isEnableIfDebug());
+        instance.setEnableIfMissing(this.isEnableIfMissing());
+        instance.setName(this.getName());
+        instance.setValue(this.getValue());
+    }
+
+    protected BeanUnlessPropertyCondition newInstance(){
+        return (BeanUnlessPropertyCondition) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

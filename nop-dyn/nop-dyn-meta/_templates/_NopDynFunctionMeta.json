@@ -5,13 +5,13 @@
   "displayName": "",
   "functionType": "",
   "functionType_label": "",
-  "argsMeta": "",
-  "argsMeta_label": "",
   "returnType": "",
-  "tagSet": "",
-  "source": "",
+  "returnGqlType": "",
   "status": 0,
   "status_label": "",
+  "tagsText": "",
+  "funcMeta": "",
+  "source": "",
   "version": 0,
   "createdBy": "",
   "createTime": "2000-01-01 14:00:00",
@@ -20,6 +20,6 @@
   "remark": "",
   "entityMeta": null,
   "entityMeta.entityName": "",
-  "argsMetaComponent": null,
-  "sourceComponent": null
+  "funcMetaComponent": null,
+  "args": null
 }

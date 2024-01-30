@@ -21,10 +21,13 @@ XLang语言是Nop平台实现可逆计算的核心技术，它包含XDef, XScrip
 ## 架构设计: [module-dependency.md](arch/module-dependency.md)
 介绍了Nop平台内部众多模块之间的依赖关系，实现可逆计算原理的最核心模块只有nop-commons、nop-core以及nop-xlang等少数几个模块
 
+系统内部模型文件的路径模式和自动加载顺序说明，参见[std-resource-path.md](dev-guide/vfs/std-resource-path.md)
+
 ## Excel模型: [model/index.md](dev-guide/model/index.md)
 除了使用平台内置的数据模型，API模型等，我们还可以利用Nop平台的机制定制实现专属于自己的Excel模型。比如我们可以用Excel模型来实现网络协议包的格式定义等。
 
 ## IoC容器: [ioc.md](dev-guide/ioc.md)
+AOP相关原理，参见[aop.md](dev-guide/ioc/aop.md)
 
 ## Config配置管理: [config.md](dev-guide/config.md)
 
@@ -32,6 +35,8 @@ XLang语言是Nop平台实现可逆计算的核心技术，它包含XDef, XScrip
 
 Nop平台采用GraphQL引擎来实现后台服务，对外同时暴露GraphQL接口以及传统的REST接口。所有的REST服务都能够支持GraphQL的结果字段选择能力。
 类似于SpringCloud以及Dubbo框架的分布式RPC服务的实现参见[rpc.md](dev-guide/microservice/rpc.md)，它的设计原理参见[rpc-design.md](dev-guide/microservice/rpc-design.md)
+
+NopGraphQL可以暴露为Grpc接口，参见[grpc.md](dev-guide/microservice/grpc.md)
 
 ## ORM框架： [orm](dev-guide/orm/index.md)
 
@@ -58,8 +63,14 @@ Nop平台内置了一个自动化测试框架，可以通过录制回放机制�
 采用Excel作为设计器配置中国式报表: [report.md](user-guide/report.md)
 采用Word作为设计器配置导出报表: [word-template.md](dev-guide/report/word-template.md)
 
+## 无代码开发: [nocode](dev-guide/nocode/index.md)
+Nop平台支持无代码开发，无需通过编码、打包的过程，在线就可以设计数据模型，并编写后台服务函数。
+当无代码开发复杂到一定程度，我们可以还可以平滑的迁移到代码生成方案，使用高代码开发的方式。
+
 ## 与其他低代码平台的对比: [nop-vs-skyve.md](compare/nop-vs-skyve.md)
 Nop平台的设计与传统的低代码平台有着非常大的差异，可以做到传统低代码平台无法做到的灵活性和可扩展性。
+
+Nop平台如果不作为低代码平台来使用，也可以作为类似于SpringCloud的开发框架来使用。Nop平台与Spring框架的对比参见[nop-vs-spring](compare/nop-vs-springcloud.md)
 
 ## 定制化开发：[delta-customization.md](dev-guide/delta/delta-customization.md)
 基于Nop平台开发的产品，无需做任何特殊的设计，即可实现Delta差量化定制。例如基于Nop平台开发的银行核心应用产品在各个银行部署实施的时候，可以做到完全不修改基础产品的源码，

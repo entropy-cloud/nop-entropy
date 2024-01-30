@@ -353,9 +353,10 @@
 
                     let mandatory = formCell?.mandatory || propMeta?.mandatory;
                     if(mode.startsWith('query'))
-                        mandatory = formCell?.mandatory || propMeta?.['xui:queryMandatory']
+                        mandatory = formCell?.mandatory || propMeta?.['ui:queryMandatory']
 
-                    let filterOp = cellModel?.filterOp || cellModel?.['xui:defaultFilterOp'] || propMeta?.['xui:defaultFilterOp']
+                    let filterOp = cellModel?.filterOp || propMeta?.['ui:filterOp']
+                              || cellModel?.['xui:defaultFilterOp'] || propMeta?.['xui:defaultFilterOp']
 
                     const placeholderKey = '@i18n:cells.'+i18nRoot+'.'+formCell.id + ".$placeholder";
                     let placeholder = cellModel?.placeholder

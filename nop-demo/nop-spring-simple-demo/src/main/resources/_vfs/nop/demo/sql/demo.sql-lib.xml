@@ -1,0 +1,9 @@
+<sql-lib x:schema="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <sqls>
+        <eql name="findFirstByName" sqlMethod="findFirst">
+            <source>
+                select o from DemoEntity o where o.name like ${'%' + name + '%'}
+            </source>
+        </eql>
+    </sqls>
+</sql-lib>

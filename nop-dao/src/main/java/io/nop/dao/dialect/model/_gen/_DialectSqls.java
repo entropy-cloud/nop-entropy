@@ -2,12 +2,14 @@ package io.nop.dao.dialect.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.dao.dialect.model.DialectSqls;
+import io.nop.commons.util.ClassHelper;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [62:6:0:0]/nop/schema/orm/dialect.xdef <p>
+ * generate from [64:6:0:0]/nop/schema/orm/dialect.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -471,23 +473,55 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("createSequence",this.getCreateSequence());
-        out.put("dateLiteral",this.getDateLiteral());
-        out.put("dateTimeLiteral",this.getDateTimeLiteral());
-        out.put("dropSequence",this.getDropSequence());
-        out.put("dropTable",this.getDropTable());
-        out.put("escapeSlash",this.getEscapeSlash());
-        out.put("falseString",this.getFalseString());
-        out.put("forUpdate",this.getForUpdate());
-        out.put("insertKeyword",this.getInsertKeyword());
-        out.put("lockHint",this.getLockHint());
-        out.put("selectFromDual",this.getSelectFromDual());
-        out.put("sequenceNextVal",this.getSequenceNextVal());
-        out.put("timeLiteral",this.getTimeLiteral());
-        out.put("timestampLiteral",this.getTimestampLiteral());
-        out.put("trueString",this.getTrueString());
-        out.put("updateKeyword",this.getUpdateKeyword());
-        out.put("validationQuery",this.getValidationQuery());
+        out.putNotNull("createSequence",this.getCreateSequence());
+        out.putNotNull("dateLiteral",this.getDateLiteral());
+        out.putNotNull("dateTimeLiteral",this.getDateTimeLiteral());
+        out.putNotNull("dropSequence",this.getDropSequence());
+        out.putNotNull("dropTable",this.getDropTable());
+        out.putNotNull("escapeSlash",this.getEscapeSlash());
+        out.putNotNull("falseString",this.getFalseString());
+        out.putNotNull("forUpdate",this.getForUpdate());
+        out.putNotNull("insertKeyword",this.getInsertKeyword());
+        out.putNotNull("lockHint",this.getLockHint());
+        out.putNotNull("selectFromDual",this.getSelectFromDual());
+        out.putNotNull("sequenceNextVal",this.getSequenceNextVal());
+        out.putNotNull("timeLiteral",this.getTimeLiteral());
+        out.putNotNull("timestampLiteral",this.getTimestampLiteral());
+        out.putNotNull("trueString",this.getTrueString());
+        out.putNotNull("updateKeyword",this.getUpdateKeyword());
+        out.putNotNull("validationQuery",this.getValidationQuery());
+    }
+
+    public DialectSqls cloneInstance(){
+        DialectSqls instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(DialectSqls instance){
+        super.copyTo(instance);
+        
+        instance.setCreateSequence(this.getCreateSequence());
+        instance.setDateLiteral(this.getDateLiteral());
+        instance.setDateTimeLiteral(this.getDateTimeLiteral());
+        instance.setDropSequence(this.getDropSequence());
+        instance.setDropTable(this.getDropTable());
+        instance.setEscapeSlash(this.getEscapeSlash());
+        instance.setFalseString(this.getFalseString());
+        instance.setForUpdate(this.getForUpdate());
+        instance.setInsertKeyword(this.getInsertKeyword());
+        instance.setLockHint(this.getLockHint());
+        instance.setSelectFromDual(this.getSelectFromDual());
+        instance.setSequenceNextVal(this.getSequenceNextVal());
+        instance.setTimeLiteral(this.getTimeLiteral());
+        instance.setTimestampLiteral(this.getTimestampLiteral());
+        instance.setTrueString(this.getTrueString());
+        instance.setUpdateKeyword(this.getUpdateKeyword());
+        instance.setValidationQuery(this.getValidationQuery());
+    }
+
+    protected DialectSqls newInstance(){
+        return (DialectSqls) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

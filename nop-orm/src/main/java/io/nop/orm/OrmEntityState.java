@@ -49,7 +49,7 @@ public enum OrmEntityState {
     }
 
     public boolean isAllowLoad() {
-        return this == PROXY || this == MANAGED;
+        return this == PROXY || this == MANAGED || this == DELETING;
     }
 
     public boolean isGone() {

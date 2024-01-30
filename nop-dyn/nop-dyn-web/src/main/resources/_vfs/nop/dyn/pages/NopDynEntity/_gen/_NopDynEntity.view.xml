@@ -14,32 +14,32 @@
                 <col id="sid" mandatory="true" sortable="true"/>
 
                 <!--对象类型-->
-                <col id="objType" mandatory="true" sortable="true"/>
+                <col id="nopObjType" mandatory="true" sortable="true"/>
 
                 <!--名称-->
-                <col id="name" mandatory="true" sortable="true"/>
+                <col id="nopName" sortable="true"/>
 
                 <!--显示名称-->
-                <col id="displayName" sortable="true"/>
+                <col id="nopDisplayName" sortable="true"/>
 
                 <!--排序-->
-                <col id="sortOrder" sortable="true"/>
+                <col id="nopSortOrder" sortable="true"/>
 
                 <!--工作流实例ID-->
                 <col id="nopFlowId" sortable="true"/>
 
                 <!--业务状态码-->
-                <col id="bizStatus" sortable="true"/>
+                <col id="nopStatus" sortable="true"/>
 
                 <!--业务状态-->
-                <col id="bizState" sortable="true"/>
+                <col id="nopBizState" sortable="true"/>
 
                 <!--备注-->
                 <col id="remark" sortable="true"/>
             </cols>
         </grid>
         <grid id="tree-list" x:prototype="list">
-            <selection>children @TreeChildren(max:5)</selection>
+            <selection>nopChildren @TreeChildren(max:5)</selection>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
     </grids>
@@ -48,13 +48,13 @@
         <form id="view" editMode="view" title="查看-动态实体" i18n-en:title="View Dynamic Entity">
             <layout>
  sid[主键]
- objType[对象类型]
- name[名称]
- displayName[显示名称]
- sortOrder[排序]
+ nopObjType[对象类型]
+ nopName[名称]
+ nopDisplayName[显示名称]
+ nopSortOrder[排序]
  nopFlowId[工作流实例ID]
- bizStatus[业务状态码]
- bizState[业务状态]
+ nopStatus[业务状态码]
+ nopBizState[业务状态]
  remark[备注]
 </layout>
         </form>
@@ -62,13 +62,13 @@
         <form id="edit" editMode="edit" title="编辑-动态实体" i18n-en:title="Edit Dynamic Entity">
             <layout>
  sid[主键]
- objType[对象类型]
- name[名称]
- displayName[显示名称]
- sortOrder[排序]
+ nopObjType[对象类型]
+ nopName[名称]
+ nopDisplayName[显示名称]
+ nopSortOrder[排序]
  nopFlowId[工作流实例ID]
- bizStatus[业务状态码]
- bizState[业务状态]
+ nopStatus[业务状态码]
+ nopBizState[业务状态]
  remark[备注]
 </layout>
         </form>
@@ -86,7 +86,7 @@
     <pages>
         <crud name="main" grid="tree-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
             <table loadDataOnce="true" sortable="false" pager="none">
-                <api url="@query:NopDynEntity__findList?filter_parentId=__null" gql:selection="{@listSelection}"/>
+                <api url="@query:NopDynEntity__findList?filter_nopParentId=__null" gql:selection="{@listSelection}"/>
             </table>
             <listActions>
                 <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
@@ -109,13 +109,13 @@
                     <confirmText>@i18n:common.confirmDelete</confirmText>
                 </action>
                 <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
-                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                    <action id="row-update-button" label="@i18n:common.edit">
                         <dialog page="update"/>
                     </action>
                     <action id="row-add-child-button" label="@i18n:common.addChild">
                         <dialog page="add-child"/>
                     </action>
-                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                    <action id="row-delete-button" label="@i18n:common.delete">
                         <api url="@mutation:NopDynEntity__delete?id=$id"/>
                         <confirmText>@i18n:common.confirmDelete</confirmText>
                     </action>
@@ -140,7 +140,7 @@
         <simple name="add-child" form="add">
             <api url="@mutation:NopDynEntity__save/id" withFormData="true"/>
             <data>
-                <_ j:key="parentId">$id</_>
+                <_ j:key="nopParentId">$id</_>
             </data>
         </simple>
     </pages>

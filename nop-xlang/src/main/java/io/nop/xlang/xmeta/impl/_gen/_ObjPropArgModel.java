@@ -2,6 +2,8 @@ package io.nop.xlang.xmeta.impl._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xmeta.impl.ObjPropArgModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -163,11 +165,31 @@ public abstract class _ObjPropArgModel extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("mandatory",this.isMandatory());
-        out.put("name",this.getName());
-        out.put("schema",this.getSchema());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("mandatory",this.isMandatory());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("schema",this.getSchema());
+    }
+
+    public ObjPropArgModel cloneInstance(){
+        ObjPropArgModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ObjPropArgModel instance){
+        super.copyTo(instance);
+        
+        instance.setDescription(this.getDescription());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setMandatory(this.isMandatory());
+        instance.setName(this.getName());
+        instance.setSchema(this.getSchema());
+    }
+
+    protected ObjPropArgModel newInstance(){
+        return (ObjPropArgModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

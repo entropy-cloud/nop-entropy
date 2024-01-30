@@ -2,6 +2,8 @@ package io.nop.xui.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xui.model.UiComponentModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -193,12 +195,33 @@ public abstract class _UiComponentModel extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("import",this.getImport());
-        out.put("scopedStyle",this.getScopedStyle());
-        out.put("script",this.getScript());
-        out.put("setup",this.getSetup());
-        out.put("style",this.getStyle());
-        out.put("template",this.getTemplate());
+        out.putNotNull("import",this.getImport());
+        out.putNotNull("scopedStyle",this.getScopedStyle());
+        out.putNotNull("script",this.getScript());
+        out.putNotNull("setup",this.getSetup());
+        out.putNotNull("style",this.getStyle());
+        out.putNotNull("template",this.getTemplate());
+    }
+
+    public UiComponentModel cloneInstance(){
+        UiComponentModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(UiComponentModel instance){
+        super.copyTo(instance);
+        
+        instance.setImport(this.getImport());
+        instance.setScopedStyle(this.getScopedStyle());
+        instance.setScript(this.getScript());
+        instance.setSetup(this.getSetup());
+        instance.setStyle(this.getStyle());
+        instance.setTemplate(this.getTemplate());
+    }
+
+    protected UiComponentModel newInstance(){
+        return (UiComponentModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

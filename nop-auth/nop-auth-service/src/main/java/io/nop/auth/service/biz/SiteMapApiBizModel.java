@@ -10,12 +10,16 @@ package io.nop.auth.service.biz;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.api.messages.SiteMapBean;
+import io.nop.auth.core.AuthCoreConstants;
 import io.nop.auth.core.sitemap.ISiteMapProvider;
 
+import io.nop.auth.service.NopAuthConstants;
+import io.nop.commons.util.StringHelper;
 import jakarta.inject.Inject;
 
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SITE_MAP_SUPPORT_DEBUG;
@@ -29,7 +33,10 @@ public class SiteMapApiBizModel {
     protected ISiteMapProvider siteMapProvider;
 
     @BizQuery
-    public SiteMapBean getSiteMap(@Name("siteId") String siteId) {
+    public SiteMapBean getSiteMap(@Optional @Name("siteId") String siteId) {
+        if(StringHelper.isEmpty(siteId))
+            siteId = NopAuthConstants.SITE_ID_MAIN;
+
         String locale = ContextProvider.currentLocale();
 
         SiteMapBean siteMap = siteMapProvider.getSiteMap(siteId, locale);

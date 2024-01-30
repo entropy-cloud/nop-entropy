@@ -2,6 +2,8 @@ package io.nop.orm.sql_lib._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.orm.sql_lib.SqlItemArgModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -189,12 +191,33 @@ public abstract class _SqlItemArgModel extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("defaultValue",this.getDefaultValue());
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("mandatory",this.getMandatory());
-        out.put("name",this.getName());
-        out.put("schema",this.getSchema());
+        out.putNotNull("defaultValue",this.getDefaultValue());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("mandatory",this.getMandatory());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("schema",this.getSchema());
+    }
+
+    public SqlItemArgModel cloneInstance(){
+        SqlItemArgModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(SqlItemArgModel instance){
+        super.copyTo(instance);
+        
+        instance.setDefaultValue(this.getDefaultValue());
+        instance.setDescription(this.getDescription());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setMandatory(this.getMandatory());
+        instance.setName(this.getName());
+        instance.setSchema(this.getSchema());
+    }
+
+    protected SqlItemArgModel newInstance(){
+        return (SqlItemArgModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

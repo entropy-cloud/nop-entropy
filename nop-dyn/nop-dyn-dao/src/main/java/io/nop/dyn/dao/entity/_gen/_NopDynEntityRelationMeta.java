@@ -52,44 +52,48 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
     public static final String PROP_NAME_entity2DisplayName = "entity2DisplayName";
     public static final int PROP_ID_entity2DisplayName = 8;
     
-    /* 标签: TAG_SET VARCHAR */
-    public static final String PROP_NAME_tagSet = "tagSet";
-    public static final int PROP_ID_tagSet = 9;
+    /* 中间表表名: TABLE_NAME VARCHAR */
+    public static final String PROP_NAME_tableName = "tableName";
+    public static final int PROP_ID_tableName = 9;
+    
+    /* 标签: TAGS_TEXT VARCHAR */
+    public static final String PROP_NAME_tagsText = "tagsText";
+    public static final int PROP_ID_tagsText = 10;
     
     /* 状态: STATUS INTEGER */
     public static final String PROP_NAME_status = "status";
-    public static final int PROP_ID_status = 10;
+    public static final int PROP_ID_status = 11;
     
     /* 扩展配置: EXT_CONFIG VARCHAR */
     public static final String PROP_NAME_extConfig = "extConfig";
-    public static final int PROP_ID_extConfig = 11;
+    public static final int PROP_ID_extConfig = 12;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 12;
+    public static final int PROP_ID_version = 13;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 13;
+    public static final int PROP_ID_createdBy = 14;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 14;
+    public static final int PROP_ID_createTime = 15;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 15;
+    public static final int PROP_ID_updatedBy = 16;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 16;
+    public static final int PROP_ID_updateTime = 17;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 17;
+    public static final int PROP_ID_remark = 18;
     
 
-    private static int _PROP_ID_BOUND = 18;
+    private static int _PROP_ID_BOUND = 19;
 
     
     /* relation: 关联实体1元数据 */
@@ -105,7 +109,7 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_relMetaId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_relMetaId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[18];
+    private static final String[] PROP_ID_TO_NAME = new String[19];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -133,8 +137,11 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_entity2DisplayName] = PROP_NAME_entity2DisplayName;
           PROP_NAME_TO_ID.put(PROP_NAME_entity2DisplayName, PROP_ID_entity2DisplayName);
       
-          PROP_ID_TO_NAME[PROP_ID_tagSet] = PROP_NAME_tagSet;
-          PROP_NAME_TO_ID.put(PROP_NAME_tagSet, PROP_ID_tagSet);
+          PROP_ID_TO_NAME[PROP_ID_tableName] = PROP_NAME_tableName;
+          PROP_NAME_TO_ID.put(PROP_NAME_tableName, PROP_ID_tableName);
+      
+          PROP_ID_TO_NAME[PROP_ID_tagsText] = PROP_NAME_tagsText;
+          PROP_NAME_TO_ID.put(PROP_NAME_tagsText, PROP_ID_tagsText);
       
           PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
           PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
@@ -187,8 +194,11 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
     /* 实体2上属性显示名: ENTITY2_DISPLAY_NAME */
     private java.lang.String _entity2DisplayName;
     
-    /* 标签: TAG_SET */
-    private java.lang.String _tagSet;
+    /* 中间表表名: TABLE_NAME */
+    private java.lang.String _tableName;
+    
+    /* 标签: TAGS_TEXT */
+    private java.lang.String _tagsText;
     
     /* 状态: STATUS */
     private java.lang.Integer _status;
@@ -309,8 +319,11 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
             case PROP_ID_entity2DisplayName:
                return getEntity2DisplayName();
         
-            case PROP_ID_tagSet:
-               return getTagSet();
+            case PROP_ID_tableName:
+               return getTableName();
+        
+            case PROP_ID_tagsText:
+               return getTagsText();
         
             case PROP_ID_status:
                return getStatus();
@@ -427,13 +440,23 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_tagSet:{
+            case PROP_ID_tableName:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_tagSet));
+                       err-> newTypeConversionError(PROP_NAME_tableName));
                }
-               setTagSet(typedValue);
+               setTableName(typedValue);
+               break;
+            }
+        
+            case PROP_ID_tagsText:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_tagsText));
+               }
+               setTagsText(typedValue);
                break;
             }
         
@@ -582,9 +605,16 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_tagSet:{
+            case PROP_ID_tableName:{
                onInitProp(propId);
-               this._tagSet = (java.lang.String)value;
+               this._tableName = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_tagsText:{
+               onInitProp(propId);
+               this._tagsText = (java.lang.String)value;
                
                break;
             }
@@ -804,20 +834,39 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
     }
     
     /**
-     * 标签: TAG_SET
+     * 中间表表名: TABLE_NAME
      */
-    public java.lang.String getTagSet(){
-         onPropGet(PROP_ID_tagSet);
-         return _tagSet;
+    public java.lang.String getTableName(){
+         onPropGet(PROP_ID_tableName);
+         return _tableName;
     }
 
     /**
-     * 标签: TAG_SET
+     * 中间表表名: TABLE_NAME
      */
-    public void setTagSet(java.lang.String value){
-        if(onPropSet(PROP_ID_tagSet,value)){
-            this._tagSet = value;
-            internalClearRefs(PROP_ID_tagSet);
+    public void setTableName(java.lang.String value){
+        if(onPropSet(PROP_ID_tableName,value)){
+            this._tableName = value;
+            internalClearRefs(PROP_ID_tableName);
+            
+        }
+    }
+    
+    /**
+     * 标签: TAGS_TEXT
+     */
+    public java.lang.String getTagsText(){
+         onPropGet(PROP_ID_tagsText);
+         return _tagsText;
+    }
+
+    /**
+     * 标签: TAGS_TEXT
+     */
+    public void setTagsText(java.lang.String value){
+        if(onPropSet(PROP_ID_tagsText,value)){
+            this._tagsText = value;
+            internalClearRefs(PROP_ID_tagsText);
             
         }
     }
@@ -982,17 +1031,19 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
     }
 
     public void setEntityMeta1(io.nop.dyn.dao.entity.NopDynEntityMeta refEntity){
-       if(refEntity == null){
-         
-         this.setEntity1MetaId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_entityMeta1, refEntity,()->{
-             
-                    this.setEntity1MetaId(refEntity.getEntityMetaId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setEntity1MetaId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_entityMeta1, refEntity,()->{
+           
+                           this.setEntity1MetaId(refEntity.getEntityMetaId());
+                       
+           });
+           }
+       
     }
        
     /**
@@ -1003,17 +1054,19 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
     }
 
     public void setEntityMeta2(io.nop.dyn.dao.entity.NopDynEntityMeta refEntity){
-       if(refEntity == null){
-         
-         this.setEntity2MetaId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_entityMeta2, refEntity,()->{
-             
-                    this.setEntity2MetaId(refEntity.getEntityMetaId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setEntity2MetaId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_entityMeta2, refEntity,()->{
+           
+                           this.setEntity2MetaId(refEntity.getEntityMetaId());
+                       
+           });
+           }
+       
     }
        
    private io.nop.orm.component.JsonOrmComponent _extConfigComponent;

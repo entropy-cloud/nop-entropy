@@ -48,6 +48,10 @@ public class DslModelHelper {
         return new DslModelParser().parseFromResource(resource);
     }
 
+    public static IComponentModel parseDslModelNode(String xdefPath, XNode node){
+        return new DslModelParser(xdefPath).parseFromNode(node);
+    }
+
     /**
      * 将Dsl模型对象或者json对象按照xdef定义转换为XML格式后保存到模型文件中
      *

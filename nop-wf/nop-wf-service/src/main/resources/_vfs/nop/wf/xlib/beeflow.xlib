@@ -1,0 +1,19 @@
+<lib x:schema="/nop/schema/xlib.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef">
+    <tags>
+        <TransformToWorkflow>
+            <attr name="flowObj" type="Map"/>
+
+            <source>
+                <workflow>
+                    <c:script>
+                        
+                    </c:script>
+                    <steps>
+
+                    </steps>
+                </workflow>
+            </source>
+        </TransformToWorkflow>
+    </tags>
+</lib>

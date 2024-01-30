@@ -3,7 +3,7 @@
 <lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <tags>
         <GenFromModules outputMode="node">
-            <attr name="excludeModuleIds" optional="true" stdDomain="csv-set" displayName="排除的模块列表">
+            <attr name="excludeModuleNames" optional="true" stdDomain="csv-set" displayName="排除的模块列表">
             </attr>
 
             <description>
@@ -16,9 +16,11 @@
                     import io.nop.core.resource.VirtualFileSystem;
 
                     const moduleAuthFiles = [];
-                    ModuleManager.instance().enabledModuleIds.forEach(moduleId=>{
-                        if(!excludeModuleIds?.contains(moduleId)){
-                            const path = '/' + moduleId + '/auth/' + moduleId.$replace('/','-') + '.data-auth.xml';
+                    ModuleManager.instance().enabledModules.forEach(module=>{
+                        const moduleId = module.moduleId
+                        const moduleName = module.moduleName
+                        if(!excludeModuleNames?.contains(moduleName)){
+                            const path = '/' + moduleId + '/auth/' + moduleName + '.data-auth.xml';
                             const resource = VirtualFileSystem.instance().getResource(path);
                             if(resource.exists())
                               moduleAuthFiles.push(path)

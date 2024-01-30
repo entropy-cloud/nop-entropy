@@ -20,6 +20,8 @@
         <module>nop-rpc-http</module>
         <module>nop-rpc-cluster</module>
         <module>nop-rpc-dubbo3</module>
+        <module>nop-rpc-grpc</module>
+        <module>nop-rpc-model</module>
     </modules>
 
 </project>

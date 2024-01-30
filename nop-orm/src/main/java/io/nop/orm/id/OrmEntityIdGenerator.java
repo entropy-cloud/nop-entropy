@@ -8,6 +8,7 @@
 package io.nop.orm.id;
 
 import io.nop.api.core.context.ContextProvider;
+import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.dao.seq.ISequenceGenerator;
 import io.nop.orm.IOrmEntity;
@@ -39,23 +40,31 @@ public class OrmEntityIdGenerator implements IEntityIdGenerator {
         for (IColumnModel col : entityModel.getPkColumns()) {
             if (col.getPropId() == entityModel.getTenantPropId()) {
                 initTenantId(col, entity);
+            } else if (col.containsTag(OrmConstants.TAG_SEQ_DEFAULT)) {
+                genSeq(entity, col, true);
             } else if (col.containsTag(OrmConstants.TAG_SEQ)) {
-                Object value = OrmEntityHelper.getPropValue(col, entity);
-                if (value == null) {
-                    String key = OrmModelHelper.buildEntityPropKey(col);
-                    if (col.getStdDataType().isNumericType()) {
-                        value = sequenceGenerator.generateLong(key, false);
-                    } else {
-                        value = sequenceGenerator.generateString(key, false);
-                    }
-                    OrmEntityHelper.setPropValue(col, entity, value);
-                }
+                genSeq(entity, col, false);
             } else {
                 Object value = OrmEntityHelper.getPropValue(col, entity);
                 if (value == null)
                     throw new OrmException(ERR_ORM_ENTITY_ID_NOT_SET).param(ARG_ENTITY_NAME, entityModel.getName())
                             .param(ARG_PROP_NAME, col.getName());
             }
+        }
+    }
+
+    void genSeq(IOrmEntity entity, IColumnModel col, boolean useDefault) {
+        Object value = OrmEntityHelper.getPropValue(col, entity);
+        if (value == null) {
+            String key = OrmModelHelper.buildEntityPropKey(col);
+            if (col.getStdDataType().isNumericType()) {
+                value = sequenceGenerator.generateLong(key, useDefault);
+                // 如果主键是Integer类型，这里生成long再转换为integer就可能出现负数
+                value = MathHelper.abs(col.getStdDataType().convert(value));
+            } else {
+                value = sequenceGenerator.generateString(key, useDefault);
+            }
+            entity.orm_propValue(col.getColumnPropId(), value);
         }
     }
 

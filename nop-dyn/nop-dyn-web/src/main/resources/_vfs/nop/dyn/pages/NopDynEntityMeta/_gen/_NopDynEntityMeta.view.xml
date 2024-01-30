@@ -29,10 +29,16 @@
                 <col id="storeType" mandatory="true" sortable="true"/>
 
                 <!--标签-->
-                <col id="tagSet" sortable="true"/>
+                <col id="tagsText" sortable="true"/>
+
+                <!--是否外部实体-->
+                <col id="isExternal" mandatory="true" sortable="true"/>
 
                 <!--状态-->
                 <col id="status" mandatory="true" sortable="true"/>
+
+                <!--测试页面-->
+                <col id="mainPagePath"/>
 
                 <!--扩展配置-->
                 <col id="extConfig" sortable="true"/>
@@ -62,7 +68,8 @@
  moduleId[模块ID] entityName[实体名]
  displayName[显示名] tableName[表名]
  querySpace[查询空间] storeType[存储类型]
- tagSet[标签] status[状态]
+ tagsText[标签] isExternal[是否外部实体]
+ status[状态] mainPagePath[测试页面]
  extConfig[扩展配置] createdBy[创建人]
  createTime[创建时间] updatedBy[修改人]
  updateTime[修改时间] 
@@ -75,7 +82,8 @@
  moduleId[模块ID] entityName[实体名]
  displayName[显示名] tableName[表名]
  querySpace[查询空间] storeType[存储类型]
- tagSet[标签] status[状态]
+ tagsText[标签] isExternal[是否外部实体]
+ status[状态] mainPagePath[测试页面]
  extConfig[扩展配置] 
                 remark[备注]
 </layout>
@@ -117,10 +125,10 @@
                     <confirmText>@i18n:common.confirmDelete</confirmText>
                 </action>
                 <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
-                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                    <action id="row-update-button" label="@i18n:common.edit">
                         <dialog page="update"/>
                     </action>
-                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                    <action id="row-delete-button" label="@i18n:common.delete">
                         <api url="@mutation:NopDynEntityMeta__delete?id=$id"/>
                         <confirmText>@i18n:common.confirmDelete</confirmText>
                     </action>

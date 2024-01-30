@@ -4448,4 +4448,15 @@ public class StringHelper extends ApiStringHelper {
         return true;
     }
 
+    @Description("判断字符串是否是有效的USASCII字符串")
+    @Deterministic
+    public static boolean isUSASCII(@Name("input") String input) {
+        for (int i = 0, n = input.length(); i < n; i++) {
+            char c = input.charAt(i);
+            if (c < 32 || c > 126) {
+                return false;
+            }
+        }
+        return true;
+    }
 }

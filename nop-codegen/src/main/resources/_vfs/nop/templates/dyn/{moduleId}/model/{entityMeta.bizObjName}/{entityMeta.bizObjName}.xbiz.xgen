@@ -1,0 +1,46 @@
+<biz x:schema="/nop/schema/biz/xbiz.xdef" graphql:base="crud" xmlns:graphql="graphql"
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:xpl="xpl" xmlns:biz-gen="biz-gen">
+
+    <x:gen-extends xpl:ignoreTag="true">
+        <biz-gen:DefaultBizGenExtends xpl:lib="/nop/core/xlib/biz-gen.xlib" forEntity="true"
+                                      entityName="${entityMeta.entityName}" xpl:disableNs="xpl"/>
+    </x:gen-extends>
+
+    <x:post-extends xpl:ignoreTag="true">
+        <biz-gen:DefaultBizPostExtends xpl:lib="/nop/core/xlib/biz-gen.xlib" xpl:disableNs="xpl"/>
+    </x:post-extends>
+
+    <actions>
+        <c:for var="funcMeta" items="${entityMeta.functionMetas}">
+            <c:script><![CDATA[
+                if(funcMeta.functionType == 'loader')
+                    continue;
+            ]]></c:script>
+            <c:unit xpl:is="${funcMeta.functionType}" name="${funcMeta.name}" displayName="${funcMeta.displayName}">
+                ${raw(funcMeta.funcMetaNode?.innerXml())}
+                <arg name="selection" kind="FieldSelection"/>
+                <arg name="svcCtx" kind="ServiceContext"/>
+
+                <source>${raw(funcMeta.sourceXml)}</source>
+            </c:unit>
+        </c:for>
+    </actions>
+
+    <loaders>
+        <c:for var="funcMeta" items="${entityMeta.functionMetas}">
+
+            <loader xpl:if="funcMeta.functionType == 'loader'" name="${funcMeta.name}"
+                    displayName="${funcMeta.displayName}">
+                ${raw(funcMeta.funcMetaNode?.innerXml())}
+
+                <arg name="source" kind="ContextSource"/>
+                <arg name="selection" kind="FieldSelection"/>
+                <arg name="svcCtx" kind="ServiceContext"/>
+
+                <return graphql:type="${funcMeta.returnGqlType}" type="${funcMeta.returnType}"/>
+
+                <source>${raw(funcMeta.sourceXml)}</source>
+            </loader>
+        </c:for>
+    </loaders>
+</biz>

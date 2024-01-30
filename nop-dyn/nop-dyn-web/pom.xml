@@ -34,6 +34,7 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-web</artifactId>
         </dependency>
+
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-ooxml-xlsx</artifactId>

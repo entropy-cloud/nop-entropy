@@ -2,6 +2,8 @@ package io.nop.xlang.xmeta.impl._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xmeta.impl.ObjPropMetaImpl;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -1033,42 +1035,93 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("allowCpExpr",this.getAllowCpExpr());
-        out.put("allowFilterOp",this.getAllowFilterOp());
-        out.put("args",this.getArgs());
-        out.put("auths",this.getAuths());
-        out.put("autoExpr",this.getAutoExpr());
-        out.put("childName",this.getChildName());
-        out.put("childXmlName",this.getChildXmlName());
-        out.put("defaultOverride",this.getDefaultOverride());
-        out.put("defaultValue",this.getDefaultValue());
-        out.put("depends",this.getDepends());
-        out.put("deprecated",this.isDeprecated());
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("getter",this.getGetter());
-        out.put("insertable",this.isInsertable());
-        out.put("internal",this.isInternal());
-        out.put("kind",this.getKind());
-        out.put("lazy",this.isLazy());
-        out.put("mandatory",this.isMandatory());
-        out.put("mapToProp",this.getMapToProp());
-        out.put("name",this.getName());
-        out.put("propId",this.getPropId());
-        out.put("published",this.isPublished());
-        out.put("queryable",this.isQueryable());
-        out.put("readable",this.isReadable());
-        out.put("schema",this.getSchema());
-        out.put("setter",this.getSetter());
-        out.put("sortable",this.isSortable());
-        out.put("tagSet",this.getTagSet());
-        out.put("transformIn",this.getTransformIn());
-        out.put("transformOut",this.getTransformOut());
-        out.put("type",this.getType());
-        out.put("updatable",this.isUpdatable());
-        out.put("virtual",this.isVirtual());
-        out.put("xmlName",this.getXmlName());
-        out.put("xmlPos",this.getXmlPos());
+        out.putNotNull("allowCpExpr",this.getAllowCpExpr());
+        out.putNotNull("allowFilterOp",this.getAllowFilterOp());
+        out.putNotNull("args",this.getArgs());
+        out.putNotNull("auths",this.getAuths());
+        out.putNotNull("autoExpr",this.getAutoExpr());
+        out.putNotNull("childName",this.getChildName());
+        out.putNotNull("childXmlName",this.getChildXmlName());
+        out.putNotNull("defaultOverride",this.getDefaultOverride());
+        out.putNotNull("defaultValue",this.getDefaultValue());
+        out.putNotNull("depends",this.getDepends());
+        out.putNotNull("deprecated",this.isDeprecated());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("getter",this.getGetter());
+        out.putNotNull("insertable",this.isInsertable());
+        out.putNotNull("internal",this.isInternal());
+        out.putNotNull("kind",this.getKind());
+        out.putNotNull("lazy",this.isLazy());
+        out.putNotNull("mandatory",this.isMandatory());
+        out.putNotNull("mapToProp",this.getMapToProp());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("propId",this.getPropId());
+        out.putNotNull("published",this.isPublished());
+        out.putNotNull("queryable",this.isQueryable());
+        out.putNotNull("readable",this.isReadable());
+        out.putNotNull("schema",this.getSchema());
+        out.putNotNull("setter",this.getSetter());
+        out.putNotNull("sortable",this.isSortable());
+        out.putNotNull("tagSet",this.getTagSet());
+        out.putNotNull("transformIn",this.getTransformIn());
+        out.putNotNull("transformOut",this.getTransformOut());
+        out.putNotNull("type",this.getType());
+        out.putNotNull("updatable",this.isUpdatable());
+        out.putNotNull("virtual",this.isVirtual());
+        out.putNotNull("xmlName",this.getXmlName());
+        out.putNotNull("xmlPos",this.getXmlPos());
+    }
+
+    public ObjPropMetaImpl cloneInstance(){
+        ObjPropMetaImpl instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ObjPropMetaImpl instance){
+        super.copyTo(instance);
+        
+        instance.setAllowCpExpr(this.getAllowCpExpr());
+        instance.setAllowFilterOp(this.getAllowFilterOp());
+        instance.setArgs(this.getArgs());
+        instance.setAuths(this.getAuths());
+        instance.setAutoExpr(this.getAutoExpr());
+        instance.setChildName(this.getChildName());
+        instance.setChildXmlName(this.getChildXmlName());
+        instance.setDefaultOverride(this.getDefaultOverride());
+        instance.setDefaultValue(this.getDefaultValue());
+        instance.setDepends(this.getDepends());
+        instance.setDeprecated(this.isDeprecated());
+        instance.setDescription(this.getDescription());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setGetter(this.getGetter());
+        instance.setInsertable(this.isInsertable());
+        instance.setInternal(this.isInternal());
+        instance.setKind(this.getKind());
+        instance.setLazy(this.isLazy());
+        instance.setMandatory(this.isMandatory());
+        instance.setMapToProp(this.getMapToProp());
+        instance.setName(this.getName());
+        instance.setPropId(this.getPropId());
+        instance.setPublished(this.isPublished());
+        instance.setQueryable(this.isQueryable());
+        instance.setReadable(this.isReadable());
+        instance.setSchema(this.getSchema());
+        instance.setSetter(this.getSetter());
+        instance.setSortable(this.isSortable());
+        instance.setTagSet(this.getTagSet());
+        instance.setTransformIn(this.getTransformIn());
+        instance.setTransformOut(this.getTransformOut());
+        instance.setType(this.getType());
+        instance.setUpdatable(this.isUpdatable());
+        instance.setVirtual(this.isVirtual());
+        instance.setXmlName(this.getXmlName());
+        instance.setXmlPos(this.getXmlPos());
+    }
+
+    protected ObjPropMetaImpl newInstance(){
+        return (ObjPropMetaImpl) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

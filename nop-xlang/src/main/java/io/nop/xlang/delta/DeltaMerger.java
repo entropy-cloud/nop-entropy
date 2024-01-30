@@ -77,7 +77,7 @@ public class DeltaMerger implements IDeltaMerger {
         switch (overrideB) {
             case REMOVE:
                 overrideRemove(xa, xb);
-                xa.setAttr(keys.ABSTRACT,true);
+                xa.setAttr(keys.ABSTRACT, true);
                 break;
             case REPLACE:
                 overrideReplace(xa, xb);
@@ -115,7 +115,7 @@ public class DeltaMerger implements IDeltaMerger {
                 throw new IllegalArgumentException("invalid override operator:" + overrideB);
         }
         xa.setAttr(forPrototype ? keys.PROTOTYPE_OVERRIDE : keys.OVERRIDE, mergedOverride);
-        if(forPrototype && XDefOverride.REMOVE == mergedOverride){
+        if (forPrototype && XDefOverride.REMOVE == mergedOverride) {
             xa.setAttr(keys.OVERRIDE, mergedOverride);
         }
     }
@@ -393,16 +393,26 @@ public class DeltaMerger implements IDeltaMerger {
             if (keyAttr != null) {
                 String prototype = child.removeAttr(keys.PROTOTYPE).asString();
                 if (!StringHelper.isEmpty(prototype)) {
-                    XNode prototypeNode = node.childByAttr(keyAttr, prototype);
-                    if (prototypeNode == null)
-                        throw new NopException(ERR_XDSL_NOT_FIND_PROTOTYPE_NODE).param(ARG_NODE, child)
-                                .param(ARG_ATTR_NAME, keyAttr).param(ARG_VALUE, prototype);
-
-                    prototypeNode = prototypeNode.cloneInstance();
-                    merge(prototypeNode, child, childDef, true);
-                    child.replaceBy(prototypeNode);
+                    mergePrototype(node, child, childDef, keyAttr, prototype);
                 }
             }
         }
+    }
+
+    XNode mergePrototype(XNode node, XNode child, IXDefNode childDef, String keyAttr, String prototype) {
+        XNode prototypeNode = node.childByAttr(keyAttr, prototype);
+        if (prototypeNode == null)
+            throw new NopException(ERR_XDSL_NOT_FIND_PROTOTYPE_NODE).param(ARG_NODE, child)
+                    .param(ARG_ATTR_NAME, keyAttr).param(ARG_VALUE, prototype);
+
+        String basePrototype = prototypeNode.removeAttr(keys.PROTOTYPE).asString();
+        if (!StringHelper.isEmpty(basePrototype)) {
+            prototypeNode = mergePrototype(node, prototypeNode, childDef, keyAttr, basePrototype);
+        }
+
+        prototypeNode = prototypeNode.cloneInstance();
+        merge(prototypeNode, child, childDef, true);
+        child.replaceBy(prototypeNode);
+        return prototypeNode;
     }
 }

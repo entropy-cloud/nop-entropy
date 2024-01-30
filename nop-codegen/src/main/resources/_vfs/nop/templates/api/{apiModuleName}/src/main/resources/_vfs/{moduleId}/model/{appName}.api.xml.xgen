@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<c:unit xpl:outputMode="text"><c:out escape="none"><![CDATA[<!--__XGEN_FORCE_OVERRIDE__-->
+]]></c:out>
+    <c:import from="/nop/codegen/xlib/gen.xlib"/>
+
+    <gen:DslModelToXNode model="${apiModel}" defaultXdefPath="/nop/schema/api.xdef" xpl:return="modelNode"/>
+    <c:script><![CDATA[
+modelNode.removeAttr('ext:extends');
+modelNode.setAttr('xmlns:i18n-en','i18n-en');
+modelNode.setAttr('xmlns:ref-i18n-en','ref-i18n-en');
+modelNode.setAttr('xmlns:ext','ext');
+modelNode.setAttr('xmlns:xpl','xpl');
+modelNode.setAttr('xmlns:ui','ui');
+]]></c:script>${modelNode.outerXml(false,false)}
+</c:unit>

@@ -98,7 +98,7 @@ public class SysSequenceGenerator implements ISequenceGenerator {
         cache.remove(cacheKey);
     }
 
-    @InjectValue("@cfg:nop.sys.seq.snowflake-worker-id:0")
+    @InjectValue("@cfg:nop.sys.seq.snowflake-worker-id|0")
     public void setSnowflakeWorkerId(long snowflakeWorkerId) {
         this.workerId = snowflakeWorkerId;
     }
@@ -120,7 +120,7 @@ public class SysSequenceGenerator implements ISequenceGenerator {
             String hostId = CFG_HOST_ID.get();
             if (StringHelper.isEmpty(hostId))
                 hostId = NetHelper.findLocalIp();
-            workerId = HashHelper.murmur3_64_string().hash64(hostId);
+            workerId = Math.abs(HashHelper.murmur3_32(hostId) % 1024);
         }
         this.snowflakeGenerator = new SnowflakeSequenceGeneator(workerId);
     }
@@ -173,7 +173,7 @@ public class SysSequenceGenerator implements ISequenceGenerator {
                 return snowflakeGenerator.generateLong(seqName, useDefault);
             }
             if (item.useUuid)
-                return MathHelper.secureRandom().nextLong();
+                return MathHelper.randomPositiveLong();
 
             if (item.cacheSize > 0 && item.usedCount < item.cacheSize) {
                 long value = item.nextValue;

@@ -8,6 +8,7 @@
 package io.nop.api.core.util;
 
 import io.nop.api.core.annotations.core.StaticFactoryMethod;
+import io.nop.api.core.annotations.graphql.GraphQLScalar;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.json.IJsonString;
 
@@ -20,6 +21,7 @@ import java.util.Set;
 /**
  * 由a,b|c|e,f这种形式的字符串解析得到。多个逗号分隔的字符串通过符号|连接在一起。可以用于表达最简单的与或关系
  */
+@GraphQLScalar
 public class MultiCsvSet implements IJsonString, Iterable<Set<String>> {
     public static MultiCsvSet EMPTY = new MultiCsvSet(Collections.emptyList());
     private final List<Set<String>> sets;

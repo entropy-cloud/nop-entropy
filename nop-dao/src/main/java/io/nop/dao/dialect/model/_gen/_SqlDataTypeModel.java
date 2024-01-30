@@ -2,12 +2,14 @@ package io.nop.dao.dialect.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.dao.dialect.model.SqlDataTypeModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [140:10:0:0]/nop/schema/orm/dialect.xdef <p>
+ * generate from [142:10:0:0]/nop/schema/orm/dialect.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -293,16 +295,41 @@ public abstract class _SqlDataTypeModel extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("alias",this.getAlias());
-        out.put("allowExceedPrecision",this.isAllowExceedPrecision());
-        out.put("allowPrecision",this.getAllowPrecision());
-        out.put("code",this.getCode());
-        out.put("deprecated",this.isDeprecated());
-        out.put("jdbcBinder",this.getJdbcBinder());
-        out.put("name",this.getName());
-        out.put("precision",this.getPrecision());
-        out.put("scale",this.getScale());
-        out.put("stdSqlType",this.getStdSqlType());
+        out.putNotNull("alias",this.getAlias());
+        out.putNotNull("allowExceedPrecision",this.isAllowExceedPrecision());
+        out.putNotNull("allowPrecision",this.getAllowPrecision());
+        out.putNotNull("code",this.getCode());
+        out.putNotNull("deprecated",this.isDeprecated());
+        out.putNotNull("jdbcBinder",this.getJdbcBinder());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("precision",this.getPrecision());
+        out.putNotNull("scale",this.getScale());
+        out.putNotNull("stdSqlType",this.getStdSqlType());
+    }
+
+    public SqlDataTypeModel cloneInstance(){
+        SqlDataTypeModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(SqlDataTypeModel instance){
+        super.copyTo(instance);
+        
+        instance.setAlias(this.getAlias());
+        instance.setAllowExceedPrecision(this.isAllowExceedPrecision());
+        instance.setAllowPrecision(this.getAllowPrecision());
+        instance.setCode(this.getCode());
+        instance.setDeprecated(this.isDeprecated());
+        instance.setJdbcBinder(this.getJdbcBinder());
+        instance.setName(this.getName());
+        instance.setPrecision(this.getPrecision());
+        instance.setScale(this.getScale());
+        instance.setStdSqlType(this.getStdSqlType());
+    }
+
+    protected SqlDataTypeModel newInstance(){
+        return (SqlDataTypeModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

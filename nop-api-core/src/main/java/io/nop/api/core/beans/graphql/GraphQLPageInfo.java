@@ -9,6 +9,7 @@ package io.nop.api.core.beans.graphql;
 
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
+import io.nop.api.core.annotations.meta.PropMeta;
 
 @GraphQLObject
 @DataBean
@@ -18,6 +19,7 @@ public class GraphQLPageInfo {
     private Boolean hasNextPage;
     private Boolean hasPreviousPage;
 
+    @PropMeta(propId = 1)
     public String getStartCursor() {
         return startCursor;
     }
@@ -26,6 +28,7 @@ public class GraphQLPageInfo {
         this.startCursor = startCursor;
     }
 
+    @PropMeta(propId = 2)
     public String getEndCursor() {
         return endCursor;
     }
@@ -34,6 +37,7 @@ public class GraphQLPageInfo {
         this.endCursor = endCursor;
     }
 
+    @PropMeta(propId = 3)
     public Boolean getHasNextPage() {
         return hasNextPage;
     }
@@ -42,6 +46,7 @@ public class GraphQLPageInfo {
         this.hasNextPage = hasNextPage;
     }
 
+    @PropMeta(propId = 4)
     public Boolean getHasPreviousPage() {
         return hasPreviousPage;
     }

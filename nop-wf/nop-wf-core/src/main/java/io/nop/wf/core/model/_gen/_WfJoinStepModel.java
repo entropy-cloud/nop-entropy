@@ -2,6 +2,8 @@ package io.nop.wf.core.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.wf.core.model.WfJoinStepModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -167,11 +169,31 @@ public abstract class _WfJoinStepModel extends io.nop.wf.core.model.WfStepModel 
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("joinGroupExpr",this.getJoinGroupExpr());
-        out.put("joinType",this.getJoinType());
-        out.put("passPercent",this.getPassPercent());
-        out.put("passWeight",this.getPassWeight());
-        out.put("waitStepNames",this.getWaitStepNames());
+        out.putNotNull("joinGroupExpr",this.getJoinGroupExpr());
+        out.putNotNull("joinType",this.getJoinType());
+        out.putNotNull("passPercent",this.getPassPercent());
+        out.putNotNull("passWeight",this.getPassWeight());
+        out.putNotNull("waitStepNames",this.getWaitStepNames());
+    }
+
+    public WfJoinStepModel cloneInstance(){
+        WfJoinStepModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(WfJoinStepModel instance){
+        super.copyTo(instance);
+        
+        instance.setJoinGroupExpr(this.getJoinGroupExpr());
+        instance.setJoinType(this.getJoinType());
+        instance.setPassPercent(this.getPassPercent());
+        instance.setPassWeight(this.getPassWeight());
+        instance.setWaitStepNames(this.getWaitStepNames());
+    }
+
+    protected WfJoinStepModel newInstance(){
+        return (WfJoinStepModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

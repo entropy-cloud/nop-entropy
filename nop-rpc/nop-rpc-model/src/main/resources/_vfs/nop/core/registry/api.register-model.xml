@@ -1,0 +1,8 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="api">
+    <loaders>
+        <xlsx-loader fileType="api.xlsx" impPath="/nop/rpc/imp/api.imp.xml"/>
+        <xdsl-loader fileType="api.xml" schemaPath="/nop/schema/api.xdef"/>
+        <loader fileType="proto" class="io.nop.rpc.model.proto.ProtoFileParser"/>
+    </loaders>
+</model>

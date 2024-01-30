@@ -7,9 +7,12 @@
  */
 package io.nop.xlang.filter;
 
+import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.IVariableScope;
+import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.functional.Lazy;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
@@ -21,16 +24,21 @@ import io.nop.xlang.xpl.IXplTag;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.nop.xlang.filter.BizExprHelper.getBizExprDict;
+
 public class BizFilterEvaluator extends FilterBeanEvaluator {
     private final String libPath;
     private final IServiceContext context;
 
     private final IEvalScope evalScope;
 
+    private final Lazy<DictBean> dictLoader;
+
     public BizFilterEvaluator(String libPath, IServiceContext context, IEvalScope scope) {
         this.libPath = libPath;
         this.context = context;
         this.evalScope = scope;
+        this.dictLoader = Lazy.of(() -> getBizExprDict(context));
     }
 
     public BizFilterEvaluator(IServiceContext context) {
@@ -42,7 +50,7 @@ public class BizFilterEvaluator extends FilterBeanEvaluator {
     }
 
     public boolean testForEntity(ITreeBean filter, Object entity) {
-        BizExprHelper.resolveBizExpr(filter, context);
+        //BizExprHelper.resolveBizExpr(filter, context);
         IVariableScope scope;
         if (entity instanceof IVariableScope) {
             scope = (IVariableScope) entity;
@@ -50,6 +58,14 @@ public class BizFilterEvaluator extends FilterBeanEvaluator {
             scope = new BeanVariableScope(entity);
         }
         return Boolean.TRUE.equals(visitRoot(filter, scope));
+    }
+
+    @Override
+    protected Object normalizeValue(SourceLocation loc, String name, Object value) {
+        Object changed = BizExprHelper.resolveBizValue(loc, name, value, dictLoader, context);
+        if (changed != value)
+            return changed;
+        return super.normalizeValue(loc, name, changed);
     }
 
     @Override

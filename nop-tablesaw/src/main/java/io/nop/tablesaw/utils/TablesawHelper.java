@@ -1,7 +1,12 @@
 package io.nop.tablesaw.utils;
 
 import io.nop.commons.type.StdDataType;
+import io.nop.dataset.IDataSet;
+import io.nop.tablesaw.dataset.DataSetToTableTransformer;
 import tech.tablesaw.api.ColumnType;
+import tech.tablesaw.api.Table;
+
+import java.util.function.Function;
 
 import static tech.tablesaw.api.ColumnType.BOOLEAN;
 import static tech.tablesaw.api.ColumnType.DOUBLE;
@@ -66,5 +71,9 @@ public class TablesawHelper {
         if (colType == BOOLEAN)
             return StdDataType.BOOLEAN;
         return StdDataType.STRING;
+    }
+
+    public static Function<IDataSet, Table> dataSetTransformer(String name) {
+        return new DataSetToTableTransformer(name);
     }
 }

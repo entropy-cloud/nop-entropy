@@ -2,6 +2,8 @@ package io.nop.wf.core.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.wf.core.model.WfTransitionModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -297,15 +299,39 @@ public abstract class _WfTransitionModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("appState",this.getAppState());
-        out.put("bizEntityState",this.getBizEntityState());
-        out.put("onAppStates",this.getOnAppStates());
-        out.put("splitType",this.getSplitType());
-        out.put("toAssigned",this.getToAssigned());
-        out.put("toEmpty",this.getToEmpty());
-        out.put("toEnd",this.getToEnd());
-        out.put("toSteps",this.getToSteps());
-        out.put("wfAppState",this.getWfAppState());
+        out.putNotNull("appState",this.getAppState());
+        out.putNotNull("bizEntityState",this.getBizEntityState());
+        out.putNotNull("onAppStates",this.getOnAppStates());
+        out.putNotNull("splitType",this.getSplitType());
+        out.putNotNull("toAssigned",this.getToAssigned());
+        out.putNotNull("toEmpty",this.getToEmpty());
+        out.putNotNull("toEnd",this.getToEnd());
+        out.putNotNull("toSteps",this.getToSteps());
+        out.putNotNull("wfAppState",this.getWfAppState());
+    }
+
+    public WfTransitionModel cloneInstance(){
+        WfTransitionModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(WfTransitionModel instance){
+        super.copyTo(instance);
+        
+        instance.setAppState(this.getAppState());
+        instance.setBizEntityState(this.getBizEntityState());
+        instance.setOnAppStates(this.getOnAppStates());
+        instance.setSplitType(this.getSplitType());
+        instance.setToAssigned(this.getToAssigned());
+        instance.setToEmpty(this.getToEmpty());
+        instance.setToEnd(this.getToEnd());
+        instance.setToSteps(this.getToSteps());
+        instance.setWfAppState(this.getWfAppState());
+    }
+
+    protected WfTransitionModel newInstance(){
+        return (WfTransitionModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

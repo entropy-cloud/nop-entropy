@@ -7,6 +7,8 @@
             <schema type="String" />
          </arg>
 
+          <auth roles="user" />
+
          <return>
            <schema bizObjName="THIS_OBJ" />
          </return>

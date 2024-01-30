@@ -16,8 +16,8 @@ import test.entity.TestCompositeOneToOneSub;
 /**
  *  : TEST_COMPOSITE_ONE_TO_ONE_SUB
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _TestCompositeOneToOneSub extends DynamicOrmEntity{
     
     /* : FLD3 VARCHAR */
@@ -40,8 +40,8 @@ public class _TestCompositeOneToOneSub extends DynamicOrmEntity{
     public static final String PROP_NAME_main = "main";
     
 
-    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_fldA,PROP_NAME_fldB);
-    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_fldA,PROP_ID_fldB};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_fldA,PROP_NAME_fldB);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_fldA,PROP_ID_fldB};
 
     private static final String[] PROP_ID_TO_NAME = new String[8];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
@@ -70,6 +70,7 @@ public class _TestCompositeOneToOneSub extends DynamicOrmEntity{
     
 
     public _TestCompositeOneToOneSub(){
+        // for debug
     }
 
     protected TestCompositeOneToOneSub newInstance(){
@@ -289,21 +290,23 @@ public class _TestCompositeOneToOneSub extends DynamicOrmEntity{
     }
 
     public void setMain(test.entity.TestCompositeOneToOneMain refEntity){
-       if(refEntity == null){
-         
-         this.setFldA(null);
-         
-         this.setFldB(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_main, refEntity,()->{
-             
-                    this.setFldA(refEntity.getFldA());
-                 
-                    this.setFldB(refEntity.getFldB());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setFldA(null);
+               
+                   this.setFldB(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_main, refEntity,()->{
+           
+                           this.setFldA(refEntity.getFldA());
+                       
+                           this.setFldB(refEntity.getFldB());
+                       
+           });
+           }
+       
     }
        
 }

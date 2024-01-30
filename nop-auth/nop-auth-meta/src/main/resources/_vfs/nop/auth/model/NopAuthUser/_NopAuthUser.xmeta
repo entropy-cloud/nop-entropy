@@ -67,18 +67,17 @@
               insertable="true" updatable="true" ui:show="L">
             <schema domain="email" type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="emailVerified" displayName="电话已验证" i18n-en:displayName="Email Verified" queryable="true"
+        <prop name="emailVerified" displayName="邮件已验证" i18n-en:displayName="Email Verified" queryable="true"
               sortable="true" insertable="true" updatable="true" internal="true" ui:show="X" defaultValue="0">
-            <schema domain="boolFlag" type="java.lang.Byte" precision="1"/>
+            <schema domain="boolFlag" type="java.lang.Byte"/>
         </prop>
         <prop name="phone" displayName="电话" i18n-en:displayName="Phone" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema domain="phone" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="phoneVerified" displayName="电话已验证" i18n-en:displayName="Phone Verified" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ui:show="X"
-              defaultValue="0">
-            <schema domain="boolFlag" type="java.lang.Byte" precision="1"/>
+        <prop name="phoneVerified" displayName="电话已验证" i18n-en:displayName="Phone Verified" queryable="true"
+              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X" defaultValue="0">
+            <schema domain="boolFlag" type="java.lang.Byte"/>
         </prop>
         <prop name="birthday" displayName="生日" i18n-en:displayName="Birthday" queryable="true" sortable="true"
               insertable="true" updatable="true" ui:show="L">
@@ -224,7 +223,7 @@
               ext:joinLeftProp="userId" ext:joinRightProp="userId" orm:manyToManyRefProp="groupId" insertable="true"
               updatable="true" lazy="true">
             <schema>
-                <item bizObjName="NopAuthGroupDept"/>
+                <item bizObjName="NopAuthGroupUser"/>
             </schema>
         </prop>
         <prop name="avatarComponent" ext:kind="component" internal="true" insertable="true" updatable="true" lazy="true"

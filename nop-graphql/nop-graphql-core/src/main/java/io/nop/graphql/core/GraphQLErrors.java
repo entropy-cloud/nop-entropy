@@ -23,6 +23,8 @@ public interface GraphQLErrors {
 
     String ARG_OBJ_NAME = "objName";
     String ARG_FIELD_NAME = "fieldName";
+
+    String ARG_PROP_ID = "propId";
     String ARG_ALLOWED_NAMES = "allowedNames";
 
     String ARG_PARENT_NAME = "parentName";
@@ -195,7 +197,7 @@ public interface GraphQLErrors {
 
     ErrorCode ERR_GRAPHQL_METHOD_PARAM_NO_REFLECTION_NAME_ANNOTATION = define(
             "nop.err.graphql.method-param-no-reflection-name-annotation",
-            "方法[{methodName}]上的参数[{argName}]没有@ReflectionName注解，也不是引擎可以识别的内部参数", ARG_METHOD_NAME, ARG_ARG_NAME);
+            "方法[{methodName}]上的参数[{argName}]没有@Name注解，也不是引擎可以识别的内部参数", ARG_METHOD_NAME, ARG_ARG_NAME);
 
     ErrorCode ERR_GRAPHQL_ONLY_ALLOW_ONE_CONTEXT_SOURCE_PARAM = define(
             "nop.err.graphql.only-allow-one-context-source-param", "方法[{methodName}]上最多只允许一个参数具有@ContextSource注解",
@@ -295,4 +297,9 @@ public interface GraphQLErrors {
             define("nop.err.graphql.action-return-type-must-not-be-api-response",
                     "NopGraphQL的服务方法[{methodName}]的返回值类型不需要用ApiResponse包装，直接返回内部结果类型即可",
                     ARG_METHOD_NAME, ARG_RETURN_TYPE, ARG_CLASS);
+
+    ErrorCode ERR_GRAPHQL_FIELD_PROP_ID_CONFLICT =
+            define("nop.err.graphql.field-prop-id-conflict",
+                    "对象[{objType}]的字段[{fieldName}]的propId[{propId}]与已存在的propId冲突",
+                    ARG_OBJ_TYPE, ARG_FIELD_NAME, ARG_PROP_ID);
 }

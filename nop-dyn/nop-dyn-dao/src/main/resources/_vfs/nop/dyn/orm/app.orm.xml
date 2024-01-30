@@ -3,6 +3,7 @@
      xmlns:xpl="/nop/schema/xpl.xdef">
 
     <entities>
+
         <!--
             必须将tagSet设置为空，去除继承的use-ext-field标签
         -->

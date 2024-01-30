@@ -2,6 +2,8 @@ package io.nop.orm.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.orm.model.OrmReferenceModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -449,22 +451,53 @@ public abstract class _OrmReferenceModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("autoCascadeDelete",this.isAutoCascadeDelete());
-        out.put("cascadeDelete",this.isCascadeDelete());
-        out.put("comment",this.getComment());
-        out.put("displayName",this.getDisplayName());
-        out.put("embedded",this.isEmbedded());
-        out.put("join",this.getJoin());
-        out.put("maxBatchLoadSize",this.getMaxBatchLoadSize());
-        out.put("name",this.getName());
-        out.put("notGenCode",this.isNotGenCode());
-        out.put("persistDriver",this.getPersistDriver());
-        out.put("queryable",this.isQueryable());
-        out.put("refDisplayName",this.getRefDisplayName());
-        out.put("refEntityName",this.getRefEntityName());
-        out.put("refPropName",this.getRefPropName());
-        out.put("tagSet",this.getTagSet());
-        out.put("type",this.getType());
+        out.putNotNull("autoCascadeDelete",this.isAutoCascadeDelete());
+        out.putNotNull("cascadeDelete",this.isCascadeDelete());
+        out.putNotNull("comment",this.getComment());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("embedded",this.isEmbedded());
+        out.putNotNull("join",this.getJoin());
+        out.putNotNull("maxBatchLoadSize",this.getMaxBatchLoadSize());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("notGenCode",this.isNotGenCode());
+        out.putNotNull("persistDriver",this.getPersistDriver());
+        out.putNotNull("queryable",this.isQueryable());
+        out.putNotNull("refDisplayName",this.getRefDisplayName());
+        out.putNotNull("refEntityName",this.getRefEntityName());
+        out.putNotNull("refPropName",this.getRefPropName());
+        out.putNotNull("tagSet",this.getTagSet());
+        out.putNotNull("type",this.getType());
+    }
+
+    public OrmReferenceModel cloneInstance(){
+        OrmReferenceModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(OrmReferenceModel instance){
+        super.copyTo(instance);
+        
+        instance.setAutoCascadeDelete(this.isAutoCascadeDelete());
+        instance.setCascadeDelete(this.isCascadeDelete());
+        instance.setComment(this.getComment());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setEmbedded(this.isEmbedded());
+        instance.setJoin(this.getJoin());
+        instance.setMaxBatchLoadSize(this.getMaxBatchLoadSize());
+        instance.setName(this.getName());
+        instance.setNotGenCode(this.isNotGenCode());
+        instance.setPersistDriver(this.getPersistDriver());
+        instance.setQueryable(this.isQueryable());
+        instance.setRefDisplayName(this.getRefDisplayName());
+        instance.setRefEntityName(this.getRefEntityName());
+        instance.setRefPropName(this.getRefPropName());
+        instance.setTagSet(this.getTagSet());
+        instance.setType(this.getType());
+    }
+
+    protected OrmReferenceModel newInstance(){
+        return (OrmReferenceModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

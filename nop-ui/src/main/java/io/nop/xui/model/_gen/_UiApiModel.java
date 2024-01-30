@@ -2,6 +2,8 @@ package io.nop.xui.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xui.model.UiApiModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -459,22 +461,53 @@ public abstract class _UiApiModel extends io.nop.core.resource.component.Abstrac
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("adaptor",this.getAdaptor());
-        out.put("autoRefresh",this.getAutoRefresh());
-        out.put("cache",this.getCache());
-        out.put("convertKeyToPath",this.getConvertKeyToPath());
-        out.put("data",this.getData());
-        out.put("dataType",this.getDataType());
-        out.put("headers",this.getHeaders());
-        out.put("method",this.getMethod());
-        out.put("replaceData",this.getReplaceData());
-        out.put("requestAdaptor",this.getRequestAdaptor());
-        out.put("responseData",this.getResponseData());
-        out.put("responseType",this.getResponseType());
-        out.put("sendOn",this.getSendOn());
-        out.put("trackExpression",this.getTrackExpression());
-        out.put("url",this.getUrl());
-        out.put("withFormData",this.getWithFormData());
+        out.putNotNull("adaptor",this.getAdaptor());
+        out.putNotNull("autoRefresh",this.getAutoRefresh());
+        out.putNotNull("cache",this.getCache());
+        out.putNotNull("convertKeyToPath",this.getConvertKeyToPath());
+        out.putNotNull("data",this.getData());
+        out.putNotNull("dataType",this.getDataType());
+        out.putNotNull("headers",this.getHeaders());
+        out.putNotNull("method",this.getMethod());
+        out.putNotNull("replaceData",this.getReplaceData());
+        out.putNotNull("requestAdaptor",this.getRequestAdaptor());
+        out.putNotNull("responseData",this.getResponseData());
+        out.putNotNull("responseType",this.getResponseType());
+        out.putNotNull("sendOn",this.getSendOn());
+        out.putNotNull("trackExpression",this.getTrackExpression());
+        out.putNotNull("url",this.getUrl());
+        out.putNotNull("withFormData",this.getWithFormData());
+    }
+
+    public UiApiModel cloneInstance(){
+        UiApiModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(UiApiModel instance){
+        super.copyTo(instance);
+        
+        instance.setAdaptor(this.getAdaptor());
+        instance.setAutoRefresh(this.getAutoRefresh());
+        instance.setCache(this.getCache());
+        instance.setConvertKeyToPath(this.getConvertKeyToPath());
+        instance.setData(this.getData());
+        instance.setDataType(this.getDataType());
+        instance.setHeaders(this.getHeaders());
+        instance.setMethod(this.getMethod());
+        instance.setReplaceData(this.getReplaceData());
+        instance.setRequestAdaptor(this.getRequestAdaptor());
+        instance.setResponseData(this.getResponseData());
+        instance.setResponseType(this.getResponseType());
+        instance.setSendOn(this.getSendOn());
+        instance.setTrackExpression(this.getTrackExpression());
+        instance.setUrl(this.getUrl());
+        instance.setWithFormData(this.getWithFormData());
+    }
+
+    protected UiApiModel newInstance(){
+        return (UiApiModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

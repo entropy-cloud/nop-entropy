@@ -10,5 +10,13 @@ package io.nop.graphql.core.ast;
 import io.nop.graphql.core.ast._gen._GraphQLTypeDefinition;
 
 public abstract class GraphQLTypeDefinition extends _GraphQLTypeDefinition {
+    private Object grpcSchema;
 
+    public Object getGrpcSchema() {
+        return grpcSchema;
+    }
+
+    public void setGrpcSchema(Object grpcSchema) {
+        this.grpcSchema = grpcSchema;
+    }
 }

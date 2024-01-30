@@ -2,12 +2,14 @@ package io.nop.biz.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.biz.model.BizActionArgModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [55:14:0:0]/nop/schema/biz/xbiz.xdef <p>
+ * generate from [56:14:0:0]/nop/schema/biz/xbiz.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -241,14 +243,37 @@ public abstract class _BizActionArgModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("defaultExpr",this.getDefaultExpr());
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("kind",this.getKind());
-        out.put("mandatory",this.isMandatory());
-        out.put("name",this.getName());
-        out.put("schema",this.getSchema());
-        out.put("type",this.getType());
+        out.putNotNull("defaultExpr",this.getDefaultExpr());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("kind",this.getKind());
+        out.putNotNull("mandatory",this.isMandatory());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("schema",this.getSchema());
+        out.putNotNull("type",this.getType());
+    }
+
+    public BizActionArgModel cloneInstance(){
+        BizActionArgModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BizActionArgModel instance){
+        super.copyTo(instance);
+        
+        instance.setDefaultExpr(this.getDefaultExpr());
+        instance.setDescription(this.getDescription());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setKind(this.getKind());
+        instance.setMandatory(this.isMandatory());
+        instance.setName(this.getName());
+        instance.setSchema(this.getSchema());
+        instance.setType(this.getType());
+    }
+
+    protected BizActionArgModel newInstance(){
+        return (BizActionArgModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

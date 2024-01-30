@@ -11,7 +11,7 @@ public class NopAuthGroupDeptPkBuilder{
     private Object[] values = new Object[2];
 
    
-    public NopAuthGroupDeptPkBuilder setUserId(java.lang.String value){
+    public NopAuthGroupDeptPkBuilder setDeptId(java.lang.String value){
         this.values[0] = value;
         return this;
     }

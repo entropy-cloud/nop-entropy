@@ -13,10 +13,12 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.utils.ReadonlyModel;
+import io.nop.core.reflect.IAnnotationSupport;
 import io.nop.core.reflect.IPropertyGetter;
 import io.nop.core.reflect.IPropertySetter;
 import io.nop.core.type.IGenericType;
 
+import java.lang.annotation.Annotation;
 import java.util.Optional;
 
 import static io.nop.core.CoreErrors.ARG_CLASS_NAME;
@@ -259,4 +261,18 @@ public class BeanPropertyModel extends ReadonlyModel implements IBeanPropertyMod
         return getPropertyValue(bean, scope);
     }
 
+    @Override
+    public <T extends Annotation> T getAnnotation(Class<T> annotationClass) {
+        if (getter instanceof IAnnotationSupport) {
+            T ann = ((IAnnotationSupport) getter).getAnnotation(annotationClass);
+            if (ann != null)
+                return ann;
+        }
+        if (setter instanceof IAnnotationSupport) {
+            T ann = ((IAnnotationSupport) setter).getAnnotation(annotationClass);
+            if (ann != null)
+                return ann;
+        }
+        return null;
+    }
 }

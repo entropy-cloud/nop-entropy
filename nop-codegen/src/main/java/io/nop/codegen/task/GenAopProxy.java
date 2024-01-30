@@ -39,7 +39,7 @@ public class GenAopProxy {
         File sourceDir;
 
         if (forTest) {
-            classesDir = new File(projectDir, "target/generated-test-classes");
+            classesDir = new File(projectDir, "target/test-classes");
             sourceDir = new File(projectDir, "target/generated-test-sources");
         } else {
             classesDir = new File(projectDir, "target/classes");

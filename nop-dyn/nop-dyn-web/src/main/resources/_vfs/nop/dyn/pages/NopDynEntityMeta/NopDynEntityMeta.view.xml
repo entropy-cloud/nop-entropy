@@ -2,13 +2,41 @@
 <view x:extends="_gen/_NopDynEntityMeta.view.xml" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
     <grids>
-        <grid id="list"/>
+        <grid id="list">
+            <cols>
+                <col id="status" />
+                <col id="mainPagePath" >
+                    <gen-control>
+                        <button actionType="dialog" level="primary">
+                            <dialog title="测试页面" size="xl">
+                                <body>
+                                    <service>
+                                        <schemaApi url="/p/PageProvider__getPage" method="get">
+                                            <data>
+                                                <path>$mainPagePath</path>
+                                            </data>
+                                        </schemaApi>
+                                    </service>
+                                </body>
+                            </dialog>
+                        </button>
+                    </gen-control>
+                </col>
+            </cols>
+        </grid>
+
         <grid id="pick-list"/>
     </grids>
 
     <forms>
         <form id="view"/>
         <form id="edit"/>
+
+        <form id="query">
+            <layout>
+                entityName
+            </layout>
+        </form>
     </forms>
 
     <pages>
@@ -17,6 +45,18 @@
                 <actionGroup id="row-more-button">
                     <action id="row-edit-prop-metas" label="@i18n:NopDynEntityMeta.props.propMetas|属性列表" actionType="drawer">
                         <dialog page="/nop/dyn/pages/NopDynPropMeta/ref-entityMeta.page.yaml" size="xl">
+                            <data>
+                                <entityMetaId>$entityMetaId</entityMetaId>
+                                <entityMeta>
+                                    <entityName>$entityName</entityName>
+                                    <displayName>$displayName</displayName>
+                                </entityMeta>
+                            </data>
+                        </dialog>
+                    </action>
+
+                    <action id="row-edit-func-metas" label="@i18n:NopDynEntityMeta.props.funcMetas|函数列表" actionType="drawer">
+                        <dialog page="/nop/dyn/pages/NopDynFunctionMeta/ref-entityMeta.page.yaml" size="xl">
                             <data>
                                 <entityMetaId>$entityMetaId</entityMetaId>
                                 <entityMeta>

@@ -22,6 +22,8 @@
 
     <bean id="io.nop.dyn.service.entity.NopDynModuleBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="io.nop.dyn.service.entity.NopDynModuleDepBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
     <bean id="io.nop.dyn.service.entity.NopDynPageBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.dyn.service.entity.NopDynPropMetaBizModel" ioc:type="@bean:id" ioc:default="true"/>

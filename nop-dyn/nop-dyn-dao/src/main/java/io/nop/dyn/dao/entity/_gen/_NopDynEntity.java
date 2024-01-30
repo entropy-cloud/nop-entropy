@@ -24,105 +24,105 @@ public class _NopDynEntity extends DynamicOrmEntity{
     public static final String PROP_NAME_sid = "sid";
     public static final int PROP_ID_sid = 1;
     
-    /* 对象类型: OBJ_TYPE VARCHAR */
-    public static final String PROP_NAME_objType = "objType";
-    public static final int PROP_ID_objType = 2;
+    /* 对象类型: NOP_OBJ_TYPE VARCHAR */
+    public static final String PROP_NAME_nopObjType = "nopObjType";
+    public static final int PROP_ID_nopObjType = 2;
     
-    /* 名称: NAME VARCHAR */
-    public static final String PROP_NAME_name = "name";
-    public static final int PROP_ID_name = 3;
+    /* 名称: NOP_NAME VARCHAR */
+    public static final String PROP_NAME_nopName = "nopName";
+    public static final int PROP_ID_nopName = 3;
     
-    /* 显示名称: DISPLAY_NAME VARCHAR */
-    public static final String PROP_NAME_displayName = "displayName";
-    public static final int PROP_ID_displayName = 4;
+    /* 显示名称: NOP_DISPLAY_NAME VARCHAR */
+    public static final String PROP_NAME_nopDisplayName = "nopDisplayName";
+    public static final int PROP_ID_nopDisplayName = 4;
     
-    /* 排序: SORT_ORDER INTEGER */
-    public static final String PROP_NAME_sortOrder = "sortOrder";
-    public static final int PROP_ID_sortOrder = 5;
+    /* 排序: NOP_SORT_ORDER INTEGER */
+    public static final String PROP_NAME_nopSortOrder = "nopSortOrder";
+    public static final int PROP_ID_nopSortOrder = 5;
     
     /* 工作流实例ID: NOP_FLOW_ID VARCHAR */
     public static final String PROP_NAME_nopFlowId = "nopFlowId";
     public static final int PROP_ID_nopFlowId = 6;
     
-    /* 业务状态码: BIZ_STATUS INTEGER */
-    public static final String PROP_NAME_bizStatus = "bizStatus";
-    public static final int PROP_ID_bizStatus = 7;
+    /* 业务状态码: NOP_STATUS INTEGER */
+    public static final String PROP_NAME_nopStatus = "nopStatus";
+    public static final int PROP_ID_nopStatus = 7;
     
-    /* 业务状态: BIZ_STATE VARCHAR */
-    public static final String PROP_NAME_bizState = "bizState";
-    public static final int PROP_ID_bizState = 8;
+    /* 业务状态: NOP_BIZ_STATE VARCHAR */
+    public static final String PROP_NAME_nopBizState = "nopBizState";
+    public static final int PROP_ID_nopBizState = 8;
     
-    /* 父ID: PARENT_ID VARCHAR */
-    public static final String PROP_NAME_parentId = "parentId";
-    public static final int PROP_ID_parentId = 9;
+    /* 父ID: NOP_PARENT_ID VARCHAR */
+    public static final String PROP_NAME_nopParentId = "nopParentId";
+    public static final int PROP_ID_nopParentId = 9;
     
-    /* 拥有者姓名: OWNER_NAME VARCHAR */
-    public static final String PROP_NAME_ownerName = "ownerName";
-    public static final int PROP_ID_ownerName = 10;
+    /* 拥有者姓名: NOP_OWNER_NAME VARCHAR */
+    public static final String PROP_NAME_nopOwnerName = "nopOwnerName";
+    public static final int PROP_ID_nopOwnerName = 10;
     
-    /* 拥有者ID: OWNER_ID VARCHAR */
-    public static final String PROP_NAME_ownerId = "ownerId";
-    public static final int PROP_ID_ownerId = 11;
+    /* 拥有者ID: NOP_OWNER_ID VARCHAR */
+    public static final String PROP_NAME_nopOwnerId = "nopOwnerId";
+    public static final int PROP_ID_nopOwnerId = 11;
     
-    /* 部门ID: DEPT_ID VARCHAR */
-    public static final String PROP_NAME_deptId = "deptId";
-    public static final int PROP_ID_deptId = 12;
+    /* 部门ID: NOP_DEPT_ID VARCHAR */
+    public static final String PROP_NAME_nopDeptId = "nopDeptId";
+    public static final int PROP_ID_nopDeptId = 12;
     
-    /* 字符串字段1: STRING_FLD1 VARCHAR */
-    public static final String PROP_NAME_stringFld1 = "stringFld1";
-    public static final int PROP_ID_stringFld1 = 13;
+    /* 字符串字段1: NOP_STRING_FLD1 VARCHAR */
+    public static final String PROP_NAME_nopStringFld1 = "nopStringFld1";
+    public static final int PROP_ID_nopStringFld1 = 13;
     
-    /* 浮点型字段1: DECIMAL_FLD1 DECIMAL */
-    public static final String PROP_NAME_decimalFld1 = "decimalFld1";
-    public static final int PROP_ID_decimalFld1 = 14;
+    /* 浮点型字段1: NOP_DECIMAL_FLD1 DECIMAL */
+    public static final String PROP_NAME_nopDecimalFld1 = "nopDecimalFld1";
+    public static final int PROP_ID_nopDecimalFld1 = 14;
     
-    /* 整数型字段1: INT_FLD1 INTEGER */
-    public static final String PROP_NAME_intFld1 = "intFld1";
-    public static final int PROP_ID_intFld1 = 15;
+    /* 整数型字段1: NOP_INT_FLD1 INTEGER */
+    public static final String PROP_NAME_nopIntFld1 = "nopIntFld1";
+    public static final int PROP_ID_nopIntFld1 = 15;
     
-    /* 长整型字段1: LONG_FLD1 BIGINT */
-    public static final String PROP_NAME_longFld1 = "longFld1";
-    public static final int PROP_ID_longFld1 = 16;
+    /* 长整型字段1: NOP_LONG_FLD1 BIGINT */
+    public static final String PROP_NAME_nopLongFld1 = "nopLongFld1";
+    public static final int PROP_ID_nopLongFld1 = 16;
     
-    /* 日期字段1: DATE_FLD1 DATE */
-    public static final String PROP_NAME_dateFld1 = "dateFld1";
-    public static final int PROP_ID_dateFld1 = 17;
+    /* 日期字段1: NOP_DATE_FLD1 DATE */
+    public static final String PROP_NAME_nopDateFld1 = "nopDateFld1";
+    public static final int PROP_ID_nopDateFld1 = 17;
     
-    /* 时间戳字段1: TIMESTAMP_FLD1 TIMESTAMP */
-    public static final String PROP_NAME_timestampFld1 = "timestampFld1";
-    public static final int PROP_ID_timestampFld1 = 18;
+    /* 时间戳字段1: NOP_TIMESTAMP_FLD1 TIMESTAMP */
+    public static final String PROP_NAME_nopTimestampFld1 = "nopTimestampFld1";
+    public static final int PROP_ID_nopTimestampFld1 = 18;
     
-    /* 文件字段1: FILE_FLD1 VARCHAR */
-    public static final String PROP_NAME_fileFld1 = "fileFld1";
-    public static final int PROP_ID_fileFld1 = 19;
+    /* 文件字段1: NOP_FILE_FLD1 VARCHAR */
+    public static final String PROP_NAME_nopFileFld1 = "nopFileFld1";
+    public static final int PROP_ID_nopFileFld1 = 19;
     
-    /* 字符串字段2: STRING_FLD2 VARCHAR */
-    public static final String PROP_NAME_stringFld2 = "stringFld2";
-    public static final int PROP_ID_stringFld2 = 20;
+    /* 字符串字段2: NOP_STRING_FLD2 VARCHAR */
+    public static final String PROP_NAME_nopStringFld2 = "nopStringFld2";
+    public static final int PROP_ID_nopStringFld2 = 20;
     
-    /* 浮点型字段2: DECIMAL_FLD2 DECIMAL */
-    public static final String PROP_NAME_decimalFld2 = "decimalFld2";
-    public static final int PROP_ID_decimalFld2 = 21;
+    /* 浮点型字段2: NOP_DECIMAL_FLD2 DECIMAL */
+    public static final String PROP_NAME_nopDecimalFld2 = "nopDecimalFld2";
+    public static final int PROP_ID_nopDecimalFld2 = 21;
     
-    /* 整数型字段2: INT_FLD2 INTEGER */
-    public static final String PROP_NAME_intFld2 = "intFld2";
-    public static final int PROP_ID_intFld2 = 22;
+    /* 整数型字段2: NOP_INT_FLD2 INTEGER */
+    public static final String PROP_NAME_nopIntFld2 = "nopIntFld2";
+    public static final int PROP_ID_nopIntFld2 = 22;
     
-    /* 长整型字段2: LONG_FLD2 BIGINT */
-    public static final String PROP_NAME_longFld2 = "longFld2";
-    public static final int PROP_ID_longFld2 = 23;
+    /* 长整型字段2: NOP_LONG_FLD2 BIGINT */
+    public static final String PROP_NAME_nopLongFld2 = "nopLongFld2";
+    public static final int PROP_ID_nopLongFld2 = 23;
     
-    /* 日期字段2: DATE_FLD2 DATE */
-    public static final String PROP_NAME_dateFld2 = "dateFld2";
-    public static final int PROP_ID_dateFld2 = 24;
+    /* 日期字段2: NOP_DATE_FLD2 DATE */
+    public static final String PROP_NAME_nopDateFld2 = "nopDateFld2";
+    public static final int PROP_ID_nopDateFld2 = 24;
     
-    /* 时间戳字段2: TIMESTAMP_FLD2 TIMESTAMP */
-    public static final String PROP_NAME_timestampFld2 = "timestampFld2";
-    public static final int PROP_ID_timestampFld2 = 25;
+    /* 时间戳字段2: NOP_TIMESTAMP_FLD2 TIMESTAMP */
+    public static final String PROP_NAME_nopTimestampFld2 = "nopTimestampFld2";
+    public static final int PROP_ID_nopTimestampFld2 = 25;
     
-    /* 文件字段2: FILE_FLD2 VARCHAR */
-    public static final String PROP_NAME_fileFld2 = "fileFld2";
-    public static final int PROP_ID_fileFld2 = 26;
+    /* 文件字段2: NOP_FILE_FLD2 VARCHAR */
+    public static final String PROP_NAME_nopFileFld2 = "nopFileFld2";
+    public static final int PROP_ID_nopFileFld2 = 26;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
@@ -153,19 +153,19 @@ public class _NopDynEntity extends DynamicOrmEntity{
 
     
     /* relation: 父对象 */
-    public static final String PROP_NAME_parent = "parent";
+    public static final String PROP_NAME_nopParent = "nopParent";
     
     /* relation: 子对象 */
-    public static final String PROP_NAME_children = "children";
+    public static final String PROP_NAME_nopChildren = "nopChildren";
     
     /* relation:  */
     public static final String PROP_NAME_extFields = "extFields";
     
     /* component:  */
-    public static final String PROP_NAME_fileFld1Component = "fileFld1Component";
+    public static final String PROP_NAME_nopFileFld1Component = "nopFileFld1Component";
     
     /* component:  */
-    public static final String PROP_NAME_fileFld2Component = "fileFld2Component";
+    public static final String PROP_NAME_nopFileFld2Component = "nopFileFld2Component";
     
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
@@ -178,80 +178,80 @@ public class _NopDynEntity extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_sid] = PROP_NAME_sid;
           PROP_NAME_TO_ID.put(PROP_NAME_sid, PROP_ID_sid);
       
-          PROP_ID_TO_NAME[PROP_ID_objType] = PROP_NAME_objType;
-          PROP_NAME_TO_ID.put(PROP_NAME_objType, PROP_ID_objType);
+          PROP_ID_TO_NAME[PROP_ID_nopObjType] = PROP_NAME_nopObjType;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopObjType, PROP_ID_nopObjType);
       
-          PROP_ID_TO_NAME[PROP_ID_name] = PROP_NAME_name;
-          PROP_NAME_TO_ID.put(PROP_NAME_name, PROP_ID_name);
+          PROP_ID_TO_NAME[PROP_ID_nopName] = PROP_NAME_nopName;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopName, PROP_ID_nopName);
       
-          PROP_ID_TO_NAME[PROP_ID_displayName] = PROP_NAME_displayName;
-          PROP_NAME_TO_ID.put(PROP_NAME_displayName, PROP_ID_displayName);
+          PROP_ID_TO_NAME[PROP_ID_nopDisplayName] = PROP_NAME_nopDisplayName;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopDisplayName, PROP_ID_nopDisplayName);
       
-          PROP_ID_TO_NAME[PROP_ID_sortOrder] = PROP_NAME_sortOrder;
-          PROP_NAME_TO_ID.put(PROP_NAME_sortOrder, PROP_ID_sortOrder);
+          PROP_ID_TO_NAME[PROP_ID_nopSortOrder] = PROP_NAME_nopSortOrder;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopSortOrder, PROP_ID_nopSortOrder);
       
           PROP_ID_TO_NAME[PROP_ID_nopFlowId] = PROP_NAME_nopFlowId;
           PROP_NAME_TO_ID.put(PROP_NAME_nopFlowId, PROP_ID_nopFlowId);
       
-          PROP_ID_TO_NAME[PROP_ID_bizStatus] = PROP_NAME_bizStatus;
-          PROP_NAME_TO_ID.put(PROP_NAME_bizStatus, PROP_ID_bizStatus);
+          PROP_ID_TO_NAME[PROP_ID_nopStatus] = PROP_NAME_nopStatus;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopStatus, PROP_ID_nopStatus);
       
-          PROP_ID_TO_NAME[PROP_ID_bizState] = PROP_NAME_bizState;
-          PROP_NAME_TO_ID.put(PROP_NAME_bizState, PROP_ID_bizState);
+          PROP_ID_TO_NAME[PROP_ID_nopBizState] = PROP_NAME_nopBizState;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopBizState, PROP_ID_nopBizState);
       
-          PROP_ID_TO_NAME[PROP_ID_parentId] = PROP_NAME_parentId;
-          PROP_NAME_TO_ID.put(PROP_NAME_parentId, PROP_ID_parentId);
+          PROP_ID_TO_NAME[PROP_ID_nopParentId] = PROP_NAME_nopParentId;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopParentId, PROP_ID_nopParentId);
       
-          PROP_ID_TO_NAME[PROP_ID_ownerName] = PROP_NAME_ownerName;
-          PROP_NAME_TO_ID.put(PROP_NAME_ownerName, PROP_ID_ownerName);
+          PROP_ID_TO_NAME[PROP_ID_nopOwnerName] = PROP_NAME_nopOwnerName;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopOwnerName, PROP_ID_nopOwnerName);
       
-          PROP_ID_TO_NAME[PROP_ID_ownerId] = PROP_NAME_ownerId;
-          PROP_NAME_TO_ID.put(PROP_NAME_ownerId, PROP_ID_ownerId);
+          PROP_ID_TO_NAME[PROP_ID_nopOwnerId] = PROP_NAME_nopOwnerId;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopOwnerId, PROP_ID_nopOwnerId);
       
-          PROP_ID_TO_NAME[PROP_ID_deptId] = PROP_NAME_deptId;
-          PROP_NAME_TO_ID.put(PROP_NAME_deptId, PROP_ID_deptId);
+          PROP_ID_TO_NAME[PROP_ID_nopDeptId] = PROP_NAME_nopDeptId;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopDeptId, PROP_ID_nopDeptId);
       
-          PROP_ID_TO_NAME[PROP_ID_stringFld1] = PROP_NAME_stringFld1;
-          PROP_NAME_TO_ID.put(PROP_NAME_stringFld1, PROP_ID_stringFld1);
+          PROP_ID_TO_NAME[PROP_ID_nopStringFld1] = PROP_NAME_nopStringFld1;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopStringFld1, PROP_ID_nopStringFld1);
       
-          PROP_ID_TO_NAME[PROP_ID_decimalFld1] = PROP_NAME_decimalFld1;
-          PROP_NAME_TO_ID.put(PROP_NAME_decimalFld1, PROP_ID_decimalFld1);
+          PROP_ID_TO_NAME[PROP_ID_nopDecimalFld1] = PROP_NAME_nopDecimalFld1;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopDecimalFld1, PROP_ID_nopDecimalFld1);
       
-          PROP_ID_TO_NAME[PROP_ID_intFld1] = PROP_NAME_intFld1;
-          PROP_NAME_TO_ID.put(PROP_NAME_intFld1, PROP_ID_intFld1);
+          PROP_ID_TO_NAME[PROP_ID_nopIntFld1] = PROP_NAME_nopIntFld1;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopIntFld1, PROP_ID_nopIntFld1);
       
-          PROP_ID_TO_NAME[PROP_ID_longFld1] = PROP_NAME_longFld1;
-          PROP_NAME_TO_ID.put(PROP_NAME_longFld1, PROP_ID_longFld1);
+          PROP_ID_TO_NAME[PROP_ID_nopLongFld1] = PROP_NAME_nopLongFld1;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopLongFld1, PROP_ID_nopLongFld1);
       
-          PROP_ID_TO_NAME[PROP_ID_dateFld1] = PROP_NAME_dateFld1;
-          PROP_NAME_TO_ID.put(PROP_NAME_dateFld1, PROP_ID_dateFld1);
+          PROP_ID_TO_NAME[PROP_ID_nopDateFld1] = PROP_NAME_nopDateFld1;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopDateFld1, PROP_ID_nopDateFld1);
       
-          PROP_ID_TO_NAME[PROP_ID_timestampFld1] = PROP_NAME_timestampFld1;
-          PROP_NAME_TO_ID.put(PROP_NAME_timestampFld1, PROP_ID_timestampFld1);
+          PROP_ID_TO_NAME[PROP_ID_nopTimestampFld1] = PROP_NAME_nopTimestampFld1;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopTimestampFld1, PROP_ID_nopTimestampFld1);
       
-          PROP_ID_TO_NAME[PROP_ID_fileFld1] = PROP_NAME_fileFld1;
-          PROP_NAME_TO_ID.put(PROP_NAME_fileFld1, PROP_ID_fileFld1);
+          PROP_ID_TO_NAME[PROP_ID_nopFileFld1] = PROP_NAME_nopFileFld1;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopFileFld1, PROP_ID_nopFileFld1);
       
-          PROP_ID_TO_NAME[PROP_ID_stringFld2] = PROP_NAME_stringFld2;
-          PROP_NAME_TO_ID.put(PROP_NAME_stringFld2, PROP_ID_stringFld2);
+          PROP_ID_TO_NAME[PROP_ID_nopStringFld2] = PROP_NAME_nopStringFld2;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopStringFld2, PROP_ID_nopStringFld2);
       
-          PROP_ID_TO_NAME[PROP_ID_decimalFld2] = PROP_NAME_decimalFld2;
-          PROP_NAME_TO_ID.put(PROP_NAME_decimalFld2, PROP_ID_decimalFld2);
+          PROP_ID_TO_NAME[PROP_ID_nopDecimalFld2] = PROP_NAME_nopDecimalFld2;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopDecimalFld2, PROP_ID_nopDecimalFld2);
       
-          PROP_ID_TO_NAME[PROP_ID_intFld2] = PROP_NAME_intFld2;
-          PROP_NAME_TO_ID.put(PROP_NAME_intFld2, PROP_ID_intFld2);
+          PROP_ID_TO_NAME[PROP_ID_nopIntFld2] = PROP_NAME_nopIntFld2;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopIntFld2, PROP_ID_nopIntFld2);
       
-          PROP_ID_TO_NAME[PROP_ID_longFld2] = PROP_NAME_longFld2;
-          PROP_NAME_TO_ID.put(PROP_NAME_longFld2, PROP_ID_longFld2);
+          PROP_ID_TO_NAME[PROP_ID_nopLongFld2] = PROP_NAME_nopLongFld2;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopLongFld2, PROP_ID_nopLongFld2);
       
-          PROP_ID_TO_NAME[PROP_ID_dateFld2] = PROP_NAME_dateFld2;
-          PROP_NAME_TO_ID.put(PROP_NAME_dateFld2, PROP_ID_dateFld2);
+          PROP_ID_TO_NAME[PROP_ID_nopDateFld2] = PROP_NAME_nopDateFld2;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopDateFld2, PROP_ID_nopDateFld2);
       
-          PROP_ID_TO_NAME[PROP_ID_timestampFld2] = PROP_NAME_timestampFld2;
-          PROP_NAME_TO_ID.put(PROP_NAME_timestampFld2, PROP_ID_timestampFld2);
+          PROP_ID_TO_NAME[PROP_ID_nopTimestampFld2] = PROP_NAME_nopTimestampFld2;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopTimestampFld2, PROP_ID_nopTimestampFld2);
       
-          PROP_ID_TO_NAME[PROP_ID_fileFld2] = PROP_NAME_fileFld2;
-          PROP_NAME_TO_ID.put(PROP_NAME_fileFld2, PROP_ID_fileFld2);
+          PROP_ID_TO_NAME[PROP_ID_nopFileFld2] = PROP_NAME_nopFileFld2;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopFileFld2, PROP_ID_nopFileFld2);
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
@@ -277,80 +277,80 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /* 主键: SID */
     private java.lang.String _sid;
     
-    /* 对象类型: OBJ_TYPE */
-    private java.lang.String _objType;
+    /* 对象类型: NOP_OBJ_TYPE */
+    private java.lang.String _nopObjType;
     
-    /* 名称: NAME */
-    private java.lang.String _name;
+    /* 名称: NOP_NAME */
+    private java.lang.String _nopName;
     
-    /* 显示名称: DISPLAY_NAME */
-    private java.lang.String _displayName;
+    /* 显示名称: NOP_DISPLAY_NAME */
+    private java.lang.String _nopDisplayName;
     
-    /* 排序: SORT_ORDER */
-    private java.lang.Integer _sortOrder;
+    /* 排序: NOP_SORT_ORDER */
+    private java.lang.Integer _nopSortOrder;
     
     /* 工作流实例ID: NOP_FLOW_ID */
     private java.lang.String _nopFlowId;
     
-    /* 业务状态码: BIZ_STATUS */
-    private java.lang.Integer _bizStatus;
+    /* 业务状态码: NOP_STATUS */
+    private java.lang.Integer _nopStatus;
     
-    /* 业务状态: BIZ_STATE */
-    private java.lang.String _bizState;
+    /* 业务状态: NOP_BIZ_STATE */
+    private java.lang.String _nopBizState;
     
-    /* 父ID: PARENT_ID */
-    private java.lang.String _parentId;
+    /* 父ID: NOP_PARENT_ID */
+    private java.lang.String _nopParentId;
     
-    /* 拥有者姓名: OWNER_NAME */
-    private java.lang.String _ownerName;
+    /* 拥有者姓名: NOP_OWNER_NAME */
+    private java.lang.String _nopOwnerName;
     
-    /* 拥有者ID: OWNER_ID */
-    private java.lang.String _ownerId;
+    /* 拥有者ID: NOP_OWNER_ID */
+    private java.lang.String _nopOwnerId;
     
-    /* 部门ID: DEPT_ID */
-    private java.lang.String _deptId;
+    /* 部门ID: NOP_DEPT_ID */
+    private java.lang.String _nopDeptId;
     
-    /* 字符串字段1: STRING_FLD1 */
-    private java.lang.String _stringFld1;
+    /* 字符串字段1: NOP_STRING_FLD1 */
+    private java.lang.String _nopStringFld1;
     
-    /* 浮点型字段1: DECIMAL_FLD1 */
-    private java.math.BigDecimal _decimalFld1;
+    /* 浮点型字段1: NOP_DECIMAL_FLD1 */
+    private java.math.BigDecimal _nopDecimalFld1;
     
-    /* 整数型字段1: INT_FLD1 */
-    private java.lang.Integer _intFld1;
+    /* 整数型字段1: NOP_INT_FLD1 */
+    private java.lang.Integer _nopIntFld1;
     
-    /* 长整型字段1: LONG_FLD1 */
-    private java.lang.Long _longFld1;
+    /* 长整型字段1: NOP_LONG_FLD1 */
+    private java.lang.Long _nopLongFld1;
     
-    /* 日期字段1: DATE_FLD1 */
-    private java.time.LocalDate _dateFld1;
+    /* 日期字段1: NOP_DATE_FLD1 */
+    private java.time.LocalDate _nopDateFld1;
     
-    /* 时间戳字段1: TIMESTAMP_FLD1 */
-    private java.sql.Timestamp _timestampFld1;
+    /* 时间戳字段1: NOP_TIMESTAMP_FLD1 */
+    private java.sql.Timestamp _nopTimestampFld1;
     
-    /* 文件字段1: FILE_FLD1 */
-    private java.lang.String _fileFld1;
+    /* 文件字段1: NOP_FILE_FLD1 */
+    private java.lang.String _nopFileFld1;
     
-    /* 字符串字段2: STRING_FLD2 */
-    private java.lang.String _stringFld2;
+    /* 字符串字段2: NOP_STRING_FLD2 */
+    private java.lang.String _nopStringFld2;
     
-    /* 浮点型字段2: DECIMAL_FLD2 */
-    private java.math.BigDecimal _decimalFld2;
+    /* 浮点型字段2: NOP_DECIMAL_FLD2 */
+    private java.math.BigDecimal _nopDecimalFld2;
     
-    /* 整数型字段2: INT_FLD2 */
-    private java.lang.Integer _intFld2;
+    /* 整数型字段2: NOP_INT_FLD2 */
+    private java.lang.Integer _nopIntFld2;
     
-    /* 长整型字段2: LONG_FLD2 */
-    private java.lang.Long _longFld2;
+    /* 长整型字段2: NOP_LONG_FLD2 */
+    private java.lang.Long _nopLongFld2;
     
-    /* 日期字段2: DATE_FLD2 */
-    private java.time.LocalDate _dateFld2;
+    /* 日期字段2: NOP_DATE_FLD2 */
+    private java.time.LocalDate _nopDateFld2;
     
-    /* 时间戳字段2: TIMESTAMP_FLD2 */
-    private java.sql.Timestamp _timestampFld2;
+    /* 时间戳字段2: NOP_TIMESTAMP_FLD2 */
+    private java.sql.Timestamp _nopTimestampFld2;
     
-    /* 文件字段2: FILE_FLD2 */
-    private java.lang.String _fileFld2;
+    /* 文件字段2: NOP_FILE_FLD2 */
+    private java.lang.String _nopFileFld2;
     
     /* 数据版本: VERSION */
     private java.lang.Integer _version;
@@ -444,80 +444,80 @@ public class _NopDynEntity extends DynamicOrmEntity{
             case PROP_ID_sid:
                return getSid();
         
-            case PROP_ID_objType:
-               return getObjType();
+            case PROP_ID_nopObjType:
+               return getNopObjType();
         
-            case PROP_ID_name:
-               return getName();
+            case PROP_ID_nopName:
+               return getNopName();
         
-            case PROP_ID_displayName:
-               return getDisplayName();
+            case PROP_ID_nopDisplayName:
+               return getNopDisplayName();
         
-            case PROP_ID_sortOrder:
-               return getSortOrder();
+            case PROP_ID_nopSortOrder:
+               return getNopSortOrder();
         
             case PROP_ID_nopFlowId:
                return getNopFlowId();
         
-            case PROP_ID_bizStatus:
-               return getBizStatus();
+            case PROP_ID_nopStatus:
+               return getNopStatus();
         
-            case PROP_ID_bizState:
-               return getBizState();
+            case PROP_ID_nopBizState:
+               return getNopBizState();
         
-            case PROP_ID_parentId:
-               return getParentId();
+            case PROP_ID_nopParentId:
+               return getNopParentId();
         
-            case PROP_ID_ownerName:
-               return getOwnerName();
+            case PROP_ID_nopOwnerName:
+               return getNopOwnerName();
         
-            case PROP_ID_ownerId:
-               return getOwnerId();
+            case PROP_ID_nopOwnerId:
+               return getNopOwnerId();
         
-            case PROP_ID_deptId:
-               return getDeptId();
+            case PROP_ID_nopDeptId:
+               return getNopDeptId();
         
-            case PROP_ID_stringFld1:
-               return getStringFld1();
+            case PROP_ID_nopStringFld1:
+               return getNopStringFld1();
         
-            case PROP_ID_decimalFld1:
-               return getDecimalFld1();
+            case PROP_ID_nopDecimalFld1:
+               return getNopDecimalFld1();
         
-            case PROP_ID_intFld1:
-               return getIntFld1();
+            case PROP_ID_nopIntFld1:
+               return getNopIntFld1();
         
-            case PROP_ID_longFld1:
-               return getLongFld1();
+            case PROP_ID_nopLongFld1:
+               return getNopLongFld1();
         
-            case PROP_ID_dateFld1:
-               return getDateFld1();
+            case PROP_ID_nopDateFld1:
+               return getNopDateFld1();
         
-            case PROP_ID_timestampFld1:
-               return getTimestampFld1();
+            case PROP_ID_nopTimestampFld1:
+               return getNopTimestampFld1();
         
-            case PROP_ID_fileFld1:
-               return getFileFld1();
+            case PROP_ID_nopFileFld1:
+               return getNopFileFld1();
         
-            case PROP_ID_stringFld2:
-               return getStringFld2();
+            case PROP_ID_nopStringFld2:
+               return getNopStringFld2();
         
-            case PROP_ID_decimalFld2:
-               return getDecimalFld2();
+            case PROP_ID_nopDecimalFld2:
+               return getNopDecimalFld2();
         
-            case PROP_ID_intFld2:
-               return getIntFld2();
+            case PROP_ID_nopIntFld2:
+               return getNopIntFld2();
         
-            case PROP_ID_longFld2:
-               return getLongFld2();
+            case PROP_ID_nopLongFld2:
+               return getNopLongFld2();
         
-            case PROP_ID_dateFld2:
-               return getDateFld2();
+            case PROP_ID_nopDateFld2:
+               return getNopDateFld2();
         
-            case PROP_ID_timestampFld2:
-               return getTimestampFld2();
+            case PROP_ID_nopTimestampFld2:
+               return getNopTimestampFld2();
         
-            case PROP_ID_fileFld2:
-               return getFileFld2();
+            case PROP_ID_nopFileFld2:
+               return getNopFileFld2();
         
             case PROP_ID_version:
                return getVersion();
@@ -558,43 +558,43 @@ public class _NopDynEntity extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_objType:{
+            case PROP_ID_nopObjType:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_objType));
+                       err-> newTypeConversionError(PROP_NAME_nopObjType));
                }
-               setObjType(typedValue);
+               setNopObjType(typedValue);
                break;
             }
         
-            case PROP_ID_name:{
+            case PROP_ID_nopName:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_name));
+                       err-> newTypeConversionError(PROP_NAME_nopName));
                }
-               setName(typedValue);
+               setNopName(typedValue);
                break;
             }
         
-            case PROP_ID_displayName:{
+            case PROP_ID_nopDisplayName:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_displayName));
+                       err-> newTypeConversionError(PROP_NAME_nopDisplayName));
                }
-               setDisplayName(typedValue);
+               setNopDisplayName(typedValue);
                break;
             }
         
-            case PROP_ID_sortOrder:{
+            case PROP_ID_nopSortOrder:{
                java.lang.Integer typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_sortOrder));
+                       err-> newTypeConversionError(PROP_NAME_nopSortOrder));
                }
-               setSortOrder(typedValue);
+               setNopSortOrder(typedValue);
                break;
             }
         
@@ -608,203 +608,203 @@ public class _NopDynEntity extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_bizStatus:{
+            case PROP_ID_nopStatus:{
                java.lang.Integer typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_bizStatus));
+                       err-> newTypeConversionError(PROP_NAME_nopStatus));
                }
-               setBizStatus(typedValue);
+               setNopStatus(typedValue);
                break;
             }
         
-            case PROP_ID_bizState:{
+            case PROP_ID_nopBizState:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_bizState));
+                       err-> newTypeConversionError(PROP_NAME_nopBizState));
                }
-               setBizState(typedValue);
+               setNopBizState(typedValue);
                break;
             }
         
-            case PROP_ID_parentId:{
+            case PROP_ID_nopParentId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_parentId));
+                       err-> newTypeConversionError(PROP_NAME_nopParentId));
                }
-               setParentId(typedValue);
+               setNopParentId(typedValue);
                break;
             }
         
-            case PROP_ID_ownerName:{
+            case PROP_ID_nopOwnerName:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_ownerName));
+                       err-> newTypeConversionError(PROP_NAME_nopOwnerName));
                }
-               setOwnerName(typedValue);
+               setNopOwnerName(typedValue);
                break;
             }
         
-            case PROP_ID_ownerId:{
+            case PROP_ID_nopOwnerId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_ownerId));
+                       err-> newTypeConversionError(PROP_NAME_nopOwnerId));
                }
-               setOwnerId(typedValue);
+               setNopOwnerId(typedValue);
                break;
             }
         
-            case PROP_ID_deptId:{
+            case PROP_ID_nopDeptId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_deptId));
+                       err-> newTypeConversionError(PROP_NAME_nopDeptId));
                }
-               setDeptId(typedValue);
+               setNopDeptId(typedValue);
                break;
             }
         
-            case PROP_ID_stringFld1:{
+            case PROP_ID_nopStringFld1:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_stringFld1));
+                       err-> newTypeConversionError(PROP_NAME_nopStringFld1));
                }
-               setStringFld1(typedValue);
+               setNopStringFld1(typedValue);
                break;
             }
         
-            case PROP_ID_decimalFld1:{
+            case PROP_ID_nopDecimalFld1:{
                java.math.BigDecimal typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toBigDecimal(value,
-                       err-> newTypeConversionError(PROP_NAME_decimalFld1));
+                       err-> newTypeConversionError(PROP_NAME_nopDecimalFld1));
                }
-               setDecimalFld1(typedValue);
+               setNopDecimalFld1(typedValue);
                break;
             }
         
-            case PROP_ID_intFld1:{
+            case PROP_ID_nopIntFld1:{
                java.lang.Integer typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_intFld1));
+                       err-> newTypeConversionError(PROP_NAME_nopIntFld1));
                }
-               setIntFld1(typedValue);
+               setNopIntFld1(typedValue);
                break;
             }
         
-            case PROP_ID_longFld1:{
+            case PROP_ID_nopLongFld1:{
                java.lang.Long typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toLong(value,
-                       err-> newTypeConversionError(PROP_NAME_longFld1));
+                       err-> newTypeConversionError(PROP_NAME_nopLongFld1));
                }
-               setLongFld1(typedValue);
+               setNopLongFld1(typedValue);
                break;
             }
         
-            case PROP_ID_dateFld1:{
+            case PROP_ID_nopDateFld1:{
                java.time.LocalDate typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toLocalDate(value,
-                       err-> newTypeConversionError(PROP_NAME_dateFld1));
+                       err-> newTypeConversionError(PROP_NAME_nopDateFld1));
                }
-               setDateFld1(typedValue);
+               setNopDateFld1(typedValue);
                break;
             }
         
-            case PROP_ID_timestampFld1:{
+            case PROP_ID_nopTimestampFld1:{
                java.sql.Timestamp typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toTimestamp(value,
-                       err-> newTypeConversionError(PROP_NAME_timestampFld1));
+                       err-> newTypeConversionError(PROP_NAME_nopTimestampFld1));
                }
-               setTimestampFld1(typedValue);
+               setNopTimestampFld1(typedValue);
                break;
             }
         
-            case PROP_ID_fileFld1:{
+            case PROP_ID_nopFileFld1:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_fileFld1));
+                       err-> newTypeConversionError(PROP_NAME_nopFileFld1));
                }
-               setFileFld1(typedValue);
+               setNopFileFld1(typedValue);
                break;
             }
         
-            case PROP_ID_stringFld2:{
+            case PROP_ID_nopStringFld2:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_stringFld2));
+                       err-> newTypeConversionError(PROP_NAME_nopStringFld2));
                }
-               setStringFld2(typedValue);
+               setNopStringFld2(typedValue);
                break;
             }
         
-            case PROP_ID_decimalFld2:{
+            case PROP_ID_nopDecimalFld2:{
                java.math.BigDecimal typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toBigDecimal(value,
-                       err-> newTypeConversionError(PROP_NAME_decimalFld2));
+                       err-> newTypeConversionError(PROP_NAME_nopDecimalFld2));
                }
-               setDecimalFld2(typedValue);
+               setNopDecimalFld2(typedValue);
                break;
             }
         
-            case PROP_ID_intFld2:{
+            case PROP_ID_nopIntFld2:{
                java.lang.Integer typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_intFld2));
+                       err-> newTypeConversionError(PROP_NAME_nopIntFld2));
                }
-               setIntFld2(typedValue);
+               setNopIntFld2(typedValue);
                break;
             }
         
-            case PROP_ID_longFld2:{
+            case PROP_ID_nopLongFld2:{
                java.lang.Long typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toLong(value,
-                       err-> newTypeConversionError(PROP_NAME_longFld2));
+                       err-> newTypeConversionError(PROP_NAME_nopLongFld2));
                }
-               setLongFld2(typedValue);
+               setNopLongFld2(typedValue);
                break;
             }
         
-            case PROP_ID_dateFld2:{
+            case PROP_ID_nopDateFld2:{
                java.time.LocalDate typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toLocalDate(value,
-                       err-> newTypeConversionError(PROP_NAME_dateFld2));
+                       err-> newTypeConversionError(PROP_NAME_nopDateFld2));
                }
-               setDateFld2(typedValue);
+               setNopDateFld2(typedValue);
                break;
             }
         
-            case PROP_ID_timestampFld2:{
+            case PROP_ID_nopTimestampFld2:{
                java.sql.Timestamp typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toTimestamp(value,
-                       err-> newTypeConversionError(PROP_NAME_timestampFld2));
+                       err-> newTypeConversionError(PROP_NAME_nopTimestampFld2));
                }
-               setTimestampFld2(typedValue);
+               setNopTimestampFld2(typedValue);
                break;
             }
         
-            case PROP_ID_fileFld2:{
+            case PROP_ID_nopFileFld2:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_fileFld2));
+                       err-> newTypeConversionError(PROP_NAME_nopFileFld2));
                }
-               setFileFld2(typedValue);
+               setNopFileFld2(typedValue);
                break;
             }
         
@@ -884,30 +884,30 @@ public class _NopDynEntity extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_objType:{
+            case PROP_ID_nopObjType:{
                onInitProp(propId);
-               this._objType = (java.lang.String)value;
+               this._nopObjType = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_name:{
+            case PROP_ID_nopName:{
                onInitProp(propId);
-               this._name = (java.lang.String)value;
+               this._nopName = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_displayName:{
+            case PROP_ID_nopDisplayName:{
                onInitProp(propId);
-               this._displayName = (java.lang.String)value;
+               this._nopDisplayName = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_sortOrder:{
+            case PROP_ID_nopSortOrder:{
                onInitProp(propId);
-               this._sortOrder = (java.lang.Integer)value;
+               this._nopSortOrder = (java.lang.Integer)value;
                
                break;
             }
@@ -919,142 +919,142 @@ public class _NopDynEntity extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_bizStatus:{
+            case PROP_ID_nopStatus:{
                onInitProp(propId);
-               this._bizStatus = (java.lang.Integer)value;
+               this._nopStatus = (java.lang.Integer)value;
                
                break;
             }
         
-            case PROP_ID_bizState:{
+            case PROP_ID_nopBizState:{
                onInitProp(propId);
-               this._bizState = (java.lang.String)value;
+               this._nopBizState = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_parentId:{
+            case PROP_ID_nopParentId:{
                onInitProp(propId);
-               this._parentId = (java.lang.String)value;
+               this._nopParentId = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_ownerName:{
+            case PROP_ID_nopOwnerName:{
                onInitProp(propId);
-               this._ownerName = (java.lang.String)value;
+               this._nopOwnerName = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_ownerId:{
+            case PROP_ID_nopOwnerId:{
                onInitProp(propId);
-               this._ownerId = (java.lang.String)value;
+               this._nopOwnerId = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_deptId:{
+            case PROP_ID_nopDeptId:{
                onInitProp(propId);
-               this._deptId = (java.lang.String)value;
+               this._nopDeptId = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_stringFld1:{
+            case PROP_ID_nopStringFld1:{
                onInitProp(propId);
-               this._stringFld1 = (java.lang.String)value;
+               this._nopStringFld1 = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_decimalFld1:{
+            case PROP_ID_nopDecimalFld1:{
                onInitProp(propId);
-               this._decimalFld1 = (java.math.BigDecimal)value;
+               this._nopDecimalFld1 = (java.math.BigDecimal)value;
                
                break;
             }
         
-            case PROP_ID_intFld1:{
+            case PROP_ID_nopIntFld1:{
                onInitProp(propId);
-               this._intFld1 = (java.lang.Integer)value;
+               this._nopIntFld1 = (java.lang.Integer)value;
                
                break;
             }
         
-            case PROP_ID_longFld1:{
+            case PROP_ID_nopLongFld1:{
                onInitProp(propId);
-               this._longFld1 = (java.lang.Long)value;
+               this._nopLongFld1 = (java.lang.Long)value;
                
                break;
             }
         
-            case PROP_ID_dateFld1:{
+            case PROP_ID_nopDateFld1:{
                onInitProp(propId);
-               this._dateFld1 = (java.time.LocalDate)value;
+               this._nopDateFld1 = (java.time.LocalDate)value;
                
                break;
             }
         
-            case PROP_ID_timestampFld1:{
+            case PROP_ID_nopTimestampFld1:{
                onInitProp(propId);
-               this._timestampFld1 = (java.sql.Timestamp)value;
+               this._nopTimestampFld1 = (java.sql.Timestamp)value;
                
                break;
             }
         
-            case PROP_ID_fileFld1:{
+            case PROP_ID_nopFileFld1:{
                onInitProp(propId);
-               this._fileFld1 = (java.lang.String)value;
+               this._nopFileFld1 = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_stringFld2:{
+            case PROP_ID_nopStringFld2:{
                onInitProp(propId);
-               this._stringFld2 = (java.lang.String)value;
+               this._nopStringFld2 = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_decimalFld2:{
+            case PROP_ID_nopDecimalFld2:{
                onInitProp(propId);
-               this._decimalFld2 = (java.math.BigDecimal)value;
+               this._nopDecimalFld2 = (java.math.BigDecimal)value;
                
                break;
             }
         
-            case PROP_ID_intFld2:{
+            case PROP_ID_nopIntFld2:{
                onInitProp(propId);
-               this._intFld2 = (java.lang.Integer)value;
+               this._nopIntFld2 = (java.lang.Integer)value;
                
                break;
             }
         
-            case PROP_ID_longFld2:{
+            case PROP_ID_nopLongFld2:{
                onInitProp(propId);
-               this._longFld2 = (java.lang.Long)value;
+               this._nopLongFld2 = (java.lang.Long)value;
                
                break;
             }
         
-            case PROP_ID_dateFld2:{
+            case PROP_ID_nopDateFld2:{
                onInitProp(propId);
-               this._dateFld2 = (java.time.LocalDate)value;
+               this._nopDateFld2 = (java.time.LocalDate)value;
                
                break;
             }
         
-            case PROP_ID_timestampFld2:{
+            case PROP_ID_nopTimestampFld2:{
                onInitProp(propId);
-               this._timestampFld2 = (java.sql.Timestamp)value;
+               this._nopTimestampFld2 = (java.sql.Timestamp)value;
                
                break;
             }
         
-            case PROP_ID_fileFld2:{
+            case PROP_ID_nopFileFld2:{
                onInitProp(propId);
-               this._fileFld2 = (java.lang.String)value;
+               this._nopFileFld2 = (java.lang.String)value;
                
                break;
             }
@@ -1127,77 +1127,77 @@ public class _NopDynEntity extends DynamicOrmEntity{
     }
     
     /**
-     * 对象类型: OBJ_TYPE
+     * 对象类型: NOP_OBJ_TYPE
      */
-    public java.lang.String getObjType(){
-         onPropGet(PROP_ID_objType);
-         return _objType;
+    public java.lang.String getNopObjType(){
+         onPropGet(PROP_ID_nopObjType);
+         return _nopObjType;
     }
 
     /**
-     * 对象类型: OBJ_TYPE
+     * 对象类型: NOP_OBJ_TYPE
      */
-    public void setObjType(java.lang.String value){
-        if(onPropSet(PROP_ID_objType,value)){
-            this._objType = value;
-            internalClearRefs(PROP_ID_objType);
+    public void setNopObjType(java.lang.String value){
+        if(onPropSet(PROP_ID_nopObjType,value)){
+            this._nopObjType = value;
+            internalClearRefs(PROP_ID_nopObjType);
             
         }
     }
     
     /**
-     * 名称: NAME
+     * 名称: NOP_NAME
      */
-    public java.lang.String getName(){
-         onPropGet(PROP_ID_name);
-         return _name;
+    public java.lang.String getNopName(){
+         onPropGet(PROP_ID_nopName);
+         return _nopName;
     }
 
     /**
-     * 名称: NAME
+     * 名称: NOP_NAME
      */
-    public void setName(java.lang.String value){
-        if(onPropSet(PROP_ID_name,value)){
-            this._name = value;
-            internalClearRefs(PROP_ID_name);
+    public void setNopName(java.lang.String value){
+        if(onPropSet(PROP_ID_nopName,value)){
+            this._nopName = value;
+            internalClearRefs(PROP_ID_nopName);
             
         }
     }
     
     /**
-     * 显示名称: DISPLAY_NAME
+     * 显示名称: NOP_DISPLAY_NAME
      */
-    public java.lang.String getDisplayName(){
-         onPropGet(PROP_ID_displayName);
-         return _displayName;
+    public java.lang.String getNopDisplayName(){
+         onPropGet(PROP_ID_nopDisplayName);
+         return _nopDisplayName;
     }
 
     /**
-     * 显示名称: DISPLAY_NAME
+     * 显示名称: NOP_DISPLAY_NAME
      */
-    public void setDisplayName(java.lang.String value){
-        if(onPropSet(PROP_ID_displayName,value)){
-            this._displayName = value;
-            internalClearRefs(PROP_ID_displayName);
+    public void setNopDisplayName(java.lang.String value){
+        if(onPropSet(PROP_ID_nopDisplayName,value)){
+            this._nopDisplayName = value;
+            internalClearRefs(PROP_ID_nopDisplayName);
             
         }
     }
     
     /**
-     * 排序: SORT_ORDER
+     * 排序: NOP_SORT_ORDER
      */
-    public java.lang.Integer getSortOrder(){
-         onPropGet(PROP_ID_sortOrder);
-         return _sortOrder;
+    public java.lang.Integer getNopSortOrder(){
+         onPropGet(PROP_ID_nopSortOrder);
+         return _nopSortOrder;
     }
 
     /**
-     * 排序: SORT_ORDER
+     * 排序: NOP_SORT_ORDER
      */
-    public void setSortOrder(java.lang.Integer value){
-        if(onPropSet(PROP_ID_sortOrder,value)){
-            this._sortOrder = value;
-            internalClearRefs(PROP_ID_sortOrder);
+    public void setNopSortOrder(java.lang.Integer value){
+        if(onPropSet(PROP_ID_nopSortOrder,value)){
+            this._nopSortOrder = value;
+            internalClearRefs(PROP_ID_nopSortOrder);
             
         }
     }
@@ -1222,381 +1222,381 @@ public class _NopDynEntity extends DynamicOrmEntity{
     }
     
     /**
-     * 业务状态码: BIZ_STATUS
+     * 业务状态码: NOP_STATUS
      */
-    public java.lang.Integer getBizStatus(){
-         onPropGet(PROP_ID_bizStatus);
-         return _bizStatus;
+    public java.lang.Integer getNopStatus(){
+         onPropGet(PROP_ID_nopStatus);
+         return _nopStatus;
     }
 
     /**
-     * 业务状态码: BIZ_STATUS
+     * 业务状态码: NOP_STATUS
      */
-    public void setBizStatus(java.lang.Integer value){
-        if(onPropSet(PROP_ID_bizStatus,value)){
-            this._bizStatus = value;
-            internalClearRefs(PROP_ID_bizStatus);
+    public void setNopStatus(java.lang.Integer value){
+        if(onPropSet(PROP_ID_nopStatus,value)){
+            this._nopStatus = value;
+            internalClearRefs(PROP_ID_nopStatus);
             
         }
     }
     
     /**
-     * 业务状态: BIZ_STATE
+     * 业务状态: NOP_BIZ_STATE
      */
-    public java.lang.String getBizState(){
-         onPropGet(PROP_ID_bizState);
-         return _bizState;
+    public java.lang.String getNopBizState(){
+         onPropGet(PROP_ID_nopBizState);
+         return _nopBizState;
     }
 
     /**
-     * 业务状态: BIZ_STATE
+     * 业务状态: NOP_BIZ_STATE
      */
-    public void setBizState(java.lang.String value){
-        if(onPropSet(PROP_ID_bizState,value)){
-            this._bizState = value;
-            internalClearRefs(PROP_ID_bizState);
+    public void setNopBizState(java.lang.String value){
+        if(onPropSet(PROP_ID_nopBizState,value)){
+            this._nopBizState = value;
+            internalClearRefs(PROP_ID_nopBizState);
             
         }
     }
     
     /**
-     * 父ID: PARENT_ID
+     * 父ID: NOP_PARENT_ID
      */
-    public java.lang.String getParentId(){
-         onPropGet(PROP_ID_parentId);
-         return _parentId;
+    public java.lang.String getNopParentId(){
+         onPropGet(PROP_ID_nopParentId);
+         return _nopParentId;
     }
 
     /**
-     * 父ID: PARENT_ID
+     * 父ID: NOP_PARENT_ID
      */
-    public void setParentId(java.lang.String value){
-        if(onPropSet(PROP_ID_parentId,value)){
-            this._parentId = value;
-            internalClearRefs(PROP_ID_parentId);
+    public void setNopParentId(java.lang.String value){
+        if(onPropSet(PROP_ID_nopParentId,value)){
+            this._nopParentId = value;
+            internalClearRefs(PROP_ID_nopParentId);
             
         }
     }
     
     /**
-     * 拥有者姓名: OWNER_NAME
+     * 拥有者姓名: NOP_OWNER_NAME
      */
-    public java.lang.String getOwnerName(){
-         onPropGet(PROP_ID_ownerName);
-         return _ownerName;
+    public java.lang.String getNopOwnerName(){
+         onPropGet(PROP_ID_nopOwnerName);
+         return _nopOwnerName;
     }
 
     /**
-     * 拥有者姓名: OWNER_NAME
+     * 拥有者姓名: NOP_OWNER_NAME
      */
-    public void setOwnerName(java.lang.String value){
-        if(onPropSet(PROP_ID_ownerName,value)){
-            this._ownerName = value;
-            internalClearRefs(PROP_ID_ownerName);
+    public void setNopOwnerName(java.lang.String value){
+        if(onPropSet(PROP_ID_nopOwnerName,value)){
+            this._nopOwnerName = value;
+            internalClearRefs(PROP_ID_nopOwnerName);
             
         }
     }
     
     /**
-     * 拥有者ID: OWNER_ID
+     * 拥有者ID: NOP_OWNER_ID
      */
-    public java.lang.String getOwnerId(){
-         onPropGet(PROP_ID_ownerId);
-         return _ownerId;
+    public java.lang.String getNopOwnerId(){
+         onPropGet(PROP_ID_nopOwnerId);
+         return _nopOwnerId;
     }
 
     /**
-     * 拥有者ID: OWNER_ID
+     * 拥有者ID: NOP_OWNER_ID
      */
-    public void setOwnerId(java.lang.String value){
-        if(onPropSet(PROP_ID_ownerId,value)){
-            this._ownerId = value;
-            internalClearRefs(PROP_ID_ownerId);
+    public void setNopOwnerId(java.lang.String value){
+        if(onPropSet(PROP_ID_nopOwnerId,value)){
+            this._nopOwnerId = value;
+            internalClearRefs(PROP_ID_nopOwnerId);
             
         }
     }
     
     /**
-     * 部门ID: DEPT_ID
+     * 部门ID: NOP_DEPT_ID
      */
-    public java.lang.String getDeptId(){
-         onPropGet(PROP_ID_deptId);
-         return _deptId;
+    public java.lang.String getNopDeptId(){
+         onPropGet(PROP_ID_nopDeptId);
+         return _nopDeptId;
     }
 
     /**
-     * 部门ID: DEPT_ID
+     * 部门ID: NOP_DEPT_ID
      */
-    public void setDeptId(java.lang.String value){
-        if(onPropSet(PROP_ID_deptId,value)){
-            this._deptId = value;
-            internalClearRefs(PROP_ID_deptId);
+    public void setNopDeptId(java.lang.String value){
+        if(onPropSet(PROP_ID_nopDeptId,value)){
+            this._nopDeptId = value;
+            internalClearRefs(PROP_ID_nopDeptId);
             
         }
     }
     
     /**
-     * 字符串字段1: STRING_FLD1
+     * 字符串字段1: NOP_STRING_FLD1
      */
-    public java.lang.String getStringFld1(){
-         onPropGet(PROP_ID_stringFld1);
-         return _stringFld1;
+    public java.lang.String getNopStringFld1(){
+         onPropGet(PROP_ID_nopStringFld1);
+         return _nopStringFld1;
     }
 
     /**
-     * 字符串字段1: STRING_FLD1
+     * 字符串字段1: NOP_STRING_FLD1
      */
-    public void setStringFld1(java.lang.String value){
-        if(onPropSet(PROP_ID_stringFld1,value)){
-            this._stringFld1 = value;
-            internalClearRefs(PROP_ID_stringFld1);
+    public void setNopStringFld1(java.lang.String value){
+        if(onPropSet(PROP_ID_nopStringFld1,value)){
+            this._nopStringFld1 = value;
+            internalClearRefs(PROP_ID_nopStringFld1);
             
         }
     }
     
     /**
-     * 浮点型字段1: DECIMAL_FLD1
+     * 浮点型字段1: NOP_DECIMAL_FLD1
      */
-    public java.math.BigDecimal getDecimalFld1(){
-         onPropGet(PROP_ID_decimalFld1);
-         return _decimalFld1;
+    public java.math.BigDecimal getNopDecimalFld1(){
+         onPropGet(PROP_ID_nopDecimalFld1);
+         return _nopDecimalFld1;
     }
 
     /**
-     * 浮点型字段1: DECIMAL_FLD1
+     * 浮点型字段1: NOP_DECIMAL_FLD1
      */
-    public void setDecimalFld1(java.math.BigDecimal value){
-        if(onPropSet(PROP_ID_decimalFld1,value)){
-            this._decimalFld1 = value;
-            internalClearRefs(PROP_ID_decimalFld1);
+    public void setNopDecimalFld1(java.math.BigDecimal value){
+        if(onPropSet(PROP_ID_nopDecimalFld1,value)){
+            this._nopDecimalFld1 = value;
+            internalClearRefs(PROP_ID_nopDecimalFld1);
             
         }
     }
     
     /**
-     * 整数型字段1: INT_FLD1
+     * 整数型字段1: NOP_INT_FLD1
      */
-    public java.lang.Integer getIntFld1(){
-         onPropGet(PROP_ID_intFld1);
-         return _intFld1;
+    public java.lang.Integer getNopIntFld1(){
+         onPropGet(PROP_ID_nopIntFld1);
+         return _nopIntFld1;
     }
 
     /**
-     * 整数型字段1: INT_FLD1
+     * 整数型字段1: NOP_INT_FLD1
      */
-    public void setIntFld1(java.lang.Integer value){
-        if(onPropSet(PROP_ID_intFld1,value)){
-            this._intFld1 = value;
-            internalClearRefs(PROP_ID_intFld1);
+    public void setNopIntFld1(java.lang.Integer value){
+        if(onPropSet(PROP_ID_nopIntFld1,value)){
+            this._nopIntFld1 = value;
+            internalClearRefs(PROP_ID_nopIntFld1);
             
         }
     }
     
     /**
-     * 长整型字段1: LONG_FLD1
+     * 长整型字段1: NOP_LONG_FLD1
      */
-    public java.lang.Long getLongFld1(){
-         onPropGet(PROP_ID_longFld1);
-         return _longFld1;
+    public java.lang.Long getNopLongFld1(){
+         onPropGet(PROP_ID_nopLongFld1);
+         return _nopLongFld1;
     }
 
     /**
-     * 长整型字段1: LONG_FLD1
+     * 长整型字段1: NOP_LONG_FLD1
      */
-    public void setLongFld1(java.lang.Long value){
-        if(onPropSet(PROP_ID_longFld1,value)){
-            this._longFld1 = value;
-            internalClearRefs(PROP_ID_longFld1);
+    public void setNopLongFld1(java.lang.Long value){
+        if(onPropSet(PROP_ID_nopLongFld1,value)){
+            this._nopLongFld1 = value;
+            internalClearRefs(PROP_ID_nopLongFld1);
             
         }
     }
     
     /**
-     * 日期字段1: DATE_FLD1
+     * 日期字段1: NOP_DATE_FLD1
      */
-    public java.time.LocalDate getDateFld1(){
-         onPropGet(PROP_ID_dateFld1);
-         return _dateFld1;
+    public java.time.LocalDate getNopDateFld1(){
+         onPropGet(PROP_ID_nopDateFld1);
+         return _nopDateFld1;
     }
 
     /**
-     * 日期字段1: DATE_FLD1
+     * 日期字段1: NOP_DATE_FLD1
      */
-    public void setDateFld1(java.time.LocalDate value){
-        if(onPropSet(PROP_ID_dateFld1,value)){
-            this._dateFld1 = value;
-            internalClearRefs(PROP_ID_dateFld1);
+    public void setNopDateFld1(java.time.LocalDate value){
+        if(onPropSet(PROP_ID_nopDateFld1,value)){
+            this._nopDateFld1 = value;
+            internalClearRefs(PROP_ID_nopDateFld1);
             
         }
     }
     
     /**
-     * 时间戳字段1: TIMESTAMP_FLD1
+     * 时间戳字段1: NOP_TIMESTAMP_FLD1
      */
-    public java.sql.Timestamp getTimestampFld1(){
-         onPropGet(PROP_ID_timestampFld1);
-         return _timestampFld1;
+    public java.sql.Timestamp getNopTimestampFld1(){
+         onPropGet(PROP_ID_nopTimestampFld1);
+         return _nopTimestampFld1;
     }
 
     /**
-     * 时间戳字段1: TIMESTAMP_FLD1
+     * 时间戳字段1: NOP_TIMESTAMP_FLD1
      */
-    public void setTimestampFld1(java.sql.Timestamp value){
-        if(onPropSet(PROP_ID_timestampFld1,value)){
-            this._timestampFld1 = value;
-            internalClearRefs(PROP_ID_timestampFld1);
+    public void setNopTimestampFld1(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_nopTimestampFld1,value)){
+            this._nopTimestampFld1 = value;
+            internalClearRefs(PROP_ID_nopTimestampFld1);
             
         }
     }
     
     /**
-     * 文件字段1: FILE_FLD1
+     * 文件字段1: NOP_FILE_FLD1
      */
-    public java.lang.String getFileFld1(){
-         onPropGet(PROP_ID_fileFld1);
-         return _fileFld1;
+    public java.lang.String getNopFileFld1(){
+         onPropGet(PROP_ID_nopFileFld1);
+         return _nopFileFld1;
     }
 
     /**
-     * 文件字段1: FILE_FLD1
+     * 文件字段1: NOP_FILE_FLD1
      */
-    public void setFileFld1(java.lang.String value){
-        if(onPropSet(PROP_ID_fileFld1,value)){
-            this._fileFld1 = value;
-            internalClearRefs(PROP_ID_fileFld1);
+    public void setNopFileFld1(java.lang.String value){
+        if(onPropSet(PROP_ID_nopFileFld1,value)){
+            this._nopFileFld1 = value;
+            internalClearRefs(PROP_ID_nopFileFld1);
             
         }
     }
     
     /**
-     * 字符串字段2: STRING_FLD2
+     * 字符串字段2: NOP_STRING_FLD2
      */
-    public java.lang.String getStringFld2(){
-         onPropGet(PROP_ID_stringFld2);
-         return _stringFld2;
+    public java.lang.String getNopStringFld2(){
+         onPropGet(PROP_ID_nopStringFld2);
+         return _nopStringFld2;
     }
 
     /**
-     * 字符串字段2: STRING_FLD2
+     * 字符串字段2: NOP_STRING_FLD2
      */
-    public void setStringFld2(java.lang.String value){
-        if(onPropSet(PROP_ID_stringFld2,value)){
-            this._stringFld2 = value;
-            internalClearRefs(PROP_ID_stringFld2);
+    public void setNopStringFld2(java.lang.String value){
+        if(onPropSet(PROP_ID_nopStringFld2,value)){
+            this._nopStringFld2 = value;
+            internalClearRefs(PROP_ID_nopStringFld2);
             
         }
     }
     
     /**
-     * 浮点型字段2: DECIMAL_FLD2
+     * 浮点型字段2: NOP_DECIMAL_FLD2
      */
-    public java.math.BigDecimal getDecimalFld2(){
-         onPropGet(PROP_ID_decimalFld2);
-         return _decimalFld2;
+    public java.math.BigDecimal getNopDecimalFld2(){
+         onPropGet(PROP_ID_nopDecimalFld2);
+         return _nopDecimalFld2;
     }
 
     /**
-     * 浮点型字段2: DECIMAL_FLD2
+     * 浮点型字段2: NOP_DECIMAL_FLD2
      */
-    public void setDecimalFld2(java.math.BigDecimal value){
-        if(onPropSet(PROP_ID_decimalFld2,value)){
-            this._decimalFld2 = value;
-            internalClearRefs(PROP_ID_decimalFld2);
+    public void setNopDecimalFld2(java.math.BigDecimal value){
+        if(onPropSet(PROP_ID_nopDecimalFld2,value)){
+            this._nopDecimalFld2 = value;
+            internalClearRefs(PROP_ID_nopDecimalFld2);
             
         }
     }
     
     /**
-     * 整数型字段2: INT_FLD2
+     * 整数型字段2: NOP_INT_FLD2
      */
-    public java.lang.Integer getIntFld2(){
-         onPropGet(PROP_ID_intFld2);
-         return _intFld2;
+    public java.lang.Integer getNopIntFld2(){
+         onPropGet(PROP_ID_nopIntFld2);
+         return _nopIntFld2;
     }
 
     /**
-     * 整数型字段2: INT_FLD2
+     * 整数型字段2: NOP_INT_FLD2
      */
-    public void setIntFld2(java.lang.Integer value){
-        if(onPropSet(PROP_ID_intFld2,value)){
-            this._intFld2 = value;
-            internalClearRefs(PROP_ID_intFld2);
+    public void setNopIntFld2(java.lang.Integer value){
+        if(onPropSet(PROP_ID_nopIntFld2,value)){
+            this._nopIntFld2 = value;
+            internalClearRefs(PROP_ID_nopIntFld2);
             
         }
     }
     
     /**
-     * 长整型字段2: LONG_FLD2
+     * 长整型字段2: NOP_LONG_FLD2
      */
-    public java.lang.Long getLongFld2(){
-         onPropGet(PROP_ID_longFld2);
-         return _longFld2;
+    public java.lang.Long getNopLongFld2(){
+         onPropGet(PROP_ID_nopLongFld2);
+         return _nopLongFld2;
     }
 
     /**
-     * 长整型字段2: LONG_FLD2
+     * 长整型字段2: NOP_LONG_FLD2
      */
-    public void setLongFld2(java.lang.Long value){
-        if(onPropSet(PROP_ID_longFld2,value)){
-            this._longFld2 = value;
-            internalClearRefs(PROP_ID_longFld2);
+    public void setNopLongFld2(java.lang.Long value){
+        if(onPropSet(PROP_ID_nopLongFld2,value)){
+            this._nopLongFld2 = value;
+            internalClearRefs(PROP_ID_nopLongFld2);
             
         }
     }
     
     /**
-     * 日期字段2: DATE_FLD2
+     * 日期字段2: NOP_DATE_FLD2
      */
-    public java.time.LocalDate getDateFld2(){
-         onPropGet(PROP_ID_dateFld2);
-         return _dateFld2;
+    public java.time.LocalDate getNopDateFld2(){
+         onPropGet(PROP_ID_nopDateFld2);
+         return _nopDateFld2;
     }
 
     /**
-     * 日期字段2: DATE_FLD2
+     * 日期字段2: NOP_DATE_FLD2
      */
-    public void setDateFld2(java.time.LocalDate value){
-        if(onPropSet(PROP_ID_dateFld2,value)){
-            this._dateFld2 = value;
-            internalClearRefs(PROP_ID_dateFld2);
+    public void setNopDateFld2(java.time.LocalDate value){
+        if(onPropSet(PROP_ID_nopDateFld2,value)){
+            this._nopDateFld2 = value;
+            internalClearRefs(PROP_ID_nopDateFld2);
             
         }
     }
     
     /**
-     * 时间戳字段2: TIMESTAMP_FLD2
+     * 时间戳字段2: NOP_TIMESTAMP_FLD2
      */
-    public java.sql.Timestamp getTimestampFld2(){
-         onPropGet(PROP_ID_timestampFld2);
-         return _timestampFld2;
+    public java.sql.Timestamp getNopTimestampFld2(){
+         onPropGet(PROP_ID_nopTimestampFld2);
+         return _nopTimestampFld2;
     }
 
     /**
-     * 时间戳字段2: TIMESTAMP_FLD2
+     * 时间戳字段2: NOP_TIMESTAMP_FLD2
      */
-    public void setTimestampFld2(java.sql.Timestamp value){
-        if(onPropSet(PROP_ID_timestampFld2,value)){
-            this._timestampFld2 = value;
-            internalClearRefs(PROP_ID_timestampFld2);
+    public void setNopTimestampFld2(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_nopTimestampFld2,value)){
+            this._nopTimestampFld2 = value;
+            internalClearRefs(PROP_ID_nopTimestampFld2);
             
         }
     }
     
     /**
-     * 文件字段2: FILE_FLD2
+     * 文件字段2: NOP_FILE_FLD2
      */
-    public java.lang.String getFileFld2(){
-         onPropGet(PROP_ID_fileFld2);
-         return _fileFld2;
+    public java.lang.String getNopFileFld2(){
+         onPropGet(PROP_ID_nopFileFld2);
+         return _nopFileFld2;
     }
 
     /**
-     * 文件字段2: FILE_FLD2
+     * 文件字段2: NOP_FILE_FLD2
      */
-    public void setFileFld2(java.lang.String value){
-        if(onPropSet(PROP_ID_fileFld2,value)){
-            this._fileFld2 = value;
-            internalClearRefs(PROP_ID_fileFld2);
+    public void setNopFileFld2(java.lang.String value){
+        if(onPropSet(PROP_ID_nopFileFld2,value)){
+            this._nopFileFld2 = value;
+            internalClearRefs(PROP_ID_nopFileFld2);
             
         }
     }
@@ -1718,32 +1718,34 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 父对象
      */
-    public io.nop.dyn.dao.entity.NopDynEntity getParent(){
-       return (io.nop.dyn.dao.entity.NopDynEntity)internalGetRefEntity(PROP_NAME_parent);
+    public io.nop.dyn.dao.entity.NopDynEntity getNopParent(){
+       return (io.nop.dyn.dao.entity.NopDynEntity)internalGetRefEntity(PROP_NAME_nopParent);
     }
 
-    public void setParent(io.nop.dyn.dao.entity.NopDynEntity refEntity){
-       if(refEntity == null){
-         
-         this.setParentId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_parent, refEntity,()->{
-             
-                    this.setParentId(refEntity.getSid());
-                 
-          });
-       }
+    public void setNopParent(io.nop.dyn.dao.entity.NopDynEntity refEntity){
+   
+           if(refEntity == null){
+           
+                   this.setNopParentId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_nopParent, refEntity,()->{
+           
+                           this.setNopParentId(refEntity.getSid());
+                       
+           });
+           }
+       
     }
        
-    private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynEntity> _children = new OrmEntitySet<>(this, PROP_NAME_children,
-        io.nop.dyn.dao.entity.NopDynEntity.PROP_NAME_parent, null,io.nop.dyn.dao.entity.NopDynEntity.class);
+    private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynEntity> _nopChildren = new OrmEntitySet<>(this, PROP_NAME_nopChildren,
+        io.nop.dyn.dao.entity.NopDynEntity.PROP_NAME_nopParent, null,io.nop.dyn.dao.entity.NopDynEntity.class);
 
     /**
-     * 子对象。 refPropName: parent, keyProp: {rel.keyProp}
+     * 子对象。 refPropName: nopParent, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynEntity> getChildren(){
-       return _children;
+    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynEntity> getNopChildren(){
+       return _nopChildren;
     }
        
     private final OrmEntitySet<io.nop.orm.support.DynamicOrmKeyValueTable> _extFields = new OrmEntitySet<>(this, PROP_NAME_extFields,
@@ -1756,38 +1758,38 @@ public class _NopDynEntity extends DynamicOrmEntity{
        return _extFields;
     }
        
-   private io.nop.orm.component.OrmFileComponent _fileFld1Component;
+   private io.nop.orm.component.OrmFileComponent _nopFileFld1Component;
 
-   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_fileFld1Component = new HashMap<>();
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_nopFileFld1Component = new HashMap<>();
    static{
       
-         COMPONENT_PROP_ID_MAP_fileFld1Component.put(io.nop.orm.component.OrmFileComponent.PROP_NAME_filePath,PROP_ID_fileFld1);
+         COMPONENT_PROP_ID_MAP_nopFileFld1Component.put(io.nop.orm.component.OrmFileComponent.PROP_NAME_filePath,PROP_ID_nopFileFld1);
       
    }
 
-   public io.nop.orm.component.OrmFileComponent getFileFld1Component(){
-      if(_fileFld1Component == null){
-          _fileFld1Component = new io.nop.orm.component.OrmFileComponent();
-          _fileFld1Component.bindToEntity(this, COMPONENT_PROP_ID_MAP_fileFld1Component);
+   public io.nop.orm.component.OrmFileComponent getNopFileFld1Component(){
+      if(_nopFileFld1Component == null){
+          _nopFileFld1Component = new io.nop.orm.component.OrmFileComponent();
+          _nopFileFld1Component.bindToEntity(this, COMPONENT_PROP_ID_MAP_nopFileFld1Component);
       }
-      return _fileFld1Component;
+      return _nopFileFld1Component;
    }
 
-   private io.nop.orm.component.OrmFileComponent _fileFld2Component;
+   private io.nop.orm.component.OrmFileComponent _nopFileFld2Component;
 
-   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_fileFld2Component = new HashMap<>();
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_nopFileFld2Component = new HashMap<>();
    static{
       
-         COMPONENT_PROP_ID_MAP_fileFld2Component.put(io.nop.orm.component.OrmFileComponent.PROP_NAME_filePath,PROP_ID_fileFld2);
+         COMPONENT_PROP_ID_MAP_nopFileFld2Component.put(io.nop.orm.component.OrmFileComponent.PROP_NAME_filePath,PROP_ID_nopFileFld2);
       
    }
 
-   public io.nop.orm.component.OrmFileComponent getFileFld2Component(){
-      if(_fileFld2Component == null){
-          _fileFld2Component = new io.nop.orm.component.OrmFileComponent();
-          _fileFld2Component.bindToEntity(this, COMPONENT_PROP_ID_MAP_fileFld2Component);
+   public io.nop.orm.component.OrmFileComponent getNopFileFld2Component(){
+      if(_nopFileFld2Component == null){
+          _nopFileFld2Component = new io.nop.orm.component.OrmFileComponent();
+          _nopFileFld2Component.bindToEntity(this, COMPONENT_PROP_ID_MAP_nopFileFld2Component);
       }
-      return _fileFld2Component;
+      return _nopFileFld2Component;
    }
 
 }

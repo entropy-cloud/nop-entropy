@@ -47,7 +47,7 @@
               readable="!boolean=true" virtual="!boolean=false"
               published="!boolean=true" allowFilterOp="word-set" kind="enum:io.nop.xlang.xmeta.ObjPropKind"
               ui:control="xml-name" ui:show="string" ui:labelProp="prop-path" ui:filterOp="xml-name"
-              ui:maxUploadSize="long-size" ui:supportFileLink="boolean" ui:uploadAccept="string"
+              ui:maxUploadSize="long-size" ui:supportFileLink="boolean" ui:uploadAccept="string" ui:queryMandatory="boolean"
               ui:editGrid="string" ui:viewGrid="string" ui:maskPattern="string"
               xml:mapper="string" graphql:mapper="string" biz:codeRule="string"
               graphql:type="string" graphql:jsonComponentProp="string" graphql:dictValueProp="prop-path"
@@ -72,7 +72,7 @@
                 如果设置为write，则表示读取和修改的时候都使用此约束
             -->
             <auth for="!xml-name" xdef:unique-attr="for" xdef:name="ObjPropAuthModel"
-                  roles="csv-set" permissions="multi-csv-set"/>
+                  roles="csv-set" permissions="multi-csv-set" publicAccess="!boolean=false"/>
 
             <graphql:inputType xdef:value="class-name"/>
 

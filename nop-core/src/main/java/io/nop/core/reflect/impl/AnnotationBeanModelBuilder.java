@@ -10,7 +10,7 @@ package io.nop.core.reflect.impl;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.IFunctionModel;
-import io.nop.core.reflect.accessor.FunctionSpecializedPropertyGetter;
+import io.nop.core.reflect.accessor.MethodPropertyGetter;
 import io.nop.core.reflect.bean.BeanModel;
 import io.nop.core.reflect.bean.BeanPropertyModel;
 import io.nop.core.reflect.bean.IBeanModel;
@@ -56,7 +56,7 @@ public class AnnotationBeanModelBuilder {
         BeanPropertyModel propModel = new BeanPropertyModel();
         propModel.setName(method.getName());
         propModel.setType(method.getReturnType());
-        propModel.setGetter(new FunctionSpecializedPropertyGetter(method.getInvoker()));
+        propModel.setGetter(new MethodPropertyGetter(method));
         return propModel;
     }
 }

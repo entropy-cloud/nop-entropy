@@ -2,6 +2,8 @@ package io.nop.excel.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.model.ExcelWorkbook;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -247,11 +249,31 @@ public abstract class _ExcelWorkbook extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("defaultFont",this.getDefaultFont());
-        out.put("model",this.getModel());
-        out.put("props",this.getProps());
-        out.put("sheets",this.getSheets());
-        out.put("styles",this.getStyles());
+        out.putNotNull("defaultFont",this.getDefaultFont());
+        out.putNotNull("model",this.getModel());
+        out.putNotNull("props",this.getProps());
+        out.putNotNull("sheets",this.getSheets());
+        out.putNotNull("styles",this.getStyles());
+    }
+
+    public ExcelWorkbook cloneInstance(){
+        ExcelWorkbook instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ExcelWorkbook instance){
+        super.copyTo(instance);
+        
+        instance.setDefaultFont(this.getDefaultFont());
+        instance.setModel(this.getModel());
+        instance.setProps(this.getProps());
+        instance.setSheets(this.getSheets());
+        instance.setStyles(this.getStyles());
+    }
+
+    protected ExcelWorkbook newInstance(){
+        return (ExcelWorkbook) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

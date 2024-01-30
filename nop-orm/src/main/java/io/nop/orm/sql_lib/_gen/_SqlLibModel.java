@@ -2,6 +2,8 @@ package io.nop.orm.sql_lib._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.orm.sql_lib.SqlLibModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -137,8 +139,25 @@ public abstract class _SqlLibModel extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("fragments",this.getFragments());
-        out.put("sqls",this.getSqls());
+        out.putNotNull("fragments",this.getFragments());
+        out.putNotNull("sqls",this.getSqls());
+    }
+
+    public SqlLibModel cloneInstance(){
+        SqlLibModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(SqlLibModel instance){
+        super.copyTo(instance);
+        
+        instance.setFragments(this.getFragments());
+        instance.setSqls(this.getSqls());
+    }
+
+    protected SqlLibModel newInstance(){
+        return (SqlLibModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

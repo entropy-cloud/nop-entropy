@@ -2,6 +2,8 @@ package io.nop.stream.cep.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.stream.cep.model.CepPatternPartModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -341,18 +343,45 @@ public abstract class _CepPatternPartModel extends io.nop.core.resource.componen
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("allowCombinations",this.isAllowCombinations());
-        out.put("consecutive",this.isConsecutive());
-        out.put("followKind",this.getFollowKind());
-        out.put("greedy",this.isGreedy());
-        out.put("name",this.getName());
-        out.put("next",this.getNext());
-        out.put("oneOrMore",this.isOneOrMore());
-        out.put("optional",this.isOptional());
-        out.put("subType",this.getSubType());
-        out.put("times",this.getTimes());
-        out.put("timesOrMore",this.getTimesOrMore());
-        out.put("windowTime",this.getWindowTime());
+        out.putNotNull("allowCombinations",this.isAllowCombinations());
+        out.putNotNull("consecutive",this.isConsecutive());
+        out.putNotNull("followKind",this.getFollowKind());
+        out.putNotNull("greedy",this.isGreedy());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("next",this.getNext());
+        out.putNotNull("oneOrMore",this.isOneOrMore());
+        out.putNotNull("optional",this.isOptional());
+        out.putNotNull("subType",this.getSubType());
+        out.putNotNull("times",this.getTimes());
+        out.putNotNull("timesOrMore",this.getTimesOrMore());
+        out.putNotNull("windowTime",this.getWindowTime());
+    }
+
+    public CepPatternPartModel cloneInstance(){
+        CepPatternPartModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(CepPatternPartModel instance){
+        super.copyTo(instance);
+        
+        instance.setAllowCombinations(this.isAllowCombinations());
+        instance.setConsecutive(this.isConsecutive());
+        instance.setFollowKind(this.getFollowKind());
+        instance.setGreedy(this.isGreedy());
+        instance.setName(this.getName());
+        instance.setNext(this.getNext());
+        instance.setOneOrMore(this.isOneOrMore());
+        instance.setOptional(this.isOptional());
+        instance.setSubType(this.getSubType());
+        instance.setTimes(this.getTimes());
+        instance.setTimesOrMore(this.getTimesOrMore());
+        instance.setWindowTime(this.getWindowTime());
+    }
+
+    protected CepPatternPartModel newInstance(){
+        return (CepPatternPartModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

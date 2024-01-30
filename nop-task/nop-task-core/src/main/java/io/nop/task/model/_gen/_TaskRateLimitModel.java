@@ -2,6 +2,8 @@ package io.nop.task.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.task.model.TaskRateLimitModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -107,9 +109,27 @@ public abstract class _TaskRateLimitModel extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("keyExpr",this.getKeyExpr());
-        out.put("maxWait",this.getMaxWait());
-        out.put("requestPerSecond",this.getRequestPerSecond());
+        out.putNotNull("keyExpr",this.getKeyExpr());
+        out.putNotNull("maxWait",this.getMaxWait());
+        out.putNotNull("requestPerSecond",this.getRequestPerSecond());
+    }
+
+    public TaskRateLimitModel cloneInstance(){
+        TaskRateLimitModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(TaskRateLimitModel instance){
+        super.copyTo(instance);
+        
+        instance.setKeyExpr(this.getKeyExpr());
+        instance.setMaxWait(this.getMaxWait());
+        instance.setRequestPerSecond(this.getRequestPerSecond());
+    }
+
+    protected TaskRateLimitModel newInstance(){
+        return (TaskRateLimitModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

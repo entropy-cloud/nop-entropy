@@ -16,8 +16,8 @@ import io.nop.app.SimsCollege;
 /**
  *  学院: sims_college
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _SimsCollege extends DynamicOrmEntity{
     
     /* 学院名称: COLLEGE_NAME VARCHAR */
@@ -77,11 +77,14 @@ public class _SimsCollege extends DynamicOrmEntity{
 
     
     /* relation:  */
+    public static final String PROP_NAME_collegeEx = "collegeEx";
+    
+    /* relation:  */
     public static final String PROP_NAME_simsClasses = "simsClasses";
     
 
-    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_collegeId);
-    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_collegeId};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_collegeId);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_collegeId};
 
     private static final String[] PROP_ID_TO_NAME = new String[14];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
@@ -170,6 +173,7 @@ public class _SimsCollege extends DynamicOrmEntity{
     
 
     public _SimsCollege(){
+        // for debug
     }
 
     protected SimsCollege newInstance(){
@@ -771,6 +775,24 @@ public class _SimsCollege extends DynamicOrmEntity{
         }
     }
     
+    /**
+     * 
+     */
+    public io.nop.app.SimsCollegeEx getCollegeEx(){
+       return (io.nop.app.SimsCollegeEx)internalGetRefEntity(PROP_NAME_collegeEx);
+    }
+
+    public void setCollegeEx(io.nop.app.SimsCollegeEx refEntity){
+   
+            internalSetReverseRefEntity(PROP_NAME_collegeEx, refEntity, ()->{
+            
+                            refEntity.orm_propValue(io.nop.app.SimsCollegeEx.PROP_ID_sid,
+                            this.getCollegeId());
+                        
+            });
+        
+    }
+       
     private final OrmEntitySet<io.nop.app.SimsClass> _simsClasses = new OrmEntitySet<>(this, PROP_NAME_simsClasses,
         io.nop.app.SimsClass.PROP_NAME_simsCollege, null,io.nop.app.SimsClass.class);
 

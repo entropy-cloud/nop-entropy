@@ -1,4 +1,23 @@
 
+CREATE TABLE nop_rule_definition(
+  RULE_ID VARCHAR(32) NOT NULL ,
+  RULE_NAME VARCHAR(500) NOT NULL ,
+  RULE_VERSION INT8 NOT NULL ,
+  DISPLAY_NAME VARCHAR(200) NOT NULL ,
+  RULE_GROUP VARCHAR(200) NOT NULL ,
+  RULE_TYPE VARCHAR(10) NOT NULL ,
+  DESCRIPTION VARCHAR(1000)  ,
+  MODEL_TEXT TEXT  ,
+  STATUS INT4 NOT NULL ,
+  VERSION INT4 NOT NULL ,
+  CREATED_BY VARCHAR(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR(200)  ,
+  constraint PK_nop_rule_definition primary key (RULE_ID)
+);
+
 CREATE TABLE nop_rule_node(
   SID VARCHAR(32) NOT NULL ,
   RULE_ID VARCHAR(32) NOT NULL ,
@@ -41,26 +60,39 @@ CREATE TABLE nop_rule_log(
   constraint PK_nop_rule_log primary key (SID)
 );
 
-CREATE TABLE nop_rule_definition(
-  RULE_ID VARCHAR(32) NOT NULL ,
-  RULE_NAME VARCHAR(500) NOT NULL ,
-  RULE_VERSION INT8 NOT NULL ,
-  DISPLAY_NAME VARCHAR(200) NOT NULL ,
-  RULE_GROUP VARCHAR(200) NOT NULL ,
-  RULE_TYPE VARCHAR(10) NOT NULL ,
-  DESCRIPTION VARCHAR(1000)  ,
-  MODEL_TEXT TEXT  ,
-  STATUS INT4 NOT NULL ,
-  VERSION INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR(200)  ,
-  constraint PK_nop_rule_definition primary key (RULE_ID)
-);
 
-
+      COMMENT ON TABLE nop_rule_definition IS '规则模型定义';
+                
+      COMMENT ON COLUMN nop_rule_definition.RULE_ID IS '主键';
+                    
+      COMMENT ON COLUMN nop_rule_definition.RULE_NAME IS '规则名称';
+                    
+      COMMENT ON COLUMN nop_rule_definition.RULE_VERSION IS '规则版本';
+                    
+      COMMENT ON COLUMN nop_rule_definition.DISPLAY_NAME IS '显示名称';
+                    
+      COMMENT ON COLUMN nop_rule_definition.RULE_GROUP IS '规则分组';
+                    
+      COMMENT ON COLUMN nop_rule_definition.RULE_TYPE IS '规则类型';
+                    
+      COMMENT ON COLUMN nop_rule_definition.DESCRIPTION IS '描述';
+                    
+      COMMENT ON COLUMN nop_rule_definition.MODEL_TEXT IS '模型文本';
+                    
+      COMMENT ON COLUMN nop_rule_definition.STATUS IS '状态';
+                    
+      COMMENT ON COLUMN nop_rule_definition.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_rule_definition.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_rule_definition.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_rule_definition.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_rule_definition.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_rule_definition.REMARK IS '备注';
+                    
       COMMENT ON TABLE nop_rule_node IS '规则节点';
                 
       COMMENT ON COLUMN nop_rule_node.SID IS 'SID';
@@ -126,36 +158,4 @@ CREATE TABLE nop_rule_definition(
       COMMENT ON COLUMN nop_rule_log.CREATED_BY IS '创建人';
                     
       COMMENT ON COLUMN nop_rule_log.CREATE_TIME IS '创建时间';
-                    
-      COMMENT ON TABLE nop_rule_definition IS '规则模型定义';
-                
-      COMMENT ON COLUMN nop_rule_definition.RULE_ID IS '主键';
-                    
-      COMMENT ON COLUMN nop_rule_definition.RULE_NAME IS '规则名称';
-                    
-      COMMENT ON COLUMN nop_rule_definition.RULE_VERSION IS '规则版本';
-                    
-      COMMENT ON COLUMN nop_rule_definition.DISPLAY_NAME IS '显示名称';
-                    
-      COMMENT ON COLUMN nop_rule_definition.RULE_GROUP IS '规则分组';
-                    
-      COMMENT ON COLUMN nop_rule_definition.RULE_TYPE IS '规则类型';
-                    
-      COMMENT ON COLUMN nop_rule_definition.DESCRIPTION IS '描述';
-                    
-      COMMENT ON COLUMN nop_rule_definition.MODEL_TEXT IS '模型文本';
-                    
-      COMMENT ON COLUMN nop_rule_definition.STATUS IS '状态';
-                    
-      COMMENT ON COLUMN nop_rule_definition.VERSION IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_rule_definition.CREATED_BY IS '创建人';
-                    
-      COMMENT ON COLUMN nop_rule_definition.CREATE_TIME IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_rule_definition.UPDATED_BY IS '修改人';
-                    
-      COMMENT ON COLUMN nop_rule_definition.UPDATE_TIME IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_rule_definition.REMARK IS '备注';
                     

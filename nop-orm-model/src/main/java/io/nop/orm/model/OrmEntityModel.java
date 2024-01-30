@@ -61,6 +61,8 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
 
     private boolean containsTenantIdInPk;
 
+    private boolean hasOneToOneRelation;
+
     private Map<String, IEntityPropModel> props;
     private Map<String, OrmColumnModel> colsByCode;
 
@@ -298,6 +300,11 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
     }
 
     @Override
+    public boolean hasOneToOneRelation() {
+        return hasOneToOneRelation;
+    }
+
+    @Override
     public void init() {
         if (inited)
             return;
@@ -328,12 +335,13 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
         this.props = initializer.getProps();
         this.containsTenantIdInPk = initializer.isContainsTenantIdInPk();
         this.nopFlowIdPropId = initializer.getNopFlowIdPropId();
+        this.hasOneToOneRelation = initializer.hasOneToOneRelation();
 
         inited = true;
     }
 
     @Override
-    public int getNopFlowIdPropId(){
+    public int getNopFlowIdPropId() {
         return nopFlowIdPropId;
     }
 

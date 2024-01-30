@@ -2,12 +2,14 @@ package io.nop.biz.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.biz.model.BizReturnModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [63:14:0:0]/nop/schema/biz/xbiz.xdef <p>
+ * generate from [64:14:0:0]/nop/schema/biz/xbiz.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -137,10 +139,29 @@ public abstract class _BizReturnModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("mandatory",this.isMandatory());
-        out.put("name",this.getName());
-        out.put("schema",this.getSchema());
-        out.put("type",this.getType());
+        out.putNotNull("mandatory",this.isMandatory());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("schema",this.getSchema());
+        out.putNotNull("type",this.getType());
+    }
+
+    public BizReturnModel cloneInstance(){
+        BizReturnModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BizReturnModel instance){
+        super.copyTo(instance);
+        
+        instance.setMandatory(this.isMandatory());
+        instance.setName(this.getName());
+        instance.setSchema(this.getSchema());
+        instance.setType(this.getType());
+    }
+
+    protected BizReturnModel newInstance(){
+        return (BizReturnModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

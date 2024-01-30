@@ -9,6 +9,7 @@ package io.nop.api.core.beans.graphql;
 
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
+import io.nop.api.core.annotations.meta.PropMeta;
 
 @DataBean
 @GraphQLObject
@@ -16,6 +17,7 @@ public class GraphQLEdgeBean {
     private GraphQLNode node;
     private String cursor;
 
+    @PropMeta(propId = 1)
     public GraphQLNode getNode() {
         return node;
     }
@@ -24,6 +26,7 @@ public class GraphQLEdgeBean {
         this.node = node;
     }
 
+    @PropMeta(propId = 2)
     public String getCursor() {
         return cursor;
     }

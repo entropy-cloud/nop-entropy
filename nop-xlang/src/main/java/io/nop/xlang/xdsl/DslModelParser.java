@@ -24,11 +24,18 @@ public class DslModelParser extends AbstractDslParser<IComponentModel> {
 
     private boolean disableInit;
 
+    private boolean ignoreUnknown;
+
     public DslModelParser(String requiredSchema) {
         this.setRequiredSchema(requiredSchema);
     }
 
     public DslModelParser() {
+    }
+
+    public DslModelParser ignoreUnknown(boolean ignoreUnknown) {
+        this.ignoreUnknown = ignoreUnknown;
+        return this;
     }
 
     public DslModelParser disableInit(boolean disableInit) {
@@ -56,7 +63,7 @@ public class DslModelParser extends AbstractDslParser<IComponentModel> {
     protected IComponentModel doParseNode(XNode node) {
         IXDefinition xdef = getXdef();
         if (dynamic || forEditor) {
-            Object obj = new DslXNodeToJsonTransformer(forEditor, xdef, getCompileTool()).parseObject(node);
+            Object obj = new DslXNodeToJsonTransformer(forEditor, xdef, getCompileTool()).ignoreUnknown(ignoreUnknown).parseObject(node);
             return (IComponentModel) obj;
         }
 
@@ -67,7 +74,7 @@ public class DslModelParser extends AbstractDslParser<IComponentModel> {
 
         // IClassModel classModel = ReflectionManager.instance().loadClassModel(xdef.getBeanClass());
         // IComponentModel model = BeanTool.buildBean(obj, classModel.getType());
-        Object model = new DslBeanModelParser(false, xdef, getCompileTool())
+        Object model = new DslBeanModelParser(false, xdef, getCompileTool()).ignoreUnknown(ignoreUnknown)
                 .transformToObject(node);
         if (model instanceof IXDslModel) {
             IXDslModel dslModel = (IXDslModel) model;

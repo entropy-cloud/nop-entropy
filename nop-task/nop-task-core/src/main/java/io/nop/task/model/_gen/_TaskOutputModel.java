@@ -2,6 +2,8 @@ package io.nop.task.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.task.model.TaskOutputModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -185,12 +187,33 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("forAttr",this.isForAttr());
-        out.put("name",this.getName());
-        out.put("persist",this.isPersist());
-        out.put("source",this.getSource());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("forAttr",this.isForAttr());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("persist",this.isPersist());
+        out.putNotNull("source",this.getSource());
+    }
+
+    public TaskOutputModel cloneInstance(){
+        TaskOutputModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(TaskOutputModel instance){
+        super.copyTo(instance);
+        
+        instance.setDescription(this.getDescription());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setForAttr(this.isForAttr());
+        instance.setName(this.getName());
+        instance.setPersist(this.isPersist());
+        instance.setSource(this.getSource());
+    }
+
+    protected TaskOutputModel newInstance(){
+        return (TaskOutputModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

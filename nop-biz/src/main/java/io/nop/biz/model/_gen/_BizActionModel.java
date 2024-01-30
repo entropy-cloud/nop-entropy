@@ -2,12 +2,14 @@ package io.nop.biz.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.biz.model.BizActionModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [27:10:0:0]/nop/schema/biz/xbiz.xdef <p>
+ * generate from [28:10:0:0]/nop/schema/biz/xbiz.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -86,6 +88,13 @@ public abstract class _BizActionModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: idempotent
+     * 多次执行不会产生不同的结果
+     */
+    private boolean _idempotent  = false;
+    
+    /**
+     *  
      * xml name: maker-checker
      * 
      */
@@ -104,6 +113,13 @@ public abstract class _BizActionModel extends io.nop.core.resource.component.Abs
      * 
      */
     private io.nop.biz.model.BizReturnModel _return ;
+    
+    /**
+     *  
+     * xml name: safe
+     * 
+     */
+    private boolean _safe  = false;
     
     /**
      *  
@@ -358,6 +374,25 @@ public abstract class _BizActionModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: idempotent
+     *  多次执行不会产生不同的结果
+     */
+    
+    public boolean isIdempotent(){
+      return _idempotent;
+    }
+
+    
+    public void setIdempotent(boolean value){
+        checkAllowChange();
+        
+        this._idempotent = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: maker-checker
      *  
      */
@@ -409,6 +444,25 @@ public abstract class _BizActionModel extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._return = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: safe
+     *  
+     */
+    
+    public boolean isSafe(){
+      return _safe;
+    }
+
+    
+    public void setSafe(boolean value){
+        checkAllowChange();
+        
+        this._safe = value;
            
     }
 
@@ -539,24 +593,61 @@ public abstract class _BizActionModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("args",this.getArgs());
-        out.put("argsNormalizer",this.getArgsNormalizer());
-        out.put("async",this.isAsync());
-        out.put("auth",this.getAuth());
-        out.put("bizSequential",this.isBizSequential());
-        out.put("cache",this.getCache());
-        out.put("cacheEvicts",this.getCacheEvicts());
-        out.put("disabled",this.isDisabled());
-        out.put("displayName",this.getDisplayName());
-        out.put("executor",this.getExecutor());
-        out.put("makerChecker",this.getMakerChecker());
-        out.put("name",this.getName());
-        out.put("return",this.getReturn());
-        out.put("source",this.getSource());
-        out.put("tcc",this.getTcc());
-        out.put("timeout",this.getTimeout());
-        out.put("txn",this.getTxn());
-        out.put("type",this.getType());
+        out.putNotNull("args",this.getArgs());
+        out.putNotNull("argsNormalizer",this.getArgsNormalizer());
+        out.putNotNull("async",this.isAsync());
+        out.putNotNull("auth",this.getAuth());
+        out.putNotNull("bizSequential",this.isBizSequential());
+        out.putNotNull("cache",this.getCache());
+        out.putNotNull("cacheEvicts",this.getCacheEvicts());
+        out.putNotNull("disabled",this.isDisabled());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("executor",this.getExecutor());
+        out.putNotNull("idempotent",this.isIdempotent());
+        out.putNotNull("makerChecker",this.getMakerChecker());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("return",this.getReturn());
+        out.putNotNull("safe",this.isSafe());
+        out.putNotNull("source",this.getSource());
+        out.putNotNull("tcc",this.getTcc());
+        out.putNotNull("timeout",this.getTimeout());
+        out.putNotNull("txn",this.getTxn());
+        out.putNotNull("type",this.getType());
+    }
+
+    public BizActionModel cloneInstance(){
+        BizActionModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BizActionModel instance){
+        super.copyTo(instance);
+        
+        instance.setArgs(this.getArgs());
+        instance.setArgsNormalizer(this.getArgsNormalizer());
+        instance.setAsync(this.isAsync());
+        instance.setAuth(this.getAuth());
+        instance.setBizSequential(this.isBizSequential());
+        instance.setCache(this.getCache());
+        instance.setCacheEvicts(this.getCacheEvicts());
+        instance.setDisabled(this.isDisabled());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setExecutor(this.getExecutor());
+        instance.setIdempotent(this.isIdempotent());
+        instance.setMakerChecker(this.getMakerChecker());
+        instance.setName(this.getName());
+        instance.setReturn(this.getReturn());
+        instance.setSafe(this.isSafe());
+        instance.setSource(this.getSource());
+        instance.setTcc(this.getTcc());
+        instance.setTimeout(this.getTimeout());
+        instance.setTxn(this.getTxn());
+        instance.setType(this.getType());
+    }
+
+    protected BizActionModel newInstance(){
+        return (BizActionModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

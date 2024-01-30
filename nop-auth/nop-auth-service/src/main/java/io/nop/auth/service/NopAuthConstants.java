@@ -15,6 +15,8 @@ public interface NopAuthConstants {
 
     String SITE_ID_MAIN = "main";
 
+    String ROLE_ADMIN = "admin";
+
     int USER_STATUS_ACTIVE = AuthApiConstants.USER_STATUS_ACTIVE;
 
     String RESOURCE_TYPE_TOP_MENU = AuthApiConstants.RESOURCE_TYPE_TOP_MENU;

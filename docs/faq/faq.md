@@ -224,7 +224,7 @@ NopIoC不支持对于private变量进行注入。目前Spring也不推荐这种�
 
 ## 15. 除了系统内置自动加载的`app-xxx.beans.xml`，如何加载指定的beans.xml文件？
 
-NopIoC的入口文件全部是自动发现，可以在自动发现的beans.xmⅠ中import其它的文件。
+NopIoC的入口文件全部是自动发现，可以在自动发现的beans.xml中import其它的文件。
 * 注意，NopIoC中多次导入同一个文件会自动去重，这一点优于Spring的处理。Spring中import节点对应于include语义，而不是程序语言中常用的导入语义。
 在多个文件中多次导入同一个包应该等价于只导入一次。而include语义是每次执行都完整导入一次，会导致bean的定义出现冲突。
 
@@ -253,6 +253,116 @@ ext名字空间一般用于临时添加扩展属性。如果该扩展属性经�
   </props>
 </schema>
 ````
+
+## 18. 级联新增和修改需要做什么特殊的配置吗？
+
+不需要，ORM在实体层面操作就会自动反映到数据库中。本质上不应该存在级联更新的问题。Hibernate的级联配置是错误使用了action概念来驱动修改操作，
+应该采用状态检测来驱动修改操作。只要发现实体层面的属性发生了修改，就自动转化为Insert/Update/Delete等SQL语句。
+
+比如说 `entity.getChildren().addChild(child)`就表示要自动在子表中插入记录。
+`entity.relatedTable.setMyProp(3)`就表示将关联表的my_prop字段设置为3。
+
+如果使用了ORM引擎，理想情况下我们可以仅在实体层面进行操作，然后ORM引擎自动跟踪这些实体的当前属性值，并自动计算出它们和数据库中表数据之间的差量，
+然后自动将差量转化为相应的SQL语句。整个过程类似于前台的虚拟DOM Diff过程。
+
+## 19. 新生成的一个xx-meta模块为什么src目录下时钟为空，没有根据orm.xml生成meta文件？
+
+meta文件是通过exec-maven-plugin插件执行postcompile代码生成模板来自动生成的。因此pom文件中必须配置这个plugin。
+一般情况下我们选择从nop-entropy的pom文件继承，从而减少maven插件的配置
+
+````xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <parent>
+        <artifactId>nop-entropy</artifactId>
+        <groupId>io.github.entropy-cloud</groupId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+      ...
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <configuration>
+                    <classpathScope>test</classpathScope>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+````
+
+## 20. Java类的函数上增加了`@SingleSession`和`@Transactional`等注解，为什么没有自动生成对应的aop类？
+生成aop是通过exec-maven-plugin触发aop代码生成实现的。因此pom文件中必须配置exec-maven-plugin插件，如果是
+从nop-entropy的根pom继承，则只需要引入exec-maven-plugin插件即可
+
+````xml
+   <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <configuration>
+                    <classpathScope>test</classpathScope>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+````
+
+## 21. 报表引擎中的Excel公式支持嵌套调用吗？如何增加自己的报表函数？
+手工编写一个top-down的表达式解析器只需要1000多行代码。nop-xlang包中的SimpleExprParser提供了一个基本的表达式解析器，可以通过feature flag定制它支持的语法特性。
+可选的语法特性如下：
+````
+public static final int ALL = LAMBDA_FUNCTION | FUNCTION_DEF | STATEMENT | FUNCTION_CALL | OBJECT_CALL | BIT_OP
+| SELF_ASSIGN | CP_EXPR | TAG_FUNC | JSON | OBJECT_PROP | ARRAY_INDEX | SELF_INC | IMPORT | NEW;
+````
+
+ExcelFormulaParser就是对从SimpleExprParser继承，实现一些剪裁并加上对报表层次坐标表达式的识别。 
+
+目前NopReport中内置实现的Excel函数比较少，它们全部定义在ReportFunctions类中。
+如有需要可以自行扩编写静态函数，然后类似ReportFunctions注册到ReportFunctionProvider中。
+
+## 22. 如何使用Quarkus中定义的RedisDataSource
+
+在NopIoC管理的bean中可以直接通过  `@Inject RedisDataSource redisDataSource;`来注入Quarkus所管理的bean。
+需要注意的是，Quark的IoC是在编译期完成扫描和注册，所以在Quarkus的环境中使用到RedisDataSource才会完成自动发现和注册。例如增加一个QuarkusConfig类
+
+````java
+@ApplicationScoped
+public class QuarkusConfig {
+    @Inject
+    RedisDataSource redisDataSource;
+}
+````
+
+## 23. 字典字段，返回的label里面自动添加了  字典值-字典名称  ，有没有方法方便的把  字典值-  去掉，只保留字典名称？
+nop.core.dict.return-normalized-label配置成false
+
+## 24. CrudBizModel中的save跟update这两个方法有什么区别？
+update必须具有id属性，表示修改操作。而save是新增操作，转化为insert语句。
+save_update是只要有id就识别为修改操作，否则识别为新增操作。
+
+## 25. action-auth.xml 也能控制 graphql action的权限，Auth 注解和 xbiz 也能控制，这个该怎么选择，如果互相冲突以哪个为准呢
+Nop平台采用的是多层叠加的设计，也就是说 整体逻辑 = 基础逻辑 + Delta定制逻辑，定制性强的层会覆盖变化性较低的层。xbiz中定义的内容会覆盖Java中定义的内容。xmeta中的定义优先级最高。
+
+action-auth.xml并不能控制权限，它能定义给一组权限起一个便于管理的分组名称。具体的权限名还是服务方法上定义的。
+action-auth.xml可以配置缺省的角色和permission之间的绑定关系。而后台的AuthMeta本质上是配置permission和服务函数之间的绑定关系，只是有时为了方便也可以直接指定role和服务函数之间的绑定关系。如果同时指定，实际上是同时限制的
+
+## 26. 通过Delta定制如何处理多对多关联？
+问题：在 delta.orm.xlxs 中定制 NopAuthUser 时，对于 many-to-many 关系，比如用户和商户多对多，因为要在 NopAuthUser 中生成商户相关的 java 属性，又要在商户这边生成用户相关的 Java 属性。这种情况下，中间关联表是要在 auth delta excel 中定义，还是在应用模块的 excel 中定义呢？
+回答：建议是在自己的业务模型中增加多对多关联表，将用户表标记为not-gen，作为外部表引用。这样不会自动为NopAuthUserEx生成多对多相关的帮助函数，这个可以手工自行添加。
+
+## 27. nop-ooxml-xlsx模块与Java的poi库有什么区别？
+poi很大，最少有10几M，而且很慢。nop-ooxml-xlsx是利用Nop平台自己实现的XML解析器来解析xlsx文件，它的底层没有使用POI库，
+比POI快很多，内存消耗也小很多，但是支持的功能不多，只支持目前report开发中用到的xlsx特性。
+
+## 28. Excel模型中updateTime等系统约定的特殊字段能改成自己定义的名称吗？比如updateTime修改为updatedAt
+代码生成的时候会特殊识别如下数据域:createdBy 、 updateTime 、 updatedBy 、 delFlagversion 、createTime tenantId 。标记了这些数据域的字段会被自动识别为ORM引擎所支持的乐观锁字段、创建时间字段等。
+数据域不能改，数据库字段名可以改.
 
 # 部署问题
 
@@ -375,3 +485,27 @@ starter提供了与spring框架以及quarkus框架的自动集成机制。只要
 逻辑编排引擎本身不应该知道是代码逻辑还是服务调用逻辑，这完全是实现层面的细节。微服务在调用时也就是体现为一个函数。只要能编配函数，原则上就可以编配服务，只是服务存在额外的一些管理逻辑，
 这些逻辑与编配无关，不应该污染编配引擎。Nop平台基于模板语言和DSL进行编配，底层运行时可以利用xpl模板语言实现无限扩展。
 重试、tcc回滚等都可以作为一种函数decorator出现。
+
+## 8. 如何实现轻关联的机制
+能不能实现个轻关联、轻填充的功能，例如：字段默认值可以指定其他表的字段或者直接使用 el 表达式去加载本地的类方法，只需要指定表达式 ${user.userId} 就可以自动填充数据，实际被填充字段的表和表达式之所指定的表之间是没有关联关系的，也不用去指定复杂的关联关系
+
+解决方案：
+1. 内置CrudBizModel已经提供了大量的通用服务获取函数，无需手工编写，而且可以通过graphql的重命名机制来实现字段适配。 例如/r/NopAuthUser__get?id=3&@selection=name:userName,status:userStatus就可以从后台按照id查询数据并且返回结果为name,status这两个字段。
+2. 在meta文件中可以增加自定义的prop，然后在prop的getter配置中写XScript脚本来获取数据，这样可以不需要写xbiz文件。
+3. 如果是使用NopDynEntity机制，则可以在线配置后台服务函数，然后前台去调用后台服务函数来返回数据。
+
+本质上在前后端分离的架构设计下，前端轻关联是在前端配置页面中增加一个后端服务函数的标准化调用方式即可。至于服务函数是怎么实现的，是否是在线定义的，是一个独立的问题。
+Nop平台中后台服务函数的命名方式是标准化的，/r/{bizObjName}_{bizMethodName}?@selection={selectionSet}
+
+有了数据供体，前台可以自由的决定它是作为默认值使用，还是固定的数据联动
+
+## 9. 模块化，子系统的概念在Nop平台中如何体现？像企业应用，财务，crm，hr，客户不一定，同时购买，是三个独立的子系统。
+采用微服务架构之后，模块化更多的是通过服务划分来解决。Nop平台内部支持两级模块系统，通过虚拟文件系统中的子目录来区分不同的模块。也就是说/nop/auth目录对应于 {vendor}/{subModule}这种模式的模块id.
+合理安排模块路径，可以实现ap/fin, app/crm, app/hr三个模块独立进行开发、管理。
+Nop平台采用可分可合的设计。如果引入了app/fin模块，就自动具有它的功能。可以每个子模块部署为一个exe，也可以多个子模块打包成单体应用部署为一个exe
+
+概念层面上Nop平台类似于一种微内核设计，可以动态加载、卸载业务模块。但是在目前的实现中如果模块中包含java类，还需要重启。
+不过也可以通过一个Java ClassLoader去加载模块中的class类。如果模块中没有包含自己的java类，则不需要重启。
+不过这些属于细化特性，Nop平台核心可能不会去处理得这么细致
+
+在开发模式下，Quarkus框架内置了hot load机制。在开发模式下修改java，它会自动reload。所以Nop开发一般模块时可以使用Quarkus集成模式。

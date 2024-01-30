@@ -28,10 +28,111 @@
             </cells>
         </form>
         <form id="add"/>
+
+        <form id="import" editMode="edit">
+            <layout>
+                *importFile
+            </layout>
+        </form>
     </forms>
 
     <pages>
-        <crud name="main"/>
+        <simple name="importForm" form="import"/>
+
+        <crud name="main">
+            <listActions>
+                <action id="publish-button" label="发布" batch="true">
+                    <messages>
+                        <success>发布成功</success>
+                    </messages>
+                    <api url="@mutation:NopDynModule__publish">
+                        <data>
+                            <ids>$ids</ids>
+                        </data>
+                    </api>
+                </action>
+
+                <action id="import-excel-button" label="导入Excel">
+                    <dialog page="importForm">
+                        <actions>
+                            <action id="cancel-button" label="取消" actionType="cancel"/>
+
+                            <action id="submit-button" label="提交" level="primary" close="true" reload="crud-grid">
+                                <api url="@mutation:NopDynModule__importExcel/id"/>
+                            </action>
+                        </actions>
+                    </dialog>
+                </action>
+
+                <action id="export-button" label="导出Excel" actionType="download" batch="true">
+                    <api url="/p/NopDynModule__exportExcel">
+                        <data>
+                            <ids>$ids</ids>
+                        </data>
+                    </api>
+                </action>
+
+                <action id="chat-button" label="AI智能生成" actionType="dialog">
+                    <dialog page="ai-gen.page.yaml" />
+                </action>
+
+            </listActions>
+
+            <rowActions>
+                <actionGroup id="row-more-button">
+                    <action id="row-unpublish-button" label="取消发布">
+                        <visibleOn>this.status != 0</visibleOn>
+                        <api url="@mutation:NopDynModule__unpublish">
+                            <data>
+                                <id>$id</id>
+                            </data>
+                        </api>
+                    </action>
+                    <action id="row-update-button">
+                        <visibleOn>this.status == 0</visibleOn>
+                    </action>
+
+                    <action id="row-delete-button">
+                        <visibleOn>this.status == 0</visibleOn>
+                    </action>
+
+                    <action id="row-entity-list-button" label="实体列表" actionType="drawer">
+<!--                        <visibleOn>this.status == 0</visibleOn>-->
+                        <dialog page="/nop/dyn/pages/NopDynEntityMeta/ref-module.page.yaml" size="xl">
+                            <data>
+                                <moduleId>$moduleId</moduleId>
+                                <module>
+                                    <moduleName>$moduleName</moduleName>
+                                    <displayName>$displayName</displayName>
+                                </module>
+                            </data>
+                        </dialog>
+                    </action>
+
+                    <action id="row-page-list-button" label="页面列表" actionType="drawer">
+<!--                        <visibleOn>this.status == 0</visibleOn>-->
+                        <dialog page="/nop/dyn/pages/NopDynPage/ref-module.page.yaml" size="xl">
+                            <data>
+                                <moduleId>$moduleId</moduleId>
+                                <module>
+                                    <moduleName>$moduleName</moduleName>
+                                    <displayName>$displayName</displayName>
+                                </module>
+                            </data>
+                        </dialog>
+                    </action>
+
+                    <action id="row-export-button" label="导出Excel" actionType="download">
+                        <api url="/p/NopDynModule__exportExcel">
+                            <data>
+                                <id>$id</id>
+                            </data>
+                        </api>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+
         <picker name="picker"/>
 
         <crud name="app-modules" grid="simple-list">

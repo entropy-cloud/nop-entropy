@@ -3,7 +3,7 @@
         let apiModel = codeGenModel;
         let appName = apiModel['ext:appName'];
         let apiModuleName = apiModel['ext:apiModuleName'];
-        let apiPackageName = apiModel['ext:apiPackageName'];
+        let apiPackageName = apiModel['apiPackageName'];
         let serviceModuleName = apiModel['ext:serviceModuleName'];
         let servicePackageName = apiModel['ext:servicePackageName'];
         let metaModuleName = apiModel['ext:metaModuleName'];
@@ -15,6 +15,7 @@
                metaModuleName = serviceModuleName.substring(0,pos) + '-meta';
            }
         }
+        $.notEmpty(apiPackageName,"apiPackageName");
 
         let moduleId = apiModel['ext:moduleId'] || appName.replace('-','/');
 

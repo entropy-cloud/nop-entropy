@@ -8,6 +8,7 @@
 package io.nop.api.core.beans;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.meta.PropMeta;
 
 @DataBean
 public class WeightedItem {
@@ -19,6 +20,7 @@ public class WeightedItem {
         this.weight = weight;
     }
 
+    @PropMeta(propId = 1)
     public String getName() {
         return name;
     }
@@ -27,6 +29,7 @@ public class WeightedItem {
         this.name = name;
     }
 
+    @PropMeta(propId = 2)
     public int getWeight() {
         return weight;
     }

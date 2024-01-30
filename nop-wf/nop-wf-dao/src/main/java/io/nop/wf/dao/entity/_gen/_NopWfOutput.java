@@ -780,17 +780,19 @@ public class _NopWfOutput extends AbstractOrmKeyValueTable{
     }
 
     public void setWfInstance(io.nop.wf.dao.entity.NopWfInstance refEntity){
-       if(refEntity == null){
-         
-         this.setWfId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_wfInstance, refEntity,()->{
-             
-                    this.setWfId(refEntity.getWfId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setWfId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_wfInstance, refEntity,()->{
+           
+                           this.setWfId(refEntity.getWfId());
+                       
+           });
+           }
+       
     }
        
 }

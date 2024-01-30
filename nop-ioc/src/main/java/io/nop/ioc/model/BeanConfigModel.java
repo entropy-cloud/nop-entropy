@@ -9,8 +9,20 @@ package io.nop.ioc.model;
 
 import io.nop.ioc.model._gen._BeanConfigModel;
 
-public class BeanConfigModel extends _BeanConfigModel {
+import java.util.HashSet;
+import java.util.Set;
+
+public class BeanConfigModel extends _BeanConfigModel implements IBeanModel {
     public BeanConfigModel() {
 
+    }
+
+    public void addName(String name) {
+        Set<String> names = getName();
+        if (names == null) {
+            names = new HashSet<>();
+            setName(names);
+        }
+        names.add(name);
     }
 }

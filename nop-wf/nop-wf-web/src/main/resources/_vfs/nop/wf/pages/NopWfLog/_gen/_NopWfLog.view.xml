@@ -10,9 +10,6 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--日志ID-->
-                <col id="sid" mandatory="true" sortable="true"/>
-
                 <!--工作流实例ID-->
                 <col id="wfId" mandatory="true" sortable="true"/>
 
@@ -44,7 +41,6 @@
     <forms>
         <form id="view" editMode="view" title="查看-工作流日志" i18n-en:title="View Workflow Log">
             <layout>
- sid[日志ID]
  wfId[工作流实例ID]
  stepId[工作流步骤ID]
  actionId[动作ID]
@@ -86,10 +82,10 @@
                     <confirmText>@i18n:common.confirmDelete</confirmText>
                 </action>
                 <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
-                    <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <action id="row-update-button" label="@i18n:common.edit" x:abstract="true">
                         <dialog page="update"/>
                     </action>
-                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                    <action id="row-delete-button" label="@i18n:common.delete">
                         <api url="@mutation:NopWfLog__delete?id=$id"/>
                         <confirmText>@i18n:common.confirmDelete</confirmText>
                     </action>

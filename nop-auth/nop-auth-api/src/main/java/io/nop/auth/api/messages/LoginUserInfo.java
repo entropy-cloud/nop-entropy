@@ -7,8 +7,6 @@
  */
 package io.nop.auth.api.messages;
 
-import com.fasterxml.jackson.annotation.JsonAnyGetter;
-import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ExtensibleBean;
@@ -125,13 +123,8 @@ public class LoginUserInfo extends ExtensibleBean {
         this.deptName = deptName;
     }
 
-    @JsonAnyGetter
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public Map<String, Object> getAttrs() {
         return super.getAttrs();
-    }
-
-    @JsonAnySetter
-    public void setAttr(String name, Object value) {
-        super.setAttr(name, value);
     }
 }

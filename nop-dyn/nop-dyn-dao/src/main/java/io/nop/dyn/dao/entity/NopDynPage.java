@@ -5,7 +5,9 @@ import io.nop.dyn.dao.entity._gen._NopDynPage;
 
 
 @BizObjName("NopDynPage")
-public class NopDynPage extends _NopDynPage{
-
-
+public class NopDynPage extends _NopDynPage {
+    public String getPagePath() {
+        String nopModuleId = getModule().getNopModuleId();
+        return "/" + nopModuleId + "/" + getPageGroup() + "/" + getPageName() + ".page.yaml";
+    }
 }

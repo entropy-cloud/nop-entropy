@@ -31,14 +31,14 @@
             </source>
         </filter>
 
-        <fragment>
+        <fragment outputMode="sql">
             <attr name="id" mandatory="true"/>
             <attr name="sqlLibModel" implicit="true"/>
 
             <description>嵌入当前sql-lib库中定义的SQL片段</description>
 
             <source>
-                return sqlLibModel.buildFragment(id,$scope)
+                <c:unit>${sqlLibModel.buildFragment(id,$scope)}</c:unit>
             </source>
         </fragment>
 

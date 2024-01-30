@@ -431,5 +431,6 @@
         <module>nop-dyn</module>
         <module>nop-gpt</module>
         <module>nop-tablesaw</module>
+        <module>nop-cdc</module>
     </modules>
 </project>

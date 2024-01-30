@@ -2,6 +2,8 @@ package io.nop.record.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.record.model.RecordFileMeta;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -431,18 +433,45 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("binary",this.isBinary());
-        out.put("bitEndian",this.getBitEndian());
-        out.put("body",this.getBody());
-        out.put("defaultTextEncoding",this.getDefaultTextEncoding());
-        out.put("doc",this.getDoc());
-        out.put("docRef",this.getDocRef());
-        out.put("endian",this.getEndian());
-        out.put("enums",this.getEnums());
-        out.put("header",this.getHeader());
-        out.put("params",this.getParams());
-        out.put("trailer",this.getTrailer());
-        out.put("types",this.getTypes());
+        out.putNotNull("binary",this.isBinary());
+        out.putNotNull("bitEndian",this.getBitEndian());
+        out.putNotNull("body",this.getBody());
+        out.putNotNull("defaultTextEncoding",this.getDefaultTextEncoding());
+        out.putNotNull("doc",this.getDoc());
+        out.putNotNull("docRef",this.getDocRef());
+        out.putNotNull("endian",this.getEndian());
+        out.putNotNull("enums",this.getEnums());
+        out.putNotNull("header",this.getHeader());
+        out.putNotNull("params",this.getParams());
+        out.putNotNull("trailer",this.getTrailer());
+        out.putNotNull("types",this.getTypes());
+    }
+
+    public RecordFileMeta cloneInstance(){
+        RecordFileMeta instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(RecordFileMeta instance){
+        super.copyTo(instance);
+        
+        instance.setBinary(this.isBinary());
+        instance.setBitEndian(this.getBitEndian());
+        instance.setBody(this.getBody());
+        instance.setDefaultTextEncoding(this.getDefaultTextEncoding());
+        instance.setDoc(this.getDoc());
+        instance.setDocRef(this.getDocRef());
+        instance.setEndian(this.getEndian());
+        instance.setEnums(this.getEnums());
+        instance.setHeader(this.getHeader());
+        instance.setParams(this.getParams());
+        instance.setTrailer(this.getTrailer());
+        instance.setTypes(this.getTypes());
+    }
+
+    protected RecordFileMeta newInstance(){
+        return (RecordFileMeta) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

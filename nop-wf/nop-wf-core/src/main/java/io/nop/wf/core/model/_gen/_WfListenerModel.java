@@ -2,6 +2,8 @@ package io.nop.wf.core.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.wf.core.model.WfListenerModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -107,9 +109,27 @@ public abstract class _WfListenerModel extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("eventPattern",this.getEventPattern());
-        out.put("id",this.getId());
-        out.put("source",this.getSource());
+        out.putNotNull("eventPattern",this.getEventPattern());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("source",this.getSource());
+    }
+
+    public WfListenerModel cloneInstance(){
+        WfListenerModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(WfListenerModel instance){
+        super.copyTo(instance);
+        
+        instance.setEventPattern(this.getEventPattern());
+        instance.setId(this.getId());
+        instance.setSource(this.getSource());
+    }
+
+    protected WfListenerModel newInstance(){
+        return (WfListenerModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

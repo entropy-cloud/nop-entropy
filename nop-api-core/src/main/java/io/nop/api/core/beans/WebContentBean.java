@@ -10,6 +10,7 @@ package io.nop.api.core.beans;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
+import io.nop.api.core.annotations.meta.PropMeta;
 
 @GraphQLObject
 @DataBean
@@ -63,14 +64,17 @@ public class WebContentBean {
         return new WebContentBean(CONTENT_TYPE_TEXT, text);
     }
 
+    @PropMeta(propId = 1)
     public String getContentType() {
         return contentType;
     }
 
+    @PropMeta(propId = 2)
     public Object getContent() {
         return content;
     }
 
+    @PropMeta(propId = 3)
     public String getFileName() {
         return fileName;
     }

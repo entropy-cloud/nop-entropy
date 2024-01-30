@@ -23,4 +23,9 @@ public interface AuthCoreConfigs {
     @Description("是否设置cookie的secure属性为true")
     IConfigReference<Boolean> CFG_AUTH_USE_SECURE_COOKIE =
             varRef(s_loc, "nop.auth.use-secure-cookie", Boolean.class, false);
+
+
+    @Description("是否使用用户ID作为创建人、修改人等审计字段，缺省为false，使用userName")
+    IConfigReference<Boolean> CFG_AUTH_USE_USER_ID_FOR_AUDIT_FIELDS =
+            varRef(s_loc, "nop.auth.use-user-id-for-audit-fields", Boolean.class, false);
 }

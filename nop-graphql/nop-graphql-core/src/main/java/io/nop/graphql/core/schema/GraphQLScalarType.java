@@ -8,6 +8,7 @@
 package io.nop.graphql.core.schema;
 
 import io.nop.api.core.annotations.core.StaticFactoryMethod;
+import io.nop.api.core.json.IJsonString;
 import io.nop.commons.type.StdDataType;
 
 import java.util.HashMap;
@@ -25,7 +26,8 @@ public enum GraphQLScalarType {
     Float(StdDataType.DOUBLE), //
     String(StdDataType.STRING), //
     Map(StdDataType.MAP), //
-    Any(StdDataType.ANY);
+    Any(StdDataType.ANY),
+    Void(StdDataType.VOID);
     // BigInteger(StdDataType.BIGINT),
     // BigDecimal(StdDataType.DECIMAL);
 
@@ -48,7 +50,7 @@ public enum GraphQLScalarType {
             stdMap.put(type.getStdDataType(), type);
             textMap.put(type.name(), type);
         }
-       // stdMap.put(StdDataType.LONG, GraphQLScalarType.String);
+        // stdMap.put(StdDataType.LONG, GraphQLScalarType.String);
         stdMap.put(StdDataType.BIGINT, GraphQLScalarType.String);
         stdMap.put(StdDataType.DECIMAL, GraphQLScalarType.Float);
         stdMap.put(StdDataType.BYTE, GraphQLScalarType.Int);
@@ -67,15 +69,13 @@ public enum GraphQLScalarType {
         stdMap.put(StdDataType.GEOMETRY, GraphQLScalarType.String);
         stdMap.put(StdDataType.FILE, GraphQLScalarType.String);
         stdMap.put(StdDataType.FILES, GraphQLScalarType.String);
-        stdMap.put(StdDataType.VOID, GraphQLScalarType.String);
+        stdMap.put(StdDataType.VOID, GraphQLScalarType.Void);
 
         for (Map.Entry<StdDataType, GraphQLScalarType> entry : stdMap.entrySet()) {
             typeMap.put(entry.getKey().getJavaClass(), entry.getValue());
             typeMap.put(entry.getKey().getMandatoryJavaClass(), entry.getValue());
         }
-
-        // void类型被映射为String
-        typeMap.put(void.class, GraphQLScalarType.String);
+        typeMap.put(void.class, GraphQLScalarType.Void);
     }
 
     public static GraphQLScalarType fromStdDataType(StdDataType dataType) {
@@ -88,6 +88,8 @@ public enum GraphQLScalarType {
 
         GraphQLScalarType type = typeMap.get(clazz);
         if (type == null) {
+            if (IJsonString.class.isAssignableFrom(clazz))
+                return GraphQLScalarType.String;
             if (Map.class.isAssignableFrom(clazz))
                 return Map;
         }

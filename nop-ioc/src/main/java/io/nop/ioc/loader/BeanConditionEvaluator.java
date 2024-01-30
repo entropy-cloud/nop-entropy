@@ -237,14 +237,16 @@ public class BeanConditionEvaluator {
         BeanConditionModel conditionModel = bean.getCondition();
         if (conditionModel.getIfProperty() != null) {
             BeanIfPropertyCondition ifProperty = conditionModel.getIfProperty();
-            if (!checkProperty(ifProperty.getName(), ifProperty.getValue(), ifProperty.isEnableIfMissing())) {
+            if (!checkProperty(ifProperty.getName(), ifProperty.getValue(),
+                    ifProperty.isEnableIfMissing(), ifProperty.isEnableIfDebug())) {
                 return false;
             }
         }
 
         if (conditionModel.getUnlessProperty() != null) {
             BeanIfPropertyCondition ifProperty = conditionModel.getIfProperty();
-            if (checkProperty(ifProperty.getName(), ifProperty.getValue(), ifProperty.isEnableIfMissing())) {
+            if (checkProperty(ifProperty.getName(), ifProperty.getValue(),
+                    ifProperty.isEnableIfMissing(), ifProperty.isEnableIfDebug())) {
                 return false;
             }
         }
@@ -319,15 +321,18 @@ public class BeanConditionEvaluator {
         }
     }
 
-    boolean checkProperty(String name, String value, boolean enabledIfMissing) {
+    boolean checkProperty(String name, String value, boolean enabledIfMissing, boolean enableIfDebug) {
         String var = ConvertHelper.toString(AppConfig.var(name));
         if (var == null) {
             var = "";
         }
 
+
         if (StringHelper.isEmpty(var)) {
             if (enabledIfMissing)
                 return true;
+            if (enableIfDebug)
+                return AppConfig.isDebugMode();
             return false;
         }
 
@@ -422,7 +427,8 @@ public class BeanConditionEvaluator {
                 BeanConditionModel condition = bean.getCondition();
                 if (condition.getIfProperty() != null) {
                     BeanIfPropertyCondition ifProperty = condition.getIfProperty();
-                    if (!checkProperty(ifProperty.getName(), ifProperty.getValue(), ifProperty.isEnableIfMissing())) {
+                    if (!checkProperty(ifProperty.getName(), ifProperty.getValue(),
+                            ifProperty.isEnableIfMissing(), ifProperty.isEnableIfDebug())) {
                         sb.append("\n    check-if-property-fail:").append(ifProperty.getName()).append('=')
                                 .append(ifProperty.getValue());
                     }
@@ -431,7 +437,7 @@ public class BeanConditionEvaluator {
                 if (condition.getUnlessProperty() != null) {
                     BeanUnlessPropertyCondition unlessProperty = condition.getUnlessProperty();
                     if (checkProperty(unlessProperty.getName(), unlessProperty.getValue(),
-                            unlessProperty.isEnableIfMissing())) {
+                            unlessProperty.isEnableIfMissing(), unlessProperty.isEnableIfDebug())) {
                         sb.append("\n    check-unless-property-fail:").append(unlessProperty.getName()).append('=')
                                 .append(unlessProperty.getValue());
                     }

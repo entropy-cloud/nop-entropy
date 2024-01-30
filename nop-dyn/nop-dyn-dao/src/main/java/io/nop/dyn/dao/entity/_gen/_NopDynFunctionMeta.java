@@ -40,68 +40,69 @@ public class _NopDynFunctionMeta extends DynamicOrmEntity{
     public static final String PROP_NAME_functionType = "functionType";
     public static final int PROP_ID_functionType = 5;
     
-    /* 参数定义: ARGS_META VARCHAR */
-    public static final String PROP_NAME_argsMeta = "argsMeta";
-    public static final int PROP_ID_argsMeta = 6;
-    
     /* 返回类型: RETURN_TYPE VARCHAR */
     public static final String PROP_NAME_returnType = "returnType";
-    public static final int PROP_ID_returnType = 7;
+    public static final int PROP_ID_returnType = 6;
     
-    /* 标签: TAG_SET VARCHAR */
-    public static final String PROP_NAME_tagSet = "tagSet";
-    public static final int PROP_ID_tagSet = 8;
-    
-    /* 源码: SOURCE VARCHAR */
-    public static final String PROP_NAME_source = "source";
-    public static final int PROP_ID_source = 9;
+    /* GraphQL返回类型: RETURN_GQL_TYPE VARCHAR */
+    public static final String PROP_NAME_returnGqlType = "returnGqlType";
+    public static final int PROP_ID_returnGqlType = 7;
     
     /* 状态: STATUS INTEGER */
     public static final String PROP_NAME_status = "status";
-    public static final int PROP_ID_status = 10;
+    public static final int PROP_ID_status = 8;
+    
+    /* 标签: TAGS_TEXT VARCHAR */
+    public static final String PROP_NAME_tagsText = "tagsText";
+    public static final int PROP_ID_tagsText = 9;
+    
+    /* 函数元数据: FUNC_META VARCHAR */
+    public static final String PROP_NAME_funcMeta = "funcMeta";
+    public static final int PROP_ID_funcMeta = 10;
+    
+    /* 源码: SOURCE VARCHAR */
+    public static final String PROP_NAME_source = "source";
+    public static final int PROP_ID_source = 11;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 11;
+    public static final int PROP_ID_version = 12;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 12;
+    public static final int PROP_ID_createdBy = 13;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 13;
+    public static final int PROP_ID_createTime = 14;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 14;
+    public static final int PROP_ID_updatedBy = 15;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 15;
+    public static final int PROP_ID_updateTime = 16;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 16;
+    public static final int PROP_ID_remark = 17;
     
 
-    private static int _PROP_ID_BOUND = 17;
+    private static int _PROP_ID_BOUND = 18;
 
     
     /* relation: 所属模块 */
     public static final String PROP_NAME_entityMeta = "entityMeta";
     
     /* component:  */
-    public static final String PROP_NAME_argsMetaComponent = "argsMetaComponent";
-    
-    /* component:  */
-    public static final String PROP_NAME_sourceComponent = "sourceComponent";
+    public static final String PROP_NAME_funcMetaComponent = "funcMetaComponent";
     
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_funcMetaId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_funcMetaId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[17];
+    private static final String[] PROP_ID_TO_NAME = new String[18];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -120,20 +121,23 @@ public class _NopDynFunctionMeta extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_functionType] = PROP_NAME_functionType;
           PROP_NAME_TO_ID.put(PROP_NAME_functionType, PROP_ID_functionType);
       
-          PROP_ID_TO_NAME[PROP_ID_argsMeta] = PROP_NAME_argsMeta;
-          PROP_NAME_TO_ID.put(PROP_NAME_argsMeta, PROP_ID_argsMeta);
-      
           PROP_ID_TO_NAME[PROP_ID_returnType] = PROP_NAME_returnType;
           PROP_NAME_TO_ID.put(PROP_NAME_returnType, PROP_ID_returnType);
       
-          PROP_ID_TO_NAME[PROP_ID_tagSet] = PROP_NAME_tagSet;
-          PROP_NAME_TO_ID.put(PROP_NAME_tagSet, PROP_ID_tagSet);
-      
-          PROP_ID_TO_NAME[PROP_ID_source] = PROP_NAME_source;
-          PROP_NAME_TO_ID.put(PROP_NAME_source, PROP_ID_source);
+          PROP_ID_TO_NAME[PROP_ID_returnGqlType] = PROP_NAME_returnGqlType;
+          PROP_NAME_TO_ID.put(PROP_NAME_returnGqlType, PROP_ID_returnGqlType);
       
           PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
           PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
+      
+          PROP_ID_TO_NAME[PROP_ID_tagsText] = PROP_NAME_tagsText;
+          PROP_NAME_TO_ID.put(PROP_NAME_tagsText, PROP_ID_tagsText);
+      
+          PROP_ID_TO_NAME[PROP_ID_funcMeta] = PROP_NAME_funcMeta;
+          PROP_NAME_TO_ID.put(PROP_NAME_funcMeta, PROP_ID_funcMeta);
+      
+          PROP_ID_TO_NAME[PROP_ID_source] = PROP_NAME_source;
+          PROP_NAME_TO_ID.put(PROP_NAME_source, PROP_ID_source);
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
@@ -171,20 +175,23 @@ public class _NopDynFunctionMeta extends DynamicOrmEntity{
     /* 函数类型: FUNCTION_TYPE */
     private java.lang.String _functionType;
     
-    /* 参数定义: ARGS_META */
-    private java.lang.String _argsMeta;
-    
     /* 返回类型: RETURN_TYPE */
     private java.lang.String _returnType;
     
-    /* 标签: TAG_SET */
-    private java.lang.String _tagSet;
-    
-    /* 源码: SOURCE */
-    private java.lang.String _source;
+    /* GraphQL返回类型: RETURN_GQL_TYPE */
+    private java.lang.String _returnGqlType;
     
     /* 状态: STATUS */
     private java.lang.Integer _status;
+    
+    /* 标签: TAGS_TEXT */
+    private java.lang.String _tagsText;
+    
+    /* 函数元数据: FUNC_META */
+    private java.lang.String _funcMeta;
+    
+    /* 源码: SOURCE */
+    private java.lang.String _source;
     
     /* 数据版本: VERSION */
     private java.lang.Integer _version;
@@ -290,20 +297,23 @@ public class _NopDynFunctionMeta extends DynamicOrmEntity{
             case PROP_ID_functionType:
                return getFunctionType();
         
-            case PROP_ID_argsMeta:
-               return getArgsMeta();
-        
             case PROP_ID_returnType:
                return getReturnType();
         
-            case PROP_ID_tagSet:
-               return getTagSet();
-        
-            case PROP_ID_source:
-               return getSource();
+            case PROP_ID_returnGqlType:
+               return getReturnGqlType();
         
             case PROP_ID_status:
                return getStatus();
+        
+            case PROP_ID_tagsText:
+               return getTagsText();
+        
+            case PROP_ID_funcMeta:
+               return getFuncMeta();
+        
+            case PROP_ID_source:
+               return getSource();
         
             case PROP_ID_version:
                return getVersion();
@@ -384,16 +394,6 @@ public class _NopDynFunctionMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_argsMeta:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_argsMeta));
-               }
-               setArgsMeta(typedValue);
-               break;
-            }
-        
             case PROP_ID_returnType:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -404,23 +404,13 @@ public class _NopDynFunctionMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_tagSet:{
+            case PROP_ID_returnGqlType:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_tagSet));
+                       err-> newTypeConversionError(PROP_NAME_returnGqlType));
                }
-               setTagSet(typedValue);
-               break;
-            }
-        
-            case PROP_ID_source:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_source));
-               }
-               setSource(typedValue);
+               setReturnGqlType(typedValue);
                break;
             }
         
@@ -431,6 +421,36 @@ public class _NopDynFunctionMeta extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_status));
                }
                setStatus(typedValue);
+               break;
+            }
+        
+            case PROP_ID_tagsText:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_tagsText));
+               }
+               setTagsText(typedValue);
+               break;
+            }
+        
+            case PROP_ID_funcMeta:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_funcMeta));
+               }
+               setFuncMeta(typedValue);
+               break;
+            }
+        
+            case PROP_ID_source:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_source));
+               }
+               setSource(typedValue);
                break;
             }
         
@@ -538,13 +558,6 @@ public class _NopDynFunctionMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_argsMeta:{
-               onInitProp(propId);
-               this._argsMeta = (java.lang.String)value;
-               
-               break;
-            }
-        
             case PROP_ID_returnType:{
                onInitProp(propId);
                this._returnType = (java.lang.String)value;
@@ -552,16 +565,9 @@ public class _NopDynFunctionMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_tagSet:{
+            case PROP_ID_returnGqlType:{
                onInitProp(propId);
-               this._tagSet = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_source:{
-               onInitProp(propId);
-               this._source = (java.lang.String)value;
+               this._returnGqlType = (java.lang.String)value;
                
                break;
             }
@@ -569,6 +575,27 @@ public class _NopDynFunctionMeta extends DynamicOrmEntity{
             case PROP_ID_status:{
                onInitProp(propId);
                this._status = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_tagsText:{
+               onInitProp(propId);
+               this._tagsText = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_funcMeta:{
+               onInitProp(propId);
+               this._funcMeta = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_source:{
+               onInitProp(propId);
+               this._source = (java.lang.String)value;
                
                break;
             }
@@ -717,25 +744,6 @@ public class _NopDynFunctionMeta extends DynamicOrmEntity{
     }
     
     /**
-     * 参数定义: ARGS_META
-     */
-    public java.lang.String getArgsMeta(){
-         onPropGet(PROP_ID_argsMeta);
-         return _argsMeta;
-    }
-
-    /**
-     * 参数定义: ARGS_META
-     */
-    public void setArgsMeta(java.lang.String value){
-        if(onPropSet(PROP_ID_argsMeta,value)){
-            this._argsMeta = value;
-            internalClearRefs(PROP_ID_argsMeta);
-            
-        }
-    }
-    
-    /**
      * 返回类型: RETURN_TYPE
      */
     public java.lang.String getReturnType(){
@@ -755,39 +763,20 @@ public class _NopDynFunctionMeta extends DynamicOrmEntity{
     }
     
     /**
-     * 标签: TAG_SET
+     * GraphQL返回类型: RETURN_GQL_TYPE
      */
-    public java.lang.String getTagSet(){
-         onPropGet(PROP_ID_tagSet);
-         return _tagSet;
+    public java.lang.String getReturnGqlType(){
+         onPropGet(PROP_ID_returnGqlType);
+         return _returnGqlType;
     }
 
     /**
-     * 标签: TAG_SET
+     * GraphQL返回类型: RETURN_GQL_TYPE
      */
-    public void setTagSet(java.lang.String value){
-        if(onPropSet(PROP_ID_tagSet,value)){
-            this._tagSet = value;
-            internalClearRefs(PROP_ID_tagSet);
-            
-        }
-    }
-    
-    /**
-     * 源码: SOURCE
-     */
-    public java.lang.String getSource(){
-         onPropGet(PROP_ID_source);
-         return _source;
-    }
-
-    /**
-     * 源码: SOURCE
-     */
-    public void setSource(java.lang.String value){
-        if(onPropSet(PROP_ID_source,value)){
-            this._source = value;
-            internalClearRefs(PROP_ID_source);
+    public void setReturnGqlType(java.lang.String value){
+        if(onPropSet(PROP_ID_returnGqlType,value)){
+            this._returnGqlType = value;
+            internalClearRefs(PROP_ID_returnGqlType);
             
         }
     }
@@ -807,6 +796,63 @@ public class _NopDynFunctionMeta extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_status,value)){
             this._status = value;
             internalClearRefs(PROP_ID_status);
+            
+        }
+    }
+    
+    /**
+     * 标签: TAGS_TEXT
+     */
+    public java.lang.String getTagsText(){
+         onPropGet(PROP_ID_tagsText);
+         return _tagsText;
+    }
+
+    /**
+     * 标签: TAGS_TEXT
+     */
+    public void setTagsText(java.lang.String value){
+        if(onPropSet(PROP_ID_tagsText,value)){
+            this._tagsText = value;
+            internalClearRefs(PROP_ID_tagsText);
+            
+        }
+    }
+    
+    /**
+     * 函数元数据: FUNC_META
+     */
+    public java.lang.String getFuncMeta(){
+         onPropGet(PROP_ID_funcMeta);
+         return _funcMeta;
+    }
+
+    /**
+     * 函数元数据: FUNC_META
+     */
+    public void setFuncMeta(java.lang.String value){
+        if(onPropSet(PROP_ID_funcMeta,value)){
+            this._funcMeta = value;
+            internalClearRefs(PROP_ID_funcMeta);
+            
+        }
+    }
+    
+    /**
+     * 源码: SOURCE
+     */
+    public java.lang.String getSource(){
+         onPropGet(PROP_ID_source);
+         return _source;
+    }
+
+    /**
+     * 源码: SOURCE
+     */
+    public void setSource(java.lang.String value){
+        if(onPropSet(PROP_ID_source,value)){
+            this._source = value;
+            internalClearRefs(PROP_ID_source);
             
         }
     }
@@ -933,51 +979,36 @@ public class _NopDynFunctionMeta extends DynamicOrmEntity{
     }
 
     public void setEntityMeta(io.nop.dyn.dao.entity.NopDynEntityMeta refEntity){
-       if(refEntity == null){
-         
-         this.setEntityMetaId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_entityMeta, refEntity,()->{
-             
-                    this.setEntityMetaId(refEntity.getEntityMetaId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setEntityMetaId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_entityMeta, refEntity,()->{
+           
+                           this.setEntityMetaId(refEntity.getEntityMetaId());
+                       
+           });
+           }
+       
     }
        
-   private io.nop.orm.component.JsonOrmComponent _argsMetaComponent;
+   private io.nop.orm.component.JsonOrmComponent _funcMetaComponent;
 
-   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_argsMetaComponent = new HashMap<>();
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_funcMetaComponent = new HashMap<>();
    static{
       
-         COMPONENT_PROP_ID_MAP_argsMetaComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_argsMeta);
+         COMPONENT_PROP_ID_MAP_funcMetaComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_funcMeta);
       
    }
 
-   public io.nop.orm.component.JsonOrmComponent getArgsMetaComponent(){
-      if(_argsMetaComponent == null){
-          _argsMetaComponent = new io.nop.orm.component.JsonOrmComponent();
-          _argsMetaComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_argsMetaComponent);
+   public io.nop.orm.component.JsonOrmComponent getFuncMetaComponent(){
+      if(_funcMetaComponent == null){
+          _funcMetaComponent = new io.nop.orm.component.JsonOrmComponent();
+          _funcMetaComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_funcMetaComponent);
       }
-      return _argsMetaComponent;
-   }
-
-   private io.nop.orm.component.JsonOrmComponent _sourceComponent;
-
-   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_sourceComponent = new HashMap<>();
-   static{
-      
-         COMPONENT_PROP_ID_MAP_sourceComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_source);
-      
-   }
-
-   public io.nop.orm.component.JsonOrmComponent getSourceComponent(){
-      if(_sourceComponent == null){
-          _sourceComponent = new io.nop.orm.component.JsonOrmComponent();
-          _sourceComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_sourceComponent);
-      }
-      return _sourceComponent;
+      return _funcMetaComponent;
    }
 
 }

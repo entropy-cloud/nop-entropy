@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
-      displayName="工作流模型定义" i18n-en:displayName="Worflow Instance" xmlns:ui="ui" xmlns:orm="orm">
+      displayName="工作流实例" i18n-en:displayName="Worflow Instance" xmlns:ui="ui" xmlns:orm="orm">
 
     <entityName>io.nop.wf.dao.entity.NopWfInstance</entityName>
 
@@ -21,7 +21,7 @@
 
     <props>
         <prop name="wfId" displayName="主键" i18n-en:displayName="Workflow ID" tagSet="seq" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="false">
+              queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="wfName" displayName="工作流名称" i18n-en:displayName="Workflow Name" mandatory="true" queryable="true"

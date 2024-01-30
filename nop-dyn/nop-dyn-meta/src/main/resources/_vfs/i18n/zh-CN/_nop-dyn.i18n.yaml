@@ -9,6 +9,7 @@ entity:
     NopDynEntityRelationMeta: 实体关联元数据
     NopDynFunctionMeta: 实体函数定义
     NopDynModule: 模块定义
+    NopDynModuleDep: 模块依赖
     NopDynPage: 页面定义
     NopDynPropMeta: 属性元数据
 prop:
@@ -57,40 +58,40 @@ prop:
       updatedBy: 修改人
       version: 数据版本
     NopDynEntity:
-      bizState: 业务状态
-      bizStatus: 业务状态码
-      children: 子对象
       createTime: 创建时间
       createdBy: 创建人
-      dateFld1: 日期字段1
-      dateFld2: 日期字段2
-      decimalFld1: 浮点型字段1
-      decimalFld2: 浮点型字段2
-      deptId: 部门ID
-      displayName: 显示名称
       extFields: null
-      fileFld1: 文件字段1
-      fileFld1Component: null
-      fileFld2: 文件字段2
-      fileFld2Component: null
-      intFld1: 整数型字段1
-      intFld2: 整数型字段2
-      longFld1: 长整型字段1
-      longFld2: 长整型字段2
-      name: 名称
+      nopBizState: 业务状态
+      nopChildren: 子对象
+      nopDateFld1: 日期字段1
+      nopDateFld2: 日期字段2
+      nopDecimalFld1: 浮点型字段1
+      nopDecimalFld2: 浮点型字段2
+      nopDeptId: 部门ID
+      nopDisplayName: 显示名称
+      nopFileFld1: 文件字段1
+      nopFileFld1Component: null
+      nopFileFld2: 文件字段2
+      nopFileFld2Component: null
       nopFlowId: 工作流实例ID
-      objType: 对象类型
-      ownerId: 拥有者ID
-      ownerName: 拥有者姓名
-      parent: 父对象
-      parentId: 父ID
+      nopIntFld1: 整数型字段1
+      nopIntFld2: 整数型字段2
+      nopLongFld1: 长整型字段1
+      nopLongFld2: 长整型字段2
+      nopName: 名称
+      nopObjType: 对象类型
+      nopOwnerId: 拥有者ID
+      nopOwnerName: 拥有者姓名
+      nopParent: 父对象
+      nopParentId: 父ID
+      nopSortOrder: 排序
+      nopStatus: 业务状态码
+      nopStringFld1: 字符串字段1
+      nopStringFld2: 字符串字段2
+      nopTimestampFld1: 时间戳字段1
+      nopTimestampFld2: 时间戳字段2
       remark: 备注
       sid: 主键
-      sortOrder: 排序
-      stringFld1: 字符串字段1
-      stringFld2: 字符串字段2
-      timestampFld1: 时间戳字段1
-      timestampFld2: 时间戳字段2
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
@@ -103,6 +104,8 @@ prop:
       extConfig: 扩展配置
       extConfigComponent: null
       functionMetas: 函数定义
+      isExternal: 是否外部实体
+      mainPagePath: 测试页面
       module: 所属模块
       module.displayName: 所属模块
       moduleId: 模块ID
@@ -114,7 +117,7 @@ prop:
       storeType: 存储类型
       storeType_label: 存储类型
       tableName: 表名
-      tagSet: 标签
+      tagsText: 标签
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
@@ -150,31 +153,32 @@ prop:
       relationName: 关联名
       remark: 备注
       status: 状态
-      tagSet: 标签
+      tableName: 中间表表名
+      tagsText: 标签
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
     NopDynFunctionMeta:
-      argsMeta: 参数定义
-      argsMetaComponent: null
-      argsMeta_label: 参数定义
+      args: 参数定义
       createTime: 创建时间
       createdBy: 创建人
       displayName: 显示名
       entityMeta: 所属模块
       entityMeta.entityName: 所属模块
       entityMetaId: 实体定义ID
+      funcMeta: 函数元数据
+      funcMetaComponent: null
       funcMetaId: 函数定义ID
       functionType: 函数类型
       functionType_label: 函数类型
       name: 函数名
       remark: 备注
+      returnGqlType: GraphQL返回类型
       returnType: 返回类型
       source: 源码
-      sourceComponent: null
       status: 状态
       status_label: 状态
-      tagSet: 标签
+      tagsText: 标签
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
@@ -189,6 +193,7 @@ prop:
       derivedModules: 派生模块
       displayName: 显示名
       entityMetas: 模块实体定义
+      importFile: 导入文件
       mavenGroupId: Maven组名
       moduleId: 模块ID
       moduleName: 模块名
@@ -199,6 +204,18 @@ prop:
       relatedAppList_label: 所属应用列表
       status: 状态
       status_label: 状态
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopDynModuleDep:
+      createTime: 创建时间
+      createdBy: 创建人
+      depModule: 基础模块
+      depModule.displayName: 基础模块
+      depModuleId: 被依赖模块ID
+      module: 模块
+      module.displayName: 模块
+      moduleId: 模块ID
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
@@ -237,14 +254,15 @@ prop:
       extConfig: 扩展配置
       extConfigComponent: null
       isMandatory: 是否非空
-      isPrimary: 是否主键
       precision: 长度
+      propId: 属性编号
       propMetaId: 属性定义ID
       propName: 属性名
       refEntityName: 关联实体名
       refPropDisplayName: 关联属性显示名
       refPropName: 关联属性名
-      refTagSet: 关联属性标签
+      refSetSort: 关联集合排序条件
+      refTagsText: 关联属性标签
       remark: 备注
       scale: 小数位数
       status: 状态
@@ -253,7 +271,7 @@ prop:
       stdDomainName_label: 标准域
       stdSqlType: 标准SQL数据类型
       stdSqlType_label: 标准SQL数据类型
-      tagSet: 标签
+      tagsText: 标签
       uiControl: 显示控件
       uiShow: 显示控制
       updateTime: 修改时间

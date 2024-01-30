@@ -1,0 +1,23 @@
+<c:unit>
+
+    <gen:Render template="/nop/templates/orm/deploy"
+                targetDir="${targetResource.path.$filePath() + '/deploy'}"
+      xpl:lib="/nop/codegen/xlib/gen.xlib" inheritCodeGenLoop="true"/>
+
+    <gen:Render template="/nop/templates/orm/{appName}-api"
+                targetDir="${targetResource.path.$filePath() + '/' + moduleName + '-api'}"
+      xpl:lib="/nop/codegen/xlib/gen.xlib" inheritCodeGenLoop="true" />
+
+    <gen:Render template="/nop/templates/orm/{appName}-dao"
+                targetDir="${targetResource.path.$filePath() + '/' + moduleName + '-dao'}"
+      xpl:lib="/nop/codegen/xlib/gen.xlib" inheritCodeGenLoop="true" />
+
+    <gen:Render template="/nop/templates/orm/{appName}-meta"
+                targetDir="${targetResource.path.$filePath() + '/' + moduleName + '-meta'}"
+                xpl:lib="/nop/codegen/xlib/gen.xlib" inheritCodeGenLoop="true" />
+
+    <gen:Render template="/nop/templates/orm/{appName}-service"
+                targetDir="${targetResource.path.$filePath() + '/' + moduleName + '-service'}"
+                xpl:lib="/nop/codegen/xlib/gen.xlib" inheritCodeGenLoop="true" />
+
+</c:unit>

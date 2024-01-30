@@ -2,6 +2,8 @@ package io.nop.xui.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xui.model.UiFormRuleModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -133,10 +135,29 @@ public abstract class _UiFormRuleModel extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("id",this.getId());
-        out.put("message",this.getMessage());
-        out.put("name",this.getName());
-        out.put("rule",this.getRule());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("message",this.getMessage());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("rule",this.getRule());
+    }
+
+    public UiFormRuleModel cloneInstance(){
+        UiFormRuleModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(UiFormRuleModel instance){
+        super.copyTo(instance);
+        
+        instance.setId(this.getId());
+        instance.setMessage(this.getMessage());
+        instance.setName(this.getName());
+        instance.setRule(this.getRule());
+    }
+
+    protected UiFormRuleModel newInstance(){
+        return (UiFormRuleModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

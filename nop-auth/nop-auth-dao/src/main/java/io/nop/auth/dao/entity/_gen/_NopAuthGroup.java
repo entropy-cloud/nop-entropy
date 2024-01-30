@@ -77,6 +77,9 @@ public class _NopAuthGroup extends DynamicOrmEntity{
     /* relation: 子分组 */
     public static final String PROP_NAME_children = "children";
     
+    /* relation: 部门映射 */
+    public static final String PROP_NAME_deptMappings = "deptMappings";
+    
     /* relation: 用户映射 */
     public static final String PROP_NAME_userMappings = "userMappings";
     
@@ -691,17 +694,19 @@ public class _NopAuthGroup extends DynamicOrmEntity{
     }
 
     public void setParent(io.nop.auth.dao.entity.NopAuthGroup refEntity){
-       if(refEntity == null){
-         
-         this.setParentId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_parent, refEntity,()->{
-             
-                    this.setParentId(refEntity.getGroupId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setParentId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_parent, refEntity,()->{
+           
+                           this.setParentId(refEntity.getGroupId());
+                       
+           });
+           }
+       
     }
        
     /**
@@ -712,17 +717,19 @@ public class _NopAuthGroup extends DynamicOrmEntity{
     }
 
     public void setOwner(io.nop.auth.dao.entity.NopAuthUser refEntity){
-       if(refEntity == null){
-         
-         this.setOwnerId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_owner, refEntity,()->{
-             
-                    this.setOwnerId(refEntity.getUserId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setOwnerId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_owner, refEntity,()->{
+           
+                           this.setOwnerId(refEntity.getUserId());
+                       
+           });
+           }
+       
     }
        
     private final OrmEntitySet<io.nop.auth.dao.entity.NopAuthGroup> _children = new OrmEntitySet<>(this, PROP_NAME_children,
@@ -735,18 +742,44 @@ public class _NopAuthGroup extends DynamicOrmEntity{
        return _children;
     }
        
-    private final OrmEntitySet<io.nop.auth.dao.entity.NopAuthGroupDept> _userMappings = new OrmEntitySet<>(this, PROP_NAME_userMappings,
+    private final OrmEntitySet<io.nop.auth.dao.entity.NopAuthGroupDept> _deptMappings = new OrmEntitySet<>(this, PROP_NAME_deptMappings,
         io.nop.auth.dao.entity.NopAuthGroupDept.PROP_NAME_group, null,io.nop.auth.dao.entity.NopAuthGroupDept.class);
+
+    /**
+     * 部门映射。 refPropName: group, keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.auth.dao.entity.NopAuthGroupDept> getDeptMappings(){
+       return _deptMappings;
+    }
+       
+    private final OrmEntitySet<io.nop.auth.dao.entity.NopAuthGroupUser> _userMappings = new OrmEntitySet<>(this, PROP_NAME_userMappings,
+        io.nop.auth.dao.entity.NopAuthGroupUser.PROP_NAME_group, null,io.nop.auth.dao.entity.NopAuthGroupUser.class);
 
     /**
      * 用户映射。 refPropName: group, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.auth.dao.entity.NopAuthGroupDept> getUserMappings(){
+    public IOrmEntitySet<io.nop.auth.dao.entity.NopAuthGroupUser> getUserMappings(){
        return _userMappings;
     }
        
+        public List<io.nop.auth.dao.entity.NopAuthDept> getRelatedDeptList(){
+            return (List<io.nop.auth.dao.entity.NopAuthDept>)io.nop.orm.support.OrmEntityHelper.getRefProps(getDeptMappings(),io.nop.auth.dao.entity.NopAuthGroupDept.PROP_NAME_dept);
+        }
+    
+        public String getRelatedDeptList_label(){
+        return io.nop.core.lang.utils.Underscore.pluckThenJoin(getRelatedDeptList(),io.nop.auth.dao.entity.NopAuthDept.PROP_NAME_deptName);
+        }
+    
+        public List<java.lang.String> getRelatedDeptIdList(){
+        return (List<java.lang.String>)io.nop.orm.support.OrmEntityHelper.getRefProps(getDeptMappings(),io.nop.auth.dao.entity.NopAuthGroupDept.PROP_NAME_deptId);
+        }
+
+        public void setRelatedDeptIdList(List<java.lang.String> value){
+        io.nop.orm.support.OrmEntityHelper.setRefProps(getDeptMappings(),io.nop.auth.dao.entity.NopAuthGroupDept.PROP_NAME_deptId,value);
+        }
+    
         public List<io.nop.auth.dao.entity.NopAuthUser> getRelatedUserList(){
-            return (List<io.nop.auth.dao.entity.NopAuthUser>)io.nop.orm.support.OrmEntityHelper.getRefProps(getUserMappings(),io.nop.auth.dao.entity.NopAuthGroupDept.PROP_NAME_user);
+            return (List<io.nop.auth.dao.entity.NopAuthUser>)io.nop.orm.support.OrmEntityHelper.getRefProps(getUserMappings(),io.nop.auth.dao.entity.NopAuthGroupUser.PROP_NAME_user);
         }
     
         public String getRelatedUserList_label(){
@@ -754,11 +787,11 @@ public class _NopAuthGroup extends DynamicOrmEntity{
         }
     
         public List<java.lang.String> getRelatedUserIdList(){
-        return (List<java.lang.String>)io.nop.orm.support.OrmEntityHelper.getRefProps(getUserMappings(),io.nop.auth.dao.entity.NopAuthGroupDept.PROP_NAME_userId);
+        return (List<java.lang.String>)io.nop.orm.support.OrmEntityHelper.getRefProps(getUserMappings(),io.nop.auth.dao.entity.NopAuthGroupUser.PROP_NAME_userId);
         }
 
         public void setRelatedUserIdList(List<java.lang.String> value){
-        io.nop.orm.support.OrmEntityHelper.setRefProps(getUserMappings(),io.nop.auth.dao.entity.NopAuthGroupDept.PROP_NAME_userId,value);
+        io.nop.orm.support.OrmEntityHelper.setRefProps(getUserMappings(),io.nop.auth.dao.entity.NopAuthGroupUser.PROP_NAME_userId,value);
         }
     
 }

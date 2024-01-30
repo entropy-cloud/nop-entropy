@@ -2,6 +2,8 @@ package io.nop.task.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.task.model.ScriptTaskStepModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -81,8 +83,25 @@ public abstract class _ScriptTaskStepModel extends io.nop.task.model.TaskStepMod
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("lang",this.getLang());
-        out.put("source",this.getSource());
+        out.putNotNull("lang",this.getLang());
+        out.putNotNull("source",this.getSource());
+    }
+
+    public ScriptTaskStepModel cloneInstance(){
+        ScriptTaskStepModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ScriptTaskStepModel instance){
+        super.copyTo(instance);
+        
+        instance.setLang(this.getLang());
+        instance.setSource(this.getSource());
+    }
+
+    protected ScriptTaskStepModel newInstance(){
+        return (ScriptTaskStepModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

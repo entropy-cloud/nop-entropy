@@ -16,6 +16,8 @@ import io.nop.graphql.core.ast.GraphQLTypeDefinition;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * 用于加载builtin schema之外的biz模型定义
@@ -42,4 +44,8 @@ public interface IGraphQLSchemaLoader {
     Collection<GraphQLTypeDefinition> getTypeDefinitions();
 
     GraphQLDocument getGraphQLDocument();
+
+    Set<String> getBizObjNames();
+
+    Map<String, GraphQLFieldDefinition> getBizOperationDefinitions(String bizObjName);
 }

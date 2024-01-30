@@ -17,10 +17,10 @@ public class ObjPropAuthModel extends _ObjPropAuthModel {
     }
 
     public ActionAuthMeta toActionAuthMeta() {
-        if(CollectionHelper.isEmpty(getRoles())){
-            if(getPermissions() == null || getPermissions().isEmpty())
+        if (CollectionHelper.isEmpty(getRoles())) {
+            if (getPermissions() == null || getPermissions().isEmpty())
                 return null;
         }
-        return new ActionAuthMeta(getRoles(), getPermissions());
+        return new ActionAuthMeta(isPublicAccess(), getRoles(), getPermissions());
     }
 }

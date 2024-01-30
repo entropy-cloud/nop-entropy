@@ -2,6 +2,8 @@ package io.nop.xlang.xmeta.impl._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xmeta.impl.ObjPropAuthModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -29,6 +31,13 @@ public abstract class _ObjPropAuthModel extends io.nop.core.resource.component.A
      * 
      */
     private io.nop.api.core.util.MultiCsvSet _permissions ;
+    
+    /**
+     *  
+     * xml name: publicAccess
+     * 
+     */
+    private boolean _publicAccess  = false;
     
     /**
      *  
@@ -79,6 +88,25 @@ public abstract class _ObjPropAuthModel extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: publicAccess
+     *  
+     */
+    
+    public boolean isPublicAccess(){
+      return _publicAccess;
+    }
+
+    
+    public void setPublicAccess(boolean value){
+        checkAllowChange();
+        
+        this._publicAccess = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: roles
      *  
      */
@@ -111,9 +139,29 @@ public abstract class _ObjPropAuthModel extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("for",this.getFor());
-        out.put("permissions",this.getPermissions());
-        out.put("roles",this.getRoles());
+        out.putNotNull("for",this.getFor());
+        out.putNotNull("permissions",this.getPermissions());
+        out.putNotNull("publicAccess",this.isPublicAccess());
+        out.putNotNull("roles",this.getRoles());
+    }
+
+    public ObjPropAuthModel cloneInstance(){
+        ObjPropAuthModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ObjPropAuthModel instance){
+        super.copyTo(instance);
+        
+        instance.setFor(this.getFor());
+        instance.setPermissions(this.getPermissions());
+        instance.setPublicAccess(this.isPublicAccess());
+        instance.setRoles(this.getRoles());
+    }
+
+    protected ObjPropAuthModel newInstance(){
+        return (ObjPropAuthModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

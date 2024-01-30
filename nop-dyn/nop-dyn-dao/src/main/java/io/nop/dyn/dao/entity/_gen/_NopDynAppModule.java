@@ -489,17 +489,19 @@ public class _NopDynAppModule extends DynamicOrmEntity{
     }
 
     public void setApp(io.nop.dyn.dao.entity.NopDynApp refEntity){
-       if(refEntity == null){
-         
-         this.setAppId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_app, refEntity,()->{
-             
-                    this.setAppId(refEntity.getAppId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setAppId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_app, refEntity,()->{
+           
+                           this.setAppId(refEntity.getAppId());
+                       
+           });
+           }
+       
     }
        
     /**
@@ -510,17 +512,19 @@ public class _NopDynAppModule extends DynamicOrmEntity{
     }
 
     public void setModule(io.nop.dyn.dao.entity.NopDynModule refEntity){
-       if(refEntity == null){
-         
-         this.setModuleId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_module, refEntity,()->{
-             
-                    this.setModuleId(refEntity.getModuleId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setModuleId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_module, refEntity,()->{
+           
+                           this.setModuleId(refEntity.getModuleId());
+                       
+           });
+           }
+       
     }
        
 }

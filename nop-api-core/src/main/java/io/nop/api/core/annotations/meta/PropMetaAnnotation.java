@@ -28,6 +28,8 @@ public class PropMetaAnnotation implements PropMeta {
     private String dict = "";
     private int precision = -1;
     private int scale = -1;
+
+    private String stdDomain = "";
     private String pattern = "";
     private double min = Double.MIN_VALUE;
     private double max = Double.MAX_VALUE;
@@ -90,6 +92,11 @@ public class PropMetaAnnotation implements PropMeta {
     @Override
     public String domain() {
         return domain;
+    }
+
+    @Override
+    public String stdDomain() {
+        return stdDomain;
     }
 
     @Override
@@ -251,6 +258,10 @@ public class PropMetaAnnotation implements PropMeta {
 
     public void setDomain(String domain) {
         this.domain = domain;
+    }
+
+    public void setStdDomain(String stdDomain) {
+        this.stdDomain = stdDomain;
     }
 
     public void setMandatory(boolean mandatory) {

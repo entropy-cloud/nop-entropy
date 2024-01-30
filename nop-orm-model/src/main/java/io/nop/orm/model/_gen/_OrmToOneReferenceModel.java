@@ -2,6 +2,8 @@ package io.nop.orm.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.orm.model.OrmToOneReferenceModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -135,10 +137,29 @@ public abstract class _OrmToOneReferenceModel extends io.nop.orm.model.OrmRefere
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("constraint",this.getConstraint());
-        out.put("ignoreDepends",this.isIgnoreDepends());
-        out.put("refSet",this.getRefSet());
-        out.put("reverseDepends",this.isReverseDepends());
+        out.putNotNull("constraint",this.getConstraint());
+        out.putNotNull("ignoreDepends",this.isIgnoreDepends());
+        out.putNotNull("refSet",this.getRefSet());
+        out.putNotNull("reverseDepends",this.isReverseDepends());
+    }
+
+    public OrmToOneReferenceModel cloneInstance(){
+        OrmToOneReferenceModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(OrmToOneReferenceModel instance){
+        super.copyTo(instance);
+        
+        instance.setConstraint(this.getConstraint());
+        instance.setIgnoreDepends(this.isIgnoreDepends());
+        instance.setRefSet(this.getRefSet());
+        instance.setReverseDepends(this.isReverseDepends());
+    }
+
+    protected OrmToOneReferenceModel newInstance(){
+        return (OrmToOneReferenceModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

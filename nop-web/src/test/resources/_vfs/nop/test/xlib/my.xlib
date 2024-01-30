@@ -1,0 +1,14 @@
+<lib x:extends="/nop/web/xlib/control.xlib"
+     x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <tags>
+        <query-to-one x:prototype="edit-to-one" />
+
+        <query-tree-parent x:prototype="edit-tree-parent" />
+
+        <edit-tree-parent>
+            <source>
+                <div/>
+            </source>
+        </edit-tree-parent>
+    </tags>
+</lib>

@@ -41,6 +41,7 @@ public class InMemoryTextResource extends AbstractResource {
         super(path);
         checkSupportStream();
         this.text = text == null ? "" : text;
+        this.exists = text != null;
     }
 
     public InMemoryResourceStore getResourceStore() {

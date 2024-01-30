@@ -2,6 +2,8 @@ package io.nop.orm.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.orm.model.OrmDomainModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -211,13 +213,35 @@ public abstract class _OrmDomainModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("displayName",this.getDisplayName());
-        out.put("name",this.getName());
-        out.put("precision",this.getPrecision());
-        out.put("scale",this.getScale());
-        out.put("stdDataType",this.getStdDataType());
-        out.put("stdDomain",this.getStdDomain());
-        out.put("stdSqlType",this.getStdSqlType());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("precision",this.getPrecision());
+        out.putNotNull("scale",this.getScale());
+        out.putNotNull("stdDataType",this.getStdDataType());
+        out.putNotNull("stdDomain",this.getStdDomain());
+        out.putNotNull("stdSqlType",this.getStdSqlType());
+    }
+
+    public OrmDomainModel cloneInstance(){
+        OrmDomainModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(OrmDomainModel instance){
+        super.copyTo(instance);
+        
+        instance.setDisplayName(this.getDisplayName());
+        instance.setName(this.getName());
+        instance.setPrecision(this.getPrecision());
+        instance.setScale(this.getScale());
+        instance.setStdDataType(this.getStdDataType());
+        instance.setStdDomain(this.getStdDomain());
+        instance.setStdSqlType(this.getStdSqlType());
+    }
+
+    protected OrmDomainModel newInstance(){
+        return (OrmDomainModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

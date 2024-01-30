@@ -2,6 +2,8 @@ package io.nop.record.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.record.model.RecordFieldMeta;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -993,43 +995,95 @@ public abstract class _RecordFieldMeta extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("absoluteOffset",this.isAbsoluteOffset());
-        out.put("content",this.getContent());
-        out.put("doc",this.getDoc());
-        out.put("encoder",this.getEncoder());
-        out.put("encoding",this.getEncoding());
-        out.put("endian",this.getEndian());
-        out.put("enum",this.getEnum());
-        out.put("eosError",this.isEosError());
-        out.put("excludeMax",this.getExcludeMax());
-        out.put("excludeMin",this.getExcludeMin());
-        out.put("ifExpr",this.getIfExpr());
-        out.put("includeTerminator",this.isIncludeTerminator());
-        out.put("label",this.getLabel());
-        out.put("lazy",this.isLazy());
-        out.put("leftPad",this.isLeftPad());
-        out.put("length",this.getLength());
-        out.put("lengthExpr",this.getLengthExpr());
-        out.put("mandatory",this.isMandatory());
-        out.put("max",this.getMax());
-        out.put("maxLength",this.getMaxLength());
-        out.put("min",this.getMin());
-        out.put("minLength",this.getMinLength());
-        out.put("name",this.getName());
-        out.put("offset",this.getOffset());
-        out.put("padding",this.getPadding());
-        out.put("pattern",this.getPattern());
-        out.put("repeat",this.getRepeat());
-        out.put("repeatExpr",this.getRepeatExpr());
-        out.put("repeatUntil",this.getRepeatUntil());
-        out.put("stdDomain",this.getStdDomain());
-        out.put("switch",this.getSwitch());
-        out.put("terminator",this.getTerminator());
-        out.put("tillEnd",this.isTillEnd());
-        out.put("trim",this.isTrim());
-        out.put("type",this.getType());
-        out.put("virtual",this.isVirtual());
-        out.put("wrapper",this.isWrapper());
+        out.putNotNull("absoluteOffset",this.isAbsoluteOffset());
+        out.putNotNull("content",this.getContent());
+        out.putNotNull("doc",this.getDoc());
+        out.putNotNull("encoder",this.getEncoder());
+        out.putNotNull("encoding",this.getEncoding());
+        out.putNotNull("endian",this.getEndian());
+        out.putNotNull("enum",this.getEnum());
+        out.putNotNull("eosError",this.isEosError());
+        out.putNotNull("excludeMax",this.getExcludeMax());
+        out.putNotNull("excludeMin",this.getExcludeMin());
+        out.putNotNull("ifExpr",this.getIfExpr());
+        out.putNotNull("includeTerminator",this.isIncludeTerminator());
+        out.putNotNull("label",this.getLabel());
+        out.putNotNull("lazy",this.isLazy());
+        out.putNotNull("leftPad",this.isLeftPad());
+        out.putNotNull("length",this.getLength());
+        out.putNotNull("lengthExpr",this.getLengthExpr());
+        out.putNotNull("mandatory",this.isMandatory());
+        out.putNotNull("max",this.getMax());
+        out.putNotNull("maxLength",this.getMaxLength());
+        out.putNotNull("min",this.getMin());
+        out.putNotNull("minLength",this.getMinLength());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("offset",this.getOffset());
+        out.putNotNull("padding",this.getPadding());
+        out.putNotNull("pattern",this.getPattern());
+        out.putNotNull("repeat",this.getRepeat());
+        out.putNotNull("repeatExpr",this.getRepeatExpr());
+        out.putNotNull("repeatUntil",this.getRepeatUntil());
+        out.putNotNull("stdDomain",this.getStdDomain());
+        out.putNotNull("switch",this.getSwitch());
+        out.putNotNull("terminator",this.getTerminator());
+        out.putNotNull("tillEnd",this.isTillEnd());
+        out.putNotNull("trim",this.isTrim());
+        out.putNotNull("type",this.getType());
+        out.putNotNull("virtual",this.isVirtual());
+        out.putNotNull("wrapper",this.isWrapper());
+    }
+
+    public RecordFieldMeta cloneInstance(){
+        RecordFieldMeta instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(RecordFieldMeta instance){
+        super.copyTo(instance);
+        
+        instance.setAbsoluteOffset(this.isAbsoluteOffset());
+        instance.setContent(this.getContent());
+        instance.setDoc(this.getDoc());
+        instance.setEncoder(this.getEncoder());
+        instance.setEncoding(this.getEncoding());
+        instance.setEndian(this.getEndian());
+        instance.setEnum(this.getEnum());
+        instance.setEosError(this.isEosError());
+        instance.setExcludeMax(this.getExcludeMax());
+        instance.setExcludeMin(this.getExcludeMin());
+        instance.setIfExpr(this.getIfExpr());
+        instance.setIncludeTerminator(this.isIncludeTerminator());
+        instance.setLabel(this.getLabel());
+        instance.setLazy(this.isLazy());
+        instance.setLeftPad(this.isLeftPad());
+        instance.setLength(this.getLength());
+        instance.setLengthExpr(this.getLengthExpr());
+        instance.setMandatory(this.isMandatory());
+        instance.setMax(this.getMax());
+        instance.setMaxLength(this.getMaxLength());
+        instance.setMin(this.getMin());
+        instance.setMinLength(this.getMinLength());
+        instance.setName(this.getName());
+        instance.setOffset(this.getOffset());
+        instance.setPadding(this.getPadding());
+        instance.setPattern(this.getPattern());
+        instance.setRepeat(this.getRepeat());
+        instance.setRepeatExpr(this.getRepeatExpr());
+        instance.setRepeatUntil(this.getRepeatUntil());
+        instance.setStdDomain(this.getStdDomain());
+        instance.setSwitch(this.getSwitch());
+        instance.setTerminator(this.getTerminator());
+        instance.setTillEnd(this.isTillEnd());
+        instance.setTrim(this.isTrim());
+        instance.setType(this.getType());
+        instance.setVirtual(this.isVirtual());
+        instance.setWrapper(this.isWrapper());
+    }
+
+    protected RecordFieldMeta newInstance(){
+        return (RecordFieldMeta) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

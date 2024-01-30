@@ -2,6 +2,8 @@ package io.nop.task.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.task.model.TaskRetryModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -159,11 +161,31 @@ public abstract class _TaskRetryModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("exceptionFilter",this.getExceptionFilter());
-        out.put("exponentialDelay",this.isExponentialDelay());
-        out.put("maxRetryCount",this.getMaxRetryCount());
-        out.put("maxRetryDelay",this.getMaxRetryDelay());
-        out.put("retryDelay",this.getRetryDelay());
+        out.putNotNull("exceptionFilter",this.getExceptionFilter());
+        out.putNotNull("exponentialDelay",this.isExponentialDelay());
+        out.putNotNull("maxRetryCount",this.getMaxRetryCount());
+        out.putNotNull("maxRetryDelay",this.getMaxRetryDelay());
+        out.putNotNull("retryDelay",this.getRetryDelay());
+    }
+
+    public TaskRetryModel cloneInstance(){
+        TaskRetryModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(TaskRetryModel instance){
+        super.copyTo(instance);
+        
+        instance.setExceptionFilter(this.getExceptionFilter());
+        instance.setExponentialDelay(this.isExponentialDelay());
+        instance.setMaxRetryCount(this.getMaxRetryCount());
+        instance.setMaxRetryDelay(this.getMaxRetryDelay());
+        instance.setRetryDelay(this.getRetryDelay());
+    }
+
+    protected TaskRetryModel newInstance(){
+        return (TaskRetryModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

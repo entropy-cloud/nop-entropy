@@ -32,7 +32,7 @@ public interface IOrmModel extends IPropGetMissingHook {
 
     Collection<IEntityModel> getEntityModelsInTopoOrder();
 
-    List<IEntityModel> getEntityModels();
+    List<? extends IEntityModel> getEntityModels();
 
     Set<String> getEntityNames();
 

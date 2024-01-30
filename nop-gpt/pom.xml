@@ -15,6 +15,7 @@
     <modules>
         <module>nop-gpt-core</module>
         <module>nop-gpt-llms</module>
+        <module>nop-gpt-orm</module>
     </modules>
 
 </project>

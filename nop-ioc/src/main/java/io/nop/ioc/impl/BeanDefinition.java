@@ -32,6 +32,7 @@ import io.nop.ioc.model.BeanInterceptorModel;
 import io.nop.ioc.model.BeanModel;
 import io.nop.ioc.model.BeanPointcutModel;
 import io.nop.ioc.model.BeanValue;
+import io.nop.ioc.model.IBeanModel;
 import io.nop.xlang.expr.ExprConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,7 +110,7 @@ public class BeanDefinition implements IBeanDefinition {
         configDependants.add(beanId);
     }
 
-    public boolean isIocForceInit(){
+    public boolean isIocForceInit() {
         return beanModel.isIocForceInit();
     }
 
@@ -133,16 +134,16 @@ public class BeanDefinition implements IBeanDefinition {
         this.constructorAutowired = constructorAutowired;
     }
 
-    public boolean isRemoved(){
+    public boolean isRemoved() {
         return removed;
     }
 
-    public void setRemoved(boolean removed){
+    public void setRemoved(boolean removed) {
         this.removed = removed;
     }
 
-    public boolean isIocDefault(){
-        if(beanModel instanceof BeanModel)
+    public boolean isIocDefault() {
+        if (beanModel instanceof BeanModel)
             return ((BeanModel) beanModel).isIocDefault();
         return false;
     }
@@ -271,14 +272,14 @@ public class BeanDefinition implements IBeanDefinition {
     }
 
     public String getId() {
-        if (beanModel instanceof BeanModel)
-            return ((BeanModel) beanModel).getId();
+        if (beanModel instanceof IBeanModel)
+            return ((IBeanModel) beanModel).getId();
         return beanModel.getEmbeddedId();
     }
 
     public Set<String> getNames() {
-        if (beanModel instanceof BeanModel)
-            return ((BeanModel) beanModel).getName();
+        if (beanModel instanceof IBeanModel)
+            return ((IBeanModel) beanModel).getName();
         return null;
     }
 

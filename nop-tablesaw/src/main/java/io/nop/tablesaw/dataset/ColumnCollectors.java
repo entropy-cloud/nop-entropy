@@ -1,14 +1,44 @@
 package io.nop.tablesaw.dataset;
 
 import io.nop.dataset.IDataRow;
+import tech.tablesaw.api.ColumnType;
 import tech.tablesaw.columns.Column;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.function.ObjIntConsumer;
 
 public class ColumnCollectors {
+
+    @SuppressWarnings("unchecked")
+    public static ObjIntConsumer<IDataRow> buildConsumer(Column<?> col) {
+        ColumnType type = col.type();
+        if (type == ColumnType.STRING)
+            return consumeString((Column<String>) col);
+        if (type == ColumnType.BOOLEAN)
+            return consumeBoolean((Column<Boolean>) col);
+        if (type == ColumnType.SHORT)
+            return consumeShort((Column<Short>) col);
+        if (type == ColumnType.INTEGER)
+            return consumeInteger((Column<Integer>) col);
+        if (type == ColumnType.LONG)
+            return consumeLong((Column<Long>) col);
+        if (type == ColumnType.FLOAT)
+            return consumeFloat((Column<Float>) col);
+        if (type == ColumnType.DOUBLE)
+            return consumeDouble((Column<Double>) col);
+        if (type == ColumnType.LOCAL_DATE)
+            return consumeLocateDate((Column<LocalDate>) col);
+        if (type == ColumnType.LOCAL_TIME)
+            return consumeLocateTime((Column<LocalTime>) col);
+        if (type == ColumnType.LOCAL_DATE_TIME)
+            return consumeLocateDateTime((Column<LocalDateTime>) col);
+        if (type == ColumnType.INSTANT)
+            return consumeInstant((Column<Instant>) col);
+        throw new IllegalArgumentException("nop.err.unsupported-column-type:" + type);
+    }
 
     private static ObjIntConsumer<IDataRow> consumeString(Column<String> col) {
         return (row, colIndex) -> {
@@ -113,6 +143,17 @@ public class ColumnCollectors {
     private static ObjIntConsumer<IDataRow> consumeLocateTime(Column<LocalTime> col) {
         return (row, colIndex) -> {
             LocalTime value = row.getLocalTime(colIndex);
+            if (value == null) {
+                col.append(value);
+            } else {
+                col.appendMissing();
+            }
+        };
+    }
+
+    private static ObjIntConsumer<IDataRow> consumeInstant(Column<Instant> col) {
+        return (row, colIndex) -> {
+            Instant value = row.getInstant(colIndex);
             if (value == null) {
                 col.append(value);
             } else {

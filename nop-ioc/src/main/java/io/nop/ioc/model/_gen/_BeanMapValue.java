@@ -2,6 +2,8 @@ package io.nop.ioc.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.ioc.model.BeanMapValue;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -187,11 +189,31 @@ public abstract class _BeanMapValue extends io.nop.core.resource.component.Abstr
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("body",this.getBody());
-        out.put("keyType",this.getKeyType());
-        out.put("mapClass",this.getMapClass());
-        out.put("merge",this.isMerge());
-        out.put("valueType",this.getValueType());
+        out.putNotNull("body",this.getBody());
+        out.putNotNull("keyType",this.getKeyType());
+        out.putNotNull("mapClass",this.getMapClass());
+        out.putNotNull("merge",this.isMerge());
+        out.putNotNull("valueType",this.getValueType());
+    }
+
+    public BeanMapValue cloneInstance(){
+        BeanMapValue instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BeanMapValue instance){
+        super.copyTo(instance);
+        
+        instance.setBody(this.getBody());
+        instance.setKeyType(this.getKeyType());
+        instance.setMapClass(this.getMapClass());
+        instance.setMerge(this.isMerge());
+        instance.setValueType(this.getValueType());
+    }
+
+    protected BeanMapValue newInstance(){
+        return (BeanMapValue) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

@@ -2,6 +2,8 @@ package io.nop.stream.cep.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.stream.cep.model.CepPatternModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -215,12 +217,33 @@ public abstract class _CepPatternModel extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("afterMatchSkipStrategy",this.getAfterMatchSkipStrategy());
-        out.put("afterMatchSkipTo",this.getAfterMatchSkipTo());
-        out.put("gapWithin",this.getGapWithin());
-        out.put("parts",this.getParts());
-        out.put("start",this.getStart());
-        out.put("within",this.getWithin());
+        out.putNotNull("afterMatchSkipStrategy",this.getAfterMatchSkipStrategy());
+        out.putNotNull("afterMatchSkipTo",this.getAfterMatchSkipTo());
+        out.putNotNull("gapWithin",this.getGapWithin());
+        out.putNotNull("parts",this.getParts());
+        out.putNotNull("start",this.getStart());
+        out.putNotNull("within",this.getWithin());
+    }
+
+    public CepPatternModel cloneInstance(){
+        CepPatternModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(CepPatternModel instance){
+        super.copyTo(instance);
+        
+        instance.setAfterMatchSkipStrategy(this.getAfterMatchSkipStrategy());
+        instance.setAfterMatchSkipTo(this.getAfterMatchSkipTo());
+        instance.setGapWithin(this.getGapWithin());
+        instance.setParts(this.getParts());
+        instance.setStart(this.getStart());
+        instance.setWithin(this.getWithin());
+    }
+
+    protected CepPatternModel newInstance(){
+        return (CepPatternModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

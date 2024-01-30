@@ -2,6 +2,8 @@ package io.nop.biz.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.biz.model.BizModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -323,14 +325,37 @@ public abstract class _BizModel extends io.nop.core.resource.component.AbstractC
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("actions",this.getActions());
-        out.put("disabledActions",this.getDisabledActions());
-        out.put("inheritActions",this.getInheritActions());
-        out.put("loaders",this.getLoaders());
-        out.put("metaDir",this.getMetaDir());
-        out.put("observes",this.getObserves());
-        out.put("stateMachine",this.getStateMachine());
-        out.put("wfName",this.getWfName());
+        out.putNotNull("actions",this.getActions());
+        out.putNotNull("disabledActions",this.getDisabledActions());
+        out.putNotNull("inheritActions",this.getInheritActions());
+        out.putNotNull("loaders",this.getLoaders());
+        out.putNotNull("metaDir",this.getMetaDir());
+        out.putNotNull("observes",this.getObserves());
+        out.putNotNull("stateMachine",this.getStateMachine());
+        out.putNotNull("wfName",this.getWfName());
+    }
+
+    public BizModel cloneInstance(){
+        BizModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BizModel instance){
+        super.copyTo(instance);
+        
+        instance.setActions(this.getActions());
+        instance.setDisabledActions(this.getDisabledActions());
+        instance.setInheritActions(this.getInheritActions());
+        instance.setLoaders(this.getLoaders());
+        instance.setMetaDir(this.getMetaDir());
+        instance.setObserves(this.getObserves());
+        instance.setStateMachine(this.getStateMachine());
+        instance.setWfName(this.getWfName());
+    }
+
+    protected BizModel newInstance(){
+        return (BizModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

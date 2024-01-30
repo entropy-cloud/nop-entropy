@@ -2,6 +2,8 @@ package io.nop.wf.core.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.wf.core.model.WfActionModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -683,30 +685,69 @@ public abstract class _WfActionModel extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("afterTransition",this.getAfterTransition());
-        out.put("args",this.getArgs());
-        out.put("common",this.isCommon());
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("forActivated",this.isForActivated());
-        out.put("forFlowEnded",this.isForFlowEnded());
-        out.put("forHistory",this.isForHistory());
-        out.put("forReject",this.isForReject());
-        out.put("forWaiting",this.isForWaiting());
-        out.put("forWithdraw",this.isForWithdraw());
-        out.put("group",this.getGroup());
-        out.put("internal",this.isInternal());
-        out.put("local",this.isLocal());
-        out.put("name",this.getName());
-        out.put("persist",this.isPersist());
-        out.put("saveActionRecord",this.isSaveActionRecord());
-        out.put("sortOrder",this.getSortOrder());
-        out.put("source",this.getSource());
-        out.put("specialType",this.getSpecialType());
-        out.put("transition",this.getTransition());
-        out.put("waitSignals",this.getWaitSignals());
-        out.put("when",this.getWhen());
-        out.put("whenSteps",this.getWhenSteps());
+        out.putNotNull("afterTransition",this.getAfterTransition());
+        out.putNotNull("args",this.getArgs());
+        out.putNotNull("common",this.isCommon());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("forActivated",this.isForActivated());
+        out.putNotNull("forFlowEnded",this.isForFlowEnded());
+        out.putNotNull("forHistory",this.isForHistory());
+        out.putNotNull("forReject",this.isForReject());
+        out.putNotNull("forWaiting",this.isForWaiting());
+        out.putNotNull("forWithdraw",this.isForWithdraw());
+        out.putNotNull("group",this.getGroup());
+        out.putNotNull("internal",this.isInternal());
+        out.putNotNull("local",this.isLocal());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("persist",this.isPersist());
+        out.putNotNull("saveActionRecord",this.isSaveActionRecord());
+        out.putNotNull("sortOrder",this.getSortOrder());
+        out.putNotNull("source",this.getSource());
+        out.putNotNull("specialType",this.getSpecialType());
+        out.putNotNull("transition",this.getTransition());
+        out.putNotNull("waitSignals",this.getWaitSignals());
+        out.putNotNull("when",this.getWhen());
+        out.putNotNull("whenSteps",this.getWhenSteps());
+    }
+
+    public WfActionModel cloneInstance(){
+        WfActionModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(WfActionModel instance){
+        super.copyTo(instance);
+        
+        instance.setAfterTransition(this.getAfterTransition());
+        instance.setArgs(this.getArgs());
+        instance.setCommon(this.isCommon());
+        instance.setDescription(this.getDescription());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setForActivated(this.isForActivated());
+        instance.setForFlowEnded(this.isForFlowEnded());
+        instance.setForHistory(this.isForHistory());
+        instance.setForReject(this.isForReject());
+        instance.setForWaiting(this.isForWaiting());
+        instance.setForWithdraw(this.isForWithdraw());
+        instance.setGroup(this.getGroup());
+        instance.setInternal(this.isInternal());
+        instance.setLocal(this.isLocal());
+        instance.setName(this.getName());
+        instance.setPersist(this.isPersist());
+        instance.setSaveActionRecord(this.isSaveActionRecord());
+        instance.setSortOrder(this.getSortOrder());
+        instance.setSource(this.getSource());
+        instance.setSpecialType(this.getSpecialType());
+        instance.setTransition(this.getTransition());
+        instance.setWaitSignals(this.getWaitSignals());
+        instance.setWhen(this.getWhen());
+        instance.setWhenSteps(this.getWhenSteps());
+    }
+
+    protected WfActionModel newInstance(){
+        return (WfActionModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

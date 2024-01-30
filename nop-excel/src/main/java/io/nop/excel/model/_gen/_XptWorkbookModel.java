@@ -2,6 +2,8 @@ package io.nop.excel.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.model.XptWorkbookModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -319,15 +321,39 @@ public abstract class _XptWorkbookModel extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("afterExpand",this.getAfterExpand());
-        out.put("beforeExpand",this.getBeforeExpand());
-        out.put("beginLoop",this.getBeginLoop());
-        out.put("editors",this.getEditors());
-        out.put("endLoop",this.getEndLoop());
-        out.put("loopIndexName",this.getLoopIndexName());
-        out.put("loopItemsName",this.getLoopItemsName());
-        out.put("loopVarName",this.getLoopVarName());
-        out.put("viewers",this.getViewers());
+        out.putNotNull("afterExpand",this.getAfterExpand());
+        out.putNotNull("beforeExpand",this.getBeforeExpand());
+        out.putNotNull("beginLoop",this.getBeginLoop());
+        out.putNotNull("editors",this.getEditors());
+        out.putNotNull("endLoop",this.getEndLoop());
+        out.putNotNull("loopIndexName",this.getLoopIndexName());
+        out.putNotNull("loopItemsName",this.getLoopItemsName());
+        out.putNotNull("loopVarName",this.getLoopVarName());
+        out.putNotNull("viewers",this.getViewers());
+    }
+
+    public XptWorkbookModel cloneInstance(){
+        XptWorkbookModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(XptWorkbookModel instance){
+        super.copyTo(instance);
+        
+        instance.setAfterExpand(this.getAfterExpand());
+        instance.setBeforeExpand(this.getBeforeExpand());
+        instance.setBeginLoop(this.getBeginLoop());
+        instance.setEditors(this.getEditors());
+        instance.setEndLoop(this.getEndLoop());
+        instance.setLoopIndexName(this.getLoopIndexName());
+        instance.setLoopItemsName(this.getLoopItemsName());
+        instance.setLoopVarName(this.getLoopVarName());
+        instance.setViewers(this.getViewers());
+    }
+
+    protected XptWorkbookModel newInstance(){
+        return (XptWorkbookModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

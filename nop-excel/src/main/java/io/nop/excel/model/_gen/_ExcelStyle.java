@@ -2,6 +2,8 @@ package io.nop.excel.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.model.ExcelStyle;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -537,25 +539,59 @@ public abstract class _ExcelStyle extends io.nop.core.resource.component.Abstrac
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("bottomBorder",this.getBottomBorder());
-        out.put("diagonalLeftBorder",this.getDiagonalLeftBorder());
-        out.put("diagonalRightBorder",this.getDiagonalRightBorder());
-        out.put("fillBgColor",this.getFillBgColor());
-        out.put("fillFgColor",this.getFillFgColor());
-        out.put("fillPattern",this.getFillPattern());
-        out.put("font",this.getFont());
-        out.put("horizontalAlign",this.getHorizontalAlign());
-        out.put("id",this.getId());
-        out.put("indent",this.getIndent());
-        out.put("leftBorder",this.getLeftBorder());
-        out.put("name",this.getName());
-        out.put("numberFormat",this.getNumberFormat());
-        out.put("rightBorder",this.getRightBorder());
-        out.put("rotate",this.getRotate());
-        out.put("shrinkToFit",this.isShrinkToFit());
-        out.put("topBorder",this.getTopBorder());
-        out.put("verticalAlign",this.getVerticalAlign());
-        out.put("wrapText",this.isWrapText());
+        out.putNotNull("bottomBorder",this.getBottomBorder());
+        out.putNotNull("diagonalLeftBorder",this.getDiagonalLeftBorder());
+        out.putNotNull("diagonalRightBorder",this.getDiagonalRightBorder());
+        out.putNotNull("fillBgColor",this.getFillBgColor());
+        out.putNotNull("fillFgColor",this.getFillFgColor());
+        out.putNotNull("fillPattern",this.getFillPattern());
+        out.putNotNull("font",this.getFont());
+        out.putNotNull("horizontalAlign",this.getHorizontalAlign());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("indent",this.getIndent());
+        out.putNotNull("leftBorder",this.getLeftBorder());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("numberFormat",this.getNumberFormat());
+        out.putNotNull("rightBorder",this.getRightBorder());
+        out.putNotNull("rotate",this.getRotate());
+        out.putNotNull("shrinkToFit",this.isShrinkToFit());
+        out.putNotNull("topBorder",this.getTopBorder());
+        out.putNotNull("verticalAlign",this.getVerticalAlign());
+        out.putNotNull("wrapText",this.isWrapText());
+    }
+
+    public ExcelStyle cloneInstance(){
+        ExcelStyle instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ExcelStyle instance){
+        super.copyTo(instance);
+        
+        instance.setBottomBorder(this.getBottomBorder());
+        instance.setDiagonalLeftBorder(this.getDiagonalLeftBorder());
+        instance.setDiagonalRightBorder(this.getDiagonalRightBorder());
+        instance.setFillBgColor(this.getFillBgColor());
+        instance.setFillFgColor(this.getFillFgColor());
+        instance.setFillPattern(this.getFillPattern());
+        instance.setFont(this.getFont());
+        instance.setHorizontalAlign(this.getHorizontalAlign());
+        instance.setId(this.getId());
+        instance.setIndent(this.getIndent());
+        instance.setLeftBorder(this.getLeftBorder());
+        instance.setName(this.getName());
+        instance.setNumberFormat(this.getNumberFormat());
+        instance.setRightBorder(this.getRightBorder());
+        instance.setRotate(this.getRotate());
+        instance.setShrinkToFit(this.isShrinkToFit());
+        instance.setTopBorder(this.getTopBorder());
+        instance.setVerticalAlign(this.getVerticalAlign());
+        instance.setWrapText(this.isWrapText());
+    }
+
+    protected ExcelStyle newInstance(){
+        return (ExcelStyle) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

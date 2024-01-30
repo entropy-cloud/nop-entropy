@@ -2,6 +2,8 @@ package io.nop.xlang.xmeta.impl._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xmeta.impl.ObjMetaImpl;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -613,24 +615,57 @@ public abstract class _ObjMetaImpl extends io.nop.xlang.xmeta.impl.ObjSchemaImpl
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("checkNs",this.getCheckNs());
-        out.put("defaultExtends",this.getDefaultExtends());
-        out.put("defines",this.getDefines());
-        out.put("displayProp",this.getDisplayProp());
-        out.put("entityName",this.getEntityName());
-        out.put("filter",this.getFilter());
-        out.put("keys",this.getKeys());
-        out.put("orderBy",this.getOrderBy());
-        out.put("parseForHtml",this.getParseForHtml());
-        out.put("parseKeepComment",this.getParseKeepComment());
-        out.put("parserClass",this.getParserClass());
-        out.put("primaryKey",this.getPrimaryKey());
-        out.put("propNs",this.getPropNs());
-        out.put("selections",this.getSelections());
-        out.put("tagSet",this.getTagSet());
-        out.put("tree",this.getTree());
-        out.put("version",this.getVersion());
-        out.put("xmlName",this.getXmlName());
+        out.putNotNull("checkNs",this.getCheckNs());
+        out.putNotNull("defaultExtends",this.getDefaultExtends());
+        out.putNotNull("defines",this.getDefines());
+        out.putNotNull("displayProp",this.getDisplayProp());
+        out.putNotNull("entityName",this.getEntityName());
+        out.putNotNull("filter",this.getFilter());
+        out.putNotNull("keys",this.getKeys());
+        out.putNotNull("orderBy",this.getOrderBy());
+        out.putNotNull("parseForHtml",this.getParseForHtml());
+        out.putNotNull("parseKeepComment",this.getParseKeepComment());
+        out.putNotNull("parserClass",this.getParserClass());
+        out.putNotNull("primaryKey",this.getPrimaryKey());
+        out.putNotNull("propNs",this.getPropNs());
+        out.putNotNull("selections",this.getSelections());
+        out.putNotNull("tagSet",this.getTagSet());
+        out.putNotNull("tree",this.getTree());
+        out.putNotNull("version",this.getVersion());
+        out.putNotNull("xmlName",this.getXmlName());
+    }
+
+    public ObjMetaImpl cloneInstance(){
+        ObjMetaImpl instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ObjMetaImpl instance){
+        super.copyTo(instance);
+        
+        instance.setCheckNs(this.getCheckNs());
+        instance.setDefaultExtends(this.getDefaultExtends());
+        instance.setDefines(this.getDefines());
+        instance.setDisplayProp(this.getDisplayProp());
+        instance.setEntityName(this.getEntityName());
+        instance.setFilter(this.getFilter());
+        instance.setKeys(this.getKeys());
+        instance.setOrderBy(this.getOrderBy());
+        instance.setParseForHtml(this.getParseForHtml());
+        instance.setParseKeepComment(this.getParseKeepComment());
+        instance.setParserClass(this.getParserClass());
+        instance.setPrimaryKey(this.getPrimaryKey());
+        instance.setPropNs(this.getPropNs());
+        instance.setSelections(this.getSelections());
+        instance.setTagSet(this.getTagSet());
+        instance.setTree(this.getTree());
+        instance.setVersion(this.getVersion());
+        instance.setXmlName(this.getXmlName());
+    }
+
+    protected ObjMetaImpl newInstance(){
+        return (ObjMetaImpl) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

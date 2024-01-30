@@ -3,7 +3,7 @@ entity:
     NopWfAction: 工作流动作
     NopWfDefinition: 工作流模型定义
     NopWfDefinitionAuth: 工作流定义权限
-    NopWfInstance: 工作流模型定义
+    NopWfInstance: 工作流实例
     NopWfLog: 工作流日志
     NopWfOutput: 工作流输出变量
     NopWfStatusHistory: 工作流状态变迁历史

@@ -2,6 +2,8 @@ package io.nop.xui.graph_designer._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xui.graph_designer.GraphDesignerZoomModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -133,10 +135,29 @@ public abstract class _GraphDesignerZoomModel extends io.nop.core.resource.compo
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("initialValue",this.getInitialValue());
-        out.put("max",this.getMax());
-        out.put("min",this.getMin());
-        out.put("step",this.getStep());
+        out.putNotNull("initialValue",this.getInitialValue());
+        out.putNotNull("max",this.getMax());
+        out.putNotNull("min",this.getMin());
+        out.putNotNull("step",this.getStep());
+    }
+
+    public GraphDesignerZoomModel cloneInstance(){
+        GraphDesignerZoomModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(GraphDesignerZoomModel instance){
+        super.copyTo(instance);
+        
+        instance.setInitialValue(this.getInitialValue());
+        instance.setMax(this.getMax());
+        instance.setMin(this.getMin());
+        instance.setStep(this.getStep());
+    }
+
+    protected GraphDesignerZoomModel newInstance(){
+        return (GraphDesignerZoomModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

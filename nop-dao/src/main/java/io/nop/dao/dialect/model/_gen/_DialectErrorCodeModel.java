@@ -2,12 +2,14 @@ package io.nop.dao.dialect.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.dao.dialect.model.DialectErrorCodeModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [92:10:0:0]/nop/schema/orm/dialect.xdef <p>
+ * generate from [94:10:0:0]/nop/schema/orm/dialect.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -107,9 +109,27 @@ public abstract class _DialectErrorCodeModel extends io.nop.core.resource.compon
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("name",this.getName());
-        out.put("useSqlState",this.getUseSqlState());
-        out.put("values",this.getValues());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("useSqlState",this.getUseSqlState());
+        out.putNotNull("values",this.getValues());
+    }
+
+    public DialectErrorCodeModel cloneInstance(){
+        DialectErrorCodeModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(DialectErrorCodeModel instance){
+        super.copyTo(instance);
+        
+        instance.setName(this.getName());
+        instance.setUseSqlState(this.getUseSqlState());
+        instance.setValues(this.getValues());
+    }
+
+    protected DialectErrorCodeModel newInstance(){
+        return (DialectErrorCodeModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

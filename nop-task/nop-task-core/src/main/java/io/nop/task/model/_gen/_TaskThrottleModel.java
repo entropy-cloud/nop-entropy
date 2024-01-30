@@ -2,6 +2,8 @@ package io.nop.task.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.task.model.TaskThrottleModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -107,9 +109,27 @@ public abstract class _TaskThrottleModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("keyExpr",this.getKeyExpr());
-        out.put("maxConcurrent",this.getMaxConcurrent());
-        out.put("maxWait",this.getMaxWait());
+        out.putNotNull("keyExpr",this.getKeyExpr());
+        out.putNotNull("maxConcurrent",this.getMaxConcurrent());
+        out.putNotNull("maxWait",this.getMaxWait());
+    }
+
+    public TaskThrottleModel cloneInstance(){
+        TaskThrottleModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(TaskThrottleModel instance){
+        super.copyTo(instance);
+        
+        instance.setKeyExpr(this.getKeyExpr());
+        instance.setMaxConcurrent(this.getMaxConcurrent());
+        instance.setMaxWait(this.getMaxWait());
+    }
+
+    protected TaskThrottleModel newInstance(){
+        return (TaskThrottleModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

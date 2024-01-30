@@ -10,6 +10,8 @@ package io.nop.orm.model;
 public interface OrmModelConstants {
     String XDSL_SCHEMA_ORM = "/nop/schema/orm/orm.xdef";
 
+    String ORM_IMPL_PATH = "/nop/orm/imp/orm.imp.xml";
+
     String DEFAULT_QUERY_SPACE = "default";
 
     String PROP_ID = "id";
@@ -31,6 +33,16 @@ public interface OrmModelConstants {
      * 标记需要掩码的字段
      */
     String TAG_MASKED = "masked";
+
+    String TAG_NOT_GEN = "not-gen";
+
+    String TAG_NOT_PUB = "not-pub";
+
+    String TAG_LAZY = "lazy";
+
+    String TAG_EAGER = "eager";
+
+    String TAG_CASCADE_DELETE = "cascade-delete";
 
 
     /**
@@ -75,6 +87,10 @@ public interface OrmModelConstants {
 
     String EXT_BASE_PACKAGE_NAME = "ext:basePackageName";
     String EXT_MAVEN_GROUP_ID = "ext:mavenGroupId";
+
+//    String EXT_MODULE_NAME = "ext:moduleName";
+
+    String EXT_APP_NAME = "ext:appName";
 
     String EXT_MAVEN_ARTIFACT_ID = "ext:mavenArtifactId";
 

@@ -115,7 +115,7 @@ public class OrmModelInitializer {
 
     private void initEntities() {
         for (OrmEntityModel entityModel : ormModel.getEntities()) {
-            if (!ormModel.isMerged())
+            if (!ormModel.isMerged() && !entityModel.frozen())
                 syncDomains(entityModel);
 
             entityModel.init();
@@ -167,6 +167,14 @@ public class OrmModelInitializer {
                                 .param(ARG_DATA_TYPE, col.getStdDataType())
                                 .param(ARG_DOMAIN_DATA_TYPE, domainModel.getStdDataType());
                 }
+
+                if (domainModel.getPrecision() != null && col.getPrecision() == null) {
+                    col.setPrecision(domainModel.getPrecision());
+                }
+
+                if (domainModel.getScale() != null && col.getScale() == null) {
+                    col.setScale(domainModel.getScale());
+                }
             }
 
             if (col.getStdSqlType() == null)
@@ -181,10 +189,16 @@ public class OrmModelInitializer {
 
     private void initRefs() {
         for (OrmEntityModel entityModel : ormModel.getEntities()) {
+            if (entityModel.frozen())
+                continue;
+
             initRef(entityModel);
         }
 
         for (OrmEntityModel entityModel : ormModel.getEntities()) {
+            if (entityModel.frozen())
+                continue;
+
             IntHashMap<List<IEntityRelationModel>> refMap = new IntHashMap<>();
             for (OrmReferenceModel ref : entityModel.getRelations()) {
                 if (ref.isToManyRelation()) {
@@ -207,6 +221,10 @@ public class OrmModelInitializer {
                             }
                         }
                     }
+                }
+
+                if (ref.containsTag(OrmModelConstants.TAG_CASCADE_DELETE)) {
+                    ref.setCascadeDelete(true);
                 }
             }
 
@@ -410,9 +428,12 @@ public class OrmModelInitializer {
             // 必须引用对象的主键
             for (OrmJoinOnModel join : ref.getJoin()) {
                 OrmColumnModel col = join.getRightProp() == null ? null : refEntityModel.getColumn(join.getRightProp());
+                if (col == null && OrmModelConstants.PROP_ID.endsWith(join.getRightProp())) {
+                    col = refEntityModel.getIdProp().isColumnModel() ? (OrmColumnModel) refEntityModel.getIdProp() : null;
+                }
                 if (col == null || !col.isPrimary())
                     throw new NopException(ERR_ORM_MODEL_REF_ENTITY_PROP_NOT_PRIMARY_KEY).loc(join.getLocation())
-                            .param(ARG_PROP_NAME, join.getRightProp()).param(ARG_ENTITY_NAME, refEntityModel.getName());
+                            .param(ARG_PROP_NAME, join.getRightProp()).param(ARG_REF_ENTITY_NAME, refEntityModel.getName());
                 join.setRightPropModel(col);
             }
 
@@ -458,6 +479,9 @@ public class OrmModelInitializer {
             topoMap.put(entry, entityModel);
         }
 
+        List<String> tableNames = topoMap.values().stream().map(IEntityModel::getTableName).collect(Collectors.toList());
+        LOG.debug("nop.orm.entity-topology-order:model={},tables={}", ormModel.getLocation(), tableNames);
+
         if (!it.getRemaining().isEmpty()) {
             Set<String> names = it.getRemaining().stream().map(IEntityModel::getName).collect(Collectors.toSet());
             throw new NopException(ERR_ORM_MODEL_REF_DEPENDS_CONTAINS_LOOP).param(ARG_LOOP_ENTITY_NAMES, names);
@@ -481,7 +505,8 @@ public class OrmModelInitializer {
 
                     if (!rel.isReverseDepends()) {
                         IEntityModel refEntityModel = entityMap.get(rel.getRefEntityName());
-                        graph.addEdge(entityModel, refEntityModel);
+                        // 子表依赖主表
+                        graph.addEdge(refEntityModel, entityModel);
                     }
                 }
             }

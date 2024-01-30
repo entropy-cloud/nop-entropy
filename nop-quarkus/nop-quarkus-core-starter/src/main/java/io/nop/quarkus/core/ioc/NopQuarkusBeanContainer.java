@@ -12,6 +12,7 @@ import io.nop.api.core.ApiErrors;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.IBeanContainer;
 import io.nop.commons.util.StringHelper;
+import io.nop.quarkus.core.QuarkusConstants;
 import io.quarkus.arc.Arc;
 import io.quarkus.arc.ArcContainer;
 import io.quarkus.arc.InjectableBean;
@@ -21,7 +22,6 @@ import io.quarkus.arc.impl.ArcContainerImpl;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.Dependent;
 import jakarta.enterprise.context.RequestScoped;
-
 
 import java.lang.annotation.Annotation;
 import java.util.HashMap;
@@ -61,7 +61,14 @@ public class NopQuarkusBeanContainer implements IBeanContainer {
     @Override
     public String findAutowireCandidate(Class<?> beanType) {
         InstanceHandle<?> bean = container().instance(beanType);
-        return bean.isAvailable() ? bean.getBean().getName() : null;
+        return getQuarkusBeanId(bean);
+    }
+
+    private String getQuarkusBeanId(InstanceHandle<?> bean) {
+        if (bean.isAvailable()) {
+            return QuarkusConstants.QUARKUS_ID_PREFIX + bean.getBean().getIdentifier();
+        }
+        return null;
     }
 
     @Override
@@ -71,12 +78,14 @@ public class NopQuarkusBeanContainer implements IBeanContainer {
 
     @Override
     public boolean containsBean(String name) {
-        return container().bean(name) != null;
+        InjectableBean<?> quarkusBean = getQuarkusBean(name);
+        return quarkusBean != null;
     }
 
     @Override
     public Object getBean(String name) {
-        Object bean = container().instance(name).get();
+        InjectableBean<?> quarkusBean = getQuarkusBean(name);
+        Object bean = quarkusBean == null ? null : Arc.container().instance(quarkusBean).get();
         if (bean == null)
             throw new NopException(ApiErrors.ERR_IOC_UNKNOWN_BEAN_FOR_NAME).param(ApiErrors.ARG_BEAN_NAME, name);
         return bean;
@@ -95,8 +104,8 @@ public class NopQuarkusBeanContainer implements IBeanContainer {
         Map<String, T> ret = new HashMap<>();
 
         for (InstanceHandle<T> handle : Arc.container().select(clazz).handles()) {
-            String name = handle.getBean().getName();
-            ret.put(name, handle.get());
+            String beanId = getQuarkusBeanId(handle);
+            ret.put(beanId, handle.get());
         }
         return ret;
     }
@@ -108,15 +117,15 @@ public class NopQuarkusBeanContainer implements IBeanContainer {
         InjectableInstance<Object> handles = container().select(Object.class, new MarkerInterfaceAnnotation(annClass));
 
         for (InstanceHandle<Object> handle : handles.handles()) {
-            String name = handle.getBean().getName();
-            ret.put(name, handle.get());
+            String beanId = getQuarkusBeanId(handle);
+            ret.put(beanId, handle.get());
         }
         return ret;
     }
 
     @Override
     public String getBeanScope(String name) {
-        InjectableBean<?> bean = Arc.container().bean(name);
+        InjectableBean<?> bean = getQuarkusBean(name);
         if (bean == null)
             throw new NopException(ApiErrors.ERR_IOC_UNKNOWN_BEAN_FOR_NAME).param(ApiErrors.ARG_BEAN_NAME, name);
 
@@ -128,5 +137,11 @@ public class NopQuarkusBeanContainer implements IBeanContainer {
             return ApiConstants.BEAN_SCOPE_REQUEST;
 
         return StringHelper.camelCaseToHyphen(scope.getSimpleName());
+    }
+
+    private InjectableBean<?> getQuarkusBean(String name) {
+        if (name.startsWith(QuarkusConstants.QUARKUS_ID_PREFIX))
+            return Arc.container().bean(name.substring(QuarkusConstants.QUARKUS_ID_PREFIX.length()));
+        return Arc.container().namedBean(name);
     }
 }

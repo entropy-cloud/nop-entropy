@@ -8,6 +8,7 @@
 package io.nop.auth.service;
 
 import io.nop.codegen.XCodeGenerator;
+import io.nop.codegen.task.GenAopProxy;
 import io.nop.commons.util.MavenDirHelper;
 import io.nop.core.initialize.CoreInitialization;
 
@@ -19,6 +20,9 @@ public class AuthCodeGen {
         try {
             File projectDir = MavenDirHelper.projectDir(AuthCodeGen.class);
             XCodeGenerator.runPrecompile(projectDir, "/", false);
+
+            new GenAopProxy().execute(projectDir, false);
+            new GenAopProxy().execute(projectDir, true);
         } finally {
             CoreInitialization.destroy();
         }

@@ -14,6 +14,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
+import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.CloneHelper;
 import io.nop.api.core.util.FreezeHelper;
@@ -91,16 +92,6 @@ public class DictBean implements Serializable, IFreezable, IDeepCloneable,
         this.location = location;
     }
 
-    @JsonAnyGetter
-    public Map<String, Object> getAttrs() {
-        return attrs;
-    }
-
-    public void setAttrs(Map<String, Object> attrs) {
-        checkNotFrozen(this);
-        this.attrs = attrs;
-    }
-
     @JsonAnySetter
     public void setAttr(String name, Object value) {
         checkNotFrozen(this);
@@ -128,25 +119,6 @@ public class DictBean implements Serializable, IFreezable, IDeepCloneable,
         return ret;
     }
 
-    @JsonInclude(Include.NON_EMPTY)
-    public Set<String> getTagSet() {
-        return tagSet;
-    }
-
-    public void setTagSet(Set<String> tagSet) {
-        checkNotFrozen(this);
-        this.tagSet = tagSet;
-    }
-
-    public boolean isStatic() {
-        return isStatic;
-    }
-
-    public void setStatic(boolean aStatic) {
-        checkNotFrozen(this);
-        isStatic = aStatic;
-    }
-
     public boolean isNormalized() {
         return normalized;
     }
@@ -161,34 +133,7 @@ public class DictBean implements Serializable, IFreezable, IDeepCloneable,
         return options.size();
     }
 
-    public String getLocale() {
-        return locale;
-    }
-
-    public void setLocale(String locale) {
-        checkNotFrozen(this);
-        this.locale = locale;
-    }
-
-    @JsonInclude(Include.NON_EMPTY)
-    public String getValueType() {
-        return valueType;
-    }
-
-    public void setValueType(String valueType) {
-        checkNotFrozen(this);
-        this.valueType = valueType;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        checkNotFrozen(this);
-        this.description = description;
-    }
-
+    @PropMeta(propId = 1)
     public String getName() {
         return name;
     }
@@ -198,6 +143,7 @@ public class DictBean implements Serializable, IFreezable, IDeepCloneable,
         this.name = name;
     }
 
+    @PropMeta(propId = 2)
     public String getLabel() {
         return label;
     }
@@ -207,6 +153,7 @@ public class DictBean implements Serializable, IFreezable, IDeepCloneable,
         this.label = label;
     }
 
+    @PropMeta(propId = 3)
     public List<DictOptionBean> getOptions() {
         return options;
     }
@@ -298,6 +245,39 @@ public class DictBean implements Serializable, IFreezable, IDeepCloneable,
         return bean;
     }
 
+    @PropMeta(propId = 4)
+    public String getLocale() {
+        return locale;
+    }
+
+    public void setLocale(String locale) {
+        checkNotFrozen(this);
+        this.locale = locale;
+    }
+
+    @PropMeta(propId = 5)
+    @JsonInclude(Include.NON_EMPTY)
+    public String getValueType() {
+        return valueType;
+    }
+
+    public void setValueType(String valueType) {
+        checkNotFrozen(this);
+        this.valueType = valueType;
+    }
+
+    @PropMeta(propId = 6)
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        checkNotFrozen(this);
+        this.description = description;
+    }
+
+
+    @PropMeta(propId = 7)
     @JsonInclude(Include.NON_DEFAULT)
     public boolean isDeprecated() {
         return deprecated;
@@ -308,6 +288,7 @@ public class DictBean implements Serializable, IFreezable, IDeepCloneable,
         this.deprecated = deprecated;
     }
 
+    @PropMeta(propId = 8)
     @JsonInclude(Include.NON_DEFAULT)
     public boolean isInternal() {
         return internal;
@@ -316,5 +297,41 @@ public class DictBean implements Serializable, IFreezable, IDeepCloneable,
     public void setInternal(boolean internal) {
         checkNotFrozen(this);
         this.internal = internal;
+    }
+
+    @PropMeta(propId = 9)
+    @JsonInclude(Include.NON_EMPTY)
+    public Set<String> getTagSet() {
+        return tagSet;
+    }
+
+    public void setTagSet(Set<String> tagSet) {
+        checkNotFrozen(this);
+        this.tagSet = tagSet;
+    }
+
+    @PropMeta(propId = 10)
+    public boolean isStatic() {
+        return isStatic;
+    }
+
+    public void setStatic(boolean aStatic) {
+        checkNotFrozen(this);
+        isStatic = aStatic;
+    }
+
+    @PropMeta(propId = 11)
+    public Map<String, Object> getAttrs() {
+        return attrs;
+    }
+
+    @JsonAnyGetter
+    public Map<String, Object> attrs() {
+        return attrs;
+    }
+
+    public void setAttrs(Map<String, Object> attrs) {
+        checkNotFrozen(this);
+        this.attrs = attrs;
     }
 }

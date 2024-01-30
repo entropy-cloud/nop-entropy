@@ -2,12 +2,14 @@ package io.nop.dao.dialect.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.dao.dialect.model.SqlTemplateModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [98:10:0:0]/nop/schema/orm/dialect.xdef <p>
+ * generate from [100:10:0:0]/nop/schema/orm/dialect.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -211,13 +213,35 @@ public abstract class _SqlTemplateModel extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("argTypes",this.getArgTypes());
-        out.put("description",this.getDescription());
-        out.put("name",this.getName());
-        out.put("returnType",this.getReturnType());
-        out.put("source",this.getSource());
-        out.put("testSql",this.getTestSql());
-        out.put("type",this.getType());
+        out.putNotNull("argTypes",this.getArgTypes());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("returnType",this.getReturnType());
+        out.putNotNull("source",this.getSource());
+        out.putNotNull("testSql",this.getTestSql());
+        out.putNotNull("type",this.getType());
+    }
+
+    public SqlTemplateModel cloneInstance(){
+        SqlTemplateModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(SqlTemplateModel instance){
+        super.copyTo(instance);
+        
+        instance.setArgTypes(this.getArgTypes());
+        instance.setDescription(this.getDescription());
+        instance.setName(this.getName());
+        instance.setReturnType(this.getReturnType());
+        instance.setSource(this.getSource());
+        instance.setTestSql(this.getTestSql());
+        instance.setType(this.getType());
+    }
+
+    protected SqlTemplateModel newInstance(){
+        return (SqlTemplateModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

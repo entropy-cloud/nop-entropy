@@ -12,6 +12,7 @@ import io.nop.api.core.audit.AuditRequest;
 import io.nop.api.core.audit.IAuditService;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
@@ -208,15 +209,18 @@ public class LoginServiceImpl extends AbstractLoginService {
 
             return FutureHelper.reject(err);
         } else {
-            userContextCache.resetLoginFailCountForUser(user.getUserName());
-            UserContextImpl userContext = buildUserContext(user, request);
-            autoLogout(userContext);
-            saveSession(userContext, request, headers);
+            NopAuthUser fixedUser = user;
+            return ContextProvider.runWithTenant(user.getTenantId(), () -> {
+                userContextCache.resetLoginFailCountForUser(fixedUser.getUserName());
+                UserContextImpl userContext = buildUserContext(fixedUser, request);
+                autoLogout(userContext);
+                saveSession(userContext, request, headers);
 
-            if (userContextHook != null)
-                userContextHook.onLoginSuccess(userContext, request);
+                if (userContextHook != null)
+                    userContextHook.onLoginSuccess(userContext, request);
 
-            return userContextCache.saveUserContextAsync(userContext).thenApply(v -> userContext);
+                return userContextCache.saveUserContextAsync(userContext).thenApply(v -> userContext);
+            });
         }
     }
 
@@ -449,6 +453,9 @@ public class LoginServiceImpl extends AbstractLoginService {
 
     @Override
     public String refreshToken(IUserContext userContext, AuthToken authToken) {
-        return authTokenProvider.generateAccessToken(userContext, authToken.getExpireSeconds());
+        String accessToken = authTokenProvider.generateAccessToken(userContext, authToken.getExpireSeconds());
+        userContext.setRefreshToken(authTokenProvider.generateRefreshToken(userContext, CFG_AUTH_REFRESH_TOKEN_EXPIRE_SECONDS.get()));
+        userContext.setAccessToken(accessToken);
+        return accessToken;
     }
 }

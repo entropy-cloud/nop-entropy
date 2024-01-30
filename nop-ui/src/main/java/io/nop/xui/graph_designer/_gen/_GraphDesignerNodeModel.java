@@ -2,6 +2,8 @@ package io.nop.xui.graph_designer._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xui.graph_designer.GraphDesignerNodeModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -837,36 +839,81 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("addable",this.getAddable());
-        out.put("allowChildren",this.getAllowChildren());
-        out.put("allowParents",this.getAllowParents());
-        out.put("anchors",this.getAnchors());
-        out.put("base",this.getBase());
-        out.put("deletable",this.getDeletable());
-        out.put("draggable",this.getDraggable());
-        out.put("end",this.isEnd());
-        out.put("fixedAspectRatio",this.getFixedAspectRatio());
-        out.put("height",this.getHeight());
-        out.put("icon",this.getIcon());
-        out.put("label",this.getLabel());
-        out.put("layout",this.getLayout());
-        out.put("maxHeight",this.getMaxHeight());
-        out.put("maxOccurs",this.getMaxOccurs());
-        out.put("maxWidth",this.getMaxWidth());
-        out.put("minHeight",this.getMinHeight());
-        out.put("minOccurs",this.getMinOccurs());
-        out.put("minWidth",this.getMinWidth());
-        out.put("name",this.getName());
-        out.put("propsForm",this.getPropsForm());
-        out.put("resizable",this.getResizable());
-        out.put("shape",this.getShape());
-        out.put("start",this.isStart());
-        out.put("style",this.getStyle());
-        out.put("tagSet",this.getTagSet());
-        out.put("template",this.getTemplate());
-        out.put("textDraggable",this.getTextDraggable());
-        out.put("textPosition",this.getTextPosition());
-        out.put("width",this.getWidth());
+        out.putNotNull("addable",this.getAddable());
+        out.putNotNull("allowChildren",this.getAllowChildren());
+        out.putNotNull("allowParents",this.getAllowParents());
+        out.putNotNull("anchors",this.getAnchors());
+        out.putNotNull("base",this.getBase());
+        out.putNotNull("deletable",this.getDeletable());
+        out.putNotNull("draggable",this.getDraggable());
+        out.putNotNull("end",this.isEnd());
+        out.putNotNull("fixedAspectRatio",this.getFixedAspectRatio());
+        out.putNotNull("height",this.getHeight());
+        out.putNotNull("icon",this.getIcon());
+        out.putNotNull("label",this.getLabel());
+        out.putNotNull("layout",this.getLayout());
+        out.putNotNull("maxHeight",this.getMaxHeight());
+        out.putNotNull("maxOccurs",this.getMaxOccurs());
+        out.putNotNull("maxWidth",this.getMaxWidth());
+        out.putNotNull("minHeight",this.getMinHeight());
+        out.putNotNull("minOccurs",this.getMinOccurs());
+        out.putNotNull("minWidth",this.getMinWidth());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("propsForm",this.getPropsForm());
+        out.putNotNull("resizable",this.getResizable());
+        out.putNotNull("shape",this.getShape());
+        out.putNotNull("start",this.isStart());
+        out.putNotNull("style",this.getStyle());
+        out.putNotNull("tagSet",this.getTagSet());
+        out.putNotNull("template",this.getTemplate());
+        out.putNotNull("textDraggable",this.getTextDraggable());
+        out.putNotNull("textPosition",this.getTextPosition());
+        out.putNotNull("width",this.getWidth());
+    }
+
+    public GraphDesignerNodeModel cloneInstance(){
+        GraphDesignerNodeModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(GraphDesignerNodeModel instance){
+        super.copyTo(instance);
+        
+        instance.setAddable(this.getAddable());
+        instance.setAllowChildren(this.getAllowChildren());
+        instance.setAllowParents(this.getAllowParents());
+        instance.setAnchors(this.getAnchors());
+        instance.setBase(this.getBase());
+        instance.setDeletable(this.getDeletable());
+        instance.setDraggable(this.getDraggable());
+        instance.setEnd(this.isEnd());
+        instance.setFixedAspectRatio(this.getFixedAspectRatio());
+        instance.setHeight(this.getHeight());
+        instance.setIcon(this.getIcon());
+        instance.setLabel(this.getLabel());
+        instance.setLayout(this.getLayout());
+        instance.setMaxHeight(this.getMaxHeight());
+        instance.setMaxOccurs(this.getMaxOccurs());
+        instance.setMaxWidth(this.getMaxWidth());
+        instance.setMinHeight(this.getMinHeight());
+        instance.setMinOccurs(this.getMinOccurs());
+        instance.setMinWidth(this.getMinWidth());
+        instance.setName(this.getName());
+        instance.setPropsForm(this.getPropsForm());
+        instance.setResizable(this.getResizable());
+        instance.setShape(this.getShape());
+        instance.setStart(this.isStart());
+        instance.setStyle(this.getStyle());
+        instance.setTagSet(this.getTagSet());
+        instance.setTemplate(this.getTemplate());
+        instance.setTextDraggable(this.getTextDraggable());
+        instance.setTextPosition(this.getTextPosition());
+        instance.setWidth(this.getWidth());
+    }
+
+    protected GraphDesignerNodeModel newInstance(){
+        return (GraphDesignerNodeModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

@@ -878,17 +878,19 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     }
 
     public void setWfDefinition(io.nop.wf.dao.entity.NopWfDefinition refEntity){
-       if(refEntity == null){
-         
-         this.setWfDefId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_wfDefinition, refEntity,()->{
-             
-                    this.setWfDefId(refEntity.getWfDefId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setWfDefId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_wfDefinition, refEntity,()->{
+           
+                           this.setWfDefId(refEntity.getWfDefId());
+                       
+           });
+           }
+       
     }
        
 }

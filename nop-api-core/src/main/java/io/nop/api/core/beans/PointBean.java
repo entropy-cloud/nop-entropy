@@ -10,6 +10,7 @@ package io.nop.api.core.beans;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.nop.api.core.annotations.core.StaticFactoryMethod;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 
@@ -35,18 +36,22 @@ public class PointBean implements Serializable {
         return toLngLatString();
     }
 
+    @PropMeta(propId = 1)
     public double getX() {
         return x;
     }
 
+    @PropMeta(propId = 2)
     public double getY() {
         return y;
     }
 
+    @PropMeta(propId = 3)
     public double getLng() {
         return x;
     }
 
+    @PropMeta(propId = 4)
     public double getLat() {
         return y;
     }

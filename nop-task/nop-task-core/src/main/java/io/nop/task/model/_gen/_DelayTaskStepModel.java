@@ -2,6 +2,8 @@ package io.nop.task.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.task.model.DelayTaskStepModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -55,7 +57,23 @@ public abstract class _DelayTaskStepModel extends io.nop.task.model.TaskStepMode
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("delayMillisExpr",this.getDelayMillisExpr());
+        out.putNotNull("delayMillisExpr",this.getDelayMillisExpr());
+    }
+
+    public DelayTaskStepModel cloneInstance(){
+        DelayTaskStepModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(DelayTaskStepModel instance){
+        super.copyTo(instance);
+        
+        instance.setDelayMillisExpr(this.getDelayMillisExpr());
+    }
+
+    protected DelayTaskStepModel newInstance(){
+        return (DelayTaskStepModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

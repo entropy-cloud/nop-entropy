@@ -18,6 +18,7 @@ import io.nop.orm.eql.ICompiledSql;
 import io.nop.orm.model.IOrmModel;
 
 import java.io.Serializable;
+import java.util.Set;
 
 public interface IOrmSessionFactory extends AutoCloseable, IDialectProvider {
 
@@ -62,4 +63,11 @@ public interface IOrmSessionFactory extends AutoCloseable, IDialectProvider {
     ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete);
 
     void reloadModel();
+
+    /**
+     * 更新指定几个模块的实体模型
+     *
+     * @param dynModel 包含指定模块中所有的实体模型
+     */
+    void updateDynamicModel(Set<String> moduleNames, IOrmModel dynModel);
 }

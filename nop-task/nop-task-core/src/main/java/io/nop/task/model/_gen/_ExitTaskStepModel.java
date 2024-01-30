@@ -2,6 +2,8 @@ package io.nop.task.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.task.model.ExitTaskStepModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -29,6 +31,21 @@ public abstract class _ExitTaskStepModel extends io.nop.task.model.TaskStepModel
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+    }
+
+    public ExitTaskStepModel cloneInstance(){
+        ExitTaskStepModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ExitTaskStepModel instance){
+        super.copyTo(instance);
+        
+    }
+
+    protected ExitTaskStepModel newInstance(){
+        return (ExitTaskStepModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

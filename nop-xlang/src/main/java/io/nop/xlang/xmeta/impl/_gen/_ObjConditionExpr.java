@@ -2,6 +2,8 @@ package io.nop.xlang.xmeta.impl._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xmeta.impl.ObjConditionExpr;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -81,8 +83,25 @@ public abstract class _ObjConditionExpr extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("source",this.getSource());
-        out.put("when",this.getWhen());
+        out.putNotNull("source",this.getSource());
+        out.putNotNull("when",this.getWhen());
+    }
+
+    public ObjConditionExpr cloneInstance(){
+        ObjConditionExpr instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ObjConditionExpr instance){
+        super.copyTo(instance);
+        
+        instance.setSource(this.getSource());
+        instance.setWhen(this.getWhen());
+    }
+
+    protected ObjConditionExpr newInstance(){
+        return (ObjConditionExpr) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

@@ -538,17 +538,19 @@ public class _NopAuthUserRole extends DynamicOrmEntity{
     }
 
     public void setUser(io.nop.auth.dao.entity.NopAuthUser refEntity){
-       if(refEntity == null){
-         
-         this.setUserId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_user, refEntity,()->{
-             
-                    this.setUserId(refEntity.getUserId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setUserId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_user, refEntity,()->{
+           
+                           this.setUserId(refEntity.getUserId());
+                       
+           });
+           }
+       
     }
        
     /**
@@ -559,17 +561,19 @@ public class _NopAuthUserRole extends DynamicOrmEntity{
     }
 
     public void setRole(io.nop.auth.dao.entity.NopAuthRole refEntity){
-       if(refEntity == null){
-         
-         this.setRoleId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_role, refEntity,()->{
-             
-                    this.setRoleId(refEntity.getRoleId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setRoleId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_role, refEntity,()->{
+           
+                           this.setRoleId(refEntity.getRoleId());
+                       
+           });
+           }
+       
     }
        
 }

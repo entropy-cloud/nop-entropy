@@ -2,6 +2,8 @@ package io.nop.xlang.xt.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xt.model.XtApplyTemplateModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -107,9 +109,27 @@ public abstract class _XtApplyTemplateModel extends io.nop.xlang.xt.model.XtRule
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("id",this.getId());
-        out.put("mandatory",this.isMandatory());
-        out.put("xpath",this.getXpath());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("mandatory",this.isMandatory());
+        out.putNotNull("xpath",this.getXpath());
+    }
+
+    public XtApplyTemplateModel cloneInstance(){
+        XtApplyTemplateModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(XtApplyTemplateModel instance){
+        super.copyTo(instance);
+        
+        instance.setId(this.getId());
+        instance.setMandatory(this.isMandatory());
+        instance.setXpath(this.getXpath());
+    }
+
+    protected XtApplyTemplateModel newInstance(){
+        return (XtApplyTemplateModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

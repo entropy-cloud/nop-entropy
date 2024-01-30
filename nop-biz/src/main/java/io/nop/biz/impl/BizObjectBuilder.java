@@ -61,6 +61,8 @@ import static io.nop.biz.BizErrors.ERR_BIZ_UNKNOWN_BIZ_OBJ_NAME;
  */
 public class BizObjectBuilder {
     private final GraphQLBizModels bizModels;
+
+    private final Map<String, GraphQLBizModel> dynBizModels;
     private final TypeRegistry typeRegistry;
 
     private final List<IActionDecoratorCollector> collectors;
@@ -68,11 +70,13 @@ public class BizObjectBuilder {
     private final List<IGraphQLBizInitializer> bizInitializers;
     private final IMakerCheckerProvider makerCheckerProvider;
 
-    public BizObjectBuilder(GraphQLBizModels bizModels, TypeRegistry typeRegistry,
+    public BizObjectBuilder(GraphQLBizModels bizModels,
+                            Map<String, GraphQLBizModel> dynBizModels, TypeRegistry typeRegistry,
                             List<IActionDecoratorCollector> collectors,
                             List<IGraphQLBizInitializer> bizInitializers,
                             IMakerCheckerProvider makerCheckerProvider) {
         this.bizModels = bizModels;
+        this.dynBizModels = dynBizModels;
         this.typeRegistry = typeRegistry;
         this.collectors = collectors;
         this.bizInitializers = bizInitializers;
@@ -168,6 +172,8 @@ public class BizObjectBuilder {
 
     BizObjectImpl loadBizObjFromModel(String bizObjName) {
         GraphQLBizModel gqlBizModel = bizModels.getBizModel(bizObjName);
+        if (gqlBizModel == null)
+            gqlBizModel = dynBizModels.get(bizObjName);
         if (gqlBizModel == null)
             throw new NopException(ERR_BIZ_UNKNOWN_BIZ_OBJ_NAME).param(ARG_BIZ_OBJ_NAME, bizObjName);
 

@@ -2,6 +2,8 @@ package io.nop.xui.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xui.model.UiDisplayMeta;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -1107,47 +1109,103 @@ public abstract class _UiDisplayMeta extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("bizObjName",this.getBizObjName());
-        out.put("charCase",this.getCharCase());
-        out.put("className",this.getClassName());
-        out.put("classNameExpr",this.getClassNameExpr());
-        out.put("control",this.getControl());
-        out.put("custom",this.isCustom());
-        out.put("defaultValue",this.getDefaultValue());
-        out.put("depends",this.getDepends());
-        out.put("desc",this.getDesc());
-        out.put("disabledOn",this.getDisabledOn());
-        out.put("displayProp",this.getDisplayProp());
-        out.put("domain",this.getDomain());
-        out.put("editMode",this.getEditMode());
-        out.put("filterOp",this.getFilterOp());
-        out.put("genControl",this.getGenControl());
-        out.put("hint",this.getHint());
-        out.put("href",this.getHref());
-        out.put("id",this.getId());
-        out.put("idProp",this.getIdProp());
-        out.put("if",this.getIf());
-        out.put("joinValues",this.isJoinValues());
-        out.put("label",this.getLabel());
-        out.put("matchRegexp",this.getMatchRegexp());
-        out.put("maxLength",this.getMaxLength());
-        out.put("maxUploadSize",this.getMaxUploadSize());
-        out.put("minLength",this.getMinLength());
-        out.put("minRows",this.getMinRows());
-        out.put("multiValue",this.isMultiValue());
-        out.put("placeholder",this.getPlaceholder());
-        out.put("prop",this.getProp());
-        out.put("readonlyOn",this.getReadonlyOn());
-        out.put("requiredOn",this.getRequiredOn());
-        out.put("selectFirst",this.getSelectFirst());
-        out.put("selection",this.getSelection());
-        out.put("sourceUrl",this.getSourceUrl());
-        out.put("stdDomain",this.getStdDomain());
-        out.put("uploadUrl",this.getUploadUrl());
-        out.put("validator",this.getValidator());
-        out.put("view",this.getView());
-        out.put("visibleOn",this.getVisibleOn());
-        out.put("width",this.getWidth());
+        out.putNotNull("bizObjName",this.getBizObjName());
+        out.putNotNull("charCase",this.getCharCase());
+        out.putNotNull("className",this.getClassName());
+        out.putNotNull("classNameExpr",this.getClassNameExpr());
+        out.putNotNull("control",this.getControl());
+        out.putNotNull("custom",this.isCustom());
+        out.putNotNull("defaultValue",this.getDefaultValue());
+        out.putNotNull("depends",this.getDepends());
+        out.putNotNull("desc",this.getDesc());
+        out.putNotNull("disabledOn",this.getDisabledOn());
+        out.putNotNull("displayProp",this.getDisplayProp());
+        out.putNotNull("domain",this.getDomain());
+        out.putNotNull("editMode",this.getEditMode());
+        out.putNotNull("filterOp",this.getFilterOp());
+        out.putNotNull("genControl",this.getGenControl());
+        out.putNotNull("hint",this.getHint());
+        out.putNotNull("href",this.getHref());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("idProp",this.getIdProp());
+        out.putNotNull("if",this.getIf());
+        out.putNotNull("joinValues",this.isJoinValues());
+        out.putNotNull("label",this.getLabel());
+        out.putNotNull("matchRegexp",this.getMatchRegexp());
+        out.putNotNull("maxLength",this.getMaxLength());
+        out.putNotNull("maxUploadSize",this.getMaxUploadSize());
+        out.putNotNull("minLength",this.getMinLength());
+        out.putNotNull("minRows",this.getMinRows());
+        out.putNotNull("multiValue",this.isMultiValue());
+        out.putNotNull("placeholder",this.getPlaceholder());
+        out.putNotNull("prop",this.getProp());
+        out.putNotNull("readonlyOn",this.getReadonlyOn());
+        out.putNotNull("requiredOn",this.getRequiredOn());
+        out.putNotNull("selectFirst",this.getSelectFirst());
+        out.putNotNull("selection",this.getSelection());
+        out.putNotNull("sourceUrl",this.getSourceUrl());
+        out.putNotNull("stdDomain",this.getStdDomain());
+        out.putNotNull("uploadUrl",this.getUploadUrl());
+        out.putNotNull("validator",this.getValidator());
+        out.putNotNull("view",this.getView());
+        out.putNotNull("visibleOn",this.getVisibleOn());
+        out.putNotNull("width",this.getWidth());
+    }
+
+    public UiDisplayMeta cloneInstance(){
+        UiDisplayMeta instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(UiDisplayMeta instance){
+        super.copyTo(instance);
+        
+        instance.setBizObjName(this.getBizObjName());
+        instance.setCharCase(this.getCharCase());
+        instance.setClassName(this.getClassName());
+        instance.setClassNameExpr(this.getClassNameExpr());
+        instance.setControl(this.getControl());
+        instance.setCustom(this.isCustom());
+        instance.setDefaultValue(this.getDefaultValue());
+        instance.setDepends(this.getDepends());
+        instance.setDesc(this.getDesc());
+        instance.setDisabledOn(this.getDisabledOn());
+        instance.setDisplayProp(this.getDisplayProp());
+        instance.setDomain(this.getDomain());
+        instance.setEditMode(this.getEditMode());
+        instance.setFilterOp(this.getFilterOp());
+        instance.setGenControl(this.getGenControl());
+        instance.setHint(this.getHint());
+        instance.setHref(this.getHref());
+        instance.setId(this.getId());
+        instance.setIdProp(this.getIdProp());
+        instance.setIf(this.getIf());
+        instance.setJoinValues(this.isJoinValues());
+        instance.setLabel(this.getLabel());
+        instance.setMatchRegexp(this.getMatchRegexp());
+        instance.setMaxLength(this.getMaxLength());
+        instance.setMaxUploadSize(this.getMaxUploadSize());
+        instance.setMinLength(this.getMinLength());
+        instance.setMinRows(this.getMinRows());
+        instance.setMultiValue(this.isMultiValue());
+        instance.setPlaceholder(this.getPlaceholder());
+        instance.setProp(this.getProp());
+        instance.setReadonlyOn(this.getReadonlyOn());
+        instance.setRequiredOn(this.getRequiredOn());
+        instance.setSelectFirst(this.getSelectFirst());
+        instance.setSelection(this.getSelection());
+        instance.setSourceUrl(this.getSourceUrl());
+        instance.setStdDomain(this.getStdDomain());
+        instance.setUploadUrl(this.getUploadUrl());
+        instance.setValidator(this.getValidator());
+        instance.setView(this.getView());
+        instance.setVisibleOn(this.getVisibleOn());
+        instance.setWidth(this.getWidth());
+    }
+
+    protected UiDisplayMeta newInstance(){
+        return (UiDisplayMeta) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

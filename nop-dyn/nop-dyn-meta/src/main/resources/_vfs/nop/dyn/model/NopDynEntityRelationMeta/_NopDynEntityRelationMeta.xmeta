@@ -50,7 +50,11 @@
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="tagSet" displayName="标签" i18n-en:displayName="Tag Set" queryable="true" sortable="true"
+        <prop name="tableName" displayName="中间表表名" i18n-en:displayName="Table Name" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="tagsText" displayName="标签" i18n-en:displayName="Tag Set" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>

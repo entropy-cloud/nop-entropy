@@ -65,6 +65,16 @@ public abstract class AbstractComponentModel extends SerializableExtensibleObjec
         out.endObject();
     }
 
+    protected void copyTo(AbstractComponentModel component) {
+        if (location != null)
+            component.setLocation(location);
+
+        Set<String> names = prop_names();
+        for (String name : names) {
+            component.prop_set(name, getExtProp(name));
+        }
+    }
+
     protected void outputJson(IJsonHandler handler) {
         if (location != null)
             handler.put("location", location);

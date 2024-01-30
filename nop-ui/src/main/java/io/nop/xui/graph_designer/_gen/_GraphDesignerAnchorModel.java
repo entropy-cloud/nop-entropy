@@ -2,6 +2,8 @@ package io.nop.xui.graph_designer._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xui.graph_designer.GraphDesignerAnchorModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -107,9 +109,27 @@ public abstract class _GraphDesignerAnchorModel extends io.nop.core.resource.com
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("name",this.getName());
-        out.put("positon",this.getPositon());
-        out.put("tagSet",this.getTagSet());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("positon",this.getPositon());
+        out.putNotNull("tagSet",this.getTagSet());
+    }
+
+    public GraphDesignerAnchorModel cloneInstance(){
+        GraphDesignerAnchorModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(GraphDesignerAnchorModel instance){
+        super.copyTo(instance);
+        
+        instance.setName(this.getName());
+        instance.setPositon(this.getPositon());
+        instance.setTagSet(this.getTagSet());
+    }
+
+    protected GraphDesignerAnchorModel newInstance(){
+        return (GraphDesignerAnchorModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

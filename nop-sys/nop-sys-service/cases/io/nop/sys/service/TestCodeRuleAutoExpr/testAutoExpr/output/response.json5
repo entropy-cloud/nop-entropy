@@ -12,7 +12,7 @@
     "updateTime": "@var:NopSysNoticeTemplate@updateTime",
     "remark": "sss",
     "id": "@var:NopSysNoticeTemplate@sid",
-    "extCode": "D2023123001",
+    "extCode": "D2024123001",
     "extFldA": "x"
   },
   "status": 0

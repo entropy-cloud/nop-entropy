@@ -92,13 +92,36 @@
                 <item bizObjName="NopAuthGroup"/>
             </schema>
         </prop>
+        <prop name="deptMappings" displayName="部门映射" i18n-en:displayName="Department Mappings"
+              tagSet="pub,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
+              ext:joinLeftProp="groupId" ext:joinRightProp="groupId" orm:manyToManyRefProp="deptId" insertable="true"
+              updatable="true" lazy="true">
+            <schema>
+                <item bizObjName="NopAuthGroupDept"/>
+            </schema>
+        </prop>
         <prop name="userMappings" displayName="用户映射" i18n-en:displayName="UserMappings"
               tagSet="pub,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
               ext:joinLeftProp="groupId" ext:joinRightProp="groupId" orm:manyToManyRefProp="userId" insertable="true"
               updatable="true" lazy="true">
             <schema>
-                <item bizObjName="NopAuthGroupDept"/>
+                <item bizObjName="NopAuthGroupUser"/>
             </schema>
+        </prop>
+        <prop name="relatedDeptList" displayName="部门列表" i18n-en:displayName="User List" ext:kind="to-many"
+              internal="true" lazy="true">
+            <schema>
+                <item bizObjName="NopAuthDept"/>
+            </schema>
+        </prop>
+        <prop name="relatedDeptIdList" displayName="部门列表" i18n-en:displayName="User List" insertable="true"
+              updatable="true" ext:relation="relatedDeptList" graphql:labelProp="relatedDeptList_label" lazy="true"
+              internal="true">
+            <schema type="List&lt;java.lang.String&gt;"/>
+        </prop>
+        <prop name="relatedDeptList_label" displayName="部门列表" i18n-en:displayName="User List" lazy="true"
+              internal="true">
+            <schema type="String"/>
         </prop>
         <prop name="relatedUserList" displayName="用户列表" i18n-en:displayName="User List" ext:kind="to-many"
               internal="true" lazy="true">

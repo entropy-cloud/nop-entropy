@@ -2,6 +2,8 @@ package io.nop.xui.graph_designer._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xui.graph_designer.GraphDesignerModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -359,15 +361,39 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("actions",this.getActions());
-        out.put("codeGenLib",this.getCodeGenLib());
-        out.put("edges",this.getEdges());
-        out.put("editorType",this.getEditorType());
-        out.put("forms",this.getForms());
-        out.put("nodes",this.getNodes());
-        out.put("script",this.getScript());
-        out.put("style",this.getStyle());
-        out.put("zoom",this.getZoom());
+        out.putNotNull("actions",this.getActions());
+        out.putNotNull("codeGenLib",this.getCodeGenLib());
+        out.putNotNull("edges",this.getEdges());
+        out.putNotNull("editorType",this.getEditorType());
+        out.putNotNull("forms",this.getForms());
+        out.putNotNull("nodes",this.getNodes());
+        out.putNotNull("script",this.getScript());
+        out.putNotNull("style",this.getStyle());
+        out.putNotNull("zoom",this.getZoom());
+    }
+
+    public GraphDesignerModel cloneInstance(){
+        GraphDesignerModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(GraphDesignerModel instance){
+        super.copyTo(instance);
+        
+        instance.setActions(this.getActions());
+        instance.setCodeGenLib(this.getCodeGenLib());
+        instance.setEdges(this.getEdges());
+        instance.setEditorType(this.getEditorType());
+        instance.setForms(this.getForms());
+        instance.setNodes(this.getNodes());
+        instance.setScript(this.getScript());
+        instance.setStyle(this.getStyle());
+        instance.setZoom(this.getZoom());
+    }
+
+    protected GraphDesignerModel newInstance(){
+        return (GraphDesignerModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

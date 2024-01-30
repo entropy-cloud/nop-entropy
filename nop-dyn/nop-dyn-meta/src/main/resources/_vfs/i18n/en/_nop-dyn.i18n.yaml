@@ -9,6 +9,7 @@ entity:
     NopDynEntityRelationMeta: Entity Relation Meta
     NopDynFunctionMeta: Function Meta
     NopDynModule: Module Definition
+    NopDynModuleDep: Module Dependency
     NopDynPage: Page Definition
     NopDynPropMeta: Property Meta
 prop:
@@ -58,42 +59,42 @@ prop:
       remark: Remark
     NopDynEntity:
       sid: SID
-      objType: Object Type
-      name: Name
-      displayName: Display Name
-      sortOrder: Sort Order
+      nopObjType: Object Type
+      nopName: Name
+      nopDisplayName: Display Name
+      nopSortOrder: Sort Order
       nopFlowId: Workflow ID
-      bizStatus: Biz Status
-      bizState: Biz State
-      parentId: Parent ID
-      ownerName: Owner Name
-      ownerId: Owner ID
-      deptId: Department ID
-      stringFld1: String Field1
-      decimalFld1: Decimal Field1
-      intFld1: Integer Field1
-      longFld1: Long Field1
-      dateFld1: Date Field1
-      timestampFld1: Timestamp Field1
-      fileFld1: File Field1
-      stringFld2: String Field2
-      decimalFld2: Decimal Field2
-      intFld2: Integer Field2
-      longFld2: Long Field2
-      dateFld2: Date Field2
-      timestampFld2: Timestamp Field2
-      fileFld2: File Field2
+      nopStatus: Biz Status
+      nopBizState: Biz State
+      nopParentId: Parent ID
+      nopOwnerName: Owner Name
+      nopOwnerId: Owner ID
+      nopDeptId: Department ID
+      nopStringFld1: String Field1
+      nopDecimalFld1: Decimal Field1
+      nopIntFld1: Integer Field1
+      nopLongFld1: Long Field1
+      nopDateFld1: Date Field1
+      nopTimestampFld1: Timestamp Field1
+      nopFileFld1: File Field1
+      nopStringFld2: String Field2
+      nopDecimalFld2: Decimal Field2
+      nopIntFld2: Integer Field2
+      nopLongFld2: Long Field2
+      nopDateFld2: Date Field2
+      nopTimestampFld2: Timestamp Field2
+      nopFileFld2: File Field2
       version: Version
       createdBy: Created By
       createTime: Create Time
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
-      parent: Parent
-      children: Children
+      nopParent: Parent
+      nopChildren: Children
       extFields: null
-      fileFld1Component: null
-      fileFld2Component: null
+      nopFileFld1Component: null
+      nopFileFld2Component: null
     NopDynEntityMeta:
       entityMetaId: Entity Meta ID
       moduleId: Module ID
@@ -103,9 +104,11 @@ prop:
       querySpace: Query Space
       storeType: Store Type
       storeType_label: null
-      tagSet: Tag Set
+      tagsText: Tag Set
+      isExternal: Is External
       status: Status
       status_label: null
+      mainPagePath: null
       extConfig: Ext Config
       version: Version
       createdBy: Created By
@@ -140,7 +143,8 @@ prop:
       entity1DisplayName: Entity1 Display Name
       entity2PropName: Entity2 Prop Name
       entity2DisplayName: Entity2 Display Name
-      tagSet: Tag Set
+      tableName: Table Name
+      tagsText: Tag Set
       status: Status
       extConfig: Ext Config
       version: Version
@@ -161,13 +165,13 @@ prop:
       displayName: Display Name
       functionType: Function Type
       functionType_label: null
-      argsMeta: ARGS_META
-      argsMeta_label: null
       returnType: Return Type
-      tagSet: Tag Set
-      source: Source
+      returnGqlType: Return GraphQL Type
       status: Status
       status_label: null
+      tagsText: Tag Set
+      funcMeta: Function Meta
+      source: Source
       version: Version
       createdBy: Created By
       createTime: Create Time
@@ -176,8 +180,8 @@ prop:
       remark: Remark
       entityMeta: Module
       entityMeta.entityName: Module
-      argsMetaComponent: null
-      sourceComponent: null
+      funcMetaComponent: null
+      args: null
     NopDynModule:
       moduleId: Module ID
       moduleName: Module Name
@@ -186,6 +190,7 @@ prop:
       baseModuleId: Base Module ID
       basePackageName: Base Package Name
       mavenGroupId: Maven Group Id
+      importFile: null
       status: Status
       status_label: null
       version: Version
@@ -202,6 +207,18 @@ prop:
       relatedAppList: App List
       relatedAppIdList: App List
       relatedAppList_label: App List
+    NopDynModuleDep:
+      moduleId: Module ID
+      depModuleId: Dep Module ID
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      module: Module
+      module.displayName: Module
+      depModule: Dependent Module
+      depModule.displayName: Dependent Module
     NopDynPage:
       pageId: Page ID
       moduleId: Module ID
@@ -224,7 +241,6 @@ prop:
     NopDynPropMeta:
       propMetaId: Prop Meta ID
       entityMetaId: Entity Meta ID
-      isPrimary: Is Primary
       isMandatory: Is Mandatory
       propName: Property Name
       displayName: Display Name
@@ -232,6 +248,7 @@ prop:
       stdSqlType_label: null
       precision: PRECISION
       scale: Scale
+      propId: Prop Id
       uiShow: UI Show
       uiControl: UI Control
       domainId: Domain ID
@@ -240,12 +257,13 @@ prop:
       stdDomainName_label: null
       dictName: Dict Name
       dynPropMapping: Dynamic Property Mapping
-      tagSet: Tag Set
+      tagsText: Tag Set
       defaultValue: Default Value
       refEntityName: Ref Entity Name
       refPropName: Ref Property Name
       refPropDisplayName: Ref Property Display Name
-      refTagSet: Ref Tag Set
+      refSetSort: Ret Set Sort Expression
+      refTagsText: Ref Tag Set
       extConfig: Ext Config
       status: Status
       status_label: null

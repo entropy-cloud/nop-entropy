@@ -2,6 +2,8 @@ package io.nop.xlang.xmeta._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.xlang.xmeta.ObjVarDefineModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -189,12 +191,33 @@ public abstract class _ObjVarDefineModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("defaultExpr",this.getDefaultExpr());
-        out.put("description",this.getDescription());
-        out.put("displayName",this.getDisplayName());
-        out.put("name",this.getName());
-        out.put("schema",this.getSchema());
-        out.put("type",this.getType());
+        out.putNotNull("defaultExpr",this.getDefaultExpr());
+        out.putNotNull("description",this.getDescription());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("schema",this.getSchema());
+        out.putNotNull("type",this.getType());
+    }
+
+    public ObjVarDefineModel cloneInstance(){
+        ObjVarDefineModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ObjVarDefineModel instance){
+        super.copyTo(instance);
+        
+        instance.setDefaultExpr(this.getDefaultExpr());
+        instance.setDescription(this.getDescription());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setName(this.getName());
+        instance.setSchema(this.getSchema());
+        instance.setType(this.getType());
+    }
+
+    protected ObjVarDefineModel newInstance(){
+        return (ObjVarDefineModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

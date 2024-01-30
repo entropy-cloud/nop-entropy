@@ -62,13 +62,13 @@
                         ui:show="X"/>
                 <column code="EMAIL" displayName="邮件" domain="email" name="email" precision="100" propId="11"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Email" ui:show="L"/>
-                <column code="EMAIL_VERIFIED" defaultValue="0" displayName="电话已验证" domain="boolFlag"
-                        name="emailVerified" precision="1" propId="12" stdDataType="byte" stdSqlType="TINYINT"
+                <column code="EMAIL_VERIFIED" defaultValue="0" displayName="邮件已验证" domain="boolFlag"
+                        name="emailVerified" propId="12" stdDataType="byte" stdSqlType="TINYINT"
                         i18n-en:displayName="Email Verified" ui:show="X"/>
                 <column code="PHONE" displayName="电话" domain="phone" name="phone" precision="50" propId="13"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Phone"/>
-                <column code="PHONE_VERIFIED" defaultValue="0" displayName="电话已验证" domain="boolFlag" mandatory="true"
-                        name="phoneVerified" precision="1" propId="14" stdDataType="byte" stdSqlType="TINYINT"
+                <column code="PHONE_VERIFIED" defaultValue="0" displayName="电话已验证" domain="boolFlag"
+                        name="phoneVerified" propId="14" stdDataType="byte" stdSqlType="TINYINT"
                         i18n-en:displayName="Phone Verified" ui:show="X"/>
                 <column code="BIRTHDAY" displayName="生日" name="birthday" propId="15" stdDataType="date"
                         stdSqlType="DATE" i18n-en:displayName="Birthday" ui:show="L"/>
@@ -152,23 +152,23 @@
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-many displayName="角色映射" name="roleMappings" refEntityName="io.nop.auth.dao.entity.NopAuthUserRole"
-                         refPropName="user" tagSet="pub,cascade-delete,insertable,updatable"
-                         i18n-en:displayName="RoleMappings">
+                <to-many cascadeDelete="true" displayName="角色映射" name="roleMappings"
+                         refEntityName="io.nop.auth.dao.entity.NopAuthUserRole" refPropName="user"
+                         tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="RoleMappings">
                     <join>
                         <on leftProp="userId" rightProp="userId"/>
                     </join>
                 </to-many>
-                <to-many displayName="代理人映射" name="substitutionMappings"
+                <to-many cascadeDelete="true" displayName="代理人映射" name="substitutionMappings"
                          refEntityName="io.nop.auth.dao.entity.NopAuthUserSubstitution" refPropName="user"
                          tagSet="pub,cascade-delete" i18n-en:displayName="Substitution Mappings">
                     <join>
                         <on leftProp="userId" rightProp="userId"/>
                     </join>
                 </to-many>
-                <to-many displayName="分组映射" name="groupMappings" refEntityName="io.nop.auth.dao.entity.NopAuthGroupDept"
-                         refPropName="user" tagSet="pub,cascade-delete,insertable,updatable"
-                         i18n-en:displayName="GroupMappings">
+                <to-many cascadeDelete="true" displayName="分组映射" name="groupMappings"
+                         refEntityName="io.nop.auth.dao.entity.NopAuthGroupUser" refPropName="user"
+                         tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="GroupMappings">
                     <join>
                         <on leftProp="userId" rightProp="userId"/>
                     </join>
@@ -268,14 +268,14 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>
-                <to-many displayName="用户映射" name="userMappings" refEntityName="io.nop.auth.dao.entity.NopAuthUserRole"
-                         refPropName="role" tagSet="pub,cascade-delete,insertable,updatable"
-                         i18n-en:displayName="UserMappings">
+                <to-many cascadeDelete="true" displayName="用户映射" name="userMappings"
+                         refEntityName="io.nop.auth.dao.entity.NopAuthUserRole" refPropName="role"
+                         tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="UserMappings">
                     <join>
                         <on leftProp="roleId" rightProp="roleId"/>
                     </join>
                 </to-many>
-                <to-many displayName="资源映射" name="resourceMappings"
+                <to-many cascadeDelete="true" displayName="资源映射" name="resourceMappings"
                          refEntityName="io.nop.auth.dao.entity.NopAuthRoleResource" refPropName="role"
                          tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="Resources">
                     <join>
@@ -421,8 +421,9 @@
             </columns>
             <comment>整个应用系统可以拆分为多个子站点</comment>
             <relations>
-                <to-many displayName="资源列表" name="resources" refEntityName="io.nop.auth.dao.entity.NopAuthResource"
-                         refPropName="site" tagSet="pub,cascade-delete,connection" i18n-en:displayName="Resources">
+                <to-many cascadeDelete="true" displayName="资源列表" name="resources"
+                         refEntityName="io.nop.auth.dao.entity.NopAuthResource" refPropName="site"
+                         tagSet="pub,cascade-delete,connection" i18n-en:displayName="Resources">
                     <join>
                         <on leftProp="siteId" rightProp="siteId"/>
                     </join>
@@ -527,13 +528,14 @@
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-many displayName="子资源" name="children" refEntityName="io.nop.auth.dao.entity.NopAuthResource"
-                         refPropName="parent" tagSet="pub,cascade-delete" i18n-en:displayName="Children">
+                <to-many cascadeDelete="true" displayName="子资源" name="children"
+                         refEntityName="io.nop.auth.dao.entity.NopAuthResource" refPropName="parent"
+                         tagSet="pub,cascade-delete" i18n-en:displayName="Children">
                     <join>
                         <on leftProp="resourceId" rightProp="parentId"/>
                     </join>
                 </to-many>
-                <to-many displayName="角色映射" name="roleMappings"
+                <to-many cascadeDelete="true" displayName="角色映射" name="roleMappings"
                          refEntityName="io.nop.auth.dao.entity.NopAuthRoleResource" refPropName="resource"
                          tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="Roles">
                     <join>
@@ -642,7 +644,7 @@
         </entity>
         <entity className="io.nop.auth.dao.entity.NopAuthSession" createTimeProp="createTime" createrProp="createdBy"
                 displayName="会话日志" name="io.nop.auth.dao.entity.NopAuthSession" registerShortName="true"
-                tableName="nop_auth_session" tagSet="log" versionProp="version" i18n-en:displayName="Session">
+                tableName="nop_auth_session" tagSet="log" i18n-en:displayName="Session">
             <columns>
                 <column code="SESSION_ID" displayName="会话ID" mandatory="true" name="sessionId" precision="100"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="var"
@@ -652,42 +654,49 @@
                 <column code="USER_NAME" displayName="用户名" domain="userName" mandatory="true" name="userName"
                         precision="100" propId="3" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="User Name"/>
-                <column code="LOGIN_ADDR" displayName="登录地址" name="loginAddr" precision="100" propId="4"
+                <column code="TENANT_ID" displayName="租户ID" mandatory="true" name="tenantId" precision="32" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Tenant ID" ui:show="X"/>
+                <column code="LOGIN_ADDR" displayName="登录地址" name="loginAddr" precision="100" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Login Addr"/>
-                <column code="LOGIN_DEVICE" displayName="登录设备" name="loginDevice" precision="100" propId="5"
+                <column code="LOGIN_DEVICE" displayName="登录设备" name="loginDevice" precision="100" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Login Device"/>
-                <column code="LOGIN_APP" displayName="应用程序" name="loginApp" precision="100" propId="6"
+                <column code="LOGIN_APP" displayName="应用程序" name="loginApp" precision="100" propId="7"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Application"/>
-                <column code="LOGIN_OS" displayName="操作系统" name="loginOs" precision="100" propId="7"
+                <column code="LOGIN_OS" displayName="操作系统" name="loginOs" precision="100" propId="8"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="OS"/>
-                <column code="LOGIN_TIME" displayName="登录时间" mandatory="true" name="loginTime" propId="8"
+                <column code="LOGIN_TIME" displayName="登录时间" mandatory="true" name="loginTime" propId="9"
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Login Time"/>
-                <column code="LOGIN_TYPE" displayName="登录方式" mandatory="true" name="loginType" propId="9"
+                <column code="LOGIN_TYPE" displayName="登录方式" mandatory="true" name="loginType" propId="10"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Login Type"
                         ext:dict="auth/login-type"/>
-                <column code="LOGOUT_TIME" displayName="退出时间" name="logoutTime" propId="10" stdDataType="timestamp"
+                <column code="LOGOUT_TIME" displayName="退出时间" name="logoutTime" propId="11" stdDataType="timestamp"
                         stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Logout Time"/>
-                <column code="LOGOUT_TYPE" displayName="退出方式" mandatory="true" name="logoutType" propId="11"
+                <column code="LOGOUT_TYPE" displayName="退出方式" mandatory="true" name="logoutType" propId="12"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Logout Type"
                         ext:dict="auth/logout-type"/>
                 <column code="LOGOUT_BY" displayName="退出操作人" domain="userName" name="logoutBy" precision="100"
-                        propId="12" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Logout By"/>
-                <column code="LAST_ACCESS_TIME" displayName="最后访问时间" name="lastAccessTime" propId="13"
+                        propId="13" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Logout By"/>
+                <column code="LAST_ACCESS_TIME" displayName="最后访问时间" name="lastAccessTime" propId="14"
                         stdDataType="datetime" stdSqlType="DATETIME" tagSet="clock"
                         i18n-en:displayName="Last Access Time" ui:show="X"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="14"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
+                <column code="ACCESS_TOKEN" displayName="访问令牌" name="accessToken" precision="500" propId="15"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Access Token" ui:show="X"/>
+                <column code="REFRESH_TOKEN" displayName="刷新令牌" name="refreshToken" precision="500" propId="16"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Refresh Token" ui:show="X"/>
+                <column code="CACHE_DATA" displayName="缓存数据" name="cacheData" precision="4000" propId="17"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="not-pub" i18n-en:displayName="Cache Data"
+                        ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="15" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="18" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By" ui:show="X"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="16" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
+                        propId="19" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
                         ui:show="X"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="17"
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="20"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>
-                <to-one displayName="用户" name="user" refEntityName="io.nop.auth.dao.entity.NopAuthUser"
+                <to-one displayName="用户" name="user" refEntityName="io.nop.auth.dao.entity.NopAuthUser" tagSet="pub"
                         i18n-en:displayName="User">
                     <join>
                         <on leftProp="userId" rightProp="userId"/>
@@ -757,7 +766,7 @@
                         stdSqlType="INTEGER" i18n-en:displayName="Order Number"/>
                 <column code="DEPT_TYPE" displayName="类型" name="deptType" precision="10" propId="5" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Type"/>
-                <column code="MANAGER_ID" displayName="部分负责人" name="managerId" precision="50" propId="6"
+                <column code="MANAGER_ID" displayName="部门负责人" name="managerId" precision="50" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Manager"/>
                 <column code="EMAIL" displayName="邮件" domain="email" name="email" precision="100" propId="7"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Email"/>
@@ -809,6 +818,13 @@
                          refPropName="parent" tagSet="pub" i18n-en:displayName="Children">
                     <join>
                         <on leftProp="deptId" rightProp="parentId"/>
+                    </join>
+                </to-many>
+                <to-many cascadeDelete="true" displayName="分组映射" name="groupMappings"
+                         refEntityName="io.nop.auth.dao.entity.NopAuthGroupDept" refPropName="dept"
+                         tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="GroupMappings">
+                    <join>
+                        <on leftProp="deptId" rightProp="deptId"/>
                     </join>
                 </to-many>
             </relations>
@@ -868,9 +884,16 @@
                         <on leftProp="groupId" rightProp="parentId"/>
                     </join>
                 </to-many>
-                <to-many displayName="用户映射" name="userMappings" refEntityName="io.nop.auth.dao.entity.NopAuthGroupDept"
-                         refPropName="group" tagSet="pub,cascade-delete,insertable,updatable"
-                         i18n-en:displayName="UserMappings">
+                <to-many cascadeDelete="true" displayName="部门映射" name="deptMappings"
+                         refEntityName="io.nop.auth.dao.entity.NopAuthGroupDept" refPropName="group"
+                         tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="Department Mappings">
+                    <join>
+                        <on leftProp="groupId" rightProp="groupId"/>
+                    </join>
+                </to-many>
+                <to-many cascadeDelete="true" displayName="用户映射" name="userMappings"
+                         refEntityName="io.nop.auth.dao.entity.NopAuthGroupUser" refPropName="group"
+                         tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="UserMappings">
                     <join>
                         <on leftProp="groupId" rightProp="groupId"/>
                     </join>
@@ -878,8 +901,55 @@
             </relations>
         </entity>
         <entity className="io.nop.auth.dao.entity.NopAuthGroupDept" createTimeProp="createTime" createrProp="createdBy"
-                displayName="分组用户" name="io.nop.auth.dao.entity.NopAuthGroupDept" registerShortName="true"
+                displayName="分组部门" name="io.nop.auth.dao.entity.NopAuthGroupDept" registerShortName="true"
                 tableName="nop_auth_group_dept" tagSet="no-web,many-to-many" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Group Department">
+            <columns>
+                <column code="DEPT_ID" displayName="部门ID" domain="deptId" mandatory="true" name="deptId" precision="50"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Department ID"/>
+                <column code="GROUP_ID" displayName="分组ID" mandatory="true" name="groupId" precision="50" primary="true"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Group ID"/>
+                <column code="INCLUDE_CHILD" defaultValue="0" displayName="是否包含下级" domain="boolFlag" mandatory="true"
+                        name="includeChild" propId="3" stdDataType="byte" stdSqlType="TINYINT"
+                        i18n-en:displayName="Include Child"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="4"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="5" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="6" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="7" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="8" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="9"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
+            </columns>
+            <relations>
+                <to-one displayName="部门" name="dept" refEntityName="io.nop.auth.dao.entity.NopAuthDept"
+                        refPropName="groupMappings" tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable"
+                        i18n-en:displayName="User" ref-i18n-en:displayName="GroupMappings">
+                    <join>
+                        <on leftProp="deptId" rightProp="deptId"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+                <to-one displayName="分组" name="group" refEntityName="io.nop.auth.dao.entity.NopAuthGroup"
+                        refPropName="deptMappings" tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable"
+                        i18n-en:displayName="Group" ref-i18n-en:displayName="Department Mappings">
+                    <join>
+                        <on leftProp="groupId" rightProp="groupId"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+            </relations>
+        </entity>
+        <entity className="io.nop.auth.dao.entity.NopAuthGroupUser" createTimeProp="createTime" createrProp="createdBy"
+                displayName="分组用户" name="io.nop.auth.dao.entity.NopAuthGroupUser" registerShortName="true"
+                tableName="nop_auth_group_user" tagSet="no-web,many-to-many" updateTimeProp="updateTime"
                 updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Group User">
             <columns>
                 <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="50"

@@ -2,6 +2,8 @@ package io.nop.wf.core.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.wf.core.model.WfAssignmentActorModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -211,13 +213,35 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("actorId",this.getActorId());
-        out.put("actorModelId",this.getActorModelId());
-        out.put("actorType",this.getActorType());
-        out.put("assignForUser",this.isAssignForUser());
-        out.put("deptId",this.getDeptId());
-        out.put("selectUser",this.isSelectUser());
-        out.put("voteWeight",this.getVoteWeight());
+        out.putNotNull("actorId",this.getActorId());
+        out.putNotNull("actorModelId",this.getActorModelId());
+        out.putNotNull("actorType",this.getActorType());
+        out.putNotNull("assignForUser",this.isAssignForUser());
+        out.putNotNull("deptId",this.getDeptId());
+        out.putNotNull("selectUser",this.isSelectUser());
+        out.putNotNull("voteWeight",this.getVoteWeight());
+    }
+
+    public WfAssignmentActorModel cloneInstance(){
+        WfAssignmentActorModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(WfAssignmentActorModel instance){
+        super.copyTo(instance);
+        
+        instance.setActorId(this.getActorId());
+        instance.setActorModelId(this.getActorModelId());
+        instance.setActorType(this.getActorType());
+        instance.setAssignForUser(this.isAssignForUser());
+        instance.setDeptId(this.getDeptId());
+        instance.setSelectUser(this.isSelectUser());
+        instance.setVoteWeight(this.getVoteWeight());
+    }
+
+    protected WfAssignmentActorModel newInstance(){
+        return (WfAssignmentActorModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

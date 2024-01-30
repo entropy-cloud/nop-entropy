@@ -1,0 +1,13 @@
+<orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <entities>
+        <entity name="app.demo.DemoEntity" tableName="demo_entity"
+                className="io.nop.orm.support.DynamicOrmEntity" registerShortName="true">
+            <columns>
+                <column name="sid" code="SID" propId="1" stdSqlType="VARCHAR" precision="32" tagSet="seq"
+                        mandatory="true" primary="true"/>
+                <column name="name" code="NAME" propId="2" stdSqlType="VARCHAR" precision="100" mandatory="true"/>
+                <column name="status" code="STATUS" propId="3" stdSqlType="INTEGER"/>
+            </columns>
+        </entity>
+    </entities>
+</orm>

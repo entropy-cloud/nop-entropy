@@ -16,8 +16,8 @@ import io.nop.app.SimsMajor;
 /**
  *  专业: sims_major
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _SimsMajor extends DynamicOrmEntity{
     
     /* 专业ID: MAJOR_ID VARCHAR */
@@ -77,8 +77,8 @@ public class _SimsMajor extends DynamicOrmEntity{
 
     
 
-    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_majorId);
-    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_majorId};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_majorId);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_majorId};
 
     private static final String[] PROP_ID_TO_NAME = new String[21];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
@@ -167,6 +167,7 @@ public class _SimsMajor extends DynamicOrmEntity{
     
 
     public _SimsMajor(){
+        // for debug
     }
 
     protected SimsMajor newInstance(){

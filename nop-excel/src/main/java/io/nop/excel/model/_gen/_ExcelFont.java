@@ -2,6 +2,8 @@ package io.nop.excel.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.model.ExcelFont;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -293,16 +295,41 @@ public abstract class _ExcelFont extends io.nop.core.resource.component.Abstract
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("bold",this.isBold());
-        out.put("charSet",this.getCharSet());
-        out.put("fontColor",this.getFontColor());
-        out.put("fontFamily",this.getFontFamily());
-        out.put("fontName",this.getFontName());
-        out.put("fontSize",this.getFontSize());
-        out.put("italic",this.isItalic());
-        out.put("strikeout",this.isStrikeout());
-        out.put("underlineStyle",this.getUnderlineStyle());
-        out.put("verticalAlign",this.getVerticalAlign());
+        out.putNotNull("bold",this.isBold());
+        out.putNotNull("charSet",this.getCharSet());
+        out.putNotNull("fontColor",this.getFontColor());
+        out.putNotNull("fontFamily",this.getFontFamily());
+        out.putNotNull("fontName",this.getFontName());
+        out.putNotNull("fontSize",this.getFontSize());
+        out.putNotNull("italic",this.isItalic());
+        out.putNotNull("strikeout",this.isStrikeout());
+        out.putNotNull("underlineStyle",this.getUnderlineStyle());
+        out.putNotNull("verticalAlign",this.getVerticalAlign());
+    }
+
+    public ExcelFont cloneInstance(){
+        ExcelFont instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ExcelFont instance){
+        super.copyTo(instance);
+        
+        instance.setBold(this.isBold());
+        instance.setCharSet(this.getCharSet());
+        instance.setFontColor(this.getFontColor());
+        instance.setFontFamily(this.getFontFamily());
+        instance.setFontName(this.getFontName());
+        instance.setFontSize(this.getFontSize());
+        instance.setItalic(this.isItalic());
+        instance.setStrikeout(this.isStrikeout());
+        instance.setUnderlineStyle(this.getUnderlineStyle());
+        instance.setVerticalAlign(this.getVerticalAlign());
+    }
+
+    protected ExcelFont newInstance(){
+        return (ExcelFont) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

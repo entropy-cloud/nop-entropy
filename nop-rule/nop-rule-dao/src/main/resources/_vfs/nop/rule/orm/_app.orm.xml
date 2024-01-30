@@ -83,16 +83,16 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>
-                <to-many displayName="规则节点" name="ruleNodes" refEntityName="io.nop.rule.dao.entity.NopRuleNode"
-                         refPropName="ruleDefinition" tagSet="pub,cascade-delete,insertable,updatable"
-                         i18n-en:displayName="Rule Nodes">
+                <to-many cascadeDelete="true" displayName="规则节点" name="ruleNodes"
+                         refEntityName="io.nop.rule.dao.entity.NopRuleNode" refPropName="ruleDefinition"
+                         tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="Rule Nodes">
                     <join>
                         <on leftProp="ruleId" rightProp="ruleId"/>
                     </join>
                 </to-many>
-                <to-many displayName="规则角色" name="ruleRoles" refEntityName="io.nop.rule.dao.entity.NopRuleRole"
-                         refPropName="ruleDefinition" tagSet="pub,grid,cascade-delete,insertable,updatable"
-                         i18n-en:displayName="Rule Roles">
+                <to-many cascadeDelete="true" displayName="规则角色" name="ruleRoles"
+                         refEntityName="io.nop.rule.dao.entity.NopRuleRole" refPropName="ruleDefinition"
+                         tagSet="pub,grid,cascade-delete,insertable,updatable" i18n-en:displayName="Rule Roles">
                     <join>
                         <on leftProp="ruleId" rightProp="ruleId"/>
                     </join>
@@ -159,9 +159,9 @@
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-many displayName="子节点" name="children" refEntityName="io.nop.rule.dao.entity.NopRuleNode"
-                         refPropName="parent" tagSet="pub,cascade-delete,insertable,updatable"
-                         i18n-en:displayName="Children">
+                <to-many cascadeDelete="true" displayName="子节点" name="children"
+                         refEntityName="io.nop.rule.dao.entity.NopRuleNode" refPropName="parent"
+                         tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="Children">
                     <join>
                         <on leftProp="sid" rightProp="parentId"/>
                     </join>

@@ -2,6 +2,8 @@ package io.nop.record.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.record.model.RecordComputedFieldMeta;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -107,9 +109,27 @@ public abstract class _RecordComputedFieldMeta extends io.nop.core.resource.comp
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("name",this.getName());
-        out.put("source",this.getSource());
-        out.put("type",this.getType());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("source",this.getSource());
+        out.putNotNull("type",this.getType());
+    }
+
+    public RecordComputedFieldMeta cloneInstance(){
+        RecordComputedFieldMeta instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(RecordComputedFieldMeta instance){
+        super.copyTo(instance);
+        
+        instance.setName(this.getName());
+        instance.setSource(this.getSource());
+        instance.setType(this.getType());
+    }
+
+    protected RecordComputedFieldMeta newInstance(){
+        return (RecordComputedFieldMeta) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

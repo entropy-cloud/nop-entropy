@@ -2,6 +2,8 @@ package io.nop.wf.core.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.wf.core.model.WfStartModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -161,10 +163,29 @@ public abstract class _WfStartModel extends io.nop.core.resource.component.Abstr
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("args",this.getArgs());
-        out.put("source",this.getSource());
-        out.put("startStepName",this.getStartStepName());
-        out.put("when",this.getWhen());
+        out.putNotNull("args",this.getArgs());
+        out.putNotNull("source",this.getSource());
+        out.putNotNull("startStepName",this.getStartStepName());
+        out.putNotNull("when",this.getWhen());
+    }
+
+    public WfStartModel cloneInstance(){
+        WfStartModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(WfStartModel instance){
+        super.copyTo(instance);
+        
+        instance.setArgs(this.getArgs());
+        instance.setSource(this.getSource());
+        instance.setStartStepName(this.getStartStepName());
+        instance.setWhen(this.getWhen());
+    }
+
+    protected WfStartModel newInstance(){
+        return (WfStartModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

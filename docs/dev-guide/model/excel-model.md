@@ -89,6 +89,8 @@ Nop平台内置的表名都具有前缀`nop_`。
 ## 字段标签
 
 * `seq`：利用`SequenceGenerator`来自动生成主键，Nop内置实现类`UuidSequenceGenerator`和`SysSequenceGenerator`（在`/_vfs/nop/orm/beans/orm-defaults.beans.xml`中id为`nopSequenceGenerator`的bean上指定默认的生成器），当字段类型为字符串时，二者均默认生成UUID，若字段为数字，则默认生成随机数。如果`SysSequenceGenerator`禁用UUID，则其将使用`nop_sys_sequence`表来记录递增的整数序列，并在字段为字符串时取其字符串形式作为该字段的值。
+    在nop_sys_sequence表中，可以为每个实体指定自己的sequence，名称为{entityName}@{colPropName}
+* `seq-default`：与seq的区别在于，如果在nop_sys_sequence表中如果不存在针对指定实体字段的sequence，则会自动选择名称为default的sequence
 
 * `var`：表示随机生成的变量。在自动化测试框架中，这个字段将被记录为变量，录制到数据文件中时会被替换为变量名保存。例如`NopAuthUser`表的`userId`字段，新建用户时自动录制的`nop_auth_user.csv`中，`userId`列的值为 `@var:NopAuthUser@userId`
 
@@ -105,6 +107,8 @@ Nop平台内置的表名都具有前缀`nop_`。
 * `not-gen`：仅在差量化模型中使用，表示会从基类中继承字段定义，不会为此字段生成Java属性。
 
 * `del`：仅在差量化模型中使用，表示在ORM模型中删除字段定义，从而访问数据库时不会使用此字段，生成的建表语句也不包含此字段。
+
+* `clock`: 标记字段根据调用时刻的时钟来动态确定，因此在自动化单元测试录制时需要记录为变量。
 
 ## 字段显示
 

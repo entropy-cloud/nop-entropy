@@ -2,6 +2,8 @@ package io.nop.task.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.task.model.ParallelTaskStepModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -135,10 +137,29 @@ public abstract class _ParallelTaskStepModel extends io.nop.task.model.TaskSteps
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("aggregateVarName",this.getAggregateVarName());
-        out.put("aggregator",this.getAggregator());
-        out.put("autoCancelUnfinished",this.isAutoCancelUnfinished());
-        out.put("joinType",this.getJoinType());
+        out.putNotNull("aggregateVarName",this.getAggregateVarName());
+        out.putNotNull("aggregator",this.getAggregator());
+        out.putNotNull("autoCancelUnfinished",this.isAutoCancelUnfinished());
+        out.putNotNull("joinType",this.getJoinType());
+    }
+
+    public ParallelTaskStepModel cloneInstance(){
+        ParallelTaskStepModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ParallelTaskStepModel instance){
+        super.copyTo(instance);
+        
+        instance.setAggregateVarName(this.getAggregateVarName());
+        instance.setAggregator(this.getAggregator());
+        instance.setAutoCancelUnfinished(this.isAutoCancelUnfinished());
+        instance.setJoinType(this.getJoinType());
+    }
+
+    protected ParallelTaskStepModel newInstance(){
+        return (ParallelTaskStepModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

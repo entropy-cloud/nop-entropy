@@ -1,0 +1,12 @@
+type: dialog
+title: AI智能生成
+size: md
+body:
+  type: form
+  api:
+    url: "@mutation:NopDynModule__generateByAI"
+  "mode": vertical
+  body:
+    - type: textarea
+      name: response
+      label: 文心一言的响应消息

@@ -117,6 +117,18 @@ public class ValueWithLocation implements Serializable, ISourceLocationGetter, I
         return ValueWithLocation.of(loc, value);
     }
 
+    public ValueWithLocation trim() {
+        String str = asString();
+        if (str == null)
+            return this;
+
+        String trimmed = str.trim();
+        if (trimmed.equals(str))
+            return this;
+
+        return ValueWithLocation.of(loc, trimmed);
+    }
+
     @Override
     public ValueWithLocation deepClone() {
         if (this.value == null)

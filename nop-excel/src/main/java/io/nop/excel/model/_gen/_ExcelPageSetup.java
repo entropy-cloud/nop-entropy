@@ -2,6 +2,8 @@ package io.nop.excel.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.model.ExcelPageSetup;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -319,17 +321,43 @@ public abstract class _ExcelPageSetup extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("blackAndWhite",this.getBlackAndWhite());
-        out.put("firstPageNumber",this.getFirstPageNumber());
-        out.put("fitToHeight",this.getFitToHeight());
-        out.put("fitToWidth",this.getFitToWidth());
-        out.put("footer",this.getFooter());
-        out.put("header",this.getHeader());
-        out.put("horizontalCentered",this.getHorizontalCentered());
-        out.put("orientationHorizontal",this.getOrientationHorizontal());
-        out.put("paperSize",this.getPaperSize());
-        out.put("scale",this.getScale());
-        out.put("verticalCentered",this.getVerticalCentered());
+        out.putNotNull("blackAndWhite",this.getBlackAndWhite());
+        out.putNotNull("firstPageNumber",this.getFirstPageNumber());
+        out.putNotNull("fitToHeight",this.getFitToHeight());
+        out.putNotNull("fitToWidth",this.getFitToWidth());
+        out.putNotNull("footer",this.getFooter());
+        out.putNotNull("header",this.getHeader());
+        out.putNotNull("horizontalCentered",this.getHorizontalCentered());
+        out.putNotNull("orientationHorizontal",this.getOrientationHorizontal());
+        out.putNotNull("paperSize",this.getPaperSize());
+        out.putNotNull("scale",this.getScale());
+        out.putNotNull("verticalCentered",this.getVerticalCentered());
+    }
+
+    public ExcelPageSetup cloneInstance(){
+        ExcelPageSetup instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ExcelPageSetup instance){
+        super.copyTo(instance);
+        
+        instance.setBlackAndWhite(this.getBlackAndWhite());
+        instance.setFirstPageNumber(this.getFirstPageNumber());
+        instance.setFitToHeight(this.getFitToHeight());
+        instance.setFitToWidth(this.getFitToWidth());
+        instance.setFooter(this.getFooter());
+        instance.setHeader(this.getHeader());
+        instance.setHorizontalCentered(this.getHorizontalCentered());
+        instance.setOrientationHorizontal(this.getOrientationHorizontal());
+        instance.setPaperSize(this.getPaperSize());
+        instance.setScale(this.getScale());
+        instance.setVerticalCentered(this.getVerticalCentered());
+    }
+
+    protected ExcelPageSetup newInstance(){
+        return (ExcelPageSetup) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

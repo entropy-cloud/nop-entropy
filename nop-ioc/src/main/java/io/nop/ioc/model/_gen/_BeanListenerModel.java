@@ -2,6 +2,8 @@ package io.nop.ioc.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.ioc.model.BeanListenerModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -187,12 +189,33 @@ public abstract class _BeanListenerModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("events",this.getEvents());
-        out.put("id",this.getId());
-        out.put("iocAllowOverride",this.isIocAllowOverride());
-        out.put("iocCondition",this.getIocCondition());
-        out.put("ref",this.getRef());
-        out.put("source",this.getSource());
+        out.putNotNull("events",this.getEvents());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("iocAllowOverride",this.isIocAllowOverride());
+        out.putNotNull("iocCondition",this.getIocCondition());
+        out.putNotNull("ref",this.getRef());
+        out.putNotNull("source",this.getSource());
+    }
+
+    public BeanListenerModel cloneInstance(){
+        BeanListenerModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BeanListenerModel instance){
+        super.copyTo(instance);
+        
+        instance.setEvents(this.getEvents());
+        instance.setId(this.getId());
+        instance.setIocAllowOverride(this.isIocAllowOverride());
+        instance.setIocCondition(this.getIocCondition());
+        instance.setRef(this.getRef());
+        instance.setSource(this.getSource());
+    }
+
+    protected BeanListenerModel newInstance(){
+        return (BeanListenerModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

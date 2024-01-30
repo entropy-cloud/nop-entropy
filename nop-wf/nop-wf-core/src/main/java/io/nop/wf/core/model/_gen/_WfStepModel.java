@@ -2,6 +2,8 @@ package io.nop.wf.core.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.wf.core.model.WfStepModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -817,35 +819,79 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("afterTransition",this.getAfterTransition());
-        out.put("allowReject",this.isAllowReject());
-        out.put("allowWithdraw",this.isAllowWithdraw());
-        out.put("appState",this.getAppState());
-        out.put("assignment",this.getAssignment());
-        out.put("beforeTransition",this.getBeforeTransition());
-        out.put("bizEntityState",this.getBizEntityState());
-        out.put("checkComplete",this.getCheckComplete());
-        out.put("displayName",this.getDisplayName());
-        out.put("dueAction",this.getDueAction());
-        out.put("dueTimeExpr",this.getDueTimeExpr());
-        out.put("independent",this.isIndependent());
-        out.put("initAsWaiting",this.isInitAsWaiting());
-        out.put("internal",this.isInternal());
-        out.put("mayActivated",this.getMayActivated());
-        out.put("name",this.getName());
-        out.put("onEnter",this.getOnEnter());
-        out.put("onError",this.getOnError());
-        out.put("onExit",this.getOnExit());
-        out.put("optional",this.isOptional());
-        out.put("priority",this.getPriority());
-        out.put("refActions",this.getRefActions());
-        out.put("retry",this.getRetry());
-        out.put("source",this.getSource());
-        out.put("specialType",this.getSpecialType());
-        out.put("tagSet",this.getTagSet());
-        out.put("transition",this.getTransition());
-        out.put("waitSignals",this.getWaitSignals());
-        out.put("wfAppState",this.getWfAppState());
+        out.putNotNull("afterTransition",this.getAfterTransition());
+        out.putNotNull("allowReject",this.isAllowReject());
+        out.putNotNull("allowWithdraw",this.isAllowWithdraw());
+        out.putNotNull("appState",this.getAppState());
+        out.putNotNull("assignment",this.getAssignment());
+        out.putNotNull("beforeTransition",this.getBeforeTransition());
+        out.putNotNull("bizEntityState",this.getBizEntityState());
+        out.putNotNull("checkComplete",this.getCheckComplete());
+        out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("dueAction",this.getDueAction());
+        out.putNotNull("dueTimeExpr",this.getDueTimeExpr());
+        out.putNotNull("independent",this.isIndependent());
+        out.putNotNull("initAsWaiting",this.isInitAsWaiting());
+        out.putNotNull("internal",this.isInternal());
+        out.putNotNull("mayActivated",this.getMayActivated());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("onEnter",this.getOnEnter());
+        out.putNotNull("onError",this.getOnError());
+        out.putNotNull("onExit",this.getOnExit());
+        out.putNotNull("optional",this.isOptional());
+        out.putNotNull("priority",this.getPriority());
+        out.putNotNull("refActions",this.getRefActions());
+        out.putNotNull("retry",this.getRetry());
+        out.putNotNull("source",this.getSource());
+        out.putNotNull("specialType",this.getSpecialType());
+        out.putNotNull("tagSet",this.getTagSet());
+        out.putNotNull("transition",this.getTransition());
+        out.putNotNull("waitSignals",this.getWaitSignals());
+        out.putNotNull("wfAppState",this.getWfAppState());
+    }
+
+    public WfStepModel cloneInstance(){
+        WfStepModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(WfStepModel instance){
+        super.copyTo(instance);
+        
+        instance.setAfterTransition(this.getAfterTransition());
+        instance.setAllowReject(this.isAllowReject());
+        instance.setAllowWithdraw(this.isAllowWithdraw());
+        instance.setAppState(this.getAppState());
+        instance.setAssignment(this.getAssignment());
+        instance.setBeforeTransition(this.getBeforeTransition());
+        instance.setBizEntityState(this.getBizEntityState());
+        instance.setCheckComplete(this.getCheckComplete());
+        instance.setDisplayName(this.getDisplayName());
+        instance.setDueAction(this.getDueAction());
+        instance.setDueTimeExpr(this.getDueTimeExpr());
+        instance.setIndependent(this.isIndependent());
+        instance.setInitAsWaiting(this.isInitAsWaiting());
+        instance.setInternal(this.isInternal());
+        instance.setMayActivated(this.getMayActivated());
+        instance.setName(this.getName());
+        instance.setOnEnter(this.getOnEnter());
+        instance.setOnError(this.getOnError());
+        instance.setOnExit(this.getOnExit());
+        instance.setOptional(this.isOptional());
+        instance.setPriority(this.getPriority());
+        instance.setRefActions(this.getRefActions());
+        instance.setRetry(this.getRetry());
+        instance.setSource(this.getSource());
+        instance.setSpecialType(this.getSpecialType());
+        instance.setTagSet(this.getTagSet());
+        instance.setTransition(this.getTransition());
+        instance.setWaitSignals(this.getWaitSignals());
+        instance.setWfAppState(this.getWfAppState());
+    }
+
+    protected WfStepModel newInstance(){
+        return (WfStepModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

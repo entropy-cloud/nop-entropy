@@ -110,7 +110,7 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>
-                <to-many displayName="工作流定义权限" name="definitionAuths"
+                <to-many cascadeDelete="true" displayName="工作流定义权限" name="definitionAuths"
                          refEntityName="io.nop.wf.dao.entity.NopWfDefinitionAuth" refPropName="wfDefinition"
                          tagSet="pub,grid,cascade-delete,insertable,updatable" i18n-en:displayName="Definition Auths">
                     <join>
@@ -170,13 +170,13 @@
             </relations>
         </entity>
         <entity className="io.nop.wf.dao.entity.NopWfInstance" createTimeProp="createTime" createrProp="createdBy"
-                displayName="工作流模型定义" name="io.nop.wf.dao.entity.NopWfInstance" registerShortName="true"
+                displayName="工作流实例" name="io.nop.wf.dao.entity.NopWfInstance" registerShortName="true"
                 tableName="nop_wf_instance" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
                 i18n-en:displayName="Worflow Instance">
             <columns>
                 <column code="WF_ID" displayName="主键" mandatory="true" name="wfId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
-                        i18n-en:displayName="Workflow ID"/>
+                        i18n-en:displayName="Workflow ID" ui:show="X"/>
                 <column code="WF_NAME" displayName="工作流名称" mandatory="true" name="wfName" precision="500" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Workflow Name"/>
                 <column code="WF_VERSION" displayName="工作流版本" mandatory="true" name="wfVersion" propId="3"
@@ -267,26 +267,27 @@
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-many name="statusHistories" refEntityName="io.nop.wf.dao.entity.NopWfStatusHistory"
+                <to-many cascadeDelete="true" name="statusHistories"
+                         refEntityName="io.nop.wf.dao.entity.NopWfStatusHistory" refPropName="wfInstance"
+                         tagSet="pub,cascade-delete">
+                    <join>
+                        <on leftProp="wfId" rightProp="wfId"/>
+                    </join>
+                </to-many>
+                <to-many cascadeDelete="true" name="steps" refEntityName="io.nop.wf.dao.entity.NopWfStepInstance"
                          refPropName="wfInstance" tagSet="pub,cascade-delete">
                     <join>
                         <on leftProp="wfId" rightProp="wfId"/>
                     </join>
                 </to-many>
-                <to-many name="steps" refEntityName="io.nop.wf.dao.entity.NopWfStepInstance" refPropName="wfInstance"
-                         tagSet="pub,cascade-delete">
+                <to-many cascadeDelete="true" name="outputs" refEntityName="io.nop.wf.dao.entity.NopWfOutput"
+                         refPropName="wfInstance" tagSet="pub,cascade-delete">
                     <join>
                         <on leftProp="wfId" rightProp="wfId"/>
                     </join>
                 </to-many>
-                <to-many name="outputs" refEntityName="io.nop.wf.dao.entity.NopWfOutput" refPropName="wfInstance"
-                         tagSet="pub,cascade-delete">
-                    <join>
-                        <on leftProp="wfId" rightProp="wfId"/>
-                    </join>
-                </to-many>
-                <to-many name="globalVars" refEntityName="io.nop.wf.dao.entity.NopWfVar" refPropName="wfInstance"
-                         tagSet="pub,cascade-delete">
+                <to-many cascadeDelete="true" name="globalVars" refEntityName="io.nop.wf.dao.entity.NopWfVar"
+                         refPropName="wfInstance" tagSet="pub,cascade-delete">
                     <join>
                         <on leftProp="wfId" rightProp="wfId"/>
                     </join>
@@ -477,19 +478,21 @@
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-many name="nextLinks" refEntityName="io.nop.wf.dao.entity.NopWfStepInstanceLink"
-                         refPropName="wfStep" tagSet="pub,cascade-delete">
+                <to-many cascadeDelete="true" name="nextLinks"
+                         refEntityName="io.nop.wf.dao.entity.NopWfStepInstanceLink" refPropName="wfStep"
+                         tagSet="pub,cascade-delete">
                     <join>
                         <on leftProp="stepId" rightProp="stepId"/>
                     </join>
                 </to-many>
-                <to-many name="prevLinks" refEntityName="io.nop.wf.dao.entity.NopWfStepInstanceLink"
-                         refPropName="nextWfStep" tagSet="pub,cascade-delete">
+                <to-many cascadeDelete="true" name="prevLinks"
+                         refEntityName="io.nop.wf.dao.entity.NopWfStepInstanceLink" refPropName="nextWfStep"
+                         tagSet="pub,cascade-delete">
                     <join>
                         <on leftProp="stepId" rightProp="nextStepId"/>
                     </join>
                 </to-many>
-                <to-many name="stepActions" refEntityName="io.nop.wf.dao.entity.NopWfAction"
+                <to-many cascadeDelete="true" name="stepActions" refEntityName="io.nop.wf.dao.entity.NopWfAction"
                          refPropName="wfStepInstance" tagSet="pub,cascade-delete">
                     <join>
                         <on leftProp="stepId" rightProp="stepId"/>
@@ -499,7 +502,7 @@
         </entity>
         <entity className="io.nop.wf.dao.entity.NopWfStepInstanceLink" createTimeProp="createTime"
                 createrProp="createdBy" displayName="工作流步骤关联" name="io.nop.wf.dao.entity.NopWfStepInstanceLink"
-                registerShortName="true" tableName="nop_wf_step_instance_link"
+                registerShortName="true" tableName="nop_wf_step_instance_link" tagSet="no-web"
                 i18n-en:displayName="Workflow Step Instance Link">
             <columns>
                 <column code="WF_ID" displayName="工作流实例ID" mandatory="true" name="wfId" precision="32" primary="true"
@@ -700,7 +703,8 @@
                 tagSet="log" i18n-en:displayName="Workflow Log">
             <columns>
                 <column code="SID" displayName="日志ID" mandatory="true" name="sid" precision="32" primary="true"
-                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"
+                        ui:show="X"/>
                 <column code="WF_ID" displayName="工作流实例ID" mandatory="true" name="wfId" precision="32" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Workflow ID"/>
                 <column code="STEP_ID" displayName="工作流步骤ID" name="stepId" precision="32" propId="3"
@@ -750,7 +754,8 @@
                 i18n-en:displayName="Work List">
             <columns>
                 <column code="WORK_ID" displayName="工作ID" mandatory="true" name="workId" precision="32" primary="true"
-                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="Work ID"/>
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="Work ID"
+                        ui:show="X"/>
                 <column code="WF_ID" displayName="工作流实例ID" name="wfId" precision="32" propId="2" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Workflow ID"/>
                 <column code="STEP_ID" displayName="工作流步骤ID" name="stepId" precision="32" propId="3"

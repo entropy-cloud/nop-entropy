@@ -70,7 +70,7 @@ NopLayout规定了如下规则：
 
 具体推导需要使用的控件时，首先会确定字段的编辑模式（一般与表单的`editMode`设置相同，但可以单个字段指定），然后在`control.xlib`控件标签库中按照如下顺序依次查找，以第一个匹配的控件为准：
 
-1. 查找名称为`{editMode}-{component}`的控件, `component`为在`cell`配置中明确指定的`component`属性。
+1. 查找名称为`{editMode}-{control}`的控件, `control`为在`cell`配置中明确指定的`control`属性。
 
 2. 查找名称为`{editMode}-{domain}`的控件，例如`<edit-email/>`
 
@@ -90,13 +90,13 @@ NopLayout规定了如下规则：
 
 **字段控件推定是一个可扩展的机制**。当我们在业务上不断发现字段级别的重复语义时，我们可以在数据模型中为它们单独指定一个独特的domain，这样在前端我们就会自动对所有标记为这一domain的所有字段使用统一的控件来展示。我们所需要做的工作为两步:
 
-1. 在数据模型中定义domain, 并为字段指定domain
+1. 在数据模型中定义`domain`, 并为字段指定`domain`
 
 2. 在`control.xlib`中增加不同编辑模式下的控件实现（例如对于`domain=roleId`，可以增加`<edit-roleId/>`、`<view-roleId/>`、`<query-roleId/>`）。或者不直接修改`control.xlib`，利用Delta差量定制机制，对系统内置的`control.xlib`进行扩展即可。
 
-用户自定义domain的处理过程与系统内置的domain的处理过程是完全一致的。
+用户自定义`domain`的处理过程与系统内置的`domain`的处理过程是完全一致的。
 
-如果控件比较特殊，而且没有抽象为统一domain的价值，则我们也可以选择直接指定表单中使用的显示控件，例如
+如果控件比较特殊，而且没有抽象为统一`domain`的价值，则我们也可以选择直接指定表单中使用的显示控件，例如
 
 ```xml
 <form id="edit">

@@ -1,0 +1,28 @@
+xml
+<orm>
+  <entities>
+    <entity name="Product" displayName="商品">
+      <columns>
+        <column name="id" displayName="ID" primary="true" stdSqlType="int" />
+        <column name="name" displayName="商品名称" stdSqlType="varchar" precision="100" />
+        <column name="price" displayName="价格" stdSqlType="decimal" precision="10" scale="2" />
+        <column name="stock" displayName="库存" stdSqlType="int" />
+      </columns>
+    </entity>
+    <entity name="Customer" displayName="客户">
+      <columns>
+        <column name="id" displayName="ID" primary="true" stdSqlType="int" />
+        <column name="name" displayName="姓名" stdSqlType="varchar" precision="100" />
+        <column name="email" displayName="邮箱" stdSqlType="varchar" precision="100" />
+      </columns>
+    </entity>
+    <entity name="Order" displayName="订单">
+      <columns>
+        <column name="id" displayName="ID" primary="true" stdSqlType="int" />
+        <column name="customerId" displayName="客户ID" stdSqlType="int" orm:ref-table="Customer"/>
+        <column name="productId" displayName="商品ID" stdSqlType="int" orm:ref-table="Product"/>
+        <column name="quantity" displayName="数量" stdSqlType="int"/>
+      </columns>
+    </entity>
+  </entities>
+</orm>

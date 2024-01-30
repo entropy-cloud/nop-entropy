@@ -48,7 +48,6 @@ import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IBizModelImpl;
 import io.nop.graphql.core.IDataFetcher;
 import io.nop.graphql.core.IDataFetchingEnvironment;
-import io.nop.graphql.core.ast.GraphQLArgumentDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLOperationType;
@@ -204,7 +203,6 @@ public class ReflectionBizModelBuilder {
     GraphQLObjectDefinition getLoaderForType(BizLoader loader, TypeRegistry registry) {
         if (loader.forType() != Object.class)
             return ReflectionGraphQLTypeFactory.INSTANCE.buildDef(loader.forType(), registry);
-
         return null;
     }
 
@@ -275,9 +273,8 @@ public class ReflectionBizModelBuilder {
         GraphQLFieldDefinition field = new GraphQLFieldDefinition();
         field.setFunctionModel(func);
 
-        List<GraphQLArgumentDefinition> argDefs = ReflectionGraphQLTypeFactory.INSTANCE.getArgDefinitions(func,
+        ReflectionGraphQLTypeFactory.INSTANCE.getArgDefinitions(field, func,
                 registry);
-        field.setArguments(argDefs);
 
         Description description = func.getAnnotation(Description.class);
         if (description != null)
@@ -285,10 +282,10 @@ public class ReflectionBizModelBuilder {
 
         Auth auth = func.getAnnotation(Auth.class);
         if (auth != null) {
-            field.setAuth(new ActionAuthMeta(ConvertHelper.toCsvSet(auth.roles()), MultiCsvSet.fromText(auth.permissions())));
+            field.setAuth(new ActionAuthMeta(auth.publicAccess(), ConvertHelper.toCsvSet(auth.roles()), MultiCsvSet.fromText(auth.permissions())));
         } else {
             String permission = bizObjName + ':' + opType + "|" + bizObjName + ':' + name;
-            field.setAuth(new ActionAuthMeta(Collections.emptySet(), MultiCsvSet.fromText(permission)));
+            field.setAuth(new ActionAuthMeta(false, Collections.emptySet(), MultiCsvSet.fromText(permission)));
         }
 
         BizMakerChecker makerChecker = func.getAnnotation(BizMakerChecker.class);
@@ -312,8 +309,13 @@ public class ReflectionBizModelBuilder {
                     .param(ARG_CLASS, func.getDeclaringClass().getName())
                     .param(ARG_RETURN_TYPE, func.getReturnType());
 
-        field.setType(ReflectionGraphQLTypeFactory.INSTANCE.buildGraphQLType(func.getReturnType(), bizObjName,
-                getReturnBizObjName(func), registry, false));
+        try {
+            field.setType(ReflectionGraphQLTypeFactory.INSTANCE.buildGraphQLType(func.getReturnType(), bizObjName,
+                    getReturnBizObjName(func), registry, false));
+        } catch (NopException e) {
+            e.addXplStack("buildActionField:" + func.getName());
+            throw e;
+        }
         return field;
     }
 
@@ -360,9 +362,8 @@ public class ReflectionBizModelBuilder {
         def.setLocation(loc);
         def.setFunctionModel(func);
 
-        List<GraphQLArgumentDefinition> argDefs = ReflectionGraphQLTypeFactory.INSTANCE.getArgDefinitions(func,
+        ReflectionGraphQLTypeFactory.INSTANCE.getArgDefinitions(def, func,
                 registry);
-        def.setArguments(argDefs);
 
         IDataFetcher fetcher = buildFetcher(bean, loc, name, func);
         def.setFetcher(fetcher);

@@ -8,12 +8,14 @@
 package io.nop.api.core.beans.graphql;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.meta.PropMeta;
 
 @DataBean
 public class CancelRequestBean {
     private String reqId;
     private Object data;
 
+    @PropMeta(propId = 1)
     public String getReqId() {
         return reqId;
     }
@@ -22,6 +24,7 @@ public class CancelRequestBean {
         this.reqId = reqId;
     }
 
+    @PropMeta(propId = 2)
     public Object getData() {
         return data;
     }

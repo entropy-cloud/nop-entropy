@@ -7,8 +7,6 @@
  */
 package io.nop.orm.model;
 
-import io.nop.dao.dialect.IDialect;
-import io.nop.dao.dialect.SQLDataType;
 import io.nop.orm.model._gen._OrmColumnModel;
 
 import java.util.Collections;
@@ -18,6 +16,8 @@ public class OrmColumnModel extends _OrmColumnModel implements IColumnModel {
     private OrmEntityModel ownerEntityModel;
 
     private List<IEntityRelationModel> columnRefs;
+
+    private String sqlType;
 
     public OrmColumnModel() {
         setInsertable(true);
@@ -89,15 +89,12 @@ public class OrmColumnModel extends _OrmColumnModel implements IColumnModel {
         this.columnRefs = columnRefs;
     }
 
-    public SQLDataType getSqlType(IDialect dialect) {
-        Integer precision = getPrecision();
-        if (precision == null)
-            precision = -1;
-        Integer scale = getScale();
-        if (scale == null)
-            scale = -1;
 
-        SQLDataType sqlType = dialect.stdToNativeSqlType(getStdSqlType(), precision, scale);
+    public String getSqlType() {
         return sqlType;
+    }
+
+    public void setSqlType(String sqlType) {
+        this.sqlType = sqlType;
     }
 }

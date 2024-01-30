@@ -23,6 +23,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.OrmConstants;
+import io.nop.orm.OrmEntityState;
 import io.nop.orm.exceptions.OrmException;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
@@ -234,9 +235,14 @@ public class OrmEntityCopier {
                     }
                 } else {
                     if (chgType == null || chgType.contains(DaoConstants.CHANGE_TYPE_UPDATE)) {
-                        Object refEntity = daoProvider.dao(propModel.getRefEntityName()).loadEntityById(id);
-                        copyToEntity(fromValue, (IOrmEntity) refEntity, field, objMeta, baseBizObjName,
+                        IOrmEntity refEntity = (IOrmEntity) daoProvider.dao(propModel.getRefEntityName()).loadEntityById(id);
+                        copyToEntity(fromValue, refEntity, field, objMeta, baseBizObjName,
                                 BizConstants.METHOD_UPDATE, scope);
+
+                        // 关联实体不存在，是否需要新建？
+                        if (refEntity.orm_state().isMissing()) {
+                            refEntity.orm_state(OrmEntityState.TRANSIENT);
+                        }
                         target.orm_propValueByName(propName, refEntity);
                     }
                 }

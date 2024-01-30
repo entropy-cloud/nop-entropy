@@ -2,6 +2,8 @@ package io.nop.ioc.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.ioc.model.BeanListModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -211,13 +213,35 @@ public abstract class _BeanListModel extends io.nop.ioc.model.BeanListValue {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("id",this.getId());
-        out.put("iocAllowOverride",this.isIocAllowOverride());
-        out.put("iocDefault",this.isIocDefault());
-        out.put("iocInitOrder",this.getIocInitOrder());
-        out.put("lazyInit",this.getLazyInit());
-        out.put("name",this.getName());
-        out.put("scope",this.getScope());
+        out.putNotNull("id",this.getId());
+        out.putNotNull("iocAllowOverride",this.isIocAllowOverride());
+        out.putNotNull("iocDefault",this.isIocDefault());
+        out.putNotNull("iocInitOrder",this.getIocInitOrder());
+        out.putNotNull("lazyInit",this.getLazyInit());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("scope",this.getScope());
+    }
+
+    public BeanListModel cloneInstance(){
+        BeanListModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BeanListModel instance){
+        super.copyTo(instance);
+        
+        instance.setId(this.getId());
+        instance.setIocAllowOverride(this.isIocAllowOverride());
+        instance.setIocDefault(this.isIocDefault());
+        instance.setIocInitOrder(this.getIocInitOrder());
+        instance.setLazyInit(this.getLazyInit());
+        instance.setName(this.getName());
+        instance.setScope(this.getScope());
+    }
+
+    protected BeanListModel newInstance(){
+        return (BeanListModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

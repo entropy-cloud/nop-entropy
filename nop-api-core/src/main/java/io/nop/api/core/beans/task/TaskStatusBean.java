@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.beans.ErrorBean;
 
 import java.util.LinkedHashMap;
@@ -27,6 +28,7 @@ public class TaskStatusBean {
     private ErrorBean error;
     private Map<String, Object> details;
 
+    @PropMeta(propId = 1)
     public String getTaskName() {
         return taskName;
     }
@@ -40,6 +42,7 @@ public class TaskStatusBean {
         return false;
     }
 
+    @PropMeta(propId = 2)
     public String getTaskId() {
         return taskId;
     }
@@ -48,6 +51,7 @@ public class TaskStatusBean {
         this.taskId = taskId;
     }
 
+    @PropMeta(propId = 3)
     public int getStatus() {
         return status;
     }
@@ -56,6 +60,7 @@ public class TaskStatusBean {
         this.status = status;
     }
 
+    @PropMeta(propId = 4)
     public String getStateId() {
         return stateId;
     }
@@ -64,6 +69,7 @@ public class TaskStatusBean {
         this.stateId = stateId;
     }
 
+    @PropMeta(propId = 5)
     public ErrorBean getError() {
         return error;
     }
@@ -72,12 +78,11 @@ public class TaskStatusBean {
         this.error = error;
     }
 
-    @JsonAnyGetter
+    @PropMeta(propId = 6)
     public Map<String, Object> getDetails() {
         return details;
     }
 
-    @JsonAnySetter
     public void setDetail(String name, Object value) {
         if (details == null)
             details = new LinkedHashMap<>();

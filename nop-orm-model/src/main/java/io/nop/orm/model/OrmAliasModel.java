@@ -11,6 +11,7 @@ import io.nop.commons.type.StdDataType;
 import io.nop.core.type.IGenericType;
 import io.nop.orm.model._gen._OrmAliasModel;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -46,7 +47,7 @@ public class OrmAliasModel extends _OrmAliasModel implements IEntityAliasModel {
 
     @Override
     public List<? extends IColumnModel> getColumns() {
-        return null;
+        return Collections.emptyList();
     }
 
     @Override
@@ -95,8 +96,11 @@ public class OrmAliasModel extends _OrmAliasModel implements IEntityAliasModel {
         return null;
     }
 
-    @Override
-    public Set<String> getTagSet() {
+    /**
+     * 提高与Column的接口一致性。alias也可能作为关联字段条件
+     * @return
+     */
+    public Object getDefaultValue(){
         return null;
     }
 }

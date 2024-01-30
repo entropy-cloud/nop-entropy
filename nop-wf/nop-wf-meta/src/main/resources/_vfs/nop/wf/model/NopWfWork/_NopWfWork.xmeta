@@ -21,7 +21,7 @@
 
     <props>
         <prop name="workId" displayName="工作ID" i18n-en:displayName="Work ID" tagSet="seq" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="false">
+              queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="wfId" displayName="工作流实例ID" i18n-en:displayName="Workflow ID" queryable="true" sortable="true"

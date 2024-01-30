@@ -7,10 +7,9 @@
  */
 package io.nop.api.core.beans;
 
-import com.fasterxml.jackson.annotation.JsonAnyGetter;
-import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.meta.PropMeta;
 
 import java.util.List;
 import java.util.Map;
@@ -31,6 +30,7 @@ public class GraphBean extends ExtensibleBean {
             this.setVertexId(vertexId);
         }
 
+        @PropMeta(propId = 1)
         public String getVertexId() {
             return vertexId;
         }
@@ -39,12 +39,11 @@ public class GraphBean extends ExtensibleBean {
             this.vertexId = vertexId;
         }
 
-        @JsonAnyGetter
+        @PropMeta(propId = 2)
         public Map<String, Object> getAttrs() {
             return super.getAttrs();
         }
 
-        @JsonAnySetter
         public void setAttr(String name, Object value) {
             super.setAttr(name, value);
         }
@@ -57,6 +56,7 @@ public class GraphBean extends ExtensibleBean {
         private String source;
         private String target;
 
+        @PropMeta(propId = 1)
         @JsonInclude(JsonInclude.Include.NON_EMPTY)
         public String getEdgeId() {
             return edgeId;
@@ -66,6 +66,7 @@ public class GraphBean extends ExtensibleBean {
             this.edgeId = edgeId;
         }
 
+        @PropMeta(propId = 2)
         public String getSource() {
             return source;
         }
@@ -74,6 +75,7 @@ public class GraphBean extends ExtensibleBean {
             this.source = source;
         }
 
+        @PropMeta(propId = 3)
         public String getTarget() {
             return target;
         }
@@ -82,17 +84,17 @@ public class GraphBean extends ExtensibleBean {
             this.target = target;
         }
 
-        @JsonAnyGetter
+        @PropMeta(propId = 4)
         public Map<String, Object> getAttrs() {
             return super.getAttrs();
         }
 
-        @JsonAnySetter
         public void setAttr(String name, Object value) {
             super.setAttr(name, value);
         }
     }
 
+    @PropMeta(propId = 1)
     public List<VertexBean> getVertices() {
         return vertices;
     }
@@ -101,6 +103,7 @@ public class GraphBean extends ExtensibleBean {
         this.vertices = vertices;
     }
 
+    @PropMeta(propId = 2)
     public List<EdgeBean> getEdges() {
         return edges;
     }
@@ -108,4 +111,10 @@ public class GraphBean extends ExtensibleBean {
     public void setEdges(List<EdgeBean> edges) {
         this.edges = edges;
     }
+
+    @PropMeta(propId = 3)
+    public Map<String, Object> getAttrs() {
+        return super.getAttrs();
+    }
+
 }

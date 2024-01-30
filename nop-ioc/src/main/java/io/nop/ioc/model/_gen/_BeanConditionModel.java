@@ -2,6 +2,8 @@ package io.nop.ioc.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.ioc.model.BeanConditionModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -319,17 +321,43 @@ public abstract class _BeanConditionModel extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("ifProperty",this.getIfProperty());
-        out.put("missingBean",this.getMissingBean());
-        out.put("missingClass",this.getMissingClass());
-        out.put("missingResource",this.getMissingResource());
-        out.put("onBean",this.getOnBean());
-        out.put("onBeanType",this.getOnBeanType());
-        out.put("onClass",this.getOnClass());
-        out.put("onExpr",this.getOnExpr());
-        out.put("onMissingBeanType",this.getOnMissingBeanType());
-        out.put("onResource",this.getOnResource());
-        out.put("unlessProperty",this.getUnlessProperty());
+        out.putNotNull("ifProperty",this.getIfProperty());
+        out.putNotNull("missingBean",this.getMissingBean());
+        out.putNotNull("missingClass",this.getMissingClass());
+        out.putNotNull("missingResource",this.getMissingResource());
+        out.putNotNull("onBean",this.getOnBean());
+        out.putNotNull("onBeanType",this.getOnBeanType());
+        out.putNotNull("onClass",this.getOnClass());
+        out.putNotNull("onExpr",this.getOnExpr());
+        out.putNotNull("onMissingBeanType",this.getOnMissingBeanType());
+        out.putNotNull("onResource",this.getOnResource());
+        out.putNotNull("unlessProperty",this.getUnlessProperty());
+    }
+
+    public BeanConditionModel cloneInstance(){
+        BeanConditionModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BeanConditionModel instance){
+        super.copyTo(instance);
+        
+        instance.setIfProperty(this.getIfProperty());
+        instance.setMissingBean(this.getMissingBean());
+        instance.setMissingClass(this.getMissingClass());
+        instance.setMissingResource(this.getMissingResource());
+        instance.setOnBean(this.getOnBean());
+        instance.setOnBeanType(this.getOnBeanType());
+        instance.setOnClass(this.getOnClass());
+        instance.setOnExpr(this.getOnExpr());
+        instance.setOnMissingBeanType(this.getOnMissingBeanType());
+        instance.setOnResource(this.getOnResource());
+        instance.setUnlessProperty(this.getUnlessProperty());
+    }
+
+    protected BeanConditionModel newInstance(){
+        return (BeanConditionModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

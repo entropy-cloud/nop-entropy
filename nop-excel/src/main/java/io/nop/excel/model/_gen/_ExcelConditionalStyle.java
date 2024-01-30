@@ -2,6 +2,8 @@ package io.nop.excel.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.model.ExcelConditionalStyle;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -111,9 +113,27 @@ public abstract class _ExcelConditionalStyle extends io.nop.core.resource.compon
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("range",this.getRange());
-        out.put("style",this.getStyle());
-        out.put("when",this.getWhen());
+        out.putNotNull("range",this.getRange());
+        out.putNotNull("style",this.getStyle());
+        out.putNotNull("when",this.getWhen());
+    }
+
+    public ExcelConditionalStyle cloneInstance(){
+        ExcelConditionalStyle instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ExcelConditionalStyle instance){
+        super.copyTo(instance);
+        
+        instance.setRange(this.getRange());
+        instance.setStyle(this.getStyle());
+        instance.setWhen(this.getWhen());
+    }
+
+    protected ExcelConditionalStyle newInstance(){
+        return (ExcelConditionalStyle) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

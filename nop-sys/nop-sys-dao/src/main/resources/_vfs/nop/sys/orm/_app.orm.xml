@@ -100,8 +100,8 @@
                         stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
             <relations>
-                <to-many name="dictOptions" refEntityName="io.nop.sys.dao.entity.NopSysDictOption" refPropName="dict"
-                         tagSet="cascade-delete,insertable,updatable">
+                <to-many cascadeDelete="true" name="dictOptions" refEntityName="io.nop.sys.dao.entity.NopSysDictOption"
+                         refPropName="dict" tagSet="cascade-delete,insertable,updatable">
                     <join>
                         <on leftProp="sid" rightProp="dictId"/>
                     </join>

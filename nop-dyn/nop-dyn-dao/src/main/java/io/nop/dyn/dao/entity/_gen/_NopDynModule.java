@@ -792,17 +792,19 @@ public class _NopDynModule extends DynamicOrmEntity{
     }
 
     public void setBaseModule(io.nop.dyn.dao.entity.NopDynModule refEntity){
-       if(refEntity == null){
-         
-         this.setBaseModuleId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_baseModule, refEntity,()->{
-             
-                    this.setBaseModuleId(refEntity.getModuleId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setBaseModuleId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_baseModule, refEntity,()->{
+           
+                           this.setBaseModuleId(refEntity.getModuleId());
+                       
+           });
+           }
+       
     }
        
     private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynModule> _derivedModules = new OrmEntitySet<>(this, PROP_NAME_derivedModules,

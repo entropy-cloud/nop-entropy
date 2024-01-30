@@ -41,25 +41,30 @@
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="10" dict="dyn/function-type"/>
         </prop>
-        <prop name="argsMeta" displayName="参数定义" i18n-en:displayName="ARGS_META" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="argsMetaComponent">
-            <schema stdDomain="json" domain="json-4K" type="java.lang.String" precision="4000" dict="core/std-domain"/>
-        </prop>
         <prop name="returnType" displayName="返回类型" i18n-en:displayName="Return Type" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="tagSet" displayName="标签" i18n-en:displayName="Tag Set" queryable="true" sortable="true"
-              insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="200"/>
-        </prop>
-        <prop name="source" displayName="源码" i18n-en:displayName="Source" queryable="true" sortable="true"
-              insertable="true" updatable="true" graphql:jsonComponentProp="sourceComponent">
-            <schema stdDomain="json" domain="json-4K" type="java.lang.String" precision="4000"/>
+        <prop name="returnGqlType" displayName="GraphQL返回类型" i18n-en:displayName="Return GraphQL Type" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
         </prop>
         <prop name="status" displayName="状态" i18n-en:displayName="Status" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer" dict="core/active-status"/>
+        </prop>
+        <prop name="tagsText" displayName="标签" i18n-en:displayName="Tag Set" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="funcMeta" displayName="函数元数据" i18n-en:displayName="Function Meta" queryable="true" sortable="true"
+              insertable="true" updatable="true" internal="true" graphql:jsonComponentProp="funcMetaComponent"
+              ui:show="X">
+            <schema stdDomain="json" domain="json-4K" type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="source" displayName="源码" i18n-en:displayName="Source" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true" ui:show="S">
+            <schema type="java.lang.String" precision="4000"/>
         </prop>
         <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
               sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
@@ -95,11 +100,7 @@
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
         </prop>
-        <prop name="argsMetaComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="true"
-              updatable="true" mandatory="true" lazy="true">
-            <schema type="io.nop.orm.component.JsonOrmComponent"/>
-        </prop>
-        <prop name="sourceComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="true"
+        <prop name="funcMetaComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="true"
               updatable="true" lazy="true">
             <schema type="io.nop.orm.component.JsonOrmComponent"/>
         </prop>

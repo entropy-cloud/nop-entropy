@@ -7,6 +7,7 @@
  */
 package io.nop.orm.eql.meta;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.collections.IntArray;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.type.StdSqlType;
@@ -33,6 +34,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.nop.orm.eql.OrmEqlErrors.ARG_ENTITY_NAME;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_PROP_NAME;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_FIELD_IN_ENTITY;
 import static io.nop.orm.eql.utils.EqlHelper.getColumnName;
 
 public class EntityTableMeta implements ISqlTableMeta {
@@ -95,6 +99,15 @@ public class EntityTableMeta implements ISqlTableMeta {
 //        return propExprMetas.get(getEntityModel().getDeleteFlagProp());
 //    }
 
+    @Override
+    public ISqlExprMeta requireFieldExprMeta(String name) {
+        ISqlExprMeta exprMeta = getFieldExprMeta(name);
+        if (exprMeta == null)
+            throw new NopException(ERR_EQL_UNKNOWN_FIELD_IN_ENTITY)
+                    .param(ARG_ENTITY_NAME, getEntityName())
+                    .param(ARG_PROP_NAME, name);
+        return exprMeta;
+    }
 
     @Override
     public List<OrmEntityFilterModel> getFilters() {
@@ -287,8 +300,13 @@ public class EntityTableMeta implements ISqlTableMeta {
             List<String> colNames = new ArrayList<>();
             for (IEntityJoinConditionModel join : propModel.getJoin()) {
                 if (join.getLeftPropModel() != null) {
-                    colNames.add(getColumnName(dialect, (IColumnModel) join.getLeftPropModel()));
-                    binders.add(colBinders[join.getRightPropModel().getColumnPropId()]);
+                    if (join.getLeftPropModel().isColumnModel()) {
+                        colNames.add(getColumnName(dialect, (IColumnModel) join.getLeftPropModel()));
+                        binders.add(colBinders[join.getRightPropModel().getColumnPropId()]);
+                    } else {
+                        // 基于computed或者alias属性进行关联，
+                        return new EntityPropExprMeta(idExprMeta, propModel);
+                    }
                 }
             }
             return new EntityRefPropExprMeta(colNames, binders, propModel);

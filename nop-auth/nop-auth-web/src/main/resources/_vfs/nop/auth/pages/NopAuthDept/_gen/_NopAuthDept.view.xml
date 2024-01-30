@@ -22,7 +22,7 @@
                 <!--类型-->
                 <col id="deptType" sortable="true"/>
 
-                <!--部分负责人-->
+                <!--部门负责人-->
                 <col id="managerId" sortable="true"/>
 
                 <!--邮件-->
@@ -58,7 +58,7 @@
             <layout>
  deptName[名称] parentId[父ID]
  orderNum[排序] deptType[类型]
- managerId[部分负责人] email[邮件]
+ managerId[部门负责人] email[邮件]
  phone[电话] createdBy[创建人]
  createTime[创建时间] updatedBy[修改人]
  updateTime[修改时间] 
@@ -72,7 +72,7 @@
  parentId[父ID]
  orderNum[排序]
  deptType[类型]
- managerId[部分负责人]
+ managerId[部门负责人]
  email[邮件]
  phone[电话]
  remark[备注]
@@ -115,13 +115,13 @@
                     <confirmText>@i18n:common.confirmDelete</confirmText>
                 </action>
                 <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
-                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                    <action id="row-update-button" label="@i18n:common.edit">
                         <dialog page="update"/>
                     </action>
                     <action id="row-add-child-button" label="@i18n:common.addChild">
                         <dialog page="add-child"/>
                     </action>
-                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                    <action id="row-delete-button" label="@i18n:common.delete">
                         <api url="@mutation:NopAuthDept__delete?id=$id"/>
                         <confirmText>@i18n:common.confirmDelete</confirmText>
                     </action>

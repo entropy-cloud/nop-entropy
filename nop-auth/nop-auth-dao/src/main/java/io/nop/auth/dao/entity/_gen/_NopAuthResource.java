@@ -1481,17 +1481,19 @@ public class _NopAuthResource extends DynamicOrmEntity{
     }
 
     public void setParent(io.nop.auth.dao.entity.NopAuthResource refEntity){
-       if(refEntity == null){
-         
-         this.setParentId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_parent, refEntity,()->{
-             
-                    this.setParentId(refEntity.getResourceId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setParentId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_parent, refEntity,()->{
+           
+                           this.setParentId(refEntity.getResourceId());
+                       
+           });
+           }
+       
     }
        
     /**
@@ -1502,17 +1504,19 @@ public class _NopAuthResource extends DynamicOrmEntity{
     }
 
     public void setSite(io.nop.auth.dao.entity.NopAuthSite refEntity){
-       if(refEntity == null){
-         
-         this.setSiteId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_site, refEntity,()->{
-             
-                    this.setSiteId(refEntity.getSiteId());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setSiteId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_site, refEntity,()->{
+           
+                           this.setSiteId(refEntity.getSiteId());
+                       
+           });
+           }
+       
     }
        
     private final OrmEntitySet<io.nop.auth.dao.entity.NopAuthResource> _children = new OrmEntitySet<>(this, PROP_NAME_children,

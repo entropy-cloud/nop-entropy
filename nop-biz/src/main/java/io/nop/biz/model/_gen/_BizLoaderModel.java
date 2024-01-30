@@ -2,12 +2,14 @@ package io.nop.biz.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.biz.model.BizLoaderModel;
+import io.nop.commons.util.ClassHelper;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [82:10:0:0]/nop/schema/biz/xbiz.xdef <p>
+ * generate from [83:10:0:0]/nop/schema/biz/xbiz.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -217,12 +219,33 @@ public abstract class _BizLoaderModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("args",this.getArgs());
-        out.put("cache",this.getCache());
-        out.put("disabled",this.isDisabled());
-        out.put("name",this.getName());
-        out.put("return",this.getReturn());
-        out.put("source",this.getSource());
+        out.putNotNull("args",this.getArgs());
+        out.putNotNull("cache",this.getCache());
+        out.putNotNull("disabled",this.isDisabled());
+        out.putNotNull("name",this.getName());
+        out.putNotNull("return",this.getReturn());
+        out.putNotNull("source",this.getSource());
+    }
+
+    public BizLoaderModel cloneInstance(){
+        BizLoaderModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(BizLoaderModel instance){
+        super.copyTo(instance);
+        
+        instance.setArgs(this.getArgs());
+        instance.setCache(this.getCache());
+        instance.setDisabled(this.isDisabled());
+        instance.setName(this.getName());
+        instance.setReturn(this.getReturn());
+        instance.setSource(this.getSource());
+    }
+
+    protected BizLoaderModel newInstance(){
+        return (BizLoaderModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

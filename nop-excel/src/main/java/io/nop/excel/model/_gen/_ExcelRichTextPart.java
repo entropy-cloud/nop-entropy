@@ -2,6 +2,8 @@ package io.nop.excel.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.excel.model.ExcelRichTextPart;
+import io.nop.commons.util.ClassHelper;
 
 
 
@@ -83,8 +85,25 @@ public abstract class _ExcelRichTextPart extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("font",this.getFont());
-        out.put("text",this.getText());
+        out.putNotNull("font",this.getFont());
+        out.putNotNull("text",this.getText());
+    }
+
+    public ExcelRichTextPart cloneInstance(){
+        ExcelRichTextPart instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(ExcelRichTextPart instance){
+        super.copyTo(instance);
+        
+        instance.setFont(this.getFont());
+        instance.setText(this.getText());
+    }
+
+    protected ExcelRichTextPart newInstance(){
+        return (ExcelRichTextPart) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

@@ -3,4 +3,4 @@
 <auth xdef:bean-class="io.nop.api.core.auth.ActionAuthMeta"
       x:schema="/nop/schema/xdef.xdef"
       xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-      roles="csv-set" permissions="multi-csv-set"/>
+      roles="csv-set" permissions="multi-csv-set" publicAccess="!boolean=false"/>

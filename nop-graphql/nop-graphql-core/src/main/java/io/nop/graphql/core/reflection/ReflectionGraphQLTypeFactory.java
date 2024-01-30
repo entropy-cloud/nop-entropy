@@ -11,8 +11,10 @@ import io.nop.api.core.annotations.biz.BizObjName;
 import io.nop.api.core.annotations.biz.RequestBean;
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.graphql.GraphQLMap;
 import io.nop.api.core.annotations.graphql.GraphQLScalar;
+import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.graphql.GraphQLConnection;
@@ -54,19 +56,25 @@ import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_METHOD_ARG_TYPE_NOT_
 public class ReflectionGraphQLTypeFactory {
     public static ReflectionGraphQLTypeFactory INSTANCE = new ReflectionGraphQLTypeFactory();
 
-    public List<GraphQLArgumentDefinition> getArgDefinitions(IFunctionModel func, TypeRegistry registry) {
-        return getArgDefinitions(func, registry, new HashMap<>());
+    public void getArgDefinitions(GraphQLFieldDefinition field, IFunctionModel func, TypeRegistry registry) {
+        getArgDefinitions(field, func, registry, new HashMap<>());
     }
 
-    private List<GraphQLArgumentDefinition> getArgDefinitions(IFunctionModel func, TypeRegistry registry,
-                                                              Map<String, GraphQLTypeDefinition> creatingTypes) {
+    private void getArgDefinitions(GraphQLFieldDefinition field, IFunctionModel func, TypeRegistry registry,
+                                   Map<String, GraphQLTypeDefinition> creatingTypes) {
         List<GraphQLArgumentDefinition> argDefs = new ArrayList<>();
 
         for (IFunctionArgument arg : func.getArgs()) {
             if (arg.isAnnotationPresent(RequestBean.class)) {
-                return getArgTypes(func.getName(), arg, arg.getType(), registry, creatingTypes);
+                List<GraphQLArgumentDefinition> args = getArgTypes(func.getName(), arg, arg.getType(), registry, creatingTypes);
+                field.setArguments(args);
+
+                return;
             } else if (arg.isAnnotationPresent(Name.class)) {
                 GraphQLType type = buildGraphQLType(arg.getType(), null, registry, creatingTypes, true);
+                if (!arg.isAnnotationPresent(Optional.class)) {
+                    type = GraphQLTypeHelper.nonNullType(type);
+                }
                 GraphQLArgumentDefinition argDef = new GraphQLArgumentDefinition();
                 argDef.setName(arg.getName());
                 argDef.setType(type);
@@ -76,11 +84,13 @@ public class ReflectionGraphQLTypeFactory {
 
                 argDefs.add(argDef);
             } else if (arg.getType().getRawClass() == ApiRequest.class) {
-                return getArgTypes(func.getName(), arg, arg.getType().getTypeParameters().get(0), registry,
+                List<GraphQLArgumentDefinition> args = getArgTypes(func.getName(), arg, arg.getType().getTypeParameters().get(0), registry,
                         creatingTypes);
+                field.setArguments(args);
+                return;
             }
         }
-        return argDefs;
+        field.setArguments(argDefs);
     }
 
     private List<GraphQLArgumentDefinition> getArgTypes(String funcName, IFunctionArgument arg, IGenericType type,
@@ -102,6 +112,10 @@ public class ReflectionGraphQLTypeFactory {
         beanModel.forEachSerializableProp(propModel -> {
             String propName = propModel.getName();
             GraphQLType graphqlType = buildGraphQLType(propModel.getType(), null, registry, creatingTypes, true);
+            PropMeta propMeta = propModel.getAnnotation(PropMeta.class);
+            if (propMeta != null && propMeta.mandatory()) {
+                graphqlType = GraphQLTypeHelper.nonNullType(graphqlType);
+            }
             argDefs.add(buildArgDef(propName, graphqlType));
 
         });
@@ -296,6 +310,11 @@ public class ReflectionGraphQLTypeFactory {
         beanModel.forEachSerializableProp(propModel -> {
             GraphQLInputFieldDefinition field = new GraphQLInputFieldDefinition();
             field.setName(propModel.getName());
+            PropMeta propMeta = propModel.getAnnotation(PropMeta.class);
+            field.setBeanPropMeta(propMeta);
+            if (propMeta != null && !propMeta.displayName().isEmpty()) {
+                field.setLabel(propMeta.displayName());
+            }
 
             IGenericType type = propModel.getType();
             GraphQLType gqlType = buildGraphQLType(type, propModel.getBizObjName(), registry, creatingTypes, true);
@@ -327,6 +346,11 @@ public class ReflectionGraphQLTypeFactory {
             GraphQLType gqlType = buildGraphQLType(type, propModel.getBizObjName(), registry, creatingTypes, false);
             field.setType(gqlType);
             field.setFetcher(BeanPropertyFetcher.INSTANCE);
+            PropMeta propMeta = propModel.getAnnotation(PropMeta.class);
+            field.setBeanPropMeta(propMeta);
+            if (propMeta != null && !propMeta.displayName().isEmpty()) {
+                field.setLabel(propMeta.displayName());
+            }
             fields.add(field);
         });
         def.setFields(fields);

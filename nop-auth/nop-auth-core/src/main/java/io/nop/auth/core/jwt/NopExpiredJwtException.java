@@ -10,6 +10,7 @@ package io.nop.auth.core.jwt;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.core.login.AuthToken;
 
+import java.sql.Timestamp;
 import java.util.Map;
 
 import static io.nop.auth.core.AuthCoreErrors.ARG_CLAIMS;
@@ -37,6 +38,7 @@ public class NopExpiredJwtException extends NopException {
 
     public NopExpiredJwtException authToken(AuthToken authToken) {
         this.authToken = authToken;
+        param("expTime", new Timestamp(authToken.getExpireAt()));
         return this;
     }
 }

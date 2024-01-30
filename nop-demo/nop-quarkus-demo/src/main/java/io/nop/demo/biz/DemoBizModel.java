@@ -10,6 +10,7 @@ package io.nop.demo.biz;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.LogLevel;
 import io.nop.core.context.IServiceContext;
 import io.nop.demo.domain.Material;
@@ -17,12 +18,23 @@ import io.nop.demo.domain.ProcessCard;
 import io.nop.demo.domain.ProductionOrder;
 import io.nop.log.core.LoggerConfigurator;
 import io.nop.xlang.filter.BizValidatorHelper;
+import io.quarkus.redis.datasource.RedisDataSource;
+import jakarta.annotation.PostConstruct;
+import jakarta.inject.Inject;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @BizModel("Demo")
 public class DemoBizModel {
+
+    @Inject
+    RedisDataSource redisDataSource;
+
+    @PostConstruct
+    public void init() {
+        Guard.notNull(redisDataSource, "redisDataSource");
+    }
 
     @BizQuery
     public void changeLogLevel(@Name("logLevel") LogLevel logLevel, @Name("loggerName") String loggerName) {

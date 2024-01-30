@@ -22,20 +22,20 @@
                 <!--函数类型-->
                 <col id="functionType" mandatory="true" sortable="true"/>
 
-                <!--参数定义-->
-                <col id="argsMeta" mandatory="true" sortable="true"/>
-
                 <!--返回类型-->
                 <col id="returnType" sortable="true"/>
 
-                <!--标签-->
-                <col id="tagSet" sortable="true"/>
-
-                <!--源码-->
-                <col id="source" sortable="true"/>
+                <!--GraphQL返回类型-->
+                <col id="returnGqlType" sortable="true"/>
 
                 <!--状态-->
                 <col id="status" mandatory="true" sortable="true"/>
+
+                <!--标签-->
+                <col id="tagsText" sortable="true"/>
+
+                <!--源码-->
+                <col id="source" mandatory="true" sortable="true"/>
 
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>
@@ -61,9 +61,10 @@
             <layout>
  entityMetaId[实体定义ID] name[函数名]
  displayName[显示名] functionType[函数类型]
- argsMeta[参数定义] returnType[返回类型]
- tagSet[标签] source[源码]
- status[状态] createdBy[创建人]
+ returnType[返回类型] returnGqlType[GraphQL返回类型]
+ status[状态] tagsText[标签]
+ source[源码] 
+                createdBy[创建人]
  createTime[创建时间] updatedBy[修改人]
  updateTime[修改时间] 
                 remark[备注]
@@ -74,9 +75,9 @@
             <layout>
  entityMetaId[实体定义ID] name[函数名]
  displayName[显示名] functionType[函数类型]
- argsMeta[参数定义] returnType[返回类型]
- tagSet[标签] source[源码]
- status[状态] 
+ returnType[返回类型] returnGqlType[GraphQL返回类型]
+ status[状态] tagsText[标签]
+ source[源码] 
                 remark[备注]
 </layout>
         </form>
@@ -117,10 +118,10 @@
                     <confirmText>@i18n:common.confirmDelete</confirmText>
                 </action>
                 <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
-                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                    <action id="row-update-button" label="@i18n:common.edit">
                         <dialog page="update"/>
                     </action>
-                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                    <action id="row-delete-button" label="@i18n:common.delete">
                         <api url="@mutation:NopDynFunctionMeta__delete?id=$id"/>
                         <confirmText>@i18n:common.confirmDelete</confirmText>
                     </action>

@@ -878,17 +878,19 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     }
 
     public void setDict(io.nop.sys.dao.entity.NopSysDict refEntity){
-       if(refEntity == null){
-         
-         this.setDictId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_dict, refEntity,()->{
-             
-                    this.setDictId(refEntity.getSid());
-                 
-          });
-       }
+   
+           if(refEntity == null){
+           
+                   this.setDictId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_dict, refEntity,()->{
+           
+                           this.setDictId(refEntity.getSid());
+                       
+           });
+           }
+       
     }
        
 }

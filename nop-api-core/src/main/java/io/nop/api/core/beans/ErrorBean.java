@@ -12,6 +12,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import io.nop.api.core.ApiConstants;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.util.ICloneable;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.validate.IValidationErrorCollector;
@@ -93,6 +94,7 @@ public class ErrorBean implements Serializable, Comparable<ErrorBean>, ICloneabl
         return sb.toString();
     }
 
+    @PropMeta(propId = 1)
     public int getStatus() {
         return status;
     }
@@ -107,27 +109,12 @@ public class ErrorBean implements Serializable, Comparable<ErrorBean>, ICloneabl
         return params.get(name);
     }
 
-    public boolean isForPublic() {
-        return forPublic;
-    }
-
-    public void setForPublic(boolean forPublic) {
-        this.forPublic = forPublic;
-    }
-
-    public boolean isBizFatal() {
-        return bizFatal;
-    }
-
-    public void setBizFatal(boolean bizFatal) {
-        this.bizFatal = bizFatal;
-    }
-
     @Override
     public int compareTo(ErrorBean o) {
         return Integer.compare(-getSeverity(), -o.getSeverity());
     }
 
+    @PropMeta(propId = 2)
     public String getErrorCode() {
         return errorCode;
     }
@@ -136,6 +123,7 @@ public class ErrorBean implements Serializable, Comparable<ErrorBean>, ICloneabl
         this.errorCode = errorCode;
     }
 
+    @PropMeta(propId = 3)
     @JsonInclude(Include.NON_EMPTY)
     public String getDescription() {
         return description;
@@ -145,6 +133,16 @@ public class ErrorBean implements Serializable, Comparable<ErrorBean>, ICloneabl
         this.description = description;
     }
 
+    @PropMeta(propId = 4)
+    public boolean isBizFatal() {
+        return bizFatal;
+    }
+
+    public void setBizFatal(boolean bizFatal) {
+        this.bizFatal = bizFatal;
+    }
+
+    @PropMeta(propId = 5)
     @JsonInclude(Include.NON_EMPTY)
     public Map<String, Object> getParams() {
         return params;
@@ -158,6 +156,7 @@ public class ErrorBean implements Serializable, Comparable<ErrorBean>, ICloneabl
         return params != null && params.size() > 0;
     }
 
+    @PropMeta(propId = 6)
     @JsonInclude(Include.NON_EMPTY)
     public String getErrorStack() {
         return errorStack;
@@ -165,6 +164,15 @@ public class ErrorBean implements Serializable, Comparable<ErrorBean>, ICloneabl
 
     public void setErrorStack(String errorStack) {
         this.errorStack = errorStack;
+    }
+
+    @PropMeta(propId = 7)
+    public boolean isForPublic() {
+        return forPublic;
+    }
+
+    public void setForPublic(boolean forPublic) {
+        this.forPublic = forPublic;
     }
 
     public ErrorBean description(String description) {
@@ -177,15 +185,6 @@ public class ErrorBean implements Serializable, Comparable<ErrorBean>, ICloneabl
             this.params = new LinkedHashMap<>();
         this.params.put(name, value);
         return this;
-    }
-
-    @JsonInclude(Include.NON_EMPTY)
-    public String getSourceLocation() {
-        return sourceLocation;
-    }
-
-    public void setSourceLocation(String sourceLocation) {
-        this.sourceLocation = sourceLocation;
     }
 
     public ErrorBean loc(String loc) {
@@ -213,6 +212,7 @@ public class ErrorBean implements Serializable, Comparable<ErrorBean>, ICloneabl
     /**
      * 错误的严重级别。例如可能需要将错误排序，只对外返回严重级别最高的错误信息
      */
+    @PropMeta(propId = 8)
     @JsonInclude(Include.NON_DEFAULT)
     public int getSeverity() {
         return severity;
@@ -222,6 +222,7 @@ public class ErrorBean implements Serializable, Comparable<ErrorBean>, ICloneabl
         this.severity = severity;
     }
 
+    @PropMeta(propId = 9)
     @JsonInclude(Include.NON_EMPTY)
     public Map<String, ErrorBean> getDetails() {
         return details;
@@ -232,6 +233,7 @@ public class ErrorBean implements Serializable, Comparable<ErrorBean>, ICloneabl
     }
 
 
+    @PropMeta(propId = 10)
     @JsonInclude(Include.NON_NULL)
     public ErrorBean getCause() {
         return cause;
@@ -239,6 +241,16 @@ public class ErrorBean implements Serializable, Comparable<ErrorBean>, ICloneabl
 
     public void setCause(ErrorBean cause) {
         this.cause = cause;
+    }
+
+    @PropMeta(propId = 11)
+    @JsonInclude(Include.NON_EMPTY)
+    public String getSourceLocation() {
+        return sourceLocation;
+    }
+
+    public void setSourceLocation(String sourceLocation) {
+        this.sourceLocation = sourceLocation;
     }
 
     public void addToCollector(IValidationErrorCollector collector) {
