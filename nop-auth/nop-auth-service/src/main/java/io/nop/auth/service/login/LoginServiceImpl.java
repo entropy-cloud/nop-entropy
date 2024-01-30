@@ -22,6 +22,7 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.auth.api.AuthApiConstants;
 import io.nop.auth.api.messages.LoginRequest;
 import io.nop.auth.api.messages.LogoutRequest;
+import io.nop.auth.api.messages.RoleInfo;
 import io.nop.auth.core.login.AbstractLoginService;
 import io.nop.auth.core.login.AuthToken;
 import io.nop.auth.core.login.IAuthTokenProvider;
@@ -46,6 +47,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -269,6 +271,21 @@ public class LoginServiceImpl extends AbstractLoginService {
         }
 
         return context;
+    }
+    @Override
+    protected List<RoleInfo> getRoleInfos(IUserContext userContext) {
+        List<RoleInfo> roleInfos = new ArrayList<>();
+        if (userContext.getRoles() != null) {
+            IEntityDao<NopAuthRole> roleDao = daoProvider.daoFor(NopAuthRole.class);
+            List<NopAuthRole> roles = roleDao.batchGetEntitiesByIds(userContext.getRoles());
+            for (NopAuthRole role : roles) {
+                RoleInfo roleInfo = new RoleInfo();
+                roleInfo.setRoleId(role.getRoleId());
+                roleInfo.setRoleName(role.getRoleName());
+                roleInfos.add(roleInfo);
+            }
+        }
+        return roleInfos;
     }
 
     protected NopAuthDept getDept(String deptId) {

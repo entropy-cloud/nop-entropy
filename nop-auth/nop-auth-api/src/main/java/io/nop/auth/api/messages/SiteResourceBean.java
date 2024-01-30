@@ -10,6 +10,7 @@ package io.nop.auth.api.messages;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.api.core.util.ISourceLocationSetter;
 import io.nop.api.core.util.SourceLocation;
@@ -89,24 +90,6 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         return ret;
     }
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    public Set<String> getRoles() {
-        return roles;
-    }
-
-    public void setRoles(Set<String> roles) {
-        this.roles = roles;
-    }
-
-    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
-    public boolean isAuthCascadeUp() {
-        return authCascadeUp;
-    }
-
-    public void setAuthCascadeUp(boolean authCascadeUp) {
-        this.authCascadeUp = authCascadeUp;
-    }
-
     public SiteResourceBean deepClone() {
         SiteResourceBean ret = cloneInstance();
         if (children != null) {
@@ -136,6 +119,7 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         return s1.compareTo(s2);
     }
 
+    @JsonIgnore
     @Override
     public SourceLocation getLocation() {
         return location;
@@ -145,6 +129,7 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         this.location = location;
     }
 
+    @PropMeta(propId = 1)
     public String getResourceType() {
         return resourceType;
     }
@@ -153,6 +138,7 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         this.resourceType = resourceType;
     }
 
+    @PropMeta(propId = 2)
     public String getRoutePath() {
         return routePath;
     }
@@ -161,6 +147,7 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         this.routePath = routePath;
     }
 
+    @PropMeta(propId = 3)
     public int getStatus() {
         return status;
     }
@@ -169,6 +156,7 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         this.status = status;
     }
 
+    @PropMeta(propId = 4)
     public boolean isKeepAlive() {
         return keepAlive;
     }
@@ -177,6 +165,7 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         this.keepAlive = keepAlive;
     }
 
+    @PropMeta(propId = 5)
     public String getId() {
         return id;
     }
@@ -185,6 +174,7 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         this.id = id;
     }
 
+    @PropMeta(propId = 6)
     public String getDisplayName() {
         return displayName;
     }
@@ -193,6 +183,7 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         this.displayName = displayName;
     }
 
+    @PropMeta(propId = 7)
     public String getIcon() {
         return icon;
     }
@@ -201,6 +192,7 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         this.icon = icon;
     }
 
+    @PropMeta(propId = 8)
     public String getUrl() {
         return url;
     }
@@ -209,6 +201,7 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         this.url = url;
     }
 
+    @PropMeta(propId = 9)
     public String getDescription() {
         return description;
     }
@@ -217,6 +210,7 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         this.description = description;
     }
 
+    @PropMeta(propId = 10)
     public String getComponent() {
         return component;
     }
@@ -225,6 +219,7 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         this.component = component;
     }
 
+    @PropMeta(propId = 11)
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public Map<String, Object> getProps() {
         return props;
@@ -234,6 +229,7 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         this.props = props;
     }
 
+    @PropMeta(propId = 12)
     public String getTarget() {
         return target;
     }
@@ -242,6 +238,7 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         this.target = target;
     }
 
+    @PropMeta(propId = 13)
     public boolean isHidden() {
         return hidden;
     }
@@ -250,6 +247,7 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         this.hidden = hidden;
     }
 
+    @PropMeta(propId = 14)
     public boolean isNoAuth() {
         return noAuth;
     }
@@ -258,6 +256,7 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         this.noAuth = noAuth;
     }
 
+    @PropMeta(propId = 15)
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public Map<String, Object> getMeta() {
         return meta;
@@ -267,6 +266,7 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         this.meta = meta;
     }
 
+    @PropMeta(propId = 16)
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public List<SiteResourceBean> getChildren() {
         return children;
@@ -274,6 +274,26 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
 
     public void setChildren(List<SiteResourceBean> children) {
         this.children = children;
+    }
+
+    @PropMeta(propId = 17)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public Set<String> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(Set<String> roles) {
+        this.roles = roles;
+    }
+
+    @PropMeta(propId = 18)
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    public boolean isAuthCascadeUp() {
+        return authCascadeUp;
+    }
+
+    public void setAuthCascadeUp(boolean authCascadeUp) {
+        this.authCascadeUp = authCascadeUp;
     }
 
 
@@ -314,6 +334,7 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         }
     }
 
+    @PropMeta(propId = 19)
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public Set<String> getDepends() {
         return depends;
@@ -323,6 +344,7 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         this.depends = depends;
     }
 
+    @PropMeta(propId = 20)
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public Set<String> getPermissions() {
         return permissions;
@@ -332,6 +354,7 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         this.permissions = permissions;
     }
 
+    @PropMeta(propId = 21)
     public int getOrderNo() {
         return orderNo;
     }

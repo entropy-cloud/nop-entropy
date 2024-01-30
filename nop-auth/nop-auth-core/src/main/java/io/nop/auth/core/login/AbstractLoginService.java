@@ -13,9 +13,12 @@ import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.auth.api.AuthApiConstants;
 import io.nop.auth.api.messages.LoginUserInfo;
+import io.nop.auth.api.messages.RoleInfo;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
@@ -122,11 +125,23 @@ public abstract class AbstractLoginService implements ILoginService {
         info.setRoles(userContext.getRoles());
         info.setOpenId(userContext.getOpenId());
         info.setDeptId(userContext.getDeptId());
-        info.setRoles(userContext.getRoles());
+        info.setRoleInfos(getRoleInfos(userContext));
 
         if (isReturnUserId()) {
             info.setUserId(userContext.getUserId());
         }
         return info;
+    }
+
+    protected List<RoleInfo> getRoleInfos(IUserContext userContext) {
+        List<RoleInfo> roleInfos = new ArrayList<>();
+        if (userContext.getRoles() != null) {
+            for (String roleId : userContext.getRoles()) {
+                RoleInfo roleInfo = new RoleInfo();
+                roleInfo.setRoleId(roleId);
+                roleInfos.add(roleInfo);
+            }
+        }
+        return roleInfos;
     }
 }

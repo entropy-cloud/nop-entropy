@@ -9,6 +9,7 @@ package io.nop.auth.api.messages;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.beans.ExtensibleBean;
 
 import java.util.Map;
@@ -32,15 +33,7 @@ public class LoginResult extends ExtensibleBean {
 
     private LoginUserInfo userInfo;
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public LoginUserInfo getUserInfo() {
-        return userInfo;
-    }
-
-    public void setUserInfo(LoginUserInfo userInfo) {
-        this.userInfo = userInfo;
-    }
-
+    @PropMeta(propId = 1)
     public String getAccessToken() {
         return accessToken;
     }
@@ -49,6 +42,7 @@ public class LoginResult extends ExtensibleBean {
         this.accessToken = accessToken;
     }
 
+    @PropMeta(propId = 2)
     public long getExpiresIn() {
         return expiresIn;
     }
@@ -57,6 +51,7 @@ public class LoginResult extends ExtensibleBean {
         this.expiresIn = expiresIn;
     }
 
+    @PropMeta(propId = 3)
     public String getRefreshToken() {
         return refreshToken;
     }
@@ -65,6 +60,7 @@ public class LoginResult extends ExtensibleBean {
         this.refreshToken = refreshToken;
     }
 
+    @PropMeta(propId = 4)
     public String getScope() {
         return scope;
     }
@@ -73,6 +69,7 @@ public class LoginResult extends ExtensibleBean {
         this.scope = scope;
     }
 
+    @PropMeta(propId = 5)
     public long getRefreshExpiresIn() {
         return refreshExpiresIn;
     }
@@ -81,6 +78,7 @@ public class LoginResult extends ExtensibleBean {
         this.refreshExpiresIn = refreshExpiresIn;
     }
 
+    @PropMeta(propId = 6)
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getTokenType() {
         return tokenType;
@@ -90,6 +88,17 @@ public class LoginResult extends ExtensibleBean {
         this.tokenType = tokenType;
     }
 
+    @PropMeta(propId = 7)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public LoginUserInfo getUserInfo() {
+        return userInfo;
+    }
+
+    public void setUserInfo(LoginUserInfo userInfo) {
+        this.userInfo = userInfo;
+    }
+
+    @PropMeta(propId = 8)
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getSessionState() {
         return sessionState;
@@ -99,6 +108,7 @@ public class LoginResult extends ExtensibleBean {
         this.sessionState = sessionState;
     }
 
+    @PropMeta(propId = 9)
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public Map<String, Object> getAttrs() {
         return super.getAttrs();

@@ -9,8 +9,12 @@ package io.nop.auth.api.messages;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.beans.ExtensibleBean;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -25,46 +29,14 @@ public class LoginUserInfo extends ExtensibleBean {
     private String deptId;
 
     private String deptName;
-    private Set<String> roles;
+    private List<RoleInfo> roleInfos;
     private String openId;
 
     private String userId;
+    private String avatar;
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    public String getOpenId() {
-        return openId;
-    }
 
-    public void setOpenId(String openId) {
-        this.openId = openId;
-    }
-
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    public String getHomePath() {
-        return homePath;
-    }
-
-    public void setHomePath(String homePath) {
-        this.homePath = homePath;
-    }
-
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    public String getDeptId() {
-        return deptId;
-    }
-
-    public void setDeptId(String deptId) {
-        this.deptId = deptId;
-    }
-
-    public Set<String> getRoles() {
-        return roles;
-    }
-
-    public void setRoles(Set<String> roles) {
-        this.roles = roles;
-    }
-
+    @PropMeta(propId = 1)
     public String getTenantId() {
         return tenantId;
     }
@@ -73,6 +45,7 @@ public class LoginUserInfo extends ExtensibleBean {
         this.tenantId = tenantId;
     }
 
+    @PropMeta(propId = 2)
     public String getUserName() {
         return userName;
     }
@@ -81,6 +54,7 @@ public class LoginUserInfo extends ExtensibleBean {
         this.userName = userName;
     }
 
+    @PropMeta(propId = 3)
     public String getNickName() {
         return nickName;
     }
@@ -89,6 +63,7 @@ public class LoginUserInfo extends ExtensibleBean {
         this.nickName = nickName;
     }
 
+    @PropMeta(propId = 4)
     public String getLocale() {
         return locale;
     }
@@ -97,6 +72,7 @@ public class LoginUserInfo extends ExtensibleBean {
         this.locale = locale;
     }
 
+    @PropMeta(propId = 5)
     public String getTimeZone() {
         return timeZone;
     }
@@ -105,6 +81,7 @@ public class LoginUserInfo extends ExtensibleBean {
         this.timeZone = timeZone;
     }
 
+    @PropMeta(propId = 6)
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getUserId() {
         return userId;
@@ -114,6 +91,7 @@ public class LoginUserInfo extends ExtensibleBean {
         this.userId = userId;
     }
 
+    @PropMeta(propId = 7)
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getDeptName() {
         return deptName;
@@ -123,6 +101,70 @@ public class LoginUserInfo extends ExtensibleBean {
         this.deptName = deptName;
     }
 
+    @PropMeta(propId = 8)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public String getAvatar() {
+        return avatar;
+    }
+
+    public void setAvatar(String avatar) {
+        this.avatar = avatar;
+    }
+
+    @PropMeta(propId = 9)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public String getOpenId() {
+        return openId;
+    }
+
+    public void setOpenId(String openId) {
+        this.openId = openId;
+    }
+
+    @PropMeta(propId = 10)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public String getHomePath() {
+        return homePath;
+    }
+
+    public void setHomePath(String homePath) {
+        this.homePath = homePath;
+    }
+
+    @PropMeta(propId = 11)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public String getDeptId() {
+        return deptId;
+    }
+
+    public void setDeptId(String deptId) {
+        this.deptId = deptId;
+    }
+
+    @PropMeta(propId = 12)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public List<RoleInfo> getRoleInfos() {
+        return roleInfos;
+    }
+
+    public void setRoleInfos(List<RoleInfo> roleInfos) {
+        this.roleInfos = roleInfos;
+    }
+
+    public void setRoles(Set<String> roleIds) {
+        if (roleIds == null) {
+            roleIds = Collections.emptySet();
+        }
+        roleInfos = new ArrayList<>();
+        for (String roleId : roleIds) {
+            RoleInfo roleInfo = new RoleInfo();
+            roleInfo.setRoleId(roleId);
+            roleInfos.add(roleInfo);
+        }
+    }
+
+
+    @PropMeta(propId = 13)
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public Map<String, Object> getAttrs() {
         return super.getAttrs();

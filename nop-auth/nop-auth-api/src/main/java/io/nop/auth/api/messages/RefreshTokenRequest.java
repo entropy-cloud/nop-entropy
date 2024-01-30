@@ -8,6 +8,7 @@
 package io.nop.auth.api.messages;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.meta.PropMeta;
 
 @DataBean
 public class RefreshTokenRequest {
@@ -15,6 +16,7 @@ public class RefreshTokenRequest {
     private String clientId;
     private String clientSecret;
 
+    @PropMeta(propId = 1)
     public String getRefreshToken() {
         return refreshToken;
     }
@@ -23,6 +25,7 @@ public class RefreshTokenRequest {
         this.refreshToken = refreshToken;
     }
 
+    @PropMeta(propId = 2)
     public String getClientId() {
         return clientId;
     }
@@ -31,6 +34,7 @@ public class RefreshTokenRequest {
         this.clientId = clientId;
     }
 
+    @PropMeta(propId = 3)
     public String getClientSecret() {
         return clientSecret;
     }

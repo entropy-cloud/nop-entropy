@@ -8,6 +8,7 @@
 package io.nop.auth.api.messages;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.meta.PropMeta;
 
 @DataBean
 public class RefreshTokenResult {
@@ -17,6 +18,7 @@ public class RefreshTokenResult {
     private String refreshToken;
     private long refreshExpiresIn;
 
+    @PropMeta(propId = 1)
     public String getAccessToken() {
         return accessToken;
     }
@@ -25,6 +27,7 @@ public class RefreshTokenResult {
         this.accessToken = accessToken;
     }
 
+    @PropMeta(propId = 2)
     public long getExpiresIn() {
         return expiresIn;
     }
@@ -33,6 +36,7 @@ public class RefreshTokenResult {
         this.expiresIn = expiresIn;
     }
 
+    @PropMeta(propId = 3)
     public String getRefreshToken() {
         return refreshToken;
     }
@@ -41,6 +45,7 @@ public class RefreshTokenResult {
         this.refreshToken = refreshToken;
     }
 
+    @PropMeta(propId = 4)
     public long getRefreshExpiresIn() {
         return refreshExpiresIn;
     }

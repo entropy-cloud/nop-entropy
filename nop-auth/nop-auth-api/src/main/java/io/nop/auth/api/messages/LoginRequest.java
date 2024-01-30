@@ -9,6 +9,7 @@ package io.nop.auth.api.messages;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.beans.ExtensibleBean;
 
 @DataBean
@@ -69,6 +70,7 @@ public class LoginRequest extends ExtensibleBean {
 
     private String timeZone;
 
+    @PropMeta(propId = 1)
     public boolean isRememberMe() {
         return rememberMe;
     }
@@ -77,6 +79,7 @@ public class LoginRequest extends ExtensibleBean {
         this.rememberMe = rememberMe;
     }
 
+    @PropMeta(propId = 2)
     public int getLoginType() {
         return loginType;
     }
@@ -85,6 +88,7 @@ public class LoginRequest extends ExtensibleBean {
         this.loginType = loginType;
     }
 
+    @PropMeta(propId = 3)
     public String getPrincipalId() {
         return principalId;
     }
@@ -93,6 +97,7 @@ public class LoginRequest extends ExtensibleBean {
         this.principalId = principalId;
     }
 
+    @PropMeta(propId = 4)
     public String getPrincipalSecret() {
         return principalSecret;
     }
@@ -101,6 +106,7 @@ public class LoginRequest extends ExtensibleBean {
         this.principalSecret = principalSecret;
     }
 
+    @PropMeta(propId = 5)
     public String getDeviceId() {
         return deviceId;
     }
@@ -109,6 +115,7 @@ public class LoginRequest extends ExtensibleBean {
         this.deviceId = deviceId;
     }
 
+    @PropMeta(propId = 6)
     public String getDeviceType() {
         return deviceType;
     }
@@ -117,6 +124,7 @@ public class LoginRequest extends ExtensibleBean {
         this.deviceType = deviceType;
     }
 
+    @PropMeta(propId = 7)
     public String getPrimaryRoleId() {
         return primaryRoleId;
     }
@@ -125,6 +133,7 @@ public class LoginRequest extends ExtensibleBean {
         this.primaryRoleId = primaryRoleId;
     }
 
+    @PropMeta(propId = 8)
     public String getCertId() {
         return certId;
     }
@@ -133,6 +142,7 @@ public class LoginRequest extends ExtensibleBean {
         this.certId = certId;
     }
 
+    @PropMeta(propId = 9)
     public String getSsoToken() {
         return ssoToken;
     }
@@ -141,6 +151,7 @@ public class LoginRequest extends ExtensibleBean {
         this.ssoToken = ssoToken;
     }
 
+    @PropMeta(propId = 10)
     public String getClientId() {
         return clientId;
     }
@@ -149,6 +160,7 @@ public class LoginRequest extends ExtensibleBean {
         this.clientId = clientId;
     }
 
+    @PropMeta(propId = 11)
     public String getVerifyCode() {
         return verifyCode;
     }
@@ -157,6 +169,7 @@ public class LoginRequest extends ExtensibleBean {
         this.verifyCode = verifyCode;
     }
 
+    @PropMeta(propId = 12)
     public String getVerifySecret() {
         return verifySecret;
     }
@@ -165,11 +178,13 @@ public class LoginRequest extends ExtensibleBean {
         this.verifySecret = verifySecret;
     }
 
+    @PropMeta(propId = 13)
     @JsonIgnore
     public boolean isInternal() {
         return false;
     }
 
+    @PropMeta(propId = 14)
     public String getLocale() {
         return locale;
     }
@@ -178,6 +193,7 @@ public class LoginRequest extends ExtensibleBean {
         this.locale = locale;
     }
 
+    @PropMeta(propId = 15)
     public String getTimeZone() {
         return timeZone;
     }

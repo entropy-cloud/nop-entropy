@@ -7,8 +7,10 @@
  */
 package io.nop.auth.api.messages;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.util.IComponentModel;
 import io.nop.api.core.util.ISourceLocationSetter;
 import io.nop.api.core.util.SourceLocation;
@@ -53,6 +55,7 @@ public class SiteMapBean implements IComponentModel, ISourceLocationSetter {
      */
     private List<SiteResourceBean> resources;
 
+    @PropMeta(propId = 1)
     public boolean isSupportDebug() {
         return supportDebug;
     }
@@ -61,7 +64,7 @@ public class SiteMapBean implements IComponentModel, ISourceLocationSetter {
         this.supportDebug = supportDebug;
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonIgnore
     @Override
     public SourceLocation getLocation() {
         return location;
@@ -71,6 +74,7 @@ public class SiteMapBean implements IComponentModel, ISourceLocationSetter {
         this.location = location;
     }
 
+    @PropMeta(propId = 2)
     public String getLocale() {
         return locale;
     }
@@ -94,6 +98,7 @@ public class SiteMapBean implements IComponentModel, ISourceLocationSetter {
         return resources.stream().map(SiteResourceBean::deepClone).collect(Collectors.toList());
     }
 
+    @PropMeta(propId = 3)
     public String getId() {
         return id;
     }
@@ -102,6 +107,7 @@ public class SiteMapBean implements IComponentModel, ISourceLocationSetter {
         this.id = id;
     }
 
+    @PropMeta(propId = 4)
     public String getDisplayName() {
         return displayName;
     }
@@ -110,6 +116,7 @@ public class SiteMapBean implements IComponentModel, ISourceLocationSetter {
         this.displayName = displayName;
     }
 
+    @PropMeta(propId = 5)
     public String getConfigVersion() {
         return configVersion;
     }
@@ -147,6 +154,7 @@ public class SiteMapBean implements IComponentModel, ISourceLocationSetter {
         }
     }
 
+    @PropMeta(propId = 6)
     public List<SiteResourceBean> getResources() {
         return resources;
     }
