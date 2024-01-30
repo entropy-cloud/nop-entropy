@@ -129,7 +129,7 @@ public class SiteCacheDataBuilder {
             }
 
             if (RESOURCE_TYPE_TOP_MENU.equals(resource.getResourceType())) {
-                rootMenus.computeIfAbsent(resource.getSiteId(), k -> new LinkedHashSet<>()).add(resource.getSiteId());
+                rootMenus.computeIfAbsent(resource.getSiteId(), k -> new LinkedHashSet<>()).add(resource.getResourceId());
             }
         }
 
