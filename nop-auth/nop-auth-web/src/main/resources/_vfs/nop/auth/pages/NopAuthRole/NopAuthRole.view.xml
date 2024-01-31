@@ -18,11 +18,11 @@
         <crud name="main">
             <rowActions>
                 <actionGroup id="row-more-button">
-                    <action id="row-user-button" label="@i18n:common.user" level="primary">
+                    <action id="row-user-button" label="@i18n:common.user" >
                         <drawer page="role-users.page.yaml" noActions="true"/>
                     </action>
                     <action id="row-authorization-button" label="@i18n:common.authorization"
-                            level="primary">
+                            >
                         <drawer page="assign-auth.page.yaml" noActions="true" />
                     </action>
                 </actionGroup>

@@ -49,12 +49,14 @@ public class LoginApiBizModel implements ILoginSpi {
     }
 
     @BizMutation
+    @Auth(publicAccess = true)
     @Override
     public CompletionStage<Void> logoutAsync(@RequestBean LogoutRequest request, IServiceContext context) {
         return loginService.logoutAsync(AuthApiConstants.LOGOUT_TYPE_MANUAL, request);
     }
 
     @BizQuery
+    @Auth(publicAccess = true)
     @Override
     public CompletionStage<LoginResult> getLoginResultAsync(@RequestBean AccessCodeRequest request,
                                                             IServiceContext context) {
@@ -63,6 +65,7 @@ public class LoginApiBizModel implements ILoginSpi {
     }
 
     @BizQuery
+    @Auth(publicAccess = true)
     @Override
     public CompletionStage<LoginUserInfo> getLoginUserInfoAsync(@RequestBean AccessTokenRequest request,
                                                                 IServiceContext context) {
@@ -71,6 +74,7 @@ public class LoginApiBizModel implements ILoginSpi {
     }
 
     @BizMutation
+    @Auth(publicAccess = true)
     @Override
     public CompletionStage<LoginResult> refreshTokenAsync(@RequestBean RefreshTokenRequest request,
                                                           IServiceContext context) {
@@ -79,6 +83,7 @@ public class LoginApiBizModel implements ILoginSpi {
     }
 
     @BizQuery
+    @Auth(publicAccess = true)
     public String generateVerifyCode(@Name("verifySecret") String verifySecret) {
         return loginService.generateVerifyCode(verifySecret);
     }

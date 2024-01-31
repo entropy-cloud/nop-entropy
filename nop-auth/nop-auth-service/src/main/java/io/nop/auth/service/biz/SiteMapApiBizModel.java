@@ -11,13 +11,12 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
+import io.nop.api.core.annotations.directive.Auth;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.api.messages.SiteMapBean;
-import io.nop.auth.core.AuthCoreConstants;
 import io.nop.auth.core.sitemap.ISiteMapProvider;
-
 import io.nop.auth.service.NopAuthConstants;
 import io.nop.commons.util.StringHelper;
 import jakarta.inject.Inject;
@@ -33,6 +32,7 @@ public class SiteMapApiBizModel {
     protected ISiteMapProvider siteMapProvider;
 
     @BizQuery
+    @Auth(publicAccess = true)
     public SiteMapBean getSiteMap(@Optional @Name("siteId") String siteId) {
         if(StringHelper.isEmpty(siteId))
             siteId = NopAuthConstants.SITE_ID_MAIN;

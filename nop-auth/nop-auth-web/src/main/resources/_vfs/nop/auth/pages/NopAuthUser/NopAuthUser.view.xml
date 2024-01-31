@@ -136,10 +136,10 @@
         <crud name="main" asideFilterForm="asideFilter" x:inherit="true">
             <rowActions>
                 <actionGroup id="row-more-button">
-                    <action id="reset-password-button" label="@i18n:common.resetUserPassword" level="primary">
+                    <action id="reset-password-button" label="@i18n:common.resetUserPassword">
                         <dialog page="resetUserPassword"/>
                     </action>
-                    <action id="disable-user-button" label="@i18n:common.disableUser" level="primary">
+                    <action id="disable-user-button" label="@i18n:common.disableUser" >
                         <confirmText>@i18n:common.confirmDisableUser</confirmText>
                         <api url="@mutation:NopAuthUser__disableUser">
                             <data>
@@ -148,7 +148,7 @@
                         </api>
                         <visibleOn>${status == 1}</visibleOn>
                     </action>
-                    <action id="enable-user-button" label="@i18n:common.enableUser" level="primary">
+                    <action id="enable-user-button" label="@i18n:common.enableUser" >
                         <confirmText>@i18n:common.confirmEnableUser</confirmText>
                         <api url="@mutation:NopAuthUser__enableUser">
                             <data>
@@ -173,7 +173,7 @@
             </table>
 
             <rowActions>
-                <action id="recover-deleted-button" label="@i18n:common.recoverDeleted" level="primary">
+                <action id="recover-deleted-button" label="@i18n:common.recoverDeleted" >
                     <api url="@mutation:NopAuthUser__recoverDeleted/id">
                         <data>
                             <id>$id</id>
