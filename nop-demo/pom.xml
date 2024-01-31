@@ -24,6 +24,7 @@
         <module>nop-spring-report-demo</module>
         <module>nop-spring-demo2</module>
         <module>nop-spring-simple-demo</module>
+        <module>nop-spring-demo-no-orm</module>
     </modules>
 
 </project>

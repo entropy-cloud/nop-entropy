@@ -7,7 +7,7 @@
 通过nop.auth.enable-data-auth来启用数据权限，缺省为true
 
 * 通过auth模块的数据权限菜单配置数据权限，它对应于NopAuthRoleDataAuth表。
-* 在/nop/main/auth/main.data-auth.xml文件中配置数据权限
+* 在/nop/main/auth/app.data-auth.xml文件中配置数据权限
 
 ````xml
 <data-auth>

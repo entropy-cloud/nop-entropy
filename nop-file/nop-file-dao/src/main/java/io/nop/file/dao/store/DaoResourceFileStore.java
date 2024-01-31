@@ -25,6 +25,7 @@ import io.nop.file.core.IFileRecord;
 import io.nop.file.core.IFileStore;
 import io.nop.file.core.UploadRequestBean;
 import io.nop.file.dao.entity.NopFileRecord;
+import io.nop.orm.IOrmEntityFileStore;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.MediaType;
@@ -51,7 +52,7 @@ import static io.nop.file.core.FileErrors.ERR_FILE_NOT_EXISTS;
 /**
  * 将上传文件存放在本地目录下
  */
-public class DaoResourceFileStore implements IFileStore {
+public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
     static final Logger LOG = LoggerFactory.getLogger(DaoResourceFileStore.class);
     private IDaoProvider daoProvider;
 

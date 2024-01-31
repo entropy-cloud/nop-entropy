@@ -149,7 +149,7 @@ public interface LitemallGoodsMapper {
 如果使用sql标签，则表示使用原生SQL语法。也就是说sql-lib中是同时管理SQL查询语句和EQL查询语句。
 
 * 在数据权限配置中使用
-  在/nop/main/auth/main.data-auth.xml文件中配置数据权限
+  在/nop/main/auth/app.data-auth.xml文件中配置数据权限
 
 ````xml
 

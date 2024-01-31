@@ -16,7 +16,7 @@
     <dependencies>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-spring-web-starter</artifactId>
+            <artifactId>nop-spring-web-orm-starter</artifactId>
         </dependency>
 
         <dependency>

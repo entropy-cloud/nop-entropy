@@ -19,6 +19,7 @@ import java.util.function.Consumer;
 
 import static io.nop.orm.OrmErrors.ARG_ENTITY_ID;
 import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
+import static io.nop.orm.OrmErrors.ARG_PROP_NAME;
 import static io.nop.orm.OrmErrors.ERR_ORM_MISSING_TENANT_ID;
 
 public class TenantOrmSessionEntityCache implements IOrmSessionEntityCache {
@@ -73,7 +74,8 @@ public class TenantOrmSessionEntityCache implements IOrmSessionEntityCache {
             if (StringHelper.isEmpty(tenantId))
                 throw new NopException(ERR_ORM_MISSING_TENANT_ID)
                         .param(ARG_ENTITY_NAME, entity.orm_entityName())
-                        .param(ARG_ENTITY_ID, entity.get_id());
+                        .param(ARG_ENTITY_ID, entity.get_id())
+                        .param(ARG_PROP_NAME, entityModel.getTenantColumn().getName());
             entity.orm_internalSet(entityModel.getTenantPropId(), tenantId);
         }
         return tenantId;

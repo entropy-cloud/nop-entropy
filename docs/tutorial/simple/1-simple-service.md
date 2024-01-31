@@ -29,6 +29,8 @@ NopGraphQL引擎的实现原理可以参考文章： [为什么在数学的意�
 </pom>
 ```
 
+如果需要支持orm，则需要引入nop-spring-web-orm-starter。
+
 ## 二. 实现BizModel
 
 NopGraphQL中的BizModel类似于SpringMVC中的Controller，只是它的特殊假定更少，是一种数学意义上的最小化定义。

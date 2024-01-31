@@ -4679,6 +4679,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getAvatar",
+        "parameterTypes": []
+      },
+      {
         "name": "getDeptId",
         "parameterTypes": []
       },
@@ -4700,6 +4704,10 @@
       },
       {
         "name": "getOpenId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRoleInfos",
         "parameterTypes": []
       },
       {
@@ -4727,6 +4735,12 @@
         "parameterTypes": [
           "java.lang.String",
           "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setAvatar",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -4763,6 +4777,12 @@
         "name": "setOpenId",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRoleInfos",
+        "parameterTypes": [
+          "java.util.List"
         ]
       },
       {
@@ -4859,6 +4879,47 @@
       }
     ],
     "name": "io.nop.auth.api.messages.RefreshTokenRequest",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getPrimary",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRoleId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRoleName",
+        "parameterTypes": []
+      },
+      {
+        "name": "setPrimary",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setRoleId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRoleName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.auth.api.messages.RoleInfo",
     "unsafeAllocated": false
   },
   {
@@ -5650,6 +5711,12 @@
         "name": "getLoginUserContextAsync",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "getRoleInfos",
+        "parameterTypes": [
+          "io.nop.api.core.auth.IUserContext"
         ]
       },
       {
@@ -14728,6 +14795,12 @@
         "name": "getDept",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "getRoleInfos",
+        "parameterTypes": [
+          "io.nop.api.core.auth.IUserContext"
         ]
       },
       {
@@ -43524,6 +43597,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.log.java.JavaLoggerConfiguratorInitializer",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.log.logback.LogbackConfiguratorInitializer",
     "unsafeAllocated": false
   },
   {

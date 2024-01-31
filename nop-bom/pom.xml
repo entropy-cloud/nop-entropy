@@ -558,13 +558,6 @@
                 <version>${nop-entropy.version}</version>
             </dependency>
 
-
-            <dependency>
-                <groupId>io.github.entropy-cloud</groupId>
-                <artifactId>nop-spring-autoconfig</artifactId>
-                <version>${nop-entropy.version}</version>
-            </dependency>
-
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-ooxml-common</artifactId>
@@ -655,6 +648,12 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-quarkus-web-orm-starter</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-spring-core-starter</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
@@ -662,6 +661,12 @@
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-spring-web-starter</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-spring-web-orm-starter</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 

@@ -7,8 +7,6 @@
  */
 package io.nop.file.core;
 
-import io.nop.biz.BizConstants;
-
 public interface FileConstants {
     String PATH_UPLOAD = "/f/upload";
 
@@ -17,7 +15,7 @@ public interface FileConstants {
     String PARAM_BIZ_OBJ_NAME = "bizObjName";
     String PARAM_FIELD_NAME = "fieldName";
 
-    String TEMP_BIZ_OBJ_ID = BizConstants.TEMP_BIZ_OBJ_ID;
+    String TEMP_BIZ_OBJ_ID = "__TEMP__"; // 与BizConstants中的TEMP_BIZ_OBJ_ID保持一致
 
     String MEDIA_TYPE_CONFIG_PATH = "/nop/file/media-type.json";
 

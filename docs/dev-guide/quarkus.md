@@ -115,7 +115,7 @@ mvnw install -Dnative -DskipTests -Dquarkus.native.container-build=true
         <!-- 引入 Nop平台依赖。因为设置了parent为nop-entropy，这里就不用写具体的包的版本号 -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-quarkus-web-starter</artifactId>
+            <artifactId>nop-quarkus-web-orm-starter</artifactId>
         </dependency>
 
         <!-- 用户、权限管理，这是可选依赖 -->

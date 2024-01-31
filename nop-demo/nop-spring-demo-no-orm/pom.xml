@@ -5,23 +5,20 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>io.github.entropy-cloud</groupId>
-        <artifactId>nop-file</artifactId>
+        <artifactId>nop-demo</artifactId>
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nop-file-core</artifactId>
+    <artifactId>nop-spring-demo-no-orm</artifactId>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
 
     <dependencies>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-core</artifactId>
+            <artifactId>nop-spring-web-starter</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-graphql-core</artifactId>
-        </dependency>
-
     </dependencies>
-
 </project>

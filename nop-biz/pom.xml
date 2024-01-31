@@ -30,7 +30,13 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-graphql-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-graphql-orm</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <dependency>

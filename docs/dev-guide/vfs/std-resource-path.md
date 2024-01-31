@@ -35,15 +35,16 @@ _vfs/
           {dialectName}.dialect.xml  数据库方言定义文件，按照dialectName来加载
      /main
         /auth
-            /main.action-auth.xml 全局的操作权限和菜单定义文件，在其中通过x:extends来引用其他权限文件
-            /main.data-auth.xml 全局的数据权限定义文件，在其中通过x:extends来引用其他数据权限文件       
+            /app.action-auth.xml 全局的操作权限和菜单定义文件，在其中通过x:extends来引用其他权限文件
+            /app.data-auth.xml 全局的数据权限定义文件，在其中通过x:extends来引用其他数据权限文件       
    /{moduleId}  Nop模块的moduleId必须是nop/auth这种两级目录结构
         _module  每个Nop模块下都有一个_module文件来标记它是模块。
         /beans
            app-{xxx}.beans.xml NopIoC启动时会自动扫描每个模块的beans目录下以`app-`为前缀的beans.xml文件
         /model
-           {bizObjName}.xbiz 所有的服务对象原则上都是要在beans.xml中注册，然后再通过对象名查找到对应的xbiz和xmeta文件
-           {bizObjName}.xmeta  NopDynEntity对象采用了简化注册流程，直接向BizObjectManager注册，没有在beans.xml中定义服务对象 
+           /{bizObjName}
+              {bizObjName}.xbiz 所有的服务对象原则上都是要在beans.xml中注册，然后再通过对象名查找到对应的xbiz和xmeta文件
+              {bizObjName}.xmeta  NopDynEntity对象采用了简化注册流程，直接向BizObjectManager注册，没有在beans.xml中定义服务对象 
         /orm
            app.orm.xml NopOrm引擎初始化的时候会加载所有模块的orm目录下的app.orm.xml模型文件
         /pages

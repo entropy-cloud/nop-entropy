@@ -92,7 +92,7 @@ public class SpringFileService extends AbstractGraphQLFileService {
 
 ## 模块依赖
 
-引入nop-quarkus-web-starter或者nop-quarkus-spring-starter依赖后，会自动引入
+引入nop-quarkus-web-orm-starter或者nop-spring-web-orm-starter依赖后，会自动引入
 
 * nop-file-dao： 包含文件上传下载服务NopFileStoreBizModel的实现
 * nop-file-spring或者 nop-file-quarkus: 引入处理/f/upload和/f/download链接的REST服务

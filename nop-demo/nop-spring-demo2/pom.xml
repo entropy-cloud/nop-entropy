@@ -47,7 +47,7 @@
                     <groupId>io.github.entropy-cloud</groupId>
                 </exclusion>
                 <exclusion>
-                    <artifactId>nop-spring-web-starter</artifactId>
+                    <artifactId>nop-spring-web-orm-starter</artifactId>
                     <groupId>io.github.entropy-cloud</groupId>
                 </exclusion>
                 <exclusion>

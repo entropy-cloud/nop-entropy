@@ -34,7 +34,7 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-graphql-orm</artifactId>
+            <artifactId>nop-graphql-core</artifactId>
         </dependency>
 
         <dependency>
@@ -44,17 +44,12 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-auth-core</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-file-spring</artifactId>
         </dependency>
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-file-dao</artifactId>
+            <artifactId>nop-auth-core</artifactId>
         </dependency>
 
         <dependency>

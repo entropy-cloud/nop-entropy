@@ -168,7 +168,7 @@ if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
 
 ### 数据权限定义文件
 
-在`/nop/main/auth/main.data-auth.xml`文件中配置数据权限。`filter`段为xpl格式，输出`filter`定义节点。xpl执行时上下文具有`entity`、`userContext`等变量
+在`/nop/main/auth/app.data-auth.xml`文件中配置数据权限。`filter`段为xpl格式，输出`filter`定义节点。xpl执行时上下文具有`entity`、`userContext`等变量
 
 ````xml
 

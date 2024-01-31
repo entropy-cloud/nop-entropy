@@ -23,7 +23,7 @@ public interface NopAuthConstants {
     String RESOURCE_TYPE_SUB_MENU = AuthApiConstants.RESOURCE_TYPE_SUB_MENU;
     String RESOURCE_TYPE_FUNCTION_POINT = AuthApiConstants.RESOURCE_TYPE_FUNCTION_POINT;
 
-    String PATH_MAIN_ACTION_AUTH = "/nop/main/auth/main.action-auth.xml";
+    String PATH_MAIN_ACTION_AUTH = "/nop/main/auth/app.action-auth.xml";
 
-    String PATH_MAIN_DATA_AUTH = "/nop/main/auth/main.data-auth.xml";
+    String PATH_MAIN_DATA_AUTH = "/nop/main/auth/app.data-auth.xml";
 }

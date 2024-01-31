@@ -475,8 +475,8 @@ GraphQLWebService提供了基于jaxrs标准的与Web层对接的一个实现。Q
 
 因为NopGraphQL的入口参数和返回结果都是POJO，所以它可以直接应用于批处理引擎以及kafka消息队列处理等场景，甚至在流处理框架中也可以使用。
 
-如果只想使用Nop平台的后端，不想引入前端AMIS技术，可以引入 nop-spring-web-starter（包括GraphQL和ORM）或者nop-spring-core-starter只包含基础的xlang，
-或者引入nop-quarkus-web-starter或者nop-quarkus-core-starter。
+如果只想使用Nop平台的后端，不想引入前端AMIS技术，可以引入 nop-spring-web-orm-starter（包括GraphQL和ORM）或者nop-spring-core-starter只包含基础的xlang，
+或者引入nop-quarkus-web-orm-starter或者nop-quarkus-core-starter。
 
 starter提供了与spring框架以及quarkus框架的自动集成机制。只要引入相应依赖，应用启动后会自动调用Nop平台的初始化函数（CoreInitialization.initialize()）
 

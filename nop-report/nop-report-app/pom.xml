@@ -15,7 +15,7 @@
     <dependencies>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-quarkus-web-starter</artifactId>
+            <artifactId>nop-quarkus-web-orm-starter</artifactId>
         </dependency>
         <dependency>
             <artifactId>nop-report-service</artifactId>

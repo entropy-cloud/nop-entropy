@@ -5,38 +5,30 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>io.github.entropy-cloud</groupId>
-        <artifactId>nop-demo</artifactId>
+        <artifactId>nop-spring</artifactId>
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nop-rpc-client-demo</artifactId>
+    <artifactId>nop-spring-web-orm-starter</artifactId>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
 
     <dependencies>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-rpc-cluster</artifactId>
+            <artifactId>nop-spring-web-starter</artifactId>
         </dependency>
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-cluster-nacos</artifactId>
+            <artifactId>nop-graphql-orm</artifactId>
         </dependency>
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-cluster-sentinel</artifactId>
+            <artifactId>nop-file-dao</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-quarkus-web-orm-starter</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-        </dependency>
-
     </dependencies>
-
 </project>

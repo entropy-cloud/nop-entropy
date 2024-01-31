@@ -105,7 +105,7 @@ public class XuiHelper {
             LOG.warn("nop.xui.no-control-defined-for-prop:controlTag={},prop={},domain={},stdDomain={},stdDataType={},mode={}",
                     tag == null ? null : tag.getTagName(), prop, domain, stdDomain, stdDataType, editMode);
         } else {
-            LOG.debug("nop.xui.resolve-control-tag:controlTag={},prop={},domain={},stdDomain={},stdDataType={},mode={}",
+            LOG.trace("nop.xui.resolve-control-tag:controlTag={},prop={},domain={},stdDomain={},stdDataType={},mode={}",
                     tag == null ? null : tag.getTagName(), prop, domain, stdDomain, stdDataType, editMode);
         }
 

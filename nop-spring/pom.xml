@@ -16,10 +16,10 @@
     </properties>
 
     <modules>
-        <module>nop-spring-autoconfig</module>
         <module>nop-spring-core-starter</module>
         <module>nop-spring-web-starter</module>
         <module>nop-spring-delta</module>
+        <module>nop-spring-web-orm-starter</module>
     </modules>
 
 

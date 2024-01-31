@@ -38,12 +38,6 @@
         </dependency>
 
         <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-file-dao</artifactId>
-        </dependency>
-
-
-        <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-micrometer-registry-prometheus</artifactId>
         </dependency>
@@ -52,15 +46,6 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-smallrye-health</artifactId>
         </dependency>
-
-        <!--
-        quarkus不支持HikariCP连接池
-        -->
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-agroal</artifactId>
-        </dependency>
-
 
         <!-- 需要排除quarkus-bootstrap-core，否则在IDE中启动Main函数失败，只能用quarkus插件启动 -->
         <dependency>
@@ -102,19 +87,7 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-dao</artifactId>
-            <exclusions>
-                <!-- quarkus不使用HikariCP连接池，这里需要排除 -->
-                <exclusion>
-                    <artifactId>HikariCP</artifactId>
-                    <groupId>com.zaxxer</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-graphql-orm</artifactId>
+            <artifactId>nop-graphql-core</artifactId>
         </dependency>
 
         <dependency>

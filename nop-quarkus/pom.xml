@@ -15,10 +15,10 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>nop-quarkus-autoconfig</module>
         <module>nop-quarkus-core-starter</module>
         <module>nop-quarkus-web-starter</module>
         <module>nop-quarkus-grpc</module>
+        <module>nop-quarkus-web-orm-starter</module>
     </modules>
 
 </project>

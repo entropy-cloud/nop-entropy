@@ -14,7 +14,7 @@
     <dependencies>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-quarkus-web-starter</artifactId>
+            <artifactId>nop-quarkus-web-orm-starter</artifactId>
             <exclusions>
                 <exclusion>
                     <artifactId>graphql-java</artifactId>
