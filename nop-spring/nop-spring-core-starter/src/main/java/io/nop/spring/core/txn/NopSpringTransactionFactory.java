@@ -149,7 +149,7 @@ public class NopSpringTransactionFactory implements ITransactionFactory {
 
         @Override
         protected void doRollback(Throwable error) {
-            if (txn != null) {
+            if (txn != null && !txn.isCompleted()) {
                 transactionManager.rollback(txn);
             }
         }

@@ -5247,6 +5247,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getAvatar",
+        "parameterTypes": []
+      },
+      {
         "name": "getDeptId",
         "parameterTypes": []
       },
@@ -5268,6 +5272,10 @@
       },
       {
         "name": "getOpenId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRoleInfos",
         "parameterTypes": []
       },
       {
@@ -5295,6 +5303,12 @@
         "parameterTypes": [
           "java.lang.String",
           "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setAvatar",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -5331,6 +5345,12 @@
         "name": "setOpenId",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRoleInfos",
+        "parameterTypes": [
+          "java.util.List"
         ]
       },
       {
@@ -5427,6 +5447,47 @@
       }
     ],
     "name": "io.nop.auth.api.messages.RefreshTokenRequest",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getPrimary",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRoleId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRoleName",
+        "parameterTypes": []
+      },
+      {
+        "name": "setPrimary",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setRoleId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRoleName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.auth.api.messages.RoleInfo",
     "unsafeAllocated": false
   },
   {
@@ -6241,6 +6302,12 @@
         ]
       },
       {
+        "name": "getRoleInfos",
+        "parameterTypes": [
+          "io.nop.api.core.auth.IUserContext"
+        ]
+      },
+      {
         "name": "getSessionInfoForUser",
         "parameterTypes": [
           "java.lang.String"
@@ -6706,6 +6773,16 @@
         ]
       },
       {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.auth.core.model.ActionAuthModel"
+        ]
+      },
+      {
         "name": "freeze",
         "parameterTypes": [
           "boolean"
@@ -6757,6 +6834,10 @@
       },
       {
         "name": "keySet_sites",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
         "parameterTypes": []
       },
       {
@@ -14993,6 +15074,12 @@
         ]
       },
       {
+        "name": "getRoleInfos",
+        "parameterTypes": [
+          "io.nop.api.core.auth.IUserContext"
+        ]
+      },
+      {
         "name": "getUserByEmail",
         "parameterTypes": [
           "java.lang.String"
@@ -18689,6 +18776,10 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "toBinaryScalarType",
+        "parameterTypes": []
       },
       {
         "name": "toInitializer",
@@ -25687,7 +25778,25 @@
         ]
       },
       {
+        "name": "getModuleIdFromModuleName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getModuleIdFromStdPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getModuleName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getModuleNameFromModuleId",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -51865,6 +51974,16 @@
     "fields": [],
     "methods": [
       {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.xui.model.UiActionModel"
+        ]
+      },
+      {
         "name": "freeze",
         "parameterTypes": [
           "boolean"
@@ -52056,6 +52175,10 @@
       },
       {
         "name": "hasOnEvent",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
         "parameterTypes": []
       },
       {
@@ -52340,6 +52463,16 @@
     "fields": [],
     "methods": [
       {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.xui.model.UiApiModel"
+        ]
+      },
+      {
         "name": "freeze",
         "parameterTypes": [
           "boolean"
@@ -52419,6 +52552,10 @@
       },
       {
         "name": "hasResponseData",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
         "parameterTypes": []
       },
       {
@@ -52535,6 +52672,16 @@
     "fields": [],
     "methods": [
       {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.xui.model.UiDialogModel"
+        ]
+      },
+      {
         "name": "freeze",
         "parameterTypes": [
           "boolean"
@@ -52590,6 +52737,10 @@
       },
       {
         "name": "keySet_actions",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
         "parameterTypes": []
       },
       {
@@ -52669,6 +52820,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.xui.model.UiDisplayMeta"
+        ]
+      },
       {
         "name": "freeze",
         "parameterTypes": [
@@ -52841,6 +53002,10 @@
       },
       {
         "name": "isMultiValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
         "parameterTypes": []
       },
       {
@@ -53107,6 +53272,16 @@
     "fields": [],
     "methods": [
       {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.xui.model.UiFormCellModel"
+        ]
+      },
+      {
         "name": "freeze",
         "parameterTypes": [
           "boolean"
@@ -53134,6 +53309,10 @@
       },
       {
         "name": "isNotSubmit",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
         "parameterTypes": []
       },
       {
@@ -53199,6 +53378,16 @@
         "name": "addRule",
         "parameterTypes": [
           "io.nop.xui.model.UiFormRuleModel"
+        ]
+      },
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.xui.model.UiFormModel"
         ]
       },
       {
@@ -53449,6 +53638,10 @@
       },
       {
         "name": "keySet_rules",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
         "parameterTypes": []
       },
       {
@@ -53763,6 +53956,16 @@
     "fields": [],
     "methods": [
       {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.xui.model.UiGridColModel"
+        ]
+      },
+      {
         "name": "freeze",
         "parameterTypes": [
           "boolean"
@@ -53802,6 +54005,10 @@
       },
       {
         "name": "isSortable",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
         "parameterTypes": []
       },
       {
@@ -53879,6 +54086,16 @@
         "name": "addCol",
         "parameterTypes": [
           "io.nop.xui.model.UiGridColModel"
+        ]
+      },
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.xui.model.UiGridModel"
         ]
       },
       {
@@ -54049,6 +54266,10 @@
       },
       {
         "name": "keySet_cols",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
         "parameterTypes": []
       },
       {
