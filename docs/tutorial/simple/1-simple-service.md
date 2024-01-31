@@ -59,13 +59,26 @@ public class DemoBizModel {
 
 与SpringMVC的Controller对比，NopGraphQL会自动推定很多事情，从而极大降低的系统的不确定性：
 
-1. 前端的REST链接根据对象名和方法名自动推定，而无需手工指定，固定格式为 `/r/{bizObjName}__{bizMethod}`
+1. 前端的REST链接根据对象名和方法名自动推定，而无需手工指定，固定格式为 `/r/{bizObjName}__{bizMethod}`。**注意是两个下划线**。
 2. `@BizQuery`允许通过GET和POST两种HTTP方法调用，而`@BizMutation`只允许通过POST方法调用
 3. 通过GET方式调用时，可以通过URL链接来传递参数，例如`/r/Demo__hello?message=abc`。通过POST方式调用时可以通过URL来传参，也可以通过Http的body使用JSON格式传递。
 4. 可以通过`@Name`来一个个的指定前台参数，也可以通过`@RequestBean`将前台传递过来的所有参数包装为指定的JavaBean类型
 5. 服务函数总是返回POJO对象，并指定按照JSON格式进行编码
 
 > 如果参数是可选的，可以使用@io.nop.api.core.annotations.core.Optional注解来标记，否则框架会自动校验参数不能为空。
+
+与springboot不同，Nop平台并不会通过类扫描来发现bean，所以需要在模块的beans目录下增加ioc配置文件。
+
+````xml
+<!-- _vfs/nop/demo/beans/app-simple-demo.beans.xml -->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <bean id="DemoBizModel" class="io.nop.demo.biz.DemoBizModel"/>
+</beans>
+````
+
+`_vfs/nop/demo`目录下存在一个空文件`_module`，它标识`nop/demo`是一个Nop模块。Nop平台启动时会自动加载所有模块的beans目录下以`app-`为前缀的beans.xml
+配置文件。注意，并不是beans目录下的配置文件都会被加载，只有哪些以`app-`为前缀的beans.xml文件才会被自动加载。
 
 ## 三. 通用错误处理
 
