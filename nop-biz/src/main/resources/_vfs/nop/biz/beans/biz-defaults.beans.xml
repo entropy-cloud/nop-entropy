@@ -54,6 +54,7 @@
     <bean id="nopOrmBizInitializer" class="io.nop.graphql.orm.OrmBizInitializer">
         <ioc:condition>
             <on-bean>nopOrmTemplate</on-bean>
+            <on-class>io.nop.graphql.orm.OrmBizInitializer</on-class>
         </ioc:condition>
     </bean>
 

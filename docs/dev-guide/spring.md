@@ -116,3 +116,59 @@ Nop平台的包打包为一个nop-all-for-xxx.jar，然后只需要上传这一�
 nop-spring-demo2工程演示了使用nop-all-for-spring的具体方法。
 
 > 因为Nop平台内核已经升级到Quarkus3.0，为了在Spring2.X版本中使用，需要明确指定jakarta相关包的版本号，否则会出现兼容性问题。
+
+
+### 打包时重命名包
+nop-maven-shaded-plugin插件提供了重命名包的功能。可以通过如下配置实现打包时自动重命名为java包名，并自动修改所有dsl文件中的对应名称。
+
+````xml
+   <plugin>
+       <groupId>org.apache.maven.plugins</groupId>
+       <artifactId>maven-shade-plugin</artifactId>
+       <version>3.5.0</version>
+       <executions>
+           <execution>
+               <phase>package</phase>
+               <goals>
+                   <goal>shade</goal>
+               </goals>
+               <configuration>
+                   <transformers>
+                       <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                       <transformer implementation="io.nop.maven.plugin.shaded.XdslResourceTransformer" />
+                       <transformer implementation="io.nop.maven.plugin.shaded.SpringFactoryResourceTransformer" />
+                   </transformers>
+                   <artifactSet>
+                       <includes>
+                           <include>io.github.entropy-cloud:*</include>
+                       </includes>
+                   </artifactSet>
+                   <filters>
+                       <filter>
+                           <artifact>*:*</artifact>
+                           <excludes>
+                               <exclude>META-INF/maven/**</exclude>
+                               <exclude>META-INF/native-image/**</exclude>
+                           </excludes>
+                       </filter>
+                   </filters>
+
+                   <relocations>
+                       <relocation>
+                           <pattern>io.nop</pattern>
+                           <shadedPattern>com.xxx</shadedPattern>
+                       </relocation>
+                   </relocations>
+               </configuration>
+           </execution>
+       </executions>
+
+       <dependencies>
+           <dependency>
+               <groupId>io.github.entropy-cloud</groupId>
+               <artifactId>nop-maven-shaded-plugin</artifactId>
+               <version>${nop-entropy.version}</version>
+           </dependency>
+       </dependencies>
+   </plugin>
+````
