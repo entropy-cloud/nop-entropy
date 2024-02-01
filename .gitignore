@@ -61,4 +61,4 @@ _dump
 /nop-antlr4/nop-antlr4-xlang/src/main/antlr4/imports/gen
 /nop-antlr4/nop-antlr4-xpath/src/main/antlr4/imports/gen
 /nop-tool/src/test/java/io/nop/tool/log/TestLogProcessor.java
-/nop-all-for-spring//dependency-reduced-pom.xml
+/nop-all-for-spring/dependency-reduced-pom.xml
