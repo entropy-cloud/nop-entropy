@@ -7,15 +7,10 @@
  */
 package io.nop.xlang.xdsl;
 
-import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.IComponentModel;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.object.DynamicObject;
-import io.nop.core.reflect.IClassModel;
-import io.nop.core.reflect.IFunctionModel;
-import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.xlang.xdef.IXDefNode;
@@ -29,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.ServiceLoader;
 import java.util.stream.Collectors;
 
 public class DslModelHelper {
@@ -48,7 +44,7 @@ public class DslModelHelper {
         return new DslModelParser().parseFromResource(resource);
     }
 
-    public static IComponentModel parseDslModelNode(String xdefPath, XNode node){
+    public static IComponentModel parseDslModelNode(String xdefPath, XNode node) {
         return new DslModelParser(xdefPath).parseFromNode(node);
     }
 
@@ -95,19 +91,19 @@ public class DslModelHelper {
         return xdefPath;
     }
 
-    static Class<?> g_excelModelLoaderClass;
+    static IExcelModelLoaderFactory g_excelModelLoaderFactory;
 
-    public static void registerExcelModelLoaderClass(Class<?> clazz) {
-        g_excelModelLoaderClass = clazz;
+    public static void registerExcelModelLoaderFactory(IExcelModelLoaderFactory modelLoaderFactory) {
+        g_excelModelLoaderFactory = modelLoaderFactory;
     }
 
     public static boolean supportExcelModelLoader() {
-        if (g_excelModelLoaderClass != null)
+        if (g_excelModelLoaderFactory != null)
             return true;
 
         try {
-            ReflectionManager.instance().loadClassModel(XDslConstants.EXCEL_MODEL_LOADER_CLASS);
-            return true;
+            ServiceLoader<IExcelModelLoaderFactory> loader = ServiceLoader.load(IExcelModelLoaderFactory.class);
+            return loader.findFirst().isPresent();
         } catch (Exception e) {
             LOG.warn("nop.xlang.not-support-excel-model-loader:missing-lib={}", "nop-ooxml-xlsx.jar");
             return false;
@@ -115,15 +111,12 @@ public class DslModelHelper {
 
     }
 
-    public static IResourceObjectLoader<IComponentModel> newExcelModelLoader(String impModelPath) {
-        IClassModel classModel;
-        if (g_excelModelLoaderClass != null) {
-            classModel = ReflectionManager.instance().getClassModel(g_excelModelLoaderClass);
+    public static IResourceObjectLoader<?> newExcelModelLoader(String impModelPath) {
+        if (g_excelModelLoaderFactory != null) {
+            return g_excelModelLoaderFactory.newExcelModelLoader(impModelPath);
         } else {
-            classModel = ReflectionManager.instance().loadClassModel(XDslConstants.EXCEL_MODEL_LOADER_CLASS);
+            ServiceLoader<IExcelModelLoaderFactory> loader = ServiceLoader.load(IExcelModelLoaderFactory.class);
+            return loader.findFirst().get().newExcelModelLoader(impModelPath);
         }
-        IFunctionModel fn = classModel.getConstructor(new Class[]{String.class});
-        Guard.checkEquals(1, fn.getArgCount());
-        return (IResourceObjectLoader<IComponentModel>) fn.invoke(null, new String[]{impModelPath}, DisabledEvalScope.INSTANCE);
     }
 }

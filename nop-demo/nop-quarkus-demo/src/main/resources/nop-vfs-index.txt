@@ -264,7 +264,6 @@
 /nop/autoconfig/nop-orm.beans
 /nop/autoconfig/nop-quarkus-web-starter.beans
 /nop/autoconfig/nop-report.beans
-/nop/autoconfig/nop-rpc-grpc.beans
 /nop/autoconfig/nop-rule-core.beans
 /nop/autoconfig/nop-web.beans
 /nop/biz/beans/biz-defaults.beans.xml
@@ -562,7 +561,6 @@
 /nop/report/pages/NopReportResultFile/_gen/_NopReportResultFile.view.xml
 /nop/report/pages/NopReportResultFile/main.page.yaml
 /nop/report/pages/NopReportResultFile/picker.page.yaml
-/nop/rpc/beans/grpc-defaults.beans.xml
 /nop/rpc/imp/api.imp.xml
 /nop/rpc/imp/template.api.xlsx
 /nop/rule/_module
@@ -1020,6 +1018,8 @@
 /nop/wf/model/NopWfDefinitionAuth/NopWfDefinitionAuth.xmeta
 /nop/wf/model/NopWfDefinitionAuth/_NopWfDefinitionAuth.xbiz
 /nop/wf/model/NopWfDefinitionAuth/_NopWfDefinitionAuth.xmeta
+/nop/wf/model/NopWfDynEntity/NopWfDynEntity.xmeta
+/nop/wf/model/NopWfDynEntity/_NopWfDynEntity.xmeta
 /nop/wf/model/NopWfInstance/NopWfInstance.xbiz
 /nop/wf/model/NopWfInstance/NopWfInstance.xmeta
 /nop/wf/model/NopWfInstance/_NopWfInstance.xbiz
@@ -1032,6 +1032,8 @@
 /nop/wf/model/NopWfOutput/NopWfOutput.xmeta
 /nop/wf/model/NopWfOutput/_NopWfOutput.xbiz
 /nop/wf/model/NopWfOutput/_NopWfOutput.xmeta
+/nop/wf/model/NopWfPage/NopWfPage.xmeta
+/nop/wf/model/NopWfPage/_NopWfPage.xmeta
 /nop/wf/model/NopWfStatusHistory/NopWfStatusHistory.xbiz
 /nop/wf/model/NopWfStatusHistory/NopWfStatusHistory.xmeta
 /nop/wf/model/NopWfStatusHistory/_NopWfStatusHistory.xbiz
@@ -1089,6 +1091,11 @@
 /nop/wf/pages/NopWfDefinitionAuth/_gen/_NopWfDefinitionAuth.view.xml
 /nop/wf/pages/NopWfDefinitionAuth/main.page.yaml
 /nop/wf/pages/NopWfDefinitionAuth/picker.page.yaml
+/nop/wf/pages/NopWfDynEntity/NopWfDynEntity.lib.xjs
+/nop/wf/pages/NopWfDynEntity/NopWfDynEntity.view.xml
+/nop/wf/pages/NopWfDynEntity/_gen/_NopWfDynEntity.view.xml
+/nop/wf/pages/NopWfDynEntity/main.page.yaml
+/nop/wf/pages/NopWfDynEntity/picker.page.yaml
 /nop/wf/pages/NopWfInstance/NopWfInstance.lib.js
 /nop/wf/pages/NopWfInstance/NopWfInstance.lib.xjs
 /nop/wf/pages/NopWfInstance/NopWfInstance.view.xml

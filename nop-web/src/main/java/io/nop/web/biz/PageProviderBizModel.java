@@ -11,6 +11,7 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.directive.Auth;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
@@ -34,6 +35,7 @@ public class PageProviderBizModel {
     boolean editEnabled;
 
     @BizQuery
+    @Auth(publicAccess = true)
     public Map<String, Object> getPage(@Name("path") String path, IServiceContext context) {
         checkPageFile(path);
         String locale = ContextProvider.currentLocale();

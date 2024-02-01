@@ -3493,6 +3493,221 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "closed"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "s_seq"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "taskQueue"
+      }
+    ],
+    "methods": [
+      {
+        "name": "checkClosed",
+        "parameterTypes": []
+      },
+      {
+        "name": "close",
+        "parameterTypes": []
+      },
+      {
+        "name": "execute",
+        "parameterTypes": [
+          "java.lang.Runnable"
+        ]
+      },
+      {
+        "name": "executeBlocking",
+        "parameterTypes": [
+          "java.util.function.Supplier",
+          "boolean"
+        ]
+      },
+      {
+        "name": "getAttribute",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getAttrs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCallExpireTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCallIp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInternalContext",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLocale",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPropagateRpcHeaders",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSeq",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTaskQueue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTenantId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTimezone",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTraceId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUserId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUserName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUserRefNo",
+        "parameterTypes": []
+      },
+      {
+        "name": "isClosed",
+        "parameterTypes": []
+      },
+      {
+        "name": "isRunningOnContext",
+        "parameterTypes": []
+      },
+      {
+        "name": "removeAttribute",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "removeAttribute",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "runOnContext",
+        "parameterTypes": [
+          "java.lang.Runnable"
+        ]
+      },
+      {
+        "name": "setAttribute",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setCallExpireTime",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "setCallIp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setLocale",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setPropagateRpcHeaders",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setTenantId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTimezone",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTraceId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUserId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUserName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUserRefNo",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "syncGet",
+        "parameterTypes": [
+          "java.util.concurrent.CompletionStage"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.context.BaseContext",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [
       {
@@ -77670,6 +77885,14 @@
       {
         "name": "indexOf",
         "parameterTypes": [
+          "int",
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "indexOf",
+        "parameterTypes": [
           "java.lang.String"
         ]
       },
@@ -77677,6 +77900,14 @@
         "name": "indexOf",
         "parameterTypes": [
           "java.lang.String",
+          "int"
+        ]
+      },
+      {
+        "name": "indexOf",
+        "parameterTypes": [
+          "java.lang.String",
+          "int",
           "int"
         ]
       },
@@ -77820,6 +78051,13 @@
       },
       {
         "name": "split",
+        "parameterTypes": [
+          "java.lang.String",
+          "int"
+        ]
+      },
+      {
+        "name": "splitWithDelimiters",
         "parameterTypes": [
           "java.lang.String",
           "int"
@@ -78430,6 +78668,18 @@
         ]
       },
       {
+        "name": "addFirst",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "addLast",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "clear",
         "parameterTypes": []
       },
@@ -78466,6 +78716,14 @@
         "parameterTypes": [
           "int"
         ]
+      },
+      {
+        "name": "getFirst",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLast",
+        "parameterTypes": []
       },
       {
         "name": "hashCode",
@@ -78520,10 +78778,18 @@
         ]
       },
       {
+        "name": "removeFirst",
+        "parameterTypes": []
+      },
+      {
         "name": "removeIf",
         "parameterTypes": [
           "java.util.function.Predicate"
         ]
+      },
+      {
+        "name": "removeLast",
+        "parameterTypes": []
       },
       {
         "name": "replaceAll",
@@ -78800,6 +79066,12 @@
         ]
       },
       {
+        "name": "newHashMap",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
         "name": "put",
         "parameterTypes": [
           "java.lang.Object",
@@ -78901,6 +79173,12 @@
         "parameterTypes": []
       },
       {
+        "name": "newHashSet",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
         "name": "remove",
         "parameterTypes": [
           "java.lang.Object"
@@ -78973,10 +79251,46 @@
         "parameterTypes": []
       },
       {
+        "name": "newLinkedHashMap",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "putFirst",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "putLast",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "replaceAll",
         "parameterTypes": [
           "java.util.function.BiFunction"
         ]
+      },
+      {
+        "name": "reversed",
+        "parameterTypes": []
+      },
+      {
+        "name": "sequencedEntrySet",
+        "parameterTypes": []
+      },
+      {
+        "name": "sequencedKeySet",
+        "parameterTypes": []
+      },
+      {
+        "name": "sequencedValues",
+        "parameterTypes": []
       },
       {
         "name": "values",
@@ -78993,6 +79307,44 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "addFirst",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "addLast",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "getFirst",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLast",
+        "parameterTypes": []
+      },
+      {
+        "name": "newLinkedHashSet",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "removeFirst",
+        "parameterTypes": []
+      },
+      {
+        "name": "removeLast",
+        "parameterTypes": []
+      },
+      {
+        "name": "reversed",
+        "parameterTypes": []
+      },
       {
         "name": "spliterator",
         "parameterTypes": []
@@ -79546,6 +79898,21 @@
     "fields": [],
     "methods": [],
     "name": "java.util.RandomAccess",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "reversed",
+        "parameterTypes": []
+      }
+    ],
+    "name": "java.util.SequencedCollection",
     "unsafeAllocated": false
   },
   {

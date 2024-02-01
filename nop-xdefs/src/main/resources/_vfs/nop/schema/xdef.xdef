@@ -26,7 +26,7 @@ xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即
                   xdef:version="string" xdef:default-extends="v-path"
                   xdef:transform="v-path"
                   xdef:parse-for-html="boolean" xdef:parse-keep-comment="boolean"
-                  xdef:bean-package="string"
+                  xdef:bean-package="package-name"
                   xdef:parser-class="class-name"
                   xdef:check-ns="word-set" xdef:prop-ns="word-set"
                   xdef:base="v-path"

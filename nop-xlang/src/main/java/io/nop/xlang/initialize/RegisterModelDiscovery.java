@@ -183,7 +183,7 @@ public class RegisterModelDiscovery {
                 } else if ("xlsx-loader".equals(type)) {
                     String impPath = (String) BeanTool.getProperty(loader, "impPath");
                     if (DslModelHelper.supportExcelModelLoader()) {
-                        config.loader(fileType, DslModelHelper.newExcelModelLoader(impPath));
+                        config.loader(fileType, (IResourceObjectLoader<? extends IComponentModel>) DslModelHelper.newExcelModelLoader(impPath));
                     } else {
                         LOG.warn("nop.registry.ignore-xlsx-loader-since-no-xlsx-parser:fileType={},impPath={}",
                                 fileType, impPath);

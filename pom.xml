@@ -432,5 +432,6 @@
         <module>nop-gpt</module>
         <module>nop-tablesaw</module>
         <module>nop-cdc</module>
+        <module>nop-maven</module>
     </modules>
 </project>

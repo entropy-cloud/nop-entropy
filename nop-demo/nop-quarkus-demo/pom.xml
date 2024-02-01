@@ -120,10 +120,10 @@
             <artifactId>nop-graphql-gateway</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-rpc-grpc</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>io.github.entropy-cloud</groupId>-->
+<!--            <artifactId>nop-rpc-grpc</artifactId>-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
