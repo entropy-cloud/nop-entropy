@@ -24,7 +24,7 @@ public abstract class _UiComponentModel extends io.nop.core.resource.component.A
      * editor生成XNode，然后编程处理
      * </x:gen-extends>
      */
-    private io.nop.xui.model.UiImportModel _import ;
+    private KeyedList<io.nop.xui.model.UiImportModel> _imports = KeyedList.emptyList();
     
     /**
      *  
@@ -70,18 +70,44 @@ public abstract class _UiComponentModel extends io.nop.core.resource.component.A
      * </x:gen-extends>
      */
     
-    public io.nop.xui.model.UiImportModel getImport(){
-      return _import;
+    public java.util.List<io.nop.xui.model.UiImportModel> getImports(){
+      return _imports;
     }
 
     
-    public void setImport(io.nop.xui.model.UiImportModel value){
+    public void setImports(java.util.List<io.nop.xui.model.UiImportModel> value){
         checkAllowChange();
         
-        this._import = value;
+        this._imports = KeyedList.fromList(value, io.nop.xui.model.UiImportModel::getAs);
            
     }
 
+    
+    public io.nop.xui.model.UiImportModel getImport(String name){
+        return this._imports.getByKey(name);
+    }
+
+    public boolean hasImport(String name){
+        return this._imports.containsKey(name);
+    }
+
+    public void addImport(io.nop.xui.model.UiImportModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.xui.model.UiImportModel> list = this.getImports();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.xui.model.UiImportModel::getAs);
+            setImports(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_imports(){
+        return this._imports.keySet();
+    }
+
+    public boolean hasImports(){
+        return !this._imports.isEmpty();
+    }
     
     /**
      * 
@@ -186,7 +212,7 @@ public abstract class _UiComponentModel extends io.nop.core.resource.component.A
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
-           this._import = io.nop.api.core.util.FreezeHelper.deepFreeze(this._import);
+           this._imports = io.nop.api.core.util.FreezeHelper.deepFreeze(this._imports);
             
         }
     }
@@ -195,7 +221,7 @@ public abstract class _UiComponentModel extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("import",this.getImport());
+        out.putNotNull("imports",this.getImports());
         out.putNotNull("scopedStyle",this.getScopedStyle());
         out.putNotNull("script",this.getScript());
         out.putNotNull("setup",this.getSetup());
@@ -212,7 +238,7 @@ public abstract class _UiComponentModel extends io.nop.core.resource.component.A
     protected void copyTo(UiComponentModel instance){
         super.copyTo(instance);
         
-        instance.setImport(this.getImport());
+        instance.setImports(this.getImports());
         instance.setScopedStyle(this.getScopedStyle());
         instance.setScript(this.getScript());
         instance.setSetup(this.getSetup());

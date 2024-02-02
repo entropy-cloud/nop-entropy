@@ -18,17 +18,24 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
     
     /**
      *  
-     * xml name: actions
-     * 
-     */
-    private KeyedList<io.nop.xui.model.IUiActionModel> _actions = KeyedList.emptyList();
-    
-    /**
-     *  
      * xml name: codeGenLib
      * 
      */
     private java.lang.String _codeGenLib ;
+    
+    /**
+     *  
+     * xml name: components
+     * 
+     */
+    private KeyedList<io.nop.xui.model.UiSimpleComponentModel> _components = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: control-bar
+     * 
+     */
+    private io.nop.core.resource.tpl.ITextTemplateOutput _controlBar ;
     
     /**
      *  
@@ -53,6 +60,20 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
     
     /**
      *  
+     * xml name: framework
+     * 
+     */
+    private java.lang.String _framework ;
+    
+    /**
+     *  
+     * xml name: imports
+     * 
+     */
+    private KeyedList<io.nop.xui.model.UiImportModel> _imports = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: nodes
      * 
      */
@@ -63,14 +84,14 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
      * xml name: script
      * 
      */
-    private java.lang.String _script ;
+    private io.nop.core.resource.tpl.ITextTemplateOutput _script ;
     
     /**
      *  
-     * xml name: style
-     * 
+     * xml name: style-components
+     * 类似于React中styled-component的封装
      */
-    private java.lang.String _style ;
+    private KeyedList<io.nop.xui.model.UiStyleComponentModel> _styleComponents = KeyedList.emptyList();
     
     /**
      *  
@@ -78,33 +99,6 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
      * 
      */
     private io.nop.xui.graph_designer.GraphDesignerZoomModel _zoom ;
-    
-    /**
-     * 
-     * xml name: actions
-     *  
-     */
-    
-    public java.util.List<io.nop.xui.model.IUiActionModel> getActions(){
-      return _actions;
-    }
-
-    
-    public void setActions(java.util.List<io.nop.xui.model.IUiActionModel> value){
-        checkAllowChange();
-        
-        this._actions = KeyedList.fromList(value, io.nop.xui.model.IUiActionModel::getId);
-           
-    }
-
-    
-    public java.util.Set<String> keySet_actions(){
-        return this._actions.keySet();
-    }
-
-    public boolean hasActions(){
-        return !this._actions.isEmpty();
-    }
     
     /**
      * 
@@ -121,6 +115,70 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
         checkAllowChange();
         
         this._codeGenLib = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: components
+     *  
+     */
+    
+    public java.util.List<io.nop.xui.model.UiSimpleComponentModel> getComponents(){
+      return _components;
+    }
+
+    
+    public void setComponents(java.util.List<io.nop.xui.model.UiSimpleComponentModel> value){
+        checkAllowChange();
+        
+        this._components = KeyedList.fromList(value, io.nop.xui.model.UiSimpleComponentModel::getName);
+           
+    }
+
+    
+    public io.nop.xui.model.UiSimpleComponentModel getComponent(String name){
+        return this._components.getByKey(name);
+    }
+
+    public boolean hasComponent(String name){
+        return this._components.containsKey(name);
+    }
+
+    public void addComponent(io.nop.xui.model.UiSimpleComponentModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.xui.model.UiSimpleComponentModel> list = this.getComponents();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.xui.model.UiSimpleComponentModel::getName);
+            setComponents(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_components(){
+        return this._components.keySet();
+    }
+
+    public boolean hasComponents(){
+        return !this._components.isEmpty();
+    }
+    
+    /**
+     * 
+     * xml name: control-bar
+     *  
+     */
+    
+    public io.nop.core.resource.tpl.ITextTemplateOutput getControlBar(){
+      return _controlBar;
+    }
+
+    
+    public void setControlBar(io.nop.core.resource.tpl.ITextTemplateOutput value){
+        checkAllowChange();
+        
+        this._controlBar = value;
            
     }
 
@@ -236,6 +294,70 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
     
     /**
      * 
+     * xml name: framework
+     *  
+     */
+    
+    public java.lang.String getFramework(){
+      return _framework;
+    }
+
+    
+    public void setFramework(java.lang.String value){
+        checkAllowChange();
+        
+        this._framework = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: imports
+     *  
+     */
+    
+    public java.util.List<io.nop.xui.model.UiImportModel> getImports(){
+      return _imports;
+    }
+
+    
+    public void setImports(java.util.List<io.nop.xui.model.UiImportModel> value){
+        checkAllowChange();
+        
+        this._imports = KeyedList.fromList(value, io.nop.xui.model.UiImportModel::getAs);
+           
+    }
+
+    
+    public io.nop.xui.model.UiImportModel getImport(String name){
+        return this._imports.getByKey(name);
+    }
+
+    public boolean hasImport(String name){
+        return this._imports.containsKey(name);
+    }
+
+    public void addImport(io.nop.xui.model.UiImportModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.xui.model.UiImportModel> list = this.getImports();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.xui.model.UiImportModel::getAs);
+            setImports(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_imports(){
+        return this._imports.keySet();
+    }
+
+    public boolean hasImports(){
+        return !this._imports.isEmpty();
+    }
+    
+    /**
+     * 
      * xml name: nodes
      *  
      */
@@ -285,12 +407,12 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
      *  
      */
     
-    public java.lang.String getScript(){
+    public io.nop.core.resource.tpl.ITextTemplateOutput getScript(){
       return _script;
     }
 
     
-    public void setScript(java.lang.String value){
+    public void setScript(io.nop.core.resource.tpl.ITextTemplateOutput value){
         checkAllowChange();
         
         this._script = value;
@@ -300,22 +422,48 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
     
     /**
      * 
-     * xml name: style
-     *  
+     * xml name: style-components
+     *  类似于React中styled-component的封装
      */
     
-    public java.lang.String getStyle(){
-      return _style;
+    public java.util.List<io.nop.xui.model.UiStyleComponentModel> getStyleComponents(){
+      return _styleComponents;
     }
 
     
-    public void setStyle(java.lang.String value){
+    public void setStyleComponents(java.util.List<io.nop.xui.model.UiStyleComponentModel> value){
         checkAllowChange();
         
-        this._style = value;
+        this._styleComponents = KeyedList.fromList(value, io.nop.xui.model.UiStyleComponentModel::getName);
            
     }
 
+    
+    public io.nop.xui.model.UiStyleComponentModel getStyleComponent(String name){
+        return this._styleComponents.getByKey(name);
+    }
+
+    public boolean hasStyleComponent(String name){
+        return this._styleComponents.containsKey(name);
+    }
+
+    public void addStyleComponent(io.nop.xui.model.UiStyleComponentModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.xui.model.UiStyleComponentModel> list = this.getStyleComponents();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.xui.model.UiStyleComponentModel::getName);
+            setStyleComponents(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_styleComponents(){
+        return this._styleComponents.keySet();
+    }
+
+    public boolean hasStyleComponents(){
+        return !this._styleComponents.isEmpty();
+    }
     
     /**
      * 
@@ -344,13 +492,17 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
-           this._actions = io.nop.api.core.util.FreezeHelper.deepFreeze(this._actions);
+           this._components = io.nop.api.core.util.FreezeHelper.deepFreeze(this._components);
             
            this._edges = io.nop.api.core.util.FreezeHelper.deepFreeze(this._edges);
             
            this._forms = io.nop.api.core.util.FreezeHelper.deepFreeze(this._forms);
             
+           this._imports = io.nop.api.core.util.FreezeHelper.deepFreeze(this._imports);
+            
            this._nodes = io.nop.api.core.util.FreezeHelper.deepFreeze(this._nodes);
+            
+           this._styleComponents = io.nop.api.core.util.FreezeHelper.deepFreeze(this._styleComponents);
             
            this._zoom = io.nop.api.core.util.FreezeHelper.deepFreeze(this._zoom);
             
@@ -361,14 +513,17 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("actions",this.getActions());
         out.putNotNull("codeGenLib",this.getCodeGenLib());
+        out.putNotNull("components",this.getComponents());
+        out.putNotNull("controlBar",this.getControlBar());
         out.putNotNull("edges",this.getEdges());
         out.putNotNull("editorType",this.getEditorType());
         out.putNotNull("forms",this.getForms());
+        out.putNotNull("framework",this.getFramework());
+        out.putNotNull("imports",this.getImports());
         out.putNotNull("nodes",this.getNodes());
         out.putNotNull("script",this.getScript());
-        out.putNotNull("style",this.getStyle());
+        out.putNotNull("styleComponents",this.getStyleComponents());
         out.putNotNull("zoom",this.getZoom());
     }
 
@@ -381,14 +536,17 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
     protected void copyTo(GraphDesignerModel instance){
         super.copyTo(instance);
         
-        instance.setActions(this.getActions());
         instance.setCodeGenLib(this.getCodeGenLib());
+        instance.setComponents(this.getComponents());
+        instance.setControlBar(this.getControlBar());
         instance.setEdges(this.getEdges());
         instance.setEditorType(this.getEditorType());
         instance.setForms(this.getForms());
+        instance.setFramework(this.getFramework());
+        instance.setImports(this.getImports());
         instance.setNodes(this.getNodes());
         instance.setScript(this.getScript());
-        instance.setStyle(this.getStyle());
+        instance.setStyleComponents(this.getStyleComponents());
         instance.setZoom(this.getZoom());
     }
 

@@ -433,5 +433,6 @@
         <module>nop-tablesaw</module>
         <module>nop-cdc</module>
         <module>nop-maven</module>
+        <module>nop-css</module>
     </modules>
 </project>

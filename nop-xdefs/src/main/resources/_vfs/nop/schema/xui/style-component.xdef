@@ -1,0 +1,4 @@
+<style-component x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="!var-name" component="string" xdef:value="string"
+       xdef:bean-package="io.nop.xui.model"
+       xdef:name="UiStyleComponentModel"/>

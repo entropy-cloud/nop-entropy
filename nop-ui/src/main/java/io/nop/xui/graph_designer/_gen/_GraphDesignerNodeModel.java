@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [21:10:0:0]/nop/schema/designer/graph-designer.xdef <p>
+ * generate from [34:10:0:0]/nop/schema/designer/graph-designer.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -186,13 +186,6 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
     
     /**
      *  
-     * xml name: style
-     * 
-     */
-    private java.lang.String _style ;
-    
-    /**
-     *  
      * xml name: tagSet
      * 
      */
@@ -203,7 +196,7 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
      * xml name: template
      * 
      */
-    private io.nop.core.lang.xml.XNode _template ;
+    private io.nop.core.resource.tpl.ITextTemplateOutput _template ;
     
     /**
      *  
@@ -710,25 +703,6 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
     
     /**
      * 
-     * xml name: style
-     *  
-     */
-    
-    public java.lang.String getStyle(){
-      return _style;
-    }
-
-    
-    public void setStyle(java.lang.String value){
-        checkAllowChange();
-        
-        this._style = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: tagSet
      *  
      */
@@ -752,12 +726,12 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
      *  
      */
     
-    public io.nop.core.lang.xml.XNode getTemplate(){
+    public io.nop.core.resource.tpl.ITextTemplateOutput getTemplate(){
       return _template;
     }
 
     
-    public void setTemplate(io.nop.core.lang.xml.XNode value){
+    public void setTemplate(io.nop.core.resource.tpl.ITextTemplateOutput value){
         checkAllowChange();
         
         this._template = value;
@@ -863,7 +837,6 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
         out.putNotNull("resizable",this.getResizable());
         out.putNotNull("shape",this.getShape());
         out.putNotNull("start",this.isStart());
-        out.putNotNull("style",this.getStyle());
         out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("template",this.getTemplate());
         out.putNotNull("textDraggable",this.getTextDraggable());
@@ -904,7 +877,6 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
         instance.setResizable(this.getResizable());
         instance.setShape(this.getShape());
         instance.setStart(this.isStart());
-        instance.setStyle(this.getStyle());
         instance.setTagSet(this.getTagSet());
         instance.setTemplate(this.getTemplate());
         instance.setTextDraggable(this.getTextDraggable());

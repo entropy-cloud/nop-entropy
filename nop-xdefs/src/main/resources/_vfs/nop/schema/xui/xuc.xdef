@@ -9,7 +9,7 @@
     </x:gen-extends>
     -->
 
-    <import id="!string" from="string" items="csv-set" xdef:name="UiImportModel"/>
+    <import as="!var-name" xdef:ref="import.xdef" xdef:unique-attr="as"/>
 
     <!--
     全局样式

@@ -1,0 +1,10 @@
+<component x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+           name="!var-name"
+           xdef:bean-package="io.nop.xui.model"
+           xdef:name="UiSimpleComponentModel" xmlns:xdef="/nop/schema/xdef.xdef">
+    <prop name="!var-name" type="string" xdef:unique-attr="name" xdef:name="UiSimplePropModel"/>
+    <state name="!var-name" type="string" xdef:unique-attr="name" xdef:name="UiSimpleStateModel"/>
+    <context name="!var-name" type="string" xdef:unique-attr="name" xdef:name="UiSimpleContextModel"/>
+    <slot name="!var-name" xdef:unique-attr="name" xdef:name="UiSimpleSlotModel"/>
+    <template xdef:value="xml"/>
+</component>
