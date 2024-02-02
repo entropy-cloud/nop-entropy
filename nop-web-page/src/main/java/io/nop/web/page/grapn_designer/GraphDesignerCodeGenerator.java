@@ -30,18 +30,18 @@ public class GraphDesignerCodeGenerator {
      */
     public String generateCss(String designerId) {
         StringBuilder sb = new StringBuilder();
-        appendStyle(sb, model.getStyle());
+       // appendStyle(sb, model.getStyle());
         if (model.getNodes() != null) {
             for (GraphDesignerNodeModel nodeModel : model.getNodes()) {
-                String style = nodeModel.getStyle();
-                appendStyle(sb, style);
+               // String style = nodeModel.getStyle();
+               // appendStyle(sb, style);
             }
         }
 
         if (model.getEdges() != null) {
             for (GraphDesignerEdgeModel edgeModel : model.getEdges()) {
-                String style = edgeModel.getStyle();
-                appendStyle(sb, style);
+               // String style = edgeModel.getStyle();
+               // appendStyle(sb, style);
             }
         }
         String css = sb.toString();
