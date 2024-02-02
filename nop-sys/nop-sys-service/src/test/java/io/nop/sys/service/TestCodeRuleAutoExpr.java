@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
 
-@NopTestConfig(localDb = true, initDatabaseSchema = true)
+@NopTestConfig(localDb = true, initDatabaseSchema = true,disableSnapshot = false)
 public class TestCodeRuleAutoExpr extends JunitAutoTestCase {
     @Inject
     IGraphQLEngine graphQLEngine;

@@ -18,116 +18,116 @@
     <keys/>
 
     <props>
-        <prop name="branchId" displayName="事务分支ID" i18n-en:displayName="Branch ID" tagSet="seq" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="false">
+        <prop name="branchId" displayName="事务分支ID" propId="1" i18n-en:displayName="Branch ID" tagSet="seq"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="txnId" displayName="事务ID" i18n-en:displayName="Transaction ID" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true" ext:relation="tccRecord">
+        <prop name="txnId" displayName="事务ID" propId="2" i18n-en:displayName="Transaction ID" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="tccRecord">
             <schema type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="branchNo" displayName="事务分支序号" i18n-en:displayName="Branch No" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="branchNo" displayName="事务分支序号" propId="3" i18n-en:displayName="Branch No" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer"/>
         </prop>
-        <prop name="parentBranchId" displayName="父分支ID" i18n-en:displayName="Parent Branch ID" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="parentBranchId" displayName="父分支ID" propId="4" i18n-en:displayName="Parent Branch ID"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="status" displayName="状态" i18n-en:displayName="Status" mandatory="true" queryable="true"
+        <prop name="status" displayName="状态" propId="5" i18n-en:displayName="Status" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer" dict="io.nop.tcc.api.TccStatus"/>
         </prop>
-        <prop name="expireTime" displayName="过期时间" i18n-en:displayName="Expire Time" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="expireTime" displayName="过期时间" propId="6" i18n-en:displayName="Expire Time" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="serviceName" displayName="服务名" i18n-en:displayName="Service Name" mandatory="true" queryable="true"
+        <prop name="serviceName" displayName="服务名" propId="7" i18n-en:displayName="Service Name" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="serviceMethod" displayName="服务方法" propId="8" i18n-en:displayName="Service Method" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="serviceMethod" displayName="服务方法" i18n-en:displayName="Service Method" queryable="true"
+        <prop name="confirmMethod" displayName="确认方法" propId="9" i18n-en:displayName="Confirm Method" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="confirmMethod" displayName="确认方法" i18n-en:displayName="Confirm Method" queryable="true"
+        <prop name="cancelMethod" displayName="取消方法" propId="10" i18n-en:displayName="Cancel Method" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="cancelMethod" displayName="取消方法" i18n-en:displayName="Cancel Method" queryable="true"
+        <prop name="requestData" displayName="请求数据" propId="11" i18n-en:displayName="Request Data" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="200"/>
-        </prop>
-        <prop name="requestData" displayName="请求数据" i18n-en:displayName="Request Data" queryable="true" sortable="true"
-              insertable="true" updatable="true">
             <schema type="java.lang.String" precision="2097152"/>
         </prop>
-        <prop name="errorCode" displayName="错误码" i18n-en:displayName="Error Code" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="errorCode" displayName="错误码" propId="12" i18n-en:displayName="Error Code" queryable="true"
+              sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="errorMessage" displayName="错误消息" i18n-en:displayName="Error Message" queryable="true"
+        <prop name="errorMessage" displayName="错误消息" propId="13" i18n-en:displayName="Error Message" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="errorStack" displayName="错误堆栈" i18n-en:displayName="Error Stack" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="errorStack" displayName="错误堆栈" propId="14" i18n-en:displayName="Error Stack" queryable="true"
+              sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="beginTime" displayName="开始时间" i18n-en:displayName="Begin Time" mandatory="true" queryable="true"
+        <prop name="beginTime" displayName="开始时间" propId="15" i18n-en:displayName="Begin Time" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="endTime" displayName="结束时间" propId="16" i18n-en:displayName="End Time" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="endTime" displayName="结束时间" i18n-en:displayName="End Time" queryable="true" sortable="true"
-              insertable="true" updatable="true">
-            <schema type="java.sql.Timestamp"/>
-        </prop>
-        <prop name="commitErrorCode" displayName="提交阶段错误码" i18n-en:displayName="Commit Error Code" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="commitErrorCode" displayName="提交阶段错误码" propId="17" i18n-en:displayName="Commit Error Code"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="commitErrorMessage" displayName="提交阶段错误消息" i18n-en:displayName="Commit Error Message"
+        <prop name="commitErrorMessage" displayName="提交阶段错误消息" propId="18" i18n-en:displayName="Commit Error Message"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="commitErrorStack" displayName="提交阶段错误堆栈" i18n-en:displayName="Commit Error Stack" queryable="true"
-              sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="1000"/>
-        </prop>
-        <prop name="cancelErrorCode" displayName="取消阶段错误码" i18n-en:displayName="Cancel Error Code" queryable="true"
-              sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="200"/>
-        </prop>
-        <prop name="cancelErrorMessage" displayName="取消阶段错误消息" i18n-en:displayName="Cancel Error Message"
+        <prop name="commitErrorStack" displayName="提交阶段错误堆栈" propId="19" i18n-en:displayName="Commit Error Stack"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="cancelErrorStack" displayName="取消阶段错误堆栈" i18n-en:displayName="Cancel Error Stack" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="cancelErrorCode" displayName="取消阶段错误码" propId="20" i18n-en:displayName="Cancel Error Code"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="cancelErrorMessage" displayName="取消阶段错误消息" propId="21" i18n-en:displayName="Cancel Error Message"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="retryTimes" displayName="重试次数" i18n-en:displayName="Retry Times" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="cancelErrorStack" displayName="取消阶段错误堆栈" propId="22" i18n-en:displayName="Cancel Error Stack"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="retryTimes" displayName="重试次数" propId="23" i18n-en:displayName="Retry Times" queryable="true"
+              sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer"/>
         </prop>
-        <prop name="maxRetryTimes" displayName="最大重试次数" i18n-en:displayName="Max Retry Times" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true">
+        <prop name="maxRetryTimes" displayName="最大重试次数" propId="24" i18n-en:displayName="Max Retry Times"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer"/>
         </prop>
-        <prop name="nextRetryTime" displayName="下次重试时间" i18n-en:displayName="Next Retry Time" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="nextRetryTime" displayName="下次重试时间" propId="25" i18n-en:displayName="Next Retry Time"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false" internal="true">
+        <prop name="version" displayName="数据版本" propId="26" i18n-en:displayName="Version" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true">
             <schema domain="version" type="java.lang.Integer"/>
         </prop>
-        <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false">
+        <prop name="createTime" displayName="创建时间" propId="27" i18n-en:displayName="Create Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="createTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="updateTime" displayName="修改时间" i18n-en:displayName="Update Time" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false">
+        <prop name="updateTime" displayName="修改时间" propId="28" i18n-en:displayName="Update Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
         <prop name="tccRecord" displayName="事务记录" i18n-en:displayName="TCC Record"

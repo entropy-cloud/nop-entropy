@@ -41,6 +41,8 @@ import io.nop.xlang.filter.BizExprHelper;
 import io.nop.xlang.xdsl.DslModelParser;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.SchemaLoader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -52,16 +54,15 @@ import static io.nop.biz.BizErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.biz.BizErrors.ARG_META_PATH;
 import static io.nop.biz.BizErrors.ERR_BIZ_INVALID_BIZ_OBJ_NAME;
 import static io.nop.biz.BizErrors.ERR_BIZ_MISSING_META_FILE_FOR_OBJ;
-import static io.nop.biz.BizErrors.ERR_BIZ_OPERATION_NO_IMPL_ACTION;
 import static io.nop.biz.BizErrors.ERR_BIZ_STATE_MACHINE_NO_STATE_PROP;
 import static io.nop.biz.BizErrors.ERR_BIZ_UNKNOWN_BIZ_OBJ_NAME;
-import static io.nop.graphql.core.GraphQLErrors.ARG_OPERATION_NAME;
 
 /**
  * 对于/nop/auth/model/NopAuthUser_admin.xbiz，允许三种情况 1. 存在NopAuthUser_admin.xbiz文件，可能存在xmeta文件 2.
  * 存在NopAuthUser.xbiz文件，且存在NopAuthUser_admin.xmeta文件 3. 不存在xbiz和xmeta文件，但是存在对应的DataLoader
  */
 public class BizObjectBuilder {
+    static final Logger LOG = LoggerFactory.getLogger(BizObjectImpl.class);
     private final GraphQLBizModels bizModels;
 
     private final Map<String, GraphQLBizModel> dynBizModels;
@@ -172,10 +173,13 @@ public class BizObjectBuilder {
 
     private void checkOperations(BizObjectImpl bizObj) {
         for (GraphQLFieldDefinition fieldDef : bizObj.getOperations().values()) {
-            if (fieldDef.getServiceAction() == null)
-                throw new NopException(ERR_BIZ_OPERATION_NO_IMPL_ACTION)
-                        .source(fieldDef).param(ARG_BIZ_OBJ_NAME, bizObj.getBizObjName())
-                        .param(ARG_OPERATION_NAME, fieldDef.getOperationName());
+            if (fieldDef.getServiceAction() == null) {
+                LOG.info("nop.biz.operation-no-impl-action:bizObjName={},operationName={}",
+                        bizObj.getBizObjName(), fieldDef.getOperationName());
+            }
+//                throw new NopException(ERR_BIZ_OPERATION_NO_IMPL_ACTION)
+//                        .source(fieldDef).param(ARG_BIZ_OBJ_NAME, bizObj.getBizObjName())
+//                        .param(ARG_OPERATION_NAME, fieldDef.getOperationName());
         }
     }
 

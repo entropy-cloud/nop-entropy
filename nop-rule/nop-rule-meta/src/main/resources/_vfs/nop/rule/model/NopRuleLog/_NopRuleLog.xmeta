@@ -18,28 +18,28 @@
     <keys/>
 
     <props>
-        <prop name="sid" displayName="日志ID" i18n-en:displayName="SID" tagSet="seq" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false">
+        <prop name="sid" displayName="日志ID" propId="1" i18n-en:displayName="SID" tagSet="seq" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="ruleId" displayName="规则ID" i18n-en:displayName="RULE ID" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false" ext:relation="ruleDefinition">
+        <prop name="ruleId" displayName="规则ID" propId="2" i18n-en:displayName="RULE ID" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false" ext:relation="ruleDefinition">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="logLevel" displayName="日志级别" i18n-en:displayName="Log Level" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false">
+        <prop name="logLevel" displayName="日志级别" propId="3" i18n-en:displayName="Log Level" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.Integer" dict="core/log-level"/>
         </prop>
-        <prop name="logMsg" displayName="日志消息" i18n-en:displayName="Log Message" queryable="true" sortable="true"
-              insertable="true" updatable="false">
+        <prop name="logMsg" displayName="日志消息" propId="4" i18n-en:displayName="Log Message" queryable="true"
+              sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="4000"/>
         </prop>
-        <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false">
+        <prop name="createdBy" displayName="创建人" propId="5" i18n-en:displayName="Created By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="createdBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false">
+        <prop name="createTime" displayName="创建时间" propId="6" i18n-en:displayName="Create Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="createTime" type="java.sql.Timestamp"/>
         </prop>
         <prop name="ruleDefinition" displayName="规则定义" i18n-en:displayName="Rule Definition" tagSet="pub"

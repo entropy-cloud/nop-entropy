@@ -18,51 +18,51 @@
     <keys/>
 
     <props>
-        <prop name="sid" displayName="主键" i18n-en:displayName="SID" mandatory="true" queryable="true" sortable="true"
-              insertable="true" updatable="false">
+        <prop name="sid" displayName="主键" propId="1" i18n-en:displayName="SID" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="relationName" displayName="关联名称" i18n-en:displayName="Relation Name" mandatory="true"
+        <prop name="relationName" displayName="关联名称" propId="2" i18n-en:displayName="Relation Name" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="entityName1" displayName="实体名称1" i18n-en:displayName="Entity Name1" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="100"/>
-        </prop>
-        <prop name="entityId1" displayName="实体ID1" i18n-en:displayName="Entity Id1" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="50"/>
-        </prop>
-        <prop name="entityName2" displayName="实体名称2" i18n-en:displayName="Entity Name2" mandatory="true"
+        <prop name="entityName1" displayName="实体名称1" propId="3" i18n-en:displayName="Entity Name1" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="entityId2" displayName="实体ID2" i18n-en:displayName="Entity ID2" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="entityId1" displayName="实体ID1" propId="4" i18n-en:displayName="Entity Id1" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
+        <prop name="entityName2" displayName="实体名称2" propId="5" i18n-en:displayName="Entity Name2" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="entityId2" displayName="实体ID2" propId="6" i18n-en:displayName="Entity ID2" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="7" i18n-en:displayName="Version" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="version" type="java.lang.Integer"/>
         </prop>
-        <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
+        <prop name="createdBy" displayName="创建人" propId="8" i18n-en:displayName="Created By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="createdBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
+        <prop name="createTime" displayName="创建时间" propId="9" i18n-en:displayName="Create Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="createTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="updatedBy" displayName="修改人" i18n-en:displayName="Updated By" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
+        <prop name="updatedBy" displayName="修改人" propId="10" i18n-en:displayName="Updated By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="updatedBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="updateTime" displayName="修改时间" i18n-en:displayName="Update Time" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
+        <prop name="updateTime" displayName="修改时间" propId="11" i18n-en:displayName="Update Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="remark" displayName="备注" i18n-en:displayName="Remark" queryable="true" sortable="true"
+        <prop name="remark" displayName="备注" propId="12" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="true" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>

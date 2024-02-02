@@ -26,10 +26,10 @@
             <artifactId>nop-orm</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-spring-autoconfig</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>io.github.entropy-cloud</groupId>-->
+<!--            <artifactId>nop-spring-autoconfig</artifactId>-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>com.h2database</groupId>

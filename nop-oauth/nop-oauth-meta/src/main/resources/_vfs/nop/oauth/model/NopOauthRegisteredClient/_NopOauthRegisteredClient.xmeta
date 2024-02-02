@@ -18,55 +18,55 @@
     <keys/>
 
     <props>
-        <prop name="id" displayName="Id" tagSet="seq" mandatory="true" queryable="true" sortable="true"
+        <prop name="id" displayName="Id" propId="1" tagSet="seq" mandatory="true" queryable="true" sortable="true"
               insertable="true" updatable="false">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="clientId" displayName="客户端ID" mandatory="true" queryable="true" sortable="true" insertable="true"
-              updatable="true">
+        <prop name="clientId" displayName="客户端ID" propId="2" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="clientIdIssuedAt" displayName="客户端ID发放时间" mandatory="true" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="clientIdIssuedAt" displayName="客户端ID发放时间" propId="3" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="clientSecret" displayName="客户端密码" queryable="true" sortable="true" insertable="true"
+        <prop name="clientSecret" displayName="客户端密码" propId="4" queryable="true" sortable="true" insertable="true"
               updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="clientSecretExpiresAt" displayName="客户端密码过期时间" queryable="true" sortable="true" insertable="true"
-              updatable="true">
+        <prop name="clientSecretExpiresAt" displayName="客户端密码过期时间" propId="5" queryable="true" sortable="true"
+              insertable="true" updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="clientName" displayName="客户端名称" mandatory="true" queryable="true" sortable="true" insertable="true"
-              updatable="true">
+        <prop name="clientName" displayName="客户端名称" propId="6" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="clientAuthenticationMethods" displayName="客户端授权方法" mandatory="true" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="clientAuthenticationMethods" displayName="客户端授权方法" propId="7" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="authorizationGrantTypes" displayName="客户端认证类型" mandatory="true" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="authorizationGrantTypes" displayName="客户端认证类型" propId="8" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="redirectUris" displayName="重定向URI" queryable="true" sortable="true" insertable="true"
+        <prop name="redirectUris" displayName="重定向URI" propId="9" queryable="true" sortable="true" insertable="true"
               updatable="true">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="postLogoutRedirectUris" displayName="Logout重定向URI" queryable="true" sortable="true"
+        <prop name="postLogoutRedirectUris" displayName="Logout重定向URI" propId="10" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="scopes" displayName="授权范围" mandatory="true" queryable="true" sortable="true" insertable="true"
-              updatable="true">
+        <prop name="scopes" displayName="授权范围" propId="11" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="clientSettings" displayName="客户端设置" mandatory="true" queryable="true" sortable="true"
+        <prop name="clientSettings" displayName="客户端设置" propId="12" mandatory="true" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="2000"/>
         </prop>
-        <prop name="tokenSettings" displayName="Token设置" mandatory="true" queryable="true" sortable="true"
+        <prop name="tokenSettings" displayName="Token设置" propId="13" mandatory="true" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="2000"/>
         </prop>

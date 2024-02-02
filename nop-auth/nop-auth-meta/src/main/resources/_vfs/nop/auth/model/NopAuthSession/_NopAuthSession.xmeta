@@ -18,83 +18,85 @@
     <keys/>
 
     <props>
-        <prop name="sessionId" displayName="会话ID" i18n-en:displayName="Session ID" tagSet="var" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="false">
+        <prop name="sessionId" displayName="会话ID" propId="1" i18n-en:displayName="Session ID" tagSet="var"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="userId" displayName="用户ID" i18n-en:displayName="User ID" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false" ext:relation="user">
+        <prop name="userId" displayName="用户ID" propId="2" i18n-en:displayName="User ID" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false" ext:relation="user">
             <schema domain="userId" type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="userName" displayName="用户名" i18n-en:displayName="User Name" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false">
+        <prop name="userName" displayName="用户名" propId="3" i18n-en:displayName="User Name" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
             <schema domain="userName" type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="tenantId" displayName="租户ID" i18n-en:displayName="Tenant ID" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
+        <prop name="tenantId" displayName="租户ID" propId="4" i18n-en:displayName="Tenant ID" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="loginAddr" displayName="登录地址" i18n-en:displayName="Login Addr" queryable="true" sortable="true"
+        <prop name="loginAddr" displayName="登录地址" propId="5" i18n-en:displayName="Login Addr" queryable="true"
+              sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="loginDevice" displayName="登录设备" propId="6" i18n-en:displayName="Login Device" queryable="true"
+              sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="loginApp" displayName="应用程序" propId="7" i18n-en:displayName="Application" queryable="true"
+              sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="loginOs" displayName="操作系统" propId="8" i18n-en:displayName="OS" queryable="true" sortable="true"
               insertable="true" updatable="false">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="loginDevice" displayName="登录设备" i18n-en:displayName="Login Device" queryable="true" sortable="true"
-              insertable="true" updatable="false">
-            <schema type="java.lang.String" precision="100"/>
+        <prop name="loginTime" displayName="登录时间" propId="9" i18n-en:displayName="Login Time" tagSet="clock"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="false">
+            <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="loginApp" displayName="应用程序" i18n-en:displayName="Application" queryable="true" sortable="true"
-              insertable="true" updatable="false">
-            <schema type="java.lang.String" precision="100"/>
+        <prop name="loginType" displayName="登录方式" propId="10" i18n-en:displayName="Login Type" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.Integer" dict="auth/login-type"/>
         </prop>
-        <prop name="loginOs" displayName="操作系统" i18n-en:displayName="OS" queryable="true" sortable="true"
-              insertable="true" updatable="false">
-            <schema type="java.lang.String" precision="100"/>
-        </prop>
-        <prop name="loginTime" displayName="登录时间" i18n-en:displayName="Login Time" tagSet="clock" mandatory="true"
+        <prop name="logoutTime" displayName="退出时间" propId="11" i18n-en:displayName="Logout Time" tagSet="clock"
               queryable="true" sortable="true" insertable="true" updatable="false">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="loginType" displayName="登录方式" i18n-en:displayName="Login Type" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false">
-            <schema type="java.lang.Integer" dict="auth/login-type"/>
-        </prop>
-        <prop name="logoutTime" displayName="退出时间" i18n-en:displayName="Logout Time" tagSet="clock" queryable="true"
-              sortable="true" insertable="true" updatable="false">
-            <schema type="java.sql.Timestamp"/>
-        </prop>
-        <prop name="logoutType" displayName="退出方式" i18n-en:displayName="Logout Type" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false">
+        <prop name="logoutType" displayName="退出方式" propId="12" i18n-en:displayName="Logout Type" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.Integer" dict="auth/logout-type"/>
         </prop>
-        <prop name="logoutBy" displayName="退出操作人" i18n-en:displayName="Logout By" queryable="true" sortable="true"
-              insertable="true" updatable="false">
+        <prop name="logoutBy" displayName="退出操作人" propId="13" i18n-en:displayName="Logout By" queryable="true"
+              sortable="true" insertable="true" updatable="false">
             <schema domain="userName" type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="lastAccessTime" displayName="最后访问时间" i18n-en:displayName="Last Access Time" tagSet="clock"
-              queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
+        <prop name="lastAccessTime" displayName="最后访问时间" propId="14" i18n-en:displayName="Last Access Time"
+              tagSet="clock" queryable="true" sortable="true" insertable="true" updatable="false" internal="true"
+              ui:show="X">
             <schema type="java.time.LocalDateTime"/>
         </prop>
-        <prop name="accessToken" displayName="访问令牌" i18n-en:displayName="Access Token" queryable="true" sortable="true"
-              insertable="true" updatable="false" internal="true" ui:show="X">
-            <schema type="java.lang.String" precision="500"/>
-        </prop>
-        <prop name="refreshToken" displayName="刷新令牌" i18n-en:displayName="Refresh Token" queryable="true"
+        <prop name="accessToken" displayName="访问令牌" propId="15" i18n-en:displayName="Access Token" queryable="true"
               sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="500"/>
         </prop>
-        <prop name="cacheData" displayName="缓存数据" i18n-en:displayName="Cache Data" tagSet="not-pub" published="false"
-              queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
+        <prop name="refreshToken" displayName="刷新令牌" propId="16" i18n-en:displayName="Refresh Token" queryable="true"
+              sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
+            <schema type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="cacheData" displayName="缓存数据" propId="17" i18n-en:displayName="Cache Data" tagSet="not-pub"
+              published="false" queryable="true" sortable="true" insertable="true" updatable="false" internal="true"
+              ui:show="X">
             <schema type="java.lang.String" precision="4000"/>
         </prop>
-        <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
+        <prop name="createdBy" displayName="创建人" propId="18" i18n-en:displayName="Created By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="createdBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
+        <prop name="createTime" displayName="创建时间" propId="19" i18n-en:displayName="Create Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="createTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="remark" displayName="备注" i18n-en:displayName="Remark" queryable="true" sortable="true"
+        <prop name="remark" displayName="备注" propId="20" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="false" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>

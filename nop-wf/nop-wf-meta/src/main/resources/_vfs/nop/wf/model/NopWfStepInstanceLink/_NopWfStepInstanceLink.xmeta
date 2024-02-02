@@ -19,28 +19,28 @@
     <keys/>
 
     <props>
-        <prop name="wfId" displayName="工作流实例ID" i18n-en:displayName="Workflow ID" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false" ext:relation="wfInstance">
+        <prop name="wfId" displayName="工作流实例ID" propId="1" i18n-en:displayName="Workflow ID" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false" ext:relation="wfInstance">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="stepId" displayName="步骤ID" i18n-en:displayName="Step ID" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false" ext:relation="wfStep">
+        <prop name="stepId" displayName="步骤ID" propId="2" i18n-en:displayName="Step ID" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false" ext:relation="wfStep">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="nextStepId" displayName="下一步骤 ID" i18n-en:displayName="Next Step ID" mandatory="true"
+        <prop name="nextStepId" displayName="下一步骤 ID" propId="3" i18n-en:displayName="Next Step ID" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="false" ext:relation="nextWfStep">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="execAction" displayName="执行动作" i18n-en:displayName="EXEC_ACTION" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="execAction" displayName="执行动作" propId="4" i18n-en:displayName="EXEC_ACTION" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema domain="wfAction" type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false">
+        <prop name="createdBy" displayName="创建人" propId="5" i18n-en:displayName="Created By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="createdBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false">
+        <prop name="createTime" displayName="创建时间" propId="6" i18n-en:displayName="Create Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="createTime" type="java.sql.Timestamp"/>
         </prop>
         <prop name="wfInstance" displayName="工作流实例" i18n-en:displayName="Workflow Instance" tagSet="pub,ref-pub"

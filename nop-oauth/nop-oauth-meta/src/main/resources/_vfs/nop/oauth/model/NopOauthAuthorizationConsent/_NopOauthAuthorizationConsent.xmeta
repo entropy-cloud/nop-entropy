@@ -18,16 +18,16 @@
     <keys/>
 
     <props>
-        <prop name="registeredClientId" displayName="注册客户端ID" mandatory="true" queryable="true" sortable="true"
-              insertable="true" updatable="false">
+        <prop name="registeredClientId" displayName="注册客户端ID" propId="1" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="principalName" displayName="客户端名称" mandatory="true" queryable="true" sortable="true"
+        <prop name="principalName" displayName="客户端名称" propId="2" mandatory="true" queryable="true" sortable="true"
               insertable="true" updatable="false">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="authorities" displayName="扩展属性" mandatory="true" queryable="true" sortable="true" insertable="true"
-              updatable="true">
+        <prop name="authorities" displayName="扩展属性" propId="3" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
     </props>

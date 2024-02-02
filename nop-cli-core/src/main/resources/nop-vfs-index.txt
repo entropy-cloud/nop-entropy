@@ -147,7 +147,10 @@
 /nop/schema/xui/form.xdef
 /nop/schema/xui/forms.xdef
 /nop/schema/xui/grid.xdef
+/nop/schema/xui/import.xdef
+/nop/schema/xui/simple-component.xdef
 /nop/schema/xui/store.xdef
+/nop/schema/xui/style-component.xdef
 /nop/schema/xui/xuc.xdef
 /nop/schema/xui/xview.xdef
 /nop/templates/antlr/@init.xrun

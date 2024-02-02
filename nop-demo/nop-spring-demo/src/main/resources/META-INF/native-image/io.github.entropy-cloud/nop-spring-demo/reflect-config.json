@@ -14395,6 +14395,13 @@
         ]
       },
       {
+        "name": "buildLog",
+        "parameterTypes": [
+          "io.nop.dao.api.IEntityDao",
+          "io.nop.api.core.audit.AuditRequest"
+        ]
+      },
+      {
         "name": "doProcess",
         "parameterTypes": [
           "java.util.List"

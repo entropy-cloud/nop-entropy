@@ -18,35 +18,35 @@
     <keys/>
 
     <props>
-        <prop name="lockGroup" displayName="分组" i18n-en:displayName="Lock Group" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false">
+        <prop name="lockGroup" displayName="分组" propId="1" i18n-en:displayName="Lock Group" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="lockName" displayName="锁名称" i18n-en:displayName="Lock Name" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false">
+        <prop name="lockName" displayName="锁名称" propId="2" i18n-en:displayName="Lock Name" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="lockTime" displayName="锁定时间" i18n-en:displayName="Lock Time" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="lockTime" displayName="锁定时间" propId="3" i18n-en:displayName="Lock Time" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="expireAt" displayName="过期时间" i18n-en:displayName="Expire At" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="expireAt" displayName="过期时间" propId="4" i18n-en:displayName="Expire At" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="lockReason" displayName="锁定原因" i18n-en:displayName="Lock Reason" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="lockReason" displayName="锁定原因" propId="5" i18n-en:displayName="Lock Reason" queryable="true"
+              sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="holderId" displayName="锁的持有者" i18n-en:displayName="Holder ID" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="holderId" displayName="锁的持有者" propId="6" i18n-en:displayName="Holder ID" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="holderAdder" displayName="持有者地址" i18n-en:displayName="Holder Addr" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="holderAdder" displayName="持有者地址" propId="7" i18n-en:displayName="Holder Addr" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="appId" displayName="应用ID" i18n-en:displayName="App ID" mandatory="true" queryable="true"
+        <prop name="appId" displayName="应用ID" propId="8" i18n-en:displayName="App ID" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>

@@ -648,7 +648,6 @@
 /nop/schema/conf.xdef
 /nop/schema/data-auth.xdef
 /nop/schema/designer/graph-designer.xdef
-/nop/schema/designer/style.xdef
 /nop/schema/errors.xdef
 /nop/schema/excel/anchor.xdef
 /nop/schema/excel/imp.xdef
@@ -700,7 +699,10 @@
 /nop/schema/xui/form.xdef
 /nop/schema/xui/forms.xdef
 /nop/schema/xui/grid.xdef
+/nop/schema/xui/import.xdef
+/nop/schema/xui/simple-component.xdef
 /nop/schema/xui/store.xdef
+/nop/schema/xui/style-component.xdef
 /nop/schema/xui/xuc.xdef
 /nop/schema/xui/xview.xdef
 /nop/sys/_module

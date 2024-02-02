@@ -62,7 +62,7 @@
                 let colComp = entityModel.getComponent(col.name + "Component");
                 let jsonCol = colComp != null && colComp.className.$simpleClassName() == 'JsonOrmComponent'
             ]]></c:script>
-            <prop name="${col.name}" displayName="${col.displayName}"
+            <prop name="${col.name}" displayName="${col.displayName}" propId="${col.propId}"
                   i18n-en:displayName="${col['i18n-en:displayName']}" tagSet="${_.join(col.tagSet,',')}"
                   mandatory="${col.mandatory || null}" published="${col.tagSet?.contains('not-pub') ? false:null}"
                   queryable="${col['ext:queryable'] ?? true}" sortable="${col['ext:sortable'] ?? true}"

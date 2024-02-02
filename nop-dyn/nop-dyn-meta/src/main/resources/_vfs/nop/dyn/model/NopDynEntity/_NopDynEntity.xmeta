@@ -21,132 +21,132 @@
     <tree parentProp="nopParentId" childrenProp="nopChildren"/>
 
     <props>
-        <prop name="sid" displayName="主键" i18n-en:displayName="SID" tagSet="seq" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false">
+        <prop name="sid" displayName="主键" propId="1" i18n-en:displayName="SID" tagSet="seq" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="nopObjType" displayName="对象类型" i18n-en:displayName="Object Type" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="nopObjType" displayName="对象类型" propId="2" i18n-en:displayName="Object Type" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="nopName" displayName="名称" i18n-en:displayName="Name" queryable="true" sortable="true"
+        <prop name="nopName" displayName="名称" propId="3" i18n-en:displayName="Name" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="nopDisplayName" displayName="显示名称" i18n-en:displayName="Display Name" queryable="true"
+        <prop name="nopDisplayName" displayName="显示名称" propId="4" i18n-en:displayName="Display Name" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="500"/>
         </prop>
-        <prop name="nopSortOrder" displayName="排序" i18n-en:displayName="Sort Order" queryable="true" sortable="true"
-              insertable="true" updatable="true">
-            <schema type="java.lang.Integer"/>
-        </prop>
-        <prop name="nopFlowId" displayName="工作流实例ID" i18n-en:displayName="Workflow ID" tagSet="var" queryable="true"
+        <prop name="nopSortOrder" displayName="排序" propId="5" i18n-en:displayName="Sort Order" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="32"/>
-        </prop>
-        <prop name="nopStatus" displayName="业务状态码" i18n-en:displayName="Biz Status" queryable="true" sortable="true"
-              insertable="true" updatable="true">
             <schema type="java.lang.Integer"/>
         </prop>
-        <prop name="nopBizState" displayName="业务状态" i18n-en:displayName="Biz State" queryable="true" sortable="true"
-              insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="50"/>
-        </prop>
-        <prop name="nopParentId" displayName="父ID" i18n-en:displayName="Parent ID" tagSet="parent" queryable="true"
-              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X" ui:control="tree-parent"
-              ext:relation="nopParent">
+        <prop name="nopFlowId" displayName="工作流实例ID" propId="6" i18n-en:displayName="Workflow ID" tagSet="var"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="nopOwnerName" displayName="拥有者姓名" i18n-en:displayName="Owner Name" queryable="true" sortable="true"
-              insertable="true" updatable="true" internal="true" ui:show="X">
+        <prop name="nopStatus" displayName="业务状态码" propId="7" i18n-en:displayName="Biz Status" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="nopBizState" displayName="业务状态" propId="8" i18n-en:displayName="Biz State" queryable="true"
+              sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="nopOwnerId" displayName="拥有者ID" i18n-en:displayName="Owner ID" queryable="true" sortable="true"
-              insertable="true" updatable="true" internal="true" ui:show="X">
+        <prop name="nopParentId" displayName="父ID" propId="9" i18n-en:displayName="Parent ID" tagSet="parent"
+              queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ui:show="X"
+              ui:control="tree-parent" ext:relation="nopParent">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="nopOwnerName" displayName="拥有者姓名" propId="10" i18n-en:displayName="Owner Name" queryable="true"
+              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="nopDeptId" displayName="部门ID" i18n-en:displayName="Department ID" queryable="true" sortable="true"
-              insertable="true" updatable="true" internal="true" ui:show="X">
+        <prop name="nopOwnerId" displayName="拥有者ID" propId="11" i18n-en:displayName="Owner ID" queryable="true"
+              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="nopStringFld1" displayName="字符串字段1" i18n-en:displayName="String Field1" queryable="true"
+        <prop name="nopDeptId" displayName="部门ID" propId="12" i18n-en:displayName="Department ID" queryable="true"
+              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="nopStringFld1" displayName="字符串字段1" propId="13" i18n-en:displayName="String Field1" queryable="true"
               sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="4000"/>
         </prop>
-        <prop name="nopDecimalFld1" displayName="浮点型字段1" i18n-en:displayName="Decimal Field1" queryable="true"
-              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
+        <prop name="nopDecimalFld1" displayName="浮点型字段1" propId="14" i18n-en:displayName="Decimal Field1"
+              queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.math.BigDecimal" precision="30" scale="6"/>
         </prop>
-        <prop name="nopIntFld1" displayName="整数型字段1" i18n-en:displayName="Integer Field1" queryable="true"
+        <prop name="nopIntFld1" displayName="整数型字段1" propId="15" i18n-en:displayName="Integer Field1" queryable="true"
               sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.lang.Integer"/>
         </prop>
-        <prop name="nopLongFld1" displayName="长整型字段1" i18n-en:displayName="Long Field1" queryable="true" sortable="true"
-              insertable="true" updatable="true" internal="true" ui:show="X">
+        <prop name="nopLongFld1" displayName="长整型字段1" propId="16" i18n-en:displayName="Long Field1" queryable="true"
+              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.lang.Long"/>
         </prop>
-        <prop name="nopDateFld1" displayName="日期字段1" i18n-en:displayName="Date Field1" queryable="true" sortable="true"
-              insertable="true" updatable="true" internal="true" ui:show="X">
+        <prop name="nopDateFld1" displayName="日期字段1" propId="17" i18n-en:displayName="Date Field1" queryable="true"
+              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.time.LocalDate"/>
         </prop>
-        <prop name="nopTimestampFld1" displayName="时间戳字段1" i18n-en:displayName="Timestamp Field1" queryable="true"
-              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
+        <prop name="nopTimestampFld1" displayName="时间戳字段1" propId="18" i18n-en:displayName="Timestamp Field1"
+              queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="nopFileFld1" displayName="文件字段1" i18n-en:displayName="File Field1" queryable="true" sortable="true"
-              insertable="true" updatable="true" internal="true" ui:show="X">
+        <prop name="nopFileFld1" displayName="文件字段1" propId="19" i18n-en:displayName="File Field1" queryable="true"
+              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema stdDomain="file" domain="file" type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="nopStringFld2" displayName="字符串字段2" i18n-en:displayName="String Field2" queryable="true"
+        <prop name="nopStringFld2" displayName="字符串字段2" propId="20" i18n-en:displayName="String Field2" queryable="true"
               sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="4000"/>
         </prop>
-        <prop name="nopDecimalFld2" displayName="浮点型字段2" i18n-en:displayName="Decimal Field2" queryable="true"
-              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
+        <prop name="nopDecimalFld2" displayName="浮点型字段2" propId="21" i18n-en:displayName="Decimal Field2"
+              queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.math.BigDecimal" precision="30" scale="6"/>
         </prop>
-        <prop name="nopIntFld2" displayName="整数型字段2" i18n-en:displayName="Integer Field2" queryable="true"
+        <prop name="nopIntFld2" displayName="整数型字段2" propId="22" i18n-en:displayName="Integer Field2" queryable="true"
               sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.lang.Integer"/>
         </prop>
-        <prop name="nopLongFld2" displayName="长整型字段2" i18n-en:displayName="Long Field2" queryable="true" sortable="true"
-              insertable="true" updatable="true" internal="true" ui:show="X">
+        <prop name="nopLongFld2" displayName="长整型字段2" propId="23" i18n-en:displayName="Long Field2" queryable="true"
+              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.lang.Long"/>
         </prop>
-        <prop name="nopDateFld2" displayName="日期字段2" i18n-en:displayName="Date Field2" queryable="true" sortable="true"
-              insertable="true" updatable="true" internal="true" ui:show="X">
+        <prop name="nopDateFld2" displayName="日期字段2" propId="24" i18n-en:displayName="Date Field2" queryable="true"
+              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.time.LocalDate"/>
         </prop>
-        <prop name="nopTimestampFld2" displayName="时间戳字段2" i18n-en:displayName="Timestamp Field2" queryable="true"
-              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
+        <prop name="nopTimestampFld2" displayName="时间戳字段2" propId="25" i18n-en:displayName="Timestamp Field2"
+              queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="nopFileFld2" displayName="文件字段2" i18n-en:displayName="File Field2" queryable="true" sortable="true"
-              insertable="true" updatable="true" internal="true" ui:show="X">
+        <prop name="nopFileFld2" displayName="文件字段2" propId="26" i18n-en:displayName="File Field2" queryable="true"
+              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema stdDomain="file" domain="file" type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
+        <prop name="version" displayName="数据版本" propId="27" i18n-en:displayName="Version" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="version" type="java.lang.Integer"/>
         </prop>
-        <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
+        <prop name="createdBy" displayName="创建人" propId="28" i18n-en:displayName="Created By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="createdBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
+        <prop name="createTime" displayName="创建时间" propId="29" i18n-en:displayName="Create Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="createTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="updatedBy" displayName="修改人" i18n-en:displayName="Updated By" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
+        <prop name="updatedBy" displayName="修改人" propId="30" i18n-en:displayName="Updated By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="updatedBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="updateTime" displayName="修改时间" i18n-en:displayName="Update Time" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
+        <prop name="updateTime" displayName="修改时间" propId="31" i18n-en:displayName="Update Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="remark" displayName="备注" i18n-en:displayName="Remark" queryable="true" sortable="true"
+        <prop name="remark" displayName="备注" propId="32" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="true" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>

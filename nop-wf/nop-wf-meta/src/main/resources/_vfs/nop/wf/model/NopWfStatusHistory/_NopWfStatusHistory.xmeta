@@ -18,52 +18,52 @@
     <keys/>
 
     <props>
-        <prop name="sid" displayName="主键" i18n-en:displayName="SID" tagSet="seq" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
+        <prop name="sid" displayName="主键" propId="1" i18n-en:displayName="SID" tagSet="seq" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="wfId" displayName="主键" i18n-en:displayName="Workflow ID" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true" ext:relation="wfInstance">
+        <prop name="wfId" displayName="主键" propId="2" i18n-en:displayName="Workflow ID" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="wfInstance">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="fromStatus" displayName="源状态" i18n-en:displayName="From Status" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="fromStatus" displayName="源状态" propId="3" i18n-en:displayName="From Status" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer" dict="wf/wf-status"/>
         </prop>
-        <prop name="toStatus" displayName="目标状态" i18n-en:displayName="To Status" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="toStatus" displayName="目标状态" propId="4" i18n-en:displayName="To Status" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer" dict="wf/wf-status"/>
         </prop>
-        <prop name="toAppState" displayName="目标应用状态" i18n-en:displayName="To App State" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="toAppState" displayName="目标应用状态" propId="6" i18n-en:displayName="To App State" queryable="true"
+              sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="changeTime" displayName="状态变动时间" i18n-en:displayName="Change Time" tagSet="clock" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true">
+        <prop name="changeTime" displayName="状态变动时间" propId="7" i18n-en:displayName="Change Time" tagSet="clock"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="operatorId" displayName="操作者ID" i18n-en:displayName="Operator ID" queryable="true" sortable="true"
-              insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="50"/>
-        </prop>
-        <prop name="operatorName" displayName="操作者" i18n-en:displayName="Operator Name" queryable="true" sortable="true"
-              insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="50"/>
-        </prop>
-        <prop name="operatorDeptId" displayName="操作者部门ID" i18n-en:displayName="Operator Dept ID" queryable="true"
+        <prop name="operatorId" displayName="操作者ID" propId="8" i18n-en:displayName="Operator ID" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
+        <prop name="operatorName" displayName="操作者" propId="9" i18n-en:displayName="Operator Name" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="operatorDeptId" displayName="操作者部门ID" propId="10" i18n-en:displayName="Operator Dept ID"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="11" i18n-en:displayName="Version" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="version" type="java.lang.Integer"/>
         </prop>
-        <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false">
+        <prop name="createdBy" displayName="创建人" propId="12" i18n-en:displayName="Created By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="createdBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false">
+        <prop name="createTime" displayName="创建时间" propId="13" i18n-en:displayName="Create Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="createTime" type="java.sql.Timestamp"/>
         </prop>
         <prop name="wfInstance" displayName="工作流实例" i18n-en:displayName="Workflow Instance"

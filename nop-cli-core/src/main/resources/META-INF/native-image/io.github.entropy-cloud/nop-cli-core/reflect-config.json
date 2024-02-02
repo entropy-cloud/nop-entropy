@@ -17209,6 +17209,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "g_excelModelLoaderClass"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "g_excelModelLoaderFactory"
       }
     ],
     "methods": [
@@ -17277,6 +17282,12 @@
         "name": "registerExcelModelLoaderClass",
         "parameterTypes": [
           "java.lang.Class"
+        ]
+      },
+      {
+        "name": "registerExcelModelLoaderFactory",
+        "parameterTypes": [
+          "io.nop.xlang.xdsl.IExcelModelLoaderFactory"
         ]
       },
       {
