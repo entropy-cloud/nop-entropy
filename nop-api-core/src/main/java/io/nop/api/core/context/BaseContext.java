@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
@@ -204,6 +205,18 @@ public class BaseContext implements IContext {
             } finally {
                 BaseContextProvider.contextHolder().set(oldCtx);
             }
+        }
+    }
+
+    @Override
+    public <T> T executeWithContext(Callable<T> task) throws Exception {
+        checkClosed();
+        IContext oldCtx = BaseContextProvider.contextHolder().get();
+        try {
+            BaseContextProvider.contextHolder().set(this);
+            return task.call();
+        } finally {
+            BaseContextProvider.contextHolder().set(oldCtx);
         }
     }
 

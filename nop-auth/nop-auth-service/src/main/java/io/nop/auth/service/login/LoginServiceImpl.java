@@ -272,6 +272,7 @@ public class LoginServiceImpl extends AbstractLoginService {
 
         return context;
     }
+
     @Override
     protected List<RoleInfo> getRoleInfos(IUserContext userContext) {
         List<RoleInfo> roleInfos = new ArrayList<>();
@@ -424,6 +425,7 @@ public class LoginServiceImpl extends AbstractLoginService {
         audit.setActionTime(new Timestamp(CoreMetrics.currentTimeMillis()));
         audit.setAction("login");
         audit.setBizObj("LoginApi");
+        audit.setTenantId(ContextProvider.currentTenantId());
 
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("loginType", request.getLoginType());

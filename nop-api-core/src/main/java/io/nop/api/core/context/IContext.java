@@ -12,6 +12,7 @@ import io.nop.api.core.annotations.core.NoReflection;
 import io.nop.api.core.time.CoreMetrics;
 
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
@@ -116,6 +117,12 @@ public interface IContext extends Executor, AutoCloseable {
      * @param task 待执行的任务
      */
     void runOnContext(Runnable task);
+
+    <T> T executeWithContext(Callable<T> task) throws Exception;
+
+    default <T> Callable<T> wrapWithContext(Callable<T> task) {
+        return CallableWithContext.wrapWithContext(this, task);
+    }
 
     /**
      * 如果当前处于执行线程之上，则直接执行，否则放入到context的执行队列中

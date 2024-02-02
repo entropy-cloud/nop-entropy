@@ -116,21 +116,23 @@ public abstract class AbstractLoginService implements ILoginService {
         if (userContext == null)
             return null;
 
-        LoginUserInfo info = new LoginUserInfo();
-        info.setUserName(userContext.getUserName());
-        info.setNickName(userContext.getNickName());
-        info.setLocale(userContext.getLocale());
-        info.setTimeZone(userContext.getTimeZone());
-        info.setTenantId(userContext.getTenantId());
-        info.setRoles(userContext.getRoles());
-        info.setOpenId(userContext.getOpenId());
-        info.setDeptId(userContext.getDeptId());
-        info.setRoleInfos(getRoleInfos(userContext));
+        return ContextProvider.runWithTenant(userContext.getTenantId(),()->{
+            LoginUserInfo info = new LoginUserInfo();
+            info.setUserName(userContext.getUserName());
+            info.setNickName(userContext.getNickName());
+            info.setLocale(userContext.getLocale());
+            info.setTimeZone(userContext.getTimeZone());
+            info.setTenantId(userContext.getTenantId());
+            info.setRoles(userContext.getRoles());
+            info.setOpenId(userContext.getOpenId());
+            info.setDeptId(userContext.getDeptId());
+            info.setRoleInfos(getRoleInfos(userContext));
 
-        if (isReturnUserId()) {
-            info.setUserId(userContext.getUserId());
-        }
-        return info;
+            if (isReturnUserId()) {
+                info.setUserId(userContext.getUserId());
+            }
+            return info;
+        });
     }
 
     protected List<RoleInfo> getRoleInfos(IUserContext userContext) {

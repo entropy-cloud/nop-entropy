@@ -11,13 +11,13 @@ import io.nop.api.core.ApiConstants;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
-import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.exceptions.NopLoginException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.api.core.util.Guard;
 import io.nop.auth.api.AuthApiConstants;
 import io.nop.auth.api.messages.InternalLoginRequest;
 import io.nop.auth.api.messages.LoginRequest;
@@ -111,8 +111,11 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
             return handlePublicPath(routeContext, next);
         }
 
+        IContext ctx = routeContext.getContext();
+        Guard.notNull(ctx, "context not inited");
+
         // 耗时的操作不能在IO线程上执行
-        return routeContext.executeBlocking(() -> {
+        return routeContext.executeBlocking(ctx.wrapWithContext(() -> {
 
             try {
                 if (logoutPath)
@@ -148,7 +151,7 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
                 handleError(routeContext, ex, servicePath);
                 throw NopException.adapt(ex);
             }
-        }).thenApply(v -> null);
+        })).thenApply(v -> null);
     }
 
     protected CompletionStage<Void> processOAuthCode(IHttpServerContext routeContext, boolean servicePath,
@@ -239,31 +242,28 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
 
         AuthMDCHelper.bindMDC(userContext);
 
+        CompletableFuture<Void> future = new CompletableFuture<>();
         try {
-            if (needRefresh) {
-                String accessToken = loginService.refreshToken(userContext, authToken);
-                // 如果不支持刷新，则可能返回null
-                if (accessToken != null) {
-                    routeContext.setResponseHeader(IHttpServerContext.HEADER_X_ACCESS_TOKEN, accessToken);
-                    if (config.getAuthCookie() != null) {
-                        addCookie(config.getAuthCookie(), accessToken, routeContext);
-                    }
-                }
-            } else if (config.getAuthCookie() != null && authToken != null) {
-                // 如果cookie不一致，则增加cookie
-                if (!authToken.getToken().equals(getAuthTokenFromCookie(routeContext)))
-                    addCookie(config.getAuthCookie(), authToken.getToken(), routeContext);
-            }
-
-            CompletableFuture<Void> future = new CompletableFuture<>();
             // runOnContext会创建一个任务队列。如果异步调用过程中使用了同步等待，则内部实现会利用任务队列来避免出现死锁。
             ctx.runOnContext(() -> {
-                CompletionStage<Void> promise = next.get().whenComplete((v, e) -> {
-                    try {
-                        loginService.flushUserContextAsync(userContext);
-                    } finally {
-                        ctx.close();
+                if (needRefresh) {
+                    String accessToken = loginService.refreshToken(userContext, authToken);
+                    // 如果不支持刷新，则可能返回null
+                    if (accessToken != null) {
+                        routeContext.setResponseHeader(IHttpServerContext.HEADER_X_ACCESS_TOKEN, accessToken);
+                        if (config.getAuthCookie() != null) {
+                            addCookie(config.getAuthCookie(), accessToken, routeContext);
+                        }
                     }
+                } else if (config.getAuthCookie() != null && authToken != null) {
+                    // 如果cookie不一致，则增加cookie
+                    if (!authToken.getToken().equals(getAuthTokenFromCookie(routeContext)))
+                        addCookie(config.getAuthCookie(), authToken.getToken(), routeContext);
+                }
+
+
+                CompletionStage<Void> promise = next.get().whenComplete((v, e) -> {
+                    loginService.flushUserContextAsync(userContext);
                 });
                 FutureHelper.bindResult(promise, future);
             });
@@ -424,8 +424,7 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
             ApiHeaders.checkLocaleFormat(locale);
         }
 
-        IContext ctx = ContextProvider.getOrCreateContext();
-        context.setContext(ctx);
+        IContext ctx = context.getContext();
         ctx.setUserId(userContext.getUserId());
         ctx.setUserName(userContext.getUserName());
         ctx.setTenantId(userContext.getTenantId());

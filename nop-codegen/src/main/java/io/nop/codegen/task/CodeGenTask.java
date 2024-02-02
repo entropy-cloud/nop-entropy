@@ -102,7 +102,7 @@ public class CodeGenTask {
         CoreInitialization.initialize();
 
         try {
-            if (logLevel != null)
+            if (logLevel != null && LoggerConfigurator.isInitialized())
                 LoggerConfigurator.instance().changeLogLevel(null, logLevel);
 
             String tplRootPathUrl = FileHelper.getFileUrl(tplRootPath);

@@ -38,6 +38,8 @@ public class AuditRequest extends ExtensibleBean {
     private String sessionId;
     private long usedTime;
 
+    private String tenantId;
+
     public static AuditRequest newRequest(String bizObj, String action, String entityId, IUserContext userContext) {
         AuditRequest req = new AuditRequest();
         req.setBizObj(bizObj);
@@ -45,7 +47,16 @@ public class AuditRequest extends ExtensibleBean {
         req.setEntityId(entityId);
         req.setUserName(userContext.getUserName());
         req.setSessionId(userContext.getSessionId());
+        req.setTenantId(userContext.getTenantId());
         return req;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 
     public long getUsedTime() {

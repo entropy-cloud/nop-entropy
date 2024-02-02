@@ -33,6 +33,7 @@ public class ContextHttpServerFilter implements IHttpServerFilter {
     @Override
     public CompletionStage<Void> filterAsync(IHttpServerContext context, Supplier<CompletionStage<Void>> next) {
         IContext ctx = ContextProvider.newContext();
+        context.setContext(ctx);
         initContext(ctx, context);
 
         MDC.put(ApiConstants.MDC_NOP_TRACE, ctx.getTraceId());
