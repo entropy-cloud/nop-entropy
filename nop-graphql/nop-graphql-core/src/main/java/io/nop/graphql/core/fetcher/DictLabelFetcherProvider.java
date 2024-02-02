@@ -56,6 +56,10 @@ public class DictLabelFetcherProvider implements IDataFetcherProvider {
             if (CFG_GRAPHQL_CHECK_DICT_WHEN_INIT.get() && !DictProvider.instance().existsDict(dictName))
                 throw new NopException(ERR_GRAPHQL_UNKNOWN_DICT).source(fieldDef).param(ARG_DICT_NAME, dictName);
 
+            // BeanPropertyFetcher使用的是上下文中的字段名，所以不能使用
+            if (fetcher == BeanPropertyFetcher.INSTANCE)
+                fetcher = new SpecificPropertyFetcher(valueProp.getName());
+
             fetcher = new TransformFetcher(fetcher, loadLabel(dictName));
 
             fieldDef.setFetcher(fetcher);
@@ -66,9 +70,9 @@ public class DictLabelFetcherProvider implements IDataFetcherProvider {
     static BiFunction<Object, IDataFetchingEnvironment, Object> loadLabel(String dictName) {
         return (value, env) -> {
             String locale = env.getExecutionContext().getContext().getLocale();
-            DictBean dict = DictProvider.instance().getDict(locale, dictName, env.getCache(),env.getExecutionContext());
+            DictBean dict = DictProvider.instance().getDict(locale, dictName, env.getCache(), env.getExecutionContext());
             if (dict == null)
-                return StringHelper.toString(value,null);
+                return StringHelper.toString(value, null);
             return dict.getLabelByValue(value);
         };
     }

@@ -7,7 +7,6 @@
  */
 package io.nop.rule.service.entity;
 
-import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.config.AppConfig;
 import io.nop.core.CoreConfigs;
 import io.nop.core.CoreConstants;
