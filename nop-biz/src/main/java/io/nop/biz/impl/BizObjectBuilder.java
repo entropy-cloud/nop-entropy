@@ -52,8 +52,10 @@ import static io.nop.biz.BizErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.biz.BizErrors.ARG_META_PATH;
 import static io.nop.biz.BizErrors.ERR_BIZ_INVALID_BIZ_OBJ_NAME;
 import static io.nop.biz.BizErrors.ERR_BIZ_MISSING_META_FILE_FOR_OBJ;
+import static io.nop.biz.BizErrors.ERR_BIZ_OPERATION_NO_IMPL_ACTION;
 import static io.nop.biz.BizErrors.ERR_BIZ_STATE_MACHINE_NO_STATE_PROP;
 import static io.nop.biz.BizErrors.ERR_BIZ_UNKNOWN_BIZ_OBJ_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_OPERATION_NAME;
 
 /**
  * 对于/nop/auth/model/NopAuthUser_admin.xbiz，允许三种情况 1. 存在NopAuthUser_admin.xbiz文件，可能存在xmeta文件 2.
@@ -159,11 +161,22 @@ public class BizObjectBuilder {
             }
         }
 
+        checkOperations(bizObj);
+
         // 如果没有字段定义，则不支持GraphQL selection语法返回数据
         if (objDef.getFields().isEmpty())
             bizObj.setObjectDefinition(null);
 
         return bizObj;
+    }
+
+    private void checkOperations(BizObjectImpl bizObj) {
+        for (GraphQLFieldDefinition fieldDef : bizObj.getOperations().values()) {
+            if (fieldDef.getServiceAction() == null)
+                throw new NopException(ERR_BIZ_OPERATION_NO_IMPL_ACTION)
+                        .source(fieldDef).param(ARG_BIZ_OBJ_NAME, bizObj.getBizObjName())
+                        .param(ARG_OPERATION_NAME, fieldDef.getOperationName());
+        }
     }
 
     private void resolveBizExpr(QueryBean query, IDataFetchingEnvironment env) {

@@ -10,7 +10,6 @@
       "locale": "zh-CN",
       "nickName": "autoTestNick",
       "openId": "@var:NopAuthUser@openId",
-      "roles": [],
       "tenantId": "0",
       "timeZone": null,
       "userId": "@var:NopAuthUser@userId",

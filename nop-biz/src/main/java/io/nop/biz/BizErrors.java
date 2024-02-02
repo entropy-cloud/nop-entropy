@@ -193,4 +193,7 @@ public interface BizErrors {
     ErrorCode ERR_BIZ_PROP_NOT_MANY_TO_MANY_REF =
             define("nop.err.biz.prop-not-many-to-many-ref", "属性[{propName}]不是多对多关联属性",
                     ARG_BIZ_OBJ_NAME, ARG_PROP_NAME);
+
+    ErrorCode ERR_BIZ_OPERATION_NO_IMPL_ACTION =
+            define("nop.err.biz.operation-no-impl-action", "服务函数[{operationName}]没有提供实现函数");
 }

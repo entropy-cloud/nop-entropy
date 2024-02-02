@@ -20,15 +20,31 @@ public class BizObjectBuildHelper {
         bizModel.getMutationActions().forEach((name, action) -> {
             buildFetcher(action, collectors);
             // 如果xbiz文件中已经定义，则忽略java类上的定义
-            if (bizObj.isAllowInheritAction(name) && !bizObj.getOperations().containsKey(name)) {
-                bizObj.addOperation(name, action);
+            if (bizObj.isAllowInheritAction(name)) {
+                GraphQLFieldDefinition op = bizObj.getOperations().get(name);
+                if (op == null) {
+                    bizObj.addOperation(name, action);
+                } else {
+                    if (op.getServiceAction() == null) {
+                        op.setServiceAction(action.getServiceAction());
+                        op.setFetcher(action.getFetcher());
+                    }
+                }
             }
         });
 
         bizModel.getQueryActions().forEach((name, action) -> {
             buildFetcher(action, collectors);
-            if (bizObj.isAllowInheritAction(name) && !bizObj.getOperations().containsKey(name)) {
-                bizObj.addOperation(name, action);
+            if (bizObj.isAllowInheritAction(name)) {
+                GraphQLFieldDefinition op = bizObj.getOperations().get(name);
+                if (op == null) {
+                    bizObj.addOperation(name, action);
+                } else {
+                    if (op.getServiceAction() == null) {
+                        op.setServiceAction(action.getServiceAction());
+                        op.setFetcher(action.getFetcher());
+                    }
+                }
             }
         });
 
@@ -41,8 +57,12 @@ public class BizObjectBuildHelper {
     }
 
     private static void buildFetcher(GraphQLFieldDefinition field, List<IActionDecoratorCollector> collectors) {
-        List<IServiceActionDecorator> decorators = buildDecorators(field.getFunctionModel(), collectors);
         IServiceAction action = field.getServiceAction();
+        if (action == null)
+            return;
+
+        List<IServiceActionDecorator> decorators = buildDecorators(field.getFunctionModel(), collectors);
+
         for (IServiceActionDecorator decorator : decorators) {
             action = decorator.decorate(action);
         }

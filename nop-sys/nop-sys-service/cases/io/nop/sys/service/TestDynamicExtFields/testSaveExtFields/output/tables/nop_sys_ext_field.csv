@@ -1,2 +1,2 @@
 _chgType,ENTITY_NAME,ENTITY_ID,FIELD_NAME,FIELD_TYPE,DECIMAL_SCALE,DECIMAL_VALUE,DATE_VALUE,TIMESTAMP_VALUE,STRING_VALUE,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME,REMARK
-A,io.nop.sys.dao.entity.NopSysCodeRule,@var:NopSysCodeRule@sid,fldA,11,,,,,xyz,0,autotest-ref,*,autotest-ref,*,
+A,io.nop.sys.dao.entity.NopSysCodeRule,@var:NopSysExtField@entityId,fldA,11,,,,,xyz,0,autotest-ref,*,autotest-ref,*,

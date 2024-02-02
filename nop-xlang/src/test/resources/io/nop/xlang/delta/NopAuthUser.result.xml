@@ -4,7 +4,9 @@
             <arg name="query" type="io.nop.api.core.beans.query.QueryBean"/>
             <arg name="selection" type="io.nop.api.core.beans.FieldSelectionBean" kind="FieldSelection"/>
             <arg name="svcCtx" type="io.nop.core.context.IServiceContext" kind="ServiceContext"/>
-            <return type="PageBean&lt;io.nop.auth.dao.entity.NopAuthUser&gt;"/>
+            <return type="PageBean&lt;io.nop.auth.dao.entity.NopAuthUser&gt;">
+                <schema bizObjName="NopAuthUser"/>
+            </return>
             <source>
                 <c:script>
                     import io.nop.auth.api.AuthApiConstants;

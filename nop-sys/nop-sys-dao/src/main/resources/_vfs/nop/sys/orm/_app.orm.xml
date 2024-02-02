@@ -391,7 +391,7 @@
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Entity Name"/>
                 <column code="ENTITY_ID" displayName="实体ID" mandatory="true" name="entityId" precision="100"
-                        primary="true" propId="2" stdDataType="string" stdSqlType="VARCHAR"
+                        primary="true" propId="2" stdDataType="string" stdSqlType="VARCHAR" tagSet="var"
                         i18n-en:displayName="Entity ID"/>
                 <column code="FIELD_NAME" displayName="字段名" mandatory="true" name="fieldName" precision="100"
                         primary="true" propId="3" stdDataType="string" stdSqlType="VARCHAR"

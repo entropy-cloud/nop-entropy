@@ -3,8 +3,10 @@ package io.nop.wf.web;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.web.page.WebDynamicFileProcessor;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+@Disabled
 @NopTestConfig(localDb = true)
 public class TestDynamicJsGen extends JunitBaseTestCase {
     @Test

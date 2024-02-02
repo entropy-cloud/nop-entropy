@@ -57,7 +57,7 @@ public class TestCheckFieldAuth extends JunitBaseTestCase {
             assertTrue(false);
         } catch (NopException e) {
             e.printStackTrace();
-            assertEquals(AuthApiErrors.ERR_AUTH_NO_PERMISSION.getErrorCode(), e.getErrorCode());
+            assertEquals(AuthApiErrors.ERR_AUTH_NO_PERMISSION_FOR_FIELD.getErrorCode(), e.getErrorCode());
         }
 
         userContext.setRoles(CollectionHelper.buildImmutableSet("manager"));

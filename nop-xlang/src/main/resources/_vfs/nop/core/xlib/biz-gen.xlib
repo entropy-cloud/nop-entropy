@@ -58,7 +58,9 @@
 
                             <arg name="svcCtx" type="io.nop.core.context.IServiceContext" kind="ServiceContext"/>
 
-                            <return type="PageBean&lt;${entityName}>"/>
+                            <return type="PageBean&lt;${entityName}>">
+                                <schema bizObjName="${entityName.$simpleClassName()}" />
+                            </return>
                         </query>
 
                         <query name="findPage" xdsl:prototype="findPageBase" xdsl:abstract="true">
@@ -82,7 +84,9 @@
 
                             <arg name="svcCtx" type="io.nop.core.context.IServiceContext" kind="ServiceContext"/>
 
-                            <return type="${entityName}"/>
+                            <return type="${entityName}">
+                                <schema bizObjName="${entityName.$simpleClassName()}" />
+                            </return>
                         </query>
 
                         <query name="batchGet" xdsl:abstract="true">
@@ -93,7 +97,9 @@
 
                             <arg name="svcCtx" type="io.nop.core.context.IServiceContext" kind="ServiceContext"/>
 
-                            <return type="List&lt;${entityName}>"/>
+                            <return type="List&lt;${entityName}>">
+                                <schema bizObjName="${entityName.$simpleClassName()}" />
+                            </return>
                         </query>
 
                         <mutation name="delete" xdsl:abstract="true">
@@ -111,7 +117,9 @@
 
                             <arg name="svcCtx" type="io.nop.core.context.IServiceContext" kind="ServiceContext"/>
 
-                            <return type="${entityName}>"/>
+                            <return type="${entityName}>">
+                                <schema bizObjName="${entityName.$simpleClassName()}" />
+                            </return>
                         </mutation>
 
                         <mutation name="update" xdsl:abstract="true">
@@ -122,7 +130,9 @@
 
                             <arg name="svcCtx" type="io.nop.core.context.IServiceContext" kind="ServiceContext"/>
 
-                            <return type="${entityName}>"/>
+                            <return type="${entityName}">
+                                <schema bizObjName="${entityName.$simpleClassName()}" />
+                            </return>
                         </mutation>
                     </actions>
                 </biz>

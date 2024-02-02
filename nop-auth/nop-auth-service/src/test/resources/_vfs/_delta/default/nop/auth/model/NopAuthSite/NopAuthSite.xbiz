@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<biz x:extends="super" x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     xmlns:xpl="xpl" xmlns:bo="bo">
+
+    <actions>
+        <query name="findList">
+            <auth roles="user" />
+        </query>
+
+        <mutation name="update">
+            <auth roles="user" />
+        </mutation>
+    </actions>
+</biz>

@@ -22,8 +22,8 @@
               sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="entityId" displayName="实体ID" i18n-en:displayName="Entity ID" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false">
+        <prop name="entityId" displayName="实体ID" i18n-en:displayName="Entity ID" tagSet="var" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="100"/>
         </prop>
         <prop name="fieldName" displayName="字段名" i18n-en:displayName="Field Name" mandatory="true" queryable="true"

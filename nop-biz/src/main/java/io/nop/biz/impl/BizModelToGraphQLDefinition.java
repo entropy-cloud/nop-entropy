@@ -88,7 +88,8 @@ public class BizModelToGraphQLDefinition {
             action = decorator.decorate(action);
         }
         field.setServiceAction(action);
-        field.setFetcher(new ServiceActionFetcher(action));
+        if (action != null)
+            field.setFetcher(new ServiceActionFetcher(action));
 
         if (actionModel.getMakerChecker() != null) {
             String tryMethod = actionModel.getMakerChecker().getTryMethod();
@@ -121,7 +122,7 @@ public class BizModelToGraphQLDefinition {
     public IServiceAction buildAction(BizActionModel actionModel, IServiceActionArgBuilder thisObjBuilder) {
         IEvalAction source = actionModel.getSource();
         if (source == null)
-            source = ctx -> null;
+            return null;
 
         // 保持参数获取顺序
         Map<String, IServiceActionArgBuilder> argBuilders = new LinkedHashMap<>();

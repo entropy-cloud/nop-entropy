@@ -18,9 +18,9 @@ import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.sys.dao.entity.NopSysCodeRule;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
-import jakarta.inject.Inject;
 import java.sql.Timestamp;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = true)
