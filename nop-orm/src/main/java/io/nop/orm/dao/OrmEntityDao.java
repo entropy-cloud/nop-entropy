@@ -7,6 +7,7 @@
  */
 package io.nop.orm.dao;
 
+import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
@@ -23,7 +24,12 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dao.api.IEntityDaoExtension;
 import io.nop.dao.exceptions.UnknownEntityException;
-import io.nop.orm.*;
+import io.nop.orm.IOrmBatchLoadQueue;
+import io.nop.orm.IOrmEntity;
+import io.nop.orm.IOrmSession;
+import io.nop.orm.IOrmTemplate;
+import io.nop.orm.OrmConstants;
+import io.nop.orm.OrmEntityState;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
@@ -31,9 +37,22 @@ import io.nop.orm.model.IEntityRelationModel;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import static io.nop.orm.OrmErrors.*;
+import static io.nop.orm.OrmErrors.ARG_DAO_ENTITY_NAME;
+import static io.nop.orm.OrmErrors.ARG_ENTITY;
+import static io.nop.orm.OrmErrors.ARG_ENTITY_ID;
+import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
+import static io.nop.orm.OrmErrors.ARG_PROP_NAME;
+import static io.nop.orm.OrmErrors.ERR_DAO_PROP_NOT_TO_ONE_RELATION;
+import static io.nop.orm.OrmErrors.ERR_ORM_DAO_ENTITY_NAME_NOT_FOR_DAO;
+import static io.nop.orm.OrmErrors.ERR_ORM_UPDATE_ENTITY_NOT_MANAGED;
+import static io.nop.orm.OrmErrors.ERR_ORM_UPDATE_ENTITY_NO_CURRENT_SESSION;
 
 public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
     private IOrmTemplate ormTemplate;
@@ -649,6 +668,11 @@ public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
     @Override
     public void batchLoadProps(Collection<T> entities, Collection<String> propNames) {
         orm().batchLoadProps(entities, propNames);
+    }
+
+    @Override
+    public void batchLoadSelection(Collection<T> entities, FieldSelectionBean selectionBean) {
+        orm().batchLoadSelection(entities, selectionBean);
     }
 
     @Override

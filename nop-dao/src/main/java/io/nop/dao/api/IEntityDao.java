@@ -7,6 +7,7 @@
  */
 package io.nop.dao.api;
 
+import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
@@ -274,6 +275,8 @@ public interface IEntityDao<T extends IDaoEntity> {
     default void batchLoadPropsForEntity(T entity, String... propNames) {
         batchLoadProps(Collections.singleton(entity), Arrays.asList(propNames));
     }
+
+    void batchLoadSelection(Collection<T> entities, FieldSelectionBean selectionBean);
 
     /**
      * 将一级缓存中的修改刷新到数据库中
