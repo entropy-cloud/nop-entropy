@@ -95,6 +95,9 @@ public boolean delete(@Name("id") @Description("@i18n:biz.id|对象的主键标�
 ## 公开访问
 如果`@Auth`注解或者xbiz中的auth配置指定了publicAccess=true，则该方法为公开可访问方法，会自动跳过操作权限检查。但是数据权限仍然会应用。
 
+所有的用户都自动具有角色user，所以如果配置`@Auth(roles="user")`则表示允许所有登录用户访问。这种方式与publicAccess的区别在于，如果标记为
+publicAccess的方法不会检查当前访问用户是否已经登录。
+
 # 操作权限检查接口
 
 系统通过`IActionAuthChecker`接口来检查操作权限。
