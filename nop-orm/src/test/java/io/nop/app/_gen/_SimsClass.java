@@ -80,8 +80,12 @@ public class _SimsClass extends DynamicOrmEntity{
     public static final String PROP_NAME_jsonExt = "jsonExt";
     public static final int PROP_ID_jsonExt = 101;
     
+    /* : BYTE_FIELD TINYINT */
+    public static final String PROP_NAME_byteField = "byteField";
+    public static final int PROP_ID_byteField = 102;
+    
 
-    private static int _PROP_ID_BOUND = 102;
+    private static int _PROP_ID_BOUND = 103;
 
     
     /* relation:  */
@@ -100,7 +104,7 @@ public class _SimsClass extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_classId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_classId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[102];
+    private static final String[] PROP_ID_TO_NAME = new String[103];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -149,6 +153,9 @@ public class _SimsClass extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_jsonExt] = PROP_NAME_jsonExt;
           PROP_NAME_TO_ID.put(PROP_NAME_jsonExt, PROP_ID_jsonExt);
       
+          PROP_ID_TO_NAME[PROP_ID_byteField] = PROP_NAME_byteField;
+          PROP_NAME_TO_ID.put(PROP_NAME_byteField, PROP_ID_byteField);
+      
     }
 
     
@@ -196,6 +203,9 @@ public class _SimsClass extends DynamicOrmEntity{
     
     /* : JSON_EXT */
     private java.lang.Object _jsonExt;
+    
+    /* : BYTE_FIELD */
+    private java.lang.Integer _byteField;
     
 
     public _SimsClass(){
@@ -312,6 +322,9 @@ public class _SimsClass extends DynamicOrmEntity{
         
             case PROP_ID_jsonExt:
                return getJsonExt();
+        
+            case PROP_ID_byteField:
+               return getByteField();
         
            default:
               return super.orm_propValue(propId);
@@ -474,6 +487,16 @@ public class _SimsClass extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_byteField:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_byteField));
+               }
+               setByteField(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -584,6 +607,13 @@ public class _SimsClass extends DynamicOrmEntity{
             case PROP_ID_jsonExt:{
                onInitProp(propId);
                this._jsonExt = (java.lang.Object)value;
+               
+               break;
+            }
+        
+            case PROP_ID_byteField:{
+               onInitProp(propId);
+               this._byteField = (java.lang.Integer)value;
                
                break;
             }
@@ -875,6 +905,25 @@ public class _SimsClass extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_jsonExt,value)){
             this._jsonExt = value;
             internalClearRefs(PROP_ID_jsonExt);
+            
+        }
+    }
+    
+    /**
+     * : BYTE_FIELD
+     */
+    public java.lang.Integer getByteField(){
+         onPropGet(PROP_ID_byteField);
+         return _byteField;
+    }
+
+    /**
+     * : BYTE_FIELD
+     */
+    public void setByteField(java.lang.Integer value){
+        if(onPropSet(PROP_ID_byteField,value)){
+            this._byteField = value;
+            internalClearRefs(PROP_ID_byteField);
             
         }
     }

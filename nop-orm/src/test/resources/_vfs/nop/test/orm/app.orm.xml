@@ -28,6 +28,7 @@
                 <column name="collegeId" propId="100" lazy="true"/>
                 <column name="jsonExt" code="JSON_EXT" propId="101" tagSet="json" stdSqlType="JSON"
                         precision="4000"/>
+                <column name="byteField" code="BYTE_FIELD" propId="102" stdSqlType="TINYINT" stdDataType="int" />
             </columns>
             <aliases>
                 <alias name="collegeName" propPath="simsCollege.collegeName" type="String"/>

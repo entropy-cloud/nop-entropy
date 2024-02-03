@@ -82,11 +82,20 @@ public class _SimsExam extends DynamicOrmEntity{
     /* relation:  */
     public static final String PROP_NAME_examExt = "examExt";
     
+    /* relation:  */
+    public static final String PROP_NAME_extRefCollege = "extRefCollege";
+    
+    /* relation:  */
+    public static final String PROP_NAME_extRefCollege2 = "extRefCollege2";
+    
     /* alias: examScoreDecimal.normalizedValue  */
     public static final String PROP_NAME_examScoreNormalized = "examScoreNormalized";
     
     /* alias: ext.fldA.string  */
     public static final String PROP_NAME_extFldA = "extFldA";
+    
+    /* alias: ext.fldC.string  */
+    public static final String PROP_NAME_extFldC = "extFldC";
     
     /* component:  */
     public static final String PROP_NAME_examScoreDecimal = "examScoreDecimal";
@@ -804,6 +813,52 @@ public class _SimsExam extends DynamicOrmEntity{
        return _examExt;
     }
        
+    /**
+     * 
+     */
+    public io.nop.app.SimsCollege getExtRefCollege(){
+       return (io.nop.app.SimsCollege)internalGetRefEntity(PROP_NAME_extRefCollege);
+    }
+
+    public void setExtRefCollege(io.nop.app.SimsCollege refEntity){
+   
+           if(refEntity == null){
+           
+                   this.setExtFldC(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_extRefCollege, refEntity,()->{
+           
+                           this.setExtFldC(refEntity.getId());
+                       
+           });
+           }
+       
+    }
+       
+    /**
+     * 
+     */
+    public io.nop.app.SimsCollege getExtRefCollege2(){
+       return (io.nop.app.SimsCollege)internalGetRefEntity(PROP_NAME_extRefCollege2);
+    }
+
+    public void setExtRefCollege2(io.nop.app.SimsCollege refEntity){
+   
+           if(refEntity == null){
+           
+                   this.setExtFldA(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_extRefCollege2, refEntity,()->{
+           
+                           this.setExtFldA(refEntity.getId());
+                       
+           });
+           }
+       
+    }
+       
    public java.math.BigDecimal getExamScoreNormalized(){
       return (java.math.BigDecimal)internalGetAliasValue("examScoreDecimal.normalizedValue");
    }
@@ -818,6 +873,14 @@ public class _SimsExam extends DynamicOrmEntity{
 
    public void setExtFldA(java.lang.String value){
       internalSetAliasValue("ext.fldA.string",value);
+   }
+
+   public java.lang.String getExtFldC(){
+      return (java.lang.String)internalGetAliasValue("ext.fldC.string");
+   }
+
+   public void setExtFldC(java.lang.String value){
+      internalSetAliasValue("ext.fldC.string",value);
    }
 
    private io.nop.orm.component.FloatingScaleDecimal _examScoreDecimal;

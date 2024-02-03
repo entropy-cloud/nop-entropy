@@ -166,6 +166,7 @@ public class OrmModelInitializer {
                                 .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_COL_NAME, col.getName())
                                 .param(ARG_DATA_TYPE, col.getStdDataType())
                                 .param(ARG_DOMAIN_DATA_TYPE, domainModel.getStdDataType());
+                    col.setStdDataType(domainModel.getStdDataType());
                 }
 
                 if (domainModel.getPrecision() != null && col.getPrecision() == null) {

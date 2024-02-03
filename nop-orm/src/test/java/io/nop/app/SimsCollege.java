@@ -13,4 +13,12 @@ public class SimsCollege extends _SimsCollege {
     public SimsCollege() {
     }
 
+    public String getId(){
+        return getCollegeId();
+    }
+
+    public void setId(String id){
+        setCollegeId(id);
+    }
+
 }
