@@ -12,6 +12,7 @@ import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.directive.Auth;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.core.context.IServiceContext;
@@ -22,6 +23,7 @@ import io.nop.core.dict.DictProvider;
 public class DictProviderBizModel {
 
     @BizQuery
+    @Auth(roles = "user")
     @Description("获取字典")
     public DictBean getDict(@Name("dictName") String dictName, IServiceContext context) {
         String locale = ContextProvider.currentLocale();

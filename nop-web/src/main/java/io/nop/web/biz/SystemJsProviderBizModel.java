@@ -11,6 +11,7 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.directive.Auth;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.beans.WebContentBean;
 import io.nop.api.core.exceptions.NopException;
@@ -32,6 +33,7 @@ public class SystemJsProviderBizModel {
     boolean editEnabled;
 
     @BizQuery
+    @Auth(publicAccess = true)
     public WebContentBean getJs(@Name("path") String path, IServiceContext context) {
         checkJsFile(path);
         return WebContentBean.js(jsProvider.getJs(path));
