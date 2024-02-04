@@ -7,12 +7,15 @@
  */
 package io.nop.orm.impl;
 
+import io.nop.api.core.annotations.txn.TransactionPropagation;
+import io.nop.core.lang.sql.SQL;
 import io.nop.orm.AbstractOrmTestCase;
 import io.nop.orm.IOrmSessionFactory;
 import io.nop.orm.eql.ICompiledSql;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestOrmTemplate extends AbstractOrmTestCase {
     @Test
@@ -24,7 +27,7 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
         assertEquals("update\n" +
                 "  sims_class\n" +
                 "set \n" +
-                "  CLASS_NAME= 'x' \n",sql.getSql().getText());
+                "  CLASS_NAME= 'x' \n", sql.getSql().getText());
     }
 
     @Test
@@ -36,7 +39,7 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
         assertEquals("update\n" +
                 "  sims_class\n" +
                 "set \n" +
-                "  CLASS_NAME= 'x' \n",sql.getSql().getText());
+                "  CLASS_NAME= 'x' \n", sql.getSql().getText());
     }
 
     @Test
@@ -49,7 +52,7 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
                 "from\n" +
                 "  sims_class\n" +
                 "where \n" +
-                "  CLASS_NAME =  'x' \n",sql.getSql().getText());
+                "  CLASS_NAME =  'x' \n", sql.getSql().getText());
     }
 
     @Test
@@ -62,6 +65,42 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
                 "from\n" +
                 "  sims_class\n" +
                 "where \n" +
-                "  CLASS_NAME =  'x' \n",sql.getSql().getText());
+                "  CLASS_NAME =  'x' \n", sql.getSql().getText());
+    }
+
+    @Test
+    public void testQueryError() {
+        try {
+            orm().runInSession(() -> {
+                SQL sql = SQL.begin().sql("select o from io.nop.app.SimsClass o").end();
+                orm().executeQuery(sql, ds -> {
+                    throw new IllegalStateException("error");
+                });
+            });
+            fail();
+        } catch (IllegalStateException e) {
+            assertEquals("error", e.getMessage());
+        } catch (Exception e) {
+            fail();
+        }
+    }
+
+
+    @Test
+    public void testSupports() {
+        try {
+            txn().runInTransaction(null, TransactionPropagation.SUPPORTS,txn -> {
+                SQL sql = SQL.begin().sql("select o from io.nop.app.SimsClass o").end();
+                orm().executeQuery(sql, ds -> {
+                    throw new IllegalStateException("error");
+                });
+                return null;
+            });
+            fail();
+        } catch (IllegalStateException e) {
+            assertEquals("error", e.getMessage());
+        } catch (Exception e) {
+            fail();
+        }
     }
 }

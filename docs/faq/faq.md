@@ -364,6 +364,10 @@ poi很大，最少有10几M，而且很慢。nop-ooxml-xlsx是利用Nop平台自
 代码生成的时候会特殊识别如下数据域:createdBy 、 updateTime 、 updatedBy 、 delFlagversion 、createTime tenantId 。标记了这些数据域的字段会被自动识别为ORM引擎所支持的乐观锁字段、创建时间字段等。
 数据域不能改，数据库字段名可以改.
 
+## 29. auth模块有没有类似spring security的匿名用户和匿名角色？
+所有登录用户都具有角色user，但是目前没有设计内置的的匿名用户机制。如果有需要，可以继承AuthHttpServerFilter来实现
+
+
 # 部署问题
 
 

@@ -19,6 +19,7 @@ NopORM与Hibernate类似，作为一个完整设计的ORM引擎，它提供了Se
    list.get(0).setName("sss");
    
    List<MyEntity> list2 = dao.findPage(query2);
+   assertTrue(list.get(0) == list2.get(0));
    assertEquals("sss", list2.get(0).getName());
    
    assertEquals("sss", dao.getEntityById(list2.get(0).getId());
