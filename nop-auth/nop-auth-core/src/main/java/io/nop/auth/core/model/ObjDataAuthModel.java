@@ -28,6 +28,10 @@ public class ObjDataAuthModel extends _ObjDataAuthModel {
 
     }
 
+    public void sort(){
+        this.getRoleAuths().sort(RoleDataAuthModel::compareTo);
+    }
+
     public boolean isPermitted(String action, Object entity, ISecurityContext context) {
         IEvalScope scope = XLang.newEvalScope();
         scope.setLocalValue(AuthCoreConstants.VAR_ACTION, action);

@@ -63,6 +63,8 @@ public class DefaultDataAuthChecker implements IDataAuthChecker {
             List<NopAuthRoleDataAuth> roleAuths = daoProvider.daoFor(NopAuthRoleDataAuth.class).findAll();
             mergeRoleAuth(authModel, roleAuths);
         }
+
+        authModel.sort();
         return authModel;
     }
 

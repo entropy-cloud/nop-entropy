@@ -11,9 +11,14 @@ import io.nop.auth.core.model._gen._RoleDataAuthModel;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.xml.IXNodeGenerator;
 
-public class RoleDataAuthModel extends _RoleDataAuthModel {
+public class RoleDataAuthModel extends _RoleDataAuthModel implements Comparable<RoleDataAuthModel> {
     public RoleDataAuthModel() {
 
+    }
+
+    @Override
+    public int compareTo(RoleDataAuthModel o) {
+        return Integer.compare(getPriority(), o.getPriority());
     }
 
     public void mergeChecker(IEvalPredicate checker) {

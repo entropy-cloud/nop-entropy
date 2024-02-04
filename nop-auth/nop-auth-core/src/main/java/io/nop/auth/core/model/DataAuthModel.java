@@ -13,4 +13,10 @@ public class DataAuthModel extends _DataAuthModel {
     public DataAuthModel() {
 
     }
+
+    public void sort(){
+        for(ObjDataAuthModel objModel: this.getObjs()){
+            objModel.sort();
+        }
+    }
 }
