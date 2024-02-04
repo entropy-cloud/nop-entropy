@@ -196,7 +196,7 @@ if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
 * 针对不同的角色可以设置不同的数据权限规则。一个用户只会匹配优先级最高的一条规则（如果规则优先级相同，则按照顺序检查用户是否具有指定角色）
 
 在`filter`段中可以编写权限过滤条件，其中`value`部分可以使用`@biz:`为前缀的表达式变量，例如`@biz:userId`、`@biz:deptId`等。
-全部可用的变量在[biz-var.dict.yaml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/main/resources/_vfs/nop/dict/biz/biz-var.dict.yaml)
+全部可用的变量在[biz-var.dict.yaml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/resources/_vfs/dict/core/biz-var.dict.yaml)
 中定义。
 
 ### 通过NopAuthRoleDataAuth表来定义数据权限
