@@ -11,6 +11,7 @@
     "updatedBy": "autotest-ref",
     "updateTime": "@var:NopSysNoticeTemplate@updateTime",
     "remark": "sss",
+    "id": "@var:NopSysNoticeTemplate@sid",
     "extCode": "D2024123001",
     "extFldA": "x"
   },
