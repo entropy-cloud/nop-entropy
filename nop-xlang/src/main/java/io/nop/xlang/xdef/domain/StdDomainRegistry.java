@@ -56,6 +56,7 @@ public class StdDomainRegistry {
         registerStdDomainHandler(new SimpleStdDomainHandlers.ClassNameType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.PackageNameType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.ConfNameType());
+        registerStdDomainHandler(new SimpleStdDomainHandlers.TokenNameType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.PropNameSetType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.WordSetType());
 

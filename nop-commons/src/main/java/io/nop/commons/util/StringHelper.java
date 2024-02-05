@@ -1989,6 +1989,31 @@ public class StringHelper extends ApiStringHelper {
         return true;
     }
 
+    @Deterministic
+    @Description("是否合法的标识名称。如果合法，则通过驼峰变换替换符号-之后可以得到合法的Java变量名")
+    public static boolean isValidTokenName(String s) {
+        if (s == null || s.length() <= 0)
+            return false;
+
+        char start = s.charAt(0);
+        if (!isJavaIdentifierStart(start))
+            return false;
+        int state = 0;
+        for (int i = 1, n = s.length(); i < n; i++) {
+            char c = s.charAt(i);
+            if (isJavaIdentifierPart(c)) {
+                state = 0;
+            } else if (c == '-') {
+                if (state == 1)
+                    return false;
+                state = 1;
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * 匹配 *xxx, xxx* 或者*xxx*模式。对于空串或者空的模式，直接返回false
      *

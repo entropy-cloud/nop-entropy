@@ -497,6 +497,18 @@ public class SimpleStdDomainHandlers {
         }
     }
 
+    public static class TokenNameType extends CheckStdDomainHandler {
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_TOKEN_NAME;
+        }
+
+        @Override
+        protected boolean isValid(String text) {
+            return StringHelper.isValidTokenName(text);
+        }
+    }
+
     public static class RegexType extends CheckStdDomainHandler {
         @Override
         public String getName() {

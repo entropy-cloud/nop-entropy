@@ -24,6 +24,8 @@ public interface XDefConstants {
     String STD_DOMAIN_WORD_SET = "word-set";
     String STD_DOMAIN_PROP_PATH = "prop-path";
     String STD_DOMAIN_CONF_NAME = "conf-name";
+
+    String STD_DOMAIN_TOKEN_NAME = "token-name";
     String STD_DOMAIN_PACKAGE_NAME = "package-name";
     String STD_DOMAIN_NUMBER = "number";
     String STD_DOMAIN_SQL_OBJ = "sql-obj";
