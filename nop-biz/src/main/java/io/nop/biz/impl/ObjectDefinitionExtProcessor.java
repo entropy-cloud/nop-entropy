@@ -38,8 +38,11 @@ public class ObjectDefinitionExtProcessor {
             IObjPropMeta propMeta = fieldDef.getPropMeta();
             if (propMeta != null) {
                 if (propMeta.getTransformOut() != null) {
+                    IDataFetcher fetcher = fieldDef.getFetcher();
+                    if (fetcher == null)
+                        fetcher = BeanPropertyFetcher.INSTANCE;
                     fieldDef.setFetcher(
-                            new EvalActionTransformFetcher(fieldDef.getFetcher(), propMeta.getTransformOut()));
+                            new EvalActionTransformFetcher(fetcher, propMeta.getTransformOut()));
                 }
             }
         }
