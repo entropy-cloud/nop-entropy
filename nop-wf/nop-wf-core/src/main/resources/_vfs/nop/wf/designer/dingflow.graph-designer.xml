@@ -1,0 +1,177 @@
+<designer x:schema="/nop/schema/designer/graph-designer.xdef" editorType="oa-flow"
+          xmlns:x="/nop/schema/xdsl.xdef" xmlns:v-on="v-on">
+
+    <style-components>
+        <style-component name="NodeTitle"><![CDATA[
+          position: relative;
+          display: flex;
+          align-items: center;
+          padding-left: 16px;
+          padding-right: 30px;
+          width: 100%;
+          height: 24px;
+          line-height: 24px;
+          font-size: 12px;
+          color: #fff;
+          text-align: left;
+          //background: #576a95;
+          border-radius: 4px 4px 0 0;
+          user-select: none;
+          &.start-node-title{
+            //background: rgb(87, 106, 149);
+          }
+        ]]></style-component>
+
+        <style-component name="NodeContent"><![CDATA[
+            position: relative;
+            font-size: 14px;
+            padding: 16px;
+            padding-right: 30px;
+            user-select: none;
+            .text{
+              overflow: hidden;
+              text-overflow: ellipsis;
+              user-select: none;
+              display: -webkit-box;
+              -webkit-line-clamp: 3;
+              -webkit-box-orient: vertical;
+              white-space: nowrap;
+            }
+            .secondary{
+              color: ${props => props.theme.token?.colorTextSecondary};
+              opacity: 0.8;
+            }
+            .arrow {
+              position: absolute;
+              right: 10px;
+              top: 50%;
+              transform: translateY(-50%);
+              width: 20px;
+              height: 14px;
+              font-size: 14px;
+              color: ${props => props.theme.token?.colorTextSecondary};
+            }
+        ]]></style-component>
+
+        <style-component name="CloseButton" component="Button"><![CDATA[
+          position: absolute;
+          right: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          font-size: 14px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        ]]></style-component>
+
+        <style-component name="EndNodeContainer"><![CDATA[
+          width: 100%;
+          font-size: 14px;
+          color: ${props => props.theme.token?.colorTextSecondary};
+          text-align: left;
+          user-select: none;
+          margin-bottom: 56px;
+          .end-node-circle {
+            width: 10px;
+            height: 10px;
+            margin: auto;
+            border-radius: 50%;
+            background: ${props => props.theme.mode === "light" ? "#cacaca" : "rgba(255,255,255,0.35)"};
+          }
+          .end-node-text {
+            margin-top: 5px;
+            text-align: center
+          }
+        ]]></style-component>
+
+        <style-component name="NodeTitleButtons"><![CDATA[
+            position: absolute;
+            right: -4px;
+            top: -4px;
+            display: flex;
+            opacity: 0.7;
+            font-size: 11px;
+        ]]></style-component>
+    </style-components>
+
+    <imports>
+        <import name="Field" from="react-field"/>
+        <import name="Icon" from="@nop-chaos/nop-antd"/>
+    </imports>
+
+    <nodes>
+        <node name="StartNode" icon="start-node">
+            <template>
+                <NodeTitle class="node-title start-node-title">
+                    <Icon v:icon="node.icon" class="node-title-icon"/>
+                    <Field name="nodeData.title"/>
+                    <CloseButton v-if="graph.editing" v-on:click="removeNode"/>
+                </NodeTitle>
+
+                <NodeContent>
+                    <span class="text">{{nodeData.label}}</span>
+                    <Icon v:icon="right-arrow" class="arrow"/>
+                </NodeContent>
+            </template>
+        </node>
+
+        <node name="EndNode" icon="end-node">
+            <template>
+                <EndNodeContainer>
+                    <div class="end-node-circle"/>
+                    <div class="end-node-text">@i18n:graph-designer.end-node</div>
+                </EndNodeContainer>
+            </template>
+        </node>
+
+        <node name="NormalNode">
+            <template>
+                <NodeTitle class="node-title">
+                    <Icon v:icon="node.icon" class="node-title-icon"/>
+                    <Field name="nodeData.title"/>
+                    <CloseButton v-if="graph.editing" v-on:click="removeNode"/>
+                </NodeTitle>
+
+                <NodeContent>
+                    <span class="text">{{nodeData.label}}</span>
+                    <Icon v:icon="right-arrow" class="arrow"/>
+                </NodeContent>
+            </template>
+        </node>
+
+        <node name="ApproveNode" base="NormalNode" />
+
+        <node name="ConditionNode">
+            <template>
+                <NodeTitle class="node-title condition-node-title">
+                    <Icon v:icon="node.icon" class="node-title-icon"/>
+                    <Field name="nodeData.title"/>
+                    <NodeTitleButtons class="mini-bar" v-if="graph.editing">
+                        <Tooltip placement="topRight" v:title="@i18n:graph.copy-condition" v:arrow="true">
+                            <Button
+                                    type="text"
+                                    size="small"
+                                    shape="circle"
+                                    icon="copy-icon"
+                                    v-on:click="cloneNode"/>
+                        </Tooltip>
+                        <CloseButton
+                                type="text"
+                                size="small"
+                                shape="circle"
+                                v-on:click="removeNode">
+                            <v:icon>
+                                <CloseOutlined/>
+                            </v:icon>
+                        </CloseButton>
+                    </NodeTitleButtons>
+                </NodeTitle>
+
+                <NodeContent>
+                    <span class="text">{{nodeData.label}}</span>
+                </NodeContent>
+            </template>
+        </node>
+
+    </nodes>
+</designer>
