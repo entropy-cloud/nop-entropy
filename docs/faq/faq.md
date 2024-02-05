@@ -41,7 +41,7 @@ body:
 findList或者findPage函数时，会识别`filter_`为前缀的参数，然后把它转换为QueryBean的filter树形结构查询条件。如果一定要手工构造QueryBean，则可以仿照如下调用
 
 ```graphql
-query($query:QueryBeanInput,$q2:QueryBeaInput){
+query($query:QueryBeanInput,$q2:QueryBeanInput){
   NopAuthDept__findList(query:$query) {
     id,
     deptName

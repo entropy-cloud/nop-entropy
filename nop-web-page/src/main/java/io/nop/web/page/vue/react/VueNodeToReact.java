@@ -2,7 +2,6 @@ package io.nop.web.page.vue.react;
 
 import io.nop.commons.text.IndentPrinter;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.lang.xml.XNode;
 import io.nop.web.page.vue.VueNode;
 import io.nop.web.page.vue.VueSlot;
 import io.nop.xlang.ast.Expression;

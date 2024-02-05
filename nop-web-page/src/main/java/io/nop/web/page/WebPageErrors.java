@@ -1,7 +1,7 @@
 package io.nop.web.page;
 
-import static io.nop.api.core.exceptions.ErrorCode.define;
+import io.nop.web.page.vue.VueErrors;
 
-public interface WebPageErrors {
+public interface WebPageErrors extends VueErrors {
 
 }

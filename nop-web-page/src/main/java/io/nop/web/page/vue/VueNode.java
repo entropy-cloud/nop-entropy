@@ -11,6 +11,7 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.CoreConstants;
 import io.nop.core.lang.xml.XNode;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.TemplateExpression;
@@ -32,6 +33,8 @@ public class VueNode implements IVueNode, ISourceLocationGetter {
     private String indexVarName;
     private String itemVarName;
 
+    private Expression isExpr;
+
     /**
      * 同时包含v-for和v-if时，v-if在v-for之后执行
      */
@@ -51,6 +54,10 @@ public class VueNode implements IVueNode, ISourceLocationGetter {
         return Character.isUpperCase(type.charAt(0)) || type.indexOf('-') > 0;
     }
 
+    public boolean isFragment() {
+        return CoreConstants.DUMMY_TAG_NAME.equals(type);
+    }
+
     /**
      * 如果首字母大写或者包含-，则认为是组件
      */
@@ -65,6 +72,10 @@ public class VueNode implements IVueNode, ISourceLocationGetter {
         node.setLocation(location);
         if (ref != null)
             node.setAttr(VueConstants.PROP_REF, ref);
+
+        if (isExpr != null) {
+            node.setAttr(VueConstants.V_BIND_IS, isExpr.toExprString());
+        }
 
         if (itemsExpr != null) {
             String varName = itemVarName;
@@ -129,6 +140,32 @@ public class VueNode implements IVueNode, ISourceLocationGetter {
         return node;
     }
 
+    public boolean hasChild() {
+        return children != null && !children.isEmpty();
+    }
+
+    public VueNode getBodyNode() {
+        if (!hasChild())
+            return null;
+
+        if (children.size() == 1) {
+            return children.get(0);
+        }
+
+        VueNode vueNode = new VueNode();
+        vueNode.setType(CoreConstants.DUMMY_TAG_NAME);
+        vueNode.setChildren(children);
+        return vueNode;
+    }
+
+    public Expression getIsExpr() {
+        return isExpr;
+    }
+
+    public void setIsExpr(Expression isExpr) {
+        this.isExpr = isExpr;
+    }
+
     public Expression getHtmlExpr() {
         return htmlExpr;
     }
@@ -156,6 +193,10 @@ public class VueNode implements IVueNode, ISourceLocationGetter {
 
     public Map<String, VueSlot> getSlots() {
         return slots;
+    }
+
+    public boolean hasSlot() {
+        return slots != null && !slots.isEmpty();
     }
 
     public void setSlots(Map<String, VueSlot> slots) {

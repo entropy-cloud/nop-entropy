@@ -14,15 +14,18 @@ import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.xml.XNode;
 import io.nop.xlang.ast.Expression;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static io.nop.web.page.vue.VueErrors.ARG_SLOT_NAME;
+import static io.nop.web.page.vue.VueErrors.ARG_TAG_NAME;
 import static io.nop.web.page.vue.VueErrors.ERR_VUE_SLOT_NOT_ALLOW_SLOT_CHILD;
 import static io.nop.web.page.vue.VueErrors.ERR_VUE_TEMPLATE_NO_SLOT_NAME;
+import static io.nop.web.page.vue.VueErrors.ERR_VUE_V_CHILD_NOT_ALLOW_ATTR;
+import static io.nop.web.page.vue.VueErrors.ERR_VUE_V_CHILD_NOT_ALLOW_SLOT;
 
 /**
  * 解析简化的Vue模板
@@ -37,7 +40,7 @@ public class VueTemplateParser {
         if (node.hasContent()) {
             ret.setContentExpr(parseContent(node));
         } else if (node.hasChild()) {
-            ret.setChildren(parseChildren(node));
+            ret.setChildren(parseChildren(node, ret));
         }
         return ret;
     }
@@ -59,8 +62,31 @@ public class VueTemplateParser {
         return new VueExpressionParser().parseExpr(vl.getLocation(), vl.asString());
     }
 
-    private List<VueNode> parseChildren(XNode node) {
-        return node.getChildren().stream().map(this::parseVueNode).collect(Collectors.toList());
+    private List<VueNode> parseChildren(XNode node, VueNode vueNode) {
+        List<VueNode> children = new ArrayList<>();
+        for (XNode child : node.getChildren()) {
+            if (child.getTagName().startsWith(VueConstants.V_PREFIX) || child.getTagName().startsWith(VueConstants.V_BIND_PREFIX)) {
+                if (!child.hasChild())
+                    continue;
+
+                if (child.hasAttr())
+                    throw new NopException(ERR_VUE_V_CHILD_NOT_ALLOW_ATTR)
+                            .source(node).param(ARG_TAG_NAME, child.getTagName());
+
+                VueNode attrNode = parseVueNode(child);
+                if (attrNode.hasSlot())
+                    throw new NopException(ERR_VUE_V_CHILD_NOT_ALLOW_SLOT)
+                            .source(node).param(ARG_TAG_NAME, child.getTagName());
+
+                String prefix = child.getTagName().startsWith(VueConstants.V_PREFIX) ?
+                        VueConstants.V_PREFIX : VueConstants.V_BIND_PREFIX;
+                String attrName = child.getTagName().substring(prefix.length());
+                vueNode.addProp(attrName, attrNode.getBodyNode());
+            } else {
+                children.add(parseVueNode(child));
+            }
+        }
+        return children;
     }
 
     private VueNode parseVueNode(XNode node) {
@@ -79,11 +105,19 @@ public class VueTemplateParser {
             } else if (name.equals(VueConstants.V_HTML)) {
                 Expression expr = parseExpr(vl);
                 ret.setHtmlExpr(expr);
-            } else if (name.equals(VueConstants.V_BIND_KEY)) {
+            } else if (name.equals(VueConstants.V_BIND_KEY) || name.equals(VueConstants.V_KEY)) {
                 Expression expr = parseExpr(vl);
                 ret.setKeyExpr(expr);
+            } else if (name.equals(VueConstants.V_BIND_IS) || name.equals(VueConstants.V_IS)) {
+                Expression expr = parseExpr(vl);
+                ret.setIsExpr(expr);
             } else if (name.startsWith(VueConstants.V_BIND_PREFIX)) {
                 String key = name.substring(VueConstants.V_BIND_PREFIX.length());
+                Expression expr = parseExpr(vl);
+                ret.addProp(key, expr);
+            } else if (name.startsWith(VueConstants.V_PREFIX)) {
+                // 扩展语法 v:value 等价于v-bind:value
+                String key = name.substring(VueConstants.V_PREFIX.length());
                 Expression expr = parseExpr(vl);
                 ret.addProp(key, expr);
             } else if (name.startsWith(VueConstants.V_ON_PREFIX)) {
@@ -98,7 +132,7 @@ public class VueTemplateParser {
         if (node.hasContent()) {
             ret.setContentExpr(parseContent(node));
         } else if (node.hasChild()) {
-            List<VueNode> children = parseChildren(node);
+            List<VueNode> children = parseChildren(node, ret);
             Map<String, VueSlot> slots = null;
             Iterator<VueNode> it = children.iterator();
             while (it.hasNext()) {
