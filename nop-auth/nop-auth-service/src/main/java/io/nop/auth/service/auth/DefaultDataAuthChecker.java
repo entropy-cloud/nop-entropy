@@ -88,6 +88,7 @@ public class DefaultDataAuthChecker implements IDataAuthChecker {
                 roleAuth.setRoleId(auth.getRoleId());
                 objAuth.addRoleAuth(roleAuth);
             }
+            roleAuth.setPriority(auth.getPriority());
             roleAuth.mergeChecker(checker);
             roleAuth.mergeFilter(filterBuilder);
         }
