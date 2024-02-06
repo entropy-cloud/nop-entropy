@@ -17,7 +17,11 @@
 
         <!-- 与ApiConfigs中的常量定义保持一致 -->
         <property name="enableDataAuth" value="@cfg:nop.auth.enable-data-auth|false"/>
+
+        <property name="graphQLHook" ref="nopMetricsGraphQLHook" />
     </bean>
+
+    <bean id="nopMetricsGraphQLHook" class="io.nop.graphql.core.engine.MetricsGraphQLHook" />
 
     <bean id="nopGraphQLOperationInvoker" class="io.nop.graphql.core.engine.DefaultOperationFunctionInvoker">
         <ioc:condition>
