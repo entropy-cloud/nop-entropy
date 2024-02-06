@@ -23,8 +23,22 @@ import io.nop.commons.functional.IAsyncFunctionInvoker;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.resource.cache.ResourceCacheEntryWithLoader;
-import io.nop.graphql.core.*;
-import io.nop.graphql.core.ast.*;
+import io.nop.graphql.core.GraphQLConfigs;
+import io.nop.graphql.core.GraphQLErrors;
+import io.nop.graphql.core.IGraphQLExecutionContext;
+import io.nop.graphql.core.IGraphQLHook;
+import io.nop.graphql.core.ParsedGraphQLRequest;
+import io.nop.graphql.core.ast.GraphQLDirectiveDefinition;
+import io.nop.graphql.core.ast.GraphQLDocument;
+import io.nop.graphql.core.ast.GraphQLFieldDefinition;
+import io.nop.graphql.core.ast.GraphQLFieldSelection;
+import io.nop.graphql.core.ast.GraphQLObjectDefinition;
+import io.nop.graphql.core.ast.GraphQLOperation;
+import io.nop.graphql.core.ast.GraphQLOperationType;
+import io.nop.graphql.core.ast.GraphQLSelection;
+import io.nop.graphql.core.ast.GraphQLSelectionSet;
+import io.nop.graphql.core.ast.GraphQLTypeDefinition;
+import io.nop.graphql.core.ast.GraphQLVariableDefinition;
 import io.nop.graphql.core.parse.GraphQLDocumentParser;
 import io.nop.graphql.core.reflection.IGraphQLArgsNormalizer;
 import io.nop.graphql.core.rpc.RpcServiceOnGraphQL;
@@ -44,8 +58,21 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
 
 import static io.nop.commons.cache.CacheConfig.newConfig;
-import static io.nop.graphql.core.GraphQLConfigs.*;
-import static io.nop.graphql.core.GraphQLErrors.*;
+import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_PARSE_CACHE_CHECK_CHANGED;
+import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_QUERY_MAX_DEPTH;
+import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_SCHEMA_INTROSPECTION_ENABLED;
+import static io.nop.graphql.core.GraphQLErrors.ARG_ALLOWED_NAMES;
+import static io.nop.graphql.core.GraphQLErrors.ARG_ARG_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_EXPECTED_OPERATION_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ARG_OPERATION_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_OPERATION_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ARG_TYPE_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_DOC_OPERATION_SIZE_NOT_ONE;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_INTROSPECTION_NOT_ENABLED;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNEXPECTED_OPERATION_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_BUILTIN_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_OPERATION;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_OPERATION_ARG;
 
 public class GraphQLEngine implements IGraphQLEngine {
     static final Logger LOG = LoggerFactory.getLogger(GraphQLEngine.class);
@@ -89,21 +116,23 @@ public class GraphQLEngine implements IGraphQLEngine {
     }
 
     @Inject
-    @Nullable
-    public void setDataAuthChecker(IDataAuthChecker dataAuthChecker) {
+    public void setDataAuthChecker(@Nullable IDataAuthChecker dataAuthChecker) {
         this.dataAuthChecker = dataAuthChecker;
     }
 
     @Inject
-    @Nullable
-    public void setActionAuthChecker(IActionAuthChecker actionAuthChecker) {
+    public void setActionAuthChecker(@Nullable IActionAuthChecker actionAuthChecker) {
         this.actionAuthChecker = actionAuthChecker;
     }
 
     @Inject
-    @Nullable
-    public void setFlowControlRunner(IFlowControlRunner flowControlRunner) {
+    public void setFlowControlRunner(@Nullable IFlowControlRunner flowControlRunner) {
         this.flowControlRunner = flowControlRunner;
+    }
+
+    @Inject
+    public void setGraphQLHook(@Nullable IGraphQLHook graphQLHook) {
+        this.graphQLHook = graphQLHook;
     }
 
     public LocalCache<String, ResourceCacheEntryWithLoader<GraphQLDocument>> getDocumentCache() {
@@ -124,10 +153,6 @@ public class GraphQLEngine implements IGraphQLEngine {
 
     public void setEnableDataAuth(boolean enableDataAuth) {
         this.enableDataAuth = enableDataAuth;
-    }
-
-    public void setGraphQLHook(IGraphQLHook graphQLHook) {
-        this.graphQLHook = graphQLHook;
     }
 
     @Inject
@@ -409,7 +434,7 @@ public class GraphQLEngine implements IGraphQLEngine {
             }
         }
 
-        if(context != null) {
+        if (context != null) {
             if (err != null) {
                 context.completeExceptionally(err);
             } else {

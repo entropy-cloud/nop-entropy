@@ -29,10 +29,10 @@ import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.core.type.parse.GenericTypeParser;
-
 import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+
 import java.io.File;
 import java.net.URL;
 import java.util.List;
@@ -170,17 +170,18 @@ public class DefaultBeanClassIntrospection implements IBeanClassIntrospection {
 
     @Override
     public BeanInjectInfo getPropertyInject(String propName, IFunctionModel propModel) {
-        return getInjectInfo(propName, propModel.getArgs().get(0).getType(), propModel);
+        IFunctionArgument argModel = propModel.getArgs().get(0);
+        return getInjectInfo(propName, argModel.getType(), propModel, argModel);
     }
 
     @Override
     public BeanInjectInfo getFieldInject(IFieldModel field) {
-        return getInjectInfo(field.getName(), field.getType(), field);
+        return getInjectInfo(field.getName(), field.getType(), field, null);
     }
 
     @Override
     public BeanInjectInfo getArgumentInject(IFunctionArgument argModel) {
-        BeanInjectInfo injectInfo = getInjectInfo(argModel.getName(), argModel.getType(), argModel);
+        BeanInjectInfo injectInfo = getInjectInfo(argModel.getName(), argModel.getType(), argModel, null);
         if (injectInfo == null) {
             // 缺省情况下按照类型自动注入
             return new BeanInjectInfo(null, argModel.getType(), null, false);
@@ -188,8 +189,8 @@ public class DefaultBeanClassIntrospection implements IBeanClassIntrospection {
         return injectInfo;
     }
 
-    BeanInjectInfo getInjectInfo(String name, IGenericType type, IAnnotatedElement element) {
-        BeanInjectInfo inject = getAutowiredInject(type, element);
+    BeanInjectInfo getInjectInfo(String name, IGenericType type, IAnnotatedElement element, IAnnotatedElement argModel) {
+        BeanInjectInfo inject = getAutowiredInject(type, element, argModel);
 
         if (inject == null)
             inject = getValueInject(element);
@@ -220,11 +221,14 @@ public class DefaultBeanClassIntrospection implements IBeanClassIntrospection {
         return new BeanInjectInfo(null, null, value, false);
     }
 
-    BeanInjectInfo getAutowiredInject(IGenericType type, IAnnotatedElement element) {
+    BeanInjectInfo getAutowiredInject(IGenericType type, IAnnotatedElement element, IAnnotatedElement argModel) {
         String beanName = springBeanSupport.getQualifier(element);
+        if (beanName == null && argModel != null)
+            beanName = springBeanSupport.getQualifier(argModel);
+
         boolean inject = springBeanSupport.isInjectPresent(element);
         if (inject) {
-            boolean optional = element.isAnnotationPresent(Nullable.class);
+            boolean optional = (argModel != null ? argModel : element).isAnnotationPresent(Nullable.class);
             if (beanName == null) {
                 return new BeanInjectInfo(null, type, null, optional);
             }

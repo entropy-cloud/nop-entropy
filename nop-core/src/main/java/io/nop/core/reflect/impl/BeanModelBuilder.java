@@ -38,6 +38,7 @@ import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.core.reflect.IAnnotatedElement;
 import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.IFieldModel;
+import io.nop.core.reflect.IFunctionArgument;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.IPropertyGetter;
 import io.nop.core.reflect.IPropertySetter;
@@ -63,6 +64,8 @@ import io.nop.core.reflect.hook.IPropMakeMissingHook;
 import io.nop.core.reflect.hook.IPropSetMissingHook;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -300,11 +303,25 @@ public class BeanModelBuilder {
             prop.setGetter(candidate.field.getGetter());
             prop.setSetter(candidate.field.getSetter());
             prop.setType(candidate.field.getType());
+            if (candidate.field.isAnnotationPresent(Nonnull.class)) {
+                prop.setNullable(false);
+            } else if (candidate.field.isAnnotationPresent(Nullable.class)) {
+                prop.setNullable(true);
+            }
         }
 
         if (candidate.setMethod != null) {
             prop.setSetter(new MethodPropertySetter(candidate.setMethod));
-            prop.setType(candidate.setMethod.getArgs().get(0).getType());
+            IFunctionArgument argModel = candidate.setMethod.getArgs().get(0);
+            prop.setType(argModel.getType());
+
+            if (prop.getNullable() != null) {
+                if (argModel.isAnnotationPresent(Nonnull.class)) {
+                    prop.setNullable(false);
+                } else if (argModel.isAnnotationPresent(Nullable.class)) {
+                    prop.setNullable(true);
+                }
+            }
         }
 
         if (candidate.makeMethod != null) {
@@ -317,6 +334,14 @@ public class BeanModelBuilder {
             prop.setGetter(new MethodPropertyGetter(candidate.getMethod));
             prop.setType(candidate.getMethod.getReturnType());
             prop.setLazyLoad(candidate.getMethod.isAnnotationPresent(LazyLoad.class));
+
+            if (prop.getNullable() != null) {
+                if (candidate.getMethod.isAnnotationPresent(Nonnull.class)) {
+                    prop.setNullable(false);
+                } else if (candidate.getMethod.isAnnotationPresent(Nullable.class)) {
+                    prop.setNullable(true);
+                }
+            }
         }
 
         if (candidate.isField()) {

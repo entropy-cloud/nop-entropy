@@ -38,8 +38,7 @@ public class GatewayHttpFilter implements IHttpServerFilter {
     private IRpcServiceLocator rpcServiceLocator;
 
     @Inject
-    @Nullable
-    public void setRpcServiceLocator(IRpcServiceLocator rpcServiceLocator) {
+    public void setRpcServiceLocator(@Nullable IRpcServiceLocator rpcServiceLocator) {
         this.rpcServiceLocator = rpcServiceLocator;
     }
 

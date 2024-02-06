@@ -117,9 +117,8 @@ public class DefaultTransactionManager implements ITransactionManager {
     }
 
     @Inject
-    @Nullable
     @Named("nopDefaultTransactionListener")
-    public void setDefaultListener(ITransactionListener defaultListener) {
+    public void setDefaultListener(@Nullable ITransactionListener defaultListener) {
         this.defaultListener = defaultListener;
     }
 

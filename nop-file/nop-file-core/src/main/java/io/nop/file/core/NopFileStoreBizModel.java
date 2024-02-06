@@ -45,8 +45,7 @@ public class NopFileStoreBizModel {
     private Set<String> allowedFileExts;
 
     @Inject
-    @Nullable
-    public void setBizAuthChecker(IBizAuthChecker bizAuthChecker) {
+    public void setBizAuthChecker(@Nullable IBizAuthChecker bizAuthChecker) {
         this.bizAuthChecker = bizAuthChecker;
     }
 

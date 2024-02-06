@@ -127,8 +127,7 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
     }
 
     @Inject
-    @Nullable
-    public void setMakerCheckerProvider(IMakerCheckerProvider makerCheckerProvider) {
+    public void setMakerCheckerProvider(@Nullable IMakerCheckerProvider makerCheckerProvider) {
         this.makerCheckerProvider = makerCheckerProvider;
     }
 

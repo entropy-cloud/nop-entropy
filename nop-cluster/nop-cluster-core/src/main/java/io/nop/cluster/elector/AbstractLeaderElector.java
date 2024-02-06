@@ -93,9 +93,8 @@ public abstract class AbstractLeaderElector implements ILeaderElector {
         return serverAddrFinder;
     }
 
-    @Nullable
     @Inject
-    public void setServerAddrFinder(IServerAddrFinder serverAddrFinder) {
+    public void setServerAddrFinder(@Nullable IServerAddrFinder serverAddrFinder) {
         this.serverAddrFinder = serverAddrFinder;
     }
 

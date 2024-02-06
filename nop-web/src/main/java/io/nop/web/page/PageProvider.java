@@ -42,11 +42,11 @@ import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.SchemaLoader;
 import io.nop.xui.model.UiFormModel;
 import io.nop.xui.model.UiGridModel;
-
 import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
+
 import java.io.File;
 import java.util.List;
 import java.util.Map;
@@ -79,8 +79,7 @@ public class PageProvider extends ResourceWithHistoryProvider {
     }
 
     @Inject
-    @Nullable
-    public void setRolePermissionMapping(IRolePermissionMapping rolePermissionMapping) {
+    public void setRolePermissionMapping(@Nullable IRolePermissionMapping rolePermissionMapping) {
         this.rolePermissionMapping = rolePermissionMapping;
     }
 

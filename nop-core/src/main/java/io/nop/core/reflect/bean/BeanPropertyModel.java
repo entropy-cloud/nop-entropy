@@ -43,6 +43,8 @@ public class BeanPropertyModel extends ReadonlyModel implements IBeanPropertyMod
     private boolean serializable;
     private boolean deterministic;
     private boolean lazyLoad;
+
+    private Boolean nullable;
     private String description;
     private String configVarName;
 
@@ -54,6 +56,15 @@ public class BeanPropertyModel extends ReadonlyModel implements IBeanPropertyMod
         this.setType(type);
         this.getter = getter;
         this.setter = setter;
+    }
+
+    @Override
+    public Boolean getNullable() {
+        return nullable;
+    }
+
+    public void setNullable(Boolean nullable) {
+        this.nullable = nullable;
     }
 
     @Override
