@@ -117,7 +117,7 @@
 
                             <arg name="svcCtx" type="io.nop.core.context.IServiceContext" kind="ServiceContext"/>
 
-                            <return type="${entityName}>">
+                            <return type="${entityName}">
                                 <schema bizObjName="${entityName.$simpleClassName()}" />
                             </return>
                         </mutation>
