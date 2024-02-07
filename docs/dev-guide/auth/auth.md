@@ -6,6 +6,8 @@
 * 缺省会加载/nop/main/auth/main.action-auth.xml 静态权限配置文件，可以通过nop.auth.site-map.static-config-path定制为不同的值
 * 在main.action-auth.xml可以通过`x:extends`来引入已有的权限配置文件。
 * 如果配置`nop.auth.skip-check-for-admin=true`,则对于具有admin角色的用户会跳过操作权限检查，缺省为true。
+* 配置`nop.auth.service-public=true`可以开放后台服务，无需登录即可访问后台服务函数
+* 配置`nop.auth.quarkus-dev-public=true`会开放quarkus调试页面，无需登录即可访问/q/graphql-ui等调试页面
 
 > 平台在调试模式下启动时会打印出所有已知配置变量以及它对应的配置位置
 

@@ -49,6 +49,7 @@
                 <value>/r/LoginApi_*</value>
                 <value>/q/health*</value>
                 <value>/q/metrics*</value>
+                <value feature:on="nop.auth.quarkus-dev-public">/q/*</value>
             </list>
         </property>
 
@@ -58,7 +59,7 @@
                 <!-- REST请求 -->
                 <value>/r/*</value>
                 <!-- quarkus内置管理页面 -->
-                <value>/q/*</value>
+                <value feature:off="nop.auth.quarkus-dev-public">/q/*</value>
                 <!-- 返回具有指定contentType的内容 -->
                 <value>/p/*</value>
                 <!-- 文件上传下载 -->
