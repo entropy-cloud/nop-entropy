@@ -117,21 +117,23 @@ prop:
       userId: 用户ID
       version: 数据版本
     NopAuthOpLog:
-      bizActionName: 业务操作
-      bizObjName: 业务对象
-      createTime: 创建时间
-      createdBy: 创建人
+      actionTime: 操作时间
+      description: 操作描述
       errorCode: 错误码
       logId: 主键
       opRequest: 请求参数
       opResponse: 响应数据
+      operation: 业务操作
       resultStatus: 操作状态
+      retMessage: 返回消息
       session: 会话
       session.loginAddr: 登录地址
       session.loginDevice: 登录设备
       sessionId: 会话ID
-      title: 标题
       usedTime: 操作时长
+      user: 用户
+      user.userName: 用户
+      userId: 用户ID
       userName: 用户名
     NopAuthPosition:
       createTime: 创建时间

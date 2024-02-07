@@ -175,7 +175,7 @@ public final class GraphQLResponseBean implements Serializable {
 
     public ApiResponse<Object> toApiResponse() {
         ApiResponse<Object> res = new ApiResponse<>();
-        res.setData(this);
+        res.setData(getData());
         res.setStatus(getStatus());
         res.setMsg(getMsg());
         res.setCode(getErrorCode());

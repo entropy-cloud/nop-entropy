@@ -25,6 +25,13 @@ public abstract class _UiImportModel extends io.nop.core.resource.component.Abst
     
     /**
      *  
+     * xml name: from
+     * 
+     */
+    private java.lang.String _from ;
+    
+    /**
+     *  
      * xml name: name
      * 
      */
@@ -45,6 +52,25 @@ public abstract class _UiImportModel extends io.nop.core.resource.component.Abst
         checkAllowChange();
         
         this._as = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: from
+     *  
+     */
+    
+    public java.lang.String getFrom(){
+      return _from;
+    }
+
+    
+    public void setFrom(java.lang.String value){
+        checkAllowChange();
+        
+        this._from = value;
            
     }
 
@@ -84,6 +110,7 @@ public abstract class _UiImportModel extends io.nop.core.resource.component.Abst
         super.outputJson(out);
         
         out.putNotNull("as",this.getAs());
+        out.putNotNull("from",this.getFrom());
         out.putNotNull("name",this.getName());
     }
 
@@ -97,6 +124,7 @@ public abstract class _UiImportModel extends io.nop.core.resource.component.Abst
         super.copyTo(instance);
         
         instance.setAs(this.getAs());
+        instance.setFrom(this.getFrom());
         instance.setName(this.getName());
     }
 

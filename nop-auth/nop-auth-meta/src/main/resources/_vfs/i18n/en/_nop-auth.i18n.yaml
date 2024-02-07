@@ -119,18 +119,20 @@ prop:
     NopAuthOpLog:
       logId: LOG_ID
       userName: USER_NAME
+      userId: USER_ID
       sessionId: Session ID
-      title: Title
-      bizObjName: Biz Object
-      bizActionName: Biz Action
-      opRequest: Request
-      opResponse: Response
+      operation: Operation
+      description: Description
+      actionTime: Action Time
+      usedTime: Used Time
       resultStatus: Result Status
       errorCode: ErrorCode
-      usedTime: Used Time
-      createdBy: Created By
-      createTime: Create Time
+      retMessage: Return Message
+      opRequest: Request
+      opResponse: Response
       session: Session
+      user: User
+      user.userName: User
       session.loginAddr: null
       session.loginDevice: null
     NopAuthPosition:

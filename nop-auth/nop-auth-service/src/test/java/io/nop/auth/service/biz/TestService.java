@@ -30,8 +30,8 @@ public class TestService {
 
         IEntityDao<NopAuthOpLog> dao = daoProvider.daoFor(NopAuthOpLog.class);
         NopAuthOpLog entity = new NopAuthOpLog();
-        entity.setBizObjName("Test");
-        entity.setBizActionName("test");
+        //entity.setBizObjName("Test");
+        //entity.setBizActionName("test");
         entity.setOpRequest("request");
         entity.setTitle("测试日志");
         entity.setUsedTime(1000L);

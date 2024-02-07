@@ -705,39 +705,38 @@
                 </to-one>
             </relations>
         </entity>
-        <entity className="io.nop.auth.dao.entity.NopAuthOpLog" createTimeProp="createTime" createrProp="createdBy"
-                displayName="操作日志" name="io.nop.auth.dao.entity.NopAuthOpLog" registerShortName="true"
-                tableName="nop_auth_op_log" tagSet="log" i18n-en:displayName="Operation Log">
+        <entity className="io.nop.auth.dao.entity.NopAuthOpLog" displayName="操作日志"
+                name="io.nop.auth.dao.entity.NopAuthOpLog" registerShortName="true" tableName="nop_auth_op_log"
+                tagSet="log" i18n-en:displayName="Operation Log">
             <columns>
                 <column code="LOG_ID" displayName="主键" mandatory="true" name="logId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="LOG_ID"/>
                 <column code="USER_NAME" displayName="用户名" domain="userName" mandatory="true" name="userName"
                         precision="32" propId="2" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="USER_NAME"/>
-                <column code="SESSION_ID" displayName="会话ID" name="sessionId" precision="100" propId="3"
+                <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="50"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="USER_ID"/>
+                <column code="SESSION_ID" displayName="会话ID" name="sessionId" precision="100" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Session ID"/>
-                <column code="TITLE" displayName="标题" name="title" precision="200" propId="4" stdDataType="string"
-                        stdSqlType="VARCHAR" i18n-en:displayName="Title"/>
-                <column code="BIZ_OBJ_NAME" displayName="业务对象" name="bizObjName" precision="100" propId="5"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Biz Object"/>
-                <column code="BIZ_ACTION_NAME" displayName="业务操作" name="bizActionName" precision="100" propId="6"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Biz Action"/>
-                <column code="OP_REQUEST" displayName="请求参数" name="opRequest" precision="8000" propId="7"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Request"/>
-                <column code="OP_RESPONSE" displayName="响应数据" name="opResponse" precision="4000" propId="8"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Response"/>
+                <column code="OPERATION" displayName="业务操作" name="operation" precision="1000" propId="5"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Operation"/>
+                <column code="DESCRIPTION" displayName="操作描述" name="description" precision="2000" propId="6"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
+                <column code="ACTION_TIME" displayName="操作时间" name="actionTime" propId="7" stdDataType="timestamp"
+                        stdSqlType="TIMESTAMP" i18n-en:displayName="Action Time"/>
+                <column code="USED_TIME" displayName="操作时长" name="usedTime" propId="8" stdDataType="long"
+                        stdSqlType="BIGINT" i18n-en:displayName="Used Time"/>
                 <column code="RESULT_STATUS" displayName="操作状态" name="resultStatus" propId="9" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Result Status"/>
                 <column code="ERROR_CODE" comment="resultStatus不为0的时候需要设置errorCode" displayName="错误码" name="errorCode"
                         precision="200" propId="10" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="ErrorCode"/>
-                <column code="USED_TIME" displayName="操作时长" name="usedTime" propId="11" stdDataType="long"
-                        stdSqlType="BIGINT" i18n-en:displayName="Used Time"/>
-                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Created By"/>
-                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="RET_MESSAGE" displayName="返回消息" name="retMessage" precision="1000" propId="11"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Return Message"/>
+                <column code="OP_REQUEST" displayName="请求参数" name="opRequest" precision="8000" propId="12"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Request"/>
+                <column code="OP_RESPONSE" displayName="响应数据" name="opResponse" precision="4000" propId="13"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Response"/>
             </columns>
             <comment>用户的操作日志</comment>
             <relations>
@@ -745,6 +744,13 @@
                         tagSet="pub" i18n-en:displayName="Session">
                     <join>
                         <on leftProp="sessionId" rightProp="sessionId"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+                <to-one displayName="用户" name="user" refEntityName="io.nop.auth.dao.entity.NopAuthUser"
+                        tagSet="pub,ref-pub" i18n-en:displayName="User">
+                    <join>
+                        <on leftProp="userId" rightProp="userId"/>
                     </join>
                     <ref-set/>
                 </to-one>

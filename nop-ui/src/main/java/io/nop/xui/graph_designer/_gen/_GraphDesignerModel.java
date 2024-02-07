@@ -88,6 +88,13 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
     
     /**
      *  
+     * xml name: style
+     * 
+     */
+    private java.lang.String _style ;
+    
+    /**
+     *  
      * xml name: style-components
      * 类似于React中styled-component的封装
      */
@@ -422,6 +429,25 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
     
     /**
      * 
+     * xml name: style
+     *  
+     */
+    
+    public java.lang.String getStyle(){
+      return _style;
+    }
+
+    
+    public void setStyle(java.lang.String value){
+        checkAllowChange();
+        
+        this._style = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: style-components
      *  类似于React中styled-component的封装
      */
@@ -523,6 +549,7 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
         out.putNotNull("imports",this.getImports());
         out.putNotNull("nodes",this.getNodes());
         out.putNotNull("script",this.getScript());
+        out.putNotNull("style",this.getStyle());
         out.putNotNull("styleComponents",this.getStyleComponents());
         out.putNotNull("zoom",this.getZoom());
     }
@@ -546,6 +573,7 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
         instance.setImports(this.getImports());
         instance.setNodes(this.getNodes());
         instance.setScript(this.getScript());
+        instance.setStyle(this.getStyle());
         instance.setStyleComponents(this.getStyleComponents());
         instance.setZoom(this.getZoom());
     }

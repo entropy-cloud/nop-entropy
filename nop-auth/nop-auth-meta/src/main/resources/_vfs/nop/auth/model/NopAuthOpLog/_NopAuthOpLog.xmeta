@@ -26,29 +26,29 @@
               queryable="true" sortable="true" insertable="true" updatable="false">
             <schema domain="userName" type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="sessionId" displayName="会话ID" propId="3" i18n-en:displayName="Session ID" queryable="true"
+        <prop name="userId" displayName="用户ID" propId="3" i18n-en:displayName="USER_ID" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false" ext:relation="user">
+            <schema domain="userId" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="sessionId" displayName="会话ID" propId="4" i18n-en:displayName="Session ID" queryable="true"
               sortable="true" insertable="true" updatable="false" ext:relation="session">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="title" displayName="标题" propId="4" i18n-en:displayName="Title" queryable="true" sortable="true"
-              insertable="true" updatable="false">
-            <schema type="java.lang.String" precision="200"/>
-        </prop>
-        <prop name="bizObjName" displayName="业务对象" propId="5" i18n-en:displayName="Biz Object" queryable="true"
+        <prop name="operation" displayName="业务操作" propId="5" i18n-en:displayName="Operation" queryable="true"
               sortable="true" insertable="true" updatable="false">
-            <schema type="java.lang.String" precision="100"/>
+            <schema type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="bizActionName" displayName="业务操作" propId="6" i18n-en:displayName="Biz Action" queryable="true"
+        <prop name="description" displayName="操作描述" propId="6" i18n-en:displayName="Description" queryable="true"
               sortable="true" insertable="true" updatable="false">
-            <schema type="java.lang.String" precision="100"/>
+            <schema type="java.lang.String" precision="2000"/>
         </prop>
-        <prop name="opRequest" displayName="请求参数" propId="7" i18n-en:displayName="Request" queryable="true"
+        <prop name="actionTime" displayName="操作时间" propId="7" i18n-en:displayName="Action Time" queryable="true"
               sortable="true" insertable="true" updatable="false">
-            <schema type="java.lang.String" precision="8000"/>
+            <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="opResponse" displayName="响应数据" propId="8" i18n-en:displayName="Response" queryable="true"
+        <prop name="usedTime" displayName="操作时长" propId="8" i18n-en:displayName="Used Time" queryable="true"
               sortable="true" insertable="true" updatable="false">
-            <schema type="java.lang.String" precision="4000"/>
+            <schema type="java.lang.Long"/>
         </prop>
         <prop name="resultStatus" displayName="操作状态" propId="9" i18n-en:displayName="Result Status" queryable="true"
               sortable="true" insertable="true" updatable="false">
@@ -58,22 +58,31 @@
               sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="usedTime" displayName="操作时长" propId="11" i18n-en:displayName="Used Time" queryable="true"
+        <prop name="retMessage" displayName="返回消息" propId="11" i18n-en:displayName="Return Message" queryable="true"
               sortable="true" insertable="true" updatable="false">
-            <schema type="java.lang.Long"/>
+            <schema type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="createdBy" displayName="创建人" propId="13" i18n-en:displayName="Created By" mandatory="true"
-              queryable="true" sortable="true" insertable="false" updatable="false">
-            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        <prop name="opRequest" displayName="请求参数" propId="12" i18n-en:displayName="Request" queryable="true"
+              sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="8000"/>
         </prop>
-        <prop name="createTime" displayName="创建时间" propId="14" i18n-en:displayName="Create Time" mandatory="true"
-              queryable="true" sortable="true" insertable="false" updatable="false">
-            <schema domain="createTime" type="java.sql.Timestamp"/>
+        <prop name="opResponse" displayName="响应数据" propId="13" i18n-en:displayName="Response" queryable="true"
+              sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="4000"/>
         </prop>
         <prop name="session" displayName="会话" i18n-en:displayName="Session" tagSet="pub" ext:kind="to-one"
               internal="true" queryable="true" ext:joinLeftProp="sessionId" ext:joinRightProp="sessionId"
               insertable="false" updatable="false" lazy="true">
             <schema bizObjName="NopAuthSession"/>
+        </prop>
+        <prop name="user" displayName="用户" i18n-en:displayName="User" tagSet="pub,ref-pub" ext:kind="to-one"
+              internal="true" queryable="true" ext:joinLeftProp="userId" ext:joinRightProp="userId"
+              ext:joinRightDisplayProp="userName" insertable="false" updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopAuthUser"/>
+        </prop>
+        <prop name="user.userName" displayName="用户" i18n-en:displayName="User" internal="true" queryable="true"
+              sortable="true" lazy="true">
+            <schema type="String"/>
         </prop>
     </props>
 </meta>

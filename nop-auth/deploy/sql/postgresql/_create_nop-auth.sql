@@ -272,17 +272,17 @@ CREATE TABLE nop_auth_role_resource(
 CREATE TABLE nop_auth_op_log(
   LOG_ID VARCHAR(32) NOT NULL ,
   USER_NAME VARCHAR(32) NOT NULL ,
+  USER_ID VARCHAR(50) NOT NULL ,
   SESSION_ID VARCHAR(100)  ,
-  TITLE VARCHAR(200)  ,
-  BIZ_OBJ_NAME VARCHAR(100)  ,
-  BIZ_ACTION_NAME VARCHAR(100)  ,
-  OP_REQUEST TEXT  ,
-  OP_RESPONSE VARCHAR(4000)  ,
+  OPERATION VARCHAR(1000)  ,
+  DESCRIPTION VARCHAR(2000)  ,
+  ACTION_TIME TIMESTAMP  ,
+  USED_TIME INT8  ,
   RESULT_STATUS INT4  ,
   ERROR_CODE VARCHAR(200)  ,
-  USED_TIME INT8  ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
+  RET_MESSAGE VARCHAR(1000)  ,
+  OP_REQUEST TEXT  ,
+  OP_RESPONSE VARCHAR(4000)  ,
   constraint PK_nop_auth_op_log primary key (LOG_ID)
 );
 
@@ -770,27 +770,27 @@ CREATE TABLE nop_auth_group_user(
                     
       COMMENT ON COLUMN nop_auth_op_log.USER_NAME IS '用户名';
                     
+      COMMENT ON COLUMN nop_auth_op_log.USER_ID IS '用户ID';
+                    
       COMMENT ON COLUMN nop_auth_op_log.SESSION_ID IS '会话ID';
                     
-      COMMENT ON COLUMN nop_auth_op_log.TITLE IS '标题';
+      COMMENT ON COLUMN nop_auth_op_log.OPERATION IS '业务操作';
                     
-      COMMENT ON COLUMN nop_auth_op_log.BIZ_OBJ_NAME IS '业务对象';
+      COMMENT ON COLUMN nop_auth_op_log.DESCRIPTION IS '操作描述';
                     
-      COMMENT ON COLUMN nop_auth_op_log.BIZ_ACTION_NAME IS '业务操作';
+      COMMENT ON COLUMN nop_auth_op_log.ACTION_TIME IS '操作时间';
                     
-      COMMENT ON COLUMN nop_auth_op_log.OP_REQUEST IS '请求参数';
-                    
-      COMMENT ON COLUMN nop_auth_op_log.OP_RESPONSE IS '响应数据';
+      COMMENT ON COLUMN nop_auth_op_log.USED_TIME IS '操作时长';
                     
       COMMENT ON COLUMN nop_auth_op_log.RESULT_STATUS IS '操作状态';
                     
       COMMENT ON COLUMN nop_auth_op_log.ERROR_CODE IS '错误码';
                     
-      COMMENT ON COLUMN nop_auth_op_log.USED_TIME IS '操作时长';
+      COMMENT ON COLUMN nop_auth_op_log.RET_MESSAGE IS '返回消息';
                     
-      COMMENT ON COLUMN nop_auth_op_log.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_auth_op_log.OP_REQUEST IS '请求参数';
                     
-      COMMENT ON COLUMN nop_auth_op_log.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_auth_op_log.OP_RESPONSE IS '响应数据';
                     
       COMMENT ON TABLE nop_auth_group_dept IS '分组部门';
                 

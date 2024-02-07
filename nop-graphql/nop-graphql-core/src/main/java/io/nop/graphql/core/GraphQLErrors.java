@@ -17,6 +17,8 @@ public interface GraphQLErrors {
 
     String ARG_MAX_DEPTH = "maxDepth";
 
+    String ARG_MAX_COUNT = "maxCount";
+
     String ARG_LOCATION = "location";
 
     String ARG_LOADER_NAME = "loaderName";
@@ -100,6 +102,12 @@ public interface GraphQLErrors {
 
     ErrorCode ERR_GRAPHQL_QUERY_EXCEED_MAX_DEPTH = define("nop.err.graphql.query.exceed-max-depth",
             "GraphQL查询语句嵌套层次过多，超过最大深度限制。最大深度为{maxDepth}", ARG_MAX_DEPTH);
+
+    ErrorCode ERR_GRAPHQL_QUERY_EXCEED_MAX_OPERATION_COUNT = define("nop.err.graphql.query.exceed-max-operation-count",
+            "GraphQL查询语句包含操作过多，超过最大操作个数限制。最大个数为{maxCount}", ARG_MAX_COUNT);
+
+    ErrorCode ERR_GRAPHQL_QUERY_NO_OPERATION = define("nop.err.graphql.query.no-operation",
+            "GraphQL查询语句不能为空，必须包含具体的操作");
 
     ErrorCode ERR_GRAPHQL_ARG_MAX_MUST_BE_POSITIVE = define("nop.err.graphql.arg-max-must-be-positive", "参数max必须为正整数",
             ARG_MAX);

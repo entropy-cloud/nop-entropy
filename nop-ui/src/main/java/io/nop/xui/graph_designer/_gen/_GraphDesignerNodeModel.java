@@ -9,12 +9,19 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [34:10:0:0]/nop/schema/designer/graph-designer.xdef <p>
+ * generate from [36:10:0:0]/nop/schema/designer/graph-designer.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.component.AbstractComponentModel {
+    
+    /**
+     *  
+     * xml name: abstract
+     * 
+     */
+    private java.lang.Boolean _abstract ;
     
     /**
      *  
@@ -186,6 +193,13 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
     
     /**
      *  
+     * xml name: style
+     * 
+     */
+    private java.lang.String _style ;
+    
+    /**
+     *  
      * xml name: tagSet
      * 
      */
@@ -218,6 +232,25 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
      * 
      */
     private java.lang.Integer _width ;
+    
+    /**
+     * 
+     * xml name: abstract
+     *  
+     */
+    
+    public java.lang.Boolean getAbstract(){
+      return _abstract;
+    }
+
+    
+    public void setAbstract(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._abstract = value;
+           
+    }
+
     
     /**
      * 
@@ -703,6 +736,25 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
     
     /**
      * 
+     * xml name: style
+     *  
+     */
+    
+    public java.lang.String getStyle(){
+      return _style;
+    }
+
+    
+    public void setStyle(java.lang.String value){
+        checkAllowChange();
+        
+        this._style = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: tagSet
      *  
      */
@@ -813,6 +865,7 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("abstract",this.getAbstract());
         out.putNotNull("addable",this.getAddable());
         out.putNotNull("allowChildren",this.getAllowChildren());
         out.putNotNull("allowParents",this.getAllowParents());
@@ -837,6 +890,7 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
         out.putNotNull("resizable",this.getResizable());
         out.putNotNull("shape",this.getShape());
         out.putNotNull("start",this.isStart());
+        out.putNotNull("style",this.getStyle());
         out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("template",this.getTemplate());
         out.putNotNull("textDraggable",this.getTextDraggable());
@@ -853,6 +907,7 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
     protected void copyTo(GraphDesignerNodeModel instance){
         super.copyTo(instance);
         
+        instance.setAbstract(this.getAbstract());
         instance.setAddable(this.getAddable());
         instance.setAllowChildren(this.getAllowChildren());
         instance.setAllowParents(this.getAllowParents());
@@ -877,6 +932,7 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
         instance.setResizable(this.getResizable());
         instance.setShape(this.getShape());
         instance.setStart(this.isStart());
+        instance.setStyle(this.getStyle());
         instance.setTagSet(this.getTagSet());
         instance.setTemplate(this.getTemplate());
         instance.setTextDraggable(this.getTextDraggable());

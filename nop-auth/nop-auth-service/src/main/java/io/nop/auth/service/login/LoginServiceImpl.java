@@ -199,7 +199,7 @@ public class LoginServiceImpl extends AbstractLoginService {
 
             if (errorCode != ERR_AUTH_INVALID_VERIFY_CODE) {
                 auditLogFail(errorCode.getErrorCode(), errorCode.getDescription(), request,
-                        user == null ? null : user.getUserName(), beginTime, failCount);
+                        user, beginTime, failCount);
             }
 
             // 用户名错误对外也只显示用户名或者密码错误
@@ -415,16 +415,17 @@ public class LoginServiceImpl extends AbstractLoginService {
         return daoProvider.daoFor(NopAuthUser.class).findFirstByExample(example);
     }
 
-    protected void auditLogFail(String errorCode, String defaultMessage, LoginRequest request, String userName,
+    protected void auditLogFail(String errorCode, String defaultMessage, LoginRequest request, NopAuthUser user,
                                 long beginTime, int failCount) {
+        String locale = AppConfig.defaultLocale();
         AuditRequest audit = new AuditRequest();
         audit.setErrorCode(errorCode);
-        String message = I18nMessageManager.instance().getMessage(AppConfig.defaultLocale(), errorCode, defaultMessage);
-        audit.setMessage(message);
+        String message = I18nMessageManager.instance().getMessage(locale, errorCode, defaultMessage);
+        audit.setRetMessage(message);
         audit.setResultStatus(400);
         audit.setActionTime(new Timestamp(CoreMetrics.currentTimeMillis()));
-        audit.setAction("login");
-        audit.setBizObj("LoginApi");
+        audit.setOperation("LoginApi__login");
+        audit.setDescription(I18nMessageManager.instance().getMessage(locale, "api.label.LoginApi__login", null));
         audit.setTenantId(ContextProvider.currentTenantId());
 
         Map<String, Object> map = new LinkedHashMap<>();
@@ -438,9 +439,12 @@ public class LoginServiceImpl extends AbstractLoginService {
             audit.setRequestData(JSON.stringify(result));
         }
 
-        if (userName == null)
-            userName = "-";
-        audit.setUserName(userName);
+        if (user != null) {
+            audit.setUserName(user.getUserName());
+            audit.setUserId(user.getUserId());
+        } else {
+            audit.setUserName("-");
+        }
         audit.setUsedTime(CoreMetrics.currentTimeMillis() - beginTime);
         auditService.saveAudit(audit);
     }

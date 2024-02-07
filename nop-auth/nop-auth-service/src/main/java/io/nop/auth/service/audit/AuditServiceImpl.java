@@ -61,23 +61,25 @@ public class AuditServiceImpl extends AbstractBatchProcessService<AuditRequest> 
             }
             log.orm_propValue(entityModel.getTenantPropId(), tenantId);
         }
-        log.setBizActionName(request.getAction());
-        log.setBizObjName(request.getBizObj());
+        log.setOperation(request.getOperation());
+        log.setDescription(request.getDescription());
+
         Timestamp time = request.getActionTime();
         if (time == null)
             time = CoreMetrics.currentTimestamp();
+        log.setActionTime(time);
 
         log.setErrorCode(request.getErrorCode());
         log.setResultStatus(request.getResultStatus());
-        log.setTitle(request.getMessage());
+        log.setRetMessage(request.getRetMessage());
 
         log.setSessionId(request.getSessionId());
         log.setOpRequest(request.getRequestData());
         log.setOpResponse(request.getResponseData());
         log.setUsedTime(request.getUsedTime());
         log.setUserName(request.getUserName());
-        log.setCreateTime(time);
-        log.setCreatedBy(request.getUserName());
+        log.setUserId(request.getUserId());
+
         return log;
     }
 }

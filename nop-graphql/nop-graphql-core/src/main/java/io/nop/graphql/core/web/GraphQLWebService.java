@@ -24,9 +24,12 @@ import io.nop.core.model.selection.FieldSelectionBeanParser;
 import io.nop.core.resource.IResource;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IGraphQLExecutionContext;
+import io.nop.graphql.core.IGraphQLLogger;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.rpc.api.ContextBinder;
+import jakarta.annotation.Nullable;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -55,6 +58,10 @@ import static io.nop.graphql.core.GraphQLConstants.SYS_PARAM_SELECTION;
 
 public class GraphQLWebService {
     static final Logger LOG = LoggerFactory.getLogger(GraphQLWebService.class);
+
+    @Inject
+    @Nullable
+    IGraphQLLogger graphQLLogger;
 
     public GraphQLWebService() {
 
@@ -93,16 +100,35 @@ public class GraphQLWebService {
                 LOG.info("nop.graphql.end-graphql-request:usedTime={},query={},errorCode={},msg={}",
                         CoreMetrics.currentTimeMillis() - beginTime, request.getQuery(), res.getErrorCode(),
                         res.getMsg());
+                logGraphQLResult(beginTime, res, null, ctx);
                 return responseBuilder.apply(res, ctx);
             }).exceptionally(e -> {
+                if (e != null) {
+                    logGraphQLResult(beginTime, null, e, ctx);
+                }
                 return responseBuilder.apply(engine.buildGraphQLResponse(null, e, ctx), ctx);
-            }).whenComplete((v, e) -> binder.close());
+            }).whenComplete((v, e) -> {
+                binder.close();
+            });
         } catch (Exception e) {
             try {
                 return FutureHelper.success(responseBuilder.apply(engine.buildGraphQLResponse(null, e, context), context));
             } finally {
                 binder.close();
+                logGraphQLResult(beginTime, null, e, context);
             }
+        }
+    }
+
+    protected void logRpcResult(long beginTime, ApiResponse<?> result, Throwable exception, IGraphQLExecutionContext context) {
+        if (graphQLLogger != null) {
+            graphQLLogger.onRpcExecute(context, beginTime, result, exception);
+        }
+    }
+
+    protected void logGraphQLResult(long beginTime, GraphQLResponseBean result, Throwable exception, IGraphQLExecutionContext context) {
+        if (graphQLLogger != null) {
+            graphQLLogger.onGraphQLExecute(context, beginTime, result, exception);
         }
     }
 
@@ -162,15 +188,22 @@ public class GraphQLWebService {
             return engine.executeRpcAsync(context).thenApply(res -> {
                 LOG.info("nop.graphql.end-rpc-request:usedTime={},operationName={},errorCode={},msg={}",
                         CoreMetrics.currentTimeMillis() - beginTime, operationName, res.getCode(), res.getMsg());
+                logRpcResult(beginTime, res, null, ctx);
                 return responseBuilder.apply(res, ctx);
             }).exceptionally(e -> {
+                if (e != null) {
+                    logRpcResult(beginTime, null, e, ctx);
+                }
                 return responseBuilder.apply(engine.buildRpcResponse(null, e, ctx), ctx);
-            }).whenComplete((r, e) -> binder.close());
+            }).whenComplete((r, e) -> {
+                binder.close();
+            });
         } catch (Exception e) {
             try {
                 return FutureHelper.success(responseBuilder.apply(engine.buildRpcResponse(null, e, context), context));
             } finally {
                 binder.close();
+                logRpcResult(beginTime, null, e, context);
             }
         }
     }

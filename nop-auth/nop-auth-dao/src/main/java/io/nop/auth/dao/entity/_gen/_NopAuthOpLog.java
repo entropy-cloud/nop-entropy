@@ -28,29 +28,29 @@ public class _NopAuthOpLog extends DynamicOrmEntity{
     public static final String PROP_NAME_userName = "userName";
     public static final int PROP_ID_userName = 2;
     
+    /* 用户ID: USER_ID VARCHAR */
+    public static final String PROP_NAME_userId = "userId";
+    public static final int PROP_ID_userId = 3;
+    
     /* 会话ID: SESSION_ID VARCHAR */
     public static final String PROP_NAME_sessionId = "sessionId";
-    public static final int PROP_ID_sessionId = 3;
+    public static final int PROP_ID_sessionId = 4;
     
-    /* 标题: TITLE VARCHAR */
-    public static final String PROP_NAME_title = "title";
-    public static final int PROP_ID_title = 4;
+    /* 业务操作: OPERATION VARCHAR */
+    public static final String PROP_NAME_operation = "operation";
+    public static final int PROP_ID_operation = 5;
     
-    /* 业务对象: BIZ_OBJ_NAME VARCHAR */
-    public static final String PROP_NAME_bizObjName = "bizObjName";
-    public static final int PROP_ID_bizObjName = 5;
+    /* 操作描述: DESCRIPTION VARCHAR */
+    public static final String PROP_NAME_description = "description";
+    public static final int PROP_ID_description = 6;
     
-    /* 业务操作: BIZ_ACTION_NAME VARCHAR */
-    public static final String PROP_NAME_bizActionName = "bizActionName";
-    public static final int PROP_ID_bizActionName = 6;
+    /* 操作时间: ACTION_TIME TIMESTAMP */
+    public static final String PROP_NAME_actionTime = "actionTime";
+    public static final int PROP_ID_actionTime = 7;
     
-    /* 请求参数: OP_REQUEST VARCHAR */
-    public static final String PROP_NAME_opRequest = "opRequest";
-    public static final int PROP_ID_opRequest = 7;
-    
-    /* 响应数据: OP_RESPONSE VARCHAR */
-    public static final String PROP_NAME_opResponse = "opResponse";
-    public static final int PROP_ID_opResponse = 8;
+    /* 操作时长: USED_TIME BIGINT */
+    public static final String PROP_NAME_usedTime = "usedTime";
+    public static final int PROP_ID_usedTime = 8;
     
     /* 操作状态: RESULT_STATUS INTEGER */
     public static final String PROP_NAME_resultStatus = "resultStatus";
@@ -60,30 +60,33 @@ public class _NopAuthOpLog extends DynamicOrmEntity{
     public static final String PROP_NAME_errorCode = "errorCode";
     public static final int PROP_ID_errorCode = 10;
     
-    /* 操作时长: USED_TIME BIGINT */
-    public static final String PROP_NAME_usedTime = "usedTime";
-    public static final int PROP_ID_usedTime = 11;
+    /* 返回消息: RET_MESSAGE VARCHAR */
+    public static final String PROP_NAME_retMessage = "retMessage";
+    public static final int PROP_ID_retMessage = 11;
     
-    /* 创建人: CREATED_BY VARCHAR */
-    public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 13;
+    /* 请求参数: OP_REQUEST VARCHAR */
+    public static final String PROP_NAME_opRequest = "opRequest";
+    public static final int PROP_ID_opRequest = 12;
     
-    /* 创建时间: CREATE_TIME TIMESTAMP */
-    public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 14;
+    /* 响应数据: OP_RESPONSE VARCHAR */
+    public static final String PROP_NAME_opResponse = "opResponse";
+    public static final int PROP_ID_opResponse = 13;
     
 
-    private static int _PROP_ID_BOUND = 15;
+    private static int _PROP_ID_BOUND = 14;
 
     
     /* relation: 会话 */
     public static final String PROP_NAME_session = "session";
     
+    /* relation: 用户 */
+    public static final String PROP_NAME_user = "user";
+    
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_logId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_logId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[15];
+    private static final String[] PROP_ID_TO_NAME = new String[14];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -93,23 +96,23 @@ public class _NopAuthOpLog extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_userName] = PROP_NAME_userName;
           PROP_NAME_TO_ID.put(PROP_NAME_userName, PROP_ID_userName);
       
+          PROP_ID_TO_NAME[PROP_ID_userId] = PROP_NAME_userId;
+          PROP_NAME_TO_ID.put(PROP_NAME_userId, PROP_ID_userId);
+      
           PROP_ID_TO_NAME[PROP_ID_sessionId] = PROP_NAME_sessionId;
           PROP_NAME_TO_ID.put(PROP_NAME_sessionId, PROP_ID_sessionId);
       
-          PROP_ID_TO_NAME[PROP_ID_title] = PROP_NAME_title;
-          PROP_NAME_TO_ID.put(PROP_NAME_title, PROP_ID_title);
+          PROP_ID_TO_NAME[PROP_ID_operation] = PROP_NAME_operation;
+          PROP_NAME_TO_ID.put(PROP_NAME_operation, PROP_ID_operation);
       
-          PROP_ID_TO_NAME[PROP_ID_bizObjName] = PROP_NAME_bizObjName;
-          PROP_NAME_TO_ID.put(PROP_NAME_bizObjName, PROP_ID_bizObjName);
+          PROP_ID_TO_NAME[PROP_ID_description] = PROP_NAME_description;
+          PROP_NAME_TO_ID.put(PROP_NAME_description, PROP_ID_description);
       
-          PROP_ID_TO_NAME[PROP_ID_bizActionName] = PROP_NAME_bizActionName;
-          PROP_NAME_TO_ID.put(PROP_NAME_bizActionName, PROP_ID_bizActionName);
+          PROP_ID_TO_NAME[PROP_ID_actionTime] = PROP_NAME_actionTime;
+          PROP_NAME_TO_ID.put(PROP_NAME_actionTime, PROP_ID_actionTime);
       
-          PROP_ID_TO_NAME[PROP_ID_opRequest] = PROP_NAME_opRequest;
-          PROP_NAME_TO_ID.put(PROP_NAME_opRequest, PROP_ID_opRequest);
-      
-          PROP_ID_TO_NAME[PROP_ID_opResponse] = PROP_NAME_opResponse;
-          PROP_NAME_TO_ID.put(PROP_NAME_opResponse, PROP_ID_opResponse);
+          PROP_ID_TO_NAME[PROP_ID_usedTime] = PROP_NAME_usedTime;
+          PROP_NAME_TO_ID.put(PROP_NAME_usedTime, PROP_ID_usedTime);
       
           PROP_ID_TO_NAME[PROP_ID_resultStatus] = PROP_NAME_resultStatus;
           PROP_NAME_TO_ID.put(PROP_NAME_resultStatus, PROP_ID_resultStatus);
@@ -117,14 +120,14 @@ public class _NopAuthOpLog extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_errorCode] = PROP_NAME_errorCode;
           PROP_NAME_TO_ID.put(PROP_NAME_errorCode, PROP_ID_errorCode);
       
-          PROP_ID_TO_NAME[PROP_ID_usedTime] = PROP_NAME_usedTime;
-          PROP_NAME_TO_ID.put(PROP_NAME_usedTime, PROP_ID_usedTime);
+          PROP_ID_TO_NAME[PROP_ID_retMessage] = PROP_NAME_retMessage;
+          PROP_NAME_TO_ID.put(PROP_NAME_retMessage, PROP_ID_retMessage);
       
-          PROP_ID_TO_NAME[PROP_ID_createdBy] = PROP_NAME_createdBy;
-          PROP_NAME_TO_ID.put(PROP_NAME_createdBy, PROP_ID_createdBy);
+          PROP_ID_TO_NAME[PROP_ID_opRequest] = PROP_NAME_opRequest;
+          PROP_NAME_TO_ID.put(PROP_NAME_opRequest, PROP_ID_opRequest);
       
-          PROP_ID_TO_NAME[PROP_ID_createTime] = PROP_NAME_createTime;
-          PROP_NAME_TO_ID.put(PROP_NAME_createTime, PROP_ID_createTime);
+          PROP_ID_TO_NAME[PROP_ID_opResponse] = PROP_NAME_opResponse;
+          PROP_NAME_TO_ID.put(PROP_NAME_opResponse, PROP_ID_opResponse);
       
     }
 
@@ -135,23 +138,23 @@ public class _NopAuthOpLog extends DynamicOrmEntity{
     /* 用户名: USER_NAME */
     private java.lang.String _userName;
     
+    /* 用户ID: USER_ID */
+    private java.lang.String _userId;
+    
     /* 会话ID: SESSION_ID */
     private java.lang.String _sessionId;
     
-    /* 标题: TITLE */
-    private java.lang.String _title;
+    /* 业务操作: OPERATION */
+    private java.lang.String _operation;
     
-    /* 业务对象: BIZ_OBJ_NAME */
-    private java.lang.String _bizObjName;
+    /* 操作描述: DESCRIPTION */
+    private java.lang.String _description;
     
-    /* 业务操作: BIZ_ACTION_NAME */
-    private java.lang.String _bizActionName;
+    /* 操作时间: ACTION_TIME */
+    private java.sql.Timestamp _actionTime;
     
-    /* 请求参数: OP_REQUEST */
-    private java.lang.String _opRequest;
-    
-    /* 响应数据: OP_RESPONSE */
-    private java.lang.String _opResponse;
+    /* 操作时长: USED_TIME */
+    private java.lang.Long _usedTime;
     
     /* 操作状态: RESULT_STATUS */
     private java.lang.Integer _resultStatus;
@@ -159,14 +162,14 @@ public class _NopAuthOpLog extends DynamicOrmEntity{
     /* 错误码: ERROR_CODE */
     private java.lang.String _errorCode;
     
-    /* 操作时长: USED_TIME */
-    private java.lang.Long _usedTime;
+    /* 返回消息: RET_MESSAGE */
+    private java.lang.String _retMessage;
     
-    /* 创建人: CREATED_BY */
-    private java.lang.String _createdBy;
+    /* 请求参数: OP_REQUEST */
+    private java.lang.String _opRequest;
     
-    /* 创建时间: CREATE_TIME */
-    private java.sql.Timestamp _createTime;
+    /* 响应数据: OP_RESPONSE */
+    private java.lang.String _opResponse;
     
 
     public _NopAuthOpLog(){
@@ -245,23 +248,23 @@ public class _NopAuthOpLog extends DynamicOrmEntity{
             case PROP_ID_userName:
                return getUserName();
         
+            case PROP_ID_userId:
+               return getUserId();
+        
             case PROP_ID_sessionId:
                return getSessionId();
         
-            case PROP_ID_title:
-               return getTitle();
+            case PROP_ID_operation:
+               return getOperation();
         
-            case PROP_ID_bizObjName:
-               return getBizObjName();
+            case PROP_ID_description:
+               return getDescription();
         
-            case PROP_ID_bizActionName:
-               return getBizActionName();
+            case PROP_ID_actionTime:
+               return getActionTime();
         
-            case PROP_ID_opRequest:
-               return getOpRequest();
-        
-            case PROP_ID_opResponse:
-               return getOpResponse();
+            case PROP_ID_usedTime:
+               return getUsedTime();
         
             case PROP_ID_resultStatus:
                return getResultStatus();
@@ -269,14 +272,14 @@ public class _NopAuthOpLog extends DynamicOrmEntity{
             case PROP_ID_errorCode:
                return getErrorCode();
         
-            case PROP_ID_usedTime:
-               return getUsedTime();
+            case PROP_ID_retMessage:
+               return getRetMessage();
         
-            case PROP_ID_createdBy:
-               return getCreatedBy();
+            case PROP_ID_opRequest:
+               return getOpRequest();
         
-            case PROP_ID_createTime:
-               return getCreateTime();
+            case PROP_ID_opResponse:
+               return getOpResponse();
         
            default:
               return super.orm_propValue(propId);
@@ -309,6 +312,16 @@ public class _NopAuthOpLog extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_userId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_userId));
+               }
+               setUserId(typedValue);
+               break;
+            }
+        
             case PROP_ID_sessionId:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -319,53 +332,43 @@ public class _NopAuthOpLog extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_title:{
+            case PROP_ID_operation:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_title));
+                       err-> newTypeConversionError(PROP_NAME_operation));
                }
-               setTitle(typedValue);
+               setOperation(typedValue);
                break;
             }
         
-            case PROP_ID_bizObjName:{
+            case PROP_ID_description:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_bizObjName));
+                       err-> newTypeConversionError(PROP_NAME_description));
                }
-               setBizObjName(typedValue);
+               setDescription(typedValue);
                break;
             }
         
-            case PROP_ID_bizActionName:{
-               java.lang.String typedValue = null;
+            case PROP_ID_actionTime:{
+               java.sql.Timestamp typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_bizActionName));
+                   typedValue = ConvertHelper.toTimestamp(value,
+                       err-> newTypeConversionError(PROP_NAME_actionTime));
                }
-               setBizActionName(typedValue);
+               setActionTime(typedValue);
                break;
             }
         
-            case PROP_ID_opRequest:{
-               java.lang.String typedValue = null;
+            case PROP_ID_usedTime:{
+               java.lang.Long typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_opRequest));
+                   typedValue = ConvertHelper.toLong(value,
+                       err-> newTypeConversionError(PROP_NAME_usedTime));
                }
-               setOpRequest(typedValue);
-               break;
-            }
-        
-            case PROP_ID_opResponse:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_opResponse));
-               }
-               setOpResponse(typedValue);
+               setUsedTime(typedValue);
                break;
             }
         
@@ -389,33 +392,33 @@ public class _NopAuthOpLog extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_usedTime:{
-               java.lang.Long typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toLong(value,
-                       err-> newTypeConversionError(PROP_NAME_usedTime));
-               }
-               setUsedTime(typedValue);
-               break;
-            }
-        
-            case PROP_ID_createdBy:{
+            case PROP_ID_retMessage:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_createdBy));
+                       err-> newTypeConversionError(PROP_NAME_retMessage));
                }
-               setCreatedBy(typedValue);
+               setRetMessage(typedValue);
                break;
             }
         
-            case PROP_ID_createTime:{
-               java.sql.Timestamp typedValue = null;
+            case PROP_ID_opRequest:{
+               java.lang.String typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toTimestamp(value,
-                       err-> newTypeConversionError(PROP_NAME_createTime));
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_opRequest));
                }
-               setCreateTime(typedValue);
+               setOpRequest(typedValue);
+               break;
+            }
+        
+            case PROP_ID_opResponse:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_opResponse));
+               }
+               setOpResponse(typedValue);
                break;
             }
         
@@ -442,6 +445,13 @@ public class _NopAuthOpLog extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_userId:{
+               onInitProp(propId);
+               this._userId = (java.lang.String)value;
+               
+               break;
+            }
+        
             case PROP_ID_sessionId:{
                onInitProp(propId);
                this._sessionId = (java.lang.String)value;
@@ -449,37 +459,30 @@ public class _NopAuthOpLog extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_title:{
+            case PROP_ID_operation:{
                onInitProp(propId);
-               this._title = (java.lang.String)value;
+               this._operation = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_bizObjName:{
+            case PROP_ID_description:{
                onInitProp(propId);
-               this._bizObjName = (java.lang.String)value;
+               this._description = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_bizActionName:{
+            case PROP_ID_actionTime:{
                onInitProp(propId);
-               this._bizActionName = (java.lang.String)value;
+               this._actionTime = (java.sql.Timestamp)value;
                
                break;
             }
         
-            case PROP_ID_opRequest:{
+            case PROP_ID_usedTime:{
                onInitProp(propId);
-               this._opRequest = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_opResponse:{
-               onInitProp(propId);
-               this._opResponse = (java.lang.String)value;
+               this._usedTime = (java.lang.Long)value;
                
                break;
             }
@@ -498,23 +501,23 @@ public class _NopAuthOpLog extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_usedTime:{
+            case PROP_ID_retMessage:{
                onInitProp(propId);
-               this._usedTime = (java.lang.Long)value;
+               this._retMessage = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_createdBy:{
+            case PROP_ID_opRequest:{
                onInitProp(propId);
-               this._createdBy = (java.lang.String)value;
+               this._opRequest = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_createTime:{
+            case PROP_ID_opResponse:{
                onInitProp(propId);
-               this._createTime = (java.sql.Timestamp)value;
+               this._opResponse = (java.lang.String)value;
                
                break;
             }
@@ -564,6 +567,25 @@ public class _NopAuthOpLog extends DynamicOrmEntity{
     }
     
     /**
+     * 用户ID: USER_ID
+     */
+    public java.lang.String getUserId(){
+         onPropGet(PROP_ID_userId);
+         return _userId;
+    }
+
+    /**
+     * 用户ID: USER_ID
+     */
+    public void setUserId(java.lang.String value){
+        if(onPropSet(PROP_ID_userId,value)){
+            this._userId = value;
+            internalClearRefs(PROP_ID_userId);
+            
+        }
+    }
+    
+    /**
      * 会话ID: SESSION_ID
      */
     public java.lang.String getSessionId(){
@@ -583,96 +605,77 @@ public class _NopAuthOpLog extends DynamicOrmEntity{
     }
     
     /**
-     * 标题: TITLE
+     * 业务操作: OPERATION
      */
-    public java.lang.String getTitle(){
-         onPropGet(PROP_ID_title);
-         return _title;
+    public java.lang.String getOperation(){
+         onPropGet(PROP_ID_operation);
+         return _operation;
     }
 
     /**
-     * 标题: TITLE
+     * 业务操作: OPERATION
      */
-    public void setTitle(java.lang.String value){
-        if(onPropSet(PROP_ID_title,value)){
-            this._title = value;
-            internalClearRefs(PROP_ID_title);
+    public void setOperation(java.lang.String value){
+        if(onPropSet(PROP_ID_operation,value)){
+            this._operation = value;
+            internalClearRefs(PROP_ID_operation);
             
         }
     }
     
     /**
-     * 业务对象: BIZ_OBJ_NAME
+     * 操作描述: DESCRIPTION
      */
-    public java.lang.String getBizObjName(){
-         onPropGet(PROP_ID_bizObjName);
-         return _bizObjName;
+    public java.lang.String getDescription(){
+         onPropGet(PROP_ID_description);
+         return _description;
     }
 
     /**
-     * 业务对象: BIZ_OBJ_NAME
+     * 操作描述: DESCRIPTION
      */
-    public void setBizObjName(java.lang.String value){
-        if(onPropSet(PROP_ID_bizObjName,value)){
-            this._bizObjName = value;
-            internalClearRefs(PROP_ID_bizObjName);
+    public void setDescription(java.lang.String value){
+        if(onPropSet(PROP_ID_description,value)){
+            this._description = value;
+            internalClearRefs(PROP_ID_description);
             
         }
     }
     
     /**
-     * 业务操作: BIZ_ACTION_NAME
+     * 操作时间: ACTION_TIME
      */
-    public java.lang.String getBizActionName(){
-         onPropGet(PROP_ID_bizActionName);
-         return _bizActionName;
+    public java.sql.Timestamp getActionTime(){
+         onPropGet(PROP_ID_actionTime);
+         return _actionTime;
     }
 
     /**
-     * 业务操作: BIZ_ACTION_NAME
+     * 操作时间: ACTION_TIME
      */
-    public void setBizActionName(java.lang.String value){
-        if(onPropSet(PROP_ID_bizActionName,value)){
-            this._bizActionName = value;
-            internalClearRefs(PROP_ID_bizActionName);
+    public void setActionTime(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_actionTime,value)){
+            this._actionTime = value;
+            internalClearRefs(PROP_ID_actionTime);
             
         }
     }
     
     /**
-     * 请求参数: OP_REQUEST
+     * 操作时长: USED_TIME
      */
-    public java.lang.String getOpRequest(){
-         onPropGet(PROP_ID_opRequest);
-         return _opRequest;
+    public java.lang.Long getUsedTime(){
+         onPropGet(PROP_ID_usedTime);
+         return _usedTime;
     }
 
     /**
-     * 请求参数: OP_REQUEST
+     * 操作时长: USED_TIME
      */
-    public void setOpRequest(java.lang.String value){
-        if(onPropSet(PROP_ID_opRequest,value)){
-            this._opRequest = value;
-            internalClearRefs(PROP_ID_opRequest);
-            
-        }
-    }
-    
-    /**
-     * 响应数据: OP_RESPONSE
-     */
-    public java.lang.String getOpResponse(){
-         onPropGet(PROP_ID_opResponse);
-         return _opResponse;
-    }
-
-    /**
-     * 响应数据: OP_RESPONSE
-     */
-    public void setOpResponse(java.lang.String value){
-        if(onPropSet(PROP_ID_opResponse,value)){
-            this._opResponse = value;
-            internalClearRefs(PROP_ID_opResponse);
+    public void setUsedTime(java.lang.Long value){
+        if(onPropSet(PROP_ID_usedTime,value)){
+            this._usedTime = value;
+            internalClearRefs(PROP_ID_usedTime);
             
         }
     }
@@ -716,58 +719,58 @@ public class _NopAuthOpLog extends DynamicOrmEntity{
     }
     
     /**
-     * 操作时长: USED_TIME
+     * 返回消息: RET_MESSAGE
      */
-    public java.lang.Long getUsedTime(){
-         onPropGet(PROP_ID_usedTime);
-         return _usedTime;
+    public java.lang.String getRetMessage(){
+         onPropGet(PROP_ID_retMessage);
+         return _retMessage;
     }
 
     /**
-     * 操作时长: USED_TIME
+     * 返回消息: RET_MESSAGE
      */
-    public void setUsedTime(java.lang.Long value){
-        if(onPropSet(PROP_ID_usedTime,value)){
-            this._usedTime = value;
-            internalClearRefs(PROP_ID_usedTime);
+    public void setRetMessage(java.lang.String value){
+        if(onPropSet(PROP_ID_retMessage,value)){
+            this._retMessage = value;
+            internalClearRefs(PROP_ID_retMessage);
             
         }
     }
     
     /**
-     * 创建人: CREATED_BY
+     * 请求参数: OP_REQUEST
      */
-    public java.lang.String getCreatedBy(){
-         onPropGet(PROP_ID_createdBy);
-         return _createdBy;
+    public java.lang.String getOpRequest(){
+         onPropGet(PROP_ID_opRequest);
+         return _opRequest;
     }
 
     /**
-     * 创建人: CREATED_BY
+     * 请求参数: OP_REQUEST
      */
-    public void setCreatedBy(java.lang.String value){
-        if(onPropSet(PROP_ID_createdBy,value)){
-            this._createdBy = value;
-            internalClearRefs(PROP_ID_createdBy);
+    public void setOpRequest(java.lang.String value){
+        if(onPropSet(PROP_ID_opRequest,value)){
+            this._opRequest = value;
+            internalClearRefs(PROP_ID_opRequest);
             
         }
     }
     
     /**
-     * 创建时间: CREATE_TIME
+     * 响应数据: OP_RESPONSE
      */
-    public java.sql.Timestamp getCreateTime(){
-         onPropGet(PROP_ID_createTime);
-         return _createTime;
+    public java.lang.String getOpResponse(){
+         onPropGet(PROP_ID_opResponse);
+         return _opResponse;
     }
 
     /**
-     * 创建时间: CREATE_TIME
+     * 响应数据: OP_RESPONSE
      */
-    public void setCreateTime(java.sql.Timestamp value){
-        if(onPropSet(PROP_ID_createTime,value)){
-            this._createTime = value;
-            internalClearRefs(PROP_ID_createTime);
+    public void setOpResponse(java.lang.String value){
+        if(onPropSet(PROP_ID_opResponse,value)){
+            this._opResponse = value;
+            internalClearRefs(PROP_ID_opResponse);
             
         }
     }
@@ -789,6 +792,29 @@ public class _NopAuthOpLog extends DynamicOrmEntity{
            internalSetRefEntity(PROP_NAME_session, refEntity,()->{
            
                            this.setSessionId(refEntity.getSessionId());
+                       
+           });
+           }
+       
+    }
+       
+    /**
+     * 用户
+     */
+    public io.nop.auth.dao.entity.NopAuthUser getUser(){
+       return (io.nop.auth.dao.entity.NopAuthUser)internalGetRefEntity(PROP_NAME_user);
+    }
+
+    public void setUser(io.nop.auth.dao.entity.NopAuthUser refEntity){
+   
+           if(refEntity == null){
+           
+                   this.setUserId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_user, refEntity,()->{
+           
+                           this.setUserId(refEntity.getUserId());
                        
            });
            }

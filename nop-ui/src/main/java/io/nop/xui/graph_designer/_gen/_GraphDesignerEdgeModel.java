@@ -9,12 +9,19 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [56:10:0:0]/nop/schema/designer/graph-designer.xdef <p>
+ * generate from [60:10:0:0]/nop/schema/designer/graph-designer.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.component.AbstractComponentModel {
+    
+    /**
+     *  
+     * xml name: abstract
+     * 
+     */
+    private java.lang.Boolean _abstract ;
     
     /**
      *  
@@ -36,6 +43,13 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
      * 
      */
     private java.util.Set<java.lang.String> _allowTargets ;
+    
+    /**
+     *  
+     * xml name: base
+     * 
+     */
+    private java.lang.String _base ;
     
     /**
      *  
@@ -88,6 +102,13 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
     
     /**
      *  
+     * xml name: style
+     * 
+     */
+    private java.lang.String _style ;
+    
+    /**
+     *  
      * xml name: tagSet
      * 
      */
@@ -113,6 +134,25 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
      * 
      */
     private java.lang.Integer _width ;
+    
+    /**
+     * 
+     * xml name: abstract
+     *  
+     */
+    
+    public java.lang.Boolean getAbstract(){
+      return _abstract;
+    }
+
+    
+    public void setAbstract(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._abstract = value;
+           
+    }
+
     
     /**
      * 
@@ -167,6 +207,25 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
         checkAllowChange();
         
         this._allowTargets = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: base
+     *  
+     */
+    
+    public java.lang.String getBase(){
+      return _base;
+    }
+
+    
+    public void setBase(java.lang.String value){
+        checkAllowChange();
+        
+        this._base = value;
            
     }
 
@@ -306,6 +365,25 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
     
     /**
      * 
+     * xml name: style
+     *  
+     */
+    
+    public java.lang.String getStyle(){
+      return _style;
+    }
+
+    
+    public void setStyle(java.lang.String value){
+        checkAllowChange();
+        
+        this._style = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: tagSet
      *  
      */
@@ -395,9 +473,11 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("abstract",this.getAbstract());
         out.putNotNull("addable",this.getAddable());
         out.putNotNull("allowSources",this.getAllowSources());
         out.putNotNull("allowTargets",this.getAllowTargets());
+        out.putNotNull("base",this.getBase());
         out.putNotNull("deletable",this.getDeletable());
         out.putNotNull("icon",this.getIcon());
         out.putNotNull("label",this.getLabel());
@@ -405,6 +485,7 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
         out.putNotNull("minOccurs",this.getMinOccurs());
         out.putNotNull("name",this.getName());
         out.putNotNull("propsForm",this.getPropsForm());
+        out.putNotNull("style",this.getStyle());
         out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("template",this.getTemplate());
         out.putNotNull("type",this.getType());
@@ -420,9 +501,11 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
     protected void copyTo(GraphDesignerEdgeModel instance){
         super.copyTo(instance);
         
+        instance.setAbstract(this.getAbstract());
         instance.setAddable(this.getAddable());
         instance.setAllowSources(this.getAllowSources());
         instance.setAllowTargets(this.getAllowTargets());
+        instance.setBase(this.getBase());
         instance.setDeletable(this.getDeletable());
         instance.setIcon(this.getIcon());
         instance.setLabel(this.getLabel());
@@ -430,6 +513,7 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
         instance.setMinOccurs(this.getMinOccurs());
         instance.setName(this.getName());
         instance.setPropsForm(this.getPropsForm());
+        instance.setStyle(this.getStyle());
         instance.setTagSet(this.getTagSet());
         instance.setTemplate(this.getTemplate());
         instance.setType(this.getType());

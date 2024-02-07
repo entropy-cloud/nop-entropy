@@ -60,6 +60,7 @@ import java.util.concurrent.Flow;
 import static io.nop.commons.cache.CacheConfig.newConfig;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_PARSE_CACHE_CHECK_CHANGED;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_QUERY_MAX_DEPTH;
+import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_QUERY_MAX_OPERATION_COUNT;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_SCHEMA_INTROSPECTION_ENABLED;
 import static io.nop.graphql.core.GraphQLErrors.ARG_ALLOWED_NAMES;
 import static io.nop.graphql.core.GraphQLErrors.ARG_ARG_NAME;
@@ -69,6 +70,8 @@ import static io.nop.graphql.core.GraphQLErrors.ARG_OPERATION_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ARG_TYPE_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_DOC_OPERATION_SIZE_NOT_ONE;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_INTROSPECTION_NOT_ENABLED;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_QUERY_EXCEED_MAX_OPERATION_COUNT;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_QUERY_NO_OPERATION;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNEXPECTED_OPERATION_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_BUILTIN_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_OPERATION;
@@ -318,6 +321,13 @@ public class GraphQLEngine implements IGraphQLEngine {
 
         Map<String, Object> vars = request.getVariables();
         GraphQLOperation op = (GraphQLOperation) doc.getDefinitions().get(0);
+        if (op.getSelectionSet() == null || op.getSelectionSet().isEmpty())
+            throw new NopException(ERR_GRAPHQL_QUERY_NO_OPERATION);
+
+        if (op.getSelectionSet().size() > CFG_GRAPHQL_QUERY_MAX_OPERATION_COUNT.get())
+            throw new NopException(ERR_GRAPHQL_QUERY_EXCEED_MAX_OPERATION_COUNT)
+                    .param(ARG_OPERATION_NAME, op.getName());
+
         context.setOperation(op);
         context.setExecutionId(request.getOperationId());
         FieldSelectionBean selectionBean = buildSelectionBean(op.getName(), op.getSelectionSet(), vars);
@@ -472,9 +482,9 @@ public class GraphQLEngine implements IGraphQLEngine {
 
     protected IAsyncFunctionInvoker getExecutionInvoker(IGraphQLExecutionContext context) {
         IAsyncFunctionInvoker executionInvoker = cancelTokenManager.wrap(this.executionInvoker, context);
-        if (flowControlRunner == null)
-            return executionInvoker;
-        return new GraphQLFlowControlInvoker(flowControlRunner, executionInvoker);
+        if (flowControlRunner != null)
+            executionInvoker = new GraphQLFlowControlInvoker(flowControlRunner, executionInvoker);
+        return executionInvoker;
     }
 
     @Override

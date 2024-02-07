@@ -15,11 +15,11 @@ import java.sql.Timestamp;
 
 @DataBean
 public class AuditRequest extends ExtensibleBean {
-    private String bizObj;
-    private String action;
+    private String operation;
+    private String description;
     private String entityId;
 
-    private String message;
+    private String retMessage;
 
     // 请求数据
     private String requestData;
@@ -31,6 +31,8 @@ public class AuditRequest extends ExtensibleBean {
     private int resultStatus;
 
     private String userName;
+
+    private String userId;
     private String clientId;
     private String appId;
 
@@ -40,10 +42,9 @@ public class AuditRequest extends ExtensibleBean {
 
     private String tenantId;
 
-    public static AuditRequest newRequest(String bizObj, String action, String entityId, IUserContext userContext) {
+    public static AuditRequest newRequest(String operation, String entityId, IUserContext userContext) {
         AuditRequest req = new AuditRequest();
-        req.setBizObj(bizObj);
-        req.setAction(action);
+        req.setOperation(operation);
         req.setEntityId(entityId);
         req.setUserName(userContext.getUserName());
         req.setSessionId(userContext.getSessionId());
@@ -75,20 +76,20 @@ public class AuditRequest extends ExtensibleBean {
         this.sessionId = sessionId;
     }
 
-    public String getBizObj() {
-        return bizObj;
+    public String getOperation() {
+        return operation;
     }
 
-    public void setBizObj(String bizObj) {
-        this.bizObj = bizObj;
+    public void setOperation(String operation) {
+        this.operation = operation;
     }
 
-    public String getAction() {
-        return action;
+    public String getDescription() {
+        return description;
     }
 
-    public void setAction(String action) {
-        this.action = action;
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public String getEntityId() {
@@ -139,6 +140,14 @@ public class AuditRequest extends ExtensibleBean {
         this.userName = userName;
     }
 
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
     public String getClientId() {
         return clientId;
     }
@@ -163,11 +172,11 @@ public class AuditRequest extends ExtensibleBean {
         this.actionTime = actionTime;
     }
 
-    public String getMessage() {
-        return message;
+    public String getRetMessage() {
+        return retMessage;
     }
 
-    public void setMessage(String message) {
-        this.message = message;
+    public void setRetMessage(String retMessage) {
+        this.retMessage = retMessage;
     }
 }

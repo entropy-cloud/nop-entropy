@@ -19,14 +19,17 @@ import java.util.Set;
 import static io.nop.api.core.ApiConfigs.CFG_RPC_PROPAGATE_HEADERS;
 
 public class ContextBinder {
-    private IContext context;
-    private boolean created;
+    private final IContext context;
+    private final boolean created;
 
     public ContextBinder() {
-        context = ContextProvider.currentContext();
+        IContext context = ContextProvider.currentContext();
         if (context == null) {
-            context = ContextProvider.newContext();
+            this.context = ContextProvider.newContext();
             created = true;
+        }else{
+            this.context = context;
+            created = false;
         }
     }
 
