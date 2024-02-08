@@ -17,6 +17,7 @@
  */
 package io.nop.commons.functional;
 
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -27,10 +28,11 @@ import java.util.function.Supplier;
  */
 public class Lazy<T> implements Supplier<T> {
 
-    protected final Supplier<? extends T> supplier;
+    private final Supplier<? extends T> supplier;
 
     // 利用 value 属性缓存 supplier 计算后的值
-    protected T value;
+    private volatile T value;
+    private volatile boolean loaded;
 
     private Lazy(Supplier<? extends T> supplier) {
         this.supplier = supplier;
@@ -45,18 +47,41 @@ public class Lazy<T> implements Supplier<T> {
     }
 
     public T get() {
-        if (value == null) {
-            T newValue = supplier.get();
+        if (!loaded) {
+            synchronized (this) {
+                if (loaded)
+                    return value;
 
-            if (newValue == null) {
-                throw new IllegalStateException("Lazy value can not be null!");
+                value = supplier.get();
             }
-
-            value = newValue;
         }
 
         return value;
     }
+
+    public boolean isLoaded() {
+        return loaded;
+    }
+
+    public boolean isPresent() {
+        return get() != null;
+    }
+
+    public <S> S callIfPresent(Function<T, S> fn) {
+        T t = get();
+        if (t != null) {
+            return fn.apply(t);
+        }
+        return null;
+    }
+
+    public void runIfPresent(Consumer<T> fn) {
+        T t = get();
+        if (t != null) {
+            fn.accept(t);
+        }
+    }
+
 
     public <S> Lazy<S> map(Function<? super T, ? extends S> function) {
         return Lazy.of(() -> function.apply(get()));

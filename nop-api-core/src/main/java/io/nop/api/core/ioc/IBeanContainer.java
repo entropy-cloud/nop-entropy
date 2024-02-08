@@ -29,6 +29,8 @@ public interface IBeanContainer extends IBeanProvider {
 
     <T> T getBeanByType(Class<T> clazz);
 
+    <T> T tryGetBeanByType(Class<T> clazz);
+
     <T> Map<String, T> getBeansOfType(Class<T> clazz);
 
     Map<String, Object> getBeansWithAnnotation(Class<? extends Annotation> annClass);

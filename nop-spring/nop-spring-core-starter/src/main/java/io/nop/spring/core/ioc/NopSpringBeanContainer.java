@@ -8,9 +8,10 @@
 package io.nop.spring.core.ioc;
 
 import io.nop.api.core.ioc.IBeanContainer;
+import jakarta.annotation.Nonnull;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ConfigurableApplicationContext;
 
-import jakarta.annotation.Nonnull;
 import java.lang.annotation.Annotation;
 import java.util.Map;
 
@@ -70,6 +71,12 @@ public class NopSpringBeanContainer implements IBeanContainer {
     @Override
     public <T> T getBeanByType(Class<T> clazz) {
         return context.getBean(clazz);
+    }
+
+    @Override
+    public <T> T tryGetBeanByType(Class<T> clazz) {
+        ObjectProvider<T> provider = context.getBeanProvider(clazz, true);
+        return provider.getIfAvailable();
     }
 
     @Override

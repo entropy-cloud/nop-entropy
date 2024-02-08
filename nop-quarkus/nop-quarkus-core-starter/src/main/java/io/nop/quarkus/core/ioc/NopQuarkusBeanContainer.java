@@ -100,6 +100,14 @@ public class NopQuarkusBeanContainer implements IBeanContainer {
     }
 
     @Override
+    public <T> T tryGetBeanByType(Class<T> clazz) {
+        T bean = container().instance(clazz).get();
+        if (bean == null)
+            return null;
+        return bean;
+    }
+
+    @Override
     public <T> Map<String, T> getBeansOfType(Class<T> clazz) {
         Map<String, T> ret = new HashMap<>();
 

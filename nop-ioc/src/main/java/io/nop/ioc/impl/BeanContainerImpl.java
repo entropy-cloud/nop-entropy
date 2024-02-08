@@ -160,6 +160,18 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
     }
 
     @Override
+    public <T> T tryGetBeanByType(Class<T> requiredType) {
+        checkStarted();
+        BeanDefinition bean = findBeanByType(requiredType);
+        if (bean == null) {
+            if (parentContainer != null)
+                return parentContainer.tryGetBeanByType(requiredType);
+
+        }
+        return (T) getBean0(bean, false, false);
+    }
+
+    @Override
     public <T> Map<String, T> getBeansOfType(Class<T> clazz) {
         checkStarted();
 

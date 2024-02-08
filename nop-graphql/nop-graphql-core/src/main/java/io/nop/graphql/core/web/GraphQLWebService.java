@@ -18,6 +18,7 @@ import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.json.JSON;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.commons.functional.Lazy;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.model.selection.FieldSelectionBeanParser;
@@ -28,8 +29,6 @@ import io.nop.graphql.core.IGraphQLLogger;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.rpc.api.ContextBinder;
-import jakarta.annotation.Nullable;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -59,9 +58,9 @@ import static io.nop.graphql.core.GraphQLConstants.SYS_PARAM_SELECTION;
 public class GraphQLWebService {
     static final Logger LOG = LoggerFactory.getLogger(GraphQLWebService.class);
 
-    @Inject
-    @Nullable
-    IGraphQLLogger graphQLLogger;
+    protected final Lazy<IGraphQLLogger> graphQLLogger = Lazy.of(() -> {
+        return BeanContainer.instance().tryGetBeanByType(IGraphQLLogger.class);
+    });
 
     public GraphQLWebService() {
 
@@ -121,15 +120,15 @@ public class GraphQLWebService {
     }
 
     protected void logRpcResult(long beginTime, ApiResponse<?> result, Throwable exception, IGraphQLExecutionContext context) {
-        if (graphQLLogger != null) {
-            graphQLLogger.onRpcExecute(context, beginTime, result, exception);
-        }
+        graphQLLogger.runIfPresent(logger -> {
+            logger.onRpcExecute(context, beginTime, result, exception);
+        });
     }
 
     protected void logGraphQLResult(long beginTime, GraphQLResponseBean result, Throwable exception, IGraphQLExecutionContext context) {
-        if (graphQLLogger != null) {
-            graphQLLogger.onGraphQLExecute(context, beginTime, result, exception);
-        }
+        graphQLLogger.runIfPresent(logger -> {
+            logger.onGraphQLExecute(context, beginTime, result, exception);
+        });
     }
 
     protected IGraphQLExecutionContext newGraphQLContext(IGraphQLEngine engine) {
