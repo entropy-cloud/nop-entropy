@@ -16,38 +16,38 @@
                 <!--用户名-->
                 <col id="userName" mandatory="true" sortable="true"/>
 
+                <!--用户ID-->
+                <col id="userId" sortable="true"/>
+
                 <!--会话ID-->
                 <col id="sessionId" sortable="true"/>
 
-                <!--标题-->
-                <col id="title" sortable="true"/>
-
-                <!--业务对象-->
-                <col id="bizObjName" sortable="true"/>
-
                 <!--业务操作-->
-                <col id="bizActionName" sortable="true"/>
+                <col id="operation" sortable="true"/>
+
+                <!--操作描述-->
+                <col id="description" sortable="true"/>
+
+                <!--操作时间-->
+                <col id="actionTime" mandatory="true" sortable="true"/>
+
+                <!--操作时长-->
+                <col id="usedTime" mandatory="true" sortable="true"/>
+
+                <!--操作状态-->
+                <col id="resultStatus" mandatory="true" sortable="true"/>
+
+                <!--错误码-->
+                <col id="errorCode" sortable="true"/>
+
+                <!--返回消息-->
+                <col id="retMessage" sortable="true"/>
 
                 <!--请求参数-->
                 <col id="opRequest" sortable="true"/>
 
                 <!--响应数据-->
                 <col id="opResponse" sortable="true"/>
-
-                <!--操作状态-->
-                <col id="resultStatus" sortable="true"/>
-
-                <!--错误码-->
-                <col id="errorCode" sortable="true"/>
-
-                <!--操作时长-->
-                <col id="usedTime" sortable="true"/>
-
-                <!--创建人-->
-                <col id="createdBy" mandatory="true" sortable="true"/>
-
-                <!--创建时间-->
-                <col id="createTime" mandatory="true" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -57,12 +57,12 @@
         <form id="view" editMode="view" title="查看-操作日志" i18n-en:title="View Operation Log">
             <layout>
  logId[主键] userName[用户名]
- sessionId[会话ID] title[标题]
- bizObjName[业务对象] bizActionName[业务操作]
- opRequest[请求参数] opResponse[响应数据]
+ userId[用户ID] sessionId[会话ID]
+ operation[业务操作] description[操作描述]
+ actionTime[操作时间] usedTime[操作时长]
  resultStatus[操作状态] errorCode[错误码]
- usedTime[操作时长] createdBy[创建人]
- createTime[创建时间] 
+ retMessage[返回消息] opRequest[请求参数]
+ opResponse[响应数据] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">

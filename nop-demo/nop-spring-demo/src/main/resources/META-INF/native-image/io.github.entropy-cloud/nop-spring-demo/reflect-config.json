@@ -9288,6 +9288,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_actionTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_bizActionName"
       },
       {
@@ -9304,6 +9309,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_ID_createdBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_description"
       },
       {
         "allowUnsafeAccess": false,
@@ -9328,7 +9338,17 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_operation"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_resultStatus"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_retMessage"
       },
       {
         "allowUnsafeAccess": false,
@@ -9348,7 +9368,17 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_userId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_userName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_actionTime"
       },
       {
         "allowUnsafeAccess": false,
@@ -9373,6 +9403,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_description"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_errorCode"
       },
       {
@@ -9393,7 +9428,17 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_operation"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_resultStatus"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_retMessage"
       },
       {
         "allowUnsafeAccess": false,
@@ -9418,12 +9463,26 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_user"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_userId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_userName"
       }
     ],
     "methods": [
       {
         "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "getActionTime",
         "parameterTypes": []
       },
       {
@@ -9443,6 +9502,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
         "name": "getErrorCode",
         "parameterTypes": []
       },
@@ -9459,7 +9522,15 @@
         "parameterTypes": []
       },
       {
+        "name": "getOperation",
+        "parameterTypes": []
+      },
+      {
         "name": "getResultStatus",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRetMessage",
         "parameterTypes": []
       },
       {
@@ -9476,6 +9547,14 @@
       },
       {
         "name": "getUsedTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUser",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUserId",
         "parameterTypes": []
       },
       {
@@ -9537,6 +9616,12 @@
         ]
       },
       {
+        "name": "setActionTime",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
         "name": "setBizActionName",
         "parameterTypes": [
           "java.lang.String"
@@ -9556,6 +9641,12 @@
       },
       {
         "name": "setCreatedBy",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDescription",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -9585,9 +9676,21 @@
         ]
       },
       {
+        "name": "setOperation",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setResultStatus",
         "parameterTypes": [
           "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setRetMessage",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -9612,6 +9715,18 @@
         "name": "setUsedTime",
         "parameterTypes": [
           "java.lang.Long"
+        ]
+      },
+      {
+        "name": "setUser",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthUser"
+        ]
+      },
+      {
+        "name": "setUserId",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -15027,6 +15142,17 @@
       {
         "name": "addDefaultUser",
         "parameterTypes": []
+      },
+      {
+        "name": "auditLogFail",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "io.nop.auth.api.messages.LoginRequest",
+          "io.nop.auth.dao.entity.NopAuthUser",
+          "long",
+          "int"
+        ]
       },
       {
         "name": "auditLogFail",
@@ -32691,6 +32817,72 @@
       }
     ],
     "name": "io.nop.graphql.core.engine.GraphQLEngine",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "beginDataFetch",
+        "parameterTypes": [
+          "io.nop.graphql.core.IDataFetchingEnvironment"
+        ]
+      },
+      {
+        "name": "beginExecute",
+        "parameterTypes": [
+          "io.nop.graphql.core.IGraphQLExecutionContext"
+        ]
+      },
+      {
+        "name": "beginInvoke",
+        "parameterTypes": [
+          "io.nop.graphql.core.IDataFetchingEnvironment"
+        ]
+      },
+      {
+        "name": "createTimer",
+        "parameterTypes": [
+          "java.lang.String",
+          "[Lio.micrometer.core.instrument.Tag;"
+        ]
+      },
+      {
+        "name": "endDataFetch",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.Throwable",
+          "io.nop.graphql.core.IDataFetchingEnvironment"
+        ]
+      },
+      {
+        "name": "endExecute",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.Throwable",
+          "io.nop.graphql.core.IGraphQLExecutionContext"
+        ]
+      },
+      {
+        "name": "endInvoke",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.Throwable",
+          "io.nop.graphql.core.IDataFetchingEnvironment"
+        ]
+      },
+      {
+        "name": "meterName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.graphql.core.engine.MetricsGraphQLHook",
     "unsafeAllocated": false
   },
   {

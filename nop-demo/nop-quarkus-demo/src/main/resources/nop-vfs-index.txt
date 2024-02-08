@@ -1008,6 +1008,7 @@
 /nop/wf/beans/app-service.beans.xml
 /nop/wf/beans/wf-core.beans.xml
 /nop/wf/beans/wf-dao.beans.xml
+/nop/wf/designer/dingflow.graph-designer.xml
 /nop/wf/designer/oa-flow.graph-designer.xml
 /nop/wf/model/NopWfAction/NopWfAction.xbiz
 /nop/wf/model/NopWfAction/NopWfAction.xmeta

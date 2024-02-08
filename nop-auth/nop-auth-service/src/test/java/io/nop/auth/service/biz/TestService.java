@@ -33,7 +33,7 @@ public class TestService {
         //entity.setBizObjName("Test");
         //entity.setBizActionName("test");
         entity.setOpRequest("request");
-        entity.setTitle("测试日志");
+        entity.setOperation("测试日志");
         entity.setUsedTime(1000L);
         entity.setUserName("test");
         dao.saveEntity(entity);

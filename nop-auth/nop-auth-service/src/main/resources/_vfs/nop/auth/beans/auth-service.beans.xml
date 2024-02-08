@@ -23,6 +23,12 @@
 
     </bean>
 
+    <bean id="nopGraphQLLogger" class="io.nop.auth.service.audit.GraphQLAuditLogger" ioc:default="true">
+        <ioc:condition>
+            <if-property name="nop.auth.graphql.enable-audit" enableIfMissing="false"/>
+        </ioc:condition>
+    </bean>
+
     <bean id="nopUserContextCache" class="io.nop.auth.service.login.DaoUserContextCache">
         <ioc:condition>
             <if-property name="nop.auth.login.use-dao-user-context-cache"/>

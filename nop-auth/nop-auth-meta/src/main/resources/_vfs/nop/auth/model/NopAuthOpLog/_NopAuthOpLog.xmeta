@@ -26,8 +26,8 @@
               queryable="true" sortable="true" insertable="true" updatable="false">
             <schema domain="userName" type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="userId" displayName="用户ID" propId="3" i18n-en:displayName="USER_ID" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="false" ext:relation="user">
+        <prop name="userId" displayName="用户ID" propId="3" i18n-en:displayName="USER_ID" queryable="true" sortable="true"
+              insertable="true" updatable="false" ext:relation="user">
             <schema domain="userId" type="java.lang.String" precision="50"/>
         </prop>
         <prop name="sessionId" displayName="会话ID" propId="4" i18n-en:displayName="Session ID" queryable="true"
@@ -42,16 +42,16 @@
               sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="2000"/>
         </prop>
-        <prop name="actionTime" displayName="操作时间" propId="7" i18n-en:displayName="Action Time" queryable="true"
-              sortable="true" insertable="true" updatable="false">
+        <prop name="actionTime" displayName="操作时间" propId="7" i18n-en:displayName="Action Time" tagSet="clock"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="false">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="usedTime" displayName="操作时长" propId="8" i18n-en:displayName="Used Time" queryable="true"
-              sortable="true" insertable="true" updatable="false">
+        <prop name="usedTime" displayName="操作时长" propId="8" i18n-en:displayName="Used Time" tagSet="var"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.Long"/>
         </prop>
-        <prop name="resultStatus" displayName="操作状态" propId="9" i18n-en:displayName="Result Status" queryable="true"
-              sortable="true" insertable="true" updatable="false">
+        <prop name="resultStatus" displayName="操作状态" propId="9" i18n-en:displayName="Result Status" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.Integer"/>
         </prop>
         <prop name="errorCode" displayName="错误码" propId="10" i18n-en:displayName="ErrorCode" queryable="true"
@@ -77,7 +77,7 @@
         </prop>
         <prop name="user" displayName="用户" i18n-en:displayName="User" tagSet="pub,ref-pub" ext:kind="to-one"
               internal="true" queryable="true" ext:joinLeftProp="userId" ext:joinRightProp="userId"
-              ext:joinRightDisplayProp="userName" insertable="false" updatable="false" mandatory="true" lazy="true">
+              ext:joinRightDisplayProp="userName" insertable="false" updatable="false" lazy="true">
             <schema bizObjName="NopAuthUser"/>
         </prop>
         <prop name="user.userName" displayName="用户" i18n-en:displayName="User" internal="true" queryable="true"

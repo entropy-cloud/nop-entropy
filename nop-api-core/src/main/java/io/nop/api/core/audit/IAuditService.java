@@ -8,5 +8,7 @@
 package io.nop.api.core.audit;
 
 public interface IAuditService {
+    boolean isAllProcessed();
+
     void saveAudit(AuditRequest request);
 }

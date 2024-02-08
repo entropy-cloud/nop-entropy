@@ -714,20 +714,20 @@
                 <column code="USER_NAME" displayName="用户名" domain="userName" mandatory="true" name="userName"
                         precision="32" propId="2" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="USER_NAME"/>
-                <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="50"
-                        propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="USER_ID"/>
+                <column code="USER_ID" displayName="用户ID" domain="userId" name="userId" precision="50" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="USER_ID"/>
                 <column code="SESSION_ID" displayName="会话ID" name="sessionId" precision="100" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Session ID"/>
                 <column code="OPERATION" displayName="业务操作" name="operation" precision="1000" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Operation"/>
                 <column code="DESCRIPTION" displayName="操作描述" name="description" precision="2000" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
-                <column code="ACTION_TIME" displayName="操作时间" name="actionTime" propId="7" stdDataType="timestamp"
-                        stdSqlType="TIMESTAMP" i18n-en:displayName="Action Time"/>
-                <column code="USED_TIME" displayName="操作时长" name="usedTime" propId="8" stdDataType="long"
-                        stdSqlType="BIGINT" i18n-en:displayName="Used Time"/>
-                <column code="RESULT_STATUS" displayName="操作状态" name="resultStatus" propId="9" stdDataType="int"
-                        stdSqlType="INTEGER" i18n-en:displayName="Result Status"/>
+                <column code="ACTION_TIME" displayName="操作时间" mandatory="true" name="actionTime" propId="7"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Action Time"/>
+                <column code="USED_TIME" displayName="操作时长" mandatory="true" name="usedTime" propId="8"
+                        stdDataType="long" stdSqlType="BIGINT" tagSet="var" i18n-en:displayName="Used Time"/>
+                <column code="RESULT_STATUS" displayName="操作状态" mandatory="true" name="resultStatus" propId="9"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Result Status"/>
                 <column code="ERROR_CODE" comment="resultStatus不为0的时候需要设置errorCode" displayName="错误码" name="errorCode"
                         precision="200" propId="10" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="ErrorCode"/>
