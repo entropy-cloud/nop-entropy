@@ -39,6 +39,7 @@
 
         <DoFindPage>
             <attr name="query" optional="true" type="io.nop.api.core.beans.query.QueryBean"/>
+            <attr name="authObjName" optional="true" type="String" />
             <attr name="selection" optional="true" type="io.nop.api.core.beans.FieldSelectionBean"/>
             <attr name="thisObj" implicit="true" type="io.nop.biz.api.IBizObject"/>
             <attr name="svcCtx" implicit="true" type="io.nop.core.context.IServiceContext"/>
@@ -61,21 +62,21 @@
 
 
             <source>
-                <thisLib:_DoFindByQuery query="${query}" action="doFindPage" filter="${slot_filter}"
+                <thisLib:_DoFindByQuery query="${query}" authObjName="${authObjName}" action="doFindPage0" filter="${slot_filter}"
                                         orderBy="${slot_orderBy}" prepareQuery="${slot_prepareQuery}"/>
             </source>
         </DoFindPage>
 
         <DoFindFirst x:prototype="DoFindPage">
             <source>
-                <thisLib:_DoFindByQuery query="${query}" action="doFindFirst" filter="${slot_filter}"
+                <thisLib:_DoFindByQuery query="${query}" authObjName="${authObjName}" action="doFindFirst0" filter="${slot_filter}"
                                         orderBy="${slot_orderBy}" prepareQuery="${slot_prepareQuery}"/>
             </source>
         </DoFindFirst>
 
         <DoFindList x:prototype="DoFindPage">
             <source>
-                <thisLib:_DoFindByQuery query="${query}" action="doFindList" filter="${slot_filter}"
+                <thisLib:_DoFindByQuery query="${query}" authObjName="${authObjName}" action="doFindList0" filter="${slot_filter}"
                                         orderBy="${slot_orderBy}" prepareQuery="${slot_prepareQuery}"/>
             </source>
         </DoFindList>
@@ -83,6 +84,7 @@
 
         <_DoFindByQuery>
             <attr name="query"/>
+            <attr name="authObjName" />
             <attr name="filter"/>
             <attr name="orderBy"/>
             <attr name="prepareQuery"/>
@@ -96,7 +98,7 @@
                     import io.nop.api.core.beans.query.QueryBean;
                     query = query || new QueryBean();
 
-                    return thisObj.invoke(action,{query,prepareQuery:(qry,ctx)=>{
+                    return thisObj.invoke(action,{query,authObjName,prepareQuery:(qry,ctx)=>{
                         if(filter){
                             query.addFilter(filter(query,svcCtx));
                         }

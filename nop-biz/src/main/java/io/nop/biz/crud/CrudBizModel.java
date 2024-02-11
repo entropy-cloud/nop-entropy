@@ -257,6 +257,9 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                                              @Name("authObjName") String authObjName,
                                              @Name("action") String action,
                                              IServiceContext context) {
+        if (authObjName == null)
+            authObjName = getBizObjName();
+
         checkAllowQuery(query, getThisObj().getObjMeta());
 
         query = AuthHelper.appendFilter(context.getDataAuthChecker(), query, authObjName, action,
