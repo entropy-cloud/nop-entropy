@@ -204,3 +204,59 @@ if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
 ### 通过NopAuthRoleDataAuth表来定义数据权限
 
 数据库中定义的数据权限会和`data-auth.xml`配置文件中定义的权限合并。
+
+### 业务场景拆分
+
+经常出现一种情况是同样的业务对象在不同的业务场景中过滤条件不同，比如说每个人都可以查询自己的数据，而admin可以查询所有人的数据，但是他仍然需要一个查询自己数据的页面。
+这本质上是同一个业务对象分裂为两个业务场景，一个是查询owner的数据，一个是查询全部数据。对于这种应用可以有两种解决方案：
+
+1. 对象拆分
+直接新建一个新的业务对象，比如MyObject_self，然后它会自动使用缺省的xmeta模型和xbiz配置。
+````
+<bean id="MyObject_self" class="xxx.MyObjectBizModel" />
+````
+
+如果增加MyObject_self.xmeta，则MyObject_self会使用这个meta配置，否则会使用缺省的MyObject.xmeta。对于xbiz配置，同样是这样处理。
+
+> 这种缺省模型的识别逻辑在BizObjectBuilder.java类中实现。
+
+对象拆分后，数据权限那里就可以配置使用不同的权限过滤条件。同时通过meta上的filter也可以直接限定过滤条件。
+
+2. 如果不拆分对象，也可以在查询方法中增加过滤条件
+
+````xml
+ <query name="active_findPage" x:prototype="findPage">
+    <source>
+        <c:import class="io.nop.auth.api.AuthApiConstants" />
+
+        <bo:DoFindPage query="${query}" selection="${selection}" xpl:lib="/nop/biz/xlib/bo.xlib">
+            <filter>
+                <eq name="status" value="${AuthApiConstants.USER_STATUS_ACTIVE}" />
+            </filter>
+        </bo:DoFindPage>
+    </source>
+</query>
+````
+
+或者在java中实现
+````
+public PageBean<MyObject> findPage_self(@Name("query")QueryBean query, FieldSelectonBean selection, IServiceContext context){
+  return doFindPage(query, (q,ctx)->{
+     q.addFilter(FilterBeans.eq("ownerId", ctx.getUserId());
+  }, selection, context);
+}
+````
+
+3. 通过authObjName实现数据权限配置切换
+CrudBizModel的doFindPage0/doFindList0/doFindFirst0等方法可以通过authObjName参数指定不同于当前对象名的权限对象名，从而启用不同的数据权限配置。
+
+````
+    @BizAction
+    public List<T> doFindList0(@Name("query") QueryBean query,
+                               @Name("authObjName") String authObjName,
+                               @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
+                               FieldSelectionBean selection,
+                               IServiceContext context){
+        ...
+    }
+````

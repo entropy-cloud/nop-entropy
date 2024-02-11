@@ -215,7 +215,15 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     public PageBean<T> doFindPage(@Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
                                   @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery, FieldSelectionBean selection,
                                   IServiceContext context) {
-        query = prepareFindPageQuery(query, METHOD_FIND_PAGE, context);
+        return doFindPage0(query, getBizObjName(), prepareQuery, selection, context);
+    }
+
+    @BizAction
+    public PageBean<T> doFindPage0(@Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
+                                   @Name("authObjName") String authObjName,
+                                   @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery, FieldSelectionBean selection,
+                                   IServiceContext context) {
+        query = prepareFindPageQuery(query, authObjName, METHOD_FIND_PAGE, context);
         if (prepareQuery != null) {
             prepareQuery.accept(query, context);
         }
@@ -245,11 +253,13 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     }
 
     @BizAction
-    protected QueryBean prepareFindPageQuery(@Name("query") QueryBean query, @Name("action") String action,
+    protected QueryBean prepareFindPageQuery(@Name("query") QueryBean query,
+                                             @Name("authObjName") String authObjName,
+                                             @Name("action") String action,
                                              IServiceContext context) {
         checkAllowQuery(query, getThisObj().getObjMeta());
 
-        query = AuthHelper.appendFilter(context.getDataAuthChecker(), query, bizObjName, action,
+        query = AuthHelper.appendFilter(context.getDataAuthChecker(), query, authObjName, action,
                 context);
         if (query == null)
             query = new QueryBean();
@@ -283,7 +293,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         appendOrderByPk(query);
 
         if (queryTransformer != null)
-            queryTransformer.transform(query);
+            queryTransformer.transform(query, authObjName, action, context);
 
         BizExprHelper.resolveBizExpr(query.getFilter(), context);
         return query;
@@ -330,7 +340,15 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     public T doFindFirst(@Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
                          @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
                          FieldSelectionBean selection, IServiceContext context) {
-        query = prepareFindFirstQuery(query, METHOD_FIND_FIRST, context);
+        return doFindFirst0(query, getBizObjName(), prepareQuery, selection, context);
+    }
+
+    @BizAction
+    public T doFindFirst0(@Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
+                          @Name("authObjName") String authObjName,
+                          @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
+                          FieldSelectionBean selection, IServiceContext context) {
+        query = prepareFindFirstQuery(query, authObjName, METHOD_FIND_FIRST, context);
         if (prepareQuery != null) {
             prepareQuery.accept(query, context);
         }
@@ -339,9 +357,11 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     }
 
     @BizAction
-    protected QueryBean prepareFindFirstQuery(@Name("query") QueryBean query, @Name("action") String action,
+    protected QueryBean prepareFindFirstQuery(@Name("query") QueryBean query,
+                                              @Name("authObjName") String authObjName,
+                                              @Name("action") String action,
                                               IServiceContext context) {
-        query = prepareFindPageQuery(query, action, context);
+        query = prepareFindPageQuery(query, authObjName, action, context);
         query.setLimit(1);
         return query;
     }
@@ -979,13 +999,22 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                               @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
                               FieldSelectionBean selection,
                               IServiceContext context) {
+        return doFindList0(query, getBizObjName(), prepareQuery, selection, context);
+    }
+
+    @BizAction
+    public List<T> doFindList0(@Name("query") QueryBean query,
+                               @Name("authObjName") String authObjName,
+                               @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
+                               FieldSelectionBean selection,
+                               IServiceContext context) {
         if (query == null)
             query = new QueryBean();
 
         if (query.getLimit() <= 0)
             query.setLimit(CFG_GRAPHQL_MAX_PAGE_SIZE.get());
 
-        query = prepareFindPageQuery(query, METHOD_FIND_LIST, context);
+        query = prepareFindPageQuery(query, authObjName, METHOD_FIND_LIST, context);
         if (prepareQuery != null) {
             prepareQuery.accept(query, context);
         }

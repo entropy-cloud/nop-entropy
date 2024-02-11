@@ -8,7 +8,8 @@
 package io.nop.dao.api;
 
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.core.context.IServiceContext;
 
 public interface IQueryTransformer {
-    void transform(QueryBean filter);
+    void transform(QueryBean filter, String authObjName, String action, IServiceContext context);
 }
