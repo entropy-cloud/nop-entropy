@@ -98,6 +98,9 @@ Nop平台的实现中对安全性进行了大量加强，比如GraphQL语句的�
 在实用的意义上，Nop平台的定位是**一个基于新的软件构造原理的技术底座**。如果你想开发一个类似Mendix、OutSystems这样具有广泛适应性的通用型低代码产品，想与世界上最优秀的技术产品竞争，
 可以考虑在底层使用Nop平台或者借鉴它的原创设计，节省你自己的开发时间。良好的产品设计加上Nop平台领先的原理架构，可以起到事半功倍的作用。
 
+Nop平台规划中的组件以及它们的开发进度在[README.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/README.md)文件中已经有详细的列举，
+预计在2024年至2025年完成这些组件的开发，并正式发布到maven中心仓库。
+
 # 题外的话
 
 黑客之王Linus Torvalds说，talk is cheap, show me the code。Nop平台已经全部开源，源码就在那里，一切疑惑和争议都在源码中可以获得解答。
