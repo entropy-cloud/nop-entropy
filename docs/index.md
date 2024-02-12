@@ -9,6 +9,8 @@ B站视频： [Nop平台开发](https://www.bilibili.com/video/BV1u84y1w7kX/)，
 介绍了基于数据模型进行系统开发的整体流程。
 可以参考视频 [使用Nop平台开发商品列表页面的完整示例](https://www.bilibili.com/video/BV1384y1g78L/)
 
+关于Nop平台的定位和发展规划，参见[why-nop.md](./why-nop.md)
+
 ## XLang语言： [index.md](dev-guide/xlang/index.md)
 
 XLang语言是Nop平台实现可逆计算的核心技术，它包含XDef, XScript, Xpl等一系列子语言，需要有一个整体认知才容易理解Nop平台的其他部分。

@@ -208,7 +208,7 @@ if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
 ### 业务场景拆分
 
 经常出现一种情况是同样的业务对象在不同的业务场景中过滤条件不同，比如说每个人都可以查询自己的数据，而admin可以查询所有人的数据，但是他仍然需要一个查询自己数据的页面。
-这本质上是同一个业务对象分裂为两个业务场景，一个是查询owner的数据，一个是查询全部数据。对于这种应用可以有两种解决方案：
+这本质上是同一个业务对象分裂为两个业务场景，一个是查询owner的数据，一个是查询全部数据。对于这种应用可以有三种解决方案：
 
 1. 对象拆分
 直接新建一个新的业务对象，比如MyObject_self，然后它会自动使用缺省的xmeta模型和xbiz配置。
@@ -248,9 +248,28 @@ public PageBean<MyObject> findPage_self(@Name("query")QueryBean query, FieldSele
 ````
 
 3. 通过authObjName实现数据权限配置切换
+上面的第二种方法会导致data-auth.xml的配置总是应用到当前对象上。如果是不同的业务场景需要启用不同的权限配置，可以使用authObjName参数来区分。
+
 CrudBizModel的doFindPage0/doFindList0/doFindFirst0等方法可以通过authObjName参数指定不同于当前对象名的权限对象名，从而启用不同的数据权限配置。
 
 ````
+    @BizQuery
+    @BizArgsNormalizer(BizConstants.BEAN_nopQueryBeanArgsNormalizer)
+    @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
+    public List<T> findList(@Optional @Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context) {
+        if (query != null)
+            query.setDisableLogicalDelete(false);
+        return doFindList(query, this::defaultPrepareQuery, selection, context);
+    }
+
+    @BizAction
+    public List<T> doFindList(@Name("query") QueryBean query,
+                              @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
+                              FieldSelectionBean selection,
+                              IServiceContext context) {
+        return doFindList0(query, getBizObjName(), prepareQuery, selection, context);
+    }
+    
     @BizAction
     public List<T> doFindList0(@Name("query") QueryBean query,
                                @Name("authObjName") String authObjName,
@@ -260,3 +279,5 @@ CrudBizModel的doFindPage0/doFindList0/doFindFirst0等方法可以通过authObjN
         ...
     }
 ````
+
+内置的findList使用doFindList函数实现，而doFindList实际是使用doFindList0，然后传入authObjName为当前业务对象名。
