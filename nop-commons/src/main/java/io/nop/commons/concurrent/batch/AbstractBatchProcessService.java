@@ -53,9 +53,6 @@ public abstract class AbstractBatchProcessService<T> {
         int poolSize = queueConfig.getThreadPoolSize();
         executor = DefaultThreadPoolExecutor.newExecutor(getThreadPoolName(), poolSize, 1, true);
 
-        if (queueConfig == null)
-            queueConfig = new BatchQueueConfig();
-
         this.queue = new OverflowBlockingQueue<>(queueConfig.getQueueSize(), queueConfig.getOverflowPolicy());
         this.task = new BlockingSourceConsumeTask<>(queue, this::doProcess, queueConfig, this.specialMessageProcessor);
         for (int i = 0; i < poolSize; i++) {
