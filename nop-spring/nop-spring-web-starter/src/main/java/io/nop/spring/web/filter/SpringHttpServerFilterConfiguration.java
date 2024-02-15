@@ -69,6 +69,11 @@ public class SpringHttpServerFilterConfiguration {
         FilterRegistrationBean<Filter> bean = new FilterRegistrationBean<>();
         bean.setFilter(new OncePerRequestFilter() {
             @Override
+            protected String getFilterName() {
+                return "nop-web-filter-" + (sys ? "sys" : "app");
+            }
+
+            @Override
             protected void doFilterInternal(@Nonnull HttpServletRequest request,
                                             @Nonnull HttpServletResponse response,
                                             @Nonnull FilterChain filterChain) throws ServletException, IOException {
