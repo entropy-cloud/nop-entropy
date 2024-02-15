@@ -13,7 +13,10 @@ import io.nop.api.core.util.OrderedComparator;
 import io.nop.http.api.server.HttpServerHelper;
 import io.nop.http.api.server.IHttpServerContext;
 import io.nop.http.api.server.IHttpServerFilter;
+import jakarta.annotation.Nonnull;
 import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,7 +24,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
+import org.springframework.web.filter.OncePerRequestFilter;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -62,22 +67,27 @@ public class SpringHttpServerFilterConfiguration {
 
     FilterRegistrationBean<Filter> createFilter(boolean sys, int filterOrder) {
         FilterRegistrationBean<Filter> bean = new FilterRegistrationBean<>();
-        bean.setFilter(((request, response, chain) -> {
-            List<IHttpServerFilter> serverFilters = getFilters(sys);
+        bean.setFilter(new OncePerRequestFilter() {
+            @Override
+            protected void doFilterInternal(@Nonnull HttpServletRequest request,
+                                            @Nonnull HttpServletResponse response,
+                                            @Nonnull FilterChain filterChain) throws ServletException, IOException {
+                List<IHttpServerFilter> serverFilters = getFilters(sys);
 
-            if (serverFilters.isEmpty()) {
-                chain.doFilter(request, response);
-            } else {
-                IHttpServerContext ctx = new ServletHttpServerContext((HttpServletRequest) request,
-                        (HttpServletResponse) response);
-                HttpServerHelper.runWithFilters(serverFilters, ctx, () -> {
-                    return FutureHelper.futureCall(() -> {
-                        chain.doFilter(request, response);
-                        return null;
+                if (serverFilters.isEmpty()) {
+                    filterChain.doFilter(request, response);
+                } else {
+                    IHttpServerContext ctx = new ServletHttpServerContext(request,
+                            response);
+                    HttpServerHelper.runWithFilters(serverFilters, ctx, () -> {
+                        return FutureHelper.futureCall(() -> {
+                            filterChain.doFilter(request, response);
+                            return null;
+                        });
                     });
-                });
+                }
             }
-        }));
+        });
 
         // 设置优先级为正常，系统可以在前面增加过滤器？
         bean.setOrder(filterOrder);
