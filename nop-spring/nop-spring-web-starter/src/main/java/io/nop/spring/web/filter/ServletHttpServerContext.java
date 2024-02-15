@@ -7,6 +7,7 @@
  */
 package io.nop.spring.web.filter;
 
+import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
@@ -35,6 +36,7 @@ public class ServletHttpServerContext implements IHttpServerContext {
     public ServletHttpServerContext(HttpServletRequest request, HttpServletResponse response) {
         this.request = request;
         this.response = response;
+        this.context = ContextProvider.currentContext();
     }
 
     @Override

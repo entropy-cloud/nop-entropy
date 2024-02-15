@@ -7,6 +7,7 @@
  */
 package io.nop.quarkus.web.filter;
 
+import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
 import io.nop.commons.util.StringHelper;
 import io.nop.http.api.server.IAsyncBody;
@@ -37,6 +38,7 @@ public class VertxHttpServerContext implements IHttpServerContext {
 
     public VertxHttpServerContext(RoutingContext routingContext) {
         this.routingContext = routingContext;
+        this.context = ContextProvider.currentContext();
     }
 
     @Override
