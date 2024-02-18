@@ -184,6 +184,8 @@
               allowReject="!boolean=false" dueAction="string" initAsWaiting="!boolean=false"
               specialType="string" independent="!boolean=false">
 
+            <description xdef:value="string" />
+
             <!-- 是否当前可以激活 -->
             <may-activated xdef:value="xpl-predicate"/>
 

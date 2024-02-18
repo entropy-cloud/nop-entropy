@@ -74,6 +74,13 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: description
+     * 
+     */
+    private java.lang.String _description ;
+    
+    /**
+     *  
      * xml name: displayName
      * 
      */
@@ -367,6 +374,25 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         checkAllowChange();
         
         this._checkComplete = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: description
+     *  
+     */
+    
+    public java.lang.String getDescription(){
+      return _description;
+    }
+
+    
+    public void setDescription(java.lang.String value){
+        checkAllowChange();
+        
+        this._description = value;
            
     }
 
@@ -827,6 +853,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         out.putNotNull("beforeTransition",this.getBeforeTransition());
         out.putNotNull("bizEntityState",this.getBizEntityState());
         out.putNotNull("checkComplete",this.getCheckComplete());
+        out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("dueAction",this.getDueAction());
         out.putNotNull("dueTimeExpr",this.getDueTimeExpr());
@@ -867,6 +894,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         instance.setBeforeTransition(this.getBeforeTransition());
         instance.setBizEntityState(this.getBizEntityState());
         instance.setCheckComplete(this.getCheckComplete());
+        instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
         instance.setDueAction(this.getDueAction());
         instance.setDueTimeExpr(this.getDueTimeExpr());
