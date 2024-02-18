@@ -32,10 +32,11 @@
         @shape 矩形、圆形等基础形状
         @propsForm 属性表单
         @allowParents 允许嵌入在哪些容器类型中。如果不配置，则允许嵌入到任意容器中
+        @kind start表示起始节点，end表示结束节点，normal表示一般节点
         -->
         <node name="!token-name" icon="string" label="!string" abstract="boolean" tagSet="csv-set" propsForm="string"
               base="token-name" shape="string" minWidth="int" maxWidth="int" minHeight="int" maxHeight="int"
-              width="int" height="int" fixedAspectRatio="boolean" start="!boolean=false" end="!boolean=false"
+              width="int" height="int" fixedAspectRatio="boolean" kind="!string"
               draggable="boolean" resizable="boolean"
               deletable="boolean" addable="boolean=true"
               textPosition="string" textDraggable="boolean"
@@ -48,7 +49,7 @@
             <template xdef:value="xpl-xml"/>
 
             <anchors xdef:body-type="list" xdef:key-attr="name">
-                <anchor name="!string" positon="string" tagSet="csv-set" xdef:name="GraphDesignerAnchorModel"/>
+                <anchor name="!string" position="string" tagSet="csv-set" xdef:name="GraphDesignerAnchorModel"/>
             </anchors>
         </node>
     </nodes>
@@ -58,7 +59,7 @@
         @propsForm 属性表单
         -->
         <edge name="!token-name" icon="!string" label="!string" abstract="boolean" tagSet="csv-set" propsForm="string"
-              base="token-name" width="int" xdef:name="GraphDesignerEdgeModel"
+              base="token-name" width="int" xdef:name="GraphDesignerEdgeModel" kind="string"
               deletable="boolean" addable="boolean=true" minOccurs="int" maxOccurs="int"
               allowSources="csv-set" allowTargets="csv-set" type="string">
             <style xdef:value="string"/>

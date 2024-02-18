@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [60:10:0:0]/nop/schema/designer/graph-designer.xdef <p>
+ * generate from [61:10:0:0]/nop/schema/designer/graph-designer.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -64,6 +64,13 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
      * 
      */
     private java.lang.String _icon ;
+    
+    /**
+     *  
+     * xml name: kind
+     * 
+     */
+    private java.lang.String _kind ;
     
     /**
      *  
@@ -264,6 +271,25 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
         checkAllowChange();
         
         this._icon = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: kind
+     *  
+     */
+    
+    public java.lang.String getKind(){
+      return _kind;
+    }
+
+    
+    public void setKind(java.lang.String value){
+        checkAllowChange();
+        
+        this._kind = value;
            
     }
 
@@ -480,6 +506,7 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
         out.putNotNull("base",this.getBase());
         out.putNotNull("deletable",this.getDeletable());
         out.putNotNull("icon",this.getIcon());
+        out.putNotNull("kind",this.getKind());
         out.putNotNull("label",this.getLabel());
         out.putNotNull("maxOccurs",this.getMaxOccurs());
         out.putNotNull("minOccurs",this.getMinOccurs());
@@ -508,6 +535,7 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
         instance.setBase(this.getBase());
         instance.setDeletable(this.getDeletable());
         instance.setIcon(this.getIcon());
+        instance.setKind(this.getKind());
         instance.setLabel(this.getLabel());
         instance.setMaxOccurs(this.getMaxOccurs());
         instance.setMinOccurs(this.getMinOccurs());

@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [51:18:0:0]/nop/schema/designer/graph-designer.xdef <p>
+ * generate from [52:18:0:0]/nop/schema/designer/graph-designer.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -25,10 +25,10 @@ public abstract class _GraphDesignerAnchorModel extends io.nop.core.resource.com
     
     /**
      *  
-     * xml name: positon
+     * xml name: position
      * 
      */
-    private java.lang.String _positon ;
+    private java.lang.String _position ;
     
     /**
      *  
@@ -58,19 +58,19 @@ public abstract class _GraphDesignerAnchorModel extends io.nop.core.resource.com
     
     /**
      * 
-     * xml name: positon
+     * xml name: position
      *  
      */
     
-    public java.lang.String getPositon(){
-      return _positon;
+    public java.lang.String getPosition(){
+      return _position;
     }
 
     
-    public void setPositon(java.lang.String value){
+    public void setPosition(java.lang.String value){
         checkAllowChange();
         
-        this._positon = value;
+        this._position = value;
            
     }
 
@@ -110,7 +110,7 @@ public abstract class _GraphDesignerAnchorModel extends io.nop.core.resource.com
         super.outputJson(out);
         
         out.putNotNull("name",this.getName());
-        out.putNotNull("positon",this.getPositon());
+        out.putNotNull("position",this.getPosition());
         out.putNotNull("tagSet",this.getTagSet());
     }
 
@@ -124,7 +124,7 @@ public abstract class _GraphDesignerAnchorModel extends io.nop.core.resource.com
         super.copyTo(instance);
         
         instance.setName(this.getName());
-        instance.setPositon(this.getPositon());
+        instance.setPosition(this.getPosition());
         instance.setTagSet(this.getTagSet());
     }
 

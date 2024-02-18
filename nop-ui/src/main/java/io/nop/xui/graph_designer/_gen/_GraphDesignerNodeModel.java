@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [36:10:0:0]/nop/schema/designer/graph-designer.xdef <p>
+ * generate from [37:10:0:0]/nop/schema/designer/graph-designer.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -74,13 +74,6 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
     
     /**
      *  
-     * xml name: end
-     * 
-     */
-    private boolean _end  = false;
-    
-    /**
-     *  
      * xml name: fixedAspectRatio
      * 
      */
@@ -99,6 +92,13 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
      * 
      */
     private java.lang.String _icon ;
+    
+    /**
+     *  
+     * xml name: kind
+     * start表示起始节点，end表示结束节点，normal表示一般节点
+     */
+    private java.lang.String _kind ;
     
     /**
      *  
@@ -183,13 +183,6 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
      * 矩形、圆形等基础形状
      */
     private java.lang.String _shape ;
-    
-    /**
-     *  
-     * xml name: start
-     * 
-     */
-    private boolean _start  = false;
     
     /**
      *  
@@ -413,25 +406,6 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
     
     /**
      * 
-     * xml name: end
-     *  
-     */
-    
-    public boolean isEnd(){
-      return _end;
-    }
-
-    
-    public void setEnd(boolean value){
-        checkAllowChange();
-        
-        this._end = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: fixedAspectRatio
      *  
      */
@@ -483,6 +457,25 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
         checkAllowChange();
         
         this._icon = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: kind
+     *  start表示起始节点，end表示结束节点，normal表示一般节点
+     */
+    
+    public java.lang.String getKind(){
+      return _kind;
+    }
+
+    
+    public void setKind(java.lang.String value){
+        checkAllowChange();
+        
+        this._kind = value;
            
     }
 
@@ -717,25 +710,6 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
     
     /**
      * 
-     * xml name: start
-     *  
-     */
-    
-    public boolean isStart(){
-      return _start;
-    }
-
-    
-    public void setStart(boolean value){
-        checkAllowChange();
-        
-        this._start = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: style
      *  
      */
@@ -873,10 +847,10 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
         out.putNotNull("base",this.getBase());
         out.putNotNull("deletable",this.getDeletable());
         out.putNotNull("draggable",this.getDraggable());
-        out.putNotNull("end",this.isEnd());
         out.putNotNull("fixedAspectRatio",this.getFixedAspectRatio());
         out.putNotNull("height",this.getHeight());
         out.putNotNull("icon",this.getIcon());
+        out.putNotNull("kind",this.getKind());
         out.putNotNull("label",this.getLabel());
         out.putNotNull("layout",this.getLayout());
         out.putNotNull("maxHeight",this.getMaxHeight());
@@ -889,7 +863,6 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
         out.putNotNull("propsForm",this.getPropsForm());
         out.putNotNull("resizable",this.getResizable());
         out.putNotNull("shape",this.getShape());
-        out.putNotNull("start",this.isStart());
         out.putNotNull("style",this.getStyle());
         out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("template",this.getTemplate());
@@ -915,10 +888,10 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
         instance.setBase(this.getBase());
         instance.setDeletable(this.getDeletable());
         instance.setDraggable(this.getDraggable());
-        instance.setEnd(this.isEnd());
         instance.setFixedAspectRatio(this.getFixedAspectRatio());
         instance.setHeight(this.getHeight());
         instance.setIcon(this.getIcon());
+        instance.setKind(this.getKind());
         instance.setLabel(this.getLabel());
         instance.setLayout(this.getLayout());
         instance.setMaxHeight(this.getMaxHeight());
@@ -931,7 +904,6 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
         instance.setPropsForm(this.getPropsForm());
         instance.setResizable(this.getResizable());
         instance.setShape(this.getShape());
-        instance.setStart(this.isStart());
         instance.setStyle(this.getStyle());
         instance.setTagSet(this.getTagSet());
         instance.setTemplate(this.getTemplate());

@@ -100,7 +100,7 @@
     </imports>
 
     <nodes>
-        <node name="StartNode" icon="start-node">
+        <node name="StartNode" icon="start-node" kind="start">
             <template>
                 <NodeTitle class="node-title start-node-title">
                     <Icon v:icon="node.icon" class="node-title-icon"/>
