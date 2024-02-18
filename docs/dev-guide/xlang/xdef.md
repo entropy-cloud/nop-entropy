@@ -51,7 +51,7 @@ XDef元模型文件的作用类似于XSD(XML Schema Definition)文件，都是�
 xdef文件中的所有属性（除去`xdef`名字空间以及`x`名字空间中的内置属性）的值类型都是`def-type`类型，它的格式为 `(!~#)?{stdDomain}:{options}={defaultValue}`。
 
 * `!`表示必填属性，`~`表示内部属性，`#`表示可以使用编译期表达式
-* `stdDomain`是被数据类型更严格的格式限制，例如`stdDomain=email`等，具体值参见字典定义[core/std-domain](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/resources/_vfs/dict/core/std-domain.dict.yaml)
+* `stdDomain`是比数据类型更严格的格式限制，例如`stdDomain=email`等，具体值参见字典定义[core/std-domain](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/resources/_vfs/dict/core/std-domain.dict.yaml)
 * 某些`def-type`定义需要`options`参数，例如`enum:xxx.yyy`，通过`options`来设置具体的字典名称
 * 可以为属性指定缺省值
 
