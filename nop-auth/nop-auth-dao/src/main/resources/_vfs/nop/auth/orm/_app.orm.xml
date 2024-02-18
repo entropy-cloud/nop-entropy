@@ -718,7 +718,7 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="USER_ID"/>
                 <column code="SESSION_ID" displayName="会话ID" name="sessionId" precision="100" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Session ID"/>
-                <column code="OPERATION" displayName="业务操作" name="operation" precision="1000" propId="5"
+                <column code="OPERATION" displayName="业务操作" name="operation" precision="800" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Operation"/>
                 <column code="DESCRIPTION" displayName="操作描述" name="description" precision="2000" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>

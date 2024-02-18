@@ -36,7 +36,7 @@
         </prop>
         <prop name="operation" displayName="业务操作" propId="5" i18n-en:displayName="Operation" queryable="true"
               sortable="true" insertable="true" updatable="false">
-            <schema type="java.lang.String" precision="1000"/>
+            <schema type="java.lang.String" precision="800"/>
         </prop>
         <prop name="description" displayName="操作描述" propId="6" i18n-en:displayName="Description" queryable="true"
               sortable="true" insertable="true" updatable="false">

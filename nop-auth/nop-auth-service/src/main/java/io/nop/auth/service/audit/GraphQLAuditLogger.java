@@ -94,6 +94,9 @@ public class GraphQLAuditLogger implements IGraphQLLogger {
     @Override
     public void onGraphQLExecute(IGraphQLExecutionContext context, long beginTime,
                                  GraphQLResponseBean response, Throwable exception) {
+        if (!shouldAudit(context))
+            return;
+
         AuditRequest audit = newAuditRequest(context, beginTime);
         if (response != null) {
             audit.setResultStatus(response.getStatus());
