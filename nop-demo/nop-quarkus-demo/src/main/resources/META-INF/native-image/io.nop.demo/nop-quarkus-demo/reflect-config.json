@@ -3538,6 +3538,12 @@
         ]
       },
       {
+        "name": "executeWithContext",
+        "parameterTypes": [
+          "java.util.concurrent.Callable"
+        ]
+      },
+      {
         "name": "getAttribute",
         "parameterTypes": [
           "java.lang.String"
@@ -15763,6 +15769,16 @@
         ]
       },
       {
+        "name": "doFindFirst0",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
+          "java.util.function.BiConsumer",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "doFindList",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean",
@@ -15772,9 +15788,29 @@
         ]
       },
       {
+        "name": "doFindList0",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
+          "java.util.function.BiConsumer",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "doFindPage",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean",
+          "java.util.function.BiConsumer",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doFindPage0",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
           "java.util.function.BiConsumer",
           "io.nop.api.core.beans.FieldSelectionBean",
           "io.nop.core.context.IServiceContext"
@@ -15914,9 +15950,27 @@
         ]
       },
       {
+        "name": "prepareFindFirstQuery",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "prepareFindPageQuery",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "prepareFindPageQuery",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
           "java.lang.String",
           "io.nop.core.context.IServiceContext"
         ]
