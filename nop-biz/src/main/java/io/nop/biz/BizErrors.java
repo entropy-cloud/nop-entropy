@@ -77,7 +77,7 @@ public interface BizErrors {
     ErrorCode ERR_BIZ_MISSING_META_FILE_FOR_OBJ = define("nop.err.biz.missing-meta-file-for-obj",
             "对象[{bizObjName}]缺少元数据定义文件:{metaPath}", ARG_BIZ_OBJ_NAME, ARG_META_PATH);
 
-    ErrorCode ERR_BIZ_UNKNOWN_BIZ_OBJ_NAME = define("nop.err.biz.unknown-biz-obj-name", "未定义的业务对象:{bizObjName}",
+    ErrorCode ERR_BIZ_UNKNOWN_BIZ_OBJ_NAME = define("nop.err.biz.unknown-biz-obj-name", "未定义的业务对象:{bizObjName}，请注意对象名和方法名之间是两个下划线",
             ARG_BIZ_OBJ_NAME);
 
     ErrorCode ERR_BIZ_UNKNOWN_ACTION = define("nop.err.biz.unknown-action", "对象[{bizObjName}]不支持操作[{actionName}]",

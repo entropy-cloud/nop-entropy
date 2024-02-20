@@ -34,7 +34,9 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.spec.AlgorithmParameterSpec;
+import java.util.Base64;
 
 import static io.nop.commons.CommonConfigs.CFG_CRYPT_DEFAULT_ENC_KEY;
 import static io.nop.commons.CommonConfigs.CFG_CRYPT_DEFAULT_IV;
@@ -281,5 +283,18 @@ public class AESTextCipher implements ITextCipher, IStreamCipher {
         } catch (Exception e) {
             throw NopException.adapt(e);
         }
+    }
+
+    public static void main(String[] args) throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        String iv = "1234567890123456";
+        String key = "1234567890123456";
+        SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "AES");
+        IvParameterSpec ivParameterSpec = new IvParameterSpec(iv.getBytes(StandardCharsets.UTF_8));
+
+        cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivParameterSpec);
+        byte[] input = Base64.getDecoder().decode("XUKkXg/gHviLfrsF1mHrVg==");
+        String output = new String(cipher.doFinal(input), StandardCharsets.UTF_8);
+        System.out.println(output);
     }
 }
