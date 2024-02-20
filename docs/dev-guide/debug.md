@@ -142,7 +142,7 @@ Quarkus框架内置了graphql-ui调试工具。以调试模式启动应用之后
 
 ### 1. 后端的bean未按预期注入
 
-首先查看启动工程的`_dump`目录下/{appName}/nop/mai/beans/merged-app.beans.xml中的结果是否满足预期。
+首先查看启动工程的`_dump`目录下`/{appName}/nop/mai/beans/merged-app.beans.xml`中的结果是否满足预期。
 这个文件是IoC容器执行完所有动态判断逻辑之后输出的最终结果，其中还打印了属性和对象的来源文件。例如:
 
 ```xml
@@ -165,27 +165,27 @@ Quarkus框架内置了graphql-ui调试工具。以调试模式启动应用之后
 
 ### 2. 如何查看当前应用所加载的bean
 
-在debug模式下，可以通过/p/DevDoc_beans链接查看实际装载的bean
+在debug模式下，可以通过`/p/DevDoc__beans`链接查看实际装载的bean
 
 ### 3. 如何查看系统中定义的全局函数和全局对象
 
 在debug模式下，可以访问如下链接
 
-1. /r/DevDoc_globalFunctions
-2. /r/DevDoc_globalVars
+1. `/r/DevDoc__globalFunctions`
+2. `/r/DevDoc__globalVars`
 
 在返回的结果中我们可以看到这些函数和变量的实际对应的Java类和方法。
 
 ### 4. 如何查看当前启用的配置变量集合
 
 nop-config模块负责从多个配置来源收集配置信息，并按照优先级决定它们之间的覆盖关系，最终启用的配置变量可以通过如下链接查看：
-/r/DevDoc_configVars
+`/r/DevDoc__configVars`
 
 在返回的结果中包含每个配置变量的来源资源文件路径。
 
 ### 5. 如何查看后台所有的GraphQL服务以及类型定义
 
-/p/DevDoc__graphql
+`/p/DevDoc__graphql`
 返回graphql定义
 
 ## 自动化测试
