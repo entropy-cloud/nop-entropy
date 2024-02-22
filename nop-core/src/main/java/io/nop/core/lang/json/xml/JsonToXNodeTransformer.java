@@ -28,7 +28,7 @@ public class JsonToXNodeTransformer {
     }
 
     void transformNode(String key, Object obj, IXNodeHandler out) {
-        NodeData data = adapter.getNodeData(null, obj);
+        NodeData data = adapter.getNodeData(key, obj);
         switch (data.getNodeType()) {
             case value: {
                 out.value(null, data.getContent());
