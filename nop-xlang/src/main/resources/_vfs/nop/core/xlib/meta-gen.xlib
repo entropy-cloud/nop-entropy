@@ -139,7 +139,7 @@
 
                             <prop name="${prop.getAttr('name')}">
                                 <transformOut>
-                                    value?.toString().$maskPattern("${prop.getAttr('ui:maskPattern')}")
+                                    value?.toString()?.$maskPattern("${prop.getAttr('ui:maskPattern')}")
                                 </transformOut>
                             </prop>
                         </c:for>

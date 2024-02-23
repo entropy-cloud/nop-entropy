@@ -10,6 +10,8 @@
             <schema type="String" domain="password" maxLength="20"/>
         </prop>
 
+        <prop name="email" ui:maskPattern="3*7" />
+
         <prop name="tenantId">
             <schema dict="obj/NopAuthTenant"/>
         </prop>
