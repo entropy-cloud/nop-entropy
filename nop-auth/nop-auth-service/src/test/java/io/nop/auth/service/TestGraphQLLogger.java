@@ -41,7 +41,12 @@ public class TestGraphQLLogger extends JunitAutoTestCase {
         ApiResponse<?> result = FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context));
         output("response.json5", result);
         graphQLLogger.onRpcExecute(context, beginTime, result, null);
-        FutureHelper.waitUntil(() -> auditService.isAllProcessed(), 100000);
+        FutureHelper.waitUntil(() -> auditService.isAllProcessed(), 10000);
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            Thread.interrupted();
+        }
         assertTrue(FutureHelper.waitUntil(() -> auditService.isAllProcessed(), 10000));
     }
 }
