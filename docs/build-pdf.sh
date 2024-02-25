@@ -31,5 +31,7 @@ function merge_markdowns() {
 # 调用函数执行合并操作
 merge_markdowns
 
-# pandoc --pdf-engine=xelatex merged.md -o nop.pdf  -s
+#iconv -f gbk -t utf-8 merged.md > merged-utf8.md
+
+#pandoc --pdf-engine=xelatex merged.md -o nop.docx  -s
 
