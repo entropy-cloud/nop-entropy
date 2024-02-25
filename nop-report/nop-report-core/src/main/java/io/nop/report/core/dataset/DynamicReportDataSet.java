@@ -29,7 +29,7 @@ public class DynamicReportDataSet extends ReportDataSet {
         super(dsName, items);
         this.xptRt = xptRt;
     }
-    
+
     public static DynamicReportDataSet makeDataSet(IXptRuntime xptRt, String dsName) {
         Object value = xptRt.getEvalScope().getValue(dsName);
         if (value == null) {
@@ -91,20 +91,23 @@ public class DynamicReportDataSet extends ReportDataSet {
             return rowItems;
 
         // 返回两个集合中的公共部分。这意味着当前数据集满足同时满足行列坐标的要求
-        List<Object> listA = rowItems;
-        List<Object> listB = colItems;
-        if (listA.size() > listB.size()) {
-            List<Object> tmp = listB;
-            listA = listB;
-            listB = tmp;
+        List<Object> shouldLooped;
+        List<Object> shouldChecked;
+        if (rowItems.size() > colItems.size()) { //需要循环的是大的那个集合
+            shouldLooped = rowItems;
+            shouldChecked = colItems;
+        } else {
+            shouldLooped = colItems;
+            shouldChecked = rowItems;
         }
 
         List<Object> ret = new ArrayList<>();
-        for (Object item : listA) {
-            if (CollectionHelper.identityContains(listB, item)) {
+        for (Object item : shouldLooped) {
+            if (CollectionHelper.identityContains(shouldChecked, item)) {
                 ret.add(item);
             }
         }
+
         return ret;
     }
 
