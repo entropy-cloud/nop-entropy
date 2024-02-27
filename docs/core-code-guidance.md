@@ -208,7 +208,7 @@ Nop平台所有的设计都非常简单直接，一般核心代码集中在少�
    将ExcelWorkbook转换为报表模型对象，
 4. XptModelInitializer
    分析XptModel中父子单元格的关联关系，产生的分析结果保存在XptCellModel中  
-5. ExcelFormularParser  
+5. ExcelFormulaParser  
    解析Excel公式语法，将它转换为ReportExpr
 6. ReportExpressionParser
    为普通的表达式引擎增加报表层次坐标语法支持
@@ -224,6 +224,8 @@ Nop平台所有的设计都非常简单直接，一般核心代码集中在少�
     将展开后的ExpandedSheet导出为Excel文件，直接生成xml和xlsx文件，不使用POI库
 12. HtmlTemplate
     将展开后的ExpandedSheet导出为Html文件    
+13. WordTemplate
+    基于docx格式的Word模板生成Word文件，可以在Word中进行可视化编辑
 
 # 十二. NopRule
 
