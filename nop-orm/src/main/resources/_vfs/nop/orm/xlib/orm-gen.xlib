@@ -302,7 +302,7 @@
                 <c:script><![CDATA[
                 for(let entityNode of _dsl_root.childByTag('entities').children){
                     // 租户表和用户表缺省情况下不启用tenant过滤，否则不太好维护
-                    if(xpl('orm-gen:NotAutoTenant',entityNode))
+                    if(xpl('thisLib:NotAutoTenant',entityNode))
                        continue;
 
                     // 如果没有明确指定是否启用tenant，则缺省启用

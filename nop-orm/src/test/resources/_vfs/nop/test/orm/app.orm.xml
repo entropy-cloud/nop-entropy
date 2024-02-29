@@ -93,7 +93,7 @@
         <!-- 为SimsLesson增加全局缓存 -->
         <entity name="io.nop.app.SimsLesson" useGlobalCache="true"/>
 
-        <entity name="io.nop.app.SimsExam">
+        <entity name="io.nop.app.SimsExam" registerShortName="true">
             <columns>
                 <!--
                    增加额外的字段记录Decimal字段的动态可变小数位数。用于测试FloatingScaleDecimal组件对象
