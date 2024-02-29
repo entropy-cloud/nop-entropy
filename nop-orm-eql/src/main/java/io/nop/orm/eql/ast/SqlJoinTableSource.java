@@ -31,7 +31,9 @@ public class SqlJoinTableSource extends _SqlJoinTableSource {
         } else {
             SqlBinaryExpr and = new SqlBinaryExpr();
             and.setOperator(SqlOperator.AND);
-            and.setLeft(getCondition());
+            SqlExpr cond = getCondition();
+            cond.detach();
+            and.setLeft(cond);
             and.setRight(filter);
             setCondition(and);
         }
