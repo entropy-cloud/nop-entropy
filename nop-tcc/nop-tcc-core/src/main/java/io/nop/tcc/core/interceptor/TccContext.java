@@ -54,6 +54,14 @@ public class TccContext {
         return context;
     }
 
+    public static IContext removeCurrent(TccContext tccContext) {
+        IContext context = ContextProvider.currentContext();
+        if(context != null) {
+            context.removeAttribute(TccContext.class.getName(), tccContext);
+        }
+        return context;
+    }
+
     public String getTxnGroup() {
         return txnGroup;
     }

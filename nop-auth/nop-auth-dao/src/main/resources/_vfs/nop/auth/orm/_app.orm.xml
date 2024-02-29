@@ -32,7 +32,7 @@
     <entities>
         <entity className="io.nop.auth.dao.entity.NopAuthUser" createTimeProp="createTime" createrProp="createdBy"
                 deleteFlagProp="delFlag" displayName="用户" name="io.nop.auth.dao.entity.NopAuthUser"
-                registerShortName="true" tableName="nop_auth_user" tagSet="mapper" updateTimeProp="updateTime"
+                registerShortName="true" tableName="nop_auth_user" tagSet="mapper,no-tenant" updateTimeProp="updateTime"
                 updaterProp="updatedBy" useLogicalDelete="true" versionProp="version" i18n-en:displayName="User">
             <columns>
                 <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="50"
@@ -644,7 +644,7 @@
         </entity>
         <entity className="io.nop.auth.dao.entity.NopAuthSession" createTimeProp="createTime" createrProp="createdBy"
                 displayName="会话日志" name="io.nop.auth.dao.entity.NopAuthSession" registerShortName="true"
-                tableName="nop_auth_session" tagSet="log" i18n-en:displayName="Session">
+                tableName="nop_auth_session" tagSet="log,no-tenant" i18n-en:displayName="Session">
             <columns>
                 <column code="SESSION_ID" displayName="会话ID" mandatory="true" name="sessionId" precision="100"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="var"
@@ -707,7 +707,7 @@
         </entity>
         <entity className="io.nop.auth.dao.entity.NopAuthOpLog" displayName="操作日志"
                 name="io.nop.auth.dao.entity.NopAuthOpLog" registerShortName="true" tableName="nop_auth_op_log"
-                tagSet="log" i18n-en:displayName="Operation Log">
+                tagSet="log,no-tenant" i18n-en:displayName="Operation Log">
             <columns>
                 <column code="LOG_ID" displayName="主键" mandatory="true" name="logId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="LOG_ID"/>
@@ -1029,7 +1029,7 @@
         </entity>
         <entity className="io.nop.auth.dao.entity.NopAuthTenant" createTimeProp="createTime" createrProp="createdBy"
                 deleteFlagProp="delFlag" displayName="租户" name="io.nop.auth.dao.entity.NopAuthTenant"
-                registerShortName="true" tableName="nop_auth_tenant" tagSet="dict" updateTimeProp="updateTime"
+                registerShortName="true" tableName="nop_auth_tenant" tagSet="dict,no-tenant" updateTimeProp="updateTime"
                 updaterProp="updatedBy" useLogicalDelete="true" versionProp="version" i18n-en:displayName="Tenant">
             <columns>
                 <column code="TENANT_ID" displayName="主键" mandatory="true" name="tenantId" precision="32" primary="true"

@@ -21,8 +21,6 @@ alter table nop_auth_role_resource add column NOP_TENANT_ID VARCHAR(32) DEFAULT 
 
 alter table nop_auth_site add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_auth_tenant add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
-
 alter table nop_auth_user_role add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_auth_user_substitution add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -59,9 +57,6 @@ alter table nop_auth_role_resource add primary key (NOP_TENANT_ID, SID);
 
 alter table nop_auth_site drop primary key;
 alter table nop_auth_site add primary key (NOP_TENANT_ID, SITE_ID);
-
-alter table nop_auth_tenant drop primary key;
-alter table nop_auth_tenant add primary key (NOP_TENANT_ID, TENANT_ID);
 
 alter table nop_auth_user_role drop primary key;
 alter table nop_auth_user_role add primary key (NOP_TENANT_ID, USER_ID,ROLE_ID);

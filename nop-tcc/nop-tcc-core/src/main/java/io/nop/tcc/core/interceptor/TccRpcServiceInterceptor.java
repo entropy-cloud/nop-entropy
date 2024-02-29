@@ -48,7 +48,7 @@ public class TccRpcServiceInterceptor implements IRpcServiceInterceptor {
             if (tccContext != null) {
                 TccContext.setCurrent(tccContext);
                 return thenOnContext(runWithTccContext(tccContext, inv)).whenComplete((ret, err) -> {
-                    TccContext.setCurrent(null);
+                    TccContext.removeCurrent(tccContext);
                 });
             } else {
                 return inv.proceedAsync();

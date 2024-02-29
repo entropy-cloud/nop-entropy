@@ -215,8 +215,7 @@
 
             <source>
                 <c:script><![CDATA[
-                    const name = table.shortName;
-                    return !['NopAuthUser','NopAuthSession','NopAuthOpLog'].includes(name)
+                    return !table.containsTag('no-tenant')
              ]]></c:script>
             </source>
         </IsAllowTenant>

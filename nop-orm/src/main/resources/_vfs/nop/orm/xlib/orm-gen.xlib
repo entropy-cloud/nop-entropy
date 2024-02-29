@@ -301,11 +301,8 @@
             <source>
                 <c:script><![CDATA[
                 for(let entityNode of _dsl_root.childByTag('entities').children){
-                    const name = entityNode.attrText('name').$simpleClassName();
-
                     // 租户表和用户表缺省情况下不启用tenant过滤，否则不太好维护
-                    if(name == 'NopAuthTenant' || name == 'NopAuthUser'
-                       || name == 'NopAuthSession' || name == 'NopAuthOpLog')
+                    if(xpl('orm-gen:NotAutoTenant',entityNode))
                        continue;
 
                     // 如果没有明确指定是否启用tenant，则缺省启用
@@ -316,6 +313,16 @@
               ]]></c:script>
             </source>
         </TenantSupport>
+
+        <NotAutoTenant>
+            <attr name="entityNode" />
+
+            <source>
+                <c:script><![CDATA[
+                    return entityNode.attrCsvSet('tagSet')?.contains('no-tenant')
+             ]]></c:script>
+            </source>
+        </NotAutoTenant>
 
         <GenFromExcel outputMode="node">
             <attr name="path" type="string"/>

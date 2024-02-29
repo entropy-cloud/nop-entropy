@@ -38,7 +38,7 @@ public class TccRecordRepository implements ITccRecordRepository {
 
     private int defaultBranchTimeout;
 
-    @InjectValue("@cfg:nop.tcc.default-branch-timeout-ms:10000")
+    @InjectValue("@cfg:nop.tcc.default-branch-timeout-ms|10000")
     public void setDefaultBranchTimeout(int defaultBranchTimeoutMs) {
         this.defaultBranchTimeout = defaultBranchTimeoutMs;
     }

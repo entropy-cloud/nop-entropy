@@ -34,14 +34,16 @@ Nop平台提供了与Maven相集成的代码生成能力，但是并没有做成
 ```java
 public class NopOrmCodeGen {
     public static void main(String[] args) {
-
+        AppConfig.getConfigProvider().updateConfigValue(CoreConfigs.CFG_CORE_MAX_INITIALIZE_LEVEL,
+                CoreConstants.INITIALIZER_PRIORITY_ANALYZE);
+        
         CoreInitialization.initialize();
         try {
             File projectDir = MavenDirHelper.projectDir(NopOrmCodeGen.class);
             String targetRootPath = FileHelper.getFileUrl(new File(projectDir, "src/main/java"));
             XCodeGenerator generator = new XCodeGenerator("/nop/templates/orm-entity", targetRootPath);
             IResource resource = VirtualFileSystem.instance().getResource("/nop/test/orm/app.orm.xml");
-            OrmModel ormModel = (OrmModel) DslModelHelper.parseDslModel(resource);
+            OrmModel ormModel = (OrmModel) DslModelHelper.loadDslModel(resource);
             generator.execute("", Collections.singletonMap("ormModel", ormModel), XLang.newEvalScope());
         } finally {
             CoreInitialization.destroy();
@@ -54,6 +56,18 @@ Nop平台提供了XLang语言的Idea调试插件，可以在xgen文件中增加�
 
 根据Excel数据模型生成的代码工程中， `xxx-codegen`模块以及`xxx-web`模块中都包含了一个`CodeGen.java`类，例如`NopAuthCodeGen`和`NopAuthWebCodeGen`，
 使用它们可以在IDEA中直接执行代码生成逻辑，而不用通过Maven工具来执行。Maven工具执行时总是先执行Java编译过程，影响性能。
+
+## Analyze模式
+代码生成的时候一般不需要启动IoC容器，因此可以如下配置控制Nop平台的初始化级别。
+
+```
+  AppConfig.getConfigProvider().updateConfigValue(CoreConfigs.CFG_CORE_MAX_INITIALIZE_LEVEL,
+                CoreConstants.INITIALIZER_PRIORITY_ANALYZE);
+```
+
+设置最大初始化级别这个配置变量为ANALYZE之后，再调用CoreInitialization就不会调用IoC容器的start方法。
+
+analyze是Nop平台提供的最强的静态分析模式。在这个模式下，Nop平台会解析所有配置文件，但是并不会创建任何的bean，不会真的进入运行状态。
 
 ### 通过nop-cli命令行工具执行代码生成
 

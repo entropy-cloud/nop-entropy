@@ -269,6 +269,29 @@ public class DataParameterBinders {
         }
     };
 
+    public static IDataParameterBinder NUMERIC = new IDataParameterBinder() {
+        @Override
+        public StdDataType getStdDataType() {
+            return StdDataType.DECIMAL;
+        }
+
+        @Override
+        public StdSqlType getStdSqlType() {
+            return StdSqlType.NUMERIC;
+        }
+
+        @Override
+        public Object getValue(IDataParameters params, int index) {
+            return params.getBigDecimal(index);
+        }
+
+        @Override
+        public void setValue(IDataParameters params, int index, Object value) {
+            params.setBigDecimal(index, (BigDecimal) value);
+        }
+    };
+
+
     public static IDataParameterBinder DATE = new IDataParameterBinder() {
         @Override
         public StdDataType getStdDataType() {
@@ -412,6 +435,7 @@ public class DataParameterBinders {
         register(DOUBLE);
         register(LONG);
         register(DECIMAL);
+        register(NUMERIC);
         register(INT);
         register(DATE);
         register(TIME);

@@ -79,6 +79,7 @@ Nop平台内置的表名都具有前缀`nop_`。
 * `dict`：标记为字典表，其他地方可以通过`obj/{objName}`来将该表的数据作为字典表来使用
 * `mapper`：为该表生成类似MyBatis的Mapper定义文件和Mapper接口类。
 * `no-web`：后台使用的数据对象，不为它单独生成前台页面入口
+* `no-tenant`: 全局开启租户支持时，本表也不自动启用租户过滤，例如nop_auth_user表和nop_auth_tenant表
 * `kv-table`：标记当前实体需要实现`IOrmKeyValueTable`接口。这个接口要求表中必须具有`fieldName`、`fieldType`、`stringValue`等字段，具体参考`nop_sys_ext_field`表的字段设计。
 * `use-ext-field`：为当前实体增加扩展字段支持，将扩展字段值以数据行的形式保存到`nop_sys_ext_field`表中。关于扩展字段详细介绍参见[ext-field.md](../orm/ext-field.md)
 * `many-to-many`：标注是多对多关联的中间表，根据此标签会在Java实体上生成多个帮助函数，用于自动处理多对多关联。参见[many-to-many.md](../orm/many-to-many.md)
