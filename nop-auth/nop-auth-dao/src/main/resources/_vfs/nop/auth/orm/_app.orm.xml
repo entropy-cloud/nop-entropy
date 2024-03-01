@@ -374,7 +374,7 @@
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-one displayName="角色" name="substitutedUser" refEntityName="io.nop.auth.dao.entity.NopAuthUser"
+                <to-one displayName="被代理的用户" name="substitutedUser" refEntityName="io.nop.auth.dao.entity.NopAuthUser"
                         tagSet="pub" i18n-en:displayName="Substituted User">
                     <join>
                         <on leftProp="substitutedUserId" rightProp="userId"/>

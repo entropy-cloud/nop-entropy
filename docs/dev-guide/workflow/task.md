@@ -50,3 +50,6 @@ interface ITaskStep {
 * 标签库可以作为接口的实现。
 * 任务执行有明确的生命周期概念。生命周期结束时自动回收相关资源。
 * scope对应于当前step， taskScope对应于任务上下文
+
+## 结构
+chain/pipeline是一个特别常用的模式，应该可以直接通过约定来构建

@@ -76,14 +76,14 @@
               sortable="true" lazy="true">
             <schema type="String"/>
         </prop>
-        <prop name="substitutedUser" displayName="角色" i18n-en:displayName="Substituted User" tagSet="pub"
+        <prop name="substitutedUser" displayName="被代理的用户" i18n-en:displayName="Substituted User" tagSet="pub"
               ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="substitutedUserId"
               ext:joinRightProp="userId" ext:joinRightDisplayProp="userName" insertable="false" updatable="false"
               mandatory="true" lazy="true">
             <schema bizObjName="NopAuthUser"/>
         </prop>
-        <prop name="substitutedUser.userName" displayName="角色" i18n-en:displayName="Substituted User" internal="true"
-              queryable="true" sortable="true" lazy="true">
+        <prop name="substitutedUser.userName" displayName="被代理的用户" i18n-en:displayName="Substituted User"
+              internal="true" queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
         </prop>
     </props>

@@ -376,8 +376,8 @@ prop:
       remark: 备注
       sid: 主键
       startTime: 开始时间
-      substitutedUser: 角色
-      substitutedUser.userName: 角色
+      substitutedUser: 被代理的用户
+      substitutedUser.userName: 被代理的用户
       substitutedUserId: 被代理的用户ID
       updateTime: 修改时间
       updatedBy: 修改人

@@ -75,7 +75,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /* relation: 用户 */
     public static final String PROP_NAME_user = "user";
     
-    /* relation: 角色 */
+    /* relation: 被代理的用户 */
     public static final String PROP_NAME_substitutedUser = "substitutedUser";
     
 
@@ -750,7 +750,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     }
        
     /**
-     * 角色
+     * 被代理的用户
      */
     public io.nop.auth.dao.entity.NopAuthUser getSubstitutedUser(){
        return (io.nop.auth.dao.entity.NopAuthUser)internalGetRefEntity(PROP_NAME_substitutedUser);
