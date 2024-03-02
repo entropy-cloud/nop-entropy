@@ -95,7 +95,7 @@ public interface GraphQLErrors {
     ErrorCode ERR_GRAPHQL_PARSE_INVALID_VAR_NAME = define("nop.err.graphql.parse.invalid-var-name", "变量名不合法:{name}",
             ARG_NAME);
 
-    ErrorCode ERR_GRAPHQL_PARSE_UNEXPECTED_CHAR = define("nop.err.graphql.parse.unexpected-char", "非法的子符");
+    ErrorCode ERR_GRAPHQL_PARSE_UNEXPECTED_CHAR = define("nop.err.graphql.parse.unexpected-char", "非法的字符");
 
     ErrorCode ERR_GRAPHQL_PARSE_EXCEED_MAX_LENGTH = define("nop.err.graphql.parse.exceed-max-length",
             "GraphQL查询语句过长，超过长度限制");
