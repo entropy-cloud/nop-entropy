@@ -27,7 +27,7 @@
 
         <description xdef:value="string"/>
 
-        <auth xdef:ref="/nop/schema/schema/auth.xdef" />
+        <auth xdef:ref="/nop/schema/schema/auth.xdef"/>
 
         <!--
         验证sql正确性时采用的输入数据。当AppConfig.isDebugMode()为true时（调试模式），sql-lib加载后会自动验证sql语句语法正确。
@@ -51,6 +51,10 @@
             <description xdef:value="string"/>
             <schema xdef:ref="../schema/schema.xdef"/>
         </arg>
+
+        <buildRowMapper xdef:value="xpl"/>
+
+        <buildResult xdef:value="xpl"/>
 
     </xdef:define>
 

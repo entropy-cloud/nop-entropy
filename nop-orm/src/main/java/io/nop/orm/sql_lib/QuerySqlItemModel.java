@@ -56,18 +56,24 @@ public class QuerySqlItemModel extends _QuerySqlItemModel {
 
         try {
             switch (method) {
-                case findAll:
-                    return processResult(orm.findListByQuery(query, buildRowMapper(executor, getQuerySpace())), executor);
+                case findAll: {
+                    List<Object> data = processResult(orm.findListByQuery(query, buildRowMapper(executor, getQuerySpace(), scope)), executor);
+                    return buildResult(data, scope);
+                }
                 case findPage: {
                     long offset = range == null ? 0 : range.getOffset();
                     int limit = range == null ? 10 : (int) range.getLimit();
                     query.setOffset(offset);
                     query.setLimit(limit);
-                    List<Object> data = orm.findListByQuery(query, buildRowMapper(executor, getQuerySpace()));
-                    return processResult(data, executor);
+                    List<Object> data = orm.findListByQuery(query, buildRowMapper(executor, getQuerySpace(), scope));
+                    data = processResult(data, executor);
+                    return buildResult(data, scope);
                 }
-                case findFirst:
-                    return orm.findFirstByQuery(query, buildRowMapper(executor, getQuerySpace()));
+                case findFirst: {
+                    Object data = orm.findFirstByQuery(query, buildRowMapper(executor, getQuerySpace(), scope));
+                    data = processSingleResult(data, executor);
+                    return buildResult(data, scope);
+                }
                 case exists:
                     return orm.existsByQuery(query);
                 default:

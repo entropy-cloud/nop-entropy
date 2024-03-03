@@ -39,6 +39,20 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
     
     /**
      *  
+     * xml name: buildResult
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _buildResult ;
+    
+    /**
+     *  
+     * xml name: buildRowMapper
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _buildRowMapper ;
+    
+    /**
+     *  
      * xml name: cacheKeyExpr
      * 生成缓存key的表达式, 运行时可以根据传入的参数构造出缓存key，例如cacheKeyExpr="concat(x,'-',y)"
      */
@@ -214,6 +228,44 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
         checkAllowChange();
         
         this._batchLoadSelection = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: buildResult
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getBuildResult(){
+      return _buildResult;
+    }
+
+    
+    public void setBuildResult(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._buildResult = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: buildRowMapper
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getBuildRowMapper(){
+      return _buildRowMapper;
+    }
+
+    
+    public void setBuildRowMapper(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._buildRowMapper = value;
            
     }
 
@@ -534,6 +586,8 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
         out.putNotNull("args",this.getArgs());
         out.putNotNull("auth",this.getAuth());
         out.putNotNull("batchLoadSelection",this.getBatchLoadSelection());
+        out.putNotNull("buildResult",this.getBuildResult());
+        out.putNotNull("buildRowMapper",this.getBuildRowMapper());
         out.putNotNull("cacheKeyExpr",this.getCacheKeyExpr());
         out.putNotNull("cacheName",this.getCacheName());
         out.putNotNull("description",this.getDescription());
@@ -562,6 +616,8 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
         instance.setArgs(this.getArgs());
         instance.setAuth(this.getAuth());
         instance.setBatchLoadSelection(this.getBatchLoadSelection());
+        instance.setBuildResult(this.getBuildResult());
+        instance.setBuildRowMapper(this.getBuildRowMapper());
         instance.setCacheKeyExpr(this.getCacheKeyExpr());
         instance.setCacheName(this.getCacheName());
         instance.setDescription(this.getDescription());

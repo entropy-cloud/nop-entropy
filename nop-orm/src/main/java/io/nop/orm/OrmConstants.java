@@ -107,6 +107,12 @@ public interface OrmConstants {
 
     String PARAM_SQL_LIB_MODEL = "sqlLibModel";
 
+    String PARAM_ROW_MAPPER = "rowMapper";
+
+    String PARAM_COL_MAPPER = "colMapper";
+
+    String PARAM_DATA = "data";
+
     String VAR_ENTITY = "entity";
 
     String VAR_EXCEPTION = "exception";

@@ -17,9 +17,9 @@ import io.nop.core.context.IEvalContext;
 import io.nop.core.dataset.BeanRowMapper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.sql.SQL;
-import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.ReflectionManager;
-import io.nop.core.type.IGenericType;
+import io.nop.core.reflect.bean.BeanTool;
+import io.nop.core.reflect.bean.IBeanModel;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.api.ISqlExecutor;
 import io.nop.dao.dialect.IDialect;
@@ -35,7 +35,10 @@ import io.nop.orm.sql_lib._gen._SqlItemModel;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static io.nop.orm.OrmErrors.ARG_INDEX;
 import static io.nop.orm.OrmErrors.ARG_SQL_NAME;
@@ -108,21 +111,33 @@ public abstract class SqlItemModel extends _SqlItemModel {
             case execute:
                 return executor.executeMultiSql(sql);
             case findAll:
-                return processResult(executor.findAll(sql, buildRowMapper(executor, sql.getQuerySpace())), executor);
+                return processResult(executor.findAll(sql, buildRowMapper(executor, sql.getQuerySpace(), scope)), executor);
             case findPage: {
                 long offset = range == null ? 0 : range.getOffset();
                 int limit = range == null ? 10 : (int) range.getLimit();
                 List<Object> data = executor.findPage(sql, offset, limit,
-                        buildRowMapper(executor, sql.getQuerySpace()));
-                return processResult(data, executor);
+                        buildRowMapper(executor, sql.getQuerySpace(), scope));
+                data = processResult(data, executor);
+                return buildResult(data, scope);
             }
-            case findFirst:
-                return executor.findFirst(sql, buildRowMapper(executor, sql.getQuerySpace()));
+            case findFirst: {
+                Object data = executor.findFirst(sql, buildRowMapper(executor, sql.getQuerySpace(), scope));
+                data = processSingleResult(data, executor);
+                return buildResult(data, scope);
+            }
             case exists:
                 return executor.exists(sql);
             default:
                 throw new UnsupportedOperationException();
         }
+    }
+
+    protected Object buildResult(Object result, IEvalScope scope) {
+        if (getBuildResult() != null) {
+            scope.setLocalValue(OrmConstants.PARAM_DATA, result);
+            result = getBuildResult().invoke(scope);
+        }
+        return result;
     }
 
     protected List<Object> processResult(List<Object> data, ISqlExecutor executor) {
@@ -132,36 +147,68 @@ public abstract class SqlItemModel extends _SqlItemModel {
         if (getBatchLoadSelection() != null && executor instanceof IOrmTemplate) {
             ((IOrmTemplate) executor).batchLoadSelection(data, getBatchLoadSelection());
         }
+
+        if (getRowType() != null) {
+            IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(getRowType().getRawClass());
+            data = data.stream().map(item -> {
+                if (item instanceof Map) {
+                    return BeanRowMapper.newBean(beanModel, (Map<String, Object>) item, false);
+                } else {
+                    return BeanTool.buildBean(item, getRowType());
+                }
+            }).collect(Collectors.toList());
+        }
+
         return data;
     }
 
-    protected IRowMapper buildRowMapper(ISqlExecutor executor, String querySpace) {
-        IRowMapper rowMapper;
-        if (DaoConstants.SQL_TYPE_SQL.equals(getType())) {
+    protected Object processSingleResult(Object data, ISqlExecutor executor) {
+        if (data == null)
+            return null;
 
-            if (getRowType() == null) {
-                rowMapper = isColNameCamelCase() ? SmartRowMapper.CAMEL_CASE : SmartRowMapper.CASE_INSENSITIVE;
+        if (getBatchLoadSelection() != null && executor instanceof IOrmTemplate) {
+            ((IOrmTemplate) executor).batchLoadSelection(Collections.singleton(data), getBatchLoadSelection());
+        }
+
+        if (getRowType() != null) {
+            if (data instanceof Map) {
+                IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(getRowType().getRawClass());
+                return BeanRowMapper.newBean(beanModel, (Map<String, Object>) data, false);
             } else {
-                rowMapper = buildBeanMapper(getRowType(), true);
-            }
-        } else {
-            // eql语法时列名就是指定的属性名，不需要作camelCase转换
-            if (getRowType() == null) {
-                rowMapper = SmartRowMapper.INSTANCE;
-            } else {
-                // sql语法时会对列名进行camelCase变换后作为属性名
-                rowMapper = buildBeanMapper(getRowType(), false);
+                return BeanTool.buildBean(data, getRowType());
             }
         }
+        return data;
+    }
+
+    protected IRowMapper buildRowMapper(ISqlExecutor executor, String querySpace, IEvalScope scope) {
+        SmartRowMapper rowMapper;
+        if (DaoConstants.SQL_TYPE_SQL.equals(getType())) {
+            rowMapper = isColNameCamelCase() ?  SmartRowMapper.CASE_INSENSITIVE : SmartRowMapper.CAMEL_CASE;
+        } else {
+            // eql语法时列名就是指定的属性名，不需要作camelCase转换
+            rowMapper = SmartRowMapper.INSTANCE;
+        }
+        scope.setLocalValue(OrmConstants.PARAM_ROW_MAPPER, rowMapper);
 
         if (hasFields()) {
             IDialect dialect = executor.getDialectForQuerySpace(querySpace);
-            rowMapper = addColMapper(rowMapper, dialect);
+            IFieldMapper colMapper = buildColMapper(dialect);
+            scope.setLocalValue(OrmConstants.PARAM_COL_MAPPER, colMapper);
+            rowMapper = new SmartRowMapper(new ColRowMapper<>(rowMapper, colMapper));
+            scope.setLocalValue(OrmConstants.PARAM_ROW_MAPPER, rowMapper);
         }
-        return new SmartRowMapper(rowMapper);
+
+        if (getBuildRowMapper() != null) {
+            Object result = getBuildRowMapper().invoke(scope);
+            if (result instanceof IRowMapper) {
+                return ((IRowMapper) result);
+            }
+        }
+        return rowMapper;
     }
 
-    private IRowMapper addColMapper(IRowMapper rowMapper, IDialect dialect) {
+    private IFieldMapper buildColMapper(IDialect dialect) {
         List<IDataParameterBinder> binders = new ArrayList<>();
         for (SqlFieldModel colModel : getFields()) {
             if (colModel.getIndex() < 0 || colModel.getIndex() > 1000)
@@ -175,11 +222,6 @@ public abstract class SqlItemModel extends _SqlItemModel {
                 CollectionHelper.set(binders, colModel.getIndex(), binder);
         }
         IFieldMapper colMapper = new BinderFieldMapper(binders);
-        return new ColRowMapper(rowMapper, colMapper);
-    }
-
-    protected IRowMapper buildBeanMapper(IGenericType rowType, boolean camelCase) {
-        IClassModel classModel = ReflectionManager.instance().loadClassModel(rowType.getRawTypeName());
-        return new BeanRowMapper(classModel.getBeanModel(), camelCase);
+        return colMapper;
     }
 }

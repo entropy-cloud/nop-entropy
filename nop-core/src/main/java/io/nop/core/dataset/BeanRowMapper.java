@@ -15,6 +15,8 @@ import io.nop.dataset.IDataRow;
 import io.nop.dataset.IFieldMapper;
 import io.nop.dataset.IRowMapper;
 
+import java.util.Map;
+
 /**
  * @author canonical_entropy@163.com
  */
@@ -48,5 +50,24 @@ public class BeanRowMapper implements IRowMapper<Object> {
             }
         }
         return bean;
+    }
+
+    public static Object newBean(IBeanModel beanModel, Map<String, Object> data, boolean camelCase) {
+        Object bean = beanModel.newInstance();
+        data.forEach((key, value) -> {
+            setBeanProp(beanModel, bean, key, value, camelCase);
+        });
+        return bean;
+    }
+
+    public static void setBeanProp(IBeanModel beanModel, Object bean, String key, Object value, boolean camelCase) {
+        if (camelCase) {
+            key = StringHelper.camelCase(key, '_', false);
+        }
+        if (key.indexOf('.') < 0) {
+            beanModel.setProperty(bean, key, value);
+        } else {
+            BeanTool.setComplexProperty(bean, key, value);
+        }
     }
 }
