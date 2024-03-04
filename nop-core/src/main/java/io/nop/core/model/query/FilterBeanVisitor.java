@@ -52,7 +52,7 @@ public class FilterBeanVisitor<T> {
     }
 
     /**
-     * 自上而下深度便利树形结构的判断条件
+     * 自上而下深度遍历树形结构的判断条件
      *
      * @param filter 通过{@link io.nop.api.core.beans.FilterBeans} 构造的树形过滤条件
      * @param scope  过滤条件中name属性所对应的值通过IVariableScope来负责解析
