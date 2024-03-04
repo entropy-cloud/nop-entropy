@@ -298,7 +298,7 @@ class OrmKeyValueTable{
 
 具体配置实例可以参见
 
-[app.orm.xml](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/test/resources/_vfs/nop/test/app.orm.xml)
+[app.orm.xml](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/test/resources/_vfs/nop/test/orm/app.orm.xml)
 
 ```xml
 <entity name="io.nop.app.SimsExam">
