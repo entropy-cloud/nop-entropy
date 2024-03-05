@@ -38,6 +38,8 @@ public interface XDslConstants {
     String NS_X_PREFIX = "x:";
     String NS_XDEF_PREFIX = "xdef:";
 
+    String TAG_X_DIV = "x:div";
+
     String ATTR_FEATURE_ON = "feature:on";
     String ATTR_FEATURE_OFF = "feature:off";
 

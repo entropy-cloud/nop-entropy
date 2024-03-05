@@ -15,10 +15,13 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.resource.IResource;
 import io.nop.xlang.xdsl.XDslConstants;
+import io.nop.xlang.xdsl.XDslKeys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * 对任意xml文件都支持的组合和裁剪操作，不需要XDefinition元模型支持。
@@ -72,9 +75,27 @@ public class XModelInclude {
                 if (!checkFeatureSwitch(it.next(), evaluator))
                     it.remove();
             }
+
+            boolean hasVirtual = node.getChildren().stream().anyMatch(this::isVirtual);
+            if (hasVirtual) {
+                List<XNode> list = new ArrayList<>();
+                for (XNode child : node.getChildren()) {
+                    if (isVirtual(child)) {
+                        list.addAll(child.detachChildren());
+                    } else {
+                        list.add(child);
+                    }
+                }
+                node.detachChildren();
+                node.appendChildren(list);
+            }
         }
 
         return true;
+    }
+
+    protected boolean isVirtual(XNode node) {
+        return node.getTagName().equals(XDslConstants.TAG_X_DIV);
     }
 
     private boolean isEnabled(XNode node, FeatureConditionEvaluator evaluator) {
