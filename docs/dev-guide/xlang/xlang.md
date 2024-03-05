@@ -258,6 +258,8 @@ XLang是一个开放的语言，它的XPL标签语法非常灵活，可以通过
 2. `x:gen-extends`节点引入元编程生成器，执行动态代码生成`beans`节点，然后再和已有的`beans`节点按照统一的delta合并算法合并在一起。
 3. 通过`feature:on`开关可以控制只有配置开关打开的时候才启用某些`bean`的定义。
 
+关于feature:on和feature:off的具体语法，参见[feature-expr.md](feature-expr.md)
+
 与spring的ioc机制进行对比，所有动态生成和扩展的功能都是由XDsl层面统一实现，分解合并完成之后会生成一个符合`ioc.xdef`约束的描述式模型，然后再交由
 `DslModelParser`去解析。DSL解析器只需要处理真正的领域结构模型即可，而无需考虑任何额外的分解合并机制。而在spring中，profile、BeanPostProcessor等 内置机制都是特殊针对spring
 ioc框架特殊编写的，无法应用于其他DSL的开发，而且它们的存在也破坏了spring所推崇的描述性，导致bean的初始化时机出现非常微妙的 依赖关系，不仔细跟踪spring的执行过程实际上无法确定bean的扫描和初始化时机。
