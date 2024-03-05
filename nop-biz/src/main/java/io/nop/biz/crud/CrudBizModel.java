@@ -7,27 +7,19 @@
  */
 package io.nop.biz.crud;
 
-import io.nop.api.core.annotations.biz.BizAction;
-import io.nop.api.core.annotations.biz.BizArgsNormalizer;
-import io.nop.api.core.annotations.biz.BizMakerChecker;
-import io.nop.api.core.annotations.biz.BizModel;
-import io.nop.api.core.annotations.biz.BizMutation;
-import io.nop.api.core.annotations.biz.BizQuery;
+import io.nop.api.core.annotations.biz.*;
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.graphql.GraphQLReturn;
 import io.nop.api.core.auth.IDataAuthChecker;
-import io.nop.api.core.beans.DictBean;
-import io.nop.api.core.beans.DictOptionBean;
-import io.nop.api.core.beans.FieldSelectionBean;
-import io.nop.api.core.beans.FilterBeans;
-import io.nop.api.core.beans.PageBean;
+import io.nop.api.core.beans.*;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.auth.api.utils.AuthHelper;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObject;
@@ -47,11 +39,7 @@ import io.nop.dao.utils.DaoHelper;
 import io.nop.fsm.execution.IStateMachine;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IBizModelImpl;
-import io.nop.orm.IOrmBatchLoadQueue;
-import io.nop.orm.IOrmEntity;
-import io.nop.orm.IOrmEntitySet;
-import io.nop.orm.IOrmTemplate;
-import io.nop.orm.OrmConstants;
+import io.nop.orm.*;
 import io.nop.orm.dao.IOrmEntityDao;
 import io.nop.orm.utils.OrmQueryHelper;
 import io.nop.xlang.filter.BizExprHelper;
@@ -65,49 +53,13 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
-import static io.nop.auth.api.AuthApiErrors.ARG_BIZ_OBJ_NAME;
-import static io.nop.auth.api.AuthApiErrors.ERR_AUTH_NO_DATA_AUTH;
-import static io.nop.auth.api.AuthApiErrors.ERR_AUTH_NO_DATA_AUTH_AFTER_UPDATE;
-import static io.nop.biz.BizConstants.ACTION_ARG_ENTITY;
-import static io.nop.biz.BizConstants.BIZ_OBJ_NAME_THIS_OBJ;
-import static io.nop.biz.BizConstants.METHOD_FIND_FIRST;
-import static io.nop.biz.BizConstants.METHOD_FIND_LIST;
-import static io.nop.biz.BizConstants.METHOD_FIND_PAGE;
-import static io.nop.biz.BizConstants.METHOD_TRY_DELETE;
-import static io.nop.biz.BizConstants.METHOD_TRY_SAVE;
-import static io.nop.biz.BizConstants.METHOD_TRY_UPDATE;
-import static io.nop.biz.BizConstants.TAG_DICT;
-import static io.nop.biz.BizErrors.ARG_ACTION_NAME;
-import static io.nop.biz.BizErrors.ARG_CLASS_NAME;
-import static io.nop.biz.BizErrors.ARG_ENTITY_NAME;
-import static io.nop.biz.BizErrors.ARG_ID;
-import static io.nop.biz.BizErrors.ARG_KEY;
-import static io.nop.biz.BizErrors.ARG_OBJ_LABEL;
-import static io.nop.biz.BizErrors.ARG_PARAM_NAME;
-import static io.nop.biz.BizErrors.ARG_PROP_NAME;
-import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_SAVE;
-import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_UPDATE;
-import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_ALREADY_EXISTS;
-import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_NOT_MATCH_FILTER_CONDITION;
-import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_NOT_SUPPORT_LOGICAL_DELETE;
-import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_WITH_SAME_KEY_ALREADY_EXISTS;
-import static io.nop.biz.BizErrors.ERR_BIZ_NOT_ALLOW_DELETE_PARENT_WHEN_CHILDREN_IS_NOT_EMPTY;
-import static io.nop.biz.BizErrors.ERR_BIZ_NO_BIZ_MODEL_ANNOTATION;
-import static io.nop.biz.BizErrors.ERR_BIZ_NO_MANDATORY_PARAM;
-import static io.nop.biz.BizErrors.ERR_BIZ_OBJ_NO_DICT_TAG;
-import static io.nop.biz.BizErrors.ERR_BIZ_PROP_NOT_MANY_TO_MANY_REF;
+import static io.nop.auth.api.AuthApiErrors.*;
+import static io.nop.biz.BizConstants.*;
+import static io.nop.biz.BizErrors.*;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAX_PAGE_SIZE;
 
 @Locale("zh-CN")
@@ -1025,6 +977,29 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         List<T> ret = dao().findPageByQuery(query);
         return ret;
     }
+
+    @Description("@i18n:biz.findRoots|根据查询条件返回树形结构的根节点列表")
+    @BizQuery
+    @BizArgsNormalizer(BizConstants.BEAN_nopQueryBeanArgsNormalizer)
+    @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
+    public List<T> findRoots(@Optional @Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context) {
+        if (query == null) {
+            query = new QueryBean();
+        }
+        IObjMeta objMeta = getThisObj().getObjMeta();
+        ObjTreeModel treeModel = objMeta.getTree();
+        Guard.notNull(treeModel, "treeModel");
+
+        if (treeModel.getLevelProp() != null && treeModel.getRootLevelValue() != null) {
+            query.addFilter(FilterBeans.eq(treeModel.getLevelProp(), treeModel.getRootLevelValue()));
+        } else if (treeModel.getParentProp() != null) {
+            String rootParentValue = StringHelper.emptyAsNull(treeModel.getRootParentValue());
+            query.addFilter(FilterBeans.eq(treeModel.getParentProp(), rootParentValue));
+        }
+        query.setDisableLogicalDelete(false);
+        return doFindList(query, this::defaultPrepareQuery, selection, context);
+    }
+
 
     @Description("@i18n:biz.addManyToMany|新增多对多关联")
     @BizMutation

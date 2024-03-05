@@ -41,7 +41,7 @@
     @levelProp 树形结构的级别树形，例如level=1表示一级节点，2表示二级节点等。如果为空，则使用parentId=__null来过滤得到根节点
     @rootLevelValue 根节点所对应的level字段的值
     -->
-    <tree isLeafProp="string" parentProp="!string" childrenProp="string"
+    <tree isLeafProp="string" parentProp="!string" childrenProp="string" rootParentValue="string"
           levelProp="string" rootLevelValue="string" xdef:name="ObjTreeModel"/>
 
     <defines xdef:key-attr="name" xdef:body-type="list">

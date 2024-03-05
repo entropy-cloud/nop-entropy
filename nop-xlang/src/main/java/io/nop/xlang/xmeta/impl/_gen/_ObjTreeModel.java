@@ -52,6 +52,13 @@ public abstract class _ObjTreeModel extends io.nop.core.resource.component.Abstr
     private java.lang.String _rootLevelValue ;
     
     /**
+     *  
+     * xml name: rootParentValue
+     * 
+     */
+    private java.lang.String _rootParentValue ;
+    
+    /**
      * 
      * xml name: childrenProp
      *  对应于父对象中对应于子对象的集合属性，例如children
@@ -146,6 +153,25 @@ public abstract class _ObjTreeModel extends io.nop.core.resource.component.Abstr
     }
 
     
+    /**
+     * 
+     * xml name: rootParentValue
+     *  
+     */
+    
+    public java.lang.String getRootParentValue(){
+      return _rootParentValue;
+    }
+
+    
+    public void setRootParentValue(java.lang.String value){
+        checkAllowChange();
+        
+        this._rootParentValue = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -166,6 +192,7 @@ public abstract class _ObjTreeModel extends io.nop.core.resource.component.Abstr
         out.putNotNull("levelProp",this.getLevelProp());
         out.putNotNull("parentProp",this.getParentProp());
         out.putNotNull("rootLevelValue",this.getRootLevelValue());
+        out.putNotNull("rootParentValue",this.getRootParentValue());
     }
 
     public ObjTreeModel cloneInstance(){
@@ -182,6 +209,7 @@ public abstract class _ObjTreeModel extends io.nop.core.resource.component.Abstr
         instance.setLevelProp(this.getLevelProp());
         instance.setParentProp(this.getParentProp());
         instance.setRootLevelValue(this.getRootLevelValue());
+        instance.setRootParentValue(this.getRootParentValue());
     }
 
     protected ObjTreeModel newInstance(){
