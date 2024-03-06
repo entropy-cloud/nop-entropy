@@ -57,9 +57,37 @@ import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
-import static io.nop.auth.api.AuthApiErrors.*;
-import static io.nop.biz.BizConstants.*;
-import static io.nop.biz.BizErrors.*;
+import static io.nop.auth.api.AuthApiErrors.ARG_BIZ_OBJ_NAME;
+import static io.nop.auth.api.AuthApiErrors.ERR_AUTH_NO_DATA_AUTH;
+import static io.nop.auth.api.AuthApiErrors.ERR_AUTH_NO_DATA_AUTH_AFTER_UPDATE;
+import static io.nop.biz.BizConstants.ACTION_ARG_ENTITY;
+import static io.nop.biz.BizConstants.BIZ_OBJ_NAME_THIS_OBJ;
+import static io.nop.biz.BizConstants.METHOD_FIND_FIRST;
+import static io.nop.biz.BizConstants.METHOD_FIND_LIST;
+import static io.nop.biz.BizConstants.METHOD_FIND_PAGE;
+import static io.nop.biz.BizConstants.METHOD_TRY_DELETE;
+import static io.nop.biz.BizConstants.METHOD_TRY_SAVE;
+import static io.nop.biz.BizConstants.METHOD_TRY_UPDATE;
+import static io.nop.biz.BizConstants.TAG_DICT;
+import static io.nop.biz.BizErrors.ARG_ACTION_NAME;
+import static io.nop.biz.BizErrors.ARG_CLASS_NAME;
+import static io.nop.biz.BizErrors.ARG_ENTITY_NAME;
+import static io.nop.biz.BizErrors.ARG_ID;
+import static io.nop.biz.BizErrors.ARG_KEY;
+import static io.nop.biz.BizErrors.ARG_OBJ_LABEL;
+import static io.nop.biz.BizErrors.ARG_PARAM_NAME;
+import static io.nop.biz.BizErrors.ARG_PROP_NAME;
+import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_SAVE;
+import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_UPDATE;
+import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_ALREADY_EXISTS;
+import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_NOT_MATCH_FILTER_CONDITION;
+import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_NOT_SUPPORT_LOGICAL_DELETE;
+import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_WITH_SAME_KEY_ALREADY_EXISTS;
+import static io.nop.biz.BizErrors.ERR_BIZ_NOT_ALLOW_DELETE_PARENT_WHEN_CHILDREN_IS_NOT_EMPTY;
+import static io.nop.biz.BizErrors.ERR_BIZ_NO_BIZ_MODEL_ANNOTATION;
+import static io.nop.biz.BizErrors.ERR_BIZ_NO_MANDATORY_PARAM;
+import static io.nop.biz.BizErrors.ERR_BIZ_OBJ_NO_DICT_TAG;
+import static io.nop.biz.BizErrors.ERR_BIZ_PROP_NOT_MANY_TO_MANY_REF;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAX_PAGE_SIZE;
 
 @Locale("zh-CN")
@@ -600,6 +628,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                 context, true);
 
         Map<String, Object> validated = validator.validateForUpdate(data, inputSelection);
+        // id不允许被更新
+        validated.remove(OrmConstants.PROP_ID);
 
         T entity = requireEntity(ConvertHelper.toString(id), BizConstants.METHOD_UPDATE, context);
 
