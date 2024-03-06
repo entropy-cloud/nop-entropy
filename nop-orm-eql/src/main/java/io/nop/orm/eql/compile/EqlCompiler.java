@@ -38,11 +38,6 @@ import static io.nop.orm.eql.OrmEqlErrors.ARG_SQL;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_SUPPORT_MULTIPLE_STATEMENT;
 
 public class EqlCompiler implements ISqlCompiler {
-    private final IEqlAstTransformer astTransformer;
-
-    public EqlCompiler(IEqlAstTransformer astTransformer) {
-        this.astTransformer = astTransformer;
-    }
 
     @Override
     public ICompiledSql compile(String name, String eql, ISqlCompileContext context) {
@@ -55,6 +50,8 @@ public class EqlCompiler implements ISqlCompiler {
         if (dump) {
             stm.dump("parsed_eql");
         }
+
+        IEqlAstTransformer astTransformer = context.getAstTransformer();
 
         if (astTransformer != null) {
             astTransformer.transformBeforeAnalyze(program, name, eql, context);

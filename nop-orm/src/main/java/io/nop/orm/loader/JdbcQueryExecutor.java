@@ -25,10 +25,10 @@ import io.nop.orm.model.IEntityModel;
 import io.nop.orm.persister.IPersistEnv;
 import io.nop.orm.session.IOrmSessionImplementor;
 import io.nop.orm.sql.GenSqlTransformer;
+import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.Nonnull;
 import java.util.List;
 import java.util.function.Function;
 
@@ -51,23 +51,37 @@ public class JdbcQueryExecutor implements IQueryExecutor {
     }
 
     @Override
-    public long executeUpdate(IOrmSessionImplementor session, SQL eql) {
+    public long executeUpdate(@Nonnull IOrmSessionImplementor session, @Nonnull SQL eql) {
         ICompiledSql compiled = env.compileSql(eql.getName(), eql.getText(), eql.isDisableLogicalDelete());
+        return executeUpdateSql(session, compiled, eql.getMarkerValues());
+    }
+
+    @Override
+    public long executeUpdateSql(@Nonnull IOrmSessionImplementor session, @Nonnull ICompiledSql compiled,
+                                 @Nonnull List<Object> markerValues) {
         invokeListener(compiled);
 
-        SQL sql = transformEQL(eql, compiled);
+        SQL sql = transformEQL(compiled, markerValues);
         return jdbc().executeUpdate(sql);
     }
 
     @Override
-    public <T> T executeQuery(IOrmSessionImplementor session, @Nonnull SQL eql, LongRangeBean range,
+    public <T> T executeQuery(@Nonnull IOrmSessionImplementor session, @Nonnull SQL eql, LongRangeBean range,
                               @Nonnull Function<? super IDataSet, T> callback) {
         if (LOG.isDebugEnabled())
             eql.dump("session.executeQuery");
         ICompiledSql compiled = env.compileSql(eql.getName(), eql.getText(), eql.isDisableLogicalDelete());
+        return executeQuerySql(session, compiled, eql.getMarkerValues(), range, callback);
+    }
+
+    @Override
+    public <T> T executeQuerySql(@Nonnull IOrmSessionImplementor session, @Nonnull ICompiledSql compiled,
+                                 @Nonnull List<Object> markerValues,
+                                 LongRangeBean range,
+                                 @Nonnull Function<? super IDataSet, T> callback) {
         invokeListener(compiled);
 
-        SQL sql = transformEQL(eql, compiled);
+        SQL sql = transformEQL(compiled, markerValues);
 
         return jdbc().executeQuery(sql, range, ds -> {
             ds = new TransformedDataSet(ds, compiled.getDataSetMeta(), rs -> transformRow(rs, compiled, session));
@@ -76,13 +90,20 @@ public class JdbcQueryExecutor implements IQueryExecutor {
     }
 
     @Override
-    public <T> T executeStatement(IOrmSessionImplementor session, @Nonnull SQL eql, LongRangeBean range,
+    public <T> T executeStatement(@Nonnull IOrmSessionImplementor session, @Nonnull SQL eql, LongRangeBean range,
                                   @Nonnull Function<IComplexDataSet, T> callback, ICancelToken cancelToken) {
         if (LOG.isDebugEnabled())
             eql.dump("session.executeStatement");
         ICompiledSql compiled = env.compileSql(eql.getName(), eql.getText(), eql.isDisableLogicalDelete());
+        return executeStatementSql(session, compiled, eql.getMarkerValues(), range, callback, cancelToken);
+    }
+
+    @Override
+    public <T> T executeStatementSql(@Nonnull IOrmSessionImplementor session, @Nonnull ICompiledSql compiled,
+                                     @Nonnull List<Object> markerValues, LongRangeBean range,
+                                     @Nonnull Function<IComplexDataSet, T> callback, ICancelToken cancelToken) {
         invokeListener(compiled);
-        SQL sql = transformEQL(eql, compiled);
+        SQL sql = transformEQL(compiled, markerValues);
         return jdbc().executeStatement(sql, range, ds -> {
             ds = new TransformedComplexDataSet(ds, compiled.getDataSetMeta(),
                     rs -> transformRow(rs, compiled, session));
@@ -119,8 +140,8 @@ public class JdbcQueryExecutor implements IQueryExecutor {
         }
     }
 
-    private SQL transformEQL(SQL sql, ICompiledSql compiled) {
-        List<Object> params = compiled.buildParams(sql.getMarkerValues());
+    private SQL transformEQL(ICompiledSql compiled, List<Object> markerValues) {
+        List<Object> params = compiled.buildParams(markerValues);
         return new GenSqlTransformer(env.getShardSelector(), env.getOrmModel(), env)
                 .transform(compiled.getSql(), params).end();
     }

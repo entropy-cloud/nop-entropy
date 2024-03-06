@@ -12,9 +12,11 @@ import io.nop.api.core.util.ICancelToken;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dataset.IComplexDataSet;
 import io.nop.dataset.IDataSet;
+import io.nop.orm.eql.ICompiledSql;
 import io.nop.orm.session.IOrmSessionImplementor;
-
 import jakarta.annotation.Nonnull;
+
+import java.util.List;
 import java.util.function.Function;
 
 public interface IQueryExecutor {
@@ -26,4 +28,15 @@ public interface IQueryExecutor {
 
     <T> T executeStatement(@Nonnull IOrmSessionImplementor session, @Nonnull SQL sql, LongRangeBean range,
                            @Nonnull Function<IComplexDataSet, T> callback, ICancelToken cancelToken);
+
+    long executeUpdateSql(@Nonnull IOrmSessionImplementor session, ICompiledSql compiled, List<Object> markerValues);
+
+    <T> T executeQuerySql(@Nonnull IOrmSessionImplementor session, @Nonnull ICompiledSql compiled,
+                          @Nonnull List<Object> markerValues, LongRangeBean range,
+                          @Nonnull Function<? super IDataSet, T> callback);
+
+    <T> T executeStatementSql(@Nonnull IOrmSessionImplementor session, @Nonnull ICompiledSql compiled,
+                              @Nonnull List<Object> markerValues, LongRangeBean range,
+                              @Nonnull Function<IComplexDataSet, T> callback, ICancelToken cancelToken);
+
 }

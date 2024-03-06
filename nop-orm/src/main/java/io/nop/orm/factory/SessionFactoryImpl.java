@@ -346,14 +346,26 @@ public class SessionFactoryImpl implements IPersistEnv {
 
     @Override
     public ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete) {
-        QueryPlanCacheKey key = new QueryPlanCacheKey(name, sqlText, disableLogicalDelete);
-        ICompiledSql result = getQueryPlanCache().get(key);
-        if (result == null) {
-            ISqlCompileContext ctx = new EqlCompileContext(this, disableLogicalDelete);
-            result = new EqlCompiler(eqlAstTransformer).compile(name, sqlText, ctx);
-            getQueryPlanCache().put(key, result);
+        return compileSql(name, sqlText, disableLogicalDelete, eqlAstTransformer, true);
+    }
+
+    @Override
+    public ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete,
+                                   IEqlAstTransformer astTransformer, boolean useCache) {
+
+        if (useCache) {
+            QueryPlanCacheKey key = new QueryPlanCacheKey(name, sqlText, disableLogicalDelete);
+            ICompiledSql result = getQueryPlanCache().get(key);
+            if (result == null) {
+                ISqlCompileContext ctx = new EqlCompileContext(this, disableLogicalDelete, astTransformer);
+                result = new EqlCompiler().compile(name, sqlText, ctx);
+                getQueryPlanCache().put(key, result);
+            }
+            return result;
+        } else {
+            ISqlCompileContext ctx = new EqlCompileContext(this, disableLogicalDelete, astTransformer);
+            return new EqlCompiler().compile(name, sqlText, ctx);
         }
-        return result;
     }
 
     @Override

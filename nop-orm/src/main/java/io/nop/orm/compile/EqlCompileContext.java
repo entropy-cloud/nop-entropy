@@ -8,6 +8,7 @@
 package io.nop.orm.compile;
 
 import io.nop.dao.dialect.IDialect;
+import io.nop.orm.eql.IEqlAstTransformer;
 import io.nop.orm.eql.compile.ISqlCompileContext;
 import io.nop.orm.eql.meta.EntityTableMeta;
 import io.nop.orm.eql.sql.IAliasGenerator;
@@ -18,13 +19,21 @@ public class EqlCompileContext implements ISqlCompileContext {
     private final IPersistEnv env;
     private final boolean disableLogicalDelete;
 
-    public EqlCompileContext(IPersistEnv env, boolean disableLogicalDelete) {
+    private final IEqlAstTransformer astTransformer;
+
+    public EqlCompileContext(IPersistEnv env, boolean disableLogicalDelete, IEqlAstTransformer astTransformer) {
         this.env = env;
         this.disableLogicalDelete = disableLogicalDelete;
+        this.astTransformer = astTransformer;
     }
 
     public boolean isDisableLogicalDelete() {
         return disableLogicalDelete;
+    }
+
+    @Override
+    public IEqlAstTransformer getAstTransformer() {
+        return astTransformer;
     }
 
     @Override

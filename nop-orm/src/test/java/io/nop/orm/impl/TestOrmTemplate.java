@@ -8,6 +8,7 @@
 package io.nop.orm.impl;
 
 import io.nop.api.core.annotations.txn.TransactionPropagation;
+import io.nop.app.SimsClass;
 import io.nop.core.lang.sql.SQL;
 import io.nop.orm.AbstractOrmTestCase;
 import io.nop.orm.IOrmSessionFactory;
@@ -89,7 +90,7 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
     @Test
     public void testSupports() {
         try {
-            txn().runInTransaction(null, TransactionPropagation.SUPPORTS,txn -> {
+            txn().runInTransaction(null, TransactionPropagation.SUPPORTS, txn -> {
                 SQL sql = SQL.begin().sql("select o from io.nop.app.SimsClass o").end();
                 orm().executeQuery(sql, ds -> {
                     throw new IllegalStateException("error");
@@ -102,5 +103,13 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
         } catch (Exception e) {
             fail();
         }
+    }
+
+    @Test
+    public void testEntityId() {
+        SimsClass entity = (SimsClass) orm().newEntity(SimsClass.class.getName());
+        entity.setClassId("3");
+        assertEquals("3", entity.prop_get("id"));
+        assertEquals("3", entity.orm_propValueByName("id"));
     }
 }

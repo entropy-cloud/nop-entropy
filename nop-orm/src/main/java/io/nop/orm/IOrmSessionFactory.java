@@ -15,6 +15,8 @@ import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.shard.IShardSelector;
 import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.orm.eql.ICompiledSql;
+import io.nop.orm.eql.IEqlAstTransformer;
+import io.nop.orm.loader.IQueryExecutor;
 import io.nop.orm.model.IOrmModel;
 
 import java.io.Serializable;
@@ -61,6 +63,11 @@ public interface IOrmSessionFactory extends AutoCloseable, IDialectProvider {
     void removeDaoListener(IOrmDaoListener daoListener);
 
     ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete);
+
+    ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete,
+                            IEqlAstTransformer astTransformer, boolean useCache);
+
+    IQueryExecutor getQueryExecutor(String querySpace);
 
     void reloadModel();
 

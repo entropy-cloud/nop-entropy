@@ -17,6 +17,7 @@ import io.nop.orm.IOrmComponent;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.IOrmObject;
+import io.nop.orm.OrmConstants;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IComputePropModel;
 import io.nop.orm.model.IEntityComponentModel;
@@ -237,6 +238,8 @@ public class DynamicOrmEntity extends OrmEntity implements IPropSetMissingHook, 
         } else if (propModel.isComputeModel()) {
             IComputePropModel computeModel = (IComputePropModel) propModel;
             return computeModel.getValue(this);
+        } else if (propName.equals(OrmConstants.PROP_ID)) {
+            return orm_id();
         } else {
             return defaultGetProp(propName);
         }
