@@ -22,7 +22,8 @@ import picocli.CommandLine;
                 CliGenOrmExcelCommand.class,
                 CliExtractCommand.class,
                 CliExportDbCommand.class,
-                CliImportDbCommand.class
+                CliImportDbCommand.class,
+                CliGenFileCommand.class
         })
 public class MainCommand {
 }
