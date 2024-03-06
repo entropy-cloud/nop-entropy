@@ -1,0 +1,17 @@
+<c:unit xpl:outputMode="text">
+package ${basePackageName}.messages;
+
+public class _${message.name} {
+<c:for var="field" items="${message.fields}">
+    private ${field.type} ${field.name};
+
+    public ${field.type} get${field.name.$capitalize()}(){
+        return this.${field.name};
+    }
+
+    public void set${field.name.$capitalize()}(${field.type} value){
+        this.${field.name} = value;
+    }
+</c:for>
+}
+</c:unit>

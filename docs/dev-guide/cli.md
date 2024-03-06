@@ -89,3 +89,21 @@ java -jar nop-cli.jar watch app-meta -e=taks/gen-web.xrun
 GenWithCache标签会设置srcDir,appName属性，然后执行tplDir指定的代码生成模板，生成文件的存放路径由targetDir指定。
 
 代码生成的过程中启用了依赖追踪，第一次生成之后再此触发gen-web.xrun运行代码生成任务时会自动检查输出文件所对应的依赖模型文件，只有当依赖文件发生变化时才会重新生成，否则会自动跳过。
+
+
+## 解析Excel模型导出为JSON或者XML
+
+````
+java -jar nop-cli.jar extract test.orm.xlsx -o=my.orm.json
+````
+
+extract指令会识别文件的后缀名，选择注册到系统中的解析器进行解析，得到Json对象后再导出为JSON文件。如果存在对应的xdef元模型定义，也可以选择导出为XML格式
+
+## 根据JSON生成Excel文件
+
+````
+java -jar nop-cli.jar gen-file my.orm.json -t=/nop/orm/imp/orm.imp.xml
+````
+
+gen-file会根据`-t`参数指定的模板文件来导出Excel。模板文件可以如果是imp.xml，则使用导入模型关联的导出模板来导出。也可以是xpt.xlsx这种报表模板，
+此时将按照报表模型实现导出。JSON文件解析得到的对象在报表导出时对应于名为entity的对象。

@@ -1,0 +1,9 @@
+<c:unit xpl:outputMode="text">
+package ${basePackageName}.messages;
+
+import ${basePackageName}.messages._gen._${message.name};
+
+public class ${message.name} extends _${message.name}{
+
+}
+</c:unit>

@@ -1,0 +1,1 @@
+java -Xbootclasspath/a:app-templates/src/main/resources/ -jar ../nop-cli/target/nop-cli-2.0.0-BETA.1.jar  gen-file target/test.msg.json -t=/app/imp/msg.imp.xml -o=target/out.msg.xlsx

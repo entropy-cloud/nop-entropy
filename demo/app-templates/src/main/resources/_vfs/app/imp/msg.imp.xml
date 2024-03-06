@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:xpt="xpt"
+     templatePath="template.msg.xlsx" defaultStripText="true">
+    <sheets>
+        <sheet name="目录" ignore="true"/>
+        <sheet name="配置">
+            <fields>
+                <field name="extends" displayName="extends">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="appName" displayName="appName" mandatory="true">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="basePackageName" displayName="basePackageName" mandatory="true">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="mavenGroupId" displayName="maven.groupId" mandatory="true">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="mavenArtifactId" displayName="maven.artifactId" mandatory="true">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="mavenVersion" displayName="maven.version" mandatory="true">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="platformVersion" displayName="platformVersion">
+                    <schema stdDomain="string"/>
+                </field>
+
+            </fields>
+        </sheet>
+
+        <sheet name="message" namePattern=".*" field="messages" multiple="true" keyProp="name" sheetNameProp="name">
+            <normalizeFieldsExpr>
+                <c:script><![CDATA[
+                ]]></c:script>
+            </normalizeFieldsExpr>
+
+            <fields>
+                <field name="name" displayName="名称" mandatory="true">
+                    <schema stdDomain="prop-name"/>
+                </field>
+
+                <field name="baseClass" displayName="基类">
+                    <schema stdDomain="class-name"/>
+                    <valueExpr>
+                        value?.$fullClassName(rootRecord['basePackageName'])
+                    </valueExpr>
+                </field>
+
+                <field name="displayName" displayName="中文名" >
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="i18n-en:displayName" displayName="英文名">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="tagSet" displayName="标签">
+                    <schema stdDomain="csv-set"/>
+                </field>
+
+                <field name="comment" displayName="备注">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="fields" displayName="字段列表" list="true" keyProp="name">
+                    <fields>
+                        <field name="propId" displayName="编号" mandatory="true">
+                            <schema stdDomain="int"/>
+                        </field>
+
+                        <field name="mandatory" displayName="非空" xpt:formatExpr="cell.value ? 'M': ''">
+                            <schema stdDomain="boolean"/>
+                            <valueExpr>
+                                <c:script>
+                                    value == 'M' || value == 'Y'
+                                </c:script>
+                            </valueExpr>
+                        </field>
+
+                        <field name="name" displayName="字段名" mandatory="true">
+                            <schema stdDomain="var-name"/>
+                        </field>
+
+                        <field name="displayName" displayName="中文名"/>
+
+                        <field name="i18n-en:displayName" displayName="英文名"/>
+
+                        <field name="type" displayName="类型" >
+                            <schema stdDomain="string"/>
+                            <valueExpr>
+                                <c:script>
+                                    return (value || 'String').$normalizeClassName(rootRecord.basePackageName,false)
+                                </c:script>
+                            </valueExpr>
+                        </field>
+
+                        <field name="stdDomain" displayName="标准域">
+                            <schema stdDomain="xml-name"/>
+                        </field>
+
+                        <field name="length" displayName="长度">
+                            <schema stdDomain="int"/>
+                        </field>
+
+                        <field name="offset" displayName="起始位置">
+                            <schema stdDomain="int"/>
+                        </field>
+
+                        <field name="codec" displayName="编码方式">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="dict" displayName="字典">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="tagSet" displayName="标签">
+                            <schema stdDomain="csv-set"/>
+                        </field>
+
+                        <field name="comment" displayName="备注">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                    </fields>
+                </field>
+            </fields>
+        </sheet>
+    </sheets>
+</imp>

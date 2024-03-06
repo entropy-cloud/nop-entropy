@@ -1,0 +1,10 @@
+<gen:DefineLoop xpl:lib="/nop/codegen/xlib/gen.xlib">
+    <c:script>
+        const appName = codeGenModel.appName
+        builder.defineGlobalVar("appName",appName);
+        builder.defineGlobalVar("basePackageName", codeGenModel.basePackageName);
+        builder.defineGlobalVar("basePackagePath", codeGenModel.basePackageName.$replace('.','/'));
+        builder.defineGlobalVar("model",codeGenModel);
+        builder.defineLoopVar("message", "model", model => model.messages);
+    </c:script>
+</gen:DefineLoop>
