@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<biz x:extends="super" x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     xmlns:xpl="xpl" xmlns:bo="bo">
+
+    <actions>
+        <mutation name="addRoleUsers">
+            <auth roles="admin" />
+        </mutation>
+    </actions>
+</biz>

@@ -18,6 +18,7 @@ import io.nop.graphql.core.ast._gen._GraphQLFieldDefinition;
 import io.nop.graphql.core.reflection.IGraphQLArgsNormalizer;
 import io.nop.xlang.xmeta.IObjPropMeta;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -58,12 +59,22 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition implements I
     private int propId;
 
     @Override
-    public GraphQLFieldDefinition deepClone(){
+    public GraphQLFieldDefinition deepClone() {
         GraphQLFieldDefinition field = super.deepClone();
         field.setPropMeta(propMeta);
         field.setBeanPropMeta(beanPropMeta);
         field.setPropId(propId);
         return field;
+    }
+
+    public List<GraphQLArgumentDefinition> cloneArguments() {
+        List<GraphQLArgumentDefinition> args = this.getArguments();
+        if (args == null)
+            return null;
+        if (args.isEmpty())
+            return Collections.emptyList();
+
+        return args.stream().map(GraphQLArgumentDefinition::deepClone).collect(Collectors.toList());
     }
 
     public int getPropId() {

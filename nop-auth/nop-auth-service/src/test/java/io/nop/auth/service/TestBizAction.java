@@ -8,14 +8,17 @@
 package io.nop.auth.service;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
+import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.engine.IGraphQLEngine;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
-import jakarta.inject.Inject;
+import java.util.Map;
 
 /**
  * 测试在xbiz模型文件中定义的action
@@ -32,6 +35,18 @@ public class TestBizAction extends JunitAutoTestCase {
 
         IGraphQLExecutionContext context = graphQLEngine.newGraphQLContext(request);
         GraphQLResponseBean result = graphQLEngine.executeGraphQL(context);
+
+        output("response.json5", result);
+    }
+
+    @EnableSnapshot
+    @Test
+    public void testBizAuth() {
+        ApiRequest<Map<String, Object>> request = request("request.json5", Map.class);
+
+        IGraphQLExecutionContext context = graphQLEngine.newRpcContext(null, "NopAuthRole__addRoleUsers",
+                request);
+        ApiResponse<?> result = graphQLEngine.executeRpc(context);
 
         output("response.json5", result);
     }

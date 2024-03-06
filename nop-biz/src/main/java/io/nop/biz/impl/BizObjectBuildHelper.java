@@ -29,6 +29,9 @@ public class BizObjectBuildHelper {
                         op.setServiceAction(action.getServiceAction());
                         op.setFetcher(action.getFetcher());
                     }
+                    if(op.getArguments() == null){
+                        op.setArguments(action.cloneArguments());
+                    }
                 }
             }
         });
@@ -43,6 +46,9 @@ public class BizObjectBuildHelper {
                     if (op.getServiceAction() == null) {
                         op.setServiceAction(action.getServiceAction());
                         op.setFetcher(action.getFetcher());
+                    }
+                    if(op.getArguments() == null){
+                        op.setArguments(action.cloneArguments());
                     }
                 }
             }

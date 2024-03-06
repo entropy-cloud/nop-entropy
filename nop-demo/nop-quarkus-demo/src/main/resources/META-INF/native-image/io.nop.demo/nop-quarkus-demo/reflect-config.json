@@ -15881,6 +15881,14 @@
         ]
       },
       {
+        "name": "findRoots",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "get",
         "parameterTypes": [
           "java.lang.String",
@@ -51977,6 +51985,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_dsMetaComponent"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_dsName"
       },
       {
@@ -51987,12 +52000,22 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_dsTextComponent"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_dsType"
       },
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_NAME_dsView"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_dsViewComponent"
       },
       {
         "allowUnsafeAccess": false,
@@ -52050,6 +52073,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getDsMetaComponent",
+        "parameterTypes": []
+      },
+      {
         "name": "getDsName",
         "parameterTypes": []
       },
@@ -52058,11 +52085,19 @@
         "parameterTypes": []
       },
       {
+        "name": "getDsTextComponent",
+        "parameterTypes": []
+      },
+      {
         "name": "getDsType",
         "parameterTypes": []
       },
       {
         "name": "getDsView",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDsViewComponent",
         "parameterTypes": []
       },
       {
@@ -73052,6 +73087,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getRootParentValue",
+        "parameterTypes": []
+      },
+      {
         "name": "newInstance",
         "parameterTypes": []
       },
@@ -73087,6 +73126,12 @@
       },
       {
         "name": "setRootLevelValue",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRootParentValue",
         "parameterTypes": [
           "java.lang.String"
         ]
