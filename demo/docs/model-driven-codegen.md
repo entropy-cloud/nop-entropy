@@ -1,12 +1,14 @@
 Nop平台支持自定义的模型驱动代码生成机制，这个机制可以在Nop平台之外独立使用。这里以消息对象模型为例，演示如何通过配置实现对消息对象模型的解析和代码生成。
 
+<img title="" src="codegen.png" alt="" data-align="inline">
+
+B站讲解视频:  [地表最强的模型驱动代码生成器](https://www.bilibili.com/video/BV14t421t7jr/)
+
 # 一. Excel模型文件
 
 我们在Excel模型文件中定义一系列消息对象的结构，然后再根据结构定义生成对象的消息类。
 
 ![](msg-model-excel.png)
-
-
 
 ```java
 public class IsoMessage{
@@ -168,3 +170,11 @@ java -Xbootclasspath/a:app-templates/src/main/resources/
 * gen指令将解析`test.msg.xlsx`文件，应用app-templates模块下的`/app/templates/msg`模板，生成的文件保存到target目录下
 
 具体代码生成模板的配置说明，参见[codegen.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/codegen.md)
+
+NopCodeGen做了大量底层工作，使得我们可以采用差量化的代码生成方案。也就是说自动生成的代码永远都可以重新生成，手工修改的部分与自动生成的代码相分离，独立存放。
+
+详细介绍参见文章 [数据驱动的差量化代码生成器 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/540022264)
+
+# 六. Maven集成
+
+NopCli工具可以直接集成在maven打包工具中使用，从而将模型驱动整合到DevOps开发流程中，详细介绍可以参见[如何集成Nop平台的代码生成器 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/613448320)
