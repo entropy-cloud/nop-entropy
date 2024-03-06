@@ -1,5 +1,6 @@
 package io.nop.search;
 
+import io.nop.api.core.annotations.autotest.NopTestProperty;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.search.api.ISearchEngine;
 import io.nop.search.api.SearchRequest;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@NopTestProperty(name="nop.search.index-dir",value="./target")
 public class TestLuceneSearchEngine extends JunitBaseTestCase {
 
     @Inject

@@ -28,6 +28,7 @@ import io.nop.ioc.api.IBeanDefinition;
 import io.nop.ioc.api.IBeanPointcut;
 import io.nop.ioc.api.IBeanScope;
 import io.nop.ioc.model.BeanConditionModel;
+import io.nop.ioc.model.BeanConfigModel;
 import io.nop.ioc.model.BeanInterceptorModel;
 import io.nop.ioc.model.BeanModel;
 import io.nop.ioc.model.BeanPointcutModel;
@@ -212,7 +213,7 @@ public class BeanDefinition implements IBeanDefinition {
     }
 
     public boolean isEmbedded() {
-        return !(beanModel instanceof BeanModel);
+        return !(beanModel instanceof BeanModel) && !(beanModel instanceof BeanConfigModel);
     }
 
     public boolean isAbstract() {

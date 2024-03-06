@@ -11,7 +11,6 @@ import io.nop.search.api.SearchHit;
 import io.nop.search.api.SearchRequest;
 import io.nop.search.api.SearchResponse;
 import io.nop.search.api.SearchableDoc;
-import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
@@ -86,7 +85,7 @@ public class LuceneSearchEngine implements ISearchEngine {
     }
 
     @Inject
-    public void setConfig(@Nullable LuceneConfig config) {
+    public void setConfig(LuceneConfig config) {
         this.config = config;
     }
 
