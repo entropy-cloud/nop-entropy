@@ -14,7 +14,7 @@
         <maven.compiler.compilerVersion>11</maven.compiler.compilerVersion>
         <nop-entropy.version>2.0.0-SNAPSHOT</nop-entropy.version>
 
-        <quarkus.platform.version>3.4.1</quarkus.platform.version>
+        <quarkus.platform.version>3.7.0</quarkus.platform.version>
     </properties>
 
     <dependencyManagement>

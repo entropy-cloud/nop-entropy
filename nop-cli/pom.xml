@@ -58,7 +58,7 @@
 
         <compiler-plugin.version>3.11.0</compiler-plugin.version>
         <maven-flatten-version>1.1.0</maven-flatten-version>
-        <quarkus.platform.version>3.4.1</quarkus.platform.version>
+        <quarkus.platform.version>3.7.0</quarkus.platform.version>
         <surefire-plugin.version>3.0.0-M5</surefire-plugin.version>
 
         <maven-release-plugin.version>3.0.0-M1</maven-release-plugin.version>
@@ -115,7 +115,7 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>io.quarkus.platform</groupId>
+                <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-maven-plugin</artifactId>
                 <version>${quarkus.platform.version}</version>
                 <extensions>true</extensions>
