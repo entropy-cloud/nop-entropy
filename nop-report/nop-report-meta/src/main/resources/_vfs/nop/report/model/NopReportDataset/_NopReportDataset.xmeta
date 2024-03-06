@@ -41,16 +41,18 @@
             <schema type="java.lang.String" precision="4000"/>
         </prop>
         <prop name="dsText" displayName="数据集文本" propId="6" i18n-en:displayName="Dataset Text" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true">
-            <schema domain="mediumtext" type="java.lang.String" precision="16777215"/>
+              queryable="true" sortable="true" insertable="true" updatable="true"
+              graphql:jsonComponentProp="dsTextComponent">
+            <schema stdDomain="json" domain="json-128K" type="java.lang.String" precision="131072"/>
         </prop>
         <prop name="dsMeta" displayName="数据集元数据" propId="7" i18n-en:displayName="Dataset Meta" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true">
-            <schema domain="mediumtext" type="java.lang.String" precision="16777215"/>
+              queryable="true" sortable="true" insertable="true" updatable="true"
+              graphql:jsonComponentProp="dsMetaComponent">
+            <schema stdDomain="json" domain="json-128K" type="java.lang.String" precision="131072"/>
         </prop>
         <prop name="dsView" displayName="数据集显示配置" propId="8" i18n-en:displayName="Dataset View" queryable="true"
-              sortable="true" insertable="true" updatable="true">
-            <schema domain="mediumtext" type="java.lang.String" precision="16777215"/>
+              sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="dsViewComponent">
+            <schema stdDomain="json" domain="json-128K" type="java.lang.String" precision="131072"/>
         </prop>
         <prop name="status" displayName="状态" propId="9" i18n-en:displayName="Status" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
@@ -79,6 +81,18 @@
         <prop name="remark" displayName="备注" propId="15" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="true" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="dsTextComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="true"
+              updatable="true" mandatory="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+        <prop name="dsMetaComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="true"
+              updatable="true" mandatory="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+        <prop name="dsViewComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
         </prop>
     </props>
 </meta>

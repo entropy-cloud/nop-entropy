@@ -22,6 +22,9 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      dsTextComponent: null
+      dsMetaComponent: null
+      dsViewComponent: null
     NopReportDatasetAuth:
       dsId: Dataset ID
       roleId: Role Id

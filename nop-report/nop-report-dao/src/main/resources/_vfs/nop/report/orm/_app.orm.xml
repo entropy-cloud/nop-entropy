@@ -18,7 +18,7 @@
         <domain name="userId" precision="50" stdSqlType="VARCHAR"/>
         <domain name="deptId" precision="50" stdSqlType="VARCHAR"/>
         <domain name="boolFlag" stdSqlType="TINYINT"/>
-        <domain name="json-1000" precision="1" stdDomain="json" stdSqlType="VARCHAR"/>
+        <domain name="json-128K" precision="131072" stdDomain="json" stdSqlType="VARCHAR"/>
         <domain name="remark" precision="1" stdSqlType="VARCHAR"/>
         <domain name="version" stdSqlType="INTEGER"/>
         <domain name="createTime" stdSqlType="TIMESTAMP"/>
@@ -82,14 +82,15 @@
                 <column code="DS_CONFIG" comment="数据库连接配置等" displayName="数据集配置" mandatory="true" name="dsConfig"
                         precision="4000" propId="5" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Dataset Text"/>
-                <column code="DS_TEXT" comment="文件路径、SQL语句等" displayName="数据集文本" domain="mediumtext" mandatory="true"
-                        name="dsText" precision="16777215" propId="6" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Dataset Text"/>
-                <column code="DS_META" comment="xml格式的meta定义" displayName="数据集元数据" domain="mediumtext" mandatory="true"
-                        name="dsMeta" precision="16777215" propId="7" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Dataset Meta"/>
-                <column code="DS_VIEW" displayName="数据集显示配置" domain="mediumtext" name="dsView" precision="16777215"
-                        propId="8" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dataset View"/>
+                <column code="DS_TEXT" comment="文件路径、SQL语句等" displayName="数据集文本" domain="json-128K" mandatory="true"
+                        name="dsText" precision="131072" propId="6" stdDataType="string" stdDomain="json"
+                        stdSqlType="VARCHAR" i18n-en:displayName="Dataset Text"/>
+                <column code="DS_META" comment="xml格式的meta定义" displayName="数据集元数据" domain="json-128K" mandatory="true"
+                        name="dsMeta" precision="131072" propId="7" stdDataType="string" stdDomain="json"
+                        stdSqlType="VARCHAR" i18n-en:displayName="Dataset Meta"/>
+                <column code="DS_VIEW" displayName="数据集显示配置" domain="json-128K" name="dsView" precision="131072"
+                        propId="8" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Dataset View"/>
                 <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="9" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Status"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="10"

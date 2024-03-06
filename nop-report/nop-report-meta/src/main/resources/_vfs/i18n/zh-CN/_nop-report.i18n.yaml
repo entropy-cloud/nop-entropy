@@ -13,10 +13,13 @@ prop:
       dsConfig: 数据集配置
       dsId: 主键
       dsMeta: 数据集元数据
+      dsMetaComponent: null
       dsName: 数据集名称
       dsText: 数据集文本
+      dsTextComponent: null
       dsType: 数据集类型
       dsView: 数据集显示配置
+      dsViewComponent: null
       remark: 备注
       status: 状态
       updateTime: 修改时间

@@ -84,6 +84,15 @@ public class _NopReportDataset extends DynamicOrmEntity{
     private static int _PROP_ID_BOUND = 16;
 
     
+    /* component:  */
+    public static final String PROP_NAME_dsTextComponent = "dsTextComponent";
+    
+    /* component:  */
+    public static final String PROP_NAME_dsMetaComponent = "dsMetaComponent";
+    
+    /* component:  */
+    public static final String PROP_NAME_dsViewComponent = "dsViewComponent";
+    
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_dsId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_dsId};
@@ -867,5 +876,56 @@ public class _NopReportDataset extends DynamicOrmEntity{
         }
     }
     
+   private io.nop.orm.component.JsonOrmComponent _dsTextComponent;
+
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_dsTextComponent = new HashMap<>();
+   static{
+      
+         COMPONENT_PROP_ID_MAP_dsTextComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_dsText);
+      
+   }
+
+   public io.nop.orm.component.JsonOrmComponent getDsTextComponent(){
+      if(_dsTextComponent == null){
+          _dsTextComponent = new io.nop.orm.component.JsonOrmComponent();
+          _dsTextComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_dsTextComponent);
+      }
+      return _dsTextComponent;
+   }
+
+   private io.nop.orm.component.JsonOrmComponent _dsMetaComponent;
+
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_dsMetaComponent = new HashMap<>();
+   static{
+      
+         COMPONENT_PROP_ID_MAP_dsMetaComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_dsMeta);
+      
+   }
+
+   public io.nop.orm.component.JsonOrmComponent getDsMetaComponent(){
+      if(_dsMetaComponent == null){
+          _dsMetaComponent = new io.nop.orm.component.JsonOrmComponent();
+          _dsMetaComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_dsMetaComponent);
+      }
+      return _dsMetaComponent;
+   }
+
+   private io.nop.orm.component.JsonOrmComponent _dsViewComponent;
+
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_dsViewComponent = new HashMap<>();
+   static{
+      
+         COMPONENT_PROP_ID_MAP_dsViewComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_dsView);
+      
+   }
+
+   public io.nop.orm.component.JsonOrmComponent getDsViewComponent(){
+      if(_dsViewComponent == null){
+          _dsViewComponent = new io.nop.orm.component.JsonOrmComponent();
+          _dsViewComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_dsViewComponent);
+      }
+      return _dsViewComponent;
+   }
+
 }
 // resume CPD analysis - CPD-ON
