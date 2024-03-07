@@ -52,7 +52,7 @@ public class JdbcQueryExecutor implements IQueryExecutor {
 
     @Override
     public long executeUpdate(@Nonnull IOrmSessionImplementor session, @Nonnull SQL eql) {
-        ICompiledSql compiled = env.compileSql(eql.getName(), eql.getText(), eql.isDisableLogicalDelete());
+        ICompiledSql compiled = env.compileSql(eql.getName(), eql.getText(), eql.isDisableLogicalDelete(), eql.isAllowUnderscoreName());
         return executeUpdateSql(session, compiled, eql.getMarkerValues());
     }
 
@@ -70,7 +70,7 @@ public class JdbcQueryExecutor implements IQueryExecutor {
                               @Nonnull Function<? super IDataSet, T> callback) {
         if (LOG.isDebugEnabled())
             eql.dump("session.executeQuery");
-        ICompiledSql compiled = env.compileSql(eql.getName(), eql.getText(), eql.isDisableLogicalDelete());
+        ICompiledSql compiled = env.compileSql(eql.getName(), eql.getText(), eql.isDisableLogicalDelete(), eql.isAllowUnderscoreName());
         return executeQuerySql(session, compiled, eql.getMarkerValues(), range, callback);
     }
 
@@ -94,7 +94,7 @@ public class JdbcQueryExecutor implements IQueryExecutor {
                                   @Nonnull Function<IComplexDataSet, T> callback, ICancelToken cancelToken) {
         if (LOG.isDebugEnabled())
             eql.dump("session.executeStatement");
-        ICompiledSql compiled = env.compileSql(eql.getName(), eql.getText(), eql.isDisableLogicalDelete());
+        ICompiledSql compiled = env.compileSql(eql.getName(), eql.getText(), eql.isDisableLogicalDelete(), eql.isAllowUnderscoreName());
         return executeStatementSql(session, compiled, eql.getMarkerValues(), range, callback, cancelToken);
     }
 

@@ -22,15 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.nop.orm.model.OrmModelErrors.ARG_COL_CODE;
-import static io.nop.orm.model.OrmModelErrors.ARG_COL_NAME;
-import static io.nop.orm.model.OrmModelErrors.ARG_ENTITY_NAME;
-import static io.nop.orm.model.OrmModelErrors.ARG_PROP_ID;
-import static io.nop.orm.model.OrmModelErrors.ARG_PROP_NAME;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_COLUMN;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_COLUMN_CODE;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_COLUMN_PROP_ID;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_PROP;
+import static io.nop.orm.model.OrmModelErrors.*;
 
 public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INeedInit {
     private ImmutableIntArray eagerLoadProps;
@@ -65,6 +57,8 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
 
     private Map<String, IEntityPropModel> props;
     private Map<String, OrmColumnModel> colsByCode;
+
+    private Map<String, IEntityPropModel> propsByUnderscoreName;
 
     private boolean inited;
 
@@ -225,6 +219,11 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
     }
 
     @Override
+    public IEntityPropModel getPropByUnderscoreName(String name) {
+        return propsByUnderscoreName.get(name);
+    }
+
+    @Override
     public int getVersionPropId() {
         return versionPropId;
     }
@@ -336,6 +335,7 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
         this.containsTenantIdInPk = initializer.isContainsTenantIdInPk();
         this.nopFlowIdPropId = initializer.getNopFlowIdPropId();
         this.hasOneToOneRelation = initializer.hasOneToOneRelation();
+        this.propsByUnderscoreName = initializer.getPropsByUnderscoreName();
 
         inited = true;
     }

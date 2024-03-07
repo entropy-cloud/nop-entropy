@@ -24,12 +24,12 @@ public interface ISqlSelectionMeta {
 
     Map<String, ISqlExprMeta> getFieldExprMetas();
 
-    ISqlExprMeta getFieldExprMeta(String name);
+    ISqlExprMeta getFieldExprMeta(String name, boolean allowUnderscoreName);
 
-    ISqlExprMeta requireFieldExprMeta(String name);
+    ISqlExprMeta requireFieldExprMeta(String name, boolean allowUnderscoreName);
 
-    default IEntityPropModel requirePropMeta(String name) {
-        IOrmDataType dataType = requireFieldExprMeta(name).getOrmDataType();
+    default IEntityPropModel requirePropMeta(String name, boolean allowUnderscoreName) {
+        IOrmDataType dataType = requireFieldExprMeta(name, allowUnderscoreName).getOrmDataType();
         if (!(dataType instanceof IEntityPropModel))
             throw new NopException(ERR_EQL_FIELD_NOT_PROP)
                     .param(ARG_FIELD_NAME, name);

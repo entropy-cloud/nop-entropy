@@ -24,6 +24,8 @@ public class OrmModel extends _OrmModel implements IOrmModel, INeedInit {
     private Map<TopoEntry<IEntityModel>, IEntityModel> topoOrderMap;
     private Map<String, OrmToManyReferenceModel> collectionMap;
     private Map<String, OrmEntityModel> entityModelMap;
+
+    private Map<String, OrmEntityModel> underscoreNameMap;
     private boolean anyEntityUseTenant;
 
     /**
@@ -55,7 +57,7 @@ public class OrmModel extends _OrmModel implements IOrmModel, INeedInit {
 
     @Override
     public List<? extends IEntityModel> getEntityModels() {
-        if(topoEntryMap == null)
+        if (topoEntryMap == null)
             return getEntities();
         return topoEntryMap.values().stream().map(TopoEntry::getValue).collect(Collectors.toList());
     }
@@ -81,6 +83,11 @@ public class OrmModel extends _OrmModel implements IOrmModel, INeedInit {
     }
 
     @Override
+    public IEntityModel getEntityModelByUnderscoreName(String name) {
+        return underscoreNameMap.get(name);
+    }
+
+    @Override
     public IEntityRelationModel getCollectionModel(String collectionName) {
         return collectionMap.get(collectionName);
     }
@@ -94,5 +101,6 @@ public class OrmModel extends _OrmModel implements IOrmModel, INeedInit {
         this.entityModelByTableMap = initializer.getEntityModelByTableMap();
         this.collectionMap = initializer.getCollectionMap();
         this.anyEntityUseTenant = this.entityModelMap.values().stream().anyMatch(IEntityModel::isUseTenant);
+        this.underscoreNameMap = initializer.getUnderscoreNameMap();
     }
 }

@@ -29285,6 +29285,12 @@
         ]
       },
       {
+        "name": "existsTable",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getCacheProvider",
         "parameterTypes": []
       },
@@ -45971,6 +45977,12 @@
         ]
       },
       {
+        "name": "getPropByUnderscoreName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getPropIdBound",
         "parameterTypes": []
       },
@@ -46047,6 +46059,10 @@
       },
       {
         "name": "isRegisterShortName",
+        "parameterTypes": []
+      },
+      {
+        "name": "isTableView",
         "parameterTypes": []
       },
       {
@@ -46760,6 +46776,12 @@
         ]
       },
       {
+        "name": "getPropByUnderscoreName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getPropIdBound",
         "parameterTypes": []
       },
@@ -46898,6 +46920,12 @@
       },
       {
         "name": "getEntityModelByTableName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getEntityModelByUnderscoreName",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -47355,6 +47383,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getRawName",
+        "parameterTypes": []
+      },
+      {
         "name": "getScale",
         "parameterTypes": []
       },
@@ -47510,6 +47542,12 @@
         "name": "setPropId",
         "parameterTypes": [
           "int"
+        ]
+      },
+      {
+        "name": "setRawName",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -48114,6 +48152,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getRawName",
+        "parameterTypes": []
+      },
+      {
         "name": "getRelation",
         "parameterTypes": [
           "java.lang.String"
@@ -48283,6 +48325,10 @@
       },
       {
         "name": "isUseLogicalDelete",
+        "parameterTypes": []
+      },
+      {
+        "name": "isUseRawName",
         "parameterTypes": []
       },
       {
@@ -48500,6 +48546,12 @@
         ]
       },
       {
+        "name": "setRawName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setReadonly",
         "parameterTypes": [
           "boolean"
@@ -48585,6 +48637,12 @@
       },
       {
         "name": "setUseLogicalDelete",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setUseRawName",
         "parameterTypes": [
           "boolean"
         ]

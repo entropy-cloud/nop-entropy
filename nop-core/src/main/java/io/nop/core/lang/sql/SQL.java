@@ -31,11 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.time.LocalDate;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.BiConsumer;
 
 import static io.nop.core.CoreErrors.ARG_COUNT;
@@ -54,12 +50,14 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
     private final CacheRef cacheRef;
     private final boolean disableLogicalDelete;
 
+    private final boolean allowUnderscoreName;
+
     public SQL(String text) {
-        this(null, text, null, -1, null, -1, null, false, null);
+        this(null, text, null, -1, null, -1, null, false, false, null);
     }
 
     public SQL(String name, String text, List<Marker> markers, int timeout, CacheRef cacheRef, int fetchSize,
-               String querySpace, boolean disableLogicalDelete, SourceLocation loc) {
+               String querySpace, boolean disableLogicalDelete, boolean allowUnderscoreName, SourceLocation loc) {
         super(text, markers);
         this.loc = loc;
         this.name = name;
@@ -68,10 +66,11 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         this.cacheRef = cacheRef;
         this.fetchSize = fetchSize;
         this.disableLogicalDelete = disableLogicalDelete;
+        this.allowUnderscoreName = allowUnderscoreName;
     }
 
     public SQL(String name, String text, List<Marker> markers) {
-        this(name, text, markers, -1, null, -1, null, false, null);
+        this(name, text, markers, -1, null, -1, null, false, false, null);
     }
 
     protected SQL(IMarkedString str) {
@@ -83,6 +82,7 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         this.fetchSize = -1;
         this.loc = null;
         this.disableLogicalDelete = false;
+        this.allowUnderscoreName = false;
     }
 
     private SQL(SqlBuilder sb) {
@@ -94,10 +94,15 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         this.fetchSize = sb.fetchSize;
         this.loc = sb.loc;
         this.disableLogicalDelete = sb.disableLogicalDelete;
+        this.allowUnderscoreName = sb.allowunderscoreName;
     }
 
     public boolean isDisableLogicalDelete() {
         return disableLogicalDelete;
+    }
+
+    public boolean isAllowUnderscoreName() {
+        return allowUnderscoreName;
     }
 
     @Override
@@ -129,7 +134,7 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         return new TreeBean(CoreConstants.FILTER_OP_SQL).attr(FilterBeanConstants.FILTER_ATTR_VALUE, this);
     }
 
-    public SqlBuilder extend(){
+    public SqlBuilder extend() {
         return new SqlBuilder(this);
     }
 
@@ -191,6 +196,8 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         private SourceLocation loc;
         private boolean disableLogicalDelete;
 
+        private boolean allowunderscoreName;
+
         public SqlBuilder() {
         }
 
@@ -216,6 +223,7 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
             sb.cacheRef = cacheRef;
             sb.fetchSize = fetchSize;
             sb.disableLogicalDelete = disableLogicalDelete;
+            sb.allowunderscoreName = allowunderscoreName;
             return sb;
         }
 
@@ -226,6 +234,16 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
 
         public SqlBuilder disableLogicalDelete(boolean b) {
             disableLogicalDelete = b;
+            return this;
+        }
+
+        public SqlBuilder allowUnderscoreName() {
+            allowunderscoreName = true;
+            return this;
+        }
+
+        public SqlBuilder allowUnderscoreName(boolean b) {
+            this.allowunderscoreName = b;
             return this;
         }
 
@@ -336,6 +354,10 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
 
         public boolean isDisableLogicalDelete() {
             return disableLogicalDelete;
+        }
+
+        public boolean isAllowUnderscoreName() {
+            return allowunderscoreName;
         }
 
         public SqlBuilder sqlWithParams(String text, List<Object> obj) {

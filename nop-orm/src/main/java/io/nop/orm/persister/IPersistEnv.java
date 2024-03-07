@@ -35,7 +35,7 @@ public interface IPersistEnv extends IOrmSessionFactory {
 
     IClassModel getEntityClassModel(IEntityModel entityModel);
 
-    EntityTableMeta resolveEntityTableMeta(String entityName);
+    EntityTableMeta resolveEntityTableMeta(String entityName, boolean allowUnderscoreName);
 
     IEntityPersister requireEntityPersister(String entityName);
 
@@ -56,6 +56,8 @@ public interface IPersistEnv extends IOrmSessionFactory {
     IBeanConstructor getEntityConstructor(IEntityModel entityModel);
 
     ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete);
+
+    ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete, boolean allowUnderscoreName);
 
     ITransactionTemplate txn();
 

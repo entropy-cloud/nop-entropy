@@ -65,7 +65,7 @@ public interface IOrmSessionFactory extends AutoCloseable, IDialectProvider {
     ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete);
 
     ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete,
-                            IEqlAstTransformer astTransformer, boolean useCache);
+                            IEqlAstTransformer astTransformer, boolean useCache, boolean allowUnderscoreName);
 
     IQueryExecutor getQueryExecutor(String querySpace);
 

@@ -40,15 +40,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static io.nop.orm.OrmErrors.ARG_INDEX;
-import static io.nop.orm.OrmErrors.ARG_SQL_NAME;
-import static io.nop.orm.OrmErrors.ERR_SQL_LIB_INVALID_COL_INDEX;
+import static io.nop.orm.OrmErrors.*;
 
 public abstract class SqlItemModel extends _SqlItemModel {
     private SqlLibModel sqlLibModel;
 
     public SqlItemModel() {
 
+    }
+
+    public boolean isAllowUnderscoreName() {
+        return false;
     }
 
     public boolean isColNameCamelCase() {
@@ -74,7 +76,7 @@ public abstract class SqlItemModel extends _SqlItemModel {
             cacheRef = new CacheRef(getCacheName(), (Serializable) cacheKey);
         }
         return new SQL(getName(), sql.getText(), sql.getMarkers(), timeout, cacheRef, fetchSize, getQuerySpace(),
-                isDisableLogicalDelete(), getLocation());
+                isDisableLogicalDelete(), isAllowUnderscoreName(), getLocation());
     }
 
     void checkArgs(IEvalContext context) {
@@ -184,7 +186,7 @@ public abstract class SqlItemModel extends _SqlItemModel {
     protected IRowMapper buildRowMapper(ISqlExecutor executor, String querySpace, IEvalScope scope) {
         SmartRowMapper rowMapper;
         if (DaoConstants.SQL_TYPE_SQL.equals(getType())) {
-            rowMapper = isColNameCamelCase() ?  SmartRowMapper.CASE_INSENSITIVE : SmartRowMapper.CAMEL_CASE;
+            rowMapper = isColNameCamelCase() ? SmartRowMapper.CASE_INSENSITIVE : SmartRowMapper.CAMEL_CASE;
         } else {
             // eql语法时列名就是指定的属性名，不需要作camelCase转换
             rowMapper = SmartRowMapper.INSTANCE;

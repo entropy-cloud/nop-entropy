@@ -17,9 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static io.nop.orm.model.OrmModelErrors.ARG_ENTITY_NAME;
-import static io.nop.orm.model.OrmModelErrors.ARG_TAG;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_NO_COL_WITH_TAG;
+import static io.nop.orm.model.OrmModelErrors.*;
 
 public interface IEntityModel extends IPdmElement, IOrmDataType {
 
@@ -34,6 +32,8 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
     String getDbCatalog();
 
     String getDisplayName();
+
+    boolean isTableView();
 
     default String getSimpleClassName() {
         return StringHelper.simpleClassName(getClassName());
@@ -157,6 +157,8 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
     IColumnModel getColumnByCode(String code, boolean ignoreUnknown);
 
     IEntityPropModel getProp(String propName, boolean ignoreUnknown);
+
+    IEntityPropModel getPropByUnderscoreName(String name);
 
     default IEntityPropModel requireProp(String propName) {
         return getProp(propName, false);

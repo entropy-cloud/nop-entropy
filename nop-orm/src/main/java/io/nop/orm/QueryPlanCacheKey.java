@@ -18,11 +18,15 @@ public class QueryPlanCacheKey {
     private final String sqlText;
     private final boolean disableLogicalDelete;
 
+    private final boolean allowUnderscoreName;
+
     public QueryPlanCacheKey(@Name("name") String name, @Name("sqlText") String sqlText,
-                             @Name("disableLogicalDelete") boolean disableLogicalDelete) {
+                             @Name("disableLogicalDelete") boolean disableLogicalDelete,
+                             @Name("allowUnderscoreName") boolean allowUnderscoreName) {
         this.name = name;
         this.sqlText = sqlText;
         this.disableLogicalDelete = disableLogicalDelete;
+        this.allowUnderscoreName = allowUnderscoreName;
     }
 
     public String getName() {
@@ -37,11 +41,16 @@ public class QueryPlanCacheKey {
         return disableLogicalDelete;
     }
 
+    public boolean isAllowUnderscoreName() {
+        return allowUnderscoreName;
+    }
+
     @Override
     public int hashCode() {
         int h = name == null ? 0 : name.hashCode();
         h = sqlText.hashCode() * 31 + h;
         h += disableLogicalDelete ? 1 : 0;
+        h += allowUnderscoreName ? 3 : 0;
         return h;
     }
 
@@ -61,6 +70,6 @@ public class QueryPlanCacheKey {
         if (!sqlText.equals(other.sqlText))
             return false;
 
-        return disableLogicalDelete == other.disableLogicalDelete;
+        return disableLogicalDelete == other.disableLogicalDelete && allowUnderscoreName == other.allowUnderscoreName;
     }
 }

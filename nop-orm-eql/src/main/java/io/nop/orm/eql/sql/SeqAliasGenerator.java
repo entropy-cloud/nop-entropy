@@ -13,7 +13,6 @@ package io.nop.orm.eql.sql;
 public class SeqAliasGenerator implements IAliasGenerator {
     private int tableSeq;
     private int columnSeq;
-
     @Override
     public String genTableAlias() {
         tableSeq++;

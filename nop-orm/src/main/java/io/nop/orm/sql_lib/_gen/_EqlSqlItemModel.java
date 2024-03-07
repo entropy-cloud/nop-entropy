@@ -18,10 +18,36 @@ public abstract class _EqlSqlItemModel extends io.nop.orm.sql_lib.SqlItemModel {
     
     /**
      *  
+     * xml name: allowUnderscoreName
+     * 
+     */
+    private boolean _allowUnderscoreName  = false;
+    
+    /**
+     *  
      * xml name: source
      * 
      */
     private io.nop.core.lang.sql.ISqlGenerator _source ;
+    
+    /**
+     * 
+     * xml name: allowUnderscoreName
+     *  
+     */
+    
+    public boolean isAllowUnderscoreName(){
+      return _allowUnderscoreName;
+    }
+
+    
+    public void setAllowUnderscoreName(boolean value){
+        checkAllowChange();
+        
+        this._allowUnderscoreName = value;
+           
+    }
+
     
     /**
      * 
@@ -57,6 +83,7 @@ public abstract class _EqlSqlItemModel extends io.nop.orm.sql_lib.SqlItemModel {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("allowUnderscoreName",this.isAllowUnderscoreName());
         out.putNotNull("source",this.getSource());
     }
 
@@ -69,6 +96,7 @@ public abstract class _EqlSqlItemModel extends io.nop.orm.sql_lib.SqlItemModel {
     protected void copyTo(EqlSqlItemModel instance){
         super.copyTo(instance);
         
+        instance.setAllowUnderscoreName(this.isAllowUnderscoreName());
         instance.setSource(this.getSource());
     }
 

@@ -21,14 +21,22 @@ public class EqlCompileContext implements ISqlCompileContext {
 
     private final IEqlAstTransformer astTransformer;
 
-    public EqlCompileContext(IPersistEnv env, boolean disableLogicalDelete, IEqlAstTransformer astTransformer) {
+    private final boolean allowUnderscoreName;
+
+    public EqlCompileContext(IPersistEnv env, boolean disableLogicalDelete, IEqlAstTransformer astTransformer, boolean allowUnderscoreName) {
         this.env = env;
         this.disableLogicalDelete = disableLogicalDelete;
         this.astTransformer = astTransformer;
+        this.allowUnderscoreName = allowUnderscoreName;
     }
 
     public boolean isDisableLogicalDelete() {
         return disableLogicalDelete;
+    }
+
+    @Override
+    public boolean isAllowUnderscoreName() {
+        return allowUnderscoreName;
     }
 
     @Override
@@ -43,11 +51,11 @@ public class EqlCompileContext implements ISqlCompileContext {
 
     @Override
     public EntityTableMeta resolveEntityTableMeta(String entityName) {
-        return env.resolveEntityTableMeta(entityName);
+        return env.resolveEntityTableMeta(entityName, allowUnderscoreName);
     }
 
     @Override
-    public IAliasGenerator newAliasGenerator() {
+    public IAliasGenerator getAliasGenerator() {
         return new SeqAliasGenerator();
     }
 }

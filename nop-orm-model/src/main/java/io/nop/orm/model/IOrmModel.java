@@ -15,12 +15,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
-import static io.nop.orm.model.OrmModelErrors.ARG_COLLECTION_NAME;
-import static io.nop.orm.model.OrmModelErrors.ARG_ENTITY_NAME;
-import static io.nop.orm.model.OrmModelErrors.ARG_TABLE_NAME;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_COLLECTION_NAME;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_ENTITY_MODEL_FOR_TABLE;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_ENTITY_NAME;
+import static io.nop.orm.model.OrmModelErrors.*;
 
 public interface IOrmModel extends IPropGetMissingHook {
     /**
@@ -39,6 +34,15 @@ public interface IOrmModel extends IPropGetMissingHook {
     IEntityModel getEntityModel(String entityName);
 
     IEntityModel getEntityModelByTableName(String tableName);
+
+    IEntityModel getEntityModelByUnderscoreName(String name);
+
+    default IEntityModel requireEntityModelByUnderscoreName(String name) {
+        IEntityModel entityModel = getEntityModelByUnderscoreName(name);
+        if (entityModel == null)
+            throw new NopException(ERR_ORM_UNKNOWN_ENTITY_MODEL_FOR_TABLE).param(ARG_TABLE_NAME, name);
+        return entityModel;
+    }
 
     default IEntityModel requireEntityModelByTableName(String tableName) {
         IEntityModel entityModel = getEntityModelByTableName(tableName);

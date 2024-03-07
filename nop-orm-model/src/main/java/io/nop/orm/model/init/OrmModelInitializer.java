@@ -12,63 +12,18 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.collections.CaseInsensitiveMap;
 import io.nop.commons.collections.IntHashMap;
 import io.nop.commons.util.CollectionHelper;
-import io.nop.core.model.graph.DefaultDirectedGraph;
-import io.nop.core.model.graph.DefaultEdge;
-import io.nop.core.model.graph.IDirectedGraph;
-import io.nop.core.model.graph.TopoEntry;
-import io.nop.core.model.graph.TopologicalOrderIterator;
+import io.nop.commons.util.StringHelper;
+import io.nop.core.model.graph.*;
 import io.nop.core.reflect.bean.BeanTool;
-import io.nop.orm.model.IColumnModel;
-import io.nop.orm.model.IEntityJoinConditionModel;
-import io.nop.orm.model.IEntityModel;
-import io.nop.orm.model.IEntityPropModel;
-import io.nop.orm.model.IEntityRelationModel;
-import io.nop.orm.model.OrmColumnModel;
-import io.nop.orm.model.OrmDomainModel;
-import io.nop.orm.model.OrmEntityModel;
-import io.nop.orm.model.OrmJoinOnModel;
-import io.nop.orm.model.OrmModel;
-import io.nop.orm.model.OrmModelConstants;
-import io.nop.orm.model.OrmRefSetModel;
-import io.nop.orm.model.OrmReferenceModel;
-import io.nop.orm.model.OrmToManyReferenceModel;
-import io.nop.orm.model.OrmToOneReferenceModel;
+import io.nop.orm.model.*;
 import io.nop.orm.model.utils.OrmModelHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 
-import static io.nop.orm.model.OrmModelErrors.ARG_ALLOWED_NAMES;
-import static io.nop.orm.model.OrmModelErrors.ARG_COL_NAME;
-import static io.nop.orm.model.OrmModelErrors.ARG_DATA_TYPE;
-import static io.nop.orm.model.OrmModelErrors.ARG_DOMAIN;
-import static io.nop.orm.model.OrmModelErrors.ARG_DOMAIN_DATA_TYPE;
-import static io.nop.orm.model.OrmModelErrors.ARG_ENTITY_NAME;
-import static io.nop.orm.model.OrmModelErrors.ARG_LOOP_ENTITY_NAMES;
-import static io.nop.orm.model.OrmModelErrors.ARG_OTHER_ENTITY_NAME;
-import static io.nop.orm.model.OrmModelErrors.ARG_OTHER_LOC;
-import static io.nop.orm.model.OrmModelErrors.ARG_PROP_NAME;
-import static io.nop.orm.model.OrmModelErrors.ARG_REF_ENTITY_NAME;
-import static io.nop.orm.model.OrmModelErrors.ARG_REF_NAME;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_COL_DATA_TYPE_NOT_MATCH_DOMAIN_DEFINITION;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_COL_NO_STD_SQL_TYPE;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_DUPLICATE_ENTITY_SHORT_NAME;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_INVALID_COLUMN_DOMAIN;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_JOIN_COLUMN_COUNT_LESS_THAN_PK_COLUMN_COUNT;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_DEPENDS_CONTAINS_LOOP;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_ENTITY_NO_PROP;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_ENTITY_PROP_NOT_PRIMARY_KEY;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_PROP_NOT_COLUMN;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_UNKNOWN_ENTITY;
+import static io.nop.orm.model.OrmModelErrors.*;
 
 public class OrmModelInitializer {
     static final Logger LOG = LoggerFactory.getLogger(OrmModelInitializer.class);
@@ -80,6 +35,8 @@ public class OrmModelInitializer {
     Map<TopoEntry<IEntityModel>, IEntityModel> topoMap = new TreeMap<>();
     Map<String, OrmToManyReferenceModel> collectionMap = new HashMap<>();
 
+    Map<String, OrmEntityModel> underscoreNameMap = new HashMap<>();
+
     public OrmModelInitializer(OrmModel ormModel) {
         this.ormModel = ormModel;
         initEntities();
@@ -87,6 +44,10 @@ public class OrmModelInitializer {
         initRefs();
         initTopoMap();
         checkNames();
+    }
+
+    public Map<String, OrmEntityModel> getUnderscoreNameMap() {
+        return underscoreNameMap;
     }
 
     public Map<String, TopoEntry<IEntityModel>> getEntryMap() {
@@ -128,6 +89,16 @@ public class OrmModelInitializer {
                     throw new NopException(ERR_ORM_MODEL_DUPLICATE_ENTITY_SHORT_NAME).source(entityModel)
                             .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_OTHER_LOC, oldModel.getLocation())
                             .param(ARG_OTHER_ENTITY_NAME, oldModel.getName());
+            }
+
+            if (entityModel.isRegisterShortName()) {
+                // 只有entityModel的短名字不重复的情况下才支持underscore名称，否则可能会出现重名的问题
+                String underscoreName = StringHelper.camelCaseToUnderscore(entityModel.getShortName(), true);
+                if (underscoreName.equals(entityModel.getTableName()))
+                    underscoreName = entityModel.getTableName();
+                // 只支持全大写和全小写
+                underscoreNameMap.put(underscoreName, entityModel);
+                underscoreNameMap.put(underscoreName.toUpperCase(Locale.ROOT), entityModel);
             }
         }
     }

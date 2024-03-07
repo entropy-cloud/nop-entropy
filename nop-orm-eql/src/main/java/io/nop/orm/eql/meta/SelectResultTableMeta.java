@@ -28,13 +28,13 @@ public class SelectResultTableMeta implements ISqlSelectionMeta {
     }
 
     @Override
-    public ISqlExprMeta getFieldExprMeta(String name) {
+    public ISqlExprMeta getFieldExprMeta(String name, boolean allowUnderscoreName) {
         return fieldExprMetas.get(name);
     }
 
     @Override
-    public ISqlExprMeta requireFieldExprMeta(String name) {
-        ISqlExprMeta exprMeta = getFieldExprMeta(name);
+    public ISqlExprMeta requireFieldExprMeta(String name, boolean allowUnderscoreName) {
+        ISqlExprMeta exprMeta = getFieldExprMeta(name, allowUnderscoreName);
         if (exprMeta == null)
             throw new NopException(ERR_EQL_UNKNOWN_FIELD_IN_SELECTION)
                     .param(ARG_PROP_NAME, name);

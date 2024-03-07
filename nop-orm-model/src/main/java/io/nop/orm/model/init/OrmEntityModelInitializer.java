@@ -14,53 +14,17 @@ import io.nop.commons.collections.IntHashMap;
 import io.nop.commons.collections.MutableIntArray;
 import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
-import io.nop.orm.model.IEntityPropModel;
-import io.nop.orm.model.IEntityRelationModel;
-import io.nop.orm.model.OrmAliasModel;
-import io.nop.orm.model.OrmColumnModel;
-import io.nop.orm.model.OrmComponentModel;
-import io.nop.orm.model.OrmComponentPropModel;
-import io.nop.orm.model.OrmCompositePKModel;
-import io.nop.orm.model.OrmComputePropModel;
-import io.nop.orm.model.OrmEntityFilterModel;
-import io.nop.orm.model.OrmEntityModel;
-import io.nop.orm.model.OrmIndexColumnModel;
-import io.nop.orm.model.OrmIndexModel;
-import io.nop.orm.model.OrmJoinOnModel;
-import io.nop.orm.model.OrmModelConstants;
-import io.nop.orm.model.OrmReferenceModel;
-import io.nop.orm.model.OrmToOneReferenceModel;
-import io.nop.orm.model.OrmUniqueKeyModel;
+import io.nop.orm.model.*;
 import io.nop.orm.model.utils.OrmModelHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-import static io.nop.orm.model.OrmModelErrors.ARG_COL_CODE;
-import static io.nop.orm.model.OrmModelErrors.ARG_COL_NAME;
-import static io.nop.orm.model.OrmModelErrors.ARG_ENTITY_NAME;
-import static io.nop.orm.model.OrmModelErrors.ARG_OTHER_PROP_NAME;
-import static io.nop.orm.model.OrmModelErrors.ARG_PROP_ID;
-import static io.nop.orm.model.OrmModelErrors.ARG_PROP_NAME;
-import static io.nop.orm.model.OrmModelErrors.ARG_REF_NAME;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_ALIAS_MUST_REF_TO_COLUMN_OR_REFERENCE;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_ENTITY_MODEL_NO_PK;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_DUPLICATE_COL_CODE;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_DUPLICATE_PROP;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_DUPLICATE_PROP_ID;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_INVALID_PROP_ID;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_JOIN_MUST_ON_COLUMNS_OR_ID;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_JOIN_NO_CONDITION;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_RELATION_JOIN_IS_EMPTY;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_PROP_ID_IS_RESERVED;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_COLUMN;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_PROP;
+import static io.nop.orm.model.OrmModelErrors.*;
 
 public class OrmEntityModelInitializer {
+    static final Logger LOG = LoggerFactory.getLogger(OrmEntityModelInitializer.class);
     private final OrmEntityModel entityModel;
 
     MutableIntArray eagerLoadProps;
@@ -93,6 +57,8 @@ public class OrmEntityModelInitializer {
     Map<String, IEntityPropModel> props = new HashMap<>();
     Map<String, OrmColumnModel> colsByCode = new CaseInsensitiveMap<>();
 
+    Map<String, IEntityPropModel> propsByUnderscoreName = new HashMap<>();
+
     boolean containsTenantIdInPk;
 
     public OrmEntityModelInitializer(OrmEntityModel entityModel) {
@@ -119,6 +85,15 @@ public class OrmEntityModelInitializer {
         if (tenantPropId > 0) {
             this.containsTenantIdInPk = this.pkColumns.contains(colsByPropId[tenantPropId]);
         }
+
+        for (IEntityPropModel prop : props.values()) {
+            String underscoreName = StringHelper.camelCaseToUnderscore(prop.getName(), true).intern();
+            this.propsByUnderscoreName.put(underscoreName.toUpperCase(Locale.ROOT), prop);
+
+            if (this.propsByUnderscoreName.put(underscoreName, prop) != null) {
+                LOG.info("nop.orm.underscore-name-conflicted:propName={},entityName={}", underscoreName, entityModel.getName());
+            }
+        }
     }
 
     public MutableIntArray getEagerLoadProps() {
@@ -131,6 +106,10 @@ public class OrmEntityModelInitializer {
 
     public MutableIntArray getMinLazyLoadProps() {
         return minLazyLoadProps;
+    }
+
+    public Map<String, IEntityPropModel> getPropsByUnderscoreName() {
+        return propsByUnderscoreName;
     }
 
     public IEntityPropModel getIdProp() {
@@ -625,7 +604,7 @@ public class OrmEntityModelInitializer {
                             .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_REF_NAME, ref.getName())
                             .param(ARG_PROP_NAME, propModel.getName());
 
-                if(propModel.getColumns() != null) {
+                if (propModel.getColumns() != null) {
                     cols.addAll((List) propModel.getColumns());
                 }
 

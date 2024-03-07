@@ -15,11 +15,13 @@ import io.nop.orm.eql.sql.IAliasGenerator;
 public interface ISqlCompileContext {
     boolean isDisableLogicalDelete();
 
+    boolean isAllowUnderscoreName();
+
     IEqlAstTransformer getAstTransformer();
 
     IDialect getDialectForQuerySpace(String querySpace);
 
     ISqlTableMeta resolveEntityTableMeta(String entityName);
 
-    IAliasGenerator newAliasGenerator();
+    IAliasGenerator getAliasGenerator();
 }

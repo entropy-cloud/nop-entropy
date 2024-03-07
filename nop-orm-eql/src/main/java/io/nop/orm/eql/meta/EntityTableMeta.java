@@ -17,26 +17,11 @@ import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.orm.eql.binder.IOrmColumnBinderEnhancer;
 import io.nop.orm.eql.binder.OrmBinderHelper;
 import io.nop.orm.eql.utils.EqlHelper;
-import io.nop.orm.model.ExprOrmDataType;
-import io.nop.orm.model.IColumnModel;
-import io.nop.orm.model.IEntityComponentModel;
-import io.nop.orm.model.IEntityJoinConditionModel;
-import io.nop.orm.model.IEntityModel;
-import io.nop.orm.model.IEntityPropModel;
-import io.nop.orm.model.IEntityRelationModel;
-import io.nop.orm.model.OrmEntityFilterModel;
-import io.nop.orm.model.OrmModelConstants;
+import io.nop.orm.model.*;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-import static io.nop.orm.eql.OrmEqlErrors.ARG_ENTITY_NAME;
-import static io.nop.orm.eql.OrmEqlErrors.ARG_PROP_NAME;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_FIELD_IN_ENTITY;
+import static io.nop.orm.eql.OrmEqlErrors.*;
 import static io.nop.orm.eql.utils.EqlHelper.getColumnName;
 
 public class EntityTableMeta implements ISqlTableMeta {
@@ -100,8 +85,8 @@ public class EntityTableMeta implements ISqlTableMeta {
 //    }
 
     @Override
-    public ISqlExprMeta requireFieldExprMeta(String name) {
-        ISqlExprMeta exprMeta = getFieldExprMeta(name);
+    public ISqlExprMeta requireFieldExprMeta(String name, boolean allowUnderscoreName) {
+        ISqlExprMeta exprMeta = getFieldExprMeta(name, allowUnderscoreName);
         if (exprMeta == null)
             throw new NopException(ERR_EQL_UNKNOWN_FIELD_IN_ENTITY)
                     .param(ARG_ENTITY_NAME, getEntityName())
@@ -261,10 +246,18 @@ public class EntityTableMeta implements ISqlTableMeta {
         return propExprMetas;
     }
 
-    public ISqlExprMeta getFieldExprMeta(String propName) {
+    public ISqlExprMeta getFieldExprMeta(String propName, boolean allowUnderscoreName) {
         ISqlExprMeta exprMeta = propExprMetas.get(propName);
         if (exprMeta == null)
             exprMeta = valueExprMetas.get(propName);
+
+        if (exprMeta == null && allowUnderscoreName) {
+            IEntityModel entityModel = getEntityModel();
+            IEntityPropModel propModel = entityModel.getPropByUnderscoreName(propName);
+            if (propModel != null) {
+                exprMeta = propExprMetas.get(propModel.getName());
+            }
+        }
         return exprMeta;
     }
 

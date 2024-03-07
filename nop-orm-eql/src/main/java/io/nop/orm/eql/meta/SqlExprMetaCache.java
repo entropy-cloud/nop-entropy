@@ -30,17 +30,26 @@ public class SqlExprMetaCache {
         this.ormModel = ormModel;
     }
 
-    public EntityTableMeta getEntityTableMeta(String entityName) {
+    public EntityTableMeta getEntityTableMeta(String entityName, boolean allowUnderscoreName) {
         EntityTableMeta meta = entityMetas.get(entityName);
         if (meta != null)
             return meta;
-        if (ormModel.getEntityModel(entityName) == null)
+        IEntityModel entityModel = getEntityModel(entityName, allowUnderscoreName);
+        if (entityModel == null)
             return null;
-        return entityMetas.computeIfAbsent(entityName, this::createEntityTableMeta);
+        return entityMetas.computeIfAbsent(entityName, k -> createEntityTableMeta(entityModel));
     }
 
-    EntityTableMeta createEntityTableMeta(String entityName) {
-        IEntityModel entityModel = ormModel.requireEntityModel(entityName);
+    IEntityModel getEntityModel(String entityName, boolean allowUnderscoreName) {
+        IEntityModel entityModel = ormModel.getEntityModel(entityName);
+        if (entityModel == null) {
+            if (allowUnderscoreName)
+                entityModel = ormModel.getEntityModelByUnderscoreName(entityName);
+        }
+        return entityModel;
+    }
+
+    EntityTableMeta createEntityTableMeta(IEntityModel entityModel) {
         IDialect dialect = dialectProvider.getDialectForQuerySpace(entityModel.getQuerySpace());
         return new EntityTableMeta(entityModel, binderEnhancer, dialect);
     }
