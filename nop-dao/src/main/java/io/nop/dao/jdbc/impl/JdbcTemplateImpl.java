@@ -23,6 +23,7 @@ import io.nop.dao.api.AbstractSqlExecutor;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.IDialectProvider;
 import io.nop.dao.dialect.pagination.IPaginationHandler;
+import io.nop.dao.exceptions.JdbcException;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.jdbc.dataset.JdbcComplexDataSet;
 import io.nop.dao.jdbc.dataset.JdbcDataSet;
@@ -45,7 +46,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
@@ -53,7 +59,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 import static io.nop.dao.DaoConfigs.CFG_DAO_DB_TIME_CACHE_TIMEOUT;
-import static io.nop.dao.DaoErrors.*;
+import static io.nop.dao.DaoErrors.ARG_QUERY_SPACE;
+import static io.nop.dao.DaoErrors.ARG_TXN;
+import static io.nop.dao.DaoErrors.ERR_DAO_QUERY_SPACE_NOT_JDBC_CONNECTION;
+import static io.nop.dao.DaoErrors.ERR_DAO_UNKNOWN_QUERY_SPACE;
+import static io.nop.dao.DaoErrors.ERR_SQL_BAD_SQL_GRAMMAR;
 
 public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTemplate {
     static final Logger LOG = LoggerFactory.getLogger(JdbcTemplateImpl.class);
@@ -387,6 +397,20 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
         cache.put(cacheRef.getCacheKey(), cacheData);
 
         return DataSetCacheHelper.toDataSet(cacheData, true);
+    }
+
+    @Override
+    public boolean existsTable(String querySpace, String tableName) {
+        IDialect dialect = getDialectForQuerySpace(querySpace);
+        SQL sql = SQL.begin().querySpace(querySpace).sql("select 1 from " + dialect.escapeSQLName(tableName)).end();
+        try {
+            findFirst(sql);
+            return true;
+        } catch (JdbcException e) {
+            if (e.getErrorCode().equals(ERR_SQL_BAD_SQL_GRAMMAR.getErrorCode()))
+                return false;
+            throw NopException.adapt(e);
+        }
     }
 
     @Override

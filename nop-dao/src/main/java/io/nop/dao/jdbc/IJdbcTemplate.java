@@ -34,6 +34,8 @@ public interface IJdbcTemplate extends ISqlExecutor, IDialectProvider {
 
     Object callFunc(@Nonnull SQL sql);
 
+    boolean existsTable(String querySpace, String tableName);
+
     /**
      * 调用数据库的current_timestamp函数来返回数据库当前时间
      *

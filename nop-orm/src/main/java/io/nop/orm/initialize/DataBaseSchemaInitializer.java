@@ -14,11 +14,11 @@ import io.nop.orm.IOrmSessionFactory;
 import io.nop.orm.ddl.DdlSqlCreator;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IOrmModel;
+import jakarta.annotation.PostConstruct;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -45,18 +45,16 @@ public class DataBaseSchemaInitializer {
     public void init() {
         IOrmModel ormModel = ormSessionFactory.getOrmModel();
         Collection<IEntityModel> tables = ormModel.getEntityModelsInTopoOrder();
-        Map<String, List<IEntityModel>> querySpaceTables = splitByQuerySpace(tables);
+        for (IEntityModel table : tables) {
+            if (table.isTableView())
+                continue;
 
-        for (Map.Entry<String, List<IEntityModel>> entry : querySpaceTables.entrySet()) {
-            String querySpace = entry.getKey();
-            List<IEntityModel> list = entry.getValue();
-            String createSql = new DdlSqlCreator(jdbcTemplate.getDialectForQuerySpace(querySpace)).createTables(list, false);
+            String querySpace = table.getQuerySpace();
+            String createSql = new DdlSqlCreator(jdbcTemplate.getDialectForQuerySpace(querySpace)).createTable(table, false);
 
             // 每个querySpace都对应一个不同的数据库
-            try {
-                jdbcTemplate.executeMultiSql(SQL.begin().querySpace(querySpace).name("dbInit").sql(createSql).end());
-            } catch (Exception e) {
-                LOG.trace("nop.orm.create-schema-fail", e);
+            if (!jdbcTemplate.existsTable(querySpace, table.getTableName())) {
+                jdbcTemplate.executeUpdate(SQL.begin().querySpace(querySpace).name("create:" + table.getTableName()).sql(createSql).end());
             }
         }
     }
