@@ -63,7 +63,7 @@
                 </c:for>
                 <thisLib:TableUniqueConstraints/>
                 <c:unit><![CDATA[ constraint PK_${table.tableName} primary key (${
-                table.compositePk ? _.pluck(table.idProp.columns,'code').join(',') : table.idProp.code})
+                table.compositePk ? table.idProp.columns.map(col=>dialect.escapeSQLName(col.code)).join(',') : dialect.escapeSQLName(table.idProp.code)})
 ]]></c:unit>
                 <c:unit>)</c:unit>
             </source>
@@ -76,7 +76,7 @@
                 <c:for var="uniqueKey" items="${table.uniqueKeys}">
                     <c:if test="${uniqueKey.constraint}">
                         <c:script>
-                            let columns = uniqueKey.columnModels.map(col => col.code)
+                            let columns = uniqueKey.columnModels.map(col => dialect.escapeSQLName(col.code))
                         </c:script>
                         <c:unit><![CDATA[ constraint ${uniqueKey.constraint} unique (${
                         columns.join(',')}),
@@ -206,7 +206,7 @@
                 <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} drop constraint PK_${table.tableName}</c:unit>
                 <c:unit>;&#10;</c:unit>
                 <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} add constraint PK_${table.tableName} primary key (NOP_TENANT_ID, ${
-                table.compositePk ? _.pluck(table.idProp.columns,'code').join(',') : table.idProp.code})</c:unit>
+                table.compositePk ? table.idProp.columns.map(col=> dialect.escapeSQLName(col.code)).join(',') : dialect.escapeSQLName(table.idProp.code)})</c:unit>
             </source>
         </AddTenantIdToPrimaryKey>
 
