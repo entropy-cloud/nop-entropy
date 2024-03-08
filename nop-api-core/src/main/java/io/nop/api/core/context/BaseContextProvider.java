@@ -19,7 +19,7 @@ public class BaseContextProvider implements IContextProvider {
         return t_context.get();
     }
 
-    public static void clear(){
+    public static void clear() {
         t_context.remove();
     }
 
@@ -30,6 +30,13 @@ public class BaseContextProvider implements IContextProvider {
             context = new BaseContext();
             t_context.set(context);
         }
+        return context;
+    }
+
+    @Override
+    public IContext newContext() {
+        IContext context = new BaseContext();
+        t_context.set(context);
         return context;
     }
 }

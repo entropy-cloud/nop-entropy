@@ -161,6 +161,9 @@ public class VertxHttpServerContext implements IHttpServerContext {
 
     public CompletionStage<Void> proceedAsync() {
         CompletableFuture<Void> future = new CompletableFuture<>();
+        routingContext.addBodyEndHandler(ret -> {
+            future.complete(null);
+        });
         routingContext.addEndHandler(ret -> {
             if (ret.failed()) {
                 future.completeExceptionally(ret.cause());
@@ -168,6 +171,7 @@ public class VertxHttpServerContext implements IHttpServerContext {
                 future.complete(null);
             }
         });
+
         routingContext.next();
         return future;
     }

@@ -13,4 +13,5 @@ public interface IContextProvider {
 
     IContext getOrCreateContext();
 
+    IContext newContext();
 }

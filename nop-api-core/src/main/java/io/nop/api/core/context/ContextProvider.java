@@ -65,10 +65,7 @@ public class ContextProvider {
     }
 
     public static IContext newContext() {
-        IContext ctx = currentContext();
-        if (ctx != null)
-            ctx.close();
-        return getOrCreateContext();
+        return _instance.newContext();
     }
 
     public static boolean isCallExpired() {

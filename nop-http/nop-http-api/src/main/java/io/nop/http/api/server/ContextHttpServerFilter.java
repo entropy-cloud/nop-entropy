@@ -13,6 +13,8 @@ import io.nop.api.core.context.IContext;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.ApiStringHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 import java.util.Collection;
@@ -24,6 +26,7 @@ import java.util.function.Supplier;
 import static io.nop.api.core.ApiConfigs.CFG_RPC_PROPAGATE_HEADERS;
 
 public class ContextHttpServerFilter implements IHttpServerFilter {
+    static final Logger LOG = LoggerFactory.getLogger(ContextHttpServerFilter.class);
 
     @Override
     public int order() {
@@ -33,6 +36,8 @@ public class ContextHttpServerFilter implements IHttpServerFilter {
     @Override
     public CompletionStage<Void> filterAsync(IHttpServerContext context, Supplier<CompletionStage<Void>> next) {
         IContext ctx = ContextProvider.newContext();
+        LOG.trace("nop.http.process:url={}", context.getRequestUrl());
+
         context.setContext(ctx);
         initContext(ctx, context);
 

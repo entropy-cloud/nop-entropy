@@ -48,7 +48,7 @@ public class BaseContext implements IContext {
     protected volatile boolean closed;
 
     public BaseContext() {
-        LOG.trace("nop.create-context:seq={}", seq);
+        LOG.trace("nop.context-new:seq={}", seq);
     }
 
     public long getSeq() {
@@ -212,11 +212,20 @@ public class BaseContext implements IContext {
     public <T> T executeWithContext(Callable<T> task) throws Exception {
         checkClosed();
         IContext oldCtx = BaseContextProvider.contextHolder().get();
+        if (oldCtx == this)
+            return task.call();
+
         try {
+            LOG.trace("nop.context-enter:seq={}",seq);
             BaseContextProvider.contextHolder().set(this);
             return task.call();
         } finally {
-            BaseContextProvider.contextHolder().set(oldCtx);
+            LOG.trace("nop.context-leave:seq={}",seq);
+            if (oldCtx != null) {
+                BaseContextProvider.contextHolder().set(oldCtx);
+            } else {
+                BaseContextProvider.contextHolder().remove();
+            }
         }
     }
 
@@ -254,7 +263,7 @@ public class BaseContext implements IContext {
         if (this.closed)
             return;
 
-        LOG.trace("nop.close-context:seq={}", seq);
+        LOG.trace("nop.context-close:seq={}", seq);
 
         IContext context = BaseContextProvider.contextHolder().get();
         if (context == this) {

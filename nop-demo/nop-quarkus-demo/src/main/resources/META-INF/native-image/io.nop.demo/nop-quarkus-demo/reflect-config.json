@@ -18635,6 +18635,71 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      }
+    ],
+    "methods": [
+      {
+        "name": "append",
+        "parameterTypes": [
+          "io.nop.api.core.util.ICancellable"
+        ]
+      },
+      {
+        "name": "appendOnCancel",
+        "parameterTypes": [
+          "java.util.function.Consumer"
+        ]
+      },
+      {
+        "name": "cancel",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getCancelReason",
+        "parameterTypes": []
+      },
+      {
+        "name": "isCancelled",
+        "parameterTypes": []
+      },
+      {
+        "name": "prepend",
+        "parameterTypes": [
+          "io.nop.api.core.util.ICancellable"
+        ]
+      },
+      {
+        "name": "prependOnCancel",
+        "parameterTypes": [
+          "java.util.function.Consumer"
+        ]
+      },
+      {
+        "name": "removeOnCancel",
+        "parameterTypes": [
+          "java.util.function.Consumer"
+        ]
+      },
+      {
+        "name": "tryRunCallbacks",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.commons.lang.impl.Cancellable",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [
       {
@@ -19187,6 +19252,140 @@
     "fields": [],
     "methods": [
       {
+        "name": "addAfterComplete",
+        "parameterTypes": [
+          "java.util.function.Consumer"
+        ]
+      },
+      {
+        "name": "addBeforeComplete",
+        "parameterTypes": [
+          "java.util.function.Consumer"
+        ]
+      },
+      {
+        "name": "addErrorBean",
+        "parameterTypes": [
+          "io.nop.api.core.beans.ErrorBean"
+        ]
+      },
+      {
+        "name": "awaitAsyncResults",
+        "parameterTypes": []
+      },
+      {
+        "name": "cancelAll",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "cancelAsyncResults",
+        "parameterTypes": []
+      },
+      {
+        "name": "complete",
+        "parameterTypes": []
+      },
+      {
+        "name": "completeExceptionally",
+        "parameterTypes": [
+          "java.lang.Throwable"
+        ]
+      },
+      {
+        "name": "fireAfterComplete",
+        "parameterTypes": [
+          "java.lang.Throwable"
+        ]
+      },
+      {
+        "name": "fireBeforeComplete",
+        "parameterTypes": [
+          "java.lang.Throwable"
+        ]
+      },
+      {
+        "name": "getAttributes",
+        "parameterTypes": []
+      },
+      {
+        "name": "getError",
+        "parameterTypes": []
+      },
+      {
+        "name": "getErrorBeans",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEvalScope",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExecutionId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMostSevereErrorBean",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasAsyncResult",
+        "parameterTypes": []
+      },
+      {
+        "name": "isDone",
+        "parameterTypes": []
+      },
+      {
+        "name": "registerAsyncResult",
+        "parameterTypes": [
+          "java.util.concurrent.Future"
+        ]
+      },
+      {
+        "name": "setAttribute",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setError",
+        "parameterTypes": [
+          "java.lang.Throwable"
+        ]
+      },
+      {
+        "name": "setErrorBeans",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setEvalScope",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "setExecutionId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.core.context.ExecutionContextImpl",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "getEvalScope",
         "parameterTypes": []
       }
@@ -19402,6 +19601,155 @@
       }
     ],
     "name": "io.nop.core.context.IServiceContext",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "clearResponseHeaders",
+        "parameterTypes": []
+      },
+      {
+        "name": "getActionAuthChecker",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCache",
+        "parameterTypes": []
+      },
+      {
+        "name": "getContext",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDataAuthChecker",
+        "parameterTypes": []
+      },
+      {
+        "name": "getParentContext",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRequest",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRequestHeader",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getRequestHeaders",
+        "parameterTypes": []
+      },
+      {
+        "name": "getResponse",
+        "parameterTypes": []
+      },
+      {
+        "name": "getResponseHeader",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getResponseHeaders",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUserContext",
+        "parameterTypes": []
+      },
+      {
+        "name": "newChildContext",
+        "parameterTypes": []
+      },
+      {
+        "name": "newServiceContextImpl",
+        "parameterTypes": []
+      },
+      {
+        "name": "setActionAuthChecker",
+        "parameterTypes": [
+          "io.nop.api.core.auth.IActionAuthChecker"
+        ]
+      },
+      {
+        "name": "setCache",
+        "parameterTypes": [
+          "io.nop.commons.cache.ICache"
+        ]
+      },
+      {
+        "name": "setContext",
+        "parameterTypes": [
+          "io.nop.api.core.context.IContext"
+        ]
+      },
+      {
+        "name": "setDataAuthChecker",
+        "parameterTypes": [
+          "io.nop.api.core.auth.IDataAuthChecker"
+        ]
+      },
+      {
+        "name": "setParentContext",
+        "parameterTypes": [
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "setRequest",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setRequestHeader",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setRequestHeaders",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setResponse",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setResponseHeader",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setResponseHeaders",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setUserContext",
+        "parameterTypes": [
+          "io.nop.api.core.auth.IUserContext"
+        ]
+      }
+    ],
+    "name": "io.nop.core.context.ServiceContextImpl",
     "unsafeAllocated": false
   },
   {
@@ -29291,6 +29639,13 @@
         ]
       },
       {
+        "name": "existsTable",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getCacheProvider",
         "parameterTypes": []
       },
@@ -29544,7 +29899,13 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      }
+    ],
     "methods": [
       {
         "name": "addQuerySpace",
@@ -40645,6 +41006,74 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      }
+    ],
+    "methods": [
+      {
+        "name": "dispatchAll",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDataLoader",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getFieldSelection",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOperation",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRequest",
+        "parameterTypes": []
+      },
+      {
+        "name": "isMakerCheckerEnabled",
+        "parameterTypes": []
+      },
+      {
+        "name": "registerDataLoader",
+        "parameterTypes": [
+          "java.lang.String",
+          "org.dataloader.DataLoader"
+        ]
+      },
+      {
+        "name": "setFieldSelection",
+        "parameterTypes": [
+          "io.nop.api.core.beans.FieldSelectionBean"
+        ]
+      },
+      {
+        "name": "setMakerCheckerEnabled",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setOperation",
+        "parameterTypes": [
+          "io.nop.graphql.core.ast.GraphQLOperation"
+        ]
+      }
+    ],
+    "name": "io.nop.graphql.core.engine.GraphQLExecutionContext",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [
       {
@@ -41463,7 +41892,13 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      }
+    ],
     "methods": [
       {
         "name": "filterAsync",
@@ -45038,6 +45473,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getEntityFilterProvider",
+        "parameterTypes": []
+      },
+      {
         "name": "getEqlAstTransformer",
         "parameterTypes": []
       },
@@ -45133,6 +45572,12 @@
         "name": "setEntityClassLoader",
         "parameterTypes": [
           "io.nop.commons.lang.IClassLoader"
+        ]
+      },
+      {
+        "name": "setEntityFilterProvider",
+        "parameterTypes": [
+          "io.nop.orm.sql.IEntityFilterProvider"
         ]
       },
       {
@@ -46050,6 +46495,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isGlobalUniqueId",
+        "parameterTypes": []
+      },
+      {
         "name": "isKvTable",
         "parameterTypes": []
       },
@@ -46838,6 +47287,10 @@
       },
       {
         "name": "isAllColumnPrimary",
+        "parameterTypes": []
+      },
+      {
+        "name": "isGlobalUniqueId",
         "parameterTypes": []
       },
       {

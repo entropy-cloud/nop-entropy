@@ -23,6 +23,8 @@ import io.nop.dao.utils.DaoHelper;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.util.Map;
@@ -33,6 +35,8 @@ import static io.nop.dao.DaoErrors.ARG_QUERY_SPACE;
 import static io.nop.dao.DaoErrors.ERR_DAO_UNKNOWN_QUERY_SPACE;
 
 public class DefaultTransactionManager implements ITransactionManager {
+    static final Logger LOG = LoggerFactory.getLogger(DefaultTransactionManager.class);
+
     private Map<String, ITransactionFactory> transactionFactoryMap = new ConcurrentHashMap<>();
     private Map<String, String> txnGroupMap = new ConcurrentHashMap<>();
 
@@ -154,12 +158,15 @@ public class DefaultTransactionManager implements ITransactionManager {
 
     @Override
     public ITransaction registerTransaction(ITransaction txn) {
+        LOG.trace("nop.txn.register:txn={}", txn);
         return TransactionRegistry.instance().put(txn.getTxnGroup(), txn);
     }
 
     @Override
     public boolean unregisterTransaction(ITransaction txn) {
-        return TransactionRegistry.instance().remove(txn.getTxnGroup(), txn);
+        boolean result = TransactionRegistry.instance().remove(txn.getTxnGroup(), txn);
+        LOG.trace("nop.txn.unregister:result={},txn={}", result, txn);
+        return result;
     }
 
     protected ITransactionFactory getTransactionFactory(String querySpace) {

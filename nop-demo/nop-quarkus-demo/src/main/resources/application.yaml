@@ -111,12 +111,16 @@ quarkus:
     level: info
     min-level: trace
 
-    console:
-      json: true
+#    console:
+#      json: true
 
     category:
       "io.nop":
-        level: DEBUG
+        level: INFO
+      "io.nop.api.core.context":
+        level: TRACE
+      "io.nop.http.api.server":
+          level: TRACE
 
     file:
       enable: false
