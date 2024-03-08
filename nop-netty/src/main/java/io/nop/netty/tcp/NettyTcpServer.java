@@ -7,5 +7,19 @@
  */
 package io.nop.netty.tcp;
 
-public class NettyTcpServer {
+import io.nop.commons.service.LifeCycleSupport;
+import io.nop.netty.config.NettyTcpServerConfig;
+
+public class NettyTcpServer extends LifeCycleSupport {
+    private NettyTcpServerConfig serverConfig;
+
+    @Override
+    protected void doStart() {
+
+    }
+
+    @Override
+    protected void doStop() {
+
+    }
 }

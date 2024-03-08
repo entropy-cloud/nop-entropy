@@ -7,9 +7,10 @@
  */
 package io.nop.record.output;
 
+import java.io.Closeable;
 import java.nio.ByteBuffer;
 
-public interface IRecordBinaryOutput {
+public interface IRecordBinaryOutput extends Closeable {
     IRecordBinaryOutput append(byte[] bytes);
 
     IRecordBinaryOutput append(byte[] str, int start, int end);

@@ -16,6 +16,10 @@ public class NopTimeoutException extends NopException {
         super(ApiErrors.ERR_TIMEOUT);
     }
 
+    public NopTimeoutException(ErrorCode errorCode) {
+        super(errorCode);
+    }
+
     public NopTimeoutException(ErrorCode errorCode, boolean writableStackTrace) {
         super(errorCode.getErrorCode(), null, false, writableStackTrace);
     }

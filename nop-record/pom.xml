@@ -17,6 +17,12 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-xlang</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-buffer</artifactId>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
 
     <build>

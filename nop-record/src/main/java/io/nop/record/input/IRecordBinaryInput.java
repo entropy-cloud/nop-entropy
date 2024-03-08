@@ -38,6 +38,8 @@ public interface IRecordBinaryInput extends Closeable {
      */
     boolean isEof();
 
+    boolean hasRemainingBytes();
+
     default void seek(long newPos) {
         reset();
         skip(newPos);
@@ -266,9 +268,10 @@ public interface IRecordBinaryInput extends Closeable {
 
     void read(byte[] data, int offset, int len);
 
-    default int readByte(){
+    default int readByte() {
         return readS1();
     }
+
     /**
      * 重置offset为0
      */

@@ -7,5 +7,25 @@
  */
 package io.nop.netty.tcp;
 
-public class NettyTcpClient {
+import io.nop.commons.service.LifeCycleSupport;
+import io.nop.netty.config.NettyTcpClientConfig;
+import jakarta.inject.Inject;
+
+public class NettyTcpClient extends LifeCycleSupport {
+    private NettyTcpClientConfig clientConfig;
+
+    @Inject
+    public void setClientConfig(NettyTcpClientConfig config) {
+        this.clientConfig = config;
+    }
+
+    @Override
+    protected void doStart() {
+
+    }
+
+    @Override
+    protected void doStop() {
+
+    }
 }

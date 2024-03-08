@@ -7,5 +7,5 @@
  */
 package io.nop.netty.config;
 
-public class NettyTcpClientConfig {
+public class NettyTcpClientConfig extends NettyBaseConfig {
 }

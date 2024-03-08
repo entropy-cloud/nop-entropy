@@ -21,11 +21,15 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package io.nop.record.input;
+package io.nop.record.netty;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.util.ReferenceCountUtil;
+import io.nop.record.input.IRecordBinaryInput;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 
@@ -39,8 +43,8 @@ import java.nio.channels.FileChannel;
  *     <li>{@link MappedByteBuffer} backed by {@link FileChannel}</li>
  * </ul>
  */
-public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
-    private ByteBuffer bb;
+public class ByteBufRecordBinaryInput implements IRecordBinaryInput {
+    private ByteBuf bb;
     private int bitsLeft;
     private long bits;
 
@@ -51,8 +55,8 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
      *
      * @param arr byte array to read
      */
-    public ByteBufferRecordBinaryInput(byte[] arr) {
-        bb = ByteBuffer.wrap(arr);
+    public ByteBufRecordBinaryInput(byte[] arr) {
+        bb = Unpooled.wrappedBuffer(arr);
     }
 
     @Override
@@ -80,8 +84,9 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
      *
      * @param buffer ByteBuffer to read
      */
-    public ByteBufferRecordBinaryInput(ByteBuffer buffer) {
+    public ByteBufRecordBinaryInput(ByteBuf buffer) {
         bb = buffer;
+        ReferenceCountUtil.retain(buffer);
     }
 
     /**
@@ -110,9 +115,9 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
      *
      * @return read-only {@link ByteBuffer} to access raw data for the associated type.
      */
-    public ByteBuffer asRoBuffer() {
-        ByteBuffer retVal = this.bb.asReadOnlyBuffer();
-        retVal.rewind();
+    public ByteBuf asRoBuffer() {
+        ByteBuf retVal = this.bb.asReadOnly();
+        retVal.resetReaderIndex();
 
         return retVal;
     }
@@ -148,6 +153,7 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
      */
     @Override
     public void close() {
+        ReferenceCountUtil.release(bb);
         bb = null;
     }
 
@@ -155,12 +161,12 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
 
     @Override
     public boolean isEof() {
-        return !(bb.hasRemaining() || bitsLeft > 0);
+        return !(bb.isReadable() || bitsLeft > 0);
     }
 
     @Override
     public boolean hasRemainingBytes() {
-        return bb.hasRemaining();
+        return bb.isReadable();
     }
 
     @Override
@@ -168,17 +174,17 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
         if (newPos > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("Java ByteBuffer can't be seeked past Integer.MAX_VALUE");
         }
-        bb.position((int) newPos);
+        bb.readerIndex((int) newPos);
     }
 
     @Override
     public long pos() {
-        return bb.position();
+        return bb.readerIndex();
     }
 
     @Override
     public long available() {
-        return bb.limit() - pos();
+        return bb.readableBytes();
     }
 
     //endregion
@@ -194,27 +200,27 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
      */
     @Override
     public byte readS1() {
-        return bb.get();
+        return bb.readByte();
     }
 
     //region Big-endian
 
     @Override
     public short readS2be() {
-        bb.order(ByteOrder.BIG_ENDIAN);
-        return bb.getShort();
+        //bb.order(ByteOrder.BIG_ENDIAN);
+        return bb.readShort();
     }
 
     @Override
     public int readS4be() {
-        bb.order(ByteOrder.BIG_ENDIAN);
-        return bb.getInt();
+        //bb.order(ByteOrder.BIG_ENDIAN);
+        return bb.readInt();
     }
 
     @Override
     public long readS8be() {
-        bb.order(ByteOrder.BIG_ENDIAN);
-        return bb.getLong();
+        //bb.order(ByteOrder.BIG_ENDIAN);
+        return bb.readLong();
     }
 
     //endregion
@@ -223,20 +229,17 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
 
     @Override
     public short readS2le() {
-        bb.order(ByteOrder.LITTLE_ENDIAN);
-        return bb.getShort();
+        return bb.readShortLE();
     }
 
     @Override
     public int readS4le() {
-        bb.order(ByteOrder.LITTLE_ENDIAN);
-        return bb.getInt();
+        return bb.readIntLE();
     }
 
     @Override
     public long readS8le() {
-        bb.order(ByteOrder.LITTLE_ENDIAN);
-        return bb.getLong();
+        return bb.readLongLE();
     }
 
     //endregion
@@ -247,21 +250,21 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
 
     @Override
     public int readU1() {
-        return bb.get() & 0xff;
+        return bb.readUnsignedByte();
     }
 
     //region Big-endian
 
     @Override
     public int readU2be() {
-        bb.order(ByteOrder.BIG_ENDIAN);
-        return bb.getShort() & 0xffff;
+        //bb.order(ByteOrder.BIG_ENDIAN);
+        return bb.readUnsignedShort();
     }
 
     @Override
     public long readU4be() {
-        bb.order(ByteOrder.BIG_ENDIAN);
-        return bb.getInt() & 0xffffffffL;
+        // bb.order(ByteOrder.BIG_ENDIAN);
+        return bb.readUnsignedInt();
     }
 
     //endregion
@@ -270,14 +273,14 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
 
     @Override
     public int readU2le() {
-        bb.order(ByteOrder.LITTLE_ENDIAN);
-        return bb.getShort() & 0xffff;
+        //bb.order(ByteOrder.LITTLE_ENDIAN);
+        return bb.readUnsignedShortLE();
     }
 
     @Override
     public long readU4le() {
-        bb.order(ByteOrder.LITTLE_ENDIAN);
-        return bb.getInt() & 0xffffffffL;
+        //bb.order(ByteOrder.LITTLE_ENDIAN);
+        return bb.readUnsignedIntLE();
     }
 
     //endregion
@@ -292,14 +295,12 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
 
     @Override
     public float readF4be() {
-        bb.order(ByteOrder.BIG_ENDIAN);
-        return bb.getFloat();
+        return bb.readFloat();
     }
 
     @Override
     public double readF8be() {
-        bb.order(ByteOrder.BIG_ENDIAN);
-        return bb.getDouble();
+        return bb.readDouble();
     }
 
     //endregion
@@ -308,14 +309,12 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
 
     @Override
     public float readF4le() {
-        bb.order(ByteOrder.LITTLE_ENDIAN);
-        return bb.getFloat();
+        return bb.readFloatLE();
     }
 
     @Override
     public double readF8le() {
-        bb.order(ByteOrder.LITTLE_ENDIAN);
-        return bb.getDouble();
+        return bb.readDoubleLE();
     }
 
     //endregion
@@ -333,7 +332,7 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
     @Override
     public byte[] readBytes(int n) {
         byte[] buf = new byte[n];
-        bb.get(buf);
+        bb.readBytes(buf);
         return buf;
     }
 
@@ -344,28 +343,26 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
      */
     @Override
     public byte[] readBytesFull() {
-        byte[] buf = new byte[bb.remaining()];
-        bb.get(buf);
-        return buf;
+        return readBytes(bb.readableBytes());
     }
 
     @Override
     public byte[] readBytesTerm(byte term, boolean includeTerm, boolean consumeTerm, boolean eosError) {
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         while (true) {
-            if (!bb.hasRemaining()) {
+            if (!this.hasRemainingBytes()) {
                 if (eosError) {
                     throw new RuntimeException("End of stream reached, but no terminator " + term + " found");
                 } else {
                     return buf.toByteArray();
                 }
             }
-            byte c = bb.get();
+            byte c = readS1();
             if (c == term) {
                 if (includeTerm)
                     buf.write(c);
                 if (!consumeTerm)
-                    bb.position(bb.position() - 1);
+                    seek(pos() - 1);
                 return buf.toByteArray();
             }
             buf.write(c);
@@ -380,12 +377,12 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
             throw new IllegalArgumentException("Java ByteBuffer can't be limited beyond Integer.MAX_VALUE");
         }
 
-        ByteBuffer newBuffer = bb.slice();
-        newBuffer.limit((int) n);
+        ByteBuf newBuffer = bb.slice();
+        newBuffer.writerIndex((int) n);
+        // 更新原始 ByteBuf 的读索引
+        bb.readerIndex(bb.readerIndex() + (int) n);
 
-        bb.position(bb.position() + (int) n);
-
-        return new ByteBufferRecordBinaryInput(newBuffer);
+        return new ByteBufRecordBinaryInput(newBuffer);
     }
 
     @Override
@@ -401,7 +398,7 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
 
     @Override
     public void read(byte[] data, int offset, int len) {
-        bb.get(data, offset, len);
+        bb.readBytes(data, offset, len);
     }
 
     @Override
@@ -411,7 +408,7 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
 
     @Override
     public IRecordBinaryInput detach() {
-        return new ByteBufferRecordBinaryInput(bb.duplicate());
+        return new ByteBufRecordBinaryInput(bb.duplicate());
     }
 
     @Override

@@ -1,0 +1,13 @@
+package io.nop.netty;
+
+import io.nop.api.core.exceptions.ErrorCode;
+
+import static io.nop.api.core.exceptions.ErrorCode.define;
+
+public interface NopNettyErrors {
+    ErrorCode ERR_CHANNEL_NOT_ACTIVE = define("nop.err.netty.channel-not-active",
+            "尚未建立连接");
+
+    ErrorCode ERR_TOO_MANY_REQUEST_IN_FLIGHT = define("nop.err.netty.too-many-request-in-flight",
+            "正在进行的请求数过多，无法接受更多请求");
+}

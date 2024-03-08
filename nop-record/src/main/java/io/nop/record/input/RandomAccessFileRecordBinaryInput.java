@@ -23,6 +23,8 @@
 
 package io.nop.record.input;
 
+import io.nop.api.core.exceptions.NopException;
+
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -81,12 +83,16 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
         raf.close();
     }
 
+    protected RuntimeException wrapErr(IOException e) {
+        throw NopException.adapt(e);
+    }
+
     @Override
     public boolean isEof() {
         try {
             return !(raf.getFilePointer() < raf.length() || bitsLeft > 0);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw wrapErr(e);
         }
     }
 
@@ -95,7 +101,16 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
         try {
             raf.seek(newPos);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw wrapErr(e);
+        }
+    }
+
+    @Override
+    public boolean hasRemainingBytes() {
+        try {
+            return (raf.getFilePointer() < raf.length());
+        } catch (IOException e) {
+            throw wrapErr(e);
         }
     }
 
@@ -104,7 +119,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
         try {
             return raf.getFilePointer();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw wrapErr(e);
         }
     }
 
@@ -112,7 +127,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
         try {
             return raf.length();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw wrapErr(e);
         }
     }
 
@@ -130,7 +145,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
                 return (byte) t;
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw wrapErr(e);
         }
     }
 
@@ -145,7 +160,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
                 return (short) ((b1 << 8) + (b2));
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw wrapErr(e);
         }
     }
 
@@ -162,7 +177,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
                 return (b1 << 24) + (b2 << 16) + (b3 << 8) + (b4);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw wrapErr(e);
         }
     }
 
@@ -170,7 +185,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
     public long readS8be() {
         long b1 = readU4be();
         long b2 = readU4be();
-        return (b1 << 32) + (b2 );
+        return (b1 << 32) + (b2);
     }
 
     @Override
@@ -184,7 +199,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
                 return (short) ((b2 << 8) + (b1));
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw wrapErr(e);
         }
     }
 
@@ -201,7 +216,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
                 return (b4 << 24) + (b3 << 16) + (b2 << 8) + (b1);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw wrapErr(e);
         }
     }
 
@@ -222,7 +237,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
                 return t;
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw wrapErr(e);
         }
     }
 
@@ -237,7 +252,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
                 return (b1 << 8) + (b2);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw wrapErr(e);
         }
     }
 
@@ -254,7 +269,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
                 return (b1 << 24) + (b2 << 16) + (b3 << 8) + (b4);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw wrapErr(e);
         }
     }
 
@@ -269,7 +284,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
                 return (b2 << 8) + (b1);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw wrapErr(e);
         }
     }
 
@@ -286,7 +301,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
                 return (b4 << 24) + (b3 << 16) + (b2 << 8) + (b1);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw wrapErr(e);
         }
     }
 
@@ -332,7 +347,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
             }
             return buf;
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw wrapErr(e);
         }
     }
 
@@ -350,7 +365,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
 
             return baos.toByteArray();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw wrapErr(e);
         }
     }
 
@@ -376,7 +391,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
                 buf.write(c);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw wrapErr(e);
         }
     }
 
@@ -427,7 +442,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
                 throw new EOFException();
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw wrapErr(e);
         }
     }
 
