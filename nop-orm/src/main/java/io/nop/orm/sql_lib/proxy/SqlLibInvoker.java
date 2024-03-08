@@ -67,16 +67,20 @@ public class SqlLibInvoker implements InvocationHandler {
 
         LongRangeBean range = null;
         Parameter[] params = method.getParameters();
-        for (int i = 0, n = args.length; i < n; i++) {
-            if (i == contextIndex)
-                continue;
 
-            Parameter param = params[i];
-            if (param.getType() == LongRangeBean.class) {
-                range = (LongRangeBean) args[i];
-            } else {
-                String name = ReflectionHelper.getParamName(param);
-                scope.setLocalValue(null, name, args[i]);
+        // 无参数的函数会传入null
+        if(args != null) {
+            for (int i = 0, n = args.length; i < n; i++) {
+                if (i == contextIndex)
+                    continue;
+
+                Parameter param = params[i];
+                if (param.getType() == LongRangeBean.class) {
+                    range = (LongRangeBean) args[i];
+                } else {
+                    String name = ReflectionHelper.getParamName(param);
+                    scope.setLocalValue(null, name, args[i]);
+                }
             }
         }
 
