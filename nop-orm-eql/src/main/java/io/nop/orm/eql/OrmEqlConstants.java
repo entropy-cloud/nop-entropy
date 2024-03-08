@@ -15,6 +15,8 @@ public interface OrmEqlConstants {
     String DECORATOR_DUMP = "dump";
     String DECORATOR_QUERY_SPACE = "querySpace";
 
+    String DECORATOR_ENABLE_FILTER = "enableFilter";
+
 
     String FUNC_COUNT = "count";
 

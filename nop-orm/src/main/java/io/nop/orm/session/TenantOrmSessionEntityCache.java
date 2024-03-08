@@ -21,6 +21,7 @@ import static io.nop.orm.OrmErrors.ARG_ENTITY_ID;
 import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
 import static io.nop.orm.OrmErrors.ARG_PROP_NAME;
 import static io.nop.orm.OrmErrors.ERR_ORM_MISSING_TENANT_ID;
+import static io.nop.orm.OrmErrors.ERR_ORM_MISSING_TENANT_ID_IN_CONTEXT;
 
 public class TenantOrmSessionEntityCache implements IOrmSessionEntityCache {
     private final Map<String, OrmSessionEntityCache> caches = new HashMap<>();
@@ -52,7 +53,7 @@ public class TenantOrmSessionEntityCache implements IOrmSessionEntityCache {
             return sharedCache;
         }
 
-        if (entityModel.containsTenantIdInPk())
+        if (entityModel.isGlobalUniqueId())
             return sharedCache;
 
         OrmSessionEntityCache cache = this.caches.get(tenantId);
@@ -97,13 +98,13 @@ public class TenantOrmSessionEntityCache implements IOrmSessionEntityCache {
         if (entityModel.getTenantPropId() <= 0)
             return sharedCache.get(entityName, id);
 
-        if (entityModel.containsTenantIdInPk()) {
+        if (entityModel.isGlobalUniqueId()) {
             return sharedCache.get(entityName, id);
         }
 
         String tenantId = ContextProvider.currentTenantId();
         if (StringHelper.isEmpty(tenantId))
-            throw new NopException(ERR_ORM_MISSING_TENANT_ID)
+            throw new NopException(ERR_ORM_MISSING_TENANT_ID_IN_CONTEXT)
                     .param(ARG_ENTITY_NAME, entityName)
                     .param(ARG_ENTITY_ID, id);
         return makeTenantCache(entityModel, tenantId).get(entityName, id);

@@ -15,6 +15,7 @@ public class SyntaxMarker extends Marker {
     public enum SyntaxMarkerType {
         BEGIN_SELECT_FIELDS, ENTITY_FIELDS, END_SELECT_FIELDS, // select部分的字段列表
         TABLE, // 表名
+        FILTER,
         LOGICAL_DELETE_FILTER // where部分针对指定表的过滤条件
         ;
 

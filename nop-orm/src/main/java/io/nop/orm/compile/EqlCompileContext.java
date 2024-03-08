@@ -23,11 +23,15 @@ public class EqlCompileContext implements ISqlCompileContext {
 
     private final boolean allowUnderscoreName;
 
-    public EqlCompileContext(IPersistEnv env, boolean disableLogicalDelete, IEqlAstTransformer astTransformer, boolean allowUnderscoreName) {
+    private final boolean enableFilter;
+
+    public EqlCompileContext(IPersistEnv env, boolean disableLogicalDelete, IEqlAstTransformer astTransformer,
+                             boolean allowUnderscoreName, boolean enableFilter) {
         this.env = env;
         this.disableLogicalDelete = disableLogicalDelete;
         this.astTransformer = astTransformer;
         this.allowUnderscoreName = allowUnderscoreName;
+        this.enableFilter = enableFilter;
     }
 
     public boolean isDisableLogicalDelete() {
@@ -37,6 +41,11 @@ public class EqlCompileContext implements ISqlCompileContext {
     @Override
     public boolean isAllowUnderscoreName() {
         return allowUnderscoreName;
+    }
+
+    @Override
+    public boolean isEnableFilter() {
+        return enableFilter;
     }
 
     @Override

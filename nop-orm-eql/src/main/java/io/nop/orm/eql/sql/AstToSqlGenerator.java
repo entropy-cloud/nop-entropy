@@ -12,9 +12,10 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.text.marker.Marker;
+import io.nop.commons.type.StdSqlType;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.sql.SQL;
 import io.nop.core.lang.sql.SqlExprList;
-import io.nop.commons.type.StdSqlType;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.SQLDataType;
 import io.nop.dao.dialect.function.ISQLFunction;
@@ -51,6 +52,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import static io.nop.orm.eql.OrmEqlErrors.ARG_AST_NODE;
 
@@ -59,13 +61,18 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
 
     private final IDialect dialect;
 
-    public AstToSqlGenerator(IDialect dialect, SQL.SqlBuilder sb) {
+    private final boolean enableFilter;
+
+    private final Set<SqlSingleTableSource> filteredSources = CollectionHelper.newIdentityHashSet();
+
+    public AstToSqlGenerator(IDialect dialect, boolean enableFilter, SQL.SqlBuilder sb) {
         super(sb);
         this.dialect = dialect;
+        this.enableFilter = enableFilter;
     }
 
-    public AstToSqlGenerator(IDialect dialect) {
-        this(dialect, SQL.begin());
+    public AstToSqlGenerator(IDialect dialect, boolean enableFilter) {
+        this(dialect, enableFilter, SQL.begin());
     }
 
     protected String normalizeTableName(String tableName) {
@@ -91,7 +98,7 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
 
         @Override
         public void appendTo(SQL.SqlBuilder buf) {
-            AstToEqlGenerator gen = new AstToSqlGenerator(dialect, buf);
+            AstToEqlGenerator gen = new AstToSqlGenerator(dialect, enableFilter, buf);
             gen.setPretty(true);
             gen.visit(getNode());
         }
@@ -100,7 +107,7 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
     protected void printSelect(SqlQuerySelect node) {
         if (node.getFrom() == null && node.getWhere() == null) {
             // select xx 语法
-            AstToSqlGenerator gen = new AstToSqlGenerator(dialect);
+            AstToSqlGenerator gen = new AstToSqlGenerator(dialect, enableFilter);
             gen.setPretty(isPretty());
             gen.printList(node.getProjections(), ",");
             SQL sql = gen.getSql().end();
@@ -193,7 +200,7 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
                     }
                     EqlHelper.appendCol(sb, dialect, alias, entityModel.getTenantColumn());
                     sb.append('=');
-                    sb.markWithProvider("?", OrmEqlConstants.MARKER_TENANT_ID, () -> ContextProvider.currentTenantId(),false);
+                    sb.markWithProvider("?", OrmEqlConstants.MARKER_TENANT_ID, () -> ContextProvider.currentTenantId(), false);
                     first = false;
                 }
             }
@@ -365,7 +372,7 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
             SqlExprList expr = func.buildFunctionExpr(node.getLocation(), Arrays.asList(node.getExpr(), node.getValue()), dialect);
             printExprList(expr);
         } else {
-            LOG.debug("nop.orm.dialect-not-support-ilike,so-use-like-instead:{}",node);
+            LOG.debug("nop.orm.dialect-not-support-ilike,so-use-like-instead:{}", node);
             printBinaryExpr(node.getExpr(), SqlOperator.LIKE, node.getValue());
         }
     }

@@ -219,6 +219,9 @@ public interface OrmErrors {
     ErrorCode ERR_ORM_MISSING_TENANT_ID = define("nop.err.orm.missing-tenant-id",
             "实体对象[{entityName}:{entityId}]没有设置租户属性[{propName}]", ARG_ENTITY_NAME, ARG_ENTITY_ID, ARG_PROP_NAME);
 
+    ErrorCode ERR_ORM_MISSING_TENANT_ID_IN_CONTEXT = define("nop.err.orm.missing-tenant-id-in-context",
+            "访问实体对象[{entityName}:{entityId}]时上下文环境中没有设置租户", ARG_ENTITY_NAME, ARG_ENTITY_ID);
+
     ErrorCode ERR_ORM_ENTITY_ID_NOT_SET = define("nop.err.orm.entity-id-not-set",
             "实体的主键字段[{propName}]没有被设置，而且主键字段上没有seq标签，无法自动生成",
             ARG_ENTITY_NAME, ARG_PROP_NAME);

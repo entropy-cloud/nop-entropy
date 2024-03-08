@@ -211,7 +211,10 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
      */
     List<? extends IColumnModel> getRevLatestKeyColumns();
 
-    boolean containsTenantIdInPk();
+    /**
+     * 是否实体的主键是跨租户唯一的
+     */
+    boolean isGlobalUniqueId();
 
     int getVersionPropId();
 

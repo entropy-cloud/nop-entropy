@@ -31,10 +31,10 @@
     <entities>
         <entity className="io.nop.file.dao.entity.NopFileRecord" createTimeProp="createTime" createrProp="createdBy"
                 deleteFlagProp="delFlag" displayName="文件记录" name="io.nop.file.dao.entity.NopFileRecord"
-                registerShortName="true" tableName="nop_file_record" useLogicalDelete="true"
+                registerShortName="true" tableName="nop_file_record" tagSet="gid" useLogicalDelete="true"
                 i18n-en:displayName="File Record">
             <columns>
-                <column code="FILE_ID" displayName="文件ID" mandatory="true" name="fileId" precision="32" primary="true"
+                <column code="FILE_ID" displayName="文件ID" mandatory="true" name="fileId" precision="50" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="var" i18n-en:displayName="File ID"/>
                 <column code="FILE_NAME" displayName="文件名" name="fileName" precision="300" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="File Name"/>

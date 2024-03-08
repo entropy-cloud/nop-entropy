@@ -19,7 +19,7 @@ public class TestEqlCompiler extends AbstractOrmTestCase {
 
         IEqlAstTransformer astTransformer = new TestTransformer();
         ICompiledSql compiled = orm().getSessionFactory().compileSql("test", sql.getText(), false, astTransformer,
-                false, true);
+                false, true, false);
         System.out.println(compiled.getSql().getFormattedText());
 
         List<Map<String, Object>> list = orm().findAll(sql);

@@ -31,7 +31,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.BiConsumer;
 
 import static io.nop.core.CoreErrors.ARG_COUNT;
@@ -52,12 +56,14 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
 
     private final boolean allowUnderscoreName;
 
+    private final boolean enableFilter;
+
     public SQL(String text) {
-        this(null, text, null, -1, null, -1, null, false, false, null);
+        this(null, text, null, -1, null, -1, null, false, false, false, null);
     }
 
     public SQL(String name, String text, List<Marker> markers, int timeout, CacheRef cacheRef, int fetchSize,
-               String querySpace, boolean disableLogicalDelete, boolean allowUnderscoreName, SourceLocation loc) {
+               String querySpace, boolean disableLogicalDelete, boolean allowUnderscoreName, boolean enableFilter, SourceLocation loc) {
         super(text, markers);
         this.loc = loc;
         this.name = name;
@@ -67,10 +73,11 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         this.fetchSize = fetchSize;
         this.disableLogicalDelete = disableLogicalDelete;
         this.allowUnderscoreName = allowUnderscoreName;
+        this.enableFilter = enableFilter;
     }
 
     public SQL(String name, String text, List<Marker> markers) {
-        this(name, text, markers, -1, null, -1, null, false, false, null);
+        this(name, text, markers, -1, null, -1, null, false, false, false, null);
     }
 
     protected SQL(IMarkedString str) {
@@ -83,6 +90,7 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         this.loc = null;
         this.disableLogicalDelete = false;
         this.allowUnderscoreName = false;
+        this.enableFilter = false;
     }
 
     private SQL(SqlBuilder sb) {
@@ -94,7 +102,8 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         this.fetchSize = sb.fetchSize;
         this.loc = sb.loc;
         this.disableLogicalDelete = sb.disableLogicalDelete;
-        this.allowUnderscoreName = sb.allowunderscoreName;
+        this.allowUnderscoreName = sb.allowUnderscoreName;
+        this.enableFilter = sb.enableFilter;
     }
 
     public boolean isDisableLogicalDelete() {
@@ -103,6 +112,10 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
 
     public boolean isAllowUnderscoreName() {
         return allowUnderscoreName;
+    }
+
+    public boolean isEnableFilter() {
+        return enableFilter;
     }
 
     @Override
@@ -196,7 +209,9 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         private SourceLocation loc;
         private boolean disableLogicalDelete;
 
-        private boolean allowunderscoreName;
+        private boolean allowUnderscoreName;
+
+        private boolean enableFilter;
 
         public SqlBuilder() {
         }
@@ -223,7 +238,7 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
             sb.cacheRef = cacheRef;
             sb.fetchSize = fetchSize;
             sb.disableLogicalDelete = disableLogicalDelete;
-            sb.allowunderscoreName = allowunderscoreName;
+            sb.allowUnderscoreName = allowUnderscoreName;
             return sb;
         }
 
@@ -238,12 +253,21 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         }
 
         public SqlBuilder allowUnderscoreName() {
-            allowunderscoreName = true;
+            allowUnderscoreName = true;
             return this;
         }
 
         public SqlBuilder allowUnderscoreName(boolean b) {
-            this.allowunderscoreName = b;
+            this.allowUnderscoreName = b;
+            return this;
+        }
+
+        public SqlBuilder enableFilter() {
+            return enableFilter(true);
+        }
+
+        public SqlBuilder enableFilter(boolean b) {
+            this.enableFilter = b;
             return this;
         }
 
@@ -357,7 +381,11 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         }
 
         public boolean isAllowUnderscoreName() {
-            return allowunderscoreName;
+            return allowUnderscoreName;
+        }
+
+        public boolean isEnableFilter() {
+            return enableFilter;
         }
 
         public SqlBuilder sqlWithParams(String text, List<Object> obj) {
@@ -779,6 +807,14 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
             int end = length();
             as(alias);
             addMarker(new SyntaxMarker(pos, end, SyntaxMarkerType.TABLE, entityName, alias));
+            return this;
+        }
+
+        public SqlBuilder addFilterMarker(String entityName, String alias) {
+            int pos = length();
+            append(" 1=1 ");
+            int end = length();
+            addMarker(new SyntaxMarker(pos, end, SyntaxMarkerType.FILTER, entityName, alias));
             return this;
         }
 

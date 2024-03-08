@@ -25,6 +25,13 @@ public abstract class _EqlSqlItemModel extends io.nop.orm.sql_lib.SqlItemModel {
     
     /**
      *  
+     * xml name: enableFilter
+     * 
+     */
+    private boolean _enableFilter  = false;
+    
+    /**
+     *  
      * xml name: source
      * 
      */
@@ -45,6 +52,25 @@ public abstract class _EqlSqlItemModel extends io.nop.orm.sql_lib.SqlItemModel {
         checkAllowChange();
         
         this._allowUnderscoreName = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: enableFilter
+     *  
+     */
+    
+    public boolean isEnableFilter(){
+      return _enableFilter;
+    }
+
+    
+    public void setEnableFilter(boolean value){
+        checkAllowChange();
+        
+        this._enableFilter = value;
            
     }
 
@@ -84,6 +110,7 @@ public abstract class _EqlSqlItemModel extends io.nop.orm.sql_lib.SqlItemModel {
         super.outputJson(out);
         
         out.putNotNull("allowUnderscoreName",this.isAllowUnderscoreName());
+        out.putNotNull("enableFilter",this.isEnableFilter());
         out.putNotNull("source",this.getSource());
     }
 
@@ -97,6 +124,7 @@ public abstract class _EqlSqlItemModel extends io.nop.orm.sql_lib.SqlItemModel {
         super.copyTo(instance);
         
         instance.setAllowUnderscoreName(this.isAllowUnderscoreName());
+        instance.setEnableFilter(this.isEnableFilter());
         instance.setSource(this.getSource());
     }
 

@@ -8,8 +8,8 @@
 package io.nop.orm.eql;
 
 import io.nop.core.lang.sql.SQL;
-import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.dataset.IDataSetMeta;
+import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.orm.eql.ast.SqlStatementKind;
 import io.nop.orm.eql.meta.ISqlExprMeta;
 

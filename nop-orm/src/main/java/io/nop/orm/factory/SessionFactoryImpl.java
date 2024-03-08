@@ -27,7 +27,12 @@ import io.nop.dao.shard.EmptyShardSelector;
 import io.nop.dao.shard.IShardSelector;
 import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.dao.utils.DaoHelper;
-import io.nop.orm.*;
+import io.nop.orm.IOrmComponent;
+import io.nop.orm.IOrmDaoListener;
+import io.nop.orm.IOrmEntity;
+import io.nop.orm.IOrmInterceptor;
+import io.nop.orm.IOrmSession;
+import io.nop.orm.QueryPlanCacheKey;
 import io.nop.orm.compile.EqlCompileContext;
 import io.nop.orm.driver.ICollectionPersistDriver;
 import io.nop.orm.driver.IEntityPersistDriver;
@@ -51,15 +56,25 @@ import io.nop.orm.persister.ICollectionPersister;
 import io.nop.orm.persister.IEntityPersister;
 import io.nop.orm.persister.IPersistEnv;
 import io.nop.orm.session.OrmSessionImpl;
+import io.nop.orm.sql.IEntityFilterProvider;
 import io.nop.orm.support.DynamicOrmEntity;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import static io.nop.orm.OrmErrors.*;
+import static io.nop.orm.OrmErrors.ARG_BEAN_NAME;
+import static io.nop.orm.OrmErrors.ARG_COLLECTION_NAME;
+import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
+import static io.nop.orm.OrmErrors.ERR_ORM_BEAN_NOT_PROTOTYPE_SCOPE;
+import static io.nop.orm.OrmErrors.ERR_ORM_UNKNOWN_COLLECTION_PERSISTER;
+import static io.nop.orm.OrmErrors.ERR_ORM_UNKNOWN_ENTITY_PERSISTER;
 
 /**
  * @author canonical_entropy@163.com
@@ -80,6 +95,8 @@ public class SessionFactoryImpl implements IPersistEnv {
     private IBeanProvider beanProvider;
 
     private IClassLoader entityClassLoader;
+
+    private IEntityFilterProvider entityFilterProvider;
 
     private List<IOrmInterceptor> interceptors = Collections.emptyList();
 
@@ -130,6 +147,15 @@ public class SessionFactoryImpl implements IPersistEnv {
 
     public void setEqlAstTransformer(IEqlAstTransformer eqlAstTransformer) {
         this.eqlAstTransformer = eqlAstTransformer;
+    }
+
+    public void setEntityFilterProvider(IEntityFilterProvider entityFilterProvider) {
+        this.entityFilterProvider = entityFilterProvider;
+    }
+
+    @Override
+    public IEntityFilterProvider getEntityFilterProvider() {
+        return entityFilterProvider;
     }
 
     @Inject
@@ -296,6 +322,10 @@ public class SessionFactoryImpl implements IPersistEnv {
         return sqlExprMetaCache.getEntityTableMeta(entityName, allowUnderscoreName);
     }
 
+    public void clearQueryPlanCache() {
+        this.getQueryPlanCache().clear();
+    }
+
     @Override
     public void clearQueryCache() {
         jdbc().clearQueryCache();
@@ -332,28 +362,35 @@ public class SessionFactoryImpl implements IPersistEnv {
 
     @Override
     public ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete) {
-        return compileSql(name, sqlText, disableLogicalDelete, eqlAstTransformer, true, false);
-    }
-
-    @Override
-    public ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete, boolean allowUnderscoreName) {
-        return compileSql(name, sqlText, disableLogicalDelete, eqlAstTransformer, true, allowUnderscoreName);
+        return compileSql(name, sqlText, disableLogicalDelete, eqlAstTransformer, true, false, false);
     }
 
     @Override
     public ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete,
-                                   IEqlAstTransformer astTransformer, boolean useCache, boolean allowUnderscoreName) {
+                                   boolean allowUnderscoreName, boolean enableFilter) {
+        return compileSql(name, sqlText, disableLogicalDelete, eqlAstTransformer, true, allowUnderscoreName, enableFilter);
+    }
+
+    @Override
+    public ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete,
+                                   IEqlAstTransformer astTransformer, boolean useCache,
+                                   boolean allowUnderscoreName, boolean enableFilter) {
+        if (astTransformer == null)
+            astTransformer = this.eqlAstTransformer;
+
         if (useCache) {
             QueryPlanCacheKey key = new QueryPlanCacheKey(name, sqlText, disableLogicalDelete, allowUnderscoreName);
             ICompiledSql result = getQueryPlanCache().get(key);
             if (result == null) {
-                ISqlCompileContext ctx = new EqlCompileContext(this, disableLogicalDelete, astTransformer, allowUnderscoreName);
+                ISqlCompileContext ctx = new EqlCompileContext(this, disableLogicalDelete,
+                        astTransformer, allowUnderscoreName, enableFilter);
                 result = new EqlCompiler().compile(name, sqlText, ctx);
                 getQueryPlanCache().put(key, result);
             }
             return result;
         } else {
-            ISqlCompileContext ctx = new EqlCompileContext(this, disableLogicalDelete, astTransformer, allowUnderscoreName);
+            ISqlCompileContext ctx = new EqlCompileContext(this, disableLogicalDelete,
+                    astTransformer, allowUnderscoreName, enableFilter);
             return new EqlCompiler().compile(name, sqlText, ctx);
         }
     }

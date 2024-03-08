@@ -51,6 +51,8 @@ public class EqlCompiler implements ISqlCompiler {
             stm.dump("parsed_eql");
         }
 
+        boolean enableFilter = context.isEnableFilter() || stm.hasDecorator(OrmEqlConstants.DECORATOR_ENABLE_FILTER);
+
         IEqlAstTransformer astTransformer = context.getAstTransformer();
 
         if (astTransformer != null) {
@@ -68,7 +70,7 @@ public class EqlCompiler implements ISqlCompiler {
             stm.dump("transformed-eql");
         }
 
-        AstToSqlGenerator genSql = new AstToSqlGenerator(transformer.getDialect());
+        AstToSqlGenerator genSql = new AstToSqlGenerator(transformer.getDialect(), enableFilter);
         genSql.setPretty(true);
         genSql.visit(stm);
 

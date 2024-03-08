@@ -40,7 +40,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static io.nop.orm.OrmErrors.*;
+import static io.nop.orm.OrmErrors.ARG_INDEX;
+import static io.nop.orm.OrmErrors.ARG_SQL_NAME;
+import static io.nop.orm.OrmErrors.ERR_SQL_LIB_INVALID_COL_INDEX;
 
 public abstract class SqlItemModel extends _SqlItemModel {
     private SqlLibModel sqlLibModel;
@@ -50,6 +52,10 @@ public abstract class SqlItemModel extends _SqlItemModel {
     }
 
     public boolean isAllowUnderscoreName() {
+        return false;
+    }
+
+    public boolean isEnableFilter() {
         return false;
     }
 
@@ -76,7 +82,7 @@ public abstract class SqlItemModel extends _SqlItemModel {
             cacheRef = new CacheRef(getCacheName(), (Serializable) cacheKey);
         }
         return new SQL(getName(), sql.getText(), sql.getMarkers(), timeout, cacheRef, fetchSize, getQuerySpace(),
-                isDisableLogicalDelete(), isAllowUnderscoreName(), getLocation());
+                isDisableLogicalDelete(), isAllowUnderscoreName(), isEnableFilter(), getLocation());
     }
 
     void checkArgs(IEvalContext context) {

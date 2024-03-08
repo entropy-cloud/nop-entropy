@@ -148,8 +148,11 @@ public class OrmSessionFactoryBean extends SessionFactoryConfig implements IConf
     public void clearCache() {
         IOrmSessionFactory sessionFactory = this.sessionFactory;
         if (sessionFactory != null) {
+            // 查询结果缓存
             sessionFactory.clearQueryCache();
+            // 全局实体缓存
             sessionFactory.getGlobalCache().clearAllCache();
+            // EQL编译缓存
             sessionFactory.getQueryPlanCache().clear();
         }
     }

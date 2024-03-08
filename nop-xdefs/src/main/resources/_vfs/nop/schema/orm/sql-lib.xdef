@@ -73,7 +73,8 @@
             <source xdef:value="xpl-sql" xdef:mandatory="true"/>
         </sql>
 
-        <eql name="!var-name" xdef:ref="SqlItemModel" xdef:name="EqlSqlItemModel" allowUnderscoreName="!boolean=false">
+        <eql name="!var-name" xdef:ref="SqlItemModel" xdef:name="EqlSqlItemModel"
+             allowUnderscoreName="!boolean=false" enableFilter="!boolean=false">
             <source xdef:value="xpl-sql" xdef:mandatory="true"/>
         </eql>
 

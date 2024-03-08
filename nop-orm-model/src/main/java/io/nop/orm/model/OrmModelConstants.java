@@ -44,6 +44,11 @@ public interface OrmModelConstants {
 
     String TAG_CASCADE_DELETE = "cascade-delete";
 
+    /**
+     * 标记表的id是跨租户唯一的，因此可以使用全局session缓存，而不需要为每个租户构建一个session缓存
+     */
+    String TAG_GID = "gid";
+
 
     /**
      * 在to-one关联的tagSet可以通过ref-xxx来为一对多一侧的关联对象指定tagSet。在orm模型中，可以只在to-one一侧定义关联对象，在OrmModel

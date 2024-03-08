@@ -17,6 +17,8 @@ public interface ISqlCompileContext {
 
     boolean isAllowUnderscoreName();
 
+    boolean isEnableFilter();
+
     IEqlAstTransformer getAstTransformer();
 
     IDialect getDialectForQuerySpace(String querySpace);

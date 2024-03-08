@@ -36,6 +36,9 @@ public class GenSqlTransformer {
     private final IDialectProvider dialectProvider;
     private final IShardSelector shardSelector;
 
+    private final ISqlCompileTool sqlCompiler;
+    private final IEntityFilterProvider filterProvider;
+
     private Map<SyntaxMarker, ShardSelection> shardSelections;
 
     private String querySpace;
@@ -45,10 +48,15 @@ public class GenSqlTransformer {
      */
     private IDialect dialect;
 
-    public GenSqlTransformer(IShardSelector shardSelector, IOrmModel ormModel, IDialectProvider dialectProvider) {
+    public GenSqlTransformer(IShardSelector shardSelector, IOrmModel ormModel,
+                             IDialectProvider dialectProvider,
+                             ISqlCompileTool sqlCompiler,
+                             IEntityFilterProvider filterProvider) {
         this.shardSelector = shardSelector;
         this.ormModel = ormModel;
         this.dialectProvider = dialectProvider;
+        this.sqlCompiler = sqlCompiler;
+        this.filterProvider = filterProvider;
     }
 
     /**
@@ -76,8 +84,8 @@ public class GenSqlTransformer {
                 switch (syntaxMarker.getType()) {
                     case TABLE:
                         return transformTable(syntaxMarker, sql);
-                    // case FILTER:
-                    // return transformFilter(syntaxMarker, sql);
+                    case FILTER:
+                        return transformFilter(syntaxMarker, sql);
                 }
             }
             return null;
@@ -142,6 +150,15 @@ public class GenSqlTransformer {
         }
         return null;
     }
+
+
+    private IMarkedString transformFilter(SyntaxMarker marker, SQL sql) {
+        // 缺省情况下自动删除filter marker
+        if (filterProvider == null)
+            return MarkedString.EMPTY;
+        return filterProvider.getEntityFilter(marker, sql, sqlCompiler);
+    }
+
     //
     // private IMarkedString transformFilter(SyntaxMarker marker, SQL sql) {
     // IEntityModel entityModel = getEntityModel(marker);

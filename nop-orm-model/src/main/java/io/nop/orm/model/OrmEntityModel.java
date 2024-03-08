@@ -51,7 +51,7 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
     private int nopRevEndVerPropId;
     private int nopRevExtChangePropId;
 
-    private boolean containsTenantIdInPk;
+    private boolean globalUniqueId;
 
     private boolean hasOneToOneRelation;
 
@@ -132,8 +132,8 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
     }
 
     @Override
-    public boolean containsTenantIdInPk() {
-        return containsTenantIdInPk;
+    public boolean isGlobalUniqueId() {
+        return globalUniqueId;
     }
 
     @Override
@@ -332,7 +332,7 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
         this.pkColumns = initializer.getPkColumns();
         this.idProp = initializer.getIdProp();
         this.props = initializer.getProps();
-        this.containsTenantIdInPk = initializer.isContainsTenantIdInPk();
+        this.globalUniqueId = initializer.isGlobalUniqueId();
         this.nopFlowIdPropId = initializer.getNopFlowIdPropId();
         this.hasOneToOneRelation = initializer.hasOneToOneRelation();
         this.propsByUnderscoreName = initializer.getPropsByUnderscoreName();

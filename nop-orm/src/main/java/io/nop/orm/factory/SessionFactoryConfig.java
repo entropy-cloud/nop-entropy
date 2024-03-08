@@ -18,15 +18,17 @@ import io.nop.dao.seq.ISequenceGenerator;
 import io.nop.dao.seq.UuidSequenceGenerator;
 import io.nop.dao.shard.EmptyShardSelector;
 import io.nop.dao.shard.IShardSelector;
-import io.nop.orm.eql.binder.IOrmColumnBinderEnhancer;
 import io.nop.orm.IOrmInterceptor;
 import io.nop.orm.eql.IEqlAstTransformer;
+import io.nop.orm.eql.binder.IOrmColumnBinderEnhancer;
 import io.nop.orm.loader.IQueryExecutor;
 import io.nop.orm.model.IOrmModel;
+import io.nop.orm.sql.IEntityFilterProvider;
 import io.nop.orm.support.DynamicOrmEntity;
-
+import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -75,6 +77,8 @@ public class SessionFactoryConfig {
 
     private IEqlAstTransformer eqlAstTransformer;
 
+    private IEntityFilterProvider entityFilterProvider;
+
     public boolean isRegisterGlobalCache() {
         return registerGlobalCache;
     }
@@ -89,6 +93,15 @@ public class SessionFactoryConfig {
 
     public void setEqlAstTransformer(IEqlAstTransformer eqlAstTransformer) {
         this.eqlAstTransformer = eqlAstTransformer;
+    }
+
+    public IEntityFilterProvider getEntityFilterProvider() {
+        return entityFilterProvider;
+    }
+
+    @Inject
+    public void setEntityFilterProvider(@Nullable IEntityFilterProvider entityFilterProvider) {
+        this.entityFilterProvider = entityFilterProvider;
     }
 
     public IOrmColumnBinderEnhancer getColumnBinderEnhancer() {

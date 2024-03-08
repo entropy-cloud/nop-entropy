@@ -18,11 +18,12 @@ import io.nop.orm.eql.ICompiledSql;
 import io.nop.orm.eql.IEqlAstTransformer;
 import io.nop.orm.loader.IQueryExecutor;
 import io.nop.orm.model.IOrmModel;
+import io.nop.orm.sql.ISqlCompileTool;
 
 import java.io.Serializable;
 import java.util.Set;
 
-public interface IOrmSessionFactory extends AutoCloseable, IDialectProvider {
+public interface IOrmSessionFactory extends AutoCloseable, IDialectProvider, ISqlCompileTool {
 
     /**
      * 清空所有查询数据缓存
@@ -65,7 +66,8 @@ public interface IOrmSessionFactory extends AutoCloseable, IDialectProvider {
     ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete);
 
     ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete,
-                            IEqlAstTransformer astTransformer, boolean useCache, boolean allowUnderscoreName);
+                            IEqlAstTransformer astTransformer, boolean useCache,
+                            boolean allowUnderscoreName, boolean enableFilter);
 
     IQueryExecutor getQueryExecutor(String querySpace);
 

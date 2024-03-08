@@ -27,6 +27,7 @@ import io.nop.orm.eql.meta.EntityTableMeta;
 import io.nop.orm.loader.IQueryExecutor;
 import io.nop.orm.metrics.IOrmMetrics;
 import io.nop.orm.model.IEntityModel;
+import io.nop.orm.sql.IEntityFilterProvider;
 
 public interface IPersistEnv extends IOrmSessionFactory {
     IOrmMetrics getOrmMetrics();
@@ -43,6 +44,8 @@ public interface IPersistEnv extends IOrmSessionFactory {
 
     IQueryExecutor getQueryExecutor(String querySpace);
 
+    IEntityFilterProvider getEntityFilterProvider();
+
     TopoEntry<? extends IEntityModel> getEntityModelTopoEntry(String entityName);
 
     ICache<String, Object> getGlobalCache(String referenceName);
@@ -57,7 +60,8 @@ public interface IPersistEnv extends IOrmSessionFactory {
 
     ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete);
 
-    ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete, boolean allowUnderscoreName);
+    ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete,
+                            boolean allowUnderscoreName, boolean enableFilter);
 
     ITransactionTemplate txn();
 

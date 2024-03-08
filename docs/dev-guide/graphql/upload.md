@@ -224,7 +224,7 @@ public class OrmFileComponent extends AbstractOrmComponent {
 
 很多分布式存储都兼容Amazon的S3存储协议，例如阿里云OSS，腾讯云COS，七牛云，京东云，Minio等。
 
-使用如下配置启用Minio支持。
+使用如下配置启用Minio支持。**注意，使用oss云存储支持时需要先引入nop-integration-oss模块**。
 
 ````yaml
 nop:
@@ -244,6 +244,7 @@ nop:
 * nop.file.store-impl指定为oss时会使用对象存储来保存文件，否则会使用本地文件系统，存放在/nop/file目录下
 * 阿里云要求pathStyleAccess必须设置为false
 
+**注意: 配置项是nop.integration.oss.enabled，而不是nop.file.integration.oss.enabled**
 
 ## 配置变量
 

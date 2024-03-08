@@ -14,14 +14,54 @@ import io.nop.commons.collections.IntHashMap;
 import io.nop.commons.collections.MutableIntArray;
 import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
-import io.nop.orm.model.*;
+import io.nop.orm.model.IEntityPropModel;
+import io.nop.orm.model.IEntityRelationModel;
+import io.nop.orm.model.OrmAliasModel;
+import io.nop.orm.model.OrmColumnModel;
+import io.nop.orm.model.OrmComponentModel;
+import io.nop.orm.model.OrmComponentPropModel;
+import io.nop.orm.model.OrmCompositePKModel;
+import io.nop.orm.model.OrmComputePropModel;
+import io.nop.orm.model.OrmEntityFilterModel;
+import io.nop.orm.model.OrmEntityModel;
+import io.nop.orm.model.OrmIndexColumnModel;
+import io.nop.orm.model.OrmIndexModel;
+import io.nop.orm.model.OrmJoinOnModel;
+import io.nop.orm.model.OrmModelConstants;
+import io.nop.orm.model.OrmReferenceModel;
+import io.nop.orm.model.OrmToOneReferenceModel;
+import io.nop.orm.model.OrmUniqueKeyModel;
 import io.nop.orm.model.utils.OrmModelHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
-import static io.nop.orm.model.OrmModelErrors.*;
+import static io.nop.orm.model.OrmModelErrors.ARG_COL_CODE;
+import static io.nop.orm.model.OrmModelErrors.ARG_COL_NAME;
+import static io.nop.orm.model.OrmModelErrors.ARG_ENTITY_NAME;
+import static io.nop.orm.model.OrmModelErrors.ARG_OTHER_PROP_NAME;
+import static io.nop.orm.model.OrmModelErrors.ARG_PROP_ID;
+import static io.nop.orm.model.OrmModelErrors.ARG_PROP_NAME;
+import static io.nop.orm.model.OrmModelErrors.ARG_REF_NAME;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_ALIAS_MUST_REF_TO_COLUMN_OR_REFERENCE;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_ENTITY_MODEL_NO_PK;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_DUPLICATE_COL_CODE;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_DUPLICATE_PROP;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_DUPLICATE_PROP_ID;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_INVALID_PROP_ID;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_JOIN_MUST_ON_COLUMNS_OR_ID;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_JOIN_NO_CONDITION;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_RELATION_JOIN_IS_EMPTY;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_PROP_ID_IS_RESERVED;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_COLUMN;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_PROP;
 
 public class OrmEntityModelInitializer {
     static final Logger LOG = LoggerFactory.getLogger(OrmEntityModelInitializer.class);
@@ -59,7 +99,7 @@ public class OrmEntityModelInitializer {
 
     Map<String, IEntityPropModel> propsByUnderscoreName = new HashMap<>();
 
-    boolean containsTenantIdInPk;
+    boolean globalUniqueId;
 
     public OrmEntityModelInitializer(OrmEntityModel entityModel) {
         this.entityModel = entityModel;
@@ -82,8 +122,10 @@ public class OrmEntityModelInitializer {
         initRelations();
         checkPropNames();
 
-        if (tenantPropId > 0) {
-            this.containsTenantIdInPk = this.pkColumns.contains(colsByPropId[tenantPropId]);
+        this.globalUniqueId = entityModel.containsTag(OrmModelConstants.TAG_GID);
+
+        if (tenantPropId > 0 && !globalUniqueId) {
+            this.globalUniqueId = this.pkColumns.contains(colsByPropId[tenantPropId]);
         }
 
         for (IEntityPropModel prop : props.values()) {
@@ -192,8 +234,8 @@ public class OrmEntityModelInitializer {
         return colsByCode;
     }
 
-    public boolean isContainsTenantIdInPk() {
-        return containsTenantIdInPk;
+    public boolean isGlobalUniqueId() {
+        return globalUniqueId;
     }
 
     void initIdProp() {

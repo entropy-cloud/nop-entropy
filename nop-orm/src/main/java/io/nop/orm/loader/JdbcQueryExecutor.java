@@ -52,7 +52,8 @@ public class JdbcQueryExecutor implements IQueryExecutor {
 
     @Override
     public long executeUpdate(@Nonnull IOrmSessionImplementor session, @Nonnull SQL eql) {
-        ICompiledSql compiled = env.compileSql(eql.getName(), eql.getText(), eql.isDisableLogicalDelete(), eql.isAllowUnderscoreName());
+        ICompiledSql compiled = env.compileSql(eql.getName(), eql.getText(), eql.isDisableLogicalDelete(),
+                eql.isAllowUnderscoreName(), eql.isEnableFilter());
         return executeUpdateSql(session, compiled, eql.getMarkerValues());
     }
 
@@ -70,7 +71,8 @@ public class JdbcQueryExecutor implements IQueryExecutor {
                               @Nonnull Function<? super IDataSet, T> callback) {
         if (LOG.isDebugEnabled())
             eql.dump("session.executeQuery");
-        ICompiledSql compiled = env.compileSql(eql.getName(), eql.getText(), eql.isDisableLogicalDelete(), eql.isAllowUnderscoreName());
+        ICompiledSql compiled = env.compileSql(eql.getName(), eql.getText(), eql.isDisableLogicalDelete(),
+                eql.isAllowUnderscoreName(), eql.isEnableFilter());
         return executeQuerySql(session, compiled, eql.getMarkerValues(), range, callback);
     }
 
@@ -94,7 +96,8 @@ public class JdbcQueryExecutor implements IQueryExecutor {
                                   @Nonnull Function<IComplexDataSet, T> callback, ICancelToken cancelToken) {
         if (LOG.isDebugEnabled())
             eql.dump("session.executeStatement");
-        ICompiledSql compiled = env.compileSql(eql.getName(), eql.getText(), eql.isDisableLogicalDelete(), eql.isAllowUnderscoreName());
+        ICompiledSql compiled = env.compileSql(eql.getName(), eql.getText(), eql.isDisableLogicalDelete(),
+                eql.isAllowUnderscoreName(), eql.isEnableFilter());
         return executeStatementSql(session, compiled, eql.getMarkerValues(), range, callback, cancelToken);
     }
 
@@ -142,7 +145,8 @@ public class JdbcQueryExecutor implements IQueryExecutor {
 
     private SQL transformEQL(ICompiledSql compiled, List<Object> markerValues) {
         List<Object> params = compiled.buildParams(markerValues);
-        return new GenSqlTransformer(env.getShardSelector(), env.getOrmModel(), env)
+        return new GenSqlTransformer(env.getShardSelector(), env.getOrmModel(), env, env,
+                this.env.getEntityFilterProvider())
                 .transform(compiled.getSql(), params).end();
     }
 
