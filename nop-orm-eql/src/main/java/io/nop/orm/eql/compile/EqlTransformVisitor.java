@@ -16,21 +16,112 @@ import io.nop.dao.DaoConstants;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.function.ISQLFunction;
 import io.nop.orm.eql.OrmEqlConstants;
-import io.nop.orm.eql.ast.*;
+import io.nop.orm.eql.ast.EqlASTKind;
+import io.nop.orm.eql.ast.EqlASTNode;
+import io.nop.orm.eql.ast.EqlASTVisitor;
+import io.nop.orm.eql.ast.SqlAlias;
+import io.nop.orm.eql.ast.SqlAllProjection;
+import io.nop.orm.eql.ast.SqlAndExpr;
+import io.nop.orm.eql.ast.SqlBinaryExpr;
+import io.nop.orm.eql.ast.SqlColumnName;
+import io.nop.orm.eql.ast.SqlCteStatement;
+import io.nop.orm.eql.ast.SqlDecorator;
+import io.nop.orm.eql.ast.SqlDelete;
+import io.nop.orm.eql.ast.SqlExpr;
+import io.nop.orm.eql.ast.SqlExprProjection;
+import io.nop.orm.eql.ast.SqlFrom;
+import io.nop.orm.eql.ast.SqlInsert;
+import io.nop.orm.eql.ast.SqlJoinTableSource;
+import io.nop.orm.eql.ast.SqlLiteral;
+import io.nop.orm.eql.ast.SqlNumberLiteral;
+import io.nop.orm.eql.ast.SqlOrderBy;
+import io.nop.orm.eql.ast.SqlParameterMarker;
+import io.nop.orm.eql.ast.SqlProgram;
+import io.nop.orm.eql.ast.SqlProjection;
+import io.nop.orm.eql.ast.SqlQualifiedName;
+import io.nop.orm.eql.ast.SqlQuerySelect;
+import io.nop.orm.eql.ast.SqlRegularFunction;
+import io.nop.orm.eql.ast.SqlSelect;
+import io.nop.orm.eql.ast.SqlSelectWithCte;
+import io.nop.orm.eql.ast.SqlSingleTableSource;
+import io.nop.orm.eql.ast.SqlStringLiteral;
+import io.nop.orm.eql.ast.SqlSubqueryTableSource;
+import io.nop.orm.eql.ast.SqlTableName;
+import io.nop.orm.eql.ast.SqlTableSource;
+import io.nop.orm.eql.ast.SqlUpdate;
+import io.nop.orm.eql.ast.SqlWhere;
 import io.nop.orm.eql.enums.SqlJoinType;
 import io.nop.orm.eql.enums.SqlOperator;
-import io.nop.orm.eql.meta.*;
+import io.nop.orm.eql.meta.ISqlExprMeta;
+import io.nop.orm.eql.meta.ISqlSelectionMeta;
+import io.nop.orm.eql.meta.ISqlTableMeta;
+import io.nop.orm.eql.meta.RenamedSqlExprMeta;
+import io.nop.orm.eql.meta.SelectResultTableMeta;
+import io.nop.orm.eql.meta.SingleColumnExprMeta;
 import io.nop.orm.eql.param.ISqlParamBuilder;
 import io.nop.orm.eql.sql.IAliasGenerator;
 import io.nop.orm.eql.utils.EqlASTBuilder;
 import io.nop.orm.eql.utils.EqlHelper;
-import io.nop.orm.model.*;
+import io.nop.orm.model.IColumnModel;
+import io.nop.orm.model.IEntityJoinConditionModel;
+import io.nop.orm.model.IEntityModel;
+import io.nop.orm.model.IEntityPropModel;
+import io.nop.orm.model.IEntityRelationModel;
+import io.nop.orm.model.IOrmDataType;
+import io.nop.orm.model.OrmEntityFilterModel;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static io.nop.orm.eql.OrmEqlErrors.*;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_ALIAS;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_ARG_COUNT;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_ARG_INDEX;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_COL_NAME;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_DECORATOR;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_DIALECT;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_ENTITY_NAME;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_EXPECTED;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_EXPECTED_COUNT;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_FIELD_NAME;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_FUNC_NAME;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_LEFT_SOURCE;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_MAX_ARG_COUNT;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_MIN_ARG_COUNT;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_PROP_NAME;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_PROP_PATH;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_QUERY_SPACE;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_QUERY_SPACE_MAP;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_TABLE;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_TABLE_SOURCE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DECORATOR_ARG_COUNT_IS_NOT_EXPECTED;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DECORATOR_ARG_TYPE_IS_NOT_EXPECTED;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FIELD_NOT_IN_SUBQUERY;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FUNC_TOO_FEW_ARGS;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FUNC_TOO_MANY_ARGS;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_JOIN_NO_CONDITION;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_JOIN_PROP_PATH_IS_DUPLICATED;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_ALLOW_MULTIPLE_QUERY_SPACE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_SUPPORT_MULTI_JOIN_ON_ALIAS;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_ONLY_SUPPORT_SINGLE_TABLE_SOURCE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_OWNER_NOT_REF_TO_ENTITY;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_PROP_PATH_JOIN_NOT_ALLOW_CONDITION;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_PROP_PATH_NOT_VALID_TO_ONE_REFERENCE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_QUERY_NO_FROM_CLAUSE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_SELECT_NO_PROJECTIONS;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_TABLE_SOURCE_NOT_RESOLVED;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_ALIAS;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_COLUMN_NAME;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_ENTITY_NAME;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_FUNCTION;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_QUERY_SPACE;
 
 public class EqlTransformVisitor extends EqlASTVisitor {
 
@@ -191,32 +282,33 @@ public class EqlTransformVisitor extends EqlASTVisitor {
     }
 
     void addTableFilter(SqlQuerySelect node) {
-        addLogicalDeleteFilter(node);
         addEntityFilter(node);
     }
 
-    void addLogicalDeleteFilter(SqlQuerySelect node) {
-        if (context.isDisableLogicalDelete())
-            return;
+    List<SqlExpr> getDefaultEntityFilter(SqlSingleTableSource table) {
+        String alias = table.getAliasName();
+        ISqlTableMeta tableMeta = (ISqlTableMeta) table.getResolvedTableMeta();
 
-        SqlFrom from = node.getFrom();
+        List<SqlExpr> exprs = Collections.emptyList();
+        if (tableMeta.isUseLogicalDelete()) {
+            exprs = new ArrayList<>();
+            exprs.add(buildLogicalDeleteFilter(table, tableMeta));
+        }
 
-        from.forEachSingleTableSource(table -> {
-            if (table.isFilterAlreadyAdded())
-                return;
+        if (tableMeta.hasFilter()) {
+            for (OrmEntityFilterModel filter : tableMeta.getFilters()) {
+                if (exprs.isEmpty())
+                    exprs = new ArrayList<>();
 
-            ISqlTableMeta tableMeta = (ISqlTableMeta) table.getResolvedTableMeta();
-            if (tableMeta.isUseLogicalDelete()) {
-                SqlWhere where = node.getWhere();
-                if (where == null) {
-                    where = new SqlWhere();
-                    node.setWhere(where);
-                }
+                SqlBinaryExpr expr = new SqlBinaryExpr();
+                expr.setLeft(EqlASTBuilder.colName(alias, filter.getName()));
+                expr.setOperator(SqlOperator.EQ);
 
-                SqlBinaryExpr expr = buildLogicalDeleteFilter(table, tableMeta);
-                where.appendFilter(expr);
+                expr.setRight(EqlASTBuilder.literal(filter.getValue()));
+                exprs.add(expr);
             }
-        });
+        }
+        return exprs;
     }
 
     SqlBinaryExpr buildLogicalDeleteFilter(SqlSingleTableSource table, ISqlTableMeta tableMeta) {
@@ -238,22 +330,16 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         SqlFrom from = node.getFrom();
 
         for (SqlSingleTableSource table : from.getEntitySources()) {
-            String alias = table.getAliasName();
-            ISqlTableMeta tableMeta = (ISqlTableMeta) table.getResolvedTableMeta();
-            if (tableMeta.hasFilter()) {
-                SqlWhere where = node.getWhere();
-                if (where == null) {
-                    where = new SqlWhere();
-                    node.setWhere(where);
-                }
-
-                for (OrmEntityFilterModel filter : tableMeta.getFilters()) {
-                    SqlBinaryExpr expr = new SqlBinaryExpr();
-                    expr.setLeft(EqlASTBuilder.colName(alias, filter.getName()));
-                    expr.setOperator(SqlOperator.EQ);
-
-                    expr.setRight(EqlASTBuilder.literal(filter.getValue()));
-                    where.appendFilter(expr);
+            if (!table.isFilterAlreadyAdded()) {
+                table.setFilterAlreadyAdded(true);
+                List<SqlExpr> filters = getDefaultEntityFilter(table);
+                if (!filters.isEmpty()) {
+                    SqlWhere where = node.getWhere();
+                    if (where == null) {
+                        where = new SqlWhere();
+                        node.setWhere(where);
+                    }
+                    filters.forEach(where::appendFilter);
                 }
             }
         }
@@ -356,10 +442,10 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             return;
 
         table.setFilterAlreadyAdded(true);
-        ISqlTableMeta tableMeta = (ISqlTableMeta) table.getResolvedTableMeta();
-        if (tableMeta.isUseLogicalDelete()) {
-            SqlBinaryExpr expr = buildLogicalDeleteFilter(table, tableMeta);
-            join.addConditionFilter(expr);
+
+        List<SqlExpr> filters = getDefaultEntityFilter(table);
+        if (!filters.isEmpty()) {
+            filters.forEach(join::addConditionFilter);
         }
     }
 
@@ -531,7 +617,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             join.incRef();
         } else {
             ISqlSelectionMeta table = source.getTableName().getResolvedTableMeta();
-            if (table == null || !(table instanceof ISqlTableMeta)) {
+            if (!(table instanceof ISqlTableMeta)) {
                 throw new NopException(ERR_EQL_OWNER_NOT_REF_TO_ENTITY).source(source).param(ARG_TABLE,
                         source.getTableName().getFullName());
             }
@@ -1035,8 +1121,15 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         SqlTableSource source = currentScope.getTableByAlias(node.getName());
         if (source != null) {
             node.setTableSource(source);
+            // 如果是参与比较表达式，则返回主键字段
             ISqlTableMeta tableMeta = getTableMeta(source);
-            node.setResolvedExprMeta(tableMeta.getEntityExprMeta());
+            if (node.getASTParent().getASTKind() == EqlASTKind.SqlBinaryExpr) {
+                ISqlExprMeta fieldMeta = tableMeta.getFieldExprMeta(OrmEqlConstants.PROP_ID, false);
+                node.setResolvedExprMeta(fieldMeta);
+                node.setPropModel((IEntityPropModel) fieldMeta.getOrmDataType());
+            } else {
+                node.setResolvedExprMeta(tableMeta.getEntityExprMeta());
+            }
             return;
         }
 

@@ -810,9 +810,9 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
             return this;
         }
 
-        public SqlBuilder addFilterMarker(String entityName, String alias) {
+        public SqlBuilder addFilterMarker(String markTag, String entityName, String alias) {
             int pos = length();
-            append(" 1=1 ");
+            append(markTag);
             int end = length();
             addMarker(new SyntaxMarker(pos, end, SyntaxMarkerType.FILTER, entityName, alias));
             return this;

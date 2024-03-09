@@ -34,7 +34,7 @@ nop-entropy采用云原生设计，内置分布式事务和多租户支持，可
 Engine）、任务调度引擎(Job Scheduler)、批处理引擎（Batch Prcessing Engine）、规则引擎（Rule Engine）等基础框架，
 后续规划包括工作流引擎（Workflow Engine）、商业智能（BI）、流处理引擎等业务开发常用部分。
 
-**WARNING: Nop Platform 2.0的代码是由Entropy Platform 1.0重构而来，目前重构工作没有完全做完，且尚未在实际项目中使用过。**
+> Nop Platform 2.0的代码是由Entropy Platform 1.0重构而来
 
 开发进度：
 

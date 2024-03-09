@@ -8,7 +8,7 @@
 package io.nop.orm.eql;
 
 public interface OrmEqlConstants {
-
+    String PROP_ID = "id";
 
     String PREFIX_PLACEHOLDER = "{prefix}";
 

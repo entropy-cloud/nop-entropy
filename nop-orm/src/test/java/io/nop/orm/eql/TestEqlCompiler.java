@@ -21,6 +21,20 @@ public class TestEqlCompiler extends AbstractOrmTestCase {
         assertTrue(value > 0);
     }
 
+    SQL compile(String sql) {
+        ICompiledSql compiledSql = orm().getSessionFactory().compileSql("test", sql, true);
+        return compiledSql.getSql();
+    }
+
+    @Test
+    public void testEntityInLogicExpr() {
+        String sqlText = "select o, (select count(*) from SimsCollege c where o.simsCollege = c) from SimsClass o";
+        SQL sql = compile(sqlText);
+        sql.dump();
+
+        orm().findAll(SQL.begin().sql(sqlText).end());
+    }
+
     @Test
     public void testAstTransform() {
         SQL sql = SQL.begin().allowUnderscoreName().sql("select o.class_id, o.studentNumber from sims_class o").end();

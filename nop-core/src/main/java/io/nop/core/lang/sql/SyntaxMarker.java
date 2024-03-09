@@ -12,6 +12,15 @@ import io.nop.commons.text.marker.Marker;
 public class SyntaxMarker extends Marker {
     private static final long serialVersionUID = -2666946667607117556L;
 
+    /**
+     * 在SQL语句中用以下文本来占位
+     */
+    public static final String TAG_WHERE = "/*where*/";
+
+    public static final String TAG_AND = "/*and*/";
+
+    public static final String TAG_FILTER = "/*filter*/";
+
     public enum SyntaxMarkerType {
         BEGIN_SELECT_FIELDS, ENTITY_FIELDS, END_SELECT_FIELDS, // select部分的字段列表
         TABLE, // 表名

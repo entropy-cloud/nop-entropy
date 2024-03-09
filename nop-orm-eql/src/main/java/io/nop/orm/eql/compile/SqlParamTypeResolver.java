@@ -45,6 +45,12 @@ public class SqlParamTypeResolver extends EqlASTVisitor {
 
     @Override
     public void visitSqlParameterMarker(SqlParameterMarker node) {
+        // 如果是自动加入的租户过滤条件
+        if (node.getSqlParamBuilder() != null) {
+            params.add(node.getSqlParamBuilder());
+            return;
+        }
+
         EqlASTNode parent = node.getASTParent();
         ISqlExprMeta resolvedMeta = null;
 

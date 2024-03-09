@@ -8,10 +8,13 @@
 package io.nop.orm.eql.ast;
 
 import io.nop.orm.eql.ast._gen._SqlParameterMarker;
+import io.nop.orm.eql.param.ISqlParamBuilder;
 
 public class SqlParameterMarker extends _SqlParameterMarker {
     private int paramIndex;
     private boolean masked;
+
+    private ISqlParamBuilder sqlParamBuilder;
 
     public boolean isMasked() {
         return masked;
@@ -29,9 +32,18 @@ public class SqlParameterMarker extends _SqlParameterMarker {
         this.paramIndex = paramIndex;
     }
 
+    public ISqlParamBuilder getSqlParamBuilder() {
+        return sqlParamBuilder;
+    }
+
+    public void setSqlParamBuilder(ISqlParamBuilder sqlParamBuilder) {
+        this.sqlParamBuilder = sqlParamBuilder;
+    }
+
     public SqlParameterMarker newInstance() {
         SqlParameterMarker ret = new SqlParameterMarker();
         ret.setParamIndex(paramIndex);
+        ret.setSqlParamBuilder(sqlParamBuilder);
         return ret;
     }
 }
