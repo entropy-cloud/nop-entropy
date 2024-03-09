@@ -13,6 +13,14 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestEqlCompiler extends AbstractOrmTestCase {
+
+    @Test
+    public void testCountStar() {
+        SQL sql = SQL.begin().sql("select count(*) from SimsClass").end();
+        long value = orm().findLong(sql, 0L);
+        assertTrue(value > 0);
+    }
+
     @Test
     public void testAstTransform() {
         SQL sql = SQL.begin().allowUnderscoreName().sql("select o.class_id, o.studentNumber from sims_class o").end();

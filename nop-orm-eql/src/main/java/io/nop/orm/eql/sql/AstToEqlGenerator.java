@@ -759,7 +759,11 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         if (node.getDistinct()) {
             print(" distinct ");
         }
-        printList(node.getArgs(), ",");
+        if (node.getSelectAll()) {
+            print("*");
+        } else {
+            printList(node.getArgs(), ",");
+        }
         print(')');
     }
 
@@ -845,4 +849,6 @@ public class AstToEqlGenerator extends EqlASTVisitor {
             print(')');
         }
     }
+
+
 }
