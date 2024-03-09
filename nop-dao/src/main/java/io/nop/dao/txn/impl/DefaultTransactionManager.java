@@ -37,15 +37,15 @@ import static io.nop.dao.DaoErrors.ERR_DAO_UNKNOWN_QUERY_SPACE;
 public class DefaultTransactionManager implements ITransactionManager {
     static final Logger LOG = LoggerFactory.getLogger(DefaultTransactionManager.class);
 
-    private Map<String, ITransactionFactory> transactionFactoryMap = new ConcurrentHashMap<>();
-    private Map<String, String> txnGroupMap = new ConcurrentHashMap<>();
+    private final Map<String, ITransactionFactory> transactionFactoryMap = new ConcurrentHashMap<>();
+    private final Map<String, String> txnGroupMap = new ConcurrentHashMap<>();
 
     private final Map<String, String> querySpaceToDialectMap = new ConcurrentHashMap<>();
     private ITransactionFactory defaultFactory;
 
     private ITransactionListener defaultListener;
     private ITransactionMetrics transactionMetrics;
-    private ITransactionListener metricsListener = new ITransactionListener() {
+    private final ITransactionListener metricsListener = new ITransactionListener() {
         @Override
         public void onOpen(ITransaction txn) {
             transactionMetrics.onTransactionOpen(txn.getTxnGroup());
@@ -121,8 +121,7 @@ public class DefaultTransactionManager implements ITransactionManager {
     }
 
     @Inject
-    @Named("nopDefaultTransactionListener")
-    public void setDefaultListener(@Nullable ITransactionListener defaultListener) {
+    public void setDefaultListener(@Named("nopDefaultTransactionListener") @Nullable ITransactionListener defaultListener) {
         this.defaultListener = defaultListener;
     }
 

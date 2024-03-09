@@ -213,8 +213,7 @@ public class SessionFactoryConfig {
     }
 
     @Inject
-    @Named("nopOrmGlobalCacheProvider")
-    public void setGlobalCache(ICacheProvider globalCache) {
+    public void setGlobalCache(@Named("nopOrmGlobalCacheProvider") ICacheProvider globalCache) {
         this.globalCache = globalCache;
     }
 

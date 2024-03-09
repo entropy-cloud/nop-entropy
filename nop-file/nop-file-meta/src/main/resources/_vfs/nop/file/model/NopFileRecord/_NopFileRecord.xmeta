@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
-      displayName="文件记录" i18n-en:displayName="File Record" xmlns:ui="ui" xmlns:orm="orm">
+      displayName="文件记录" i18n-en:displayName="File Record" tagSet="gid" xmlns:ui="ui" xmlns:orm="orm">
 
     <entityName>io.nop.file.dao.entity.NopFileRecord</entityName>
 
@@ -20,7 +20,7 @@
     <props>
         <prop name="fileId" displayName="文件ID" propId="1" i18n-en:displayName="File ID" tagSet="var" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="false">
-            <schema type="java.lang.String" precision="32"/>
+            <schema type="java.lang.String" precision="50"/>
         </prop>
         <prop name="fileName" displayName="文件名" propId="2" i18n-en:displayName="File Name" queryable="true"
               sortable="true" insertable="true" updatable="true">
