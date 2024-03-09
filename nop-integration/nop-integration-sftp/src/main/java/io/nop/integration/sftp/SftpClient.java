@@ -188,6 +188,17 @@ public class SftpClient implements IFileServiceClient {
         return true;
     }
 
+    @Override
+    public InputStream getInputStream(String remotePath) {
+        LOG.info("nop.sftp.delete:remotePath={}", remotePath);
+        try {
+            return channel.get(remotePath);
+        } catch (Exception e) {
+            throw new NopException(ERR_SFTP_DELETE_FILE_FAIL, e)
+                    .param(ARG_REMOTE_PATH, remotePath);
+        }
+    }
+
     /**
      * Disconnect from remote
      */

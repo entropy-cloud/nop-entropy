@@ -14,6 +14,9 @@ import io.nop.integration.api.file.FileStatus;
 import io.nop.integration.api.file.IFileServiceClient;
 import io.nop.integration.api.file.IFileServiceClientFactory;
 
+import java.io.FilterInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 public class FileServiceResource extends AbstractResource {
@@ -50,6 +53,28 @@ public class FileServiceResource extends AbstractResource {
     }
 
     @Override
+    public InputStream getInputStream() {
+        IFileServiceClient client = factory.newClient();
+        boolean delayClose = false;
+        try {
+            InputStream is = client.getInputStream(remotePath);
+            delayClose = true;
+            return new FilterInputStream(is) {
+                public void close() throws IOException {
+                    try {
+                        super.close();
+                    } finally {
+                        IoHelper.safeClose(client);
+                    }
+                }
+            };
+        } finally {
+            if (!delayClose)
+                IoHelper.safeClose(client);
+        }
+    }
+
+    @Override
     public void writeToStream(OutputStream os, IStepProgressListener listener) {
         IFileServiceClient client = factory.newClient();
         try {
@@ -58,6 +83,7 @@ public class FileServiceResource extends AbstractResource {
             IoHelper.safeClose(client);
         }
     }
+
 
     @Override
     public boolean delete() {

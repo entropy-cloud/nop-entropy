@@ -9,6 +9,7 @@ package io.nop.integration.api.file;
 
 import io.nop.api.core.resource.IResourceReference;
 
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 
@@ -38,4 +39,6 @@ public interface IFileServiceClient extends AutoCloseable {
     String uploadResource(IResourceReference file, String remotePath);
 
     void downloadToStream(String remotePath, OutputStream out);
+
+    InputStream getInputStream(String remotePath);
 }

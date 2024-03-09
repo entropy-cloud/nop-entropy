@@ -102,6 +102,11 @@ public class LocalFileServiceClientFactory implements IFileServiceClientFactory,
     }
 
     @Override
+    public InputStream getInputStream(String remotePath) {
+        return resourceStore.getResource(remotePath).getInputStream();
+    }
+
+    @Override
     public IFileServiceClient newClient() {
         return this;
     }

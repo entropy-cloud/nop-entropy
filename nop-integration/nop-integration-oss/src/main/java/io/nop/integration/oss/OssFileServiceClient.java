@@ -20,10 +20,10 @@ import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.integration.api.file.FileStatus;
 import io.nop.integration.api.file.IFileServiceClient;
+import jakarta.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.ws.rs.core.MediaType;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -131,8 +131,8 @@ public class OssFileServiceClient implements IFileServiceClient {
         return remotePath;
     }
 
-    protected String normalizePath(String path){
-        if(path.startsWith("/"))
+    protected String normalizePath(String path) {
+        if (path.startsWith("/"))
             return path.substring(1);
         return path;
     }
@@ -149,6 +149,14 @@ public class OssFileServiceClient implements IFileServiceClient {
         } finally {
             IoHelper.safeCloseObject(obj);
         }
+    }
+
+    @Override
+    public InputStream getInputStream(String remotePath) {
+        remotePath = normalizePath(remotePath);
+        GetObjectRequest req = new GetObjectRequest(getBucketName(remotePath), remotePath);
+        S3Object obj = client.getObject(req);
+        return obj.getObjectContent();
     }
 
     @Override
