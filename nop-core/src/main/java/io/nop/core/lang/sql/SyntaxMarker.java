@@ -1,9 +1,9 @@
 /**
- * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
  * Author: canonical_entropy@163.com
  * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
- * Github: https://github.com/entropy-cloud/nop-chaos
+ * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
  */
 package io.nop.core.lang.sql;
 
@@ -15,11 +15,7 @@ public class SyntaxMarker extends Marker {
     /**
      * 在SQL语句中用以下文本来占位
      */
-    public static final String TAG_WHERE = "/*where*/";
-
     public static final String TAG_AND = "/*and*/";
-
-    public static final String TAG_FILTER = "/*filter*/";
 
     public enum SyntaxMarkerType {
         BEGIN_SELECT_FIELDS, ENTITY_FIELDS, END_SELECT_FIELDS, // select部分的字段列表

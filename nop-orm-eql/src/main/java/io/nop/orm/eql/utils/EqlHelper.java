@@ -1,9 +1,9 @@
 /**
- * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
  * Author: canonical_entropy@163.com
  * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
- * Github: https://github.com/entropy-cloud/nop-chaos
+ * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
  */
 package io.nop.orm.eql.utils;
 
@@ -63,7 +63,7 @@ public class EqlHelper {
 
     public static String replaceOwner(String owner, String sqlText) {
         // 如果指定了sqlText，则以sqlText为准，有可能是函数调用之类的。例如 my_func({prefix}colA,{prefix}colB)
-        if (sqlText.indexOf(OrmEqlConstants.PREFIX_PLACEHOLDER) >= 0) {
+        if (sqlText.contains(OrmEqlConstants.PREFIX_PLACEHOLDER)) {
             if (owner == null) {
                 sqlText = StringHelper.replace(sqlText, OrmEqlConstants.PREFIX_PLACEHOLDER, "");
             } else {

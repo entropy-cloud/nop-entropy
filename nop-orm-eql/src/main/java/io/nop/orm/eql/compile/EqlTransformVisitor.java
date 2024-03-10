@@ -1,9 +1,9 @@
 /**
- * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
  * Author: canonical_entropy@163.com
  * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
- * Github: https://github.com/entropy-cloud/nop-chaos
+ * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
  */
 package io.nop.orm.eql.compile;
 
@@ -59,6 +59,7 @@ import io.nop.orm.eql.meta.RenamedSqlExprMeta;
 import io.nop.orm.eql.meta.SelectResultTableMeta;
 import io.nop.orm.eql.meta.SingleColumnExprMeta;
 import io.nop.orm.eql.param.ISqlParamBuilder;
+import io.nop.orm.eql.param.TenantParamBuilder;
 import io.nop.orm.eql.sql.IAliasGenerator;
 import io.nop.orm.eql.utils.EqlASTBuilder;
 import io.nop.orm.eql.utils.EqlHelper;
@@ -143,7 +144,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
     private List<ISqlParamBuilder> params;
 
-    private Set<String> readEntityModels = new LinkedHashSet<>();
+    private final Set<String> readEntityModels = new LinkedHashSet<>();
     private String writeEntityModel;
 
     /**
@@ -293,6 +294,20 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         if (tableMeta.isUseLogicalDelete()) {
             exprs = new ArrayList<>();
             exprs.add(buildLogicalDeleteFilter(table, tableMeta));
+        }
+
+        IEntityModel entityModel = tableMeta.getEntityModel();
+        if (entityModel.isUseTenant()) {
+            SqlBinaryExpr expr = new SqlBinaryExpr();
+            expr.setLeft(EqlASTBuilder.colName(alias, entityModel.getTenantColumn().getName()));
+            expr.setOperator(SqlOperator.EQ);
+            SqlParameterMarker param = new SqlParameterMarker();
+            param.setSqlParamBuilder(TenantParamBuilder.INSTANCE);
+            expr.setRight(param);
+            if (exprs.isEmpty()) {
+                exprs = new ArrayList<>();
+            }
+            exprs.add(expr);
         }
 
         if (tableMeta.hasFilter()) {

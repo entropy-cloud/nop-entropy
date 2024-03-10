@@ -1,13 +1,12 @@
 /**
- * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
  * Author: canonical_entropy@163.com
  * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
- * Github: https://github.com/entropy-cloud/nop-chaos
+ * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
  */
 package io.nop.orm.eql.sql;
 
-import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
@@ -16,10 +15,10 @@ import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.sql.SQL;
 import io.nop.core.lang.sql.SqlExprList;
+import io.nop.core.lang.sql.SyntaxMarker;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.SQLDataType;
 import io.nop.dao.dialect.function.ISQLFunction;
-import io.nop.orm.eql.OrmEqlConstants;
 import io.nop.orm.eql.ast.EqlASTKind;
 import io.nop.orm.eql.ast.EqlASTNode;
 import io.nop.orm.eql.ast.SqlAlias;
@@ -29,6 +28,7 @@ import io.nop.orm.eql.ast.SqlColumnName;
 import io.nop.orm.eql.ast.SqlDateTimeLiteral;
 import io.nop.orm.eql.ast.SqlExpr;
 import io.nop.orm.eql.ast.SqlExprProjection;
+import io.nop.orm.eql.ast.SqlJoinTableSource;
 import io.nop.orm.eql.ast.SqlLikeExpr;
 import io.nop.orm.eql.ast.SqlLimit;
 import io.nop.orm.eql.ast.SqlQuerySelect;
@@ -42,6 +42,7 @@ import io.nop.orm.eql.enums.SqlOperator;
 import io.nop.orm.eql.meta.EntityTableMeta;
 import io.nop.orm.eql.meta.ISqlExprMeta;
 import io.nop.orm.eql.meta.ISqlSelectionMeta;
+import io.nop.orm.eql.meta.ISqlTableMeta;
 import io.nop.orm.eql.utils.EqlHelper;
 import io.nop.orm.model.IEntityModel;
 import org.slf4j.Logger;
@@ -178,40 +179,26 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
     @Override
     protected void printWhere(SqlQuerySelect node) {
         List<SqlSingleTableSource> tables = node.getFrom().getEntitySources();
-        if (tables.isEmpty()) {
+        if (filteredSources.containsAll(tables) || tables.isEmpty()) {
             if (node.getWhere() != null) {
                 println();
                 visitSqlWhere(node.getWhere());
             }
         } else {
             println();
-            boolean first = true;
-            for (SqlSingleTableSource table : tables) {
-                EntityTableMeta tableMeta = (EntityTableMeta) table.getResolvedTableMeta();
-                IEntityModel entityModel = tableMeta.getEntityModel();
-
-                String alias = table.getAliasName();
-
-                if (entityModel.isUseTenant()) {
-                    if (first) {
-                        sb.where();
-                    } else {
-                        sb.and();
-                    }
-                    EqlHelper.appendCol(sb, dialect, alias, entityModel.getTenantColumn());
-                    sb.append('=');
-                    sb.markWithProvider("?", OrmEqlConstants.MARKER_TENANT_ID, () -> ContextProvider.currentTenantId(), false);
-                    first = false;
-                }
+            if (node.getWhere() == null || node.getWhere().getExpr() == null) {
+                if (enableFilter)
+                    print("where 1=1 ");
+            } else {
+                visitSqlWhere((node.getWhere()));
             }
 
-            if (node.getWhere() != null && node.getWhere().getExpr() != null) {
-                if (first) {
-                    sb.where();
-                } else {
-                    sb.and();
+            if(enableFilter) {
+                for (SqlSingleTableSource table : tables) {
+                    if (filteredSources.contains(table))
+                        continue;
+                    addFilter(table);
                 }
-                visit(node.getWhere().getExpr());
             }
         }
     }
@@ -237,9 +224,40 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
                 visitSqlTableName(propJoin.getRight().getTableName());
                 sb.append("on ");
                 visit(propJoin.getCondition());
+
+                addFilter(propJoin.getLeft());
+                addFilter(propJoin.getRight());
+
                 decIndent();
                 appendPropJoins(propJoin.getRight());
             }
+        }
+    }
+
+    @Override
+    protected void printJoin(SqlJoinTableSource node) {
+        if (node.getCondition() != null) {
+            print(" on ");
+            visit(node.getCondition());
+        } else {
+            if (enableFilter)
+                print(" on 1=1 ");
+        }
+
+        if (enableFilter) {
+            if (node.getLeft() instanceof SqlSingleTableSource) {
+                addFilter((SqlSingleTableSource) node.getLeft());
+            }
+            if (node.getRight() instanceof SqlSingleTableSource) {
+                addFilter((SqlSingleTableSource) node.getRight());
+            }
+        }
+    }
+
+    private void addFilter(SqlSingleTableSource source) {
+        if (enableFilter && filteredSources.add(source)) {
+            ISqlTableMeta tableMeta = (ISqlTableMeta) source.getResolvedTableMeta();
+            sb.addFilterMarker(SyntaxMarker.TAG_AND, tableMeta.getEntityName(), source.getAliasName());
         }
     }
 

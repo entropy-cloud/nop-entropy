@@ -1,20 +1,19 @@
 /**
- * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
  * Author: canonical_entropy@163.com
  * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
- * Github: https://github.com/entropy-cloud/nop-chaos
+ * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
  */
 package io.nop.orm.eql.compile;
 
 import io.nop.core.lang.sql.SQL;
-import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.dataset.IDataSetMeta;
+import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.orm.eql.ICompiledSql;
 import io.nop.orm.eql.ast.SqlStatementKind;
 import io.nop.orm.eql.meta.ISqlExprMeta;
 import io.nop.orm.eql.param.ISqlParamBuilder;
-import io.nop.orm.model.IEntityModel;
 
 import java.util.ArrayList;
 import java.util.Collections;

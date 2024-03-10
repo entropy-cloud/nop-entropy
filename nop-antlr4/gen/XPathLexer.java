@@ -1,9 +1,9 @@
 /**
- * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
  * Author: canonical_entropy@163.com
  * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
- * Github: https://github.com/entropy-cloud/nop-chaos
+ * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
  */
 // Generated from C:/can/nop/nop-entropy/nop-antlr4/nop-antlr4-xpath/src/main/antlr4/imports\XPathLexer.g4 by ANTLR 4.10.1
 import org.antlr.v4.runtime.Lexer;

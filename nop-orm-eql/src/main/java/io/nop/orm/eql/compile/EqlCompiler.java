@@ -1,9 +1,9 @@
 /**
- * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
  * Author: canonical_entropy@163.com
  * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
- * Github: https://github.com/entropy-cloud/nop-chaos
+ * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
+ * Github: https://github.com/entropy-cloud/nop-entropy
  */
 package io.nop.orm.eql.compile;
 
@@ -29,6 +29,7 @@ import io.nop.orm.eql.sql.AstToSqlGenerator;
 import io.nop.orm.eql.utils.EqlHelper;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IOrmDataType;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -99,16 +100,7 @@ public class EqlCompiler implements ISqlCompiler {
                 Guard.notNull(exprMeta, "fieldMeta");
                 fieldMetas.add(exprMeta);
 
-                IOrmDataType dataType = exprMeta.getOrmDataType();
-                String sourceFieldName = null;
-                String ownerEntityName = null;
-                if (dataType instanceof IEntityPropModel) {
-                    IEntityPropModel propModel = (IEntityPropModel) dataType;
-                    sourceFieldName = propModel.getName();
-                    ownerEntityName = propModel.getOwnerEntityModel().getName();
-                }
-                BaseDataFieldMeta field = new BaseDataFieldMeta(fieldName, sourceFieldName, ownerEntityName,
-                        exprMeta.getStdDataType(), false);
+                BaseDataFieldMeta field = getBaseDataFieldMeta(exprMeta, fieldName);
                 fields.add(field);
             }
             BaseDataSetMeta meta = new BaseDataSetMeta(fields);
@@ -117,6 +109,21 @@ public class EqlCompiler implements ISqlCompiler {
             compiledSql.setFieldMetas(fieldMetas);
         }
         return compiledSql;
+    }
+
+    @NotNull
+    private static BaseDataFieldMeta getBaseDataFieldMeta(ISqlExprMeta exprMeta, String fieldName) {
+        IOrmDataType dataType = exprMeta.getOrmDataType();
+        String sourceFieldName = null;
+        String ownerEntityName = null;
+        if (dataType instanceof IEntityPropModel) {
+            IEntityPropModel propModel = (IEntityPropModel) dataType;
+            sourceFieldName = propModel.getName();
+            ownerEntityName = propModel.getOwnerEntityModel().getName();
+        }
+        BaseDataFieldMeta field = new BaseDataFieldMeta(fieldName, sourceFieldName, ownerEntityName,
+                exprMeta.getStdDataType(), false);
+        return field;
     }
 
     List<IDataParameterBinder> collectColumnBinders(List<ISqlExprMeta> exprs) {
