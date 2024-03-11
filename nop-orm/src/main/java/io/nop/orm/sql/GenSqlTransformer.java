@@ -137,7 +137,7 @@ public class GenSqlTransformer {
         shardSelections.put(marker, shard);
     }
 
-    private IMarkedString transformTable(SyntaxMarker marker, SQL sql) {
+    public IMarkedString transformTable(SyntaxMarker marker, IMarkedString sql) {
         ShardSelection shard = selectShard(marker);
         if (shard != null) {
             if (shard.getShardName() != null) {

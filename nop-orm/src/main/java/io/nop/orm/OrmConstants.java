@@ -25,6 +25,8 @@ public interface OrmConstants {
 
     char COMPOSITE_PK_SEPARATOR = '~';
 
+    String DATA_AUTH_ACTION_SQL = "sql";
+
 
     String SQL_TYPE_SQL = "sql";
     String SQL_TYPE_EQL = "eql";

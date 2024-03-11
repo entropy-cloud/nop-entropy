@@ -49,7 +49,9 @@ import io.nop.orm.exceptions.OrmException;
 import io.nop.orm.impl.MultiOrmDaoListener;
 import io.nop.orm.loader.IQueryExecutor;
 import io.nop.orm.metrics.IOrmMetrics;
+import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
+import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IOrmModel;
 import io.nop.orm.model.init.OrmModelUpdater;
 import io.nop.orm.persister.ICollectionPersister;
@@ -358,6 +360,26 @@ public class SessionFactoryImpl implements IPersistEnv {
     @Override
     public <T> T getExtension(String entityName, Class<T> extensionClass) {
         return requireEntityPersister(entityName).getExtension(extensionClass);
+    }
+
+    @Override
+    public String getIdText(String entityName, String alias) {
+        IEntityModel entityModel = this.ormModel.requireEntityModel(entityName);
+        IEntityPropModel prop = entityModel.getIdProp();
+        IDialect dialect = this.getDialectForQuerySpace(entityModel.getQuerySpace());
+
+        if (prop.isColumnModel()) {
+            return alias + "." + dialect.escapeSQLName(((IColumnModel) prop).getCode());
+        } else {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0, n = entityModel.getPkColumns().size(); i < n; i++) {
+                String code = entityModel.getColumns().get(i).getCode();
+                sb.append(alias).append(".").append(dialect.escapeSQLName(code));
+                if (i != 0)
+                    sb.append(',');
+            }
+            return sb.toString();
+        }
     }
 
     @Override

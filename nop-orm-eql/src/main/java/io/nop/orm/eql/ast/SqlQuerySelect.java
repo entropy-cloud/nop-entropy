@@ -14,4 +14,13 @@ public class SqlQuerySelect extends _SqlQuerySelect {
     public SqlStatementKind getStatementKind() {
         return SqlStatementKind.SELECT;
     }
+
+    public SqlWhere makeWhere() {
+        SqlWhere where = getWhere();
+        if (where == null) {
+            where = new SqlWhere();
+            setWhere(where);
+        }
+        return where;
+    }
 }

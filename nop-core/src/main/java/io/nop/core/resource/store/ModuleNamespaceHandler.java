@@ -39,17 +39,17 @@ public class ModuleNamespaceHandler implements IResourceNamespaceHandler {
         IResource resource = null;
         for (ModuleModel module : ModuleManager.instance().getEnabledModules()) {
             String fullPath = "/" + module.getModuleId() + path;
-            IResource prev = resource;
-            resource = locator.getResource(fullPath, true);
-            if (resource != null) {
+            IResource moduleResource = locator.getResource(fullPath, true);
+            if (moduleResource != null) {
                 if (AppConfig.isDebugMode()) {
-                    if (prev != null)
+                    if (resource != null)
                         throw new NopException(ERR_RESOURCE_MODULE_PATH_RESOLVE_TO_MULTI_FILE)
                                 .param(ARG_STD_PATH, vPath).param(ARG_PATH, resource.getPath())
                                 .param(ARG_OTHER_PATH, resource.getPath());
+                    resource = moduleResource;
                     continue;
                 }
-                return resource;
+                return moduleResource;
             }
         }
 

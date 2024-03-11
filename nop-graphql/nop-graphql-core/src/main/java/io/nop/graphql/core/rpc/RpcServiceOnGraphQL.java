@@ -59,9 +59,8 @@ public class RpcServiceOnGraphQL implements IRpcService {
         }
 
         IContext context = ContextProvider.getOrCreateContext();
-        context.setAttribute(ApiConstants.ATTR_SERVICE_CONTEXT, ctx);
-
         Object oldCtx = context.getAttribute(ApiConstants.ATTR_SERVICE_CONTEXT);
+        context.setAttribute(ApiConstants.ATTR_SERVICE_CONTEXT, ctx);
 
         return invokeAsync(ctx, serviceMethod, request, cancelToken).whenComplete((ret, e) -> {
             context.setAttribute(ApiConstants.ATTR_SERVICE_CONTEXT, oldCtx);

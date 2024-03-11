@@ -11,6 +11,8 @@ import io.nop.orm.eql.ICompiledSql;
 import io.nop.orm.eql.IEqlAstTransformer;
 
 public interface ISqlCompileTool {
+    String getIdText(String entityName, String alias);
+
     ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete,
                             IEqlAstTransformer astTransformer, boolean useCache,
                             boolean allowUnderscoreName, boolean enableFilter);

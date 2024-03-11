@@ -8,12 +8,22 @@
 package io.nop.orm.eql.ast;
 
 import io.nop.orm.eql.ast._gen._SqlFrom;
+import io.nop.orm.eql.compile.SqlTableScope;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
 public class SqlFrom extends _SqlFrom {
+    private SqlTableScope tableScope;
+
+    public SqlTableScope getTableScope() {
+        return tableScope;
+    }
+
+    public void setTableScope(SqlTableScope tableScope) {
+        this.tableScope = tableScope;
+    }
 
     public SqlTableSource getFirstTableSource() {
         SqlTableSource source = getTableSources().get(0);

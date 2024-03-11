@@ -26,9 +26,9 @@
     <!-- JDBC使用这个类存取GEOMETRY类型数据。 IDataTypeHandler类型 -->
     <geometryTypeHandler xdef:value="class-name"/>
 
-    <jsonTypeHandler xdef:value="class-name" />
+    <jsonTypeHandler xdef:value="class-name"/>
 
-    <upsertHandler xdef:value="class-name" />
+    <upsertHandler xdef:value="class-name"/>
 
     <!--
     @supportUpdateTableAlias update语句是否允许表别名。例如 update my_table a where ...
@@ -46,6 +46,7 @@
               supportQueryTimeout="boolean" supportWithAsClause="boolean"
               supportDeleteFromJoin="boolean" supportILike="boolean"
               supportNullsFirst="boolean" useGetStringForDate="boolean"
+              supportFullJoin="boolean" supportRightJoin="boolean"
     />
 
     <!--
@@ -97,8 +98,11 @@
 
     <functions xdef:body-type="list" xdef:key-attr="name"
                xdef:bean-body-type="List&lt;io.nop.dao.dialect.model.ISqlFunctionModel>">
+        <!--
+         @returnFirstArgType 返回类型是否与第一个参数的类型相同
+        -->
         <template name="!string" returnType="std-sql-type" argTypes="std-sql-type-list"
-                  xdef:name="SqlTemplateModel"
+                  xdef:name="SqlTemplateModel" returnFirstArgType="!boolean=false"
                   xdef:bean-tag-prop="type">
             <description xdef:value="string"/>
             <!--
@@ -120,10 +124,11 @@
         @argTypes 指定函数参数的类型
         @realName 数据库中的函数名。在dialect中声明的函数名为标准函数名，它会尽量在多个数据库之间保持一致。realName为对应的数据库中的实现函数名
         @special 需要特殊语法支持的函数
+        @returnFirstArgType 返回类型是否与第一个参数的类型相同
         -->
         <native name="!string" returnType="std-sql-type" hasParenthesis="boolean=true" argTypes="std-sql-type-list"
                 minArgCount="int" maxArgCount="int" realName="string" special="boolean"
-                xdef:name="SqlNativeFunctionModel"
+                xdef:name="SqlNativeFunctionModel" returnFirstArgType="!boolean=false"
                 xdef:bean-tag-prop="type">
             <description xdef:value="string"/>
             <testSql xdef:value="string"/>

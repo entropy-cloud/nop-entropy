@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [100:10:0:0]/nop/schema/orm/dialect.xdef <p>
+ * generate from [104:10:0:0]/nop/schema/orm/dialect.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -36,6 +36,13 @@ public abstract class _SqlTemplateModel extends io.nop.core.resource.component.A
      * 
      */
     private java.lang.String _name ;
+    
+    /**
+     *  
+     * xml name: returnFirstArgType
+     * 返回类型是否与第一个参数的类型相同
+     */
+    private boolean _returnFirstArgType  = false;
     
     /**
      *  
@@ -118,6 +125,25 @@ public abstract class _SqlTemplateModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._name = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: returnFirstArgType
+     *  返回类型是否与第一个参数的类型相同
+     */
+    
+    public boolean isReturnFirstArgType(){
+      return _returnFirstArgType;
+    }
+
+    
+    public void setReturnFirstArgType(boolean value){
+        checkAllowChange();
+        
+        this._returnFirstArgType = value;
            
     }
 
@@ -216,6 +242,7 @@ public abstract class _SqlTemplateModel extends io.nop.core.resource.component.A
         out.putNotNull("argTypes",this.getArgTypes());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("name",this.getName());
+        out.putNotNull("returnFirstArgType",this.isReturnFirstArgType());
         out.putNotNull("returnType",this.getReturnType());
         out.putNotNull("source",this.getSource());
         out.putNotNull("testSql",this.getTestSql());
@@ -234,6 +261,7 @@ public abstract class _SqlTemplateModel extends io.nop.core.resource.component.A
         instance.setArgTypes(this.getArgTypes());
         instance.setDescription(this.getDescription());
         instance.setName(this.getName());
+        instance.setReturnFirstArgType(this.isReturnFirstArgType());
         instance.setReturnType(this.getReturnType());
         instance.setSource(this.getSource());
         instance.setTestSql(this.getTestSql());

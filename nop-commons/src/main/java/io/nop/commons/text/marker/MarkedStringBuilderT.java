@@ -12,6 +12,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.commons.text.marker.Markers.ValueMarker;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
@@ -110,6 +111,11 @@ public abstract class MarkedStringBuilderT<T extends MarkedStringBuilderT<T>> im
     @Override
     public List<Marker> getMarkers() {
         return markers == null ? Collections.emptyList() : markers;
+    }
+
+    public T clearMarkers() {
+        this.markers = null;
+        return castReturn();
     }
 
     public Marker getMarker(int index) {
@@ -236,6 +242,15 @@ public abstract class MarkedStringBuilderT<T extends MarkedStringBuilderT<T>> im
         markers.add(marker);
     }
 
+    public T addMarkers(Collection<Marker> markers) {
+        if (markers != null) {
+            for (Marker marker : markers) {
+                addMarker(marker);
+            }
+        }
+        return castReturn();
+    }
+
     /**
      * 追加一段MarkedString，合并文本，并将markers逐个偏移offset之后加入到当前marker集合
      *
@@ -296,7 +311,7 @@ public abstract class MarkedStringBuilderT<T extends MarkedStringBuilderT<T>> im
         int start = buf.length();
         buf.append(text);
         int end = buf.length();
-        return appendMarker(new Markers.ProviderMarker(start, end, name, provider,masked));
+        return appendMarker(new Markers.ProviderMarker(start, end, name, provider, masked));
     }
 
     public T markValue(String text, Object value, boolean masked) {
@@ -326,7 +341,7 @@ public abstract class MarkedStringBuilderT<T extends MarkedStringBuilderT<T>> im
             if (marker instanceof ValueMarker) {
                 if (k >= values.size()) {
                     k++;
-                    break;
+                    continue;
                 }
 
                 Object value = values.get(k);
@@ -371,6 +386,55 @@ public abstract class MarkedStringBuilderT<T extends MarkedStringBuilderT<T>> im
         return castReturn();
     }
 
+    public T insertAt(int startPos, IMarkedString str) {
+        StringBuilder sb = makeBuf();
+        sb.insert(startPos, str.getTextSequence());
+        if (!str.getMarkers().isEmpty() || this.markers != null) {
+            List<Marker> markers = new ArrayList<>();
+            int index = -1;
+            if (this.markers != null) {
+                for (index = 0; index < this.markers.size(); index++) {
+                    Marker marker = this.markers.get(index);
+                    if (marker.getBegin() >= startPos)
+                        break;
+                }
+            }
+
+            str.getMarkers().forEach(marker -> {
+                markers.add(marker.offset(startPos));
+            });
+
+            if (index >= 0) {
+                for (; index < this.markers.size(); index++) {
+                    markers.add(this.markers.get(index).offset(str.length()));
+                }
+            }
+            this.markers = markers;
+        }
+        return castReturn();
+    }
+
+    public T removeRange(int startPos, int endPos) {
+        StringBuilder sb = makeBuf();
+        sb.delete(startPos, endPos);
+        if (this.markers != null && !this.markers.isEmpty()) {
+            List<Marker> markers = new ArrayList<>(this.markers.size());
+
+            for (int index = 0; index < this.markers.size(); index++) {
+                Marker marker = this.markers.get(index);
+                if (marker.within(startPos, endPos))
+                    continue;
+                if (marker.getBegin() > endPos) {
+                    marker = marker.offset(startPos - endPos);
+                }
+                markers.add(marker);
+            }
+
+            this.markers = markers;
+        }
+        return castReturn();
+    }
+
     /**
      * 将marker转换为MarkedString对象，后续的marker位置将被自动调整。
      *
@@ -394,7 +458,7 @@ public abstract class MarkedStringBuilderT<T extends MarkedStringBuilderT<T>> im
                 offset += text.length() - marker.length();
                 for (Marker strMarker : str.getMarkers()) {
                     strMarker = strMarker.offset(begin);
-                    markers.add(i, strMarker);
+                    markers.add(i + 1, strMarker);
                     i++;
                     n++;
                 }

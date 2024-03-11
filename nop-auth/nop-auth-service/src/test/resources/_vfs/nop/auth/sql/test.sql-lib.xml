@@ -1,0 +1,9 @@
+<sql-lib x:schema="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <sqls>
+        <eql name="findFirstByName" sqlMethod="findFirst" enableFilter="true">
+            <source>
+                select u from NopAuthUser u where u.userName like ${'%' + name + '%'}
+            </source>
+        </eql>
+    </sqls>
+</sql-lib>

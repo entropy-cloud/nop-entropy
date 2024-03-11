@@ -7,6 +7,7 @@
  */
 package io.nop.graphql.core.engine;
 
+import io.nop.api.core.ApiConstants;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.auth.IActionAuthChecker;
 import io.nop.api.core.auth.IDataAuthChecker;
@@ -16,6 +17,7 @@ import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.cache.LocalCache;
@@ -398,31 +400,44 @@ public class GraphQLEngine implements IGraphQLEngine {
     }
 
     @Override
-    public CompletionStage<ApiResponse<?>> executeRpcAsync(IGraphQLExecutionContext context) {
+    public CompletionStage<ApiResponse<?>> executeRpcAsync(IGraphQLExecutionContext gqlCtx) {
+        IContext context = gqlCtx.getContext();
+        Object oldCtx = context.getAttribute(ApiConstants.ATTR_SERVICE_CONTEXT);
+        context.setAttribute(ApiConstants.ATTR_SERVICE_CONTEXT, gqlCtx);
+
         IGraphQLExecutor executor = new GraphQLExecutor(operationInvoker, graphQLHook, flowControlRunner, this);
-        IAsyncFunctionInvoker executionInvoker = getExecutionInvoker(context);
+        IAsyncFunctionInvoker executionInvoker = getExecutionInvoker(gqlCtx);
 
         CompletionStage<ApiResponse<?>> future;
         if (executionInvoker != null) {
-            future = executionInvoker.invokeAsync(executor::executeOneAsync, context);
+            future = executionInvoker.invokeAsync(executor::executeOneAsync, gqlCtx);
         } else {
-            future = executor.executeOneAsync(context);
+            future = executor.executeOneAsync(gqlCtx);
         }
-        return future;
+
+        return future.whenComplete((ret, err) -> {
+            context.setAttribute(ApiConstants.ATTR_SERVICE_CONTEXT, oldCtx);
+        });
     }
 
     @Override
-    public CompletionStage<GraphQLResponseBean> executeGraphQLAsync(IGraphQLExecutionContext context) {
+    public CompletionStage<GraphQLResponseBean> executeGraphQLAsync(IGraphQLExecutionContext gqlCtx) {
+        IContext context = gqlCtx.getContext();
+        Object oldCtx = context.getAttribute(ApiConstants.ATTR_SERVICE_CONTEXT);
+        context.setAttribute(ApiConstants.ATTR_SERVICE_CONTEXT, gqlCtx);
+
         IGraphQLExecutor executor = new GraphQLExecutor(operationInvoker, graphQLHook, flowControlRunner, this);
-        IAsyncFunctionInvoker executionInvoker = getExecutionInvoker(context);
+        IAsyncFunctionInvoker executionInvoker = getExecutionInvoker(gqlCtx);
         CompletionStage<GraphQLResponseBean> future;
         if (executionInvoker != null) {
-            future = executionInvoker.invokeAsync(executor::executeAsync, context);
+            future = executionInvoker.invokeAsync(executor::executeAsync, gqlCtx);
         } else {
-            future = executor.executeAsync(context);
+            future = executor.executeAsync(gqlCtx);
         }
 
-        return future;
+        return future.whenComplete((ret, err) -> {
+            context.setAttribute(ApiConstants.ATTR_SERVICE_CONTEXT, oldCtx);
+        });
     }
 
     @Override

@@ -8,10 +8,10 @@
 package io.nop.orm.eql.compile;
 
 import io.nop.commons.type.StdSqlType;
-import io.nop.dataset.binder.DataParameterBinders;
-import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.function.ISQLFunction;
+import io.nop.dataset.binder.DataParameterBinders;
+import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.orm.eql.OrmEqlConstants;
 import io.nop.orm.eql.ast.SqlAggregateFunction;
 import io.nop.orm.eql.ast.SqlBinaryExpr;
@@ -80,6 +80,8 @@ public class ExprTypeResolver {
                 break;
             }
         }
+        if (type == null)
+            type = StdSqlType.ANY;
         return type;
     }
 

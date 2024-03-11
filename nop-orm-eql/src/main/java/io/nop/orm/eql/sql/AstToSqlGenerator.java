@@ -193,7 +193,7 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
                 visitSqlWhere((node.getWhere()));
             }
 
-            if(enableFilter) {
+            if (enableFilter) {
                 for (SqlSingleTableSource table : tables) {
                     if (filteredSources.contains(table))
                         continue;
@@ -246,12 +246,18 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
 
         if (enableFilter) {
             if (node.getLeft() instanceof SqlSingleTableSource) {
-                addFilter((SqlSingleTableSource) node.getLeft());
+                addJoinFilter((SqlSingleTableSource) node.getLeft());
             }
             if (node.getRight() instanceof SqlSingleTableSource) {
-                addFilter((SqlSingleTableSource) node.getRight());
+                addJoinFilter((SqlSingleTableSource) node.getRight());
             }
         }
+    }
+
+    private void addJoinFilter(SqlSingleTableSource source) {
+        if (source.isMainSource())
+            return;
+        addFilter(source);
     }
 
     private void addFilter(SqlSingleTableSource source) {

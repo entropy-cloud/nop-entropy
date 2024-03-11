@@ -87,6 +87,7 @@ unreservedWord_:
     | UNCOMMITTED | UNNAMED
     | VALUE | POSITION | ORDER
     | LEVEL | SESSION |COUNT |COALESCE|YEAR|MONTH
+    | LOWER | UPPER | ZONE |WORK
     ;
 
 // variable

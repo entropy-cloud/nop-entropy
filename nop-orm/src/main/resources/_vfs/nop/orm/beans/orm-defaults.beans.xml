@@ -54,6 +54,13 @@
         <constructor-arg index="0" ref="nopOrmTemplate"/>
     </bean>
 
+    <bean id="nopDataAuthEntityFilterProvider" class="io.nop.orm.filter.DataAuthEntityFilterProvider"
+          ioc:default="true">
+        <ioc:condition>
+            <on-bean>nopDataAuthChecker</on-bean>
+        </ioc:condition>
+    </bean>
+
     <bean id="nopSingleSessionMethodInterceptor" ioc:default="true"
           class="io.nop.orm.interceptor.SingleSessionMethodInterceptor">
         <constructor-arg index="0" ref="nopOrmTemplate"/>

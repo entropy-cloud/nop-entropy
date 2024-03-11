@@ -9,10 +9,10 @@ package io.nop.dao.dialect.function;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.sql.ISqlExpr;
 import io.nop.core.lang.sql.SqlExprList;
-import io.nop.commons.type.StdSqlType;
 import io.nop.core.lang.sql.StringSqlExpr;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.model.SqlNativeFunctionModel;
@@ -70,7 +70,15 @@ public class NativeSQLFunction implements ISQLFunction {
 
     @Override
     public StdSqlType getReturnType(List<? extends ISqlExpr> argExprs, IDialect dialect) {
-        return funcModel.getReturnType();
+        StdSqlType sqlType = funcModel.getReturnType();
+        if (sqlType == null || sqlType == StdSqlType.ANY) {
+            if (funcModel.isReturnFirstArgType() && !argExprs.isEmpty()) {
+                sqlType = argExprs.get(0).getStdSqlType();
+            }
+        }
+        if (sqlType == null)
+            sqlType = StdSqlType.ANY;
+        return sqlType;
     }
 
     @Override

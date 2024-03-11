@@ -49,7 +49,6 @@ import io.nop.orm.eql.ast.SqlSubqueryTableSource;
 import io.nop.orm.eql.ast.SqlTableName;
 import io.nop.orm.eql.ast.SqlTableSource;
 import io.nop.orm.eql.ast.SqlUpdate;
-import io.nop.orm.eql.ast.SqlWhere;
 import io.nop.orm.eql.enums.SqlJoinType;
 import io.nop.orm.eql.enums.SqlOperator;
 import io.nop.orm.eql.meta.ISqlExprMeta;
@@ -72,13 +71,13 @@ import io.nop.orm.model.IOrmDataType;
 import io.nop.orm.model.OrmEntityFilterModel;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -286,59 +285,61 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         addEntityFilter(node);
     }
 
-    List<SqlExpr> getDefaultEntityFilter(SqlSingleTableSource table) {
-        String alias = table.getAliasName();
+    void collectDefaultEntityFilter(SqlSingleTableSource table, Consumer<SqlExpr> consumer) {
         ISqlTableMeta tableMeta = (ISqlTableMeta) table.getResolvedTableMeta();
 
-        List<SqlExpr> exprs = Collections.emptyList();
-        if (tableMeta.isUseLogicalDelete()) {
-            exprs = new ArrayList<>();
-            exprs.add(buildLogicalDeleteFilter(table, tableMeta));
+        if (tableMeta.isUseLogicalDelete() && !context.isDisableLogicalDelete()) {
+            consumer.accept(buildLogicalDeleteFilter(table, tableMeta));
         }
 
         IEntityModel entityModel = tableMeta.getEntityModel();
         if (entityModel.isUseTenant()) {
-            SqlBinaryExpr expr = new SqlBinaryExpr();
-            expr.setLeft(EqlASTBuilder.colName(alias, entityModel.getTenantColumn().getName()));
-            expr.setOperator(SqlOperator.EQ);
-            SqlParameterMarker param = new SqlParameterMarker();
-            param.setSqlParamBuilder(TenantParamBuilder.INSTANCE);
-            expr.setRight(param);
-            if (exprs.isEmpty()) {
-                exprs = new ArrayList<>();
-            }
-            exprs.add(expr);
+            SqlBinaryExpr expr = newTenantExpr(table, tableMeta);
+            consumer.accept(expr);
         }
 
         if (tableMeta.hasFilter()) {
             for (OrmEntityFilterModel filter : tableMeta.getFilters()) {
-                if (exprs.isEmpty())
-                    exprs = new ArrayList<>();
-
-                SqlBinaryExpr expr = new SqlBinaryExpr();
-                expr.setLeft(EqlASTBuilder.colName(alias, filter.getName()));
-                expr.setOperator(SqlOperator.EQ);
-
-                expr.setRight(EqlASTBuilder.literal(filter.getValue()));
-                exprs.add(expr);
+                SqlBinaryExpr expr = newBinaryExpr(table, tableMeta, filter.getName(), filter.getValue());
+                consumer.accept(expr);
             }
         }
-        return exprs;
+    }
+
+    SqlBinaryExpr newTenantExpr(SqlSingleTableSource table, ISqlTableMeta tableMeta) {
+        IEntityModel entityModel = tableMeta.getEntityModel();
+        SqlBinaryExpr expr = new SqlBinaryExpr();
+        SqlColumnName colName = newColName(table, tableMeta, entityModel.getTenantColumn().getName());
+
+        expr.setLeft(colName);
+        expr.setOperator(SqlOperator.EQ);
+        SqlParameterMarker param = new SqlParameterMarker();
+        param.setSqlParamBuilder(TenantParamBuilder.INSTANCE);
+        expr.setRight(param);
+        return expr;
+    }
+
+    SqlBinaryExpr newBinaryExpr(SqlSingleTableSource table, ISqlTableMeta tableMeta, String propName, Object value) {
+        SqlBinaryExpr expr = new SqlBinaryExpr();
+        SqlColumnName colName = newColName(table, tableMeta, propName);
+        expr.setLeft(colName);
+        expr.setOperator(SqlOperator.EQ);
+
+        expr.setRight(EqlASTBuilder.literal(value));
+        return expr;
+    }
+
+    SqlColumnName newColName(SqlSingleTableSource table, ISqlTableMeta tableMeta, String propName) {
+        SqlColumnName col = EqlASTBuilder.colName(table.getAliasName(), propName);
+        col.setTableSource(table);
+
+        col.setResolvedExprMeta(tableMeta.getFieldExprMeta(propName, context.isAllowUnderscoreName()));
+        return col;
     }
 
     SqlBinaryExpr buildLogicalDeleteFilter(SqlSingleTableSource table, ISqlTableMeta tableMeta) {
-        SqlColumnName col = EqlASTBuilder.colName(table.getAliasName(), tableMeta.getDeleteFlagPropName());
-        col.setTableSource(table);
-
-        col.setResolvedExprMeta(tableMeta.getFieldExprMeta(tableMeta.getDeleteFlagPropName(), context.isAllowUnderscoreName()));
-
-        SqlBinaryExpr expr = new SqlBinaryExpr();
-        expr.setLeft(col);
-        expr.setOperator(SqlOperator.EQ);
-
         Object value = tableMeta.getDeleteFlagValue(false, dialect);
-        expr.setRight(EqlASTBuilder.literal(value));
-        return expr;
+        return newBinaryExpr(table, tableMeta, tableMeta.getDeleteFlagPropName(), value);
     }
 
     void addEntityFilter(SqlQuerySelect node) {
@@ -347,15 +348,10 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         for (SqlSingleTableSource table : from.getEntitySources()) {
             if (!table.isFilterAlreadyAdded()) {
                 table.setFilterAlreadyAdded(true);
-                List<SqlExpr> filters = getDefaultEntityFilter(table);
-                if (!filters.isEmpty()) {
-                    SqlWhere where = node.getWhere();
-                    if (where == null) {
-                        where = new SqlWhere();
-                        node.setWhere(where);
-                    }
-                    filters.forEach(where::appendFilter);
-                }
+                collectDefaultEntityFilter(table, filter -> node.makeWhere().appendFilter(filter));
+            } else if (table.isMainSource()) {
+                // 对于left join和right join，主表的缺省过滤条件需要写在where段
+                collectDefaultEntityFilter(table, filter -> node.makeWhere().appendFilter(filter));
             }
         }
     }
@@ -401,9 +397,31 @@ public class EqlTransformVisitor extends EqlASTVisitor {
     @Override
     public void visitSqlFrom(SqlFrom node) {
         SqlTableScope tableScope = new SqlTableScope(node, currentScope);
+        node.setTableScope(tableScope);
+
+        for (SqlTableSource table : node.getTableSources()) {
+            markMainSource(table);
+        }
 
         for (SqlTableSource table : node.getTableSources()) {
             visitTableSource(tableScope, table);
+        }
+    }
+
+    void markMainSource(SqlTableSource table) {
+        if (table instanceof SqlSingleTableSource) {
+            ((SqlSingleTableSource) table).setMainSource(true);
+        } else if (table instanceof SqlJoinTableSource) {
+            SqlJoinTableSource join = (SqlJoinTableSource) table;
+            if (join.getJoinType() == SqlJoinType.LEFT_JOIN) {
+                markMainSource(join.getLeft());
+            } else if (join.getJoinType() == SqlJoinType.RIGHT_JOIN) {
+                markMainSource(join.getRight());
+            } else if (join.getJoinType() == SqlJoinType.FULL_JOIN) {
+                //
+                markMainSource(join.getLeft());
+                markMainSource(join.getRight());
+            }
         }
     }
 
@@ -458,10 +476,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
         table.setFilterAlreadyAdded(true);
 
-        List<SqlExpr> filters = getDefaultEntityFilter(table);
-        if (!filters.isEmpty()) {
-            filters.forEach(join::addConditionFilter);
-        }
+        collectDefaultEntityFilter(table, join::addConditionFilter);
     }
 
     void visitJoinLeft(SqlTableScope tableScope, SqlJoinTableSource source) {
@@ -556,6 +571,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                     SqlSelect cte = getCte(source, tableName.getName());
                     if (cte != null) {
                         tableName.setResolvedCte(cte);
+                        tableName.setResolvedTableMeta(cte.getResolvedTableMeta());
 
                         SqlSubqueryTableSource querySource = newCteSource(table, cte);
                         if (!dialect.isSupportWithAsClause()) {
@@ -1070,7 +1086,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                     continue;
             }
             SqlExprProjection proj = new SqlExprProjection();
-            SqlColumnName col = newColName(source, entry.getKey(), exprMeta);
+            SqlColumnName col = newColNameWithType(source, entry.getKey(), exprMeta);
 
             proj.setExpr(col);
             proj.setAlias(newColumnAlias());
@@ -1079,7 +1095,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         return ret;
     }
 
-    SqlColumnName newColName(SqlTableSource source, String name, ISqlExprMeta exprMeta) {
+    SqlColumnName newColNameWithType(SqlTableSource source, String name, ISqlExprMeta exprMeta) {
         SqlColumnName colName = new SqlColumnName();
         colName.setTableSource(source);
         SqlQualifiedName qn = new SqlQualifiedName();

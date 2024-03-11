@@ -182,9 +182,9 @@
 
             <missing-bean xdef:value="!word-set"/>
 
-            <on-bean-type xdef:value="!class-name-set"/>
+<!--            <on-bean-type xdef:value="!class-name-set"/>-->
 
-            <on-missing-bean-type xdef:value="!class-name-set"/>
+<!--            <on-missing-bean-type xdef:value="!class-name-set"/>-->
 
             <!--
                 是否存在资源文件

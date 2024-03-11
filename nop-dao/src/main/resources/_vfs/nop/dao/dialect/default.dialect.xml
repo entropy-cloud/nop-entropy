@@ -17,7 +17,9 @@
             supportUpdateTableAlias="false" supportDeleteTableAlias="false"
             supportRowValueConstructor="true" supportUpdateFromJoin="false"
             supportQueryTimeout="true" supportWithAsClause="true"
-            supportDeleteFromJoin="false" supportILike="false"/>
+            supportDeleteFromJoin="false" supportILike="false"
+            supportFullJoin="true" supportRightJoin="true"
+    />
 
     <sqls insertKeyword="insert" updateKeyword="update" trueString="1" falseString="0" escapeSlash="true">
         <dateLiteral>DATE '{value:yyyy-MM-dd}'</dateLiteral>
@@ -39,15 +41,15 @@
     -->
     <functions>
         <native name="avg" returnType="DOUBLE" argTypes="NUMERIC"/>
-        <native name="abs" argTypes="NUMERIC"/>
-        <native name="coalesce" minArgCount="2" maxArgCount="100" argTypes="ANY,ANY">
+        <native name="abs" argTypes="NUMERIC" returnType="NUMERIC"/>
+        <native name="coalesce" minArgCount="1" maxArgCount="100" argTypes="ANY,ANY" returnFirstArgType="true">
             <description>
                 Returns the first value that is not null
             </description>
         </native>
         <native name="lower" returnType="VARCHAR" argTypes="VARCHAR"/>
-        <native name="max" argTypes="ANY"/>
-        <native name="min" argTypes="ANY"/>
+        <native name="max" argTypes="ANY" returnFirstArgType="true"/>
+        <native name="min" argTypes="ANY" returnFirstArgType="true"/>
         <native name="mod" returnType="INTEGER" argTypes="NUMERIC,NUMERIC"/>
         <native name="nullif" argTypes="ANY,ANY">
             <description>
@@ -56,7 +58,7 @@
         </native>
         <native name="sqrt" returnType="DOUBLE" argTypes="NUMERIC">
         </native>
-        <native name="sum" argTypes="NUMERIC"/>
+        <native name="sum" argTypes="NUMERIC" returnType="NUMERIC"/>
         <native name="upper" returnType="VARCHAR" argTypes="VARCHAR"/>
 
         <native name="uuid" returnType="VARCHAR"/>

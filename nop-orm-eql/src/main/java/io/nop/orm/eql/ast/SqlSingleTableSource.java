@@ -15,6 +15,8 @@ public class SqlSingleTableSource extends _SqlSingleTableSource {
     private boolean forPropJoin;
     private boolean filterAlreadyAdded;
 
+    private boolean mainSource;
+
     public boolean isFilterAlreadyAdded() {
         return filterAlreadyAdded;
     }
@@ -29,6 +31,14 @@ public class SqlSingleTableSource extends _SqlSingleTableSource {
 
     public void setForPropJoin(boolean forPropJoin) {
         this.forPropJoin = forPropJoin;
+    }
+
+    public boolean isMainSource() {
+        return mainSource;
+    }
+
+    public void setMainSource(boolean mainSource) {
+        this.mainSource = mainSource;
     }
 
     public boolean isGeneratedAlias() {

@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [124:10:0:0]/nop/schema/orm/dialect.xdef <p>
+ * generate from [129:10:0:0]/nop/schema/orm/dialect.xdef <p>
  * sql数据库内部支持的原生函数。
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -65,6 +65,13 @@ public abstract class _SqlNativeFunctionModel extends io.nop.core.resource.compo
      * 数据库中的函数名。在dialect中声明的函数名为标准函数名，它会尽量在多个数据库之间保持一致。realName为对应的数据库中的实现函数名
      */
     private java.lang.String _realName ;
+    
+    /**
+     *  
+     * xml name: returnFirstArgType
+     * 返回类型是否与第一个参数的类型相同
+     */
+    private boolean _returnFirstArgType  = false;
     
     /**
      *  
@@ -230,6 +237,25 @@ public abstract class _SqlNativeFunctionModel extends io.nop.core.resource.compo
     
     /**
      * 
+     * xml name: returnFirstArgType
+     *  返回类型是否与第一个参数的类型相同
+     */
+    
+    public boolean isReturnFirstArgType(){
+      return _returnFirstArgType;
+    }
+
+    
+    public void setReturnFirstArgType(boolean value){
+        checkAllowChange();
+        
+        this._returnFirstArgType = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: returnType
      *  
      */
@@ -326,6 +352,7 @@ public abstract class _SqlNativeFunctionModel extends io.nop.core.resource.compo
         out.putNotNull("minArgCount",this.getMinArgCount());
         out.putNotNull("name",this.getName());
         out.putNotNull("realName",this.getRealName());
+        out.putNotNull("returnFirstArgType",this.isReturnFirstArgType());
         out.putNotNull("returnType",this.getReturnType());
         out.putNotNull("special",this.getSpecial());
         out.putNotNull("testSql",this.getTestSql());
@@ -348,6 +375,7 @@ public abstract class _SqlNativeFunctionModel extends io.nop.core.resource.compo
         instance.setMinArgCount(this.getMinArgCount());
         instance.setName(this.getName());
         instance.setRealName(this.getRealName());
+        instance.setReturnFirstArgType(this.isReturnFirstArgType());
         instance.setReturnType(this.getReturnType());
         instance.setSpecial(this.getSpecial());
         instance.setTestSql(this.getTestSql());

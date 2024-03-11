@@ -53,13 +53,6 @@ public abstract class _BeanConditionModel extends io.nop.core.resource.component
     
     /**
      *  
-     * xml name: on-bean-type
-     * 
-     */
-    private java.util.Set<java.lang.String> _onBeanType ;
-    
-    /**
-     *  
      * xml name: on-class
      * 是否存在class
      */
@@ -74,14 +67,9 @@ public abstract class _BeanConditionModel extends io.nop.core.resource.component
     
     /**
      *  
-     * xml name: on-missing-bean-type
-     * 
-     */
-    private java.util.Set<java.lang.String> _onMissingBeanType ;
-    
-    /**
-     *  
      * xml name: on-resource
+     * <on-bean-type xdef:value="!class-name-set"/>
+     * <on-missing-bean-type xdef:value="!class-name-set"/>
      * 是否存在资源文件
      */
     private java.util.Set<java.lang.String> _onResource ;
@@ -190,25 +178,6 @@ public abstract class _BeanConditionModel extends io.nop.core.resource.component
     
     /**
      * 
-     * xml name: on-bean-type
-     *  
-     */
-    
-    public java.util.Set<java.lang.String> getOnBeanType(){
-      return _onBeanType;
-    }
-
-    
-    public void setOnBeanType(java.util.Set<java.lang.String> value){
-        checkAllowChange();
-        
-        this._onBeanType = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: on-class
      *  是否存在class
      */
@@ -247,27 +216,10 @@ public abstract class _BeanConditionModel extends io.nop.core.resource.component
     
     /**
      * 
-     * xml name: on-missing-bean-type
-     *  
-     */
-    
-    public java.util.Set<java.lang.String> getOnMissingBeanType(){
-      return _onMissingBeanType;
-    }
-
-    
-    public void setOnMissingBeanType(java.util.Set<java.lang.String> value){
-        checkAllowChange();
-        
-        this._onMissingBeanType = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: on-resource
-     *  是否存在资源文件
+     *  <on-bean-type xdef:value="!class-name-set"/>
+     * <on-missing-bean-type xdef:value="!class-name-set"/>
+     * 是否存在资源文件
      */
     
     public java.util.Set<java.lang.String> getOnResource(){
@@ -326,10 +278,8 @@ public abstract class _BeanConditionModel extends io.nop.core.resource.component
         out.putNotNull("missingClass",this.getMissingClass());
         out.putNotNull("missingResource",this.getMissingResource());
         out.putNotNull("onBean",this.getOnBean());
-        out.putNotNull("onBeanType",this.getOnBeanType());
         out.putNotNull("onClass",this.getOnClass());
         out.putNotNull("onExpr",this.getOnExpr());
-        out.putNotNull("onMissingBeanType",this.getOnMissingBeanType());
         out.putNotNull("onResource",this.getOnResource());
         out.putNotNull("unlessProperty",this.getUnlessProperty());
     }
@@ -348,10 +298,8 @@ public abstract class _BeanConditionModel extends io.nop.core.resource.component
         instance.setMissingClass(this.getMissingClass());
         instance.setMissingResource(this.getMissingResource());
         instance.setOnBean(this.getOnBean());
-        instance.setOnBeanType(this.getOnBeanType());
         instance.setOnClass(this.getOnClass());
         instance.setOnExpr(this.getOnExpr());
-        instance.setOnMissingBeanType(this.getOnMissingBeanType());
         instance.setOnResource(this.getOnResource());
         instance.setUnlessProperty(this.getUnlessProperty());
     }

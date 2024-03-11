@@ -53,6 +53,13 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: supportFullJoin
+     * 
+     */
+    private java.lang.Boolean _supportFullJoin ;
+    
+    /**
+     *  
      * xml name: supportILike
      * 
      */
@@ -79,6 +86,13 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
      * 
      */
     private java.lang.Boolean _supportQueryTimeout ;
+    
+    /**
+     *  
+     * xml name: supportRightJoin
+     * 
+     */
+    private java.lang.Boolean _supportRightJoin ;
     
     /**
      *  
@@ -240,6 +254,25 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
     
     /**
      * 
+     * xml name: supportFullJoin
+     *  
+     */
+    
+    public java.lang.Boolean getSupportFullJoin(){
+      return _supportFullJoin;
+    }
+
+    
+    public void setSupportFullJoin(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._supportFullJoin = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: supportILike
      *  
      */
@@ -311,6 +344,25 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
         checkAllowChange();
         
         this._supportQueryTimeout = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: supportRightJoin
+     *  
+     */
+    
+    public java.lang.Boolean getSupportRightJoin(){
+      return _supportRightJoin;
+    }
+
+    
+    public void setSupportRightJoin(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._supportRightJoin = value;
            
     }
 
@@ -506,10 +558,12 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
         out.putNotNull("supportDeleteFromJoin",this.getSupportDeleteFromJoin());
         out.putNotNull("supportDeleteTableAlias",this.getSupportDeleteTableAlias());
         out.putNotNull("supportExecuteLargeUpdate",this.getSupportExecuteLargeUpdate());
+        out.putNotNull("supportFullJoin",this.getSupportFullJoin());
         out.putNotNull("supportILike",this.getSupportILike());
         out.putNotNull("supportLargeMaxRows",this.getSupportLargeMaxRows());
         out.putNotNull("supportNullsFirst",this.getSupportNullsFirst());
         out.putNotNull("supportQueryTimeout",this.getSupportQueryTimeout());
+        out.putNotNull("supportRightJoin",this.getSupportRightJoin());
         out.putNotNull("supportRowValueConstructor",this.getSupportRowValueConstructor());
         out.putNotNull("supportSavePoint",this.getSupportSavePoint());
         out.putNotNull("supportSequence",this.getSupportSequence());
@@ -535,10 +589,12 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
         instance.setSupportDeleteFromJoin(this.getSupportDeleteFromJoin());
         instance.setSupportDeleteTableAlias(this.getSupportDeleteTableAlias());
         instance.setSupportExecuteLargeUpdate(this.getSupportExecuteLargeUpdate());
+        instance.setSupportFullJoin(this.getSupportFullJoin());
         instance.setSupportILike(this.getSupportILike());
         instance.setSupportLargeMaxRows(this.getSupportLargeMaxRows());
         instance.setSupportNullsFirst(this.getSupportNullsFirst());
         instance.setSupportQueryTimeout(this.getSupportQueryTimeout());
+        instance.setSupportRightJoin(this.getSupportRightJoin());
         instance.setSupportRowValueConstructor(this.getSupportRowValueConstructor());
         instance.setSupportSavePoint(this.getSupportSavePoint());
         instance.setSupportSequence(this.getSupportSequence());

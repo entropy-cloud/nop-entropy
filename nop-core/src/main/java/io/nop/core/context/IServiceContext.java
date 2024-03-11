@@ -7,10 +7,12 @@
  */
 package io.nop.core.context;
 
+import io.nop.api.core.ApiConstants;
 import io.nop.api.core.auth.IActionAuthChecker;
 import io.nop.api.core.auth.IDataAuthChecker;
 import io.nop.api.core.auth.ISecurityContext;
 import io.nop.api.core.auth.IUserContext;
+import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.util.ApiHeaders;
 import io.nop.commons.cache.ICache;
@@ -115,5 +117,10 @@ public interface IServiceContext extends IExecutionContext, ISecurityContext {
         if (context instanceof IServiceContext)
             return (IServiceContext) context;
         return (IServiceContext) context.getEvalScope().getValue(CoreConstants.VAR_SVC_CTX);
+    }
+
+    static IServiceContext bindingCtx() {
+        IContext context = ContextProvider.currentContext();
+        return context == null ? null : (IServiceContext) context.getAttribute(ApiConstants.ATTR_SERVICE_CONTEXT);
     }
 }

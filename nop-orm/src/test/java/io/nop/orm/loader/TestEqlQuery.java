@@ -9,6 +9,7 @@ package io.nop.orm.loader;
 
 import io.nop.app.SimsClass;
 import io.nop.app.SimsCollege;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
 import io.nop.orm.AbstractOrmTestCase;
 import org.junit.jupiter.api.Test;
@@ -245,9 +246,12 @@ public class TestEqlQuery extends AbstractOrmTestCase {
 
     @Test
     public void testLeftJoinOn() {
+        List<Map<String,Object>> all = orm().findAll(new SQL("select o.* from SimsClass o"));
+        System.out.println(StringHelper.join(all,"\n"));
+
         String sql = "select o from io.nop.app.SimsClass o left join io.nop.app.SimsCollege c1 on o.collegeId = c1.collegeId";
         List<SimsClass> list = orm().findAll(new SQL(sql));
-        assertEquals(1, list.size());
+        assertEquals(all.size(), list.size());
 
 
         String sql2 = "select o from SimsClass o left join SimsCollege c1 on o.collegeId = c1.collegeId " +
