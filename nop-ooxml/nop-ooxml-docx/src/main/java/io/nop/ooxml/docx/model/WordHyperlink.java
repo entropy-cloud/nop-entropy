@@ -197,6 +197,19 @@ public class WordHyperlink {
                         XNode node = XNodeParser.instance().parseFromText(linkNode.getLocation(), source);
                         link.setLinkType(LinkType.xpl);
                         link.setSourceNode(node);
+                        XNode child = node.childByTag("p");
+                        if (child != null) {
+                            XNode pNode = linkNode.closest("w:p").cloneInstance();
+                            pNode.setTagName("p");
+                            child.replaceBy(pNode);
+                        } else {
+                            child = node.childByTag("hyperlink");
+                            if (child != null) {
+                                XNode hyperLink = linkNode.cloneInstance();
+                                hyperLink.setTagName("hyperlink");
+                                child.replaceBy(hyperLink);
+                            }
+                        }
                     } else {
                         String fullSource = source + "</" + tagName + ">";
                         XNode node = XNodeParser.instance().parseFromText(linkNode.getLocation(), fullSource);

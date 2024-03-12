@@ -15978,6 +15978,14 @@
         ]
       },
       {
+        "name": "findRoots",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "get",
         "parameterTypes": [
           "java.lang.String",
@@ -21603,6 +21611,10 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "bindingCtx",
+        "parameterTypes": []
+      },
       {
         "name": "fromEvalContext",
         "parameterTypes": [
@@ -29065,6 +29077,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getSupportFullJoin",
+        "parameterTypes": []
+      },
+      {
         "name": "getSupportILike",
         "parameterTypes": []
       },
@@ -29078,6 +29094,10 @@
       },
       {
         "name": "getSupportQueryTimeout",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSupportRightJoin",
         "parameterTypes": []
       },
       {
@@ -29157,6 +29177,12 @@
         ]
       },
       {
+        "name": "setSupportFullJoin",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
         "name": "setSupportILike",
         "parameterTypes": [
           "java.lang.Boolean"
@@ -29176,6 +29202,12 @@
       },
       {
         "name": "setSupportQueryTimeout",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setSupportRightJoin",
         "parameterTypes": [
           "java.lang.Boolean"
         ]
@@ -30007,6 +30039,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isReturnFirstArgType",
+        "parameterTypes": []
+      },
+      {
         "name": "newInstance",
         "parameterTypes": []
       },
@@ -30056,6 +30092,12 @@
         "name": "setRealName",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setReturnFirstArgType",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -30144,6 +30186,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isReturnFirstArgType",
+        "parameterTypes": []
+      },
+      {
         "name": "newInstance",
         "parameterTypes": []
       },
@@ -30169,6 +30215,12 @@
         "name": "setName",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setReturnFirstArgType",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -30405,6 +30457,13 @@
         "name": "executeUpdate",
         "parameterTypes": [
           "io.nop.core.lang.sql.SQL"
+        ]
+      },
+      {
+        "name": "existsTable",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
         ]
       },
       {
@@ -30695,7 +30754,13 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      }
+    ],
     "methods": [
       {
         "name": "addQuerySpace",
@@ -33338,7 +33403,13 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      }
+    ],
     "methods": [
       {
         "name": "filterAsync",
@@ -36711,6 +36782,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getEntityFilterProvider",
+        "parameterTypes": []
+      },
+      {
         "name": "getEqlAstTransformer",
         "parameterTypes": []
       },
@@ -36815,6 +36890,12 @@
         ]
       },
       {
+        "name": "setEntityFilterProvider",
+        "parameterTypes": [
+          "io.nop.orm.sql.IEntityFilterProvider"
+        ]
+      },
+      {
         "name": "setEqlAstTransformer",
         "parameterTypes": [
           "io.nop.orm.eql.IEqlAstTransformer"
@@ -36901,6 +36982,31 @@
       }
     ],
     "name": "io.nop.orm.factory.XplOrmInterceptorFactoryBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getEntityFilter",
+        "parameterTypes": [
+          "io.nop.core.lang.sql.SyntaxMarker",
+          "io.nop.core.lang.sql.SQL",
+          "io.nop.orm.sql.ISqlCompileTool"
+        ]
+      },
+      {
+        "name": "setDataAuthChecker",
+        "parameterTypes": [
+          "io.nop.api.core.auth.IDataAuthChecker"
+        ]
+      }
+    ],
+    "name": "io.nop.orm.filter.DataAuthEntityFilterProvider",
     "unsafeAllocated": false
   },
   {
@@ -37641,6 +37747,12 @@
         ]
       },
       {
+        "name": "getPropByUnderscoreName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getPropIdBound",
         "parameterTypes": []
       },
@@ -37708,6 +37820,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isGlobalUniqueId",
+        "parameterTypes": []
+      },
+      {
         "name": "isKvTable",
         "parameterTypes": []
       },
@@ -37717,6 +37833,10 @@
       },
       {
         "name": "isRegisterShortName",
+        "parameterTypes": []
+      },
+      {
+        "name": "isTableView",
         "parameterTypes": []
       },
       {
@@ -38377,6 +38497,12 @@
         ]
       },
       {
+        "name": "getPropByUnderscoreName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getPropIdBound",
         "parameterTypes": []
       },
@@ -38433,6 +38559,10 @@
       },
       {
         "name": "isAllColumnPrimary",
+        "parameterTypes": []
+      },
+      {
+        "name": "isGlobalUniqueId",
         "parameterTypes": []
       },
       {
@@ -38527,6 +38657,12 @@
       },
       {
         "name": "getEntityModelByTableName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getEntityModelByUnderscoreName",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -50229,6 +50365,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getRootParentValue",
+        "parameterTypes": []
+      },
+      {
         "name": "newInstance",
         "parameterTypes": []
       },
@@ -50264,6 +50404,12 @@
       },
       {
         "name": "setRootLevelValue",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRootParentValue",
         "parameterTypes": [
           "java.lang.String"
         ]

@@ -10056,6 +10056,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getSupportFullJoin",
+        "parameterTypes": []
+      },
+      {
         "name": "getSupportILike",
         "parameterTypes": []
       },
@@ -10069,6 +10073,10 @@
       },
       {
         "name": "getSupportQueryTimeout",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSupportRightJoin",
         "parameterTypes": []
       },
       {
@@ -10148,6 +10156,12 @@
         ]
       },
       {
+        "name": "setSupportFullJoin",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
         "name": "setSupportILike",
         "parameterTypes": [
           "java.lang.Boolean"
@@ -10167,6 +10181,12 @@
       },
       {
         "name": "setSupportQueryTimeout",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setSupportRightJoin",
         "parameterTypes": [
           "java.lang.Boolean"
         ]
@@ -11008,6 +11028,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isReturnFirstArgType",
+        "parameterTypes": []
+      },
+      {
         "name": "newInstance",
         "parameterTypes": []
       },
@@ -11057,6 +11081,12 @@
         "name": "setRealName",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setReturnFirstArgType",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -11145,6 +11175,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isReturnFirstArgType",
+        "parameterTypes": []
+      },
+      {
         "name": "newInstance",
         "parameterTypes": []
       },
@@ -11170,6 +11204,12 @@
         "name": "setName",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setReturnFirstArgType",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -12665,6 +12705,12 @@
         ]
       },
       {
+        "name": "getPropByUnderscoreName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getPropIdBound",
         "parameterTypes": []
       },
@@ -12732,6 +12778,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isGlobalUniqueId",
+        "parameterTypes": []
+      },
+      {
         "name": "isKvTable",
         "parameterTypes": []
       },
@@ -12741,6 +12791,10 @@
       },
       {
         "name": "isRegisterShortName",
+        "parameterTypes": []
+      },
+      {
+        "name": "isTableView",
         "parameterTypes": []
       },
       {
@@ -13192,6 +13246,12 @@
         ]
       },
       {
+        "name": "getPropByUnderscoreName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getPropIdBound",
         "parameterTypes": []
       },
@@ -13248,6 +13308,10 @@
       },
       {
         "name": "isAllColumnPrimary",
+        "parameterTypes": []
+      },
+      {
+        "name": "isGlobalUniqueId",
         "parameterTypes": []
       },
       {
@@ -13377,6 +13441,12 @@
       },
       {
         "name": "getEntityModelByTableName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getEntityModelByUnderscoreName",
         "parameterTypes": [
           "java.lang.String"
         ]

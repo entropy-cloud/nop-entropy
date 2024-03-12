@@ -68,6 +68,10 @@ public class JSON {
         return requireProvider().parseFromText(loc, str, options);
     }
 
+    public static Object parseNonStrict(String str) {
+        return parseNonStrict(null, str);
+    }
+
     public static Object parseToBean(SourceLocation loc, String str, Type targetType,
                                      boolean strictMode, boolean ignoreUnknownProps) {
         JsonParseOptions options = new JsonParseOptions();
