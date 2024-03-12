@@ -157,7 +157,7 @@ public interface BizErrors {
             "id为[{id}]的对象[{entityName}]已经存在，不允许重复保存对象", ARG_ID, ARG_ENTITY_NAME);
 
     ErrorCode ERR_BIZ_ENTITY_WITH_SAME_KEY_ALREADY_EXISTS = define("nop.err.biz.entity-already-exists",
-            "唯一键为[{key}]的[{entityName}]对象已经存在，不允许重复保存对象", ARG_KEY, ARG_ENTITY_NAME);
+            "当前为[{key}]的数据已存在，请确保字段名为[{displayName}]的数据唯一", ARG_KEY, ARG_DISPLAY_NAME, ARG_ENTITY_NAME);
 
     ErrorCode ERR_BIZ_PROP_VALUE_NOT_MATCH_FILTER_CONDITION = define(
             "nop.err.biz.prop-value-not-match-filter-condition",

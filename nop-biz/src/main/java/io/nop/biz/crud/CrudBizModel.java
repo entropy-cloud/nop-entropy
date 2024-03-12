@@ -71,6 +71,7 @@ import static io.nop.biz.BizConstants.METHOD_TRY_UPDATE;
 import static io.nop.biz.BizConstants.TAG_DICT;
 import static io.nop.biz.BizErrors.ARG_ACTION_NAME;
 import static io.nop.biz.BizErrors.ARG_CLASS_NAME;
+import static io.nop.biz.BizErrors.ARG_DISPLAY_NAME;
 import static io.nop.biz.BizErrors.ARG_ENTITY_NAME;
 import static io.nop.biz.BizErrors.ARG_ID;
 import static io.nop.biz.BizErrors.ARG_KEY;
@@ -396,15 +397,17 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                 if (data.keySet().containsAll(props)) {
                     T example = dao.newEntity();
                     List<Object> keys = new ArrayList<>();
+                    List<Object> displayNames = new ArrayList<>();
                     for (String propName : props) {
                         Object value = data.get(propName);
                         example.orm_propValueByName(propName, value);
                         keys.add(value);
+                        displayNames.add(objMeta.getProp(propName).getDisplayName());
                     }
                     T existing = dao.findFirstByExample(example);
                     if (existing != null && existing != entityData.getEntity()) {
                         throw new NopException(ERR_BIZ_ENTITY_WITH_SAME_KEY_ALREADY_EXISTS)
-                                .param(ARG_KEY, StringHelper.join(keys, ",")).param(ARG_ENTITY_NAME, getEntityName())
+                                .param(ARG_KEY, StringHelper.join(keys, ",")).param(ARG_DISPLAY_NAME, StringHelper.join(displayNames, ","))
                                 .param(ARG_BIZ_OBJ_NAME, getBizObjName());
                     }
                 }
