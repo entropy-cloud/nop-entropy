@@ -292,6 +292,11 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
 
     @Override
     public void visitSqlColumnName(SqlColumnName node) {
+        if(node.getProjection() != null){
+            super.visitSqlColumnName(node);
+            return;
+        }
+
         ISqlExprMeta exprMeta = node.getResolvedExprMeta();
         String owner = node.getResolvedOwner();
 

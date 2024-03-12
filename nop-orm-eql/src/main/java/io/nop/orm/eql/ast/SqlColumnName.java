@@ -16,6 +16,16 @@ public class SqlColumnName extends _SqlColumnName {
     private SqlTableSource tableSource;
     private IEntityPropModel propModel;
 
+    private SqlProjection projection;
+
+    public SqlProjection getProjection() {
+        return projection;
+    }
+
+    public void setProjection(SqlProjection projection) {
+        this.projection = projection;
+    }
+
     public SqlTableSource getTableSource() {
         return tableSource;
     }
@@ -40,6 +50,8 @@ public class SqlColumnName extends _SqlColumnName {
 
     @Override
     public String getResolvedOwner() {
+        if(tableSource == null)
+            return null;
         return tableSource.getAliasName();
     }
 

@@ -121,4 +121,12 @@ public class TestEqlCompiler extends AbstractOrmTestCase {
         SQL sql = compile(sqlText);
         sql.dump();
     }
+
+    @Test
+    public void testAliasInOrderBy(){
+        String sqlText = "select o,o.classId as cid from SimsClass o order by cid desc";
+        SQL sql = compile(sqlText);
+        sql.dump();
+        assertTrue(sql.getText().contains("cid desc"));
+    }
 }

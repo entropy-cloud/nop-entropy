@@ -1212,6 +1212,16 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         } else {
             PropPath propPath = model.getAliasPropPath(node.getName());
             if (propPath == null) {
+                if (node.getOwner() == null && inOrderBy) {
+                    // order by段中可以使用selection中的字段别名
+                    SqlQuerySelect select = getQuerySelect(node);
+                    ISqlExprMeta fieldExpr = select.getResolvedTableMeta().getFieldExprMeta(node.getName(), false);
+                    if (fieldExpr != null) {
+                        node.setResolvedExprMeta(fieldExpr);
+                        node.setProjection(select.getProjectionByExprMeta(fieldExpr));
+                        return;
+                    }
+                }
                 if (model instanceof ISqlTableMeta) {
                     throw new NopException(ERR_EQL_UNKNOWN_COLUMN_NAME).source(node)
                             .param(ARG_ENTITY_NAME, ((ISqlTableMeta) model).getEntityName())
