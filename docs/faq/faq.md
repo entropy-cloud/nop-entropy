@@ -372,6 +372,11 @@ poi很大，最少有10几M，而且很慢。nop-ooxml-xlsx是利用Nop平台自
 * push模式：mvn install触发precompile目录下的xgen，执行代码生成
 * pull模式: x:gen-extends，加载模型的时候触发代码生成段，执行代码生成
 
+## 31. NopORM中的querySpace概念是什么意思？
+用于多数据源配置，每个querySpace可以对应一个不同的数据库或者存储机制。比如一部分数据存在ElasticSearch或者另一个数据库中，每个数据源就是一个querySpace。
+
+
+
 # 部署问题
 
 
