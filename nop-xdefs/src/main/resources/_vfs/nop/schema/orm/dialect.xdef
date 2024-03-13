@@ -102,7 +102,7 @@
          @returnFirstArgType 返回类型是否与第一个参数的类型相同
         -->
         <template name="!string" returnType="std-sql-type" argTypes="std-sql-type-list"
-                  xdef:name="SqlTemplateModel" returnFirstArgType="!boolean=false"
+                  xdef:name="SqlTemplateModel" returnFirstArgType="!boolean=false" onlyForWindowExpr="!boolean=false"
                   xdef:bean-tag-prop="type">
             <description xdef:value="string"/>
             <!--
@@ -127,7 +127,7 @@
         @returnFirstArgType 返回类型是否与第一个参数的类型相同
         -->
         <native name="!string" returnType="std-sql-type" hasParenthesis="boolean=true" argTypes="std-sql-type-list"
-                minArgCount="int" maxArgCount="int" realName="string" special="boolean"
+                minArgCount="int" maxArgCount="int" realName="string" special="boolean" onlyForWindowExpr="!boolean=false"
                 xdef:name="SqlNativeFunctionModel" returnFirstArgType="!boolean=false"
                 xdef:bean-tag-prop="type">
             <description xdef:value="string"/>

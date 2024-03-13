@@ -160,4 +160,15 @@ public class TestEqlCompiler extends AbstractOrmTestCase {
 
         jdbc().findAll(sql);
     }
+
+    @Test
+    public void testWindowExpr() {
+        String sqlText = "SELECT o.classId,\n" +
+                "       RANK() OVER (PARTITION BY o.classId ORDER BY o.classId) as rank\n" +
+                "FROM SimsClass o";
+        SQL sql = compile(sqlText);
+        sql.dump();
+
+        jdbc().findAll(sql);
+    }
 }

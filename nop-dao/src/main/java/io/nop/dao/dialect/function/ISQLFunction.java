@@ -44,6 +44,9 @@ public interface ISQLFunction {
      */
     boolean hasParentheses();
 
+
+    boolean isOnlyForWindowExpr();
+
     List<StdSqlType> getArgTypes();
 
     /**

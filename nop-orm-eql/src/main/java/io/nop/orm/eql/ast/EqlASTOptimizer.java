@@ -70,6 +70,9 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                 case SqlAllProjection:
                 return optimizeSqlAllProjection((SqlAllProjection)node,context);
             
+                case SqlPartitionBy:
+                return optimizeSqlPartitionBy((SqlPartitionBy)node,context);
+            
                 case SqlOrderBy:
                 return optimizeSqlOrderBy((SqlOrderBy)node,context);
             
@@ -159,6 +162,9 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
             
                 case SqlRegularFunction:
                 return optimizeSqlRegularFunction((SqlRegularFunction)node,context);
+            
+                case SqlWindowExpr:
+                return optimizeSqlWindowExpr((SqlWindowExpr)node,context);
             
                 case SqlMultiValueExpr:
                 return optimizeSqlMultiValueExpr((SqlMultiValueExpr)node,context);
@@ -799,6 +805,24 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                                incChangeCount();
                                if(shouldClone(ret,node)) { ownerOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setOwner(ownerOpt);
+                            }
+                        
+                    }
+                
+		return ret;
+	}
+    
+	public EqlASTNode optimizeSqlPartitionBy(SqlPartitionBy node, C context){
+        SqlPartitionBy ret = node;
+
+        
+                    if(node.getItems() != null){
+                    
+                            java.util.List<io.nop.orm.eql.ast.SqlExpr> itemsOpt = optimizeList(node.getItems(),true, context);
+                            if(itemsOpt != node.getItems()){
+                                incChangeCount();
+                                if(shouldClone(ret,node))  { clearParent(itemsOpt); ret = node.deepClone();}
+                                ret.setItems(itemsOpt);
                             }
                         
                     }
@@ -1471,6 +1495,46 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                                 incChangeCount();
                                 if(shouldClone(ret,node))  { clearParent(argsOpt); ret = node.deepClone();}
                                 ret.setArgs(argsOpt);
+                            }
+                        
+                    }
+                
+		return ret;
+	}
+    
+	public EqlASTNode optimizeSqlWindowExpr(SqlWindowExpr node, C context){
+        SqlWindowExpr ret = node;
+
+        
+                    if(node.getFunction() != null){
+                    
+                            io.nop.orm.eql.ast.SqlFunction functionOpt = (io.nop.orm.eql.ast.SqlFunction)optimize(node.getFunction(),context);
+                            if(functionOpt != node.getFunction()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { functionOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setFunction(functionOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getPartitionBy() != null){
+                    
+                            io.nop.orm.eql.ast.SqlPartitionBy partitionByOpt = (io.nop.orm.eql.ast.SqlPartitionBy)optimize(node.getPartitionBy(),context);
+                            if(partitionByOpt != node.getPartitionBy()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { partitionByOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setPartitionBy(partitionByOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getOrderBy() != null){
+                    
+                            io.nop.orm.eql.ast.SqlOrderBy orderByOpt = (io.nop.orm.eql.ast.SqlOrderBy)optimize(node.getOrderBy(),context);
+                            if(orderByOpt != node.getOrderBy()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { orderByOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setOrderBy(orderByOpt);
                             }
                         
                     }

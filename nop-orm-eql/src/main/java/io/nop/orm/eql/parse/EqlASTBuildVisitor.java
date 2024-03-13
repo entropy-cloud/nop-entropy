@@ -13,6 +13,7 @@ import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
+import io.nop.orm.eql.ast.SqlFunction;
 import io.nop.orm.eql.enums.SqlCompareRange;
 import io.nop.orm.eql.enums.SqlDateTimeType;
 import io.nop.orm.eql.enums.SqlIntervalUnit;
@@ -359,5 +360,10 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
     @Override
     public boolean SqlCteStatement_recursive(Token token) {
         return true;
+    }
+
+    @Override
+    public SqlFunction SqlWindowExpr_function(ParseTree node) {
+        return (SqlFunction) node.accept(this);
     }
 }

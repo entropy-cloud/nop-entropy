@@ -961,6 +961,32 @@ public java.util.List<io.nop.orm.eql.ast.SqlOrderByItem> buildSqlOrderByItems_(S
           return ret;
       }
             
+      public io.nop.orm.eql.ast.SqlPartitionBy visitSqlPartitionBy(SqlPartitionByContext ctx){
+          io.nop.orm.eql.ast.SqlPartitionBy ret = new io.nop.orm.eql.ast.SqlPartitionBy();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.items != null){
+               ret.setItems((buildSqlPartitionByItems_(ctx.items)));
+            }else{
+               ret.setItems(Collections.emptyList());
+            }
+            
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+public java.util.List<io.nop.orm.eql.ast.SqlExpr> buildSqlPartitionByItems_(SqlPartitionByItems_Context ctx){
+    java.util.List<io.nop.orm.eql.ast.SqlExpr> list = new ArrayList<>();
+    List<SqlExprContext> elms = ctx.sqlExpr();
+    if(elms != null){
+      for(SqlExprContext elm: elms){
+         list.add(visitSqlExpr(elm));
+      }
+    }
+    return list;
+}
+      
       public io.nop.orm.eql.ast.SqlProgram visitSqlProgram(SqlProgramContext ctx){
           io.nop.orm.eql.ast.SqlProgram ret = new io.nop.orm.eql.ast.SqlProgram();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -1333,6 +1359,24 @@ public java.util.List<io.nop.orm.eql.ast.SqlExpr> buildSqlValues_(SqlValues_Cont
           return ret;
       }
             
+      public io.nop.orm.eql.ast.SqlWindowExpr visitSqlWindowExpr(SqlWindowExprContext ctx){
+          io.nop.orm.eql.ast.SqlWindowExpr ret = new io.nop.orm.eql.ast.SqlWindowExpr();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.function != null){
+               ret.setFunction((SqlWindowExpr_function(ctx.function)));
+            }
+            if(ctx.partitionBy != null){
+               ret.setPartitionBy((visitSqlPartitionBy(ctx.partitionBy)));
+            }
+            if(ctx.orderBy != null){
+               ret.setOrderBy((visitSqlOrderBy(ctx.orderBy)));
+            }
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
 public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(TableSources_Context ctx){
     java.util.List<io.nop.orm.eql.ast.SqlTableSource> list = new ArrayList<>();
     List<SqlTableSourceContext> elms = ctx.sqlTableSource();
@@ -1428,6 +1472,11 @@ public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(Tabl
    * rules: sqlTypeExpr
    */
   public abstract int SqlTypeExpr_scale(org.antlr.v4.runtime.Token token);
+
+  /**
+   * rules: sqlWindowExpr
+   */
+  public abstract io.nop.orm.eql.ast.SqlFunction SqlWindowExpr_function(ParseTree node);
 
   /**
    * rules: SqlCompareWithQueryExpr

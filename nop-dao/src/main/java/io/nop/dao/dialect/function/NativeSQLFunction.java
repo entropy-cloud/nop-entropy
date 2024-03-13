@@ -64,6 +64,11 @@ public class NativeSQLFunction implements ISQLFunction {
     }
 
     @Override
+    public boolean isOnlyForWindowExpr() {
+        return funcModel.isOnlyForWindowExpr();
+    }
+
+    @Override
     public List<StdSqlType> getArgTypes() {
         return argTypes;
     }

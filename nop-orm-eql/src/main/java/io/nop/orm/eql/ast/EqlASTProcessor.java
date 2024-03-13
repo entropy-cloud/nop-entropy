@@ -69,6 +69,9 @@ public class EqlASTProcessor<T,C>{
             case SqlAllProjection:
                 return processSqlAllProjection((SqlAllProjection)node,context);
         
+            case SqlPartitionBy:
+                return processSqlPartitionBy((SqlPartitionBy)node,context);
+        
             case SqlOrderBy:
                 return processSqlOrderBy((SqlOrderBy)node,context);
         
@@ -158,6 +161,9 @@ public class EqlASTProcessor<T,C>{
         
             case SqlRegularFunction:
                 return processSqlRegularFunction((SqlRegularFunction)node,context);
+        
+            case SqlWindowExpr:
+                return processSqlWindowExpr((SqlWindowExpr)node,context);
         
             case SqlMultiValueExpr:
                 return processSqlMultiValueExpr((SqlMultiValueExpr)node,context);
@@ -269,6 +275,10 @@ public class EqlASTProcessor<T,C>{
 	}
     
 	public T processSqlAllProjection(SqlAllProjection node, C context){
+        return defaultProcess(node, context);
+	}
+    
+	public T processSqlPartitionBy(SqlPartitionBy node, C context){
         return defaultProcess(node, context);
 	}
     
@@ -389,6 +399,10 @@ public class EqlASTProcessor<T,C>{
 	}
     
 	public T processSqlRegularFunction(SqlRegularFunction node, C context){
+        return defaultProcess(node, context);
+	}
+    
+	public T processSqlWindowExpr(SqlWindowExpr node, C context){
         return defaultProcess(node, context);
 	}
     

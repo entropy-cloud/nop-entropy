@@ -61,6 +61,13 @@ public abstract class _SqlNativeFunctionModel extends io.nop.core.resource.compo
     
     /**
      *  
+     * xml name: onlyForWindowExpr
+     * 
+     */
+    private boolean _onlyForWindowExpr  = false;
+    
+    /**
+     *  
      * xml name: realName
      * 数据库中的函数名。在dialect中声明的函数名为标准函数名，它会尽量在多个数据库之间保持一致。realName为对应的数据库中的实现函数名
      */
@@ -218,6 +225,25 @@ public abstract class _SqlNativeFunctionModel extends io.nop.core.resource.compo
     
     /**
      * 
+     * xml name: onlyForWindowExpr
+     *  
+     */
+    
+    public boolean isOnlyForWindowExpr(){
+      return _onlyForWindowExpr;
+    }
+
+    
+    public void setOnlyForWindowExpr(boolean value){
+        checkAllowChange();
+        
+        this._onlyForWindowExpr = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: realName
      *  数据库中的函数名。在dialect中声明的函数名为标准函数名，它会尽量在多个数据库之间保持一致。realName为对应的数据库中的实现函数名
      */
@@ -351,6 +377,7 @@ public abstract class _SqlNativeFunctionModel extends io.nop.core.resource.compo
         out.putNotNull("maxArgCount",this.getMaxArgCount());
         out.putNotNull("minArgCount",this.getMinArgCount());
         out.putNotNull("name",this.getName());
+        out.putNotNull("onlyForWindowExpr",this.isOnlyForWindowExpr());
         out.putNotNull("realName",this.getRealName());
         out.putNotNull("returnFirstArgType",this.isReturnFirstArgType());
         out.putNotNull("returnType",this.getReturnType());
@@ -374,6 +401,7 @@ public abstract class _SqlNativeFunctionModel extends io.nop.core.resource.compo
         instance.setMaxArgCount(this.getMaxArgCount());
         instance.setMinArgCount(this.getMinArgCount());
         instance.setName(this.getName());
+        instance.setOnlyForWindowExpr(this.isOnlyForWindowExpr());
         instance.setRealName(this.getRealName());
         instance.setReturnFirstArgType(this.isReturnFirstArgType());
         instance.setReturnType(this.getReturnType());

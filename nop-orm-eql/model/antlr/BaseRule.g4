@@ -177,6 +177,7 @@ sqlExpr_bit
 
 sqlExpr_simple
     : sqlExpr_functionCall
+    | sqlWindowExpr
     | sqlParameterMarker
     | sqlLiteral
     | sqlColumnName
@@ -213,6 +214,19 @@ sqlAggregateFunction
     : name=sqlIdentifier_agg_ LP_ distinct=distinct_? (args=functionArgs_ | selectAll=ASTERISK_)? RP_
     ;
 
+sqlWindowExpr
+    : function=sqlWindowFunction_ OVER LP_
+        partitionBy=sqlPartitionBy orderBy=sqlOrderBy
+    RP_
+    ;
+
+sqlWindowFunction_: sqlAggregateFunction|sqlRegularFunction;
+
+sqlPartitionBy:
+  PARTITION BY items=sqlPartitionByItems_;
+
+sqlPartitionByItems_:
+   e=sqlExpr (COMMA_ e=sqlExpr)*;
 
 sqlIdentifier_agg_
     : MAX | MIN | SUM | COUNT | AVG

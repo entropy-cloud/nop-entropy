@@ -940,6 +940,46 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlAggregateFunction(EqlParser.SqlAggregateFunctionContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlWindowExpr}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlWindowExpr(EqlParser.SqlWindowExprContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlWindowExpr}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlWindowExpr(EqlParser.SqlWindowExprContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlWindowFunction_}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlWindowFunction_(EqlParser.SqlWindowFunction_Context ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlWindowFunction_}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlWindowFunction_(EqlParser.SqlWindowFunction_Context ctx);
+	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlPartitionBy}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlPartitionBy(EqlParser.SqlPartitionByContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlPartitionBy}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlPartitionBy(EqlParser.SqlPartitionByContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlPartitionByItems_}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlPartitionByItems_(EqlParser.SqlPartitionByItems_Context ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlPartitionByItems_}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlPartitionByItems_(EqlParser.SqlPartitionByItems_Context ctx);
+	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlIdentifier_agg_}.
 	 * @param ctx the parse tree
 	 */

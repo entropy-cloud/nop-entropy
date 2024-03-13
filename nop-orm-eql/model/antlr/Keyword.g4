@@ -551,7 +551,14 @@ FLOAT
     : F L O A T
     ;
 
+//=====================================
 
 RECURSIVE
     : R E C U R S I V E
     ;
+
+
+OVER
+    : O V E R;
+
+PARTITION: P A R T I T I O N;

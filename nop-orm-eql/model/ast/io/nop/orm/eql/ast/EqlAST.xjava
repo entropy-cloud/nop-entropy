@@ -202,6 +202,11 @@ class EqlAST {
         SqlQualifiedName owner;
     }
 
+    class SqlPartitionBy{
+        @PropMeta(mandatory = true)
+        List<SqlExpr> items;
+    }
+
     class SqlOrderBy {
         @PropMeta(mandatory = true)
         List<SqlOrderByItem> items;
@@ -435,6 +440,12 @@ class EqlAST {
         String name;
 
         List<SqlExpr> args;
+    }
+
+    class SqlWindowExpr extends SqlExpr{
+        SqlFunction function;
+        SqlPartitionBy partitionBy;
+        SqlOrderBy orderBy;
     }
 
     class SqlMultiValueExpr extends SqlExpr {

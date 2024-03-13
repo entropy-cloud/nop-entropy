@@ -39,6 +39,13 @@ public abstract class _SqlTemplateModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: onlyForWindowExpr
+     * 
+     */
+    private boolean _onlyForWindowExpr  = false;
+    
+    /**
+     *  
      * xml name: returnFirstArgType
      * 返回类型是否与第一个参数的类型相同
      */
@@ -125,6 +132,25 @@ public abstract class _SqlTemplateModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._name = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: onlyForWindowExpr
+     *  
+     */
+    
+    public boolean isOnlyForWindowExpr(){
+      return _onlyForWindowExpr;
+    }
+
+    
+    public void setOnlyForWindowExpr(boolean value){
+        checkAllowChange();
+        
+        this._onlyForWindowExpr = value;
            
     }
 
@@ -242,6 +268,7 @@ public abstract class _SqlTemplateModel extends io.nop.core.resource.component.A
         out.putNotNull("argTypes",this.getArgTypes());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("name",this.getName());
+        out.putNotNull("onlyForWindowExpr",this.isOnlyForWindowExpr());
         out.putNotNull("returnFirstArgType",this.isReturnFirstArgType());
         out.putNotNull("returnType",this.getReturnType());
         out.putNotNull("source",this.getSource());
@@ -261,6 +288,7 @@ public abstract class _SqlTemplateModel extends io.nop.core.resource.component.A
         instance.setArgTypes(this.getArgTypes());
         instance.setDescription(this.getDescription());
         instance.setName(this.getName());
+        instance.setOnlyForWindowExpr(this.isOnlyForWindowExpr());
         instance.setReturnFirstArgType(this.isReturnFirstArgType());
         instance.setReturnType(this.getReturnType());
         instance.setSource(this.getSource());

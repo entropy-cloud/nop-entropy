@@ -566,6 +566,30 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlAggregateFunction(EqlParser.SqlAggregateFunctionContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlWindowExpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlWindowExpr(EqlParser.SqlWindowExprContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlWindowFunction_}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlWindowFunction_(EqlParser.SqlWindowFunction_Context ctx);
+	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlPartitionBy}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlPartitionBy(EqlParser.SqlPartitionByContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlPartitionByItems_}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlPartitionByItems_(EqlParser.SqlPartitionByItems_Context ctx);
+	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlIdentifier_agg_}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

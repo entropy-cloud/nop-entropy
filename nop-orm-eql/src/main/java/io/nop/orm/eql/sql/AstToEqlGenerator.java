@@ -56,6 +56,7 @@ import io.nop.orm.eql.ast.SqlOrExpr;
 import io.nop.orm.eql.ast.SqlOrderBy;
 import io.nop.orm.eql.ast.SqlOrderByItem;
 import io.nop.orm.eql.ast.SqlParameterMarker;
+import io.nop.orm.eql.ast.SqlPartitionBy;
 import io.nop.orm.eql.ast.SqlProgram;
 import io.nop.orm.eql.ast.SqlQualifiedName;
 import io.nop.orm.eql.ast.SqlQuerySelect;
@@ -72,6 +73,7 @@ import io.nop.orm.eql.ast.SqlUnionSelect;
 import io.nop.orm.eql.ast.SqlUpdate;
 import io.nop.orm.eql.ast.SqlValues;
 import io.nop.orm.eql.ast.SqlWhere;
+import io.nop.orm.eql.ast.SqlWindowExpr;
 import io.nop.orm.eql.enums.SqlCompareRange;
 import io.nop.orm.eql.enums.SqlOperator;
 
@@ -883,5 +885,20 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         }
     }
 
+    @Override
+    public void visitSqlWindowExpr(SqlWindowExpr node) {
+        this.visitChild(node.getFunction());
+        print(" over( ");
+        this.visitChild(node.getPartitionBy());
+        this.visitChild(node.getOrderBy());
+        print(") ");
+    }
 
+    @Override
+    public void visitSqlPartitionBy(SqlPartitionBy node) {
+        print(" partition by ");
+        beginBlock();
+        printList(node.getItems(), ",");
+        endBlock();
+    }
 }

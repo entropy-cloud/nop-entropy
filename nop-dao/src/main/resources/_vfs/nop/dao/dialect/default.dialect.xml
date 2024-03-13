@@ -4,6 +4,7 @@
 缺省情况下总是强制让表名小写，字段名大写。这样与mysql数据库的缺省情况一致。
 -->
 <dialect x:schema="/nop/schema/orm/dialect.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+         x:extends="window-expr-support.dialect.xml"
          class="io.nop.dao.dialect.impl.DialectImpl" tableNameCase="lower" columnNameCase="upper">
 
     <sqlExceptionTranslator>io.nop.dao.dialect.impl.DialectSQLExceptionTranslator</sqlExceptionTranslator>

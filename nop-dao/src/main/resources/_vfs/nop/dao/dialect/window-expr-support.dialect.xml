@@ -1,0 +1,35 @@
+<!--
+
+-->
+<dialect x:schema="/nop/schema/orm/dialect.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef"
+>
+
+
+    <functions>
+        <native name="rank" returnType="INTEGER" onlyForWindowExpr="true">
+        </native>
+        <native name="dense_rank" returnType="INTEGER" onlyForWindowExpr="true">
+        </native>
+        <native name="row_number" returnType="BIGINT" onlyForWindowExpr="true">
+        </native>
+        <native name="lead" returnType="ANY" onlyForWindowExpr="true">
+        </native>
+        <native name="lag" returnType="ANY" onlyForWindowExpr="true">
+        </native>
+        <native name="first_value" returnType="ANY" onlyForWindowExpr="true">
+        </native>
+        <native name="last_value" returnType="ANY" onlyForWindowExpr="true">
+        </native>
+        <native name="nth_value" returnType="ANY" onlyForWindowExpr="true">
+        </native>
+
+        <native name="percent_rank" returnType="DOUBLE" onlyForWindowExpr="true">
+        </native>
+
+        <native name="cume_dist" returnType="DOUBLE" onlyForWindowExpr="true">
+        </native>
+        <!-- 可能还有更多，取决于具体的数据库系统 -->
+    </functions>
+
+</dialect>

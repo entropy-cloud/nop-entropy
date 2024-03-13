@@ -173,26 +173,33 @@ public class AstGrammar {
                 rule.setReturnType(astPackage + "." + rule.getReturnAstNodeName());
             }
 
-            try {
-                if (rule.getAstProp() != null) {
+
+            if (rule.getAstProp() != null) {
+                try {
                     String returnType = fn.apply(rule.getAstNodeName(), rule.getAstProp());
                     if (returnType == null)
                         throw new NopException(ERR_GRAMMAR_INVALID_AST_PROP).loc(rule.getLocation())
                                 .param(ARG_AST_NODE_NAME, rule.getAstNodeName()).param(ARG_PROP_NAME, rule.getAstProp());
                     rule.setAstPropType(returnType);
-                } else if (rule.hasProperty() && rule.getAstNodeName() != null) {
-                    for (GrammarElement prop : rule.getProperties().values()) {
+                } catch (NopException e) {
+                    e.addXplStack(rule);
+                    throw e;
+                }
+            } else if (rule.hasProperty() && rule.getAstNodeName() != null) {
+                for (GrammarElement prop : rule.getProperties().values()) {
+                    try {
                         String returnType = fn.apply(rule.getAstNodeName(), prop.getPropName());
                         if (returnType == null)
                             throw new NopException(ERR_GRAMMAR_INVALID_AST_PROP).loc(rule.getLocation())
                                     .param(ARG_AST_NODE_NAME, rule.getAstNodeName())
                                     .param(ARG_RULE_NAME, rule.getRuleName()).param(ARG_PROP_NAME, prop.getPropName());
                         prop.setReturnType(returnType);
+                    } catch (NopException e) {
+                        e.addXplStack(prop);
+                        e.addXplStack(rule);
+                        throw e;
                     }
                 }
-            } catch (NopException e) {
-                e.addXplStack(rule);
-                throw e;
             }
         }
     }

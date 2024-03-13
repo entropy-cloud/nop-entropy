@@ -104,6 +104,7 @@ import static io.nop.orm.eql.OrmEqlErrors.ARG_TABLE_SOURCE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DECORATOR_ARG_COUNT_IS_NOT_EXPECTED;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DECORATOR_ARG_TYPE_IS_NOT_EXPECTED;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FIELD_NOT_IN_SUBQUERY;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FUNC_ONLY_ALLOW_IN_WINDOW_EXPR;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FUNC_TOO_FEW_ARGS;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FUNC_TOO_MANY_ARGS;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_JOIN_NO_CONDITION;
@@ -1248,6 +1249,13 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             throw new NopException(ERR_EQL_UNKNOWN_FUNCTION).source(node).param(ARG_FUNC_NAME, node.getName())
                     .param(ARG_DIALECT, dialect.getName());
 
+        if (fn.isOnlyForWindowExpr()) {
+            if (node.getASTParent().getASTKind() != EqlASTKind.SqlWindowExpr)
+                throw new NopException(ERR_EQL_FUNC_ONLY_ALLOW_IN_WINDOW_EXPR)
+                        .source(node).param(ARG_FUNC_NAME, node.getName())
+                        .param(ARG_DIALECT, dialect.getName());
+        }
+
         int argCount = node.getArgs().size();
         if (fn.getMinArgCount() > argCount) {
             throw new NopException(ERR_EQL_FUNC_TOO_FEW_ARGS).source(node).param(ARG_FUNC_NAME, node.getName())
@@ -1259,6 +1267,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                     .param(ARG_ARG_COUNT, argCount).param(ARG_MAX_ARG_COUNT, fn.getMinArgCount());
         }
         node.setResolvedFunction(fn);
+
 
         visitChildren(node.getArgs());
     }

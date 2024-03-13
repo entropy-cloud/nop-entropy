@@ -156,6 +156,9 @@ public interface OrmEqlErrors {
 
     ErrorCode ERR_EQL_UNKNOWN_FUNCTION = define("nop.err.eql.unknown-function", "未知的函数[{funcName]", ARG_FUNC_NAME);
 
+    ErrorCode ERR_EQL_FUNC_ONLY_ALLOW_IN_WINDOW_EXPR =
+            define("nop.err.eql.func-only-allow-in-window-expr", "函数[{funcName}]只允许在窗口表达式中使用", ARG_FUNC_NAME);
+
     ErrorCode ERR_EQL_NOT_SUPPORT_ILIKE = define("nop.err.eql.not-support-ilike-operator", "数据库不支持ilike运算符", ARG_FUNC_NAME);
 
     ErrorCode ERR_EQL_UNKNOWN_FIELD_IN_SELECTION =

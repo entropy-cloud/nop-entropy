@@ -43,82 +43,86 @@ public enum EqlASTKind{
         
             SqlAllProjection, // ordinal: 19
         
-            SqlOrderBy, // ordinal: 20
+            SqlPartitionBy, // ordinal: 20
         
-            SqlGroupBy, // ordinal: 21
+            SqlOrderBy, // ordinal: 21
         
-            SqlGroupByItem, // ordinal: 22
+            SqlGroupBy, // ordinal: 22
         
-            SqlOrderByItem, // ordinal: 23
+            SqlGroupByItem, // ordinal: 23
         
-            SqlLimit, // ordinal: 24
+            SqlOrderByItem, // ordinal: 24
         
-            SqlFrom, // ordinal: 25
+            SqlLimit, // ordinal: 25
         
-            SqlSingleTableSource, // ordinal: 26
+            SqlFrom, // ordinal: 26
         
-            SqlJoinTableSource, // ordinal: 27
+            SqlSingleTableSource, // ordinal: 27
         
-            SqlSubqueryTableSource, // ordinal: 28
+            SqlJoinTableSource, // ordinal: 28
         
-            SqlNotExpr, // ordinal: 29
+            SqlSubqueryTableSource, // ordinal: 29
         
-            SqlAndExpr, // ordinal: 30
+            SqlNotExpr, // ordinal: 30
         
-            SqlOrExpr, // ordinal: 31
+            SqlAndExpr, // ordinal: 31
         
-            SqlStringLiteral, // ordinal: 32
+            SqlOrExpr, // ordinal: 32
         
-            SqlNumberLiteral, // ordinal: 33
+            SqlStringLiteral, // ordinal: 33
         
-            SqlDateTimeLiteral, // ordinal: 34
+            SqlNumberLiteral, // ordinal: 34
         
-            SqlHexadecimalLiteral, // ordinal: 35
+            SqlDateTimeLiteral, // ordinal: 35
         
-            SqlBitValueLiteral, // ordinal: 36
+            SqlHexadecimalLiteral, // ordinal: 36
         
-            SqlBooleanLiteral, // ordinal: 37
+            SqlBitValueLiteral, // ordinal: 37
         
-            SqlNullLiteral, // ordinal: 38
+            SqlBooleanLiteral, // ordinal: 38
         
-            SqlBinaryExpr, // ordinal: 39
+            SqlNullLiteral, // ordinal: 39
         
-            SqlIsNullExpr, // ordinal: 40
+            SqlBinaryExpr, // ordinal: 40
         
-            SqlCompareWithQueryExpr, // ordinal: 41
+            SqlIsNullExpr, // ordinal: 41
         
-            SqlSubQueryExpr, // ordinal: 42
+            SqlCompareWithQueryExpr, // ordinal: 42
         
-            SqlInQueryExpr, // ordinal: 43
+            SqlSubQueryExpr, // ordinal: 43
         
-            SqlInValuesExpr, // ordinal: 44
+            SqlInQueryExpr, // ordinal: 44
         
-            SqlBetweenExpr, // ordinal: 45
+            SqlInValuesExpr, // ordinal: 45
         
-            SqlLikeExpr, // ordinal: 46
+            SqlBetweenExpr, // ordinal: 46
         
-            SqlUnaryExpr, // ordinal: 47
+            SqlLikeExpr, // ordinal: 47
         
-            SqlAggregateFunction, // ordinal: 48
+            SqlUnaryExpr, // ordinal: 48
         
-            SqlRegularFunction, // ordinal: 49
+            SqlAggregateFunction, // ordinal: 49
         
-            SqlMultiValueExpr, // ordinal: 50
+            SqlRegularFunction, // ordinal: 50
         
-            SqlExistsExpr, // ordinal: 51
+            SqlWindowExpr, // ordinal: 51
         
-            SqlIntervalExpr, // ordinal: 52
+            SqlMultiValueExpr, // ordinal: 52
         
-            SqlCaseExpr, // ordinal: 53
+            SqlExistsExpr, // ordinal: 53
         
-            SqlCaseWhenItem, // ordinal: 54
+            SqlIntervalExpr, // ordinal: 54
         
-            SqlCastExpr, // ordinal: 55
+            SqlCaseExpr, // ordinal: 55
         
-            SqlTypeExpr, // ordinal: 56
+            SqlCaseWhenItem, // ordinal: 56
         
-            SqlCommit, // ordinal: 57
+            SqlCastExpr, // ordinal: 57
         
-            SqlRollback, // ordinal: 58
+            SqlTypeExpr, // ordinal: 58
+        
+            SqlCommit, // ordinal: 59
+        
+            SqlRollback, // ordinal: 60
         
 }

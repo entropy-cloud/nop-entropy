@@ -11,11 +11,11 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.text.marker.Markers;
+import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.ISqlExpr;
 import io.nop.core.lang.sql.SqlExprList;
-import io.nop.commons.type.StdSqlType;
 import io.nop.core.lang.sql.StringSqlExpr;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.model.SqlTemplateModel;
@@ -74,6 +74,11 @@ public class TemplateSQLFunction implements ISQLFunction {
     @Override
     public boolean hasParentheses() {
         return true;
+    }
+
+    @Override
+    public boolean isOnlyForWindowExpr() {
+        return funcModel.isOnlyForWindowExpr();
     }
 
     @Override

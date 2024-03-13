@@ -90,6 +90,10 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
                     visitSqlAllProjection((SqlAllProjection)node);
                     return;
             
+                case SqlPartitionBy:
+                    visitSqlPartitionBy((SqlPartitionBy)node);
+                    return;
+            
                 case SqlOrderBy:
                     visitSqlOrderBy((SqlOrderBy)node);
                     return;
@@ -208,6 +212,10 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
             
                 case SqlRegularFunction:
                     visitSqlRegularFunction((SqlRegularFunction)node);
+                    return;
+            
+                case SqlWindowExpr:
+                    visitSqlWindowExpr((SqlWindowExpr)node);
                     return;
             
                 case SqlMultiValueExpr:
@@ -375,6 +383,11 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
                     this.visitChild(node.getOwner());
             }
         
+            public void visitSqlPartitionBy(SqlPartitionBy node){
+            
+                    this.visitChildren(node.getItems());         
+            }
+        
             public void visitSqlOrderBy(SqlOrderBy node){
             
                     this.visitChildren(node.getItems());         
@@ -535,6 +548,13 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
             public void visitSqlRegularFunction(SqlRegularFunction node){
             
                     this.visitChildren(node.getArgs());         
+            }
+        
+            public void visitSqlWindowExpr(SqlWindowExpr node){
+            
+                    this.visitChild(node.getFunction());
+                    this.visitChild(node.getPartitionBy());
+                    this.visitChild(node.getOrderBy());
             }
         
             public void visitSqlMultiValueExpr(SqlMultiValueExpr node){
