@@ -11,8 +11,8 @@ import io.nop.antlr4.common.ParseTreeHelper;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.commons.util.StringHelper;
 import io.nop.commons.type.StdSqlType;
+import io.nop.commons.util.StringHelper;
 import io.nop.orm.eql.enums.SqlCompareRange;
 import io.nop.orm.eql.enums.SqlDateTimeType;
 import io.nop.orm.eql.enums.SqlIntervalUnit;
@@ -290,8 +290,16 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
     public SqlUnionType SqlUnionSelect_unionType(ParseTree node) {
         EqlParser.UnionType_Context ctx = (EqlParser.UnionType_Context) node;
         if (ctx.ALL() != null) {
+            if (ctx.INTERCEPT() != null)
+                return SqlUnionType.INTERCEPT_ALL;
+            if (ctx.EXCEPT() != null)
+                return SqlUnionType.EXCEPT_ALL;
             return SqlUnionType.UNION_ALL;
         } else {
+            if (ctx.INTERCEPT() != null)
+                return SqlUnionType.INTERCEPT;
+            if (ctx.EXCEPT() != null)
+                return SqlUnionType.EXCEPT;
             return SqlUnionType.UNION;
         }
     }

@@ -28,7 +28,12 @@ import io.nop.dao.dialect.function.ISQLFunction;
 import io.nop.dao.dialect.function.NativeSQLFunction;
 import io.nop.dao.dialect.function.TemplateSQLFunction;
 import io.nop.dao.dialect.lock.LockOption;
-import io.nop.dao.dialect.model.*;
+import io.nop.dao.dialect.model.DialectModel;
+import io.nop.dao.dialect.model.ISqlFunctionModel;
+import io.nop.dao.dialect.model.SqlDataTypeModel;
+import io.nop.dao.dialect.model.SqlFunctionModel;
+import io.nop.dao.dialect.model.SqlNativeFunctionModel;
+import io.nop.dao.dialect.model.SqlTemplateModel;
 import io.nop.dao.dialect.pagination.IPaginationHandler;
 import io.nop.dao.dialect.pagination.LimitOffsetPaginationHandler;
 import io.nop.dataset.binder.DataParameterBinders;
@@ -39,7 +44,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.sql.*;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -49,7 +60,11 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.nop.dao.DaoConfigs.CFG_AUTO_CONVERT_EMPTY_STRING_TO_NULL;
-import static io.nop.dao.DaoErrors.*;
+import static io.nop.dao.DaoErrors.ARG_ALLOWED_NAMES;
+import static io.nop.dao.DaoErrors.ARG_NAME;
+import static io.nop.dao.DaoErrors.ARG_PARAM;
+import static io.nop.dao.DaoErrors.ERR_DIALECT_INVALID_TPL_PARAM;
+import static io.nop.dao.DaoErrors.ERR_DIALECT_TPL_PARAM_NO_ARG;
 
 public class DialectImpl implements IDialect {
     static final Logger LOG = LoggerFactory.getLogger(DialectImpl.class);
@@ -298,6 +313,11 @@ public class DialectImpl implements IDialect {
     @Override
     public String getUpdateKeyword() {
         return dialectModel.getSqls().getUpdateKeyword();
+    }
+
+    @Override
+    public String getExceptKeyword() {
+        return dialectModel.getSqls().getExceptKeyword();
     }
 
     @Override

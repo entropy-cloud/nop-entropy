@@ -123,10 +123,20 @@ public class TestEqlCompiler extends AbstractOrmTestCase {
     }
 
     @Test
-    public void testAliasInOrderBy(){
+    public void testAliasInOrderBy() {
         String sqlText = "select o,o.classId as cid from SimsClass o order by cid desc";
         SQL sql = compile(sqlText);
         sql.dump();
         assertTrue(sql.getText().contains("cid desc"));
+    }
+
+    @Test
+    public void testExcept() {
+        String sqlText = "select o.classId as cid from SimsClass o except select u.collegeId from SimsCollege u";
+        SQL sql = compile(sqlText);
+        sql.dump();
+        assertTrue(sql.getText().contains("except"));
+
+        jdbc().findAll(sql);
     }
 }

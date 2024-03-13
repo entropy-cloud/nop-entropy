@@ -379,6 +379,10 @@ EXCEPT
     : E X C E P T
     ;
 
+INTERCEPT:
+    I N T E R C E P T
+    ;
+
 EXCEPTION
     : E X C E P T I O N
     ;

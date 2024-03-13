@@ -106,6 +106,14 @@ public interface IDialect extends IComponentModel {
         return "update";
     }
 
+    default  String getInterceptKeyword(){
+        return "intercept";
+    }
+
+    default  String getExceptKeyword(){
+        return "except";
+    }
+
     String getCreateSequenceSql(String sequenceName, long initialValue, int incrementSize);
 
     String getSequenceNextValSql(String sequenceName);

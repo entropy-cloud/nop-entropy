@@ -13,6 +13,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.text.marker.Marker;
 import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
 import io.nop.core.lang.sql.SqlExprList;
 import io.nop.core.lang.sql.SyntaxMarker;
@@ -292,7 +293,7 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
 
     @Override
     public void visitSqlColumnName(SqlColumnName node) {
-        if(node.getProjection() != null){
+        if (node.getProjection() != null) {
             super.visitSqlColumnName(node);
             return;
         }
@@ -404,5 +405,22 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
             LOG.debug("nop.orm.dialect-not-support-ilike,so-use-like-instead:{}", node);
             printBinaryExpr(node.getExpr(), SqlOperator.LIKE, node.getValue());
         }
+    }
+
+    @Override
+    protected String getInterceptKeyword() {
+        String keyword = dialect.getInterceptKeyword();
+        if (!StringHelper.isEmpty(keyword))
+            return keyword;
+
+        return super.getInterceptKeyword();
+    }
+
+    @Override
+    protected String getExceptKeyword() {
+        String keyword = dialect.getExceptKeyword();
+        if (!StringHelper.isEmpty(keyword))
+            return keyword;
+        return super.getExceptKeyword();
     }
 }

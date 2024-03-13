@@ -73,7 +73,6 @@ import io.nop.orm.eql.ast.SqlUpdate;
 import io.nop.orm.eql.ast.SqlValues;
 import io.nop.orm.eql.ast.SqlWhere;
 import io.nop.orm.eql.enums.SqlOperator;
-import io.nop.orm.eql.enums.SqlUnionType;
 
 import java.util.List;
 
@@ -387,7 +386,7 @@ public class AstToEqlGenerator extends EqlASTVisitor {
                     println();
                 SqlCteStatement stm = withCtes.get(i);
                 print("with ");
-                if(stm.getRecursive()){
+                if (stm.getRecursive()) {
                     print(" recursive ");
                 }
                 print(stm.getName());
@@ -474,15 +473,37 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         endBraceBlock();
 
         println();
-        if (node.getUnionType() == SqlUnionType.UNION_ALL) {
-            sb.append(" union all ");
-        } else {
-            sb.append(" union ");
+        switch (node.getUnionType()) {
+            case UNION_ALL:
+                sb.append(" union all ");
+                break;
+            case INTERCEPT_ALL:
+                sb.append(" ").append(getInterceptKeyword()).append(" all ");
+                break;
+            case EXCEPT_ALL:
+                sb.append(" ").append(getExceptKeyword()).append(" all ");
+                break;
+            case INTERCEPT:
+                sb.append(" ").append(getInterceptKeyword()).append(" ");
+                break;
+            case EXCEPT:
+                sb.append(" ").append(getExceptKeyword()).append(" ");
+                break;
+            default:
+                sb.append(" union ");
         }
         println();
         beginBraceBlock();
         visit(node.getRight());
         endBraceBlock();
+    }
+
+    protected String getInterceptKeyword() {
+        return "intercept";
+    }
+
+    protected String getExceptKeyword() {
+        return "except";
     }
 
     @Override

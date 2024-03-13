@@ -8,5 +8,5 @@
 package io.nop.orm.eql.enums;
 
 public enum SqlUnionType {
-    UNION, UNION_ALL,
+    UNION, UNION_ALL, INTERCEPT, INTERCEPT_ALL, EXCEPT, EXCEPT_ALL
 }

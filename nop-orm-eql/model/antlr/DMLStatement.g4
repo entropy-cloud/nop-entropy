@@ -86,7 +86,7 @@ sqlSelect
 //    ;
 
 unionType_:
-    UNION (ALL)?;
+    (UNION|INTERCEPT|EXCEPT) (ALL)?;
 
 sqlQuerySelect
     : decorators=sqlDecorators_? SELECT distinct=distinct_?

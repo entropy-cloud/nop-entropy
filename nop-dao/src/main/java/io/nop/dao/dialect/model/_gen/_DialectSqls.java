@@ -60,6 +60,13 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: exceptKeyword
+     * 
+     */
+    private java.lang.String _exceptKeyword ;
+    
+    /**
+     *  
      * xml name: falseString
      * 
      */
@@ -245,6 +252,25 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
         checkAllowChange();
         
         this._escapeSlash = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: exceptKeyword
+     *  
+     */
+    
+    public java.lang.String getExceptKeyword(){
+      return _exceptKeyword;
+    }
+
+    
+    public void setExceptKeyword(java.lang.String value){
+        checkAllowChange();
+        
+        this._exceptKeyword = value;
            
     }
 
@@ -479,6 +505,7 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
         out.putNotNull("dropSequence",this.getDropSequence());
         out.putNotNull("dropTable",this.getDropTable());
         out.putNotNull("escapeSlash",this.getEscapeSlash());
+        out.putNotNull("exceptKeyword",this.getExceptKeyword());
         out.putNotNull("falseString",this.getFalseString());
         out.putNotNull("forUpdate",this.getForUpdate());
         out.putNotNull("insertKeyword",this.getInsertKeyword());
@@ -507,6 +534,7 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
         instance.setDropSequence(this.getDropSequence());
         instance.setDropTable(this.getDropTable());
         instance.setEscapeSlash(this.getEscapeSlash());
+        instance.setExceptKeyword(this.getExceptKeyword());
         instance.setFalseString(this.getFalseString());
         instance.setForUpdate(this.getForUpdate());
         instance.setInsertKeyword(this.getInsertKeyword());

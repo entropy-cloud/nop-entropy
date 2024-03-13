@@ -98,7 +98,10 @@
 
     <features supportSequence="true" supportNullsFirst="true"/>
 
-    <sqls escapeSlash="false">
+    <!--
+    Oracle使用minus关键字代替SQL标准中的except
+    -->
+    <sqls escapeSlash="false" exceptKeyword="minus">
         <dropTable>drop table {tableName}</dropTable>
 
         <selectFromDual>select {fields} from dual</selectFromDual>
