@@ -125,6 +125,8 @@ class EqlAST {
     }
 
     class SqlCteStatement {
+        boolean recursive;
+
         @PropMeta(mandatory = true)
         String name;
         @PropMeta(mandatory = true)

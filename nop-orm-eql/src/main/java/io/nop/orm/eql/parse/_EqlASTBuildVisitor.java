@@ -525,6 +525,9 @@ public java.util.List<io.nop.orm.eql.ast.SqlAssignment> buildSqlAssignments_(Sql
           io.nop.orm.eql.ast.SqlCteStatement ret = new io.nop.orm.eql.ast.SqlCteStatement();
           ret.setLocation(ParseTreeHelper.loc(ctx));
           
+            if(ctx.recursive != null){
+               ret.setRecursive((SqlCteStatement_recursive(ctx.recursive)));
+            }
             if(ctx.name != null){
                ret.setName((SqlCteStatement_name(ctx.name)));
             }
@@ -1360,6 +1363,11 @@ public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(Tabl
    * rules: sqlBooleanLiteral
    */
   public abstract boolean SqlBooleanLiteral_value(org.antlr.v4.runtime.Token token);
+
+  /**
+   * rules: sqlCteStatement
+   */
+  public abstract boolean SqlCteStatement_recursive(org.antlr.v4.runtime.Token token);
 
   /**
    * rules: SqlInQueryExpr

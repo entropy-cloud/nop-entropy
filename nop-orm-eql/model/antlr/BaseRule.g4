@@ -88,6 +88,7 @@ unreservedWord_:
     | VALUE | POSITION | ORDER
     | LEVEL | SESSION |COUNT |COALESCE|YEAR|MONTH
     | LOWER | UPPER | ZONE |WORK
+    | RECURSIVE
     ;
 
 // variable

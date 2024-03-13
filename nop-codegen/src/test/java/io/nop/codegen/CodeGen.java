@@ -37,6 +37,7 @@ public class CodeGen {
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-dao"), "", false);
             //
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-orm-model"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-orm-eql"), "", false);
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-orm"), "", false);
 
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-excel"), "", false);

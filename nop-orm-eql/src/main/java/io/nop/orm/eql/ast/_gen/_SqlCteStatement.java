@@ -18,6 +18,8 @@ public abstract class _SqlCteStatement extends EqlASTNode {
     
     protected java.lang.String name;
     
+    protected boolean recursive;
+    
     protected io.nop.orm.eql.ast.SqlSelect statement;
     
 
@@ -33,6 +35,16 @@ public abstract class _SqlCteStatement extends EqlASTNode {
         checkAllowChange();
         
         this.name = value;
+    }
+    
+    public boolean getRecursive(){
+        return recursive;
+    }
+
+    public void setRecursive(boolean value){
+        checkAllowChange();
+        
+        this.recursive = value;
     }
     
     public io.nop.orm.eql.ast.SqlSelect getStatement(){
@@ -69,6 +81,8 @@ public abstract class _SqlCteStatement extends EqlASTNode {
     ret.setTrailingComment(getTrailingComment());
     copyExtFieldsTo(ret);
     
+                ret.setRecursive(recursive);
+            
                 if(name != null){
                   
                           ret.setName(name);
@@ -129,6 +143,10 @@ public abstract class _SqlCteStatement extends EqlASTNode {
           return false;
     SqlCteStatement other = (SqlCteStatement)node;
     
+                if(!isValueEquivalent(this.recursive,other.getRecursive())){
+                   return false;
+                }
+            
                 if(!isValueEquivalent(this.name,other.getName())){
                    return false;
                 }
@@ -147,6 +165,8 @@ public abstract class _SqlCteStatement extends EqlASTNode {
 
     protected void serializeFields(IJsonHandler json) {
         
+                   json.put("recursive", recursive);
+                
                     if(name != null){
                       
                               json.put("name", name);

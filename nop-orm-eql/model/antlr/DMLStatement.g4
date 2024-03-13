@@ -65,7 +65,7 @@ sqlSelectWithCte:
     decorators=sqlDecorators_? withCtes=sqlCteStatements_ select=sqlSelect;
 
 sqlCteStatement
-    : name=sqlIdentifier_ AS LP_ statement=sqlSelect RP_
+    : recursive=RECURSIVE? name=sqlIdentifier_ AS LP_ statement=sqlSelect RP_
     ;
 
 sqlCteStatements_

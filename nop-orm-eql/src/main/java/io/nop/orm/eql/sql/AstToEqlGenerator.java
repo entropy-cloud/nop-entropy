@@ -387,6 +387,9 @@ public class AstToEqlGenerator extends EqlASTVisitor {
                     println();
                 SqlCteStatement stm = withCtes.get(i);
                 print("with ");
+                if(stm.getRecursive()){
+                    print(" recursive ");
+                }
                 print(stm.getName());
                 print(" as (");
                 incIndent();

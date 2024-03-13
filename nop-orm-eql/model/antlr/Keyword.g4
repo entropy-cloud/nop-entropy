@@ -550,3 +550,8 @@ VARCHAR
 FLOAT
     : F L O A T
     ;
+
+
+RECURSIVE
+    : R E C U R S I V E
+    ;
