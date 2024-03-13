@@ -46,7 +46,7 @@
               supportQueryTimeout="boolean" supportWithAsClause="boolean"
               supportDeleteFromJoin="boolean" supportILike="boolean"
               supportNullsFirst="boolean" useGetStringForDate="boolean"
-              supportFullJoin="boolean" supportRightJoin="boolean"
+              supportFullJoin="boolean" supportRightJoin="boolean" supportSomeSubQuery="boolean"
     />
 
     <!--

@@ -117,6 +117,13 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: supportSomeSubQuery
+     * 
+     */
+    private java.lang.Boolean _supportSomeSubQuery ;
+    
+    /**
+     *  
      * xml name: supportTransaction
      * 
      */
@@ -426,6 +433,25 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
     
     /**
      * 
+     * xml name: supportSomeSubQuery
+     *  
+     */
+    
+    public java.lang.Boolean getSupportSomeSubQuery(){
+      return _supportSomeSubQuery;
+    }
+
+    
+    public void setSupportSomeSubQuery(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._supportSomeSubQuery = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: supportTransaction
      *  
      */
@@ -567,6 +593,7 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
         out.putNotNull("supportRowValueConstructor",this.getSupportRowValueConstructor());
         out.putNotNull("supportSavePoint",this.getSupportSavePoint());
         out.putNotNull("supportSequence",this.getSupportSequence());
+        out.putNotNull("supportSomeSubQuery",this.getSupportSomeSubQuery());
         out.putNotNull("supportTransaction",this.getSupportTransaction());
         out.putNotNull("supportTruncateTable",this.getSupportTruncateTable());
         out.putNotNull("supportUpdateFromJoin",this.getSupportUpdateFromJoin());
@@ -598,6 +625,7 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
         instance.setSupportRowValueConstructor(this.getSupportRowValueConstructor());
         instance.setSupportSavePoint(this.getSupportSavePoint());
         instance.setSupportSequence(this.getSupportSequence());
+        instance.setSupportSomeSubQuery(this.getSupportSomeSubQuery());
         instance.setSupportTransaction(this.getSupportTransaction());
         instance.setSupportTruncateTable(this.getSupportTruncateTable());
         instance.setSupportUpdateFromJoin(this.getSupportUpdateFromJoin());

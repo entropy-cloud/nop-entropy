@@ -39,6 +39,7 @@ import io.nop.orm.eql.ast.SqlStringLiteral;
 import io.nop.orm.eql.ast.SqlTableName;
 import io.nop.orm.eql.ast.SqlTypeExpr;
 import io.nop.orm.eql.compile.SqlPropJoin;
+import io.nop.orm.eql.enums.SqlCompareRange;
 import io.nop.orm.eql.enums.SqlOperator;
 import io.nop.orm.eql.meta.EntityTableMeta;
 import io.nop.orm.eql.meta.ISqlExprMeta;
@@ -422,5 +423,18 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
         if (!StringHelper.isEmpty(keyword))
             return keyword;
         return super.getExceptKeyword();
+    }
+
+    @Override
+    protected void printCompareRange(SqlCompareRange compareRange) {
+        if (compareRange == SqlCompareRange.ALL) {
+            print(SqlCompareRange.ALL.name());
+        } else {
+            if (dialect.isSupportSomeSubQuery()) {
+                print("SOME");
+            } else {
+                print(SqlCompareRange.ANY.name());
+            }
+        }
     }
 }

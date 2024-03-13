@@ -296,6 +296,12 @@ public class DialectImpl implements IDialect {
     }
 
     @Override
+    public boolean isSupportSomeSubQuery() {
+        return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportSomeSubQuery());
+    }
+
+
+    @Override
     public boolean isUseGetStringForDate() {
         return Boolean.TRUE.equals(dialectModel.getFeatures().getUseGetStringForDate());
     }

@@ -139,4 +139,14 @@ public class TestEqlCompiler extends AbstractOrmTestCase {
 
         jdbc().findAll(sql);
     }
+
+    @Test
+    public void testSome() {
+        String sqlText = "select o.classId as cid from SimsClass o where o.classId > some(select u.collegeId from SimsCollege u)";
+        SQL sql = compile(sqlText);
+        sql.dump();
+        assertTrue(sql.getText().contains("ANY"));
+
+        jdbc().findAll(sql);
+    }
 }

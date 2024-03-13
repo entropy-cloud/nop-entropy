@@ -139,7 +139,7 @@ sqlExpr_primary
     : expr=sqlExpr_primary IS not=NOT? NULL # SqlIsNullExpr
    // | booleanPrimary SAFE_EQ_ predicate
     | left=sqlExpr_primary operator=comparisonOperator_ right=sqlExpr_predicate # SqlBinaryExpr_compare
-    | expr=sqlExpr_primary operator=comparisonOperator_ compareRange=(ALL | ANY) query=sqlSubQueryExpr # SqlCompareWithQueryExpr
+    | expr=sqlExpr_primary operator=comparisonOperator_ compareRange=(ALL | ANY | SOME) query=sqlSubQueryExpr # SqlCompareWithQueryExpr
     | sqlExpr_predicate # SqlExpr_predicate2
     ;
 

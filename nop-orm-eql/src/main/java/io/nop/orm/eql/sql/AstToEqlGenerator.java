@@ -72,6 +72,7 @@ import io.nop.orm.eql.ast.SqlUnionSelect;
 import io.nop.orm.eql.ast.SqlUpdate;
 import io.nop.orm.eql.ast.SqlValues;
 import io.nop.orm.eql.ast.SqlWhere;
+import io.nop.orm.eql.enums.SqlCompareRange;
 import io.nop.orm.eql.enums.SqlOperator;
 
 import java.util.List;
@@ -719,10 +720,14 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         printOperator(node.getOperator());
         if (node.getCompareRange() != null) {
             print(' ');
-            print(node.getCompareRange().name());
+            printCompareRange(node.getCompareRange());
             print(' ');
         }
         visit(node.getQuery());
+    }
+
+    protected void printCompareRange(SqlCompareRange compareRange) {
+        print(compareRange.name());
     }
 
     @Override
