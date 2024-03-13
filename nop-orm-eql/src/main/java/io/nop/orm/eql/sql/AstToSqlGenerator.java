@@ -409,12 +409,12 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
     }
 
     @Override
-    protected String getInterceptKeyword() {
-        String keyword = dialect.getInterceptKeyword();
+    protected String getIntercectKeyword() {
+        String keyword = dialect.getIntersectKeyword();
         if (!StringHelper.isEmpty(keyword))
             return keyword;
 
-        return super.getInterceptKeyword();
+        return super.getIntercectKeyword();
     }
 
     @Override

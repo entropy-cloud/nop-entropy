@@ -108,8 +108,8 @@ public interface IDialect extends IComponentModel {
         return "update";
     }
 
-    default  String getInterceptKeyword(){
-        return "intercept";
+    default  String getIntersectKeyword(){
+        return "intersect";
     }
 
     default  String getExceptKeyword(){

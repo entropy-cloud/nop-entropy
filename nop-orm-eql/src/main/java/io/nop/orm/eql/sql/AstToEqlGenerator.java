@@ -478,14 +478,14 @@ public class AstToEqlGenerator extends EqlASTVisitor {
             case UNION_ALL:
                 sb.append(" union all ");
                 break;
-            case INTERCEPT_ALL:
-                sb.append(" ").append(getInterceptKeyword()).append(" all ");
+            case INTERSECT_ALL:
+                sb.append(" ").append(getIntercectKeyword()).append(" all ");
                 break;
             case EXCEPT_ALL:
                 sb.append(" ").append(getExceptKeyword()).append(" all ");
                 break;
-            case INTERCEPT:
-                sb.append(" ").append(getInterceptKeyword()).append(" ");
+            case INTERSECT:
+                sb.append(" ").append(getIntercectKeyword()).append(" ");
                 break;
             case EXCEPT:
                 sb.append(" ").append(getExceptKeyword()).append(" ");
@@ -499,8 +499,8 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         endBraceBlock();
     }
 
-    protected String getInterceptKeyword() {
-        return "intercept";
+    protected String getIntercectKeyword() {
+        return "intersect";
     }
 
     protected String getExceptKeyword() {
