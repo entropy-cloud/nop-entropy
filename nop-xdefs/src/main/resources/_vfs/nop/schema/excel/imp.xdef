@@ -31,7 +31,7 @@
         <sheet name="!string" namePattern="regex" sheetNameProp="string"
                xdef:name="ImportSheetModel" resultType="generic-type" ignore="!boolean=false"
                multiple="!boolean=false" list="!boolean=false" mandatory="!boolean=false" displayMode="string"
-               field="string" sheetVarName="string" keyProp="string"
+               field="string" sheetVarName="string" keyProp="string" multipleAsMap="!boolean=false"
                imp:treeChildrenProp="string" imp:treeChildKeyProp="string" imp:treeLevelProp="string"
         >
 

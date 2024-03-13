@@ -37,10 +37,12 @@ import java.util.List;
 import java.util.Map;
 
 import static io.nop.commons.cache.CacheConfig.newConfig;
+import static io.nop.core.CoreErrors.ARG_PROP_NAME;
 import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
 import static io.nop.excel.ExcelErrors.ARG_NAME_PATTERN;
 import static io.nop.excel.ExcelErrors.ARG_SHEET_NAME;
 import static io.nop.excel.ExcelErrors.ERR_IMPORT_MISSING_MANDATORY_SHEET;
+import static io.nop.excel.ExcelErrors.ERR_IMPORT_SHEET_WITH_DUPLICATE_KEY_PROP;
 import static io.nop.excel.ExcelErrors.ERR_IMPORT_UNKNOWN_SHEET;
 import static io.nop.xlang.XLangErrors.ARG_ALLOWED_NAMES;
 
@@ -167,8 +169,28 @@ public class ImportExcelParser {
             new TreeTableDataParser(scope).parse(sheet.getName(), sheet.getTable(), sheetModel, builder);
         }
 
-        if (sheetModel.getFieldName() != null) {
-            obj.prop_set(sheetModel.getFieldName(), list);
+        if (list.size() != sheets.size())
+            throw new NopException(ERR_IMPORT_SHEET_WITH_DUPLICATE_KEY_PROP)
+                    .param(ARG_SHEET_NAME, sheetModel.getName())
+                    .param(ARG_PROP_NAME, sheetModel.getKeyProp());
+
+        if (sheetModel.isMultipleAsMap()) {
+            Map<String, Object> map = new LinkedHashMap<>();
+
+            for (int i = 0, n = sheets.size(); i < n; i++) {
+                ExcelSheet sheet = sheets.get(i);
+                map.put(sheet.getName(), list.get(i));
+            }
+
+            if (sheetModel.getFieldName() != null) {
+                obj.prop_set(sheetModel.getFieldName(), map);
+            } else {
+                map.forEach(obj::prop_set);
+            }
+        } else {
+            if (sheetModel.getFieldName() != null) {
+                obj.prop_set(sheetModel.getFieldName(), list);
+            }
         }
     }
 

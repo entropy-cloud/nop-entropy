@@ -159,7 +159,9 @@ public class ImportDataCollector implements ITableDataEventListener {
         if (fieldModel.isList()) {
             if (endList) {
                 listAdapters.remove(listAdapters.size() - 1);
-                if (fieldModel.getFieldName() != null) {
+                if (fieldModel.isMultiple()) {
+                    multipleResults.add(entity);
+                } else if (fieldModel.getFieldName() != null) {
                     setProp(last, fieldModel.getPropOrName(), entity);
                 }
             } else {
@@ -195,7 +197,8 @@ public class ImportDataCollector implements ITableDataEventListener {
                 value = StringHelper.strip(value.toString());
         }
 
-        String fieldLabel = labelData.getFieldLabel();;
+        String fieldLabel = labelData.getFieldLabel();
+        ;
         scope.setLocalValue(ExcelConstants.VAR_FIELD_LABEL, fieldLabel);
         scope.setLocalValue(ExcelConstants.VAR_CELL, cell);
         scope.setLocalValue(ExcelConstants.VAR_LABEL_DATA, labelData);

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef" defaultStripText="true">
+    <sheets>
+        <sheet name="目录" ignore="true"/>
+
+        <sheet name="messages" namePattern="msg.*" field="messages" list="true" multiple="true" multipleAsMap="true">
+            <fields>
+                <field name="name" displayName="名称" mandatory="true">
+                    <schema stdDomain="xml-name"/>
+                </field>
+
+                <field name="value"/>
+            </fields>
+        </sheet>
+
+    </sheets>
+</imp>

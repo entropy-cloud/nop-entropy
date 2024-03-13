@@ -102,6 +102,13 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: multipleAsMap
+     * 
+     */
+    private boolean _multipleAsMap  = false;
+    
+    /**
+     *  
      * xml name: name
      * 匹配的sheet的名称
      */
@@ -412,6 +419,25 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: multipleAsMap
+     *  
+     */
+    
+    public boolean isMultipleAsMap(){
+      return _multipleAsMap;
+    }
+
+    
+    public void setMultipleAsMap(boolean value){
+        checkAllowChange();
+        
+        this._multipleAsMap = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: name
      *  匹配的sheet的名称
      */
@@ -593,6 +619,7 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
         out.putNotNull("list",this.isList());
         out.putNotNull("mandatory",this.isMandatory());
         out.putNotNull("multiple",this.isMultiple());
+        out.putNotNull("multipleAsMap",this.isMultipleAsMap());
         out.putNotNull("name",this.getName());
         out.putNotNull("namePattern",this.getNamePattern());
         out.putNotNull("normalizeFieldsExpr",this.getNormalizeFieldsExpr());
@@ -624,6 +651,7 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
         instance.setList(this.isList());
         instance.setMandatory(this.isMandatory());
         instance.setMultiple(this.isMultiple());
+        instance.setMultipleAsMap(this.isMultipleAsMap());
         instance.setName(this.getName());
         instance.setNamePattern(this.getNamePattern());
         instance.setNormalizeFieldsExpr(this.getNormalizeFieldsExpr());

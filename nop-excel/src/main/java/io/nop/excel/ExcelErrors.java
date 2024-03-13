@@ -72,4 +72,8 @@ public interface ExcelErrors {
     ErrorCode ERR_IMPORT_UNKNOWN_GROUP_FIELD =
             define("nop.err.excel.import.unknown-group-field",
                     "未知的分组字段:{fieldName}", ARG_FIELD_NAME);
+
+    ErrorCode ERR_IMPORT_SHEET_WITH_DUPLICATE_KEY_PROP =
+            define("nop.err.excel.import-sheet-with-duplicate-key-prop",
+                    "导入表格[{sheetName}]时[{keyProp}]的属性重复", ARG_SHEET_NAME, ARG_KEY_PROP);
 }
