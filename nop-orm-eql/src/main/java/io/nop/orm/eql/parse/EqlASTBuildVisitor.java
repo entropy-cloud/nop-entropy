@@ -347,4 +347,9 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
     public boolean SqlLikeExpr_ignoreCase(Token token) {
         return true;
     }
+
+    @Override
+    public boolean SqlCteStatement_recursive(Token token) {
+        return true;
+    }
 }
