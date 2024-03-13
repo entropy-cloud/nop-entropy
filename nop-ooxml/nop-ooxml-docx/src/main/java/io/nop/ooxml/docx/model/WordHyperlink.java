@@ -12,6 +12,7 @@ import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
+import io.nop.ooxml.common.constants.TargetMode;
 import io.nop.ooxml.common.model.OfficeRelationship;
 import io.nop.ooxml.common.model.OfficeRelsPart;
 import org.slf4j.Logger;
@@ -104,11 +105,17 @@ public class WordHyperlink {
     private XNode sourceNode;
 
     public static WordHyperlink build(OfficeRelsPart rels, XNode node) {
+        String url = node.attrText("url");
+        if (!StringHelper.isEmpty(url)) {
+            // 根据w:instrText转换得到的url
+            OfficeRelationship rel = new OfficeRelationship(null, "a", "link", url, TargetMode.External);
+            return build(rel, node.text(), node);
+        }
+
         String id = node.attrText("r:id");
         OfficeRelationship rel = rels.getRelationship(id);
         if (rel == null) {
-            if (rel == null)
-                LOG.warn("nop.word.ignore-link-ref:id={},node={}", id, node);
+            LOG.warn("nop.word.ignore-link-ref:id={},node={}", id, node);
             return null;
         }
 

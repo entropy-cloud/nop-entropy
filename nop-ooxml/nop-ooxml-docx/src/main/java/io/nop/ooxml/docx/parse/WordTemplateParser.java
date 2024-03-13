@@ -23,6 +23,7 @@ import io.nop.ooxml.docx.DocxConstants;
 import io.nop.ooxml.docx.WordTemplate;
 import io.nop.ooxml.docx.model.WordDrawing;
 import io.nop.ooxml.docx.model.WordHyperlink;
+import io.nop.ooxml.docx.model.WordHyperlinkTransformer;
 import io.nop.ooxml.docx.model.WordOfficePackage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +58,7 @@ public class WordTemplateParser {
 
             doc = config.checkDump(doc, "before-normalize");
 
+            replaceHyperLinkExprs(doc);
             List<WordHyperlink> links = collectLinks(rels, doc);
 
             normalizeExprs(doc, links);
@@ -72,6 +74,21 @@ public class WordTemplateParser {
             IoHelper.safeClose(pkg);
             throw NopException.adapt(e);
         }
+    }
+
+    void replaceHyperLinkExprs(XNode doc) {
+        List<XNode> instrNodes = new ArrayList<>();
+        doc.forEachNode(node -> {
+            if (node.getTagName().equals("w:instrText")) {
+                String content = node.contentText();
+                if (content != null) {
+                    if (content.startsWith("HYPERLINK ") || content.startsWith(" HYPERLINK ")) {
+                        instrNodes.add(node);
+                    }
+                }
+            }
+        });
+        instrNodes.forEach(WordHyperlinkTransformer::transformNode);
     }
 
     /*
@@ -101,7 +118,8 @@ public class WordTemplateParser {
 
     List<WordHyperlink> collectLinks(OfficeRelsPart rels, XNode doc) {
         List<WordHyperlink> links = new ArrayList<>();
-        doc.findAll(WordXmlHelper::isHyperlink).forEach(node -> collectLink(rels, node, links));
+        doc.findAll(WordXmlHelper::isHyperlink)
+                .forEach(node -> collectLink(rels, node, links));
         return links;
     }
 
@@ -159,11 +177,11 @@ public class WordTemplateParser {
             WordHyperlink link = links.get(i);
             if (link.isXplBegin()) {
                 LOG.info("nop.word.xpl-begin:label={},target={},node={}",
-                        link.getLinkLabel(), link.getLinkTarget(),link.getLinkNode());
+                        link.getLinkLabel(), link.getLinkTarget(), link.getLinkNode());
                 stack.add(link);
             } else if (link.isXplEnd()) {
                 LOG.info("nop.word.xpl-end:label={},target={},node={}",
-                        link.getLinkLabel(), link.getLinkTarget(),link.getLinkNode());
+                        link.getLinkLabel(), link.getLinkTarget(), link.getLinkNode());
 
                 if (stack.isEmpty())
                     throw new NopException(ERR_DOCX_XPL_END_NO_BEGIN).param(ARG_TAG_NAME, link.getTagName())

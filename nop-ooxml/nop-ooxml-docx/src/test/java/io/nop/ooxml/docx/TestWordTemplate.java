@@ -139,6 +139,26 @@ public class TestWordTemplate extends BaseTestCase {
         XNode doc = pkg.getFile("word/document.xml").buildXml(XLang.newEvalScope());
         assertEquals(attachmentXml("payment.doc.xml").xml(), doc.xml());
     }
+
+    @Test
+    public void testLinkExpr() {
+        IResource resource = classpathResource("docx/test-link-expr.docx");
+        Object entity = classpathBean("docx/payment.json", Map.class);
+
+        IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValue(null, "entity", entity);
+
+        File file = getTargetFile("/gen/result-link-expr.docx");
+        WordTemplate tpl = new WordTemplateParser().parseFromResource(resource);
+        tpl.generateToFile(file, scope);
+
+        OfficePackage pkg = new OfficePackage();
+        pkg.loadFromFile(file);
+        XNode doc = pkg.getFile("word/document.xml").buildXml(XLang.newEvalScope());
+        doc.dump();
+        assertEquals(attachmentXml("result-link-expr.doc.xml").xml(), doc.xml());
+    }
+
     //
     // public static void main(String[] args) {
     // ZipFileWatcher.main(new
