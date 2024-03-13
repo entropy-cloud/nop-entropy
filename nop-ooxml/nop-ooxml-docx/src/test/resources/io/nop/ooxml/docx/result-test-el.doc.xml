@@ -18,8 +18,11 @@
         <w:tbl>
             <w:tblPr>
                 <w:tblStyle w:val="4"/>
+                <w:tblpPr w:leftFromText="180" w:rightFromText="180" w:vertAnchor="text" w:horzAnchor="margin"
+                          w:tblpY="1936"/>
+                <w:tblOverlap w:val="never"/>
                 <w:tblW w:w="14359" w:type="dxa"/>
-                <w:jc w:val="center"/>
+                <w:tblInd w:w="0" w:type="dxa"/>
                 <w:tblBorders>
                     <w:top w:val="single" w:color="auto" w:sz="4" w:space="0"/>
                     <w:left w:val="single" w:color="auto" w:sz="4" w:space="0"/>
@@ -64,7 +67,6 @@
                 </w:tblPrEx>
                 <w:trPr>
                     <w:trHeight w:val="657" w:hRule="atLeast"/>
-                    <w:jc w:val="center"/>
                 </w:trPr>
                 <w:tc>
                     <w:tcPr>
@@ -282,7 +284,6 @@
                 </w:tblPrEx>
                 <w:trPr>
                     <w:trHeight w:val="519" w:hRule="atLeast"/>
-                    <w:jc w:val="center"/>
                 </w:trPr>
                 <w:tc>
                     <w:tcPr>
@@ -315,11 +316,161 @@
                         </w:r>
                     </w:p>
                 </w:tc>
+                <w:tc>
+                    <w:tcPr>
+                        <w:tcW w:w="1843" w:type="dxa"/>
+                        <w:vAlign w:val="center"/>
+                    </w:tcPr>
+                    <w:p>
+                        <w:pPr>
+                            <w:rPr>
+                                <w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/>
+                                <w:kern w:val="0"/>
+                                <w:sz w:val="20"/>
+                                <w:szCs w:val="20"/>
+                            </w:rPr>
+                        </w:pPr>
+                        <w:r>
+                            <w:rPr>
+                                <w:rFonts w:hint="eastAsia"/>
+                            </w:rPr>
+                            <w:t>345</w:t>
+                        </w:r>
+                    </w:p>
+                </w:tc>
+                <w:tc>
+                    <w:tcPr>
+                        <w:tcW w:w="1701" w:type="dxa"/>
+                        <w:vAlign w:val="center"/>
+                    </w:tcPr>
+                    <w:p>
+                        <w:pPr>
+                            <w:spacing w:line="280" w:lineRule="exact"/>
+                            <w:ind w:firstLine="210" w:firstLineChars="100"/>
+                            <w:rPr>
+                                <w:rFonts w:ascii="微软雅黑" w:hAnsi="微软雅黑" w:eastAsia="Hei" w:cs="微软雅黑"/>
+                                <w:b/>
+                                <w:bCs/>
+                                <w:sz w:val="24"/>
+                            </w:rPr>
+                        </w:pPr>
+                        <w:r>
+                            <w:rPr>
+                                <w:rFonts w:hint="eastAsia" w:ascii="宋体" w:hAnsi="宋体" w:cs="宋体"/>
+                                <w:sz w:val="24"/>
+                            </w:rPr>
+                            <w:t>343</w:t>
+                        </w:r>
+                    </w:p>
+                </w:tc>
+                <w:tc>
+                    <w:tcPr>
+                        <w:tcW w:w="1958" w:type="dxa"/>
+                        <w:vAlign w:val="center"/>
+                    </w:tcPr>
+                    <w:p>
+                        <w:pPr>
+                            <w:spacing w:line="280" w:lineRule="exact"/>
+                            <w:jc w:val="center"/>
+                            <w:rPr>
+                                <w:rFonts w:ascii="微软雅黑" w:hAnsi="微软雅黑" w:eastAsia="微软雅黑" w:cs="微软雅黑"/>
+                                <w:bCs/>
+                                <w:sz w:val="24"/>
+                            </w:rPr>
+                        </w:pPr>
+                        <w:r>
+                            <w:rPr>
+                                <w:rFonts w:ascii="微软雅黑" w:hAnsi="微软雅黑" w:eastAsia="微软雅黑" w:cs="微软雅黑"/>
+                                <w:bCs/>
+                                <w:sz w:val="24"/>
+                            </w:rPr>
+                            <w:t>343</w:t>
+                        </w:r>
+                    </w:p>
+                </w:tc>
+                <w:tc>
+                    <w:tcPr>
+                        <w:tcW w:w="1884" w:type="dxa"/>
+                        <w:vAlign w:val="center"/>
+                    </w:tcPr>
+                    <w:p>
+                        <w:pPr>
+                            <w:spacing w:line="280" w:lineRule="exact"/>
+                            <w:jc w:val="center"/>
+                            <w:rPr>
+                                <w:rFonts w:ascii="微软雅黑" w:hAnsi="微软雅黑" w:eastAsia="微软雅黑" w:cs="微软雅黑"/>
+                                <w:bCs/>
+                                <w:sz w:val="24"/>
+                            </w:rPr>
+                        </w:pPr>
+                        <w:r>
+                            <w:rPr>
+                                <w:rFonts w:ascii="微软雅黑" w:hAnsi="微软雅黑" w:eastAsia="微软雅黑" w:cs="微软雅黑"/>
+                                <w:bCs/>
+                                <w:sz w:val="24"/>
+                            </w:rPr>
+                            <w:t>3424</w:t>
+                        </w:r>
+                    </w:p>
+                </w:tc>
+                <w:tc>
+                    <w:tcPr>
+                        <w:tcW w:w="1387" w:type="dxa"/>
+                        <w:vAlign w:val="center"/>
+                    </w:tcPr>
+                    <w:p>
+                        <w:pPr>
+                            <w:spacing w:line="280" w:lineRule="exact"/>
+                            <w:jc w:val="center"/>
+                            <w:rPr>
+                                <w:rFonts w:ascii="微软雅黑" w:hAnsi="微软雅黑" w:eastAsia="微软雅黑" w:cs="微软雅黑"/>
+                                <w:b/>
+                                <w:bCs/>
+                                <w:sz w:val="24"/>
+                            </w:rPr>
+                        </w:pPr>
+                        <w:r>
+                            <w:rPr>
+                                <w:rFonts w:hint="eastAsia" w:ascii="Hei" w:eastAsia="Hei"/>
+                            </w:rPr>
+                            <w:t>3434</w:t>
+                        </w:r>
+                    </w:p>
+                </w:tc>
+                <w:tc>
+                    <w:tcPr>
+                        <w:tcW w:w="2157" w:type="dxa"/>
+                        <w:vAlign w:val="center"/>
+                    </w:tcPr>
+                    <w:p>
+                        <w:pPr>
+                            <w:spacing w:line="280" w:lineRule="exact"/>
+                            <w:jc w:val="center"/>
+                            <w:rPr>
+                                <w:rFonts w:ascii="微软雅黑" w:hAnsi="微软雅黑" w:eastAsia="Hei" w:cs="微软雅黑"/>
+                                <w:b/>
+                                <w:bCs/>
+                                <w:sz w:val="24"/>
+                            </w:rPr>
+                        </w:pPr>
+                        <w:r>
+                            <w:rPr>
+                                <w:rFonts w:hint="eastAsia" w:ascii="Hei" w:eastAsia="Hei"/>
+                            </w:rPr>
+                            <w:t>34234.4</w:t>
+                        </w:r>
+                    </w:p>
+                </w:tc>
             </w:tr>
         </w:tbl>
         <w:p>
-            <w:bookmarkStart w:id="0" w:name="_GoBack"/>
-            <w:bookmarkEnd w:id="0"/>
+            <w:r>
+                <w:rPr>
+                    <w:rFonts w:hint="eastAsia" w:ascii="微软雅黑" w:hAnsi="微软雅黑" w:eastAsia="微软雅黑" w:cs="微软雅黑"/>
+                    <w:sz w:val="24"/>
+                </w:rPr>
+                <w:t>2023年8月份，公司在有项目2222项，其中重点项目111个</w:t>
+            </w:r>
         </w:p>
         <w:sectPr>
             <w:pgSz w:w="16838" w:h="23811"/>

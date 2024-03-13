@@ -21,6 +21,8 @@ public class TreeDataHelper {
 
     public static final String SIBLINGS_WITH_SELF = "siblings-with-self";
 
+    public static final String PARENT_WITH_SIBLINGS = "parent-with-siblings";
+
     public static final String CHILDREN = "children";
 
     public static final String DESCENDANTS = "descendants";
@@ -73,6 +75,19 @@ public class TreeDataHelper {
         }
     }
 
+
+    private static <T> void collectParentWithSiblings(ITreeAdapter<T> adapter, T entity,
+                                                      Consumer<T> consumer) {
+
+        T parent = adapter.getParent(entity);
+
+        if (parent != null) {
+            parent = adapter.getParent(entity);
+            if (parent != null)
+                collectChildren(adapter, parent, consumer);
+        }
+    }
+
     public static <T> void collectChildren(ITreeChildrenAdapter<T> adapter, T entity, Consumer<T> consumer) {
         Collection<? extends T> children = adapter.getChildren(entity);
         if (children != null) {
@@ -116,6 +131,8 @@ public class TreeDataHelper {
                 collectSiblings(adapter, entity, false, consumer);
             } else if (SIBLINGS_WITH_SELF.equals(key)) {
                 collectSiblings(adapter, entity, true, consumer);
+            } else if (PARENT_WITH_SIBLINGS.equals(key)) {
+                collectParentWithSiblings(adapter, entity, consumer);
             } else if (CHILDREN.equals(key)) {
                 collectChildren(adapter, entity, consumer);
             } else if (DESCENDANTS.equals(key)) {

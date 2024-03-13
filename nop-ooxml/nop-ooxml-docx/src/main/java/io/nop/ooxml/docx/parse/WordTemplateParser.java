@@ -105,7 +105,8 @@ public class WordTemplateParser {
                 } else if (node.getTagName().equals("w:t")) {
                     if (node.hasContent()) {
                         String text = node.contentText();
-                        if (text.indexOf("${") >= 0 && text.indexOf('}') < 0) {
+                        // 没有闭合的表达式
+                        if (text.contains("${") && text.indexOf('}') < 0) {
                             text = StringHelper.replace(text, "$", "${'$'}");
                             node.content(node.content().getLocation(), text);
                         }
@@ -150,7 +151,12 @@ public class WordTemplateParser {
         config.setLocation(tableN.getLocation());
 
         // 删除XplGenConfig表格后的所有内容，它们仅存在于配置模板中，不属于模板输出的内容。因此在XplGenConfig配置表格的后面可以写一些说明性文字
-        removeTail(tableN);
+        if (config.isDeleteAllAfterConfigTable()) {
+            removeTail(tableN);
+        } else {
+            // 只删除表格节点
+            tableN.detach();
+        }
         return config;
     }
 

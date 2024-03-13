@@ -1,0 +1,44 @@
+{
+  "year": "2023",
+  "month": "8",
+  "keYanProjectNo": 2222,
+  "zhongDianNo": 111,
+  "totalProdcutNo": 234,
+  "jjProductNo": 600,
+  "zkProductNo": 120,
+  "yzProductNo": 250,
+  "ryProductNo": 6600,
+  "jieGouTreeNo": 23,
+  "jjTreeNo": 654,
+  "zkTreeNo": 323,
+  "yzTreeNo": 566,
+  "ryTreeYuan": 234,
+  "xxbzjTotalNo": 566,
+  "picXxbzjNo": 666,
+  "jjPicXxbzjNo": 444,
+  "zkPicXxbzjNo": 566,
+  "yzPicXxbzjNo": 333,
+  "ryPicXxbzjNo": 556,
+  "totalLingJianNo": 235,
+  "totalWuLiaoNo": 467,
+  "totalTuZhiNo": 345,
+  "tzJjNo": 356,
+  "tzZkNo": 643,
+  "tzYzNo": 466,
+  "tzRyNo": 346,
+  "runProcessNo": 754,
+  "lingJianBorrowRatio": 464,
+  "tenBorrowRatio": 28.9,
+  "completedPlanTotalRadio": 50.1,
+
+  "projectList": [
+    {
+      "itemIngNo": 345,
+      "itemNo": 343,
+      "zhuanLiNo": 343,
+      "lunWenNo": 3424,
+      "prizeNo": 3434,
+      "touRuMoney": 34234.4
+    }
+  ]
+}

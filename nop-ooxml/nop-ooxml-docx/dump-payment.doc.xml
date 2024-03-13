@@ -226,7 +226,7 @@ logDebug("test")
                                         <w:tcW w:w="2500" w:type="pct"/>
                                     </w:tcPr>
                                     <w:p w14:paraId="1ACCBA02" w14:textId="06D9359D" w:rsidR="00A81D38"
-                                         w:rsidRPr="004C00AA" w:rsidRDefault="00FF0731" w:rsidP="00905903">
+                                         w:rsidRPr="004C00AA" w:rsidRDefault="00000000" w:rsidP="00905903">
                                         <w:pPr>
                                             <w:pStyle w:val="FormText"/>
                                             <w:rPr>
@@ -246,7 +246,7 @@ logDebug("test")
                                         <w:tcW w:w="2500" w:type="pct"/>
                                     </w:tcPr>
                                     <w:p w14:paraId="3B089F77" w14:textId="4FFE4F79" w:rsidR="00A81D38"
-                                         w:rsidRPr="004C00AA" w:rsidRDefault="00FF0731" w:rsidP="002753C3">
+                                         w:rsidRPr="004C00AA" w:rsidRDefault="00000000" w:rsidP="002753C3">
                                         <w:pPr>
                                             <w:pStyle w:val="FormText"/>
                                             <w:jc w:val="right"/>
@@ -477,7 +477,7 @@ logDebug("test")
                                 <w:vAlign w:val="center"/>
                             </w:tcPr>
                             <w:p w14:paraId="4CB6B484" w14:textId="1AADBFB6" w:rsidR="00AC64A8"
-                                 w:rsidRDefault="00FF0731" w:rsidP="00F65D42">
+                                 w:rsidRDefault="00000000" w:rsidP="00F65D42">
                                 <w:pPr>
                                     <w:jc w:val="center"/>
                                 </w:pPr>
@@ -495,7 +495,7 @@ logDebug("test")
                                 <w:vAlign w:val="center"/>
                             </w:tcPr>
                             <w:p w14:paraId="18380FFC" w14:textId="11B25B7A" w:rsidR="00AC64A8"
-                                 w:rsidRDefault="00FF0731" w:rsidP="00F65D42">
+                                 w:rsidRDefault="00000000" w:rsidP="00F65D42">
                                 <w:pPr>
                                     <w:jc w:val="center"/>
                                 </w:pPr>
@@ -513,7 +513,7 @@ logDebug("test")
                                 <w:vAlign w:val="center"/>
                             </w:tcPr>
                             <w:p w14:paraId="39C9FCD5" w14:textId="509BD0FF" w:rsidR="00AC64A8"
-                                 w:rsidRDefault="00FF0731" w:rsidP="00F65D42">
+                                 w:rsidRDefault="00000000" w:rsidP="00F65D42">
                                 <w:pPr>
                                     <w:jc w:val="center"/>
                                 </w:pPr>
@@ -531,7 +531,7 @@ logDebug("test")
                                 <w:vAlign w:val="center"/>
                             </w:tcPr>
                             <w:p w14:paraId="14F53965" w14:textId="7AC1DCCA" w:rsidR="00AC64A8"
-                                 w:rsidRDefault="00FF0731" w:rsidP="00F65D42">
+                                 w:rsidRDefault="00000000" w:rsidP="00F65D42">
                                 <w:pPr>
                                     <w:jc w:val="center"/>
                                 </w:pPr>
@@ -556,7 +556,7 @@ logDebug("test")
                                 <w:vAlign w:val="center"/>
                             </w:tcPr>
                             <w:p w14:paraId="1EA78C25" w14:textId="2108F2FE" w:rsidR="00AC64A8"
-                                 w:rsidRDefault="00FF0731" w:rsidP="00F65D42">
+                                 w:rsidRDefault="00000000" w:rsidP="00F65D42">
                                 <w:pPr>
                                     <w:jc w:val="center"/>
                                 </w:pPr>
@@ -574,7 +574,7 @@ logDebug("test")
                                 <w:vAlign w:val="center"/>
                             </w:tcPr>
                             <w:p w14:paraId="1CB8209D" w14:textId="28705912" w:rsidR="00AC64A8"
-                                 w:rsidRDefault="00FF0731" w:rsidP="00F65D42">
+                                 w:rsidRDefault="00000000" w:rsidP="00F65D42">
                                 <w:pPr>
                                     <w:jc w:val="center"/>
                                 </w:pPr>
@@ -592,7 +592,7 @@ logDebug("test")
                                 <w:vAlign w:val="center"/>
                             </w:tcPr>
                             <w:p w14:paraId="5EC7F136" w14:textId="3209FA3F" w:rsidR="00AC64A8"
-                                 w:rsidRDefault="00FF0731" w:rsidP="00F65D42">
+                                 w:rsidRDefault="00000000" w:rsidP="00F65D42">
                                 <w:pPr>
                                     <w:jc w:val="center"/>
                                 </w:pPr>
@@ -850,7 +850,7 @@ logDebug("test")
                                 </w:tcBorders>
                             </w:tcPr>
                             <w:p w14:paraId="64944051" w14:textId="39E7CEC2" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
-                                 w:rsidRDefault="00FF0731" w:rsidP="00FF422B">
+                                 w:rsidRDefault="00000000" w:rsidP="00FF422B">
                                 <w:pPr>
                                     <w:pStyle w:val="BodyTextCenter"/>
                                     <w:rPr>
@@ -874,7 +874,7 @@ logDebug("test")
                                 </w:tcBorders>
                             </w:tcPr>
                             <w:p w14:paraId="267453D2" w14:textId="49654B6D" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
-                                 w:rsidRDefault="00FF0731" w:rsidP="00FF422B">
+                                 w:rsidRDefault="00000000" w:rsidP="00FF422B">
                                 <w:pPr>
                                     <w:pStyle w:val="aa"/>
                                     <w:jc w:val="center"/>
@@ -899,7 +899,7 @@ logDebug("test")
                                 </w:tcBorders>
                             </w:tcPr>
                             <w:p w14:paraId="57C06472" w14:textId="442A7BCF" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
-                                 w:rsidRDefault="00FF0731" w:rsidP="00FF422B">
+                                 w:rsidRDefault="00000000" w:rsidP="00FF422B">
                                 <w:pPr>
                                     <w:pStyle w:val="aa"/>
                                     <w:jc w:val="center"/>
@@ -924,7 +924,7 @@ logDebug("test")
                                 </w:tcBorders>
                             </w:tcPr>
                             <w:p w14:paraId="0ADA5C5C" w14:textId="1BF84F84" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
-                                 w:rsidRDefault="00FF0731" w:rsidP="00FF422B">
+                                 w:rsidRDefault="00000000" w:rsidP="00FF422B">
                                 <w:pPr>
                                     <w:pStyle w:val="BodyTextCenter"/>
                                     <w:rPr>
@@ -948,7 +948,7 @@ logDebug("test")
                                 </w:tcBorders>
                             </w:tcPr>
                             <w:p w14:paraId="7615DAF5" w14:textId="07561F4A" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
-                                 w:rsidRDefault="00FF0731" w:rsidP="00FF422B">
+                                 w:rsidRDefault="00000000" w:rsidP="00FF422B">
                                 <w:pPr>
                                     <w:pStyle w:val="aa"/>
                                     <w:jc w:val="center"/>
@@ -973,7 +973,7 @@ logDebug("test")
                                 </w:tcBorders>
                             </w:tcPr>
                             <w:p w14:paraId="3F7DE948" w14:textId="770DCA88" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
-                                 w:rsidRDefault="00FF0731" w:rsidP="00FF422B">
+                                 w:rsidRDefault="00000000" w:rsidP="00FF422B">
                                 <w:pPr>
                                     <w:pStyle w:val="BodyTextRight"/>
                                     <w:jc w:val="center"/>
@@ -998,7 +998,7 @@ logDebug("test")
                                 </w:tcBorders>
                             </w:tcPr>
                             <w:p w14:paraId="5C6B47CC" w14:textId="5292FBC2" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
-                                 w:rsidRDefault="00FF0731" w:rsidP="00905903">
+                                 w:rsidRDefault="00000000" w:rsidP="00905903">
                                 <w:pPr>
                                     <w:pStyle w:val="BodyTextRight"/>
                                     <w:rPr>
@@ -1151,7 +1151,7 @@ logDebug("test")
                                 <w:gridSpan w:val="4"/>
                             </w:tcPr>
                             <w:p w14:paraId="6D509994" w14:textId="2A30F67B" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
-                                 w:rsidRDefault="00FF0731" w:rsidP="00FF422B">
+                                 w:rsidRDefault="00000000" w:rsidP="00FF422B">
                                 <w:pPr>
                                     <w:pStyle w:val="BodyTextCenter"/>
                                     <w:rPr>
@@ -1171,7 +1171,7 @@ logDebug("test")
                                 <w:tcW w:w="509" w:type="pct"/>
                             </w:tcPr>
                             <w:p w14:paraId="4820B854" w14:textId="09C8C65D" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
-                                 w:rsidRDefault="00FF0731" w:rsidP="00FF422B">
+                                 w:rsidRDefault="00000000" w:rsidP="00FF422B">
                                 <w:pPr>
                                     <w:pStyle w:val="aa"/>
                                     <w:jc w:val="center"/>
@@ -1192,7 +1192,7 @@ logDebug("test")
                                 <w:tcW w:w="628" w:type="pct"/>
                             </w:tcPr>
                             <w:p w14:paraId="2A4C4835" w14:textId="3DBDC2DF" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
-                                 w:rsidRDefault="00FF0731" w:rsidP="00FF422B">
+                                 w:rsidRDefault="00000000" w:rsidP="00FF422B">
                                 <w:pPr>
                                     <w:pStyle w:val="BodyTextRight"/>
                                     <w:jc w:val="center"/>
@@ -1213,7 +1213,7 @@ logDebug("test")
                                 <w:tcW w:w="560" w:type="pct"/>
                             </w:tcPr>
                             <w:p w14:paraId="4B7ADCFD" w14:textId="0F6A2EDF" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
-                                 w:rsidRDefault="00FF0731" w:rsidP="0050363D">
+                                 w:rsidRDefault="00000000" w:rsidP="0050363D">
                                 <w:pPr>
                                     <w:pStyle w:val="BodyTextRight"/>
                                     <w:jc w:val="center"/>
@@ -1254,28 +1254,11 @@ logDebug("test")
                                 </w:rPr>
                                 <w:t>总共：</w:t>
                             </w:r>
-                            <w:r w:rsidR="00FF0731">
-                                <w:fldChar w:fldCharType="begin"/>
-                            </w:r>
-                            <w:r w:rsidR="00FF0731">
-                                <w:instrText>HYPERLINK "expr:entity.totalCost"</w:instrText>
-                            </w:r>
-                            <w:r w:rsidR="00FF0731">
-                                <w:fldChar w:fldCharType="separate"/>
-                            </w:r>
                             <w:r w:rsidR="00B45E7B" w:rsidRPr="0013531D">
                                 <w:rPr>
-                                    <w:rStyle w:val="ac"/>
                                     <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hint="eastAsia"/>
                                 </w:rPr>
-                                <w:t>{{total}}</w:t>
-                            </w:r>
-                            <w:r w:rsidR="00FF0731">
-                                <w:rPr>
-                                    <w:rStyle w:val="ac"/>
-                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
-                                </w:rPr>
-                                <w:fldChar w:fldCharType="end"/>
+                                <w:t>${entity.totalCost}</w:t>
                             </w:r>
                         </w:p>
                     </w:tc>
@@ -1342,7 +1325,7 @@ logDebug("test")
                             <w:tcW w:w="1737" w:type="pct"/>
                         </w:tcPr>
                         <w:p w14:paraId="06E6D807" w14:textId="4BE8E0E2" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
-                             w:rsidRDefault="00FF0731" w:rsidP="00905903">
+                             w:rsidRDefault="00000000" w:rsidP="00905903">
                             <w:pPr>
                                 <w:pStyle w:val="BodyTextRight"/>
                                 <w:rPr>
@@ -1394,7 +1377,7 @@ logDebug("test")
                             <w:tcW w:w="1737" w:type="pct"/>
                         </w:tcPr>
                         <w:p w14:paraId="2FC97AEE" w14:textId="0DD5612A" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
-                             w:rsidRDefault="00FF0731" w:rsidP="00905903">
+                             w:rsidRDefault="00000000" w:rsidP="00905903">
                             <w:pPr>
                                 <w:pStyle w:val="BodyTextRight"/>
                                 <w:rPr>
@@ -1446,7 +1429,7 @@ logDebug("test")
                             <w:tcW w:w="1737" w:type="pct"/>
                         </w:tcPr>
                         <w:p w14:paraId="232572CD" w14:textId="284DB04E" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
-                             w:rsidRDefault="00FF0731" w:rsidP="00905903">
+                             w:rsidRDefault="00000000" w:rsidP="00905903">
                             <w:pPr>
                                 <w:pStyle w:val="BodyTextRight"/>
                                 <w:rPr>
@@ -1493,7 +1476,7 @@ logDebug("test")
                             <w:tcW w:w="1737" w:type="pct"/>
                         </w:tcPr>
                         <w:p w14:paraId="476FF905" w14:textId="2603A68C" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
-                             w:rsidRDefault="00FF0731" w:rsidP="00905903">
+                             w:rsidRDefault="00000000" w:rsidP="00905903">
                             <w:pPr>
                                 <w:pStyle w:val="BodyTextRight"/>
                                 <w:rPr>
@@ -1549,7 +1532,7 @@ logDebug("test")
                             <w:tcW w:w="1737" w:type="pct"/>
                         </w:tcPr>
                         <w:p w14:paraId="20D7F755" w14:textId="71C9CDAC" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
-                             w:rsidRDefault="00FF0731" w:rsidP="00905903">
+                             w:rsidRDefault="00000000" w:rsidP="00905903">
                             <w:pPr>
                                 <w:pStyle w:val="BodyTextRight"/>
                                 <w:rPr>
@@ -1576,7 +1559,7 @@ logDebug("test")
                 </w:pPr>
             </w:p>
             <c:for var="i" items="${[1,2]}">
-                <w:p w14:paraId="7898CBF8" w14:textId="409022DB" w:rsidR="00CF04C6" w:rsidRDefault="00FF0731"
+                <w:p w14:paraId="7898CBF8" w14:textId="409022DB" w:rsidR="00CF04C6" w:rsidRDefault="00000000"
                      w:rsidP="003A4FCD">
                     <w:pPr>
                         <w:rPr>
@@ -1689,7 +1672,7 @@ logDebug("test")
                         <w:t>${i}</w:t>
                     </w:r>
                 </w:p>
-                <w:p w14:paraId="5BA4A35D" w14:textId="1980CFDB" w:rsidR="003A4FCD" w:rsidRDefault="00FF0731"
+                <w:p w14:paraId="5BA4A35D" w14:textId="1980CFDB" w:rsidR="003A4FCD" w:rsidRDefault="00000000"
                      w:rsidP="003A4FCD">
                     <w:pPr>
                         <w:rPr>
@@ -1724,7 +1707,15 @@ logDebug("test")
                     </w:rPr>
                 </w:pPr>
             </w:p>
-            <w:sectPr w:rsidR="009470CE" w:rsidSect="00556F9E">
+            <w:p w14:paraId="27CEF545" w14:textId="55AB2FF8" w:rsidR="009470CE" w:rsidRDefault="009470CE"
+                 w:rsidP="003E4B7B">
+                <w:pPr>
+                    <w:rPr>
+                        <w:rFonts w:hint="eastAsia"/>
+                    </w:rPr>
+                </w:pPr>
+            </w:p>
+            <w:sectPr w:rsidR="009470CE" w:rsidSect="009D36D7">
                 <w:headerReference w:type="first" r:id="rId44"/>
                 <w:footerReference w:type="first" r:id="rId45"/>
                 <w:pgSz w:w="11900" w:h="16840" w:code="1"/>

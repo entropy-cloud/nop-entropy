@@ -28,8 +28,11 @@
             <w:tbl>
                 <w:tblPr>
                     <w:tblStyle w:val="4"/>
+                    <w:tblpPr w:leftFromText="180" w:rightFromText="180" w:vertAnchor="text" w:horzAnchor="margin"
+                              w:tblpY="1936"/>
+                    <w:tblOverlap w:val="never"/>
                     <w:tblW w:w="14359" w:type="dxa"/>
-                    <w:jc w:val="center"/>
+                    <w:tblInd w:w="0" w:type="dxa"/>
                     <w:tblBorders>
                         <w:top w:val="single" w:color="auto" w:sz="4" w:space="0"/>
                         <w:left w:val="single" w:color="auto" w:sz="4" w:space="0"/>
@@ -74,7 +77,6 @@
                     </w:tblPrEx>
                     <w:trPr>
                         <w:trHeight w:val="657" w:hRule="atLeast"/>
-                        <w:jc w:val="center"/>
                     </w:trPr>
                     <w:tc>
                         <w:tcPr>
@@ -299,7 +301,6 @@
                     </w:tblPrEx>
                     <w:trPr>
                         <w:trHeight w:val="519" w:hRule="atLeast"/>
-                        <w:jc w:val="center"/>
                     </w:trPr>
                     <w:tc>
                         <w:tcPr>
@@ -347,6 +348,12 @@
                                         <w:szCs w:val="20"/>
                                     </w:rPr>
                                 </w:pPr>
+                                <w:r>
+                                    <w:rPr>
+                                        <w:rFonts w:hint="eastAsia"/>
+                                    </w:rPr>
+                                    <w:t>${project.itemIngNo}</w:t>
+                                </w:r>
                             </w:p>
                         </w:tc>
                         <w:tc>
@@ -357,7 +364,7 @@
                             <w:p>
                                 <w:pPr>
                                     <w:spacing w:line="280" w:lineRule="exact"/>
-                                    <w:ind w:firstLine="240" w:firstLineChars="100"/>
+                                    <w:ind w:firstLine="210" w:firstLineChars="100"/>
                                     <w:rPr>
                                         <w:rFonts w:ascii="微软雅黑" w:hAnsi="微软雅黑" w:eastAsia="Hei" w:cs="微软雅黑"/>
                                         <w:b/>
@@ -367,9 +374,7 @@
                                 </w:pPr>
                                 <w:r>
                                     <w:rPr>
-                                        <w:rFonts w:ascii="微软雅黑" w:hAnsi="微软雅黑" w:eastAsia="Hei" w:cs="微软雅黑"/>
-                                        <w:b/>
-                                        <w:bCs/>
+                                        <w:rFonts w:hint="eastAsia" w:ascii="宋体" w:hAnsi="宋体" w:cs="宋体"/>
                                         <w:sz w:val="24"/>
                                     </w:rPr>
                                     <w:t>${project.itemNo}</w:t>
@@ -387,11 +392,18 @@
                                     <w:jc w:val="center"/>
                                     <w:rPr>
                                         <w:rFonts w:ascii="微软雅黑" w:hAnsi="微软雅黑" w:eastAsia="微软雅黑" w:cs="微软雅黑"/>
-                                        <w:b/>
                                         <w:bCs/>
                                         <w:sz w:val="24"/>
                                     </w:rPr>
                                 </w:pPr>
+                                <w:r>
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="微软雅黑" w:hAnsi="微软雅黑" w:eastAsia="微软雅黑" w:cs="微软雅黑"/>
+                                        <w:bCs/>
+                                        <w:sz w:val="24"/>
+                                    </w:rPr>
+                                    <w:t>${project.zhuanLiNo}</w:t>
+                                </w:r>
                             </w:p>
                         </w:tc>
                         <w:tc>
@@ -405,11 +417,18 @@
                                     <w:jc w:val="center"/>
                                     <w:rPr>
                                         <w:rFonts w:ascii="微软雅黑" w:hAnsi="微软雅黑" w:eastAsia="微软雅黑" w:cs="微软雅黑"/>
-                                        <w:b/>
                                         <w:bCs/>
                                         <w:sz w:val="24"/>
                                     </w:rPr>
                                 </w:pPr>
+                                <w:r>
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="微软雅黑" w:hAnsi="微软雅黑" w:eastAsia="微软雅黑" w:cs="微软雅黑"/>
+                                        <w:bCs/>
+                                        <w:sz w:val="24"/>
+                                    </w:rPr>
+                                    <w:t>${project.lunWenNo}</w:t>
+                                </w:r>
                             </w:p>
                         </w:tc>
                         <w:tc>
@@ -428,6 +447,12 @@
                                         <w:sz w:val="24"/>
                                     </w:rPr>
                                 </w:pPr>
+                                <w:r>
+                                    <w:rPr>
+                                        <w:rFonts w:hint="eastAsia" w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                    <w:t>${project.prizeNo}</w:t>
+                                </w:r>
                             </w:p>
                         </w:tc>
                         <w:tc>
@@ -448,16 +473,24 @@
                                 </w:pPr>
                                 <w:r>
                                     <w:rPr>
-                                        <w:rStyle w:val="7"/>
                                         <w:rFonts w:hint="eastAsia" w:ascii="Hei" w:eastAsia="Hei"/>
                                     </w:rPr>
-                                    <w:t xml:space="preserve"/>
+                                    <w:t>${project.touRuMoney}</w:t>
                                 </w:r>
                             </w:p>
                         </w:tc>
                     </c:for>
                 </w:tr>
             </w:tbl>
+            <w:p>
+                <w:r>
+                    <w:rPr>
+                        <w:rFonts w:hint="eastAsia" w:ascii="微软雅黑" w:hAnsi="微软雅黑" w:eastAsia="微软雅黑" w:cs="微软雅黑"/>
+                        <w:sz w:val="24"/>
+                    </w:rPr>
+                    <w:t>${entity.year}年${entity.month}月份，公司在有项目${entity.keYanProjectNo}项，其中重点项目${entity.zhongDianNo}个</w:t>
+                </w:r>
+            </w:p>
             <w:sectPr>
                 <w:pgSz w:w="16838" w:h="23811"/>
                 <w:pgMar w:top="1440" w:right="1800" w:bottom="1440" w:left="1800" w:header="851" w:footer="992"

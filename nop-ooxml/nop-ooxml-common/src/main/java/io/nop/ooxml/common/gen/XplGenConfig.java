@@ -40,6 +40,8 @@ public class XplGenConfig extends AbstractComponentModel {
     private XNode beforeGen;
     private XNode afterGen;
 
+    private boolean deleteAllAfterConfigTable;
+
     public String getDumpFile() {
         return dumpFile;
     }
@@ -54,6 +56,14 @@ public class XplGenConfig extends AbstractComponentModel {
 
     public void setDump(boolean dump) {
         this.dump = dump;
+    }
+
+    public boolean isDeleteAllAfterConfigTable() {
+        return deleteAllAfterConfigTable;
+    }
+
+    public void setDeleteAllAfterConfigTable(boolean deleteAllAfterConfigTable) {
+        this.deleteAllAfterConfigTable = deleteAllAfterConfigTable;
     }
 
     public XNode checkDump(XNode node, String title) {

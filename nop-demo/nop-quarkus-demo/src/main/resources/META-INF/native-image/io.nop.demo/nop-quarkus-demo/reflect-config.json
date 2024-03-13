@@ -28331,6 +28331,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getSupportFullJoin",
+        "parameterTypes": []
+      },
+      {
         "name": "getSupportILike",
         "parameterTypes": []
       },
@@ -28344,6 +28348,10 @@
       },
       {
         "name": "getSupportQueryTimeout",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSupportRightJoin",
         "parameterTypes": []
       },
       {
@@ -28423,6 +28431,12 @@
         ]
       },
       {
+        "name": "setSupportFullJoin",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
         "name": "setSupportILike",
         "parameterTypes": [
           "java.lang.Boolean"
@@ -28442,6 +28456,12 @@
       },
       {
         "name": "setSupportQueryTimeout",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setSupportRightJoin",
         "parameterTypes": [
           "java.lang.Boolean"
         ]
@@ -29267,6 +29287,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isReturnFirstArgType",
+        "parameterTypes": []
+      },
+      {
         "name": "newInstance",
         "parameterTypes": []
       },
@@ -29316,6 +29340,12 @@
         "name": "setRealName",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setReturnFirstArgType",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -29398,6 +29428,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isReturnFirstArgType",
+        "parameterTypes": []
+      },
+      {
         "name": "newInstance",
         "parameterTypes": []
       },
@@ -29423,6 +29457,12 @@
         "name": "setName",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setReturnFirstArgType",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -45667,6 +45707,31 @@
       }
     ],
     "name": "io.nop.orm.factory.XplOrmInterceptorFactoryBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getEntityFilter",
+        "parameterTypes": [
+          "io.nop.core.lang.sql.SyntaxMarker",
+          "io.nop.core.lang.sql.SQL",
+          "io.nop.orm.sql.ISqlCompileTool"
+        ]
+      },
+      {
+        "name": "setDataAuthChecker",
+        "parameterTypes": [
+          "io.nop.api.core.auth.IDataAuthChecker"
+        ]
+      }
+    ],
+    "name": "io.nop.orm.filter.DataAuthEntityFilterProvider",
     "unsafeAllocated": false
   },
   {

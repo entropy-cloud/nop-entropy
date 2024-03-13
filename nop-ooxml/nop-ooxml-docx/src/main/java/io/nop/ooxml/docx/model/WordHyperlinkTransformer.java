@@ -38,14 +38,16 @@ public class WordHyperlinkTransformer {
 
         if (content.endsWith("\"")) {
             String url = content.substring(pos + "HYPERLINK \"".length(), content.length() - 1);
-            XNode link = XNode.make("w:hyperlink");
-            link.setAttr("url", url);
+            if (url.startsWith("xpl:") || url.startsWith("expr:")) {
+                XNode link = XNode.make("w:hyperlink");
+                link.setAttr("url", url);
 
-            for (int i = beginIndex; i <= endIndex; i++) {
-                parent.removeChildByIndex(beginIndex);
+                for (int i = beginIndex; i <= endIndex; i++) {
+                    parent.removeChildByIndex(beginIndex);
+                }
+                link.appendChild(textNode.detach());
+                parent.insertChild(beginIndex, link);
             }
-            link.appendChild(textNode.detach());
-            parent.insertChild(beginIndex, link);
         }
     }
 

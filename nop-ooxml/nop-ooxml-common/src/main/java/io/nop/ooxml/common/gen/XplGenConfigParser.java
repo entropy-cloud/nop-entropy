@@ -33,7 +33,10 @@ class XplGenConfigParser {
     static final String VAR_DUMP = "dump";
     static final String VAR_DUMP_FILE = "dumpFile";
 
-    static final List<String> ALL_VAR_NAMES = Arrays.asList(VAR_DUMP, VAR_IMPORT_LIBS, VAR_BEFORE_GEN, VAR_AFTER_GEN);
+    static final String VAR_DELETE_ALL_AFTER_CONFIG_TABLE = "deleteAllAfterConfigTable";
+
+    static final List<String> ALL_VAR_NAMES = Arrays.asList(VAR_DUMP, VAR_IMPORT_LIBS, VAR_BEFORE_GEN, VAR_AFTER_GEN,
+            VAR_DELETE_ALL_AFTER_CONFIG_TABLE);
 
     public XplGenConfig parseFromTable(ITableView table) {
         XplGenConfig ret = new XplGenConfig();
@@ -61,6 +64,12 @@ class XplGenConfigParser {
                 ret.setAfterGen(parseXpl(valueText));
             } else if (VAR_DUMP_FILE.equals(text)) {
                 ret.setDumpFile(valueText);
+            } else if (VAR_DELETE_ALL_AFTER_CONFIG_TABLE.equals(text)) {
+                if (valueText != null)
+                    valueText = valueText.toLowerCase(Locale.ROOT);
+                Boolean b = ConvertHelper.toBoolean(valueText);
+                if (b != null)
+                    ret.setDeleteAllAfterConfigTable(true);
             } else if (text.startsWith(NS_EXT_PREFIX)) {
                 // 允许扩展属性
                 ret.setExtProp(text, valueText);

@@ -159,6 +159,25 @@ public class TestWordTemplate extends BaseTestCase {
         assertEquals(attachmentXml("result-link-expr.doc.xml").xml(), doc.xml());
     }
 
+    @Test
+    public void testEmbeddedEL() {
+        IResource resource = classpathResource("docx/test-el.docx");
+        Object entity = classpathBean("docx/mei_template.json", Map.class);
+
+        IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValue(null, "entity", entity);
+
+        File file = getTargetFile("/gen/result-test-el.docx");
+        WordTemplate tpl = new WordTemplateParser().parseFromResource(resource);
+        tpl.generateToFile(file, scope);
+
+        OfficePackage pkg = new OfficePackage();
+        pkg.loadFromFile(file);
+        XNode doc = pkg.getFile("word/document.xml").buildXml(XLang.newEvalScope());
+        doc.dump();
+        assertEquals(attachmentXml("result-test-el.doc.xml").xml(), doc.xml());
+    }
+
     //
     // public static void main(String[] args) {
     // ZipFileWatcher.main(new
