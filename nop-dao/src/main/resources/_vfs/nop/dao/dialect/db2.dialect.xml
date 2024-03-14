@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<dialect x:extends="default.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
+<dialect x:extends="default.dialect.xml,window-expr-support.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
          xmlns:x="/nop/schema/xdsl.xdef">
     <dbProductNames>DB2</dbProductNames>
 

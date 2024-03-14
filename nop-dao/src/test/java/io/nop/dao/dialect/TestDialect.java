@@ -20,6 +20,8 @@ import io.nop.core.lang.sql.SQL;
 import io.nop.core.lang.sql.SqlExprList;
 import io.nop.commons.type.StdSqlType;
 import io.nop.core.lang.sql.StringSqlExpr;
+import io.nop.dao.dialect.function.NativeSQLFunction;
+import io.nop.dao.dialect.model.SqlNativeFunctionModel;
 import io.nop.dataset.binder.DataParameterBinders;
 import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.core.resource.ResourceHelper;
@@ -188,6 +190,11 @@ public class TestDialect extends JdbcTestCase {
         IDialect dialect = DialectManager.instance().getDialectForDataSource(getDataSource());
         DialectModel dialectModel = dialect.getDialectModel();
         for (ISqlFunctionModel fnModel : dialectModel.getFunctions()) {
+            if(fnModel.getTestSql() == null){
+                if(fnModel instanceof SqlNativeFunctionModel && ((SqlNativeFunctionModel) fnModel).isOnlyForWindowExpr())
+                    continue;
+            }
+
             ISQLFunction fn = dialect.getFunction(fnModel.getName());
             Pair<String, StdSqlType> pair = buildFuncTestSql(fn, dialect);
             StdSqlType resultType = pair.getSecond();
