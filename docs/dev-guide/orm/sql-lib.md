@@ -282,7 +282,7 @@ public interface LitemallGoodsMapper {
 
 <eql name="findActiveTasks">
     <batchLoadSelection>
-        relatedEntity.myProp, myParent.children
+        relatedEntity{ myProp }, myParent{ children }
     </batchLoadSelection>
 
     <source>

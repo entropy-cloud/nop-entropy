@@ -385,10 +385,13 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         List<SqlCteStatement> withCtes = node.getWithCtes();
         if (withCtes != null && !withCtes.isEmpty()) {
             for (int i = 0, n = withCtes.size(); i < n; i++) {
-                if (i != 0)
+                if (i != 0) {
                     println();
+                    print(',');
+                }else{
+                    print("with ");
+                }
                 SqlCteStatement stm = withCtes.get(i);
-                print("with ");
                 if (stm.getRecursive()) {
                     print(" recursive ");
                 }

@@ -134,7 +134,7 @@ public class GenSqlHelper {
 
     static void appendEntityPk(SQL.SqlBuilder sb, IEntityModel entityModel, IOrmEntity entity) {
         sb.append('(');
-        for (IColumnModel col : entityModel.getColumns()) {
+        for (IColumnModel col : entityModel.getPkColumns()) {
             Object value = entity.orm_propValue(col.getPropId());
             value = cast(entity, col, value);
             sb.param(value);

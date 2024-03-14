@@ -277,7 +277,7 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
             IEntityModel entityModel = ((EntityTableMeta) table).getEntityModel();
             sb.markTable(normalizeTableName(entityModel.getTableName()), alias, entityModel.getName());
         } else {
-            sb.markTable(normalizeTableName(node.getName()), alias, null);
+            sb.markTable(dialect.escapeSQLName(node.getName()), alias, null);
         }
     }
 

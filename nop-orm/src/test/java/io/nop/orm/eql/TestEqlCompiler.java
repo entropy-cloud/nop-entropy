@@ -116,6 +116,17 @@ public class TestEqlCompiler extends AbstractOrmTestCase {
     }
 
     @Test
+    public void testWith4() {
+        String sqlText = "with ClassCount as(\n" +
+                "select t.collegeId,count(1) as classCount from SimsClass t group by t.collegeId),\n" +
+                "AvgCount as (select count(1) from ClassCount u)" +
+                "select o,coalesce(itc.classCount,2) from SimsCollege o\n" +
+                "left join ClassCount itc on o.id = itc.collegeId";
+
+        orm().findAll(SQL.begin().sql(sqlText).end());
+    }
+
+    @Test
     public void testLowerFunc() {
         String sqlText = "select o from SimsClass o where lower(o.className) like 'a'";
         SQL sql = compile(sqlText);

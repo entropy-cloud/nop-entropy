@@ -9,6 +9,7 @@ package io.nop.orm.eql.compile;
 
 import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.orm.eql.ast.EqlASTNode;
+import io.nop.orm.eql.ast.SqlSubqueryTableSource;
 import io.nop.orm.eql.ast.SqlTableSource;
 
 import java.io.Serializable;
@@ -60,8 +61,13 @@ public class SqlTableScope implements Serializable {
 
     public void addTable(String alias, SqlTableSource table) {
         SqlTableSource oldTable = this.aliasToTables.put(alias, table);
-        if (oldTable != null && oldTable != table)
+        if (oldTable != null && oldTable != table) {
+            if (oldTable instanceof SqlSubqueryTableSource) {
+                if (((SqlSubqueryTableSource) oldTable).isSameWithClause(table))
+                    return;
+            }
             throw new NopEvalException(ERR_EQL_DUPLICATE_TABLE_ALIAS).param(ARG_ALIAS, alias).param(ARG_TABLE2, table)
                     .param(ARG_TABLE1, oldTable);
+        }
     }
 }
