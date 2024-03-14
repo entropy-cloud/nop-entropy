@@ -150,6 +150,11 @@ public interface GraphQLErrors {
                     "字段[{fieldName}]的参数[{argName}]不允许为空",
                     ARG_FIELD_NAME, ARG_ARG_NAME);
 
+    ErrorCode ERR_GRAPHQL_FIELD_EMPTY_ARG =
+            define("nop.err.graphql.field-empty-arg",
+                    "字段[{fieldName}]的参数[{argName}]不允许为空",
+                    ARG_FIELD_NAME, ARG_ARG_NAME);
+
     ErrorCode ERR_GRAPHQL_UNDEFINED_OPERATION = define("nop.err.graphql.undefined-operation",
             "schema[{operationType}]中没有定义操作:{operationName}", ARG_OPERATION_NAME, ARG_OPERATION_TYPE);
 
@@ -310,4 +315,6 @@ public interface GraphQLErrors {
             define("nop.err.graphql.field-prop-id-conflict",
                     "对象[{objType}]的字段[{fieldName}]的propId[{propId}]与已存在的propId冲突",
                     ARG_OBJ_TYPE, ARG_FIELD_NAME, ARG_PROP_ID);
+
+
 }

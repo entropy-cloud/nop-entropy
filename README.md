@@ -265,7 +265,7 @@ switch(贵公司很有钱吗()){
 
 使用中遇到问题或者BUG可以在[Gitee上提Issues](https://gitee.com/canonical-entropy/nop-entropy/issues)
 
-#### 微信群
+#### 作者微信和微信讨论群
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/wechat-group.png)
 

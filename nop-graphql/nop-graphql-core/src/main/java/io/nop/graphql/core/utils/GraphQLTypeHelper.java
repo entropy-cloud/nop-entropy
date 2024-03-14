@@ -60,7 +60,7 @@ public class GraphQLTypeHelper {
     }
 
     public static GraphQLNonNullType nonNullType(GraphQLType type) {
-        if (type instanceof GraphQLNonNullType)
+        if (type.isNonNullType())
             return ((GraphQLNonNullType) type);
 
         GraphQLNonNullType ret = new GraphQLNonNullType();

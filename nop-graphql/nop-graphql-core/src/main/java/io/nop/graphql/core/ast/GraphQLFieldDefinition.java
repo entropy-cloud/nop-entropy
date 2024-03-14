@@ -13,6 +13,7 @@ import io.nop.api.core.auth.ActionAuthMeta;
 import io.nop.core.context.action.IServiceAction;
 import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.IFunctionModel;
+import io.nop.core.type.IGenericType;
 import io.nop.graphql.core.IDataFetcher;
 import io.nop.graphql.core.ast._gen._GraphQLFieldDefinition;
 import io.nop.graphql.core.reflection.IGraphQLArgsNormalizer;
@@ -58,13 +59,24 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition implements I
 
     private int propId;
 
+    private IGenericType javaType;
+
     @Override
     public GraphQLFieldDefinition deepClone() {
         GraphQLFieldDefinition field = super.deepClone();
         field.setPropMeta(propMeta);
         field.setBeanPropMeta(beanPropMeta);
         field.setPropId(propId);
+        field.setJavaType(javaType);
         return field;
+    }
+
+    public IGenericType getJavaType() {
+        return javaType;
+    }
+
+    public void setJavaType(IGenericType javaType) {
+        this.javaType = javaType;
     }
 
     public List<GraphQLArgumentDefinition> cloneArguments() {

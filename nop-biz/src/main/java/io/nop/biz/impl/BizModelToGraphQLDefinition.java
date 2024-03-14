@@ -41,6 +41,7 @@ import io.nop.graphql.core.schema.meta.ObjMetaToGraphQLDefinition;
 import io.nop.graphql.core.utils.GraphQLNameHelper;
 import io.nop.graphql.core.utils.GraphQLTypeHelper;
 import io.nop.xlang.xmeta.ISchema;
+import io.nop.xlang.xmeta.reflect.ReflectObjMetaParser;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -196,6 +197,9 @@ public class BizModelToGraphQLDefinition {
                 GraphQLArgumentDefinition argDef = new GraphQLArgumentDefinition();
                 argDef.setName(bizArg.getName());
                 argDef.setType(type);
+                argDef.setMandatory(bizArg.isMandatory());
+                argDef.setSchema(bizArg.getSchema());
+                argDef.setJavaType(bizArg.getType());
                 args.add(argDef);
             }
         }
@@ -222,17 +226,70 @@ public class BizModelToGraphQLDefinition {
             for (GraphQLFieldDefinition field : objDef.getFields()) {
                 String propName = field.getName();
                 GraphQLType graphqlType = field.getType().deepClone();
-                argDefs.add(buildArgDef(propName, graphqlType));
+                GraphQLArgumentDefinition argDef = buildArgDef(propName, graphqlType);
+                ISchema schema = getFieldSchema(field);
+                argDef.setMandatory(isFieldMandatory(field));
+                argDef.setSchema(schema);
+                argDef.setJavaType(field.getJavaType());
+                argDefs.add(argDef);
             }
         } else {
             GraphQLInputDefinition objDef = (GraphQLInputDefinition) def;
             for (GraphQLInputFieldDefinition field : objDef.getFields()) {
                 String propName = field.getName();
                 GraphQLType graphQLType = field.getType().deepClone();
-                argDefs.add(buildArgDef(propName, graphQLType));
+                GraphQLArgumentDefinition argDef = buildArgDef(propName, graphQLType);
+                ISchema schema = getInputSchema(field);
+                argDef.setMandatory(isInputMandatory(field));
+                argDef.setSchema(schema);
+                argDef.setJavaType(field.getJavaType());
+                argDefs.add(argDef);
             }
         }
         return argDefs;
+    }
+
+    private boolean isFieldMandatory(GraphQLFieldDefinition field) {
+        if (field.getPropMeta() != null) {
+            return field.getPropMeta().isMandatory();
+        }
+        if (field.getBeanPropMeta() != null)
+            return field.getBeanPropMeta().mandatory();
+        return false;
+    }
+
+    ISchema getFieldSchema(GraphQLFieldDefinition field) {
+        if (field.getPropMeta() != null) {
+            ISchema schema = field.getPropMeta().getSchema();
+            if (schema != null)
+                return schema;
+        }
+
+        if (field.getBeanPropMeta() != null)
+            return ReflectObjMetaParser.INSTANCE.buildSchemaFromPropMeta(field.getBeanPropMeta());
+
+        return null;
+    }
+
+    private boolean isInputMandatory(GraphQLInputFieldDefinition field) {
+        if (field.getPropMeta() != null) {
+            return field.getPropMeta().isMandatory();
+        }
+        if (field.getBeanPropMeta() != null)
+            return field.getBeanPropMeta().mandatory();
+        return false;
+    }
+
+    ISchema getInputSchema(GraphQLInputFieldDefinition field) {
+        if (field.getPropMeta() != null) {
+            ISchema schema = field.getPropMeta().getSchema();
+            if (schema != null)
+                return schema;
+        }
+
+        if (field.getBeanPropMeta() != null)
+            return ReflectObjMetaParser.INSTANCE.buildSchemaFromPropMeta(field.getBeanPropMeta());
+        return null;
     }
 
     GraphQLType getType(String thisObjName, BizActionModel actionModel, TypeRegistry typeRegistry) {
@@ -277,8 +334,12 @@ public class BizModelToGraphQLDefinition {
     GraphQLType getArgType(String thisObjName, BizActionArgModel argModel, TypeRegistry registry) {
         GraphQLType type = GraphQLTypeHelper.parseType(argModel.getLocation(),
                 (String) argModel.prop_get(GraphQLConstants.ATTR_GRAPHQL_TYPE), registry);
-        if (type != null)
+        if (type != null) {
+            if (argModel.isMandatory()) {
+                type = GraphQLTypeHelper.nonNullType(type);
+            }
             return type;
+        }
 
         ISchema schema = argModel.getSchema();
         if (schema == null)

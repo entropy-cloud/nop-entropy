@@ -23,6 +23,7 @@ import io.nop.core.reflect.IFunctionArgument;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.IBeanModel;
+import io.nop.core.reflect.bean.IBeanPropertyModel;
 import io.nop.core.type.IGenericType;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.ast.GraphQLArgumentDefinition;
@@ -41,6 +42,9 @@ import io.nop.graphql.core.schema.GraphQLScalarType;
 import io.nop.graphql.core.schema.TypeRegistry;
 import io.nop.graphql.core.utils.GraphQLNameHelper;
 import io.nop.graphql.core.utils.GraphQLTypeHelper;
+import io.nop.xlang.xmeta.reflect.ReflectObjMetaParser;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -72,7 +76,7 @@ public class ReflectionGraphQLTypeFactory {
                 return;
             } else if (arg.isAnnotationPresent(Name.class)) {
                 GraphQLType type = buildGraphQLType(arg.getType(), null, registry, creatingTypes, true);
-                if (!arg.isAnnotationPresent(Optional.class)) {
+                if (!arg.isAnnotationPresent(Optional.class) && !arg.isAnnotationPresent(Nullable.class)) {
                     type = GraphQLTypeHelper.nonNullType(type);
                 }
                 GraphQLArgumentDefinition argDef = new GraphQLArgumentDefinition();
@@ -112,14 +116,23 @@ public class ReflectionGraphQLTypeFactory {
         beanModel.forEachSerializableProp(propModel -> {
             String propName = propModel.getName();
             GraphQLType graphqlType = buildGraphQLType(propModel.getType(), null, registry, creatingTypes, true);
-            PropMeta propMeta = propModel.getAnnotation(PropMeta.class);
-            if (propMeta != null && propMeta.mandatory()) {
+            boolean mandatory = isMandatory(propModel);
+            if (mandatory)
                 graphqlType = GraphQLTypeHelper.nonNullType(graphqlType);
-            }
-            argDefs.add(buildArgDef(propName, graphqlType));
+            GraphQLArgumentDefinition argDef = buildArgDef(propName, graphqlType);
+            argDef.setSchema(ReflectObjMetaParser.INSTANCE.parsePropSchema(propModel));
+            argDefs.add(argDef);
 
         });
         return argDefs;
+    }
+
+    private boolean isMandatory(IBeanPropertyModel propModel) {
+        PropMeta propMeta = propModel.getAnnotation(PropMeta.class);
+        if (propMeta != null) {
+            return propMeta.mandatory();
+        }
+        return propModel.getAnnotation(Nonnull.class) != null;
     }
 
     private GraphQLArgumentDefinition buildArgDef(String name, GraphQLType type) {
@@ -312,6 +325,8 @@ public class ReflectionGraphQLTypeFactory {
             field.setName(propModel.getName());
             PropMeta propMeta = propModel.getAnnotation(PropMeta.class);
             field.setBeanPropMeta(propMeta);
+            field.setJavaType(propModel.getType());
+
             if (propMeta != null && !propMeta.displayName().isEmpty()) {
                 field.setLabel(propMeta.displayName());
             }
@@ -348,6 +363,8 @@ public class ReflectionGraphQLTypeFactory {
             field.setFetcher(BeanPropertyFetcher.INSTANCE);
             PropMeta propMeta = propModel.getAnnotation(PropMeta.class);
             field.setBeanPropMeta(propMeta);
+            field.setJavaType(propModel.getType());
+
             if (propMeta != null && !propMeta.displayName().isEmpty()) {
                 field.setLabel(propMeta.displayName());
             }

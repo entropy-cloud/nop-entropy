@@ -136,6 +136,7 @@ public class ObjMetaToGraphQLDefinition {
         arg.setLocation(propArg.getLocation());
         arg.setName(name);
         arg.setType(type);
+        arg.setSchema(propArg.getSchema());
         arg.setDescription(propArg.getDescription());
         if (propArg.getDescription() == null)
             arg.setDescription(propArg.getDisplayName());

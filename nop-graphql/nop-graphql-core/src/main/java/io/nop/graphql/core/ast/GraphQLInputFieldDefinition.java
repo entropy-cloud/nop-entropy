@@ -8,6 +8,7 @@
 package io.nop.graphql.core.ast;
 
 import io.nop.api.core.annotations.meta.PropMeta;
+import io.nop.core.type.IGenericType;
 import io.nop.graphql.core.ast._gen._GraphQLInputFieldDefinition;
 import io.nop.xlang.xmeta.IObjPropMeta;
 
@@ -17,6 +18,8 @@ public class GraphQLInputFieldDefinition extends _GraphQLInputFieldDefinition im
     private IObjPropMeta propMeta;
 
     private PropMeta beanPropMeta;
+
+    private IGenericType javaType;
 
     public IObjPropMeta getPropMeta() {
         return propMeta;
@@ -42,6 +45,14 @@ public class GraphQLInputFieldDefinition extends _GraphQLInputFieldDefinition im
         this.propId = propId;
     }
 
+    public IGenericType getJavaType() {
+        return javaType;
+    }
+
+    public void setJavaType(IGenericType javaType) {
+        this.javaType = javaType;
+    }
+
     public int getPropIdFromMeta() {
         if (propMeta != null) {
             Integer propId = propMeta.getPropId();
@@ -52,5 +63,15 @@ public class GraphQLInputFieldDefinition extends _GraphQLInputFieldDefinition im
         if (beanPropMeta != null)
             return beanPropMeta.propId();
         return 0;
+    }
+
+    @Override
+    public GraphQLInputFieldDefinition deepClone() {
+        GraphQLInputFieldDefinition ret = super.deepClone();
+        ret.setPropId(propId);
+        ret.setJavaType(javaType);
+        ret.setPropMeta(propMeta);
+        ret.setBeanPropMeta(beanPropMeta);
+        return ret;
     }
 }

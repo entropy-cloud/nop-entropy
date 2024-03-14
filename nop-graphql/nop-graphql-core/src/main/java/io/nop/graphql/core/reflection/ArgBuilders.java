@@ -72,16 +72,7 @@ public class ArgBuilders {
                 return req;
 
             if (req instanceof String && type.isDataBean()) {
-                if (type.getRawClass() == ApiRequest.class) {
-                    IGenericType bodyType = type.getTypeParameters().get(0);
-                    Object data = JsonTool.parseBeanFromText(req.toString(), bodyType);
-                    ApiRequest<Object> ret = new ApiRequest<>();
-                    ret.setSelection(selection);
-                    ret.setHeaders(ctx.getRequestHeaders());
-                    ret.setData(data);
-                    return ret;
-                }
-                return JsonTool.parseBeanFromText(req.toString(), type);
+                req = JsonTool.parse(req.toString());
             }
 
             if (type.getRawClass() == ApiRequest.class) {

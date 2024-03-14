@@ -36,6 +36,11 @@
             <artifactId>nop-antlr4-common</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
+
         <!--        <dependency>-->
         <!--            <groupId>io.github.entropy-cloud</groupId>-->
         <!--            <artifactId>nop-antlr4-xlang</artifactId>-->

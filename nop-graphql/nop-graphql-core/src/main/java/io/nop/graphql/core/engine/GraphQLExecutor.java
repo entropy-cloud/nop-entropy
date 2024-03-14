@@ -64,6 +64,7 @@ public class GraphQLExecutor implements IGraphQLExecutor {
     public CompletionStage<ApiResponse<?>> executeOneAsync(IGraphQLExecutionContext context) {
         try {
             GraphQLActionAuthChecker.INSTANCE.check(context);
+            GraphQLArgumentValidator.INSTANCE.validate(context);
 
             DataFetchingEnvironment env = new DataFetchingEnvironment();
             env.setExecutionContext(context);
@@ -131,6 +132,7 @@ public class GraphQLExecutor implements IGraphQLExecutor {
 
         try {
             GraphQLActionAuthChecker.INSTANCE.check(context);
+            GraphQLArgumentValidator.INSTANCE.validate(context);
 
             Map<String, Object> response = new LinkedHashMap<>();
             context.setResponse(response);

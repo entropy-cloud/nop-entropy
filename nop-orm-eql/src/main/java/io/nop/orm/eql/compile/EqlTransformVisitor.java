@@ -1256,7 +1256,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                         .source(node).param(ARG_FUNC_NAME, node.getName())
                         .param(ARG_DIALECT, dialect.getName());
         }
-        
+
         int argCount = node.getArgs().size();
         if (fn.getMinArgCount() > argCount) {
             throw new NopException(ERR_EQL_FUNC_TOO_FEW_ARGS).source(node).param(ARG_FUNC_NAME, node.getName())
