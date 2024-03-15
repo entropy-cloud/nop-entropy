@@ -260,7 +260,7 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
         if (obj instanceof IOrmEntitySet) {
             _enqueueCollectionProp((IOrmEntitySet) obj, propName);
         } else if (obj instanceof IOrmEntity) {
-            _enqueueEntityProp((IOrmEntity) obj, propName);
+            _enqueueEntityProp((IOrmEntity) obj, propName,null);
         } else if (obj instanceof Map) {
             int pos = propName.indexOf('.');
             if (pos < 0) {
@@ -354,12 +354,12 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
                 load.addProp(propName);
         } else {
             for (IOrmEntity entity : coll) {
-                _enqueueEntityProp(entity, propName);
+                _enqueueEntityProp(entity, propName, null);
             }
         }
     }
 
-    void _enqueueEntityProp(IOrmEntity entity, String propName) {
+    void _enqueueEntityProp(IOrmEntity entity, String propName, FieldSelectionBean subSelection) {
         OrmEntityState state = entity.orm_state();
         if (!state.isAllowLoad())
             return;
@@ -367,25 +367,33 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
         EntityLoad load = _enqueueEntity(entity);
         if (load != null) {
             // load不为null表示entity尚未加载
-            load.addProp(propName);
+            if (subSelection != null) {
+                load.addProp(propName, subSelection);
+            } else {
+                load.addProp(propName);
+            }
         } else {
             // eagerProps已经加载
-
             IEntityModel entityModel = entity.orm_entityModel();
             IEntityPropModel propModel = entityModel.getProp(propName, true);
             if (propModel != null) {
                 if (propModel.isAliasModel()) {
-                    _enqueueEntityProp(entity, propModel.getAliasPropPath());
+                    _enqueueEntityProp(entity, propModel.getAliasPropPath(), subSelection);
                     return;
                 }
                 EntityLoad propLoad = addPropLoad(entityModel, propModel, entity);
                 if (propModel.isRelationModel()) {
                     if (propLoad != null) {
-                        propLoad.addProp(propName, true);
+                        if (subSelection != null) {
+                            propLoad.addProp(propName, subSelection);
+                        } else {
+                            propLoad.addProp(propName, true);
+                        }
                     } else {
                         Object value = entity.orm_propValueByName(propName);
-                        if (value != null)
-                            enqueue(value);
+                        if (value != null) {
+                            _enqueueWithSelection(value, subSelection);
+                        }
                     }
                 }
                 return;
@@ -403,14 +411,18 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
                 return;
 
             if (propModel.isAliasModel()) {
-                _enqueueEntityProp(entity, propModel.getAliasPropPath() + propName.substring(pos));
+                _enqueueEntityProp(entity, propModel.getAliasPropPath() + propName.substring(pos), subSelection);
                 return;
             }
 
             EntityLoad propLoad = addPropLoad(entityModel, propModel, entity);
             if (propLoad != null) {
                 // 复合属性的第一部分需要延迟加载，则后续部分需要注册到subSelection上
-                propLoad.makeSubSelection(propModel.getName()).addCompositeField(propName.substring(pos + 1), false);
+                boolean hasNext = subSelection != null && subSelection.hasField();
+                FieldSelectionBean field = propLoad.makeSubSelection(propModel.getName()).addCompositeField(propName.substring(pos + 1), hasNext);
+                if (hasNext) {
+                    field.merge(subSelection);
+                }
             } else {
                 // prop已经被加载，则获取到关联对象，递归加载关联对象上的属性
                 Object value = getPropValue(entity, propModel);
@@ -486,15 +498,24 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
         }
 
         for (Object obj : ormObjects) {
-            if (obj instanceof IOrmEntity) {
-                _enqueueEntity((IOrmEntity) obj, selection);
-            } else if (obj instanceof IOrmEntitySet) {
-                _enqueueCollection((IOrmEntitySet) obj, selection);
-            } else if (obj instanceof Map) {
-                _enqueueMap((Map<String, Object>) obj, selection);
-            }
+            _enqueueWithSelection(obj, selection);
         }
         return this;
+    }
+
+    private void _enqueueWithSelection(Object obj, FieldSelectionBean selection) {
+        if (selection == null || !selection.hasField()) {
+            enqueue(obj);
+            return;
+        }
+
+        if (obj instanceof IOrmEntity) {
+            _enqueueEntity((IOrmEntity) obj, selection);
+        } else if (obj instanceof IOrmEntitySet) {
+            _enqueueCollection((IOrmEntitySet) obj, selection);
+        } else if (obj instanceof Map) {
+            _enqueueMap((Map<String, Object>) obj, selection);
+        }
     }
 
     private void _enqueueMap(Map<String, Object> map, FieldSelectionBean selection) {
@@ -512,7 +533,11 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
                 name = field.getName();
             }
 
-            _enqueueEntityProp(entity, name);
+            if (entityLoad != null) {
+                entityLoad.addProp(name, field);
+            } else {
+                _enqueueEntityProp(entity, name, field);
+            }
         }
     }
 
