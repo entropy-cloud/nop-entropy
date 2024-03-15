@@ -15,10 +15,14 @@ import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.graphql.GraphQLMap;
 import io.nop.api.core.annotations.graphql.GraphQLScalar;
 import io.nop.api.core.annotations.meta.PropMeta;
+import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.graphql.GraphQLConnection;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.cache.ICache;
+import io.nop.core.context.IServiceContext;
 import io.nop.core.reflect.IFunctionArgument;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.ReflectionManager;
@@ -69,29 +73,44 @@ public class ReflectionGraphQLTypeFactory {
         List<GraphQLArgumentDefinition> argDefs = new ArrayList<>();
 
         for (IFunctionArgument arg : func.getArgs()) {
-            if (arg.isAnnotationPresent(RequestBean.class)) {
+            if (arg.getType().isAssignableTo(FieldSelectionBean.class))
+                continue;
+            if (arg.getType().isAssignableTo(IServiceContext.class))
+                continue;
+            if (arg.getType().isAssignableTo(ICache.class))
+                continue;
+            if (arg.getType().isAssignableTo(IUserContext.class))
+                continue;
+
+            if (arg.getType().getRawClass() == ApiRequest.class) {
+                List<GraphQLArgumentDefinition> args = getArgTypes(func.getName(), arg, arg.getType().getTypeParameters().get(0), registry,
+                        creatingTypes);
+                field.setArguments(args);
+                return;
+            } else if (arg.isAnnotationPresent(RequestBean.class)) {
                 List<GraphQLArgumentDefinition> args = getArgTypes(func.getName(), arg, arg.getType(), registry, creatingTypes);
                 field.setArguments(args);
-
                 return;
             } else if (arg.isAnnotationPresent(Name.class)) {
                 GraphQLType type = buildGraphQLType(arg.getType(), null, registry, creatingTypes, true);
-                if (!arg.isAnnotationPresent(Optional.class) && !arg.isAnnotationPresent(Nullable.class)) {
+                boolean optional = arg.isAnnotationPresent(Optional.class);
+                boolean nullable = arg.isAnnotationPresent(Nullable.class);
+
+                boolean mandatory = false;
+                if (!optional && !nullable) {
                     type = GraphQLTypeHelper.nonNullType(type);
+                    mandatory = true;
                 }
+
                 GraphQLArgumentDefinition argDef = new GraphQLArgumentDefinition();
                 argDef.setName(arg.getName());
                 argDef.setType(type);
+                argDef.setMandatory(mandatory);
                 Description description = arg.getAnnotation(Description.class);
                 if (description != null)
                     argDef.setDescription(description.value());
 
                 argDefs.add(argDef);
-            } else if (arg.getType().getRawClass() == ApiRequest.class) {
-                List<GraphQLArgumentDefinition> args = getArgTypes(func.getName(), arg, arg.getType().getTypeParameters().get(0), registry,
-                        creatingTypes);
-                field.setArguments(args);
-                return;
             }
         }
         field.setArguments(argDefs);
@@ -117,9 +136,10 @@ public class ReflectionGraphQLTypeFactory {
             String propName = propModel.getName();
             GraphQLType graphqlType = buildGraphQLType(propModel.getType(), null, registry, creatingTypes, true);
             boolean mandatory = isMandatory(propModel);
-            if (mandatory)
+            if (mandatory || Boolean.FALSE.equals(propModel.getNullable()))
                 graphqlType = GraphQLTypeHelper.nonNullType(graphqlType);
             GraphQLArgumentDefinition argDef = buildArgDef(propName, graphqlType);
+            argDef.setMandatory(mandatory);
             argDef.setSchema(ReflectObjMetaParser.INSTANCE.parsePropSchema(propModel));
             argDefs.add(argDef);
 
@@ -339,6 +359,7 @@ public class ReflectionGraphQLTypeFactory {
         def.setFields(fields);
 
         registry.registerType(def);
+
         return def;
     }
 

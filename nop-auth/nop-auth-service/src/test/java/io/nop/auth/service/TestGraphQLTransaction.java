@@ -9,6 +9,8 @@ package io.nop.auth.service;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.auth.dao.entity.NopAuthRole;
@@ -16,13 +18,12 @@ import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.engine.IGraphQLEngine;
-import org.junit.jupiter.api.Test;
-
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@NopTestConfig(localDb = true,initDatabaseSchema = true)
+@NopTestConfig(localDb = true, initDatabaseSchema = true)
 public class TestGraphQLTransaction extends JunitAutoTestCase {
     @Inject
     IDaoProvider daoProvider;
@@ -41,4 +42,6 @@ public class TestGraphQLTransaction extends JunitAutoTestCase {
         assertTrue(response.hasError());
         assertTrue(daoProvider.daoFor(NopAuthRole.class).getEntityById("test123") == null);
     }
+
+
 }

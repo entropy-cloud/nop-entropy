@@ -1,0 +1,6 @@
+{
+  "bizFatal": false,
+  "code": "nop.err.graphql.field-null-arg",
+  "msg": "函数[DemoAuth__hello]的参数[userId]不允许为空",
+  "status": -1
+}

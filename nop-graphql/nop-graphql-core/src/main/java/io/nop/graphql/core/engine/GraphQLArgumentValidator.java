@@ -83,7 +83,7 @@ public class GraphQLArgumentValidator {
                         .param(ARG_OPERATION_NAME, context.getOperation().getName())
                         .param(ARG_ARG_NAME, argDef.getName());
             }
-            if (argDef.isMandatory() && !StringHelper.isEmptyObject(value)) {
+            if (argDef.isMandatory() && StringHelper.isEmptyObject(value)) {
                 throw new NopException(ERR_GRAPHQL_FIELD_EMPTY_ARG)
                         .param(ARG_FIELD_NAME, fieldDef.getName())
                         .param(ARG_OPERATION_NAME, context.getOperation().getName())

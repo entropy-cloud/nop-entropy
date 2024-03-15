@@ -147,12 +147,12 @@ public interface GraphQLErrors {
 
     ErrorCode ERR_GRAPHQL_FIELD_NULL_ARG =
             define("nop.err.graphql.field-null-arg",
-                    "字段[{fieldName}]的参数[{argName}]不允许为空",
+                    "函数[{fieldName}]的参数[{argName}]不允许为空",
                     ARG_FIELD_NAME, ARG_ARG_NAME);
 
     ErrorCode ERR_GRAPHQL_FIELD_EMPTY_ARG =
             define("nop.err.graphql.field-empty-arg",
-                    "字段[{fieldName}]的参数[{argName}]不允许为空",
+                    "函数[{fieldName}]的参数[{argName}]不允许为空",
                     ARG_FIELD_NAME, ARG_ARG_NAME);
 
     ErrorCode ERR_GRAPHQL_UNDEFINED_OPERATION = define("nop.err.graphql.undefined-operation",

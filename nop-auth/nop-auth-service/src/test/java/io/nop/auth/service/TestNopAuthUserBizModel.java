@@ -76,4 +76,13 @@ public class TestNopAuthUserBizModel extends JunitAutoTestCase {
         IGenericType type = (IGenericType) handler.parseProp(null, null, "a", NopAuthUser.class.getName(), XLang.newCompileTool());
         type.isAssignableTo(NopAuthUser.class);
     }
+
+    @EnableSnapshot
+    @Test
+    public void testFindFirst() {
+        IGraphQLExecutionContext context = graphQLEngine.newRpcContext(GraphQLOperationType.query,
+                "NopAuthUser__findFirst", new ApiRequest<>());
+        Object result = FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context));
+        output("response.json5", result);
+    }
 }

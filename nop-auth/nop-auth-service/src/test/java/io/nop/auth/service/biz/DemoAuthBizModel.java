@@ -9,11 +9,13 @@ package io.nop.auth.service.biz;
 
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
+import io.nop.api.core.annotations.biz.BizQuery;
+import io.nop.api.core.annotations.biz.RequestBean;
 import io.nop.auth.dao.entity.NopAuthRole;
 import io.nop.commons.util.StringHelper;
 import io.nop.dao.api.IDaoProvider;
-
 import jakarta.inject.Inject;
+
 import java.util.Arrays;
 
 @BizModel("DemoAuth")
@@ -32,5 +34,10 @@ public class DemoAuthBizModel {
 
         daoProvider.daoFor(NopAuthRole.class).saveEntity(role);
         return role.orm_idString();
+    }
+
+    @BizQuery
+    public String hello(@RequestBean DemoRequest request) {
+        return "userId:" + request.getUserId();
     }
 }
