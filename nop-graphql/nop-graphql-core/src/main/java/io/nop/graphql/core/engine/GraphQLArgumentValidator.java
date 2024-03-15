@@ -114,7 +114,7 @@ public class GraphQLArgumentValidator {
             return value;
 
         if (type.isInstance(value))
-            return type;
+            return value;
 
         String name = argDef.getName();
         if (value instanceof String && type.isDataBean()) {

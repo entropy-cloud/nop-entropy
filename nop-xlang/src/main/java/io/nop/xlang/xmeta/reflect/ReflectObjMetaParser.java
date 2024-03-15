@@ -38,25 +38,57 @@ public class ReflectObjMetaParser {
 
     public ISchema buildSchemaFromPropMeta(PropMeta propMeta) {
         SchemaImpl schema = new SchemaImpl();
-        schema.setPattern(propMeta.pattern());
-        schema.setStdDomain(propMeta.stdDomain());
-        schema.setDomain(propMeta.domain());
-        schema.setMax(propMeta.max());
-        schema.setMin(propMeta.min());
-        schema.setExcludeMax(propMeta.excludeMax());
-        schema.setExcludeMin(propMeta.excludeMin());
-        schema.setDict(propMeta.dict());
-        schema.setMaxItems(propMeta.maxItems());
-        schema.setMinItems(propMeta.minItems());
-        schema.setMinLength(propMeta.minLength());
-        schema.setMaxLength(propMeta.maxLength());
-        schema.setDisplayName(propMeta.displayName());
-        schema.setDescription(propMeta.description());
-        schema.setOrderProp(propMeta.orderProp());
-        schema.setKeyProp(propMeta.keyProp());
-        schema.setPrecision(propMeta.precision());
-        schema.setScale(propMeta.scale());
-        schema.setMultipleOf(propMeta.multipleOf());
+        if (!propMeta.pattern().isEmpty())
+            schema.setPattern(propMeta.pattern());
+        if (!propMeta.stdDomain().isEmpty())
+            schema.setStdDomain(propMeta.stdDomain());
+        if (!propMeta.domain().isEmpty())
+            schema.setDomain(propMeta.domain());
+        if (propMeta.max() != Double.MAX_VALUE)
+            schema.setMax(propMeta.max());
+        if (propMeta.min() != Double.MIN_VALUE)
+            schema.setMin(propMeta.min());
+        if (propMeta.excludeMax())
+            schema.setExcludeMax(true);
+
+        if (propMeta.excludeMin())
+            schema.setExcludeMin(true);
+
+        if (!propMeta.dict().isEmpty())
+            schema.setDict(propMeta.dict());
+
+        if (propMeta.maxItems() != Integer.MAX_VALUE)
+            schema.setMaxItems(propMeta.maxItems());
+
+        if (propMeta.minItems() > 0)
+            schema.setMinItems(propMeta.minItems());
+
+        if (propMeta.minLength() > 0)
+            schema.setMinLength(propMeta.minLength());
+
+        if (propMeta.maxLength() != Integer.MAX_VALUE)
+            schema.setMaxLength(propMeta.maxLength());
+
+        if (!propMeta.displayName().isEmpty())
+            schema.setDisplayName(propMeta.displayName());
+
+        if (!propMeta.description().isEmpty())
+            schema.setDescription(propMeta.description());
+
+        if (!propMeta.orderProp().isEmpty())
+            schema.setOrderProp(propMeta.orderProp());
+
+        if (!propMeta.keyProp().isEmpty())
+            schema.setKeyProp(propMeta.keyProp());
+
+        if (propMeta.precision() >= 0)
+            schema.setPrecision(propMeta.precision());
+
+        if (propMeta.scale() >= 0)
+            schema.setScale(propMeta.scale());
+
+        if (propMeta.multipleOf() > 0)
+            schema.setMultipleOf(propMeta.multipleOf());
 
         return schema;
     }

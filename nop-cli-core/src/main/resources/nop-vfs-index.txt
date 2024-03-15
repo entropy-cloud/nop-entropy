@@ -65,6 +65,7 @@
 /nop/dao/dialect/selector/oracle.selector.yaml
 /nop/dao/dialect/selector/postgresql.selector.yaml
 /nop/dao/dialect/tdengine.dialect.xml
+/nop/dao/dialect/window-expr-support.dialect.xml
 /nop/excel/xlib/imp-gen.xlib
 /nop/graphql/base.graphql
 /nop/graphql/default.graphql

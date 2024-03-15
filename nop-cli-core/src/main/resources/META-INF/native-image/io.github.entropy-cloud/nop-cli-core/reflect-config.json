@@ -9088,6 +9088,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isSupportSomeSubQuery",
+        "parameterTypes": []
+      },
+      {
         "name": "isSupportTransaction",
         "parameterTypes": []
       },
@@ -9296,6 +9300,10 @@
         ]
       },
       {
+        "name": "getExceptKeyword",
+        "parameterTypes": []
+      },
+      {
         "name": "getForUpdateSql",
         "parameterTypes": [
           "io.nop.dao.dialect.lock.LockOption"
@@ -9461,6 +9469,10 @@
       },
       {
         "name": "isSupportSequence",
+        "parameterTypes": []
+      },
+      {
+        "name": "isSupportSomeSubQuery",
         "parameterTypes": []
       },
       {
@@ -10092,6 +10104,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getSupportSomeSubQuery",
+        "parameterTypes": []
+      },
+      {
         "name": "getSupportTransaction",
         "parameterTypes": []
       },
@@ -10205,6 +10221,12 @@
       },
       {
         "name": "setSupportSequence",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setSupportSomeSubQuery",
         "parameterTypes": [
           "java.lang.Boolean"
         ]
@@ -10658,6 +10680,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getExceptKeyword",
+        "parameterTypes": []
+      },
+      {
         "name": "getFalseString",
         "parameterTypes": []
       },
@@ -10745,6 +10771,12 @@
         "name": "setEscapeSlash",
         "parameterTypes": [
           "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setExceptKeyword",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -11028,6 +11060,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isOnlyForWindowExpr",
+        "parameterTypes": []
+      },
+      {
         "name": "isReturnFirstArgType",
         "parameterTypes": []
       },
@@ -11075,6 +11111,12 @@
         "name": "setName",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setOnlyForWindowExpr",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -11175,6 +11217,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isOnlyForWindowExpr",
+        "parameterTypes": []
+      },
+      {
         "name": "isReturnFirstArgType",
         "parameterTypes": []
       },
@@ -11204,6 +11250,12 @@
         "name": "setName",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setOnlyForWindowExpr",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -12096,6 +12148,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isMultipleAsMap",
+        "parameterTypes": []
+      },
+      {
         "name": "keySet_fields",
         "parameterTypes": []
       },
@@ -12177,6 +12233,12 @@
       },
       {
         "name": "setMultiple",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setMultipleAsMap",
         "parameterTypes": [
           "boolean"
         ]
