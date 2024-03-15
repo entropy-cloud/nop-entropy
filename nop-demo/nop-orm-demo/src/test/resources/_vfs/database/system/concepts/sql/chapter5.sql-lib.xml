@@ -1,0 +1,22 @@
+<sql-lib x:schema="/nop/schema/orm/sql-lib.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef">
+
+    <sqls>
+
+        <eql name="slide_01" sqlMethod="findAll">
+            <source>
+                with recursive RecPre as (
+                (select p.preReqId as courseId
+                from PreReq p where p.course.title = ${title})
+                union
+                (select p.preReqId as courseId
+                from RecPre r join PreReq p on r.courseId = p.courseId)
+                )
+                select c
+                from RecPre r join Course c on r.courseId = c.courseId
+            </source>
+        </eql>
+
+    </sqls>
+
+</sql-lib>

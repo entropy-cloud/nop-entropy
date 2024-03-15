@@ -1,0 +1,10 @@
+<c:script>
+    import io.nop.xlang.xdsl.DslModelHelper;
+
+    // 加载 app.orm.xml dsl 模型文件
+    // 使用 /nop/templates/orm-entity 模板
+    // 生成 java 实体类
+    let modelResource = codeGenerator.getTplResource('/src/test/resources/_vfs/orm/demo/orm/app.orm.xml');
+    let codeGenModel = DslModelHelper.loadDslModel(modelResource);
+    codeGenerator.withTplDir('/nop/templates/orm-entity').execute("",{codeGenModel},$scope);
+</c:script>

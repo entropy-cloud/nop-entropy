@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<orm x:schema="/nop/schema/orm/orm.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef">
+
+    <entities>
+
+        <entity name="demo.orm.entity.Classroom" tableName="classroom"
+                registerShortName="true">
+            <comment>教室</comment>
+            <columns>
+                <column name="building" code="building" primary="true"
+                        propId="1" stdSqlType="VARCHAR" precision="15"/>
+                <column name="roomNumber" code="room_number" primary="true"
+                        propId="2" stdSqlType="VARCHAR" precision="7"/>
+                <column name="capacity" code="capacity" propId="3"
+                        stdSqlType="DECIMAL" precision="4" scale="0"/>
+            </columns>
+        </entity>
+
+        <entity name="demo.orm.entity.Department" tableName="department"
+                registerShortName="true">
+            <comment>系</comment>
+            <columns>
+                <column name="deptName" code="dept_name" primary="true"
+                        propId="1" stdSqlType="VARCHAR" precision="20"/>
+                <column name="building" code="building" propId="2"
+                        stdSqlType="VARCHAR" precision="15"/>
+                <column name="budget" code="budget" propId="3"
+                        stdSqlType="DECIMAL" precision="12" scale="2"/>
+            </columns>
+        </entity>
+
+        <entity name="demo.orm.entity.Course" tableName="course"
+                registerShortName="true">
+            <comment>课程</comment>
+            <columns>
+                <column name="courseId" code="course_id" primary="true"
+                        propId="1" stdSqlType="VARCHAR" precision="8"/>
+                <column name="title" code="title" propId="2"
+                        stdSqlType="VARCHAR" precision="50"/>
+                <column name="deptName" code="dept_name" propId="3"
+                        stdSqlType="VARCHAR" precision="20"/>
+                <column name="credits" code="credits" propId="4"
+                        stdSqlType="DECIMAL" precision="2" scale="0"/>
+            </columns>
+
+            <relations>
+                <to-one name="department" constraint="FK_COURSE_DEPARTMENT"
+                        refEntityName="demo.orm.entity.Department" refPropName="courses">
+                    <join>
+                        <on leftProp="deptName" rightProp="deptName"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+
+        <entity name="demo.orm.entity.Instructor" tableName="instructor"
+                registerShortName="true">
+            <comment>教师</comment>
+            <columns>
+                <column name="id" code="id" primary="true"
+                        propId="1" stdSqlType="VARCHAR" precision="5"/>
+                <column name="name" code="name" propId="2" mandatory="true"
+                        stdSqlType="VARCHAR" precision="20"/>
+                <column name="deptName" code="dept_name" propId="3"
+                        stdSqlType="VARCHAR" precision="20"/>
+                <column name="salary" code="salary" propId="4"
+                        stdSqlType="DECIMAL" precision="8" scale="2"/>
+            </columns>
+
+            <relations>
+                <to-one name="department" constraint="FK_INSTRUCTOR_DEPARTMENT"
+                        refEntityName="demo.orm.entity.Department"
+                        refPropName="instructors">
+                    <join>
+                        <on leftProp="deptName" rightProp="deptName"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+
+        <entity name="demo.orm.entity.Section" tableName="section"
+                registerShortName="true">
+            <columns>
+                <column name="courseId" code="course_id" primary="true"
+                        propId="1" stdSqlType="VARCHAR" precision="8"/>
+                <column name="secId" code="sec_id" primary="true"
+                        propId="2" stdSqlType="VARCHAR" precision="8"/>
+                <column name="semester" code="semester" primary="true"
+                        propId="3" stdSqlType="VARCHAR" precision="6"/>
+                <column name="year" code="year" primary="true"
+                        propId="4" stdSqlType="DECIMAL" precision="4" scale="0"/>
+                <column name="building" code="building" propId="5"
+                        stdSqlType="VARCHAR" precision="15"/>
+                <column name="roomNumber" code="room_number" propId="6"
+                        stdSqlType="VARCHAR" precision="7"/>
+                <column name="timeSlotId" code="time_slot_id" propId="7"
+                        stdSqlType="VARCHAR" precision="4"/>
+            </columns>
+
+            <relations>
+                <to-one name="course" constraint="FK_SECTION_COURSE"
+                        refEntityName="demo.orm.entity.Course">
+                    <join>
+                        <on leftProp="courseId" rightProp="courseId"/>
+                    </join>
+                </to-one>
+
+                <to-one name="classroom" constraint="FK_SECTION_CLASSROOM"
+                        refEntityName="demo.orm.entity.Classroom">
+                    <join>
+                        <on leftProp="building" rightProp="building"/>
+                        <on leftProp="roomNumber" rightProp="roomNumber"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+
+        <entity name="demo.orm.entity.Teaching" tableName="teaching"
+                registerShortName="true" tagSet="many-to-many">
+            <comment>教师教学表</comment>
+            <columns>
+                <column name="instructorId" code="instructor_id" primary="true"
+                        propId="1" stdSqlType="VARCHAR" precision="5"/>
+                <column name="courseId" code="course_id" primary="true"
+                        propId="2" stdSqlType="VARCHAR" precision="8"/>
+                <column name="secId" code="sec_id" primary="true"
+                        propId="3" stdSqlType="VARCHAR" precision="8"/>
+                <column name="semester" code="semester" primary="true"
+                        propId="4" stdSqlType="VARCHAR" precision="6"/>
+                <column name="year" code="year" primary="true"
+                        propId="5" stdSqlType="DECIMAL" precision="4" scale="0"/>
+            </columns>
+
+            <relations>
+                <to-one name="section" constraint="FK_TEACHING_SECTION"
+                        refEntityName="demo.orm.entity.Section"
+                        refPropName="teachings">
+                    <join>
+                        <on leftProp="courseId" rightProp="courseId"/>
+                        <on leftProp="secId" rightProp="secId"/>
+                        <on leftProp="semester" rightProp="semester"/>
+                        <on leftProp="year" rightProp="year"/>
+                    </join>
+                </to-one>
+
+                <to-one name="instructor" constraint="FK_TEACHING_INSTRUCTOR"
+                        refEntityName="demo.orm.entity.Instructor"
+                        refPropName="teachings">
+                    <join>
+                        <on leftProp="instructorId" rightProp="id"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+
+        <entity name="demo.orm.entity.Student" tableName="student"
+                registerShortName="true">
+            <comment>学生</comment>
+            <columns>
+                <column name="id" code="id" primary="true"
+                        propId="1" stdSqlType="VARCHAR" precision="5"/>
+                <column name="name" code="name" propId="2" mandatory="true"
+                        stdSqlType="VARCHAR" precision="20"/>
+                <column name="deptName" code="dept_name" propId="3"
+                        stdSqlType="VARCHAR" precision="20"/>
+                <column name="totCred" code="tot_cred" propId="4"
+                        stdSqlType="DECIMAL" precision="3" scale="0"/>
+            </columns>
+
+            <relations>
+                <to-one name="department" constraint="FK_STUDENT_DEPARTMENT"
+                        refEntityName="demo.orm.entity.Department">
+                    <join>
+                        <on leftProp="deptName" rightProp="deptName"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+
+        <entity name="demo.orm.entity.Taking" tableName="taking"
+                registerShortName="true" tagSet="many-to-many">
+            <comment>学生选课表</comment>
+            <columns>
+                <column name="studentId" code="student_id" primary="true"
+                        propId="1" stdSqlType="VARCHAR" precision="5"/>
+                <column name="courseId" code="course_id" primary="true"
+                        propId="2" stdSqlType="VARCHAR" precision="8"/>
+                <column name="secId" code="sec_id" primary="true"
+                        propId="3" stdSqlType="VARCHAR" precision="8"/>
+                <column name="semester" code="semester" primary="true"
+                        propId="4" stdSqlType="VARCHAR" precision="6"/>
+                <column name="year" code="year" primary="true"
+                        propId="5" stdSqlType="DECIMAL" precision="4" scale="0"/>
+                <column name="grade" code="grade"
+                        propId="6" stdSqlType="VARCHAR" precision="2"/>
+            </columns>
+
+            <relations>
+                <to-one name="section" constraint="FK_TAKING_SECTION"
+                        refEntityName="demo.orm.entity.Section"
+                        refPropName="takings">
+                    <join>
+                        <on leftProp="courseId" rightProp="courseId"/>
+                        <on leftProp="secId" rightProp="secId"/>
+                        <on leftProp="semester" rightProp="semester"/>
+                        <on leftProp="year" rightProp="year"/>
+                    </join>
+                </to-one>
+
+                <to-one name="student" constraint="FK_TAKING_STUDENT"
+                        refEntityName="demo.orm.entity.Student"
+                        refPropName="takings">
+                    <join>
+                        <on leftProp="studentId" rightProp="id"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+
+        <entity name="demo.orm.entity.TimeSlot" tableName="time_slot"
+                registerShortName="true">
+            <comment>时间结构</comment>
+            <columns>
+                <column name="timeSlotId" code="time_slot_id" primary="true"
+                        propId="1" stdSqlType="VARCHAR" precision="4"/>
+                <column name="day" code="day" propId="2" primary="true"
+                        stdSqlType="VARCHAR" precision="1"/>
+                <column name="startHr" code="start_hr" propId="3" primary="true"
+                        stdSqlType="DECIMAL" precision="2"/>
+                <column name="startMin" code="start_min" propId="4" primary="true"
+                        stdSqlType="DECIMAL" precision="2"/>
+                <column name="endHr" code="end_hr" propId="5"
+                        stdSqlType="DECIMAL" precision="2"/>
+                <column name="endMin" code="end_min" propId="6"
+                        stdSqlType="DECIMAL" precision="2"/>
+            </columns>
+        </entity>
+
+        <entity name="demo.orm.entity.PreReq" tableName="pre_req"
+                registerShortName="true" tagSet="many-to-many">
+            <comment>先修课程关系</comment>
+            <columns>
+                <column name="courseId" code="course_id" primary="true"
+                        propId="1" stdSqlType="VARCHAR" precision="8"/>
+                <column name="preReqId" code="pre_req_id" primary="true"
+                        propId="2" stdSqlType="VARCHAR" precision="8"/>
+            </columns>
+
+            <relations>
+                <to-one name="course" constraint="FK_PRE_REQ_COURSE"
+                        refEntityName="demo.orm.entity.Course">
+                    <join>
+                        <on leftProp="courseId" rightProp="courseId"/>
+                    </join>
+                </to-one>
+
+                <to-one name="preReq" constraint="FK_PRE_REQ_PRE_REQ"
+                        refEntityName="demo.orm.entity.Course">
+                    <join>
+                        <on leftProp="preReqId" rightProp="courseId"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+
+    </entities>
+
+</orm>

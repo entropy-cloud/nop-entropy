@@ -1,0 +1,41 @@
+<sql-lib x:schema="/nop/schema/orm/sql-lib.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef">
+
+    <sqls>
+
+        <eql name="exercise_2a" sqlMethod="findAll">
+            <source>
+                select i as instructor,
+                count(t.secId) as teachingCount
+                from Instructor i
+                left join Teaching t on i = t.instructor
+                group by i
+                order by teachingCount desc
+            </source>
+        </eql>
+
+        <eql name="exercise_2b" sqlMethod="findAll">
+            <source>
+                select i as instructor,
+                (
+                select count(1)
+                from Teaching t
+                where t.instructor = i
+                ) as teachingCount
+                from Instructor i
+                order by teachingCount desc
+            </source>
+        </eql>
+
+        <eql name="exercise_2d" sqlMethod="findAll">
+            <source>
+                select d as department, count(i.id) as instructorCount
+                from Department d
+                left join Instructor i on d = i.department
+                group by d
+            </source>
+        </eql>
+
+    </sqls>
+
+</sql-lib>

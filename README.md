@@ -265,6 +265,10 @@ switch(贵公司很有钱吗()){
 
 使用中遇到问题或者BUG可以在[Gitee上提Issues](https://gitee.com/canonical-entropy/nop-entropy/issues)
 
+#### 致谢
+
+* 感谢网友[xyplayman](https://gitee.com/xyplayman)贡献的ORM测试用例，原项目地址 https://gitee.com/xyplayman/nop-orm-demo
+
 #### 作者微信和微信讨论群
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/wechat-group.png)

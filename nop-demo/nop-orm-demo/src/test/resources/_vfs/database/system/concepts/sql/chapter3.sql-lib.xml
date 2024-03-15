@@ -1,0 +1,337 @@
+<sql-lib x:schema="/nop/schema/orm/sql-lib.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef">
+
+    <sqls>
+
+        <!--
+        可以在 enum SqlMethod 中查看所有可用的方法。
+        -->
+        <eql name="exercise_1b" sqlMethod="findAll">
+            <source>
+                select distinct t1.studentId
+                from Taking t1
+                inner join Teaching t2 on t1.section = t2.section
+                where t2.instructor.name = ${name}
+            </source>
+        </eql>
+
+        <!--
+        exercise_1b 的另一种解法
+        <eql name="exercise_1b" sqlMethod="findAll">
+            <source>
+                select distinct o.studentId
+                from Taking o
+                where o.section in (
+                select t.section
+                from Teaching t
+                where t.instructor.name = ${name}
+                )
+            </source>
+        </eql>
+        -->
+
+        <eql name="exercise_1c" sqlMethod="findFirst">
+            <source>
+                select max(o.salary)
+                from Instructor o
+            </source>
+        </eql>
+
+        <eql name="exercise_1d" sqlMethod="findAll">
+            <source>
+                select o
+                from Instructor o
+                where o.salary = (
+                select max(i.salary)
+                from Instructor i
+                )
+            </source>
+        </eql>
+
+        <eql name="exercise_1e" sqlMethod="findAll">
+            <source>
+                select s as section,
+                (select count(t.studentId)
+                from Taking t
+                where t.section = s
+                ) as studentCount
+                from Section s
+                where s.year = 2017 and s.semester = 'Fall'
+            </source>
+        </eql>
+
+        <eql name="exercise_1f" sqlMethod="findFirst">
+            <source>
+                select max(o.studentCount) as maxCount
+                from (
+                select t.section, count(t.studentId) as studentCount
+                from Taking t
+                where t.section.year = 2017 and t.section.semester = 'Fall'
+                group by t.section
+                ) o
+            </source>
+        </eql>
+
+        <eql name="exercise_1g" sqlMethod="findAll">
+            <source>
+                with SectionCount as
+                (
+                select t.section, count(t.studentId) as studentCount
+                from Taking t
+                where t.section.year = 2017 and t.section.semester = 'Fall'
+                group by t.section
+                )
+                select o.section, o.studentCount
+                from SectionCount o
+                where o.studentCount = (
+                select max(sc.studentCount) from SectionCount sc
+                )
+            </source>
+        </eql>
+
+        <eql name="exercise_3a" sqlMethod="execute">
+            <source>
+                update Instructor o
+                set o.salary = o.salary * ${1 + percent}
+                where o.deptName = ${deptName}
+            </source>
+        </eql>
+
+        <eql name="exercise_3b" sqlMethod="execute">
+            <source>
+                delete from Course c
+                where c.courseId not in (
+                select s.courseId from Section s
+                )
+            </source>
+        </eql>
+
+        <eql name="exercise_3c" sqlMethod="execute">
+            <source>
+                insert into Instructor(id, name, deptName, salary)
+                select s.id, s.name, s.deptName, 10000
+                from Student s
+                where s.totCred > 100
+            </source>
+        </eql>
+
+        <eql name="exercise_6" sqlMethod="findAll">
+            <source>
+                select o
+                from Department o
+                where lower(o.deptName) like ${deptName}
+            </source>
+        </eql>
+
+        <eql name="slide_001" sqlMethod="findAll">
+            <source>
+                (
+                select s.course
+                from Section s
+                where s.year = 2017 and s.semester = 'Fall'
+                )
+                union
+                (
+                select s.course
+                from Section s
+                where s.year = 2018 and s.semester = 'Spring'
+                )
+            </source>
+        </eql>
+
+        <eql name="slide_002" sqlMethod="findAll">
+            <source>
+                (
+                select s.course
+                from Section s
+                where s.year = 2017 and s.semester = 'Fall'
+                )
+                intersect
+                (
+                select s.course
+                from Section s
+                where s.year = 2018 and s.semester = 'Spring'
+                )
+            </source>
+        </eql>
+
+        <!--
+        另一种解法
+        <eql name="slide_002" sqlMethod="findAll">
+            <source>
+                select s.course
+                from Section s
+                where s.year = 2017 and s.semester = 'Fall'
+                and s.course in
+                (
+                select s.course
+                from Section s
+                where s.year = 2018 and s.semester = 'Spring'
+                )
+            </source>
+        </eql>
+        -->
+
+        <eql name="slide_003" sqlMethod="findAll">
+            <source>
+                (
+                select s.course
+                from Section s
+                where s.year = 2017 and s.semester = 'Fall'
+                )
+                except
+                (
+                select s.course
+                from Section s
+                where s.year = 2018 and s.semester = 'Spring'
+                )
+            </source>
+        </eql>
+
+        <!--
+        另一种解法
+        <eql name="slide_003" sqlMethod="findAll">
+            <source>
+                select s.course
+                from Section s
+                where s.year = 2017 and s.semester = 'Fall'
+                and s.course not in
+                (
+                select s.course
+                from Section s
+                where s.year = 2018 and s.semester = 'Spring'
+                )
+            </source>
+        </eql>
+        -->
+
+        <eql name="slide_005" sqlMethod="findFirst">
+            <source>
+                select avg(o.salary)
+                from Instructor o
+                where o.deptName = ${deptName}
+            </source>
+        </eql>
+
+        <eql name="slide_006" sqlMethod="findFirst">
+            <source>
+                select count(distinct o.instructor)
+                from Teaching o
+                where o.year = ${year} and o.semester = ${semester}
+            </source>
+        </eql>
+
+        <eql name="slide_007" sqlMethod="findAll">
+            <source>
+                select o.department, avg(o.salary) as avgSalary
+                from Instructor o
+                group by o.department
+                having avg(o.salary) > 42000
+            </source>
+        </eql>
+
+        <eql name="slide_008" sqlMethod="findAll">
+            <!-- 批量加载所授课程 section，以及所属院系 -->
+            <batchLoadSelection>
+                teachings { section }, department
+            </batchLoadSelection>
+
+            <source>
+                select o
+                from Instructor o
+                where o.salary > any (
+                select salary from Instructor i
+                where i.deptName = 'Biology'
+                )
+            </source>
+        </eql>
+
+        <eql name="slide_009" sqlMethod="findAll">
+            <source>
+                select o
+                from Instructor o
+                where o.salary > all (
+                select salary from Instructor i
+                where i.deptName = 'Biology'
+                )
+            </source>
+        </eql>
+
+        <eql name="slide_010" sqlMethod="findAll">
+            <source>
+                select s
+                from Student s
+                where not exists ( -- 若差集为空，说明该学生参加了所有课程
+                -- Biology 系的所有课程集合
+                (select c.courseId from Course c where c.deptName = 'Biology')
+                except -- 求差集
+                -- 该学生参加课程的集合
+                (select t.courseId from Taking t where t.student = s)
+                )
+            </source>
+        </eql>
+
+        <eql name="slide_011" sqlMethod="findAll">
+            <source>
+                select o.deptName, o.avgSalary
+                from (
+                select i.deptName, avg(i.salary) as avgSalary
+                from Instructor i
+                group by i.deptName) o
+                where o.avgSalary > 42000
+            </source>
+        </eql>
+
+        <eql name="slide_012" sqlMethod="findAll">
+            <source>
+                with MaxBudget as (
+                select max(d.budget) as maxValue
+                from Department d
+                )
+                select o
+                from Department o, MaxBudget m
+                where o.budget = m.maxValue
+            </source>
+        </eql>
+
+        <eql name="slide_013" sqlMethod="findAll">
+            <source>
+                with DepartmentTotal as (
+                select i.department, sum(i.salary) as totalSalary
+                from Instructor i
+                group by i.department
+                ),
+                AvgTotal as (
+                select avg(dt.totalSalary) as avgValue from DepartmentTotal dt
+                )
+                select d.department
+                from DepartmentTotal d, AvgTotal a
+                where d.totalSalary > a.avgValue
+            </source>
+        </eql>
+
+        <eql name="slide_014" sqlMethod="findAll">
+            <source>
+                select d as department,
+                (select count(1)
+                from Instructor i
+                where i.department = d) as instructorCount
+                from Department d
+                order by d.deptName
+            </source>
+        </eql>
+
+        <eql name="slide_015" sqlMethod="execute">
+            <source>
+                delete from Instructor i
+                where i.department in
+                (
+                select d.deptName from Department d
+                where d.building = ${building}
+                )
+            </source>
+        </eql>
+
+    </sqls>
+
+</sql-lib>

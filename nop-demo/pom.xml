@@ -26,6 +26,7 @@
         <module>nop-spring-simple-demo</module>
         <module>nop-spring-demo-no-orm</module>
         <module>nop-spring-security-demo</module>
+        <module>nop-orm-demo</module>
     </modules>
 
 </project>
