@@ -6,6 +6,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.model.validator.DefaultValidationErrorCollector;
+import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.type.IGenericType;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLArgumentDefinition;
@@ -16,6 +17,8 @@ import io.nop.graphql.core.ast.GraphQLOperation;
 import io.nop.graphql.core.ast.GraphQLSelection;
 import io.nop.graphql.core.ast.GraphQLSelectionSet;
 import io.nop.xlang.xmeta.SimpleSchemaValidator;
+
+import java.util.Map;
 
 import static io.nop.graphql.core.GraphQLErrors.ARG_ARG_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_FIELD_NAME;
@@ -68,8 +71,12 @@ public class GraphQLArgumentValidator {
         if (fieldDef.getArguments() == null || fieldDef.getArguments().isEmpty())
             return;
 
+        Object args = selection.getOpRequest();
+        if (args == null)
+            args = subSelection.getArgs();
+
         for (GraphQLArgumentDefinition argDef : fieldDef.getArguments()) {
-            Object value = subSelection.getArg(argDef.getName());
+            Object value = getArg(args, argDef.getName());
             if (value == null && argDef.getType().isNonNullType()) {
                 throw new NopException(ERR_GRAPHQL_FIELD_NULL_ARG)
                         .param(ARG_FIELD_NAME, fieldDef.getName())
@@ -91,6 +98,14 @@ public class GraphQLArgumentValidator {
                         context, DefaultValidationErrorCollector.THROW_ERROR);
             }
         }
+    }
+
+    Object getArg(Object args, String name) {
+        if (args == null)
+            return null;
+        if (args instanceof Map)
+            return ((Map<?, ?>) args).get(name);
+        return BeanTool.getProperty(args, name);
     }
 
     Object castValue(GraphQLArgumentDefinition argDef, Object value, FieldSelectionBean subSelection) {
