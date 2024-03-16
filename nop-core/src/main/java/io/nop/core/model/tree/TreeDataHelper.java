@@ -82,7 +82,7 @@ public class TreeDataHelper {
         T parent = adapter.getParent(entity);
 
         if (parent != null) {
-            parent = adapter.getParent(entity);
+            parent = adapter.getParent(parent);
             if (parent != null)
                 collectChildren(adapter, parent, consumer);
         }
