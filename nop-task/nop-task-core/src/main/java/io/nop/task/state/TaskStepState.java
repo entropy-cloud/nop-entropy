@@ -8,15 +8,17 @@
 package io.nop.task.state;
 
 import io.nop.core.lang.eval.IEvalScope;
-import io.nop.task.ITaskContext;
+import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
 
 public class TaskStepState extends AbstractTaskStateCommon implements ITaskStepState {
     private String stepId;
     private int runId;
+
+    private ITaskStepState parentState;
     private String parentStepId;
-    private String parentRunId;
+    private int parentRunId;
     private String stepType;
     private Integer stepStatus;
     private String workerId;
@@ -24,22 +26,22 @@ public class TaskStepState extends AbstractTaskStateCommon implements ITaskStepS
     private transient Throwable exception;
 
     @Override
-    public void afterLoad(ITaskContext context) {
+    public void afterLoad(ITaskRuntime taskRt) {
 
     }
 
     @Override
-    public void beforeSave(ITaskContext context) {
+    public void beforeSave(ITaskRuntime taskRt) {
 
     }
 
     @Override
-    public void succeed(Object result, String nextStepId, ITaskContext context) {
+    public void succeed(Object result, String nextStepId, ITaskRuntime taskRt) {
 
     }
 
     @Override
-    public void fail(Throwable exception, ITaskContext context) {
+    public void fail(Throwable exception, ITaskRuntime taskRt) {
 
     }
 
@@ -49,7 +51,7 @@ public class TaskStepState extends AbstractTaskStateCommon implements ITaskStepS
     }
 
     @Override
-    public boolean isCompletedSuccessfully() {
+    public boolean isSuccess() {
         return false;
     }
 
@@ -104,6 +106,11 @@ public class TaskStepState extends AbstractTaskStateCommon implements ITaskStepS
     }
 
     @Override
+    public ITaskStepState getParentState() {
+        return null;
+    }
+
+    @Override
     public String getParentStepId() {
         return parentStepId;
     }
@@ -114,12 +121,12 @@ public class TaskStepState extends AbstractTaskStateCommon implements ITaskStepS
     }
 
     @Override
-    public String getParentRunId() {
+    public int getParentRunId() {
         return parentRunId;
     }
 
     @Override
-    public void setParentRunId(String parentRunId) {
+    public void setParentRunId(int parentRunId) {
         this.parentRunId = parentRunId;
     }
 
@@ -170,6 +177,20 @@ public class TaskStepState extends AbstractTaskStateCommon implements ITaskStepS
 
     @Override
     public void result(TaskStepResult result) {
+
+    }
+
+    public void setInput(String name, Object value) {
+
+    }
+
+    @Override
+    public boolean load() {
+        return false;
+    }
+
+    @Override
+    public void save() {
 
     }
 }

@@ -12,7 +12,7 @@ import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.eval.IEvalScope;
-import io.nop.task.ITaskContext;
+import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
@@ -20,7 +20,7 @@ import io.nop.task.TaskStepResult;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
-import static io.nop.task.TaskStepResult.RESULT_SUSPEND;
+import static io.nop.task.TaskStepResult.SUSPEND;
 
 
 public class LoopTaskStep extends AbstractTaskStep {
@@ -73,7 +73,7 @@ public class LoopTaskStep extends AbstractTaskStep {
     }
 
     @Override
-    protected void initStepState(ITaskStepState state, ITaskContext context) {
+    protected void initStepState(ITaskStepState state, ITaskRuntime context) {
         List<Object> items = CollectionHelper.toList(getItemsExpr().invoke(state.getEvalScope()));
         LoopStateBean stateBean = new LoopStateBean();
         stateBean.setBodyRunId(0);
@@ -122,12 +122,8 @@ public class LoopTaskStep extends AbstractTaskStep {
         }
     }
 
-    public boolean isShareState() {
-        return false;
-    }
-
     @Override
-    protected TaskStepResult doExecute(ITaskStepState state, ITaskContext context) {
+    protected TaskStepResult doExecute(ITaskStepState state, ITaskRuntime taskRt) {
 
         LoopStateBean stateBean = state.getStateBean(LoopStateBean.class);
 
@@ -140,36 +136,36 @@ public class LoopTaskStep extends AbstractTaskStep {
                 return toStepResult(stepResult.getReturnValue());
             }
 
-            if (!shouldContinue(stateBean, state.getEvalScope(), context))
-                return TaskStepResult.RESULT_SUCCESS;
+            if (!shouldContinue(stateBean, state.getEvalScope(), taskRt))
+                return TaskStepResult.CONTINUE;
 
             int bodyRunId = stateBean.getBodyRunId();
 
-            stepResult = body.execute(bodyRunId, state, context);
+            stepResult = body.execute(bodyRunId, state, null, taskRt);
             if (stepResult.isAsync()) {
                 CompletionStage<Object> promise = stepResult.getReturnPromise().thenApply(ret -> {
                     TaskStepResult result = toStepResult(ret);
                     state.result(result);
                     stateBean.incIndex();
-                    saveState(state, context);
-                    return doExecute(state, context);
+                    saveState(state, taskRt);
+                    return doExecute(state, taskRt);
                 });
                 return TaskStepResult.of(null, promise);
             }
 
             state.setResultValue(stepResult);
             stateBean.incIndex();
-            stateBean.setBodyRunId(context.newRunId());
-            saveState(state, context);
+            stateBean.setBodyRunId(taskRt.newRunId());
+            saveState(state, taskRt);
 
             // 在saveState之后判断suspend。刚进入doExecute时不能判断suspend, 因为有可能是从休眠中恢复
-            if (stepResult == RESULT_SUSPEND)
+            if (stepResult == SUSPEND)
                 return stepResult;
 
         } while (true);
     }
 
-    boolean shouldContinue(LoopStateBean state, IEvalScope scope, ITaskContext context) {
+    boolean shouldContinue(LoopStateBean state, IEvalScope scope, ITaskRuntime context) {
         if (state.getItems() != null) {
             if (state.getIndex() >= state.getItems().size())
                 return false;

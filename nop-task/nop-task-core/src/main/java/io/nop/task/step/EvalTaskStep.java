@@ -8,7 +8,7 @@
 package io.nop.task.step;
 
 import io.nop.core.lang.eval.IEvalAction;
-import io.nop.task.ITaskContext;
+import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
 
@@ -20,8 +20,8 @@ public class EvalTaskStep extends AbstractTaskStep {
     }
 
     @Override
-    protected TaskStepResult doExecute(ITaskStepState state, ITaskContext context) {
-        Object result = source.invoke(state.getEvalScope());
+    protected TaskStepResult doExecute(ITaskStepState state, ITaskRuntime taskRt) {
+        Object result = source.invoke(state);
         return toStepResult(result);
     }
 }

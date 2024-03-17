@@ -10,7 +10,7 @@ package io.nop.task.step;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.core.lang.eval.IEvalAction;
-import io.nop.task.ITaskContext;
+import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
 
@@ -22,15 +22,15 @@ public class SleepTaskStep extends AbstractTaskStep {
     }
 
     @Override
-    protected TaskStepResult doExecute(ITaskStepState state, ITaskContext context) {
+    protected TaskStepResult doExecute(ITaskStepState state, ITaskRuntime taskRt) {
         Long sleep = ConvertHelper.toLong(sleepMillisExpr.invoke(state.getEvalScope()));
         if (sleep == null)
             sleep = -1L;
         if (sleep <= 0)
-            return TaskStepResult.RESULT_SUCCESS;
+            return TaskStepResult.CONTINUE;
 
-        FutureHelper.waitUntil(() -> !context.isCancelled(), sleep);
+        FutureHelper.waitUntil(() -> !taskRt.isCancelled(), sleep);
 
-        return TaskStepResult.RESULT_SUCCESS;
+        return TaskStepResult.CONTINUE;
     }
 }

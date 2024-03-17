@@ -16,38 +16,38 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import static io.nop.task.TaskConstants.STEP_ID_END;
-import static io.nop.task.TaskConstants.STEP_ID_EXIT;
-import static io.nop.task.TaskConstants.STEP_ID_SUSPEND;
+import static io.nop.task.TaskConstants.STEP_NAME_END;
+import static io.nop.task.TaskConstants.STEP_NAME_EXIT;
+import static io.nop.task.TaskConstants.STEP_NAME_SUSPEND;
 
 public final class TaskStepResult {
-    public static final TaskStepResult RESULT_SUCCESS = new TaskStepResult(null, null);
-    public static final TaskStepResult RESULT_SUSPEND = new TaskStepResult(STEP_ID_SUSPEND, null);
+    public static final TaskStepResult CONTINUE = new TaskStepResult(null, null);
+    public static final TaskStepResult SUSPEND = new TaskStepResult(STEP_NAME_SUSPEND, null);
 
     public static TaskStepResult RESULT_END(Object returnValue) {
-        return of(STEP_ID_END, returnValue);
+        return of(STEP_NAME_END, returnValue);
     }
 
     public static TaskStepResult RESULT_EXIT(Object returnValue) {
-        return of(STEP_ID_EXIT, returnValue);
+        return of(STEP_NAME_EXIT, returnValue);
     }
 
-    private final String nextStepId;
+    private final String nextStepName;
     private final Object returnValue;
 
-    private TaskStepResult(String nextStepId, Object returnValue) {
-        this.nextStepId = nextStepId;
+    private TaskStepResult(String nextStepName, Object returnValue) {
+        this.nextStepName = nextStepName;
         this.returnValue = returnValue;
     }
 
     public static TaskStepResult of(String nextStepId, Object returnValue) {
         if (nextStepId == null && returnValue == null)
-            return RESULT_SUCCESS;
-        if (STEP_ID_SUSPEND.equals(nextStepId))
-            return RESULT_SUSPEND;
+            return CONTINUE;
+        if (STEP_NAME_SUSPEND.equals(nextStepId))
+            return SUSPEND;
         if (returnValue instanceof TaskStepResult) {
             TaskStepResult result = (TaskStepResult) returnValue;
-            if (!Objects.equals(result.getNextStepId(), nextStepId))
+            if (!Objects.equals(result.getNextStepName(), nextStepId))
                 return TaskStepResult.of(nextStepId, returnValue);
             return result;
         }
@@ -59,31 +59,46 @@ public final class TaskStepResult {
     }
 
     public boolean isResolved() {
-        return !isAsync() && this != RESULT_SUSPEND;
+        return !isAsync() && this != SUSPEND;
     }
 
     public boolean isAsync() {
         return returnValue instanceof CompletionStage;
     }
 
+    public boolean isDone() {
+        return FutureHelper.isDone(returnValue);
+    }
+
+    public Object getResolvedValue() {
+        return FutureHelper.getResult(returnValue);
+    }
+
+    public TaskStepResult resolve() {
+        Object value = getResolvedValue();
+        if (this.returnValue == value)
+            return this;
+        return of(getNextStepName(), value);
+    }
+
     public boolean isNull() {
-        return this == RESULT_SUCCESS;
+        return this == CONTINUE;
     }
 
     public boolean isSuspend() {
-        return this == RESULT_SUSPEND;
+        return this == SUSPEND;
     }
 
     public boolean isEnd() {
-        return STEP_ID_END.equals(nextStepId);
+        return STEP_NAME_END.equals(nextStepName);
     }
 
     public boolean isExit() {
-        return STEP_ID_EXIT.equals(nextStepId);
+        return STEP_NAME_EXIT.equals(nextStepName);
     }
 
-    public String getNextStepId() {
-        return nextStepId;
+    public String getNextStepName() {
+        return nextStepName;
     }
 
     public Object getReturnValue() {
@@ -95,18 +110,29 @@ public final class TaskStepResult {
     }
 
     public <T> TaskStepResult thenCompose(BiFunction<T, Throwable, ?> fn) {
+        if (!isAsync()) {
+            return TaskStepResult.of(getNextStepName(), fn.apply((T) getReturnValue(), null));
+        }
+
         CompletionStage<T> promise = getReturnPromise();
-        return TaskStepResult.of(null, FutureHelper.thenCompleteAsync(promise, fn));
+        return TaskStepResult.of(getNextStepName(), FutureHelper.thenCompleteAsync(promise, fn));
     }
 
     public <T> TaskStepResult thenApply(Function<T, ?> fn) {
+        if (!isAsync()) {
+            return TaskStepResult.of(getNextStepName(), fn.apply((T) getReturnValue()));
+        }
         CompletionStage<T> promise = getReturnPromise();
-        return TaskStepResult.of(null, promise.thenApply(fn));
+        return TaskStepResult.of(getNextStepName(), promise.thenApply(fn));
     }
 
     public <T> TaskStepResult whenComplete(BiConsumer<? super T, ? super Throwable> consumer) {
+        if (!isAsync()) {
+            consumer.accept((T) getReturnValue(), null);
+            return this;
+        }
+
         CompletionStage<T> promise = getReturnPromise();
-        promise.whenComplete(consumer);
-        return this;
+        return TaskStepResult.of(getNextStepName(), promise.whenComplete(consumer));
     }
 }

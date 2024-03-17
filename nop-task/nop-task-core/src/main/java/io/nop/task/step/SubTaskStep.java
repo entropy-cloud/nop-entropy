@@ -8,7 +8,7 @@
 package io.nop.task.step;
 
 import io.nop.task.ITask;
-import io.nop.task.ITaskContext;
+import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskManager;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
@@ -35,14 +35,14 @@ public class SubTaskStep extends AbstractTaskStep {
     }
 
     @Override
-    protected TaskStepResult doExecute(ITaskStepState state, ITaskContext context) {
+    protected TaskStepResult doExecute(ITaskStepState state, ITaskRuntime taskRt) {
         Long taskVersion = (Long) state.getStateBean();
         if (taskVersion == null)
             taskVersion = -1L;
 
-        ITaskContext subContext = context.newChildContext(taskName, taskVersion);
+        ITaskRuntime subContext = taskRt.newChildContext(taskName, taskVersion);
         state.setStateBean(subContext.getTaskVersion());
-        saveState(state, context);
+        saveState(state, taskRt);
 
         ITask task = taskManager.getTask(subContext);
 

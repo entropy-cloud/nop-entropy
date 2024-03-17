@@ -9,6 +9,7 @@ package io.nop.task;
 
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.commons.lang.ITagSetSupport;
+import io.nop.core.context.IEvalContext;
 
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -16,11 +17,9 @@ import java.util.Set;
 /**
  * ITaskState和ITaskStepState的公共部分
  */
-public interface ITaskStateCommon extends ITagSetSupport {
+public interface ITaskStateCommon extends ITagSetSupport, IEvalContext {
     /**
      * 一般情况下internal的TaskInstance/StepInstance由系统内部自动生成，对外不可见
-     *
-     * @return
      */
     Boolean getInternal();
 
@@ -28,8 +27,6 @@ public interface ITaskStateCommon extends ITagSetSupport {
 
     /**
      * 标记本次执行是第几次重试。缺省retryAttempt=0。失败后重试retryAttempt逐渐增加
-     *
-     * @return
      */
     Integer getRetryAttempt();
 
@@ -37,8 +34,6 @@ public interface ITaskStateCommon extends ITagSetSupport {
 
     /**
      * 内置数据分区支持
-     *
-     * @return
      */
     Integer getPartitionIndex();
 
@@ -46,8 +41,6 @@ public interface ITaskStateCommon extends ITagSetSupport {
 
     /**
      * 允许自由扩展的分类标签
-     *
-     * @return
      */
     Set<String> getTagSet();
 
@@ -55,8 +48,6 @@ public interface ITaskStateCommon extends ITagSetSupport {
 
     /**
      * 用于关联业务对象
-     *
-     * @return
      */
     String getBizObjId();
 
@@ -68,8 +59,6 @@ public interface ITaskStateCommon extends ITagSetSupport {
 
     /**
      * 自定义的任务分类
-     *
-     * @return
      */
     String getExtType();
 
@@ -77,8 +66,6 @@ public interface ITaskStateCommon extends ITagSetSupport {
 
     /**
      * 自定义的状态标识
-     *
-     * @return
      */
     String getExtState();
 

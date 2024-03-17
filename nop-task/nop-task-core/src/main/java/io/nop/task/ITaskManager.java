@@ -10,9 +10,9 @@ package io.nop.task;
 
 public interface ITaskManager {
 
-    ITaskContext newTaskContext(String taskName, long version);
+    ITaskRuntime newTaskContext(String taskName, long version);
 
-    ITaskContext getTaskContext(String taskStateId);
+    ITaskRuntime getTaskContext(String taskStateId);
 
-    ITask getTask(ITaskContext taskContext);
+    ITask getTask(ITaskRuntime taskContext);
 }

@@ -10,5 +10,5 @@ package io.nop.task;
 import java.util.Collection;
 
 public interface ITaskStepResultAggregator {
-    TaskStepResult aggregate(Collection<AsyncStepResult> results, ITaskContext context);
+    TaskStepResult aggregate(Collection<AsyncStepResult> results, ITaskRuntime context);
 }

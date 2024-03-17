@@ -12,7 +12,7 @@ import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.task.AsyncStepResult;
-import io.nop.task.ITaskContext;
+import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskConstants;
@@ -53,12 +53,12 @@ public class ParallelTaskStep extends AbstractTaskStep {
     }
 
     @Override
-    protected void initStepState(ITaskStepState state, ITaskContext context) {
+    protected void initStepState(ITaskStepState state, ITaskRuntime context) {
 
     }
 
     @Override
-    protected TaskStepResult doExecute(ITaskStepState state, ITaskContext context) {
+    protected TaskStepResult doExecute(ITaskStepState state, ITaskRuntime taskRt) {
         ParallelStateBean states = new ParallelStateBean();
 
         List<CompletionStage<?>> promises = new ArrayList<>();
@@ -66,13 +66,13 @@ public class ParallelTaskStep extends AbstractTaskStep {
         for (int i = 0, n = steps.size(); i < n; i++) {
             ITaskStep step = steps.get(i);
             try {
-                TaskStepResult stepResult = step.execute(state.getRunId(), state, context);
+                TaskStepResult stepResult = step.execute(state.getRunId(), state, null, taskRt);
                 if (stepResult.isAsync()) {
                     promises.add(stepResult.getReturnPromise().thenApply(v -> {
                         TaskStepResult r = TaskStepResult.of(null, v);
                         AsyncStepResult result = new AsyncStepResult();
                         result.setRunId(state.getRunId());
-                        result.setNextStepId(r.getNextStepId());
+                        result.setNextStepId(r.getNextStepName());
                         result.setReturnValue(r.getReturnValue());
                         states.add(result);
                         return null;
@@ -80,14 +80,14 @@ public class ParallelTaskStep extends AbstractTaskStep {
                 } else {
                     AsyncStepResult result = new AsyncStepResult();
                     result.setRunId(state.getRunId());
-                    result.setNextStepId(stepResult.getNextStepId());
+                    result.setNextStepId(stepResult.getNextStepName());
                     result.setReturnValue(stepResult.getReturnValue());
                     states.add(result);
                 }
             } catch (Exception e) {
                 AsyncStepResult result = new AsyncStepResult();
                 result.setRunId(state.getRunId());
-                result.setNextStepId(step.getStepId());
+                result.setNextStepId(step.getStepName());
                 result.setError(ErrorMessageManager.instance().buildErrorMessage(null, e));
                 states.add(result);
             }

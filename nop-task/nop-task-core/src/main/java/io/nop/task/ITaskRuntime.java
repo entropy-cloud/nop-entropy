@@ -7,10 +7,12 @@
  */
 package io.nop.task;
 
-import io.nop.api.core.util.ICancelToken;
+import io.nop.commons.concurrent.executor.IScheduledExecutor;
+import io.nop.core.context.IEvalContext;
 import io.nop.core.context.IServiceContext;
 
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * <p>1. Task表达单次请求处理过程。request保存请求对象，而response保存结果对象。</p>
@@ -21,7 +23,20 @@ import java.util.Map;
  * <p>
  * 5. attributes保存不需要持久化的临时变量，taskVars保存需要持久化的Task级别的状态变量。
  */
-public interface ITaskContext extends IServiceContext {
+public interface ITaskRuntime extends IEvalContext {
+    IServiceContext getSvcCtx();
+
+    default boolean isCancelled() {
+        return getSvcCtx().isCancelled();
+    }
+
+    default void appendOnCancel(Consumer<String> task) {
+        getSvcCtx().appendOnCancel(task);
+    }
+
+    default void removeOnCancel(Consumer<String> task) {
+        getSvcCtx().removeOnCancel(task);
+    }
 
     ITaskState getTaskState();
 
@@ -46,7 +61,7 @@ public interface ITaskContext extends IServiceContext {
         return getTaskState().getJobInstanceId();
     }
 
-    ITaskContext newChildContext(String taskName, long taskVersion);
+    ITaskRuntime newChildContext(String taskName, long taskVersion);
 
     ITaskStateStore getStateStore();
 
@@ -70,7 +85,8 @@ public interface ITaskContext extends IServiceContext {
 
     void saveState(ITaskStepState state);
 
-    ITaskStepState loadState(String stepId, String runId);
+    ITaskStepState newStepState(ITaskStepState parentState, String stepName);
 
-    ITaskContext withCancelToken(ICancelToken cancelToken);
+
+    IScheduledExecutor getScheduledExecutor();
 }

@@ -8,5 +8,5 @@
 package io.nop.task;
 
 public interface ITaskBizObjLoader {
-    Object loadBizObj(String bizObjName, String bizObjId, ITaskContext taskContext);
+    Object loadBizObj(String bizObjName, String bizObjId, ITaskRuntime taskContext);
 }

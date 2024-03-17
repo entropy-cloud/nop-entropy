@@ -13,25 +13,20 @@ public interface TaskConstants {
     /**
      * 结束整个task
      */
-    String STEP_ID_END = "@end";
+    String STEP_NAME_END = "@end";
 
     /**
      * 跳过后续同级步骤
      */
-    String STEP_ID_EXIT = "@exit";
+    String STEP_NAME_EXIT = "@exit";
 
     /**
      * 暂时挂起。如果是支持状态保持的步骤，后续执行时可以从历史状态恢复执行。
      */
-    String STEP_ID_SUSPEND = "@suspend";
+    String STEP_NAME_SUSPEND = "@suspend";
 
-    /**
-     * 如果返回STEP_ID_ASYNC, 则表示本步骤为异步执行，AsyncTaskPromise.take()必须不为空，通过它可以等待异步执行完毕
-     */
-    String STEP_ID_ASYNC = "@async";
-
-    String VAR_TASK_CONTEXT = "taskContext";
-    String VAR_STATE = "state";
+    String VAR_TASK_RT = "taskRt";
+    String VAR_STEP_STATE = "stepState";
     String VAR_RETURN_VALUE = "returnValue";
     String VAR_REQUEST = "request";
 
@@ -109,13 +104,5 @@ public interface TaskConstants {
 
     String STEP_TYPE_TIMEOUT = "timeout";
 
-    String POSTFIX_RETRY = ":retry";
-
-    String POSTFIX_TRY = ":try";
-
-    String POSTFIX_THROTTLE = ":throttle";
-
-    String POSTFIX_RATE_LIMIT = ":rate-limit";
-
-    String POSTFIX_TIMEOUT = ":timeout";
+    String STEP_TYPE_CALL_STEP = "call-step";
 }

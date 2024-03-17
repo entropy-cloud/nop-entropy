@@ -153,16 +153,6 @@ public class FutureHelper {
     public static <T> T syncGet(CompletionStage<T> future) {
         if (future == null)
             return null;
-        if (future == VOID_PROMISE)
-            return null;
-        if (future == TRUE_PROMISE)
-            return (T) Boolean.TRUE;
-        if (future == FALSE_PROMISE)
-            return (T) Boolean.FALSE;
-        if (future == ZERO_PROMISE)
-            return (T) ZERO;
-        if (future == ZERO_LONG_PROMISE)
-            return (T) ZERO_LONG;
 
         if (future instanceof ResolvedPromise) {
             ResolvedPromise<T> promise = (ResolvedPromise<T>) future;
@@ -185,8 +175,7 @@ public class FutureHelper {
 
         if (value instanceof ResolvedPromise) {
             ResolvedPromise<?> promise = (ResolvedPromise<?>) value;
-            if (promise.isDone())
-                return promise.syncGet();
+            return promise.syncGet();
         }
 
         if (value.getClass() == CompletableFuture.class) {
@@ -196,6 +185,20 @@ public class FutureHelper {
             }
         }
         return value;
+    }
+
+    public static boolean isDone(Object value) {
+        if (value == null)
+            return false;
+
+        if (value instanceof ResolvedPromise) {
+            return true;
+        }
+
+        if (value.getClass() == CompletableFuture.class)
+            return ((CompletableFuture<?>) value).isDone();
+
+        return !(value instanceof CompletionStage);
     }
 
     @SuppressWarnings({"unchecked", "cast"})

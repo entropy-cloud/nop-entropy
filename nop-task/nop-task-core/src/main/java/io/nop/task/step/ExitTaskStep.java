@@ -8,7 +8,7 @@
 package io.nop.task.step;
 
 import io.nop.core.lang.eval.IEvalAction;
-import io.nop.task.ITaskContext;
+import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
 
@@ -24,8 +24,8 @@ public class ExitTaskStep extends AbstractTaskStep {
     }
 
     @Override
-    protected TaskStepResult doExecute(ITaskStepState state, ITaskContext context) {
-        Object ret = result == null ? null : result.invoke(context);
+    protected TaskStepResult doExecute(ITaskStepState state, ITaskRuntime taskRt) {
+        Object ret = result == null ? null : result.invoke(taskRt);
         return TaskStepResult.RESULT_EXIT(ret);
     }
 }

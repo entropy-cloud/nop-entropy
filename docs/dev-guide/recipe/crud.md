@@ -43,7 +43,7 @@ CrudBizModel已经注入了transactionTemplate，可以通过this.txn()来使用
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
     @BizMakerChecker(tryMethod = METHOD_TRY_SAVE)
     public MyEntity my_save(@Name("data") Map<String, Object> data, IServiceContext context) {
-        // 如果需要限制只允许接收部分字段，可以在meta中配置。如果没有特殊限制，inputFields设置为null即可
+        // 如果需要限制只允许接收部分字段，可以在meta中配置。如果没有特殊限制，inputSelection设置为null即可
         FieldInputSelection inputSelection = getObjMeta().getFieldSelection("my_selectio"); 
         return doSave(data, inputSelection, this::myPrepareSave, context);
     }

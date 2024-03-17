@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [42:10:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [47:10:0:0]/nop/schema/task/task.xdef <p>
  * 对taskStep进行增强，返回新的step
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -22,6 +22,13 @@ public abstract class _TaskDecoratorModel extends io.nop.core.resource.component
      * 
      */
     private java.lang.String _bean ;
+    
+    /**
+     *  
+     * xml name: id
+     * 
+     */
+    private java.lang.String _id ;
     
     /**
      *  
@@ -52,6 +59,25 @@ public abstract class _TaskDecoratorModel extends io.nop.core.resource.component
         checkAllowChange();
         
         this._bean = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: id
+     *  
+     */
+    
+    public java.lang.String getId(){
+      return _id;
+    }
+
+    
+    public void setId(java.lang.String value){
+        checkAllowChange();
+        
+        this._id = value;
            
     }
 
@@ -110,6 +136,7 @@ public abstract class _TaskDecoratorModel extends io.nop.core.resource.component
         super.outputJson(out);
         
         out.putNotNull("bean",this.getBean());
+        out.putNotNull("id",this.getId());
         out.putNotNull("order",this.getOrder());
         out.putNotNull("source",this.getSource());
     }
@@ -124,6 +151,7 @@ public abstract class _TaskDecoratorModel extends io.nop.core.resource.component
         super.copyTo(instance);
         
         instance.setBean(this.getBean());
+        instance.setId(this.getId());
         instance.setOrder(this.getOrder());
         instance.setSource(this.getSource());
     }

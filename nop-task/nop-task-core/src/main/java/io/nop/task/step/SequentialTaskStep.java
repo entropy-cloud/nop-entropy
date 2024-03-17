@@ -7,7 +7,7 @@
  */
 package io.nop.task.step;
 
-import io.nop.task.ITaskContext;
+import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
@@ -15,7 +15,7 @@ import io.nop.task.TaskStepResult;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
-import static io.nop.task.TaskStepResult.RESULT_SUSPEND;
+import static io.nop.task.TaskStepResult.SUSPEND;
 
 public class SequentialTaskStep extends AbstractTaskStep {
     private List<ITaskStep> steps;
@@ -28,12 +28,8 @@ public class SequentialTaskStep extends AbstractTaskStep {
         this.steps = steps;
     }
 
-    public boolean isShareState() {
-        return false;
-    }
-
     @Override
-    protected TaskStepResult doExecute(ITaskStepState state, ITaskContext context) {
+    protected TaskStepResult doExecute(ITaskStepState state, ITaskRuntime taskRt) {
         Integer index = (Integer) state.getStateBean();
         if (index == null)
             index = 0;
@@ -49,26 +45,26 @@ public class SequentialTaskStep extends AbstractTaskStep {
 
             ITaskStep step = steps.get(index);
 
-            stepResult = step.execute(state.getRunId(), state, context);
+            stepResult = step.execute(state.getRunId(), state, null, taskRt);
             if (stepResult.isAsync()) {
                 int indexParam = index;
                 CompletionStage<Object> promise = stepResult.getReturnPromise().thenApply(ret -> {
-                    onStepSuccess(ret, indexParam, state, context);
-                    return doExecute(state, context);
+                    onStepSuccess(ret, indexParam, state, taskRt);
+                    return doExecute(state, taskRt);
                 });
                 return TaskStepResult.of(null, promise);
             }
 
             // 在saveState之后判断suspend。刚进入doExecute时不能判断suspend, 因为有可能是从休眠中恢复
-            if (stepResult == RESULT_SUSPEND)
+            if (stepResult == SUSPEND)
                 return stepResult;
 
-            onStepSuccess(stepResult.getReturnValue(), index, state, context);
+            onStepSuccess(stepResult.getReturnValue(), index, state, taskRt);
             index++;
         } while (true);
     }
 
-    void onStepSuccess(Object ret, int index, ITaskStepState state, ITaskContext context) {
+    void onStepSuccess(Object ret, int index, ITaskStepState state, ITaskRuntime context) {
         state.setStateBean(index + 1);
         state.setResultValue(ret);
         saveState(state, context);

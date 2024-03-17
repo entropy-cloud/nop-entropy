@@ -60,13 +60,6 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     
     /**
      *  
-     * xml name: id
-     * 
-     */
-    private java.lang.String _id ;
-    
-    /**
-     *  
      * xml name: input
      * 
      */
@@ -74,10 +67,24 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: onReload
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _onReload ;
+    
+    /**
+     *  
      * xml name: output
      * 
      */
     private KeyedList<io.nop.task.model.TaskOutputModel> _outputs = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: persisVars
+     * 
+     */
+    private java.util.Set<java.lang.String> _persisVars ;
     
     /**
      *  
@@ -154,7 +161,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     public void setDecorators(java.util.List<io.nop.task.model.TaskDecoratorModel> value){
         checkAllowChange();
         
-        this._decorators = KeyedList.fromList(value, io.nop.task.model.TaskDecoratorModel::getOrder);
+        this._decorators = KeyedList.fromList(value, io.nop.task.model.TaskDecoratorModel::getId);
            
     }
 
@@ -171,7 +178,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         checkAllowChange();
         java.util.List<io.nop.task.model.TaskDecoratorModel> list = this.getDecorators();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.task.model.TaskDecoratorModel::getOrder);
+            list = new KeyedList<>(io.nop.task.model.TaskDecoratorModel::getId);
             setDecorators(list);
         }
         list.add(item);
@@ -263,25 +270,6 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     
     /**
      * 
-     * xml name: id
-     *  
-     */
-    
-    public java.lang.String getId(){
-      return _id;
-    }
-
-    
-    public void setId(java.lang.String value){
-        checkAllowChange();
-        
-        this._id = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: input
      *  
      */
@@ -327,6 +315,25 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     
     /**
      * 
+     * xml name: onReload
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getOnReload(){
+      return _onReload;
+    }
+
+    
+    public void setOnReload(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._onReload = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: output
      *  
      */
@@ -369,6 +376,25 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     public boolean hasOutputs(){
         return !this._outputs.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: persisVars
+     *  
+     */
+    
+    public java.util.Set<java.lang.String> getPersisVars(){
+      return _persisVars;
+    }
+
+    
+    public void setPersisVars(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._persisVars = value;
+           
+    }
+
     
     /**
      * 
@@ -519,9 +545,10 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("executor",this.getExecutor());
         out.putNotNull("finally",this.getFinally());
-        out.putNotNull("id",this.getId());
         out.putNotNull("inputs",this.getInputs());
+        out.putNotNull("onReload",this.getOnReload());
         out.putNotNull("outputs",this.getOutputs());
+        out.putNotNull("persisVars",this.getPersisVars());
         out.putNotNull("rateLimit",this.getRateLimit());
         out.putNotNull("retry",this.getRetry());
         out.putNotNull("throttle",this.getThrottle());
@@ -545,9 +572,10 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         instance.setDisplayName(this.getDisplayName());
         instance.setExecutor(this.getExecutor());
         instance.setFinally(this.getFinally());
-        instance.setId(this.getId());
         instance.setInputs(this.getInputs());
+        instance.setOnReload(this.getOnReload());
         instance.setOutputs(this.getOutputs());
+        instance.setPersisVars(this.getPersisVars());
         instance.setRateLimit(this.getRateLimit());
         instance.setRetry(this.getRetry());
         instance.setThrottle(this.getThrottle());

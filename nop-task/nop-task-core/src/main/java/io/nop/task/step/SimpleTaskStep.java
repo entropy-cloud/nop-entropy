@@ -7,25 +7,25 @@
  */
 package io.nop.task.step;
 
-import io.nop.task.ITaskContext;
-import io.nop.task.ITaskStepImplementor;
+import io.nop.task.ITaskRuntime;
+import io.nop.task.ITaskStepExecution;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
 
 public class SimpleTaskStep extends AbstractTaskStep {
-    private ITaskStepImplementor stepImplementor;
+    private ITaskStepExecution stepImplementor;
 
-    public void setStepImplementor(ITaskStepImplementor stepImplementor) {
+    public void setStepImplementor(ITaskStepExecution stepImplementor) {
         this.stepImplementor = stepImplementor;
     }
 
     @Override
-    protected void initStepState(ITaskStepState state, ITaskContext context) {
+    protected void initStepState(ITaskStepState state, ITaskRuntime context) {
         stepImplementor.prepareState(this, state, context);
     }
 
     @Override
-    protected TaskStepResult doExecute(ITaskStepState state, ITaskContext context) {
-        return stepImplementor.execute(this, state, context);
+    protected TaskStepResult doExecute(ITaskStepState state, ITaskRuntime taskRt) {
+        return stepImplementor.execute(this, state, taskRt);
     }
 }

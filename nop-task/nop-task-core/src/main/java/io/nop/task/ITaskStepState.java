@@ -18,8 +18,6 @@ import io.nop.core.lang.eval.IEvalScope;
 public interface ITaskStepState extends ITaskStateCommon {
     /**
      * stepId为静态定义的步骤id. runId为动态执行路径所确定的id. 两者结合在一起唯一确定一个TaskStepState
-     *
-     * @return
      */
     String getStepId();
 
@@ -27,20 +25,20 @@ public interface ITaskStepState extends ITaskStateCommon {
 
     /**
      * 在TaskInstance范围内动态执行路径所对应的id。例如循环嵌套会生成:3:2这种runId，它标识第一层循环执行到下标为3，第二层循环执行到下标为2
-     *
-     * @return
      */
     int getRunId();
 
     void setRunId(int runId);
 
+    ITaskStepState getParentState();
+
     String getParentStepId();
 
     void setParentStepId(String parentStepId);
 
-    String getParentRunId();
+    int getParentRunId();
 
-    void setParentRunId(String parentRunId);
+    void setParentRunId(int parentRunId);
 
     String getStepType();
 
@@ -52,8 +50,6 @@ public interface ITaskStepState extends ITaskStateCommon {
 
     /**
      * 分布式执行时对应执行节点
-     *
-     * @return
      */
     String getWorkerId();
 
@@ -61,8 +57,6 @@ public interface ITaskStepState extends ITaskStateCommon {
 
     /**
      * 步骤所用到的变量。如果把TaskStep看作是普通函数。则这里的vars对应于参数、闭包变量以及函数内部临时变量等所有变量的集合
-     *
-     * @return
      */
     <T> T getStateBean(Class<T> beanType);
 
@@ -73,17 +67,17 @@ public interface ITaskStepState extends ITaskStateCommon {
     /**
      * 从持久化存储中恢复后调用
      */
-    void afterLoad(ITaskContext context);
+    void afterLoad(ITaskRuntime taskRt);
 
-    void beforeSave(ITaskContext context);
+    void beforeSave(ITaskRuntime taskRt);
 
-    void succeed(Object result, String nextStepId, ITaskContext context);
+    void succeed(Object result, String nextStepId, ITaskRuntime taskRt);
 
-    void fail(Throwable exception, ITaskContext context);
+    void fail(Throwable exception, ITaskRuntime taskRt);
 
     boolean isDone();
 
-    boolean isCompletedSuccessfully();
+    boolean isSuccess();
 
     boolean needSave();
 
@@ -96,4 +90,10 @@ public interface ITaskStepState extends ITaskStateCommon {
     IEvalScope getEvalScope();
 
     void setEvalScope(IEvalScope scope);
+
+    void setInput(String name, Object value);
+
+    boolean load();
+
+    void save();
 }

@@ -8,7 +8,7 @@
 package io.nop.task.step;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.task.ITaskContext;
+import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
@@ -17,10 +17,6 @@ public class TryTaskStep extends AbstractTaskStep {
     private ITaskStep body;
     private ITaskStep finallyAction;
     private ITaskStep catchAction;
-
-    public boolean isShareState() {
-        return false;
-    }
 
     public ITaskStep getBody() {
         return body;
@@ -47,7 +43,7 @@ public class TryTaskStep extends AbstractTaskStep {
     }
 
     @Override
-    protected TaskStepResult doExecute(ITaskStepState state, ITaskContext context) {
+    protected TaskStepResult doExecute(ITaskStepState state, ITaskRuntime taskRt) {
 
         Integer pc = (Integer) state.getStateBean();
         if (pc == null)
@@ -59,50 +55,50 @@ public class TryTaskStep extends AbstractTaskStep {
 
         TaskStepResult result = state.result();
         if (result == null)
-            result = TaskStepResult.RESULT_SUCCESS;
+            result = TaskStepResult.CONTINUE;
 
         if (pc == 0) {
             try {
-                result = body.execute(state.getRunId(), state, context);
+                result = body.execute(state.getRunId(), state, null, taskRt);
                 if (result.isAsync()) {
                     async = true;
                     int pcParam = pc;
                     result = result.thenCompose((v, e) -> {
-                        return nextStep(v, e, pcParam, state, context);
+                        return nextStep(v, e, pcParam, state, taskRt);
                     });
                 }
                 return result;
             } catch (Exception e) {
-                result = nextStep(null, e, pc, state, context);
+                result = nextStep(null, e, pc, state, taskRt);
                 if (result.isAsync()) {
                     async = true;
                     int pcParam = pc;
                     result = result.thenCompose((v, err) -> {
-                        return nextStep(v, err, pcParam, state, context);
+                        return nextStep(v, err, pcParam, state, taskRt);
                     });
                 }
             } finally {
                 if (!async) {
-                    result = runFinally(result, state, context);
+                    result = runFinally(result, state, taskRt);
                 }
             }
         } else if (pc == 1) {
             try {
-                result = nextStep(null, state.exception(), pc, state, context);
+                result = nextStep(null, state.exception(), pc, state, taskRt);
                 if (result.isAsync()) {
                     async = true;
                     int pcParam = pc;
                     result = result.thenCompose((v, err) -> {
-                        return nextStep(v, err, pcParam, state, context);
+                        return nextStep(v, err, pcParam, state, taskRt);
                     });
                 }
             } finally {
                 if (!async) {
-                    result = runFinally(result, state, context);
+                    result = runFinally(result, state, taskRt);
                 }
             }
         } else if (pc == 2) {
-            result = runFinally(result, state, context);
+            result = runFinally(result, state, taskRt);
         } else {
             Throwable err = state.exception();
             if (err != null)
@@ -112,11 +108,11 @@ public class TryTaskStep extends AbstractTaskStep {
         return result;
     }
 
-    TaskStepResult runFinally(TaskStepResult result, ITaskStepState state, ITaskContext context) {
+    TaskStepResult runFinally(TaskStepResult result, ITaskStepState state, ITaskRuntime context) {
         if (finallyAction == null)
             return result;
 
-        TaskStepResult finalResult = finallyAction.execute(state.getRunId(), state, context);
+        TaskStepResult finalResult = finallyAction.execute(state.getRunId(), state, null, context);
         if (finalResult.isAsync()) {
             finalResult = finalResult.thenApply(v -> {
                 state.setStateBean(3);
@@ -126,7 +122,7 @@ public class TryTaskStep extends AbstractTaskStep {
         return finalResult;
     }
 
-    TaskStepResult nextStep(Object result, Throwable e, int pc, ITaskStepState state, ITaskContext context) {
+    TaskStepResult nextStep(Object result, Throwable e, int pc, ITaskStepState state, ITaskRuntime context) {
         pc++;
         if (pc == 1) {
             if (e == null) {

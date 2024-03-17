@@ -11,12 +11,12 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.retry.IRetryPolicy;
 import io.nop.core.context.IEvalContext;
-import io.nop.task.ITaskContext;
+import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
 
-import static io.nop.task.TaskErrors.ARG_STEP_ID;
+import static io.nop.task.TaskErrors.ARG_STEP_NAME;
 import static io.nop.task.TaskErrors.ERR_TASK_RETRY_TIMES_EXCEED_LIMIT;
 
 public class RetryTaskStep extends AbstractTaskStep {
@@ -37,10 +37,6 @@ public class RetryTaskStep extends AbstractTaskStep {
 
     public void setBody(ITaskStep body) {
         this.body = body;
-    }
-
-    public boolean isShareState() {
-        return false;
     }
 
     @DataBean
@@ -70,14 +66,14 @@ public class RetryTaskStep extends AbstractTaskStep {
     }
 
     @Override
-    protected void initStepState(ITaskStepState state, ITaskContext context) {
+    protected void initStepState(ITaskStepState state, ITaskRuntime context) {
         super.initStepState(state, context);
         RetryStateBean stateBean = new RetryStateBean();
         state.setStateBean(stateBean);
     }
 
     @Override
-    protected TaskStepResult doExecute(ITaskStepState state, ITaskContext context) {
+    protected TaskStepResult doExecute(ITaskStepState state, ITaskRuntime taskRt) {
         RetryStateBean stateBean = state.getStateBean(RetryStateBean.class);
 
         do {
@@ -87,26 +83,26 @@ public class RetryTaskStep extends AbstractTaskStep {
                 if (e == null)
                     e = new NopException(ERR_TASK_RETRY_TIMES_EXCEED_LIMIT)
                             .source(this)
-                            .param(ARG_STEP_ID, getStepId());
+                            .param(ARG_STEP_NAME, getStepName());
                 throw NopException.adapt(e);
             }
 
-            TaskStepResult result = body.execute(state.getRunId(), state, context);
+            TaskStepResult result = body.execute(state.getRunId(), state, null, taskRt);
             if (result.isAsync()) {
-                return result.thenCompose((v, err) -> doRetry(v, err, state, context));
+                return result.thenCompose((v, err) -> doRetry(v, err, state, taskRt));
             } else {
                 stateBean.incRetryTimes();
-                saveState(state, context);
+                saveState(state, taskRt);
             }
         } while (true);
     }
 
-    Object doRetry(Object value, Throwable err, ITaskStepState state, ITaskContext context) {
+    Object doRetry(Object value, Throwable err, ITaskStepState state, ITaskRuntime taskRt) {
         if (err != null) {
             RetryStateBean stateBean = state.getStateBean(RetryStateBean.class);
             stateBean.incRetryTimes();
-            saveState(state, context);
-            return doExecute(state, context);
+            saveState(state, taskRt);
+            return doExecute(state, taskRt);
         } else {
             return TaskStepResult.of(getNextStepId(), value);
         }

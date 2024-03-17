@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [85:6:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [90:6:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -32,10 +32,24 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      *  
+     * xml name: id
+     * 
+     */
+    private java.lang.String _id ;
+    
+    /**
+     *  
      * xml name: internal
      * 
      */
     private boolean _internal  = false;
+    
+    /**
+     *  
+     * xml name: name
+     * 
+     */
+    private java.lang.String _name ;
     
     /**
      *  
@@ -46,10 +60,10 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      *  
-     * xml name: onError
+     * xml name: nextOnError
      * 当内部抛出异常的时候跳转到哪个步骤
      */
-    private java.lang.String _onError ;
+    private java.lang.String _nextOnError ;
     
     /**
      *  
@@ -71,6 +85,13 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
      * 
      */
     private java.util.Set<java.lang.String> _tagSet ;
+    
+    /**
+     *  
+     * xml name: useParentScope
+     * 
+     */
+    private boolean _useParentScope  = false;
     
     /**
      * 
@@ -112,6 +133,25 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      * 
+     * xml name: id
+     *  
+     */
+    
+    public java.lang.String getId(){
+      return _id;
+    }
+
+    
+    public void setId(java.lang.String value){
+        checkAllowChange();
+        
+        this._id = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: internal
      *  
      */
@@ -125,6 +165,25 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         checkAllowChange();
         
         this._internal = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: name
+     *  
+     */
+    
+    public java.lang.String getName(){
+      return _name;
+    }
+
+    
+    public void setName(java.lang.String value){
+        checkAllowChange();
+        
+        this._name = value;
            
     }
 
@@ -150,19 +209,19 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      * 
-     * xml name: onError
+     * xml name: nextOnError
      *  当内部抛出异常的时候跳转到哪个步骤
      */
     
-    public java.lang.String getOnError(){
-      return _onError;
+    public java.lang.String getNextOnError(){
+      return _nextOnError;
     }
 
     
-    public void setOnError(java.lang.String value){
+    public void setNextOnError(java.lang.String value){
         checkAllowChange();
         
-        this._onError = value;
+        this._nextOnError = value;
            
     }
 
@@ -224,6 +283,25 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     }
 
     
+    /**
+     * 
+     * xml name: useParentScope
+     *  
+     */
+    
+    public boolean isUseParentScope(){
+      return _useParentScope;
+    }
+
+    
+    public void setUseParentScope(boolean value){
+        checkAllowChange();
+        
+        this._useParentScope = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -241,12 +319,15 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         
         out.putNotNull("allowStartIfComplete",this.isAllowStartIfComplete());
         out.putNotNull("extType",this.getExtType());
+        out.putNotNull("id",this.getId());
         out.putNotNull("internal",this.isInternal());
+        out.putNotNull("name",this.getName());
         out.putNotNull("next",this.getNext());
-        out.putNotNull("onError",this.getOnError());
+        out.putNotNull("nextOnError",this.getNextOnError());
         out.putNotNull("returnAs",this.getReturnAs());
         out.putNotNull("saveState",this.isSaveState());
         out.putNotNull("tagSet",this.getTagSet());
+        out.putNotNull("useParentScope",this.isUseParentScope());
     }
 
     public TaskStepModel cloneInstance(){
@@ -260,12 +341,15 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         
         instance.setAllowStartIfComplete(this.isAllowStartIfComplete());
         instance.setExtType(this.getExtType());
+        instance.setId(this.getId());
         instance.setInternal(this.isInternal());
+        instance.setName(this.getName());
         instance.setNext(this.getNext());
-        instance.setOnError(this.getOnError());
+        instance.setNextOnError(this.getNextOnError());
         instance.setReturnAs(this.getReturnAs());
         instance.setSaveState(this.isSaveState());
         instance.setTagSet(this.getTagSet());
+        instance.setUseParentScope(this.isUseParentScope());
     }
 
     protected TaskStepModel newInstance(){

@@ -15,5 +15,5 @@ public interface ITaskOutputModel extends ISourceLocationGetter {
 
     IEvalAction getSource();
 
-    boolean isForAttr();
+    boolean isToTaskScope();
 }

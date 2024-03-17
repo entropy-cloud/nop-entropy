@@ -8,7 +8,7 @@
 package io.nop.task;
 
 public interface ITaskStateStore {
-    ITaskStepState newStepState(String stepType, String stepId, int runId, ITaskContext context);
+    ITaskStepState newStepState(String stepType, String stepId, int runId, ITaskRuntime context);
 
     /**
      * 因为存在动态生成的步骤，因此需要通过runId来区分
@@ -17,13 +17,13 @@ public interface ITaskStateStore {
      * @param runId  每次执行步骤所对应的执行id
      * @return
      */
-    ITaskStepState loadStepState(String stepId, int runId, ITaskContext context);
+    ITaskStepState loadStepState(String stepId, int runId, ITaskRuntime context);
 
-    void saveStepState(ITaskStepState state, ITaskContext context);
+    void saveStepState(ITaskStepState state, ITaskRuntime context);
 
-    ITaskState newTaskState(String taskName, long taskVersion, ITaskContext context);
+    ITaskState newTaskState(String taskName, long taskVersion, ITaskRuntime context);
 
-    ITaskState loadTaskState(String taskStateId, ITaskContext context);
+    ITaskState loadTaskState(String taskStateId, ITaskRuntime context);
 
-    void saveTaskState(ITaskState taskState, ITaskContext context);
+    void saveTaskState(ITaskState taskState, ITaskRuntime context);
 }

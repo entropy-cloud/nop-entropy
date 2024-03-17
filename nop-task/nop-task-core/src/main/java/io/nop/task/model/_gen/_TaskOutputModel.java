@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [30:10:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [33:10:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -32,10 +32,10 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
     
     /**
      *  
-     * xml name: forAttr
-     * 如果为true，则输出变量到taskContext.attributes集合中，否则输出到parentScope中
+     * xml name: exportAs
+     * 
      */
-    private boolean _forAttr  = false;
+    private java.lang.String _exportAs ;
     
     /**
      *  
@@ -57,6 +57,13 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
      * 
      */
     private io.nop.core.lang.eval.IEvalAction _source ;
+    
+    /**
+     *  
+     * xml name: toTaskScope
+     * 如果为true，则输出变量到整个task共享的scope中，否则输出到parentScope中
+     */
+    private boolean _toTaskScope  = false;
     
     /**
      * 
@@ -98,19 +105,19 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
     
     /**
      * 
-     * xml name: forAttr
-     *  如果为true，则输出变量到taskContext.attributes集合中，否则输出到parentScope中
+     * xml name: exportAs
+     *  
      */
     
-    public boolean isForAttr(){
-      return _forAttr;
+    public java.lang.String getExportAs(){
+      return _exportAs;
     }
 
     
-    public void setForAttr(boolean value){
+    public void setExportAs(java.lang.String value){
         checkAllowChange();
         
-        this._forAttr = value;
+        this._exportAs = value;
            
     }
 
@@ -172,6 +179,25 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
     }
 
     
+    /**
+     * 
+     * xml name: toTaskScope
+     *  如果为true，则输出变量到整个task共享的scope中，否则输出到parentScope中
+     */
+    
+    public boolean isToTaskScope(){
+      return _toTaskScope;
+    }
+
+    
+    public void setToTaskScope(boolean value){
+        checkAllowChange();
+        
+        this._toTaskScope = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -189,10 +215,11 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
         
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
-        out.putNotNull("forAttr",this.isForAttr());
+        out.putNotNull("exportAs",this.getExportAs());
         out.putNotNull("name",this.getName());
         out.putNotNull("persist",this.isPersist());
         out.putNotNull("source",this.getSource());
+        out.putNotNull("toTaskScope",this.isToTaskScope());
     }
 
     public TaskOutputModel cloneInstance(){
@@ -206,10 +233,11 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
         
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
-        instance.setForAttr(this.isForAttr());
+        instance.setExportAs(this.getExportAs());
         instance.setName(this.getName());
         instance.setPersist(this.isPersist());
         instance.setSource(this.getSource());
+        instance.setToTaskScope(this.isToTaskScope());
     }
 
     protected TaskOutputModel newInstance(){

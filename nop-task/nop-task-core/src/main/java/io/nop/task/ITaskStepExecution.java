@@ -8,21 +8,17 @@
 package io.nop.task;
 
 /**
- * TaskStep包含了状态恢复和条件判断等通用逻辑，ITaskStepImplementor提供专属于该步骤的逻辑
+ * TaskStep包含了状态恢复和条件判断等通用逻辑，ITaskStepExecution提供专属于该步骤的逻辑
  */
-public interface ITaskStepImplementor {
+public interface ITaskStepExecution {
 
-    default void prepareState(ITaskStep step, ITaskStepState state, ITaskContext context) {
+    default void prepareState(ITaskStep step, ITaskStepState state, ITaskRuntime taskRt) {
 
     }
 
     /**
      * 可以通过返回值指定下一步骤ID。步骤ID只能是同级步骤，或者系统内置的步骤ID
-     *
-     * @param context
-     * @return
      */
-    TaskStepResult execute(ITaskStep step,
-                           ITaskStepState state,
-                           ITaskContext context);
+    TaskStepResult execute(ITaskStep step, ITaskStepState state,
+                           ITaskRuntime taskRt);
 }

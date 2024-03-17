@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [94:6:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [99:6:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -37,7 +37,7 @@ public abstract class _TaskStepsModel extends io.nop.task.model.TaskStepModel {
     public void setSteps(java.util.List<io.nop.task.model.TaskStepModel> value){
         checkAllowChange();
         
-        this._steps = KeyedList.fromList(value, io.nop.task.model.TaskStepModel::getId);
+        this._steps = KeyedList.fromList(value, io.nop.task.model.TaskStepModel::getName);
            
     }
 

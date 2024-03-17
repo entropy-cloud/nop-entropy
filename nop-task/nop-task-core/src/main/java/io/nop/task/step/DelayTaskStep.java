@@ -10,7 +10,7 @@ package io.nop.task.step;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.core.lang.eval.IEvalAction;
-import io.nop.task.ITaskContext;
+import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
 
@@ -32,12 +32,12 @@ public class DelayTaskStep extends AbstractTaskStep {
     }
 
     @Override
-    protected TaskStepResult doExecute(ITaskStepState state, ITaskContext context) {
+    protected TaskStepResult doExecute(ITaskStepState state, ITaskRuntime taskRt) {
         Long delay = ConvertHelper.toLong(delayMillsExpr.invoke(state.getEvalScope()));
         if (delay == null)
             delay = -1L;
         if (delay <= 0)
-            return TaskStepResult.RESULT_SUCCESS;
+            return TaskStepResult.CONTINUE;
 
         CompletableFuture<?> future = scheduledExecutor.schedule(() -> {
             return null;
@@ -45,10 +45,10 @@ public class DelayTaskStep extends AbstractTaskStep {
 
         // 在等待的过程中如果context已经被cancel，则会取消等待
         Consumer<String> cancel = reason -> future.cancel(false);
-        context.appendOnCancel(cancel);
+        taskRt.appendOnCancel(cancel);
 
         future.whenComplete((v, err) -> {
-            context.removeOnCancel(cancel);
+            taskRt.removeOnCancel(cancel);
         });
         return toStepResult(future);
     }

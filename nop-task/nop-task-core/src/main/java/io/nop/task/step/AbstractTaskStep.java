@@ -8,14 +8,16 @@
 package io.nop.task.step;
 
 import io.nop.api.core.context.ContextProvider;
-import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.ICancelToken;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.eval.IEvalScope;
-import io.nop.task.ITaskContext;
+import io.nop.core.model.validator.DefaultValidationErrorCollector;
+import io.nop.core.model.validator.ModelBasedValidator;
+import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStateStore;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepState;
@@ -23,197 +25,128 @@ import io.nop.task.TaskErrors;
 import io.nop.task.TaskStepResult;
 import io.nop.task.model.ITaskInputModel;
 import io.nop.task.model.ITaskOutputModel;
+import io.nop.task.model.TaskStepModel;
+import io.nop.task.utils.TaskStepHelper;
+import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
-import static io.nop.core.CoreErrors.ARG_VAR_NAME;
-import static io.nop.task.TaskConstants.SPECIAL_STEP_PREFIX;
 import static io.nop.task.TaskErrors.ERR_TASK_CANCELLED;
-import static io.nop.task.TaskStepResult.RESULT_SUSPEND;
+import static io.nop.task.TaskStepResult.SUSPEND;
 
 
 public abstract class AbstractTaskStep implements ITaskStep {
     static final Logger LOG = LoggerFactory.getLogger(AbstractTaskStep.class);
 
-    private SourceLocation location;
-    private String stepId;
-    private String stepType;
-    private boolean saveState;
+    private TaskStepModel stepModel;
 
-    /**
-     * 与父步骤共享状态对象
-     */
-    private boolean shareState;
-    private boolean internal;
-    private Set<String> tagSet;
-    private String extType;
-
-    private boolean allowStartIfComplete;
-
-    private String nextStepId;
-
-    private IEvalPredicate when;
-
-    private IEvalAction validator;
-
-    public IEvalAction getValidator() {
-        return validator;
+    public TaskStepModel getStepModel() {
+        return stepModel;
     }
 
-    public void setValidator(IEvalAction validator) {
-        this.validator = validator;
+    public void setStepModel(TaskStepModel stepModel) {
+        this.stepModel = stepModel;
     }
 
-    public IEvalPredicate getWhen() {
-        return when;
+    public boolean isUseParentScope() {
+        return stepModel.isUseParentScope();
     }
 
-    public void setWhen(IEvalPredicate when) {
-        this.when = when;
+    public boolean isSaveState() {
+        return stepModel.isSaveState();
     }
 
     @Override
     public SourceLocation getLocation() {
-        return location;
-    }
-
-    public void setLocation(SourceLocation location) {
-        this.location = location;
+        return stepModel.getLocation();
     }
 
     @Override
-    public String getStepId() {
-        return stepId;
-    }
-
-    public void setStepId(String stepId) {
-        this.stepId = stepId;
+    public String getStepName() {
+        return stepModel.getId();
     }
 
     @Override
     public String getStepType() {
-        return stepType;
-    }
-
-    public void setStepType(String stepType) {
-        this.stepType = stepType;
-    }
-
-    public boolean isSaveState() {
-        return saveState;
-    }
-
-    public void setSaveState(boolean saveState) {
-        this.saveState = saveState;
-    }
-
-    public boolean isShareState() {
-        return shareState;
-    }
-
-    public void setShareState(boolean shareState) {
-        this.shareState = shareState;
-    }
-
-    public boolean isInternal() {
-        return internal;
-    }
-
-    public void setInternal(boolean internal) {
-        this.internal = internal;
+        return stepModel.getType();
     }
 
     public Set<String> getTagSet() {
-        return tagSet;
-    }
-
-    public void setTagSet(Set<String> tagSet) {
-        this.tagSet = tagSet;
-    }
-
-    public String getExtType() {
-        return extType;
-    }
-
-    public void setExtType(String extType) {
-        this.extType = extType;
+        return stepModel.getTagSet();
     }
 
     public boolean isAllowStartIfComplete() {
-        return allowStartIfComplete;
-    }
-
-    public void setAllowStartIfComplete(boolean allowStartIfComplete) {
-        this.allowStartIfComplete = allowStartIfComplete;
+        return stepModel.isAllowStartIfComplete();
     }
 
     public String getNextStepId() {
-        return nextStepId;
-    }
-
-    protected List<? extends ITaskOutputModel> getOutputs() {
-        return Collections.emptyList();
-    }
-
-    protected List<? extends ITaskInputModel> getInputs() {
-        return Collections.emptyList();
-    }
-
-    public void setNextStepId(String nextStepId) {
-        this.nextStepId = nextStepId;
-    }
-
-    protected ITaskStepState loadState(int runId, ITaskStepState parentState, ITaskContext context) {
-        if (isShareState())
-            return parentState;
-
-        if (!isSaveState())
-            return null;
-
-        // 初次调用的时候runId <= 0
-        if (runId <= 0)
-            return null;
-
-        ITaskStateStore store = context.getStateStore();
-        if (store == null)
-            return null;
-
-        ITaskStepState state = store.loadStepState(getStepId(), runId, context);
-        return state;
-    }
-
-    protected void saveState(ITaskStepState state, ITaskContext context) {
-        if (!isSaveState())
-            return;
-
-        if (!state.needSave())
-            return;
-
-        context.saveState(state);
+        return stepModel.getNext();
     }
 
     @Override
-    public TaskStepResult execute(int runId,
-                                  ITaskStepState parentState, ITaskContext context) {
-        LOG.debug("nop.task.step.run:taskName={},taskInstanceId={},stepId={},runId={}," +
-                        "loc={}",
-                context.getTaskName(), context.getTaskInstanceId(),
-                this.getStepId(), runId, getLocation());
+    public List<? extends ITaskOutputModel> getOutputs() {
+        return stepModel.getOutputs();
+    }
 
-        if (context.isCancelled())
-            throw new NopException(ERR_TASK_CANCELLED);
+    @Override
+    public List<? extends ITaskInputModel> getInputs() {
+        return stepModel.getInputs();
+    }
 
-        IEvalScope parentScope = parentState != null ? parentState.getEvalScope() : context.getEvalScope().duplicate();
+    public IEvalPredicate getWhen() {
+        return stepModel.getWhen();
+    }
+
+    public boolean isInternal() {
+        return stepModel.isInternal();
+    }
+
+    public String getExtType() {
+        return stepModel.getExtType();
+    }
+
+    protected ITaskStepState loadState(int runId, ITaskStepState parentState, ITaskRuntime taskRt) {
+        if (!isSaveState()) return null;
+
+        ITaskStateStore store = taskRt.getStateStore();
+        if (store == null) return null;
+
+        ITaskStepState state = store.loadStepState(getStepName(), runId, taskRt);
+        return state;
+    }
+
+    protected void saveState(ITaskStepState state, ITaskRuntime taskRt) {
+        if (!isSaveState()) return;
+
+        if (!state.needSave()) return;
+
+        taskRt.saveState(state);
+    }
+
+    public TaskStepResult execute(int runId, ITaskStepState parentState, ICancelToken cancelToken, ITaskRuntime taskRt) {
+        return null;
+    }
+
+    @Nonnull
+    @Override
+    public TaskStepResult execute(ITaskStepState stepState, Set<String> outputNames,
+                                  ICancelToken cancelToken, ITaskRuntime taskRt) {
+        int runId = stepState.getRunId();
+        LOG.debug("nop.task.step.run:taskName={},taskInstanceId={},stepId={},runId={}," + "loc={}", taskRt.getTaskName(), taskRt.getTaskInstanceId(), this.getStepName(), runId, getLocation());
+
+        if (taskRt.isCancelled()) throw newError(ERR_TASK_CANCELLED, taskRt);
+
+        ITaskStepState parentState = stepState.getParentState();
+
+        IEvalScope parentScope = parentState != null ? parentState.getEvalScope() : taskRt.getEvalScope().duplicate();
 
         ITaskStepState state = null;
         try {
-            state = loadState(runId, parentState, context);
+            state = loadState(runId, parentState, taskRt);
 
             if (state == null) {
                 // 如果具有历史状态，则不会执行判断条件，而是执行continuation
@@ -221,84 +154,77 @@ public abstract class AbstractTaskStep implements ITaskStep {
                 if (when != null) {
                     // 如果不满足条件，则直接跳过执行
                     if (!when.passConditions(parentScope)) {
-                        LOG.info("nop.task.step.skip-when-condition-not-satisfied:taskName={},taskInstanceId={}," +
-                                        "stepId={},runId={}",
-                                context.getTaskName(), context.getTaskInstanceId(), this.getStepId(), runId);
-                        return TaskStepResult.RESULT_SUCCESS;
+                        LOG.info("nop.task.step.skip-when-condition-not-satisfied:taskName={},taskInstanceId={}," + "stepId={},runId={}", taskRt.getTaskName(), taskRt.getTaskInstanceId(), this.getStepName(), runId);
+                        return TaskStepResult.CONTINUE;
                     }
                 }
 
                 // 只有第一次执行时才会初始化input
-                state = newStepState(runId, parentScope, parentState, context);
+                state = newStepState(runId, parentScope, parentState, taskRt);
 
                 // 执行具体步骤内容之前先保存参数状态
-                saveState(state, context);
-            } else if (!isShareState()) {
-                if (state.isCompletedSuccessfully()) {
-                    LOG.info("nop.task.step.skip-completed-step:taskName={},taskInstanceId={}," +
-                                    "stepId={},runId={}",
-                            context.getTaskName(), context.getTaskInstanceId(),
-                            getStepId(), runId);
-                    if (state.exception() != null)
-                        throw NopException.adapt(state.exception());
+                saveState(state, taskRt);
+            } else {
+                if (state.isSuccess()) {
+                    LOG.info("nop.task.step.skip-completed-step:taskName={},taskInstanceId={}," + "stepId={},runId={}", taskRt.getTaskName(), taskRt.getTaskInstanceId(), getStepName(), runId);
+                    if (state.exception() != null) throw NopException.adapt(state.exception());
                     return state.result();
                 }
 
                 if (!isAllowStartIfComplete())
-                    throw newError(TaskErrors.ERR_TASK_STEP_NOT_RESTARTABLE, context).param(TaskErrors.ARG_RUN_ID, runId);
+                    throw newError(TaskErrors.ERR_TASK_STEP_NOT_RESTARTABLE, taskRt).param(TaskErrors.ARG_RUN_ID, runId);
 
-                LOG.info("nop.task.step.restart-step:taskName={},taskInstanceId={},stepId={},runId={}",
-                        context.getTaskName(), context.getTaskInstanceId(),
-                        getStepId(), runId);
+                LOG.info("nop.task.step.restart-step:taskName={},taskInstanceId={},stepId={},runId={}", taskRt.getTaskName(), taskRt.getTaskInstanceId(), getStepName(), runId);
             }
 
-            TaskStepResult result = doExecute(state, context);
+            TaskStepResult result = doExecute(state, taskRt);
             if (result.isAsync()) {
-                result = asyncComplete(result, state, context);
-            } else if (result == RESULT_SUSPEND) {
-                onSuspend(result, state, context);
+                result = asyncComplete(result, state, parentScope, taskRt);
+            } else if (result == SUSPEND) {
+                onSuspend(result, state, taskRt);
             } else {
-                result = onComplete(result.getReturnValue(), result.getNextStepId(), state, context);
+                result = onComplete(result.getReturnValue(), result.getNextStepName(), state, parentScope, taskRt);
             }
             return result;
         } catch (NopException e) {
-            if (!isInternal())
-                e.addXplStack(this);
-            onFailure(e, state, context);
+            e.addXplStack(this);
+            onFailure(e, state, taskRt);
             throw e;
         }
     }
 
-    protected abstract TaskStepResult doExecute(ITaskStepState state, ITaskContext context);
+    protected abstract TaskStepResult doExecute(ITaskStepState state, ITaskRuntime taskRt);
 
-    protected ITaskStepState newStepState(int runId,
-                                          IEvalScope parentScope, ITaskStepState parentState,
-                                          ITaskContext context) {
-        LOG.info("nop.io.nop.task.step.create:taskName={},taskInstanceId={},stepId={},runId={},",
-                context.getTaskName(), context.getTaskInstanceId(),
-                getStepId(), runId);
-        ITaskStepState state = context.getStateStore().newStepState(getStepType(), getStepId(), runId, context);
+    protected ITaskStepState newStepState(int runId, IEvalScope parentScope, ITaskStepState parentState, ITaskRuntime taskRt) {
+        LOG.info("nop.io.nop.task.step.create:taskName={},taskInstanceId={},stepId={},runId={},", taskRt.getTaskName(), taskRt.getTaskInstanceId(), getStepName(), runId);
+
+        ITaskStepState state = taskRt.getStateStore().newStepState(getStepType(), getStepName(), runId, taskRt);
         IEvalScope scope = state.getEvalScope();
 
         if (parentState != null) {
             state.setParentRunId(parentState.getParentRunId());
             state.setParentStepId(parentState.getParentStepId());
         }
-        state.setInternal(internal);
-        state.setTagSet(tagSet);
-        state.setExtType(extType);
+
+        state.setInternal(isInternal());
+        state.setTagSet(getTagSet());
+        state.setExtType(getExtType());
 
         initInputs(parentScope, scope);
 
-        if (validator != null) {
-            validator.invoke(scope);
-        }
+        validate(scope);
 
-        initStepState(state, context);
+        initStepState(state, taskRt);
         return state;
     }
 
-    protected void initStepState(ITaskStepState state, ITaskContext context) {
+    protected void validate(IEvalScope scope) {
+        if (stepModel.getValidator() != null) {
+            new ModelBasedValidator(stepModel.getValidator()).validate(scope, DefaultValidationErrorCollector.THROW_ERROR);
+        }
+    }
+
+    protected void initStepState(ITaskStepState state, ITaskRuntime context) {
 
     }
 
@@ -311,121 +237,67 @@ public abstract class AbstractTaskStep implements ITaskStep {
         }
     }
 
-    protected void exportOutputs(IEvalScope scope, ITaskContext context) {
+    protected void exportOutputs(IEvalScope scope, IEvalScope parentScope, ITaskRuntime taskRt) {
         List<? extends ITaskOutputModel> outputs = getOutputs();
-        if (outputs.isEmpty())
-            return;
+        if (outputs.isEmpty()) return;
 
-        IEvalScope parentScope = scope.getParentScope();
         for (ITaskOutputModel outputModel : outputs) {
             Object value = outputModel.getSource().invoke(scope);
-            if (outputModel.isForAttr()) {
-                context.setAttribute(outputModel.getName(), value);
-            } else {
-                parentScope.setLocalValue(outputModel.getLocation(), outputModel.getName(), value);
-            }
+            IEvalScope targetScope = outputModel.isToTaskScope() ? taskRt.getEvalScope() : parentScope;
+            if (targetScope == null) targetScope = taskRt.getEvalScope();
+
+            targetScope.setLocalValue(outputModel.getLocation(), outputModel.getName(), value);
         }
     }
 
-    void onSuspend(TaskStepResult stepResult, ITaskStepState state, ITaskContext context) {
-        LOG.info("nop.io.nop.task.step.suspend-step:taskName={},taskInstanceId={},stepId={},runId={}",
-                context.getTaskName(), context.getTaskInstanceId(),
-                getStepId(), state.getRunId());
+    void onSuspend(TaskStepResult stepResult, ITaskStepState state, ITaskRuntime context) {
+        LOG.info("nop.io.nop.task.step.suspend-step:taskName={},taskInstanceId={},stepId={},runId={}", context.getTaskName(), context.getTaskInstanceId(), getStepName(), state.getRunId());
         // suspend表示本步骤尚未结束, 等待条件具备后继续执行
         saveState(state, context);
     }
 
-    TaskStepResult onComplete(Object result, String nextStepId, ITaskStepState state, ITaskContext context) {
+    TaskStepResult onComplete(Object result, String nextStepId, ITaskStepState state, IEvalScope parentScope, ITaskRuntime taskRt) {
         if (nextStepId == null) {
             nextStepId = this.getNextStepId();
         }
 
-        LOG.info("nop.task.step.async-return-success:taskName={},taskInstanceId={},stepId={},runId={},nextStepId={}," +
-                        "returnValue={}",
-                context.getTaskName(), context.getTaskInstanceId(),
-                getStepId(), state.getRunId(), nextStepId, result);
-        state.succeed(result, nextStepId, context);
-        exportOutputs(state.getEvalScope(), context);
-        saveState(state, context);
+        LOG.info("nop.task.step.async-return-success:taskName={},taskInstanceId={},stepId={},runId={},nextStepId={}," + "returnValue={}", taskRt.getTaskName(), taskRt.getTaskInstanceId(), getStepName(), state.getRunId(), nextStepId, result);
+        state.succeed(result, nextStepId, taskRt);
+        exportOutputs(state.getEvalScope(), parentScope, taskRt);
+        saveState(state, taskRt);
 
         return TaskStepResult.of(nextStepId, result);
     }
 
-    void onFailure(Throwable e, ITaskStepState state, ITaskContext context) {
-        LOG.error("nop.io.nop.task.step.async-return-failure:taskName={},stepId={},runId={}",
-                context.getTaskName(), getStepId(), state.getRunId(), e);
+    void onFailure(Throwable e, ITaskStepState state, ITaskRuntime context) {
+        LOG.error("nop.io.nop.task.step.async-return-failure:taskName={},stepId={},runId={}", context.getTaskName(), getStepName(), state.getRunId(), e);
         state.fail(e, context);
         saveState(state, context);
     }
 
-    TaskStepResult asyncComplete(TaskStepResult stepResult, ITaskStepState state, ITaskContext context) {
-        LOG.info("nop.task.step.async-complete:taskName={},taskInstanceId={},stepId={},runId={}",
-                context.getTaskName(), context.getTaskInstanceId(),
-                getStepId(), state.getRunId());
+    TaskStepResult asyncComplete(TaskStepResult stepResult, ITaskStepState state, IEvalScope parentScope, ITaskRuntime taskRt) {
+        LOG.info("nop.task.step.async-complete:taskName={},taskInstanceId={},stepId={},runId={}", taskRt.getTaskName(), taskRt.getTaskInstanceId(), getStepName(), state.getRunId());
 
         CompletionStage<TaskStepResult> future = ContextProvider.thenOnContext(stepResult.getReturnPromise()).thenApply(ret -> {
             String nextStepId = getNextStepId();
             if (ret instanceof TaskStepResult) {
                 TaskStepResult result = (TaskStepResult) ret;
-                if (result.getNextStepId() != null)
-                    nextStepId = result.getNextStepId();
+                if (result.getNextStepName() != null) nextStepId = result.getNextStepName();
                 ret = result.getReturnValue();
             }
-            return onComplete(ret, nextStepId, state, context);
+            return onComplete(ret, nextStepId, state, parentScope, taskRt);
         }).exceptionally(err -> {
-            onFailure(err, state, context);
+            onFailure(err, state, taskRt);
             throw NopException.adapt(err);
         });
         return TaskStepResult.of(null, future);
     }
 
     protected TaskStepResult toStepResult(Object ret) {
-        if (ret instanceof TaskStepResult)
-            return ((TaskStepResult) ret);
-        return TaskStepResult.of(getNextStepId(), ret);
+        return TaskStepHelper.toStepResult(ret, getNextStepId());
     }
 
-    protected int getStepIndex(List<ITaskStep> steps, String stepId, int startIndex) {
-        for (int i = startIndex; i < steps.size(); i++) {
-            ITaskStep step = steps.get(i);
-            // 所有step都必然存在id
-            if (stepId.equals(step.getStepId()))
-                return i;
-        }
-        return -1;
-    }
-
-    protected boolean isSpecialStep(String stepId) {
-        return stepId.charAt(0) == SPECIAL_STEP_PREFIX;
-    }
-
-    protected NopException newError(ErrorCode errorCode, ITaskContext context, Throwable e) {
-        if (e == null)
-            return newError(errorCode, context);
-        throw new NopException(errorCode, e).source(this).param(TaskErrors.ARG_TASK_NAME, context.getTaskName())
-                .param(TaskErrors.ARG_STEP_ID, getStepId()).param(TaskErrors.ARG_STEP_TYPE, getStepType());
-    }
-
-    protected NopException newError(ErrorCode errorCode, ITaskContext context) {
-        throw new NopException(errorCode).source(this).param(TaskErrors.ARG_TASK_NAME, context.getTaskName())
-                .param(TaskErrors.ARG_STEP_ID, getStepId()).param(TaskErrors.ARG_STEP_TYPE, getStepType());
-    }
-
-    protected String getInternalStepId(String stepId, String internalName) {
-        return stepId + '@' + internalName;
-    }
-
-    protected long getLong(Map<String, Object> vars, String name, long defaultValue) {
-        Long value = ConvertHelper.toLong(vars.get(name), err -> new NopException(err).param(ARG_VAR_NAME, name));
-        if (value == null)
-            value = defaultValue;
-        return value;
-    }
-
-    protected int getInt(Map<String, Object> vars, String name, int defaultValue) {
-        Integer value = ConvertHelper.toInt(vars.get(name), err -> new NopException(err).param(ARG_VAR_NAME, name));
-        if (value == null)
-            value = defaultValue;
-        return value;
+    protected NopException newError(ErrorCode errorCode, ITaskRuntime taskRt) {
+        return TaskStepHelper.newError(this, errorCode, taskRt);
     }
 }

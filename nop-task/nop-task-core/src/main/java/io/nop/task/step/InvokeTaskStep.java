@@ -14,7 +14,7 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.ReflectionManager;
-import io.nop.task.ITaskContext;
+import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
 
@@ -49,7 +49,7 @@ public class InvokeTaskStep extends AbstractTaskStep {
     }
 
     @Override
-    protected TaskStepResult doExecute(ITaskStepState state, ITaskContext context) {
+    protected TaskStepResult doExecute(ITaskStepState state, ITaskRuntime taskRt) {
         IEvalScope scope = state.getEvalScope();
         Object bean = scope.getBeanProvider().getBean(beanName);
         Object[] args = new Object[argExprs.size()];

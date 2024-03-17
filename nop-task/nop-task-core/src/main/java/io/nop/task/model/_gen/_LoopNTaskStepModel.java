@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [156:14:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [161:14:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -39,10 +39,10 @@ public abstract class _LoopNTaskStepModel extends io.nop.task.model.TaskStepsMod
     
     /**
      *  
-     * xml name: step
+     * xml name: stepExpr
      * 
      */
-    private int _step  = 0;
+    private io.nop.core.lang.eval.IEvalAction _stepExpr ;
     
     /**
      *  
@@ -110,19 +110,19 @@ public abstract class _LoopNTaskStepModel extends io.nop.task.model.TaskStepsMod
     
     /**
      * 
-     * xml name: step
+     * xml name: stepExpr
      *  
      */
     
-    public int getStep(){
-      return _step;
+    public io.nop.core.lang.eval.IEvalAction getStepExpr(){
+      return _stepExpr;
     }
 
     
-    public void setStep(int value){
+    public void setStepExpr(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
-        this._step = value;
+        this._stepExpr = value;
            
     }
 
@@ -164,7 +164,7 @@ public abstract class _LoopNTaskStepModel extends io.nop.task.model.TaskStepsMod
         out.putNotNull("beginExpr",this.getBeginExpr());
         out.putNotNull("endExpr",this.getEndExpr());
         out.putNotNull("index",this.getIndex());
-        out.putNotNull("step",this.getStep());
+        out.putNotNull("stepExpr",this.getStepExpr());
         out.putNotNull("var",this.getVar());
     }
 
@@ -180,7 +180,7 @@ public abstract class _LoopNTaskStepModel extends io.nop.task.model.TaskStepsMod
         instance.setBeginExpr(this.getBeginExpr());
         instance.setEndExpr(this.getEndExpr());
         instance.setIndex(this.getIndex());
-        instance.setStep(this.getStep());
+        instance.setStepExpr(this.getStepExpr());
         instance.setVar(this.getVar());
     }
 

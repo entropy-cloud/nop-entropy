@@ -7,7 +7,7 @@
  */
 package io.nop.task.step;
 
-import io.nop.task.ITaskContext;
+import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
@@ -31,7 +31,7 @@ public class WrapTaskStep extends AbstractTaskStep {
     }
 
     @Override
-    protected TaskStepResult doExecute(ITaskStepState state, ITaskContext context) {
-        return step.execute(state.getRunId(), state, context);
+    protected TaskStepResult doExecute(ITaskStepState state, ITaskRuntime taskRt) {
+        return step.execute(state.getRunId(), state, null, taskRt);
     }
 }
