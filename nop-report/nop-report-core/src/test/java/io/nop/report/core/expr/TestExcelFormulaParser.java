@@ -47,7 +47,7 @@ public class TestExcelFormulaParser {
     public void testOR() {
 
         EvalCodeWithAst code = ExcelFormulaParser.parseFormula(null, "IF(OR(D12=\"AA\",D12=\"BB\"),AVERAGE(G12),SUM(G12))", XLang.newCompileTool());
-        String expr = code.getExpr().toExprString();
+        String expr = code.getAst().toExprString();
         System.out.println("expr=" + expr);
         assertEquals("IF(OR(D12?.value == \"AA\",D12?.value == \"BB\"),AVERAGE(G12),SUM(G12))", expr);
 
@@ -58,7 +58,7 @@ public class TestExcelFormulaParser {
         table.makeRow(0).setFirstCell(cell);
         cell.setRow(table.makeRow(0));
 
-        String expanded = new ReportFormulaGenerator(xptRt.getEvalScope()).toExprString(code.getExpr());
+        String expanded = new ReportFormulaGenerator(xptRt.getEvalScope()).toExprString(code.getAst());
         System.out.println(expanded);
     }
 

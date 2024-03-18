@@ -10,6 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.ExitMode;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
@@ -53,36 +54,36 @@ public class ForExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         if (initExpr != null)
-            executor.execute(initExpr, scope);
+            executor.execute(initExpr, rt);
 
-        while (passTest(executor, scope)) {
-            Object ret = executor.execute(bodyExpr, scope);
+        while (passTest(executor, rt)) {
+            Object ret = executor.execute(bodyExpr, rt);
 
-            ExitMode exitMode = scope.getExitMode();
+            ExitMode exitMode = rt.getExitMode();
             if (exitMode != null) {
                 if (exitMode == ExitMode.RETURN)
                     return ret;
-                scope.setExitMode(null);
+                rt.setExitMode(null);
                 if (exitMode == ExitMode.BREAK) {
                     break;
                 }
             }
 
             if (updateExpr != null) {
-                executor.execute(updateExpr, scope);
+                executor.execute(updateExpr, rt);
             }
         }
 
         return null;
     }
 
-    protected boolean passTest(IExpressionExecutor executor, IEvalScope scope) {
+    protected boolean passTest(IExpressionExecutor executor, EvalRuntime rt) {
         if (testExpr == null)
             return true;
 
-        return ConvertHelper.toTruthy(executor.execute(testExpr, scope));
+        return ConvertHelper.toTruthy(executor.execute(testExpr, rt));
     }
 
     static class SimpleForExecutable extends ForExecutable {
@@ -101,14 +102,14 @@ public class ForExecutable extends AbstractExecutable {
         }
 
         @Override
-        public Object execute(IExpressionExecutor executor, IEvalScope scope) {
+        public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
             if (initExpr != null)
-                executor.execute(initExpr, scope);
+                executor.execute(initExpr, rt);
 
-            while (passTest(executor, scope)) {
-                executor.execute(bodyExpr, scope);
+            while (passTest(executor, rt)) {
+                executor.execute(bodyExpr, rt);
                 if (updateExpr != null) {
-                    executor.execute(updateExpr, scope);
+                    executor.execute(updateExpr, rt);
                 }
             }
 

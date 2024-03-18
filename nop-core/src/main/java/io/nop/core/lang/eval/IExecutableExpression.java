@@ -12,7 +12,7 @@ import io.nop.api.core.util.ISourceLocationGetter;
 /**
  * 根据XLang抽象语法树编译得到的可执行对象
  */
-public interface IExecutableExpression extends ISourceLocationGetter{
+public interface IExecutableExpression extends ISourceLocationGetter {
     IExecutableExpression[] EMPTY_EXPRS = new IExecutableExpression[0];
 
     default String display() {
@@ -41,5 +41,5 @@ public interface IExecutableExpression extends ISourceLocationGetter{
         return !containsReturnStatement() && !containsBreakStatement();
     }
 
-    Object execute(IExpressionExecutor executor, IEvalScope scope);
+    Object execute(IExpressionExecutor executor, EvalRuntime rt);
 }

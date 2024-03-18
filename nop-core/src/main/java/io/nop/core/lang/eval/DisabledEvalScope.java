@@ -23,10 +23,6 @@ import static io.nop.core.CoreErrors.ERR_EVAL_DISABLED_EVAL_SCOPE;
 public final class DisabledEvalScope implements IEvalScope {
     public static final DisabledEvalScope INSTANCE = new DisabledEvalScope();
 
-    @Override
-    public EvalFrame getCurrentFrame() {
-        throw new NopEvalException(ERR_EVAL_DISABLED_EVAL_SCOPE);
-    }
 
     @Override
     public IBeanProvider getBeanProvider() {
@@ -49,16 +45,6 @@ public final class DisabledEvalScope implements IEvalScope {
     }
 
     @Override
-    public IEvalOutput getOut() {
-        throw new NopEvalException(ERR_EVAL_DISABLED_EVAL_SCOPE);
-    }
-
-    @Override
-    public void setOut(IEvalOutput out) {
-        throw new NopEvalException(ERR_EVAL_DISABLED_EVAL_SCOPE);
-    }
-
-    @Override
     public void setExtension(IVariableScope extension) {
         throw new NopEvalException(ERR_EVAL_DISABLED_EVAL_SCOPE);
     }
@@ -74,7 +60,7 @@ public final class DisabledEvalScope implements IEvalScope {
     }
 
     @Override
-    public IEvalScope newChildScope(boolean inheritParentVars, boolean inheritParentOut, boolean threadSafe) {
+    public IEvalScope newChildScope(boolean inheritParentVars, boolean threadSafe) {
         throw new NopEvalException(ERR_EVAL_DISABLED_EVAL_SCOPE);
     }
 
@@ -134,11 +120,6 @@ public final class DisabledEvalScope implements IEvalScope {
     }
 
     @Override
-    public IEvalScope duplicate() {
-        return this;
-    }
-
-    @Override
     public void removeLocalValue(String name) {
         throw new NopEvalException(ERR_EVAL_DISABLED_EVAL_SCOPE);
     }
@@ -148,33 +129,4 @@ public final class DisabledEvalScope implements IEvalScope {
         throw new NopEvalException(ERR_EVAL_DISABLED_EVAL_SCOPE);
     }
 
-    @Override
-    public ExitMode getExitMode() {
-        return null;
-    }
-
-    @Override
-    public void setExitMode(ExitMode exitMode) {
-        throw new NopEvalException(ERR_EVAL_DISABLED_EVAL_SCOPE);
-    }
-
-    @Override
-    public void pushFrame(EvalFrame frame) {
-
-    }
-
-    @Override
-    public void popFrame() {
-
-    }
-
-    @Override
-    public IExpressionExecutor getExpressionExecutor() {
-        return DefaultExpressionExecutor.INSTANCE;
-    }
-
-    @Override
-    public void setExpressionExecutor(IExpressionExecutor executor) {
-
-    }
 }

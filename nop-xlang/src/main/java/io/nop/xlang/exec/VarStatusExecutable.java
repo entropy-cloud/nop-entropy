@@ -12,7 +12,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.collections.iterator.LoopVarStatus;
 import io.nop.commons.util.CollectionHelper;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -45,14 +45,14 @@ public class VarStatusExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object items = executor.execute(itemsExpr, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object items = executor.execute(itemsExpr, rt);
         if (items == null)
             return null;
 
         Iterator<Object> it = toIterator(items);
         LoopVarStatus vs = new LoopVarStatus(it, true);
-        scope.getCurrentFrame().setStackValue(varStatusSlot, vs);
+        rt.getCurrentFrame().setStackValue(varStatusSlot, vs);
         return vs;
     }
 

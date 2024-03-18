@@ -161,6 +161,7 @@ import io.nop.xlang.exec.GuardNotNullExecutable;
 import io.nop.xlang.exec.ISeqExecutable;
 import io.nop.xlang.exec.IfExecutable;
 import io.nop.xlang.exec.InstanceOfExecutable;
+import io.nop.xlang.exec.LazyCompiledExecutableFunction;
 import io.nop.xlang.exec.ListItemExecutable;
 import io.nop.xlang.exec.LiteralExecutable;
 import io.nop.xlang.exec.MapItemExecutable;
@@ -211,6 +212,7 @@ import io.nop.xlang.exec.VarFunctionExecutable;
 import io.nop.xlang.exec.WhileExecutable;
 import io.nop.xlang.scope.LexicalScope;
 import io.nop.xlang.xpl.output.OutputParseHelper;
+import io.nop.xlang.xpl.xlib.XplLibTagCompiler;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1219,6 +1221,12 @@ public class BuildExecutableProcessor extends XLangASTProcessor<IExecutableExpre
         if (id.getResolvedDefinition() instanceof ResolvedFuncDefinition) {
             IFunctionModel fn = ((ResolvedFuncDefinition) id.getResolvedDefinition()).getFunctionModel();
             argExprs = normalizeArgExprs(node, fn, argExprs);
+            if (fn.getInvoker() instanceof ExecutableFunction) {
+                return ((ExecutableFunction) fn.getInvoker()).withArgs(id.getLocation(), argExprs);
+            } else if (fn.getInvoker() instanceof XplLibTagCompiler.LazyCompiledFunction) {
+                return new LazyCompiledExecutableFunction(id.getLocation(), id.getName(),
+                        argExprs, (XplLibTagCompiler.LazyCompiledFunction) fn.getInvoker());
+            }
             return FunctionExecutable.build(node.getLocation(), id.getName(), fn, argExprs);
         } else if (id.getIdentifierKind() == IdentifierKind.FUNC_REF) {
             LocalVarDeclaration func = (LocalVarDeclaration) id.getResolvedDefinition();
@@ -1522,7 +1530,7 @@ public class BuildExecutableProcessor extends XLangASTProcessor<IExecutableExpre
         if (node.getOutputMode() == XLangOutputMode.xjson) {
             return new GenXJsonExecutable(bodyExpr);
         }
-        if(node.getOutputMode() == XLangOutputMode.sql){
+        if (node.getOutputMode() == XLangOutputMode.sql) {
             return new CollectSqlExecutable(bodyExpr);
         }
         return new CollectTextExecutable(node.getLocation(), bodyExpr);

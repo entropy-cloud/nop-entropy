@@ -9,7 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalFrame;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -39,8 +39,8 @@ public class BuildClosureBodyExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        EvalFrame frame = scope.getCurrentFrame();
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        EvalFrame frame = rt.getCurrentFrame();
         Object[] vars = new Object[sourceSlots.length];
         for (int i = 0, n = sourceSlots.length; i < n; i++) {
             int closureSlot = sourceSlots[i];

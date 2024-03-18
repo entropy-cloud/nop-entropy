@@ -8,7 +8,7 @@
 package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -25,9 +25,9 @@ public class SlotAssignExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object v = executor.execute(expr, scope);
-        scope.getCurrentFrame().setStackValue(slot, v);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object v = executor.execute(expr, rt);
+        rt.getCurrentFrame().setStackValue(slot, v);
         return v;
     }
 

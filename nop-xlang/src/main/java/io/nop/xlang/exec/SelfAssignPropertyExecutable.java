@@ -10,7 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.objects.Pair;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.reflect.IPropertyGetter;
@@ -54,24 +54,24 @@ public class SelfAssignPropertyExecutable extends AbstractPropertyExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object o = executor.execute(objExpr, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object o = executor.execute(objExpr, rt);
         if (o == null) {
             throw newError(ERR_EXEC_WRITE_PROP_OBJ_NULL);
         }
 
-        Object value = executor.execute(valueExpr, scope);
+        Object value = executor.execute(valueExpr, rt);
 
         Class<?> clazz = o.getClass();
         IPropertyGetter getter = getGetterWithCache(clazz, o);
-        Object oldValue = readProp(o, getter, scope);
+        Object oldValue = readProp(o, getter, rt.getScope());
         if (oldValue == null)
             throw newError(ERR_EXEC_OBJ_PROP_IS_NULL).param(ARG_PROP_NAME, getPropName());
 
         Object newValue = selfAssignValue(operator, oldValue, value);
         IPropertySetter setter = getSetterWithCache(clazz);
 
-        setProp(o, newValue, setter, scope);
+        setProp(o, newValue, setter, rt.getScope());
         return newValue;
     }
 

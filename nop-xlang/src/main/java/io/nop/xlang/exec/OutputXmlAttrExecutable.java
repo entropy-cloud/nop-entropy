@@ -10,8 +10,8 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalOutput;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -38,11 +38,11 @@ public class OutputXmlAttrExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object v = executor.execute(value, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object v = executor.execute(value, rt);
         if (v == null)
             return null;
-        IEvalOutput out = scope.getOut();
+        IEvalOutput out = rt.getOut();
         SourceLocation loc = getLocation();
         out.text(null, " ");
         out.text(null, name);

@@ -8,8 +8,8 @@
 package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalFunction;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.lang.eval.functions.EvalFunctionalAdapter;
 
@@ -31,7 +31,7 @@ public class FunctionalAdapterExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        return new EvalFunctionalAdapter(getLocation(), function, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        return new EvalFunctionalAdapter(getLocation(), function, rt.getScope());
     }
 }

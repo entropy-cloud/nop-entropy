@@ -233,7 +233,7 @@ public class XLangCompileTool {
         ExprEvalAction action = compileTagBody(node, outputMode);
         if (action == null)
             return null;
-        return new EvalCode(action, node.xml());
+        return new EvalCode(action.getExpr(), node.xml());
     }
 
     private Program toProgram(Expression expr) {

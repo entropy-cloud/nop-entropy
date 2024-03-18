@@ -8,6 +8,7 @@
 package io.nop.xlang.api;
 
 import io.nop.core.context.IEvalContext;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.reflect.IFunctionModel;
 
 public class FunctionEvalAction extends AbstractEvalAction {
@@ -21,5 +22,11 @@ public class FunctionEvalAction extends AbstractEvalAction {
     public Object invoke(IEvalContext ctx) {
         Object[] argValues = function.buildArgValuesFromScope(ctx.getEvalScope());
         return function.invoke(null, argValues, ctx.getEvalScope());
+    }
+
+    @Override
+    protected Object doInvoke(EvalRuntime rt) {
+        Object[] argValues = function.buildArgValuesFromScope(rt.getScope());
+        return function.invoke(null, argValues, rt.getScope());
     }
 }

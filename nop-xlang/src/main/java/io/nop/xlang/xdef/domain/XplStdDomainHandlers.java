@@ -583,7 +583,7 @@ public class XplStdDomainHandlers {
             if (configText != null) {
                 code = configText + '\n' + code;
             }
-            return new EvalCode(action, code);
+            return new EvalCode(action.getExpr(), code);
         }
 
         @Override
@@ -597,7 +597,7 @@ public class XplStdDomainHandlers {
             if (configText != null) {
                 code = configText + '\n' + code;
             }
-            return new EvalCode(action, code);
+            return new EvalCode(action.getExpr(), code);
         }
 
         protected NopException newPropError(SourceLocation loc, String propName, String text) {

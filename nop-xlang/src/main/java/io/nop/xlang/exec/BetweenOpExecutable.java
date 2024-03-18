@@ -10,6 +10,8 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.context.IEvalContext;
+import io.nop.core.lang.eval.EvalExprProvider;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
@@ -60,20 +62,21 @@ public class BetweenOpExecutable extends AbstractExecutable implements IEvalPred
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object value = executor.execute(valueExpr, scope);
-        Object minValue = executor.execute(minExpr, scope);
-        Object maxValue = executor.execute(maxExpr, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object value = executor.execute(valueExpr, rt);
+        Object minValue = executor.execute(minExpr, rt);
+        Object maxValue = executor.execute(maxExpr, rt);
         return predicate.test(value, minValue, maxValue, excludeMin, excludeMax);
     }
 
     @Override
     public boolean passConditions(IEvalContext ctx) {
         IEvalScope scope = ctx.getEvalScope();
-        IExpressionExecutor executor = scope.getExpressionExecutor();
-        Object value = executor.execute(valueExpr, scope);
-        Object minValue = executor.execute(minExpr, scope);
-        Object maxValue = executor.execute(maxExpr, scope);
+        IExpressionExecutor executor = EvalExprProvider.getGlobalExecutor();
+        EvalRuntime rt = new EvalRuntime(scope);
+        Object value = executor.execute(valueExpr, rt);
+        Object minValue = executor.execute(minExpr, rt);
+        Object maxValue = executor.execute(maxExpr, rt);
         return predicate.test(value, minValue, maxValue, excludeMin, excludeMax);
     }
 }

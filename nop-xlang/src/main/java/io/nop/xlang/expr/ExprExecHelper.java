@@ -9,11 +9,11 @@ package io.nop.xlang.expr;
 
 import io.nop.core.lang.eval.EvalFrame;
 import io.nop.core.lang.eval.EvalReference;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 
 public class ExprExecHelper {
-    public static Object getVar(IEvalScope scope, String varName) {
-        EvalFrame frame = scope.getCurrentFrame();
+    public static Object getVar(EvalRuntime rt, String varName) {
+        EvalFrame frame = rt.getCurrentFrame();
 
         if (frame != null) {
             int stackSize = frame.getStackSize();
@@ -23,6 +23,6 @@ public class ExprExecHelper {
                 }
             }
         }
-        return scope.getValue(varName);
+        return rt.getValue(varName);
     }
 }

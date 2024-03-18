@@ -7,7 +7,7 @@
  */
 package io.nop.xlang.exec;
 
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.xlang.utils.ExprEvalHelper;
@@ -32,7 +32,7 @@ public class CollectSqlExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        return ExprEvalHelper.generateSql(ctx -> bodyExpr.execute(executor, scope), scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        return ExprEvalHelper.generateSql(ctx -> bodyExpr.execute(executor, rt), rt);
     }
 }

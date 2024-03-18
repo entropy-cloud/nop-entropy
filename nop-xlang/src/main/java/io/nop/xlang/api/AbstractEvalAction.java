@@ -9,6 +9,7 @@ package io.nop.xlang.api;
 
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.core.context.IEvalContext;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.sql.ISqlGenerator;
@@ -30,20 +31,22 @@ public abstract class AbstractEvalAction
 
     @Override
     public void generateToWriter(Writer out, IEvalContext context) {
-        ExprEvalHelper.generateToWriter(this::invoke, out, context);
+        ExprEvalHelper.generateToWriter(this::doInvoke, out, new EvalRuntime(context.getEvalScope()));
     }
 
     public Object generateXjson(IEvalContext context) {
-        return ExprEvalHelper.generateXjson(this::invoke, context);
+        return ExprEvalHelper.generateXjson(this::doInvoke, new EvalRuntime(context.getEvalScope()));
     }
 
     @Override
     public SQL generateSql(IEvalContext context) {
-        return ExprEvalHelper.generateSql(this::invoke, context);
+        return ExprEvalHelper.generateSql(this::doInvoke, new EvalRuntime(context.getEvalScope()));
     }
 
     @Override
     public XNode generateNode(IEvalContext context) {
-        return ExprEvalHelper.generateNode(this::invoke, context);
+        return ExprEvalHelper.generateNode(this::doInvoke, new EvalRuntime(context.getEvalScope()));
     }
+
+    protected abstract Object doInvoke(EvalRuntime rt);
 }

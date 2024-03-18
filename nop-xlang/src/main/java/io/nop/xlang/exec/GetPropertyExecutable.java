@@ -9,7 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.objects.Pair;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.reflect.IPropertyGetter;
@@ -54,8 +54,8 @@ public class GetPropertyExecutable extends AbstractPropertyExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object o = eval(objExpr, executor, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object o = eval(objExpr, executor, rt);
         if (o == null) {
             if (!optional)
                 throw newError(ERR_EXEC_GET_PROP_ON_NULL_OBJ)
@@ -65,7 +65,7 @@ public class GetPropertyExecutable extends AbstractPropertyExecutable {
 
         IPropertyGetter reader = getGetterWithCache(o);
 
-        return readProp(o, reader, scope);
+        return readProp(o, reader, rt.getScope());
     }
 
     private transient Pair<Class<?>, IPropertyGetter> _cacheGetter = Pair.of(null, null);

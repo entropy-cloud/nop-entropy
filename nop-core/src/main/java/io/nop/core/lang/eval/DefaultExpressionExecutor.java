@@ -11,7 +11,7 @@ public final class DefaultExpressionExecutor implements IExpressionExecutor {
     public static final DefaultExpressionExecutor INSTANCE = new DefaultExpressionExecutor();
 
     @Override
-    public Object execute(IExecutableExpression expr, IEvalScope scope) {
-        return expr.execute(this, scope);
+    public Object execute(IExecutableExpression expr, EvalRuntime rt) {
+        return expr.execute(this, rt);
     }
 }

@@ -8,8 +8,8 @@
 package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.ExitMode;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 public class BreakExecutable extends AbstractExecutable {
@@ -22,8 +22,8 @@ public class BreakExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        scope.setExitMode(ExitMode.BREAK);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        rt.setExitMode(ExitMode.BREAK);
         return null;
     }
 

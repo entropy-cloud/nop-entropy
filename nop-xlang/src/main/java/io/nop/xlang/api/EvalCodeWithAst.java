@@ -7,19 +7,19 @@
  */
 package io.nop.xlang.api;
 
-import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.XLangASTHelper;
 
 public class EvalCodeWithAst extends EvalCode {
-    private final Expression expr;
+    private final Expression ast;
 
-    public EvalCodeWithAst(Expression expr, String code, IEvalAction action) {
-        super(expr.getLocation(), code, action);
-        this.expr = XLangASTHelper.getDetachedExpr(expr);
+    public EvalCodeWithAst(IExecutableExpression action, String code, Expression ast) {
+        super(action, code);
+        this.ast = XLangASTHelper.getDetachedExpr(ast);
     }
 
-    public Expression getExpr() {
-        return expr;
+    public Expression getAst() {
+        return ast;
     }
 }

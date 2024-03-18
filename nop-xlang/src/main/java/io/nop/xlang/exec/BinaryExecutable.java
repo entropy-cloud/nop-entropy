@@ -9,7 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.xlang.ast.XLangOperator;
@@ -76,9 +76,9 @@ public class BinaryExecutable extends AbstractBinaryExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object v1 = executor.execute(left, scope);
-        Object v2 = executor.execute(right, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object v1 = executor.execute(left, rt);
+        Object v2 = executor.execute(right, rt);
 
         return EvalHelper.binaryOp(operator, v1, v2);
     }

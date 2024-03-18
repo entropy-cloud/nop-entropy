@@ -10,7 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalFrame;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -51,14 +51,14 @@ public class CallFuncWithClosureExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        EvalFrame current = scope.getCurrentFrame();
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        EvalFrame current = rt.getCurrentFrame();
         EvalFrame frame = new EvalFrame(current, slotNames);
         frame.setDisplayInfo(getLocation(), funcName);
 
         // 这里需要确保argExpr个数与函数定义时的参数个数一致
         for (int i = 0, n = argExprs.length; i < n; i++) {
-            Object arg = executor.execute(argExprs[i], scope);
+            Object arg = executor.execute(argExprs[i], rt);
             frame.setArg(i, arg);
         }
 
@@ -69,16 +69,16 @@ public class CallFuncWithClosureExecutable extends AbstractExecutable {
         }
 
         try {
-            scope.pushFrame(frame);
-            return executor.execute(bodyExpr, scope);
+            rt.pushFrame(frame);
+            return executor.execute(bodyExpr, rt);
         } catch (NopException e) {
             e.addXplStack(this);
             throw e;
         } catch (Exception e) {
             throw newError(ERR_EXEC_CALL_FUNC_FAIL, e).forWrap();
         } finally {
-            scope.setExitMode(null);
-            scope.popFrame();
+            rt.setExitMode(null);
+            rt.popFrame();
         }
     }
 }

@@ -10,7 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalFrame;
 import io.nop.core.lang.eval.EvalReference;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 /**
@@ -37,8 +37,8 @@ public class RenewReferenceExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        EvalFrame frame = scope.getCurrentFrame();
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        EvalFrame frame = rt.getCurrentFrame();
         EvalReference ref = frame.getRef(slot);
         if (ref != null) {
             ref = new EvalReference(ref.getValue());

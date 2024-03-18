@@ -9,8 +9,8 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.CoreConstants;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalOutput;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.lang.xml.XNode;
@@ -42,16 +42,16 @@ public class CollectNodeExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        IEvalOutput oldOut = scope.getOut();
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        IEvalOutput oldOut = rt.getOut();
         CollectXNodeHandler out = new CollectXNodeHandler();
-        scope.setOut(out);
+        rt.setOut(out);
         try {
             out.beginNode(getLocation(), CoreConstants.DUMMY_TAG_NAME, Collections.emptyMap());
-            bodyExpr.execute(executor, scope);
+            bodyExpr.execute(executor, rt);
             out.endNode(CoreConstants.DUMMY_TAG_NAME);
         } finally {
-            scope.setOut(oldOut);
+            rt.setOut(oldOut);
         }
         XNode node = out.endDoc();
         if (singleNode) {

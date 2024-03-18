@@ -9,6 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.ExitMode;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
@@ -47,29 +48,29 @@ public class DoWhileExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         do {
-            Object ret = executor.execute(bodyExpr, scope);
+            Object ret = executor.execute(bodyExpr, rt);
 
-            ExitMode exitMode = scope.getExitMode();
+            ExitMode exitMode = rt.getExitMode();
             if (exitMode != null) {
                 if (exitMode == ExitMode.RETURN)
                     return ret;
-                scope.setExitMode(null);
+                rt.setExitMode(null);
                 if (exitMode == ExitMode.BREAK) {
                     break;
                 }
             }
 
-        } while (passTest(executor, scope));
+        } while (passTest(executor, rt));
         return null;
     }
 
-    protected boolean passTest(IExpressionExecutor executor, IEvalScope scope) {
+    protected boolean passTest(IExpressionExecutor executor, EvalRuntime rt) {
         if (testExpr == null)
             return true;
 
-        return ConvertHelper.toTruthy(executor.execute(testExpr, scope));
+        return ConvertHelper.toTruthy(executor.execute(testExpr, rt));
     }
 
     static class SimpleDoWhileExecutable extends DoWhileExecutable {
@@ -88,10 +89,10 @@ public class DoWhileExecutable extends AbstractExecutable {
         }
 
         @Override
-        public Object execute(IExpressionExecutor executor, IEvalScope scope) {
+        public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
             do {
-                executor.execute(bodyExpr, scope);
-            } while (passTest(executor, scope));
+                executor.execute(bodyExpr, rt);
+            } while (passTest(executor, rt));
             return null;
         }
     }

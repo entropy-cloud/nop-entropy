@@ -9,6 +9,7 @@ package io.nop.xlang.xpl.tags;
 
 import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.xml.XNode;
 import io.nop.xlang.api.IXLangCompileScope;
@@ -51,7 +52,7 @@ public class MacroScriptTagCompiler implements IXplTagCompiler {
             prog.setMacroScript(true);
 
             IExecutableExpression executable = cp.buildExecutable(prog, false, scope);
-            ScopeValues scopeValues = (ScopeValues) XLang.execute(executable, scope);
+            ScopeValues scopeValues = (ScopeValues) XLang.execute(executable, new EvalRuntime(scope));
             List<LocalVarDeclaration> varDecls = scopeValues.getVarDecls();
             List<Object> values = scopeValues.getValues();
             for (int i = 0, n = varDecls.size(); i < n; i++) {

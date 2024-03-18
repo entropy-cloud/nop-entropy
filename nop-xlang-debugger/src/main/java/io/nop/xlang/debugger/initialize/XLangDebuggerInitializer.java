@@ -16,7 +16,7 @@ import io.nop.api.debugger.ThreadInfo;
 import io.nop.core.initialize.ICoreInitializer;
 import io.nop.core.lang.eval.DefaultExpressionExecutor;
 import io.nop.core.lang.eval.EvalExprProvider;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.rpc.core.RpcConstants;
 import io.nop.rpc.simple.SimpleRpcServer;
 import io.nop.socket.ServerConfig;
@@ -118,27 +118,27 @@ public class XLangDebuggerInitializer implements ICoreInitializer {
         }
 
         @Override
-        public void notifySuspend(SuspendedThread thread, SourceLocation loc, IEvalScope scope) {
+        public void notifySuspend(SuspendedThread thread, SourceLocation loc, EvalRuntime rt) {
             sendStack(thread, "suspend");
         }
 
         @Override
-        public void notifyStepInto(SuspendedThread thread, SourceLocation loc, IEvalScope scope) {
+        public void notifyStepInto(SuspendedThread thread, SourceLocation loc, EvalRuntime rt) {
             sendStack(thread, "stepInto");
         }
 
         @Override
-        public void notifyStepOver(SuspendedThread thread, SourceLocation loc, IEvalScope scope) {
+        public void notifyStepOver(SuspendedThread thread, SourceLocation loc, EvalRuntime rt) {
             sendStack(thread, "stepOver");
         }
 
         @Override
-        public void notifyStepOut(SuspendedThread thread, SourceLocation loc, IEvalScope scope) {
+        public void notifyStepOut(SuspendedThread thread, SourceLocation loc, EvalRuntime rt) {
             sendStack(thread, "stepOut");
         }
 
         @Override
-        public void notifyBreakAt(SuspendedThread thread, SourceLocation loc, IEvalScope scope) {
+        public void notifyBreakAt(SuspendedThread thread, SourceLocation loc, EvalRuntime rt) {
             sendStack(thread, "breakAt");
         }
     }

@@ -9,7 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.reflect.IFunctionModel;
@@ -45,13 +45,13 @@ public class StaticFunctionExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object[] argValues = evaluateArgs(argExprs, executor, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object[] argValues = evaluateArgs(argExprs, executor, rt);
         IFunctionModel fn = methodCollection.getMethodForArgValues(argValues);
         if (fn == null) {
             throw newError(ERR_EXEC_OBJ_UNKNOWN_METHOD).param(ARG_CLASS_NAME, className)
                     .param(ARG_METHOD_NAME, funcName).param(ARG_ARG_COUNT, argExprs.length);
         }
-        return fn.invoke(null, argValues, scope);
+        return fn.invoke(null, argValues, rt.getScope());
     }
 }

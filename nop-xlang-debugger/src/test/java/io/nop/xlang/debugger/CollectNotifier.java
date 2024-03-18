@@ -8,7 +8,7 @@
 package io.nop.xlang.debugger;
 
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -31,27 +31,27 @@ public class CollectNotifier implements IDebugNotifier {
     }
 
     @Override
-    public void notifySuspend(SuspendedThread thread, SourceLocation loc, IEvalScope scope) {
+    public void notifySuspend(SuspendedThread thread, SourceLocation loc, EvalRuntime rt) {
         messages.add("suspend:" + loc);
     }
 
     @Override
-    public void notifyStepInto(SuspendedThread thread, SourceLocation loc, IEvalScope scope) {
+    public void notifyStepInto(SuspendedThread thread, SourceLocation loc, EvalRuntime rt) {
         messages.add("stepInto:" + loc);
     }
 
     @Override
-    public void notifyStepOver(SuspendedThread thread, SourceLocation loc, IEvalScope scope) {
+    public void notifyStepOver(SuspendedThread thread, SourceLocation loc, EvalRuntime rt) {
         messages.add("stepOver:" + loc);
     }
 
     @Override
-    public void notifyStepOut(SuspendedThread thread, SourceLocation loc, IEvalScope scope) {
+    public void notifyStepOut(SuspendedThread thread, SourceLocation loc, EvalRuntime rt) {
         messages.add("stepOut:" + loc);
     }
 
     @Override
-    public void notifyBreakAt(SuspendedThread thread, SourceLocation loc, IEvalScope scope) {
+    public void notifyBreakAt(SuspendedThread thread, SourceLocation loc, EvalRuntime rt) {
         messages.add("break:" + loc);
     }
 }

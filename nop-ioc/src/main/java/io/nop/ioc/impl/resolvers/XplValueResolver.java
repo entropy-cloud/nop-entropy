@@ -34,6 +34,6 @@ public class XplValueResolver implements IBeanPropValueResolver {
 
     @Override
     public Object resolveValue(IBeanContainerImplementor container, IBeanScope scope) {
-        return code.getAction();
+        return code;
     }
 }

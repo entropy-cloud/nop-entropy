@@ -8,20 +8,20 @@
 package io.nop.xlang.debugger;
 
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 
 public interface IDebugNotifier {
     void notifyWarn(String message, Object... args);
 
     void notifyLog(SuspendedThread thread, String sourcePath, int line, String message);
 
-    void notifySuspend(SuspendedThread thread, SourceLocation loc, IEvalScope scope);
+    void notifySuspend(SuspendedThread thread, SourceLocation loc, EvalRuntime rt);
 
-    void notifyStepInto(SuspendedThread thread, SourceLocation loc, IEvalScope scope);
+    void notifyStepInto(SuspendedThread thread, SourceLocation loc, EvalRuntime rt);
 
-    void notifyStepOver(SuspendedThread thread, SourceLocation loc, IEvalScope scope);
+    void notifyStepOver(SuspendedThread thread, SourceLocation loc, EvalRuntime rt);
 
-    void notifyStepOut(SuspendedThread thread, SourceLocation loc, IEvalScope scope);
+    void notifyStepOut(SuspendedThread thread, SourceLocation loc, EvalRuntime rt);
 
-    void notifyBreakAt(SuspendedThread thread, SourceLocation loc, IEvalScope scope);
+    void notifyBreakAt(SuspendedThread thread, SourceLocation loc, EvalRuntime rt);
 }

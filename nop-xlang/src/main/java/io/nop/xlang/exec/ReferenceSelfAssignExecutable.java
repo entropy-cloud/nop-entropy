@@ -9,7 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalReference;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.xlang.ast.XLangOperator;
@@ -32,12 +32,12 @@ public class ReferenceSelfAssignExecutable extends AbstractSelfAssignExecutable 
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        EvalReference ref = scope.getCurrentFrame().getRef(slot);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        EvalReference ref = rt.getCurrentFrame().getRef(slot);
         if (ref == null)
             throw newError(ERR_EXEC_IDENTIFIER_NOT_INITIALIZED).param(ARG_VAR_NAME, varName);
 
-        Object change = executor.execute(expr, scope);
+        Object change = executor.execute(expr, rt);
         Object newValue = selfAssignValue(operator, ref.getValue(), change);
         ref.setValue(newValue);
         return newValue;

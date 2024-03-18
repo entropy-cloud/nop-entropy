@@ -39,10 +39,6 @@ public interface IEvalScope extends IVariableScope, IEvalContext {
 
     void setClassModelLoader(IClassModelLoader classModelLoader);
 
-    IEvalOutput getOut();
-
-    void setOut(IEvalOutput out);
-
     void setExtension(IVariableScope extension);
 
     /**
@@ -55,26 +51,18 @@ public interface IEvalScope extends IVariableScope, IEvalContext {
     boolean isInheritParentVars();
 
     /**
-     * 共享同样的变量集合，但是使用不同的EvalFrame，一般用于并行执行
-     *
-     * @return 新建的scope
-     */
-    IEvalScope duplicate();
-
-    /**
      * 新建一个空的变量scope。为了便于维持scope内在限制，这里并没有传入vars参数
      *
      * @param inheritParentVars 新scope在查找变量未找到的时候，是否到父scope中查找
-     * @param inheritParentOut  新scope的out和outputStream是否继承父scope的
      * @return
      */
-    IEvalScope newChildScope(boolean inheritParentVars, boolean inheritParentOut, boolean threadSafe);
+    IEvalScope newChildScope(boolean inheritParentVars, boolean threadSafe);
 
     default IEvalScope newChildScope() {
-        return newChildScope(true, true, false);
+        return newChildScope(true, false);
     }
 
-    IEvalScope newChildScope(Map<String,Object> childVars);
+    IEvalScope newChildScope(Map<String, Object> childVars);
 
     Set<String> keySet();
 
@@ -152,31 +140,4 @@ public interface IEvalScope extends IVariableScope, IEvalContext {
      * 清空所有变量
      */
     void clear();
-
-    ExitMode getExitMode();
-
-    void setExitMode(ExitMode exitMode);
-
-    IExpressionExecutor getExpressionExecutor();
-
-    void setExpressionExecutor(IExpressionExecutor executor);
-
-    EvalFrame getCurrentFrame();
-
-    default EvalFrame getFrame(int frameIndex) {
-        if (frameIndex <= 0)
-            return getCurrentFrame();
-
-        EvalFrame frame = getCurrentFrame();
-        for (int i = 0; i < frameIndex; i++) {
-            frame = frame.getParentFrame();
-            if (frame == null)
-                return null;
-        }
-        return frame;
-    }
-
-    void pushFrame(EvalFrame frame);
-
-    void popFrame();
 }

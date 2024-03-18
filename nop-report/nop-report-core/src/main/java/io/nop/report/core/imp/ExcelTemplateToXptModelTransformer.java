@@ -38,7 +38,9 @@ import io.nop.report.core.XptConstants;
 import io.nop.report.core.build.XptConfigParseHelper;
 import io.nop.report.core.engine.IXptRuntime;
 import io.nop.report.core.util.ExcelReportHelper;
+import io.nop.xlang.api.EvalActionWithCode;
 import io.nop.xlang.api.EvalCode;
+import io.nop.xlang.api.ExprEvalAction;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.ast.XLangOutputMode;
@@ -180,9 +182,9 @@ public class ExcelTemplateToXptModelTransformer {
 
         private static IEvalAction getSheetNameExpr(String sheetVarName, String name) {
             String field = sheetVarName + '.' + name;
-            return new EvalCode(null, field, ctx -> {
+            return new EvalActionWithCode(ctx -> {
                 return ctx.getEvalScope().getValueByPropPath(field);
-            });
+            }, field);
         }
 
         @Override
@@ -428,22 +430,22 @@ public class ExcelTemplateToXptModelTransformer {
         }
 
         IEvalAction buildFormatExpr(SourceLocation loc, String formatExpr) {
-            IEvalAction expr = compileTool.compileFullExpr(loc, formatExpr);
+            ExprEvalAction expr = compileTool.compileFullExpr(loc, formatExpr);
             if (expr == null)
                 return null;
-            return new EvalCode(loc, formatExpr, expr);
+            return new EvalCode(expr.getExpr(), formatExpr);
         }
     }
 
     private static IEvalAction getExpandIndexAction() {
-        return new EvalCode(null, "cell.expandIndex+1", ctx -> {
+        return new EvalActionWithCode(ctx -> {
             return ((IXptRuntime) ctx).getCell().getExpandIndex() + 1;
-        });
+        }, "cell.expandIndex+1");
     }
 
     private static IEvalAction getExpandFieldAction(String name) {
-        return new EvalCode(null, "cell.getExpandField('" + name + "')", ctx -> {
+        return new EvalActionWithCode(ctx -> {
             return ((IXptRuntime) ctx).getCell().getExpandField(name);
-        });
+        }, "cell.getExpandField('" + name + "')");
     }
 }

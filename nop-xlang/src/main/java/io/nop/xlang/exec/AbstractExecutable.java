@@ -12,7 +12,7 @@ import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.MathHelper;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.reflect.bean.BeanTool;
@@ -76,23 +76,23 @@ public abstract class AbstractExecutable implements IExecutableExpression {
         sb.append(')');
     }
 
-    protected Object eval(IExecutableExpression expr, IExpressionExecutor executor, IEvalScope scope) {
+    protected Object eval(IExecutableExpression expr, IExpressionExecutor executor, EvalRuntime rt) {
         try {
-            return executor.execute(expr, scope);
+            return executor.execute(expr, rt);
         } catch (NopException e) {
             e.addXplStack(this);
             throw e;
         }
     }
 
-    protected Object[] evaluateArgs(IExecutableExpression[] argExprs, IExpressionExecutor executor, IEvalScope scope) {
+    protected Object[] evaluateArgs(IExecutableExpression[] argExprs, IExpressionExecutor executor, EvalRuntime rt) {
         Object[] argValues;
         if (argExprs.length == 0) {
             argValues = EMPTY_ARGS;
         } else {
             argValues = new Object[argExprs.length];
             for (int i = 0, n = argExprs.length; i < n; i++) {
-                argValues[i] = executor.execute(argExprs[i], scope);
+                argValues[i] = executor.execute(argExprs[i], rt);
             }
         }
         return argValues;

@@ -34,6 +34,6 @@ public class ExpressionValueResolver implements IBeanPropValueResolver {
 
     @Override
     public Object resolveValue(IBeanContainerImplementor container, IBeanScope scope) {
-        return action.invoke(scope.getEvalScope().duplicate());
+        return action.invoke(scope.getEvalScope());
     }
 }

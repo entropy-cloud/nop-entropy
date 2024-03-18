@@ -9,9 +9,8 @@ package io.nop.xlang.utils;
 
 import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.core.CoreConstants;
-import io.nop.core.context.IEvalContext;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalOutput;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.WriterEvalOutput;
 import io.nop.core.lang.sql.CollectSqlOutput;
@@ -32,51 +31,46 @@ import static io.nop.xlang.XLangErrors.ARG_VALUE;
 import static io.nop.xlang.XLangErrors.ERR_XPL_NOT_ALLOW_BOTH_RETURN_AND_OUTPUT_NODE;
 
 public class ExprEvalHelper {
-    public static void generateToWriter(Function<IEvalContext, ?> task, Writer out, IEvalContext context) {
-        IEvalScope scope = context.getEvalScope();
-        IEvalOutput oldOut = scope.getOut();
+    public static void generateToWriter(Function<EvalRuntime, ?> task, Writer out, EvalRuntime rt) {
+        IEvalOutput oldOut = rt.getOut();
         try {
-            scope.setOut(new WriterEvalOutput(out));
-            task.apply(context);
+            rt.setOut(new WriterEvalOutput(out));
+            task.apply(rt);
         } finally {
-            scope.setOut(oldOut);
+            rt.setOut(oldOut);
         }
     }
 
-    public static SQL generateSql(Function<IEvalContext, ?> task, IEvalContext context) {
-        IEvalScope scope = context.getEvalScope();
-        IEvalOutput oldOut = scope.getOut();
+    public static SQL generateSql(Function<EvalRuntime, ?> task, EvalRuntime rt) {
+        IEvalOutput oldOut = rt.getOut();
         try {
             CollectSqlOutput out = new CollectSqlOutput();
-            scope.setOut(out);
-            task.apply(context);
+            rt.setOut(out);
+            task.apply(rt);
             return out.getResult().end();
         } finally {
-            scope.setOut(oldOut);
+            rt.setOut(oldOut);
         }
     }
 
-    public static SQL.SqlBuilder generateSqlBuilder(Function<IEvalContext, ?> task, IEvalContext context) {
-        IEvalScope scope = context.getEvalScope();
-        IEvalOutput oldOut = scope.getOut();
+    public static SQL.SqlBuilder generateSqlBuilder(Function<EvalRuntime, ?> task, EvalRuntime rt) {
+        IEvalOutput oldOut = rt.getOut();
         try {
             CollectSqlOutput out = new CollectSqlOutput();
-            scope.setOut(out);
-            task.apply(context);
+            rt.setOut(out);
+            task.apply(rt);
             return out.getResult();
         } finally {
-            scope.setOut(oldOut);
+            rt.setOut(oldOut);
         }
     }
 
-    public static Object generateXjson(Function<IEvalContext, ?> task, IEvalContext context) {
-        IEvalScope scope = context.getEvalScope();
-
-        IEvalOutput oldOut = scope.getOut();
+    public static Object generateXjson(Function<EvalRuntime, ?> task, EvalRuntime rt) {
+        IEvalOutput oldOut = rt.getOut();
         CollectJObjectHandler handler = new CollectJObjectHandler();
         try {
-            scope.setOut(handler);
-            Object ret = task.apply(context);
+            rt.setOut(handler);
+            Object ret = task.apply(rt);
 
             Object result = handler.getResult();
             if (result != null) {
@@ -89,19 +83,17 @@ public class ExprEvalHelper {
                 return ret;
             }
         } finally {
-            scope.setOut(oldOut);
+            rt.setOut(oldOut);
         }
     }
 
-    public static XNode generateNode(Function<IEvalContext, ?> task, IEvalContext context) {
-        IEvalScope scope = context.getEvalScope();
-
-        IEvalOutput oldOut = scope.getOut();
+    public static XNode generateNode(Function<EvalRuntime, ?> task, EvalRuntime rt) {
+        IEvalOutput oldOut = rt.getOut();
         CollectXNodeHandler handler = new CollectXNodeHandler();
         try {
             handler.beginNode(null, CoreConstants.DUMMY_TAG_NAME, Collections.emptyMap());
-            scope.setOut(handler);
-            Object ret = task.apply(context);
+            rt.setOut(handler);
+            Object ret = task.apply(rt);
 
             handler.endNode(CoreConstants.DUMMY_TAG_NAME);
 
@@ -117,41 +109,36 @@ public class ExprEvalHelper {
                 return node;
             }
         } finally {
-            scope.setOut(oldOut);
+            rt.setOut(oldOut);
         }
     }
 
     public static Expression runMacroExpression(Expression expr, IXLangCompileScope scope, boolean dump) {
         IExecutableExpression executable = scope.getCompiler().buildExecutable(expr, false, scope);
 
-        IEvalOutput oldOut = scope.getOut();
         CollectXNodeHandler handler = new CollectXNodeHandler();
-        try {
-            handler.beginNode(null, CoreConstants.DUMMY_TAG_NAME, Collections.emptyMap());
-            scope.setOut(handler);
-            Object ret = XLang.execute(executable, scope);
 
-            handler.endNode(CoreConstants.DUMMY_TAG_NAME);
-            XNode node = handler.endDoc();
-            if (node.hasBody()) {
-                if (ret instanceof XNode || ret instanceof Expression) {
-                    throw new NopEvalException(ERR_XPL_NOT_ALLOW_BOTH_RETURN_AND_OUTPUT_NODE).param(ARG_NODE, ret);
-                }
+        handler.beginNode(null, CoreConstants.DUMMY_TAG_NAME, Collections.emptyMap());
+        Object ret = XLang.execute(executable, new EvalRuntime(scope, handler));
+
+        handler.endNode(CoreConstants.DUMMY_TAG_NAME);
+        XNode node = handler.endDoc();
+        if (node.hasBody()) {
+            if (ret instanceof XNode || ret instanceof Expression) {
+                throw new NopEvalException(ERR_XPL_NOT_ALLOW_BOTH_RETURN_AND_OUTPUT_NODE).param(ARG_NODE, ret);
+            }
+            if (dump)
+                node.dump("nop.macro-run-result");
+            return scope.getCompiler().parseTagBody(node, scope);
+        } else {
+            if (ret instanceof XNode) {
                 if (dump)
                     node.dump("nop.macro-run-result");
-                return scope.getCompiler().parseTagBody(node, scope);
-            } else {
-                if (ret instanceof XNode) {
-                    if (dump)
-                        node.dump("nop.macro-run-result");
-                    return scope.getCompiler().parseTagBody((XNode) ret, scope);
-                }
-                if (ret instanceof Expression)
-                    return (Expression) ret;
-                return null;
+                return scope.getCompiler().parseTagBody((XNode) ret, scope);
             }
-        } finally {
-            scope.setOut(oldOut);
+            if (ret instanceof Expression)
+                return (Expression) ret;
+            return null;
         }
     }
 }

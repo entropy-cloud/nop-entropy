@@ -8,7 +8,7 @@
 package io.nop.report.core.expr;
 
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.model.table.CellRange;
 import io.nop.report.core.XptConstants;
@@ -55,8 +55,8 @@ public class CellRangeExecutable extends AbstractExecutable implements ICellSetE
     }
 
     @Override
-    public ExpandedCellSet execute(IExpressionExecutor executor, IEvalScope scope) {
-        IXptRuntime xptRt = (IXptRuntime) scope.getValue(XptConstants.VAR_XPT_RT);
+    public ExpandedCellSet execute(IExpressionExecutor executor, EvalRuntime rt) {
+        IXptRuntime xptRt = (IXptRuntime) rt.getValue(XptConstants.VAR_XPT_RT);
         if (xptRt == null)
             throw newError(ERR_XPT_MISSING_VAR_CELL);
 

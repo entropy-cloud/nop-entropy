@@ -9,7 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.lang.eval.global.IGlobalVariableDefinition;
 
@@ -29,8 +29,8 @@ public class GlobalVarExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        return var.getValue(scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        return var.getValue(rt);
     }
 
     @Override

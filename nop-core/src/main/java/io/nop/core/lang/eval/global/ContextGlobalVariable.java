@@ -11,7 +11,7 @@ import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.type.IGenericType;
 
@@ -26,7 +26,7 @@ public class ContextGlobalVariable implements IGlobalVariableDefinition {
     }
 
     @Override
-    public Object getValue(IEvalScope scope) {
+    public Object getValue(EvalRuntime rt) {
         return ContextProvider.instance().currentContext();
     }
 }

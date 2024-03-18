@@ -438,7 +438,6 @@ public class XplCompiler extends XLangExprParser implements IXplCompiler {
     @Override
     public IXLangCompileScope newCompileScope() {
         XLangCompileScope scope = new XLangCompileScope(this);
-        scope.setExpressionExecutor(EvalExprProvider.getGlobalExecutor());
         return scope;
     }
 }

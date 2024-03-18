@@ -16,7 +16,6 @@ import io.nop.commons.cache.ICache;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.dict.DictProvider;
-import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.model.object.DynamicObject;
 import io.nop.core.model.table.CellPosition;
@@ -28,7 +27,9 @@ import io.nop.excel.imp.model.IFieldContainer;
 import io.nop.excel.imp.model.ImportFieldModel;
 import io.nop.excel.imp.model.ImportSheetModel;
 import io.nop.xlang.api.EvalCode;
+import io.nop.xlang.api.ExprEvalAction;
 import io.nop.xlang.api.XLangCompileTool;
+import io.nop.xlang.api.source.IWithSourceCode;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import org.slf4j.Logger;
@@ -251,8 +252,8 @@ public class ImportDataCollector implements ITableDataEventListener {
                     SourceLocation loc = getLocation(sheetName, rowIndex, colIndex);
                     value = handler.parseProp(null, loc, field.getName(), value,
                             compileTool);
-                    if (value instanceof IEvalAction) {
-                        value = EvalCode.addSource(loc, (IEvalAction) value, source);
+                    if (value instanceof ExprEvalAction && !(value instanceof IWithSourceCode)) {
+                        value = EvalCode.addSource((ExprEvalAction) value, source);
                     }
                 }
             }

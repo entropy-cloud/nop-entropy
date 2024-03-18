@@ -10,6 +10,8 @@ package io.nop.xlang.xpl.utils;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.reflect.IFunctionArgument;
+import io.nop.core.reflect.IFunctionModel;
 import io.nop.xlang.XLangErrors;
 import io.nop.xlang.xpl.IXplTag;
 import io.nop.xlang.xpl.IXplTagAttribute;
@@ -60,5 +62,55 @@ public class XplTagHelper {
             }
         }
         return ret;
+    }
+
+    public static Object[] buildTagArgValues(IXplTag tag, Map<String, Object> args, IEvalScope scope) {
+//        args.forEach((name, value) -> {
+//            if (tag.getAttr(name) == null)
+//                throw new NopException(ERR_XPL_UNKNOWN_TAG_ATTR)
+//                        .source(tag)
+//                        .param(ARG_TAG_NAME, tag.getTagName())
+//                        .param(ARG_ATTR_NAME, name)
+//                        .param(ARG_ALLOWED_NAMES, tag.getAttrNames());
+//        });
+
+        IFunctionModel fnModel = tag.getFunctionModel();
+        Object[] argValues = new Object[fnModel.getArgCount()];
+
+
+        for (int i = 0, n = fnModel.getArgCount(); i < n; i++) {
+            IFunctionArgument arg = fnModel.getArgs().get(i);
+            String name = arg.getName();
+            IXplTagAttribute attr = tag.getAttr(name);
+            if (attr == null) {
+                argValues[i] = args.get(name);
+                continue;
+            }
+
+            if (attr.isImplicit()) {
+                if (!args.containsKey(attr.getName())) {
+                    Object value = scope.getValue(attr.getName());
+                    if (value == null && !scope.containsValue(attr.getName()))
+                        throw new NopException(XLangErrors.ERR_XPL_TAG_NO_IMPLICIT_ATTR)
+                                .source(tag)
+                                .param(ARG_TAG_NAME, tag.getTagName())
+                                .param(ARG_ATTR_NAME, attr.getName());
+                    argValues[i] = value;
+                } else {
+                    argValues[i] = args.get(name);
+                }
+            } else {
+                Object value = args.get(name);
+                if (attr.isMandatory()) {
+                    if (StringHelper.isEmptyObject(value))
+                        throw new NopException(ERR_XPL_TAG_ATTR_IS_MANDATORY)
+                                .source(tag)
+                                .param(ARG_TAG_NAME, tag.getTagName())
+                                .param(ARG_ATTR_NAME, attr.getName());
+                }
+                argValues[i] = value;
+            }
+        }
+        return argValues;
     }
 }

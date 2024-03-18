@@ -12,6 +12,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.IVariableScope;
 import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.utils.Underscore;
@@ -40,6 +41,8 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
     static final Logger LOG = LoggerFactory.getLogger(XptRuntime.class);
 
     private final IEvalScope scope;
+
+    private final EvalRuntime evalRt;
     private ExpandedCell cell;
     private ExpandedTable table;
     private ExpandedSheet sheet;
@@ -54,6 +57,7 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
         this.scope = scope.newChildScope();
         scope.setLocalValue(null, XptConstants.VAR_XPT_RT, this);
         scope.setExtension(this);
+        this.evalRt = new EvalRuntime(scope);
     }
 
     public ExcelWorkbook getWorkbook() {
@@ -222,6 +226,6 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
         IExecutableExpression expr = cellExprCache.computeIfAbsent(cellExpr, k -> {
             return new ReportExpressionParser().parseCellExpr(TextScanner.fromString(null, cellExpr)).getExecutable();
         });
-        return (ExpandedCellSet) XLang.execute(expr, scope);
+        return (ExpandedCellSet) XLang.execute(expr, evalRt);
     }
 }

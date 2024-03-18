@@ -11,7 +11,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.lang.Undefined;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.model.object.DynamicObject;
 import io.nop.core.reflect.ReflectionManager;
@@ -40,11 +40,11 @@ public class NewMapExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         Map<String, Object> ret = CollectionHelper.newLinkedHashMap(itemExprs.length / 2);
         for (MapItemExecutable itemExpr : itemExprs) {
             if (itemExpr.isSpread()) {
-                Object value = itemExpr.getValue(executor, scope);
+                Object value = itemExpr.getValue(executor, rt);
                 if (value != null && value != Undefined.undefined) {
                     if (value instanceof Map) {
                         ret.putAll(((Map<String, ?>) value));
@@ -68,8 +68,8 @@ public class NewMapExecutable extends AbstractExecutable {
                 }
                 // 如果null为空或者undefined，直接忽略
             } else {
-                Object key = itemExpr.getKey(executor, scope);
-                Object value = itemExpr.getValue(executor, scope);
+                Object key = itemExpr.getKey(executor, rt);
+                Object value = itemExpr.getValue(executor, rt);
                 ret.put(StringHelper.toString(key, null), value);
             }
         }

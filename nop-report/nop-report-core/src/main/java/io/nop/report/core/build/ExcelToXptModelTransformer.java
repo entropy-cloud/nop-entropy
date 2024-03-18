@@ -12,19 +12,25 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ProcessResult;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
-import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.excel.imp.ImportModelHelper;
 import io.nop.excel.imp.model.ImportModel;
 import io.nop.excel.imp.model.ImportSheetModel;
-import io.nop.excel.model.*;
+import io.nop.excel.model.ExcelCell;
+import io.nop.excel.model.ExcelImage;
+import io.nop.excel.model.ExcelSheet;
+import io.nop.excel.model.ExcelWorkbook;
+import io.nop.excel.model.XptCellModel;
+import io.nop.excel.model.XptSheetModel;
 import io.nop.excel.util.MultiLineConfigParser;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.util.ExcelReportHelper;
 import io.nop.xlang.api.EvalCode;
+import io.nop.xlang.api.ExprEvalAction;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
+import io.nop.xlang.api.source.IWithSourceCode;
 import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefinition;
@@ -33,7 +39,9 @@ import io.nop.xlang.xmeta.SchemaLoader;
 
 import java.util.Map;
 
-import static io.nop.report.core.XptErrors.*;
+import static io.nop.report.core.XptErrors.ARG_PROP_NAME;
+import static io.nop.report.core.XptErrors.ERR_XPT_UNDEFINED_CELL_MODEL_PROP;
+import static io.nop.report.core.XptErrors.ERR_XPT_UNDEFINED_IMAGE_MODEL_PROP;
 
 /**
  * 将Excel模型转换为Xpt报表模型
@@ -135,8 +143,11 @@ public class ExcelToXptModelTransformer {
     }
 
     private Object addSource(ValueWithLocation vl, Object value) {
-        if (value instanceof IEvalAction && vl.getValue() instanceof String) {
-            return EvalCode.addSource(vl.getLocation(), (IEvalAction) value, (String) vl.getValue());
+        if (value instanceof IWithSourceCode)
+            return value;
+
+        if (value instanceof ExprEvalAction && vl.getValue() instanceof String) {
+            return EvalCode.addSource((ExprEvalAction) value, (String) vl.getValue());
         }
         return value;
     }

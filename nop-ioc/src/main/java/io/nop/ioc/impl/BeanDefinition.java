@@ -405,7 +405,7 @@ public class BeanDefinition implements IBeanDefinition {
 
     void runXpl(IEvalAction xpl, Object bean, IBeanContainer container, IBeanScope beanScope) {
         if (xpl != null) {
-            IEvalScope scope = beanScope.getEvalScope().duplicate();
+            IEvalScope scope = beanScope.getEvalScope();
             scope.setLocalValue(null, ExprConstants.SYS_VAR_THIS, bean);
             scope.setLocalValue(null, IocConstants.SYS_VAR_BEAN_DEF, this);
             scope.setLocalValue(null, IocConstants.SYS_VAR_BEAN_CONTAINER, container);

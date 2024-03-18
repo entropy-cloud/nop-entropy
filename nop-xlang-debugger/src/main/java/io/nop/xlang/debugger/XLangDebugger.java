@@ -11,14 +11,17 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.api.debugger.*;
+import io.nop.api.debugger.Breakpoint;
+import io.nop.api.debugger.DebugValueKey;
+import io.nop.api.debugger.DebugVariable;
+import io.nop.api.debugger.StackInfo;
+import io.nop.api.debugger.ThreadInfo;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.cache.LocalCache;
 import io.nop.commons.collections.LongHashMap;
 import io.nop.commons.concurrent.thread.NamedThreadFactory;
 import io.nop.core.lang.eval.DefaultExpressionExecutor;
-import io.nop.core.lang.eval.EvalFrame;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.xlang.api.IXLangCompileScope;
 import io.nop.xlang.api.XLang;
@@ -272,15 +275,8 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
             return null;
 
         synchronized (thread) {
-            IEvalScope scope = thread.getScope();
-            EvalFrame frame = thread.getScope().getFrame(frameIndex);
-            if (frame == null) {
-                frame = new EvalFrame(null, new String[0]);
-            }
-
-            IEvalScope evalScope = scope.newChildScope();
-            evalScope.pushFrame(frame);
-            return exec.execute(DefaultExpressionExecutor.INSTANCE, evalScope);
+            EvalRuntime rt = thread.getEvalRuntime();
+            return exec.execute(DefaultExpressionExecutor.INSTANCE, rt.getRuntimeForFrame(frameIndex));
         }
     }
 
@@ -309,7 +305,7 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         if (thread == null)
             return null;
         synchronized (thread) {
-            return thread.getScopeVariables(thread.getScope());
+            return thread.getScopeVariables(thread.getEvalRuntime());
         }
     }
 
@@ -320,39 +316,39 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
             return null;
         synchronized (thread) {
             if (frameIndex == 0) {
-                List<DebugVariable> vars = thread.getScopeVariables(thread.getScope());
-                List<DebugVariable> frameVars = thread.getFrameVariables(thread.getScope(), frameIndex);
+                List<DebugVariable> vars = thread.getScopeVariables(thread.getEvalRuntime());
+                List<DebugVariable> frameVars = thread.getFrameVariables(thread.getEvalRuntime(), frameIndex);
                 vars.addAll(frameVars);
                 return vars;
             }
-            return thread.getFrameVariables(thread.getScope(), frameIndex);
+            return thread.getFrameVariables(thread.getEvalRuntime(), frameIndex);
         }
     }
 
     @Override
-    public void checkBreakpoint(SourceLocation loc, IEvalScope scope) {
+    public void checkBreakpoint(SourceLocation loc, EvalRuntime rt) {
         if (loc == null || breakpointsMuted)
             return;
 
-        if (!checkTempBreakpoint(loc, scope)) {
+        if (!checkTempBreakpoint(loc, rt)) {
             switch (stepMode) {
                 case SUSPEND: {
-                    checkSuspend(loc, scope);
+                    checkSuspend(loc, rt);
                     break;
                 }
                 case STEP_INTO: {
-                    checkStepInto(loc, scope);
+                    checkStepInto(loc, rt);
                     break;
                 }
                 default: {
-                    if (!checkHitBreakpoint(loc, scope)) {
+                    if (!checkHitBreakpoint(loc, rt)) {
                         switch (stepMode) {
                             case STEP_OVER: {
-                                checkStepOver(loc, scope);
+                                checkStepOver(loc, rt);
                                 break;
                             }
                             case STEP_OUT: {
-                                checkStepOut(loc, scope);
+                                checkStepOut(loc, rt);
                                 break;
                             }
                         }
@@ -362,41 +358,41 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         }
     }
 
-    private void checkStepInto(SourceLocation loc, IEvalScope scope) {
+    private void checkStepInto(SourceLocation loc, EvalRuntime rt) {
         stepMode = DebugStepMode.RESUME;
-        SuspendedThread thread = makeSuspendedThread(scope);
-        thread.update(loc, scope);
+        SuspendedThread thread = makeSuspendedThread(rt);
+        thread.update(loc, rt);
 
         if (notifier != null) {
-            notifier.notifyStepInto(thread, loc, scope);
+            notifier.notifyStepInto(thread, loc, rt);
         }
         doSuspend(thread);
     }
 
-    private boolean checkTempBreakpoint(SourceLocation loc, IEvalScope scope) {
-        if (!matchTempBreakpoint(loc, scope))
+    private boolean checkTempBreakpoint(SourceLocation loc, EvalRuntime rt) {
+        if (!matchTempBreakpoint(loc, rt))
             return false;
         stepMode = DebugStepMode.RESUME;
-        SuspendedThread thread = makeSuspendedThread(scope);
-        thread.update(loc, scope);
+        SuspendedThread thread = makeSuspendedThread(rt);
+        thread.update(loc, rt);
         if (notifier != null) {
-            notifier.notifyBreakAt(thread, loc, scope);
+            notifier.notifyBreakAt(thread, loc, rt);
         }
         doSuspend(thread);
         return true;
     }
 
-    private void checkSuspend(SourceLocation loc, IEvalScope scope) {
+    private void checkSuspend(SourceLocation loc, EvalRuntime rt) {
         stepMode = DebugStepMode.RESUME;
-        SuspendedThread thread = makeSuspendedThread(scope);
-        thread.update(loc, scope);
+        SuspendedThread thread = makeSuspendedThread(rt);
+        thread.update(loc, rt);
         if (notifier != null) {
-            notifier.notifySuspend(thread, loc, scope);
+            notifier.notifySuspend(thread, loc, rt);
         }
         doSuspend(thread);
     }
 
-    private void checkStepOver(SourceLocation loc, IEvalScope scope) {
+    private void checkStepOver(SourceLocation loc, EvalRuntime rt) {
         SuspendedThread thread = getSuspendedThread(Thread.currentThread().getId());
         if (thread == null) {
             // 不是挂起线程直接忽略
@@ -410,16 +406,16 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         if (lastLoc == null || !lastLoc.isSameLine(loc)) {
             if (currentFrame <= lastFrame) {
                 stepMode = DebugStepMode.RESUME;
-                thread.update(loc, scope);
+                thread.update(loc, rt);
                 if (notifier != null) {
-                    notifier.notifyStepOver(thread, loc, scope);
+                    notifier.notifyStepOver(thread, loc, rt);
                 }
                 doSuspend(thread);
             }
         }
     }
 
-    private void checkStepOut(SourceLocation loc, IEvalScope scope) {
+    private void checkStepOut(SourceLocation loc, EvalRuntime rt) {
         SuspendedThread thread = getSuspendedThread(Thread.currentThread().getId());
         if (thread == null) {
             // 不是挂起线程直接忽略
@@ -431,38 +427,38 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         if (lastFrame > currentFrame) {
             stepMode = DebugStepMode.RESUME;
 
-            thread.update(loc, scope);
+            thread.update(loc, rt);
             if (notifier != null) {
-                notifier.notifyStepOut(thread, loc, scope);
+                notifier.notifyStepOut(thread, loc, rt);
             }
             doSuspend(thread);
         }
     }
 
-    private boolean checkHitBreakpoint(SourceLocation loc, IEvalScope scope) {
+    private boolean checkHitBreakpoint(SourceLocation loc, EvalRuntime rt) {
         Breakpoint bp = getBreakpointAt(loc);
         if (bp == null)
             return false;
 
-        SuspendedThread thread = makeSuspendedThread(scope);
+        SuspendedThread thread = makeSuspendedThread(rt);
         SourceLocation lastLoc = thread.getLastBreakLocation();
         // 点击resume之后不会直接停在同一行的断点上
         if (lastLoc != null && lastLoc.isSameLine(loc))
             return false;
 
         if (bp.getCondition() != null) {
-            if (!matchCondition(bp.getCondition(), scope)) {
+            if (!matchCondition(bp.getCondition(), rt)) {
                 return false;
             }
         }
 
-        if (logBreakpoint(bp, scope))
+        if (logBreakpoint(bp, rt))
             return false;
 
         stepMode = DebugStepMode.RESUME;
-        thread.update(loc, scope);
+        thread.update(loc, rt);
         if (notifier != null) {
-            notifier.notifyBreakAt(thread, loc, scope);
+            notifier.notifyBreakAt(thread, loc, rt);
         }
         doSuspend(thread);
         return true;
@@ -474,7 +470,7 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         monitorWait(thread);
     }
 
-    private boolean matchTempBreakpoint(SourceLocation loc, IEvalScope scope) {
+    private boolean matchTempBreakpoint(SourceLocation loc, EvalRuntime rt) {
         Breakpoint bp = this.tempBreakpoint;
         if (bp == null)
             return false;
@@ -487,7 +483,7 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
             return false;
 
         if (bp.getCondition() != null) {
-            if (!matchCondition(bp.getCondition(), scope)) {
+            if (!matchCondition(bp.getCondition(), rt)) {
                 return false;
             }
         }
@@ -495,7 +491,7 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         // 清除一次性的临时断点
         tempBreakpoint = null;
 
-        if (logBreakpoint(bp, scope)) {
+        if (logBreakpoint(bp, rt)) {
             // 仅打印log信息，不需要停止程序执行
             return false;
         }
@@ -504,14 +500,14 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         return true;
     }
 
-    private boolean logBreakpoint(Breakpoint bp, IEvalScope scope) {
+    private boolean logBreakpoint(Breakpoint bp, EvalRuntime rt) {
         if (bp.getLogExpr() != null) {
             try {
-                String message = getExprString(bp.getLogExpr(), scope);
+                String message = getExprString(bp.getLogExpr(), rt);
                 LOG.info("nop.debugger.log:message={},expr={},sourcePath={},line={}", message, bp.getLogExpr(),
                         bp.getSourcePath(), bp.getLine());
                 if (notifier != null) {
-                    notifier.notifyLog(makeSuspendedThread(scope), bp.getSourcePath(), bp.getLine(), message);
+                    notifier.notifyLog(makeSuspendedThread(rt), bp.getSourcePath(), bp.getLine(), message);
                 }
             } catch (Exception e) {
                 LOG.warn("nop.debugger.eval-expr-fail", e);
@@ -531,7 +527,7 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
                 thread.setSuspended(true);
                 suspendedCondition.signalAll();
                 while (suspended && !closed) {
-                    if(resumeCondition.await(monitorWaitInterval, TimeUnit.MILLISECONDS)){
+                    if (resumeCondition.await(monitorWaitInterval, TimeUnit.MILLISECONDS)) {
                         LOG.trace("nop.debugger.monitor-await-timeout");
                     }
                 }
@@ -548,7 +544,7 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         }
     }
 
-    private SuspendedThread makeSuspendedThread(IEvalScope scope) {
+    private SuspendedThread makeSuspendedThread(EvalRuntime rt) {
         Thread currentThread = Thread.currentThread();
         synchronized (suspendedThreads) {
             if (closed)
@@ -556,28 +552,28 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
 
             SuspendedThread thread = suspendedThreads.get(currentThread.getId());
             if (thread == null) {
-                thread = new SuspendedThread(currentThread, scope, this::toSourcePath);
+                thread = new SuspendedThread(currentThread, rt, this::toSourcePath);
                 suspendedThreads.put(currentThread.getId(), thread);
             }
             return thread;
         }
     }
 
-    private boolean matchCondition(String condition, IEvalScope scope) {
+    private boolean matchCondition(String condition, EvalRuntime rt) {
         try {
-            return ConvertHelper.toTruthy(evaluate(condition, scope));
+            return ConvertHelper.toTruthy(evaluate(condition, rt));
         } catch (Exception e) {
             LOG.warn("nop.debugger.eval-condition-fail", e);
             return false;
         }
     }
 
-    private String getExprString(String expr, IEvalScope scope) {
-        return ConvertHelper.toString(evaluate(expr, scope));
+    private String getExprString(String expr, EvalRuntime rt) {
+        return ConvertHelper.toString(evaluate(expr, rt));
     }
 
-    private Object evaluate(String expr, IEvalScope scope) {
+    private Object evaluate(String expr, EvalRuntime rt) {
         IExecutableExpression exec = getCompiledExpr(expr);
-        return exec.execute(DefaultExpressionExecutor.INSTANCE, scope);
+        return exec.execute(DefaultExpressionExecutor.INSTANCE, rt);
     }
 }

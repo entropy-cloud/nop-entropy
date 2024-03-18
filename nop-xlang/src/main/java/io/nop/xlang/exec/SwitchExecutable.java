@@ -9,7 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -59,20 +59,20 @@ public class SwitchExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object value = executor.execute(discriminant, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object value = executor.execute(discriminant, rt);
         Object ret = null;
         for (int i = 0, n = tests.length; i < n; i++) {
-            Object testValue = executor.execute(tests[i], scope);
+            Object testValue = executor.execute(tests[i], rt);
             if (Objects.equals(value, testValue)) {
-                ret = executor.execute(consequences[i], scope);
+                ret = executor.execute(consequences[i], rt);
                 if (!fallthroughs[i]) {
                     return asExpr ? ret : null;
                 }
             }
         }
         if (defaultCase != null) {
-            ret = executor.execute(defaultCase, scope);
+            ret = executor.execute(defaultCase, rt);
         }
         return asExpr ? ret : null;
     }

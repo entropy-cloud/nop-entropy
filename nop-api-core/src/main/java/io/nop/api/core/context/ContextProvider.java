@@ -10,7 +10,6 @@ package io.nop.api.core.context;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
-import io.nop.api.core.util.ResolvedPromise;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -148,7 +147,7 @@ public class ContextProvider {
     public static <T> CompletionStage<T> thenOnContext(CompletionStage<T> future, IContext context) {
         Guard.notNull(context, "context");
 
-        if (future instanceof ResolvedPromise && context.isRunningOnContext()) {
+        if (FutureHelper.isDone(future) && context.isRunningOnContext()) {
             return future;
         }
 

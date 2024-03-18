@@ -10,8 +10,10 @@ package io.nop.xlang.api;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalExprProvider;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.reflect.IFunctionModel;
@@ -21,6 +23,7 @@ import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.xlang.XLangConstants;
 import io.nop.xlang.ast.XLangOutputMode;
 import io.nop.xlang.ast.definition.ScopeVarDefinition;
+import io.nop.xlang.exec.ExecutableFunctionEvalAction;
 import io.nop.xlang.xpl.IXplCompiler;
 import io.nop.xlang.xpl.IXplTag;
 import io.nop.xlang.xpl.IXplTagLib;
@@ -40,8 +43,12 @@ public class XLang {
         return varName.charAt(0) == '$' || varName.equals("_");
     }
 
-    public static Object execute(IExecutableExpression expr, IEvalScope scope) {
-        return scope.getExpressionExecutor().execute(expr, scope);
+    public static Object execute(IExecutableExpression expr, EvalRuntime rt) {
+        return EvalExprProvider.getGlobalExecutor().execute(expr, rt);
+    }
+
+    public static IExpressionExecutor getExecutor() {
+        return EvalExprProvider.getGlobalExecutor();
     }
 
     public static IEvalScope newEvalScope(Map<String, Object> context) {
@@ -79,7 +86,7 @@ public class XLang {
             throw new NopException(ERR_XLIB_UNKNOWN_TAG).param(ARG_LIB_PATH, libPath).param(ARG_TAG_NAME, tagName);
 
         IFunctionModel func = tag.getFunctionModel();
-        return new FunctionEvalAction(func);
+        return new ExecutableFunctionEvalAction(func);
     }
 
     public static IXplTag getTag(String libPath, String tagName) {

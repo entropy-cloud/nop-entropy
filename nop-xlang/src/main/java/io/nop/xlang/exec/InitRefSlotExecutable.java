@@ -8,9 +8,8 @@
 package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.EvalFrame;
 import io.nop.core.lang.eval.EvalReference;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 public class InitRefSlotExecutable extends AbstractExecutable {
@@ -29,9 +28,8 @@ public class InitRefSlotExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        EvalFrame frame = scope.getCurrentFrame();
-        frame.setStackValue(slot, new EvalReference(null));
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        rt.getCurrentFrame().setStackValue(slot, new EvalReference(null));
         return null;
     }
 }

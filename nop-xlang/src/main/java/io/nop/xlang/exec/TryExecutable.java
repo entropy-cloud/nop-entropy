@@ -10,7 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -35,27 +35,27 @@ public class TryExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         if (catchExpr != null) {
             try {
-                return executor.execute(bodyExpr, scope);
+                return executor.execute(bodyExpr, rt);
             } catch (Exception e) {
                 if (exceptionSlot >= 0) {
-                    scope.getCurrentFrame().setStackValue(exceptionSlot, e);
+                    rt.getCurrentFrame().setStackValue(exceptionSlot, e);
                 }
-                executor.execute(catchExpr, scope);
+                executor.execute(catchExpr, rt);
                 throw NopException.adapt(e);
             } finally {
                 if (finallyExpr != null) {
-                    executor.execute(finallyExpr, scope);
+                    executor.execute(finallyExpr, rt);
                 }
             }
         } else {
             try {
-                return executor.execute(bodyExpr, scope);
+                return executor.execute(bodyExpr, rt);
             } finally {
                 if (finallyExpr != null) {
-                    executor.execute(finallyExpr, scope);
+                    executor.execute(finallyExpr, rt);
                 }
             }
         }

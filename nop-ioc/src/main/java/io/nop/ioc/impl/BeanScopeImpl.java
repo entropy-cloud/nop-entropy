@@ -38,7 +38,7 @@ public class BeanScopeImpl implements IBeanScope {
     public BeanScopeImpl(String name, IEvalScope scope, IBeanContainerImplementor container) {
         this.name = name;
         this.container = container;
-        this.scope = scope.duplicate();
+        this.scope = scope;
         this.scope.setExtension(new BeanContainerVariableScope(container));
     }
 

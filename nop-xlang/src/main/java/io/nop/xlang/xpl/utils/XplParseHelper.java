@@ -16,6 +16,7 @@ import io.nop.commons.text.CDataText;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.OptionalValue;
 import io.nop.commons.util.objects.ValueWithLocation;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.IClassModel;
@@ -595,7 +596,7 @@ public class XplParseHelper {
             if (executable == null)
                 return null;
 
-            Object value = XLang.execute(executable, scope);
+            Object value = XLang.execute(executable, new EvalRuntime(scope));
             if (value == null)
                 return null;
             return Literal.valueOf(executable.getLocation(), value);

@@ -8,7 +8,7 @@
 package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -63,11 +63,11 @@ public class BlockExecutable extends AbstractMultiExecutable implements ISeqExec
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         for (IExecutableExpression expr : exprs) {
-            Object ret = executor.execute(expr, scope);
+            Object ret = executor.execute(expr, rt);
             // break 或者continue将导致返回值变成null
-            if (scope.getExitMode() != null) {
+            if (rt.getExitMode() != null) {
                 return ret;
             }
         }
@@ -96,9 +96,9 @@ public class BlockExecutable extends AbstractMultiExecutable implements ISeqExec
         }
 
         @Override
-        public Object execute(IExpressionExecutor executor, IEvalScope scope) {
+        public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
             for (IExecutableExpression expr : exprs) {
-                executor.execute(expr, scope);
+                executor.execute(expr, rt);
             }
             return null;
         }

@@ -180,7 +180,7 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
         XptCellModel cellModel = cell.getModel();
         if (cellModel != null && cellModel.isExportFormula()) {
             if (cellModel.getValueExpr() instanceof EvalCodeWithAst) {
-                Expression expr = ((EvalCodeWithAst) cellModel.getValueExpr()).getExpr();
+                Expression expr = ((EvalCodeWithAst) cellModel.getValueExpr()).getAst();
                 // 层次坐标需要根据当前单元格进行定位
                 xptRt.setCell(cell);
                 try {

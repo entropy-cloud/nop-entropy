@@ -10,7 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalFrame;
 import io.nop.core.lang.eval.EvalReference;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 public class EnhanceRefSlotExecutable extends AbstractExecutable {
@@ -34,8 +34,8 @@ public class EnhanceRefSlotExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        EvalFrame frame = scope.getCurrentFrame();
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        EvalFrame frame = rt.getCurrentFrame();
         frame.setStackValue(slot, new EvalReference(frame.getStackValue(slot)));
         return null;
     }

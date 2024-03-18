@@ -679,7 +679,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
         return compiledTag;
     }
 
-    class LazyCompiledFunction implements IEvalFunction {
+   public class LazyCompiledFunction implements IEvalFunction {
         private final XLangCompileTool compileTool;
         private final CompiledTag compiledTag;
         private boolean compiled;
@@ -689,6 +689,11 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
         public LazyCompiledFunction(XLangCompileTool compileTool, CompiledTag compiledTag) {
             this.compileTool = compileTool;
             this.compiledTag = compiledTag;
+        }
+
+        public IEvalFunction getCompiledFn(){
+            compile();
+            return compiledFn;
         }
 
         public synchronized void compile() {

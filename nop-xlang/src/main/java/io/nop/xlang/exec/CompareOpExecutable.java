@@ -10,11 +10,13 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.context.IEvalContext;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.model.query.FilterOp;
+import io.nop.xlang.api.XLang;
 
 import java.util.function.BiPredicate;
 
@@ -51,18 +53,19 @@ public class CompareOpExecutable extends AbstractExecutable implements IEvalPred
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object v1 = executor.execute(left, scope);
-        Object v2 = executor.execute(right, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object v1 = executor.execute(left, rt);
+        Object v2 = executor.execute(right, rt);
         return predicate.test(v1, v2);
     }
 
     @Override
     public boolean passConditions(IEvalContext ctx) {
         IEvalScope scope = ctx.getEvalScope();
-        IExpressionExecutor executor = scope.getExpressionExecutor();
-        Object v1 = executor.execute(left, scope);
-        Object v2 = executor.execute(right, scope);
+        IExpressionExecutor executor = XLang.getExecutor();
+        EvalRuntime rt = new EvalRuntime(scope);
+        Object v1 = executor.execute(left, rt);
+        Object v2 = executor.execute(right, rt);
         return predicate.test(v1, v2);
     }
 }

@@ -9,6 +9,7 @@ package io.nop.core.lang.eval.global;
 
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Locale;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.type.IGenericType;
@@ -24,7 +25,7 @@ public class ScopeGlobalVariable implements IGlobalVariableDefinition {
     }
 
     @Override
-    public Object getValue(IEvalScope scope) {
-        return scope;
+    public Object getValue(EvalRuntime rt) {
+        return rt.getScope();
     }
 }

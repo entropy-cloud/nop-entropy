@@ -10,7 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.MathHelper;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 public class SelfIncExecutable extends AbstractExecutable {
@@ -24,10 +24,10 @@ public class SelfIncExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object value = scope.getCurrentFrame().getVar(slot);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object value = rt.getCurrentFrame().getVar(slot);
         Object newValue = MathHelper.add(value, 1);
-        scope.getCurrentFrame().setStackValue(slot, newValue);
+        rt.getCurrentFrame().setStackValue(slot, newValue);
         return value;
     }
 

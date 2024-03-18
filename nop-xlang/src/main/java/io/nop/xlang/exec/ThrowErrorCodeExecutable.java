@@ -12,7 +12,7 @@ import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -40,8 +40,8 @@ public class ThrowErrorCodeExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object error = executor.execute(errorExpr, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object error = executor.execute(errorExpr, rt);
         if (error instanceof NopException) {
             NopException exp = (NopException) error;
             if (exp.getErrorLocation() == null)
@@ -51,7 +51,7 @@ public class ThrowErrorCodeExecutable extends AbstractExecutable {
         if (error instanceof Throwable)
             throw NopException.adapt((Throwable) error);
 
-        Object params = paramsExpr == null ? null : executor.execute(paramsExpr, scope);
+        Object params = paramsExpr == null ? null : executor.execute(paramsExpr, rt);
 
         if (error instanceof ErrorCode) {
             throw addParams(new NopEvalException((ErrorCode) error), params);

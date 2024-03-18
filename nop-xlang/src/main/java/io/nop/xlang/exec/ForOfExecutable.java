@@ -13,8 +13,8 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.eval.EvalFrame;
 import io.nop.core.lang.eval.EvalReference;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.ExitMode;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -69,14 +69,14 @@ public class ForOfExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object items = executor.execute(itemsExpr, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object items = executor.execute(itemsExpr, rt);
         if (items == null)
             return null;
 
         Iterator<Object> it = toIterator(items);
 
-        EvalFrame frame = scope.getCurrentFrame();
+        EvalFrame frame = rt.getCurrentFrame();
         int index = 0;
         while (it.hasNext()) {
             Object var = it.next();
@@ -90,13 +90,13 @@ public class ForOfExecutable extends AbstractExecutable {
                 index++;
             }
 
-            Object ret = executor.execute(bodyExpr, scope);
+            Object ret = executor.execute(bodyExpr, rt);
 
-            ExitMode exitMode = scope.getExitMode();
+            ExitMode exitMode = rt.getExitMode();
             if (exitMode != null) {
                 if (exitMode == ExitMode.RETURN)
                     return ret;
-                scope.setExitMode(null);
+                rt.setExitMode(null);
                 if (exitMode == ExitMode.BREAK) {
                     break;
                 }
@@ -114,15 +114,15 @@ public class ForOfExecutable extends AbstractExecutable {
         }
 
         @Override
-        public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-            Object items = executor.execute(itemsExpr, scope);
+        public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+            Object items = executor.execute(itemsExpr, rt);
             if (items == null)
                 return null;
 
             Iterator<Object> it = toIterator(items);
 
             int index = 0;
-            EvalFrame frame = scope.getCurrentFrame();
+            EvalFrame frame = rt.getCurrentFrame();
             while (it.hasNext()) {
                 Object var = it.next();
                 if (useRef) {
@@ -136,7 +136,7 @@ public class ForOfExecutable extends AbstractExecutable {
                     index++;
                 }
 
-                executor.execute(bodyExpr, scope);
+                executor.execute(bodyExpr, rt);
             }
 
             return null;

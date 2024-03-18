@@ -80,8 +80,8 @@ public class XLangCompileScope extends EvalScopeImpl implements IXLangCompileSco
     }
 
     public XLangCompileScope(IEvalScope parentScope, Map<String, Object> variables, boolean inheritParentVars,
-                             boolean inheritOutput, IXplCompiler compiler) {
-        super(parentScope, variables, inheritParentVars, inheritOutput);
+                             IXplCompiler compiler) {
+        super(parentScope, variables, inheritParentVars);
         this.compiler = compiler;
     }
 
@@ -123,8 +123,8 @@ public class XLangCompileScope extends EvalScopeImpl implements IXLangCompileSco
     }
 
     @Override
-    public IXLangCompileScope newChildScope(boolean inheritParentVars, boolean inheritParentOut) {
-        XLangCompileScope scope = new XLangCompileScope(this, new HashMap<>(), inheritParentVars, inheritParentOut,
+    public IXLangCompileScope newChildScope(boolean inheritParentVars) {
+        XLangCompileScope scope = new XLangCompileScope(this, new HashMap<>(), inheritParentVars,
                 this.compiler);
         return scope;
     }

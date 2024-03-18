@@ -9,7 +9,9 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.CollectionHelper;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalFrame;
+import io.nop.core.lang.eval.EvalRuntime;
+import io.nop.core.lang.eval.IEvalOutput;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -56,19 +58,19 @@ public class ArrayBindingAssignExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object value = executor.execute(expr, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object value = executor.execute(expr, rt);
         if (!(value instanceof List)) {
             throw newError(ERR_EXEC_ARRAY_BINDING_NOT_LIST).param(ARG_VALUE, value);
         }
 
         List<Object> list = (List<Object>) value;
         for (int i = 0, n = elementBindings.length; i < n; i++) {
-            elementBindings[i].assign(list.get(i), scope);
+            elementBindings[i].assign(list.get(i), rt);
         }
         if (restBinding != null) {
             List<Object> subList = CollectionHelper.copyTail(list, elementBindings.length);
-            restBinding.assign(subList, scope);
+            restBinding.assign(subList, rt);
         }
         return null;
     }

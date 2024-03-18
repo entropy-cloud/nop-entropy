@@ -10,6 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
@@ -72,8 +73,8 @@ public class VarFunctionExecutable extends AbstractExecutable {
         sb.append(')');
     }
 
-    protected IEvalFunction getFunction(IExpressionExecutor executor, IEvalScope scope) {
-        Object o = executor.execute(funcExpr, scope);
+    protected IEvalFunction getFunction(IExpressionExecutor executor, EvalRuntime rt) {
+        Object o = executor.execute(funcExpr, rt);
         if (o == null)
             return null;
         IEvalFunction fn = EvalFunctionHelper.toEvalFunction(o);
@@ -84,20 +85,24 @@ public class VarFunctionExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        IEvalFunction func = getFunction(executor, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        IEvalFunction func = getFunction(executor, rt);
         if (func == null) {
             checkAllowNullFunc();
             return null;
         }
 
+        if (func instanceof ExecutableFunction) {
+            return ((ExecutableFunction) func).executeWithArgExprs(executor, args, rt);
+        }
+
         Object[] argValues = new Object[args.length];
         for (int i = 0, n = args.length; i < n; i++) {
-            argValues[i] = executor.execute(args[i], scope);
+            argValues[i] = executor.execute(args[i], rt);
         }
 
         try {
-            return func.invoke(null, argValues, scope);
+            return func.invoke(null, argValues, rt.getScope());
         } catch (NopException e) {
             e.addXplStack(this);
             throw e;
@@ -128,13 +133,16 @@ public class VarFunctionExecutable extends AbstractExecutable {
         }
 
         @Override
-        public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-            IEvalFunction func = getFunction(executor, scope);
+        public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+            IEvalFunction func = getFunction(executor, rt);
             if (func == null) {
                 checkAllowNullFunc();
                 return null;
             }
-            return doInvoke0(func, scope);
+            if (func instanceof ExecutableFunction) {
+                return ((ExecutableFunction) func).executeWithArgExprs(executor, args, rt);
+            }
+            return doInvoke0(func, rt.getScope());
         }
     }
 
@@ -148,14 +156,19 @@ public class VarFunctionExecutable extends AbstractExecutable {
         }
 
         @Override
-        public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-            IEvalFunction func = getFunction(executor, scope);
+        public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+            IEvalFunction func = getFunction(executor, rt);
             if (func == null) {
                 checkAllowNullFunc();
                 return null;
             }
-            Object arg = executor.execute(argExpr, scope);
-            return doInvoke1(func, arg, scope);
+
+            if (func instanceof ExecutableFunction) {
+                return ((ExecutableFunction) func).executeWithArgExprs(executor, args, rt);
+            }
+
+            Object arg = executor.execute(argExpr, rt);
+            return doInvoke1(func, arg, rt.getScope());
         }
     }
 
@@ -171,16 +184,21 @@ public class VarFunctionExecutable extends AbstractExecutable {
         }
 
         @Override
-        public Object execute(IExpressionExecutor executor, IEvalScope scope) {
+        public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
 
-            IEvalFunction func = getFunction(executor, scope);
+            IEvalFunction func = getFunction(executor, rt);
             if (func == null) {
                 checkAllowNullFunc();
                 return null;
             }
-            Object arg1 = executor.execute(argExpr1, scope);
-            Object arg2 = executor.execute(argExpr2, scope);
-            return doInvoke2(func, arg1, arg2, scope);
+
+            if (func instanceof ExecutableFunction) {
+                return ((ExecutableFunction) func).executeWithArgExprs(executor, args, rt);
+            }
+
+            Object arg1 = executor.execute(argExpr1, rt);
+            Object arg2 = executor.execute(argExpr2, rt);
+            return doInvoke2(func, arg1, arg2, rt.getScope());
         }
     }
 
@@ -198,16 +216,21 @@ public class VarFunctionExecutable extends AbstractExecutable {
         }
 
         @Override
-        public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-            IEvalFunction func = getFunction(executor, scope);
+        public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+            IEvalFunction func = getFunction(executor, rt);
             if (func == null) {
                 checkAllowNullFunc();
                 return null;
             }
-            Object arg1 = executor.execute(argExpr1, scope);
-            Object arg2 = executor.execute(argExpr2, scope);
-            Object arg3 = executor.execute(argExpr3, scope);
-            return doInvoke3(func, arg1, arg2, arg3, scope);
+
+            if (func instanceof ExecutableFunction) {
+                return ((ExecutableFunction) func).executeWithArgExprs(executor, args, rt);
+            }
+
+            Object arg1 = executor.execute(argExpr1, rt);
+            Object arg2 = executor.execute(argExpr2, rt);
+            Object arg3 = executor.execute(argExpr3, rt);
+            return doInvoke3(func, arg1, arg2, arg3, rt.getScope());
         }
     }
 }

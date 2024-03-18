@@ -12,14 +12,16 @@ import io.nop.api.core.json.IJsonString;
 import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.context.IEvalContext;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.xlang.exec.NullExecutable;
 
 @ImmutableBean
 public class ExprEvalAction extends AbstractEvalAction implements ISourceLocationGetter, IJsonString {
     private final IExecutableExpression expr;
 
     public ExprEvalAction(IExecutableExpression expr) {
-        this.expr = expr;
+        this.expr = expr == null ? NullExecutable.NULL : expr;
     }
 
     public String toString() {
@@ -41,6 +43,11 @@ public class ExprEvalAction extends AbstractEvalAction implements ISourceLocatio
 
     @Override
     public Object invoke(IEvalContext ctx) {
-        return XLang.execute(expr, ctx.getEvalScope());
+        return XLang.execute(expr, new EvalRuntime(ctx.getEvalScope()));
+    }
+
+    @Override
+    protected Object doInvoke(EvalRuntime rt) {
+        return XLang.execute(expr, rt);
     }
 }

@@ -9,7 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalFrame;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -36,11 +36,11 @@ public class BindVarExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        EvalFrame frame = scope.getCurrentFrame();
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        EvalFrame frame = rt.getCurrentFrame();
         for (int i = 0, n = slots.length; i < n; i++) {
             frame.setStackValue(slots[i], vars[i]);
         }
-        return executor.execute(expr, scope);
+        return executor.execute(expr, rt);
     }
 }

@@ -8,8 +8,8 @@
 package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.ExitMode;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -26,13 +26,13 @@ public class ReturnExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         if (expr != null) {
-            Object ret = executor.execute(expr, scope);
-            scope.setExitMode(ExitMode.RETURN);
+            Object ret = executor.execute(expr, rt);
+            rt.setExitMode(ExitMode.RETURN);
             return ret;
         } else {
-            scope.setExitMode(ExitMode.RETURN);
+            rt.setExitMode(ExitMode.RETURN);
         }
         return null;
     }

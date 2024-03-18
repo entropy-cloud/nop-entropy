@@ -10,7 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.xlang.utils.DebugHelper;
@@ -26,10 +26,10 @@ public class DebugExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object v = executor.execute(valueExpr, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object v = executor.execute(valueExpr, rt);
         // nameExpr在valueExpr之后执行，原代码结构为value.$(name)这种形式
-        String prefix = ConvertHelper.toString(executor.execute(prefixExpr, scope));
+        String prefix = ConvertHelper.toString(executor.execute(prefixExpr, rt));
         return DebugHelper.v(getLocation(), prefix, valueExpr.display(), v);
     }
 

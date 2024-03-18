@@ -10,7 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.json.JSON;
 import io.nop.api.core.util.CloneHelper;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -34,7 +34,7 @@ public class CloneLiteralExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         return CloneHelper.deepClone(value);
     }
 

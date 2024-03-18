@@ -9,7 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -45,13 +45,13 @@ public class IfExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        boolean b = toTruthy(executor.execute(test, scope));
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        boolean b = toTruthy(executor.execute(test, rt));
         if (b) {
-            return executor.execute(consequent, scope);
+            return executor.execute(consequent, rt);
         } else {
             if (alternate != null) {
-                return executor.execute(alternate, scope);
+                return executor.execute(alternate, rt);
             } else {
                 return null;
             }

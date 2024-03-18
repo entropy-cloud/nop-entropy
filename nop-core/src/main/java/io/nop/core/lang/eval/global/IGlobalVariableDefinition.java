@@ -7,7 +7,7 @@
  */
 package io.nop.core.lang.eval.global;
 
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.type.IGenericType;
 
 public interface IGlobalVariableDefinition {
@@ -17,5 +17,5 @@ public interface IGlobalVariableDefinition {
 
     IGenericType getResolvedType();
 
-    Object getValue(IEvalScope scope);
+    Object getValue(EvalRuntime rt);
 }

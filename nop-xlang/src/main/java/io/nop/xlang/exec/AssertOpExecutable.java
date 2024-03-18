@@ -10,11 +10,13 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.context.IEvalContext;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.model.query.FilterOp;
+import io.nop.xlang.api.XLang;
 
 import java.util.function.Predicate;
 
@@ -48,16 +50,15 @@ public class AssertOpExecutable extends AbstractExecutable implements IEvalPredi
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object v1 = executor.execute(value, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object v1 = executor.execute(value, rt);
         return predicate.test(v1);
     }
 
     @Override
     public boolean passConditions(IEvalContext ctx) {
         IEvalScope scope = ctx.getEvalScope();
-        IExpressionExecutor executor = scope.getExpressionExecutor();
-        Object v1 = executor.execute(value, scope);
+        Object v1 = XLang.execute(value, new EvalRuntime(scope));
         return predicate.test(v1);
     }
 }

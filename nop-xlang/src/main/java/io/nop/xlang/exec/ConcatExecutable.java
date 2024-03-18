@@ -8,7 +8,7 @@
 package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -23,10 +23,10 @@ public class ConcatExecutable extends AbstractMultiExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         StringBuilder sb = new StringBuilder();
         for (IExecutableExpression expr : exprs) {
-            Object v = executor.execute(expr, scope);
+            Object v = executor.execute(expr, rt);
             if (v != null)
                 sb.append(v);
         }

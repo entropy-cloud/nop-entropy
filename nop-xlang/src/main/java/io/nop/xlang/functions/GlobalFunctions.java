@@ -25,6 +25,7 @@ import io.nop.commons.text.RawText;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.MaskedValue;
 import io.nop.commons.util.objects.OptionalValue;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
@@ -206,7 +207,7 @@ public class GlobalFunctions {
     @Description("按照outputMode=node来执行xpl函数，并返回XNode对象")
     @EvalMethod
     public static XNode eval_node(IEvalScope scope, @Name("func") IEvalFunction func) {
-        return ExprEvalHelper.generateNode(ctx -> func.call0(null, ctx.getEvalScope()), scope);
+        return ExprEvalHelper.generateNode(ctx -> func.call0(null, scope), new EvalRuntime(scope));
     }
 
     @Description("执行表达式")

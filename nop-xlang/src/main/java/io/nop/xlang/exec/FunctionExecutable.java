@@ -10,8 +10,8 @@ package io.nop.xlang.exec;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalFunction;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -56,14 +56,14 @@ public class FunctionExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         Object[] argValues = new Object[args.length];
         for (int i = 0, n = args.length; i < n; i++) {
-            argValues[i] = executor.execute(args[i], scope);
+            argValues[i] = executor.execute(args[i], rt);
         }
 
         try {
-            return func.invoke(null, argValues, scope);
+            return func.invoke(null, argValues, rt.getScope());
         } catch (NopException e) {
             e.addXplStack(this);
             throw e;
@@ -78,9 +78,9 @@ public class FunctionExecutable extends AbstractExecutable {
         }
 
         @Override
-        public Object execute(IExpressionExecutor executor, IEvalScope scope) {
+        public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
             try {
-                return func.invoke(null, EMPTY_ARGS, scope);
+                return func.invoke(null, EMPTY_ARGS, rt.getScope());
             } catch (NopException e) {
                 e.addXplStack(this);
                 throw e;
@@ -97,10 +97,10 @@ public class FunctionExecutable extends AbstractExecutable {
         }
 
         @Override
-        public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-            Object arg = executor.execute(argExpr, scope);
+        public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+            Object arg = executor.execute(argExpr, rt);
             try {
-                return func.call1(null, arg, scope);
+                return func.call1(null, arg, rt.getScope());
             } catch (NopException e) {
                 e.addXplStack(this);
                 throw e;
@@ -119,12 +119,12 @@ public class FunctionExecutable extends AbstractExecutable {
         }
 
         @Override
-        public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-            Object arg1 = executor.execute(argExpr1, scope);
-            Object arg2 = executor.execute(argExpr2, scope);
+        public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+            Object arg1 = executor.execute(argExpr1, rt);
+            Object arg2 = executor.execute(argExpr2, rt);
 
             try {
-                return func.call2(null, arg1, arg2, scope);
+                return func.call2(null, arg1, arg2, rt.getScope());
             } catch (NopException e) {
                 e.addXplStack(this);
                 throw e;
@@ -146,13 +146,13 @@ public class FunctionExecutable extends AbstractExecutable {
         }
 
         @Override
-        public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-            Object arg1 = executor.execute(argExpr1, scope);
-            Object arg2 = executor.execute(argExpr2, scope);
-            Object arg3 = executor.execute(argExpr3, scope);
+        public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+            Object arg1 = executor.execute(argExpr1, rt);
+            Object arg2 = executor.execute(argExpr2, rt);
+            Object arg3 = executor.execute(argExpr3, rt);
 
             try {
-                return func.call3(null, arg1, arg2, arg3, scope);
+                return func.call3(null, arg1, arg2, arg3, rt.getScope());
             } catch (NopException e) {
                 e.addXplStack(this);
                 throw e;

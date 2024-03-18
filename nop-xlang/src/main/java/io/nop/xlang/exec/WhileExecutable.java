@@ -10,6 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.ExitMode;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
@@ -48,14 +49,14 @@ public class WhileExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        while (passTest(executor, scope)) {
-            Object ret = executor.execute(bodyExpr, scope);
-            ExitMode exitMode = scope.getExitMode();
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        while (passTest(executor, rt)) {
+            Object ret = executor.execute(bodyExpr, rt);
+            ExitMode exitMode = rt.getExitMode();
             if (exitMode != null) {
                 if (exitMode == ExitMode.RETURN)
                     return ret;
-                scope.setExitMode(null);
+                rt.setExitMode(null);
                 if (exitMode == ExitMode.BREAK) {
                     break;
                 }
@@ -65,8 +66,8 @@ public class WhileExecutable extends AbstractExecutable {
         return null;
     }
 
-    protected boolean passTest(IExpressionExecutor executor, IEvalScope scope) {
-        return ConvertHelper.toTruthy(executor.execute(testExpr, scope));
+    protected boolean passTest(IExpressionExecutor executor, EvalRuntime rt) {
+        return ConvertHelper.toTruthy(executor.execute(testExpr, rt));
     }
 
     static class SimpleWhileExecutable extends WhileExecutable {
@@ -77,9 +78,9 @@ public class WhileExecutable extends AbstractExecutable {
         }
 
         @Override
-        public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-            while (passTest(executor, scope)) {
-                executor.execute(bodyExpr, scope);
+        public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+            while (passTest(executor, rt)) {
+                executor.execute(bodyExpr, rt);
             }
 
             return null;

@@ -10,7 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.collections.iterator.IntRangeIterator;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -40,11 +40,11 @@ public class RangeExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Integer begin = ConvertHelper.toInt(executor.execute(beginExpr, scope), err -> newError(err));
-        Integer end = ConvertHelper.toInt(executor.execute(endExpr, scope), err -> newError(err));
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Integer begin = ConvertHelper.toInt(executor.execute(beginExpr, rt), err -> newError(err));
+        Integer end = ConvertHelper.toInt(executor.execute(endExpr, rt), err -> newError(err));
 
-        Integer step = ConvertHelper.toInt(executor.execute(stepExpr, scope), err -> newError(err));
+        Integer step = ConvertHelper.toInt(executor.execute(stepExpr, rt), err -> newError(err));
 
         if (step == null) {
             step = 1;

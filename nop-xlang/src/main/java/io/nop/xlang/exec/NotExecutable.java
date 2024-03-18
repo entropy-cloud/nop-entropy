@@ -10,7 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -28,8 +28,8 @@ public class NotExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object v = executor.execute(expr, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object v = executor.execute(expr, rt);
         return !ConvertHelper.toTruthy(v);
     }
 

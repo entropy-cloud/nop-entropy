@@ -9,8 +9,8 @@ package io.nop.report.core.expr;
 
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalFunction;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.report.core.model.ExpandedCellSet;
 import io.nop.xlang.exec.AbstractExecutable;
@@ -47,10 +47,10 @@ public class FilterCellSetExecutable extends AbstractExecutable implements ICell
     }
 
     @Override
-    public ExpandedCellSet execute(IExpressionExecutor executor, IEvalScope scope) {
-        ExpandedCellSet cellSet = executable.execute(executor, scope);
+    public ExpandedCellSet execute(IExpressionExecutor executor, EvalRuntime rt) {
+        ExpandedCellSet cellSet = executable.execute(executor, rt);
         if (cellSet == null)
             return null;
-        return cellSet.filter(e -> ConvertHelper.toTruthy(predicate.call1(null, e, scope)));
+        return cellSet.filter(e -> ConvertHelper.toTruthy(predicate.call1(null, e, rt.getScope())));
     }
 }

@@ -49,10 +49,9 @@ public interface IXLangCompileScope extends IEvalScope {
      * 新建一个空的变量scope。为了便于维持scope内在限制，这里并没有传入vars参数
      *
      * @param inheritParentVars 新scope在查找变量未找到的时候，是否到父scope中查找
-     * @param inheritParentOut  新scope的out和outputStream是否继承父scope的
      * @return
      */
-    IXLangCompileScope newChildScope(boolean inheritParentVars, boolean inheritParentOut);
+    IXLangCompileScope newChildScope(boolean inheritParentVars);
 
     /**
      * 当前的标签库，在标签实现中可以通过<thisLib:XXX>来调用当前标签库中的标签

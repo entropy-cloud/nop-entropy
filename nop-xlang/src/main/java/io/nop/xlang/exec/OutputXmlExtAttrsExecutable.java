@@ -10,8 +10,8 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalOutput;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -43,15 +43,15 @@ public class OutputXmlExtAttrsExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object v = executor.execute(attrs, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object v = executor.execute(attrs, rt);
         if (v == null)
             return null;
 
         if (!(v instanceof Map))
             throw newError(ERR_EXEC_XML_EXT_ATTRS_NOT_MAP);
 
-        IEvalOutput out = scope.getOut();
+        IEvalOutput out = rt.getOut();
         Map<String, Object> map = (Map<String, Object>) v;
         if (excludeNames.isEmpty()) {
             for (Map.Entry<String, Object> entry : map.entrySet()) {

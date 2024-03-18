@@ -8,7 +8,7 @@
 package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.xlang.ast.XLangOperator;
@@ -19,11 +19,11 @@ public class NullCoalesceExecutable extends AbstractBinaryExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object v1 = executor.execute(left, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object v1 = executor.execute(left, rt);
         if (v1 != null)
             return v1;
-        return executor.execute(right, scope);
+        return executor.execute(right, rt);
     }
 
     @Override

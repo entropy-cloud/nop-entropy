@@ -7,7 +7,7 @@
  */
 package io.nop.xlang.debugger;
 
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -19,11 +19,11 @@ public class DebugExpressionExecutor implements IExpressionExecutor {
     }
 
     @Override
-    public Object execute(IExecutableExpression expr, IEvalScope scope) {
+    public Object execute(IExecutableExpression expr, EvalRuntime rt) {
         if (!expr.allowBreakPoint())
-            return expr.execute(this, scope);
+            return expr.execute(this, rt);
 
-        debugger.checkBreakpoint(expr.getLocation(), scope);
-        return expr.execute(this, scope);
+        debugger.checkBreakpoint(expr.getLocation(), rt);
+        return expr.execute(this, rt);
     }
 }

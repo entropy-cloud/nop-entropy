@@ -9,6 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalFrame;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
@@ -45,22 +46,22 @@ public class AssignIdentifier {
         return useRef;
     }
 
-    public Object getDefaultValue(IExpressionExecutor executor, IEvalScope scope) {
+    public Object getDefaultValue(IExpressionExecutor executor, EvalRuntime rt) {
         if (initializer == null)
             return null;
-        return executor.execute(initializer, scope);
+        return executor.execute(initializer, rt);
     }
 
-    public void assign(Object value, IEvalScope scope) {
+    public void assign(Object value, EvalRuntime rt) {
         if (slotIndex >= 0) {
-            EvalFrame frame = scope.getCurrentFrame();
+            EvalFrame frame = rt.getCurrentFrame();
             if (useRef) {
                 frame.setRefValue(slotIndex, value);
             } else {
                 frame.setStackValue(slotIndex, value);
             }
         } else {
-            scope.setLocalValue(loc, varName, value);
+            rt.setLocalValue(loc, varName, value);
         }
     }
 }

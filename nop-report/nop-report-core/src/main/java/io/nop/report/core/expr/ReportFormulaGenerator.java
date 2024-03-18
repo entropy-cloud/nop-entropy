@@ -9,6 +9,7 @@ package io.nop.report.core.expr;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.report.core.model.ExpandedCellSet;
@@ -28,10 +29,9 @@ import static io.nop.report.core.XptErrors.ERR_XPT_NOT_SUPPORT_EXPR_IN_FORMULA;
  * 保持表达式的其他部分，但是将层次坐标展开成Excel中的Range表达式
  */
 public class ReportFormulaGenerator extends XLangExpressionPrinter {
-    private final IEvalScope scope;
-
+    private final EvalRuntime evalRt;
     public ReportFormulaGenerator(IEvalScope scope) {
-        this.scope = scope;
+        this.evalRt = new EvalRuntime(scope);
     }
 
     @Override
@@ -41,7 +41,7 @@ public class ReportFormulaGenerator extends XLangExpressionPrinter {
 
     private void transformCellSet(CustomExpression expr) {
         IExecutableExpression executable = expr.getExecutable();
-        ExpandedCellSet cellSet = (ExpandedCellSet) XLang.execute(executable, scope);
+        ExpandedCellSet cellSet = (ExpandedCellSet) XLang.execute(executable, evalRt);
         if (cellSet == null || cellSet.isEmpty()) {
             print("''");
         } else {

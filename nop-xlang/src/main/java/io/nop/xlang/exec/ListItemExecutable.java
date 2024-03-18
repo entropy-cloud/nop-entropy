@@ -7,6 +7,7 @@
  */
 package io.nop.xlang.exec;
 
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
@@ -30,7 +31,7 @@ public class ListItemExecutable {
         return spread;
     }
 
-    public Object getValue(IExpressionExecutor executor, IEvalScope scope) {
-        return executor.execute(valueExpr, scope);
+    public Object getValue(IExpressionExecutor executor, EvalRuntime rt) {
+        return executor.execute(valueExpr, rt);
     }
 }

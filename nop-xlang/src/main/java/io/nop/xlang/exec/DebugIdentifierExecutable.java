@@ -9,7 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.xlang.expr.ExprExecHelper;
 
@@ -30,8 +30,8 @@ public class DebugIdentifierExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        return ExprExecHelper.getVar(scope, varName);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        return ExprExecHelper.getVar(rt, varName);
     }
 
     @Override

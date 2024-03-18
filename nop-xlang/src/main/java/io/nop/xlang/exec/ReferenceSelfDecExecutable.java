@@ -10,7 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.MathHelper;
 import io.nop.core.lang.eval.EvalReference;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 public class ReferenceSelfDecExecutable extends AbstractExecutable {
@@ -24,8 +24,8 @@ public class ReferenceSelfDecExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        EvalReference ref = scope.getCurrentFrame().getRef(slot);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        EvalReference ref = rt.getCurrentFrame().getRef(slot);
         Object value = ref.getValue();
         Object newValue = MathHelper.add(value, -1);
         ref.setValue(newValue);

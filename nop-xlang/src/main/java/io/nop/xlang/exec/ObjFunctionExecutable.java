@@ -9,8 +9,8 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.objects.Pair;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalFunction;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.reflect.IMethodModelCollection;
@@ -53,18 +53,18 @@ public class ObjFunctionExecutable extends AbstractObjFunctionExecutable {
     private transient Pair<Class<?>, IEvalFunction> _cacheFunc = Pair.of(null, null);
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object obj = eval(objExpr, executor, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object obj = eval(objExpr, executor, rt);
         if (obj == null)
             return null;
 
         Object[] argValues = new Object[args.length];
         for (int i = 0, n = args.length; i < n; i++) {
-            argValues[i] = executor.execute(args[i], scope);
+            argValues[i] = executor.execute(args[i], rt);
         }
 
         IEvalFunction func = getFunctionForObj(obj, argValues);
-        return doInvoke(func, obj, argValues, scope);
+        return doInvoke(func, obj, argValues, rt.getScope());
     }
 
     protected IEvalFunction getFunctionForObj(Object obj, Object... argValues) {
@@ -140,13 +140,13 @@ public class ObjFunctionExecutable extends AbstractObjFunctionExecutable {
         }
 
         @Override
-        public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-            Object obj = executor.execute(objExpr, scope);
+        public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+            Object obj = executor.execute(objExpr, rt);
             if (obj == null)
                 return null;
 
             IEvalFunction func = getFunctionForObj(obj);
-            return doInvoke0(func, obj, scope);
+            return doInvoke0(func, obj, rt.getScope());
         }
     }
 
@@ -161,15 +161,15 @@ public class ObjFunctionExecutable extends AbstractObjFunctionExecutable {
         }
 
         @Override
-        public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-            Object obj = executor.execute(objExpr, scope);
+        public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+            Object obj = executor.execute(objExpr, rt);
             if (obj == null)
                 return null;
 
-            Object arg = executor.execute(argExpr, scope);
+            Object arg = executor.execute(argExpr, rt);
 
             IEvalFunction func = getFunctionForObj(obj, arg);
-            return doInvoke1(func, obj, arg, scope);
+            return doInvoke1(func, obj, arg, rt.getScope());
         }
     }
 
@@ -186,16 +186,16 @@ public class ObjFunctionExecutable extends AbstractObjFunctionExecutable {
         }
 
         @Override
-        public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-            Object obj = executor.execute(objExpr, scope);
+        public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+            Object obj = executor.execute(objExpr, rt);
             if (obj == null)
                 return null;
 
-            Object arg1 = executor.execute(argExpr1, scope);
-            Object arg2 = executor.execute(argExpr2, scope);
+            Object arg1 = executor.execute(argExpr1, rt);
+            Object arg2 = executor.execute(argExpr2, rt);
 
             IEvalFunction func = getFunctionForObj(obj, arg1, arg2);
-            return doInvoke2(func, obj, arg1, arg2, scope);
+            return doInvoke2(func, obj, arg1, arg2, rt.getScope());
         }
     }
 
@@ -214,17 +214,17 @@ public class ObjFunctionExecutable extends AbstractObjFunctionExecutable {
         }
 
         @Override
-        public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-            Object obj = executor.execute(objExpr, scope);
+        public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+            Object obj = executor.execute(objExpr, rt);
             if (obj == null)
                 return null;
 
-            Object arg1 = executor.execute(argExpr1, scope);
-            Object arg2 = executor.execute(argExpr2, scope);
-            Object arg3 = executor.execute(argExpr3, scope);
+            Object arg1 = executor.execute(argExpr1, rt);
+            Object arg2 = executor.execute(argExpr2, rt);
+            Object arg3 = executor.execute(argExpr3, rt);
 
             IEvalFunction func = getFunctionForObj(obj, arg1, arg2, arg3);
-            return doInvoke3(func, obj, arg1, arg2, arg3, scope);
+            return doInvoke3(func, obj, arg1, arg2, arg3, rt.getScope());
         }
     }
 }

@@ -8,7 +8,7 @@
 package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -74,8 +74,8 @@ public class ObjectBindingAssignExecutable extends AbstractExecutable {
     // resume CPD analysis - CPD-ON
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object value = executor.execute(expr, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object value = executor.execute(expr, rt);
         if (!(value instanceof Map)) {
             throw newError(ERR_EXEC_OBJECT_BINDING_NOT_MAP).param(ARG_VALUE, value);
         }
@@ -85,8 +85,8 @@ public class ObjectBindingAssignExecutable extends AbstractExecutable {
             PropBinding binding = propBindings[i];
             Object propValue = map.get(binding.getKey());
             if (propValue == null)
-                propValue = binding.getDefaultValue(executor, scope);
-            binding.assign(propValue, scope);
+                propValue = binding.getDefaultValue(executor, rt);
+            binding.assign(propValue, rt);
         }
         if (restBinding != null) {
             Map<String, Object> tail = new HashMap<>();
@@ -95,7 +95,7 @@ public class ObjectBindingAssignExecutable extends AbstractExecutable {
                     continue;
                 tail.put(entry.getKey(), value);
             }
-            restBinding.assign(tail, scope);
+            restBinding.assign(tail, rt);
         }
         return null;
     }

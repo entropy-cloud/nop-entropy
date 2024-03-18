@@ -11,7 +11,7 @@ import io.nop.api.core.ApiErrors;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.convert.ITypeConverter;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.reflect.ReflectionManager;
@@ -43,12 +43,12 @@ public class CastExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object value = executor.execute(expr, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object value = executor.execute(expr, rt);
         if (value == null)
             return defaultValue;
 
-        Object converted = converter.convertEx(scope, value, this::newError);
+        Object converted = converter.convertEx(rt, value, this::newError);
         if (converted != null) {
             // 总是校验一下，避免converter不准确
             if (!clazz.isInstance(value))

@@ -9,7 +9,7 @@ package io.nop.xlang.xpath.parse;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.text.tokenizer.TextScanner;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.lang.xml.XNode;
 import io.nop.xlang.XLangConstants;
@@ -35,8 +35,8 @@ public class XPathExprParser extends SimpleExprParser {
                 }
 
                 @Override
-                public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-                    XNode node = (XNode) scope.getEvalScope().getValue(XLangConstants.XPATH_VAR_THIS_NODE);
+                public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+                    XNode node = (XNode) rt.getScope().getValue(XLangConstants.XPATH_VAR_THIS_NODE);
                     return node.getAttr(attrName);
                 }
             });

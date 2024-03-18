@@ -12,7 +12,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.lang.xml.IXNodeHandler;
@@ -65,27 +65,27 @@ public class GenNodeExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        IXNodeHandler out = (IXNodeHandler) scope.getOut();
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        IXNodeHandler out = (IXNodeHandler) rt.getOut();
         SourceLocation loc = getLocation();
-        Map<String, ValueWithLocation> attrs = buildAttrs(executor, scope);
+        Map<String, ValueWithLocation> attrs = buildAttrs(executor, rt);
 
-        String tagName = buildTagName(executor, scope);
+        String tagName = buildTagName(executor, rt);
         if (bodyExpr == null) {
             out.simpleNode(loc, tagName, attrs);
         } else {
             out.beginNode(loc, tagName, attrs);
-            executor.execute(bodyExpr, scope);
+            executor.execute(bodyExpr, rt);
             out.endNode(tagName);
         }
         return null;
     }
 
-    String buildTagName(IExpressionExecutor executor, IEvalScope scope) {
+    String buildTagName(IExpressionExecutor executor, EvalRuntime rt) {
         if (tagName != null)
             return tagName;
 
-        Object value = executor.execute(tagNameExpr, scope);
+        Object value = executor.execute(tagNameExpr, rt);
         if (value instanceof String) {
             String str = value.toString();
             if (!StringHelper.isValidXmlName(str))
@@ -98,7 +98,7 @@ public class GenNodeExecutable extends AbstractExecutable {
                 tagNameExpr);
     }
 
-    private Map<String, ValueWithLocation> buildAttrs(IExpressionExecutor executor, IEvalScope scope) {
+    private Map<String, ValueWithLocation> buildAttrs(IExpressionExecutor executor, EvalRuntime rt) {
         if (attrExprs.length == 0 && extAttrs == null) {
             return Collections.emptyMap();
         }
@@ -106,14 +106,14 @@ public class GenNodeExecutable extends AbstractExecutable {
         Map<String, ValueWithLocation> map = new LinkedHashMap<>();
         for (GenNodeAttrExecutable attrExpr : attrExprs) {
             IExecutableExpression valueExpr = attrExpr.getValueExpr();
-            Object value = executor.execute(valueExpr, scope);
+            Object value = executor.execute(valueExpr, rt);
             if (value == null)
                 continue;
             map.put(attrExpr.getName(), ValueWithLocation.of(valueExpr.getLocation(), value));
         }
 
         if (extAttrs != null) {
-            Object value = executor.execute(extAttrs, scope);
+            Object value = executor.execute(extAttrs, rt);
             if (value != null) {
                 if (!(value instanceof Map))
                     throw newError(ERR_EXEC_XML_EXT_ATTRS_NOT_MAP).loc(extAttrs.getLocation());

@@ -8,7 +8,7 @@
 package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 import java.util.ArrayList;
@@ -35,10 +35,10 @@ public class NewListExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         List<Object> ret = new ArrayList<>(exprs.length);
         for (ListItemExecutable expr : exprs) {
-            Object value = expr.getValue(executor, scope);
+            Object value = expr.getValue(executor, rt);
             if (expr.isSpread()) {
                 if (value != null) {
                     if (value instanceof Collection) {

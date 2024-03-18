@@ -11,8 +11,8 @@ import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.text.RawText;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalOutput;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.xlang.ast.XLangEscapeMode;
@@ -41,13 +41,13 @@ public class EscapeOutputExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object value = executor.execute(valueExpr, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object value = executor.execute(valueExpr, rt);
         if (value == null)
             return null;
 
         SourceLocation loc = getLocation();
-        IEvalOutput out = scope.getOut();
+        IEvalOutput out = rt.getOut();
 
         if (value instanceof RawText) {
             out.text(loc, ((RawText) value).getText());

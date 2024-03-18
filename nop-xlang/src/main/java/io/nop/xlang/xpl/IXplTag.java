@@ -10,10 +10,13 @@ package io.nop.xlang.xpl;
 import io.nop.api.core.annotations.lang.EvalMethod;
 import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.commons.collections.IKeyedElement;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.hook.IExtensibleObject;
+import io.nop.xlang.api.XLang;
 import io.nop.xlang.ast.XLangOutputMode;
+import io.nop.xlang.exec.ExecutableFunction;
 import io.nop.xlang.utils.ExprEvalHelper;
 import io.nop.xlang.xpl.utils.XplTagHelper;
 
@@ -72,20 +75,22 @@ public interface IXplTag extends IExtensibleObject, ISourceLocationGetter, IKeye
 
     IFunctionModel getFunctionModel();
 
-    @EvalMethod
-    default Map<String, Object> prepareArgs(IEvalScope scope, Map<String, Object> args) {
-        return XplTagHelper.prepareTagArgs(this, args, scope);
-    }
+//    @EvalMethod
+//    default Map<String, Object> prepareArgs(IEvalScope scope, Map<String, Object> args) {
+//        return XplTagHelper.prepareTagArgs(this, args, scope);
+//    }
 
     @EvalMethod
     default Object invokeWithNamedArgs(IEvalScope scope, Map<String, Object> args) {
-        return getFunctionModel().invokeWithNamedArgs(scope, args);
+        ExecutableFunction fn = (ExecutableFunction) getFunctionModel().getInvoker();
+        return fn.executeWithArgs(XLang.getExecutor(), XplTagHelper.buildTagArgValues(this, args, scope), new EvalRuntime(scope));
     }
 
     @EvalMethod
     default Object generateXjson(IEvalScope scope, Map<String, Object> args) {
         return ExprEvalHelper.generateXjson(ctx -> {
-            return invokeWithNamedArgs(scope, args);
-        }, scope);
+            ExecutableFunction fn = (ExecutableFunction) getFunctionModel().getInvoker();
+            return fn.executeWithArgs(XLang.getExecutor(), XplTagHelper.buildTagArgValues(this, args, scope), ctx);
+        }, new EvalRuntime(scope));
     }
 }

@@ -60,19 +60,11 @@ public class EvalExprProvider {
         return varName.charAt(0) == '$';
     }
 
-    public static Object execute(IExecutableExpression expr, IEvalScope scope) {
-        return scope.getExpressionExecutor().execute(expr, scope);
-    }
-
     public static IEvalScope newEvalScope(Map<String, Object> context) {
-        EvalScopeImpl scope = new EvalScopeImpl(context);
-        scope.setExpressionExecutor(_executor);
-        return scope;
+        return new EvalScopeImpl(context);
     }
 
     public static IEvalScope newEvalScope() {
-        EvalScopeImpl scope = new EvalScopeImpl();
-        scope.setExpressionExecutor(_executor);
-        return scope;
+        return new EvalScopeImpl();
     }
 }

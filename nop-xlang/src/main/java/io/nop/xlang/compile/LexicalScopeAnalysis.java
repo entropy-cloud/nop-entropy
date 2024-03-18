@@ -10,6 +10,7 @@ package io.nop.xlang.compile;
 import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.objects.OptionalValue;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.global.EvalGlobalRegistry;
 import io.nop.core.lang.eval.global.IGlobalVariableDefinition;
@@ -562,7 +563,7 @@ public class LexicalScopeAnalysis extends XLangASTVisitor {
                     }
 
                     replaceNode(node, ret);
-                   
+
                     if (ret != null)
                         visit(ret);
                     return;
@@ -886,7 +887,7 @@ public class LexicalScopeAnalysis extends XLangASTVisitor {
             scope.leaveMacro();
         }
         IExecutableExpression executable = scope.getCompiler().buildExecutable(expr, false, scope);
-        Object value = executable == null ? null : XLang.execute(executable, scope);
+        Object value = executable == null ? null : XLang.execute(executable, new EvalRuntime(scope));
 
         if (value instanceof Expression) {
             expr = (Expression) value;

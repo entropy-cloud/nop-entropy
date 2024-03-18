@@ -10,7 +10,6 @@ package io.nop.core.lang.eval;
 import io.nop.api.core.annotations.core.NoReflection;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.ioc.IBeanProvider;
-import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.IVariableScope;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.objects.ValueWithLocation;
@@ -31,32 +30,24 @@ public class EvalScopeImpl implements IEvalScope {
     private final boolean inheritParentVars;
     private IBeanProvider beanProvider;
     private IClassModelLoader classModelLoader = ReflectionManager.instance();
-    private IEvalOutput output = DisabledEvalOutput.INSTANCE;
     private IVariableScope extension;
-    private EvalFrame currentFrame;
-    private ExitMode exitMode;
-    private IExpressionExecutor executor = EvalExprProvider.getGlobalExecutor();
 
-    protected EvalScopeImpl(IEvalScope parentScope, Map<String, Object> variables, boolean inheritParentVars,
-                            boolean inheritOutput) {
+    protected EvalScopeImpl(IEvalScope parentScope, Map<String, Object> variables, boolean inheritParentVars) {
         this.parentScope = parentScope;
         this.variables = variables == null ? new HashMap<>() : variables;
         this.inheritParentVars = parentScope != null && inheritParentVars;
         if (parentScope != null) {
             this.setClassModelLoader(parentScope.getClassModelLoader());
             this.setBeanProvider(parentScope.getBeanProvider());
-            this.setExpressionExecutor(parentScope.getExpressionExecutor());
-            if (inheritOutput)
-                this.output = parentScope.getOut();
         }
     }
 
     public EvalScopeImpl() {
-        this(null, new HashMap<>(), false, false);
+        this(null, new HashMap<>(), false);
     }
 
     public EvalScopeImpl(Map<String, Object> variables) {
-        this(null, variables, false, false);
+        this(null, variables, false);
     }
 
     @Override
@@ -85,17 +76,6 @@ public class EvalScopeImpl implements IEvalScope {
     }
 
     @Override
-    public IEvalOutput getOut() {
-        return output;
-    }
-
-    @Override
-    public void setOut(IEvalOutput out) {
-        Guard.notNull(out, "output");
-        this.output = out;
-    }
-
-    @Override
     public void setExtension(IVariableScope extension) {
         this.extension = extension;
     }
@@ -111,34 +91,16 @@ public class EvalScopeImpl implements IEvalScope {
     }
 
     @Override
-    public IEvalScope newChildScope(boolean inheritParentVars, boolean inheritParentOut, boolean threadSafe) {
+    public IEvalScope newChildScope(boolean inheritParentVars, boolean threadSafe) {
         EvalScopeImpl scope = new EvalScopeImpl(this, threadSafe ? new ConcurrentHashMap<>() : new HashMap<>(),
-                inheritParentVars, inheritParentOut);
+                inheritParentVars);
         return scope;
     }
 
     @Override
     public IEvalScope newChildScope(Map<String, Object> childVars) {
         EvalScopeImpl scope = new EvalScopeImpl(this, childVars,
-                true, true);
-        return scope;
-    }
-
-    @Override
-    public IEvalScope duplicate() {
-        EvalScopeImpl scope = new EvalScopeImpl(parentScope, variables, inheritParentVars, false);
-        scope.setOut(output);
-        scope.setExpressionExecutor(executor);
-        scope.setBeanProvider(beanProvider);
-        scope.setExtension(extension);
-        scope.setClassModelLoader(classModelLoader);
-
-        if (ENABLE_EVAL_DEBUG) {
-            if (locations == null) {
-                locations = new HashMap<>();
-            }
-            scope.locations = locations;
-        }
+                true);
         return scope;
     }
 
@@ -282,41 +244,5 @@ public class EvalScopeImpl implements IEvalScope {
                 }
             }
         }
-    }
-
-    @Override
-    public ExitMode getExitMode() {
-        return exitMode;
-    }
-
-    @Override
-    public void setExitMode(ExitMode exitMode) {
-        this.exitMode = exitMode;
-    }
-
-    @Override
-    public EvalFrame getCurrentFrame() {
-        return currentFrame;
-    }
-
-    @Override
-    public void pushFrame(EvalFrame frame) {
-        this.currentFrame = frame;
-    }
-
-    @Override
-    public void popFrame() {
-        if (currentFrame != null)
-            currentFrame = currentFrame.getParentFrame();
-    }
-
-    @Override
-    public IExpressionExecutor getExpressionExecutor() {
-        return executor;
-    }
-
-    @Override
-    public void setExpressionExecutor(IExpressionExecutor executor) {
-        this.executor = executor;
     }
 }

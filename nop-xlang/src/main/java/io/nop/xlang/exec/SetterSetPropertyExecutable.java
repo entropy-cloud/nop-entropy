@@ -9,6 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
@@ -52,14 +53,14 @@ public class SetterSetPropertyExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object o = executor.execute(objExpr, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object o = executor.execute(objExpr, rt);
         if (o == null)
             throw newError(ERR_EXEC_WRITE_PROP_OBJ_NULL);
 
-        Object value = executor.execute(valueExpr, scope);
+        Object value = executor.execute(valueExpr, rt);
 
-        setProp(o, value, setter, scope);
+        setProp(o, value, setter, rt.getScope());
         return value;
     }
 

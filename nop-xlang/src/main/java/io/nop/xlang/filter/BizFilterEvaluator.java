@@ -79,7 +79,7 @@ public class BizFilterEvaluator extends FilterBeanEvaluator {
         Map<String, Object> args = filter.getAttrs() == null ? new HashMap<>() : new HashMap<>(filter.getAttrs());
         // biz标签库中的标签
         IXplTag tag = XLang.getTag(libPath, libTag);
-        args = tag.prepareArgs(evalScope, args);
+        //args = tag.prepareArgs(evalScope, args);
         Object ret = tag.invokeWithNamedArgs(evalScope, args);
         return ConvertHelper.toTruthy(ret);
     }

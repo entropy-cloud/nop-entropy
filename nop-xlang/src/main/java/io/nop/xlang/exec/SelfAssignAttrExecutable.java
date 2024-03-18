@@ -9,7 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.reflect.ReflectionManager;
@@ -63,12 +63,12 @@ public class SelfAssignAttrExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object o = executor.execute(objExpr, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object o = executor.execute(objExpr, rt);
         if (o == null)
             return returnNull();
 
-        Object attr = executor.execute(attrExpr, scope);
+        Object attr = executor.execute(attrExpr, rt);
 
         Object oldValue;
         if (attr instanceof Integer) {
@@ -83,7 +83,7 @@ public class SelfAssignAttrExecutable extends AbstractExecutable {
         if (oldValue == null)
             throw newError(ERR_EXEC_OBJ_ATTR_IS_NULL).param(ARG_ATTR_EXPR, attrExpr.display());
 
-        Object value = executor.execute(valueExpr, scope);
+        Object value = executor.execute(valueExpr, rt);
         value = selfAssignValue(operator, oldValue, value);
 
         if (attr instanceof Integer) {

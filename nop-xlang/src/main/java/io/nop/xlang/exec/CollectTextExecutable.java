@@ -8,8 +8,8 @@
 package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalOutput;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.lang.eval.StringBuilderEvalOutput;
@@ -34,14 +34,14 @@ public class CollectTextExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        IEvalOutput oldOut = scope.getOut();
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        IEvalOutput oldOut = rt.getOut();
         StringBuilderEvalOutput out = new StringBuilderEvalOutput();
-        scope.setOut(out);
+        rt.setOut(out);
         try {
-            bodyExpr.execute(executor, scope);
+            bodyExpr.execute(executor, rt);
         } finally {
-            scope.setOut(oldOut);
+            rt.setOut(oldOut);
         }
         return out.getOutput();
     }

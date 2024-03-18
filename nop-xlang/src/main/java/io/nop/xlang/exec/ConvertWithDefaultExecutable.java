@@ -9,7 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.convert.ITypeConverter;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -43,11 +43,11 @@ public class ConvertWithDefaultExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object value = executor.execute(expr, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object value = executor.execute(expr, rt);
         if (value != null)
-            return converter.convertEx(scope, value, err -> newError(err));
-        Object defaultValue = executor.execute(defaultExpr, scope);
-        return converter.convertEx(scope, defaultValue, err -> newError(err));
+            return converter.convertEx(rt, value, err -> newError(err));
+        Object defaultValue = executor.execute(defaultExpr, rt);
+        return converter.convertEx(rt, defaultValue, err -> newError(err));
     }
 }

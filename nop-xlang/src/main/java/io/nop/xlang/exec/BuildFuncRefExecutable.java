@@ -10,7 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalFrame;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 /**
@@ -46,9 +46,9 @@ public class BuildFuncRefExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         // 从当前环境中捕获闭包变量
-        EvalFrame frame = scope.getCurrentFrame();
+        EvalFrame frame = rt.getCurrentFrame();
         Object[] vars = new Object[sourceSlots.length];
         for (int i = 0, n = sourceSlots.length; i < n; i++) {
             int closureSlot = sourceSlots[i];

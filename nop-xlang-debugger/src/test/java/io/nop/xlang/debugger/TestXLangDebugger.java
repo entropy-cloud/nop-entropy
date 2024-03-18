@@ -15,6 +15,7 @@ import io.nop.api.debugger.StackInfo;
 import io.nop.api.debugger.ThreadInfo;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.EvalFrame;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.xlang.api.XLang;
 import org.junit.jupiter.api.Test;
@@ -50,23 +51,24 @@ public class TestXLangDebugger {
 
         new Thread(() -> {
             IEvalScope scope = XLang.newEvalScope();
+            EvalRuntime rt = new EvalRuntime(scope);
             Map<String, Object> z = new HashMap<>();
             z.put("a", "a1");
             scope.setLocalValue(null, "z", z);
-            scope.pushFrame(new EvalFrame(null, new String[]{"x", "y"}, new Object[]{"x1", "y1"}));
+            rt.pushFrame(new EvalFrame(null, new String[]{"x", "y"}, new Object[]{"x1", "y1"}));
 
             for (int i = 0; i < 100; i++) {
-                debugger.checkBreakpoint(fromLine("a", i + 1), scope);
+                debugger.checkBreakpoint(fromLine("a", i + 1), rt);
 
                 if (i == 10) {
                     // 模拟函数调用
-                    scope.pushFrame(new EvalFrame(scope.getCurrentFrame(), new String[]{"u", "v"},
+                    rt.pushFrame(new EvalFrame(rt.getCurrentFrame(), new String[]{"u", "v"},
                             new Object[]{"u1", "v1"}));
 
                     for (int j = 0; j < 10; j++) {
-                        debugger.checkBreakpoint(fromLine("b", j + 1), scope);
+                        debugger.checkBreakpoint(fromLine("b", j + 1), rt);
                     }
-                    scope.popFrame();
+                    rt.popFrame();
                 }
             }
             notifier.getMessages().add("end");

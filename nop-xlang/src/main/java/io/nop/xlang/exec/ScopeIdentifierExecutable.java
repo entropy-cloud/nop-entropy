@@ -9,7 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 import static io.nop.xlang.XLangErrors.ARG_VAR_NAME;
@@ -29,10 +29,10 @@ public class ScopeIdentifierExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object value = scope.getValue(varName);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object value = rt.getValue(varName);
         if (value == null) {
-            if (!scope.containsValue(varName))
+            if (!rt.containsValue(varName))
                 throw newError(ERR_EXEC_SCOPE_VAR_IS_UNDEFINED).param(ARG_VAR_NAME, varName);
         }
         return value;

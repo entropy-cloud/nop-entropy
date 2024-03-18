@@ -9,8 +9,8 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.ExitMode;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -54,8 +54,8 @@ public class ForInExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object items = executor.execute(itemsExpr, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object items = executor.execute(itemsExpr, rt);
         if (items == null)
             return null;
 
@@ -65,14 +65,14 @@ public class ForInExecutable extends AbstractExecutable {
         Map<String, Object> map = (Map<String, Object>) items;
 
         for (String name : map.keySet()) {
-            scope.getCurrentFrame().setStackValue(varSlot, name);
-            Object ret = executor.execute(bodyExpr, scope);
+            rt.getCurrentFrame().setStackValue(varSlot, name);
+            Object ret = executor.execute(bodyExpr, rt);
 
-            ExitMode exitMode = scope.getExitMode();
+            ExitMode exitMode = rt.getExitMode();
             if (exitMode != null) {
                 if (exitMode == ExitMode.RETURN)
                     return ret;
-                scope.setExitMode(null);
+                rt.setExitMode(null);
                 if (exitMode == ExitMode.BREAK) {
                     break;
                 }
@@ -90,8 +90,8 @@ public class ForInExecutable extends AbstractExecutable {
         }
 
         @Override
-        public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-            Object items = executor.execute(itemsExpr, scope);
+        public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+            Object items = executor.execute(itemsExpr, rt);
             if (items == null)
                 return null;
 
@@ -101,8 +101,8 @@ public class ForInExecutable extends AbstractExecutable {
             Map<String, Object> map = (Map<String, Object>) items;
 
             for (String name : map.keySet()) {
-                scope.getCurrentFrame().setStackValue(varSlot, name);
-                executor.execute(bodyExpr, scope);
+                rt.getCurrentFrame().setStackValue(varSlot, name);
+                executor.execute(bodyExpr, rt);
             }
 
             return null;

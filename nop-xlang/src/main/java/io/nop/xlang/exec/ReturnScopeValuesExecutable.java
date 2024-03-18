@@ -8,7 +8,7 @@
 package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.xlang.ast.definition.LocalVarDeclaration;
@@ -38,10 +38,10 @@ public class ReturnScopeValuesExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         List<Object> values = new ArrayList<>(exprs.size());
         for (int i = 0, n = exprs.size(); i < n; i++) {
-            Object value = executor.execute(exprs.get(i), scope);
+            Object value = executor.execute(exprs.get(i), rt);
             values.add(value);
         }
         return new ScopeValues(varDecls, values);

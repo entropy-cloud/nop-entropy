@@ -108,6 +108,10 @@ public interface IFunctionModel
         return getArgs().stream().map(IFunctionArgument::getName).collect(Collectors.toList());
     }
 
+    default String[] getArgNamesArray() {
+        return getArgs().stream().map(IFunctionArgument::getName).toArray(String[]::new);
+    }
+
     Class<?>[] getArgRawTypes();
 
     IEvalFunction getInvoker();
@@ -255,6 +259,12 @@ public interface IFunctionModel
 
     @EvalMethod
     default Object invokeWithNamedArgs(IEvalScope scope, Map<String, Object> args) {
+        Object[] array = buildNamedArgs(scope, args);
+        return invoke(null, array, scope);
+    }
+
+    @EvalMethod
+    default Object[] buildNamedArgs(IEvalScope scope, Map<String, Object> args) {
         Object[] array = new Object[getArgCount()];
         int index = 0;
         for (IFunctionArgument argModel : getArgs()) {
@@ -263,6 +273,6 @@ public interface IFunctionModel
             array[index] = value;
             index++;
         }
-        return invoke(null, array, scope);
+        return array;
     }
 }

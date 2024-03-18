@@ -49,7 +49,7 @@ public class ExcelFormulaParser extends AbstractExcelFormulaParser {
             cp.getScope().setFunctionProvider(ReportFunctionProvider.INSTANCE);
 
             // 语义分析过程中可能会改expr
-            EvalCodeWithAst ret = new EvalCodeWithAst(expr, formula, cp.buildEvalAction(expr.deepClone()));
+            EvalCodeWithAst ret = new EvalCodeWithAst(cp.buildExecutable(expr.deepClone()), formula, expr);
             return ret;
         } catch (Exception e) {
             throw new NopException(ERR_XPT_INVALID_EXCEL_FORMULA, e).loc(loc).param(ARG_SOURCE, formula);

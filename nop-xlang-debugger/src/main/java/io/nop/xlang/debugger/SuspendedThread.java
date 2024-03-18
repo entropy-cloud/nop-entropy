@@ -17,6 +17,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.eval.EvalFrame;
 import io.nop.core.lang.eval.EvalReference;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalScope;
 
 import java.util.ArrayList;
@@ -30,16 +31,16 @@ public class SuspendedThread {
     private final Thread thread;
     private final Function<SourceLocation, String> sourcePathGetter;
 
-    private IEvalScope scope;
+    private EvalRuntime rt;
 
     private SourceLocation lastBreakLocation;
     private int lastBreakFrameIndex;
     private boolean suspended;
 
-    public SuspendedThread(Thread thread, IEvalScope scope, Function<SourceLocation, String> sourcePathGetter) {
+    public SuspendedThread(Thread thread, EvalRuntime rt, Function<SourceLocation, String> sourcePathGetter) {
         this.threadId = thread.getId();
         this.thread = thread;
-        this.scope = scope;
+        this.rt = rt;
         this.sourcePathGetter = sourcePathGetter;
     }
 
@@ -59,18 +60,18 @@ public class SuspendedThread {
         return lastBreakLocation;
     }
 
-    public synchronized void update(SourceLocation lastBreakLocation, IEvalScope scope) {
+    public synchronized void update(SourceLocation lastBreakLocation, EvalRuntime rt) {
         this.lastBreakLocation = lastBreakLocation;
-        this.scope = scope;
-        this.lastBreakFrameIndex = getMaxFrameIndex(scope);
+        this.rt = rt;
+        this.lastBreakFrameIndex = getMaxFrameIndex(rt);
     }
 
     public int getLastBreakFrameIndex() {
         return lastBreakFrameIndex;
     }
 
-    public IEvalScope getScope() {
-        return scope;
+    public EvalRuntime getEvalRuntime() {
+        return rt;
     }
 
     public ThreadInfo getThreadInfo() {
@@ -85,24 +86,24 @@ public class SuspendedThread {
         return info;
     }
 
-    public List<DebugVariable> getScopeVariables(IEvalScope scope) {
-        return new ArrayList<>(_getScopeVariables(scope).values());
+    public List<DebugVariable> getScopeVariables(EvalRuntime rt) {
+        return new ArrayList<>(_getScopeVariables(rt).values());
     }
 
-    public List<DebugVariable> getFrameVariables(IEvalScope scope, int frameIndex) {
-        EvalFrame frame = scope.getFrame(frameIndex);
+    public List<DebugVariable> getFrameVariables(EvalRuntime rt, int frameIndex) {
+        EvalFrame frame = rt.getFrame(frameIndex);
         if (frame == null)
             return null;
         return getDebugVariables(frame);
     }
 
     public int getCurrentMaxFrameIndex() {
-        return getMaxFrameIndex(scope);
+        return getMaxFrameIndex(rt);
     }
 
-    private int getMaxFrameIndex(IEvalScope scope) {
+    private int getMaxFrameIndex(EvalRuntime rt) {
         int index = -1;
-        EvalFrame frame = scope.getCurrentFrame();
+        EvalFrame frame = rt.getCurrentFrame();
         while (frame != null) {
             index++;
             frame = frame.getParentFrame();
@@ -112,7 +113,7 @@ public class SuspendedThread {
 
     List<StackTraceElement> getStackTrace() {
         List<StackTraceElement> ret = new ArrayList<>();
-        EvalFrame frame = scope.getCurrentFrame();
+        EvalFrame frame = rt.getCurrentFrame();
         SourceLocation loc = this.lastBreakLocation;
         if (loc == null) {
             loc = SourceLocation.fromPath("<invalid>");
@@ -135,8 +136,9 @@ public class SuspendedThread {
         return new StackTraceElement(cellPath, loc == null ? -1 : loc.getLine(), funcName);
     }
 
-    Map<String, DebugVariable> _getScopeVariables(IEvalScope scope) {
+    Map<String, DebugVariable> _getScopeVariables(EvalRuntime rt) {
         Map<String, DebugVariable> vars = new TreeMap<>();
+        IEvalScope scope = rt.getScope();
         do {
             for (String name : scope.keySet()) {
                 if (vars.containsKey(name))

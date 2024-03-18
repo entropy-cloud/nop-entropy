@@ -8,7 +8,7 @@
 package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.reflect.IClassModel;
@@ -42,13 +42,13 @@ public class NewObjectExecutable extends AbstractExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object[] argValues = evaluateArgs(argExprs, executor, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object[] argValues = evaluateArgs(argExprs, executor, rt);
 
         IFunctionModel constructor = classModel.getConstructorForArgs(argValues);
         if (constructor == null)
             throw newError(ERR_EXEC_CLASS_NO_CONSTRUCTOR).param(ARG_CLASS_NAME, classModel.getClassName())
                     .param(ARG_ARG_COUNT, argExprs.length);
-        return constructor.invoke(null, argValues, scope);
+        return constructor.invoke(null, argValues, rt.getScope());
     }
 }

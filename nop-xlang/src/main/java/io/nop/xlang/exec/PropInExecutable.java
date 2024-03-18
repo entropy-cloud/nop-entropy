@@ -8,7 +8,7 @@
 package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.reflect.ReflectionManager;
@@ -33,9 +33,9 @@ public class PropInExecutable extends AbstractBinaryExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object leftValue = executor.execute(left, scope);
-        Object rightValue = executor.execute(right, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object leftValue = executor.execute(left, rt);
+        Object rightValue = executor.execute(right, rt);
         if (leftValue == null || rightValue == null)
             return false;
 

@@ -8,7 +8,7 @@
 package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.xlang.ast.XLangOperator;
@@ -28,11 +28,11 @@ public class SelfAssignExecutable extends AbstractSelfAssignExecutable {
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        Object value = scope.getCurrentFrame().getVar(slot);
-        Object change = executor.execute(expr, scope);
+    public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        Object value = rt.getCurrentFrame().getVar(slot);
+        Object change = executor.execute(expr, rt);
         Object newValue = selfAssignValue(operator, value, change);
-        scope.getCurrentFrame().setStackValue(slot, newValue);
+        rt.getCurrentFrame().setStackValue(slot, newValue);
         return newValue;
     }
 

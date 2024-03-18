@@ -51,7 +51,7 @@ public class ReportExprStdDomainHandler extends XplStdDomainHandlers.AbstractExp
             cp.getScope().setFunctionProvider(ReportFunctionProvider.INSTANCE);
 
             // 语义分析过程中可能会改expr
-            EvalCodeWithAst ret = new EvalCodeWithAst(expr, source, cp.buildEvalAction(expr.deepClone()));
+            EvalCodeWithAst ret = new EvalCodeWithAst(cp.buildExecutable(expr.deepClone()), source, expr);
             return ret;
         } catch (Exception e) {
             throw newPropError(loc, propName, source).cause(e);
