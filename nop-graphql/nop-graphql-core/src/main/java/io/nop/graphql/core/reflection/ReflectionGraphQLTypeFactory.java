@@ -141,6 +141,10 @@ public class ReflectionGraphQLTypeFactory {
             GraphQLArgumentDefinition argDef = buildArgDef(propName, graphqlType);
             argDef.setMandatory(mandatory);
             argDef.setSchema(ReflectObjMetaParser.INSTANCE.parsePropSchema(propModel));
+
+            Description description = propModel.getAnnotation(Description.class);
+            if (description != null)
+                argDef.setDescription(description.value());
             argDefs.add(argDef);
 
         });
