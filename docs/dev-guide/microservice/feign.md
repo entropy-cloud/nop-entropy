@@ -69,4 +69,4 @@ public interface TestRpc {
 * 在接口上通过`@BizModel`注解来指定对象名，通过`@BizMutation`和`@BizQuery`等注解来标记GraphQL方法类型
 * 参数固定为`ApiRequest<T>`类型，也可以拆开写 RequestBean，并且可以传递额外的ICancelToken环境
 * 返回类型固定为`ApiResponse<T>`，如果直接返回T，则内部会判断ApiResponse是否成功，如果失败，自动把ApiResponse中的错误码和错误消息转换为Exception抛出。
-* 如果是异步调用，则返回类型为CompletionStage，方法名后增加Async前缀。注意，客户端接口的异步调用并不要求服务端采用异步方法实现，服务端可以是普通的同步函数。
+* 如果是异步调用，则返回类型为CompletionStage，方法名后增加Async后缀。注意，客户端接口的异步调用并不要求服务端采用异步方法实现，服务端可以是普通的同步函数。
