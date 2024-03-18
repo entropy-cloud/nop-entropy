@@ -38,8 +38,12 @@ import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
 import io.nop.rule.core.RuleConstants;
 import io.nop.rule.core.execute.RuleOutputAction;
 import io.nop.rule.core.expr.RuleExprParser;
-import io.nop.rule.core.model.*;
-import io.nop.xlang.api.EvalCode;
+import io.nop.rule.core.model.RuleDecisionMatrixModel;
+import io.nop.rule.core.model.RuleDecisionTreeModel;
+import io.nop.rule.core.model.RuleModel;
+import io.nop.rule.core.model.RuleOutputValueModel;
+import io.nop.rule.core.model.RuleTableCellModel;
+import io.nop.xlang.api.EvalActionWithCode;
 import io.nop.xlang.api.ExprEvalAction;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
@@ -53,7 +57,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.nop.rule.core.RuleErrors.*;
+import static io.nop.rule.core.RuleErrors.ARG_CELL_POS;
+import static io.nop.rule.core.RuleErrors.ARG_TEXT;
+import static io.nop.rule.core.RuleErrors.ARG_VAR_NAME;
+import static io.nop.rule.core.RuleErrors.ERR_RULE_INVALID_DECISION_TREE_TABLE;
+import static io.nop.rule.core.RuleErrors.ERR_RULE_INVALID_INPUT_VAR;
+import static io.nop.rule.core.RuleErrors.ERR_RULE_INVALID_OUTPUT_CELL;
+import static io.nop.rule.core.RuleErrors.ERR_RULE_NOT_ALLOW_MERGED_CELL;
+import static io.nop.rule.core.RuleErrors.ERR_RULE_UNKNOWN_INPUT_VAR;
+import static io.nop.rule.core.RuleErrors.ERR_RULE_UNKNOWN_OUTPUT_VAR;
+import static io.nop.rule.core.RuleErrors.ERR_RULE_VAR_CELL_SPAN_MUST_BE_ONE;
+import static io.nop.rule.core.RuleErrors.ERR_RULE_VAR_CELL_TEXT_IS_EMPTY;
+import static io.nop.rule.core.RuleErrors.ERR_RULE_WORKBOOK_NO_CONFIG_SHEET;
+import static io.nop.rule.core.RuleErrors.ERR_RULE_WORKBOOK_NO_RULE_SHEET;
 
 public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
     private final XLangCompileTool compileTool;
@@ -435,10 +451,10 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
 
     private IEvalAction parseOutputAction(SourceLocation loc, String varName, String text) {
         if (text == null || StringHelper.isBlank(text) || "-".equals(text.trim())) {
-            return new EvalCode(loc, "", new RuleOutputAction(varName, new ExprEvalAction(NullExecutable.NULL)));
+            return new EvalActionWithCode(new RuleOutputAction(varName, new ExprEvalAction(NullExecutable.NULL)), "");
         }
 
-        return new EvalCode(loc, text, new RuleOutputAction(varName, compileTool.compileSimpleExpr(loc, text)));
+        return new EvalActionWithCode(new RuleOutputAction(varName, compileTool.compileSimpleExpr(loc, text)), text);
     }
 
     private boolean getMultiMatch(Map<String, ValueWithLocation> commentVars, boolean defaultValue) {
@@ -599,7 +615,7 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
         int rowLeafIndex = 0;
         for (int i = outBeginRow; i < outEndRow; i++) {
             ExcelCell leftCell = (ExcelCell) getRealCell(table, i, outBeginCol - 1);
-            if(leftCell == null){
+            if (leftCell == null) {
                 leftCell = new ExcelCell();
             }
 
