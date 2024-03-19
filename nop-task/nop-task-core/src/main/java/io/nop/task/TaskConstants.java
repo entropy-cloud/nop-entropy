@@ -105,4 +105,6 @@ public interface TaskConstants {
     String STEP_TYPE_TIMEOUT = "timeout";
 
     String STEP_TYPE_CALL_STEP = "call-step";
+
+    String STEP_TYPE_CALL_TASK = "call-task";
 }

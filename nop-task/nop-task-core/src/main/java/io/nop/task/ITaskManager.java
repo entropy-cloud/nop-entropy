@@ -15,4 +15,6 @@ public interface ITaskManager {
     ITaskRuntime getTaskContext(String taskStateId);
 
     ITask getTask(ITaskRuntime taskContext);
+
+    ITaskStepLib getTaskStepLib(String libName, long libVersion);
 }

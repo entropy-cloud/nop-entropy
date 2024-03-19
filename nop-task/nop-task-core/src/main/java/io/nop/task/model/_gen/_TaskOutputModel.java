@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [33:10:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [34:10:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -64,6 +64,13 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
      * 如果为true，则输出变量到整个task共享的scope中，否则输出到parentScope中
      */
     private boolean _toTaskScope  = false;
+    
+    /**
+     *  
+     * xml name: type
+     * 
+     */
+    private io.nop.core.type.IGenericType _type ;
     
     /**
      * 
@@ -198,6 +205,25 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
     }
 
     
+    /**
+     * 
+     * xml name: type
+     *  
+     */
+    
+    public io.nop.core.type.IGenericType getType(){
+      return _type;
+    }
+
+    
+    public void setType(io.nop.core.type.IGenericType value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -220,6 +246,7 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
         out.putNotNull("persist",this.isPersist());
         out.putNotNull("source",this.getSource());
         out.putNotNull("toTaskScope",this.isToTaskScope());
+        out.putNotNull("type",this.getType());
     }
 
     public TaskOutputModel cloneInstance(){
@@ -238,6 +265,7 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
         instance.setPersist(this.isPersist());
         instance.setSource(this.getSource());
         instance.setToTaskScope(this.isToTaskScope());
+        instance.setType(this.getType());
     }
 
     protected TaskOutputModel newInstance(){

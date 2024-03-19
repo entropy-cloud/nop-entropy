@@ -12,7 +12,7 @@
       xdef:ref="TaskStepsModel"
 >
 
-    <xdef:define xdef:name="TaskExecutableModel" executor="bean-name"
+    <xdef:define xdef:name="TaskExecutableModel" executor="bean-name" returnType="generic-type"
                  displayName="string" timeout="!long=0" persisVars="csv-set">
 
         <description xdef:value="string"/>
@@ -21,6 +21,7 @@
         @persist [是否持久化保存] 标记为persist的变量会自动保存，支持中断后恢复执行
         -->
         <input name="!var-name" displayName="string" xdef:name="TaskInputModel"
+               type="generic-type" mandatory="!boolean=false"
                xdef:unique-attr="name" persist="!boolean=true" fromTaskScope="!boolean=false">
             <description xdef:value="string"/>
             <source xdef:value="xpl"/>
@@ -31,7 +32,7 @@
         @toTaskScope 如果为true，则输出变量到整个task共享的scope中，否则输出到parentScope中
         -->
         <output name="!var-name" displayName="string" persist="!boolean=false"
-                xdef:name="TaskOutputModel" toTaskScope="!boolean=false"
+                xdef:name="TaskOutputModel" toTaskScope="!boolean=false" type="generic-type"
                 xdef:unique-attr="name" exportAs="var-name">
             <description xdef:value="string"/>
             <source xdef:value="xpl"/>
@@ -44,8 +45,8 @@
 
         @order 按照从小到大的顺序排序。order更小的decorator会先被应用
         -->
-        <decorator order="!int" id="!string" bean="bean-name"
-                   xdef:name="TaskDecoratorModel" xdef:unique-attr="id">
+        <decorator order="!int" name="!string" bean="bean-name"
+                   xdef:name="TaskDecoratorModel" xdef:unique-attr="name">
             <source xdef:value="xpl"/>
         </decorator>
 
@@ -85,12 +86,12 @@
     @next 本步骤执行完毕后缺省跳转到的步骤。如果没有指定，则缺省步骤为下一个兄弟节点
     @saveState 是否需要持久化状态用于失败后重新执行本步骤时的状态恢复
     @allowStartIfComplete 如果设置为false, 则重新执行时已经完成的步骤会被跳过
-    @nextOnError 当内部抛出异常的时候跳转到哪个步骤
+    @nextOnError 如果配置了nextOnError，则当内部抛出异常的时候会被自动包装为ErrorBean对象，并跳转到指定步骤。
     -->
     <xdef:define xdef:name="TaskStepModel" xdef:ref="TaskExecutableModel" returnAs="var-name"
                  extType="var-name" tagSet="csv-set" useParentScope="!boolean=false" name="var-name"
                  allowStartIfComplete="!boolean=false" internal="!boolean=false"
-                 next="string" nextOnError="string" id="!var-name" saveState="!boolean=false">
+                 next="string" nextOnError="string" saveState="!boolean=false">
     </xdef:define>
 
     <!--
@@ -177,11 +178,14 @@
                 <otherwise to="var-name" xdef:ref="TaskStepsModel" xdef:name="TaskChooseOtherwiseModel"/>
             </choose>
 
-            <sub-task name="!var-name" taskName="!string" taskVersion="long"
-                      xdef:ref="TaskStepModel" xdef:name="SubTaskStepModel"/>
+            <call-task name="!var-name" taskName="!string" taskVersion="long"
+                       xdef:ref="TaskStepModel" xdef:name="CallTaskStepModel"/>
 
-            <call-step name="!var-name" taskName="!string" taskVersion="long" stepName="!var-name"
-                      xdef:ref="TaskStepModel" xdef:name="CallStepTaskStepModel"/>
+            <!--
+            调用task step步骤定义库中的某个指定步骤。步骤定义库的基本结构与task相同，只是没有执行能力
+            -->
+            <call-step name="!var-name" libName="!string" libVersion="long" stepName="!var-name"
+                       xdef:ref="TaskStepModel" xdef:name="CallStepTaskStepModel"/>
 
             <await name="!var-name" xdef:ref="TaskStepModel" depends="csv-set" xdef:name="AwaitTaskStepModel"/>
 

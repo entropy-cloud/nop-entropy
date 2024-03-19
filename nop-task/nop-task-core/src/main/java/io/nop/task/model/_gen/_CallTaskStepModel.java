@@ -2,19 +2,19 @@ package io.nop.task.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
-import io.nop.task.model.SubTaskStepModel;
+import io.nop.task.model.CallTaskStepModel;
 import io.nop.commons.util.ClassHelper;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [180:14:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [181:14:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
-public abstract class _SubTaskStepModel extends io.nop.task.model.TaskStepModel {
+public abstract class _CallTaskStepModel extends io.nop.task.model.TaskStepModel {
     
     /**
      *  
@@ -87,21 +87,21 @@ public abstract class _SubTaskStepModel extends io.nop.task.model.TaskStepModel 
         out.putNotNull("taskVersion",this.getTaskVersion());
     }
 
-    public SubTaskStepModel cloneInstance(){
-        SubTaskStepModel instance = newInstance();
+    public CallTaskStepModel cloneInstance(){
+        CallTaskStepModel instance = newInstance();
         this.copyTo(instance);
         return instance;
     }
 
-    protected void copyTo(SubTaskStepModel instance){
+    protected void copyTo(CallTaskStepModel instance){
         super.copyTo(instance);
         
         instance.setTaskName(this.getTaskName());
         instance.setTaskVersion(this.getTaskVersion());
     }
 
-    protected SubTaskStepModel newInstance(){
-        return (SubTaskStepModel) ClassHelper.newInstance(getClass());
+    protected CallTaskStepModel newInstance(){
+        return (CallTaskStepModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

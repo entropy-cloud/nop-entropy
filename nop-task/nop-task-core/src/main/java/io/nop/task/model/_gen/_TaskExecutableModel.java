@@ -102,6 +102,13 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: returnType
+     * 
+     */
+    private io.nop.core.type.IGenericType _returnType ;
+    
+    /**
+     *  
      * xml name: throttle
      * 限制对同一个key的调用并发数不能超过指定值
      */
@@ -161,7 +168,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     public void setDecorators(java.util.List<io.nop.task.model.TaskDecoratorModel> value){
         checkAllowChange();
         
-        this._decorators = KeyedList.fromList(value, io.nop.task.model.TaskDecoratorModel::getId);
+        this._decorators = KeyedList.fromList(value, io.nop.task.model.TaskDecoratorModel::getName);
            
     }
 
@@ -178,7 +185,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         checkAllowChange();
         java.util.List<io.nop.task.model.TaskDecoratorModel> list = this.getDecorators();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.task.model.TaskDecoratorModel::getId);
+            list = new KeyedList<>(io.nop.task.model.TaskDecoratorModel::getName);
             setDecorators(list);
         }
         list.add(item);
@@ -436,6 +443,25 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     
     /**
      * 
+     * xml name: returnType
+     *  
+     */
+    
+    public io.nop.core.type.IGenericType getReturnType(){
+      return _returnType;
+    }
+
+    
+    public void setReturnType(io.nop.core.type.IGenericType value){
+        checkAllowChange();
+        
+        this._returnType = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: throttle
      *  限制对同一个key的调用并发数不能超过指定值
      */
@@ -551,6 +577,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         out.putNotNull("persisVars",this.getPersisVars());
         out.putNotNull("rateLimit",this.getRateLimit());
         out.putNotNull("retry",this.getRetry());
+        out.putNotNull("returnType",this.getReturnType());
         out.putNotNull("throttle",this.getThrottle());
         out.putNotNull("timeout",this.getTimeout());
         out.putNotNull("validator",this.getValidator());
@@ -578,6 +605,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         instance.setPersisVars(this.getPersisVars());
         instance.setRateLimit(this.getRateLimit());
         instance.setRetry(this.getRetry());
+        instance.setReturnType(this.getReturnType());
         instance.setThrottle(this.getThrottle());
         instance.setTimeout(this.getTimeout());
         instance.setValidator(this.getValidator());

@@ -7,10 +7,14 @@
  */
 package io.nop.task.step;
 
+import io.nop.api.core.util.ICancelToken;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
+import jakarta.annotation.Nonnull;
+
+import java.util.Set;
 
 public class EvalTaskStep extends AbstractTaskStep {
     private IEvalAction source;
@@ -19,9 +23,10 @@ public class EvalTaskStep extends AbstractTaskStep {
         this.source = source;
     }
 
+    @Nonnull
     @Override
-    protected TaskStepResult doExecute(ITaskStepState state, ITaskRuntime taskRt) {
-        Object result = source.invoke(state);
-        return toStepResult(result);
+    public TaskStepResult execute(ITaskStepState stepState, Set<String> outputNames, ICancelToken cancelToken, ITaskRuntime taskRt) {
+        Object result = source.invoke(stepState);
+        return TaskStepResult.of(null, result);
     }
 }

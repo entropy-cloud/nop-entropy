@@ -9,12 +9,26 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [183:14:0:0]/nop/schema/task/task.xdef <p>
- * 
+ * generate from [187:14:0:0]/nop/schema/task/task.xdef <p>
+ * 调用task step步骤定义库中的某个指定步骤。步骤定义库的基本结构与task相同，只是没有执行能力
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _CallStepTaskStepModel extends io.nop.task.model.TaskStepModel {
+    
+    /**
+     *  
+     * xml name: libName
+     * 
+     */
+    private java.lang.String _libName ;
+    
+    /**
+     *  
+     * xml name: libVersion
+     * 
+     */
+    private java.lang.Long _libVersion ;
     
     /**
      *  
@@ -24,18 +38,42 @@ public abstract class _CallStepTaskStepModel extends io.nop.task.model.TaskStepM
     private java.lang.String _stepName ;
     
     /**
-     *  
-     * xml name: taskName
      * 
+     * xml name: libName
+     *  
      */
-    private java.lang.String _taskName ;
+    
+    public java.lang.String getLibName(){
+      return _libName;
+    }
+
+    
+    public void setLibName(java.lang.String value){
+        checkAllowChange();
+        
+        this._libName = value;
+           
+    }
+
     
     /**
-     *  
-     * xml name: taskVersion
      * 
+     * xml name: libVersion
+     *  
      */
-    private java.lang.Long _taskVersion ;
+    
+    public java.lang.Long getLibVersion(){
+      return _libVersion;
+    }
+
+    
+    public void setLibVersion(java.lang.Long value){
+        checkAllowChange();
+        
+        this._libVersion = value;
+           
+    }
+
     
     /**
      * 
@@ -56,44 +94,6 @@ public abstract class _CallStepTaskStepModel extends io.nop.task.model.TaskStepM
     }
 
     
-    /**
-     * 
-     * xml name: taskName
-     *  
-     */
-    
-    public java.lang.String getTaskName(){
-      return _taskName;
-    }
-
-    
-    public void setTaskName(java.lang.String value){
-        checkAllowChange();
-        
-        this._taskName = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: taskVersion
-     *  
-     */
-    
-    public java.lang.Long getTaskVersion(){
-      return _taskVersion;
-    }
-
-    
-    public void setTaskVersion(java.lang.Long value){
-        checkAllowChange();
-        
-        this._taskVersion = value;
-           
-    }
-
-    
 
     @Override
     public void freeze(boolean cascade){
@@ -109,9 +109,9 @@ public abstract class _CallStepTaskStepModel extends io.nop.task.model.TaskStepM
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("libName",this.getLibName());
+        out.putNotNull("libVersion",this.getLibVersion());
         out.putNotNull("stepName",this.getStepName());
-        out.putNotNull("taskName",this.getTaskName());
-        out.putNotNull("taskVersion",this.getTaskVersion());
     }
 
     public CallStepTaskStepModel cloneInstance(){
@@ -123,9 +123,9 @@ public abstract class _CallStepTaskStepModel extends io.nop.task.model.TaskStepM
     protected void copyTo(CallStepTaskStepModel instance){
         super.copyTo(instance);
         
+        instance.setLibName(this.getLibName());
+        instance.setLibVersion(this.getLibVersion());
         instance.setStepName(this.getStepName());
-        instance.setTaskName(this.getTaskName());
-        instance.setTaskVersion(this.getTaskVersion());
     }
 
     protected CallStepTaskStepModel newInstance(){

@@ -7,12 +7,15 @@
  */
 package io.nop.task.step;
 
+import io.nop.api.core.util.ICancelToken;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
+import jakarta.annotation.Nonnull;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
 import static io.nop.task.TaskStepResult.SUSPEND;
@@ -28,8 +31,9 @@ public class SequentialTaskStep extends AbstractTaskStep {
         this.steps = steps;
     }
 
+    @Nonnull
     @Override
-    protected TaskStepResult doExecute(ITaskStepState state, ITaskRuntime taskRt) {
+    public TaskStepResult execute(ITaskStepState state, Set<String> outputNames, ICancelToken cancelToken, ITaskRuntime taskRt) {
         Integer index = (Integer) state.getStateBean();
         if (index == null)
             index = 0;
@@ -40,17 +44,17 @@ public class SequentialTaskStep extends AbstractTaskStep {
                 return stepResult;
 
             if (stepResult.isExit()) {
-                return TaskStepResult.of(getNextStepId(), stepResult.getReturnValue());
+                return TaskStepResult.of(null, stepResult.getReturnValue());
             }
 
             ITaskStep step = steps.get(index);
 
-            stepResult = step.execute(state.getRunId(), state, null, taskRt);
+            stepResult = null;//step.execute(state.getRunId(), state, null, taskRt);
             if (stepResult.isAsync()) {
                 int indexParam = index;
                 CompletionStage<Object> promise = stepResult.getReturnPromise().thenApply(ret -> {
                     onStepSuccess(ret, indexParam, state, taskRt);
-                    return doExecute(state, taskRt);
+                    return null;// doExecute(state, taskRt);
                 });
                 return TaskStepResult.of(null, promise);
             }
@@ -67,6 +71,6 @@ public class SequentialTaskStep extends AbstractTaskStep {
     void onStepSuccess(Object ret, int index, ITaskStepState state, ITaskRuntime context) {
         state.setStateBean(index + 1);
         state.setResultValue(ret);
-        saveState(state, context);
+        //saveState(state, context);
     }
 }

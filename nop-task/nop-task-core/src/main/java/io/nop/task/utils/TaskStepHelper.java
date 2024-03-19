@@ -5,16 +5,15 @@ import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.api.core.util.ICancellable;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.retry.IRetryPolicy;
 import io.nop.task.ITaskRuntime;
-import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskErrors;
 import io.nop.task.TaskStepResult;
 
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
@@ -22,46 +21,22 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import static io.nop.core.CoreErrors.ARG_VAR_NAME;
-import static io.nop.task.TaskConstants.SPECIAL_STEP_PREFIX;
 import static io.nop.task.TaskErrors.ERR_TASK_CANCELLED;
 import static io.nop.task.TaskErrors.ERR_TASK_RETRY_TIMES_EXCEED_LIMIT;
 
 public class TaskStepHelper {
 
-    public static TaskStepResult toStepResult(Object ret, String nextStepId) {
-        if (ret instanceof TaskStepResult)
-            return ((TaskStepResult) ret);
-        return TaskStepResult.of(nextStepId, ret);
-    }
-
-    public static int getStepIndex(List<ITaskStep> steps, String stepId, int startIndex) {
-        for (int i = startIndex; i < steps.size(); i++) {
-            ITaskStep step = steps.get(i);
-            // 所有step都必然存在id
-            if (stepId.equals(step.getStepName()))
-                return i;
-        }
-        return -1;
-    }
-
-    public static boolean isSpecialStep(String stepId) {
-        return stepId.charAt(0) == SPECIAL_STEP_PREFIX;
-    }
-
-    public static NopException newError(ITaskStep step, ErrorCode errorCode, ITaskRuntime context, Throwable e) {
+    public static NopException newError(SourceLocation loc,
+                                        ITaskStepState state, ErrorCode errorCode, ITaskRuntime context, Throwable e) {
         if (e == null)
-            return newError(step, errorCode, context);
-        throw new NopException(errorCode, e).source(step).param(TaskErrors.ARG_TASK_NAME, context.getTaskName())
-                .param(TaskErrors.ARG_STEP_NAME, step.getStepName()).param(TaskErrors.ARG_STEP_TYPE, step.getStepType());
+            return newError(loc, state, errorCode, context);
+        throw new NopException(errorCode, e).loc(loc).param(TaskErrors.ARG_TASK_NAME, context.getTaskName())
+                .param(TaskErrors.ARG_STEP_ID, state.getStepId()).param(TaskErrors.ARG_STEP_TYPE, state.getStepType());
     }
 
-    public static NopException newError(ITaskStep step, ErrorCode errorCode, ITaskRuntime context) {
-        throw new NopException(errorCode).source(step).param(TaskErrors.ARG_TASK_NAME, context.getTaskName())
-                .param(TaskErrors.ARG_STEP_NAME, step.getStepName()).param(TaskErrors.ARG_STEP_TYPE, step.getStepType());
-    }
-
-    public static String getInternalStepId(String stepId, String internalName) {
-        return stepId + '@' + internalName;
+    public static NopException newError(SourceLocation loc, ITaskStepState state, ErrorCode errorCode, ITaskRuntime context) {
+        throw new NopException(errorCode).loc(loc).param(TaskErrors.ARG_TASK_NAME, context.getTaskName())
+                .param(TaskErrors.ARG_STEP_ID, state.getStepId()).param(TaskErrors.ARG_STEP_TYPE, state.getStepType());
     }
 
     public static long getLong(Map<String, Object> vars, String name, long defaultValue) {
@@ -98,11 +73,11 @@ public class TaskStepHelper {
         });
     }
 
-    public static TaskStepResult retry(ITaskStep step, ITaskStepState state, ICancelToken cancelToken, ITaskRuntime taskRt,
+    public static TaskStepResult retry(SourceLocation loc, ITaskStepState state, ICancelToken cancelToken, ITaskRuntime taskRt,
                                        IRetryPolicy<ITaskStepState> retryPolicy, Callable<TaskStepResult> action) {
         do {
             if (cancelToken != null && cancelToken.isCancelled())
-                throw newError(step, ERR_TASK_CANCELLED, taskRt);
+                throw newError(loc, state, ERR_TASK_CANCELLED, taskRt);
 
             int retryAttempt = getInt(state.getRetryAttempt());
             if (retryAttempt > 0) {
@@ -110,7 +85,7 @@ public class TaskStepHelper {
                 if (delay < 0) {
                     Throwable e = state.exception();
                     if (e == null)
-                        e = newError(step, ERR_TASK_RETRY_TIMES_EXCEED_LIMIT, taskRt);
+                        e = newError(loc, state, ERR_TASK_RETRY_TIMES_EXCEED_LIMIT, taskRt);
                     throw NopException.adapt(e);
                 }
 
@@ -123,13 +98,13 @@ public class TaskStepHelper {
                                         if (ret.isDone())
                                             return result.resolve();
                                     }
-                                    return (Object) result.thenCompose((v, err) -> doRetry(v, err, step,
+                                    return (Object) result.thenCompose((v, err) -> doRetry(v, err, loc,
                                             state, cancelToken, taskRt, retryPolicy, action));
                                 } catch (Exception e) {
                                     throw NopException.adapt(e);
                                 }
                             }).exceptionally(err -> doRetry(null, err,
-                                    step, state, cancelToken, taskRt, retryPolicy, action)
+                                    loc, state, cancelToken, taskRt, retryPolicy, action)
                             ));
                 }
             }
@@ -140,7 +115,7 @@ public class TaskStepHelper {
                     if (result.isDone())
                         return result.resolve();
 
-                    return result.thenCompose((v, err) -> doRetry(v, err, step,
+                    return result.thenCompose((v, err) -> doRetry(v, err, loc,
                             state, cancelToken, taskRt, retryPolicy, action));
                 }
             } catch (Exception e) {
@@ -153,12 +128,12 @@ public class TaskStepHelper {
     }
 
     static Object doRetry(Object value, Throwable err,
-                          ITaskStep step, ITaskStepState state, ICancelToken cancelToken, ITaskRuntime taskRt,
+                          SourceLocation loc, ITaskStepState state, ICancelToken cancelToken, ITaskRuntime taskRt,
                           IRetryPolicy<ITaskStepState> retryPolicy, Callable<TaskStepResult> action) {
         if (err != null) {
             state.setRetryAttempt(getInt(state.getRetryAttempt()) + 1);
             state.save();
-            return retry(step, state, cancelToken, taskRt, retryPolicy, action);
+            return retry(loc, state, cancelToken, taskRt, retryPolicy, action);
         } else {
             return value;
         }
@@ -166,5 +141,12 @@ public class TaskStepHelper {
 
     static int getInt(Integer value) {
         return value == null ? 0 : value;
+    }
+
+
+    public static boolean isCancelled(ICancelToken cancelToken, ITaskRuntime taskRt) {
+        if (cancelToken != null && cancelToken.isCancelled())
+            return true;
+        return taskRt.isCancelled();
     }
 }

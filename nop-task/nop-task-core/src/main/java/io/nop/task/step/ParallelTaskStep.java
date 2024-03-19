@@ -8,6 +8,7 @@
 package io.nop.task.step;
 
 import io.nop.api.core.util.FutureHelper;
+import io.nop.api.core.util.ICancelToken;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
@@ -17,9 +18,11 @@ import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskConstants;
 import io.nop.task.TaskStepResult;
+import jakarta.annotation.Nonnull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
 public class ParallelTaskStep extends AbstractTaskStep {
@@ -52,13 +55,9 @@ public class ParallelTaskStep extends AbstractTaskStep {
         this.steps = steps;
     }
 
+    @Nonnull
     @Override
-    protected void initStepState(ITaskStepState state, ITaskRuntime context) {
-
-    }
-
-    @Override
-    protected TaskStepResult doExecute(ITaskStepState state, ITaskRuntime taskRt) {
+    public TaskStepResult execute(ITaskStepState state, Set<String> outputNames, ICancelToken cancelToken, ITaskRuntime taskRt) {
         ParallelStateBean states = new ParallelStateBean();
 
         List<CompletionStage<?>> promises = new ArrayList<>();
@@ -66,7 +65,7 @@ public class ParallelTaskStep extends AbstractTaskStep {
         for (int i = 0, n = steps.size(); i < n; i++) {
             ITaskStep step = steps.get(i);
             try {
-                TaskStepResult stepResult = step.execute(state.getRunId(), state, null, taskRt);
+                TaskStepResult stepResult = null;//step.execute(state.getRunId(), state, null, taskRt);
                 if (stepResult.isAsync()) {
                     promises.add(stepResult.getReturnPromise().thenApply(v -> {
                         TaskStepResult r = TaskStepResult.of(null, v);
@@ -87,7 +86,7 @@ public class ParallelTaskStep extends AbstractTaskStep {
             } catch (Exception e) {
                 AsyncStepResult result = new AsyncStepResult();
                 result.setRunId(state.getRunId());
-                result.setNextStepId(step.getStepName());
+                //result.setNextStepId(step.getStepName());
                 result.setError(ErrorMessageManager.instance().buildErrorMessage(null, e));
                 states.add(result);
             }

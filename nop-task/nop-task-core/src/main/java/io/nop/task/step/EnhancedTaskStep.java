@@ -1,9 +1,11 @@
 package io.nop.task.step;
 
 import io.nop.api.core.util.ICancelToken;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.task.IEnhancedTaskStep;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepState;
@@ -18,19 +20,25 @@ import java.util.stream.Collectors;
 
 import static io.nop.task.TaskErrors.ERR_TASK_CANCELLED;
 
-public class TaskStepCall {
-    static final Logger LOG = LoggerFactory.getLogger(TaskStepCall.class);
+public class EnhancedTaskStep implements IEnhancedTaskStep {
+    static final Logger LOG = LoggerFactory.getLogger(EnhancedTaskStep.class);
 
     public static class InputConfig {
+        private final SourceLocation location;
         private final String name;
         private final IEvalAction expr;
         private final boolean fromTaskScope;
 
-        public InputConfig(String name, IEvalAction expr,
+        public InputConfig(SourceLocation loc, String name, IEvalAction expr,
                            boolean fromTaskScope) {
+            this.location = loc;
             this.name = name;
             this.expr = expr;
             this.fromTaskScope = fromTaskScope;
+        }
+
+        public SourceLocation getLocation() {
+            return location;
         }
 
         public String getName() {
@@ -47,14 +55,21 @@ public class TaskStepCall {
     }
 
     public static class OutputConfig {
+        private final SourceLocation location;
         private final String exportName;
         private final String name;
         private final boolean toTaskScope;
 
-        public OutputConfig(String exportName, String name, boolean toTaskScope) {
+        public OutputConfig(SourceLocation location,
+                            String exportName, String name, boolean toTaskScope) {
             this.exportName = exportName;
             this.name = name;
             this.toTaskScope = toTaskScope;
+            this.location = location;
+        }
+
+        public SourceLocation getLocation() {
+            return location;
         }
 
         public String getExportName() {
@@ -70,21 +85,26 @@ public class TaskStepCall {
         }
     }
 
+    private final SourceLocation location;
+
+    private final String stepName;
     private final List<InputConfig> inputConfigs;
 
     private final List<OutputConfig> outputConfigs;
 
     private final Set<String> outputVars;
-
     private final IEvalPredicate when;
     private final IEvalAction validator;
     private final IEvalAction onReload;
     private final ITaskStep step;
 
-    public TaskStepCall(List<InputConfig> inputConfigs,
-                        List<OutputConfig> outputConfigs,
-                        IEvalPredicate when, IEvalAction validator, IEvalAction onReload,
-                        ITaskStep step) {
+    public EnhancedTaskStep(SourceLocation location, String stepName,
+                            List<InputConfig> inputConfigs,
+                            List<OutputConfig> outputConfigs,
+                            IEvalPredicate when, IEvalAction validator, IEvalAction onReload,
+                            ITaskStep step) {
+        this.location = location;
+        this.stepName = stepName;
         this.inputConfigs = inputConfigs;
         this.step = step;
         this.when = when;
@@ -94,18 +114,27 @@ public class TaskStepCall {
         this.outputVars = outputConfigs.stream().map(OutputConfig::getName).collect(Collectors.toSet());
     }
 
+    @Override
+    public SourceLocation getLocation() {
+        return location;
+    }
+
+    @Override
+    public String getStepName() {
+        return stepName;
+    }
+
     public TaskStepResult execute(ITaskStepState parentState, ICancelToken cancelToken,
                                   ITaskRuntime taskRt) {
         IEvalScope parentScope = parentState == null ? taskRt.getEvalScope() : parentState.getEvalScope();
 
-        String stepName = step.getStepName();
-        ITaskStepState stepState = taskRt.newStepState(parentState, stepName);
+        ITaskStepState stepState = taskRt.newStepState(parentState, stepName, step.getPersistVars());
         LOG.debug("nop.task.step.run:taskName={},taskInstanceId={},stepId={},runId={},loc={}",
                 taskRt.getTaskName(), taskRt.getTaskInstanceId(),
                 stepState.getStepId(), stepState.getRunId(), step.getLocation());
 
         if (cancelToken != null && cancelToken.isCancelled()) {
-            throw TaskStepHelper.newError(step, ERR_TASK_CANCELLED, taskRt);
+            throw TaskStepHelper.newError(location, stepState, ERR_TASK_CANCELLED, taskRt);
         }
 
         if (!stepState.load()) {
@@ -126,6 +155,9 @@ public class TaskStepCall {
         }
 
         TaskStepResult stepResult = step.execute(stepState, outputVars, cancelToken, taskRt);
+        if (stepResult == TaskStepResult.SUSPEND)
+            return stepResult;
+
         if (!outputConfigs.isEmpty()) {
             stepResult = stepResult.thenApply(ret -> {
                 initOutputs(stepState, parentScope, taskRt);

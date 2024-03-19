@@ -8,16 +8,17 @@
 package io.nop.task.step;
 
 import io.nop.api.core.annotations.data.DataBean;
-import io.nop.api.core.convert.ConvertHelper;
-import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
+import io.nop.api.core.util.ICancelToken;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
+import jakarta.annotation.Nonnull;
 
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
 import static io.nop.task.TaskStepResult.SUSPEND;
@@ -75,19 +76,6 @@ public class LoopNTaskStep extends AbstractTaskStep {
         this.endExpr = endExpr;
     }
 
-    @Override
-    protected void initStepState(ITaskStepState state, ITaskRuntime context) {
-        IEvalScope scope = state.getEvalScope();
-        int begin = ConvertHelper.toPrimitiveInt(beginExpr.invoke(scope), 0, NopException::new);
-        int end = ConvertHelper.toPrimitiveInt(endExpr.invoke(scope), 0, NopException::new);
-
-        LoopStateBean stateBean = new LoopStateBean();
-        stateBean.setBodyRunId(0);
-        stateBean.setIndex(begin);
-        stateBean.setEnd(end);
-        state.setStateBean(stateBean);
-    }
-
     @DataBean
     public static class LoopStateBean {
         private int bodyRunId;
@@ -128,8 +116,10 @@ public class LoopNTaskStep extends AbstractTaskStep {
         }
     }
 
+
+    @Nonnull
     @Override
-    protected TaskStepResult doExecute(ITaskStepState state, ITaskRuntime taskRt) {
+    public TaskStepResult execute(ITaskStepState state, Set<String> outputNames, ICancelToken cancelToken, ITaskRuntime taskRt) {
 
         LoopStateBean stateBean = state.getStateBean(LoopStateBean.class);
 
@@ -147,14 +137,14 @@ public class LoopNTaskStep extends AbstractTaskStep {
 
             int bodyRunId = stateBean.getBodyRunId();
 
-            stepResult = body.execute(bodyRunId, state, null, taskRt);
+            stepResult = null;//body.execute(bodyRunId, state, null, taskRt);
             if (stepResult.isAsync()) {
                 CompletionStage<Object> promise = stepResult.getReturnPromise().thenApply(ret -> {
                     TaskStepResult result = toStepResult(ret);
                     state.result(result);
                     stateBean.incStep(step);
-                    saveState(state, taskRt);
-                    return doExecute(state, taskRt);
+                    //saveState(state, taskRt);
+                    return null;//doExecute(state, taskRt);
                 });
                 return TaskStepResult.of(null, promise);
             }
@@ -162,7 +152,7 @@ public class LoopNTaskStep extends AbstractTaskStep {
             state.setResultValue(stepResult);
             stateBean.incStep(step);
             stateBean.setBodyRunId(taskRt.newRunId());
-            saveState(state, taskRt);
+            //saveState(state, taskRt);
 
             // 在saveState之后判断suspend。刚进入doExecute时不能判断suspend, 因为有可能是从休眠中恢复
             if (stepResult == SUSPEND)

@@ -39,6 +39,13 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: mandatory
+     * 
+     */
+    private boolean _mandatory  = false;
+    
+    /**
+     *  
      * xml name: name
      * 
      */
@@ -57,6 +64,13 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
      * 
      */
     private io.nop.core.lang.eval.IEvalAction _source ;
+    
+    /**
+     *  
+     * xml name: type
+     * 
+     */
+    private io.nop.core.type.IGenericType _type ;
     
     /**
      * 
@@ -111,6 +125,25 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._fromTaskScope = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: mandatory
+     *  
+     */
+    
+    public boolean isMandatory(){
+      return _mandatory;
+    }
+
+    
+    public void setMandatory(boolean value){
+        checkAllowChange();
+        
+        this._mandatory = value;
            
     }
 
@@ -172,6 +205,25 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
     }
 
     
+    /**
+     * 
+     * xml name: type
+     *  
+     */
+    
+    public io.nop.core.type.IGenericType getType(){
+      return _type;
+    }
+
+    
+    public void setType(io.nop.core.type.IGenericType value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -190,9 +242,11 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("fromTaskScope",this.isFromTaskScope());
+        out.putNotNull("mandatory",this.isMandatory());
         out.putNotNull("name",this.getName());
         out.putNotNull("persist",this.isPersist());
         out.putNotNull("source",this.getSource());
+        out.putNotNull("type",this.getType());
     }
 
     public TaskInputModel cloneInstance(){
@@ -207,9 +261,11 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
         instance.setFromTaskScope(this.isFromTaskScope());
+        instance.setMandatory(this.isMandatory());
         instance.setName(this.getName());
         instance.setPersist(this.isPersist());
         instance.setSource(this.getSource());
+        instance.setType(this.getType());
     }
 
     protected TaskInputModel newInstance(){

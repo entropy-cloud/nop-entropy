@@ -16,8 +16,6 @@ import io.nop.task.TaskConstants;
 import io.nop.task.model.TaskRetryModel;
 import io.nop.task.model.TaskStepModel;
 import io.nop.task.model.TaskStepsModel;
-import io.nop.task.step.AbstractTaskStep;
-import io.nop.task.step.WrapTaskStep;
 
 public class TaskStepBuilder {
     public ITaskStep buildStep(TaskStepModel stepModel) {
@@ -36,14 +34,15 @@ public class TaskStepBuilder {
     }
 
     private ITaskStep wrap(TaskStepModel stepModel, ITaskStep step) {
-        AbstractTaskStep wrap;
-        if (stepModel.getId().equals(step.getStepName()) && step instanceof AbstractTaskStep) {
-            wrap = (AbstractTaskStep) step;
-        } else {
-            wrap = new WrapTaskStep(step);
-        }
-
-        return wrap;
+//        AbstractTaskStep wrap;
+//        if (stepModel.getId().equals(step.getStepName()) && step instanceof AbstractTaskStep) {
+//            wrap = (AbstractTaskStep) step;
+//        } else {
+//            wrap = new WrapTaskStep(step);
+//        }
+//
+//        return wrap;
+        return null;
     }
 
     private IRetryPolicy<IEvalContext> buildRetryPolicy(TaskRetryModel retryModel) {

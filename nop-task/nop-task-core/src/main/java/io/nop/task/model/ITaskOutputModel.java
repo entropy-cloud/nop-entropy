@@ -7,13 +7,10 @@
  */
 package io.nop.task.model;
 
-import io.nop.api.core.util.ISourceLocationGetter;
-import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.type.IGenericType;
 
-public interface ITaskOutputModel extends ISourceLocationGetter {
+public interface ITaskOutputModel {
     String getName();
 
-    IEvalAction getSource();
-
-    boolean isToTaskScope();
+    IGenericType getType();
 }

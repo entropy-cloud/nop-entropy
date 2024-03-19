@@ -8,12 +8,15 @@
 package io.nop.task.step;
 
 import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
+import jakarta.annotation.Nonnull;
 
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -31,8 +34,9 @@ public class DelayTaskStep extends AbstractTaskStep {
         this.delayMillsExpr = delayMillsExpr;
     }
 
+    @Nonnull
     @Override
-    protected TaskStepResult doExecute(ITaskStepState state, ITaskRuntime taskRt) {
+    public TaskStepResult execute(ITaskStepState state, Set<String> outputNames, ICancelToken cancelToken, ITaskRuntime taskRt) {
         Long delay = ConvertHelper.toLong(delayMillsExpr.invoke(state.getEvalScope()));
         if (delay == null)
             delay = -1L;

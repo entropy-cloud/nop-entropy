@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [90:6:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [91:6:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -29,13 +29,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
      * 
      */
     private java.lang.String _extType ;
-    
-    /**
-     *  
-     * xml name: id
-     * 
-     */
-    private java.lang.String _id ;
     
     /**
      *  
@@ -61,7 +54,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     /**
      *  
      * xml name: nextOnError
-     * 当内部抛出异常的时候跳转到哪个步骤
+     * 如果配置了nextOnError，则当内部抛出异常的时候会被自动包装为ErrorBean对象，并跳转到指定步骤。
      */
     private java.lang.String _nextOnError ;
     
@@ -133,25 +126,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      * 
-     * xml name: id
-     *  
-     */
-    
-    public java.lang.String getId(){
-      return _id;
-    }
-
-    
-    public void setId(java.lang.String value){
-        checkAllowChange();
-        
-        this._id = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: internal
      *  
      */
@@ -210,7 +184,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     /**
      * 
      * xml name: nextOnError
-     *  当内部抛出异常的时候跳转到哪个步骤
+     *  如果配置了nextOnError，则当内部抛出异常的时候会被自动包装为ErrorBean对象，并跳转到指定步骤。
      */
     
     public java.lang.String getNextOnError(){
@@ -319,7 +293,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         
         out.putNotNull("allowStartIfComplete",this.isAllowStartIfComplete());
         out.putNotNull("extType",this.getExtType());
-        out.putNotNull("id",this.getId());
         out.putNotNull("internal",this.isInternal());
         out.putNotNull("name",this.getName());
         out.putNotNull("next",this.getNext());
@@ -341,7 +314,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         
         instance.setAllowStartIfComplete(this.isAllowStartIfComplete());
         instance.setExtType(this.getExtType());
-        instance.setId(this.getId());
         instance.setInternal(this.isInternal());
         instance.setName(this.getName());
         instance.setNext(this.getNext());

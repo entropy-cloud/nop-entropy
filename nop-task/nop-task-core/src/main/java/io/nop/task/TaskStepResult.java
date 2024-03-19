@@ -10,7 +10,6 @@ package io.nop.task;
 
 import io.nop.api.core.util.FutureHelper;
 
-import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -40,26 +39,19 @@ public final class TaskStepResult {
         this.returnValue = returnValue;
     }
 
-    public static TaskStepResult of(String nextStepId, Object returnValue) {
-        if (nextStepId == null && returnValue == null)
+    public static TaskStepResult of(String nextStepName, Object returnValue) {
+        if (nextStepName == null && returnValue == null)
             return CONTINUE;
-        if (STEP_NAME_SUSPEND.equals(nextStepId))
+        if (STEP_NAME_SUSPEND.equals(nextStepName))
             return SUSPEND;
         if (returnValue instanceof TaskStepResult) {
-            TaskStepResult result = (TaskStepResult) returnValue;
-            if (!Objects.equals(result.getNextStepName(), nextStepId))
-                return TaskStepResult.of(nextStepId, returnValue);
-            return result;
+            return (TaskStepResult) returnValue;
         }
-        return new TaskStepResult(nextStepId, returnValue);
+        return new TaskStepResult(nextStepName, returnValue);
     }
 
-    public boolean shouldNotContinue() {
+    public boolean shouldExit() {
         return isEnd() || isExit();
-    }
-
-    public boolean isResolved() {
-        return !isAsync() && this != SUSPEND;
     }
 
     public boolean isAsync() {
@@ -79,10 +71,6 @@ public final class TaskStepResult {
         if (this.returnValue == value)
             return this;
         return of(getNextStepName(), value);
-    }
-
-    public boolean isNull() {
-        return this == CONTINUE;
     }
 
     public boolean isSuspend() {

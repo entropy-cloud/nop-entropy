@@ -8,6 +8,7 @@
 package io.nop.task.step;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.ICancelToken;
 import io.nop.core.CoreErrors;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
@@ -17,8 +18,10 @@ import io.nop.core.reflect.ReflectionManager;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
+import jakarta.annotation.Nonnull;
 
 import java.util.List;
+import java.util.Set;
 
 import static io.nop.core.CoreErrors.ARG_CLASS_NAME;
 import static io.nop.core.CoreErrors.ARG_COUNT;
@@ -48,8 +51,9 @@ public class InvokeTaskStep extends AbstractTaskStep {
         this.ignoreReturn = ignoreReturn;
     }
 
+    @Nonnull
     @Override
-    protected TaskStepResult doExecute(ITaskStepState state, ITaskRuntime taskRt) {
+    public TaskStepResult execute(ITaskStepState state, Set<String> outputNames, ICancelToken cancelToken, ITaskRuntime taskRt) {
         IEvalScope scope = state.getEvalScope();
         Object bean = scope.getBeanProvider().getBean(beanName);
         Object[] args = new Object[argExprs.size()];
@@ -69,6 +73,6 @@ public class InvokeTaskStep extends AbstractTaskStep {
         if (ignoreReturn)
             returnValue = null;
 
-        return toStepResult(returnValue);
+        return null;//toStepResult(returnValue);
     }
 }

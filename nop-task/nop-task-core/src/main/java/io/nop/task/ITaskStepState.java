@@ -8,6 +8,7 @@
 package io.nop.task;
 
 
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
 
 /**
@@ -22,6 +23,10 @@ public interface ITaskStepState extends ITaskStateCommon {
     String getStepId();
 
     void setStepId(String stepId);
+
+    default String getStepName() {
+        return StringHelper.lastPart(getStepId(), '/');
+    }
 
     /**
      * 在TaskInstance范围内动态执行路径所对应的id。例如循环嵌套会生成:3:2这种runId，它标识第一层循环执行到下标为3，第二层循环执行到下标为2

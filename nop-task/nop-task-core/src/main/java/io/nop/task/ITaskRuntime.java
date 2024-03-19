@@ -12,6 +12,7 @@ import io.nop.core.context.IEvalContext;
 import io.nop.core.context.IServiceContext;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -85,7 +86,7 @@ public interface ITaskRuntime extends IEvalContext {
 
     void saveState(ITaskStepState state);
 
-    ITaskStepState newStepState(ITaskStepState parentState, String stepName);
+    ITaskStepState newStepState(ITaskStepState parentState, String stepName, Set<String> persistVars);
 
 
     IScheduledExecutor getScheduledExecutor();
