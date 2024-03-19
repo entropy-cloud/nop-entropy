@@ -7,14 +7,23 @@
  */
 package io.nop.biz.crud;
 
-import io.nop.api.core.annotations.biz.*;
+import io.nop.api.core.annotations.biz.BizAction;
+import io.nop.api.core.annotations.biz.BizArgsNormalizer;
+import io.nop.api.core.annotations.biz.BizMakerChecker;
+import io.nop.api.core.annotations.biz.BizModel;
+import io.nop.api.core.annotations.biz.BizMutation;
+import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.graphql.GraphQLReturn;
 import io.nop.api.core.auth.IDataAuthChecker;
-import io.nop.api.core.beans.*;
+import io.nop.api.core.beans.DictBean;
+import io.nop.api.core.beans.DictOptionBean;
+import io.nop.api.core.beans.FieldSelectionBean;
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.convert.ConvertHelper;
@@ -39,7 +48,11 @@ import io.nop.dao.utils.DaoHelper;
 import io.nop.fsm.execution.IStateMachine;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IBizModelImpl;
-import io.nop.orm.*;
+import io.nop.orm.IOrmBatchLoadQueue;
+import io.nop.orm.IOrmEntity;
+import io.nop.orm.IOrmEntitySet;
+import io.nop.orm.IOrmTemplate;
+import io.nop.orm.OrmConstants;
 import io.nop.orm.dao.IOrmEntityDao;
 import io.nop.orm.utils.OrmQueryHelper;
 import io.nop.xlang.filter.BizExprHelper;
@@ -53,7 +66,15 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
@@ -62,6 +83,7 @@ import static io.nop.auth.api.AuthApiErrors.ERR_AUTH_NO_DATA_AUTH;
 import static io.nop.auth.api.AuthApiErrors.ERR_AUTH_NO_DATA_AUTH_AFTER_UPDATE;
 import static io.nop.biz.BizConstants.ACTION_ARG_ENTITY;
 import static io.nop.biz.BizConstants.BIZ_OBJ_NAME_THIS_OBJ;
+import static io.nop.biz.BizConstants.METHOD_FIND_COUNT;
 import static io.nop.biz.BizConstants.METHOD_FIND_FIRST;
 import static io.nop.biz.BizConstants.METHOD_FIND_LIST;
 import static io.nop.biz.BizConstants.METHOD_FIND_PAGE;
@@ -178,6 +200,33 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     public IOrmTemplate orm() {
         IEntityDao<T> dao = dao();
         return ((IOrmEntityDao<T>) dao).getOrmTemplate();
+    }
+
+    @Description("@i18n:biz.findCount|获取记录总数")
+    @BizQuery
+    @BizArgsNormalizer(BizConstants.BEAN_nopQueryBeanArgsNormalizer)
+    @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
+    public long findCount(@Optional @Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query, IServiceContext context) {
+        if (query != null)
+            query.setDisableLogicalDelete(false);
+
+        return doFindCount0(query, getBizObjName(), this::defaultPrepareQuery, context);
+    }
+
+    public long doFindCount0(@Optional @Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
+                             @Name("authObjName") String authObjName, @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
+                             IServiceContext context) {
+        if (query != null)
+            query.setDisableLogicalDelete(false);
+
+        query = prepareFindPageQuery(query, authObjName, METHOD_FIND_COUNT, context);
+        if (prepareQuery != null) {
+            prepareQuery.accept(query, context);
+        }
+
+        IEntityDao<T> dao = dao();
+
+        return dao.countByQuery(query);
     }
 
     @Description("@i18n:biz.findPage|分页查询")

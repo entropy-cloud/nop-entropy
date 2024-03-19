@@ -55,6 +55,8 @@ public interface BizConstants {
     String METHOD_FIND_PAGE = "findPage";
     String METHOD_FIND_FIRST = "findFirst";
     String METHOD_FIND_LIST = "findList";
+
+    String METHOD_FIND_COUNT = "findCount";
     String METHOD_GET = "get";
     String METHOD_SAVE = "save";
     String METHOD_UPDATE = "update";
