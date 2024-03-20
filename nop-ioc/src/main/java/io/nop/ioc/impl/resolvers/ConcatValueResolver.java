@@ -34,7 +34,7 @@ public class ConcatValueResolver implements IBeanPropValueResolver {
                 sb.append('}');
             }
         }
-        return null;
+        return sb.toString();
     }
 
     @Override

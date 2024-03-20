@@ -7,6 +7,8 @@
  */
 package io.nop.ioc;
 
+import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.config.IConfigProvider;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.ioc.api.IBeanContainerImplementor;
@@ -54,6 +56,7 @@ public class TestBeanContainer extends BaseTestCase {
     @BeforeEach
     protected void setUp() {
         setTestConfig("test.path", "aa");
+        setTestConfig("my.prefix","test");
         container = new AppBeanContainerLoader().loadFromResource("test", attachmentResource("test_spring.beans.xml"));
         container.start();
         container.toConfigNode().dump();
@@ -61,14 +64,15 @@ public class TestBeanContainer extends BaseTestCase {
 
     @Test
     public void testVar() {
-
         IBeanContainerImplementor container = new AppBeanContainerLoader().loadFromResource("test",
                 attachmentResource("test_var.beans.xml"));
         container.start();
+
         MyBeanA a = (MyBeanA) container.getBean("myBeanA");
         assertEquals(3, a.getX());
         container.stop();
 
+        assertEquals("test.data", a.getMyValue());
     }
 
     @Test

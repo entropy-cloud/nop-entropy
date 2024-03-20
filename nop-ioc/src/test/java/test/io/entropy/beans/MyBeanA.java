@@ -8,6 +8,7 @@
 package test.io.entropy.beans;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.ioc.IBeanContainer;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
@@ -33,6 +34,8 @@ public class MyBeanA extends MyBaseBean {
 
     int x;
 
+    String myValue;
+
     @Inject
     @Nullable
     protected MyBeanD beanD;
@@ -43,6 +46,16 @@ public class MyBeanA extends MyBaseBean {
 
     public MyBeanA() {
         System.out.println("MyBeanA：constructor.........");
+    }
+
+
+    @InjectValue("${my.prefix}.data")
+    public void setMyValue(String value) {
+        this.myValue = value;
+    }
+
+    public String getMyValue() {
+        return myValue;
     }
 
     public static MyBeanA newInstance() {
