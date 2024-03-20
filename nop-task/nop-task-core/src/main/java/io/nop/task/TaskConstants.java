@@ -26,13 +26,15 @@ public interface TaskConstants {
     String STEP_NAME_SUSPEND = "@suspend";
 
     String VAR_TASK_RT = "taskRt";
-    String VAR_STEP_STATE = "stepState";
-    String VAR_RETURN_VALUE = "returnValue";
+    String VAR_STEP_RT = "stepRt";
+    String VAR_RESULT = "RESULT";
     String VAR_REQUEST = "request";
 
-    String VAR_RESULTS = "results";
+    String VAR_ERROR = "ERROR";
 
-    String VAR_EXCEPTION = "exception";
+    String VAR_OUTPUTS = "OUTPUTS";
+
+    String VAR_EXCEPTION = "EXCEPTION";
 
     String STATE_ID_DEFAULT = "default";
 

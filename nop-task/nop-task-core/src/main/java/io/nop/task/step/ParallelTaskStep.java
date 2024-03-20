@@ -8,26 +8,24 @@
 package io.nop.task.step;
 
 import io.nop.api.core.util.FutureHelper;
-import io.nop.api.core.util.ICancelToken;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.lang.eval.IEvalAction;
-import io.nop.core.lang.eval.IEvalScope;
-import io.nop.task.AsyncStepResult;
-import io.nop.task.ITaskRuntime;
-import io.nop.task.ITaskStep;
-import io.nop.task.ITaskStepState;
+import io.nop.task.IEnhancedTaskStep;
+import io.nop.task.ITaskStepRuntime;
+import io.nop.task.StepResultBean;
 import io.nop.task.TaskConstants;
 import io.nop.task.TaskStepResult;
 import jakarta.annotation.Nonnull;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
+/**
+ * 多个子步骤同时执行。执行结果汇总为MultiStepResultBean。如果定义了aggregator，则通过RESULT变量访问到返回结果集，它的执行结果作为最终结果
+ */
 public class ParallelTaskStep extends AbstractTaskStep {
-    private List<ITaskStep> steps;
-
+    private List<IEnhancedTaskStep> steps;
     private String aggregateVarName;
     private IEvalAction aggregator;
 
@@ -47,62 +45,58 @@ public class ParallelTaskStep extends AbstractTaskStep {
         this.aggregator = aggregator;
     }
 
-    public List<ITaskStep> getSteps() {
-        return steps;
-    }
-
-    public void setSteps(List<ITaskStep> steps) {
+    public void setSteps(List<IEnhancedTaskStep> steps) {
         this.steps = steps;
     }
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepState state, Set<String> outputNames, ICancelToken cancelToken, ITaskRuntime taskRt) {
-        ParallelStateBean states = new ParallelStateBean();
-
-        List<CompletionStage<?>> promises = new ArrayList<>();
+    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+        List<CompletionStage<StepResultBean>> promises = new ArrayList<>();
 
         for (int i = 0, n = steps.size(); i < n; i++) {
-            ITaskStep step = steps.get(i);
+            IEnhancedTaskStep step = steps.get(i);
             try {
-                TaskStepResult stepResult = null;//step.execute(state.getRunId(), state, null, taskRt);
-                if (stepResult.isAsync()) {
-                    promises.add(stepResult.getReturnPromise().thenApply(v -> {
-                        TaskStepResult r = TaskStepResult.of(null, v);
-                        AsyncStepResult result = new AsyncStepResult();
-                        result.setRunId(state.getRunId());
-                        result.setNextStepId(r.getNextStepName());
-                        result.setReturnValue(r.getReturnValue());
-                        states.add(result);
-                        return null;
-                    }));
-                } else {
-                    AsyncStepResult result = new AsyncStepResult();
-                    result.setRunId(state.getRunId());
-                    result.setNextStepId(stepResult.getNextStepName());
-                    result.setReturnValue(stepResult.getReturnValue());
-                    states.add(result);
-                }
+                TaskStepResult stepResult = step.executeWithParentRt(stepRt);
+                promises.add(stepResult.getReturnPromise().thenApply(v -> {
+                    StepResultBean result = new StepResultBean();
+                    result.setStepName(step.getStepName());
+                    result.setNextStepName(v.getNextStepName());
+                    result.setReturnValues(v.getReturnValues());
+                    return result;
+                }).exceptionally(err -> {
+                    StepResultBean result = new StepResultBean();
+                    result.setStepName(step.getStepName());
+                    result.setError(ErrorMessageManager.instance().buildErrorMessage(stepRt.getLocale(), err));
+                    return result;
+                }));
             } catch (Exception e) {
-                AsyncStepResult result = new AsyncStepResult();
-                result.setRunId(state.getRunId());
-                //result.setNextStepId(step.getStepName());
-                result.setError(ErrorMessageManager.instance().buildErrorMessage(null, e));
-                states.add(result);
+                StepResultBean result = new StepResultBean();
+                result.setStepName(step.getStepName());
+                result.setError(ErrorMessageManager.instance().buildErrorMessage(stepRt.getLocale(), e));
+                promises.add(FutureHelper.success(result));
             }
         }
 
         CompletionStage<?> promise = FutureHelper.waitAll(promises);
-        if (aggregator != null) {
-            promise = promise.thenApply(v -> {
-                IEvalScope scope = state.getEvalScope();
+
+        promise = promise.thenApply(v -> {
+            MultiStepResultBean states = new MultiStepResultBean();
+            for (CompletionStage<StepResultBean> future : promises) {
+                StepResultBean result = FutureHelper.syncGet(future);
+                states.add(result.getStepName(), result);
+            }
+
+            if (aggregator != null) {
                 String varName = aggregateVarName;
                 if (varName == null)
-                    varName = TaskConstants.VAR_RESULTS;
-                scope.setLocalValue(varName, states);
-                return toStepResult(aggregator.invoke(scope));
-            });
-        }
-        return toStepResult(promise);
+                    varName = TaskConstants.VAR_RESULT;
+                stepRt.setValue(varName, states);
+                return aggregator.invoke(stepRt);
+            }
+            return states;
+        });
+
+        return TaskStepResult.ASYNC(null, promise);
     }
 }

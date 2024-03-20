@@ -7,16 +7,16 @@
  */
 package io.nop.task.step;
 
-import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.util.StringHelper;
 import io.nop.task.ITask;
 import io.nop.task.ITaskManager;
 import io.nop.task.ITaskRuntime;
-import io.nop.task.ITaskStepState;
+import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepResult;
 import jakarta.annotation.Nonnull;
 
-import java.util.Set;
+import java.util.Map;
+import java.util.concurrent.CompletionStage;
 
 public class CallTaskStep extends AbstractTaskStep {
     private String taskName;
@@ -51,23 +51,23 @@ public class CallTaskStep extends AbstractTaskStep {
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepState stepState, Set<String> outputNames, ICancelToken cancelToken, ITaskRuntime taskRt) {
-        String taskId = (String) stepState.getStateBean();
+    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+        String taskId = (String) stepRt.getStateBean();
         ITask task;
         ITaskRuntime subRt;
         if (StringHelper.isEmpty(taskId)) {
-            subRt = taskRt.newChildContext(taskName, taskVersion);
+            subRt = stepRt.getTaskRuntime().newChildContext(taskName, taskVersion);
             task = taskManager.getTask(subRt);
 
-            stepState.setStateBean(subRt.getTaskInstanceId());
-            stepState.save();
+            stepRt.setStateBean(subRt.getTaskInstanceId());
+            stepRt.saveState();
         } else {
             subRt = taskManager.getTaskContext(taskId);
             task = taskManager.getTask(subRt);
         }
 
-        Object result = task.execute(subRt);
+        CompletionStage<Map<String, Object>> result = task.executeAsync(subRt);
 
-        return TaskStepResult.of(null, result);
+        return TaskStepResult.ASYNC(null, result);
     }
 }

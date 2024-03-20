@@ -7,14 +7,13 @@
  */
 package io.nop.task.step;
 
-import io.nop.api.core.util.ICancelToken;
 import io.nop.core.lang.eval.IEvalAction;
-import io.nop.task.ITaskRuntime;
-import io.nop.task.ITaskStepState;
+import io.nop.task.ITaskStepRuntime;
+import io.nop.task.TaskConstants;
 import io.nop.task.TaskStepResult;
 import jakarta.annotation.Nonnull;
 
-import java.util.Set;
+import java.util.concurrent.CompletionStage;
 
 public class EndTaskStep extends AbstractTaskStep {
     private IEvalAction result;
@@ -29,9 +28,11 @@ public class EndTaskStep extends AbstractTaskStep {
 
     @Override
     @Nonnull
-    public TaskStepResult execute(ITaskStepState stepState, Set<String> outputNames,
-                                  ICancelToken cancelToken, ITaskRuntime taskRt) {
-        Object ret = result == null ? null : result.invoke(stepState);
-        return TaskStepResult.RESULT_END(ret);
+    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+        Object ret = result == null ? null : result.invoke(stepRt);
+        if (ret instanceof CompletionStage)
+            return TaskStepResult.ASYNC(TaskConstants.STEP_NAME_END, (CompletionStage<?>) ret);
+
+        return TaskStepResult.of(TaskConstants.STEP_NAME_END, ret);
     }
 }

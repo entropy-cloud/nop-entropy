@@ -21,6 +21,7 @@ public interface IBeanProvider {
     @Nonnull
     Object getBean(String name);
 
+    @Nonnull
     <T> T getBeanByType(Class<T> clazz);
 
     String getBeanScope(String name);

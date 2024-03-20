@@ -149,11 +149,13 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         return running;
     }
 
+    @Nonnull
     @Override
     public Object getBean(String name) {
         return getBean(name, false);
     }
 
+    @Nonnull
     @Override
     public <T> T getBeanByType(Class<T> clazz) {
         return getBeanByType(clazz, false);

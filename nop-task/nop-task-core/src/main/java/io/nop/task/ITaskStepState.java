@@ -97,8 +97,4 @@ public interface ITaskStepState extends ITaskStateCommon {
     void setEvalScope(IEvalScope scope);
 
     void setInput(String name, Object value);
-
-    boolean load();
-
-    void save();
 }

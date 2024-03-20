@@ -184,13 +184,4 @@ public class TaskStepState extends AbstractTaskStateCommon implements ITaskStepS
 
     }
 
-    @Override
-    public boolean load() {
-        return false;
-    }
-
-    @Override
-    public void save() {
-
-    }
 }

@@ -8,20 +8,20 @@
 package io.nop.task.step;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.util.ICancelToken;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreErrors;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.ReflectionManager;
-import io.nop.task.ITaskRuntime;
-import io.nop.task.ITaskStepState;
+import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepResult;
 import jakarta.annotation.Nonnull;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.Set;
+import java.util.concurrent.CompletionStage;
 
 import static io.nop.core.CoreErrors.ARG_CLASS_NAME;
 import static io.nop.core.CoreErrors.ARG_COUNT;
@@ -33,7 +33,7 @@ public class InvokeTaskStep extends AbstractTaskStep {
 
     private List<IEvalAction> argExprs;
 
-    private boolean ignoreReturn;
+    private String returnAs;
 
     public void setBeanName(String beanName) {
         this.beanName = beanName;
@@ -47,14 +47,18 @@ public class InvokeTaskStep extends AbstractTaskStep {
         this.argExprs = argExprs;
     }
 
-    public void setIgnoreReturn(boolean ignoreReturn) {
-        this.ignoreReturn = ignoreReturn;
+    public String getReturnAs() {
+        return returnAs;
+    }
+
+    public void setReturnAs(String returnAs) {
+        this.returnAs = returnAs;
     }
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepState state, Set<String> outputNames, ICancelToken cancelToken, ITaskRuntime taskRt) {
-        IEvalScope scope = state.getEvalScope();
+    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+        IEvalScope scope = stepRt.getEvalScope();
         Object bean = scope.getBeanProvider().getBean(beanName);
         Object[] args = new Object[argExprs.size()];
         for (int i = 0, n = argExprs.size(); i < n; i++) {
@@ -70,9 +74,15 @@ public class InvokeTaskStep extends AbstractTaskStep {
                     .param(ARG_COUNT, args.length);
 
         Object returnValue = method.invoke(bean, args, scope);
-        if (ignoreReturn)
-            returnValue = null;
-
-        return null;//toStepResult(returnValue);
+        if (StringHelper.isEmpty(returnAs)) {
+            return TaskStepResult.of(null, returnValue);
+        } else {
+            if (returnValue instanceof CompletionStage) {
+                return TaskStepResult.of(null, ((CompletionStage) returnValue).thenApply(
+                        v -> Collections.singletonMap(returnAs, v)));
+            } else {
+                return TaskStepResult.RETURN(Collections.singletonMap(returnAs, returnValue));
+            }
+        }
     }
 }

@@ -7,10 +7,13 @@
  */
 package io.nop.task;
 
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
 public interface ITask {
     String getTaskName();
 
     long getTaskVersion();
 
-    Object execute(ITaskRuntime taskRt);
+    CompletableFuture<Map<String, Object>> executeAsync(ITaskRuntime taskRt);
 }

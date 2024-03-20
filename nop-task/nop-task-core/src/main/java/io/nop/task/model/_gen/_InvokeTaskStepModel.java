@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [151:14:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [154:14:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -32,17 +32,17 @@ public abstract class _InvokeTaskStepModel extends io.nop.task.model.TaskStepMod
     
     /**
      *  
-     * xml name: ignoreReturn
-     * 
-     */
-    private boolean _ignoreReturn  = false;
-    
-    /**
-     *  
      * xml name: method
      * 
      */
     private java.lang.String _method ;
+    
+    /**
+     *  
+     * xml name: returnAs
+     * 指定bean方法的返回值所对应的返回变量名，缺省为result。
+     */
+    private java.lang.String _returnAs ;
     
     /**
      * 
@@ -110,25 +110,6 @@ public abstract class _InvokeTaskStepModel extends io.nop.task.model.TaskStepMod
     
     /**
      * 
-     * xml name: ignoreReturn
-     *  
-     */
-    
-    public boolean isIgnoreReturn(){
-      return _ignoreReturn;
-    }
-
-    
-    public void setIgnoreReturn(boolean value){
-        checkAllowChange();
-        
-        this._ignoreReturn = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: method
      *  
      */
@@ -142,6 +123,25 @@ public abstract class _InvokeTaskStepModel extends io.nop.task.model.TaskStepMod
         checkAllowChange();
         
         this._method = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: returnAs
+     *  指定bean方法的返回值所对应的返回变量名，缺省为result。
+     */
+    
+    public java.lang.String getReturnAs(){
+      return _returnAs;
+    }
+
+    
+    public void setReturnAs(java.lang.String value){
+        checkAllowChange();
+        
+        this._returnAs = value;
            
     }
 
@@ -165,8 +165,8 @@ public abstract class _InvokeTaskStepModel extends io.nop.task.model.TaskStepMod
         
         out.putNotNull("args",this.getArgs());
         out.putNotNull("bean",this.getBean());
-        out.putNotNull("ignoreReturn",this.isIgnoreReturn());
         out.putNotNull("method",this.getMethod());
+        out.putNotNull("returnAs",this.getReturnAs());
     }
 
     public InvokeTaskStepModel cloneInstance(){
@@ -180,8 +180,8 @@ public abstract class _InvokeTaskStepModel extends io.nop.task.model.TaskStepMod
         
         instance.setArgs(this.getArgs());
         instance.setBean(this.getBean());
-        instance.setIgnoreReturn(this.isIgnoreReturn());
         instance.setMethod(this.getMethod());
+        instance.setReturnAs(this.getReturnAs());
     }
 
     protected InvokeTaskStepModel newInstance(){

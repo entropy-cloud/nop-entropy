@@ -8,44 +8,36 @@
 package io.nop.task.step;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.util.ICancelToken;
 import io.nop.core.lang.eval.IEvalAction;
-import io.nop.core.lang.eval.IEvalScope;
-import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStep;
-import io.nop.task.ITaskStepState;
+import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepResult;
 import jakarta.annotation.Nonnull;
 
-import java.util.Set;
-
-public class TryTaskStep extends DelegateTaskStep {
+public class TryTaskStepWrapper extends DelegateTaskStep {
     private final IEvalAction catchAction;
     private final IEvalAction finallyAction;
-    private final String nextOnError;
 
-    public TryTaskStep(ITaskStep body, IEvalAction catchAction, IEvalAction finallyAction, String nextOnError) {
+    public TryTaskStepWrapper(ITaskStep body, IEvalAction catchAction, IEvalAction finallyAction) {
         super(body);
         this.catchAction = catchAction;
         this.finallyAction = finallyAction;
-        this.nextOnError = nextOnError;
     }
 
     @Override
     @Nonnull
-    public TaskStepResult execute(ITaskStepState stepState, Set<String> outputNames,
-                                  ICancelToken cancelToken, ITaskRuntime taskRt) {
+    public TaskStepResult execute(ITaskStepRuntime stepRt) {
 
-        IEvalScope scope = stepState.getEvalScope();
-        boolean error = false;
+        boolean async = false;
         try {
-            TaskStepResult result = getTaskStep().execute(stepState, outputNames, cancelToken, taskRt);
+            TaskStepResult result = getTaskStep().execute(stepRt);
             if (result.isAsync()) {
+                async = true;
                 return result.thenCompose((ret, err) -> {
                     try {
                         if (err != null) {
                             if (catchAction != null) {
-                                return TaskStepResult.of(nextOnError, catchAction.invoke(scope));
+                                return TaskStepResult.of(null, catchAction.invoke(stepRt));
                             } else {
                                 throw NopException.adapt(err);
                             }
@@ -53,22 +45,22 @@ public class TryTaskStep extends DelegateTaskStep {
                         return ret;
                     } finally {
                         if (finallyAction != null)
-                            finallyAction.invoke(scope);
+                            finallyAction.invoke(stepRt);
                     }
                 });
             } else {
                 return result;
             }
         } catch (Exception e) {
-            error = true;
+            async = false;
             if (catchAction != null) {
-                return TaskStepResult.of(nextOnError, catchAction.invoke(scope));
+                return TaskStepResult.of(null, catchAction.invoke(stepRt));
             } else {
                 throw NopException.adapt(e);
             }
         } finally {
-            if (error && finallyAction != null) {
-                finallyAction.invoke(scope);
+            if (finallyAction != null && !async) {
+                finallyAction.invoke(stepRt);
             }
         }
     }

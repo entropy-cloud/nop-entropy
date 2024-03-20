@@ -31,11 +31,6 @@ public abstract class DelegateTaskStep implements ITaskStep {
     }
 
     @Override
-    public IGenericType getReturnType() {
-        return taskStep.getReturnType();
-    }
-
-    @Override
     public Set<String> getPersistVars() {
         return taskStep.getPersistVars();
     }

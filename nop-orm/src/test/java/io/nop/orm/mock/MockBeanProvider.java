@@ -8,7 +8,6 @@
 package io.nop.orm.mock;
 
 import io.nop.api.core.ioc.IBeanProvider;
-
 import jakarta.annotation.Nonnull;
 
 public class MockBeanProvider implements IBeanProvider {
@@ -17,15 +16,16 @@ public class MockBeanProvider implements IBeanProvider {
         return false;
     }
 
+    @Nonnull
     @Override
     public <T> T getBeanByType(Class<T> clazz) {
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Nonnull
     @Override
     public Object getBean(String name) {
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override

@@ -19,6 +19,7 @@ import io.quarkus.arc.InjectableBean;
 import io.quarkus.arc.InjectableInstance;
 import io.quarkus.arc.InstanceHandle;
 import io.quarkus.arc.impl.ArcContainerImpl;
+import jakarta.annotation.Nonnull;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.Dependent;
 import jakarta.enterprise.context.RequestScoped;
@@ -82,6 +83,7 @@ public class NopQuarkusBeanContainer implements IBeanContainer {
         return quarkusBean != null;
     }
 
+    @Nonnull
     @Override
     public Object getBean(String name) {
         InjectableBean<?> quarkusBean = getQuarkusBean(name);
@@ -91,6 +93,7 @@ public class NopQuarkusBeanContainer implements IBeanContainer {
         return bean;
     }
 
+    @Nonnull
     @Override
     public <T> T getBeanByType(Class<T> clazz) {
         T bean = container().instance(clazz).get();

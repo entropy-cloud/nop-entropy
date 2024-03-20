@@ -8,9 +8,7 @@
 package io.nop.task.step;
 
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.type.IGenericType;
 import io.nop.task.ITaskStep;
-import io.nop.task.TaskStepResult;
 import io.nop.task.model.ITaskInputModel;
 import io.nop.task.model.ITaskOutputModel;
 
@@ -28,7 +26,6 @@ public abstract class AbstractTaskStep implements ITaskStep {
 
     private List<? extends ITaskOutputModel> outputs = Collections.emptyList();
 
-    private IGenericType returnType;
 
     @Override
     public SourceLocation getLocation() {
@@ -73,18 +70,5 @@ public abstract class AbstractTaskStep implements ITaskStep {
 
     public void setOutputs(List<? extends ITaskOutputModel> outputs) {
         this.outputs = outputs;
-    }
-
-    @Override
-    public IGenericType getReturnType() {
-        return returnType;
-    }
-
-    public void setReturnType(IGenericType returnType) {
-        this.returnType = returnType;
-    }
-
-    protected TaskStepResult toStepResult(Object result) {
-        return TaskStepResult.of(null, result);
     }
 }

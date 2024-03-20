@@ -120,4 +120,4 @@ TaskFlow并不直接支持数据驱动模式。
 * Step具有全局id，它由各层级的stepName拼接而成: stepId={stepName}/{stepName}。id仅在运行时存在
 * SubTask提供基本的复用机制。可以构建独立的taskRt，也可以直接嵌入到当前taskRt中执行
 * 自定义的运行结构往往在某种程度上是破坏函数抽象。
-* 
+* 返回值类型规范化为Map类型，从而自动支持多输出。如果只返回单一结果值，则变量名为result。

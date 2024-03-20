@@ -7,17 +7,25 @@
  */
 package io.nop.task.step;
 
+import io.nop.commons.util.retry.IRetryPolicy;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepResult;
+import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 
-public class ForkTaskStep extends AbstractTaskStep {
-    private ITaskStep body;
+public class RetryTaskStepWrapper extends DelegateTaskStep {
+    private final IRetryPolicy<ITaskStepRuntime> retryPolicy;
+
+    public RetryTaskStepWrapper(ITaskStep taskStep, IRetryPolicy<ITaskStepRuntime> retryPolicy) {
+        super(taskStep);
+        this.retryPolicy = retryPolicy;
+    }
 
     @Nonnull
     @Override
     public TaskStepResult execute(ITaskStepRuntime stepRt) {
-        return null;
+        return TaskStepHelper.retry(getLocation(), stepRt, retryPolicy,
+                () -> getTaskStep().execute(stepRt));
     }
 }

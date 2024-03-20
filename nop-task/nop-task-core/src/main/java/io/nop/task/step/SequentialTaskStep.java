@@ -7,70 +7,95 @@
  */
 package io.nop.task.step;
 
-import io.nop.api.core.util.ICancelToken;
-import io.nop.task.ITaskRuntime;
-import io.nop.task.ITaskStep;
-import io.nop.task.ITaskStepState;
+import io.nop.commons.util.CollectionHelper;
+import io.nop.task.IEnhancedTaskStep;
+import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepResult;
+import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CompletionStage;
+import java.util.Map;
 
-import static io.nop.task.TaskStepResult.SUSPEND;
+import static io.nop.task.TaskErrors.ARG_NEXT_STEP;
+import static io.nop.task.TaskErrors.ERR_TASK_UNKNOWN_NEXT_STEP;
 
+/**
+ * 顺序执行步骤，通过上下文中的RESULT变量保存返回值
+ */
 public class SequentialTaskStep extends AbstractTaskStep {
-    private List<ITaskStep> steps;
+    private List<IEnhancedTaskStep> steps;
+    private Map<String, Integer> stepIndex;
 
-    public List<ITaskStep> getSteps() {
+    public List<IEnhancedTaskStep> getSteps() {
         return steps;
     }
 
-    public void setSteps(List<ITaskStep> steps) {
+    public void setSteps(List<IEnhancedTaskStep> steps) {
         this.steps = steps;
+
+        this.stepIndex = CollectionHelper.newHashMap(steps.size());
+        for (int i = 0, n = steps.size(); i < n; i++) {
+            stepIndex.put(steps.get(i).getStepName(), i);
+        }
     }
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepState state, Set<String> outputNames, ICancelToken cancelToken, ITaskRuntime taskRt) {
-        Integer index = (Integer) state.getStateBean();
+    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+        Integer index = (Integer) stepRt.getStateBean();
         if (index == null)
             index = 0;
 
         do {
-            TaskStepResult stepResult = state.result();
-            if (index >= steps.size() || stepResult.isEnd())
+            if (index >= steps.size())
+                return TaskStepResult.RETURN_RESULT(stepRt.getResult());
+
+            IEnhancedTaskStep step = steps.get(index);
+
+            TaskStepResult stepResult = step.executeWithParentRt(stepRt);
+            if (stepResult.isSuspend())
                 return stepResult;
 
-            if (stepResult.isExit()) {
-                return TaskStepResult.of(null, stepResult.getReturnValue());
-            }
+            if (stepResult.isDone()) {
+                if (stepResult.isEnd()) {
+                    stepRt.setStateBean(steps.size());
+                    return TaskStepResult.RETURN_RESULT_END(stepRt.getResult());
+                } else if (stepResult.isExit()) {
+                    stepRt.setStateBean(steps.size());
+                    return TaskStepResult.RETURN_RESULT(stepRt.getResult());
+                }
 
-            ITaskStep step = steps.get(index);
-
-            stepResult = null;//step.execute(state.getRunId(), state, null, taskRt);
-            if (stepResult.isAsync()) {
+                index = getNextIndex(index, stepResult, stepRt);
+                stepRt.setStateBean(index);
+                stepRt.saveState();
+            } else {
                 int indexParam = index;
-                CompletionStage<Object> promise = stepResult.getReturnPromise().thenApply(ret -> {
-                    onStepSuccess(ret, indexParam, state, taskRt);
-                    return null;// doExecute(state, taskRt);
+                return stepResult.thenApply(result -> {
+                    if (stepResult.isEnd()) {
+                        stepRt.setStateBean(steps.size());
+                        return stepResult;
+                    } else if (stepResult.isExit()) {
+                        stepRt.setStateBean(steps.size());
+                        return TaskStepResult.RETURN(stepResult.getReturnValues());
+                    } else {
+                        stepRt.setStateBean(getNextIndex(indexParam, result, stepRt));
+                        stepRt.saveState();
+                        return execute(stepRt);
+                    }
                 });
-                return TaskStepResult.of(null, promise);
             }
-
-            // 在saveState之后判断suspend。刚进入doExecute时不能判断suspend, 因为有可能是从休眠中恢复
-            if (stepResult == SUSPEND)
-                return stepResult;
-
-            onStepSuccess(stepResult.getReturnValue(), index, state, taskRt);
-            index++;
         } while (true);
     }
 
-    void onStepSuccess(Object ret, int index, ITaskStepState state, ITaskRuntime context) {
-        state.setStateBean(index + 1);
-        state.setResultValue(ret);
-        //saveState(state, context);
+    int getNextIndex(int index, TaskStepResult result, ITaskStepRuntime stepRt) {
+        if (result.getNextStepName() != null) {
+            Integer next = stepIndex.get(result.getNextStepName());
+            if (next == null)
+                throw TaskStepHelper.newError(getLocation(), stepRt, ERR_TASK_UNKNOWN_NEXT_STEP)
+                        .param(ARG_NEXT_STEP, result.getNextStepName());
+            return next;
+        }
+        return index + 1;
     }
 }

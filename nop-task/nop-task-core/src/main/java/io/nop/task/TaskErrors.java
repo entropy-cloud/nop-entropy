@@ -18,6 +18,16 @@ public interface TaskErrors {
     String ARG_TASK_NAME = "taskName";
     String ARG_RUN_ID = "runId";
 
+    String ARG_OUTPUT = "output";
+
+    String ARG_NEXT_STEP = "nextStep";
+
+    String ARG_BEGIN = "begin";
+
+    String ARG_END = "end";
+
+    String ARG_STEP = "step";
+
     ErrorCode ERR_TASK_STEP_NOT_RESTARTABLE = define("nop.err.task.step.not-restartable",
             "步骤[{stepName}]不允许多次执行", ARG_TASK_NAME, ARG_STEP_NAME);
 
@@ -37,4 +47,16 @@ public interface TaskErrors {
 
     ErrorCode ERR_TASK_STEP_TIMEOUT =
             define("nop.err.task.step-timeout", "步骤已超时");
+
+    ErrorCode ERR_TASK_STEP_MANDATORY_OUTPUT_IS_EMPTY =
+            define("nop.err.task.step-mandatory-output-is-empty", "步骤[{stepId}]的输出[{output}]不允许为空",
+                    ARG_STEP_ID, ARG_OUTPUT);
+
+    ErrorCode ERR_TASK_UNKNOWN_NEXT_STEP =
+            define("nop.err.task.unknown-next-step", "步骤[{stepId}]不支持跳转到子步骤[{nextStep}]",
+                    ARG_STEP_ID, ARG_NEXT_STEP);
+
+    ErrorCode ERR_TASK_LOOP_STEP_INVALID_LOOP_VAR =
+            define("nop.err.task.loop-step-invalid-loop-var", "循环步骤的循环变量设置不正确：begin={begin},end={end},step={step}",
+                    ARG_BEGIN, ARG_END, ARG_STEP);
 }

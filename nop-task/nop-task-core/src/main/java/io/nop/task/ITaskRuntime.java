@@ -7,12 +7,12 @@
  */
 package io.nop.task;
 
+import io.nop.api.core.context.ContextProvider;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.context.IServiceContext;
 
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -26,6 +26,14 @@ import java.util.function.Consumer;
  */
 public interface ITaskRuntime extends IEvalContext {
     IServiceContext getSvcCtx();
+
+    default String getLocale() {
+        IServiceContext ctx = getSvcCtx();
+        if (ctx != null) {
+            return ctx.getContext().getLocale();
+        }
+        return ContextProvider.currentLocale();
+    }
 
     default boolean isCancelled() {
         return getSvcCtx().isCancelled();
@@ -83,10 +91,6 @@ public interface ITaskRuntime extends IEvalContext {
     default Map<String, Object> getTaskVars() {
         return getTaskState().getTaskVars();
     }
-
-    void saveState(ITaskStepState state);
-
-    ITaskStepState newStepState(ITaskStepState parentState, String stepName, Set<String> persistVars);
 
 
     IScheduledExecutor getScheduledExecutor();

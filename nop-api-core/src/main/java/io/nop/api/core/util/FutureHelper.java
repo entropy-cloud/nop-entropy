@@ -29,6 +29,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class FutureHelper {
@@ -199,6 +200,20 @@ public class FutureHelper {
             return ((CompletableFuture<?>) value).isDone();
 
         return !(value instanceof CompletionStage);
+    }
+
+    public static boolean isFutureDone(CompletionStage<?> future) {
+        if (future == null)
+            return true;
+
+        if (future instanceof ResolvedPromise) {
+            return true;
+        }
+
+        if (future.getClass() == CompletableFuture.class)
+            return ((CompletableFuture<?>) future).isDone();
+
+        return false;
     }
 
     @SuppressWarnings({"unchecked", "cast"})
@@ -486,5 +501,15 @@ public class FutureHelper {
                 return false;
         }
         return true;
+    }
+
+    public static void bindCancelToken(ICancelToken cancelToken, CompletableFuture<?> future) {
+        if (cancelToken != null) {
+            Consumer<String> cancel = reason -> future.cancel(false);
+            cancelToken.appendOnCancel(cancel);
+            future.whenComplete((ret, err) -> {
+                cancelToken.removeOnCancel(cancel);
+            });
+        }
     }
 }

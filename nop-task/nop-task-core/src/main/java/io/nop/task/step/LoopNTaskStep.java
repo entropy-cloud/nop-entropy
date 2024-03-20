@@ -8,32 +8,33 @@
 package io.nop.task.step;
 
 import io.nop.api.core.annotations.data.DataBean;
-import io.nop.api.core.util.Guard;
-import io.nop.api.core.util.ICancelToken;
+import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.eval.IEvalAction;
-import io.nop.core.lang.eval.IEvalScope;
-import io.nop.task.ITaskRuntime;
-import io.nop.task.ITaskStep;
-import io.nop.task.ITaskStepState;
+import io.nop.task.IEnhancedTaskStep;
+import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepResult;
+import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 
-import java.util.Set;
-import java.util.concurrent.CompletionStage;
-
-import static io.nop.task.TaskStepResult.SUSPEND;
+import static io.nop.task.TaskErrors.ARG_BEGIN;
+import static io.nop.task.TaskErrors.ARG_END;
+import static io.nop.task.TaskErrors.ARG_STEP;
+import static io.nop.task.TaskErrors.ERR_TASK_LOOP_STEP_INVALID_LOOP_VAR;
+import static io.nop.task.TaskStepResult.RETURN_RESULT;
+import static io.nop.task.TaskStepResult.RETURN_RESULT_END;
 
 
 public class LoopNTaskStep extends AbstractTaskStep {
     private String varName;
     private String indexName;
 
-    private int step = 1;
+    private IEvalAction stepExpr;
 
     private IEvalAction beginExpr;
 
     private IEvalAction endExpr;
-    private ITaskStep body;
+    private IEnhancedTaskStep body;
 
     public String getVarName() {
         return varName;
@@ -51,21 +52,8 @@ public class LoopNTaskStep extends AbstractTaskStep {
         this.indexName = indexName;
     }
 
-    public ITaskStep getBody() {
-        return body;
-    }
-
-    public void setBody(ITaskStep body) {
+    public void setBody(IEnhancedTaskStep body) {
         this.body = body;
-    }
-
-    public int getStep() {
-        return step;
-    }
-
-    public void setStep(int step) {
-        Guard.checkArgument(step != 0, "step must not be zero");
-        this.step = step;
     }
 
     public void setBeginExpr(IEvalAction beginExpr) {
@@ -82,10 +70,18 @@ public class LoopNTaskStep extends AbstractTaskStep {
 
         private int end;
 
+        private int step;
+
         /**
          * 当前正在执行的循环下标
          */
         private int index;
+
+        public boolean shouldContinue() {
+            if (step > 0)
+                return index <= end;
+            return index >= end;
+        }
 
         public int getBodyRunId() {
             return bodyRunId;
@@ -103,6 +99,14 @@ public class LoopNTaskStep extends AbstractTaskStep {
             this.end = end;
         }
 
+        public int getStep() {
+            return step;
+        }
+
+        public void setStep(int step) {
+            this.step = step;
+        }
+
         public int getIndex() {
             return index;
         }
@@ -111,7 +115,7 @@ public class LoopNTaskStep extends AbstractTaskStep {
             this.index = index;
         }
 
-        public void incStep(int step) {
+        public void incStep() {
             this.index += step;
         }
     }
@@ -119,52 +123,61 @@ public class LoopNTaskStep extends AbstractTaskStep {
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepState state, Set<String> outputNames, ICancelToken cancelToken, ITaskRuntime taskRt) {
+    public TaskStepResult execute(ITaskStepRuntime stepRt) {
 
-        LoopStateBean stateBean = state.getStateBean(LoopStateBean.class);
+        LoopStateBean stateBean = stepRt.getStateBean(LoopStateBean.class);
+        if (stateBean == null) {
+            stateBean = new LoopStateBean();
+            // 初始化循环变量
+            int begin = ConvertHelper.toPrimitiveInt(beginExpr.invoke(stepRt), NopException::new);
+            int end = ConvertHelper.toPrimitiveInt(endExpr.invoke(stepRt), NopException::new);
+            int step = stepExpr == null ? 1 : ConvertHelper.toPrimitiveInt(stepExpr.invoke(stepRt), NopException::new);
+
+            if (step == 0)
+                throw TaskStepHelper.newError(getLocation(), stepRt, ERR_TASK_LOOP_STEP_INVALID_LOOP_VAR)
+                        .param(ARG_BEGIN, begin).param(ARG_END, end).param(ARG_STEP, step);
+
+            stateBean.setIndex(begin);
+            stateBean.setEnd(end);
+            stateBean.setStep(step);
+            stepRt.setStateBean(stateBean);
+        }
 
         do {
-            TaskStepResult stepResult = state.result();
-            if (stepResult.isEnd())
-                return stepResult;
-
-            if (stepResult.isExit()) {
-                return toStepResult(stepResult.getReturnValue());
+            if (!stateBean.shouldContinue()) {
+                return TaskStepResult.RETURN_RESULT(stepRt.getResult());
             }
 
-            if (!shouldContinue(stateBean, state.getEvalScope(), taskRt))
-                return TaskStepResult.CONTINUE;
+            TaskStepResult stepResult = body.executeWithParentRt(stepRt);
+            if (stepResult.isSuspend())
+                return stepResult;
 
-            int bodyRunId = stateBean.getBodyRunId();
+            if (stepResult.isDone()) {
+                stateBean.incStep();
+                stepRt.saveState();
 
-            stepResult = null;//body.execute(bodyRunId, state, null, taskRt);
-            if (stepResult.isAsync()) {
-                CompletionStage<Object> promise = stepResult.getReturnPromise().thenApply(ret -> {
-                    TaskStepResult result = toStepResult(ret);
-                    state.result(result);
-                    stateBean.incStep(step);
-                    //saveState(state, taskRt);
-                    return null;//doExecute(state, taskRt);
+                stepResult = stepResult.resolve();
+                if (stepResult.isEnd())
+                    return stepResult;
+                if (stepResult.isExit())
+                    return RETURN_RESULT(stepRt.getResult());
+            } else {
+                LoopStateBean stateParam = stateBean;
+                return stepResult.thenApply(ret -> {
+                    if (ret.isSuspend())
+                        return ret;
+
+                    stateParam.incStep();
+                    stepRt.saveState();
+
+                    if (ret.isEnd())
+                        return RETURN_RESULT_END(stepRt.getResult());
+
+                    if (ret.isExit())
+                        return RETURN_RESULT(stepRt.getResult());
+                    return execute(stepRt);
                 });
-                return TaskStepResult.of(null, promise);
             }
-
-            state.setResultValue(stepResult);
-            stateBean.incStep(step);
-            stateBean.setBodyRunId(taskRt.newRunId());
-            //saveState(state, taskRt);
-
-            // 在saveState之后判断suspend。刚进入doExecute时不能判断suspend, 因为有可能是从休眠中恢复
-            if (stepResult == SUSPEND)
-                return stepResult;
-
         } while (true);
-    }
-
-    boolean shouldContinue(LoopStateBean state, IEvalScope scope, ITaskRuntime context) {
-        if (step > 0) {
-            return state.getIndex() < state.getEnd();
-        }
-        return state.getIndex() > state.getEnd();
     }
 }

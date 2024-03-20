@@ -13,39 +13,40 @@ import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.exceptions.NopRebuildException;
 
 import java.io.Serializable;
+import java.util.Map;
 
 @DataBean
-public class AsyncStepResult implements Serializable {
+public class StepResultBean implements Serializable {
     private static final long serialVersionUID = 6502001395245004110L;
 
-    private int runId;
-    private String nextStepId;
-    private Object returnValue;
+    private String stepName;
+    private String nextStepName;
+    private Map<String, Object> returnValues;
     private ErrorBean error;
     private transient Throwable exception;
 
-    public String getNextStepId() {
-        return nextStepId;
+    public String getStepName() {
+        return stepName;
     }
 
-    public void setNextStepId(String nextStepId) {
-        this.nextStepId = nextStepId;
+    public void setStepName(String stepName) {
+        this.stepName = stepName;
     }
 
-    public Object getReturnValue() {
-        return returnValue;
+    public String getNextStepName() {
+        return nextStepName;
     }
 
-    public void setReturnValue(Object returnValue) {
-        this.returnValue = returnValue;
+    public void setNextStepName(String nextStepName) {
+        this.nextStepName = nextStepName;
     }
 
-    public int getRunId() {
-        return runId;
+    public Map<String, Object> getReturnValues() {
+        return returnValues;
     }
 
-    public void setRunId(int runId) {
-        this.runId = runId;
+    public void setReturnValues(Map<String, Object> returnValues) {
+        this.returnValues = returnValues;
     }
 
     public ErrorBean getError() {
@@ -54,6 +55,10 @@ public class AsyncStepResult implements Serializable {
 
     public void setError(ErrorBean error) {
         this.error = error;
+    }
+
+    public void setException(Throwable exception) {
+        this.exception = exception;
     }
 
     public Throwable exception() {

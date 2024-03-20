@@ -88,7 +88,7 @@
     @allowStartIfComplete 如果设置为false, 则重新执行时已经完成的步骤会被跳过
     @nextOnError 如果配置了nextOnError，则当内部抛出异常的时候会被自动包装为ErrorBean对象，并跳转到指定步骤。
     -->
-    <xdef:define xdef:name="TaskStepModel" xdef:ref="TaskExecutableModel" returnAs="var-name"
+    <xdef:define xdef:name="TaskStepModel" xdef:ref="TaskExecutableModel"
                  extType="var-name" tagSet="csv-set" useParentScope="!boolean=false" name="var-name"
                  allowStartIfComplete="!boolean=false" internal="!boolean=false"
                  next="string" nextOnError="string" saveState="!boolean=false">
@@ -148,9 +148,11 @@
                 <aggregator xdef:ref="TaskBeanModel"/>
             </fork-n>
 
-            <invoke name="!var-name" bean="!bean-name" method="!var-name" xdef:ref="TaskStepModel"
-                    xdef:name="InvokeTaskStepModel"
-                    ignoreReturn="!boolean=false">
+            <!--
+            @returnAs 指定bean方法的返回值所对应的返回变量名，缺省为result。
+            -->
+            <invoke name="!var-name" bean="!bean-name" method="!var-name" xdef:ref="TaskStepModel" returnAs="var-name"
+                    xdef:name="InvokeTaskStepModel">
                 <arg index="!int" valueExpr="expr" xdef:unique-attr="index" xdef:name="TaskInvokeArgModel"/>
             </invoke>
 

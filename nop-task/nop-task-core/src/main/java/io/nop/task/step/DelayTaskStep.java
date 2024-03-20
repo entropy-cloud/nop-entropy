@@ -11,12 +11,10 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.core.lang.eval.IEvalAction;
-import io.nop.task.ITaskRuntime;
-import io.nop.task.ITaskStepState;
+import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepResult;
 import jakarta.annotation.Nonnull;
 
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -36,8 +34,8 @@ public class DelayTaskStep extends AbstractTaskStep {
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepState state, Set<String> outputNames, ICancelToken cancelToken, ITaskRuntime taskRt) {
-        Long delay = ConvertHelper.toLong(delayMillsExpr.invoke(state.getEvalScope()));
+    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+        Long delay = ConvertHelper.toLong(delayMillsExpr.invoke(stepRt.getEvalScope()));
         if (delay == null)
             delay = -1L;
         if (delay <= 0)
@@ -49,11 +47,16 @@ public class DelayTaskStep extends AbstractTaskStep {
 
         // 在等待的过程中如果context已经被cancel，则会取消等待
         Consumer<String> cancel = reason -> future.cancel(false);
-        taskRt.appendOnCancel(cancel);
 
-        future.whenComplete((v, err) -> {
-            taskRt.removeOnCancel(cancel);
-        });
-        return toStepResult(future);
+        ICancelToken cancelToken = stepRt.getCancelToken();
+        if (cancelToken != null) {
+            cancelToken.appendOnCancel(cancel);
+
+            future.whenComplete((ret, err) -> {
+                cancelToken.removeOnCancel(cancel);
+            });
+        }
+
+        return TaskStepResult.ASYNC(null, future);
     }
 }

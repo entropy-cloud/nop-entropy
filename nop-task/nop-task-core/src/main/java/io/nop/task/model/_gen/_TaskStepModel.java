@@ -60,13 +60,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      *  
-     * xml name: returnAs
-     * 
-     */
-    private java.lang.String _returnAs ;
-    
-    /**
-     *  
      * xml name: saveState
      * 是否需要持久化状态用于失败后重新执行本步骤时的状态恢复
      */
@@ -202,25 +195,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      * 
-     * xml name: returnAs
-     *  
-     */
-    
-    public java.lang.String getReturnAs(){
-      return _returnAs;
-    }
-
-    
-    public void setReturnAs(java.lang.String value){
-        checkAllowChange();
-        
-        this._returnAs = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: saveState
      *  是否需要持久化状态用于失败后重新执行本步骤时的状态恢复
      */
@@ -297,7 +271,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         out.putNotNull("name",this.getName());
         out.putNotNull("next",this.getNext());
         out.putNotNull("nextOnError",this.getNextOnError());
-        out.putNotNull("returnAs",this.getReturnAs());
         out.putNotNull("saveState",this.isSaveState());
         out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("useParentScope",this.isUseParentScope());
@@ -318,7 +291,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         instance.setName(this.getName());
         instance.setNext(this.getNext());
         instance.setNextOnError(this.getNextOnError());
-        instance.setReturnAs(this.getReturnAs());
         instance.setSaveState(this.isSaveState());
         instance.setTagSet(this.getTagSet());
         instance.setUseParentScope(this.isUseParentScope());
