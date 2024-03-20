@@ -54,6 +54,12 @@ public class TaskStepHelper {
         return value;
     }
 
+    public static int castInt(Object value, SourceLocation loc, ITaskStepRuntime stepRt) {
+        return ConvertHelper.toPrimitiveInt(value, err -> {
+            return newError(loc, stepRt, err);
+        });
+    }
+
     public static TaskStepResult timeout(long timeout, Function<ICancelToken, TaskStepResult> task,
                                          ICancelToken cancelToken, ITaskRuntime taskRt) {
         IScheduledExecutor executor = taskRt.getScheduledExecutor();

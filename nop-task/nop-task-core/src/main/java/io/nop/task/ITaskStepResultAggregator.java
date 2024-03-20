@@ -7,8 +7,8 @@
  */
 package io.nop.task;
 
-import java.util.Collection;
+import io.nop.task.step.MultiStepResultBean;
 
 public interface ITaskStepResultAggregator {
-    TaskStepResult aggregate(Collection<StepResultBean> results, ITaskRuntime context);
+    TaskStepResult aggregate(MultiStepResultBean results, ITaskStepRuntime stepRt);
 }

@@ -10,12 +10,12 @@ package io.nop.task.step;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.task.StepResultBean;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 @DataBean
 public class MultiStepResultBean {
-    private Map<String, StepResultBean> results = new TreeMap<>();
+    private Map<String, StepResultBean> results = new LinkedHashMap<>();
 
     public Map<String, StepResultBean> getResults() {
         return results;
@@ -24,6 +24,14 @@ public class MultiStepResultBean {
     public void setResults(Map<String, StepResultBean> results) {
         if (results != null)
             this.results.putAll(results);
+    }
+
+    public int size() {
+        return results.size();
+    }
+
+    public boolean isEmpty() {
+        return results.isEmpty();
     }
 
     public void add(String stepName, StepResultBean result) {

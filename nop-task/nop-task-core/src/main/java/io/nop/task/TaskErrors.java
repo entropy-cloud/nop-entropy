@@ -28,6 +28,8 @@ public interface TaskErrors {
 
     String ARG_STEP = "step";
 
+    String ARG_LIB_NAME = "libName";
+
     ErrorCode ERR_TASK_STEP_NOT_RESTARTABLE = define("nop.err.task.step.not-restartable",
             "步骤[{stepName}]不允许多次执行", ARG_TASK_NAME, ARG_STEP_NAME);
 
@@ -59,4 +61,8 @@ public interface TaskErrors {
     ErrorCode ERR_TASK_LOOP_STEP_INVALID_LOOP_VAR =
             define("nop.err.task.loop-step-invalid-loop-var", "循环步骤的循环变量设置不正确：begin={begin},end={end},step={step}",
                     ARG_BEGIN, ARG_END, ARG_STEP);
+
+    ErrorCode ERR_TASK_UNKNOWN_STEP_IN_LIB =
+            define("nop.err.task.unknown-step-in-lib", "任务库[{libName}]中没有定义步骤:[{stepName}]",
+                    ARG_LIB_NAME, ARG_STEP_NAME);
 }

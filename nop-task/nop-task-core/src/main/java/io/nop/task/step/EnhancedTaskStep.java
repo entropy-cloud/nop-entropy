@@ -16,6 +16,7 @@ import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskConstants;
 import io.nop.task.TaskStepResult;
 import io.nop.task.utils.TaskStepHelper;
+import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -158,12 +159,16 @@ public class EnhancedTaskStep implements IEnhancedTaskStep {
         return ignoreResult;
     }
 
-    public TaskStepResult executeWithParentRt(ITaskStepRuntime parentRt) {
+    @Nonnull
+    @Override
+    public TaskStepResult executeWithParentRt(ITaskStepRuntime parentRt, String varName, Object varValue) {
         IEvalScope parentScope = parentRt.getEvalScope();
 
         ITaskRuntime taskRt = parentRt.getTaskRuntime();
         ITaskStepRuntime stepRt = parentRt.newStepRuntime(stepName, step.getPersistVars());
         stepRt.setOutputNames(outputVars);
+        if (varName != null)
+            stepRt.setValue(varName, varValue);
 
         LOG.debug("nop.task.step.run:taskName={},taskInstanceId={},stepId={},runId={},loc={}",
                 taskRt.getTaskName(), taskRt.getTaskInstanceId(),

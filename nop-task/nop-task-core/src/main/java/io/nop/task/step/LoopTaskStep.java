@@ -8,6 +8,7 @@
 package io.nop.task.step;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.task.IEnhancedTaskStep;
@@ -102,6 +103,9 @@ public class LoopTaskStep extends AbstractTaskStep {
         LoopStateBean stateBean = stepRt.getStateBean(LoopStateBean.class);
         if (stateBean == null) {
             stateBean = new LoopStateBean();
+            List<Object> items = CollectionHelper.toList(itemsExpr.invoke(stepRt));
+            stateBean.setItems(items);
+            stateBean.setIndex(0);
             stepRt.setStateBean(stateBean);
         }
 

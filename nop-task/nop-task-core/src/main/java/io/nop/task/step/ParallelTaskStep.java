@@ -9,8 +9,8 @@ package io.nop.task.step;
 
 import io.nop.api.core.util.FutureHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
-import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.IEnhancedTaskStep;
+import io.nop.task.ITaskStepResultAggregator;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.StepResultBean;
 import io.nop.task.TaskConstants;
@@ -26,22 +26,8 @@ import java.util.concurrent.CompletionStage;
  */
 public class ParallelTaskStep extends AbstractTaskStep {
     private List<IEnhancedTaskStep> steps;
-    private String aggregateVarName;
-    private IEvalAction aggregator;
-
-    public String getAggregateVarName() {
-        return aggregateVarName;
-    }
-
-    public void setAggregateVarName(String aggregateVarName) {
-        this.aggregateVarName = aggregateVarName;
-    }
-
-    public IEvalAction getAggregator() {
-        return aggregator;
-    }
-
-    public void setAggregator(IEvalAction aggregator) {
+    private ITaskStepResultAggregator aggregator;
+    public void setAggregator(ITaskStepResultAggregator aggregator) {
         this.aggregator = aggregator;
     }
 
@@ -88,11 +74,7 @@ public class ParallelTaskStep extends AbstractTaskStep {
             }
 
             if (aggregator != null) {
-                String varName = aggregateVarName;
-                if (varName == null)
-                    varName = TaskConstants.VAR_RESULT;
-                stepRt.setValue(varName, states);
-                return aggregator.invoke(stepRt);
+                return aggregator.aggregate(states, stepRt);
             }
             return states;
         });

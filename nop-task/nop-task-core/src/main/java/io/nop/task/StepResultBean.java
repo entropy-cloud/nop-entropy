@@ -11,9 +11,12 @@ package io.nop.task;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.exceptions.NopRebuildException;
+import io.nop.api.core.util.FutureHelper;
+import io.nop.core.exceptions.ErrorMessageManager;
 
 import java.io.Serializable;
 import java.util.Map;
+import java.util.concurrent.CompletionStage;
 
 @DataBean
 public class StepResultBean implements Serializable {
@@ -24,6 +27,19 @@ public class StepResultBean implements Serializable {
     private Map<String, Object> returnValues;
     private ErrorBean error;
     private transient Throwable exception;
+
+    public static StepResultBean buildFrom(String stepName, String locale, CompletionStage<TaskStepResult> future) {
+        StepResultBean resultBean = new StepResultBean();
+        resultBean.setStepName(stepName);
+        try {
+            TaskStepResult result = FutureHelper.syncGet(future);
+            resultBean.setNextStepName(result.getNextStepName());
+            resultBean.setReturnValues(result.get());
+        } catch (Exception exception) {
+            resultBean.setError(ErrorMessageManager.instance().buildErrorMessage(locale, exception));
+        }
+        return resultBean;
+    }
 
     public String getStepName() {
         return stepName;

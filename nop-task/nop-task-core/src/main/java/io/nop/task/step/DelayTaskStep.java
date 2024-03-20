@@ -8,6 +8,7 @@
 package io.nop.task.step;
 
 import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.core.lang.eval.IEvalAction;
@@ -17,7 +18,6 @@ import jakarta.annotation.Nonnull;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 public class DelayTaskStep extends AbstractTaskStep {
     private IScheduledExecutor scheduledExecutor;
@@ -46,16 +46,8 @@ public class DelayTaskStep extends AbstractTaskStep {
         }, delay, TimeUnit.MILLISECONDS);
 
         // 在等待的过程中如果context已经被cancel，则会取消等待
-        Consumer<String> cancel = reason -> future.cancel(false);
-
         ICancelToken cancelToken = stepRt.getCancelToken();
-        if (cancelToken != null) {
-            cancelToken.appendOnCancel(cancel);
-
-            future.whenComplete((ret, err) -> {
-                cancelToken.removeOnCancel(cancel);
-            });
-        }
+        FutureHelper.bindCancelToken(cancelToken, future);
 
         return TaskStepResult.ASYNC(null, future);
     }
