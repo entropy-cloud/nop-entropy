@@ -48,6 +48,8 @@ public class SysSequenceGenerator implements ISequenceGenerator {
 
     private long workerId = 0L;
 
+    private long defaultSeqInitNextValue = 1L;
+
     private ISequenceGenerator snowflakeGenerator;
     private final Map<String, SeqItem> cache = new ConcurrentHashMap<>();
 
@@ -103,6 +105,11 @@ public class SysSequenceGenerator implements ISequenceGenerator {
         this.workerId = snowflakeWorkerId;
     }
 
+    @InjectValue("@cfg:nop.sys.seq.default-seq-init-next-value|1")
+    public void setDefaultSeqInitNextValue(long defaultSeqInitNextValue) {
+        this.defaultSeqInitNextValue = defaultSeqInitNextValue;
+    }
+
     @Inject
     public void setOrmTemplate(IOrmTemplate ormTemplate) {
         this.ormTemplate = ormTemplate;
@@ -148,7 +155,7 @@ public class SysSequenceGenerator implements ISequenceGenerator {
                         NopSysSequence entity = (NopSysSequence) ormTemplate.newEntity(NopSysSequence.class.getName());
                         entity.setCacheSize(100);
                         entity.setStepSize(1);
-                        entity.setNextValue(1L);
+                        entity.setNextValue(defaultSeqInitNextValue);
                         entity.setSeqType("seq");
                         entity.setSeqName(SEQ_DEFAULT);
                         session.save(entity);
