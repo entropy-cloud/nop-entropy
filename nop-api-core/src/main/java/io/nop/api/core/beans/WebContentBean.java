@@ -26,17 +26,32 @@ public class WebContentBean {
     private final Object content;
     private final String fileName;
 
+    /**
+     * content返回的资源文件在下载完毕后是否需要被自动清理
+     */
+    private final boolean autoCleanResource;
+
     public WebContentBean(@JsonProperty("contentType") String contentType,
                           @JsonProperty("content") Object content,
-                          @JsonProperty("fileName") String fileName) {
+                          @JsonProperty("fileName") String fileName,
+                          @JsonProperty("autoCleanResource") boolean autoCleanResource
+    ) {
         this.contentType = contentType;
         this.content = content;
         this.fileName = fileName;
+        this.autoCleanResource = autoCleanResource;
+    }
+
+    public WebContentBean(@JsonProperty("contentType") String contentType,
+                          @JsonProperty("content") Object content,
+                          @JsonProperty("fileName") String fileName
+    ) {
+        this(contentType, content, fileName, false);
     }
 
     public WebContentBean(@JsonProperty("contentType") String contentType,
                           @JsonProperty("content") Object content) {
-        this(contentType, content, null);
+        this(contentType, content, null, false);
     }
 
 
@@ -77,5 +92,10 @@ public class WebContentBean {
     @PropMeta(propId = 3)
     public String getFileName() {
         return fileName;
+    }
+
+    @PropMeta(propId = 4)
+    public boolean isAutoCleanResource() {
+        return autoCleanResource;
     }
 }

@@ -332,23 +332,19 @@ public class GraphQLWebService {
     protected void buildContent(Response.ResponseBuilder builder, String contentType, Object content, String fileName) {
         builder.header(ApiConstants.HEADER_CONTENT_TYPE, contentType);
         builder.header("Access-Control-Expose-Headers", "content-disposition");
+        if (!StringHelper.isEmpty(fileName)) {
+            String encoded = StringHelper.encodeURL(fileName);
+            builder.header("content-disposition", "attachment; filename=" + encoded);
+        }
         if (content instanceof String) {
             LOG.debug("nop.graphql.response:{}", content);
             builder.entity(content);
-        } else if (content instanceof InputStream || content instanceof File) {
+        } else if (content instanceof InputStream || content instanceof File || content instanceof byte[]) {
             builder.entity(content);
-            if (!StringHelper.isEmpty(fileName)) {
-                String encoded = StringHelper.encodeURL(fileName);
-                builder.header("content-disposition", "attachment; filename=" + encoded);
-            }
 //            if(content instanceof File){
 //                builder.header(HttpHeaders.CONTENT_LENGTH,((File) content).length());
 //            }
         } else if (content instanceof IResource) {
-            if (!StringHelper.isEmpty(fileName)) {
-                String encoded = StringHelper.encodeURL(fileName);
-                builder.header("content-disposition", "attachment; filename=" + encoded);
-            }
             buildResourceContent(builder, (IResource) content);
         } else {
             String str = JSON.stringify(content);

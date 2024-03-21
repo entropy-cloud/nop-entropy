@@ -319,6 +319,7 @@
 /nop/dao/dialect/selector/oracle.selector.yaml
 /nop/dao/dialect/selector/postgresql.selector.yaml
 /nop/dao/dialect/tdengine.dialect.xml
+/nop/dao/dialect/window-expr-support.dialect.xml
 /nop/demo/_module
 /nop/demo/app.action-auth.xml
 /nop/demo/app.data-auth.xml

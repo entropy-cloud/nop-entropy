@@ -25,6 +25,7 @@ import io.nop.spring.core.resource.SpringResource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
@@ -199,14 +200,17 @@ public class SpringGraphQLWebService extends GraphQLWebService {
 
     private Object buildContent(HttpHeaders headers, String contentType, Object content, String fileName) {
         headers.set(ApiConstants.HEADER_CONTENT_TYPE, contentType);
+        if (!StringHelper.isEmpty(fileName)) {
+            String encoded = StringHelper.encodeURL(fileName);
+            headers.set("Content-Disposition", "attachment; filename=" + encoded);
+        }
+
         if (content instanceof String) {
             LOG.debug("nop.graphql.response:{}", content);
             return content;
+        } else if (content instanceof byte[]) {
+            return new ByteArrayResource((byte[]) content);
         } else if (content instanceof InputStream || content instanceof File || content instanceof IResource) {
-            if (!StringHelper.isEmpty(fileName)) {
-                String encoded = StringHelper.encodeURL(fileName);
-                headers.set("Content-Disposition", "attachment; filename=" + encoded);
-            }
             if (content instanceof InputStream) {
                 return new InputStreamResource((InputStream) content, fileName);
             } else if (content instanceof IResource) {
