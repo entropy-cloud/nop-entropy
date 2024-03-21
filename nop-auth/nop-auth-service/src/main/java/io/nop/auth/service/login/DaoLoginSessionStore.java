@@ -11,6 +11,7 @@ import io.nop.api.core.ApiConstants;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.ApiHeaders;
+import io.nop.api.core.util.Guard;
 import io.nop.auth.api.AuthApiConstants;
 import io.nop.auth.api.messages.LoginRequest;
 import io.nop.auth.core.login.ILoginSessionStore;
@@ -20,6 +21,7 @@ import io.nop.auth.dao.entity.NopAuthSession;
 import io.nop.dao.api.IDaoProvider;
 
 import jakarta.inject.Inject;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +35,8 @@ public class DaoLoginSessionStore implements ILoginSessionStore {
 
     @Override
     public SessionInfo getSessionInfoForUser(String userName) {
+        Guard.notEmpty(userName, "userName");
+
         NopAuthSession example = new NopAuthSession();
         example.setUserName(userName);
         example.setLoginType(AuthApiConstants.LOGOUT_TYPE_NONE);
@@ -45,6 +49,9 @@ public class DaoLoginSessionStore implements ILoginSessionStore {
 
     @Override
     public String saveSession(IUserContext userContext, LoginRequest request, Map<String, Object> headers) {
+        Guard.notEmpty(userContext.getUserId(), "userId");
+        Guard.notEmpty(userContext.getUserName(), "userName");
+
         NopAuthSession session = new NopAuthSession();
         session.setSessionId(sessionIdGenerator.generateId());
         session.setTenantId(userContext.getTenantId());
@@ -77,6 +84,8 @@ public class DaoLoginSessionStore implements ILoginSessionStore {
 
     @Override
     public List<String> getActionSessions(String userName) {
+        Guard.notEmpty(userName, "userName");
+
         NopAuthSession example = new NopAuthSession();
         example.setUserName(userName);
         example.setLogoutType(AuthApiConstants.LOGOUT_TYPE_NONE);

@@ -13,6 +13,7 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.api.core.util.Guard;
 import io.nop.auth.api.AuthApiConstants;
 import io.nop.auth.core.login.LocalUserContextCache;
 import io.nop.auth.core.login.SessionInfo;
@@ -43,6 +44,8 @@ public class DaoUserContextCache extends LocalUserContextCache {
 
     @Override
     public CompletionStage<IUserContext> getUserContextAsync(String sessionId) {
+        Guard.notEmpty(sessionId, "sessionId");
+
         return FutureHelper.futureCall(() -> {
             NopAuthSession session = dao().getEntityById(sessionId);
             if (session == null) {
@@ -79,6 +82,8 @@ public class DaoUserContextCache extends LocalUserContextCache {
     @SingleSession
     @Override
     public CompletionStage<Void> saveUserContextAsync(IUserContext userContext) {
+        Guard.notNull(userContext, "userContext");
+
         return FutureHelper.futureRun(() -> {
             NopAuthSession session = dao().getEntityById(userContext.getSessionId());
             if (session == null || session.getLogoutType() != AuthApiConstants.LOGOUT_TYPE_NONE)
@@ -109,6 +114,8 @@ public class DaoUserContextCache extends LocalUserContextCache {
 
     @Override
     public CompletionStage<String> getUserSessionId(String userName) {
+        Guard.notEmpty(userName, "userName");
+
         return FutureHelper.futureCall(() -> {
             QueryBean query = new QueryBean();
             query.addFilter(FilterBeans.eq(NopAuthSession.PROP_NAME_userName, userName))

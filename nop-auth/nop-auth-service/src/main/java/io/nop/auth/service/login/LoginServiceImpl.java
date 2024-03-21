@@ -19,6 +19,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.JSON;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.api.core.util.Guard;
 import io.nop.auth.api.AuthApiConstants;
 import io.nop.auth.api.messages.LoginRequest;
 import io.nop.auth.api.messages.LogoutRequest;
@@ -460,6 +461,8 @@ public class LoginServiceImpl extends AbstractLoginService {
 
     @Override
     public String generateVerifyCode(String verifySecret) {
+        Guard.notEmpty(verifySecret, "verifySecret");
+
         if (verifyCodeGenerator == null)
             return "fake-code";
 
