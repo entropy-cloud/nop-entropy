@@ -13,6 +13,7 @@ import io.nop.core.unittest.BaseTestCase;
 import io.nop.ioc.loader.AppBeanContainerLoader;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import test.io.entropy.beans.MyBeanA;
 
@@ -27,6 +28,11 @@ public class TestBeanContainerEx extends BaseTestCase {
     @AfterAll
     public static void destroy() {
         CoreInitialization.destroy();
+    }
+
+    @BeforeEach
+    public void setUp(){
+        setTestConfig("my.prefix","test");
     }
 
     @Test

@@ -39,6 +39,7 @@ public class TestXplBean extends BaseTestCase {
 
     @BeforeEach
     protected void setUp() {
+        setTestConfig("my.prefix","test");
     }
 
     @Test

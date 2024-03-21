@@ -38,6 +38,7 @@ public class TestBeanContainerParser extends BaseTestCase {
     @BeforeEach
     protected void setUp() {
         setTestConfig("test.path", "[rootPath]/a");
+        setTestConfig("my.prefix","test");
         MyLazyInitBean2.createdCount = 0;
         container = new AppBeanContainerLoader().loadFromResource("test", attachmentResource("test_spring.beans.xml"));
         container.start();
