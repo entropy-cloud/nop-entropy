@@ -8,12 +8,12 @@
 package io.nop.record.encoder;
 
 import io.nop.record.input.IRecordBinaryInput;
-import io.nop.record.input.IRecordInputContext;
-import io.nop.record.model.RecordFieldMeta;
-import io.nop.record.output.IRecordOutputContext;
+import io.nop.record.output.IRecordBinaryOutput;
+
+import java.nio.charset.Charset;
 
 public interface IFieldBinaryEncoder {
-    Object decode(IRecordBinaryInput input, RecordFieldMeta fieldMeta, IRecordInputContext context);
+    Object decode(IRecordBinaryInput input, int length, Charset charset, IFieldEncodeContext context);
 
-    void encode(IRecordBinaryInput output, Object value, RecordFieldMeta fieldMeta, IRecordOutputContext context);
+    void encode(IRecordBinaryOutput output, Object value, int length, Charset charset, IFieldDecodeContext context);
 }

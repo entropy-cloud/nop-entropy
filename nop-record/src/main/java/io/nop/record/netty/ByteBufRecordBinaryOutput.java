@@ -25,26 +25,116 @@ public class ByteBufRecordBinaryOutput implements IRecordBinaryOutput {
     }
 
     @Override
-    public IRecordBinaryOutput append(byte[] bytes) {
+    public IRecordBinaryOutput writeBytes(byte[] bytes) {
         byteBuf.writeBytes(bytes); // 将整个字节数组写入ByteBuf
         return this;
     }
 
     @Override
-    public IRecordBinaryOutput append(byte[] str, int start, int end) {
+    public IRecordBinaryOutput writeBytesPart(byte[] str, int start, int end) {
         byteBuf.writeBytes(str, start, end - start); // 将字节数组的一部分写入ByteBuf
         return this;
     }
 
     @Override
-    public IRecordBinaryOutput append(byte c) {
+    public IRecordBinaryOutput writeS1(byte c) {
         byteBuf.writeByte(c); // 写入一个字节
         return this;
     }
 
     @Override
-    public IRecordBinaryOutput append(ByteBuffer buf) {
+    public IRecordBinaryOutput writeU1(int c) {
+        byteBuf.writeByte(c); // 写入一个字节
+        return this;
+    }
+
+    @Override
+    public IRecordBinaryOutput writeByteBuffer(ByteBuffer buf) {
         byteBuf.writeBytes(buf); // 将ByteBuffer的内容写入ByteBuf
+        return this;
+    }
+
+    @Override
+    public IRecordBinaryOutput writeS2Be(short c) {
+        byteBuf.writeShort(c); // 写入一个short类型的数据
+        return this;
+    }
+
+    @Override
+    public IRecordBinaryOutput writeS2Le(short c) {
+        byteBuf.writeShortLE(c); // 写入一个short类型的数据
+        return this;
+    }
+
+    @Override
+    public IRecordBinaryOutput writeU2Be(int c) {
+        byteBuf.writeShort(c); // 写入一个short类型的数据
+        return this;
+    }
+
+    @Override
+    public IRecordBinaryOutput writeU2Le(int c) {
+        byteBuf.writeShortLE(c); // 写入一个short类型的数据
+        return this;
+    }
+
+    @Override
+    public IRecordBinaryOutput writeS4Be(int c) {
+        byteBuf.writeInt(c); // 写入一个int类型的数据
+        return this;
+    }
+
+    @Override
+    public IRecordBinaryOutput writeS4Le(int c) {
+        byteBuf.writeIntLE(c); // 写入一个int类型的数据
+        return this;
+    }
+
+    @Override
+    public IRecordBinaryOutput writeU4Be(long c) {
+        byteBuf.writeInt((int) c); // 写入一个int类型的数据
+        return this;
+    }
+
+    @Override
+    public IRecordBinaryOutput writeU4Le(long c) {
+        byteBuf.writeIntLE((int) c); // 写入一个int类型的数据
+        return this;
+    }
+
+    @Override
+    public IRecordBinaryOutput writeS8Be(long c) {
+        byteBuf.writeLong(c); // 写入一个long类型的数据
+        return this;
+    }
+
+    @Override
+    public IRecordBinaryOutput writeS8Le(long c) {
+        byteBuf.writeLongLE(c); // 写入一个long类型的数据
+        return this;
+    }
+
+    @Override
+    public IRecordBinaryOutput writeF4Be(float c) {
+        byteBuf.writeFloat(c); // 写入一个float类型的数据
+        return this;
+    }
+
+    @Override
+    public IRecordBinaryOutput writeF4Le(float c) {
+        byteBuf.writeFloatLE(c); // 写入一个float类型的数据
+        return this;
+    }
+
+    @Override
+    public IRecordBinaryOutput writeF8Be(double c) {
+        byteBuf.writeDouble(c); // 写入一个double类型的数据
+        return this;
+    }
+
+    @Override
+    public IRecordBinaryOutput writeF8Le(double c) {
+        byteBuf.writeDoubleLE(c); // 写入一个double类型的数据
         return this;
     }
 

@@ -83,7 +83,7 @@ public class ModelBasedTextRecordOutput<T> extends AbstractTextRecordOutput<T> i
         Object value = getFieldValue(field, record);
         IFieldTextEncoder encoder = getEncoder(field, registry);
         if (encoder != null) {
-            encoder.encode(out, value, field, this);
+            encoder.encode(out, value, field.getLength(), this);
         } else {
             if (value != null)
                 out.append(value.toString());

@@ -32,6 +32,8 @@ import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 /**
  * 基于Kaitai项目的ByteBufferKaitaiStream类修改。
@@ -283,6 +285,11 @@ public class ByteBufRecordBinaryInput implements IRecordBinaryInput {
         return bb.readUnsignedIntLE();
     }
 
+    @Override
+    public long readU8be() {
+        return bb.readLong();
+    }
+
     //endregion
 
     //endregion
@@ -383,6 +390,13 @@ public class ByteBufRecordBinaryInput implements IRecordBinaryInput {
         bb.readerIndex(bb.readerIndex() + (int) n);
 
         return new ByteBufRecordBinaryInput(newBuffer);
+    }
+
+    @Override
+    public String readString(int length, Charset charset) {
+        if (charset == null)
+            charset = StandardCharsets.UTF_8;
+        return bb.readCharSequence(length, charset).toString();
     }
 
     @Override

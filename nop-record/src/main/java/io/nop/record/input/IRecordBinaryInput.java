@@ -22,7 +22,11 @@
  */
 package io.nop.record.input;
 
+import io.nop.commons.bytes.ByteString;
+
 import java.io.Closeable;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 /**
  * 从KaitaiStruct项目的KaitaiStream类拷贝部分实现代码
@@ -253,6 +257,10 @@ public interface IRecordBinaryInput extends Closeable {
      */
     byte[] readBytes(int n);
 
+    default ByteString readByteString(int n) {
+        return ByteString.of(readBytes(n));
+    }
+
     /**
      * Reads all the remaining bytes in a stream as byte array.
      *
@@ -262,6 +270,13 @@ public interface IRecordBinaryInput extends Closeable {
 
     byte[] readBytesTerm(byte term, boolean includeTerm, boolean consumeTerm, boolean eosError);
 
+    default String readString(int length, Charset charset) {
+        if (charset == null)
+            charset = StandardCharsets.UTF_8;
+        byte[] data = readBytes(length);
+        return new String(data, charset);
+    }
+
     long available();
 
     void skip(long n);
@@ -270,6 +285,26 @@ public interface IRecordBinaryInput extends Closeable {
 
     default int readByte() {
         return readS1();
+    }
+
+    default short readShort() {
+        return readS2be();
+    }
+
+    default int readInt() {
+        return readS4be();
+    }
+
+    default long readLong() {
+        return readS8be();
+    }
+
+    default float readFloat() {
+        return readF4be();
+    }
+
+    default double readDouble() {
+        return readF8be();
     }
 
     /**
