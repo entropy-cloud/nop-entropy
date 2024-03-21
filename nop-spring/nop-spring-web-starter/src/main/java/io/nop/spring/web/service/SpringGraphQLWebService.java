@@ -147,10 +147,21 @@ public class SpringGraphQLWebService extends GraphQLWebService {
 
 
     @GetMapping("/p/{query:.+}")
-    @PostMapping("/p/{query:.+}")
     public CompletionStage<ResponseEntity<Object>> pageQuerySpring(@PathVariable("query") String query,
                                                                    @RequestParam(value = SYS_PARAM_SELECTION, required = false) String selection,
                                                                    @RequestParam(value = SYS_PARAM_ARGS, required = false) String args) {
+        return doPageQuery(GraphQLOperationType.query, query, selection, args);
+    }
+
+    @PostMapping("/p/{query:.+}")
+    public CompletionStage<ResponseEntity<Object>> pageQuerySpringForPost(@PathVariable("query") String query,
+                                                                          @RequestParam(value = SYS_PARAM_SELECTION, required = false) String selection,
+                                                                          @RequestParam(value = SYS_PARAM_ARGS, required = false) String args) {
+        return doPageQuery(null, query, selection, args);
+    }
+
+    protected CompletionStage<ResponseEntity<Object>> doPageQuery(GraphQLOperationType operationType,
+                                                                  String query, String selection, String args) {
         int pos = query.indexOf('/');
         String operationName = query;
         String path = pos > 0 ? query.substring(pos) : null;
@@ -158,7 +169,7 @@ public class SpringGraphQLWebService extends GraphQLWebService {
             operationName = query.substring(0, pos);
         }
 
-        return runRest(GraphQLOperationType.query, operationName, () -> {
+        return runRest(operationType, operationName, () -> {
             ApiRequest<Map<String, Object>> req = buildRequest(args, selection, true);
             if (path != null) {
                 req.getData().put(GraphQLConstants.PARAM_PATH, path);
