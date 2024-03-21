@@ -13,7 +13,9 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
 import io.nop.spring.core.resource.SpringResource;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,23 +32,40 @@ public class SpringWebHelper {
         Object body;
         if (data instanceof WebContentBean) {
             WebContentBean contentBean = (WebContentBean) data;
-            body = buildContent(headers, contentBean.getContentType(), (IResource) contentBean.getContent(), contentBean.getFileName());
+            body = buildContent(headers, contentBean.getContentType(), contentBean.getContent(), contentBean.getFileName());
         } else {
             body = JsonTool.stringify(data);
         }
         return new ResponseEntity<>(body, headers, HttpStatus.valueOf(status));
     }
 
-    private static Object buildContent(HttpHeaders headers, String contentType, IResource content, String fileName) {
+    private static Object buildContent(HttpHeaders headers, String contentType, Object content, String fileName) {
         headers.set(ApiConstants.HEADER_CONTENT_TYPE, contentType);
 
         if (!StringHelper.isEmpty(fileName)) {
             String encoded = StringHelper.encodeURL(fileName);
             headers.set("Content-Disposition", "attachment; filename=" + encoded);
         }
-        File file = content.toFile();
-        if (file != null)
-            return new FileSystemResource(file);
-        return new SpringResource(content);
+
+        if (content == null)
+            return null;
+
+        if (content instanceof IResource) {
+            IResource resource = (IResource) content;
+            File file = resource.toFile();
+            if (file != null)
+                return new FileSystemResource(file);
+            return new SpringResource(resource);
+        } else if (content instanceof File) {
+            return new FileSystemResource((File) content);
+        } else if (content instanceof byte[]) {
+            return new ByteArrayResource((byte[]) content);
+        } else if (content instanceof Resource) {
+            return content;
+        } else if (content instanceof String) {
+            return content;
+        } else {
+            return "INVALID CONTENT TYPE";
+        }
     }
 }

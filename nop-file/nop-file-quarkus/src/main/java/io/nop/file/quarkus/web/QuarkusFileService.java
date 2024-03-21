@@ -133,7 +133,7 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
                 return JaxrsHelper.buildJaxrsResponse(res);
             }
             WebContentBean content = res.getData();
-            return QuarkusFileHelper.buildFileResponse((IResource) content.getContent(), content.getContentType(), content.getFileName());
+            return QuarkusFileHelper.buildFileResponse( content.getContent(), content.getContentType(), content.getFileName());
         });
     }
 }
