@@ -11,6 +11,7 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.biz.RequestBean;
+import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.auth.dao.entity.NopAuthRole;
 import io.nop.commons.util.StringHelper;
 import io.nop.dao.api.IDaoProvider;
@@ -23,6 +24,20 @@ public class DemoAuthBizModel {
 
     @Inject
     IDaoProvider daoProvider;
+
+    @InjectValue("${test.prefix}.data")
+    String testField;
+
+    String testValue;
+
+    @InjectValue("${test.prefix}.value")
+    public void setTestValue(String value) {
+        this.testValue = value;
+    }
+
+    public String getTestValue(){
+        return testValue;
+    }
 
     @BizMutation
     public String testFlushError() {

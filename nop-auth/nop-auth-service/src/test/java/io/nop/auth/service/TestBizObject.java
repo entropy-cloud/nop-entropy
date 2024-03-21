@@ -10,6 +10,7 @@ package io.nop.auth.service;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
+import io.nop.auth.service.biz.DemoAuthBizModel;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.lang.sql.SQL;
 import io.nop.core.unittest.BaseTestCase;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import jakarta.inject.Inject;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = true)
@@ -30,6 +32,7 @@ public class TestBizObject extends JunitBaseTestCase {
 
     @Inject
     IOrmTemplate ormTemplate;
+
 
     public TestBizObject() {
         setTestConfig("nop.orm.init-database-schema", true);

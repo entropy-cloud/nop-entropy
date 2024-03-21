@@ -13,3 +13,5 @@ nop:
 
   orm:
     init-database-schema: true
+
+test.prefix: my-test
