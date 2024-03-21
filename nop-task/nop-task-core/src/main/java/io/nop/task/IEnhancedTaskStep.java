@@ -9,11 +9,14 @@ import jakarta.annotation.Nonnull;
 public interface IEnhancedTaskStep extends ISourceLocationGetter {
     String getStepName();
 
-    default TaskStepResult executeWithParentRt(ITaskStepRuntime parentRt){
-        return executeWithParentRt(parentRt, null,null);
+    @Nonnull
+    default TaskStepResult executeWithParentRt(ITaskStepRuntime parentRt) {
+        return executeWithParentRt(parentRt, null, null, null, 0);
     }
 
 
     @Nonnull
-    TaskStepResult executeWithParentRt(ITaskStepRuntime parentRt, String varName, Object varValue);
+    TaskStepResult executeWithParentRt(ITaskStepRuntime parentRt,
+                                       String varName, Object varValue,
+                                       String indexName, int index);
 }

@@ -83,6 +83,7 @@
     </xdef:define>
 
     <!--
+    @runOnContext 指定本步骤中的操作都使用IContext.runOnContext来执行
     @next 本步骤执行完毕后缺省跳转到的步骤。如果没有指定，则缺省步骤为下一个兄弟节点
     @saveState 是否需要持久化状态用于失败后重新执行本步骤时的状态恢复
     @allowStartIfComplete 如果设置为false, 则重新执行时已经完成的步骤会被跳过
@@ -91,6 +92,7 @@
     <xdef:define xdef:name="TaskStepModel" xdef:ref="TaskExecutableModel"
                  extType="var-name" tagSet="csv-set" useParentScope="!boolean=false" name="var-name"
                  allowStartIfComplete="!boolean=false" internal="!boolean=false"
+                 runOnContext="!boolean=false"
                  next="string" nextOnError="string" saveState="!boolean=false">
     </xdef:define>
 
@@ -135,14 +137,15 @@
 
             <sleep name="!var-name" sleepMillisExpr="!expr" xdef:ref="TaskStepModel" xdef:name="SleepTaskStepModel"/>
 
-            <fork name="!var-name" var="!var-name" xdef:ref="TaskStepsModel" xdef:name="ForkTaskStepModel"
+            <fork name="!var-name" varName="!var-name" indexName="var-name" xdef:ref="TaskStepsModel"
+                  xdef:name="ForkTaskStepModel"
                   aggregateVarName="var-name"
                   joinType="enum:io.nop.task.model.TaskStepJoinType" autoCancelUnfinished="!boolean=false">
                 <producer bean="bean-name" xdef:value="xpl" xdef:name="TaskBeanModel" xdef:bean-body-prop="source"/>
                 <aggregator xdef:ref="TaskBeanModel"/>
             </fork>
 
-            <fork-n name="!var-name" var="!var-name" countExpr="!expr" xdef:ref="TaskStepsModel"
+            <fork-n name="!var-name" indexName="var-name" countExpr="!expr" xdef:ref="TaskStepsModel"
                     xdef:name="ForkNTaskStepModel" aggregateVarName="var-name"
                     joinType="enum:io.nop.task.model.TaskStepJoinType" autoCancelUnfinished="!boolean=false">
                 <aggregator xdef:ref="TaskBeanModel"/>
@@ -157,12 +160,12 @@
             </invoke>
 
             <loop name="!var-name" xdef:ref="TaskStepsModel" xdef:name="LoopTaskStepModel"
-                  index="var-name" var="var-name" items="!expr" maxCount="!int=0">
+                  indexName="var-name" varName="var-name" items="!expr" maxCount="!int=0">
                 <until xdef:value="xpl-predicate"/>
             </loop>
 
-            <loop-n name="!var-name" xdef:ref="TaskStepsModel" index="var-name" xdef:name="LoopNTaskStepModel"
-                    var="var-name" beginExpr="!expr" endExpr="!expr" stepExpr="!expr">
+            <loop-n name="!var-name" xdef:ref="TaskStepsModel" indexName="var-name" xdef:name="LoopNTaskStepModel"
+                    beginExpr="!expr" endExpr="!expr" stepExpr="!expr">
             </loop-n>
 
             <choose name="!var-name" xdef:ref="TaskStepModel" xdef:name="ChooseTaskStepModel">

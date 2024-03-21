@@ -25,6 +25,8 @@ import java.util.concurrent.CompletionStage;
 public class ForkTaskStep extends AbstractTaskStep {
     private IEvalAction producer;
     private String varName;
+
+    private String indexName;
     private IEnhancedTaskStep step;
 
     private ITaskStepResultAggregator aggregator;
@@ -43,6 +45,14 @@ public class ForkTaskStep extends AbstractTaskStep {
 
     public void setVarName(String varName) {
         this.varName = varName;
+    }
+
+    public String getIndexName() {
+        return indexName;
+    }
+
+    public void setIndexName(String indexName) {
+        this.indexName = indexName;
     }
 
     public IEnhancedTaskStep getStep() {
@@ -90,7 +100,8 @@ public class ForkTaskStep extends AbstractTaskStep {
         List<CompletionStage<TaskStepResult>> promises = new ArrayList<>(items.size());
         for (int i = 0; i < items.size(); i++) {
             try {
-                TaskStepResult result = step.executeWithParentRt(stepRt, varName, items.get(i));
+                TaskStepResult result = step.executeWithParentRt(stepRt,
+                        varName, items.get(i), indexName, i);
                 promises.add(result.getReturnPromise());
             } catch (Exception e) {
                 promises.add(FutureHelper.reject(e));

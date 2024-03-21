@@ -12,12 +12,12 @@ import io.nop.commons.bytes.ByteString;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.bean.BeanTool;
-import io.nop.record.encoder.FieldEncoderRegistry;
-import io.nop.record.encoder.IFieldTextEncoder;
+import io.nop.record.codec.FieldCodecRegistry;
+import io.nop.record.codec.IFieldCodecContext;
+import io.nop.record.codec.IFieldTextCodec;
 import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordFileMeta;
 import io.nop.record.model.RecordObjectMeta;
-import io.nop.record.output.IRecordOutputContext;
 import io.nop.record.output.IRecordTextOutput;
 import io.nop.record.util.RecordMetaHelper;
 import io.nop.xlang.api.XLang;
@@ -27,14 +27,15 @@ import java.util.Map;
 
 import static io.nop.record.util.RecordMetaHelper.getEncoder;
 
-public class ModelBasedTextRecordOutput<T> extends AbstractTextRecordOutput<T> implements IRecordOutputContext {
+public class ModelBasedTextRecordOutput<T> extends AbstractTextRecordOutput<T>
+        implements IFieldCodecContext {
     private final RecordFileMeta fileMeta;
 
-    private final FieldEncoderRegistry registry;
+    private final FieldCodecRegistry registry;
     private IEvalScope scope;
 
     public ModelBasedTextRecordOutput(IRecordTextOutput out, RecordFileMeta fileMeta,
-                                      IEvalScope scope, FieldEncoderRegistry registry) {
+                                      IEvalScope scope, FieldCodecRegistry registry) {
         super(out);
         this.fileMeta = fileMeta;
         this.scope = scope;
@@ -42,7 +43,7 @@ public class ModelBasedTextRecordOutput<T> extends AbstractTextRecordOutput<T> i
     }
 
     public ModelBasedTextRecordOutput(IRecordTextOutput out, RecordFileMeta fileMeta) {
-        this(out, fileMeta, XLang.newEvalScope(), FieldEncoderRegistry.DEFAULT);
+        this(out, fileMeta, XLang.newEvalScope(), FieldCodecRegistry.DEFAULT);
     }
 
     @Override
@@ -81,7 +82,7 @@ public class ModelBasedTextRecordOutput<T> extends AbstractTextRecordOutput<T> i
 
     private void writeField(RecordFieldMeta field, Object record) throws IOException {
         Object value = getFieldValue(field, record);
-        IFieldTextEncoder encoder = getEncoder(field, registry);
+        IFieldTextCodec encoder = getEncoder(field, registry);
         if (encoder != null) {
             encoder.encode(out, value, field.getLength(), this);
         } else {

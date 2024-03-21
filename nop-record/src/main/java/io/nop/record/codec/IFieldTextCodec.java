@@ -5,15 +5,13 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.record.encoder;
+package io.nop.record.codec;
 
-import io.nop.record.input.IRecordInputContext;
 import io.nop.record.input.IRecordTextInput;
-import io.nop.record.output.IRecordOutputContext;
 import io.nop.record.output.IRecordTextOutput;
 
-public interface IFieldTextEncoder {
-    Object decode(IRecordTextInput input, int length, IRecordInputContext context);
+public interface IFieldTextCodec {
+    Object decode(IRecordTextInput input, int length, IFieldCodecContext context);
 
-    void encode(IRecordTextOutput output, Object value, int length, IRecordOutputContext context);
+    void encode(IRecordTextOutput output, Object value, int length, IFieldCodecContext context);
 }

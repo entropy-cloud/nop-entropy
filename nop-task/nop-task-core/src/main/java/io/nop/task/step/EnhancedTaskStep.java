@@ -161,7 +161,9 @@ public class EnhancedTaskStep implements IEnhancedTaskStep {
 
     @Nonnull
     @Override
-    public TaskStepResult executeWithParentRt(ITaskStepRuntime parentRt, String varName, Object varValue) {
+    public TaskStepResult executeWithParentRt(ITaskStepRuntime parentRt,
+                                              String varName, Object varValue,
+                                              String indexName, int index) {
         IEvalScope parentScope = parentRt.getEvalScope();
 
         ITaskRuntime taskRt = parentRt.getTaskRuntime();
@@ -169,6 +171,8 @@ public class EnhancedTaskStep implements IEnhancedTaskStep {
         stepRt.setOutputNames(outputVars);
         if (varName != null)
             stepRt.setValue(varName, varValue);
+        if (indexName != null)
+            stepRt.setValue(indexName, index);
 
         LOG.debug("nop.task.step.run:taskName={},taskInstanceId={},stepId={},runId={},loc={}",
                 taskRt.getTaskName(), taskRt.getTaskInstanceId(),

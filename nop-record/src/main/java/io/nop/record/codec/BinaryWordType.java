@@ -1,4 +1,4 @@
-package io.nop.record.encoder;
+package io.nop.record.codec;
 
 import io.nop.api.core.annotations.core.Label;
 

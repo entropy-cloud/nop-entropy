@@ -5,15 +5,15 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.record.encoder;
+package io.nop.record.codec;
 
 import io.nop.record.input.IRecordBinaryInput;
 import io.nop.record.output.IRecordBinaryOutput;
 
 import java.nio.charset.Charset;
 
-public interface IFieldBinaryEncoder {
-    Object decode(IRecordBinaryInput input, int length, Charset charset, IFieldEncodeContext context);
+public interface IFieldBinaryCodec {
+    Object decode(IRecordBinaryInput input, int length, Charset charset, IFieldCodecContext context);
 
-    void encode(IRecordBinaryOutput output, Object value, int length, Charset charset, IFieldDecodeContext context);
+    void encode(IRecordBinaryOutput output, Object value, int length, Charset charset, IFieldCodecContext context);
 }

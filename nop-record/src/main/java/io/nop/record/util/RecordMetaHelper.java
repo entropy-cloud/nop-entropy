@@ -8,8 +8,8 @@
 package io.nop.record.util;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.record.encoder.FieldEncoderRegistry;
-import io.nop.record.encoder.IFieldTextEncoder;
+import io.nop.record.codec.FieldCodecRegistry;
+import io.nop.record.codec.IFieldTextCodec;
 import io.nop.record.model.RecordFieldMeta;
 
 import static io.nop.record.RecordErrors.ARG_ENCODER;
@@ -40,8 +40,8 @@ public class RecordMetaHelper {
         }
     }
 
-    public static IFieldTextEncoder getEncoder(RecordFieldMeta field, FieldEncoderRegistry registry) {
-        IFieldTextEncoder resolved = field.getResolvedTextEncoder();
+    public static IFieldTextCodec getEncoder(RecordFieldMeta field, FieldCodecRegistry registry) {
+        IFieldTextCodec resolved = field.getResolvedTextCodec();
         if (resolved != null)
             return resolved;
 
@@ -49,13 +49,13 @@ public class RecordMetaHelper {
         if (encoder == null)
             return null;
 
-        resolved = registry.getTextEncoder(encoder);
+        resolved = registry.getTextCodec(encoder);
         if (resolved == null)
             throw new NopException(ERR_RECORD_UNKNOWN_FIELD_ENCODER)
                     .source(field).param(ARG_FIELD_NAME, field.getName())
                     .param(ARG_ENCODER, encoder);
 
-        field.setResolvedTextEncoder(resolved);
+        field.setResolvedTextCodec(resolved);
         return resolved;
     }
 }

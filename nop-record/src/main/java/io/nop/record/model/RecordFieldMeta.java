@@ -7,32 +7,32 @@
  */
 package io.nop.record.model;
 
-import io.nop.record.encoder.IFieldBinaryEncoder;
-import io.nop.record.encoder.IFieldTextEncoder;
+import io.nop.record.codec.IFieldBinaryCodec;
+import io.nop.record.codec.IFieldTextCodec;
 import io.nop.record.model._gen._RecordFieldMeta;
 
 public class RecordFieldMeta extends _RecordFieldMeta {
-    private IFieldTextEncoder resolvedTextEncoder;
-    private IFieldBinaryEncoder resolvedBinaryEncoder;
+    private IFieldTextCodec resolvedTextCodec;
+    private IFieldBinaryCodec resolvedBinaryCodec;
 
     public RecordFieldMeta() {
 
     }
 
-    public IFieldTextEncoder getResolvedTextEncoder() {
-        return resolvedTextEncoder;
+    public IFieldTextCodec getResolvedTextCodec() {
+        return resolvedTextCodec;
     }
 
-    public void setResolvedTextEncoder(IFieldTextEncoder resolvedTextEncoder) {
-        this.resolvedTextEncoder = resolvedTextEncoder;
+    public void setResolvedTextCodec(IFieldTextCodec resolvedTextCodec) {
+        this.resolvedTextCodec = resolvedTextCodec;
     }
 
-    public IFieldBinaryEncoder getResolvedBinaryEncoder() {
-        return resolvedBinaryEncoder;
+    public IFieldBinaryCodec getResolvedBinaryCodec() {
+        return resolvedBinaryCodec;
     }
 
-    public void setResolvedBinaryEncoder(IFieldBinaryEncoder resolvedBinaryEncoder) {
-        this.resolvedBinaryEncoder = resolvedBinaryEncoder;
+    public void setResolvedBinaryCodec(IFieldBinaryCodec resolvedBinaryCodec) {
+        this.resolvedBinaryCodec = resolvedBinaryCodec;
     }
 
     public int safeGetMaxLen() {
