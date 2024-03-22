@@ -295,4 +295,12 @@ public interface IOrmEntity extends IDaoEntity, IOrmObject, ICloneable, IOrmEnti
     boolean orm_disableLogicalDelete();
 
     void orm_disableLogicalDelete(boolean value);
+
+    /**
+     * 如果是proxy状态，则强制加载实体。如果加载后发现实体不存在，则抛出异常
+     *
+     * @param <T> 当前实体的实际类型
+     * @return 返回当前实体
+     */
+    <T extends IOrmEntity> T orm_requireEntity();
 }

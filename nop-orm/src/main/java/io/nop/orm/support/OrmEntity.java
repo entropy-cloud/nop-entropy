@@ -18,6 +18,7 @@ import io.nop.commons.collections.bit.IBitSet;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.reflect.bean.BeanTool;
+import io.nop.dao.exceptions.UnknownEntityException;
 import io.nop.orm.IOrmComponent;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntityEnhancer;
@@ -689,5 +690,17 @@ public abstract class OrmEntity implements IOrmEntity {
     @Override
     public void orm_disableLogicalDelete(boolean value) {
         this.disableLogicalDelete = value;
+    }
+
+    @Override
+    public <T extends IOrmEntity> T orm_requireEntity() {
+        OrmEntityState state = orm_state();
+        if (state.isProxy())
+            orm_enhancer().internalLoad(this);
+
+
+        if (state.isGone())
+            throw new UnknownEntityException(get_entityName(), get_id());
+        return (T) this;
     }
 }
