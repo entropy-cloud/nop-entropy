@@ -2,6 +2,57 @@
 
 在Nop平台中只需要增加imp.xml导入模型即可实现对存储在Excel中的复杂业务对象的解析，具体imp模型的定义参见[imp.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/excel/imp.xdef)
 
+# 基本原理
+
+* 对于普通字段，按照左侧是label，右侧是值来解析
+* 对于列表字段，可以按照上面是label，下方是列表来解析
+* 列表的第一列必须是数字列，不要求编号唯一，也不要求编号列在字段列表中定义。它仅仅被用于确定列表行的范围。
+* 关键是在整体结构上能够明确的识别出父子关系。父字段必须覆盖子字段的范围。这样才能实现自动解析。
+* label可以对应于field的displayName或者name，两者都可以
+* 字段的前后顺序不影响解析。在imp.xml中定义的field是全集，实际的模板中可以只使用部分字段。
+* 但是标记为mandatory的字段必须在模板中存在，否则解析后发现对应字段值为空，会抛出异常。
+
+# 配置说明
+
+## 如果解析列表
+* sheet或者field上标注list=true，表示将会解析得到一个列表
+* 列表的第一列必须是数字列，不要求编号唯一，也不要求编号列在字段列表中定义。它仅仅被用于确定列表行的范围。
+
+## 如何解析一组sheet得到一个值
+
+````xml
+<sheet name="ss" namePattern=".*" multiple="true" multipleAsMap="true" field="ss">
+    
+</sheet>
+````
+
+* namePattern指定一个正则表达式，它描述如何匹配对应的sheet
+* multiple=true表示会匹配到多个sheet
+* multipleAsMap=true表示匹配到的多个sheet解析后，会按照sheetName汇总成一个Map。如果不指定这个属性或者设置为false，则多个sheet的解析结果会合并为一个List
+
+# 使用导入模板来实现导出
+
+1. 首先制作一个空的导入模板，即把导入数据删除，保留列表数据的序号列。具体样例参考[template.orm.xlsx](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm-model/src/main/resources/_vfs/nop/orm/imp/template.orm.xlsx)
+2. 在imp.xml文件中通过templatePath属性来指向导入模板
+
+````xml
+<imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:xpt="xpt"
+     templatePath="template.orm.xlsx" >
+</imp>
+````
+
+ExcelReportHelper中提供了根据导入的业务数据自动生成html或者xlsx文件的方法。
+
+````javascript
+    Object bean = ExcelHelper.loadXlsxObject("/nop/test/imp/test5.imp.xml", resource);    
+    String html = ExcelReportHelper.getHtmlForXlsxObject(impModelPath, bean, scope);
+    ExcelReportHelper.saveXlsxObject(impModelPath, resource, bean);
+````
+
+在imp模型的帮助下，Excel可以被看作是Java对象的一种序列化形式，类似于JSON和Java对象之间的自动双向转换，我们可以实现Excel和Java对象之间的自动双向转换。
+
+具体示例参见[TestImportExcelModel.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/test/java/io/nop/biz/impl/TestImportExcelModel.java)
+
 # 动态确定需要导入的列
 
 示例配置[test3.imp.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/test/resources/_vfs/nop/test/imp/test3.imp.xml),

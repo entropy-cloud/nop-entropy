@@ -15,13 +15,18 @@ TaskFlow是采用堆栈结构的轻量级工作流。它具有如下功能：
 
 **每个Step就相当于是一个可配置的、异步执行、可中断重启、可插入interceptor的函数**
 
+
 ## 任务步骤接口
 
 ````java 
 interface ITaskStep {
-    String getStepId();
+    String getStepType();
 
-    TaskStepResult execute(int runId, ITaskStepState parentState, ITaskRuntime taskRt);
+    List<? extends ITaskInputModel> getInputs();
+
+    List<? extends ITaskOutputModel> getOutputs();
+
+    TaskStepResult execute(ITaskStepRuntime stepRt);
 } 
 ````
 
@@ -37,39 +42,42 @@ interface ITaskStep {
 所有的任务步骤都具有一些通用的属性，例如执行条件检查、失败重试、触发次数限制、超时时间等。对这些通用属性的处理逻辑如下：
 
 1. 在parentScope中检查when条件是否满足，不满足条件则直接跳过步骤
-2. 在parentScope中执行input表达式得到输入变量，然后将它们设置到当前步骤的scope中
+2. 在parentScope中执行input表达式得到输入变量，然后将它们设置到当前步骤的scope中 
 3. 注册超时时间，超时时间到达的时候取消整个step的执行，step的状态转换为TIMEOUT
-4. 注册错误处理，如果失败，则执行catch处理。如果catch，则认为步骤状态恢复到正常，步骤相当于是成功结束。
-5. 注册重试策略，如果后续执行失败，则按照重试策略重试
+4. 注册重试策略，如果后续执行失败，则按照重试策略重试
+5. 注册错误处理，如果失败，则执行catch处理。如果catch，则认为步骤状态恢复到正常，步骤相当于是成功结束。
 6. 检查throttle和rate-limit配置，对请求进行限速
 7. 执行decorator
-8. 执行步骤body
-9. body执行完毕后，根据output设置将步骤scope中的变量保存到parentScope或者全局scope中。抛出异常的时候不会执行output处理。
+8. 执行步骤body 
+9. 根据output设置将步骤scope中的变量保存到parentScope或者全局scope中。抛出异常的时候不会执行output处理。
 
 ````javascript
   if(task.cancelled) stop;
   
-  retry{
-      if(第一次执行){
-        if(不满足条件) return SUCCESS;
-        根据parentScope初始化inputs
-        执行输入验证
-        初始化stepState
-        startTimeoutMonitor()
-      }else{
-        从持久化存储中恢复stepState
-      }
-
-      try{
-         rateLimit()
-         result = execute()
-         return processResult(result)
-      }catch(e){
-         onException(e)
-      }finally{
-         onFinally()
-      }
+  stepRt = taskRt.newStepRunTime(stepName);
+  
+  if(第一次执行){
+    if(不满足条件) return SUCCESS;
+    根据parentScope初始化inputs
+    执行输入验证
+  }else{
+    从持久化存储中恢复stepState
   }
+
+  registerTimeout()
+  
+  retry{
+    try{
+       rateLimit()
+       result = execute(stepRt)
+    }catch(e){
+       onException(e)
+    }finally{
+       onFinally()
+    }
+  }
+  
+  将result中的变量按照输出配置拷贝到parentScope中
 ````
 
 ## 状态管理
@@ -109,10 +117,12 @@ chain/pipeline是一个特别常用的模式，应该可以直接通过约定来
 
 ## 数据驱动模式
 
-TaskFlow并不直接支持数据驱动模式。
+在非流式处理的情况下，数据之间的依赖关系本质上是由步骤之间的依赖关系所衍生得到的。因为步骤的输出是整体性输出，必须整个步骤结束之后才能得到步骤的输出。
 
 * 在数据驱动模式中，每个步骤定义几个输出变量，然后引用到这些输出变量的节点才形成依赖关系。
 * 数据驱动自动引入一个异步等待语义，当所有前置步骤都成功输出变量之后，才会执行本步骤。
+* 数据驱动相当于是只使用空间坐标，而不显式使用时间坐标
+
 
 ## 输入输出和引用
 
