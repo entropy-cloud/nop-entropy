@@ -39,4 +39,9 @@ public class BaseContextProvider implements IContextProvider {
         t_context.set(context);
         return context;
     }
+
+    @Override
+    public void attachContext(IContext context) {
+        t_context.set(context);
+    }
 }

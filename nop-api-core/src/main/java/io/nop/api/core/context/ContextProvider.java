@@ -11,6 +11,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
@@ -109,24 +110,34 @@ public class ContextProvider {
         if (context == null || context.isClosed())
             return task.get();
 
-        String tenantId = context.getTenantId();
-        context.setTenantId(null);
-        try {
+        if (context.getTenantId() == null)
             return task.get();
-        } finally {
-            context.setTenantId(tenantId);
-        }
+
+        IContext proxy = new TenantProxyContext(context);
+        proxy.setTenantId(null);
+
+        return runWithProxyContext(proxy, context, task);
     }
 
     public static <T> T runWithTenant(String tenantId, Supplier<T> task) {
         IContext context = getOrCreateContext();
 
         String oldTenantId = context.getTenantId();
-        context.setTenantId(tenantId);
+        if (Objects.equals(tenantId, oldTenantId))
+            return task.get();
+
+        IContext proxy = new TenantProxyContext(context);
+        proxy.setTenantId(tenantId);
+        return runWithProxyContext(proxy, context, task);
+    }
+
+    private static <T> T runWithProxyContext(IContext context, IContext prevContext, Supplier<T> task) {
+        IContextProvider provider = _instance;
         try {
+            provider.attachContext(context);
             return task.get();
         } finally {
-            context.setTenantId(oldTenantId);
+            provider.attachContext(prevContext);
         }
     }
 
@@ -201,18 +212,10 @@ public class ContextProvider {
      */
     public static <T> T disableExpireTime(Supplier<T> task) {
         IContext context = currentContext();
-        long expireTime = -1;
-
-        try {
-            if (context != null) {
-                expireTime = context.getCallExpireTime();
-                context.setCallExpireTime(-1L);
-            }
+        if (context == null || context.getCallExpireTime() < 0)
             return task.get();
-        } finally {
-            if (context != null) {
-                context.setCallExpireTime(expireTime);
-            }
-        }
+
+        IContext proxy = new CallExpireTimeProxyContext(context);
+        return runWithProxyContext(proxy, context, task);
     }
 }
