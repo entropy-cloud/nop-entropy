@@ -160,14 +160,22 @@ public class ExcelTemplateToXptModelTransformer {
             }
 
             if (sheetModel.isMultiple()) {
-                String sheetVarName = sheetModel.getSheetVarName();
-                if (sheetVarName == null)
-                    sheetVarName = sheetModel.getFieldName() + "__item";
-                xptModel.setLoopVarName(sheetVarName);
-                xptModel.setSheetVarName(sheetVarName);
-                xptModel.setLoopItemsName(XptConstants.VAR_ENTITY + "." + sheetModel.getFieldName());
-                if (sheetModel.getSheetNameProp() != null)
-                    xptModel.setSheetNameExpr(getSheetNameExpr(sheetVarName, sheetModel.getSheetNameProp()));
+                if (sheetModel.isMultipleAsMap()) {
+                    String loopVarName = sheetModel.getFieldName() + "__item";
+                    xptModel.setLoopVarName(loopVarName);
+                    xptModel.setSheetVarName(loopVarName + ".value");
+                    xptModel.setLoopItemsName(XptConstants.VAR_ENTITY + "." + sheetModel.getFieldName());
+                    xptModel.setSheetNameExpr(getSheetNameExpr(loopVarName, "key"));
+                } else {
+                    String sheetVarName = sheetModel.getSheetVarName();
+                    if (sheetVarName == null)
+                        sheetVarName = sheetModel.getFieldName() + "__item";
+                    xptModel.setLoopVarName(sheetVarName);
+                    xptModel.setSheetVarName(sheetVarName);
+                    xptModel.setLoopItemsName(XptConstants.VAR_ENTITY + "." + sheetModel.getFieldName());
+                    if (sheetModel.getSheetNameProp() != null)
+                        xptModel.setSheetNameExpr(getSheetNameExpr(sheetVarName, sheetModel.getSheetNameProp()));
+                }
             } else {
                 String sheetVarName = sheetModel.getSheetVarName();
                 if (sheetVarName == null && sheetModel.getFieldName() != null && !sheetModel.isList()) {
