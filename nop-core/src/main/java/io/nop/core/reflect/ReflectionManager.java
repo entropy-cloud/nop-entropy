@@ -115,11 +115,13 @@ public class ReflectionManager implements IBeanModelManager, IGenericTypeBuilder
     // 创建ClassModel过程中所使用的临时Map，在并发创建时起到互斥锁的作用。
     private final Map<Class<?>, ClassModelLoader> tempLoaders = new ConcurrentHashMap<>();
 
-    private final Map<Type, ITypeConverter> converters = CollectionHelper.newConcurrentWeakMap();
+    private final Map<Type, ITypeConverter> converterCache = CollectionHelper.newConcurrentWeakMap();
 
-    private final Map<Class<?>, IRawType> rawTypes = CollectionHelper.newConcurrentWeakMap();
+    private final Map<Type, ITypeConverter> registeredConverters = CollectionHelper.newConcurrentWeakMap();
 
-    private final Map<Class<?>, MethodInvokers> invokersMap = CollectionHelper.newConcurrentWeakMap();
+    private final Map<Class<?>, IRawType> rawTypeCache = CollectionHelper.newConcurrentWeakMap();
+
+    private final Map<Class<?>, MethodInvokers> invokers = CollectionHelper.newConcurrentMap(10);
 
     private boolean recordForNativeImage = false;
 
@@ -209,12 +211,12 @@ public class ReflectionManager implements IBeanModelManager, IGenericTypeBuilder
 
     public void clearCache() {
         introspectCache.clear();
-        converters.clear();
-        rawTypes.clear();
+        converterCache.clear();
+        rawTypeCache.clear();
     }
 
     public void clearInvokers() {
-        invokersMap.clear();
+        invokers.clear();
     }
 
     public IClassModel getRegisteredClassModel(Class<?> clazz) {
@@ -248,11 +250,11 @@ public class ReflectionManager implements IBeanModelManager, IGenericTypeBuilder
 
     public void registerTypeConverter(Type clazz, ITypeConverter converter) {
         LOG.info("nop.register-type-converter:target={},converter={}", clazz, converter.getClass());
-        converters.put(clazz, converter);
+        registeredConverters.put(clazz, converter);
     }
 
     public void unregisterTypeConverter(Type clazz, ITypeConverter converter) {
-        converters.remove(clazz, converter);
+        converterCache.remove(clazz, converter);
     }
 
     public void registerClassModel(IClassModel classModel) {
@@ -267,15 +269,15 @@ public class ReflectionManager implements IBeanModelManager, IGenericTypeBuilder
     }
 
     public void registerInvokers(Class<?> clazz, MethodInvokers invokers) {
-        this.invokersMap.put(clazz, invokers);
+        this.invokers.put(clazz, invokers);
     }
 
     public void unregisterInvokers(Class<?> clazz, MethodInvokers invokers) {
-        this.invokersMap.remove(clazz, invokers);
+        this.invokers.remove(clazz, invokers);
     }
 
     public MethodInvokers getInvokers(Class<?> clazz) {
-        return invokersMap.get(clazz);
+        return invokers.get(clazz);
     }
 
     /**
@@ -388,13 +390,18 @@ public class ReflectionManager implements IBeanModelManager, IGenericTypeBuilder
     }
 
     public ITypeConverter getConverterForJavaType(Class<?> type) {
+        if (type == Object.class || type == Object[].class)
+            return IdentityTypeConverter.INSTANCE;
+
         ITypeConverter converter = SysConverterRegistry.instance().getConverterByType(type);
         if (converter == null)
-            converter = converters.get(type);
+            converter = registeredConverters.get(type);
+        if (converter == null)
+            converter = converterCache.get(type);
         if (converter != null)
             return converter;
 
-        return converters.computeIfAbsent(type, key -> {
+        return converterCache.computeIfAbsent(type, key -> {
             if (type.isEnum())
                 return new EnumTypeConverter((Class) type);
 
@@ -426,11 +433,11 @@ public class ReflectionManager implements IBeanModelManager, IGenericTypeBuilder
     }
 
     public IRawType newRawType(Class<?> clazz) {
-        IRawType type = rawTypes.get(clazz);
+        IRawType type = rawTypeCache.get(clazz);
         if (type == null) {
             GenericRawTypeImpl rawType = new GenericRawTypeImpl(clazz);
 
-            rawTypes.putIfAbsent(clazz, rawType);
+            rawTypeCache.putIfAbsent(clazz, rawType);
             type = rawType;
         }
         return type;
