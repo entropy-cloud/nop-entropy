@@ -37,7 +37,7 @@ public interface ExcelErrors {
     String ARG_PAPER_SIZE = "paperSize";
 
     ErrorCode ERR_IMPORT_UNKNOWN_SHEET = define("nop.err.excel.import.unknown-sheet",
-            "未定义的Excel表格:{sheetName},允许的名称为[{allowedNames}]", ARG_SHEET_NAME, ARG_ALLOWED_NAMES);
+            "未定义的Excel表格:[{sheetName}],允许的名称为{allowedNames}", ARG_SHEET_NAME, ARG_ALLOWED_NAMES);
 
     ErrorCode ERR_IMPORT_UNKNOWN_FIELD = define("nop.err.excel.import.unknown-field",
             "表格[{sheetName}]的单元格[{cellPos}]中指定的字段名[{fieldName}]没有定义，允许的字段名为{allowedNames}", ARG_SHEET_NAME,
@@ -47,7 +47,7 @@ public interface ExcelErrors {
             "表格[{sheetName}]的第[{rowNumber}]行无法被解析");
 
     ErrorCode ERR_IMPORT_LIST_SHEET_MODEL_MUST_HAS_FIELD_ATTR = define(
-            "nop.err.excel.import.list-sheet-model-must-has-field-attr", "表格[{sheetName}]设置了list=true，则它的field书信必须被设置");
+            "nop.err.excel.import.list-sheet-model-must-has-field-attr", "表格[{sheetName}]设置了list=true，则它的field属性必须被设置");
 
     ErrorCode ERR_IMPORT_MISSING_MANDATORY_FIELD = define("nop.err.excel.import.missing-mandatory-field",
             "表格[{sheetName}]中缺少必填字段[{fieldName}({fieldLabel})]", ARG_SHEET_NAME, ARG_FIELD_NAME, ARG_FIELD_LABEL);
