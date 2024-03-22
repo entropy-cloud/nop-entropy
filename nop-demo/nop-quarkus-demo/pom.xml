@@ -15,6 +15,11 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- 该模块为独立服务包，不会被其他项目所依赖，故，不发布至仓库 -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.install.skip>true</maven.install.skip>
+        <!-- End -->
     </properties>
 
     <dependencyManagement>

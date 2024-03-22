@@ -18,6 +18,11 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <nop-entropy.version>2.0.0-SNAPSHOT</nop-entropy.version>
+
+        <!-- 该模块为独立服务包，不会被其他项目所依赖，故，不发布至仓库 -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.install.skip>true</maven.install.skip>
+        <!-- End -->
     </properties>
 
 
