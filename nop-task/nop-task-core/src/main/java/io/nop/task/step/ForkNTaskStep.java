@@ -63,7 +63,7 @@ public class ForkNTaskStep extends AbstractTaskStep {
     @Nonnull
     @Override
     public TaskStepResult execute(ITaskStepRuntime stepRt) {
-        Integer count = (Integer) stepRt.getStateBean();
+        Integer count = stepRt.getStateBean(Integer.class);
         if (count == null) {
             count = TaskStepHelper.castInt(countExpr.invoke(stepRt), getLocation(), stepRt);
             stepRt.setStateBean(count);

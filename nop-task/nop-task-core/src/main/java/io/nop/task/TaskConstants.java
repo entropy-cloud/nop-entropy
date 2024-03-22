@@ -28,6 +28,8 @@ public interface TaskConstants {
     String VAR_TASK_RT = "taskRt";
     String VAR_STEP_RT = "stepRt";
     String VAR_RESULT = "RESULT";
+
+    String VAR_STEP_RESULTS = "STEP_RESULTS";
     String VAR_REQUEST = "request";
 
     String VAR_ERROR = "ERROR";

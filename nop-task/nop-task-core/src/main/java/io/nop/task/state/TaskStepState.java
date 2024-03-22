@@ -166,11 +166,6 @@ public class TaskStepState extends AbstractTaskStateCommon implements ITaskStepS
     }
 
     @Override
-    public Object getStateBean() {
-        return stateBean;
-    }
-
-    @Override
     public void setStateBean(Object stateBean) {
         this.stateBean = stateBean;
     }

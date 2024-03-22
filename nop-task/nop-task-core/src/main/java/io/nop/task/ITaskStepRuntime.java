@@ -66,11 +66,6 @@ public interface ITaskStepRuntime extends IEvalContext {
     }
 
     ITaskStepState getState();
-
-    default Object getStateBean() {
-        return getState().getStateBean();
-    }
-
     default void setStateBean(Object stateBean) {
         getState().setStateBean(stateBean);
     }

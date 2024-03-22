@@ -2739,6 +2739,10 @@
         ]
       },
       {
+        "name": "isAutoCleanResource",
+        "parameterTypes": []
+      },
+      {
         "name": "js",
         "parameterTypes": [
           "java.lang.String"
@@ -15832,6 +15836,15 @@
         ]
       },
       {
+        "name": "doFindCount0",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
+          "java.util.function.BiConsumer",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "doFindFirst",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean",
@@ -15935,6 +15948,13 @@
         "name": "doUpdateEntity",
         "parameterTypes": [
           "io.nop.biz.crud.EntityData",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "findCount",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -46929,6 +46949,12 @@
         "name": "runLocal",
         "parameterTypes": [
           "java.util.function.Function"
+        ]
+      },
+      {
+        "name": "setDefaultSeqInitNextValue",
+        "parameterTypes": [
+          "long"
         ]
       },
       {

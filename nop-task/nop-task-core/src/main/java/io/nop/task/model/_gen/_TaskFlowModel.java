@@ -25,10 +25,24 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
     
     /**
      *  
-     * xml name: firstStep
-     * 当graphMode为true时，第一个执行的步骤id
+     * xml name: enterSteps
+     * 
      */
-    private java.lang.String _firstStep ;
+    private java.util.Set<java.lang.String> _enterSteps ;
+    
+    /**
+     *  
+     * xml name: exitSteps
+     * 
+     */
+    private java.util.Set<java.lang.String> _exitSteps ;
+    
+    /**
+     *  
+     * xml name: graphMode
+     * 
+     */
+    private boolean _graphMode  = false;
     
     /**
      *  
@@ -65,19 +79,57 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
     
     /**
      * 
-     * xml name: firstStep
-     *  当graphMode为true时，第一个执行的步骤id
+     * xml name: enterSteps
+     *  
      */
     
-    public java.lang.String getFirstStep(){
-      return _firstStep;
+    public java.util.Set<java.lang.String> getEnterSteps(){
+      return _enterSteps;
     }
 
     
-    public void setFirstStep(java.lang.String value){
+    public void setEnterSteps(java.util.Set<java.lang.String> value){
         checkAllowChange();
         
-        this._firstStep = value;
+        this._enterSteps = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: exitSteps
+     *  
+     */
+    
+    public java.util.Set<java.lang.String> getExitSteps(){
+      return _exitSteps;
+    }
+
+    
+    public void setExitSteps(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._exitSteps = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: graphMode
+     *  
+     */
+    
+    public boolean isGraphMode(){
+      return _graphMode;
+    }
+
+    
+    public void setGraphMode(boolean value){
+        checkAllowChange();
+        
+        this._graphMode = value;
            
     }
 
@@ -136,7 +188,9 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
         super.outputJson(out);
         
         out.putNotNull("defaultSaveState",this.isDefaultSaveState());
-        out.putNotNull("firstStep",this.getFirstStep());
+        out.putNotNull("enterSteps",this.getEnterSteps());
+        out.putNotNull("exitSteps",this.getExitSteps());
+        out.putNotNull("graphMode",this.isGraphMode());
         out.putNotNull("restartable",this.isRestartable());
         out.putNotNull("version",this.getVersion());
     }
@@ -151,7 +205,9 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
         super.copyTo(instance);
         
         instance.setDefaultSaveState(this.isDefaultSaveState());
-        instance.setFirstStep(this.getFirstStep());
+        instance.setEnterSteps(this.getEnterSteps());
+        instance.setExitSteps(this.getExitSteps());
+        instance.setGraphMode(this.isGraphMode());
         instance.setRestartable(this.isRestartable());
         instance.setVersion(this.getVersion());
     }

@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [159:14:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [164:14:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -18,10 +18,10 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
     
     /**
      *  
-     * xml name: index
+     * xml name: indexName
      * 
      */
-    private java.lang.String _index ;
+    private java.lang.String _indexName ;
     
     /**
      *  
@@ -46,26 +46,26 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
     
     /**
      *  
-     * xml name: var
+     * xml name: varName
      * 
      */
-    private java.lang.String _var ;
+    private java.lang.String _varName ;
     
     /**
      * 
-     * xml name: index
+     * xml name: indexName
      *  
      */
     
-    public java.lang.String getIndex(){
-      return _index;
+    public java.lang.String getIndexName(){
+      return _indexName;
     }
 
     
-    public void setIndex(java.lang.String value){
+    public void setIndexName(java.lang.String value){
         checkAllowChange();
         
-        this._index = value;
+        this._indexName = value;
            
     }
 
@@ -129,19 +129,19 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
     
     /**
      * 
-     * xml name: var
+     * xml name: varName
      *  
      */
     
-    public java.lang.String getVar(){
-      return _var;
+    public java.lang.String getVarName(){
+      return _varName;
     }
 
     
-    public void setVar(java.lang.String value){
+    public void setVarName(java.lang.String value){
         checkAllowChange();
         
-        this._var = value;
+        this._varName = value;
            
     }
 
@@ -161,11 +161,11 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("index",this.getIndex());
+        out.putNotNull("indexName",this.getIndexName());
         out.putNotNull("items",this.getItems());
         out.putNotNull("maxCount",this.getMaxCount());
         out.putNotNull("until",this.getUntil());
-        out.putNotNull("var",this.getVar());
+        out.putNotNull("varName",this.getVarName());
     }
 
     public LoopTaskStepModel cloneInstance(){
@@ -177,11 +177,11 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
     protected void copyTo(LoopTaskStepModel instance){
         super.copyTo(instance);
         
-        instance.setIndex(this.getIndex());
+        instance.setIndexName(this.getIndexName());
         instance.setItems(this.getItems());
         instance.setMaxCount(this.getMaxCount());
         instance.setUntil(this.getUntil());
-        instance.setVar(this.getVar());
+        instance.setVarName(this.getVarName());
     }
 
     protected LoopTaskStepModel newInstance(){

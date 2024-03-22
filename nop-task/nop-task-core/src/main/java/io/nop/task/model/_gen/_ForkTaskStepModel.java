@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [138:14:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [142:14:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -39,6 +39,13 @@ public abstract class _ForkTaskStepModel extends io.nop.task.model.TaskStepsMode
     
     /**
      *  
+     * xml name: indexName
+     * 
+     */
+    private java.lang.String _indexName ;
+    
+    /**
+     *  
      * xml name: joinType
      * 
      */
@@ -53,10 +60,10 @@ public abstract class _ForkTaskStepModel extends io.nop.task.model.TaskStepsMode
     
     /**
      *  
-     * xml name: var
+     * xml name: varName
      * 
      */
-    private java.lang.String _var ;
+    private java.lang.String _varName ;
     
     /**
      * 
@@ -117,6 +124,25 @@ public abstract class _ForkTaskStepModel extends io.nop.task.model.TaskStepsMode
     
     /**
      * 
+     * xml name: indexName
+     *  
+     */
+    
+    public java.lang.String getIndexName(){
+      return _indexName;
+    }
+
+    
+    public void setIndexName(java.lang.String value){
+        checkAllowChange();
+        
+        this._indexName = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: joinType
      *  
      */
@@ -155,19 +181,19 @@ public abstract class _ForkTaskStepModel extends io.nop.task.model.TaskStepsMode
     
     /**
      * 
-     * xml name: var
+     * xml name: varName
      *  
      */
     
-    public java.lang.String getVar(){
-      return _var;
+    public java.lang.String getVarName(){
+      return _varName;
     }
 
     
-    public void setVar(java.lang.String value){
+    public void setVarName(java.lang.String value){
         checkAllowChange();
         
-        this._var = value;
+        this._varName = value;
            
     }
 
@@ -194,9 +220,10 @@ public abstract class _ForkTaskStepModel extends io.nop.task.model.TaskStepsMode
         out.putNotNull("aggregateVarName",this.getAggregateVarName());
         out.putNotNull("aggregator",this.getAggregator());
         out.putNotNull("autoCancelUnfinished",this.isAutoCancelUnfinished());
+        out.putNotNull("indexName",this.getIndexName());
         out.putNotNull("joinType",this.getJoinType());
         out.putNotNull("producer",this.getProducer());
-        out.putNotNull("var",this.getVar());
+        out.putNotNull("varName",this.getVarName());
     }
 
     public ForkTaskStepModel cloneInstance(){
@@ -211,9 +238,10 @@ public abstract class _ForkTaskStepModel extends io.nop.task.model.TaskStepsMode
         instance.setAggregateVarName(this.getAggregateVarName());
         instance.setAggregator(this.getAggregator());
         instance.setAutoCancelUnfinished(this.isAutoCancelUnfinished());
+        instance.setIndexName(this.getIndexName());
         instance.setJoinType(this.getJoinType());
         instance.setProducer(this.getProducer());
-        instance.setVar(this.getVar());
+        instance.setVarName(this.getVarName());
     }
 
     protected ForkTaskStepModel newInstance(){

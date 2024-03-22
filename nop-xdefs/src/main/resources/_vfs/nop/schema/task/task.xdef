@@ -6,7 +6,7 @@
 @firstStep 当graphMode为true时，第一个执行的步骤id
 -->
 <task defaultSaveState="!boolean=false" version="!long=0"
-      restartable="!boolean=true" firstStep="var-name"
+      restartable="!boolean=true" graphMode="!boolean=false" enterSteps="csv-set" exitSteps="csv-set"
       x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
       xdef:name="TaskFlowModel" xdef:bean-package="io.nop.task.model"
       xdef:ref="TaskStepsModel"
@@ -88,11 +88,12 @@
     @saveState 是否需要持久化状态用于失败后重新执行本步骤时的状态恢复
     @allowStartIfComplete 如果设置为false, 则重新执行时已经完成的步骤会被跳过
     @nextOnError 如果配置了nextOnError，则当内部抛出异常的时候会被自动包装为ErrorBean对象，并跳转到指定步骤。
+    @waitSteps 图模式执行时，需要等待前置步骤执行完毕才能执行本步骤
     -->
     <xdef:define xdef:name="TaskStepModel" xdef:ref="TaskExecutableModel"
                  extType="var-name" tagSet="csv-set" useParentScope="!boolean=false" name="var-name"
                  allowStartIfComplete="!boolean=false" internal="!boolean=false"
-                 runOnContext="!boolean=false"
+                 runOnContext="!boolean=false" waitSteps="csv-set"
                  next="string" nextOnError="string" saveState="!boolean=false">
     </xdef:define>
 
@@ -116,7 +117,8 @@
                 <source xdef:value="string"/>
             </script>
 
-            <flow name="!var-name" xdef:ref="TaskStepsModel" xdef:name="FlowTaskStepModel"/>
+            <graph name="!var-name" enterSteps="!csv-set" exitSteps="!csv-set"
+                   xdef:ref="TaskStepsModel" xdef:name="GraphTaskStepModel"/>
 
             <sequential name="!var-name" xdef:ref="TaskStepsModel" xdef:name="SequentialTaskStepModel"/>
 
@@ -191,8 +193,6 @@
             -->
             <call-step name="!var-name" libName="!string" libVersion="long" stepName="!var-name"
                        xdef:ref="TaskStepModel" xdef:name="CallStepTaskStepModel"/>
-
-            <await name="!var-name" xdef:ref="TaskStepModel" depends="csv-set" xdef:name="AwaitTaskStepModel"/>
 
             <!--
               挂起当前任务，等待手工触发继续执行

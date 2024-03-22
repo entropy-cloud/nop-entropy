@@ -21,15 +21,17 @@ public class TestSqlLib extends JunitBaseTestCase {
 
     @Test
     public void testSqlLib() {
-        ContextProvider.getOrCreateContext().setTenantId("444");
-        UserContextImpl user = new UserContextImpl();
-        user.setUserId("1");
-        user.setUserName("test");
+        ContextProvider.runWithTenant("444", () -> {
+            UserContextImpl user = new UserContextImpl();
+            user.setUserId("1");
+            user.setUserName("test");
 
-        IUserContext.set(user);
+            IUserContext.set(user);
 
-        IEvalScope scope = XLang.newEvalScope();
-        scope.setLocalValue("name", "aaa");
-        sqlLibManager.invoke("test.findFirstByName", null, scope);
+            IEvalScope scope = XLang.newEvalScope();
+            scope.setLocalValue("name", "aaa");
+            sqlLibManager.invoke("test.findFirstByName", null, scope);
+            return null;
+        });
     }
 }

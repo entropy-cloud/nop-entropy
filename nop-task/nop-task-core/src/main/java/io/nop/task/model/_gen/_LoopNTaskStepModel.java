@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [164:14:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [169:14:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -32,10 +32,10 @@ public abstract class _LoopNTaskStepModel extends io.nop.task.model.TaskStepsMod
     
     /**
      *  
-     * xml name: index
+     * xml name: indexName
      * 
      */
-    private java.lang.String _index ;
+    private java.lang.String _indexName ;
     
     /**
      *  
@@ -43,13 +43,6 @@ public abstract class _LoopNTaskStepModel extends io.nop.task.model.TaskStepsMod
      * 
      */
     private io.nop.core.lang.eval.IEvalAction _stepExpr ;
-    
-    /**
-     *  
-     * xml name: var
-     * 
-     */
-    private java.lang.String _var ;
     
     /**
      * 
@@ -91,19 +84,19 @@ public abstract class _LoopNTaskStepModel extends io.nop.task.model.TaskStepsMod
     
     /**
      * 
-     * xml name: index
+     * xml name: indexName
      *  
      */
     
-    public java.lang.String getIndex(){
-      return _index;
+    public java.lang.String getIndexName(){
+      return _indexName;
     }
 
     
-    public void setIndex(java.lang.String value){
+    public void setIndexName(java.lang.String value){
         checkAllowChange();
         
-        this._index = value;
+        this._indexName = value;
            
     }
 
@@ -127,25 +120,6 @@ public abstract class _LoopNTaskStepModel extends io.nop.task.model.TaskStepsMod
     }
 
     
-    /**
-     * 
-     * xml name: var
-     *  
-     */
-    
-    public java.lang.String getVar(){
-      return _var;
-    }
-
-    
-    public void setVar(java.lang.String value){
-        checkAllowChange();
-        
-        this._var = value;
-           
-    }
-
-    
 
     @Override
     public void freeze(boolean cascade){
@@ -163,9 +137,8 @@ public abstract class _LoopNTaskStepModel extends io.nop.task.model.TaskStepsMod
         
         out.putNotNull("beginExpr",this.getBeginExpr());
         out.putNotNull("endExpr",this.getEndExpr());
-        out.putNotNull("index",this.getIndex());
+        out.putNotNull("indexName",this.getIndexName());
         out.putNotNull("stepExpr",this.getStepExpr());
-        out.putNotNull("var",this.getVar());
     }
 
     public LoopNTaskStepModel cloneInstance(){
@@ -179,9 +152,8 @@ public abstract class _LoopNTaskStepModel extends io.nop.task.model.TaskStepsMod
         
         instance.setBeginExpr(this.getBeginExpr());
         instance.setEndExpr(this.getEndExpr());
-        instance.setIndex(this.getIndex());
+        instance.setIndexName(this.getIndexName());
         instance.setStepExpr(this.getStepExpr());
-        instance.setVar(this.getVar());
     }
 
     protected LoopNTaskStepModel newInstance(){

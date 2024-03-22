@@ -43,7 +43,7 @@ public class SequentialTaskStep extends AbstractTaskStep {
     @Nonnull
     @Override
     public TaskStepResult execute(ITaskStepRuntime stepRt) {
-        Integer index = (Integer) stepRt.getStateBean();
+        Integer index = stepRt.getStateBean(Integer.class);
         if (index == null)
             index = 0;
 

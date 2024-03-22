@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [91:6:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [93:6:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -60,6 +60,13 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      *  
+     * xml name: runOnContext
+     * 指定本步骤中的操作都使用IContext.runOnContext来执行
+     */
+    private boolean _runOnContext  = false;
+    
+    /**
+     *  
      * xml name: saveState
      * 是否需要持久化状态用于失败后重新执行本步骤时的状态恢复
      */
@@ -78,6 +85,13 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
      * 
      */
     private boolean _useParentScope  = false;
+    
+    /**
+     *  
+     * xml name: waitSteps
+     * 图模式执行时，需要等待前置步骤执行完毕才能执行本步骤
+     */
+    private java.util.Set<java.lang.String> _waitSteps ;
     
     /**
      * 
@@ -195,6 +209,25 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      * 
+     * xml name: runOnContext
+     *  指定本步骤中的操作都使用IContext.runOnContext来执行
+     */
+    
+    public boolean isRunOnContext(){
+      return _runOnContext;
+    }
+
+    
+    public void setRunOnContext(boolean value){
+        checkAllowChange();
+        
+        this._runOnContext = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: saveState
      *  是否需要持久化状态用于失败后重新执行本步骤时的状态恢复
      */
@@ -250,6 +283,25 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     }
 
     
+    /**
+     * 
+     * xml name: waitSteps
+     *  图模式执行时，需要等待前置步骤执行完毕才能执行本步骤
+     */
+    
+    public java.util.Set<java.lang.String> getWaitSteps(){
+      return _waitSteps;
+    }
+
+    
+    public void setWaitSteps(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._waitSteps = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -271,9 +323,11 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         out.putNotNull("name",this.getName());
         out.putNotNull("next",this.getNext());
         out.putNotNull("nextOnError",this.getNextOnError());
+        out.putNotNull("runOnContext",this.isRunOnContext());
         out.putNotNull("saveState",this.isSaveState());
         out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("useParentScope",this.isUseParentScope());
+        out.putNotNull("waitSteps",this.getWaitSteps());
     }
 
     public TaskStepModel cloneInstance(){
@@ -291,9 +345,11 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         instance.setName(this.getName());
         instance.setNext(this.getNext());
         instance.setNextOnError(this.getNextOnError());
+        instance.setRunOnContext(this.isRunOnContext());
         instance.setSaveState(this.isSaveState());
         instance.setTagSet(this.getTagSet());
         instance.setUseParentScope(this.isUseParentScope());
+        instance.setWaitSteps(this.getWaitSteps());
     }
 
     protected TaskStepModel newInstance(){

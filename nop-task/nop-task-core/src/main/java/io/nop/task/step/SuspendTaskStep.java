@@ -7,5 +7,30 @@
  */
 package io.nop.task.step;
 
-public class SuspendTaskStep {
+import io.nop.core.lang.eval.IEvalPredicate;
+import io.nop.task.ITaskStepRuntime;
+import io.nop.task.TaskStepResult;
+import jakarta.annotation.Nonnull;
+
+public class SuspendTaskStep extends AbstractTaskStep {
+    private IEvalPredicate resumeWhen;
+
+    public IEvalPredicate getResumeWhen() {
+        return resumeWhen;
+    }
+
+    public void setResumeWhen(IEvalPredicate resumeWhen) {
+        this.resumeWhen = resumeWhen;
+    }
+
+    @Nonnull
+    @Override
+    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+        if (resumeWhen == null)
+            return TaskStepResult.CONTINUE;
+
+        if (!resumeWhen.passConditions(stepRt))
+            return TaskStepResult.SUSPEND;
+        return TaskStepResult.CONTINUE;
+    }
 }

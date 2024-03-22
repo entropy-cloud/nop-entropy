@@ -52,7 +52,7 @@ public class CallTaskStep extends AbstractTaskStep {
     @Nonnull
     @Override
     public TaskStepResult execute(ITaskStepRuntime stepRt) {
-        String taskId = (String) stepRt.getStateBean();
+        String taskId = stepRt.getStateBean(String.class);
         ITask task;
         ITaskRuntime subRt;
         if (StringHelper.isEmpty(taskId)) {

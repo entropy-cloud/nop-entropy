@@ -65,8 +65,6 @@ public interface ITaskStepState extends ITaskStateCommon {
      */
     <T> T getStateBean(Class<T> beanType);
 
-    Object getStateBean();
-
     void setStateBean(Object stateBean);
 
     /**
