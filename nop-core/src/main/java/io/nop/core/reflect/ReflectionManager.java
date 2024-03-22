@@ -35,7 +35,12 @@ import io.nop.core.reflect.bean.BeanModel;
 import io.nop.core.reflect.bean.BeanPropertyModel;
 import io.nop.core.reflect.bean.IBeanModel;
 import io.nop.core.reflect.bean.IBeanModelManager;
-import io.nop.core.reflect.converter.*;
+import io.nop.core.reflect.converter.ArrayTypeConverter;
+import io.nop.core.reflect.converter.DataBeanTypeConverter;
+import io.nop.core.reflect.converter.EnumTypeConverter;
+import io.nop.core.reflect.converter.FunctionalInterfaceConverter;
+import io.nop.core.reflect.converter.TreeBeanTypeConverter;
+import io.nop.core.reflect.converter.XNodeTypeConverter;
 import io.nop.core.reflect.enhancer.StringBeanModelEnhancer;
 import io.nop.core.reflect.impl.ClassExtension;
 import io.nop.core.reflect.impl.ClassModelBuilder;
@@ -49,24 +54,33 @@ import io.nop.core.type.impl.GenericRawTypeImpl;
 import io.nop.core.type.impl.PredefinedGenericType;
 import io.nop.core.type.utils.GenericTypeHelper;
 import io.nop.core.type.utils.JavaGenericTypeBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static io.nop.core.CoreConfigs.CFG_REFLECT_MODEL_CACHE_SIZE;
-import static io.nop.core.CoreErrors.*;
+import static io.nop.core.CoreErrors.ARG_CLASS_NAME;
+import static io.nop.core.CoreErrors.ERR_REFLECT_CLASS_MODEL_ALREADY_REGISTERED;
+import static io.nop.core.CoreErrors.ERR_REFLECT_NOT_SUPPORT_ARRAY_CLASS_MODEL;
 
 /**
  * 获取反射模型的Facade入口
  */
 @GlobalInstance
 public class ReflectionManager implements IBeanModelManager, IGenericTypeBuilder, IClassModelLoader {
-    // private static final Logger LOG = LoggerFactory.getLogger(ReflectionManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ReflectionManager.class);
 
     private static final ReflectionManager _instance = new ReflectionManager();
 
@@ -76,7 +90,7 @@ public class ReflectionManager implements IBeanModelManager, IGenericTypeBuilder
         _instance.registerHelperMethods(String.class, StringHelper.class, "$");
         _instance.registerHelperMethods(LocalDate.class, DateHelper.class, "$");
         _instance.registerBeanModelEnhancer(new StringBeanModelEnhancer());
-        _instance.registerTypeConverter(FieldSelectionBean.class,new FieldSelectionBeanConverter());
+        _instance.registerTypeConverter(FieldSelectionBean.class, new FieldSelectionBeanConverter());
     }
 
     public static ReflectionManager instance() {
@@ -233,6 +247,7 @@ public class ReflectionManager implements IBeanModelManager, IGenericTypeBuilder
     }
 
     public void registerTypeConverter(Type clazz, ITypeConverter converter) {
+        LOG.info("nop.register-type-converter:target={},converter={}", clazz, converter.getClass());
         converters.put(clazz, converter);
     }
 
