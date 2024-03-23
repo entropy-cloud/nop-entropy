@@ -156,8 +156,8 @@ public class SpringGraphQLWebService extends GraphQLWebService {
     @PostMapping("/p/{query:.+}")
     public CompletionStage<ResponseEntity<Object>> pageQuerySpringForPost(@PathVariable("query") String query,
                                                                           @RequestParam(value = SYS_PARAM_SELECTION, required = false) String selection,
-                                                                          @RequestParam(value = SYS_PARAM_ARGS, required = false) String args) {
-        return doPageQuery(null, query, selection, args);
+                                                                          @RequestBody(required = false) String body) {
+        return doPageQuery(null, query, selection, body);
     }
 
     protected CompletionStage<ResponseEntity<Object>> doPageQuery(GraphQLOperationType operationType,
