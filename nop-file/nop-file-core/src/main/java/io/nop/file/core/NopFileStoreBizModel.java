@@ -12,6 +12,7 @@ import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.biz.RequestBean;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.auth.IBizAuthChecker;
 import io.nop.api.core.beans.WebContentBean;
@@ -108,8 +109,12 @@ public class NopFileStoreBizModel {
 
     @BizQuery
     public WebContentBean download(@Name("fileId") String fileId,
-                                   @Name("contentType") String contentType, IServiceContext ctx) {
+                                   @Optional @Name("contentType") String contentType,
+                                   IServiceContext ctx) {
         IFileRecord record = loadFileRecord(fileId, ctx);
+
+        if (StringHelper.isEmpty(contentType))
+            contentType = record.getMimeType();
         if (StringHelper.isEmpty(contentType))
             contentType = MediaType.APPLICATION_OCTET_STREAM;
 
