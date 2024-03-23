@@ -11,6 +11,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.ExitMode;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 public class ReturnExecutable extends AbstractExecutable {
@@ -40,6 +41,16 @@ public class ReturnExecutable extends AbstractExecutable {
     @Override
     public void display(StringBuilder sb) {
         sb.append("return ");
-        expr.display(sb);
+        if (expr != null)
+            expr.display(sb);
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            if (expr != null)
+                expr.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

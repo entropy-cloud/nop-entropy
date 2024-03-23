@@ -9,6 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 import java.util.ArrayList;
@@ -52,5 +53,15 @@ public class NewListExecutable extends AbstractExecutable {
             }
         }
         return ret;
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            for (ListItemExecutable expr : exprs) {
+                expr.getValueExpr().visit(visitor);
+            }
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

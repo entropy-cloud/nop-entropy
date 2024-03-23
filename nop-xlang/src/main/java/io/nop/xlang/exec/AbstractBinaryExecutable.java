@@ -10,6 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.xlang.ast.XLangOperator;
 
 public abstract class AbstractBinaryExecutable extends AbstractExecutable {
@@ -35,5 +36,15 @@ public abstract class AbstractBinaryExecutable extends AbstractExecutable {
     @Override
     public boolean allowBreakPoint() {
         return false;
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            left.visit(visitor);
+            right.visit(visitor);
+
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

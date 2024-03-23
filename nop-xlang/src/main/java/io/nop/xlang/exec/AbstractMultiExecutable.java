@@ -9,6 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 
 public abstract class AbstractMultiExecutable extends AbstractExecutable {
     protected final IExecutableExpression[] exprs;
@@ -24,5 +25,15 @@ public abstract class AbstractMultiExecutable extends AbstractExecutable {
 
     public void display(StringBuilder sb) {
         sb.append("seq()");
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            for (IExecutableExpression expr : exprs) {
+                expr.visit(visitor);
+            }
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

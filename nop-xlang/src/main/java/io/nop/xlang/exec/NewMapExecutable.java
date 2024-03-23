@@ -12,6 +12,7 @@ import io.nop.commons.lang.Undefined;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.EvalRuntime;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.model.object.DynamicObject;
 import io.nop.core.reflect.ReflectionManager;
@@ -74,5 +75,16 @@ public class NewMapExecutable extends AbstractExecutable {
             }
         }
         return ret;
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            for (MapItemExecutable item : this.itemExprs) {
+                item.getKeyExpr().visit(visitor);
+                item.getValueExpr().visit(visitor);
+            }
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

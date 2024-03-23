@@ -11,6 +11,7 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalFunction;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.report.core.model.ExpandedCellSet;
 import io.nop.xlang.exec.AbstractExecutable;
@@ -52,5 +53,13 @@ public class FilterCellSetExecutable extends AbstractExecutable implements ICell
         if (cellSet == null)
             return null;
         return cellSet.filter(e -> ConvertHelper.toTruthy(predicate.call1(null, e, rt.getScope())));
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            executable.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

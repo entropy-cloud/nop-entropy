@@ -12,6 +12,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 import static io.nop.xlang.XLangErrors.ARG_TARGET;
@@ -44,5 +45,13 @@ public class GuardNotEmptyExecutable extends AbstractExecutable {
     public void display(StringBuilder sb) {
         expr.display(sb);
         sb.append('!');
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            expr.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

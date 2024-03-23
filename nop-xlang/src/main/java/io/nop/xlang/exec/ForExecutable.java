@@ -12,8 +12,8 @@ import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.ExitMode;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 public class ForExecutable extends AbstractExecutable {
@@ -77,6 +77,18 @@ public class ForExecutable extends AbstractExecutable {
         }
 
         return null;
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            if (initExpr != null)
+                initExpr.visit(visitor);
+            bodyExpr.visit(visitor);
+            if (updateExpr != null)
+                updateExpr.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 
     protected boolean passTest(IExpressionExecutor executor, EvalRuntime rt) {

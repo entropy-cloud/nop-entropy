@@ -14,6 +14,7 @@ import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.xlang.utils.EvalFunctionHelper;
 
@@ -71,6 +72,17 @@ public class VarFunctionExecutable extends AbstractExecutable {
                 sb.append(',');
         }
         sb.append(')');
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            funcExpr.visit(visitor);
+            for (IExecutableExpression arg : args) {
+                arg.visit(visitor);
+            }
+            visitor.onEndVisitExpr(this);
+        }
     }
 
     protected IEvalFunction getFunction(IExpressionExecutor executor, EvalRuntime rt) {

@@ -9,6 +9,7 @@ package io.nop.report.core.expr;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.model.table.CellRange;
 import io.nop.report.core.XptConstants;
@@ -73,5 +74,10 @@ public class CellRangeExecutable extends AbstractExecutable implements ICellSetE
         }
 
         return new ExpandedCellSet(getLocation(), expr, cells);
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        visitor.onVisitSimpleExpr(this);
     }
 }

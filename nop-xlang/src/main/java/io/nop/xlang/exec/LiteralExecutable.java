@@ -12,6 +12,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 import java.io.IOException;
@@ -57,5 +58,10 @@ public class LiteralExecutable extends AbstractExecutable {
         } else {
             sb.append(value);
         }
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        visitor.onVisitSimpleExpr(this);
     }
 }

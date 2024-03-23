@@ -15,6 +15,7 @@ import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.model.query.FilterOp;
 import io.nop.core.model.query.IBetweenOperator;
@@ -78,5 +79,15 @@ public class BetweenOpExecutable extends AbstractExecutable implements IEvalPred
         Object minValue = executor.execute(minExpr, rt);
         Object maxValue = executor.execute(maxExpr, rt);
         return predicate.test(value, minValue, maxValue, excludeMin, excludeMax);
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            valueExpr.visit(visitor);
+            minExpr.visit(visitor);
+            maxExpr.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

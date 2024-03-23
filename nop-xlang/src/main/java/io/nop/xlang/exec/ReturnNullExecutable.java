@@ -9,6 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 public class ReturnNullExecutable extends AbstractExecutable {
@@ -42,5 +43,13 @@ public class ReturnNullExecutable extends AbstractExecutable {
     @Override
     public void display(StringBuilder sb) {
         executable.display(sb);
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            executable.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

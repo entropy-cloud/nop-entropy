@@ -10,6 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalReference;
 import io.nop.core.lang.eval.EvalRuntime;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 public class InitRefSlotExecutable extends AbstractExecutable {
@@ -31,5 +32,10 @@ public class InitRefSlotExecutable extends AbstractExecutable {
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         rt.getCurrentFrame().setStackValue(slot, new EvalReference(null));
         return null;
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        visitor.onVisitSimpleExpr(this);
     }
 }

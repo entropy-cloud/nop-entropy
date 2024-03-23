@@ -12,6 +12,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.objects.Pair;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.reflect.IPropertyGetter;
 import io.nop.core.reflect.IPropertySetter;
@@ -51,6 +52,15 @@ public class SelfAssignPropertyExecutable extends AbstractPropertyExecutable {
         sb.append(propName);
         sb.append(" ").append(operator).append(' ');
         valueExpr.display(sb);
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            objExpr.visit(visitor);
+            valueExpr.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 
     @Override

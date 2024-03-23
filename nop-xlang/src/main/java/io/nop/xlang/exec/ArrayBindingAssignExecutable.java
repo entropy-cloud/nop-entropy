@@ -9,10 +9,9 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.CollectionHelper;
-import io.nop.core.lang.eval.EvalFrame;
 import io.nop.core.lang.eval.EvalRuntime;
-import io.nop.core.lang.eval.IEvalOutput;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 import java.util.List;
@@ -73,5 +72,24 @@ public class ArrayBindingAssignExecutable extends AbstractExecutable {
             restBinding.assign(subList, rt);
         }
         return null;
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            expr.visit(visitor);
+
+            for (AssignIdentifier id : this.elementBindings) {
+                if (id.getInitializer() != null)
+                    id.getInitializer().visit(visitor);
+            }
+
+            if (restBinding != null) {
+                if (restBinding.getInitializer() != null)
+                    restBinding.getInitializer().visit(visitor);
+            }
+
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

@@ -12,6 +12,7 @@ import io.nop.core.CoreConstants;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalOutput;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.handler.CollectXNodeHandler;
@@ -62,5 +63,13 @@ public class CollectNodeExecutable extends AbstractExecutable {
             }
         }
         return node;
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if(visitor.onVisitExpr(this)) {
+            bodyExpr.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

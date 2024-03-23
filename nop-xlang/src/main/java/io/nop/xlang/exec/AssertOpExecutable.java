@@ -14,6 +14,7 @@ import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.model.query.FilterOp;
 import io.nop.xlang.api.XLang;
@@ -60,5 +61,13 @@ public class AssertOpExecutable extends AbstractExecutable implements IEvalPredi
         IEvalScope scope = ctx.getEvalScope();
         Object v1 = XLang.execute(value, new EvalRuntime(scope));
         return predicate.test(v1);
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            value.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

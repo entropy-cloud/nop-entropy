@@ -12,6 +12,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.reflect.IPropertySetter;
 
@@ -50,6 +51,15 @@ public class SetterSetPropertyExecutable extends AbstractExecutable {
         sb.append(propName);
         sb.append(" = ");
         valueExpr.display(sb);
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            objExpr.visit(visitor);
+            valueExpr.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 
     @Override

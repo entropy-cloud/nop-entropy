@@ -9,6 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.xlang.utils.ExprEvalHelper;
 
@@ -48,5 +49,13 @@ public class GenXJsonExecutable extends AbstractExecutable {
         return ExprEvalHelper.generateXjson(ctx -> {
             return executable.execute(executor, ctx);
         }, rt);
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            executable.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

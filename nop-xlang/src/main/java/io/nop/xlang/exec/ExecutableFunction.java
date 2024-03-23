@@ -16,6 +16,7 @@ import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.xlang.api.XLang;
 
@@ -291,5 +292,17 @@ public class ExecutableFunction extends AbstractExecutable implements IEvalFunct
         }
         rt.pushFrame(frame);
         return executor.execute(body, rt);
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if(visitor.onVisitExpr(this)) {
+            for (IExecutableExpression argValue : defaultArgValues) {
+                argValue.visit(visitor);
+            }
+
+            body.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

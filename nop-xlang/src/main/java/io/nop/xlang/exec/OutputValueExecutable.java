@@ -12,6 +12,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalOutput;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 public class OutputValueExecutable extends AbstractExecutable {
@@ -39,5 +40,13 @@ public class OutputValueExecutable extends AbstractExecutable {
         IEvalOutput out = rt.getOut();
         out.value(getLocation(), value);
         return null;
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            valueExpr.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

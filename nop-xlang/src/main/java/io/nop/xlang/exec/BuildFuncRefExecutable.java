@@ -11,6 +11,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalFrame;
 import io.nop.core.lang.eval.EvalRuntime;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 /**
@@ -55,5 +56,13 @@ public class BuildFuncRefExecutable extends AbstractExecutable {
             vars[i] = frame.getStackValue(closureSlot);
         }
         return func.bindClosureVars(getLocation(), targetSlots, vars);
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            func.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

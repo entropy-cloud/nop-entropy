@@ -9,6 +9,7 @@ package io.nop.report.core.expr;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.coordinate.CellCoordinateHelper;
@@ -74,5 +75,10 @@ public class CellLayerCoordinateExecutable extends AbstractExecutable implements
         }
 
         return new ExpandedCellSet(getLocation(), expr, cells);
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        visitor.onVisitSimpleExpr(this);
     }
 }

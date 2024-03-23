@@ -12,6 +12,7 @@ import io.nop.api.core.util.CloneHelper;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 public class CloneLiteralExecutable extends AbstractExecutable {
@@ -41,5 +42,10 @@ public class CloneLiteralExecutable extends AbstractExecutable {
     @Override
     public void display(StringBuilder sb) {
         sb.append(JSON.stringify(value));
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        visitor.onVisitSimpleExpr(this);
     }
 }

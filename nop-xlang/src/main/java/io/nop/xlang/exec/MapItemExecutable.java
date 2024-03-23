@@ -22,6 +22,14 @@ public class MapItemExecutable {
         this.spread = spread;
     }
 
+    public IExecutableExpression getKeyExpr() {
+        return keyExpr;
+    }
+
+    public IExecutableExpression getValueExpr() {
+        return valueExpr;
+    }
+
     public void display(StringBuilder sb) {
         if (spread) {
             sb.append("...");

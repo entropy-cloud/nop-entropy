@@ -8,7 +8,6 @@
 package io.nop.xlang.exec;
 
 import io.nop.core.lang.eval.EvalRuntime;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -19,6 +18,10 @@ public class ListItemExecutable {
     public ListItemExecutable(boolean spread, IExecutableExpression valueExpr) {
         this.spread = spread;
         this.valueExpr = valueExpr;
+    }
+
+    public IExecutableExpression getValueExpr() {
+        return valueExpr;
     }
 
     public void display(StringBuilder sb) {

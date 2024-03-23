@@ -12,6 +12,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 public class TryExecutable extends AbstractExecutable {
@@ -58,6 +59,18 @@ public class TryExecutable extends AbstractExecutable {
                     executor.execute(finallyExpr, rt);
                 }
             }
+        }
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            bodyExpr.visit(visitor);
+            if (catchExpr != null)
+                catchExpr.visit(visitor);
+            if (finallyExpr != null)
+                finallyExpr.visit(visitor);
+            visitor.onEndVisitExpr(this);
         }
     }
 }

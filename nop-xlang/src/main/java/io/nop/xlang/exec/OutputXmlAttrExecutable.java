@@ -13,6 +13,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalOutput;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 public class OutputXmlAttrExecutable extends AbstractExecutable {
@@ -51,5 +52,13 @@ public class OutputXmlAttrExecutable extends AbstractExecutable {
         out.text(loc, text);
         out.text(null, "\"");
         return null;
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            value.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

@@ -10,6 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalOutput;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 public class OutputTextExecutable extends AbstractExecutable {
@@ -35,5 +36,10 @@ public class OutputTextExecutable extends AbstractExecutable {
         IEvalOutput out = rt.getOut();
         out.text(getLocation(), text);
         return null;
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        visitor.onVisitSimpleExpr(this);
     }
 }

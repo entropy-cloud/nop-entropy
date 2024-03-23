@@ -14,6 +14,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 import java.util.Map;
@@ -69,6 +70,16 @@ public class ThrowErrorCodeExecutable extends AbstractExecutable {
             return e.params((Map) params);
         } else {
             return e.param(ARG_ARGS, params);
+        }
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            errorExpr.visit(visitor);
+            if (paramsExpr != null)
+                paramsExpr.visit(visitor);
+            visitor.onEndVisitExpr(this);
         }
     }
 }

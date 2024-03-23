@@ -12,6 +12,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.collections.iterator.IntRangeIterator;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 import static io.nop.xlang.XLangErrors.ERR_EXEC_LOOP_STEP_MUST_NOT_BE_ZERO;
@@ -21,8 +22,7 @@ public class RangeExecutable extends AbstractExecutable {
     protected final IExecutableExpression endExpr;
     private final IExecutableExpression stepExpr;
 
-    public RangeExecutable(SourceLocation loc, IExecutableExpression beginExpr, IExecutableExpression endExpr,
-                           IExecutableExpression stepExpr) {
+    public RangeExecutable(SourceLocation loc, IExecutableExpression beginExpr, IExecutableExpression endExpr, IExecutableExpression stepExpr) {
         super(loc);
         this.beginExpr = beginExpr;
         this.endExpr = endExpr;
@@ -52,12 +52,20 @@ public class RangeExecutable extends AbstractExecutable {
             throw newError(ERR_EXEC_LOOP_STEP_MUST_NOT_BE_ZERO);
         }
 
-        if (begin == null)
-            begin = 0;
+        if (begin == null) begin = 0;
 
-        if (end == null)
-            end = 0;
+        if (end == null) end = 0;
 
         return new IntRangeIterator(begin, end, step);
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            beginExpr.visit(visitor);
+            endExpr.visit(visitor);
+            stepExpr.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

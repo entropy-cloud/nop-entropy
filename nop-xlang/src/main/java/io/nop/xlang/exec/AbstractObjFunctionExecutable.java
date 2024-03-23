@@ -12,6 +12,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 
 import static io.nop.xlang.XLangErrors.ARG_CLASS_NAME;
 import static io.nop.xlang.XLangErrors.ARG_FUNC_NAME;
@@ -102,6 +103,17 @@ public abstract class AbstractObjFunctionExecutable extends AbstractExecutable {
         } catch (Exception e) {
             throw newError(ERR_EXEC_INVOKE_METHOD_FAIL, e).forWrap().param(ARG_CLASS_NAME, getClassName(obj))
                     .param(ARG_FUNC_NAME, funcName);
+        }
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            objExpr.visit(visitor);
+            for (IExecutableExpression arg : args) {
+                arg.visit(visitor);
+            }
+            visitor.onEndVisitExpr(this);
         }
     }
 }

@@ -48,6 +48,9 @@ public class TestWordTemplate extends BaseTestCase {
         CoreInitialization.destroy();
     }
 
+    /**
+     * 这个用例测试了表达式被不正确的分段后会作为纯文本输出。 模板中的 ${model.displayName}实际上被分成了三个节点。
+     */
     @Test
     public void testSimple() {
         IResource resource = new ClassPathResource("classpath:docx/test-simple.docx");

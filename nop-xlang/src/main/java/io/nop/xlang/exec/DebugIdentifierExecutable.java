@@ -10,6 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.xlang.expr.ExprExecHelper;
 
@@ -37,5 +38,10 @@ public class DebugIdentifierExecutable extends AbstractExecutable {
     @Override
     public void display(StringBuilder sb) {
         sb.append(varName);
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        visitor.onVisitSimpleExpr(this);
     }
 }

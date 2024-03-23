@@ -9,6 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.xlang.ast.XLangOperator;
 
 public abstract class AbstractSelfAssignExecutable extends AbstractExecutable {
@@ -29,5 +30,13 @@ public abstract class AbstractSelfAssignExecutable extends AbstractExecutable {
         sb.append(varName);
         sb.append(operator);
         expr.display(sb);
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            expr.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

@@ -11,6 +11,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.IMethodModelCollection;
@@ -49,9 +50,22 @@ public class StaticFunctionExecutable extends AbstractExecutable {
         Object[] argValues = evaluateArgs(argExprs, executor, rt);
         IFunctionModel fn = methodCollection.getMethodForArgValues(argValues);
         if (fn == null) {
+            if (optional)
+                return null;
+
             throw newError(ERR_EXEC_OBJ_UNKNOWN_METHOD).param(ARG_CLASS_NAME, className)
                     .param(ARG_METHOD_NAME, funcName).param(ARG_ARG_COUNT, argExprs.length);
         }
         return fn.invoke(null, argValues, rt.getScope());
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            for (IExecutableExpression argExpr : argExprs) {
+                argExpr.visit(visitor);
+            }
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

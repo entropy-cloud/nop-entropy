@@ -10,6 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.IFunctionModel;
@@ -50,5 +51,15 @@ public class NewObjectExecutable extends AbstractExecutable {
             throw newError(ERR_EXEC_CLASS_NO_CONSTRUCTOR).param(ARG_CLASS_NAME, classModel.getClassName())
                     .param(ARG_ARG_COUNT, argExprs.length);
         return constructor.invoke(null, argValues, rt.getScope());
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            for (IExecutableExpression argExpr : argExprs) {
+                argExpr.visit(visitor);
+            }
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

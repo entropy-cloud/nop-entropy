@@ -10,6 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 public class SlotIdentifierExecutable extends AbstractExecutable {
@@ -35,5 +36,10 @@ public class SlotIdentifierExecutable extends AbstractExecutable {
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         return rt.getCurrentFrame().getStackValue(slot);
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        visitor.onVisitSimpleExpr(this);
     }
 }

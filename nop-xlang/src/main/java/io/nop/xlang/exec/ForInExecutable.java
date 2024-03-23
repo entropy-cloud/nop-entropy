@@ -12,6 +12,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.ExitMode;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 import java.util.Map;
@@ -51,6 +52,15 @@ public class ForInExecutable extends AbstractExecutable {
     @Override
     public void display(StringBuilder sb) {
         sb.append("for(var in items)");
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if(visitor.onVisitExpr(this)){
+            itemsExpr.visit(visitor);
+            bodyExpr.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 
     @Override

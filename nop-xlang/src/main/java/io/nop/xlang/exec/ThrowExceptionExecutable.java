@@ -11,9 +11,12 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
-import static io.nop.xlang.XLangErrors.*;
+import static io.nop.xlang.XLangErrors.ARG_VALUE;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_THROW_EXCEPTION;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_THROW_NULL_EXCEPTION;
 
 public class ThrowExceptionExecutable extends AbstractExecutable {
     private final IExecutableExpression expr;
@@ -43,5 +46,13 @@ public class ThrowExceptionExecutable extends AbstractExecutable {
             throw newError(ERR_EXEC_THROW_EXCEPTION, (Throwable) value).forWrap();
         }
         throw newError(ERR_EXEC_THROW_EXCEPTION).param(ARG_VALUE, value);
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            expr.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

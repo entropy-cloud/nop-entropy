@@ -14,6 +14,7 @@ import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.model.query.FilterOp;
 import io.nop.xlang.api.XLang;
@@ -67,5 +68,14 @@ public class CompareOpExecutable extends AbstractExecutable implements IEvalPred
         Object v1 = executor.execute(left, rt);
         Object v2 = executor.execute(right, rt);
         return predicate.test(v1, v2);
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if(visitor.onVisitExpr(this)) {
+            left.visit(visitor);
+            right.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

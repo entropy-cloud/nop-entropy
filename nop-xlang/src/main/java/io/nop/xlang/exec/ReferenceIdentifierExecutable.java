@@ -11,6 +11,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalReference;
 import io.nop.core.lang.eval.EvalRuntime;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 import static io.nop.xlang.XLangErrors.ARG_VAR_NAME;
@@ -42,5 +43,10 @@ public class ReferenceIdentifierExecutable extends AbstractExecutable {
         if (ref == null)
             throw newError(ERR_EXEC_IDENTIFIER_NOT_INITIALIZED).param(ARG_VAR_NAME, id);
         return ref.getValue();
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        visitor.onVisitSimpleExpr(this);
     }
 }

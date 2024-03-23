@@ -13,6 +13,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 public class FunctionExecutable extends AbstractExecutable {
@@ -53,6 +54,16 @@ public class FunctionExecutable extends AbstractExecutable {
                 sb.append(',');
         }
         sb.append(')');
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            for (IExecutableExpression arg : args) {
+                arg.visit(visitor);
+            }
+            visitor.onEndVisitExpr(this);
+        }
     }
 
     @Override

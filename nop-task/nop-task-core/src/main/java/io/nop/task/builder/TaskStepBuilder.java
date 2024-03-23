@@ -6,6 +6,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.IEnhancedTaskStep;
 import io.nop.task.ITaskManager;
+import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepChooseDecider;
 import io.nop.task.ITaskStepResultAggregator;
 import io.nop.task.ITaskStepRuntime;
@@ -18,6 +19,7 @@ import io.nop.task.model.EndTaskStepModel;
 import io.nop.task.model.ExitTaskStepModel;
 import io.nop.task.model.ForkNTaskStepModel;
 import io.nop.task.model.ForkTaskStepModel;
+import io.nop.task.model.GraphTaskStepModel;
 import io.nop.task.model.InvokeTaskStepModel;
 import io.nop.task.model.LoopNTaskStepModel;
 import io.nop.task.model.LoopTaskStepModel;
@@ -30,7 +32,9 @@ import io.nop.task.model.SuspendTaskStepModel;
 import io.nop.task.model.TaskBeanModel;
 import io.nop.task.model.TaskChooseCaseModel;
 import io.nop.task.model.TaskDeciderModel;
+import io.nop.task.model.TaskInputModel;
 import io.nop.task.model.TaskInvokeArgModel;
+import io.nop.task.model.TaskOutputModel;
 import io.nop.task.model.TaskStepModel;
 import io.nop.task.model.TaskStepsModel;
 import io.nop.task.model.XplTaskStepModel;
@@ -47,6 +51,7 @@ import io.nop.task.step.EvalTaskStepResultAggregator;
 import io.nop.task.step.ExitTaskStep;
 import io.nop.task.step.ForkNTaskStep;
 import io.nop.task.step.ForkTaskStep;
+import io.nop.task.step.GraphTaskStep;
 import io.nop.task.step.InvokeTaskStep;
 import io.nop.task.step.LoopNTaskStep;
 import io.nop.task.step.LoopTaskStep;
@@ -54,7 +59,6 @@ import io.nop.task.step.ParallelTaskStep;
 import io.nop.task.step.SequentialTaskStep;
 import io.nop.task.step.SleepTaskStep;
 import io.nop.task.step.SuspendTaskStep;
-import io.nop.task.utils.TaskStepHelper;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
 
@@ -67,6 +71,7 @@ import java.util.stream.Collectors;
 import static io.nop.task.TaskErrors.ARG_STEP_NAME;
 import static io.nop.task.TaskErrors.ARG_STEP_TYPE;
 import static io.nop.task.TaskErrors.ERR_TASK_UNSUPPORTED_STEP_TYPE;
+import static io.nop.task.utils.TaskStepHelper.notNull;
 
 public class TaskStepBuilder implements ITaskStepBuilder {
     private final ITaskManager taskManager;
@@ -80,7 +85,8 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         this.stepEnhancer = new TaskStepEnhancer();
     }
 
-    public AbstractTaskStep buildStep(TaskStepModel stepModel) throws NopException {
+    @Override
+    public AbstractTaskStep buildRawStep(TaskStepModel stepModel) throws NopException {
         AbstractTaskStep step;
         String type = stepModel.getType();
         switch (type) {
@@ -138,6 +144,9 @@ public class TaskStepBuilder implements ITaskStepBuilder {
             case TaskConstants.STEP_TYPE_SLEEP:
                 step = buildSleepStep((SleepTaskStepModel) stepModel);
                 break;
+            case TaskConstants.STEP_TYPE_GRAPH:
+                step = buildGraphStep((GraphTaskStepModel) stepModel);
+                break;
             default:
                 throw new NopException(ERR_TASK_UNSUPPORTED_STEP_TYPE)
                         .source(stepModel)
@@ -151,7 +160,7 @@ public class TaskStepBuilder implements ITaskStepBuilder {
 
     private AbstractTaskStep buildXplStep(XplTaskStepModel stepModel) {
         EvalTaskStep ret = new EvalTaskStep();
-        ret.setSource(TaskStepHelper.notNull(stepModel.getSource()));
+        ret.setSource(notNull(stepModel.getSource()));
         return ret;
     }
 
@@ -292,7 +301,7 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         ret.setIndexName(stepModel.getIndexName());
         ret.setAggregator(buildAggregator(stepModel.getAggregator()));
         ret.setCountExpr(stepModel.getCountExpr());
-        //ret.setStep(buildSequentialBody(stepModel));
+        ret.setStep(buildForkBody(stepModel));
         return ret;
     }
 
@@ -301,8 +310,29 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         ret.setIndexName(stepModel.getIndexName());
         ret.setAggregator(buildAggregator(stepModel.getAggregator()));
         ret.setProducer(buildProducer(stepModel.getProducer()));
-        //ret.setStep(buildSequentialBody(stepModel));
+        ret.setStep(buildForkBody(stepModel));
         return ret;
+    }
+
+    private IEnhancedTaskStep buildForkBody(TaskStepsModel stepModel) {
+        ITaskStep step = buildSequentialBody(stepModel);
+
+        List<EnhancedTaskStep.InputConfig> inputs = new ArrayList<>(stepModel.getInputs().size());
+        for (TaskInputModel inputModel : stepModel.getInputs()) {
+            String name = inputModel.getName();
+            inputs.add(new EnhancedTaskStep.InputConfig(inputModel.getLocation(), inputModel.getName(),
+                    ctx -> ctx.getEvalScope().getLocalValue(name), inputModel.isFromTaskScope()));
+        }
+
+        List<EnhancedTaskStep.OutputConfig> outputs = new ArrayList<>(stepModel.getOutputs().size());
+        for (TaskOutputModel outputModel : stepModel.getOutputs()) {
+            outputs.add(new EnhancedTaskStep.OutputConfig(outputModel.getLocation(), null,
+                    outputModel.getName(), outputModel.isToTaskScope()));
+        }
+
+        return new EnhancedTaskStep(stepModel.getLocation(), stepModel.getName(), inputs, outputs, null,
+                null, null, step,
+                null, null, false, null);
     }
 
     private IEvalAction buildProducer(TaskBeanModel beanModel) {
@@ -321,7 +351,7 @@ public class TaskStepBuilder implements ITaskStepBuilder {
     }
 
     private List<IEvalAction> buildArgExprs(List<TaskInvokeArgModel> argModels) {
-        return argModels.stream().map(arg -> TaskStepHelper.notNull(arg.getValueExpr())).collect(Collectors.toList());
+        return argModels.stream().map(arg -> notNull(arg.getValueExpr())).collect(Collectors.toList());
     }
 
     private AbstractTaskStep buildSimpleStep(SimpleTaskStepModel taskStepModel) {
@@ -340,8 +370,18 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         return ret;
     }
 
-    private EnhancedTaskStep buildEnhancedStep(TaskStepModel stepModel) {
+    private GraphTaskStep buildGraphStep(GraphTaskStepModel stepModel) {
+        return new GraphStepBuilder().buildGraphStep(stepModel,this);
+    }
+
+    @Override
+    public IEnhancedTaskStep buildEnhancedStep(TaskStepModel stepModel) {
         return stepEnhancer.buildEnhanced(stepModel, this);
+    }
+
+    @Override
+    public ITaskStep buildDecoratedStep(TaskStepModel stepModel) {
+        return stepEnhancer.buildDecorated(stepModel, this);
     }
 
     private void initAbstractStep(TaskStepModel stepModel, AbstractTaskStep step) {

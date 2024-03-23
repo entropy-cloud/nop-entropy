@@ -45,8 +45,13 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
 
     @Override
     public EnhancedTaskStep buildEnhanced(TaskStepModel stepModel, ITaskStepBuilder stepBuilder) {
-        AbstractTaskStep step = stepBuilder.buildStep(stepModel);
-        return enhancedTaskStep(stepModel, wrap(stepModel, step), stepBuilder);
+        return enhancedTaskStep(stepModel, buildDecorated(stepModel, stepBuilder), stepBuilder);
+    }
+
+    @Override
+    public ITaskStep buildDecorated(TaskStepModel stepModel, ITaskStepBuilder stepBuilder) {
+        AbstractTaskStep step = stepBuilder.buildRawStep(stepModel);
+        return wrap(stepModel, step);
     }
 
     private EnhancedTaskStep enhancedTaskStep(TaskStepModel stepModel, ITaskStep step, ITaskStepBuilder stepBuilder) {

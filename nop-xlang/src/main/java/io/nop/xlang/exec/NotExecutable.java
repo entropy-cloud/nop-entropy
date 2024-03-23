@@ -12,6 +12,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 public class NotExecutable extends AbstractExecutable {
@@ -37,5 +38,13 @@ public class NotExecutable extends AbstractExecutable {
     public void display(StringBuilder sb) {
         sb.append('!');
         expr.display(sb);
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            expr.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

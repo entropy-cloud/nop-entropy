@@ -11,6 +11,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalFrame;
 import io.nop.core.lang.eval.EvalReference;
 import io.nop.core.lang.eval.EvalRuntime;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 public class EnhanceRefSlotExecutable extends AbstractExecutable {
@@ -38,5 +39,10 @@ public class EnhanceRefSlotExecutable extends AbstractExecutable {
         EvalFrame frame = rt.getCurrentFrame();
         frame.setStackValue(slot, new EvalReference(frame.getStackValue(slot)));
         return null;
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        visitor.onVisitSimpleExpr(this);
     }
 }

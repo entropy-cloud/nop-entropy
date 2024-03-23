@@ -14,6 +14,7 @@ import io.nop.commons.collections.iterator.LoopVarStatus;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 import java.util.Iterator;
@@ -62,6 +63,14 @@ public class VarStatusExecutable extends AbstractExecutable {
         } catch (NopException e) {
             e.addXplStack(itemsExpr);
             throw e;
+        }
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            itemsExpr.visit(visitor);
+            visitor.onEndVisitExpr(this);
         }
     }
 }

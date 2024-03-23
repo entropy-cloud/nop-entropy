@@ -4,6 +4,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 import static io.nop.xlang.XLangErrors.ARG_FUNC_EXPR;
@@ -58,6 +59,17 @@ public class VarExecutableFunction extends AbstractExecutable {
         } catch (NopException e) {
             e.addXplStack(this);
             throw e;
+        }
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            funcExpr.visit(visitor);
+            for (IExecutableExpression arg : args) {
+                arg.visit(visitor);
+            }
+            visitor.onEndVisitExpr(this);
         }
     }
 }

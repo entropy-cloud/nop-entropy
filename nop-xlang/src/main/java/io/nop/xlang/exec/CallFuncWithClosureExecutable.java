@@ -12,6 +12,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalFrame;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 import static io.nop.xlang.XLangErrors.ERR_EXEC_CALL_FUNC_FAIL;
@@ -79,6 +80,18 @@ public class CallFuncWithClosureExecutable extends AbstractExecutable {
         } finally {
             rt.setExitMode(null);
             rt.popFrame();
+        }
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if(visitor.onVisitExpr(this)) {
+            for (IExecutableExpression argExpr : argExprs) {
+                argExpr.visit(visitor);
+            }
+
+            bodyExpr.visit(visitor);
+            visitor.onEndVisitExpr(this);
         }
     }
 }

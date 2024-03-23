@@ -42,4 +42,6 @@ public interface IExecutableExpression extends ISourceLocationGetter {
     }
 
     Object execute(IExpressionExecutor executor, EvalRuntime rt);
+
+    void visit(IExecutableExpressionVisitor visitor);
 }

@@ -10,7 +10,6 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalFrame;
 import io.nop.core.lang.eval.EvalRuntime;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
@@ -28,6 +27,10 @@ public class AssignIdentifier {
         this.varName = varName;
         this.useRef = useRef;
         this.initializer = initializer;
+    }
+
+    public IExecutableExpression getInitializer() {
+        return initializer;
     }
 
     public SourceLocation getLocation() {

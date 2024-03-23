@@ -10,6 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 import java.util.HashMap;
@@ -98,5 +99,21 @@ public class ObjectBindingAssignExecutable extends AbstractExecutable {
             restBinding.assign(tail, rt);
         }
         return null;
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            expr.visit(visitor);
+            for (PropBinding binding : propBindings) {
+                if (binding.getInitializer() != null)
+                    binding.getInitializer().visit(visitor);
+            }
+            if (restBinding != null) {
+                if (restBinding.getInitializer() != null)
+                    restBinding.getInitializer().visit(visitor);
+            }
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

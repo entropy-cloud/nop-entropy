@@ -14,6 +14,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.lang.xml.IXNodeHandler;
 
@@ -62,6 +63,21 @@ public class GenNodeExecutable extends AbstractExecutable {
     @Override
     public void display(StringBuilder sb) {
         sb.append("@node:").append(tagName);
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            tagNameExpr.visit(visitor);
+            for (GenNodeAttrExecutable attrExpr : this.attrExprs) {
+                attrExpr.getValueExpr().visit(visitor);
+            }
+            if (extAttrs != null)
+                extAttrs.visit(visitor);
+            if (bodyExpr != null)
+                bodyExpr.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 
     @Override

@@ -16,6 +16,7 @@ import io.nop.core.lang.eval.EvalReference;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.ExitMode;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 import java.util.Iterator;
@@ -65,6 +66,15 @@ public class ForOfExecutable extends AbstractExecutable {
         } catch (NopException e) {
             e.addXplStack(itemsExpr);
             throw e;
+        }
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            itemsExpr.visit(visitor);
+            bodyExpr.visit(visitor);
+            visitor.onEndVisitExpr(this);
         }
     }
 

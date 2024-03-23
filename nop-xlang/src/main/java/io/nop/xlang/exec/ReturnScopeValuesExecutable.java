@@ -10,6 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.xlang.ast.definition.LocalVarDeclaration;
 
@@ -45,5 +46,15 @@ public class ReturnScopeValuesExecutable extends AbstractExecutable {
             values.add(value);
         }
         return new ScopeValues(varDecls, values);
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if (visitor.onVisitExpr(this)) {
+            for (IExecutableExpression expr : exprs) {
+                expr.visit(visitor);
+            }
+            visitor.onEndVisitExpr(this);
+        }
     }
 }

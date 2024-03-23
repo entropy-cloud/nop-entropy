@@ -14,6 +14,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.MathHelper;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.reflect.bean.IBeanModel;
@@ -160,5 +161,10 @@ public abstract class AbstractExecutable implements IExecutableExpression {
             throw newError(ERR_EXEC_WRITE_ATTR_FAIL, e).forWrap().param(ARG_CLASS_NAME, obj.getClass().getName())
                     .param(ARG_ATTR_VALUE, attrValue);
         }
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        visitor.onVisitSimpleExpr(this);
     }
 }

@@ -12,6 +12,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.xlang.utils.DebugHelper;
 
@@ -39,5 +40,14 @@ public class DebugExecutable extends AbstractExecutable {
         sb.append(".$(");
         prefixExpr.display(sb);
         sb.append(")");
+    }
+
+    @Override
+    public void visit(IExecutableExpressionVisitor visitor) {
+        if(visitor.onVisitExpr(this)) {
+            valueExpr.visit(visitor);
+            prefixExpr.visit(visitor);
+            visitor.onEndVisitExpr(this);
+        }
     }
 }
