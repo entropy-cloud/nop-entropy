@@ -12,6 +12,13 @@
 
     <artifactId>nop-oauth-app</artifactId>
 
+    <properties>
+        <!-- 该模块为独立服务包，不会被其他项目所依赖，故，不发布至仓库 -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.install.skip>true</maven.install.skip>
+        <!-- End -->
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>

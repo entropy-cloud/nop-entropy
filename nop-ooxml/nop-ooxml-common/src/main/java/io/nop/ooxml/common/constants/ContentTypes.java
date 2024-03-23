@@ -83,6 +83,10 @@ public final class ContentTypes {
 
     public static final String EXTENSION_EMF = "emf";
 
+    public static final String IMAGE_SVG = "image/svg+xml";
+
+    public static final String EXTENSION_SVG = "svg";
+
     /**
      * TIFF image format.
      *
@@ -126,6 +130,8 @@ public final class ContentTypes {
             return XML;
         else if(extension.equals(EXTENSION_EMF))
             return IMAGE_EMF;
+        else if(extension.equals(EXTENSION_SVG))
+            return IMAGE_SVG;
         else
             return null;
     }

@@ -175,5 +175,24 @@ public class WordDrawing {
 
         // imgId参数由docx-gen:Drawing标签提供
         graphicBlip.setAttr("r:embed", "${rel.id}");
+        // 处理由 svg 图片占位的情况，其结构如下：
+        // <a:blip r:embed="rId4">
+        //     <a:extLst>
+        //         <a:ext uri="{96DAC541-7B7A-43D3-8B79-37D633B846F1}">
+        //             <asvg:svgBlip xmlns:asvg="http://schemas.microsoft.com/office/drawing/2016/SVG/main" r:embed="rId5"/>
+        //         </a:ext>
+        //     </a:extLst>
+        // </a:blip>
+        // 在替换时可以直接移除扩展节点 asvg:svgBlip 即可，
+        // 而 r:embed 引用的内嵌图片可以是 svg，也可以是其他类型图片，
+        // 不需要再针对 svg 做处理
+        XNode graphicBlipExtLst = graphicBlip.childByTag("a:extLst");
+        if (graphicBlipExtLst != null) {
+            for (XNode ext : graphicBlipExtLst.childrenByTag("a:ext")) {
+                if (ext.hasChild("asvg:svgBlip")) {
+                    ext.remove();
+                }
+            }
+        }
     }
 }
