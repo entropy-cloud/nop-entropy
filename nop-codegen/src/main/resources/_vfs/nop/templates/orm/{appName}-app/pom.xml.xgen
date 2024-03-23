@@ -12,11 +12,11 @@
 
     <artifactId>${ormModel['ext:mavenArtifactId']}-app</artifactId>
 
-    <properties><![CDATA[
+    <properties>
         <!-- 该模块为独立服务包，不会被其他项目所依赖，故，不发布至仓库 -->
         <maven.deploy.skip>true</maven.deploy.skip>
         <maven.install.skip>true</maven.install.skip>
-    ]]></properties>
+    </properties>
 
     <dependencies>
         <dependency>
