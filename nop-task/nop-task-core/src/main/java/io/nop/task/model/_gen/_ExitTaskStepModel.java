@@ -16,6 +16,32 @@ import io.nop.commons.util.ClassHelper;
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _ExitTaskStepModel extends io.nop.task.model.TaskStepModel {
     
+    /**
+     *  
+     * xml name: source
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _source ;
+    
+    /**
+     * 
+     * xml name: source
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getSource(){
+      return _source;
+    }
+
+    
+    public void setSource(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._source = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -31,6 +57,7 @@ public abstract class _ExitTaskStepModel extends io.nop.task.model.TaskStepModel
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("source",this.getSource());
     }
 
     public ExitTaskStepModel cloneInstance(){
@@ -42,6 +69,7 @@ public abstract class _ExitTaskStepModel extends io.nop.task.model.TaskStepModel
     protected void copyTo(ExitTaskStepModel instance){
         super.copyTo(instance);
         
+        instance.setSource(this.getSource());
     }
 
     protected ExitTaskStepModel newInstance(){

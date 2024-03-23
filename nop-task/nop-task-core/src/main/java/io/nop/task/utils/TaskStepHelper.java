@@ -9,7 +9,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.retry.IRetryPolicy;
-import io.nop.task.ITaskRuntime;
+import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskErrors;
@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static io.nop.core.CoreErrors.ARG_VAR_NAME;
@@ -60,11 +61,10 @@ public class TaskStepHelper {
         });
     }
 
-    public static TaskStepResult timeout(long timeout, Function<ICancelToken, TaskStepResult> task,
-                                         ICancelToken cancelToken, ITaskRuntime taskRt) {
-        IScheduledExecutor executor = taskRt.getScheduledExecutor();
-
+    public static TaskStepResult timeout(long timeout, Function<ICancellable, TaskStepResult> task,
+                                         ICancelToken cancelToken, IScheduledExecutor executor) {
         Cancellable cancellable = new Cancellable();
+        Consumer<String> cancel = cancellable::cancel;
         if (cancelToken != null)
             cancellable.append(cancellable);
 
@@ -75,9 +75,18 @@ public class TaskStepHelper {
 
         TaskStepResult result = task.apply(cancellable);
 
-        return result.whenComplete((v, e) -> {
-            future.cancel(false);
-        });
+        try {
+            return result.whenComplete((v, e) -> {
+                if (cancelToken != null)
+                    cancelToken.removeOnCancel(cancel);
+                future.cancel(false);
+            });
+        } catch (Exception e) {
+            if (cancelToken != null) {
+                cancelToken.removeOnCancel(cancel);
+            }
+            throw NopException.adapt(e);
+        }
     }
 
     public static TaskStepResult retry(SourceLocation loc, ITaskStepRuntime stepRt,
@@ -146,6 +155,10 @@ public class TaskStepHelper {
         } else {
             return value;
         }
+    }
+
+    public static IEvalAction notNull(IEvalAction action) {
+        return action == null ? IEvalAction.NULL_ACTION : action;
     }
 
     static int getInt(Integer value) {

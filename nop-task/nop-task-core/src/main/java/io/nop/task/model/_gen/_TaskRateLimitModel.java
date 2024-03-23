@@ -35,7 +35,7 @@ public abstract class _TaskRateLimitModel extends io.nop.core.resource.component
      * xml name: requestPerSecond
      * 
      */
-    private int _requestPerSecond ;
+    private double _requestPerSecond ;
     
     /**
      * 
@@ -81,12 +81,12 @@ public abstract class _TaskRateLimitModel extends io.nop.core.resource.component
      *  
      */
     
-    public int getRequestPerSecond(){
+    public double getRequestPerSecond(){
       return _requestPerSecond;
     }
 
     
-    public void setRequestPerSecond(int value){
+    public void setRequestPerSecond(double value){
         checkAllowChange();
         
         this._requestPerSecond = value;

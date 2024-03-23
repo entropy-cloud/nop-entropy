@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [182:18:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [186:18:0:0]/nop/schema/task/task.xdef <p>
  * 可能用于全局跳转，因此不使用嵌套步骤定义
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

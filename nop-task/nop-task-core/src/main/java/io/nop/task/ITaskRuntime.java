@@ -13,7 +13,9 @@ import io.nop.core.context.IEvalContext;
 import io.nop.core.context.IServiceContext;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * <p>1. Task表达单次请求处理过程。request保存请求对象，而response保存结果对象。</p>
@@ -92,6 +94,15 @@ public interface ITaskRuntime extends IEvalContext {
         return getTaskState().getTaskVars();
     }
 
+    Object getAttribute(String name);
+
+    void setAttribute(String name, Object value);
+
+    void removeAttribute(String name);
+
+    Set<String> getAttributeKeys();
+
+    Object computeAttributeIfAbsent(String name, Function<String, Object> action);
 
     IScheduledExecutor getScheduledExecutor();
 }

@@ -12,6 +12,8 @@ import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.task.IEnhancedTaskStep;
+import io.nop.task.ITask;
+import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepResult;
 import jakarta.annotation.Nonnull;
@@ -27,7 +29,7 @@ public class LoopTaskStep extends AbstractTaskStep {
     private String indexName;
 
     private IEvalAction itemsExpr;
-    private IEnhancedTaskStep body;
+    private ITaskStep body;
 
     private IEvalPredicate untilExpr;
 
@@ -63,7 +65,7 @@ public class LoopTaskStep extends AbstractTaskStep {
         this.itemsExpr = itemsExpr;
     }
 
-    public void setBody(IEnhancedTaskStep body) {
+    public void setBody(ITaskStep body) {
         this.body = body;
     }
 
@@ -113,7 +115,7 @@ public class LoopTaskStep extends AbstractTaskStep {
             if (shouldContinue(stateBean, stepRt))
                 return RETURN_RESULT(stepRt.getResult());
 
-            TaskStepResult stepResult = body.executeWithParentRt(stepRt);
+            TaskStepResult stepResult = body.execute(stepRt);
             if (stepResult.isSuspend())
                 return stepResult;
 

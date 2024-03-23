@@ -77,7 +77,7 @@
         <!--
           限制对同一个key的调用速率不能超过指定值
         -->
-        <rate-limit requestPerSecond="!int" maxWait="!int" keyExpr="expr" xdef:name="TaskRateLimitModel"/>
+        <rate-limit requestPerSecond="!double" maxWait="!int" keyExpr="expr" xdef:name="TaskRateLimitModel"/>
 
 
     </xdef:define>
@@ -92,8 +92,8 @@
     -->
     <xdef:define xdef:name="TaskStepModel" xdef:ref="TaskExecutableModel"
                  extType="var-name" tagSet="csv-set" useParentScope="!boolean=false" name="var-name"
-                 allowStartIfComplete="!boolean=false" internal="!boolean=false"
-                 runOnContext="!boolean=false" waitSteps="csv-set"
+                 allowStartIfComplete="!boolean=false" internal="!boolean=false" errorName="var-name"
+                 runOnContext="!boolean=false" waitSteps="csv-set" ignoreResult="!boolean=false"
                  next="string" nextOnError="string" saveState="!boolean=false">
     </xdef:define>
 
@@ -128,9 +128,13 @@
                 <aggregator xdef:ref="TaskBeanModel"/>
             </parallel>
 
-            <exit name="!var-name" xdef:ref="TaskStepModel" xdef:name="ExitTaskStepModel"/>
+            <exit name="!var-name" xdef:ref="TaskStepModel" xdef:name="ExitTaskStepModel">
+                <source xdef:value="xpl"/>
+            </exit>
 
-            <end name="!var-name" xdef:ref="TaskStepModel" xdef:name="EndTaskStepModel"/>
+            <end name="!var-name" xdef:ref="TaskStepModel" xdef:name="EndTaskStepModel">
+                <source xdef:value="xpl"/>
+            </end>
 
             <!--
               延迟执行后续step

@@ -17,6 +17,6 @@ public class GraphTaskStepModel extends _GraphTaskStepModel {
 
     @Override
     public String getType() {
-        return TaskConstants.STEP_TYPE_FLOW;
+        return TaskConstants.STEP_TYPE_GRAPH;
     }
 }

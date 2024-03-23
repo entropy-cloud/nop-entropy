@@ -11,7 +11,7 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.eval.IEvalAction;
-import io.nop.task.IEnhancedTaskStep;
+import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepResult;
 import io.nop.task.utils.TaskStepHelper;
@@ -34,7 +34,7 @@ public class LoopNTaskStep extends AbstractTaskStep {
     private IEvalAction beginExpr;
 
     private IEvalAction endExpr;
-    private IEnhancedTaskStep body;
+    private ITaskStep body;
 
     public String getVarName() {
         return varName;
@@ -52,7 +52,7 @@ public class LoopNTaskStep extends AbstractTaskStep {
         this.indexName = indexName;
     }
 
-    public void setBody(IEnhancedTaskStep body) {
+    public void setBody(ITaskStep body) {
         this.body = body;
     }
 
@@ -62,6 +62,14 @@ public class LoopNTaskStep extends AbstractTaskStep {
 
     public void setEndExpr(IEvalAction endExpr) {
         this.endExpr = endExpr;
+    }
+
+    public IEvalAction getStepExpr() {
+        return stepExpr;
+    }
+
+    public void setStepExpr(IEvalAction stepExpr) {
+        this.stepExpr = stepExpr;
     }
 
     @DataBean
@@ -148,7 +156,7 @@ public class LoopNTaskStep extends AbstractTaskStep {
                 return TaskStepResult.RETURN_RESULT(stepRt.getResult());
             }
 
-            TaskStepResult stepResult = body.executeWithParentRt(stepRt);
+            TaskStepResult stepResult = body.execute(stepRt);
             if (stepResult.isSuspend())
                 return stepResult;
 

@@ -4,7 +4,6 @@ import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalPredicate;
@@ -27,7 +26,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static io.nop.task.TaskErrors.ERR_TASK_CANCELLED;
-import static io.nop.task.TaskErrors.ERR_TASK_STEP_MANDATORY_OUTPUT_IS_EMPTY;
 
 public class EnhancedTaskStep implements IEnhancedTaskStep {
     static final Logger LOG = LoggerFactory.getLogger(EnhancedTaskStep.class);
@@ -67,15 +65,12 @@ public class EnhancedTaskStep implements IEnhancedTaskStep {
         private final SourceLocation location;
         private final String exportName;
         private final String name;
-
-        private final boolean mandatory;
         private final boolean toTaskScope;
 
         public OutputConfig(SourceLocation location,
-                            String exportName, String name, boolean mandatory, boolean toTaskScope) {
+                            String exportName, String name, boolean toTaskScope) {
             this.exportName = exportName;
             this.name = name;
-            this.mandatory = mandatory;
             this.toTaskScope = toTaskScope;
             this.location = location;
         }
@@ -90,10 +85,6 @@ public class EnhancedTaskStep implements IEnhancedTaskStep {
 
         public String getName() {
             return name;
-        }
-
-        public boolean isMandatory() {
-            return mandatory;
         }
 
         public boolean isToTaskScope() {
@@ -259,8 +250,6 @@ public class EnhancedTaskStep implements IEnhancedTaskStep {
     private void initOutputs(TaskStepResult result, ITaskStepRuntime stepRt, IEvalScope parentScope) {
         outputConfigs.forEach(config -> {
             Object value = result.getValue(config.getName());
-            if (config.isMandatory() && StringHelper.isEmptyObject(value))
-                throw TaskStepHelper.newError(getLocation(), stepRt, ERR_TASK_STEP_MANDATORY_OUTPUT_IS_EMPTY);
 
             if (config.getExportName() != null) {
                 if (config.isToTaskScope()) {

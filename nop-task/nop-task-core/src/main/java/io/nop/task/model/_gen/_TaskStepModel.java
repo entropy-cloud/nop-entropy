@@ -25,10 +25,24 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      *  
+     * xml name: errorName
+     * 
+     */
+    private java.lang.String _errorName ;
+    
+    /**
+     *  
      * xml name: extType
      * 
      */
     private java.lang.String _extType ;
+    
+    /**
+     *  
+     * xml name: ignoreResult
+     * 
+     */
+    private boolean _ignoreResult  = false;
     
     /**
      *  
@@ -114,6 +128,25 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      * 
+     * xml name: errorName
+     *  
+     */
+    
+    public java.lang.String getErrorName(){
+      return _errorName;
+    }
+
+    
+    public void setErrorName(java.lang.String value){
+        checkAllowChange();
+        
+        this._errorName = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: extType
      *  
      */
@@ -127,6 +160,25 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         checkAllowChange();
         
         this._extType = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: ignoreResult
+     *  
+     */
+    
+    public boolean isIgnoreResult(){
+      return _ignoreResult;
+    }
+
+    
+    public void setIgnoreResult(boolean value){
+        checkAllowChange();
+        
+        this._ignoreResult = value;
            
     }
 
@@ -318,7 +370,9 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         super.outputJson(out);
         
         out.putNotNull("allowStartIfComplete",this.isAllowStartIfComplete());
+        out.putNotNull("errorName",this.getErrorName());
         out.putNotNull("extType",this.getExtType());
+        out.putNotNull("ignoreResult",this.isIgnoreResult());
         out.putNotNull("internal",this.isInternal());
         out.putNotNull("name",this.getName());
         out.putNotNull("next",this.getNext());
@@ -340,7 +394,9 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         super.copyTo(instance);
         
         instance.setAllowStartIfComplete(this.isAllowStartIfComplete());
+        instance.setErrorName(this.getErrorName());
         instance.setExtType(this.getExtType());
+        instance.setIgnoreResult(this.isIgnoreResult());
         instance.setInternal(this.isInternal());
         instance.setName(this.getName());
         instance.setNext(this.getNext());
