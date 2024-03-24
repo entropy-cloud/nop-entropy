@@ -49,6 +49,10 @@
 1. 菜单项对应的`resourceType=SUBM`， 页面中对应的具体的功能点（例如修改按钮）对应`resourceType=FNPT`
 2. 如果使用amis页面，需要配置`component=AMIS`，`url=页面的虚拟文件路径`
 
+## 通过界面配置权限
+先不要开启操作权限，通过界面增加admin角色，然后给指定用户分配admin角色，此后再开启操作权限。通过具有admin角色的用户给其他用户分配角色，
+并为角色指定它所能访问的NopAuthResource
+
 ## 后台Action
 
 在action函数上通过`@Auth`注解来指定需要对应的`permissions`或者允许访问的`roles`。如果不指定，则按照是否是`@BizQuery`
