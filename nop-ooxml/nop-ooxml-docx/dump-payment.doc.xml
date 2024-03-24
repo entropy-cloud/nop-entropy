@@ -1629,7 +1629,16 @@ logDebug("test")
                                                 <pic:cNvPicPr/>
                                             </pic:nvPicPr>
                                             <pic:blipFill>
-                                                <a:blip r:embed="${rel.id}"/>
+                                                <a:blip r:embed="${rel.id}">
+                                                    <a:extLst>
+                                                        <a:ext uri="{96DAC541-7B7A-43D3-8B79-37D633B846F1}"
+                                                               xpl:if="rel.target.endsWith('.svg')">
+                                                            <asvg:svgBlip
+                                                                          xmlns:asvg="http://schemas.microsoft.com/office/drawing/2016/SVG/main"
+                                                                          r:embed="${rel.id}"/>
+                                                        </a:ext>
+                                                    </a:extLst>
+                                                </a:blip>
                                                 <a:stretch>
                                                     <a:fillRect/>
                                                 </a:stretch>

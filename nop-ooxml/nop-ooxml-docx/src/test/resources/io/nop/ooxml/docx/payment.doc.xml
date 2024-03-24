@@ -2223,7 +2223,9 @@
                                         <pic:cNvPicPr/>
                                     </pic:nvPicPr>
                                     <pic:blipFill>
-                                        <a:blip r:embed="rId6"/>
+                                        <a:blip r:embed="rId6">
+                                            <a:extLst/>
+                                        </a:blip>
                                         <a:stretch>
                                             <a:fillRect/>
                                         </a:stretch>
@@ -2338,7 +2340,9 @@
                                         <pic:cNvPicPr/>
                                     </pic:nvPicPr>
                                     <pic:blipFill>
-                                        <a:blip r:embed="rId7"/>
+                                        <a:blip r:embed="rId7">
+                                            <a:extLst/>
+                                        </a:blip>
                                         <a:stretch>
                                             <a:fillRect/>
                                         </a:stretch>
