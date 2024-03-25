@@ -51,7 +51,10 @@
 
 ## 通过界面配置权限
 先不要开启操作权限，通过界面增加admin角色，然后给指定用户分配admin角色，此后再开启操作权限。通过具有admin角色的用户给其他用户分配角色，
-并为角色指定它所能访问的NopAuthResource
+并为角色指定它所能访问的NopAuthResource。
+
+NopAuthResource按照siteId进行组织，缺省使用siteId=MAIN作为主站点的网站菜单。nop-auth支持同时管理多个前端应用所对应的菜单链接。
+比如siteId=mobile可以用于移动端菜单，而siteId=MAIN用于Web端等。
 
 ## 后台Action
 
