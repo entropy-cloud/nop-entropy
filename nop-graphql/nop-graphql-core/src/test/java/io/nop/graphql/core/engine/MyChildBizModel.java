@@ -44,4 +44,12 @@ public class MyChildBizModel {
         }
         return ret;
     }
+
+    /**
+     * 批量加载属性
+     */
+    @BizLoader
+    public String myName(@ContextSource MyChild child) {
+        return child.getName() + "_load";
+    }
 }

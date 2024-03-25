@@ -17,9 +17,11 @@
       "id": "bbb",
       "children": [
         {
+          "myName": "child_0_load",
           "name": "child_0_batch"
         },
         {
+          "myName": "child_1_load",
           "name": "child_1_batch"
         }
       ]

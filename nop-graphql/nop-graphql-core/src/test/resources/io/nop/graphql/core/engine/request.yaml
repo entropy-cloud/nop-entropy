@@ -12,6 +12,7 @@ query: >
         id
         children{
            name
+           myName
         }
      }
   
