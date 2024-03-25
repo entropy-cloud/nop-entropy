@@ -15,5 +15,7 @@ public interface IExecutableExpressionVisitor {
 
     }
 
-    void visitIdentifier(SourceLocation loc, String id);
+    default void visitScopeVariable(SourceLocation loc, String name) {
+
+    }
 }
