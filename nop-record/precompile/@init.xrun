@@ -1,0 +1,12 @@
+<gen:DefineLoop xpl:lib="/nop/codegen/xlib/gen.xlib">
+    <c:script>
+        import io.nop.commons.type.BinaryWordType;
+        const wordTypeList = BinaryWordType.values().$toList().map(type=>{
+		   return {
+		      name: type.name(),
+			  obj: type
+		   }
+		});
+        builder.defineGlobalVar("wordType",wordTypeList);
+    </c:script>
+</gen:DefineLoop>

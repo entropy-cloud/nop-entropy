@@ -1,0 +1,17 @@
+<c:unit xpl:outputMode="text">
+package io.nop.record.codec._gen;
+
+import io.nop.record.codec.FieldCodecRegistry;
+
+<c:script>
+import io.nop.commons.type.BinaryWordType;
+</c:script>
+
+public class FieldBinaryCodecRegistrar{
+    public static void registerWordType(FieldCodecRegistry registry){
+	    <c:for var="wordType" items="${BinaryWordType.values()}">
+		registry.registerBinaryCodec("${wordType.name()}",FieldBinaryCodec_${wordType.name()}.INSTANCE);
+		</c:for>
+	}
+}
+</c:unit>

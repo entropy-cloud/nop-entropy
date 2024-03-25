@@ -246,8 +246,8 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
     //region Unsigned
 
     @Override
-    public int readU1() {
-        return bb.get() & 0xff;
+    public short readU1() {
+        return (short)(bb.get() & 0xff);
     }
 
     //region Big-endian

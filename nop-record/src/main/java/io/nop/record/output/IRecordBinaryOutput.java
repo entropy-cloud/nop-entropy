@@ -13,70 +13,74 @@ import java.io.Closeable;
 import java.nio.ByteBuffer;
 
 public interface IRecordBinaryOutput extends Closeable {
-    IRecordBinaryOutput writeBytes(byte[] bytes);
+    void writeBytes(byte[] bytes);
 
-    IRecordBinaryOutput writeBytesPart(byte[] str, int start, int end);
+    void writeBytesPart(byte[] str, int start, int end);
 
-    IRecordBinaryOutput writeByteBuffer(ByteBuffer buf);
+    void writeByteBuffer(ByteBuffer buf);
 
-    default IRecordBinaryOutput writeByteString(ByteString bs) {
-        return writeBytes(bs.toByteArray());
+    default void writeByteString(ByteString bs) {
+        writeBytes(bs.toByteArray());
     }
 
-    default IRecordBinaryOutput writeByte(byte c) {
-        return writeS1(c);
+    default void writeByte(byte c) {
+        writeS1(c);
     }
 
-    default IRecordBinaryOutput writeShort(short c) {
-        return writeS2Be(c);
+    default void writeShort(short c) {
+        writeS2be(c);
     }
 
-    default IRecordBinaryOutput writeInt(int c) {
-        return writeS4Be(c);
+    default void writeInt(int c) {
+        writeS4be(c);
     }
 
-    default IRecordBinaryOutput writeLong(long c) {
-        return writeS8Be(c);
+    default void writeLong(long c) {
+        writeS8be(c);
     }
 
-    default IRecordBinaryOutput writeFloat(float c) {
-        return writeF4Be(c);
+    default void writeFloat(float c) {
+        writeF4le(c);
     }
 
-    default IRecordBinaryOutput writeDouble(float c) {
-        return writeF8Be(c);
+    default void writeDouble(float c) {
+        writeF8be(c);
     }
 
-    IRecordBinaryOutput writeS1(byte c);
+    void writeS1(byte c);
 
-    IRecordBinaryOutput writeU1(int c);
+    void writeU1(int c);
 
-    IRecordBinaryOutput writeS2Be(short c);
+    void writeS2be(short c);
 
-    IRecordBinaryOutput writeS2Le(short c);
+    void writeS2le(short c);
 
-    IRecordBinaryOutput writeU2Be(int c);
+    void writeU2be(int c);
 
-    IRecordBinaryOutput writeU2Le(int c);
+    void writeU2le(int c);
 
-    IRecordBinaryOutput writeS4Be(int c);
+    void writeS4be(int c);
 
-    IRecordBinaryOutput writeS4Le(int c);
+    void writeS4le(int c);
 
-    IRecordBinaryOutput writeU4Be(long c);
+    void writeU4be(long c);
 
-    IRecordBinaryOutput writeU4Le(long c);
+    void writeU4le(long c);
 
-    IRecordBinaryOutput writeS8Be(long c);
+    void writeS8be(long c);
 
-    IRecordBinaryOutput writeS8Le(long c);
+    void writeS8le(long c);
 
-    IRecordBinaryOutput writeF4Be(float c);
+    void writeU8be(long c);
 
-    IRecordBinaryOutput writeF4Le(float c);
+    void writeU8le(long c);
 
-    IRecordBinaryOutput writeF8Be(double c);
+    void writeF4le(float c);
 
-    IRecordBinaryOutput writeF8Le(double c);
+    void writeF4be(float c);
+
+    void writeF8be(double c);
+
+    void writeF8le(double c);
 
 }

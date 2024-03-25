@@ -251,7 +251,7 @@ public class ByteBufRecordBinaryInput implements IRecordBinaryInput {
     //region Unsigned
 
     @Override
-    public int readU1() {
+    public short readU1() {
         return bb.readUnsignedByte();
     }
 

@@ -1,0 +1,26 @@
+<c:unit xpl:outputMode="text">
+package io.nop.record.codec._gen;
+
+import io.nop.record.codec.IFieldBinaryCodec;
+import io.nop.record.codec.IFieldCodecContext;
+import io.nop.record.input.IRecordBinaryInput;
+import io.nop.record.output.IRecordBinaryOutput;
+
+import java.nio.charset.Charset;
+
+public class FieldBinaryCodec_${wordType.name} implements IFieldBinaryCodec{
+    public static final FieldBinaryCodec_${wordType.name} INSTANCE = new FieldBinaryCodec_${wordType.name}();
+
+    public Object decode(IRecordBinaryInput input, int length, Charset charset, IFieldCodecContext context){
+	  return input.read${wordType.name.$capitalize()}();
+    }
+
+    public void encode(IRecordBinaryOutput output, Object value, int length, Charset charset, IFieldCodecContext context){
+	    if(value == null){
+		    output.write${wordType.name.$capitalize()}(${wordType.obj.defaultValueInitializer});
+		}else{
+			output.write${wordType.name.$capitalize()}((${wordType.obj.valueTypeName})value);
+		}	
+    }
+}
+</c:unit>

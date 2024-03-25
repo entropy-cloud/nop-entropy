@@ -228,13 +228,13 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
     }
 
     @Override
-    public int readU1() {
+    public short readU1() {
         try {
             int t = raf.read();
             if (t < 0) {
                 throw new EOFException();
             } else {
-                return t;
+                return (short) t;
             }
         } catch (IOException e) {
             throw wrapErr(e);

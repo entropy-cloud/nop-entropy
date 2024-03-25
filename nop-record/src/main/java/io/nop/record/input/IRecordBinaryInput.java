@@ -93,7 +93,7 @@ public interface IRecordBinaryInput extends Closeable {
 
     //region Unsigned
 
-    int readU1();
+    short readU1();
 
     //region Big-endian
 
