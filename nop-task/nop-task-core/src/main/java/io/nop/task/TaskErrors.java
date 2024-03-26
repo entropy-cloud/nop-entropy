@@ -32,6 +32,10 @@ public interface TaskErrors {
 
     String ARG_REQUEST_PER_SECOND = "requestPerSecond";
 
+    String ARG_GRAPH_STEP_NAME = "graphStepName";
+
+    String ARG_LOOP_EDGES = "loopEdges";
+
     ErrorCode ERR_TASK_STEP_NOT_RESTARTABLE = define("nop.err.task.step.not-restartable",
             "步骤[{stepName}]不允许多次执行", ARG_TASK_NAME, ARG_STEP_NAME);
 
@@ -75,4 +79,21 @@ public interface TaskErrors {
     ErrorCode ERR_TASK_UNSUPPORTED_STEP_TYPE =
             define("nop.err.task.unsupported-step-type",
                     "不支持节点[{stepName}]的类型:{stepType}", ARG_STEP_NAME, ARG_STEP_TYPE);
+
+    ErrorCode ERR_TASK_GRAPH_STEP_NO_ENTER_STEPS =
+            define("nop.err.task.graph-step-no-enter-steps",
+                    "流程图[{stepName}]必须指定起始步骤", ARG_STEP_NAME);
+
+    ErrorCode ERR_TASK_GRAPH_STEP_NO_EXIT_STEPS =
+            define("nop.err.task.graph-step-no-exit-steps",
+                    "流程图[{stepName}]必须指定终止步骤", ARG_STEP_NAME);
+
+    ErrorCode ERR_TASK_UNKNOWN_STEP_IN_GRAPH =
+            define("nop.err.task.unknown-step-in-graph",
+                    "流程图[{graphStepName}]中没有定义步骤[{stepName}]", ARG_GRAPH_STEP_NAME, ARG_STEP_NAME);
+
+    ErrorCode ERR_TASK_GRAPH_STEP_CONTAINS_LOOP =
+            define("nop.err.task.graph-step-contains-loop",
+                    "流程图[{graphStepName}]包含循环结构，不满足要求，需要删除以下连接:{loopEdges}", ARG_GRAPH_STEP_NAME, ARG_LOOP_EDGES);
+
 }

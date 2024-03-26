@@ -10,6 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.xlang.ast.XLangOperator;
 
@@ -33,5 +34,4 @@ public class ScopeSelfAssignExecutable extends AbstractSelfAssignExecutable {
         rt.setLocalValue(getLocation(), varName, newValue);
         return newValue;
     }
-
 }

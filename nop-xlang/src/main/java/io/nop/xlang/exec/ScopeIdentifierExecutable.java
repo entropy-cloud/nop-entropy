@@ -10,7 +10,6 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
-import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
 import static io.nop.xlang.XLangErrors.ARG_VAR_NAME;
@@ -22,6 +21,10 @@ public class ScopeIdentifierExecutable extends AbstractExecutable {
     public ScopeIdentifierExecutable(SourceLocation loc, String varName) {
         super(loc);
         this.varName = Guard.notEmpty(varName, "varName");
+    }
+
+    public String getVarName() {
+        return varName;
     }
 
     @Override
@@ -44,8 +47,4 @@ public class ScopeIdentifierExecutable extends AbstractExecutable {
         sb.append(varName);
     }
 
-    @Override
-    public void visit(IExecutableExpressionVisitor visitor) {
-        visitor.onVisitSimpleExpr(this);
-    }
 }

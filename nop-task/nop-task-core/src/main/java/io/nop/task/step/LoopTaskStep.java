@@ -11,8 +11,6 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalPredicate;
-import io.nop.task.IEnhancedTaskStep;
-import io.nop.task.ITask;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepResult;

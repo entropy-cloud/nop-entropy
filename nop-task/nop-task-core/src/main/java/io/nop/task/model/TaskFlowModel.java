@@ -10,9 +10,17 @@ package io.nop.task.model;
 import io.nop.task.TaskConstants;
 import io.nop.task.model._gen._TaskFlowModel;
 
-public class TaskFlowModel extends _TaskFlowModel {
+public class TaskFlowModel extends _TaskFlowModel implements IGraphTaskStepModel {
     public TaskFlowModel() {
 
+    }
+
+    @Override
+    public String getName() {
+        String name = super.getName();
+        if (name == null)
+            return TaskConstants.STEP_TYPE_TASK;
+        return name;
     }
 
     @Override

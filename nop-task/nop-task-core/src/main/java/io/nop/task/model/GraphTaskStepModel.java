@@ -10,7 +10,7 @@ package io.nop.task.model;
 import io.nop.task.TaskConstants;
 import io.nop.task.model._gen._GraphTaskStepModel;
 
-public class GraphTaskStepModel extends _GraphTaskStepModel {
+public class GraphTaskStepModel extends _GraphTaskStepModel implements IGraphTaskStepModel {
     public GraphTaskStepModel() {
 
     }

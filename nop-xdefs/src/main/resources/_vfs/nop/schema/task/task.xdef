@@ -102,7 +102,7 @@
     -->
     <xdef:define xdef:name="TaskStepsModel"
                  xdef:ref="TaskStepModel">
-        <steps xdef:body-type="list" xdef:key-attr="name"
+        <steps xdef:body-type="list" xdef:key-attr="name" xdef:bean-child-name="step"
                xdef:bean-body-type="List&lt;io.nop.task.model.TaskStepModel>" xdef:bean-sub-type-prop="type">
 
             <simple name="!var-name" bean="!bean-name" xdef:ref="TaskStepModel" xdef:name="SimpleTaskStepModel"/>

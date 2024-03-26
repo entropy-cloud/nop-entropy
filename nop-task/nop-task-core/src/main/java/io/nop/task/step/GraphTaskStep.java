@@ -15,6 +15,7 @@ import io.nop.task.TaskConstants;
 import io.nop.task.TaskStepResult;
 import jakarta.annotation.Nonnull;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,11 +48,10 @@ public class GraphTaskStep extends AbstractTaskStep {
     public static class GraphStepNode {
         private final Set<String> waitSteps;
         private final IEnhancedTaskStep step;
-
         private final boolean end;
 
         public GraphStepNode(Set<String> waitSteps, IEnhancedTaskStep step, boolean end) {
-            this.waitSteps = Guard.notNull(waitSteps, "waitSteps");
+            this.waitSteps = waitSteps == null ? Collections.emptySet() : waitSteps;
             this.step = Guard.notNull(step, "step");
             this.end = end;
         }

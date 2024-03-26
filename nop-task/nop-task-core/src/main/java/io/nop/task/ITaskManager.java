@@ -12,7 +12,7 @@ public interface ITaskManager {
 
     ITaskRuntime newTaskContext(String taskName, long version);
 
-    ITaskRuntime getTaskContext(String taskStateId);
+    ITaskRuntime getTaskContext(String taskId);
 
     ITask getTask(ITaskRuntime taskContext);
 
