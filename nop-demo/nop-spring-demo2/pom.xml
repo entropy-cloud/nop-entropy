@@ -13,6 +13,11 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-boot.version>3.2.0</spring-boot.version>
+
+        <!-- 该模块为独立服务包，不会被其他项目所依赖，故，不发布至仓库 -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.install.skip>true</maven.install.skip>
+        <!-- End -->
     </properties>
 
     <dependencyManagement>
