@@ -6,10 +6,7 @@
 
 **Nop is nOt Programming(非编程)**
 
-Nop Platform 2. 0 is a new generation of low-code platform based on the theory of reversible computation.
-It is committed to overcoming the dilemma that low-code platform can not get rid of the exhaustive method,
-transcending the component technology from the theoretical level, and effectively solving the problem of coarse-grained
-software reuse.
+Nop Platform 2.0 is a new generation of low-code platform based on the theory of reversible computation. It is committed to overcoming the dilemma that low-code platform can not get rid of the exhaustive method, transcending the component technology from the theoretical level, and effectively solving the problem of coarse-grained software reuse.
 
 Nop Platform 2.0是基于可逆计算原理从零开始构建的新一代低代码(lowcode)
 平台，它致力于克服低代码平台无法摆脱穷举法的困境，从理论层面超越组件技术，有效的解决粗粒度软件复用的问题。
@@ -24,8 +21,7 @@ Nop Platform 2.0是基于可逆计算原理从零开始构建的新一代低代�
   。通过增加简单的元数据定义，就可以自动得到对应的解析器、验证器、IDE插件、调试工具等，并自动为DSL领域语言增加模块分解、差量定制、元编程等通用语言特性。在这一点上，它类似于Jetbrains公司的[MPS产品](https://www.jetbrains.com/mps/)
   ，只是它的设计原理和技术实现路径与MPS有着本质性差别。
 
--
-nop-entropy采用云原生设计，内置分布式事务和多租户支持，可以单机运行，也可以作为分布式集群运行，可以提供在线的API服务，也可以将针对单个业务对象的在线服务自动包装为针对批处理文件的批处理任务。对于大多数业务应用场景均提供相应的模型支持，只需少量配置即可完成主要功能，大大降低对手工编码的需求。
+- nop-entropy采用云原生设计，内置分布式事务和多租户支持，可以单机运行，也可以作为分布式集群运行，可以提供在线的API服务，也可以将针对单个业务对象的在线服务自动包装为针对批处理文件的批处理任务。对于大多数业务应用场景均提供相应的模型支持，只需少量配置即可完成主要功能，大大降低对手工编码的需求。
 
 - nop-entropy在开发期可以作为**支持增量式开发的低代码平台**，自动生成各类代码以及相关文档，在运行期可以作为*
   *面向最终用户的无代码平台的支撑技术**，允许客户在线调整业务模块功能，以所见即所得的方式进行产品迭代。
@@ -165,7 +161,7 @@ gradlew buildPlugin
 
 编译出来的插件存放在build/distributions目录下。参见[插件的安装和使用](docs/dev-guide/ide/idea.md)。
 
-#### 使用说明
+## 使用说明
 
 * 平台内置了一个演示程序，使用H2内存数据库，可以直接启动运行
 
@@ -188,7 +184,7 @@ java -Dquarkus.profile=dev -jar nop-quarkus-demo-2.0.0-SNAPSHOT-runner.jar
 
 * 完整的开发示例，参见[tutorial](docs/tutorial/tutorial.md)
 
-#### 框架集成
+## 框架集成
 
 nop-entropy不依赖于spring或者quarkus框架，也不依赖于特定数据库，因此它很容易集成在第三方应用中使用。
 
@@ -212,7 +208,7 @@ nop-entropy不依赖于spring或者quarkus框架，也不依赖于特定数据�
 
 9. 作为数据驱动的自动化测试框架使用：通过录制、回放的机制实现自动化测试。第一遍运行的时候自动录制输出数据，此后运行时自动和录制的数据快照进行比较，减少手工需要编写的代码量。参见[autotest.md](docs/dev-guide/autotest.md)
 
-#### 示例页面
+## 示例页面
 
 1. 界面框架
    ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/demo/framework.jpg)
@@ -243,7 +239,7 @@ nop-entropy不依赖于spring或者quarkus框架，也不依赖于特定数据�
    ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/decision-tree.png)
    ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/decision-matrix.png)
 
-#### 开源协议
+## 开源协议
 
 Nop平台的前端采用MIT协议，后端整体采用AGPL3.0开源协议。但是国内的中小企业可以在类似Apache2.0协议的条件下使用本项目的代码（可以免费商用，修改代码无需开源，但是要保留源码中的原始版权信息）。为了方便第三方集成，nop-api-support/nop-commons/nop-core这三个包采用Apache
 2.0协议。
@@ -261,20 +257,20 @@ switch(贵公司很有钱吗()){
 }
 ```
 
-#### 技术支持
+## 技术支持
 
 使用中遇到问题或者BUG可以在[Gitee上提Issues](https://gitee.com/canonical-entropy/nop-entropy/issues)
 
-#### 致谢
+## 致谢
 
 * 感谢网友[xyplayman](https://gitee.com/xyplayman)贡献的ORM测试用例，原项目地址 https://gitee.com/xyplayman/nop-orm-demo
 
-#### 作者微信和微信讨论群
+## 作者微信和微信讨论群
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/wechat-group.png)
 
 添加微信时请注明：加入Nop平台群
 
-#### 微信公众号
+## 微信公众号
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/wechat-public-account.jpg)
