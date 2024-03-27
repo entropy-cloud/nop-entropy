@@ -3,7 +3,7 @@
 
 #### Introduction
 
-Nop Platform 2. 0 is a new generation of low-code platform based on the theory of reversible computation. It is committed to overcoming the dilemma that low-code platform can not get rid of the exhaustive method, transcending the component technology from the theoretical level, and effectively solving the problem of coarse-grained software reuse.
+Nop Platform 2.0 is a new generation of low-code platform based on the theory of reversible computation. It is committed to overcoming the dilemma that low-code platform can not get rid of the exhaustive method, transcending the component technology from the theoretical level, and effectively solving the problem of coarse-grained software reuse.
 
 - NOP-entropy is the back-end part of the Nop platform. It is implemented in the Java language, does not rely on third-party frameworks, and can be integrated with Quarkus or Spring frameworks.
 
