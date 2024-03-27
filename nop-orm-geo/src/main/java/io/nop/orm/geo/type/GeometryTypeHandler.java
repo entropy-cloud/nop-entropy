@@ -8,11 +8,13 @@
 package io.nop.orm.geo.type;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.type.GeometryObject;
 import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.IoHelper;
 import io.nop.dao.dialect.IDataTypeHandler;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dataset.binder.IDataParameters;
+import io.nop.orm.geo.dialect.GeolatteGeometry;
 import org.geolatte.geom.ByteBuffer;
 import org.geolatte.geom.ByteOrder;
 import org.geolatte.geom.C2D;
@@ -52,6 +54,7 @@ public class GeometryTypeHandler implements IDataTypeHandler {
     }
 
     protected Geometry toGeometry(Object value) {
+        if (value instanceof GeolatteGeometry) return ((GeolatteGeometry) value).getGeometry();
         return (Geometry) value;
     }
 
@@ -85,13 +88,18 @@ public class GeometryTypeHandler implements IDataTypeHandler {
 
     @Override
     public boolean isJavaType(Object value) {
-        return value instanceof Geometry;
+        return value instanceof Geometry || value instanceof GeolatteGeometry;
     }
 
     @Override
     public Object getValue(IDataParameters params, int index) {
         Object value = params.getObject(index);
-        return parseDbValue(value);
+        return toJavaValue(parseDbValue(value));
+    }
+
+    protected GeometryObject toJavaValue(Geometry geometry) {
+        if (geometry == null) return null;
+        return new GeolatteGeometry(geometry);
     }
 
     @Override
@@ -130,12 +138,7 @@ public class GeometryTypeHandler implements IDataTypeHandler {
     }
 
     private static Geometry<C2D> toPolygon(Envelope env) {
-        final PositionSequence<C2D> ps = PositionSequenceBuilders.fixedSized(4, C2D.class)
-                .add(env.lowerLeft().getCoordinate(0), env.lowerLeft().getCoordinate(1))
-                .add(env.lowerLeft().getCoordinate(0), env.upperRight().getCoordinate(1))
-                .add(env.upperRight().getCoordinate(0), env.upperRight().getCoordinate(1))
-                .add(env.lowerLeft().getCoordinate(0), env.lowerLeft().getCoordinate(1))
-                .toPositionSequence();
+        final PositionSequence<C2D> ps = PositionSequenceBuilders.fixedSized(4, C2D.class).add(env.lowerLeft().getCoordinate(0), env.lowerLeft().getCoordinate(1)).add(env.lowerLeft().getCoordinate(0), env.upperRight().getCoordinate(1)).add(env.upperRight().getCoordinate(0), env.upperRight().getCoordinate(1)).add(env.lowerLeft().getCoordinate(0), env.lowerLeft().getCoordinate(1)).toPositionSequence();
         return new Polygon<C2D>(ps, CoordinateReferenceSystems.PROJECTED_2D_METER);
     }
 
