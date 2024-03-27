@@ -9,7 +9,6 @@ package io.nop.task;
 
 
 import io.nop.commons.util.StringHelper;
-import io.nop.core.lang.eval.IEvalScope;
 
 /**
  * state变量相当于是通过闭包方式捕获了所有状态相关的变量集合，从而使得step能够以continuation的方式运行.
@@ -89,10 +88,4 @@ public interface ITaskStepState extends ITaskStateCommon {
     Throwable exception();
 
     void exception(Throwable exp);
-
-    IEvalScope getEvalScope();
-
-    void setEvalScope(IEvalScope scope);
-
-    void setInput(String name, Object value);
 }

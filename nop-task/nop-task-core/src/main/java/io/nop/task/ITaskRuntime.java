@@ -72,9 +72,9 @@ public interface ITaskRuntime extends IEvalContext {
         return getTaskState().getJobInstanceId();
     }
 
-    ITaskRuntime newChildContext(String taskName, long taskVersion);
+    ITaskRuntime newChildContext(String taskName, long taskVersion, boolean saveState);
 
-    ITaskStateStore getStateStore();
+    ITaskManager getTaskManager();
 
     default Object getTaskVar(String name) {
         Map<String, Object> vars = getTaskVars();
@@ -105,4 +105,6 @@ public interface ITaskRuntime extends IEvalContext {
     Object computeAttributeIfAbsent(String name, Function<String, Object> action);
 
     IScheduledExecutor getScheduledExecutor();
+
+    ITaskStepRuntime newMainStepRuntime();
 }

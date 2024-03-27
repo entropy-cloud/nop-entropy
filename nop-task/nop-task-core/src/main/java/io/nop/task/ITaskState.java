@@ -10,12 +10,6 @@ package io.nop.task;
 import java.util.Map;
 
 public interface ITaskState extends ITaskStateCommon {
-    /**
-     * 唯一id, 缺省情况下由 taskInstanceId-partitionIndex构成
-     *
-     * @return
-     */
-    String getTaskStateId();
 
     /**
      * 一个JobInstance可能包含多个TaskInstance
@@ -47,6 +41,8 @@ public interface ITaskState extends ITaskStateCommon {
     String getTaskInstanceId();
 
     void setTaskInstanceId(String taskInstanceId);
+
+    int newRunId();
 
     /**
      * TaskInstance的当前执行状态，参见TaskConstants中的状态常量定义

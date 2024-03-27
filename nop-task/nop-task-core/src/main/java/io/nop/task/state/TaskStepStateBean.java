@@ -12,11 +12,9 @@ import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
 
-public class TaskStepState extends AbstractTaskStateCommon implements ITaskStepState {
+public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskStepState {
     private String stepId;
     private int runId;
-
-    private ITaskStepState parentState;
     private String parentStepId;
     private int parentRunId;
     private String stepType;
@@ -72,16 +70,6 @@ public class TaskStepState extends AbstractTaskStateCommon implements ITaskStepS
 
     @Override
     public void exception(Throwable exp) {
-
-    }
-
-    @Override
-    public IEvalScope getEvalScope() {
-        return null;
-    }
-
-    @Override
-    public void setEvalScope(IEvalScope scope) {
 
     }
 

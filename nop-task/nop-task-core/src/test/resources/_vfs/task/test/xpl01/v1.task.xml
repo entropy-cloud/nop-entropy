@@ -1,0 +1,9 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <xpl name="test">
+            <source>
+                return "OK"
+            </source>
+        </xpl>
+    </steps>
+</task>

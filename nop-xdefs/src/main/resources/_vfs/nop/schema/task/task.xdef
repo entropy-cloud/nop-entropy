@@ -94,7 +94,7 @@
                  extType="var-name" tagSet="csv-set" useParentScope="!boolean=false" name="var-name"
                  allowStartIfComplete="!boolean=false" internal="!boolean=false" errorName="var-name"
                  runOnContext="!boolean=false" waitSteps="csv-set" ignoreResult="!boolean=false"
-                 next="string" nextOnError="string" saveState="!boolean=false">
+                 next="string" nextOnError="string" saveState="boolean">
     </xdef:define>
 
     <!--

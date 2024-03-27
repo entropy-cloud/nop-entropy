@@ -1,0 +1,7 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="task">
+    <loaders>
+        <xdsl-loader fileType="task-lib.xml" impPath="/nop/schema/task/task.xdef"/>
+        <xdsl-loader fileType="task.xml" schemaPath="/nop/schema/task/task.xdef"/>
+    </loaders>
+</model>

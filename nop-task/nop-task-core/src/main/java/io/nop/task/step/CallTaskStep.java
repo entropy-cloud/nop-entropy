@@ -15,15 +15,10 @@ import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepResult;
 import jakarta.annotation.Nonnull;
 
-import java.util.Map;
-import java.util.concurrent.CompletionStage;
-
 public class CallTaskStep extends AbstractTaskStep {
     private String taskName;
 
     private long taskVersion;
-
-    private ITaskManager taskManager;
 
     public long getTaskVersion() {
         return taskVersion;
@@ -41,33 +36,29 @@ public class CallTaskStep extends AbstractTaskStep {
         this.taskName = taskName;
     }
 
-    public ITaskManager getTaskManager() {
-        return taskManager;
-    }
-
-    public void setTaskManager(ITaskManager taskManager) {
-        this.taskManager = taskManager;
-    }
-
     @Nonnull
     @Override
     public TaskStepResult execute(ITaskStepRuntime stepRt) {
+        ITaskRuntime taskRt = stepRt.getTaskRuntime();
+        ITaskManager taskManager = taskRt.getTaskManager();
+
+        String taskName = taskRt.getTaskName();
+        long taskVersion = taskRt.getTaskVersion();
+
         String taskId = stepRt.getStateBean(String.class);
         ITask task;
         ITaskRuntime subRt;
         if (StringHelper.isEmpty(taskId)) {
-            subRt = stepRt.getTaskRuntime().newChildContext(taskName, taskVersion);
-            task = taskManager.getTask(subRt);
+            subRt = taskRt.newChildContext(taskName, taskVersion, stepRt.isSupportPersist());
+            task = taskManager.getTask(taskName, taskVersion);
 
             stepRt.setStateBean(subRt.getTaskInstanceId());
             stepRt.saveState();
         } else {
-            subRt = taskManager.getTaskContext(taskId);
-            task = taskManager.getTask(subRt);
+            subRt = taskManager.getTaskRuntime(taskId, taskRt.getSvcCtx());
+            task = taskManager.getTask(taskName, taskVersion);
         }
 
-        CompletionStage<Map<String, Object>> result = task.executeAsync(subRt);
-
-        return TaskStepResult.ASYNC(null, result);
+        return task.execute(subRt);
     }
 }

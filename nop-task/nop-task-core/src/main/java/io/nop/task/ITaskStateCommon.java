@@ -9,7 +9,6 @@ package io.nop.task;
 
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.commons.lang.ITagSetSupport;
-import io.nop.core.context.IEvalContext;
 
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -17,7 +16,7 @@ import java.util.Set;
 /**
  * ITaskState和ITaskStepState的公共部分
  */
-public interface ITaskStateCommon extends ITagSetSupport, IEvalContext {
+public interface ITaskStateCommon extends ITagSetSupport {
     /**
      * 一般情况下internal的TaskInstance/StepInstance由系统内部自动生成，对外不可见
      */

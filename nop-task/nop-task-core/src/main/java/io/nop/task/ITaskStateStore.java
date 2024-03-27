@@ -8,22 +8,20 @@
 package io.nop.task;
 
 public interface ITaskStateStore {
-    ITaskStepState newStepState(String stepType, String stepId, int runId, ITaskRuntime context);
+    boolean isSupportPersist();
 
-    /**
-     * 因为存在动态生成的步骤，因此需要通过runId来区分
-     *
-     * @param stepId 步骤的定义id
-     * @param runId  每次执行步骤所对应的执行id
-     * @return
-     */
-    ITaskStepState loadStepState(String stepId, int runId, ITaskRuntime context);
+    ITaskStepState newMainStepState(ITaskState taskState);
 
-    void saveStepState(ITaskStepState state, ITaskRuntime context);
+    ITaskStepState newStepState(ITaskStepState parentState, String stepName, String stepType, ITaskRuntime taskRt);
 
-    ITaskState newTaskState(String taskName, long taskVersion, ITaskRuntime context);
+    ITaskStepState loadStepState(ITaskStepState parentState, String stepName, String stepType, ITaskRuntime taskRt);
 
-    ITaskState loadTaskState(String taskStateId, ITaskRuntime context);
 
-    void saveTaskState(ITaskState taskState, ITaskRuntime context);
+    void saveStepState(ITaskStepRuntime stepRt);
+
+    ITaskState newTaskState(String taskName, long taskVersion, ITaskRuntime taskRt);
+
+    ITaskState loadTaskState(String taskInstanceId, ITaskRuntime taskRt);
+
+    void saveTaskState(ITaskRuntime taskRt);
 }

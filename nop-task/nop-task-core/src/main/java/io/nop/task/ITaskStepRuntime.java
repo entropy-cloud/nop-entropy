@@ -66,6 +66,9 @@ public interface ITaskStepRuntime extends IEvalContext {
     }
 
     ITaskStepState getState();
+
+    boolean isSupportPersist();
+
     default void setStateBean(Object stateBean) {
         getState().setStateBean(stateBean);
     }
@@ -84,6 +87,6 @@ public interface ITaskStepRuntime extends IEvalContext {
      */
     boolean isRecoverMode();
 
-    ITaskStepRuntime newStepRuntime(String stepName, Set<String> persistVars);
+    ITaskStepRuntime newStepRuntime(String stepName, String stepType, Set<String> persistVars);
 
 }

@@ -158,7 +158,7 @@ public class EnhancedTaskStep implements IEnhancedTaskStep {
         IEvalScope parentScope = parentRt.getEvalScope();
 
         ITaskRuntime taskRt = parentRt.getTaskRuntime();
-        ITaskStepRuntime stepRt = parentRt.newStepRuntime(stepName, step.getPersistVars());
+        ITaskStepRuntime stepRt = parentRt.newStepRuntime(stepName, step.getStepType(), step.getPersistVars());
         stepRt.setOutputNames(outputVars);
         if (varName != null)
             stepRt.setValue(varName, varValue);
@@ -240,7 +240,7 @@ public class EnhancedTaskStep implements IEnhancedTaskStep {
     private void initInputs(ITaskStepRuntime stepRt, IEvalScope parentScope, ITaskRuntime taskRt) {
         inputConfigs.forEach(inputConfig -> {
             IEvalScope scope = inputConfig.isFromTaskScope() ? taskRt.getEvalScope() : parentScope;
-            stepRt.getState().setInput(inputConfig.getName(), inputConfig.getExpr().invoke(scope));
+            stepRt.getEvalScope().setLocalValue(inputConfig.getName(), inputConfig.getExpr().invoke(scope));
         });
 
         if (validator != null)

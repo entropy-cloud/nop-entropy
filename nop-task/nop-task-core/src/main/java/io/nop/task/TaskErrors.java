@@ -7,10 +7,12 @@
  */
 package io.nop.task;
 
+import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.exceptions.ErrorCode;
 
 import static io.nop.api.core.exceptions.ErrorCode.define;
 
+@Locale("zh-CN")
 public interface TaskErrors {
     String ARG_STEP_ID = "stepId";
     String ARG_STEP_NAME = "stepName";
@@ -35,6 +37,8 @@ public interface TaskErrors {
     String ARG_GRAPH_STEP_NAME = "graphStepName";
 
     String ARG_LOOP_EDGES = "loopEdges";
+
+    String ARG_TASK_INSTANCE_ID = "taskInstanceId";
 
     ErrorCode ERR_TASK_STEP_NOT_RESTARTABLE = define("nop.err.task.step.not-restartable",
             "步骤[{stepName}]不允许多次执行", ARG_TASK_NAME, ARG_STEP_NAME);
@@ -96,4 +100,12 @@ public interface TaskErrors {
             define("nop.err.task.graph-step-contains-loop",
                     "流程图[{graphStepName}]包含循环结构，不满足要求，需要删除以下连接:{loopEdges}", ARG_GRAPH_STEP_NAME, ARG_LOOP_EDGES);
 
+
+    ErrorCode ERR_TASK_NO_PERSIST_STATE_STORE =
+            define("nop.err.task.nop-persist-state-store",
+                    "没有定义持久化任务状态存储");
+
+    ErrorCode ERR_TASK_UNKNOWN_TASK_INSTANCE =
+            define("nop.err.task.unknown-task-instance", "未知的任务实例:{taskInstanceId}",
+                    ARG_TASK_INSTANCE_ID);
 }

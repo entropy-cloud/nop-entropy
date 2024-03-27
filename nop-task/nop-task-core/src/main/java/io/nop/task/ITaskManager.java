@@ -8,13 +8,15 @@
 package io.nop.task;
 
 
+import io.nop.core.context.IServiceContext;
+
 public interface ITaskManager {
 
-    ITaskRuntime newTaskContext(String taskName, long version);
+    ITaskRuntime newTaskRuntime(String taskName, long version, boolean saveState, IServiceContext svcCtx);
 
-    ITaskRuntime getTaskContext(String taskId);
+    ITaskRuntime getTaskRuntime(String taskInstanceId, IServiceContext svcCtx);
 
-    ITask getTask(ITaskRuntime taskContext);
+    ITask getTask(String taskName, long taskVersion);
 
     ITaskStepLib getTaskStepLib(String libName, long libVersion);
 }

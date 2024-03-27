@@ -42,6 +42,24 @@ public abstract class _TaskStepsModel extends io.nop.task.model.TaskStepModel {
     }
 
     
+    public io.nop.task.model.TaskStepModel getStep(String name){
+        return this._steps.getByKey(name);
+    }
+
+    public boolean hasStep(String name){
+        return this._steps.containsKey(name);
+    }
+
+    public void addStep(io.nop.task.model.TaskStepModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.task.model.TaskStepModel> list = this.getSteps();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.task.model.TaskStepModel::getName);
+            setSteps(list);
+        }
+        list.add(item);
+    }
+    
     public java.util.Set<String> keySet_steps(){
         return this._steps.keySet();
     }

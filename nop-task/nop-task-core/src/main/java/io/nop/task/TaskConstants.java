@@ -8,7 +8,13 @@
 package io.nop.task;
 
 public interface TaskConstants {
-    char SPECIAL_STEP_PREFIX = '@';
+    String TASK_PATH = "/task";
+
+    String FILE_TYPE_TASK = "task.xml";
+
+    String FILE_TYPE_TASK_LIB = "task-lib.xml";
+
+    String MAIN_STEP_NAME = "@main";
 
     /**
      * 结束整个task
@@ -60,6 +66,8 @@ public interface TaskConstants {
     int TASK_STATUS_TIMEOUT = 60;
 
     int TASK_STATUS_HISTORY_BOUND = TASK_STATUS_COMPLETED;
+
+    int TASK_STEP_STATUS_ACTIVE = 10;
 
     String STEP_TYPE_XPL = "xpl";
 

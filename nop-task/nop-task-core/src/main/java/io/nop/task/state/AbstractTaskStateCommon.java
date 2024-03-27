@@ -17,7 +17,6 @@ public abstract class AbstractTaskStateCommon implements ITaskStateCommon {
     private Boolean internal;
     private Integer retryAttempt;
     private Integer partitionIndex;
-    private Integer partitionTotal;
     private Set<String> tags;
     private String bizObjName;
     private String bizObjKey;

@@ -5,7 +5,6 @@ import io.nop.api.core.ioc.BeanContainer;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.IEnhancedTaskStep;
-import io.nop.task.ITaskManager;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepChooseDecider;
 import io.nop.task.ITaskStepResultAggregator;
@@ -20,6 +19,7 @@ import io.nop.task.model.ExitTaskStepModel;
 import io.nop.task.model.ForkNTaskStepModel;
 import io.nop.task.model.ForkTaskStepModel;
 import io.nop.task.model.GraphTaskStepModel;
+import io.nop.task.model.IGraphTaskStepModel;
 import io.nop.task.model.InvokeTaskStepModel;
 import io.nop.task.model.LoopNTaskStepModel;
 import io.nop.task.model.LoopTaskStepModel;
@@ -32,6 +32,7 @@ import io.nop.task.model.SuspendTaskStepModel;
 import io.nop.task.model.TaskBeanModel;
 import io.nop.task.model.TaskChooseCaseModel;
 import io.nop.task.model.TaskDeciderModel;
+import io.nop.task.model.TaskFlowModel;
 import io.nop.task.model.TaskInputModel;
 import io.nop.task.model.TaskInvokeArgModel;
 import io.nop.task.model.TaskOutputModel;
@@ -74,15 +75,23 @@ import static io.nop.task.TaskErrors.ERR_TASK_UNSUPPORTED_STEP_TYPE;
 import static io.nop.task.utils.TaskStepHelper.notNull;
 
 public class TaskStepBuilder implements ITaskStepBuilder {
-    private final ITaskManager taskManager;
     private final XLangCompileTool compileTool;
 
     private final ITaskStepEnhancer stepEnhancer;
 
-    public TaskStepBuilder(ITaskManager taskManager) {
-        this.taskManager = taskManager;
+    public TaskStepBuilder() {
         this.compileTool = XLang.newCompileTool();
         this.stepEnhancer = new TaskStepEnhancer();
+    }
+
+    public ITaskStep buildMainStep(TaskFlowModel taskFlowModel) {
+        AbstractTaskStep step;
+        if (taskFlowModel.isGraphMode()) {
+            step = this.buildGraphStep(taskFlowModel);
+        } else {
+            step = buildSequentialStep(taskFlowModel);
+        }
+        return step;
     }
 
     @Override
@@ -178,7 +187,6 @@ public class TaskStepBuilder implements ITaskStepBuilder {
 
     private AbstractTaskStep buildCallTask(CallTaskStepModel stepModel) {
         CallTaskStep ret = new CallTaskStep();
-        ret.setTaskManager(taskManager);
         ret.setTaskName(stepModel.getTaskName());
         ret.setTaskVersion(stepModel.getTaskVersion());
         return ret;
@@ -186,7 +194,6 @@ public class TaskStepBuilder implements ITaskStepBuilder {
 
     private AbstractTaskStep buildCallStep(CallStepTaskStepModel stepModel) {
         CallStepTaskStep ret = new CallStepTaskStep();
-        ret.setTaskManager(taskManager);
         ret.setLibName(stepModel.getLibName());
         ret.setLibVersion(stepModel.getLibVersion());
         ret.setStepName(stepModel.getStepName());
@@ -242,14 +249,7 @@ public class TaskStepBuilder implements ITaskStepBuilder {
     }
 
     private SequentialTaskStep buildSequentialBody(TaskStepsModel stepModel) {
-        List<IEnhancedTaskStep> steps = new ArrayList<>(stepModel.getSteps().size());
-        for (TaskStepModel subStepModel : stepModel.getSteps()) {
-            steps.add(buildEnhancedStep(subStepModel));
-        }
-
-        SequentialTaskStep ret = new SequentialTaskStep();
-        ret.setSteps(steps);
-        return ret;
+        return buildSequentialStep(stepModel);
     }
 
     private ParallelTaskStep buildParallelStep(ParallelTaskStepModel stepModel) {
@@ -370,8 +370,8 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         return ret;
     }
 
-    private GraphTaskStep buildGraphStep(GraphTaskStepModel stepModel) {
-        return new GraphStepBuilder().buildGraphStep(stepModel,this);
+    private GraphTaskStep buildGraphStep(IGraphTaskStepModel stepModel) {
+        return new GraphStepBuilder().buildGraphStep(stepModel, this);
     }
 
     @Override
