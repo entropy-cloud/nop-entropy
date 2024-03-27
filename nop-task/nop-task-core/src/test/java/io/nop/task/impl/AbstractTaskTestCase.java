@@ -1,10 +1,13 @@
 package io.nop.task.impl;
 
+import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.task.ITask;
 import io.nop.task.ITaskManager;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.TaskConstants;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.util.Map;
@@ -14,6 +17,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public abstract class AbstractTaskTestCase extends BaseTestCase {
 
     protected ITaskManager taskManager;
+
+    @BeforeAll
+    public static void init() {
+        CoreInitialization.initialize();
+    }
+
+    @AfterAll
+    public static void destroy() {
+        CoreInitialization.destroy();
+    }
 
     @BeforeEach
     public void setUp() {
