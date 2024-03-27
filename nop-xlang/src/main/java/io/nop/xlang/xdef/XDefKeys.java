@@ -30,6 +30,11 @@ public class XDefKeys implements Serializable {
     public final String NS;
 
     public final String VERSION;
+
+    public final String MODEL_NAME_PROP;
+
+    public final String MODEL_VERSION_PROP;
+
     public final String PARSE_KEEP_COMMENT;
     public final String PARSE_FOR_HTML;
     public final String PARSER_CLASS;
@@ -94,6 +99,8 @@ public class XDefKeys implements Serializable {
     public XDefKeys(String ns) {
         NS = ns;
         VERSION = getFullName(ns, "version");
+        MODEL_NAME_PROP = getFullName(ns, "model-name-prop");
+        MODEL_VERSION_PROP = getFullName(ns, "model-version-prop");
         PARSE_KEEP_COMMENT = getFullName(ns, "parse-keep-comment");
         PARSE_FOR_HTML = getFullName(ns, "parse-for-html");
         PARSER_CLASS = getFullName(ns, "parser-class");
@@ -156,7 +163,7 @@ public class XDefKeys implements Serializable {
                 UNKNOWN_ATTR, DEFAULT_OVERRIDE, INTERNAL, DEPRECATED);
 
         List<String> rootAttrs = new ArrayList<>(Arrays.asList(VERSION, PARSE_KEEP_COMMENT, PARSE_FOR_HTML,
-                PARSER_CLASS, DEFAULT_EXTENDS, BEAN_PACKAGE, CHECK_NS, PROP_NS, BASE));
+                PARSER_CLASS, DEFAULT_EXTENDS, BEAN_PACKAGE, CHECK_NS, PROP_NS, BASE, MODEL_NAME_PROP, MODEL_VERSION_PROP));
         rootAttrs.addAll(ATTR_NAMES);
 
         ROOT_ATTR_NAMES = CollectionHelper.immutableSet(rootAttrs);

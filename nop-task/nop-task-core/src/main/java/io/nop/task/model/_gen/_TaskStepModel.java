@@ -84,7 +84,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
      * xml name: saveState
      * 是否需要持久化状态用于失败后重新执行本步骤时的状态恢复
      */
-    private boolean _saveState  = false;
+    private java.lang.Boolean _saveState ;
     
     /**
      *  
@@ -284,12 +284,12 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
      *  是否需要持久化状态用于失败后重新执行本步骤时的状态恢复
      */
     
-    public boolean isSaveState(){
+    public java.lang.Boolean getSaveState(){
       return _saveState;
     }
 
     
-    public void setSaveState(boolean value){
+    public void setSaveState(java.lang.Boolean value){
         checkAllowChange();
         
         this._saveState = value;
@@ -378,7 +378,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         out.putNotNull("next",this.getNext());
         out.putNotNull("nextOnError",this.getNextOnError());
         out.putNotNull("runOnContext",this.isRunOnContext());
-        out.putNotNull("saveState",this.isSaveState());
+        out.putNotNull("saveState",this.getSaveState());
         out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("useParentScope",this.isUseParentScope());
         out.putNotNull("waitSteps",this.getWaitSteps());
@@ -402,7 +402,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         instance.setNext(this.getNext());
         instance.setNextOnError(this.getNextOnError());
         instance.setRunOnContext(this.isRunOnContext());
-        instance.setSaveState(this.isSaveState());
+        instance.setSaveState(this.getSaveState());
         instance.setTagSet(this.getTagSet());
         instance.setUseParentScope(this.isUseParentScope());
         instance.setWaitSteps(this.getWaitSteps());

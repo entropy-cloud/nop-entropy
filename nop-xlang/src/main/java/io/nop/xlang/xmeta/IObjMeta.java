@@ -8,11 +8,8 @@
 package io.nop.xlang.xmeta;
 
 import io.nop.api.core.beans.FieldSelectionBean;
-import io.nop.api.core.beans.ITreeBean;
-import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.commons.lang.ITagSetSupport;
-import io.nop.core.lang.xml.IXNodeGenerator;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.hook.IExtensibleObject;
 import io.nop.xlang.xdsl.IXDslModel;
@@ -25,6 +22,10 @@ import java.util.Set;
 
 public interface IObjMeta extends IXDslModel, IObjSchema, ITagSetSupport, IExtensibleObject {
     String getVersion();
+
+    String getModelNameProp();
+
+    String getModelVersionProp();
 
     List<OrderFieldBean> getOrderBy();
 

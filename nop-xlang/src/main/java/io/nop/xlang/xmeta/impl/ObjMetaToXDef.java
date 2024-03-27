@@ -17,9 +17,19 @@ import io.nop.xlang.xdef.impl.XDefAttribute;
 import io.nop.xlang.xdef.impl.XDefComment;
 import io.nop.xlang.xdef.impl.XDefNode;
 import io.nop.xlang.xdef.impl.XDefinition;
-import io.nop.xlang.xmeta.*;
+import io.nop.xlang.xmeta.IListSchema;
+import io.nop.xlang.xmeta.IObjMeta;
+import io.nop.xlang.xmeta.IObjPropMeta;
+import io.nop.xlang.xmeta.IObjSchema;
+import io.nop.xlang.xmeta.ISchema;
+import io.nop.xlang.xmeta.ISimpleSchema;
+import io.nop.xlang.xmeta.IUnionSchema;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ObjMetaToXDef implements IComponentTransformer<IObjMeta, XDefinition> {
     private final XDefKeys keys;
@@ -41,6 +51,9 @@ public class ObjMetaToXDef implements IComponentTransformer<IObjMeta, XDefinitio
         def.setXdefBeanPackage(objMeta.getPackageName());
         def.setXdefParserClass(objMeta.getParserClass());
         def.setXdefDefaultExtends(objMeta.getDefaultExtends());
+        def.setXdefModelNameProp(objMeta.getModelNameProp());
+        def.setXdefModelVersionProp(objMeta.getModelVersionProp());
+
         def.setDefKeys(keys);
         def.setXdefCheckNs(objMeta.getCheckNs());
         def.setLocation(objMeta.getLocation());

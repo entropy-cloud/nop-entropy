@@ -361,7 +361,7 @@ poi很大，最少有10几M，而且很慢。nop-ooxml-xlsx是利用Nop平台自
 比POI快很多，内存消耗也小很多，但是支持的功能不多，只支持目前report开发中用到的xlsx特性。
 
 ## 28. Excel模型中updateTime等系统约定的特殊字段能改成自己定义的名称吗？比如updateTime修改为updatedAt
-代码生成的时候会特殊识别如下数据域:createdBy 、 updateTime 、 updatedBy 、 delFlagversion 、createTime tenantId 。标记了这些数据域的字段会被自动识别为ORM引擎所支持的乐观锁字段、创建时间字段等。
+代码生成的时候会特殊识别如下数据域:createdBy 、 updateTime 、 updatedBy 、 delFlag、version 、createTime tenantId 。标记了这些数据域的字段会被自动识别为ORM引擎所支持的乐观锁字段、创建时间字段等。
 数据域不能改，数据库字段名可以改.
 
 ## 29. auth模块有没有类似spring security的匿名用户和匿名角色？

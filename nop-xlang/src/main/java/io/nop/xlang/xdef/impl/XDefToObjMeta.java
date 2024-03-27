@@ -73,6 +73,9 @@ public class XDefToObjMeta {
         meta.setParserClass(def.getXdefParserClass());
         meta.setCheckNs(def.getXdefCheckNs());
         meta.setDefaultExtends(def.getXdefDefaultExtends());
+        meta.setModelNameProp(def.getXdefModelNameProp());
+        meta.setModelVersionProp(def.getXdefModelVersionProp());
+
         initSchema(meta, def);
 
         meta.setRefResolved(def.isRefResolved());

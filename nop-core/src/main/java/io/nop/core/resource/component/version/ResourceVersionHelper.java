@@ -97,8 +97,17 @@ public class ResourceVersionHelper {
         return true;
     }
 
+    public static String buildResolvePath(String modelType, String name, Long version) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("resolve-").append(modelType).append(':').append(name);
+        if (version != null && version > 0) {
+            sb.append("/v").append(version);
+        }
+        return sb.toString();
+    }
+
     public static String buildPath(String basePath, String name, Long version, String fileType) {
-        if (version == null)
+        if (version == null || version <= 0)
             version = 1L;
         return StringHelper.appendPath(basePath, name) + "/v" + version + "." + fileType;
     }
@@ -109,24 +118,27 @@ public class ResourceVersionHelper {
                     .param(ARG_PATH, path)
                     .param(ARG_BASE_PATH, path);
 
-        path = path.substring(basePath.length());
-        int pos = path.lastIndexOf('/');
+        String subPath = path.substring(basePath.length());
+        if (subPath.startsWith("/"))
+            subPath = subPath.substring(1);
+
+        int pos = subPath.lastIndexOf('/');
         if (pos < 0) {
-            String name = path;
+            String name = subPath;
             return new VersionedName(name, -1L);
         }
 
-        String name = path.substring(0, pos);
+        String name = subPath.substring(0, pos);
 
-        String versionStr = path.substring(pos + 1);
+        String versionStr = subPath.substring(pos + 1);
         int pos2 = versionStr.indexOf('.');
         if (pos2 > 0)
-            versionStr = versionStr.substring(0, pos);
+            versionStr = versionStr.substring(0, pos2);
 
         if (!isNumberVersionString(versionStr))
             throw new NopException(ERR_RESOURCE_INVALID_VERSIONED_PATH)
                     .param(ARG_PATH, path)
-                    .param(ARG_BASE_PATH, path);
+                    .param(ARG_BASE_PATH, basePath);
 
         return new VersionedName(name, getNumberVersion(versionStr));
     }

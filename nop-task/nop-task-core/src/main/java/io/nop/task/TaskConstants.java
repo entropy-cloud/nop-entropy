@@ -8,7 +8,7 @@
 package io.nop.task;
 
 public interface TaskConstants {
-    String TASK_PATH = "/task";
+    String MODEL_TYPE_TASk = "task";
 
     String FILE_TYPE_TASK = "task.xml";
 

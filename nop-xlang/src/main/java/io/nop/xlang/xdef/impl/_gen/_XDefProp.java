@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [83:10:0:0]/nop/schema/xdef.xdef <p>
+ * generate from [84:10:0:0]/nop/schema/xdef.xdef <p>
  * xdef转换为objMeta时，objPropMeta上存在的扩展属性
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

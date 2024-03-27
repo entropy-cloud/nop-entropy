@@ -151,8 +151,9 @@ public class RegisterModelDiscovery {
         boolean supportVersion = true;
 
         Object resolveHandler = BeanTool.getProperty(model, "resolveHandler");
+        String resolveInDir = null;
         if (resolveHandler != null) {
-            String resolveInDir = (String) BeanTool.getProperty(resolveHandler, "resolveInDir");
+            resolveInDir = (String) BeanTool.getProperty(resolveHandler, "resolveInDir");
             config.setResolveInDir(resolveInDir);
             config.setResolveDefaultLoader(buildDefaultResolveLoader(resolveHandler));
             supportVersion = ConvertHelper.toPrimitiveBoolean(
@@ -169,15 +170,16 @@ public class RegisterModelDiscovery {
                 if ("xdsl-loader".equals(type)) {
                     String schemaPath = (String) BeanTool.getProperty(loader, "schemaPath");
                     config.setXdefPath(schemaPath);
+                    String resolveInDirParam = resolveInDir;
                     config.loader(fileType, new IResourceObjectLoader<IComponentModel>() {
                         @Override
                         public IComponentModel loadObjectFromPath(String path) {
-                            return new DslModelParser(schemaPath).parseFromVirtualPath(path);
+                            return new DslModelParser(schemaPath).resolveInDir(resolveInDirParam).parseFromVirtualPath(path);
                         }
 
                         @Override
                         public IComponentModel parseFromResource(IResource resource) {
-                            return new DslModelParser(schemaPath).parseFromResource(resource);
+                            return new DslModelParser(schemaPath).resolveInDir(resolveInDirParam).parseFromResource(resource);
                         }
                     });
                 } else if ("xlsx-loader".equals(type)) {

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <meta xdef:bean-package="io.nop.xlang.xmeta.impl" xdef:name="ObjMetaImpl" xdef:ref="schema/obj-schema.xdef"
-      tagSet="tag-set" xmlName="string"
+      tagSet="tag-set" xmlName="string" modelNameProp="string" modelVersionProp="string"
       version="string" defaultExtends="v-path"
       parseForHtml="boolean" parseKeepComment="boolean"
       parserClass="class-name" checkNs="csv-set" propNs="csv-set"

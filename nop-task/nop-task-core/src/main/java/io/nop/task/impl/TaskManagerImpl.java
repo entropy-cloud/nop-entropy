@@ -53,7 +53,7 @@ public class TaskManagerImpl implements ITaskManagerImplementor {
         ITaskStateStore stateStore = saveState ? requirePersistStateState() : nonPersistStateStore;
         TaskRuntimeImpl taskRt = new TaskRuntimeImpl(this, stateStore, svcCtx, false);
 
-        ITaskState taskState = taskStateStore.newTaskState(taskName, version, taskRt);
+        ITaskState taskState = stateStore.newTaskState(taskName, version, taskRt);
         taskRt.setTaskState(taskState);
         return taskRt;
     }
@@ -66,8 +66,9 @@ public class TaskManagerImpl implements ITaskManagerImplementor {
 
     @Override
     public ITaskRuntime getTaskRuntime(String taskInstanceId, IServiceContext svcCtx) {
-        TaskRuntimeImpl taskRt = new TaskRuntimeImpl(this, requirePersistStateState(), svcCtx,true);
-        ITaskState taskState = taskStateStore.loadTaskState(taskInstanceId, taskRt);
+        ITaskStateStore stateStore = requirePersistStateState();
+        TaskRuntimeImpl taskRt = new TaskRuntimeImpl(this, stateStore, svcCtx, true);
+        ITaskState taskState = stateStore.loadTaskState(taskInstanceId, taskRt);
         if (taskState == null)
             throw new NopException(ERR_TASK_UNKNOWN_TASK_INSTANCE)
                     .param(ARG_TASK_INSTANCE_ID, taskInstanceId);
@@ -77,14 +78,14 @@ public class TaskManagerImpl implements ITaskManagerImplementor {
 
     @Override
     public ITask getTask(String taskName, long taskVersion) {
-        String path = ResourceVersionHelper.buildPath(TaskConstants.TASK_PATH, taskName, taskVersion, TaskConstants.FILE_TYPE_TASK);
+        String path = ResourceVersionHelper.buildResolvePath(TaskConstants.MODEL_TYPE_TASk, taskName, taskVersion);
         TaskFlowModel taskFlowModel = (TaskFlowModel) ResourceComponentManager.instance().loadComponentModel(path);
         return taskFlowModel.getTask();
     }
 
     @Override
     public ITaskStepLib getTaskStepLib(String libName, long libVersion) {
-        String path = ResourceVersionHelper.buildPath(TaskConstants.TASK_PATH, libName, libVersion, TaskConstants.FILE_TYPE_TASK_LIB);
+        String path = ResourceVersionHelper.buildResolvePath(TaskConstants.MODEL_TYPE_TASk, libName, libVersion);
         TaskFlowModel taskFlowModel = (TaskFlowModel) ResourceComponentManager.instance().loadComponentModel(path);
         return taskFlowModel.getTaskStepLib();
     }

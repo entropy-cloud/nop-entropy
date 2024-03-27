@@ -9,7 +9,11 @@ package io.nop.xlang.xdsl;
 
 import io.nop.api.core.util.IComponentModel;
 import io.nop.api.core.util.INeedInit;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.reflect.bean.BeanTool;
+import io.nop.core.resource.component.version.ResourceVersionHelper;
+import io.nop.core.resource.component.version.VersionedName;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdsl.json.DslBeanModelParser;
 import io.nop.xlang.xdsl.json.DslXNodeToJsonTransformer;
@@ -26,11 +30,29 @@ public class DslModelParser extends AbstractDslParser<IComponentModel> {
 
     private boolean ignoreUnknown;
 
+    private String resolveInDir;
+
     public DslModelParser(String requiredSchema) {
         this.setRequiredSchema(requiredSchema);
     }
 
     public DslModelParser() {
+    }
+
+    public String getResolveInDir() {
+        return resolveInDir;
+    }
+
+    public DslModelParser resolveInDir(String dir) {
+        this.setResolveInDir(dir);
+        return this;
+    }
+
+    public void setResolveInDir(String resolveInDir) {
+        if (resolveInDir != null && resolveInDir.startsWith("/") && !resolveInDir.endsWith("/")) {
+            resolveInDir = resolveInDir + "/";
+        }
+        this.resolveInDir = resolveInDir;
     }
 
     public DslModelParser ignoreUnknown(boolean ignoreUnknown) {
@@ -59,8 +81,34 @@ public class DslModelParser extends AbstractDslParser<IComponentModel> {
         return doParseNode(node);
     }
 
+    protected IComponentModel initModelName(IComponentModel model) {
+        if (resolveInDir == null)
+            return model;
+
+        IXDefinition def = getXdef();
+        if (def.getXdefModelNameProp() == null)
+            return model;
+
+        String path = getResourcePath();
+        if (StringHelper.isEmpty(path))
+            return model;
+
+        VersionedName versionedName = ResourceVersionHelper.parseVersionedName(path, resolveInDir, true);
+        if (def.getXdefModelNameProp() != null) {
+            BeanTool.setProperty(model, def.getXdefModelNameProp(), versionedName.getName());
+        }
+        if (def.getXdefModelVersionProp() != null) {
+            BeanTool.setProperty(model, def.getXdefModelVersionProp(), versionedName.getVersion());
+        }
+        return model;
+    }
+
     @Override
     protected IComponentModel doParseNode(XNode node) {
+        return initModelName(doParseNode0(node));
+    }
+
+    protected IComponentModel doParseNode0(XNode node) {
         IXDefinition xdef = getXdef();
         if (dynamic || forEditor) {
             Object obj = new DslXNodeToJsonTransformer(forEditor, xdef, getCompileTool()).ignoreUnknown(ignoreUnknown).parseObject(node);

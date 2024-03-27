@@ -141,6 +141,8 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
             checkNs = Collections.emptySet();
 
         String xdefBase = node.attrText(keys.BASE);
+        String xdefModelNameProp = node.attrText(keys.MODEL_NAME_PROP);
+        String xdefModelVersionProp = node.attrText(keys.MODEL_VERSION_PROP);
 
         Set<String> propNs = node.attrCsvSet(keys.PROP_NS);
         if (propNs == null)
@@ -173,6 +175,8 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
         def.setXdefPropNs(propNs);
         def.setXdefBeanPackage(beanPackage);
         def.setXdefBase(xdefBase);
+        def.setXdefModelNameProp(xdefModelNameProp);
+        def.setXdefModelVersionProp(xdefModelVersionProp);
 
         XNode postParse = node.uniqueChild(keys.POST_PARSE);
         if (postParse != null) {

@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [20:2:0:0]/nop/schema/xdef.xdef <p>
+ * generate from [21:2:0:0]/nop/schema/xdef.xdef <p>
  * xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即使用xdef来定义xdef本身。
  * 本文件定义了一般的xdef元模型定义文件中允许使用的xdef属性和标签的具体位置和格式。
  */
@@ -46,6 +46,20 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
      * 通过此机制可以引入全局模型假定，简化模型配置。特别是结合x:post-extends机制可以实现自定义的可视化设计器。
      */
     private java.lang.String _xdefDefaultExtends ;
+    
+    /**
+     *  
+     * xml name: xdef:model-name-prop
+     * 将模型的名称保存到解析后的模型对象上，成为某个属性。因为模型名称有可能体现在它的资源路径中，并不直接在模型中指定
+     */
+    private java.lang.String _xdefModelNameProp ;
+    
+    /**
+     *  
+     * xml name: xdef:model-version-prop
+     * 
+     */
+    private java.lang.String _xdefModelVersionProp ;
     
     /**
      *  
@@ -172,6 +186,44 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
         checkAllowChange();
         
         this._xdefDefaultExtends = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: xdef:model-name-prop
+     *  将模型的名称保存到解析后的模型对象上，成为某个属性。因为模型名称有可能体现在它的资源路径中，并不直接在模型中指定
+     */
+    
+    public java.lang.String getXdefModelNameProp(){
+      return _xdefModelNameProp;
+    }
+
+    
+    public void setXdefModelNameProp(java.lang.String value){
+        checkAllowChange();
+        
+        this._xdefModelNameProp = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: xdef:model-version-prop
+     *  
+     */
+    
+    public java.lang.String getXdefModelVersionProp(){
+      return _xdefModelVersionProp;
+    }
+
+    
+    public void setXdefModelVersionProp(java.lang.String value){
+        checkAllowChange();
+        
+        this._xdefModelVersionProp = value;
            
     }
 
@@ -330,6 +382,8 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
         out.putNotNull("xdefBeanPackage",this.getXdefBeanPackage());
         out.putNotNull("xdefCheckNs",this.getXdefCheckNs());
         out.putNotNull("xdefDefaultExtends",this.getXdefDefaultExtends());
+        out.putNotNull("xdefModelNameProp",this.getXdefModelNameProp());
+        out.putNotNull("xdefModelVersionProp",this.getXdefModelVersionProp());
         out.putNotNull("xdefParseForHtml",this.getXdefParseForHtml());
         out.putNotNull("xdefParseKeepComment",this.getXdefParseKeepComment());
         out.putNotNull("xdefParserClass",this.getXdefParserClass());
@@ -352,6 +406,8 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
         instance.setXdefBeanPackage(this.getXdefBeanPackage());
         instance.setXdefCheckNs(this.getXdefCheckNs());
         instance.setXdefDefaultExtends(this.getXdefDefaultExtends());
+        instance.setXdefModelNameProp(this.getXdefModelNameProp());
+        instance.setXdefModelVersionProp(this.getXdefModelVersionProp());
         instance.setXdefParseForHtml(this.getXdefParseForHtml());
         instance.setXdefParseKeepComment(this.getXdefParseKeepComment());
         instance.setXdefParserClass(this.getXdefParserClass());

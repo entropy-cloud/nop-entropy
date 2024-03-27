@@ -68,6 +68,20 @@ public abstract class _ObjMetaImpl extends io.nop.xlang.xmeta.impl.ObjSchemaImpl
     
     /**
      *  
+     * xml name: modelNameProp
+     * 
+     */
+    private java.lang.String _modelNameProp ;
+    
+    /**
+     *  
+     * xml name: modelVersionProp
+     * 
+     */
+    private java.lang.String _modelVersionProp ;
+    
+    /**
+     *  
      * xml name: orderBy
      * 排序条件。追加到GraphQL的query查询条件中
      */
@@ -328,6 +342,44 @@ public abstract class _ObjMetaImpl extends io.nop.xlang.xmeta.impl.ObjSchemaImpl
     public boolean hasKeys(){
         return !this._keys.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: modelNameProp
+     *  
+     */
+    
+    public java.lang.String getModelNameProp(){
+      return _modelNameProp;
+    }
+
+    
+    public void setModelNameProp(java.lang.String value){
+        checkAllowChange();
+        
+        this._modelNameProp = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: modelVersionProp
+     *  
+     */
+    
+    public java.lang.String getModelVersionProp(){
+      return _modelVersionProp;
+    }
+
+    
+    public void setModelVersionProp(java.lang.String value){
+        checkAllowChange();
+        
+        this._modelVersionProp = value;
+           
+    }
+
     
     /**
      * 
@@ -622,6 +674,8 @@ public abstract class _ObjMetaImpl extends io.nop.xlang.xmeta.impl.ObjSchemaImpl
         out.putNotNull("entityName",this.getEntityName());
         out.putNotNull("filter",this.getFilter());
         out.putNotNull("keys",this.getKeys());
+        out.putNotNull("modelNameProp",this.getModelNameProp());
+        out.putNotNull("modelVersionProp",this.getModelVersionProp());
         out.putNotNull("orderBy",this.getOrderBy());
         out.putNotNull("parseForHtml",this.getParseForHtml());
         out.putNotNull("parseKeepComment",this.getParseKeepComment());
@@ -651,6 +705,8 @@ public abstract class _ObjMetaImpl extends io.nop.xlang.xmeta.impl.ObjSchemaImpl
         instance.setEntityName(this.getEntityName());
         instance.setFilter(this.getFilter());
         instance.setKeys(this.getKeys());
+        instance.setModelNameProp(this.getModelNameProp());
+        instance.setModelVersionProp(this.getModelVersionProp());
         instance.setOrderBy(this.getOrderBy());
         instance.setParseForHtml(this.getParseForHtml());
         instance.setParseKeepComment(this.getParseKeepComment());

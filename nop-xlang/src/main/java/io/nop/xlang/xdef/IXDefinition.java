@@ -25,6 +25,10 @@ public interface IXDefinition extends IXDefNode, IXDslModel {
 
     String getXdefBase();
 
+    String getXdefModelNameProp();
+
+    String getXdefModelVersionProp();
+
     /**
      * 包含所有refSchema以及当前schema的路径。可以用于判断xdef文件是否从特定的基础xdef继承而来。
      *
