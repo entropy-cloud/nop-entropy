@@ -11,6 +11,9 @@
 
     <artifactId>nop-rpc-server-demo</artifactId>
 
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
 
     <dependencyManagement>
         <dependencies>

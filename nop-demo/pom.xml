@@ -16,6 +16,10 @@
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
+	<properties>
+	    <maven.deploy.skip>true</maven.deploy.skip>
+	</properties>
+
     <modules>
         <module>nop-quarkus-demo</module>
         <module>nop-spring-demo</module>

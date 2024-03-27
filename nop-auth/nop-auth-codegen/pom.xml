@@ -13,6 +13,10 @@
 
     <artifactId>nop-auth-codegen</artifactId>
 
+	<properties>
+	    <maven.deploy.skip>true</maven.deploy.skip>
+	</properties>
+
     <dependencies>
         <!-- 解析orm.xlsx模型文件需要依赖 -->
         <dependency>
