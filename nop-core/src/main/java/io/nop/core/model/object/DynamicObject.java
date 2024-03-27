@@ -272,6 +272,10 @@ public class DynamicObject extends AbstractFreezable implements IComponentModel,
                     .param(ARG_PROP_NAME, propName).param(ARG_OLD_VALUE, old).param(ARG_NEW_VALUE, value);
     }
 
+    public void removeProp(String propName) {
+        propValues.remove(propName);
+    }
+
     private void checkPropName(String propName) {
         if (StringHelper.isEmpty(propName))
             throw new NopException(ERR_LANG_DYNAMIC_OBJECT_EMPTY_PROP_NAME).loc(getLocation()).param(ARG_OBJ, this);
