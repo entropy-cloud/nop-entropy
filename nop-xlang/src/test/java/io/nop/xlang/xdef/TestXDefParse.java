@@ -50,7 +50,23 @@ public class TestXDefParse {
     @Test
     public void testXDefToXMeta() {
         IObjMeta objMeta = SchemaLoader.loadXMeta("/nop/schema/orm/orm.xdef");
-        XNode node = DslModelHelper.dslModelToXNode("/nop/schema/xmeta.xdef",objMeta);
+        XNode node = DslModelHelper.dslModelToXNode("/nop/schema/xmeta.xdef", objMeta);
         node.dump();
+    }
+
+    @Test
+    public void testInherit() {
+        IXDefinition def = new XDefinitionParser().parseFromResource(VirtualFileSystem.instance().getResource("/nop/schema/task/task.xdef"));
+        IXDefNode defNode = def.getXdefDefine("TaskStepsModel");
+        IXDefNode loopNode = defNode.getChild("steps").getChild("loop");
+        assertTrue(loopNode.getChild("input") != null);
+    }
+
+    @Test
+    public void testMultipleNest() {
+        IXDefinition def = new XDefinitionParser().parseFromResource(VirtualFileSystem.instance().getResource("/nop/schema/beans.xdef"));
+        IXDefNode defNode = def.getXdefDefine("BeanListValue");
+        IXDefNode valueNode = defNode.getChild("value");
+        assertTrue(valueNode != null);
     }
 }

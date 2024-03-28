@@ -1,120 +1,121 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 package io.nop.xlang.xdef.impl;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.util.Guard;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.reflect.hook.SerializableExtensibleObject;
-import io.nop.core.resource.ResourceHelper;
+import io.nop.xlang.utils.RefResolver;
 import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xmeta.SchemaLoader;
 
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import static io.nop.xlang.XLangErrors.ARG_ATTR_NAME;
 import static io.nop.xlang.XLangErrors.ARG_LOC_A;
 import static io.nop.xlang.XLangErrors.ARG_LOC_B;
 import static io.nop.xlang.XLangErrors.ARG_REF_NAME;
+import static io.nop.xlang.XLangErrors.ARG_TAG_NAME;
 import static io.nop.xlang.XLangErrors.ARG_TYPE_A;
 import static io.nop.xlang.XLangErrors.ARG_TYPE_B;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_ATTR_NOT_ALLOW_OVERRIDE_REF;
-import static io.nop.xlang.XLangErrors.ERR_XDEF_REF_NOT_ALLOW_CIRCULAR_REFERENCE;
+import static io.nop.xlang.XLangErrors.ERR_XDEF_CHILD_NOT_ALLOW_OVERRIDE_REF;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_UNKNOWN_DEFINITION_REF;
 
 public class XDefRefResolver {
-    private ResolveState resolveState;
+    static ThreadLocal<RefResolver.ResolveState<XDefNode>> s_state = new ThreadLocal<>();
+
     private Set<String> propNs;
 
-    // tell cpd to start ignoring code - CPD-OFF
-
-    /**
-     * 在resolve过程中通过上下文缓存识别循环引用
-     */
-    static class ResolveState {
-        static ThreadLocal<ResolveState> s_state = new ThreadLocal<>();
-
-        int refCount;
-        Map<String, IXDefNode> refCache = new HashMap<>();
-        Set<String> resolving = new HashSet<>();
-
-        static ResolveState get() {
-            ResolveState state = s_state.get();
-            if (state == null) {
-                state = new ResolveState();
-                s_state.set(state);
-            }
-            state.inc();
-            return state;
-        }
-
-        public void inc() {
-            refCount++;
-        }
-
-        public boolean dec() {
-            refCount--;
-            if (refCount == 0) {
-                s_state.remove();
-                return true;
-            }
-            return false;
-        }
-    }
-    // resume CPD analysis - CPD-ON
-
     public void resolve(XDefinition def) {
-        Guard.notEmpty(def.resourcePath(), "def.resourcePath");
+        propNs = def.getXdefPropNs();
 
-        // def.toNode().dump();
-
-        resolveState = ResolveState.get();
-
-        try {
-            String stdPath = ResourceHelper.getStdPath(def.resourcePath());
-            if (!resolveState.resolving.add(stdPath))
-                throw new NopException(ERR_XDEF_REF_NOT_ALLOW_CIRCULAR_REFERENCE).param(ARG_REF_NAME, stdPath);
-
-            for (IXDefNode localDef : def.getXdefDefines()) {
-                String refPath = XDefHelper.buildFullRefPath(stdPath, localDef.getXdefName());
-                resolveState.refCache.put(refPath, localDef);
+        new RefResolver<XDefNode>().resolve(new RefResolver.IResolveNodeModel<>() {
+            @Override
+            public String getRef(XDefNode node) {
+                return node.getXdefRef();
             }
 
-            resolveRef(def);
-
-            propNs = def.getXdefPropNs();
-
-            for (IXDefNode localDef : def.getXdefDefines()) {
-                resolveNode(localDef);
+            @Override
+            public XDefNode getRefNode(XDefNode node) {
+                return (XDefNode) node.getRefNode();
             }
 
-            if (def.getRefNode() != null)
-                resolveNode(def.getRefNode());
+            @Override
+            public boolean isRefResolved(XDefNode node) {
+                return node.isRefResolved();
+            }
 
-            def.setRefResolved(true);
-            resolveAttrs(def);
+            @Override
+            public void setRefNode(XDefNode node, XDefNode refNode) {
+                if (node.isRefResolved())
+                    return;
+                node.setRefNode(refNode);
+                node.setRefResolved(true);
+            }
 
-            resolveChildren(def);
+            @Override
+            public void mergeNode(XDefNode node, XDefNode refNode) {
+                if (node.frozen())
+                    return;
 
-            LinkedHashSet<String> refPaths = new LinkedHashSet<>();
-            collectRefPaths(def, refPaths);
-            def.setAllRefSchemas(refPaths);
+                mergeDefNode(node, refNode);
+            }
 
-            // def.toNode().dump();
-        } finally {
-            resolveState.dec();
-        }
+            @Override
+            public String getResourcePath() {
+                return def.resourcePath();
+            }
+
+            @Override
+            public Map<String, XDefNode> getNamedNodes() {
+                Map<String, XDefNode> ret = new HashMap<>();
+                def.getXdefDefines().forEach(node -> {
+                    ret.put(node.getXdefName(), node);
+                });
+                return ret;
+            }
+
+            @Override
+            public void forEachNode(Consumer<XDefNode> consumer) {
+                Set<XDefNode> visited = CollectionHelper.newIdentityHashSet();
+                def.getXdefDefines().forEach(node -> {
+                    if (node.isExplicitDefine())
+                        visitNode(node, consumer, visited);
+                });
+                visitNode(def.getRootNode(), consumer, visited);
+            }
+
+            @Override
+            public XDefNode loadRefNode(XDefNode node, String refPath) {
+                String localRef = XDefHelper.getLocalRef(refPath);
+                if (localRef != null) {
+                    throw new NopException(ERR_XDEF_UNKNOWN_DEFINITION_REF).param(ARG_REF_NAME, refPath).source(node);
+                } else {
+                    IXDefinition refDef;
+                    try {
+                        refDef = SchemaLoader.loadXDefinition(refPath);
+                    } catch (NopException e) {
+                        e.addXplStack(node);
+                        throw e;
+                    }
+
+                    if (refDef == null)
+                        throw new NopException(ERR_XDEF_UNKNOWN_DEFINITION_REF).param(ARG_REF_NAME, refPath).source(node);
+                    return (XDefNode) refDef.getRootNode();
+                }
+            }
+        }, s_state);
+
+        LinkedHashSet<String> refPaths = new LinkedHashSet<>();
+        collectRefPaths(def, refPaths);
+        def.setAllRefSchemas(refPaths);
     }
 
     void collectRefPaths(IXDefNode node, Set<String> refPaths) {
@@ -122,6 +123,39 @@ public class XDefRefResolver {
             collectRefPaths(node.getRefNode(), refPaths);
         }
         refPaths.add(node.resourcePath());
+    }
+
+    private static void visitNode(XDefNode node, Consumer<XDefNode> consumer, Set<XDefNode> visited) {
+
+        if (!visited.add(node))
+            return;
+
+        consumer.accept(node);
+
+        for (XDefNode child : node.getChildren().values()) {
+            visitNode(child, consumer, visited);
+        }
+
+        if (node.getXdefUnknownTag() != null)
+            visitNode(node.getXdefUnknownTag(), consumer, visited);
+    }
+
+    private void mergeDefNode(XDefNode defNode, XDefNode refNode) {
+        mergeRefNodeProps(refNode, defNode);
+        mergeAttrs(refNode, defNode);
+        mergeChildren(refNode, defNode);
+
+        if (defNode.getXdefBeanChildName() == null) {
+            if (defNode.getXdefKeyAttr() != null) {
+                if (defNode.getChildren().size() == 1) {
+                    IXDefNode childDef = defNode.getChildren().values().iterator().next();
+                    if (!childDef.isUnknownTag())
+                        defNode.setXdefBeanChildName(StringHelper.xmlNameToVarName(childDef.getTagName()));
+                }
+            } else if (defNode.getXdefUniqueAttr() != null) {
+                defNode.setXdefBeanChildName(StringHelper.xmlNameToVarName(defNode.getTagName()));
+            }
+        }
     }
 
     private void mergeRefNodeProps(IXDefNode def, XDefNode ret) {
@@ -188,40 +222,6 @@ public class XDefRefResolver {
         }
     }
 
-    private boolean isDefaultBeanProp(IXDefNode defNode) {
-        if (defNode.getXdefBeanProp() == null)
-            return true;
-
-        return defNode.getXdefBeanProp().equals(XDefHelper.buildPropName(propNs, defNode.getTagName()));
-    }
-
-    private void resolveNode(IXDefNode defNode) {
-        if (defNode == null)
-            return;
-
-        if (defNode.isRefResolved())
-            return;
-
-        resolveRef(defNode);
-        if (defNode.getRefNode() != null)
-            resolveNode(defNode.getRefNode());
-        defNode.setRefResolved(true);
-
-        resolveAttrs((XDefNode) defNode);
-
-        resolveChildren((XDefNode) defNode);
-    }
-
-    private void resolveAttrs(XDefNode defNode) {
-        IXDefNode refNode = getRefNode(defNode);
-        if (refNode == null) {
-            return;
-        }
-
-        mergeRefNodeProps(refNode, defNode);
-        mergeAttrs(refNode, defNode);
-    }
-
     void mergeAttrs(IXDefNode refNode, XDefNode defNode) {
         if (defNode.getXdefUnknownAttr() == null)
             defNode.setXdefUnknownAttr(refNode.getXdefUnknownAttr());
@@ -234,7 +234,7 @@ public class XDefRefResolver {
                 String attrName = entry.getKey();
                 IXDefAttribute attr = entry.getValue();
                 IXDefAttribute old = attrs.get(attrName);
-                if (!allowOverride(old,attr)) {
+                if (!allowOverride(old, attr)) {
                     throw new NopException(ERR_XDEF_ATTR_NOT_ALLOW_OVERRIDE_REF).param(ARG_ATTR_NAME, attr.getName())
                             .param(ARG_LOC_B, attr.getLocation()).param(ARG_LOC_A, attrs.get(attrName).getLocation())
                             .param(ARG_TYPE_B, attr.getType()).param(ARG_TYPE_A, attrs.get(attrName).getType());
@@ -246,41 +246,19 @@ public class XDefRefResolver {
         }
     }
 
-    private boolean allowOverride(IXDefAttribute old, IXDefAttribute attr){
-        if(old == null)
+    private boolean isDefaultBeanProp(IXDefNode defNode) {
+        if (defNode.getXdefBeanProp() == null)
             return true;
-        if(old.getType().getStdDomain().equals("string"))
-            return true;
-        return old.getType().getStdDomain().equals(attr.getType().getStdDomain());
+
+        return defNode.getXdefBeanProp().equals(XDefHelper.buildPropName(propNs, defNode.getTagName()));
     }
 
-    private void resolveChildren(XDefNode defNode) {
-        if (defNode.getXdefUnknownTag() != null) {
-            resolveNode(defNode.getXdefUnknownTag());
-        }
-
-        for (IXDefNode childDef : defNode.getChildren().values()) {
-            resolveNode(childDef);
-        }
-
-        IXDefNode refNode = getRefNode(defNode);
-        if (refNode == null) {
-            return;
-        }
-
-        mergeChildren(refNode, defNode);
-
-        if (defNode.getXdefBeanChildName() == null) {
-            if (defNode.getXdefKeyAttr() != null) {
-                if (defNode.getChildren().size() == 1) {
-                    IXDefNode childDef = defNode.getChildren().values().iterator().next();
-                    if (!childDef.isUnknownTag())
-                        defNode.setXdefBeanChildName(StringHelper.xmlNameToVarName(childDef.getTagName()));
-                }
-            } else if (defNode.getXdefUniqueAttr() != null) {
-                defNode.setXdefBeanChildName(StringHelper.xmlNameToVarName(defNode.getTagName()));
-            }
-        }
+    private boolean allowOverride(IXDefAttribute old, IXDefAttribute attr) {
+        if (old == null)
+            return true;
+        if (old.getType().getStdDomain().equals("string"))
+            return true;
+        return old.getType().getStdDomain().equals(attr.getType().getStdDomain());
     }
 
     void mergeChildren(IXDefNode refNode, XDefNode defNode) {
@@ -293,65 +271,25 @@ public class XDefRefResolver {
         if (defNode.getChildren().isEmpty()) {
             defNode.setChildren((Map) refNode.getChildren());
         } else {
-            Map<String, IXDefNode> children = new HashMap<>(refNode.getChildren());
+            Map<String, IXDefNode> children = new LinkedHashMap<>(refNode.getChildren());
 
             for (Map.Entry<String, ? extends IXDefNode> entry : defNode.getChildren().entrySet()) {
                 String tagName = entry.getKey();
                 IXDefNode child = entry.getValue();
                 IXDefNode refChild = children.get(tagName);
                 if (refChild != null) {
-                    mergeNode(refChild, (XDefNode) child);
+                    if (refChild == child)
+                        continue;
+                    throw new NopException(ERR_XDEF_CHILD_NOT_ALLOW_OVERRIDE_REF)
+                            .source(child)
+                            .param(ARG_TAG_NAME, child.getTagName());
                 }
 
                 children.put(tagName, child);
             }
             defNode.setChildren((Map) children);
         }
-    }
 
-    private void mergeNode(IXDefNode refNode, XDefNode defNode) {
-        if (refNode == defNode)
-            return;
-        mergeRefNodeProps(refNode, defNode);
-        mergeAttrs(refNode, defNode);
-        mergeChildren(refNode, defNode);
-    }
 
-    private void resolveRef(IXDefNode defNode) {
-        if (defNode.getRefNode() != null)
-            return;
-        IXDefNode refNode = getRefNode(defNode);
-        if (refNode != null) {
-            defNode.setRefNode(refNode);
-        }
-    }
-
-    private IXDefNode getRefNode(IXDefNode defNode) {
-        String ref = defNode.getXdefRef();
-        if (ref == null)
-            return null;
-
-        IXDefNode refNode = resolveState.refCache.get(ref);
-        if (refNode != null)
-            return refNode;
-
-        String localRef = defNode.getLocalRef();
-        if (localRef != null) {
-            throw new NopException(ERR_XDEF_UNKNOWN_DEFINITION_REF).param(ARG_REF_NAME, ref).source(defNode);
-        } else {
-            IXDefinition refDef;
-            try {
-                refDef = SchemaLoader.loadXDefinition(ref);
-            } catch (NopException e) {
-                e.addXplStack(defNode);
-                throw e;
-            }
-
-            if (refDef == null)
-                throw new NopException(ERR_XDEF_UNKNOWN_DEFINITION_REF).param(ARG_REF_NAME, ref).source(defNode);
-            refNode = refDef.getRootNode();
-        }
-        resolveState.refCache.put(ref, refNode);
-        return refNode;
     }
 }
