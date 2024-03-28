@@ -375,7 +375,12 @@ poi很大，最少有10几M，而且很慢。nop-ooxml-xlsx是利用Nop平台自
 ## 31. NopORM中的querySpace概念是什么意思？
 用于多数据源配置，每个querySpace可以对应一个不同的数据库或者存储机制。比如一部分数据存在ElasticSearch或者另一个数据库中，每个数据源就是一个querySpace。
 
+## 32. IContext 和 IServiceContext 是什么样的关系，各自使用场景是怎样的
+IContext主要是提供异步上下文，并包含一些最简单的全局信息。它在api-core包中，不可能包含太多其他信息，在各种场景下都存在IContext。
+整个Nop平台中并不直接依赖于ThreadLocal，一般的上下文隐式传递时实际上是对象保存在IContext中，比如当前的ITransaction和IOrmSession对象等。
+在服务调用环境下，我们需要传递更多的环境信息。IServiceContext相当于是服务框架中提供的扩展上下文信息，它包含IEvalScope和IUserContext等更复杂的信息，且必须依赖于nop-core模块。
 
+一般情况下一个请求过来，会创建一个IContext，绑定到某个执行任务线程，然后GraphQL引擎创建IServiceContext，并引用了先前的IContext，带上了更多的信息。因此对于一个请求来讲，会有一个IServiceContext以及一个IContext。
 
 # 部署问题
 
