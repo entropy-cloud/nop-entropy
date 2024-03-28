@@ -124,7 +124,7 @@
 
             <parallel name="!var-name" xdef:ref="TaskStepsModel" xdef:name="ParallelTaskStepModel"
                       aggregateVarName="var-name"
-                      joinType="enum:io.nop.task.model.TaskStepJoinType" autoCancelUnfinished="!boolean=false">
+                      joinType="enum:io.nop.commons.concurrent.AsyncJoinType" autoCancelUnfinished="!boolean=false">
                 <aggregator xdef:ref="TaskBeanModel"/>
             </parallel>
 
@@ -146,14 +146,14 @@
             <fork name="!var-name" varName="!var-name" indexName="var-name" xdef:ref="TaskStepsModel"
                   xdef:name="ForkTaskStepModel"
                   aggregateVarName="var-name"
-                  joinType="enum:io.nop.task.model.TaskStepJoinType" autoCancelUnfinished="!boolean=false">
+                  joinType="enum:io.nop.commons.concurrent.AsyncJoinType" autoCancelUnfinished="!boolean=false">
                 <producer bean="bean-name" xdef:value="xpl" xdef:name="TaskBeanModel" xdef:bean-body-prop="source"/>
                 <aggregator xdef:ref="TaskBeanModel"/>
             </fork>
 
             <fork-n name="!var-name" indexName="var-name" countExpr="!expr" xdef:ref="TaskStepsModel"
                     xdef:name="ForkNTaskStepModel" aggregateVarName="var-name"
-                    joinType="enum:io.nop.task.model.TaskStepJoinType" autoCancelUnfinished="!boolean=false">
+                    joinType="enum:io.nop.commons.concurrent.AsyncJoinType" autoCancelUnfinished="!boolean=false">
                 <aggregator xdef:ref="TaskBeanModel"/>
             </fork-n>
 
@@ -162,7 +162,6 @@
             -->
             <invoke name="!var-name" bean="!bean-name" method="!var-name" xdef:ref="TaskStepModel" returnAs="var-name"
                     xdef:name="InvokeTaskStepModel">
-                <arg index="!int" valueExpr="expr" xdef:unique-attr="index" xdef:name="TaskInvokeArgModel"/>
             </invoke>
 
             <loop name="!var-name" xdef:ref="TaskStepsModel" xdef:name="LoopTaskStepModel"

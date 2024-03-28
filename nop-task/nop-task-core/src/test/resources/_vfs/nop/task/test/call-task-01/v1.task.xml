@@ -1,0 +1,19 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <call-task name="test" taskName="test/sub-task">
+            <input name="a">
+                <source>1</source>
+            </input>
+
+            <output name="b"/>
+
+            <output name="RESULT">
+                <source>
+                    return STEP_RESULT.b == 2 ? 'OK' : 'FAIL'
+                </source>
+            </output>
+        </call-task>
+    </steps>
+
+    <output name="b" />
+</task>

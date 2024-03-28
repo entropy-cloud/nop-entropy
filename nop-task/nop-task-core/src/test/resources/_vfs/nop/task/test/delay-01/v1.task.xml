@@ -1,0 +1,11 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <delay name="delay" delayMillisExpr="200" />
+        
+        <xpl name="test">
+            <source>
+                return "OK"
+            </source>
+        </xpl>
+    </steps>
+</task>

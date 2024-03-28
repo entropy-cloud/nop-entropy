@@ -5,9 +5,9 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.task.model;
+package io.nop.commons.concurrent;
 
-public enum TaskStepJoinType {
+public enum AsyncJoinType {
     anySuccess,
     anyFailure,
     anyComplete,

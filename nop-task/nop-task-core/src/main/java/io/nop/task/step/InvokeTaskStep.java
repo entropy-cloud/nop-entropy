@@ -10,7 +10,6 @@ package io.nop.task.step;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreErrors;
-import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.IFunctionModel;
@@ -31,7 +30,7 @@ public class InvokeTaskStep extends AbstractTaskStep {
     private String beanName;
     private String methodName;
 
-    private List<IEvalAction> argExprs;
+    private List<String> argNames;
 
     private String returnAs;
 
@@ -43,8 +42,8 @@ public class InvokeTaskStep extends AbstractTaskStep {
         this.methodName = methodName;
     }
 
-    public void setArgExprs(List<IEvalAction> argExprs) {
-        this.argExprs = argExprs;
+    public void setArgNames(List<String> argNames) {
+        this.argNames = argNames;
     }
 
     public String getReturnAs() {
@@ -60,9 +59,9 @@ public class InvokeTaskStep extends AbstractTaskStep {
     public TaskStepResult execute(ITaskStepRuntime stepRt) {
         IEvalScope scope = stepRt.getEvalScope();
         Object bean = scope.getBeanProvider().getBean(beanName);
-        Object[] args = new Object[argExprs.size()];
-        for (int i = 0, n = argExprs.size(); i < n; i++) {
-            args[i] = argExprs.get(i).invoke(scope);
+        Object[] args = new Object[argNames.size()];
+        for (int i = 0, n = argNames.size(); i < n; i++) {
+            args[i] = scope.getValue(argNames.get(i));
         }
 
         IClassModel classModel = ReflectionManager.instance().getClassModel(bean.getClass());

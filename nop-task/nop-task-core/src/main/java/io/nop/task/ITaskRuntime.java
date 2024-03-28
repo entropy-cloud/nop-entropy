@@ -80,7 +80,7 @@ public interface ITaskRuntime extends IEvalContext {
         return getTaskState().getJobInstanceId();
     }
 
-    ITaskRuntime newChildContext(String taskName, long taskVersion, boolean saveState);
+    ITaskRuntime newChildRuntime(String taskName, long taskVersion, boolean saveState);
 
     ITaskManager getTaskManager();
 

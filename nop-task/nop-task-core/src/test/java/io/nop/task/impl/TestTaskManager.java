@@ -1,6 +1,20 @@
 package io.nop.task.impl;
 
+import io.nop.api.core.ioc.BeanContainer;
+import io.nop.api.core.ioc.IBeanContainer;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
+import io.nop.task.ITaskStepRuntime;
+import io.nop.task.TaskStepResult;
+import io.nop.task.step.AbstractTaskStep;
+import jakarta.annotation.Nonnull;
 import org.junit.jupiter.api.Test;
+
+import java.lang.annotation.Annotation;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class TestTaskManager extends AbstractTaskTestCase {
     @Test
@@ -27,5 +41,148 @@ public class TestTaskManager extends AbstractTaskTestCase {
     @Test
     public void testChoose01() {
         runTask("test/choose-01");
+    }
+
+    @Test
+    public void testExit01() {
+        runTask("test/exit-01");
+    }
+
+    @Test
+    public void testSleep01() {
+        runTask("test/sleep-01");
+    }
+
+    @Test
+    public void testDelay01() {
+        runTask("test/delay-01");
+    }
+
+    @Test
+    public void testCallTask01() {
+        Map<String, Object> ret = runTask("test/call-task-01");
+        assertFalse(ret.containsKey("c"));
+        assertEquals(2, ret.get("b"));
+    }
+
+    @Test
+    public void testCallStep01() {
+        runTask("test/call-step-01");
+    }
+
+    @Test
+    public void testInvoke01() {
+        BeanContainer.registerInstance(new MockBeanContainer());
+        runTask("test/invoke-01");
+    }
+
+    @Test
+    public void testSimple01() {
+        BeanContainer.registerInstance(new MockBeanContainer());
+        runTask("test/simple-01");
+    }
+
+    @Test
+    public void testParallel01() {
+        BeanContainer.registerInstance(new MockBeanContainer());
+        runTask("test/parallel-01");
+    }
+
+
+    public static class MyHandler {
+
+        public int myMethod(int x) {
+            return x + 1;
+        }
+    }
+
+    static class MyStep extends AbstractTaskStep {
+        @Nonnull
+        @Override
+        public TaskStepResult execute(ITaskStepRuntime stepRt) {
+            return TaskStepResult.of(null, 3);
+        }
+    }
+
+    static class MockBeanContainer implements IBeanContainer {
+        private final Map<String, Object> beans = new HashMap<>();
+
+        public MockBeanContainer() {
+            beans.put("myExecutor", GlobalExecutors.globalWorker());
+            beans.put("myHandler", new MyHandler());
+            beans.put("myStep", new MyStep());
+        }
+
+        @Override
+        public String getId() {
+            return null;
+        }
+
+        @Override
+        public void start() {
+
+        }
+
+        @Override
+        public void stop() {
+
+        }
+
+        @Override
+        public void restart() {
+
+        }
+
+        @Override
+        public boolean containsBean(String name) {
+            return beans.containsKey(name);
+        }
+
+        @Override
+        public boolean isRunning() {
+            return true;
+        }
+
+        @Nonnull
+        @Override
+        public Object getBean(String name) {
+            return beans.get(name);
+        }
+
+        @Override
+        public boolean containsBeanType(Class<?> clazz) {
+            return false;
+        }
+
+        @Nonnull
+        @Override
+        public <T> T getBeanByType(Class<T> clazz) {
+            return null;
+        }
+
+        @Override
+        public <T> T tryGetBeanByType(Class<T> clazz) {
+            return null;
+        }
+
+        @Override
+        public <T> Map<String, T> getBeansOfType(Class<T> clazz) {
+            return null;
+        }
+
+        @Override
+        public Map<String, Object> getBeansWithAnnotation(Class<? extends Annotation> annClass) {
+            return null;
+        }
+
+        @Override
+        public String getBeanScope(String name) {
+            return null;
+        }
+
+        @Override
+        public String findAutowireCandidate(Class<?> beanType) {
+            return null;
+        }
     }
 }

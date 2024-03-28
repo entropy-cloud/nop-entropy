@@ -1,0 +1,15 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <invoke name="test" bean="myHandler" method="myMethod">
+            <input name="x">
+                <source>1</source>
+            </input>
+        </invoke>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT == 2 ? 'OK' : 'FAIL'
+        </source>
+    </output>
+</task>

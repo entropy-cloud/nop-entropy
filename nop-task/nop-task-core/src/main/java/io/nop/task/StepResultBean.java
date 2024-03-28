@@ -8,6 +8,7 @@
 package io.nop.task;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.exceptions.NopRebuildException;
@@ -65,12 +66,23 @@ public class StepResultBean implements Serializable {
         this.returnValues = returnValues;
     }
 
+    public Object getValue(String name) {
+        if (returnValues == null)
+            return null;
+        return returnValues.get(name);
+    }
+
     public ErrorBean getError() {
         return error;
     }
 
     public void setError(ErrorBean error) {
         this.error = error;
+    }
+
+    @JsonIgnore
+    public boolean isSuccess() {
+        return error == null;
     }
 
     public void setException(Throwable exception) {

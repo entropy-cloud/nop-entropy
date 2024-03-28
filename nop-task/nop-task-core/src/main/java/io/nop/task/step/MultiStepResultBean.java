@@ -7,6 +7,7 @@
  */
 package io.nop.task.step;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.task.StepResultBean;
 
@@ -26,10 +27,38 @@ public class MultiStepResultBean {
             this.results.putAll(results);
     }
 
+    @JsonIgnore
+    public StepResultBean getFirstSuccessResult() {
+        for (StepResultBean result : results.values()) {
+            if (result.isSuccess())
+                return result;
+        }
+        return null;
+    }
+
+    public StepResultBean getStepResult(String stepName) {
+        return results.get(stepName);
+    }
+
+    public Object getStepValue(String stepName, String varName) {
+        StepResultBean result = results.get(stepName);
+        return result == null ? null : result.getValue(varName);
+    }
+
+    @JsonIgnore
+    public boolean isAllSuccess() {
+        for (StepResultBean result : results.values()) {
+            if (!result.isSuccess())
+                return false;
+        }
+        return true;
+    }
+
     public int size() {
         return results.size();
     }
 
+    @JsonIgnore
     public boolean isEmpty() {
         return results.isEmpty();
     }

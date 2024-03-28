@@ -36,12 +36,13 @@ import io.nop.task.step.RunOnContextTaskStepWrapper;
 import io.nop.task.step.ThrottleTaskStepWrapper;
 import io.nop.task.step.TimeoutTaskStepWrapper;
 import io.nop.task.step.TryTaskStepWrapper;
+import io.nop.task.step.ValidatorTaskStepWrapper;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.filter.BizValidatorHelper;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -76,7 +77,7 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
         }
 
         return new EnhancedTaskStep(stepModel.getLocation(), stepModel.getName(), inputs, outputs, outputVars,
-                stepModel.getWhen(), buildValidator(stepModel.getValidator()), stepModel.getOnReload(), step,
+                stepModel.getWhen(), step,
                 stepModel.getNextOnError(), stepModel.getNextOnError(), stepModel.isIgnoreResult(),
                 stepModel.getErrorName(), stepModel.isUseParentScope());
     }
@@ -98,13 +99,13 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
     }
 
     private ITaskStep wrap(TaskStepModel stepModel, ITaskStep step) {
-        step = addOutput(stepModel, step);
-
         step = decorateStep(stepModel, step);
 
         if (stepModel.getCatch() != null || stepModel.getFinally() != null) {
             step = new TryTaskStepWrapper(step, stepModel.getCatch(), stepModel.getFinally());
         }
+
+        step = addOutput(stepModel, step);
 
         if (!StringHelper.isEmpty(stepModel.getExecutor())) {
             step = new ExecutorTaskStepWrapper(step, stepModel.getExecutor());
@@ -136,18 +137,20 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
                     rateLimitModel.getMaxWait(), rateLimitModel.getKeyExpr());
         }
 
+        if (stepModel.getValidator() != null || stepModel.getOnReload() != null) {
+            step = new ValidatorTaskStepWrapper(step, buildValidator(stepModel.getValidator()), stepModel.getOnReload());
+        }
         return step;
     }
 
     private ITaskStep addOutput(TaskStepModel stepModel, ITaskStep step) {
-        Map<String, IEvalAction> outputExprs = new HashMap<>();
-        stepModel.getOutputs().forEach(output -> {
-            if (output.getSource() != null) {
-                outputExprs.put(output.getName(), output.getSource());
-            }
-        });
-        if (outputExprs.isEmpty())
+        if (stepModel.getOutputs().isEmpty())
             return step;
+
+        Map<String, IEvalAction> outputExprs = new LinkedHashMap<>();
+        stepModel.getOutputs().forEach(output -> {
+            outputExprs.put(output.getName(), output.getSource());
+        });
 
         return new BuildOutputTaskStepWrapper(step, outputExprs);
     }

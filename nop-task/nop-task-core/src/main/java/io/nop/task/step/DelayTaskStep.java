@@ -20,13 +20,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 public class DelayTaskStep extends AbstractTaskStep {
-    private IScheduledExecutor scheduledExecutor;
-
     private IEvalAction delayMillsExpr;
 
-    public void setScheduledExecutor(IScheduledExecutor scheduledExecutor) {
-        this.scheduledExecutor = scheduledExecutor;
-    }
 
     public void setDelayMillsExpr(IEvalAction delayMillsExpr) {
         this.delayMillsExpr = delayMillsExpr;
@@ -40,6 +35,8 @@ public class DelayTaskStep extends AbstractTaskStep {
             delay = -1L;
         if (delay <= 0)
             return TaskStepResult.CONTINUE;
+
+        IScheduledExecutor scheduledExecutor = stepRt.getTaskRuntime().getScheduledExecutor();
 
         CompletableFuture<?> future = scheduledExecutor.schedule(() -> {
             return null;

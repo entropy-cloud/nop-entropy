@@ -1,0 +1,15 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <simple name="test" bean="myStep">
+            <input name="x">
+                <source>1</source>
+            </input>
+        </simple>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT == 3 ? 'OK' : 'FAIL'
+        </source>
+    </output>
+</task>

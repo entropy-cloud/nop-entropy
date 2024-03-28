@@ -14,6 +14,6 @@ public class EvalTaskStepResultAggregator implements ITaskStepResultAggregator {
 
     @Override
     public TaskStepResult aggregate(MultiStepResultBean results, ITaskStepRuntime stepRt) {
-        return TaskStepResult.of(null, stepRt);
+        return TaskStepResult.of(null, action.invoke(stepRt));
     }
 }

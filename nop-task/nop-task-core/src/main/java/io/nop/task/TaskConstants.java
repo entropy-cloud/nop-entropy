@@ -52,6 +52,8 @@ public interface TaskConstants {
 
     String VAR_DECORATOR_MODEL = "decoratorModel";
 
+    String VAR_STEP_RESULT = "STEP_RESULT";
+
     String STATE_ID_DEFAULT = "default";
 
     String PARAM_DELAY = "delay";

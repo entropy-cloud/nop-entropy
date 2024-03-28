@@ -18,13 +18,6 @@ public abstract class _InvokeTaskStepModel extends io.nop.task.model.TaskStepMod
     
     /**
      *  
-     * xml name: arg
-     * 
-     */
-    private KeyedList<io.nop.task.model.TaskInvokeArgModel> _args = KeyedList.emptyList();
-    
-    /**
-     *  
      * xml name: bean
      * 
      */
@@ -43,51 +36,6 @@ public abstract class _InvokeTaskStepModel extends io.nop.task.model.TaskStepMod
      * 指定bean方法的返回值所对应的返回变量名，缺省为result。
      */
     private java.lang.String _returnAs ;
-    
-    /**
-     * 
-     * xml name: arg
-     *  
-     */
-    
-    public java.util.List<io.nop.task.model.TaskInvokeArgModel> getArgs(){
-      return _args;
-    }
-
-    
-    public void setArgs(java.util.List<io.nop.task.model.TaskInvokeArgModel> value){
-        checkAllowChange();
-        
-        this._args = KeyedList.fromList(value, io.nop.task.model.TaskInvokeArgModel::getIndex);
-           
-    }
-
-    
-    public io.nop.task.model.TaskInvokeArgModel getArg(String name){
-        return this._args.getByKey(name);
-    }
-
-    public boolean hasArg(String name){
-        return this._args.containsKey(name);
-    }
-
-    public void addArg(io.nop.task.model.TaskInvokeArgModel item) {
-        checkAllowChange();
-        java.util.List<io.nop.task.model.TaskInvokeArgModel> list = this.getArgs();
-        if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.task.model.TaskInvokeArgModel::getIndex);
-            setArgs(list);
-        }
-        list.add(item);
-    }
-    
-    public java.util.Set<String> keySet_args(){
-        return this._args.keySet();
-    }
-
-    public boolean hasArgs(){
-        return !this._args.isEmpty();
-    }
     
     /**
      * 
@@ -154,8 +102,6 @@ public abstract class _InvokeTaskStepModel extends io.nop.task.model.TaskStepMod
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
-           this._args = io.nop.api.core.util.FreezeHelper.deepFreeze(this._args);
-            
         }
     }
 
@@ -163,7 +109,6 @@ public abstract class _InvokeTaskStepModel extends io.nop.task.model.TaskStepMod
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("args",this.getArgs());
         out.putNotNull("bean",this.getBean());
         out.putNotNull("method",this.getMethod());
         out.putNotNull("returnAs",this.getReturnAs());
@@ -178,7 +123,6 @@ public abstract class _InvokeTaskStepModel extends io.nop.task.model.TaskStepMod
     protected void copyTo(InvokeTaskStepModel instance){
         super.copyTo(instance);
         
-        instance.setArgs(this.getArgs());
         instance.setBean(this.getBean());
         instance.setMethod(this.getMethod());
         instance.setReturnAs(this.getReturnAs());

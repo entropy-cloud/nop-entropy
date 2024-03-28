@@ -42,7 +42,7 @@ public abstract class _ParallelTaskStepModel extends io.nop.task.model.TaskSteps
      * xml name: joinType
      * 
      */
-    private io.nop.task.model.TaskStepJoinType _joinType ;
+    private io.nop.commons.concurrent.AsyncJoinType _joinType ;
     
     /**
      * 
@@ -107,12 +107,12 @@ public abstract class _ParallelTaskStepModel extends io.nop.task.model.TaskSteps
      *  
      */
     
-    public io.nop.task.model.TaskStepJoinType getJoinType(){
+    public io.nop.commons.concurrent.AsyncJoinType getJoinType(){
       return _joinType;
     }
 
     
-    public void setJoinType(io.nop.task.model.TaskStepJoinType value){
+    public void setJoinType(io.nop.commons.concurrent.AsyncJoinType value){
         checkAllowChange();
         
         this._joinType = value;

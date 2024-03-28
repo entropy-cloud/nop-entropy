@@ -1,0 +1,16 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <input name="a"/>
+    <steps>
+        <xpl name="test" useParentScope="true">
+            <output name="b">
+                <source>a + 1</source>
+            </output>
+        </xpl>
+    </steps>
+    <output name="b"/>
+    <output name="c">
+        <source>
+            b + 2
+        </source>
+    </output>
+</task>

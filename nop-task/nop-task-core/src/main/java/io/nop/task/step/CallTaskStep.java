@@ -8,6 +8,7 @@
 package io.nop.task.step;
 
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.task.ITask;
 import io.nop.task.ITaskManager;
 import io.nop.task.ITaskRuntime;
@@ -15,10 +16,16 @@ import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepResult;
 import jakarta.annotation.Nonnull;
 
+import java.util.Set;
+
 public class CallTaskStep extends AbstractTaskStep {
     private String taskName;
 
     private long taskVersion;
+
+    private Set<String> inputNames;
+
+    private Set<String> outputNames;
 
     public long getTaskVersion() {
         return taskVersion;
@@ -36,20 +43,33 @@ public class CallTaskStep extends AbstractTaskStep {
         this.taskName = taskName;
     }
 
+    public Set<String> getInputNames() {
+        return inputNames;
+    }
+
+    public void setInputNames(Set<String> inputNames) {
+        this.inputNames = inputNames;
+    }
+
+    public Set<String> getOutputNames() {
+        return outputNames;
+    }
+
+    public void setOutputNames(Set<String> outputNames) {
+        this.outputNames = outputNames;
+    }
+
     @Nonnull
     @Override
     public TaskStepResult execute(ITaskStepRuntime stepRt) {
         ITaskRuntime taskRt = stepRt.getTaskRuntime();
         ITaskManager taskManager = taskRt.getTaskManager();
 
-        String taskName = taskRt.getTaskName();
-        long taskVersion = taskRt.getTaskVersion();
-
         String taskId = stepRt.getStateBean(String.class);
         ITask task;
         ITaskRuntime subRt;
         if (StringHelper.isEmpty(taskId)) {
-            subRt = taskRt.newChildContext(taskName, taskVersion, stepRt.isSupportPersist());
+            subRt = taskRt.newChildRuntime(taskName, taskVersion, stepRt.isSupportPersist());
             task = taskManager.getTask(taskName, taskVersion);
 
             stepRt.setStateBean(subRt.getTaskInstanceId());
@@ -59,6 +79,11 @@ public class CallTaskStep extends AbstractTaskStep {
             task = taskManager.getTask(taskName, taskVersion);
         }
 
-        return task.execute(subRt);
+        IEvalScope scope = stepRt.getEvalScope();
+        for (String name : inputNames) {
+            subRt.getEvalScope().setLocalValue(name, scope.getValue(name));
+        }
+
+        return task.execute(subRt, outputNames);
     }
 }

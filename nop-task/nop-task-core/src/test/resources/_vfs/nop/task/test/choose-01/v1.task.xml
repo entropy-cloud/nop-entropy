@@ -14,6 +14,9 @@
                 </source>
             </decider>
 
+            <!--
+            case步骤强制和父步骤共享scope，因此可以看到choose步骤中的input变量x
+            -->
             <case match="3">
                 <steps>
                     <xpl name="result">
@@ -34,6 +37,9 @@
                 </steps>
             </case>
 
+            <!--
+            otherwise步骤强制和父步骤共享scope，因此可以看到choose步骤中的input变量x
+            -->
             <otherwise>
                 <steps>
                     <xpl name="result">

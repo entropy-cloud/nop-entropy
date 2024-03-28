@@ -100,8 +100,6 @@ public class EnhancedTaskStep implements IEnhancedTaskStep {
 
     private final Set<String> outputVars;
     private final IEvalPredicate when;
-    private final IEvalAction validator;
-    private final IEvalAction onReload;
     private final ITaskStep step;
     private final String nextStepName;
     private final String nextStepNameOnError;
@@ -118,7 +116,7 @@ public class EnhancedTaskStep implements IEnhancedTaskStep {
     public EnhancedTaskStep(SourceLocation location, String stepName,
                             List<InputConfig> inputConfigs,
                             List<OutputConfig> outputConfigs, Set<String> outputVars,
-                            IEvalPredicate when, IEvalAction validator, IEvalAction onReload,
+                            IEvalPredicate when,
                             ITaskStep step, String nextStepName, String nextStepNameOnError,
                             boolean ignoreResult, String errorName,
                             boolean useParentScope
@@ -128,8 +126,6 @@ public class EnhancedTaskStep implements IEnhancedTaskStep {
         this.inputConfigs = inputConfigs;
         this.step = step;
         this.when = when;
-        this.validator = validator;
-        this.onReload = onReload;
         this.outputConfigs = outputConfigs;
         this.outputVars = outputVars;
         this.nextStepName = nextStepName;
@@ -190,9 +186,6 @@ public class EnhancedTaskStep implements IEnhancedTaskStep {
             initInputs(stepRt, parentScope, taskRt);
 
             stepRt.saveState();
-        } else {
-            if (onReload != null)
-                onReload.invoke(stepRt);
         }
 
         try {
@@ -263,9 +256,6 @@ public class EnhancedTaskStep implements IEnhancedTaskStep {
             Object value = expr == null ? parentScope.getValue(name) : expr.invoke(scope);
             stepRt.setValue(name, value);
         });
-
-        if (validator != null)
-            validator.invoke(stepRt);
     }
 
     private void initOutputs(TaskStepResult result, ITaskStepRuntime stepRt, IEvalScope parentScope) {

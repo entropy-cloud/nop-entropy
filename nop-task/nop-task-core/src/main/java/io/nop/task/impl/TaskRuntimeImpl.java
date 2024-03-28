@@ -78,7 +78,7 @@ public class TaskRuntimeImpl implements ITaskRuntime {
     }
 
     @Override
-    public ITaskRuntime newChildContext(String taskName, long taskVersion, boolean saveState) {
+    public ITaskRuntime newChildRuntime(String taskName, long taskVersion, boolean saveState) {
         return taskManager.newTaskRuntime(taskName, taskVersion, saveState, getSvcCtx());
     }
 
