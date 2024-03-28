@@ -6644,6 +6644,12 @@
         ]
       },
       {
+        "name": "removeProp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "serializeToJson",
         "parameterTypes": [
           "io.nop.core.lang.json.IJsonHandler"

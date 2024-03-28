@@ -27,6 +27,12 @@ public class TaskStepRuntimeImpl implements ITaskStepRuntime {
         this.scope.setLocalValue(TaskConstants.VAR_STEP_RT, this);
     }
 
+    public TaskStepRuntimeImpl(ITaskRuntime taskRt, ITaskStateStore stateStore, IEvalScope scope) {
+        this.taskRt = taskRt;
+        this.stateStore = stateStore;
+        this.scope = scope;
+    }
+
     @Override
     public IEvalScope getEvalScope() {
         return scope;
@@ -94,8 +100,10 @@ public class TaskStepRuntimeImpl implements ITaskStepRuntime {
     }
 
     @Override
-    public ITaskStepRuntime newStepRuntime(String stepName, String stepType, Set<String> persistVars) {
-        TaskStepRuntimeImpl newStepRt = new TaskStepRuntimeImpl(taskRt, stateStore);
+    public ITaskStepRuntime newStepRuntime(String stepName, String stepType,
+                                           Set<String> persistVars, boolean useParentScope) {
+        TaskStepRuntimeImpl newStepRt = useParentScope ? new TaskStepRuntimeImpl(taskRt, stateStore, scope)
+                : new TaskStepRuntimeImpl(taskRt, stateStore);
 
         ITaskStepState newState = stateStore.loadStepState(stepState, stepName, stepType, taskRt);
         if (newState != null) {

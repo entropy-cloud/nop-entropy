@@ -38,14 +38,22 @@ public interface ITaskRuntime extends IEvalContext {
     }
 
     default boolean isCancelled() {
+        if (getSvcCtx() == null)
+            return false;
+
         return getSvcCtx().isCancelled();
     }
 
     default void appendOnCancel(Consumer<String> task) {
+        if (getSvcCtx() == null)
+            return;
+
         getSvcCtx().appendOnCancel(task);
     }
 
     default void removeOnCancel(Consumer<String> task) {
+        if (getSvcCtx() == null)
+            return;
         getSvcCtx().removeOnCancel(task);
     }
 

@@ -51,7 +51,7 @@ public abstract class _ChooseTaskStepModel extends io.nop.task.model.TaskStepMod
     public void setCases(java.util.List<io.nop.task.model.TaskChooseCaseModel> value){
         checkAllowChange();
         
-        this._cases = KeyedList.fromList(value, io.nop.task.model.TaskChooseCaseModel::getWhen);
+        this._cases = KeyedList.fromList(value, io.nop.task.model.TaskChooseCaseModel::getMatch);
            
     }
 
@@ -68,7 +68,7 @@ public abstract class _ChooseTaskStepModel extends io.nop.task.model.TaskStepMod
         checkAllowChange();
         java.util.List<io.nop.task.model.TaskChooseCaseModel> list = this.getCases();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.task.model.TaskChooseCaseModel::getWhen);
+            list = new KeyedList<>(io.nop.task.model.TaskChooseCaseModel::getMatch);
             setCases(list);
         }
         list.add(item);

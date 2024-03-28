@@ -28,7 +28,6 @@ public class LoopTaskStep extends AbstractTaskStep {
 
     private IEvalAction itemsExpr;
     private ITaskStep body;
-
     private IEvalPredicate untilExpr;
 
     public IEvalPredicate getUntilExpr() {
@@ -110,8 +109,17 @@ public class LoopTaskStep extends AbstractTaskStep {
         }
 
         do {
-            if (shouldContinue(stateBean, stepRt))
+            if (!shouldContinue(stateBean, stepRt))
                 return RETURN_RESULT(stepRt.getResult());
+
+            if (varName != null) {
+                int index = stateBean.getIndex();
+                Object item = stateBean.getItems().get(index);
+                stepRt.setValue(varName, item);
+            }
+            if (indexName != null) {
+                stepRt.setValue(indexName, stateBean.getIndex());
+            }
 
             TaskStepResult stepResult = body.execute(stepRt);
             if (stepResult.isSuspend())
@@ -119,6 +127,7 @@ public class LoopTaskStep extends AbstractTaskStep {
 
             if (stepResult.isDone()) {
                 stateBean.incIndex();
+                stepRt.setBodyStepIndex(0);
                 stepRt.saveState();
 
                 stepResult = stepResult.resolve();
@@ -133,6 +142,7 @@ public class LoopTaskStep extends AbstractTaskStep {
                         return ret;
 
                     stateParam.incIndex();
+                    stepRt.setBodyStepIndex(0);
                     stepRt.saveState();
 
                     if (ret.isEnd())

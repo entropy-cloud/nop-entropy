@@ -24270,6 +24270,12 @@
         ]
       },
       {
+        "name": "removeProp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "serializeToJson",
         "parameterTypes": [
           "io.nop.core.lang.json.IJsonHandler"
@@ -36424,6 +36430,10 @@
         ]
       },
       {
+        "name": "orm_requireEntity",
+        "parameterTypes": []
+      },
+      {
         "name": "orm_reset",
         "parameterTypes": []
       },
@@ -42262,6 +42272,10 @@
         "parameterTypes": [
           "boolean"
         ]
+      },
+      {
+        "name": "orm_requireEntity",
+        "parameterTypes": []
       },
       {
         "name": "orm_reset",
@@ -49504,6 +49518,14 @@
         "parameterTypes": []
       },
       {
+        "name": "getModelNameProp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getModelVersionProp",
+        "parameterTypes": []
+      },
+      {
         "name": "getOrderBy",
         "parameterTypes": []
       },
@@ -49665,6 +49687,18 @@
         "name": "setKeys",
         "parameterTypes": [
           "java.util.List"
+        ]
+      },
+      {
+        "name": "setModelNameProp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setModelVersionProp",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {

@@ -16,6 +16,8 @@ public interface TaskConstants {
 
     String MAIN_STEP_NAME = "@main";
 
+    String DEFAULT_VALUE = "default";
+
     /**
      * 结束整个task
      */

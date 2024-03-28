@@ -65,8 +65,10 @@ import io.nop.xlang.api.XLangCompileTool;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static io.nop.task.TaskErrors.ARG_STEP_NAME;
@@ -156,6 +158,10 @@ public class TaskStepBuilder implements ITaskStepBuilder {
             case TaskConstants.STEP_TYPE_GRAPH:
                 step = buildGraphStep((GraphTaskStepModel) stepModel);
                 break;
+            case TaskConstants.STEP_TYPE_CASE:
+            case TaskConstants.STEP_TYPE_OTHERWISE:
+                step = buildSequentialStep((TaskStepsModel) stepModel);
+                break;
             default:
                 throw new NopException(ERR_TASK_UNSUPPORTED_STEP_TYPE)
                         .source(stepModel)
@@ -219,16 +225,17 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         ret.setDecider(buildDecider(stepModel.getDecider()));
         Map<String, IEnhancedTaskStep> caseSteps = new HashMap<>();
         for (TaskChooseCaseModel caseModel : stepModel.getCases()) {
-            caseSteps.put(caseModel.getName(), buildEnhancedStep(caseModel));
+            caseSteps.put(caseModel.getMatch(), buildEnhancedStep(caseModel));
         }
         ret.setCaseSteps(caseSteps);
-        ret.setDefaultStep(buildEnhancedStep(stepModel.getOtherwise()));
+        if (stepModel.getOtherwise() != null)
+            ret.setDefaultStep(buildEnhancedStep(stepModel.getOtherwise()));
         return ret;
     }
 
     private IEvalAction buildDecider(TaskDeciderModel deciderModel) {
         String bean = deciderModel.getBean();
-        if (StringHelper.isEmpty(bean)) {
+        if (!StringHelper.isEmpty(bean)) {
             return ctx -> {
                 ITaskStepChooseDecider decider = (ITaskStepChooseDecider) ctx.getEvalScope()
                         .getBeanProvider().getBean(bean);
@@ -280,7 +287,7 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         LoopTaskStep ret = new LoopTaskStep();
         ret.setIndexName(stepModel.getIndexName());
         ret.setVarName(stepModel.getVarName());
-        ret.setItemsExpr(stepModel.getItems());
+        ret.setItemsExpr(stepModel.getItemsExpr());
         ret.setUntilExpr(stepModel.getUntil());
         ret.setBody(buildSequentialBody(stepModel));
         return ret;
@@ -289,6 +296,7 @@ public class TaskStepBuilder implements ITaskStepBuilder {
     private LoopNTaskStep buildLoopNStep(LoopNTaskStepModel stepModel) {
         LoopNTaskStep ret = new LoopNTaskStep();
         ret.setIndexName(stepModel.getIndexName());
+        ret.setVarName(stepModel.getVarName());
         ret.setBeginExpr(stepModel.getBeginExpr());
         ret.setEndExpr(stepModel.getEndExpr());
         ret.setStepExpr(stepModel.getStepExpr());
@@ -324,15 +332,18 @@ public class TaskStepBuilder implements ITaskStepBuilder {
                     ctx -> ctx.getEvalScope().getLocalValue(name), inputModel.isFromTaskScope()));
         }
 
-        List<EnhancedTaskStep.OutputConfig> outputs = new ArrayList<>(stepModel.getOutputs().size());
+        List<EnhancedTaskStep.OutputConfig> outputs = new ArrayList<>();
+        Set<String> outputVars = new HashSet<>();
         for (TaskOutputModel outputModel : stepModel.getOutputs()) {
-            outputs.add(new EnhancedTaskStep.OutputConfig(outputModel.getLocation(), null,
+            outputVars.add(outputModel.getName());
+            String exportName = outputModel.getExportAs() == null ? outputModel.getName() : outputModel.getExportAs();
+            outputs.add(new EnhancedTaskStep.OutputConfig(outputModel.getLocation(), exportName,
                     outputModel.getName(), outputModel.isToTaskScope()));
         }
 
-        return new EnhancedTaskStep(stepModel.getLocation(), stepModel.getName(), inputs, outputs, null,
-                null, null, step,
-                null, null, false, null);
+        return new EnhancedTaskStep(stepModel.getLocation(), stepModel.getName(), inputs, outputs, outputVars,
+                null, null, null, step,
+                null, null, false, null, false);
     }
 
     private IEvalAction buildProducer(TaskBeanModel beanModel) {

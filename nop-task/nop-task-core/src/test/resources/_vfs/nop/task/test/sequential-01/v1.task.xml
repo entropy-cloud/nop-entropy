@@ -1,0 +1,28 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <sequential name="test">
+            <steps>
+                <!--
+                每个步骤的返回值会缺省设置为scope中RESULT变量
+                -->
+                <xpl name="step1">
+                    <source>
+                        return "OK1";
+                    </source>
+                </xpl>
+
+                <xpl name="step2">
+                    <!--
+                    通过input可以从scope中读取前一个步骤设置的RESULT变量
+                    -->
+                    <input name="result">
+                        <source>RESULT</source>
+                    </input>
+                    <source>
+                        return result == "OK1" ? "OK" : "FAIL";
+                    </source>
+                </xpl>
+            </steps>
+        </sequential>
+    </steps>
+</task>

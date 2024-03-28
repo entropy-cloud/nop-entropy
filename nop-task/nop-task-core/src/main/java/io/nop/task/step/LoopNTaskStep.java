@@ -83,12 +83,14 @@ public class LoopNTaskStep extends AbstractTaskStep {
         /**
          * 当前正在执行的循环下标
          */
+        private int current;
+
         private int index;
 
         public boolean shouldContinue() {
             if (step > 0)
-                return index <= end;
-            return index >= end;
+                return current <= end;
+            return current >= end;
         }
 
         public int getBodyRunId() {
@@ -115,16 +117,21 @@ public class LoopNTaskStep extends AbstractTaskStep {
             this.step = step;
         }
 
-        public int getIndex() {
+        public int getCurrent() {
+            return current;
+        }
+
+        public void setCurrent(int current) {
+            this.current = current;
+        }
+
+        public int getIndex(){
             return index;
         }
 
-        public void setIndex(int index) {
-            this.index = index;
-        }
-
         public void incStep() {
-            this.index += step;
+            this.index++;
+            this.current += step;
         }
     }
 
@@ -145,15 +152,23 @@ public class LoopNTaskStep extends AbstractTaskStep {
                 throw TaskStepHelper.newError(getLocation(), stepRt, ERR_TASK_LOOP_STEP_INVALID_LOOP_VAR)
                         .param(ARG_BEGIN, begin).param(ARG_END, end).param(ARG_STEP, step);
 
-            stateBean.setIndex(begin);
+            stateBean.setCurrent(begin);
             stateBean.setEnd(end);
             stateBean.setStep(step);
             stepRt.setStateBean(stateBean);
+
         }
 
         do {
             if (!stateBean.shouldContinue()) {
                 return TaskStepResult.RETURN_RESULT(stepRt.getResult());
+            }
+
+            if (varName != null) {
+                stepRt.setValue(varName, stateBean.getCurrent());
+            }
+            if (indexName != null) {
+                stepRt.setValue(indexName, stateBean.getIndex());
             }
 
             TaskStepResult stepResult = body.execute(stepRt);
@@ -162,6 +177,7 @@ public class LoopNTaskStep extends AbstractTaskStep {
 
             if (stepResult.isDone()) {
                 stateBean.incStep();
+                stepRt.setBodyStepIndex(0);
                 stepRt.saveState();
 
                 stepResult = stepResult.resolve();
@@ -176,6 +192,7 @@ public class LoopNTaskStep extends AbstractTaskStep {
                         return ret;
 
                     stateParam.incStep();
+                    stepRt.setBodyStepIndex(0);
                     stepRt.saveState();
 
                     if (ret.isEnd())

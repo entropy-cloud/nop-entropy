@@ -13,7 +13,6 @@ import io.nop.commons.util.retry.IRetryPolicy;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.ITaskStepState;
-import io.nop.task.TaskConstants;
 import io.nop.task.TaskErrors;
 import io.nop.task.TaskStepResult;
 
@@ -31,7 +30,7 @@ import static io.nop.task.TaskErrors.ERR_TASK_RETRY_TIMES_EXCEED_LIMIT;
 public class TaskStepHelper {
 
     public static String buildStepId(String parentId, String stepName) {
-        if (StringHelper.isEmpty(parentId) || TaskConstants.MAIN_STEP_NAME.equals(parentId))
+        if (StringHelper.isEmpty(parentId))
             return stepName;
         return parentId + '/' + stepName;
     }

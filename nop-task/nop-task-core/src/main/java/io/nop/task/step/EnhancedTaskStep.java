@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static io.nop.task.TaskErrors.ERR_TASK_CANCELLED;
 
@@ -69,8 +68,8 @@ public class EnhancedTaskStep implements IEnhancedTaskStep {
 
         public OutputConfig(SourceLocation location,
                             String exportName, String name, boolean toTaskScope) {
-            this.exportName = exportName;
-            this.name = name;
+            this.exportName = Guard.notEmpty(exportName, "exportName");
+            this.name = Guard.notEmpty(name, "name");
             this.toTaskScope = toTaskScope;
             this.location = location;
         }
@@ -114,12 +113,15 @@ public class EnhancedTaskStep implements IEnhancedTaskStep {
 
     private final String errorName;
 
+    private final boolean useParentScope;
+
     public EnhancedTaskStep(SourceLocation location, String stepName,
                             List<InputConfig> inputConfigs,
-                            List<OutputConfig> outputConfigs,
+                            List<OutputConfig> outputConfigs, Set<String> outputVars,
                             IEvalPredicate when, IEvalAction validator, IEvalAction onReload,
                             ITaskStep step, String nextStepName, String nextStepNameOnError,
-                            boolean ignoreResult, String errorName
+                            boolean ignoreResult, String errorName,
+                            boolean useParentScope
     ) {
         this.location = location;
         this.stepName = stepName;
@@ -129,11 +131,12 @@ public class EnhancedTaskStep implements IEnhancedTaskStep {
         this.validator = validator;
         this.onReload = onReload;
         this.outputConfigs = outputConfigs;
-        this.outputVars = outputConfigs.stream().map(OutputConfig::getName).collect(Collectors.toSet());
+        this.outputVars = outputVars;
         this.nextStepName = nextStepName;
         this.nextStepNameOnError = nextStepNameOnError;
         this.ignoreResult = ignoreResult;
         this.errorName = errorName;
+        this.useParentScope = useParentScope;
     }
 
     @Override
@@ -158,7 +161,9 @@ public class EnhancedTaskStep implements IEnhancedTaskStep {
         IEvalScope parentScope = parentRt.getEvalScope();
 
         ITaskRuntime taskRt = parentRt.getTaskRuntime();
-        ITaskStepRuntime stepRt = parentRt.newStepRuntime(stepName, step.getStepType(), step.getPersistVars());
+        ITaskStepRuntime stepRt = parentRt.newStepRuntime(stepName, step.getStepType(),
+                step.getPersistVars(), useParentScope);
+
         stepRt.setOutputNames(outputVars);
         if (varName != null)
             stepRt.setValue(varName, varValue);
@@ -197,6 +202,9 @@ public class EnhancedTaskStep implements IEnhancedTaskStep {
 
             return stepResult.thenCompose((ret, err) -> {
                 if (err != null) {
+                    LOG.info("nop.task.step.run-fail:taskName={},taskInstanceId={},stepId={},runId={},nextStepNameOnError={},loc={}",
+                            taskRt.getTaskName(), taskRt.getTaskInstanceId(),
+                            stepRt.getStepId(), stepRt.getRunId(), nextStepNameOnError, step.getLocation(), err);
                     if (nextStepNameOnError != null)
                         return buildErrorResult(stepRt, parentScope, err);
                     throw NopException.adapt(err);
@@ -216,11 +224,21 @@ public class EnhancedTaskStep implements IEnhancedTaskStep {
 
                     // 如果ret中明确指定了nextStepName，则以指定的值为准
                     if (ret.getNextStepName() == null && nextStepName != null)
-                        return TaskStepResult.RETURN(nextStepName, ret.get());
+                        ret = TaskStepResult.RETURN(nextStepName, ret.get());
+
+                    LOG.debug("nop.task.step.run-ok:taskName={},taskInstanceId={},stepId={},runId={}," +
+                                    "nextStepName={},retValues={},loc={}",
+                            taskRt.getTaskName(), taskRt.getTaskInstanceId(),
+                            stepRt.getStepId(), stepRt.getRunId(), ret.getNextStepName(), ret.getReturnValues(),
+                            step.getLocation());
                     return ret;
                 }
             });
         } catch (Exception e) {
+            LOG.info("nop.task.step.run-fail:taskName={},taskInstanceId={},stepId={},runId={},nextStepNameOnError={},loc={}",
+                    taskRt.getTaskName(), taskRt.getTaskInstanceId(),
+                    stepRt.getStepId(), stepRt.getRunId(), nextStepNameOnError, step.getLocation(), e);
+
             if (nextStepNameOnError != null) {
                 return buildErrorResult(stepRt, parentScope, e);
             }
@@ -239,8 +257,11 @@ public class EnhancedTaskStep implements IEnhancedTaskStep {
 
     private void initInputs(ITaskStepRuntime stepRt, IEvalScope parentScope, ITaskRuntime taskRt) {
         inputConfigs.forEach(inputConfig -> {
+            String name = inputConfig.getName();
             IEvalScope scope = inputConfig.isFromTaskScope() ? taskRt.getEvalScope() : parentScope;
-            stepRt.getEvalScope().setLocalValue(inputConfig.getName(), inputConfig.getExpr().invoke(scope));
+            IEvalAction expr = inputConfig.getExpr();
+            Object value = expr == null ? parentScope.getValue(name) : expr.invoke(scope);
+            stepRt.setValue(name, value);
         });
 
         if (validator != null)
@@ -250,13 +271,10 @@ public class EnhancedTaskStep implements IEnhancedTaskStep {
     private void initOutputs(TaskStepResult result, ITaskStepRuntime stepRt, IEvalScope parentScope) {
         outputConfigs.forEach(config -> {
             Object value = result.getValue(config.getName());
-
-            if (config.getExportName() != null) {
-                if (config.isToTaskScope()) {
-                    stepRt.getTaskRuntime().getEvalScope().setLocalValue(config.getExportName(), value);
-                } else {
-                    parentScope.setLocalValue(config.getExportName(), value);
-                }
+            if (config.isToTaskScope()) {
+                stepRt.getTaskRuntime().getEvalScope().setLocalValue(config.getExportName(), value);
+            } else {
+                parentScope.setLocalValue(config.getExportName(), value);
             }
         });
     }

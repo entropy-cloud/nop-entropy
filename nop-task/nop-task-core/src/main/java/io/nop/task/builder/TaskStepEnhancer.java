@@ -27,6 +27,7 @@ import io.nop.task.model.TaskRetryModel;
 import io.nop.task.model.TaskStepModel;
 import io.nop.task.model.TaskThrottleModel;
 import io.nop.task.step.AbstractTaskStep;
+import io.nop.task.step.BuildOutputTaskStepWrapper;
 import io.nop.task.step.EnhancedTaskStep;
 import io.nop.task.step.ExecutorTaskStepWrapper;
 import io.nop.task.step.RateLimitTaskStepWrapper;
@@ -39,7 +40,11 @@ import io.nop.xlang.api.XLang;
 import io.nop.xlang.filter.BizValidatorHelper;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class TaskStepEnhancer implements ITaskStepEnhancer {
 
@@ -58,18 +63,22 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
         List<EnhancedTaskStep.InputConfig> inputs = new ArrayList<>(stepModel.getInputs().size());
         for (TaskInputModel inputModel : stepModel.getInputs()) {
             inputs.add(new EnhancedTaskStep.InputConfig(inputModel.getLocation(), inputModel.getName(),
-                    notNull(inputModel.getSource()), inputModel.isFromTaskScope()));
+                    inputModel.getSource(), inputModel.isFromTaskScope()));
         }
 
         List<EnhancedTaskStep.OutputConfig> outputs = new ArrayList<>(stepModel.getOutputs().size());
+        Set<String> outputVars = new HashSet<>();
         for (TaskOutputModel outputModel : stepModel.getOutputs()) {
-            outputs.add(new EnhancedTaskStep.OutputConfig(outputModel.getLocation(), outputModel.getExportAs(),
+            outputVars.add(outputModel.getName());
+            String exportName = outputModel.getExportAs() == null ? outputModel.getName() : outputModel.getExportAs();
+            outputs.add(new EnhancedTaskStep.OutputConfig(outputModel.getLocation(), exportName,
                     outputModel.getName(), outputModel.isToTaskScope()));
         }
 
-        return new EnhancedTaskStep(stepModel.getLocation(), stepModel.getName(), inputs, outputs, stepModel.getWhen(),
-                buildValidator(stepModel.getValidator()), stepModel.getOnReload(), step,
-                stepModel.getNextOnError(), stepModel.getNextOnError(), stepModel.isIgnoreResult(), stepModel.getErrorName());
+        return new EnhancedTaskStep(stepModel.getLocation(), stepModel.getName(), inputs, outputs, outputVars,
+                stepModel.getWhen(), buildValidator(stepModel.getValidator()), stepModel.getOnReload(), step,
+                stepModel.getNextOnError(), stepModel.getNextOnError(), stepModel.isIgnoreResult(),
+                stepModel.getErrorName(), stepModel.isUseParentScope());
     }
 
     private IEvalAction notNull(IEvalAction action) {
@@ -89,6 +98,8 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
     }
 
     private ITaskStep wrap(TaskStepModel stepModel, ITaskStep step) {
+        step = addOutput(stepModel, step);
+
         step = decorateStep(stepModel, step);
 
         if (stepModel.getCatch() != null || stepModel.getFinally() != null) {
@@ -126,6 +137,19 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
         }
 
         return step;
+    }
+
+    private ITaskStep addOutput(TaskStepModel stepModel, ITaskStep step) {
+        Map<String, IEvalAction> outputExprs = new HashMap<>();
+        stepModel.getOutputs().forEach(output -> {
+            if (output.getSource() != null) {
+                outputExprs.put(output.getName(), output.getSource());
+            }
+        });
+        if (outputExprs.isEmpty())
+            return step;
+
+        return new BuildOutputTaskStepWrapper(step, outputExprs);
     }
 
     private ITaskStep decorateStep(TaskStepModel stepModel, ITaskStep step) {

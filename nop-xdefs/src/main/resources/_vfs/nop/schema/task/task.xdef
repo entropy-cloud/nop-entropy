@@ -166,12 +166,12 @@
             </invoke>
 
             <loop name="!var-name" xdef:ref="TaskStepsModel" xdef:name="LoopTaskStepModel"
-                  indexName="var-name" varName="var-name" items="!expr" maxCount="!int=0">
+                  indexName="var-name" varName="var-name" itemsExpr="!expr" maxCount="!int=0">
                 <until xdef:value="xpl-predicate"/>
             </loop>
 
-            <loop-n name="!var-name" xdef:ref="TaskStepsModel" indexName="var-name" xdef:name="LoopNTaskStepModel"
-                    beginExpr="!expr" endExpr="!expr" stepExpr="!expr">
+            <loop-n name="!var-name" xdef:ref="TaskStepsModel" varName="var-name" indexName="var-name"
+                    xdef:name="LoopNTaskStepModel" beginExpr="!expr" endExpr="!expr" stepExpr="expr">
             </loop-n>
 
             <choose name="!var-name" xdef:ref="TaskStepModel" xdef:name="ChooseTaskStepModel">
@@ -183,7 +183,7 @@
                 <!--
                 可能用于全局跳转，因此不使用嵌套步骤定义
                 -->
-                <case when="!string" to="var-name" xdef:unique-attr="when"
+                <case match="!string" to="var-name" xdef:unique-attr="match"
                       xdef:name="TaskChooseCaseModel" xdef:ref="TaskStepsModel"/>
 
                 <otherwise to="var-name" xdef:ref="TaskStepsModel" xdef:name="TaskChooseOtherwiseModel"/>

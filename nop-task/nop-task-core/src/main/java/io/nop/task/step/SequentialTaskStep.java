@@ -43,9 +43,7 @@ public class SequentialTaskStep extends AbstractTaskStep {
     @Nonnull
     @Override
     public TaskStepResult execute(ITaskStepRuntime stepRt) {
-        Integer index = stepRt.getStateBean(Integer.class);
-        if (index == null)
-            index = 0;
+        int index = stepRt.getBodyStepIndex();
 
         do {
             if (index >= steps.size())
@@ -59,27 +57,27 @@ public class SequentialTaskStep extends AbstractTaskStep {
 
             if (stepResult.isDone()) {
                 if (stepResult.isEnd()) {
-                    stepRt.setStateBean(steps.size());
+                    stepRt.setBodyStepIndex(steps.size());
                     return TaskStepResult.RETURN_RESULT_END(stepRt.getResult());
                 } else if (stepResult.isExit()) {
-                    stepRt.setStateBean(steps.size());
+                    stepRt.setBodyStepIndex(steps.size());
                     return TaskStepResult.RETURN_RESULT(stepRt.getResult());
                 }
 
                 index = getNextIndex(index, stepResult, stepRt);
-                stepRt.setStateBean(index);
+                stepRt.setBodyStepIndex(index);
                 stepRt.saveState();
             } else {
                 int indexParam = index;
                 return stepResult.thenApply(result -> {
                     if (stepResult.isEnd()) {
-                        stepRt.setStateBean(steps.size());
+                        stepRt.setBodyStepIndex(steps.size());
                         return stepResult;
                     } else if (stepResult.isExit()) {
-                        stepRt.setStateBean(steps.size());
+                        stepRt.setBodyStepIndex(steps.size());
                         return TaskStepResult.RETURN(stepResult.getReturnValues());
                     } else {
-                        stepRt.setStateBean(getNextIndex(indexParam, result, stepRt));
+                        stepRt.setBodyStepIndex(getNextIndex(indexParam, result, stepRt));
                         stepRt.saveState();
                         return execute(stepRt);
                     }

@@ -25,10 +25,10 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
     
     /**
      *  
-     * xml name: items
+     * xml name: itemsExpr
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _items ;
+    private io.nop.core.lang.eval.IEvalAction _itemsExpr ;
     
     /**
      *  
@@ -72,19 +72,19 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
     
     /**
      * 
-     * xml name: items
+     * xml name: itemsExpr
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getItems(){
-      return _items;
+    public io.nop.core.lang.eval.IEvalAction getItemsExpr(){
+      return _itemsExpr;
     }
 
     
-    public void setItems(io.nop.core.lang.eval.IEvalAction value){
+    public void setItemsExpr(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
-        this._items = value;
+        this._itemsExpr = value;
            
     }
 
@@ -162,7 +162,7 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
         super.outputJson(out);
         
         out.putNotNull("indexName",this.getIndexName());
-        out.putNotNull("items",this.getItems());
+        out.putNotNull("itemsExpr",this.getItemsExpr());
         out.putNotNull("maxCount",this.getMaxCount());
         out.putNotNull("until",this.getUntil());
         out.putNotNull("varName",this.getVarName());
@@ -178,7 +178,7 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
         super.copyTo(instance);
         
         instance.setIndexName(this.getIndexName());
-        instance.setItems(this.getItems());
+        instance.setItemsExpr(this.getItemsExpr());
         instance.setMaxCount(this.getMaxCount());
         instance.setUntil(this.getUntil());
         instance.setVarName(this.getVarName());

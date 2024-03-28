@@ -18,10 +18,36 @@ public abstract class _TaskChooseCaseModel extends io.nop.task.model.TaskStepsMo
     
     /**
      *  
+     * xml name: match
+     * 
+     */
+    private java.lang.String _match ;
+    
+    /**
+     *  
      * xml name: to
      * 
      */
     private java.lang.String _to ;
+    
+    /**
+     * 
+     * xml name: match
+     *  
+     */
+    
+    public java.lang.String getMatch(){
+      return _match;
+    }
+
+    
+    public void setMatch(java.lang.String value){
+        checkAllowChange();
+        
+        this._match = value;
+           
+    }
+
     
     /**
      * 
@@ -57,6 +83,7 @@ public abstract class _TaskChooseCaseModel extends io.nop.task.model.TaskStepsMo
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("match",this.getMatch());
         out.putNotNull("to",this.getTo());
     }
 
@@ -69,6 +96,7 @@ public abstract class _TaskChooseCaseModel extends io.nop.task.model.TaskStepsMo
     protected void copyTo(TaskChooseCaseModel instance){
         super.copyTo(instance);
         
+        instance.setMatch(this.getMatch());
         instance.setTo(this.getTo());
     }
 

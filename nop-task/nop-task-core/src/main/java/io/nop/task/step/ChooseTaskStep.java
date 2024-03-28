@@ -12,6 +12,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.IEnhancedTaskStep;
 import io.nop.task.ITaskStepRuntime;
+import io.nop.task.TaskConstants;
 import io.nop.task.TaskStepResult;
 import jakarta.annotation.Nonnull;
 
@@ -51,14 +52,23 @@ public class ChooseTaskStep extends AbstractTaskStep {
     @Nonnull
     @Override
     public TaskStepResult execute(ITaskStepRuntime stepRt) {
-        String caseValue = ConvertHelper.toString(decider.invoke(stepRt));
-        if (StringHelper.isEmpty(caseValue))
-            return defaultStep.executeWithParentRt(stepRt);
+        String caseValue = stepRt.getStateBean(String.class);
+        if (caseValue == null) {
+            caseValue = ConvertHelper.toString(decider.invoke(stepRt));
+            if (StringHelper.isEmpty(caseValue))
+                caseValue = TaskConstants.DEFAULT_VALUE;
+            stepRt.setStateBean(caseValue);
+            stepRt.saveState();
+        }
 
-        IEnhancedTaskStep step = caseSteps.get(caseValue);
-        if (step == null)
-            return defaultStep.executeWithParentRt(stepRt);
+        IEnhancedTaskStep chosenStep = caseSteps.get(caseValue);
+        if (chosenStep == null)
+            chosenStep = defaultStep;
 
-        return step.executeWithParentRt(stepRt);
+        if (chosenStep == null) {
+            return TaskStepResult.CONTINUE;
+        }
+
+        return chosenStep.executeWithParentRt(stepRt);
     }
 }

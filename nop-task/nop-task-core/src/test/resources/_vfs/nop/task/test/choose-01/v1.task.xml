@@ -1,0 +1,54 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <xpl name="init">
+            <output name="x">
+                <source>3</source>
+            </output>
+        </xpl>
+
+        <choose name="test">
+            <input name="x"/>
+            <decider>
+                <source>
+                    return x + 1
+                </source>
+            </decider>
+
+            <case match="3">
+                <steps>
+                    <xpl name="result">
+                        <source>
+                            return x + 10
+                        </source>
+                    </xpl>
+                </steps>
+            </case>
+
+            <case match="4">
+                <steps>
+                    <xpl name="result">
+                        <source>
+                            return x + 20
+                        </source>
+                    </xpl>
+                </steps>
+            </case>
+
+            <otherwise>
+                <steps>
+                    <xpl name="result">
+                        <source>
+                            return x + 30
+                        </source>
+                    </xpl>
+                </steps>
+            </otherwise>
+            <output name="RESULT">
+                <source>
+                    return RESULT == 23 ? 'OK' : 'FAIL'
+                </source>
+            </output>
+        </choose>
+
+    </steps>
+</task>

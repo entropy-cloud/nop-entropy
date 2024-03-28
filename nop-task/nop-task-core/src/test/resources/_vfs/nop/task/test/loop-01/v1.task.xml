@@ -1,0 +1,29 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <xpl name="init">
+            <output name="sum">
+                <source>0</source>
+            </output>
+        </xpl>
+
+        <loop name="test" varName="a" itemsExpr="[1,2]">
+            <input name="sum" />
+            <steps>
+                <xpl name="step1">
+                    <input name="sum" />
+                    <input name="a" />
+                    <output name="sum">
+                        <source>
+                            sum + a;
+                        </source>
+                    </output>
+                </xpl>
+            </steps>
+            <output name="RESULT">
+                <source>
+                    sum == 3 ? 'OK' : 'FAIL'
+                </source>
+            </output>
+        </loop>
+    </steps>
+</task>

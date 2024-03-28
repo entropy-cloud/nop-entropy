@@ -7,7 +7,6 @@
  */
 package io.nop.task.state;
 
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
@@ -15,6 +14,8 @@ import io.nop.task.TaskStepResult;
 public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskStepState {
     private String stepId;
     private int runId;
+
+    private int bodyStepIndex;
     private String parentStepId;
     private int parentRunId;
     private String stepType;
@@ -94,8 +95,13 @@ public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskS
     }
 
     @Override
-    public ITaskStepState getParentState() {
-        return null;
+    public int getBodyStepIndex() {
+        return bodyStepIndex;
+    }
+
+    @Override
+    public void setBodyStepIndex(int bodyStepIndex) {
+        this.bodyStepIndex = bodyStepIndex;
     }
 
     @Override

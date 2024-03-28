@@ -15,4 +15,10 @@ public abstract class TaskStepsModel extends _TaskStepsModel {
     }
 
 
+    @Override
+    public void init() {
+        for (TaskStepModel stepModel : getSteps()) {
+            stepModel.init();
+        }
+    }
 }

@@ -119,7 +119,9 @@ public class TaskRuntimeImpl implements ITaskRuntime {
     @Override
     public ITaskStepRuntime newMainStepRuntime() {
         ITaskStepState state = stateStore.newMainStepState(this.getTaskState());
-        TaskStepRuntimeImpl stepRt = new TaskStepRuntimeImpl(this, stateStore);
+        // 使用taskRt的scope
+        TaskStepRuntimeImpl stepRt = new TaskStepRuntimeImpl(this, stateStore, getEvalScope());
+        stepRt.setCancelToken(getSvcCtx());
         stepRt.setState(state);
         stepRt.setRecoverMode(recoverMode);
         return stepRt;

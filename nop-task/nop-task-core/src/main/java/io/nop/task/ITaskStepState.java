@@ -34,7 +34,9 @@ public interface ITaskStepState extends ITaskStateCommon {
 
     void setRunId(int runId);
 
-    ITaskStepState getParentState();
+    int getBodyStepIndex();
+
+    void setBodyStepIndex(int bodyIndex);
 
     String getParentStepId();
 

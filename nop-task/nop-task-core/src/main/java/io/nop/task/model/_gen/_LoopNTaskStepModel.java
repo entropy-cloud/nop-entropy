@@ -45,6 +45,13 @@ public abstract class _LoopNTaskStepModel extends io.nop.task.model.TaskStepsMod
     private io.nop.core.lang.eval.IEvalAction _stepExpr ;
     
     /**
+     *  
+     * xml name: varName
+     * 
+     */
+    private java.lang.String _varName ;
+    
+    /**
      * 
      * xml name: beginExpr
      *  
@@ -120,6 +127,25 @@ public abstract class _LoopNTaskStepModel extends io.nop.task.model.TaskStepsMod
     }
 
     
+    /**
+     * 
+     * xml name: varName
+     *  
+     */
+    
+    public java.lang.String getVarName(){
+      return _varName;
+    }
+
+    
+    public void setVarName(java.lang.String value){
+        checkAllowChange();
+        
+        this._varName = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -139,6 +165,7 @@ public abstract class _LoopNTaskStepModel extends io.nop.task.model.TaskStepsMod
         out.putNotNull("endExpr",this.getEndExpr());
         out.putNotNull("indexName",this.getIndexName());
         out.putNotNull("stepExpr",this.getStepExpr());
+        out.putNotNull("varName",this.getVarName());
     }
 
     public LoopNTaskStepModel cloneInstance(){
@@ -154,6 +181,7 @@ public abstract class _LoopNTaskStepModel extends io.nop.task.model.TaskStepsMod
         instance.setEndExpr(this.getEndExpr());
         instance.setIndexName(this.getIndexName());
         instance.setStepExpr(this.getStepExpr());
+        instance.setVarName(this.getVarName());
     }
 
     protected LoopNTaskStepModel newInstance(){
