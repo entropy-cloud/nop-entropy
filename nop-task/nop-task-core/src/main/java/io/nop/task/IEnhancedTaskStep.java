@@ -10,13 +10,5 @@ public interface IEnhancedTaskStep extends ISourceLocationGetter {
     String getStepName();
 
     @Nonnull
-    default TaskStepResult executeWithParentRt(ITaskStepRuntime parentRt) {
-        return executeWithParentRt(parentRt, null, null, null, 0);
-    }
-
-
-    @Nonnull
-    TaskStepResult executeWithParentRt(ITaskStepRuntime parentRt,
-                                       String varName, Object varValue,
-                                       String indexName, int index);
+    TaskStepResult executeWithParentRt(ITaskStepRuntime parentRt);
 }

@@ -28,7 +28,7 @@ public abstract class _ParallelTaskStepModel extends io.nop.task.model.TaskSteps
      * xml name: aggregator
      * 
      */
-    private io.nop.task.model.TaskBeanModel _aggregator ;
+    private io.nop.core.lang.eval.IEvalAction _aggregator ;
     
     /**
      *  
@@ -69,12 +69,12 @@ public abstract class _ParallelTaskStepModel extends io.nop.task.model.TaskSteps
      *  
      */
     
-    public io.nop.task.model.TaskBeanModel getAggregator(){
+    public io.nop.core.lang.eval.IEvalAction getAggregator(){
       return _aggregator;
     }
 
     
-    public void setAggregator(io.nop.task.model.TaskBeanModel value){
+    public void setAggregator(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
         this._aggregator = value;
@@ -128,8 +128,6 @@ public abstract class _ParallelTaskStepModel extends io.nop.task.model.TaskSteps
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
-           this._aggregator = io.nop.api.core.util.FreezeHelper.deepFreeze(this._aggregator);
-            
         }
     }
 

@@ -8,11 +8,9 @@
 package io.nop.task.step;
 
 import io.nop.api.core.util.FutureHelper;
+import io.nop.commons.util.AsyncHelper;
 import io.nop.core.lang.eval.IEvalAction;
-import io.nop.task.IEnhancedTaskStep;
-import io.nop.task.ITaskStepResultAggregator;
 import io.nop.task.ITaskStepRuntime;
-import io.nop.task.StepResultBean;
 import io.nop.task.TaskStepResult;
 import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
@@ -21,12 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
-public class ForkNTaskStep extends AbstractTaskStep {
+public class ForkNTaskStep extends AbstractForkTaskStep {
     private IEvalAction countExpr;
-    private String indexName;
-    private IEnhancedTaskStep step;
-
-    private ITaskStepResultAggregator aggregator;
 
     public IEvalAction getCountExpr() {
         return countExpr;
@@ -34,30 +28,6 @@ public class ForkNTaskStep extends AbstractTaskStep {
 
     public void setCountExpr(IEvalAction countExpr) {
         this.countExpr = countExpr;
-    }
-
-    public String getIndexName() {
-        return indexName;
-    }
-
-    public void setIndexName(String indexName) {
-        this.indexName = indexName;
-    }
-
-    public IEnhancedTaskStep getStep() {
-        return step;
-    }
-
-    public void setStep(IEnhancedTaskStep step) {
-        this.step = step;
-    }
-
-    public ITaskStepResultAggregator getAggregator() {
-        return aggregator;
-    }
-
-    public void setAggregator(ITaskStepResultAggregator aggregator) {
-        this.aggregator = aggregator;
     }
 
     @Nonnull
@@ -70,31 +40,21 @@ public class ForkNTaskStep extends AbstractTaskStep {
         }
 
         List<CompletionStage<TaskStepResult>> promises = new ArrayList<>(count);
-        for (int i = 0; i < count; i++) {
-            try {
-                TaskStepResult result = step.executeWithParentRt(stepRt, null, null, indexName, i);
-                promises.add(result.getReturnPromise());
-            } catch (Exception e) {
-                promises.add(FutureHelper.reject(e));
-            }
-        }
 
-        CompletionStage<?> promise = FutureHelper.waitAll(promises);
-
-        promise = promise.thenApply(v -> {
-            MultiStepResultBean states = new MultiStepResultBean();
-            int index = 0;
-            for (CompletionStage<TaskStepResult> future : promises) {
-                StepResultBean result = StepResultBean.buildFrom(step.getStepName(), stepRt.getLocale(), future);
-                states.add(result.getStepName() + '-' + (index++), result);
+        int countParam = count;
+        CompletionStage<Void> promise = TaskStepHelper.withCancellable(cancelToken -> {
+            for (int i = 0; i < countParam; i++) {
+                try {
+                    TaskStepResult result = executeFork(stepRt, null, i);
+                    promises.add(result.getReturnPromise());
+                } catch (Exception e) {
+                    promises.add(FutureHelper.reject(e));
+                }
             }
 
-            if (aggregator != null) {
-                return aggregator.aggregate(states, stepRt);
-            }
-            return states;
-        });
-
-        return TaskStepResult.ASYNC(null, promise);
+            return AsyncHelper.waitAsync(promises, getStepJoinType());
+        }, stepRt.getCancelToken(), isAutoCancelUnfinished());
+        
+        return buildAggResult(promise, promises, stepRt);
     }
 }

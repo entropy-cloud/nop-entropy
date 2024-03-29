@@ -88,6 +88,15 @@ public class TestTaskManager extends AbstractTaskTestCase {
         runTask("test/parallel-01");
     }
 
+    @Test
+    public void testFork01() {
+        runTask("test/fork-01");
+    }
+
+    @Test
+    public void testForkN01() {
+        runTask("test/fork-n-01");
+    }
 
     public static class MyHandler {
 

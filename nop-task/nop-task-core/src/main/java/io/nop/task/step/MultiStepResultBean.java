@@ -9,6 +9,7 @@ package io.nop.task.step;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.commons.util.MathHelper;
 import io.nop.task.StepResultBean;
 
 import java.util.LinkedHashMap;
@@ -43,6 +44,32 @@ public class MultiStepResultBean {
     public Object getStepValue(String stepName, String varName) {
         StepResultBean result = results.get(stepName);
         return result == null ? null : result.getValue(varName);
+    }
+
+    public Number sum(String varName) {
+        Number ret = 0;
+
+        for (StepResultBean result : results.values()) {
+            if (result.isSuccess()) {
+                Object value = result.getValue(varName);
+                if (value != null)
+                    ret = MathHelper.add(ret, value);
+            }
+        }
+        return ret;
+    }
+
+    public int count(String varName) {
+        int ret = 0;
+
+        for (StepResultBean result : results.values()) {
+            if (result.isSuccess()) {
+                Object value = result.getValue(varName);
+                if (value != null)
+                    ret++;
+            }
+        }
+        return ret;
     }
 
     @JsonIgnore

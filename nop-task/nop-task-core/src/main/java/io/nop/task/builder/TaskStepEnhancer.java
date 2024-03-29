@@ -107,6 +107,10 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
 
         step = addOutput(stepModel, step);
 
+        if (stepModel.getRetry() != null) {
+            step = new RetryTaskStepWrapper(step, buildRetryPolicy(stepModel.getRetry()));
+        }
+
         if (!StringHelper.isEmpty(stepModel.getExecutor())) {
             step = new ExecutorTaskStepWrapper(step, stepModel.getExecutor());
         }
@@ -114,10 +118,6 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
         // 在线程池上执行之后重新投递到context上
         if (stepModel.isRunOnContext()) {
             step = new RunOnContextTaskStepWrapper(step);
-        }
-
-        if (stepModel.getRetry() != null) {
-            step = new RetryTaskStepWrapper(step, buildRetryPolicy(stepModel.getRetry()));
         }
 
         // timeout控制整个retry过程的时长

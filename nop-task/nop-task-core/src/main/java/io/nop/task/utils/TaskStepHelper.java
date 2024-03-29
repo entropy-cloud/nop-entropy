@@ -18,6 +18,7 @@ import io.nop.task.TaskStepResult;
 
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -161,6 +162,32 @@ public class TaskStepHelper {
             return retry(loc, stepRt, retryPolicy, action);
         } else {
             return value;
+        }
+    }
+
+    public static <T> CompletionStage<T> withCancellable(Function<ICancelToken, CompletionStage<T>> task,
+                                                         ICancelToken cancelToken, boolean autoCancelUnfinished) {
+        if(!autoCancelUnfinished)
+            return task.apply(cancelToken);
+
+        Cancellable cancellable = new Cancellable();
+        Consumer<String> cancel = cancellable::cancel;
+
+        if (cancelToken != null) {
+            cancelToken.appendOnCancel(cancel);
+        }
+
+        try {
+            return task.apply(cancellable).whenComplete((ret, err) -> {
+                if (cancelToken != null)
+                    cancelToken.removeOnCancel(cancel);
+                cancellable.cancel(ICancellable.CANCEL_REASON_KILL);
+            });
+        } catch (Exception e) {
+            if (cancelToken != null)
+                cancelToken.removeOnCancel(cancel);
+            cancellable.cancel();
+            throw NopException.adapt(e);
         }
     }
 

@@ -124,8 +124,8 @@
 
             <parallel name="!var-name" xdef:ref="TaskStepsModel" xdef:name="ParallelTaskStepModel"
                       aggregateVarName="var-name"
-                      joinType="enum:io.nop.commons.concurrent.AsyncJoinType" autoCancelUnfinished="!boolean=false">
-                <aggregator xdef:ref="TaskBeanModel"/>
+                      joinType="enum:io.nop.commons.concurrent.AsyncJoinType" autoCancelUnfinished="!boolean=true">
+                <aggregator xdef:value="xpl"/>
             </parallel>
 
             <exit name="!var-name" xdef:ref="TaskStepModel" xdef:name="ExitTaskStepModel">
@@ -146,15 +146,15 @@
             <fork name="!var-name" varName="!var-name" indexName="var-name" xdef:ref="TaskStepsModel"
                   xdef:name="ForkTaskStepModel"
                   aggregateVarName="var-name"
-                  joinType="enum:io.nop.commons.concurrent.AsyncJoinType" autoCancelUnfinished="!boolean=false">
-                <producer bean="bean-name" xdef:value="xpl" xdef:name="TaskBeanModel" xdef:bean-body-prop="source"/>
-                <aggregator xdef:ref="TaskBeanModel"/>
+                  joinType="enum:io.nop.commons.concurrent.AsyncJoinType" autoCancelUnfinished="!boolean=true">
+                <producer xdef:value="xpl"/>
+                <aggregator xdef:value="xpl"/>
             </fork>
 
             <fork-n name="!var-name" indexName="var-name" countExpr="!expr" xdef:ref="TaskStepsModel"
                     xdef:name="ForkNTaskStepModel" aggregateVarName="var-name"
-                    joinType="enum:io.nop.commons.concurrent.AsyncJoinType" autoCancelUnfinished="!boolean=false">
-                <aggregator xdef:ref="TaskBeanModel"/>
+                    joinType="enum:io.nop.commons.concurrent.AsyncJoinType" autoCancelUnfinished="!boolean=true">
+                <aggregator xdef:value="xpl"/>
             </fork-n>
 
             <!--
@@ -165,7 +165,7 @@
             </invoke>
 
             <loop name="!var-name" xdef:ref="TaskStepsModel" xdef:name="LoopTaskStepModel"
-                  indexName="var-name" varName="var-name" itemsExpr="!expr" maxCount="!int=0">
+                  indexName="var-name" varName="var-name" itemsExpr="!expr" maxCount="!int=0" varType="generic-type">
                 <until xdef:value="xpl-predicate"/>
             </loop>
 
@@ -174,10 +174,7 @@
             </loop-n>
 
             <choose name="!var-name" xdef:ref="TaskStepModel" xdef:name="ChooseTaskStepModel">
-                <decider bean="bean-name"
-                         xdef:name="TaskDeciderModel">
-                    <source xdef:value="xpl"/>
-                </decider>
+                <decider xdef:value="xpl"/>
 
                 <!--
                 可能用于全局跳转，因此不使用嵌套步骤定义

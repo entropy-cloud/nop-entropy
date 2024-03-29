@@ -2,13 +2,9 @@ package io.nop.task.builder;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.BeanContainer;
-import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.IEnhancedTaskStep;
 import io.nop.task.ITaskStep;
-import io.nop.task.ITaskStepChooseDecider;
-import io.nop.task.ITaskStepResultAggregator;
-import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskConstants;
 import io.nop.task.model.CallStepTaskStepModel;
 import io.nop.task.model.CallTaskStepModel;
@@ -31,7 +27,6 @@ import io.nop.task.model.SleepTaskStepModel;
 import io.nop.task.model.SuspendTaskStepModel;
 import io.nop.task.model.TaskBeanModel;
 import io.nop.task.model.TaskChooseCaseModel;
-import io.nop.task.model.TaskDeciderModel;
 import io.nop.task.model.TaskFlowModel;
 import io.nop.task.model.TaskInputModel;
 import io.nop.task.model.TaskOutputModel;
@@ -39,15 +34,12 @@ import io.nop.task.model.TaskStepModel;
 import io.nop.task.model.TaskStepsModel;
 import io.nop.task.model.XplTaskStepModel;
 import io.nop.task.step.AbstractTaskStep;
-import io.nop.task.step.BeanTaskStepResultAggregator;
 import io.nop.task.step.CallStepTaskStep;
 import io.nop.task.step.CallTaskStep;
 import io.nop.task.step.ChooseTaskStep;
 import io.nop.task.step.DelayTaskStep;
 import io.nop.task.step.EndTaskStep;
-import io.nop.task.step.EnhancedTaskStep;
 import io.nop.task.step.EvalTaskStep;
-import io.nop.task.step.EvalTaskStepResultAggregator;
 import io.nop.task.step.ExitTaskStep;
 import io.nop.task.step.ForkNTaskStep;
 import io.nop.task.step.ForkTaskStep;
@@ -64,10 +56,8 @@ import io.nop.xlang.api.XLangCompileTool;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import static io.nop.task.TaskErrors.ARG_STEP_NAME;
@@ -230,7 +220,7 @@ public class TaskStepBuilder implements ITaskStepBuilder {
 
     private AbstractTaskStep buildChooseStep(ChooseTaskStepModel stepModel) {
         ChooseTaskStep ret = new ChooseTaskStep();
-        ret.setDecider(buildDecider(stepModel.getDecider()));
+        ret.setDecider(stepModel.getDecider());
         Map<String, IEnhancedTaskStep> caseSteps = new HashMap<>();
         for (TaskChooseCaseModel caseModel : stepModel.getCases()) {
             caseSteps.put(caseModel.getMatch(), buildEnhancedStep(caseModel));
@@ -239,18 +229,6 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         if (stepModel.getOtherwise() != null)
             ret.setDefaultStep(buildEnhancedStep(stepModel.getOtherwise()));
         return ret;
-    }
-
-    private IEvalAction buildDecider(TaskDeciderModel deciderModel) {
-        String bean = deciderModel.getBean();
-        if (!StringHelper.isEmpty(bean)) {
-            return ctx -> {
-                ITaskStepChooseDecider decider = (ITaskStepChooseDecider) ctx.getEvalScope()
-                        .getBeanProvider().getBean(bean);
-                return decider.decide((ITaskStepRuntime) ctx);
-            };
-        }
-        return deciderModel.getSource();
     }
 
     private SequentialTaskStep buildSequentialStep(TaskStepsModel stepModel) {
@@ -277,21 +255,8 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         ret.setStepJoinType(stepModel.getJoinType());
         ret.setAggregateVarName(stepModel.getAggregateVarName());
         ret.setAutoCancelUnfinished(stepModel.isAutoCancelUnfinished());
-        ret.setAggregator(buildAggregator(stepModel.getAggregator()));
+        ret.setAggregator(stepModel.getAggregator());
         return ret;
-    }
-
-    private ITaskStepResultAggregator buildAggregator(TaskBeanModel taskBeanModel) {
-        if (taskBeanModel == null)
-            return null;
-
-        if (!StringHelper.isEmpty(taskBeanModel.getBean()))
-            return new BeanTaskStepResultAggregator(taskBeanModel.getBean());
-
-        if (taskBeanModel.getSource() != null)
-            return new EvalTaskStepResultAggregator(taskBeanModel.getSource());
-
-        return null;
     }
 
     private LoopTaskStep buildLoopStep(LoopTaskStepModel stepModel) {
@@ -317,8 +282,12 @@ public class TaskStepBuilder implements ITaskStepBuilder {
 
     private ForkNTaskStep buildForkNStep(ForkNTaskStepModel stepModel) {
         ForkNTaskStep ret = new ForkNTaskStep();
+        ret.setStepName(stepModel.getName());
         ret.setIndexName(stepModel.getIndexName());
-        ret.setAggregator(buildAggregator(stepModel.getAggregator()));
+        ret.setAutoCancelUnfinished(stepModel.isAutoCancelUnfinished());
+        ret.setStepJoinType(stepModel.getJoinType());
+        ret.setAggregateVarName(stepModel.getAggregateVarName());
+        ret.setAggregator(stepModel.getAggregator());
         ret.setCountExpr(stepModel.getCountExpr());
         ret.setStep(buildForkBody(stepModel));
         return ret;
@@ -327,42 +296,20 @@ public class TaskStepBuilder implements ITaskStepBuilder {
     private ForkTaskStep buildForkStep(ForkTaskStepModel stepModel) {
         ForkTaskStep ret = new ForkTaskStep();
         ret.setIndexName(stepModel.getIndexName());
-        ret.setAggregator(buildAggregator(stepModel.getAggregator()));
-        ret.setProducer(buildProducer(stepModel.getProducer()));
+        ret.setVarName(stepModel.getVarName());
+        ret.setStepName(stepModel.getName());
+        ret.setAutoCancelUnfinished(stepModel.isAutoCancelUnfinished());
+        ret.setStepJoinType(stepModel.getJoinType());
+        ret.setAggregateVarName(stepModel.getAggregateVarName());
+        ret.setAggregator(stepModel.getAggregator());
+        ret.setProducer(stepModel.getProducer());
         ret.setStep(buildForkBody(stepModel));
         return ret;
     }
 
-    private IEnhancedTaskStep buildForkBody(TaskStepsModel stepModel) {
-        ITaskStep step = buildSequentialBody(stepModel);
-
-        List<EnhancedTaskStep.InputConfig> inputs = new ArrayList<>(stepModel.getInputs().size());
-        for (TaskInputModel inputModel : stepModel.getInputs()) {
-            String name = inputModel.getName();
-            inputs.add(new EnhancedTaskStep.InputConfig(inputModel.getLocation(), inputModel.getName(),
-                    ctx -> ctx.getEvalScope().getLocalValue(name), inputModel.isFromTaskScope()));
-        }
-
-        List<EnhancedTaskStep.OutputConfig> outputs = new ArrayList<>();
-        Set<String> outputVars = new HashSet<>();
-        for (TaskOutputModel outputModel : stepModel.getOutputs()) {
-            outputVars.add(outputModel.getName());
-            String exportName = outputModel.getExportAs() == null ? outputModel.getName() : outputModel.getExportAs();
-            outputs.add(new EnhancedTaskStep.OutputConfig(outputModel.getLocation(), exportName,
-                    outputModel.getName(), outputModel.isToTaskScope()));
-        }
-
-        return new EnhancedTaskStep(stepModel.getLocation(), stepModel.getName(), inputs, outputs, outputVars,
-                null, step,
-                null, null, false, null, false);
+    private ITaskStep buildForkBody(TaskStepsModel stepModel) {
+        return buildSequentialBody(stepModel);
     }
-
-    private IEvalAction buildProducer(TaskBeanModel beanModel) {
-        if (beanModel.getSource() != null)
-            return beanModel.getSource();
-        return null;
-    }
-
     private InvokeTaskStep buildInvokeStep(InvokeTaskStepModel stepModel) {
         InvokeTaskStep ret = new InvokeTaskStep();
         ret.setArgNames(stepModel.getInputs().stream().map(TaskInputModel::getName).collect(Collectors.toList()));

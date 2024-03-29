@@ -9,21 +9,20 @@ package io.nop.task.step;
 
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
-import io.nop.api.core.util.ICancellable;
 import io.nop.commons.concurrent.AsyncJoinType;
-import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.AsyncHelper;
+import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.IEnhancedTaskStep;
-import io.nop.task.ITaskStepResultAggregator;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.StepResultBean;
 import io.nop.task.TaskStepResult;
+import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * 多个子步骤同时执行。执行结果汇总为MultiStepResultBean。如果定义了aggregator，则通过RESULT变量访问到返回结果集，它的执行结果作为最终结果
@@ -34,7 +33,7 @@ public class ParallelTaskStep extends AbstractTaskStep {
     private AsyncJoinType stepJoinType;
 
     private String aggregateVarName;
-    private ITaskStepResultAggregator aggregator;
+    private IEvalAction aggregator;
 
     private boolean autoCancelUnfinished;
 
@@ -46,7 +45,7 @@ public class ParallelTaskStep extends AbstractTaskStep {
         this.autoCancelUnfinished = autoCancelUnfinished;
     }
 
-    public void setAggregator(ITaskStepResultAggregator aggregator) {
+    public void setAggregator(IEvalAction aggregator) {
         this.aggregator = aggregator;
     }
 
@@ -69,38 +68,26 @@ public class ParallelTaskStep extends AbstractTaskStep {
     @Nonnull
     @Override
     public TaskStepResult execute(ITaskStepRuntime stepRt) {
-        Cancellable cancellable = new Cancellable();
-        ICancelToken cancelToken = stepRt.getCancelToken();
-        Consumer<String> cancel = cancellable::cancel;
-
-        if (autoCancelUnfinished) {
-            if (cancelToken != null) {
-                cancelToken.appendOnCancel(cancel);
-            }
-            stepRt.setCancelToken(cancellable);
-        }
-
         List<CompletionStage<TaskStepResult>> promises = new ArrayList<>();
 
-        for (int i = 0, n = steps.size(); i < n; i++) {
-            IEnhancedTaskStep step = steps.get(i);
-            try {
-                TaskStepResult stepResult = step.executeWithParentRt(stepRt);
-                promises.add(stepResult.getReturnPromise());
-            } catch (Exception e) {
-                promises.add(FutureHelper.reject(e));
+        Function<ICancelToken, CompletionStage<Void>> action = cancellable -> {
+            stepRt.setCancelToken(cancellable);
+            for (int i = 0, n = steps.size(); i < n; i++) {
+                IEnhancedTaskStep step = steps.get(i);
+                try {
+                    TaskStepResult stepResult = step.executeWithParentRt(stepRt);
+                    promises.add(stepResult.getReturnPromise());
+                } catch (Exception e) {
+                    promises.add(FutureHelper.reject(e));
+                }
             }
-        }
 
-        CompletionStage<Void> promise = AsyncHelper.waitAsync(promises, stepJoinType);
+            return AsyncHelper.waitAsync(promises, stepJoinType);
+        };
+
+        CompletionStage<Void> promise = TaskStepHelper.withCancellable(action, stepRt.getCancelToken(), autoCancelUnfinished);
 
         CompletionStage<?> aggPromise = promise.thenApply(v -> {
-            if (cancelToken != null) {
-                cancelToken.removeOnCancel(cancel);
-            }
-            if (autoCancelUnfinished)
-                cancellable.cancel(ICancellable.CANCEL_REASON_KILL);
-
             MultiStepResultBean states = new MultiStepResultBean();
             int index = 0;
             for (CompletionStage<TaskStepResult> future : promises) {
@@ -115,7 +102,7 @@ public class ParallelTaskStep extends AbstractTaskStep {
                 stepRt.setValue(aggregateVarName, states);
 
             if (aggregator != null) {
-                return aggregator.aggregate(states, stepRt);
+                return aggregator.invoke(stepRt);
             }
             return states;
         });

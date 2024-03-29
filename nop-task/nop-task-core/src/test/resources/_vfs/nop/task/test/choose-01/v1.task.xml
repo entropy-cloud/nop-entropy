@@ -9,9 +9,7 @@
         <choose name="test">
             <input name="x"/>
             <decider>
-                <source>
-                    return x + 1
-                </source>
+                return x + 1
             </decider>
 
             <!--

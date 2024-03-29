@@ -28,7 +28,7 @@ public abstract class _ChooseTaskStepModel extends io.nop.task.model.TaskStepMod
      * xml name: decider
      * 
      */
-    private io.nop.task.model.TaskDeciderModel _decider ;
+    private io.nop.core.lang.eval.IEvalAction _decider ;
     
     /**
      *  
@@ -88,12 +88,12 @@ public abstract class _ChooseTaskStepModel extends io.nop.task.model.TaskStepMod
      *  
      */
     
-    public io.nop.task.model.TaskDeciderModel getDecider(){
+    public io.nop.core.lang.eval.IEvalAction getDecider(){
       return _decider;
     }
 
     
-    public void setDecider(io.nop.task.model.TaskDeciderModel value){
+    public void setDecider(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
         this._decider = value;
@@ -129,8 +129,6 @@ public abstract class _ChooseTaskStepModel extends io.nop.task.model.TaskStepMod
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
            this._cases = io.nop.api.core.util.FreezeHelper.deepFreeze(this._cases);
-            
-           this._decider = io.nop.api.core.util.FreezeHelper.deepFreeze(this._decider);
             
            this._otherwise = io.nop.api.core.util.FreezeHelper.deepFreeze(this._otherwise);
             

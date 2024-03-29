@@ -79,13 +79,14 @@ public class GraphTaskStep extends AbstractTaskStep {
 
         Map<String, Map<String, Object>> results = makeResults(stepRt);
 
-        Cancellable cancellable = new Cancellable();
-        Consumer<String> cancel = cancellable::cancel;
-        stepRt.getCancelToken().appendOnCancel(cancel);
 
         CompletableFuture<TaskStepResult> future = new CompletableFuture<>();
 
         Map<String, CompletableFuture<?>> futures = initFutures(results);
+
+        Cancellable cancellable = new Cancellable();
+        Consumer<String> cancel = cancellable::cancel;
+        stepRt.getCancelToken().appendOnCancel(cancel);
 
         for (GraphStepNode node : nodes) {
             if (node.getWaitSteps().isEmpty())

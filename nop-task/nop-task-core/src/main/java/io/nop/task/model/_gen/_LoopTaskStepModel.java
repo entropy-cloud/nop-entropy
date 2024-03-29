@@ -52,6 +52,13 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
     private java.lang.String _varName ;
     
     /**
+     *  
+     * xml name: varType
+     * 
+     */
+    private io.nop.core.type.IGenericType _varType ;
+    
+    /**
      * 
      * xml name: indexName
      *  
@@ -146,6 +153,25 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
     }
 
     
+    /**
+     * 
+     * xml name: varType
+     *  
+     */
+    
+    public io.nop.core.type.IGenericType getVarType(){
+      return _varType;
+    }
+
+    
+    public void setVarType(io.nop.core.type.IGenericType value){
+        checkAllowChange();
+        
+        this._varType = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -166,6 +192,7 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
         out.putNotNull("maxCount",this.getMaxCount());
         out.putNotNull("until",this.getUntil());
         out.putNotNull("varName",this.getVarName());
+        out.putNotNull("varType",this.getVarType());
     }
 
     public LoopTaskStepModel cloneInstance(){
@@ -182,6 +209,7 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
         instance.setMaxCount(this.getMaxCount());
         instance.setUntil(this.getUntil());
         instance.setVarName(this.getVarName());
+        instance.setVarType(this.getVarType());
     }
 
     protected LoopTaskStepModel newInstance(){

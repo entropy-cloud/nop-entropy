@@ -1,0 +1,25 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <fork-n name="test" indexName="idx" aggregateVarName="results" countExpr="2">
+            <input name="x">
+                <source>1</source>
+            </input>
+
+            <steps>
+                <xpl name="step1">
+                    <input name="x"/>
+                    <input name="idx"/>
+                    <source>
+                        return x + idx
+                    </source>
+                </xpl>
+            </steps>
+
+            <aggregator>
+                const sum = results.sum("RESULT")
+                return sum == 3 ? 'OK' : 'FAIL'
+            </aggregator>
+        </fork-n>
+    </steps>
+
+</task>

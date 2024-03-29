@@ -25,7 +25,7 @@ public abstract class _TaskBeanModel extends io.nop.core.resource.component.Abst
     
     /**
      *  
-     * xml name: 
+     * xml name: source
      * 
      */
     private io.nop.core.lang.eval.IEvalAction _source ;
@@ -51,7 +51,7 @@ public abstract class _TaskBeanModel extends io.nop.core.resource.component.Abst
     
     /**
      * 
-     * xml name: 
+     * xml name: source
      *  
      */
     
