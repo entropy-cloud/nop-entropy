@@ -15,6 +15,7 @@ import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.beans.query.QueryFieldBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.core.lang.sql.FilterBeanToSQLTransformer;
@@ -29,7 +30,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static io.nop.orm.OrmErrors.*;
+import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
+import static io.nop.orm.OrmErrors.ARG_FUNC_NAME;
+import static io.nop.orm.OrmErrors.ARG_OWNER;
+import static io.nop.orm.OrmErrors.ARG_PROP_PATH;
+import static io.nop.orm.OrmErrors.ERR_ORM_INVALID_ENTITY_NAME;
+import static io.nop.orm.OrmErrors.ERR_ORM_INVALID_FIELD_NAME;
+import static io.nop.orm.OrmErrors.ERR_ORM_INVALID_FUNC_NAME;
+import static io.nop.orm.OrmErrors.ERR_ORM_INVALID_OWNER_NAME;
+import static io.nop.orm.OrmErrors.ERR_ORM_QUERY_EXAMPLE_PROP_NOT_INITED;
 
 /**
  * 提供根据Query信息拼接SQL语句的帮助函数
@@ -64,6 +73,12 @@ public class DaoQueryHelper {
     public static SQL queryToSelectObjectSql(String entityName, QueryBean query) {
         SQL.SqlBuilder sb = newSQL(query);
         sb.append("select o from ").append(entityName).as("o");
+        if (query.getLeftJoinProps() != null) {
+            for (String propName : query.getLeftJoinProps()) {
+                Guard.checkArgument(StringHelper.isValidPropPath(propName));
+                sb.append(" left join o.").append(propName);
+            }
+        }
         if (query != null) {
             appendWhere(sb, "o", query.getFilter());
 

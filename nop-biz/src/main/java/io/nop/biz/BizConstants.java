@@ -90,6 +90,8 @@ public interface BizConstants {
 
     String ORM_MANY_TO_MANY_REF_PROP = "orm:manyToManyRefProp";
 
+    String BIZ_ALLOW_LEFT_JOIN_PROPS = "biz:allowLeftJoinProps";
+
     String EXT_KIND_VALUE_COMPONENT = "component";
 
     String GRAPHQL_BASE_NAME = "graphql:base";

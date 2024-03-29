@@ -41,6 +41,8 @@ public class QueryBean implements Serializable {
 
     private List<QuerySourceBean> joins;
 
+    private List<String> leftJoinProps;
+
     private TreeBean filter;
 
     private List<OrderFieldBean> orderBy;
@@ -216,6 +218,14 @@ public class QueryBean implements Serializable {
 
     public void setJoins(List<QuerySourceBean> joins) {
         this.joins = joins;
+    }
+
+    public List<String> getLeftJoinProps() {
+        return leftJoinProps;
+    }
+
+    public void setLeftJoinProps(List<String> leftJoinProps) {
+        this.leftJoinProps = leftJoinProps;
     }
 
     public List<GroupFieldBean> getGroupBy() {

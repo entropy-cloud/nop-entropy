@@ -65,6 +65,8 @@ public interface BizErrors {
     String ARG_VAR_NAME = "varName";
     String ARG_ATTR_NAME = "attrName";
 
+    String ARG_PROP_NAMES = "propNames";
+
     ErrorCode ERR_BIZ_INVALID_BIZ_OBJ_NAME = define("nop.err.biz.invalid-biz-obj-name", "非法的bizObjName: {bizObjName}",
             ARG_BIZ_OBJ_NAME);
 
@@ -196,4 +198,10 @@ public interface BizErrors {
 
     ErrorCode ERR_BIZ_OPERATION_NO_IMPL_ACTION =
             define("nop.err.biz.operation-no-impl-action", "服务函数[{operationName}]没有提供实现函数");
+
+    ErrorCode ERR_BIZ_NOT_ALLOWED_LEFT_JOIN_PROPS =
+            define("nop.err.biz.not-allowed-left-join-props", "不允许如下属性使用左连接:{propNames}", ARG_PROP_NAMES);
+
+    ErrorCode ERR_BIZ_TOO_MANY_LEFT_JOIN_PROPS_IN_QUERY =
+            define("nop.err.biz.too-many-left-join-props-in-query", "查询对象中包含太多的左连接属性设置:{propNames}", ARG_PROP_NAMES);
 }

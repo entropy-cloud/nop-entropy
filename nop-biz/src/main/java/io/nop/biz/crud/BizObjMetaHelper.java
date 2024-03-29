@@ -7,6 +7,7 @@
  */
 package io.nop.biz.crud;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObject;
@@ -16,8 +17,13 @@ import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.IObjSchema;
 import io.nop.xlang.xmeta.ISchema;
 
+import java.util.List;
+import java.util.Set;
+
 import static io.nop.auth.api.AuthApiErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.biz.BizErrors.ARG_PROP_NAME;
+import static io.nop.biz.BizErrors.ARG_PROP_NAMES;
+import static io.nop.biz.BizErrors.ERR_BIZ_NOT_ALLOWED_LEFT_JOIN_PROPS;
 import static io.nop.biz.BizErrors.ERR_BIZ_PROP_NOT_SORTABLE;
 import static io.nop.biz.BizErrors.ERR_BIZ_UNKNOWN_PROP;
 
@@ -69,6 +75,17 @@ public class BizObjMetaHelper {
             throw new NopException(ERR_BIZ_UNKNOWN_PROP).param(ARG_BIZ_OBJ_NAME, bizObjName)
                     .param(ARG_PROP_NAME, propName);
         }
+    }
+
+    public static void checkAllowLeftJoinProps(List<String> leftJoinProps, IObjMeta objMeta) {
+        if (leftJoinProps == null || leftJoinProps.isEmpty())
+            return;
+
+        Set<String> allowed = ConvertHelper.toCsvSet(objMeta.prop_get(BizConstants.BIZ_ALLOW_LEFT_JOIN_PROPS));
+        if (allowed == null || allowed.isEmpty() || !allowed.containsAll(leftJoinProps))
+            throw new NopException(ERR_BIZ_NOT_ALLOWED_LEFT_JOIN_PROPS)
+                    .param(ARG_BIZ_OBJ_NAME, objMeta.getBizObjName())
+                    .param(ARG_PROP_NAMES, leftJoinProps);
     }
 //
 //    public static ITreeBean getFilter(IObjMeta objMeta, IServiceContext context) {

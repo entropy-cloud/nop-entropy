@@ -81,6 +81,7 @@ import java.util.function.Predicate;
 import static io.nop.auth.api.AuthApiErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.auth.api.AuthApiErrors.ERR_AUTH_NO_DATA_AUTH;
 import static io.nop.auth.api.AuthApiErrors.ERR_AUTH_NO_DATA_AUTH_AFTER_UPDATE;
+import static io.nop.biz.BizConfigs.CFG_BIZ_QUERY_MAX_LEFT_JOIN_PROP_COUNT;
 import static io.nop.biz.BizConstants.ACTION_ARG_ENTITY;
 import static io.nop.biz.BizConstants.BIZ_OBJ_NAME_THIS_OBJ;
 import static io.nop.biz.BizConstants.METHOD_FIND_COUNT;
@@ -100,6 +101,7 @@ import static io.nop.biz.BizErrors.ARG_KEY;
 import static io.nop.biz.BizErrors.ARG_OBJ_LABEL;
 import static io.nop.biz.BizErrors.ARG_PARAM_NAME;
 import static io.nop.biz.BizErrors.ARG_PROP_NAME;
+import static io.nop.biz.BizErrors.ARG_PROP_NAMES;
 import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_SAVE;
 import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_UPDATE;
 import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_ALREADY_EXISTS;
@@ -111,6 +113,7 @@ import static io.nop.biz.BizErrors.ERR_BIZ_NO_BIZ_MODEL_ANNOTATION;
 import static io.nop.biz.BizErrors.ERR_BIZ_NO_MANDATORY_PARAM;
 import static io.nop.biz.BizErrors.ERR_BIZ_OBJ_NO_DICT_TAG;
 import static io.nop.biz.BizErrors.ERR_BIZ_PROP_NOT_MANY_TO_MANY_REF;
+import static io.nop.biz.BizErrors.ERR_BIZ_TOO_MANY_LEFT_JOIN_PROPS_IN_QUERY;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAX_PAGE_SIZE;
 
 @Locale("zh-CN")
@@ -342,6 +345,14 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                     String name = field.getName();
                     BizObjMetaHelper.checkPropSortable(getBizObjName(), objMeta, name, bizObjectManager);
                 }
+            }
+
+            if (query.getLeftJoinProps() != null) {
+                if (query.getLeftJoinProps().size() > CFG_BIZ_QUERY_MAX_LEFT_JOIN_PROP_COUNT.get())
+                    throw new NopException(ERR_BIZ_TOO_MANY_LEFT_JOIN_PROPS_IN_QUERY)
+                            .param(ARG_BIZ_OBJ_NAME, getBizObjName())
+                            .param(ARG_PROP_NAMES, query.getLeftJoinProps());
+                BizObjMetaHelper.checkAllowLeftJoinProps(query.getLeftJoinProps(), objMeta);
             }
         }
     }
