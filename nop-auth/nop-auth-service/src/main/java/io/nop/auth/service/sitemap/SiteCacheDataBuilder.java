@@ -118,7 +118,7 @@ public class SiteCacheDataBuilder {
 
         for (NopAuthRoleResource roleResource : roleResources) {
             resourceToRoles.computeIfAbsent(roleResource.getResourceId(), k -> new TreeSet<>())
-                    .add(roleResource.getResourceId());
+                    .add(roleResource.getRoleId());
         }
 
         for (NopAuthResource resource : resources) {
