@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [34:10:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [38:10:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -50,6 +50,13 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
      * 输出变量是否需要被持久化到数据库中。如果不设置持久化，则一旦中断任务则会丢失相应的输出变量
      */
     private boolean _persist  = false;
+    
+    /**
+     *  
+     * xml name: roles
+     * 
+     */
+    private java.util.Set<java.lang.String> _roles ;
     
     /**
      *  
@@ -169,6 +176,25 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
     
     /**
      * 
+     * xml name: roles
+     *  
+     */
+    
+    public java.util.Set<java.lang.String> getRoles(){
+      return _roles;
+    }
+
+    
+    public void setRoles(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._roles = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: source
      *  
      */
@@ -244,6 +270,7 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
         out.putNotNull("exportAs",this.getExportAs());
         out.putNotNull("name",this.getName());
         out.putNotNull("persist",this.isPersist());
+        out.putNotNull("roles",this.getRoles());
         out.putNotNull("source",this.getSource());
         out.putNotNull("toTaskScope",this.isToTaskScope());
         out.putNotNull("type",this.getType());
@@ -263,6 +290,7 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
         instance.setExportAs(this.getExportAs());
         instance.setName(this.getName());
         instance.setPersist(this.isPersist());
+        instance.setRoles(this.getRoles());
         instance.setSource(this.getSource());
         instance.setToTaskScope(this.isToTaskScope());
         instance.setType(this.getType());

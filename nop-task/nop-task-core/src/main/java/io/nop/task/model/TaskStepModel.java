@@ -15,6 +15,12 @@ public abstract class TaskStepModel extends _TaskStepModel implements INeedInit 
 
     }
 
+    public String getFullStepType() {
+        if (getExtType() == null)
+            return getType();
+        return getType() + '-' + getExtType();
+    }
+
     public abstract String getType();
 
     @Override

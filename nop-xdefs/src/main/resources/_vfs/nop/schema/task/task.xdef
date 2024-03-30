@@ -11,6 +11,10 @@
       xdef:name="TaskFlowModel" xdef:bean-package="io.nop.task.model"
       xdef:ref="TaskStepsModel" xdef:model-name-prop="name" xdef:model-version-prop="version"
 >
+    <!--
+    设置task的访问权限
+    -->
+    <auth xdef:ref="../schema/auth.xdef"/>
 
     <xdef:define xdef:name="TaskExecutableModel" executor="bean-name" returnType="generic-type"
                  displayName="string" timeout="!long=0" persisVars="csv-set">
@@ -21,7 +25,7 @@
         @persist [是否持久化保存] 标记为persist的变量会自动保存，支持中断后恢复执行
         -->
         <input name="!var-name" displayName="string" xdef:name="TaskInputModel"
-               type="generic-type" mandatory="!boolean=false"
+               type="generic-type" mandatory="!boolean=false" role="string"
                xdef:unique-attr="name" persist="!boolean=true" fromTaskScope="!boolean=false">
             <description xdef:value="string"/>
             <source xdef:value="xpl"/>
@@ -33,7 +37,7 @@
         -->
         <output name="!var-name" displayName="string" persist="!boolean=false"
                 xdef:name="TaskOutputModel" toTaskScope="!boolean=false" type="generic-type"
-                xdef:unique-attr="name" exportAs="var-name">
+                xdef:unique-attr="name" exportAs="var-name" roles="csv-set">
             <description xdef:value="string"/>
             <source xdef:value="xpl"/>
         </output>
@@ -83,6 +87,7 @@
     </xdef:define>
 
     <!--
+    @extType 用于指定步骤的扩展类型
     @runOnContext 指定本步骤中的操作都使用IContext.runOnContext来执行
     @next 本步骤执行完毕后缺省跳转到的步骤。如果没有指定，则缺省步骤为下一个兄弟节点
     @saveState 是否需要持久化状态用于失败后重新执行本步骤时的状态恢复

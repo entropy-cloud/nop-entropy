@@ -9,7 +9,7 @@ package io.nop.task.step;
 
 import io.nop.api.core.util.Guard;
 import io.nop.commons.lang.impl.Cancellable;
-import io.nop.task.IEnhancedTaskStep;
+import io.nop.task.ITaskStepExecution;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskConstants;
 import io.nop.task.TaskStepResult;
@@ -25,15 +25,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 public class GraphTaskStep extends AbstractTaskStep {
-    private List<IEnhancedTaskStep> enterSteps;
+    private List<ITaskStepExecution> enterSteps;
 
     private List<GraphStepNode> nodes;
 
-    public List<IEnhancedTaskStep> getEnterSteps() {
+    public List<ITaskStepExecution> getEnterSteps() {
         return enterSteps;
     }
 
-    public void setEnterSteps(List<IEnhancedTaskStep> enterSteps) {
+    public void setEnterSteps(List<ITaskStepExecution> enterSteps) {
         this.enterSteps = enterSteps;
     }
 
@@ -47,10 +47,10 @@ public class GraphTaskStep extends AbstractTaskStep {
 
     public static class GraphStepNode {
         private final Set<String> waitSteps;
-        private final IEnhancedTaskStep step;
+        private final ITaskStepExecution step;
         private final boolean end;
 
-        public GraphStepNode(Set<String> waitSteps, IEnhancedTaskStep step, boolean end) {
+        public GraphStepNode(Set<String> waitSteps, ITaskStepExecution step, boolean end) {
             this.waitSteps = waitSteps == null ? Collections.emptySet() : waitSteps;
             this.step = Guard.notNull(step, "step");
             this.end = end;
@@ -60,7 +60,7 @@ public class GraphTaskStep extends AbstractTaskStep {
             return waitSteps;
         }
 
-        public IEnhancedTaskStep getStep() {
+        public ITaskStepExecution getStep() {
             return step;
         }
 
@@ -131,7 +131,7 @@ public class GraphTaskStep extends AbstractTaskStep {
             });
         }
 
-        for (IEnhancedTaskStep step : enterSteps) {
+        for (ITaskStepExecution step : enterSteps) {
             String stepName = step.getStepName();
             step.executeWithParentRt(stepRt).getReturnPromise().whenComplete((ret, err) -> {
                 if (err != null) {

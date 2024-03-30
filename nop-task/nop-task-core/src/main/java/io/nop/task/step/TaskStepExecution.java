@@ -8,7 +8,7 @@ import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.eval.IEvalScope;
-import io.nop.task.IEnhancedTaskStep;
+import io.nop.task.ITaskStepExecution;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
@@ -26,8 +26,8 @@ import java.util.Set;
 
 import static io.nop.task.TaskErrors.ERR_TASK_CANCELLED;
 
-public class EnhancedTaskStep implements IEnhancedTaskStep {
-    static final Logger LOG = LoggerFactory.getLogger(EnhancedTaskStep.class);
+public class TaskStepExecution implements ITaskStepExecution {
+    static final Logger LOG = LoggerFactory.getLogger(TaskStepExecution.class);
 
     public static class InputConfig {
         private final SourceLocation location;
@@ -113,13 +113,13 @@ public class EnhancedTaskStep implements IEnhancedTaskStep {
 
     private final boolean useParentScope;
 
-    public EnhancedTaskStep(SourceLocation location, String stepName,
-                            List<InputConfig> inputConfigs,
-                            List<OutputConfig> outputConfigs, Set<String> outputVars,
-                            IEvalPredicate when,
-                            ITaskStep step, String nextStepName, String nextStepNameOnError,
-                            boolean ignoreResult, String errorName,
-                            boolean useParentScope
+    public TaskStepExecution(SourceLocation location, String stepName,
+                             List<InputConfig> inputConfigs,
+                             List<OutputConfig> outputConfigs, Set<String> outputVars,
+                             IEvalPredicate when,
+                             ITaskStep step, String nextStepName, String nextStepNameOnError,
+                             boolean ignoreResult, String errorName,
+                             boolean useParentScope
     ) {
         this.location = location;
         this.stepName = stepName;

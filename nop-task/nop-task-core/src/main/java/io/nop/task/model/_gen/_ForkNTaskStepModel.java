@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [154:14:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [159:14:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -35,7 +35,7 @@ public abstract class _ForkNTaskStepModel extends io.nop.task.model.TaskStepsMod
      * xml name: autoCancelUnfinished
      * 
      */
-    private boolean _autoCancelUnfinished  = false;
+    private boolean _autoCancelUnfinished  = true;
     
     /**
      *  

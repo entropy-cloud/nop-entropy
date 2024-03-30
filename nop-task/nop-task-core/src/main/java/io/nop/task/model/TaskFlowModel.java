@@ -42,7 +42,7 @@ public class TaskFlowModel extends _TaskFlowModel implements IGraphTaskStepModel
         this.task = task;
     }
 
-    public ITaskStepLib getTaskStepLib() {
+    public synchronized ITaskStepLib getTaskStepLib() {
         if (taskStepLib == null) {
             taskStepLib = new TaskStepLibBuilder().buildTaskStepLib(this);
         }

@@ -8,7 +8,7 @@
 package io.nop.task.step;
 
 import io.nop.commons.util.CollectionHelper;
-import io.nop.task.IEnhancedTaskStep;
+import io.nop.task.ITaskStepExecution;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepResult;
 import io.nop.task.utils.TaskStepHelper;
@@ -24,14 +24,14 @@ import static io.nop.task.TaskErrors.ERR_TASK_UNKNOWN_NEXT_STEP;
  * 顺序执行步骤，通过上下文中的RESULT变量保存返回值
  */
 public class SequentialTaskStep extends AbstractTaskStep {
-    private List<IEnhancedTaskStep> steps;
+    private List<ITaskStepExecution> steps;
     private Map<String, Integer> stepIndex;
 
-    public List<IEnhancedTaskStep> getSteps() {
+    public List<ITaskStepExecution> getSteps() {
         return steps;
     }
 
-    public void setSteps(List<IEnhancedTaskStep> steps) {
+    public void setSteps(List<ITaskStepExecution> steps) {
         this.steps = steps;
 
         this.stepIndex = CollectionHelper.newHashMap(steps.size());
@@ -49,7 +49,7 @@ public class SequentialTaskStep extends AbstractTaskStep {
             if (index >= steps.size())
                 return TaskStepResult.RETURN_RESULT(stepRt.getResult());
 
-            IEnhancedTaskStep step = steps.get(index);
+            ITaskStepExecution step = steps.get(index);
 
             TaskStepResult stepResult = step.executeWithParentRt(stepRt);
             if (stepResult.isSuspend())

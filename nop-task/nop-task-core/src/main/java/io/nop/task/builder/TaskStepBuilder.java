@@ -3,7 +3,7 @@ package io.nop.task.builder;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.core.lang.eval.IEvalAction;
-import io.nop.task.IEnhancedTaskStep;
+import io.nop.task.ITaskStepExecution;
 import io.nop.task.ITaskStep;
 import io.nop.task.TaskConstants;
 import io.nop.task.model.CallStepTaskStepModel;
@@ -25,7 +25,6 @@ import io.nop.task.model.SequentialTaskStepModel;
 import io.nop.task.model.SimpleTaskStepModel;
 import io.nop.task.model.SleepTaskStepModel;
 import io.nop.task.model.SuspendTaskStepModel;
-import io.nop.task.model.TaskBeanModel;
 import io.nop.task.model.TaskChooseCaseModel;
 import io.nop.task.model.TaskFlowModel;
 import io.nop.task.model.TaskInputModel;
@@ -221,20 +220,20 @@ public class TaskStepBuilder implements ITaskStepBuilder {
     private AbstractTaskStep buildChooseStep(ChooseTaskStepModel stepModel) {
         ChooseTaskStep ret = new ChooseTaskStep();
         ret.setDecider(stepModel.getDecider());
-        Map<String, IEnhancedTaskStep> caseSteps = new HashMap<>();
+        Map<String, ITaskStepExecution> caseSteps = new HashMap<>();
         for (TaskChooseCaseModel caseModel : stepModel.getCases()) {
-            caseSteps.put(caseModel.getMatch(), buildEnhancedStep(caseModel));
+            caseSteps.put(caseModel.getMatch(), buildStepExecution(caseModel));
         }
         ret.setCaseSteps(caseSteps);
         if (stepModel.getOtherwise() != null)
-            ret.setDefaultStep(buildEnhancedStep(stepModel.getOtherwise()));
+            ret.setDefaultStep(buildStepExecution(stepModel.getOtherwise()));
         return ret;
     }
 
     private SequentialTaskStep buildSequentialStep(TaskStepsModel stepModel) {
-        List<IEnhancedTaskStep> steps = new ArrayList<>(stepModel.getSteps().size());
+        List<ITaskStepExecution> steps = new ArrayList<>(stepModel.getSteps().size());
         for (TaskStepModel subStepModel : stepModel.getSteps()) {
-            steps.add(buildEnhancedStep(subStepModel));
+            steps.add(buildStepExecution(subStepModel));
         }
         SequentialTaskStep ret = new SequentialTaskStep();
         ret.setSteps(steps);
@@ -246,9 +245,9 @@ public class TaskStepBuilder implements ITaskStepBuilder {
     }
 
     private ParallelTaskStep buildParallelStep(ParallelTaskStepModel stepModel) {
-        List<IEnhancedTaskStep> steps = new ArrayList<>(stepModel.getSteps().size());
+        List<ITaskStepExecution> steps = new ArrayList<>(stepModel.getSteps().size());
         for (TaskStepModel subStepModel : stepModel.getSteps()) {
-            steps.add(buildEnhancedStep(subStepModel));
+            steps.add(buildStepExecution(subStepModel));
         }
         ParallelTaskStep ret = new ParallelTaskStep();
         ret.setSteps(steps);
@@ -341,7 +340,7 @@ public class TaskStepBuilder implements ITaskStepBuilder {
     }
 
     @Override
-    public IEnhancedTaskStep buildEnhancedStep(TaskStepModel stepModel) {
+    public ITaskStepExecution buildStepExecution(TaskStepModel stepModel) {
         return stepEnhancer.buildEnhanced(stepModel, this);
     }
 

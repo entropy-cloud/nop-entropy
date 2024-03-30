@@ -7,7 +7,7 @@ import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.model.graph.dag.Dag;
-import io.nop.task.IEnhancedTaskStep;
+import io.nop.task.ITaskStepExecution;
 import io.nop.task.TaskConstants;
 import io.nop.task.model.IGraphTaskStepModel;
 import io.nop.task.model.TaskInputModel;
@@ -48,11 +48,11 @@ public class GraphStepBuilder {
 
         GraphTaskStep ret = new GraphTaskStep();
 
-        List<IEnhancedTaskStep> enterSteps = new ArrayList<>(stepModel.getEnterSteps().size());
+        List<ITaskStepExecution> enterSteps = new ArrayList<>(stepModel.getEnterSteps().size());
 
         List<GraphTaskStep.GraphStepNode> subSteps = stepModel.getSteps().stream()
                 .map(subStep -> {
-                    IEnhancedTaskStep step = stepBuilder.buildEnhancedStep(subStep);
+                    ITaskStepExecution step = stepBuilder.buildStepExecution(subStep);
                     if (stepModel.getEnterSteps().contains(subStep.getName())) {
                         enterSteps.add(step);
                     }

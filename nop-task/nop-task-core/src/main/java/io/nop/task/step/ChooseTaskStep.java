@@ -10,7 +10,7 @@ package io.nop.task.step;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalAction;
-import io.nop.task.IEnhancedTaskStep;
+import io.nop.task.ITaskStepExecution;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskConstants;
 import io.nop.task.TaskStepResult;
@@ -21,9 +21,9 @@ import java.util.Map;
 public class ChooseTaskStep extends AbstractTaskStep {
     private IEvalAction decider;
 
-    private Map<String, IEnhancedTaskStep> caseSteps;
+    private Map<String, ITaskStepExecution> caseSteps;
 
-    private IEnhancedTaskStep defaultStep;
+    private ITaskStepExecution defaultStep;
 
     public IEvalAction getDecider() {
         return decider;
@@ -33,19 +33,19 @@ public class ChooseTaskStep extends AbstractTaskStep {
         this.decider = decider;
     }
 
-    public Map<String, IEnhancedTaskStep> getCaseSteps() {
+    public Map<String, ITaskStepExecution> getCaseSteps() {
         return caseSteps;
     }
 
-    public void setCaseSteps(Map<String, IEnhancedTaskStep> caseSteps) {
+    public void setCaseSteps(Map<String, ITaskStepExecution> caseSteps) {
         this.caseSteps = caseSteps;
     }
 
-    public IEnhancedTaskStep getDefaultStep() {
+    public ITaskStepExecution getDefaultStep() {
         return defaultStep;
     }
 
-    public void setDefaultStep(IEnhancedTaskStep defaultStep) {
+    public void setDefaultStep(ITaskStepExecution defaultStep) {
         this.defaultStep = defaultStep;
     }
 
@@ -61,7 +61,7 @@ public class ChooseTaskStep extends AbstractTaskStep {
             stepRt.saveState();
         }
 
-        IEnhancedTaskStep chosenStep = caseSteps.get(caseValue);
+        ITaskStepExecution chosenStep = caseSteps.get(caseValue);
         if (chosenStep == null)
             chosenStep = defaultStep;
 

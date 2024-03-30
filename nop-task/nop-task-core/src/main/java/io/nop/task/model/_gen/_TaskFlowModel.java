@@ -18,6 +18,13 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
     
     /**
      *  
+     * xml name: auth
+     * 设置task的访问权限
+     */
+    private io.nop.api.core.auth.ActionAuthMeta _auth ;
+    
+    /**
+     *  
      * xml name: defaultSaveState
      * 
      */
@@ -57,6 +64,25 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
      * 
      */
     private long _version  = 0L;
+    
+    /**
+     * 
+     * xml name: auth
+     *  设置task的访问权限
+     */
+    
+    public io.nop.api.core.auth.ActionAuthMeta getAuth(){
+      return _auth;
+    }
+
+    
+    public void setAuth(io.nop.api.core.auth.ActionAuthMeta value){
+        checkAllowChange();
+        
+        this._auth = value;
+           
+    }
+
     
     /**
      * 
@@ -180,6 +206,8 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._auth = io.nop.api.core.util.FreezeHelper.deepFreeze(this._auth);
+            
         }
     }
 
@@ -187,6 +215,7 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("auth",this.getAuth());
         out.putNotNull("defaultSaveState",this.isDefaultSaveState());
         out.putNotNull("enterSteps",this.getEnterSteps());
         out.putNotNull("exitSteps",this.getExitSteps());
@@ -204,6 +233,7 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
     protected void copyTo(TaskFlowModel instance){
         super.copyTo(instance);
         
+        instance.setAuth(this.getAuth());
         instance.setDefaultSaveState(this.isDefaultSaveState());
         instance.setEnterSteps(this.getEnterSteps());
         instance.setExitSteps(this.getExitSteps());

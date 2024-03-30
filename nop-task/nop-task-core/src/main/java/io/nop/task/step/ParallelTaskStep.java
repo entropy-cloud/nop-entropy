@@ -12,7 +12,7 @@ import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.AsyncJoinType;
 import io.nop.commons.util.AsyncHelper;
 import io.nop.core.lang.eval.IEvalAction;
-import io.nop.task.IEnhancedTaskStep;
+import io.nop.task.ITaskStepExecution;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.StepResultBean;
 import io.nop.task.TaskStepResult;
@@ -28,7 +28,7 @@ import java.util.function.Function;
  * 多个子步骤同时执行。执行结果汇总为MultiStepResultBean。如果定义了aggregator，则通过RESULT变量访问到返回结果集，它的执行结果作为最终结果
  */
 public class ParallelTaskStep extends AbstractTaskStep {
-    private List<IEnhancedTaskStep> steps;
+    private List<ITaskStepExecution> steps;
 
     private AsyncJoinType stepJoinType;
 
@@ -49,7 +49,7 @@ public class ParallelTaskStep extends AbstractTaskStep {
         this.aggregator = aggregator;
     }
 
-    public void setSteps(List<IEnhancedTaskStep> steps) {
+    public void setSteps(List<ITaskStepExecution> steps) {
         this.steps = steps;
     }
 
@@ -73,7 +73,7 @@ public class ParallelTaskStep extends AbstractTaskStep {
         Function<ICancelToken, CompletionStage<Void>> action = cancellable -> {
             stepRt.setCancelToken(cancellable);
             for (int i = 0, n = steps.size(); i < n; i++) {
-                IEnhancedTaskStep step = steps.get(i);
+                ITaskStepExecution step = steps.get(i);
                 try {
                     TaskStepResult stepResult = step.executeWithParentRt(stepRt);
                     promises.add(stepResult.getReturnPromise());

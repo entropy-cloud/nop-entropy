@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [23:10:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [27:10:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -57,6 +57,13 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
      * 标记为persist的变量会自动保存，支持中断后恢复执行
      */
     private boolean _persist  = true;
+    
+    /**
+     *  
+     * xml name: role
+     * 
+     */
+    private java.lang.String _role ;
     
     /**
      *  
@@ -188,6 +195,25 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: role
+     *  
+     */
+    
+    public java.lang.String getRole(){
+      return _role;
+    }
+
+    
+    public void setRole(java.lang.String value){
+        checkAllowChange();
+        
+        this._role = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: source
      *  
      */
@@ -245,6 +271,7 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
         out.putNotNull("mandatory",this.isMandatory());
         out.putNotNull("name",this.getName());
         out.putNotNull("persist",this.isPersist());
+        out.putNotNull("role",this.getRole());
         out.putNotNull("source",this.getSource());
         out.putNotNull("type",this.getType());
     }
@@ -264,6 +291,7 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
         instance.setMandatory(this.isMandatory());
         instance.setName(this.getName());
         instance.setPersist(this.isPersist());
+        instance.setRole(this.getRole());
         instance.setSource(this.getSource());
         instance.setType(this.getType());
     }

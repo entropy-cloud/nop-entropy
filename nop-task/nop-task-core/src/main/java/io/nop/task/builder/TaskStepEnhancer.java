@@ -28,7 +28,7 @@ import io.nop.task.model.TaskStepModel;
 import io.nop.task.model.TaskThrottleModel;
 import io.nop.task.step.AbstractTaskStep;
 import io.nop.task.step.BuildOutputTaskStepWrapper;
-import io.nop.task.step.EnhancedTaskStep;
+import io.nop.task.step.TaskStepExecution;
 import io.nop.task.step.ExecutorTaskStepWrapper;
 import io.nop.task.step.RateLimitTaskStepWrapper;
 import io.nop.task.step.RetryTaskStepWrapper;
@@ -50,7 +50,7 @@ import java.util.Set;
 public class TaskStepEnhancer implements ITaskStepEnhancer {
 
     @Override
-    public EnhancedTaskStep buildEnhanced(TaskStepModel stepModel, ITaskStepBuilder stepBuilder) {
+    public TaskStepExecution buildEnhanced(TaskStepModel stepModel, ITaskStepBuilder stepBuilder) {
         return enhancedTaskStep(stepModel, buildDecorated(stepModel, stepBuilder), stepBuilder);
     }
 
@@ -60,30 +60,26 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
         return wrap(stepModel, step);
     }
 
-    private EnhancedTaskStep enhancedTaskStep(TaskStepModel stepModel, ITaskStep step, ITaskStepBuilder stepBuilder) {
-        List<EnhancedTaskStep.InputConfig> inputs = new ArrayList<>(stepModel.getInputs().size());
+    private TaskStepExecution enhancedTaskStep(TaskStepModel stepModel, ITaskStep step, ITaskStepBuilder stepBuilder) {
+        List<TaskStepExecution.InputConfig> inputs = new ArrayList<>(stepModel.getInputs().size());
         for (TaskInputModel inputModel : stepModel.getInputs()) {
-            inputs.add(new EnhancedTaskStep.InputConfig(inputModel.getLocation(), inputModel.getName(),
+            inputs.add(new TaskStepExecution.InputConfig(inputModel.getLocation(), inputModel.getName(),
                     inputModel.getSource(), inputModel.isFromTaskScope()));
         }
 
-        List<EnhancedTaskStep.OutputConfig> outputs = new ArrayList<>(stepModel.getOutputs().size());
+        List<TaskStepExecution.OutputConfig> outputs = new ArrayList<>(stepModel.getOutputs().size());
         Set<String> outputVars = new HashSet<>();
         for (TaskOutputModel outputModel : stepModel.getOutputs()) {
             outputVars.add(outputModel.getName());
             String exportName = outputModel.getExportAs() == null ? outputModel.getName() : outputModel.getExportAs();
-            outputs.add(new EnhancedTaskStep.OutputConfig(outputModel.getLocation(), exportName,
+            outputs.add(new TaskStepExecution.OutputConfig(outputModel.getLocation(), exportName,
                     outputModel.getName(), outputModel.isToTaskScope()));
         }
 
-        return new EnhancedTaskStep(stepModel.getLocation(), stepModel.getName(), inputs, outputs, outputVars,
+        return new TaskStepExecution(stepModel.getLocation(), stepModel.getName(), inputs, outputs, outputVars,
                 stepModel.getWhen(), step,
                 stepModel.getNextOnError(), stepModel.getNextOnError(), stepModel.isIgnoreResult(),
                 stepModel.getErrorName(), stepModel.isUseParentScope());
-    }
-
-    private IEvalAction notNull(IEvalAction action) {
-        return action == null ? IEvalAction.NULL_ACTION : action;
     }
 
     private IEvalAction buildValidator(ValidatorModel validatorModel) {

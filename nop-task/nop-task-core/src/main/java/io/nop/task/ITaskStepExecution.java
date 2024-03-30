@@ -1,24 +1,14 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 package io.nop.task;
 
+import io.nop.api.core.util.ISourceLocationGetter;
+import jakarta.annotation.Nonnull;
+
 /**
- * TaskStep包含了状态恢复和条件判断等通用逻辑，ITaskStepExecution提供专属于该步骤的逻辑
+ * 负责将ITaskStep的输入输出与父步骤的scope绑定，从父scope中读取变量作为input，将output中的结果数据设置到父scope中。
  */
-public interface ITaskStepExecution {
+public interface ITaskStepExecution extends ISourceLocationGetter {
+    String getStepName();
 
-    default void prepareState(ITaskStep step, ITaskStepState state, ITaskRuntime taskRt) {
-
-    }
-
-    /**
-     * 可以通过返回值指定下一步骤ID。步骤ID只能是同级步骤，或者系统内置的步骤ID
-     */
-    TaskStepResult execute(ITaskStep step, ITaskStepState state,
-                           ITaskRuntime taskRt);
+    @Nonnull
+    TaskStepResult executeWithParentRt(ITaskStepRuntime parentRt);
 }

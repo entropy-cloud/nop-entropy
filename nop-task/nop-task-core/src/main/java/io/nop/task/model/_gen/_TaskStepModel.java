@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [93:6:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [98:6:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -33,7 +33,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     /**
      *  
      * xml name: extType
-     * 
+     * 用于指定步骤的扩展类型
      */
     private java.lang.String _extType ;
     
@@ -148,7 +148,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     /**
      * 
      * xml name: extType
-     *  
+     *  用于指定步骤的扩展类型
      */
     
     public java.lang.String getExtType(){
