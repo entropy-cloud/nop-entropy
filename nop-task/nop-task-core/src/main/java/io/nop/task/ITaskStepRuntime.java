@@ -3,6 +3,7 @@ package io.nop.task;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.core.context.IEvalContext;
 
+import java.util.Map;
 import java.util.Set;
 
 public interface ITaskStepRuntime extends IEvalContext {
@@ -97,5 +98,4 @@ public interface ITaskStepRuntime extends IEvalContext {
 
     ITaskStepRuntime newStepRuntime(String stepName, String stepType,
                                     Set<String> persistVars, boolean useParentScope, boolean concurrent);
-
 }

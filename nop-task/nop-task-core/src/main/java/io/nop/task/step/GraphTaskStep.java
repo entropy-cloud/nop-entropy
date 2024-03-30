@@ -8,34 +8,28 @@
 package io.nop.task.step;
 
 import io.nop.api.core.util.Guard;
-import io.nop.commons.lang.impl.Cancellable;
+import io.nop.api.core.util.ICancellable;
 import io.nop.task.ITaskStepExecution;
 import io.nop.task.ITaskStepRuntime;
+import io.nop.task.StepResultBean;
 import io.nop.task.TaskConstants;
 import io.nop.task.TaskStepResult;
+import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class GraphTaskStep extends AbstractTaskStep {
-    private List<ITaskStepExecution> enterSteps;
-
     private List<GraphStepNode> nodes;
-
-    public List<ITaskStepExecution> getEnterSteps() {
-        return enterSteps;
-    }
-
-    public void setEnterSteps(List<ITaskStepExecution> enterSteps) {
-        this.enterSteps = enterSteps;
-    }
 
     public List<GraphStepNode> getNodes() {
         return nodes;
@@ -46,18 +40,49 @@ public class GraphTaskStep extends AbstractTaskStep {
     }
 
     public static class GraphStepNode {
-        private final Set<String> waitSteps;
-        private final ITaskStepExecution step;
-        private final boolean end;
+        private final Set<String> waitSuccessSteps;
 
-        public GraphStepNode(Set<String> waitSteps, ITaskStepExecution step, boolean end) {
-            this.waitSteps = waitSteps == null ? Collections.emptySet() : waitSteps;
+        private final Set<String> waitErrorSteps;
+
+        private final Set<String> waitCompleteSteps;
+        private final ITaskStepExecution step;
+
+        private final boolean enter;
+        private final boolean exit;
+
+        public GraphStepNode(Set<String> waitSteps, Set<String> waitErrorSteps,
+                             ITaskStepExecution step, boolean enter, boolean exit) {
+
+            Set<String> successSteps = waitSteps == null ? Collections.emptySet() : waitSteps;
+            Set<String> errorSteps = waitErrorSteps == null ? Collections.emptySet() : waitErrorSteps;
+            Set<String> completeSteps = new HashSet<>(successSteps);
+            completeSteps.retainAll(errorSteps);
+
+            successSteps.removeAll(completeSteps);
+            errorSteps.removeAll(completeSteps);
+
+            this.waitSuccessSteps = successSteps;
+            this.waitErrorSteps = errorSteps;
+            this.waitCompleteSteps = completeSteps;
             this.step = Guard.notNull(step, "step");
-            this.end = end;
+            this.enter = enter;
+            this.exit = exit;
         }
 
-        public Set<String> getWaitSteps() {
-            return waitSteps;
+        public Set<String> getWaitCompleteSteps() {
+            return waitCompleteSteps;
+        }
+
+        public Set<String> getWaitErrorSteps() {
+            return waitErrorSteps;
+        }
+
+        public Set<String> getWaitSuccessSteps() {
+            return waitSuccessSteps;
+        }
+
+        public int getWaitCount() {
+            return waitSuccessSteps.size() + waitErrorSteps.size() + waitCompleteSteps.size();
         }
 
         public ITaskStepExecution getStep() {
@@ -68,8 +93,51 @@ public class GraphTaskStep extends AbstractTaskStep {
             return step.getStepName();
         }
 
-        public boolean isEnd() {
-            return end;
+        public boolean isEnter() {
+            return enter;
+        }
+
+        public boolean isExit() {
+            return exit;
+        }
+
+        public CompletableFuture<Void> buildWaitFuture(Map<String, CompletableFuture<?>> allFutures) {
+            CompletableFuture<Void> ret = new CompletableFuture<>();
+            AtomicInteger waitingCount = new AtomicInteger(waitSuccessSteps.size() + this.waitErrorSteps.size() + this.waitCompleteSteps.size());
+
+            for (String waitSuccess : this.waitSuccessSteps) {
+                CompletableFuture<?> future = allFutures.get(waitSuccess);
+                future.whenComplete((result, err) -> {
+                    waitingCount.decrementAndGet();
+                    if (err != null) {
+                        ret.completeExceptionally(err);
+                    } else if (waitingCount.get() <= 0) {
+                        ret.complete(null);
+                    }
+                });
+            }
+
+            for (String waitError : this.waitErrorSteps) {
+                CompletableFuture<?> future = allFutures.get(waitError);
+                future.whenComplete((result, err) -> {
+                    waitingCount.decrementAndGet();
+                    if (err != null) {
+                        if (waitingCount.get() <= 0)
+                            ret.complete(null);
+                    }
+                });
+            }
+
+            for (String waitComplete : this.waitCompleteSteps) {
+                CompletableFuture<?> future = allFutures.get(waitComplete);
+                future.whenComplete((result, err) -> {
+                    waitingCount.decrementAndGet();
+                    if (waitingCount.get() <= 0)
+                        ret.complete(null);
+                });
+            }
+
+            return ret;
         }
     }
 
@@ -77,94 +145,97 @@ public class GraphTaskStep extends AbstractTaskStep {
     @Override
     public TaskStepResult execute(ITaskStepRuntime stepRt) {
 
-        Map<String, Map<String, Object>> results = makeResults(stepRt);
-
+        // STEP_RESULTS 按照stepName保存每个步骤的返回结果
+        Map<String, StepResultBean> stepResults = makeResults(stepRt);
 
         CompletableFuture<TaskStepResult> future = new CompletableFuture<>();
 
-        Map<String, CompletableFuture<?>> futures = initFutures(results);
+        Map<String, CompletableFuture<?>> stepFutures = initFutures(stepResults);
 
-        Cancellable cancellable = new Cancellable();
-        Consumer<String> cancel = cancellable::cancel;
-        stepRt.getCancelToken().appendOnCancel(cancel);
+        AtomicInteger runningCount = new AtomicInteger();
 
-        for (GraphStepNode node : nodes) {
-            if (node.getWaitSteps().isEmpty())
-                continue;
+        CompletionStage<?> promise = TaskStepHelper.withCancellable(() -> {
+            ICancellable cancellable = (ICancellable) stepRt.getCancelToken();
 
-            String stepName = node.getStepName();
+            for (GraphStepNode node : nodes) {
+                if (node.getWaitCount() <= 0)
+                    continue;
 
-            CompletableFuture<?>[] waitFutures = new CompletableFuture[node.getWaitSteps().size()];
-            int i = 0;
-            for (String waitStep : node.getWaitSteps()) {
-                waitFutures[i] = futures.get(waitStep);
-                i++;
+                CompletableFuture<Void> waitFuture = node.buildWaitFuture(stepFutures);
+
+                CompletableFuture<?> stepFuture = stepFutures.get(node.getStepName());
+
+                // 所有前置步骤都结束后执行该步骤
+                waitFuture.whenComplete((ret, err) -> {
+                    if (err != null) {
+                        cancellable.cancel();
+                        stepFuture.completeExceptionally(err);
+                        future.completeExceptionally(err);
+                    } else {
+                        runStep(node, stepRt, cancellable, future, stepFutures, runningCount, stepResults);
+                    }
+                });
             }
 
-            // 所有前置步骤都结束后执行该步骤
-            CompletableFuture.allOf(waitFutures).whenComplete((ret, err) -> {
-                if (err != null) {
-                    cancellable.cancel();
-                    future.completeExceptionally(err);
-                } else {
-                    if (cancellable.isCancelled())
-                        return;
+            for (GraphStepNode node : nodes) {
+                if (!node.isEnter())
+                    continue;
 
-                    CompletableFuture<?> stepFuture = futures.get(stepName);
-                    node.getStep().executeWithParentRt(stepRt).getReturnPromise().whenComplete((v, e) -> {
-                        if (e != null) {
-                            cancellable.cancel();
-                            future.completeExceptionally(e);
-                        } else {
-                            results.put(stepName, v.getReturnValues());
+                runStep(node, stepRt, cancellable, future, stepFutures, runningCount, stepResults);
+            }
 
-                            if (node.isEnd()) {
-                                // 如果是结束步骤
-                                future.complete(v);
-                                cancellable.cancel();
-                            }
+            return future;
+        }, stepRt, true);
 
-                            stepFuture.complete(null);
-                        }
-                    });
-                }
-            });
+        return TaskStepResult.ASYNC(null, promise);
+    }
+
+    private void runStep(GraphStepNode node, ITaskStepRuntime stepRt, ICancellable cancellable,
+                         CompletableFuture<TaskStepResult> future, Map<String, CompletableFuture<?>> stepFutures,
+                         AtomicInteger runningCount, Map<String, StepResultBean> stepResults) {
+        String stepName = node.getStepName();
+        CompletableFuture<?> stepFuture = stepFutures.get(stepName);
+
+        if (cancellable.isCancelled()) {
+            stepFuture.cancel(false);
+            future.cancel(false);
+            return;
         }
 
-        for (ITaskStepExecution step : enterSteps) {
-            String stepName = step.getStepName();
-            step.executeWithParentRt(stepRt).getReturnPromise().whenComplete((ret, err) -> {
-                if (err != null) {
-                    cancellable.cancel();
-                    future.completeExceptionally(err);
-                } else {
-                    results.put(stepName, ret.getReturnValues());
-                    futures.get(stepName).complete(null);
-                }
-            });
-        }
+        runningCount.incrementAndGet();
+        node.getStep().executeAsync(stepRt).whenComplete((v, e) -> {
+            runningCount.decrementAndGet();
 
-        return TaskStepResult.ASYNC(null, future.whenComplete((ret, err) -> {
-            stepRt.getCancelToken().removeOnCancel(cancel);
-        }));
+            if (e != null) {
+                cancellable.cancel();
+                future.completeExceptionally(e);
+            } else {
+                StepResultBean result = StepResultBean.buildFromResult(stepName, stepRt.getLocale(), v);
+                stepResults.put(stepName, result);
+                stepFuture.complete(null);
+
+                if (node.isExit()) {
+                    // 如果是结束步骤
+                    future.complete(v);
+                    cancellable.cancel();
+                }
+            }
+        });
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String, Map<String, Object>> makeResults(ITaskStepRuntime stepRt) {
-        // STEP_RESULTS 按照stepName保存每个步骤的返回结果
-        Map<String, Map<String, Object>> results = (Map<String, Map<String, Object>>)
-                stepRt.getLocalValue(TaskConstants.VAR_STEP_RESULTS);
+    public static Map<String, StepResultBean> makeResults(ITaskStepRuntime stepRt) {
+        String varName = TaskConstants.VAR_STEP_RESULTS;
+        Map<String, StepResultBean> results = (Map<String, StepResultBean>)
+                stepRt.getLocalValue(varName);
         if (results == null) {
             results = new ConcurrentHashMap<>();
-            stepRt.setValue(TaskConstants.VAR_STEP_RESULTS, results);
-        } else if (!(results instanceof ConcurrentHashMap)) {
-            results = new ConcurrentHashMap<>(results);
-            stepRt.setValue(TaskConstants.VAR_STEP_RESULTS, results);
+            stepRt.setValue(varName, results);
         }
         return results;
     }
 
-    private Map<String, CompletableFuture<?>> initFutures(Map<String, Map<String, Object>> results) {
+    private Map<String, CompletableFuture<?>> initFutures(Map<String, StepResultBean> results) {
         Map<String, CompletableFuture<?>> futures = new HashMap<>();
 
         for (GraphStepNode node : nodes) {

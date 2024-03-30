@@ -23,6 +23,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static io.nop.core.CoreErrors.ARG_VAR_NAME;
 import static io.nop.task.TaskErrors.ERR_TASK_CANCELLED;
@@ -165,28 +166,33 @@ public class TaskStepHelper {
         }
     }
 
-    public static <T> CompletionStage<T> withCancellable(Function<ICancelToken, CompletionStage<T>> task,
-                                                         ICancelToken cancelToken, boolean autoCancelUnfinished) {
-        if(!autoCancelUnfinished)
-            return task.apply(cancelToken);
+    public static <T> CompletionStage<T> withCancellable(Supplier<CompletionStage<T>> task,
+                                                         ITaskStepRuntime stepRt, boolean autoCancelUnfinished) {
+        if (!autoCancelUnfinished)
+            return task.get();
 
         Cancellable cancellable = new Cancellable();
         Consumer<String> cancel = cancellable::cancel;
 
+        ICancelToken cancelToken = stepRt.getCancelToken();
         if (cancelToken != null) {
             cancelToken.appendOnCancel(cancel);
         }
 
+        stepRt.setCancelToken(cancellable);
+
         try {
-            return task.apply(cancellable).whenComplete((ret, err) -> {
+            return task.get().whenComplete((ret, err) -> {
                 if (cancelToken != null)
                     cancelToken.removeOnCancel(cancel);
                 cancellable.cancel(ICancellable.CANCEL_REASON_KILL);
+                stepRt.setCancelToken(cancelToken);
             });
         } catch (Exception e) {
             if (cancelToken != null)
                 cancelToken.removeOnCancel(cancel);
             cancellable.cancel();
+            stepRt.setCancelToken(cancelToken);
             throw NopException.adapt(e);
         }
     }

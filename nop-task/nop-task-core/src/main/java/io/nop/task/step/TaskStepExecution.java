@@ -201,7 +201,7 @@ public class TaskStepExecution implements ITaskStepExecution {
                     Guard.checkState(!ret.isAsync());
 
                     if (!ignoreResult) {
-                        parentScope.setLocalValue(TaskConstants.VAR_RESULT, ret.getValue(TaskConstants.VAR_RESULT));
+                        parentScope.setLocalValue(TaskConstants.VAR_RESULT, ret.getOutput(TaskConstants.VAR_RESULT));
                     }
 
                     if (!outputConfigs.isEmpty()) {
@@ -215,7 +215,7 @@ public class TaskStepExecution implements ITaskStepExecution {
                     LOG.debug("nop.task.step.run-ok:taskName={},taskInstanceId={},stepId={},runId={}," +
                                     "nextStepName={},retValues={},loc={}",
                             taskRt.getTaskName(), taskRt.getTaskInstanceId(),
-                            stepRt.getStepId(), stepRt.getRunId(), ret.getNextStepName(), ret.getReturnValues(),
+                            stepRt.getStepId(), stepRt.getRunId(), ret.getNextStepName(), ret.getOutputs(),
                             step.getLocation());
                     return ret;
                 }
@@ -254,7 +254,7 @@ public class TaskStepExecution implements ITaskStepExecution {
     private void initOutputs(TaskStepResult result, ITaskStepRuntime stepRt, IEvalScope parentScope) {
         outputConfigs.forEach(config -> {
             String exportName = config.getExportName();
-            Object value = result.getValue(config.getName());
+            Object value = result.getOutput(config.getName());
             if (config.isToTaskScope()) {
                 stepRt.getTaskRuntime().getEvalScope().setLocalValue(exportName, value);
             } else {

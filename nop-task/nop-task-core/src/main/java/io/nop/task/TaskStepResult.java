@@ -60,12 +60,12 @@ public final class TaskStepResult {
     }
 
     private final String nextStepName;
-    private final Map<String, Object> returnValues;
+    private final Map<String, Object> outputs;
     private final CompletionStage<TaskStepResult> future;
 
-    private TaskStepResult(String nextStepName, Map<String, Object> returnValues, CompletionStage<TaskStepResult> future) {
+    private TaskStepResult(String nextStepName, Map<String, Object> outputs, CompletionStage<TaskStepResult> future) {
         this.nextStepName = nextStepName;
-        this.returnValues = returnValues;
+        this.outputs = outputs;
         this.future = future;
     }
 
@@ -73,8 +73,8 @@ public final class TaskStepResult {
         this(null, null, future);
     }
 
-    private TaskStepResult(String nextStepName, Map<String, Object> returnValues) {
-        this(nextStepName, returnValues, null);
+    private TaskStepResult(String nextStepName, Map<String, Object> outputs) {
+        this(nextStepName, outputs, null);
     }
 
     public static TaskStepResult of(String nextStepName, Object returnValue) {
@@ -109,26 +109,26 @@ public final class TaskStepResult {
 
     public Map<String, Object> syncGet() {
         if (future == null)
-            return returnValues;
+            return outputs;
         return FutureHelper.syncGet(future).get();
     }
 
     public Map<String, Object> get() {
         if (future != null)
             throw new IllegalArgumentException("nop.err.step-result-is-async");
-        return returnValues;
+        return outputs;
     }
 
-    public Object getValue(String name) {
+    public Object getOutput(String name) {
         if (TaskConstants.VAR_OUTPUTS.equals(name))
-            return returnValues;
-        if (returnValues == null)
+            return outputs;
+        if (outputs == null)
             return null;
-        return returnValues.get(name);
+        return outputs.get(name);
     }
 
-    public Map<String, Object> getReturnValues() {
-        return returnValues;
+    public Map<String, Object> getOutputs() {
+        return outputs;
     }
 
     public TaskStepResult resolve() {

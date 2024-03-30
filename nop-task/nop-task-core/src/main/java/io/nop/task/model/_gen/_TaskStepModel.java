@@ -102,6 +102,13 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      *  
+     * xml name: waitErrorSteps
+     * 
+     */
+    private java.util.Set<java.lang.String> _waitErrorSteps ;
+    
+    /**
+     *  
      * xml name: waitSteps
      * 图模式执行时，需要等待前置步骤执行完毕才能执行本步骤
      */
@@ -337,6 +344,25 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      * 
+     * xml name: waitErrorSteps
+     *  
+     */
+    
+    public java.util.Set<java.lang.String> getWaitErrorSteps(){
+      return _waitErrorSteps;
+    }
+
+    
+    public void setWaitErrorSteps(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._waitErrorSteps = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: waitSteps
      *  图模式执行时，需要等待前置步骤执行完毕才能执行本步骤
      */
@@ -381,6 +407,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         out.putNotNull("runOnContext",this.isRunOnContext());
         out.putNotNull("saveState",this.getSaveState());
         out.putNotNull("tagSet",this.getTagSet());
+        out.putNotNull("waitErrorSteps",this.getWaitErrorSteps());
         out.putNotNull("waitSteps",this.getWaitSteps());
     }
 
@@ -405,6 +432,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         instance.setRunOnContext(this.isRunOnContext());
         instance.setSaveState(this.getSaveState());
         instance.setTagSet(this.getTagSet());
+        instance.setWaitErrorSteps(this.getWaitErrorSteps());
         instance.setWaitSteps(this.getWaitSteps());
     }
 

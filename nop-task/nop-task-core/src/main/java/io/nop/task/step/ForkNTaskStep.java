@@ -42,7 +42,7 @@ public class ForkNTaskStep extends AbstractForkTaskStep {
         List<CompletionStage<TaskStepResult>> promises = new ArrayList<>(count);
 
         int countParam = count;
-        CompletionStage<Void> promise = TaskStepHelper.withCancellable(cancelToken -> {
+        CompletionStage<Void> promise = TaskStepHelper.withCancellable(() -> {
             for (int i = 0; i < countParam; i++) {
                 try {
                     TaskStepResult result = executeFork(stepRt, null, i);
@@ -53,7 +53,7 @@ public class ForkNTaskStep extends AbstractForkTaskStep {
             }
 
             return AsyncHelper.waitAsync(promises, getStepJoinType());
-        }, stepRt.getCancelToken(), isAutoCancelUnfinished());
+        }, stepRt, isAutoCancelUnfinished());
 
         return buildAggResult(promise, promises, stepRt);
     }

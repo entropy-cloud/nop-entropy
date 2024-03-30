@@ -8,7 +8,6 @@
 package io.nop.task.step;
 
 import io.nop.api.core.util.FutureHelper;
-import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.AsyncJoinType;
 import io.nop.commons.util.AsyncHelper;
 import io.nop.core.lang.eval.IEvalAction;
@@ -22,7 +21,7 @@ import jakarta.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * 多个子步骤同时执行。执行结果汇总为MultiStepResultBean。如果定义了aggregator，则通过RESULT变量访问到返回结果集，它的执行结果作为最终结果
@@ -70,8 +69,7 @@ public class ParallelTaskStep extends AbstractTaskStep {
     public TaskStepResult execute(ITaskStepRuntime stepRt) {
         List<CompletionStage<TaskStepResult>> promises = new ArrayList<>();
 
-        Function<ICancelToken, CompletionStage<Void>> action = cancellable -> {
-            stepRt.setCancelToken(cancellable);
+        Supplier<CompletionStage<Void>> action = () -> {
             for (int i = 0, n = steps.size(); i < n; i++) {
                 ITaskStepExecution step = steps.get(i);
                 try {
@@ -85,7 +83,7 @@ public class ParallelTaskStep extends AbstractTaskStep {
             return AsyncHelper.waitAsync(promises, stepJoinType);
         };
 
-        CompletionStage<Void> promise = TaskStepHelper.withCancellable(action, stepRt.getCancelToken(), autoCancelUnfinished);
+        CompletionStage<Void> promise = TaskStepHelper.withCancellable(action, stepRt, autoCancelUnfinished);
 
         CompletionStage<?> aggPromise = promise.thenApply(v -> {
             MultiStepResultBean states = new MultiStepResultBean();

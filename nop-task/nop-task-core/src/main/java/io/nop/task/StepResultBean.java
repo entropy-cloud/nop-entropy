@@ -25,7 +25,7 @@ public class StepResultBean implements Serializable {
 
     private String stepName;
     private String nextStepName;
-    private Map<String, Object> returnValues;
+    private Map<String, Object> outputs;
     private ErrorBean error;
     private transient Throwable exception;
 
@@ -35,10 +35,19 @@ public class StepResultBean implements Serializable {
         try {
             TaskStepResult result = FutureHelper.syncGet(future);
             resultBean.setNextStepName(result.getNextStepName());
-            resultBean.setReturnValues(result.get());
+            resultBean.setOutputs(result.get());
         } catch (Exception exception) {
             resultBean.setError(ErrorMessageManager.instance().buildErrorMessage(locale, exception));
         }
+        return resultBean;
+    }
+
+    public static StepResultBean buildFromResult(String stepName, String locale, TaskStepResult result) {
+        StepResultBean resultBean = new StepResultBean();
+        resultBean.setStepName(stepName);
+
+        resultBean.setNextStepName(result.getNextStepName());
+        resultBean.setOutputs(result.get());
         return resultBean;
     }
 
@@ -58,18 +67,18 @@ public class StepResultBean implements Serializable {
         this.nextStepName = nextStepName;
     }
 
-    public Map<String, Object> getReturnValues() {
-        return returnValues;
+    public Map<String, Object> getOutputs() {
+        return outputs;
     }
 
-    public void setReturnValues(Map<String, Object> returnValues) {
-        this.returnValues = returnValues;
+    public void setOutputs(Map<String, Object> outputs) {
+        this.outputs = outputs;
     }
 
     public Object getValue(String name) {
-        if (returnValues == null)
+        if (outputs == null)
             return null;
-        return returnValues.get(name);
+        return outputs.get(name);
     }
 
     public ErrorBean getError() {

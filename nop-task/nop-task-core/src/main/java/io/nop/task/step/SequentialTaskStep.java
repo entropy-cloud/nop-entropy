@@ -75,7 +75,7 @@ public class SequentialTaskStep extends AbstractTaskStep {
                         return stepResult;
                     } else if (stepResult.isExit()) {
                         stepRt.setBodyStepIndex(steps.size());
-                        return TaskStepResult.RETURN(stepResult.getReturnValues());
+                        return TaskStepResult.RETURN(stepResult.getOutputs());
                     } else {
                         stepRt.setBodyStepIndex(getNextIndex(indexParam, result, stepRt));
                         stepRt.saveState();

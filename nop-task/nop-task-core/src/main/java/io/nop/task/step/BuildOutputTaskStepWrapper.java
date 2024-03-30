@@ -26,8 +26,8 @@ public class BuildOutputTaskStepWrapper extends DelegateTaskStep {
     @Override
     public TaskStepResult execute(ITaskStepRuntime stepRt) {
         return getTaskStep().execute(stepRt).thenApply(res -> {
-            stepRt.setValue(TaskConstants.VAR_STEP_RESULT, res.getReturnValues());
-            Map<String, Object> result = res.getReturnValues() != null ? new LinkedHashMap<>(res.getReturnValues())
+            stepRt.setValue(TaskConstants.VAR_STEP_RESULT, res.getOutputs());
+            Map<String, Object> result = res.getOutputs() != null ? new LinkedHashMap<>(res.getOutputs())
                     : new LinkedHashMap<>();
             outputExprs.forEach((name, expr) -> {
                 if (stepRt.isNeedOutput(name)) {

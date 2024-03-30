@@ -33,7 +33,7 @@ public interface ITask {
 
     default CompletionStage<Map<String, Object>> executeAsync(ITaskRuntime taskRt) {
         try {
-            return execute(taskRt).getReturnPromise().thenApply(TaskStepResult::getReturnValues);
+            return execute(taskRt).getReturnPromise().thenApply(TaskStepResult::getOutputs);
         } catch (Exception e) {
             return FutureHelper.reject(e);
         }
