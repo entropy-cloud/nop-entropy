@@ -341,7 +341,7 @@ public class TaskStepBuilder implements ITaskStepBuilder {
 
     @Override
     public ITaskStepExecution buildStepExecution(TaskStepModel stepModel) {
-        return stepEnhancer.buildEnhanced(stepModel, this);
+        return stepEnhancer.buildExecution(stepModel, this);
     }
 
     @Override

@@ -11,6 +11,7 @@ import io.nop.api.core.util.INeedInit;
 import io.nop.task.ITask;
 import io.nop.task.ITaskStepLib;
 import io.nop.task.TaskConstants;
+import io.nop.task.builder.TaskFlowAnalyzer;
 import io.nop.task.builder.TaskFlowBuilder;
 import io.nop.task.builder.TaskStepLibBuilder;
 import io.nop.task.model._gen._TaskFlowModel;
@@ -26,9 +27,7 @@ public class TaskFlowModel extends _TaskFlowModel implements IGraphTaskStepModel
 
     @Override
     public void init() {
-        for (TaskStepModel stepModel : getSteps()) {
-            stepModel.init();
-        }
+        new TaskFlowAnalyzer().analyze(this);
     }
 
     public synchronized ITask getTask() {

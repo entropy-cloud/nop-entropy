@@ -50,7 +50,7 @@ import java.util.Set;
 public class TaskStepEnhancer implements ITaskStepEnhancer {
 
     @Override
-    public TaskStepExecution buildEnhanced(TaskStepModel stepModel, ITaskStepBuilder stepBuilder) {
+    public TaskStepExecution buildExecution(TaskStepModel stepModel, ITaskStepBuilder stepBuilder) {
         return enhancedTaskStep(stepModel, buildDecorated(stepModel, stepBuilder), stepBuilder);
     }
 

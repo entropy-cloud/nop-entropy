@@ -7,5 +7,5 @@ import io.nop.task.model.TaskStepModel;
 public interface ITaskStepEnhancer {
     ITaskStep buildDecorated(TaskStepModel stepModel, ITaskStepBuilder stepBuilder);
 
-    ITaskStepExecution buildEnhanced(TaskStepModel stepModel, ITaskStepBuilder stepBuilder);
+    ITaskStepExecution buildExecution(TaskStepModel stepModel, ITaskStepBuilder stepBuilder);
 }

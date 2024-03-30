@@ -7,10 +7,9 @@
  */
 package io.nop.task.model;
 
-import io.nop.api.core.util.INeedInit;
 import io.nop.task.model._gen._TaskStepModel;
 
-public abstract class TaskStepModel extends _TaskStepModel implements INeedInit {
+public abstract class TaskStepModel extends _TaskStepModel {
     public TaskStepModel() {
 
     }
@@ -23,8 +22,7 @@ public abstract class TaskStepModel extends _TaskStepModel implements INeedInit 
 
     public abstract String getType();
 
-    @Override
-    public void init() {
+    public void normalize(){
 
     }
 }

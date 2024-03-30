@@ -7,11 +7,10 @@
  */
 package io.nop.task.model;
 
-import io.nop.api.core.util.INeedInit;
 import io.nop.task.TaskConstants;
 import io.nop.task.model._gen._ChooseTaskStepModel;
 
-public class ChooseTaskStepModel extends _ChooseTaskStepModel implements INeedInit {
+public class ChooseTaskStepModel extends _ChooseTaskStepModel {
     public ChooseTaskStepModel() {
 
     }
@@ -23,7 +22,7 @@ public class ChooseTaskStepModel extends _ChooseTaskStepModel implements INeedIn
 
 
     @Override
-    public void init() {
+    public void normalize() {
         int i = 0;
         for (TaskChooseCaseModel caseModel : this.getCases()) {
             i++;
