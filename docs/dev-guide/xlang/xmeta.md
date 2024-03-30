@@ -159,3 +159,28 @@ NopGraphQL引擎返回的对象信息完全由XMeta来定义。如果一个属�
 * schema如果具有item，则表示是集合属性，集合元素的类型由 item节点的bizObjName属性来指定。
 * 如果是关联对象，则通过schema的bizObjName属性来指定关联类型
 
+## 查询关联属性
+
+通过GraphQL的findPage当方法查询时，可以直接查询关联对象上的字段，但是要求在xmeta中设置允许queryable。这是从安全性角度考虑，避免客户端可以任意查询所有字段导致安全漏洞。
+
+````xml
+<prop name="parent.name" querable="true">
+    
+</prop>
+````
+
+这样就可以查询
+
+````json
+{
+  "query": [
+    {
+      "$type": "eq",
+      "name": "parent.name",
+      "value": "aaa"
+    }
+  ]
+}
+````
+
+需要注意的是，在parent属性上设置queryable并不会自动使得parent的所有属性都开放查询。必须逐个属性指定。

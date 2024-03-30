@@ -254,6 +254,27 @@ query{
 }
 ````
 
+
+## 查询返回列表的长度
+
+````
+# REST 
+POST /r/NopAuthUser__findCount
+
+{
+  "query": {
+     
+     "filter": {
+     }
+  }
+}
+
+# GraphQL
+query{
+   NopAuthUser__findCount(query:$query)
+}
+````
+
 ## QueryBean查询条件
 
 QueryBean中的filter支持and/or等复杂嵌套条件
