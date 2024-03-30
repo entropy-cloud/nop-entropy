@@ -19,4 +19,9 @@ public class ForkNTaskStepModel extends _ForkNTaskStepModel {
     public String getType() {
         return TaskConstants.STEP_TYPE_FORK_N;
     }
+
+    @Override
+    public boolean isConcurrent() {
+        return true;
+    }
 }

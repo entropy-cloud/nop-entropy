@@ -19,4 +19,9 @@ public class TaskChooseCaseModel extends _TaskChooseCaseModel {
     public String getType() {
         return TaskConstants.STEP_TYPE_CASE;
     }
+
+    @Override
+    public boolean isUseParentScope() {
+        return true;
+    }
 }

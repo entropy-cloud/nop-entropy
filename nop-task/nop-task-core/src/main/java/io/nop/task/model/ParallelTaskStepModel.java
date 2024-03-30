@@ -19,4 +19,9 @@ public class ParallelTaskStepModel extends _ParallelTaskStepModel {
     public String getType() {
         return TaskConstants.STEP_TYPE_PARALLEL;
     }
+
+    @Override
+    public boolean isConcurrent() {
+        return true;
+    }
 }

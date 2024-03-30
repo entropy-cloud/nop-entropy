@@ -22,6 +22,8 @@ public abstract class AbstractTaskStep implements ITaskStep {
 
     private Set<String> persistVars;
 
+    private boolean concurrent;
+
     private List<? extends ITaskInputModel> inputs = Collections.emptyList();
 
     private List<? extends ITaskOutputModel> outputs = Collections.emptyList();
@@ -43,6 +45,15 @@ public abstract class AbstractTaskStep implements ITaskStep {
 
     public void setStepType(String stepType) {
         this.stepType = stepType;
+    }
+
+    @Override
+    public boolean isConcurrent() {
+        return concurrent;
+    }
+
+    public void setConcurrent(boolean concurrent) {
+        this.concurrent = concurrent;
     }
 
     @Override

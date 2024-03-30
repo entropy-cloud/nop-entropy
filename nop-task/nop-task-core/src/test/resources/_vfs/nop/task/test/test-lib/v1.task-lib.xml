@@ -1,7 +1,8 @@
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
     <steps>
-        <xpl name="test" useParentScope="true">
+        <xpl name="test">
+            <input name="a"/>
             <output name="b">
                 <source>a + 1</source>
             </output>

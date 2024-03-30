@@ -72,6 +72,7 @@ public interface ITaskStepRuntime extends IEvalContext {
     default int getBodyStepIndex() {
         return getState().getBodyStepIndex();
     }
+
     default void setBodyStepIndex(int bodyStepIndex) {
         getState().setBodyStepIndex(bodyStepIndex);
     }
@@ -95,6 +96,6 @@ public interface ITaskStepRuntime extends IEvalContext {
     boolean isRecoverMode();
 
     ITaskStepRuntime newStepRuntime(String stepName, String stepType,
-                                    Set<String> persistVars, boolean useParentScope);
+                                    Set<String> persistVars, boolean useParentScope, boolean concurrent);
 
 }

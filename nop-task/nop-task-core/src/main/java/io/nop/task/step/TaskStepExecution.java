@@ -8,9 +8,9 @@ import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.eval.IEvalScope;
-import io.nop.task.ITaskStepExecution;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStep;
+import io.nop.task.ITaskStepExecution;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskConstants;
 import io.nop.task.TaskStepResult;
@@ -110,7 +110,6 @@ public class TaskStepExecution implements ITaskStepExecution {
     private final boolean ignoreResult;
 
     private final String errorName;
-
     private final boolean useParentScope;
 
     public TaskStepExecution(SourceLocation location, String stepName,
@@ -156,7 +155,7 @@ public class TaskStepExecution implements ITaskStepExecution {
 
         ITaskRuntime taskRt = parentRt.getTaskRuntime();
         ITaskStepRuntime stepRt = parentRt.newStepRuntime(stepName, step.getStepType(),
-                step.getPersistVars(), useParentScope);
+                step.getPersistVars(), useParentScope, step.isConcurrent());
 
         stepRt.setOutputNames(outputVars);
 
@@ -254,11 +253,12 @@ public class TaskStepExecution implements ITaskStepExecution {
 
     private void initOutputs(TaskStepResult result, ITaskStepRuntime stepRt, IEvalScope parentScope) {
         outputConfigs.forEach(config -> {
+            String exportName = config.getExportName();
             Object value = result.getValue(config.getName());
             if (config.isToTaskScope()) {
-                stepRt.getTaskRuntime().getEvalScope().setLocalValue(config.getExportName(), value);
+                stepRt.getTaskRuntime().getEvalScope().setLocalValue(exportName, value);
             } else {
-                parentScope.setLocalValue(config.getExportName(), value);
+                parentScope.setLocalValue(exportName, value);
             }
         });
     }

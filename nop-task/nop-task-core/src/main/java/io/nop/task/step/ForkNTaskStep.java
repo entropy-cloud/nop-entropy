@@ -54,7 +54,7 @@ public class ForkNTaskStep extends AbstractForkTaskStep {
 
             return AsyncHelper.waitAsync(promises, getStepJoinType());
         }, stepRt.getCancelToken(), isAutoCancelUnfinished());
-        
+
         return buildAggResult(promise, promises, stepRt);
     }
 }

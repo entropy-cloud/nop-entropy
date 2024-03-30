@@ -3,8 +3,8 @@ package io.nop.task.builder;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.core.lang.eval.IEvalAction;
-import io.nop.task.ITaskStepExecution;
 import io.nop.task.ITaskStep;
+import io.nop.task.ITaskStepExecution;
 import io.nop.task.TaskConstants;
 import io.nop.task.model.CallStepTaskStepModel;
 import io.nop.task.model.CallTaskStepModel;
@@ -153,7 +153,8 @@ public class TaskStepBuilder implements ITaskStepBuilder {
                         .param(ARG_STEP_NAME, stepModel.getName())
                         .param(ARG_STEP_TYPE, type);
         }
-        step.setStepType(stepModel.getType());
+        // stepType设置为[基本步骤名:extType]
+        step.setStepType(stepModel.getFullStepType());
         initAbstractStep(stepModel, step);
         return step;
     }
@@ -309,6 +310,7 @@ public class TaskStepBuilder implements ITaskStepBuilder {
     private ITaskStep buildForkBody(TaskStepsModel stepModel) {
         return buildSequentialBody(stepModel);
     }
+
     private InvokeTaskStep buildInvokeStep(InvokeTaskStepModel stepModel) {
         InvokeTaskStep ret = new InvokeTaskStep();
         ret.setArgNames(stepModel.getInputs().stream().map(TaskInputModel::getName).collect(Collectors.toList()));
@@ -353,5 +355,6 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         step.setLocation(stepModel.getLocation());
         step.setInputs(stepModel.getInputs());
         step.setOutputs(stepModel.getOutputs());
+        step.setConcurrent(step.isConcurrent());
     }
 }

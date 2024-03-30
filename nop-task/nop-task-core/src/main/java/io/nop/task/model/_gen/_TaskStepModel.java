@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [98:6:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [99:6:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -22,6 +22,13 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
      * 如果设置为false, 则重新执行时已经完成的步骤会被跳过
      */
     private boolean _allowStartIfComplete  = false;
+    
+    /**
+     *  
+     * xml name: concurrent
+     * 指定本步骤的scope是否需要支持并发访问，如果是，则scope会使用ConcurrentHashMap，否则就使用普通的HashMap
+     */
+    private boolean _concurrent  = false;
     
     /**
      *  
@@ -95,13 +102,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      *  
-     * xml name: useParentScope
-     * 
-     */
-    private boolean _useParentScope  = false;
-    
-    /**
-     *  
      * xml name: waitSteps
      * 图模式执行时，需要等待前置步骤执行完毕才能执行本步骤
      */
@@ -122,6 +122,25 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         checkAllowChange();
         
         this._allowStartIfComplete = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: concurrent
+     *  指定本步骤的scope是否需要支持并发访问，如果是，则scope会使用ConcurrentHashMap，否则就使用普通的HashMap
+     */
+    
+    public boolean isConcurrent(){
+      return _concurrent;
+    }
+
+    
+    public void setConcurrent(boolean value){
+        checkAllowChange();
+        
+        this._concurrent = value;
            
     }
 
@@ -318,25 +337,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      * 
-     * xml name: useParentScope
-     *  
-     */
-    
-    public boolean isUseParentScope(){
-      return _useParentScope;
-    }
-
-    
-    public void setUseParentScope(boolean value){
-        checkAllowChange();
-        
-        this._useParentScope = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: waitSteps
      *  图模式执行时，需要等待前置步骤执行完毕才能执行本步骤
      */
@@ -370,6 +370,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         super.outputJson(out);
         
         out.putNotNull("allowStartIfComplete",this.isAllowStartIfComplete());
+        out.putNotNull("concurrent",this.isConcurrent());
         out.putNotNull("errorName",this.getErrorName());
         out.putNotNull("extType",this.getExtType());
         out.putNotNull("ignoreResult",this.isIgnoreResult());
@@ -380,7 +381,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         out.putNotNull("runOnContext",this.isRunOnContext());
         out.putNotNull("saveState",this.getSaveState());
         out.putNotNull("tagSet",this.getTagSet());
-        out.putNotNull("useParentScope",this.isUseParentScope());
         out.putNotNull("waitSteps",this.getWaitSteps());
     }
 
@@ -394,6 +394,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         super.copyTo(instance);
         
         instance.setAllowStartIfComplete(this.isAllowStartIfComplete());
+        instance.setConcurrent(this.isConcurrent());
         instance.setErrorName(this.getErrorName());
         instance.setExtType(this.getExtType());
         instance.setIgnoreResult(this.isIgnoreResult());
@@ -404,7 +405,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         instance.setRunOnContext(this.isRunOnContext());
         instance.setSaveState(this.getSaveState());
         instance.setTagSet(this.getTagSet());
-        instance.setUseParentScope(this.isUseParentScope());
         instance.setWaitSteps(this.getWaitSteps());
     }
 

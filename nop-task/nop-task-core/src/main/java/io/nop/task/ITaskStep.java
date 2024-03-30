@@ -26,6 +26,8 @@ public interface ITaskStep extends ISourceLocationGetter {
 
     Set<String> getPersistVars();
 
+    boolean isConcurrent();
+
     /**
      * 步骤执行所需要的输入变量
      */

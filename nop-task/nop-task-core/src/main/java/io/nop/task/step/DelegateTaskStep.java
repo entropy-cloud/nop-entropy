@@ -1,7 +1,6 @@
 package io.nop.task.step;
 
 import io.nop.api.core.util.SourceLocation;
-import io.nop.core.type.IGenericType;
 import io.nop.task.ITaskStep;
 import io.nop.task.model.ITaskInputModel;
 import io.nop.task.model.ITaskOutputModel;
@@ -43,5 +42,10 @@ public abstract class DelegateTaskStep implements ITaskStep {
     @Override
     public List<? extends ITaskOutputModel> getOutputs() {
         return taskStep.getOutputs();
+    }
+
+    @Override
+    public boolean isConcurrent() {
+        return taskStep.isConcurrent();
     }
 }

@@ -17,12 +17,16 @@ public abstract class TaskStepModel extends _TaskStepModel {
     public String getFullStepType() {
         if (getExtType() == null)
             return getType();
-        return getType() + '-' + getExtType();
+        return getType() + ':' + getExtType();
     }
 
     public abstract String getType();
 
-    public void normalize(){
+    public boolean isUseParentScope() {
+        return false;
+    }
+
+    public void normalize() {
 
     }
 }

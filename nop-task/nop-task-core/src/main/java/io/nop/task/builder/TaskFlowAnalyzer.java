@@ -13,7 +13,9 @@ public class TaskFlowAnalyzer {
         forEachStep(flowModel, TaskStepModel::normalize);
         forEachStep(flowModel, stepModel -> {
             if (stepModel instanceof IGraphTaskStepModel) {
-                new GraphStepAnalyzer().analyze((IGraphTaskStepModel) stepModel);
+                IGraphTaskStepModel graphModel = (IGraphTaskStepModel) stepModel;
+                if (graphModel.isGraphMode())
+                    new GraphStepAnalyzer().analyze(graphModel);
             }
         });
     }

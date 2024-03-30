@@ -20,17 +20,11 @@ public class TaskStepRuntimeImpl implements ITaskStepRuntime {
     private boolean recoverMode;
     private Set<String> persistVars;
 
-    public TaskStepRuntimeImpl(ITaskRuntime taskRt, ITaskStateStore stateStore) {
-        this.taskRt = taskRt;
-        this.stateStore = stateStore;
-        this.scope = taskRt.getEvalScope().newChildScope();
-        this.scope.setLocalValue(TaskConstants.VAR_STEP_RT, this);
-    }
-
     public TaskStepRuntimeImpl(ITaskRuntime taskRt, ITaskStateStore stateStore, IEvalScope scope) {
         this.taskRt = taskRt;
         this.stateStore = stateStore;
         this.scope = scope;
+        this.scope.setLocalValue(TaskConstants.VAR_STEP_RT, this);
     }
 
     @Override
@@ -101,9 +95,10 @@ public class TaskStepRuntimeImpl implements ITaskStepRuntime {
 
     @Override
     public ITaskStepRuntime newStepRuntime(String stepName, String stepType,
-                                           Set<String> persistVars, boolean useParentScope) {
-        TaskStepRuntimeImpl newStepRt = useParentScope ? new TaskStepRuntimeImpl(taskRt, stateStore, scope)
-                : new TaskStepRuntimeImpl(taskRt, stateStore);
+                                           Set<String> persistVars, boolean useParentScope, boolean concurrent) {
+        IEvalScope baseScope = useParentScope ? scope : getTaskRuntime().getEvalScope();
+        IEvalScope childScope = baseScope.newChildScope(true, concurrent);
+        TaskStepRuntimeImpl newStepRt = new TaskStepRuntimeImpl(taskRt, stateStore, childScope);
 
         ITaskStepState newState = stateStore.loadStepState(stepState, stepName, stepType, taskRt);
         if (newState != null) {

@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Set;
 
 public interface IGraphTaskStepModel extends ISourceLocationGetter {
+
+    boolean isGraphMode();
+
     String getName();
 
     Set<String> getEnterSteps();

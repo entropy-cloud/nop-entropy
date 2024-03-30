@@ -19,4 +19,9 @@ public class TaskChooseOtherwiseModel extends _TaskChooseOtherwiseModel {
     public String getType() {
         return TaskConstants.STEP_TYPE_OTHERWISE;
     }
+
+    @Override
+    public boolean isUseParentScope() {
+        return true;
+    }
 }

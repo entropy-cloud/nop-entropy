@@ -27,15 +27,10 @@ public class ChooseTaskStepModel extends _ChooseTaskStepModel {
         for (TaskChooseCaseModel caseModel : this.getCases()) {
             i++;
             caseModel.setName("case" + i);
-            caseModel.setUseParentScope(true);
-
-            caseModel.init();
         }
 
         if (this.getOtherwise() != null) {
-            this.getOtherwise().setUseParentScope(true);
             this.getOtherwise().setName("otherwise");
-            this.getOtherwise().init();
         }
     }
 

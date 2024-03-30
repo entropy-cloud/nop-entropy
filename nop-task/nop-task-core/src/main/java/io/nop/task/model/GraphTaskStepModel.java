@@ -19,4 +19,14 @@ public class GraphTaskStepModel extends _GraphTaskStepModel implements IGraphTas
     public String getType() {
         return TaskConstants.STEP_TYPE_GRAPH;
     }
+
+    @Override
+    public boolean isConcurrent() {
+        return true;
+    }
+
+    @Override
+    public boolean isGraphMode() {
+        return true;
+    }
 }
