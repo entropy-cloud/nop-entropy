@@ -7,13 +7,14 @@
  */
 package io.nop.task.step;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancellable;
 import io.nop.task.ITaskStepExecution;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.StepResultBean;
 import io.nop.task.TaskConstants;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 
@@ -27,6 +28,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static io.nop.task.TaskErrors.ARG_STEP_ID;
+import static io.nop.task.TaskErrors.ERR_TASK_GRAPH_NO_ACTIVE_STEP;
 
 public class GraphTaskStep extends AbstractTaskStep {
     private List<GraphStepNode> nodes;
@@ -143,12 +147,12 @@ public class GraphTaskStep extends AbstractTaskStep {
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+    public TaskStepReturn execute(ITaskStepRuntime stepRt) {
 
         // STEP_RESULTS 按照stepName保存每个步骤的返回结果
         Map<String, StepResultBean> stepResults = makeResults(stepRt);
 
-        CompletableFuture<TaskStepResult> future = new CompletableFuture<>();
+        CompletableFuture<TaskStepReturn> future = new CompletableFuture<>();
 
         Map<String, CompletableFuture<?>> stepFutures = initFutures(stepResults);
 
@@ -177,21 +181,31 @@ public class GraphTaskStep extends AbstractTaskStep {
                 });
             }
 
-            for (GraphStepNode node : nodes) {
-                if (!node.isEnter())
-                    continue;
+            runningCount.incrementAndGet();
+            try {
+                for (GraphStepNode node : nodes) {
+                    if (!node.isEnter())
+                        continue;
 
-                runStep(node, stepRt, cancellable, future, stepFutures, runningCount, stepResults);
+                    runStep(node, stepRt, cancellable, future, stepFutures, runningCount, stepResults);
+                }
+            } finally {
+                runningCount.decrementAndGet();
             }
+
+            if (runningCount.get() == 0 && !future.isDone())
+                throw new NopException(ERR_TASK_GRAPH_NO_ACTIVE_STEP)
+                        .source(this)
+                        .param(ARG_STEP_ID, stepRt.getStepId());
 
             return future;
         }, stepRt, true);
 
-        return TaskStepResult.ASYNC(null, promise);
+        return TaskStepReturn.ASYNC(null, promise);
     }
 
     private void runStep(GraphStepNode node, ITaskStepRuntime stepRt, ICancellable cancellable,
-                         CompletableFuture<TaskStepResult> future, Map<String, CompletableFuture<?>> stepFutures,
+                         CompletableFuture<TaskStepReturn> future, Map<String, CompletableFuture<?>> stepFutures,
                          AtomicInteger runningCount, Map<String, StepResultBean> stepResults) {
         String stepName = node.getStepName();
         CompletableFuture<?> stepFuture = stepFutures.get(stepName);
@@ -220,6 +234,11 @@ public class GraphTaskStep extends AbstractTaskStep {
                     cancellable.cancel();
                 }
             }
+
+            if (runningCount.get() == 0 && !future.isDone())
+                throw new NopException(ERR_TASK_GRAPH_NO_ACTIVE_STEP)
+                        .source(this)
+                        .param(ARG_STEP_ID, stepRt.getStepId());
         });
     }
 

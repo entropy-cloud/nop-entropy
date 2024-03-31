@@ -7,7 +7,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 
@@ -27,7 +27,7 @@ public class RateLimitTaskStepWrapper extends DelegateTaskStep {
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+    public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         String key = getKey(stepRt);
 
         IRateLimiter rateLimiter = (IRateLimiter) stepRt.getTaskRuntime().computeAttributeIfAbsent(key, k -> {

@@ -10,7 +10,7 @@ package io.nop.task.step;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.task.ITaskStepExecution;
 import io.nop.task.ITaskStepRuntime;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 
@@ -42,26 +42,26 @@ public class SequentialTaskStep extends AbstractTaskStep {
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+    public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         int index = stepRt.getBodyStepIndex();
 
         do {
             if (index >= steps.size())
-                return TaskStepResult.RETURN_RESULT(stepRt.getResult());
+                return TaskStepReturn.RETURN_RESULT(stepRt.getResult());
 
             ITaskStepExecution step = steps.get(index);
 
-            TaskStepResult stepResult = step.executeWithParentRt(stepRt);
+            TaskStepReturn stepResult = step.executeWithParentRt(stepRt);
             if (stepResult.isSuspend())
                 return stepResult;
 
             if (stepResult.isDone()) {
                 if (stepResult.isEnd()) {
                     stepRt.setBodyStepIndex(steps.size());
-                    return TaskStepResult.RETURN_RESULT_END(stepRt.getResult());
+                    return TaskStepReturn.RETURN_RESULT_END(stepRt.getResult());
                 } else if (stepResult.isExit()) {
                     stepRt.setBodyStepIndex(steps.size());
-                    return TaskStepResult.RETURN_RESULT(stepRt.getResult());
+                    return TaskStepReturn.RETURN_RESULT(stepRt.getResult());
                 }
 
                 index = getNextIndex(index, stepResult, stepRt);
@@ -75,7 +75,7 @@ public class SequentialTaskStep extends AbstractTaskStep {
                         return stepResult;
                     } else if (stepResult.isExit()) {
                         stepRt.setBodyStepIndex(steps.size());
-                        return TaskStepResult.RETURN(stepResult.getOutputs());
+                        return TaskStepReturn.RETURN(stepResult.getOutputs());
                     } else {
                         stepRt.setBodyStepIndex(getNextIndex(indexParam, result, stepRt));
                         stepRt.saveState();
@@ -86,7 +86,7 @@ public class SequentialTaskStep extends AbstractTaskStep {
         } while (true);
     }
 
-    int getNextIndex(int index, TaskStepResult result, ITaskStepRuntime stepRt) {
+    int getNextIndex(int index, TaskStepReturn result, ITaskStepRuntime stepRt) {
         if (result.getNextStepName() != null) {
             Integer next = stepIndex.get(result.getNextStepName());
             if (next == null)

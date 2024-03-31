@@ -13,7 +13,7 @@ import io.nop.task.ITask;
 import io.nop.task.ITaskManager;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStepRuntime;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import jakarta.annotation.Nonnull;
 
 import java.util.Set;
@@ -61,7 +61,7 @@ public class CallTaskStep extends AbstractTaskStep {
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+    public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         ITaskRuntime taskRt = stepRt.getTaskRuntime();
         ITaskManager taskManager = taskRt.getTaskManager();
 

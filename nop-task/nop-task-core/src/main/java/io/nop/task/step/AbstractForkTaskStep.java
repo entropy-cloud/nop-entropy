@@ -7,7 +7,7 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.StepResultBean;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import io.nop.task.model.ITaskInputModel;
 
 import java.util.List;
@@ -91,7 +91,7 @@ public abstract class AbstractForkTaskStep extends AbstractTaskStep {
         this.stepJoinType = stepJoinType;
     }
 
-    protected TaskStepResult executeFork(ITaskStepRuntime parentRt, Object varValue, int index) {
+    protected TaskStepReturn executeFork(ITaskStepRuntime parentRt, Object varValue, int index) {
         IEvalScope parentScope = parentRt.getEvalScope();
         ITaskStepRuntime stepRt = parentRt.newStepRuntime(stepName, step.getStepType(),
                 null, false, step.isConcurrent());
@@ -105,21 +105,21 @@ public abstract class AbstractForkTaskStep extends AbstractTaskStep {
             stepRt.setValue(inputModel.getName(), parentScope.getLocalValue(inputModel.getName()));
         }
 
-        TaskStepResult stepResult = step.execute(stepRt);
+        TaskStepReturn stepResult = step.execute(stepRt);
         if (stepResult.isSuspend())
             return stepResult;
 
         return stepResult;
     }
 
-    protected TaskStepResult buildAggResult(CompletionStage<Void> promise,
-                                            List<CompletionStage<TaskStepResult>> promises,
+    protected TaskStepReturn buildAggResult(CompletionStage<Void> promise,
+                                            List<CompletionStage<TaskStepReturn>> promises,
                                             ITaskStepRuntime stepRt) {
 
         CompletionStage<?> aggPromise = promise.thenApply(v -> {
             MultiStepResultBean states = new MultiStepResultBean();
             int index = 0;
-            for (CompletionStage<TaskStepResult> future : promises) {
+            for (CompletionStage<TaskStepReturn> future : promises) {
                 index++;
                 if (FutureHelper.isFutureDone(future)) {
                     StepResultBean result = StepResultBean.buildFrom(stepName, stepRt.getLocale(), future);
@@ -136,6 +136,6 @@ public abstract class AbstractForkTaskStep extends AbstractTaskStep {
             return states;
         });
 
-        return TaskStepResult.ASYNC(null, aggPromise);
+        return TaskStepReturn.ASYNC(null, aggPromise);
     }
 }

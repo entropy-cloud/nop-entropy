@@ -46,5 +46,5 @@ public interface ITaskStep extends ISourceLocationGetter {
      * 在此过程中可以通过cancelToken来取消异步执行。
      */
     @Nonnull
-    TaskStepResult execute(ITaskStepRuntime stepRt);
+    TaskStepReturn execute(ITaskStepRuntime stepRt);
 }

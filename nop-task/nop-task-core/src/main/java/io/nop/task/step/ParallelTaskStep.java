@@ -14,7 +14,7 @@ import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.ITaskStepExecution;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.StepResultBean;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 
@@ -66,14 +66,14 @@ public class ParallelTaskStep extends AbstractTaskStep {
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepRuntime stepRt) {
-        List<CompletionStage<TaskStepResult>> promises = new ArrayList<>();
+    public TaskStepReturn execute(ITaskStepRuntime stepRt) {
+        List<CompletionStage<TaskStepReturn>> promises = new ArrayList<>();
 
         Supplier<CompletionStage<Void>> action = () -> {
             for (int i = 0, n = steps.size(); i < n; i++) {
                 ITaskStepExecution step = steps.get(i);
                 try {
-                    TaskStepResult stepResult = step.executeWithParentRt(stepRt);
+                    TaskStepReturn stepResult = step.executeWithParentRt(stepRt);
                     promises.add(stepResult.getReturnPromise());
                 } catch (Exception e) {
                     promises.add(FutureHelper.reject(e));
@@ -88,7 +88,7 @@ public class ParallelTaskStep extends AbstractTaskStep {
         CompletionStage<?> aggPromise = promise.thenApply(v -> {
             MultiStepResultBean states = new MultiStepResultBean();
             int index = 0;
-            for (CompletionStage<TaskStepResult> future : promises) {
+            for (CompletionStage<TaskStepReturn> future : promises) {
                 String stepName = steps.get(index++).getStepName();
                 if (FutureHelper.isFutureDone(future)) {
                     StepResultBean result = StepResultBean.buildFrom(stepName, stepRt.getLocale(), future);
@@ -105,6 +105,6 @@ public class ParallelTaskStep extends AbstractTaskStep {
             return states;
         });
 
-        return TaskStepResult.ASYNC(null, aggPromise);
+        return TaskStepReturn.ASYNC(null, aggPromise);
     }
 }

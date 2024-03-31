@@ -25,15 +25,15 @@ public interface ITask {
 
     List<? extends ITaskOutputModel> getOutputs();
 
-    TaskStepResult execute(ITaskRuntime taskRt, Set<String> outputNames);
+    TaskStepReturn execute(ITaskRuntime taskRt, Set<String> outputNames);
 
-    default TaskStepResult execute(ITaskRuntime taskRt) {
+    default TaskStepReturn execute(ITaskRuntime taskRt) {
         return execute(taskRt, null);
     }
 
     default CompletionStage<Map<String, Object>> executeAsync(ITaskRuntime taskRt) {
         try {
-            return execute(taskRt).getReturnPromise().thenApply(TaskStepResult::getOutputs);
+            return execute(taskRt).getReturnPromise().thenApply(TaskStepReturn::getOutputs);
         } catch (Exception e) {
             return FutureHelper.reject(e);
         }

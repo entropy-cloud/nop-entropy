@@ -2,7 +2,7 @@ package io.nop.task.step;
 
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 
@@ -16,7 +16,7 @@ public class TimeoutTaskStepWrapper extends DelegateTaskStep {
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+    public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         return TaskStepHelper.timeout(timeout, cancellable -> {
             stepRt.setCancelToken(cancellable);
             return getTaskStep().execute(stepRt);

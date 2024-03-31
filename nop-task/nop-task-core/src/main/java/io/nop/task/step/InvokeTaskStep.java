@@ -15,7 +15,7 @@ import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.task.ITaskStepRuntime;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import jakarta.annotation.Nonnull;
 
 import java.util.Collections;
@@ -56,7 +56,7 @@ public class InvokeTaskStep extends AbstractTaskStep {
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+    public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         IEvalScope scope = stepRt.getEvalScope();
         Object bean = scope.getBeanProvider().getBean(beanName);
         Object[] args = new Object[argNames.size()];
@@ -74,13 +74,13 @@ public class InvokeTaskStep extends AbstractTaskStep {
 
         Object returnValue = method.invoke(bean, args, scope);
         if (StringHelper.isEmpty(returnAs)) {
-            return TaskStepResult.of(null, returnValue);
+            return TaskStepReturn.of(null, returnValue);
         } else {
             if (returnValue instanceof CompletionStage) {
-                return TaskStepResult.of(null, ((CompletionStage) returnValue).thenApply(
+                return TaskStepReturn.of(null, ((CompletionStage) returnValue).thenApply(
                         v -> Collections.singletonMap(returnAs, v)));
             } else {
-                return TaskStepResult.RETURN(Collections.singletonMap(returnAs, returnValue));
+                return TaskStepReturn.RETURN(Collections.singletonMap(returnAs, returnValue));
             }
         }
     }

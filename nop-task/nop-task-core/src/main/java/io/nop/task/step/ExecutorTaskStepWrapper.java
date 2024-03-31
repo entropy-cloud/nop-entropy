@@ -5,7 +5,7 @@ import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import jakarta.annotation.Nonnull;
 
 import java.util.concurrent.CompletableFuture;
@@ -14,6 +14,7 @@ import java.util.concurrent.CompletableFuture;
  * 在异步线程上执行
  */
 public class ExecutorTaskStepWrapper extends DelegateTaskStep {
+    //  static final Logger LOG = LoggerFactory.getLogger(ExecutorTaskStepWrapper.class);
     private final String executorBean;
 
     public ExecutorTaskStepWrapper(ITaskStep taskStep, String executorBean) {
@@ -23,13 +24,14 @@ public class ExecutorTaskStepWrapper extends DelegateTaskStep {
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+    public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         IThreadPoolExecutor executor = (IThreadPoolExecutor) stepRt.getBean(executorBean);
 
-        CompletableFuture<TaskStepResult> ret = new CompletableFuture<>();
+        CompletableFuture<TaskStepReturn> ret = new CompletableFuture<>();
         CompletableFuture<?> future = executor.submit(() -> {
+            // LOG.info("in thread");
             try {
-                TaskStepResult result = getTaskStep().execute(stepRt);
+                TaskStepReturn result = getTaskStep().execute(stepRt);
                 if (result.isDone()) {
                     ret.complete(result.resolve());
                 } else {
@@ -49,6 +51,6 @@ public class ExecutorTaskStepWrapper extends DelegateTaskStep {
 
         ICancelToken cancelToken = stepRt.getCancelToken();
         FutureHelper.bindCancelToken(cancelToken, future);
-        return TaskStepResult.ASYNC(null, ret);
+        return TaskStepReturn.ASYNC(null, ret);
     }
 }

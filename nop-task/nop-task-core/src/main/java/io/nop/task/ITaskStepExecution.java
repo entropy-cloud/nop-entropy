@@ -13,9 +13,9 @@ public interface ITaskStepExecution extends ISourceLocationGetter {
     String getStepName();
 
     @Nonnull
-    TaskStepResult executeWithParentRt(ITaskStepRuntime parentRt);
+    TaskStepReturn executeWithParentRt(ITaskStepRuntime parentRt);
 
-    default CompletionStage<TaskStepResult> executeAsync(ITaskStepRuntime stepRt) {
+    default CompletionStage<TaskStepReturn> executeAsync(ITaskStepRuntime stepRt) {
         try {
             return executeWithParentRt(stepRt).getReturnPromise();
         } catch (Exception e) {

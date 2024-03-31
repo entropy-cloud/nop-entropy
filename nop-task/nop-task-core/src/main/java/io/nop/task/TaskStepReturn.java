@@ -23,80 +23,80 @@ import static io.nop.task.TaskConstants.STEP_NAME_END;
 import static io.nop.task.TaskConstants.STEP_NAME_EXIT;
 import static io.nop.task.TaskConstants.STEP_NAME_SUSPEND;
 
-public final class TaskStepResult {
-    public static final TaskStepResult CONTINUE = new TaskStepResult(null, null);
-    public static final TaskStepResult SUSPEND = new TaskStepResult(STEP_NAME_SUSPEND, null);
+public final class TaskStepReturn {
+    public static final TaskStepReturn CONTINUE = new TaskStepReturn(null, null);
+    public static final TaskStepReturn SUSPEND = new TaskStepReturn(STEP_NAME_SUSPEND, null);
 
-    public static TaskStepResult RETURN_RESULT_END(Object result) {
-        return new TaskStepResult(STEP_NAME_END, Collections.singletonMap(TaskConstants.VAR_RESULT, result));
+    public static TaskStepReturn RETURN_RESULT_END(Object result) {
+        return new TaskStepReturn(STEP_NAME_END, Collections.singletonMap(TaskConstants.VAR_RESULT, result));
     }
 
-    public static TaskStepResult EXIT(Map<String, Object> returnValues) {
-        return new TaskStepResult(STEP_NAME_EXIT, returnValues);
+    public static TaskStepReturn EXIT(Map<String, Object> outputs) {
+        return new TaskStepReturn(STEP_NAME_EXIT, outputs);
     }
 
-    public static TaskStepResult RETURN(Map<String, Object> returnValues) {
-        if (returnValues == null)
+    public static TaskStepReturn RETURN(Map<String, Object> outputs) {
+        if (outputs == null)
             return CONTINUE;
-        return new TaskStepResult(null, returnValues);
+        return new TaskStepReturn(null, outputs);
     }
 
-    public static TaskStepResult RETURN_RESULT(Object value) {
+    public static TaskStepReturn RETURN_RESULT(Object value) {
         if (value == null)
             return CONTINUE;
-        return new TaskStepResult(null, Collections.singletonMap(TaskConstants.VAR_RESULT, value));
+        return new TaskStepReturn(null, Collections.singletonMap(TaskConstants.VAR_RESULT, value));
     }
 
-    public static TaskStepResult RETURN(String nextStepName, Map<String, Object> returnValues) {
-        if (nextStepName == null && returnValues == null)
+    public static TaskStepReturn RETURN(String nextStepName, Map<String, Object> outputs) {
+        if (nextStepName == null && outputs == null)
             return CONTINUE;
-        return new TaskStepResult(nextStepName, returnValues);
+        return new TaskStepReturn(nextStepName, outputs);
     }
 
-    public static TaskStepResult ASYNC(String nextStepName, CompletionStage<?> future) {
+    public static TaskStepReturn ASYNC(String nextStepName, CompletionStage<?> future) {
         if (FutureHelper.isFutureDone(future))
-            return TaskStepResult.of(nextStepName, FutureHelper.syncGet(future));
-        return new TaskStepResult(future.thenApply(data -> TaskStepResult.of(nextStepName, data)));
+            return TaskStepReturn.of(nextStepName, FutureHelper.syncGet(future));
+        return new TaskStepReturn(future.thenApply(data -> TaskStepReturn.of(nextStepName, data)));
     }
 
     private final String nextStepName;
     private final Map<String, Object> outputs;
-    private final CompletionStage<TaskStepResult> future;
+    private final CompletionStage<TaskStepReturn> future;
 
-    private TaskStepResult(String nextStepName, Map<String, Object> outputs, CompletionStage<TaskStepResult> future) {
+    private TaskStepReturn(String nextStepName, Map<String, Object> outputs, CompletionStage<TaskStepReturn> future) {
         this.nextStepName = nextStepName;
         this.outputs = outputs;
         this.future = future;
     }
 
-    private TaskStepResult(CompletionStage<TaskStepResult> future) {
+    private TaskStepReturn(CompletionStage<TaskStepReturn> future) {
         this(null, null, future);
     }
 
-    private TaskStepResult(String nextStepName, Map<String, Object> outputs) {
+    private TaskStepReturn(String nextStepName, Map<String, Object> outputs) {
         this(nextStepName, outputs, null);
     }
 
-    public static TaskStepResult of(String nextStepName, Object returnValue) {
+    public static TaskStepReturn of(String nextStepName, Object returnValue) {
         if (nextStepName == null && returnValue == null)
             return CONTINUE;
 
-        if (returnValue instanceof TaskStepResult) {
-            return (TaskStepResult) returnValue;
+        if (returnValue instanceof TaskStepReturn) {
+            return (TaskStepReturn) returnValue;
         }
 
         if (STEP_NAME_SUSPEND.equals(nextStepName))
             return SUSPEND;
 
         if (returnValue instanceof Map)
-            return new TaskStepResult(nextStepName, (Map<String, Object>) returnValue);
+            return new TaskStepReturn(nextStepName, (Map<String, Object>) returnValue);
 
         if (returnValue instanceof CompletionStage)
-            return new TaskStepResult(((CompletionStage<?>) returnValue).thenApply(v -> of(nextStepName, v)));
+            return new TaskStepReturn(((CompletionStage<?>) returnValue).thenApply(v -> of(nextStepName, v)));
 
         Map<String, Object> ret = Collections.singletonMap(TaskConstants.VAR_RESULT, returnValue);
 
-        return new TaskStepResult(nextStepName, ret);
+        return new TaskStepReturn(nextStepName, ret);
     }
 
     public boolean isAsync() {
@@ -131,7 +131,7 @@ public final class TaskStepResult {
         return outputs;
     }
 
-    public TaskStepResult resolve() {
+    public TaskStepReturn resolve() {
         if (future == null)
             return this;
 
@@ -154,44 +154,44 @@ public final class TaskStepResult {
         return nextStepName;
     }
 
-    public CompletionStage<TaskStepResult> getReturnPromise() {
+    public CompletionStage<TaskStepReturn> getReturnPromise() {
         if (future != null)
             return future;
 
         return FutureHelper.success(this);
     }
 
-    public TaskStepResult thenCompose(BiFunction<TaskStepResult, Throwable, TaskStepResult> fn) {
+    public TaskStepReturn thenCompose(BiFunction<TaskStepReturn, Throwable, TaskStepReturn> fn) {
         if (!isAsync()) {
             return fn.apply(this, null);
         }
 
         if (future instanceof ResolvedPromise) {
-            ResolvedPromise<TaskStepResult> resolved = (ResolvedPromise<TaskStepResult>) future;
+            ResolvedPromise<TaskStepReturn> resolved = (ResolvedPromise<TaskStepReturn>) future;
             return fn.apply(resolved.getResult(), resolved.getException());
         }
 
-        return new TaskStepResult(FutureHelper.thenCompleteAsync(future, fn));
+        return new TaskStepReturn(FutureHelper.thenCompleteAsync(future, fn));
     }
 
-    public TaskStepResult thenApply(Function<TaskStepResult, TaskStepResult> fn) {
+    public TaskStepReturn thenApply(Function<TaskStepReturn, TaskStepReturn> fn) {
         if (!isAsync()) {
             return fn.apply(this);
         }
 
-        return new TaskStepResult(future.thenApply(fn));
+        return new TaskStepReturn(future.thenApply(fn));
     }
 
-    public TaskStepResult whenComplete(BiConsumer<? super TaskStepResult, ? super Throwable> consumer) {
+    public TaskStepReturn whenComplete(BiConsumer<? super TaskStepReturn, ? super Throwable> consumer) {
         if (!isAsync()) {
             consumer.accept(this, null);
             return this;
         }
 
-        return new TaskStepResult(future.whenComplete(consumer));
+        return new TaskStepReturn(future.whenComplete(consumer));
     }
 
-    public TaskStepResult runOnContext() {
+    public TaskStepReturn runOnContext() {
         if (isDone())
             return this;
 

@@ -14,7 +14,7 @@ import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskErrors;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -70,7 +70,7 @@ public class TaskStepHelper {
         });
     }
 
-    public static TaskStepResult timeout(long timeout, Function<ICancellable, TaskStepResult> task,
+    public static TaskStepReturn timeout(long timeout, Function<ICancellable, TaskStepReturn> task,
                                          ICancelToken cancelToken, IScheduledExecutor executor) {
         Cancellable cancellable = new Cancellable();
         Consumer<String> cancel = cancellable::cancel;
@@ -82,7 +82,7 @@ public class TaskStepHelper {
             return null;
         }, timeout, TimeUnit.MILLISECONDS);
 
-        TaskStepResult result = task.apply(cancellable);
+        TaskStepReturn result = task.apply(cancellable);
 
         try {
             return result.whenComplete((v, e) -> {
@@ -98,8 +98,8 @@ public class TaskStepHelper {
         }
     }
 
-    public static TaskStepResult retry(SourceLocation loc, ITaskStepRuntime stepRt,
-                                       IRetryPolicy<ITaskStepRuntime> retryPolicy, Callable<TaskStepResult> action) {
+    public static TaskStepReturn retry(SourceLocation loc, ITaskStepRuntime stepRt,
+                                       IRetryPolicy<ITaskStepRuntime> retryPolicy, Callable<TaskStepReturn> action) {
         do {
             if (stepRt.isCancelled())
                 throw newError(loc, stepRt, ERR_TASK_CANCELLED);
@@ -116,10 +116,10 @@ public class TaskStepHelper {
                 }
 
                 if (delay > 0) {
-                    return TaskStepResult.of(null, stepRt.getTaskRuntime().getScheduledExecutor()
+                    return TaskStepReturn.of(null, stepRt.getTaskRuntime().getScheduledExecutor()
                             .schedule(action, delay, TimeUnit.MILLISECONDS).thenApply(result -> {
                                 try {
-                                    TaskStepResult ret = action.call();
+                                    TaskStepReturn ret = action.call();
                                     if (ret.isAsync()) {
                                         if (ret.isDone())
                                             return result.resolve();
@@ -136,7 +136,7 @@ public class TaskStepHelper {
             }
 
             try {
-                TaskStepResult result = action.call();
+                TaskStepReturn result = action.call();
                 if (result.isAsync()) {
                     if (result.isDone())
                         return result.resolve();
@@ -153,9 +153,9 @@ public class TaskStepHelper {
         } while (true);
     }
 
-    static TaskStepResult doRetry(TaskStepResult value, Throwable err,
+    static TaskStepReturn doRetry(TaskStepReturn value, Throwable err,
                                   SourceLocation loc, ITaskStepRuntime stepRt,
-                                  IRetryPolicy<ITaskStepRuntime> retryPolicy, Callable<TaskStepResult> action) {
+                                  IRetryPolicy<ITaskStepRuntime> retryPolicy, Callable<TaskStepReturn> action) {
         if (err != null) {
             ITaskStepState state = stepRt.getState();
             state.setRetryAttempt(getInt(state.getRetryAttempt()) + 1);

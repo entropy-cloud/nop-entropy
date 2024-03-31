@@ -2,6 +2,7 @@ package io.nop.task.step;
 
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.exceptions.ErrorMessageManager;
@@ -13,7 +14,7 @@ import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepExecution;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskConstants;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
@@ -150,8 +151,10 @@ public class TaskStepExecution implements ITaskStepExecution {
 
     @Nonnull
     @Override
-    public TaskStepResult executeWithParentRt(ITaskStepRuntime parentRt) {
+    public TaskStepReturn executeWithParentRt(ITaskStepRuntime parentRt) {
         IEvalScope parentScope = parentRt.getEvalScope();
+
+        long beginTime = CoreMetrics.currentTimeMillis();
 
         ITaskRuntime taskRt = parentRt.getTaskRuntime();
         ITaskStepRuntime stepRt = parentRt.newStepRuntime(stepName, step.getStepType(),
@@ -173,7 +176,7 @@ public class TaskStepExecution implements ITaskStepExecution {
                                 + "stepId={},runId={},loc={}", taskRt.getTaskName(), taskRt.getTaskInstanceId(),
                         stepRt.getStepId(), stepRt.getRunId(), step.getLocation());
 
-                return TaskStepResult.CONTINUE;
+                return TaskStepReturn.CONTINUE;
             }
 
             initInputs(stepRt, parentScope, taskRt);
@@ -182,14 +185,14 @@ public class TaskStepExecution implements ITaskStepExecution {
         }
 
         try {
-            TaskStepResult stepResult = step.execute(stepRt);
+            TaskStepReturn stepResult = step.execute(stepRt);
             if (stepResult.isSuspend())
                 return stepResult;
 
             return stepResult.thenCompose((ret, err) -> {
                 if (err != null) {
-                    LOG.info("nop.task.step.run-fail:taskName={},taskInstanceId={},stepId={},runId={},nextStepNameOnError={},loc={}",
-                            taskRt.getTaskName(), taskRt.getTaskInstanceId(),
+                    LOG.info("nop.task.step.run-fail:usedTime={},taskName={},taskInstanceId={},stepId={},runId={},nextStepNameOnError={},loc={}",
+                            CoreMetrics.currentTimeMillis() - beginTime, taskRt.getTaskName(), taskRt.getTaskInstanceId(),
                             stepRt.getStepId(), stepRt.getRunId(), nextStepNameOnError, step.getLocation(), err);
                     if (nextStepNameOnError != null)
                         return buildErrorResult(stepRt, parentScope, err);
@@ -210,19 +213,19 @@ public class TaskStepExecution implements ITaskStepExecution {
 
                     // 如果ret中明确指定了nextStepName，则以指定的值为准
                     if (ret.getNextStepName() == null && nextStepName != null)
-                        ret = TaskStepResult.RETURN(nextStepName, ret.get());
+                        ret = TaskStepReturn.RETURN(nextStepName, ret.get());
 
-                    LOG.debug("nop.task.step.run-ok:taskName={},taskInstanceId={},stepId={},runId={}," +
-                                    "nextStepName={},retValues={},loc={}",
-                            taskRt.getTaskName(), taskRt.getTaskInstanceId(),
+                    LOG.debug("nop.task.step.run-ok:usedTime={},taskName={},taskInstanceId={},stepId={},runId={}," +
+                                    "nextStepName={},outputs={},loc={}",
+                            CoreMetrics.currentTimeMillis() - beginTime, taskRt.getTaskName(), taskRt.getTaskInstanceId(),
                             stepRt.getStepId(), stepRt.getRunId(), ret.getNextStepName(), ret.getOutputs(),
                             step.getLocation());
                     return ret;
                 }
             });
         } catch (Exception e) {
-            LOG.info("nop.task.step.run-fail:taskName={},taskInstanceId={},stepId={},runId={},nextStepNameOnError={},loc={}",
-                    taskRt.getTaskName(), taskRt.getTaskInstanceId(),
+            LOG.info("nop.task.step.run-fail:usedTime={},taskName={},taskInstanceId={},stepId={},runId={},nextStepNameOnError={},loc={}",
+                    CoreMetrics.currentTimeMillis() - beginTime, taskRt.getTaskName(), taskRt.getTaskInstanceId(),
                     stepRt.getStepId(), stepRt.getRunId(), nextStepNameOnError, step.getLocation(), e);
 
             if (nextStepNameOnError != null) {
@@ -232,13 +235,13 @@ public class TaskStepExecution implements ITaskStepExecution {
         }
     }
 
-    TaskStepResult buildErrorResult(ITaskStepRuntime stepRt, IEvalScope parentScope, Throwable e) {
+    TaskStepReturn buildErrorResult(ITaskStepRuntime stepRt, IEvalScope parentScope, Throwable e) {
         ErrorBean errorBean = ErrorMessageManager.instance().buildErrorMessage(stepRt.getLocale(), e, false, false);
         Map<String, Object> data = Collections.singletonMap(TaskConstants.VAR_ERROR, errorBean);
         if (errorName != null) {
             parentScope.setLocalValue(errorName, errorBean);
         }
-        return TaskStepResult.of(nextStepNameOnError, data);
+        return TaskStepReturn.of(nextStepNameOnError, data);
     }
 
     private void initInputs(ITaskStepRuntime stepRt, IEvalScope parentScope, ITaskRuntime taskRt) {
@@ -251,7 +254,7 @@ public class TaskStepExecution implements ITaskStepExecution {
         });
     }
 
-    private void initOutputs(TaskStepResult result, ITaskStepRuntime stepRt, IEvalScope parentScope) {
+    private void initOutputs(TaskStepReturn result, ITaskStepRuntime stepRt, IEvalScope parentScope) {
         outputConfigs.forEach(config -> {
             String exportName = config.getExportName();
             Object value = result.getOutput(config.getName());

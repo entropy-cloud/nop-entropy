@@ -3,7 +3,7 @@ package io.nop.task.step;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import jakarta.annotation.Nonnull;
 
 public class ValidatorTaskStepWrapper extends DelegateTaskStep {
@@ -18,7 +18,7 @@ public class ValidatorTaskStepWrapper extends DelegateTaskStep {
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+    public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         if (stepRt.isRecoverMode()) {
             if (onReload != null)
                 onReload.invoke(stepRt);

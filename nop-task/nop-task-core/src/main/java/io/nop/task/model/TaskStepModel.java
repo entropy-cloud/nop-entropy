@@ -9,6 +9,9 @@ package io.nop.task.model;
 
 import io.nop.task.model._gen._TaskStepModel;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 public abstract class TaskStepModel extends _TaskStepModel {
     public TaskStepModel() {
 
@@ -24,6 +27,24 @@ public abstract class TaskStepModel extends _TaskStepModel {
 
     public boolean isUseParentScope() {
         return false;
+    }
+
+    public void addWaitStep(String waitStep) {
+        Set<String> waitSteps = getWaitSteps();
+        if (waitSteps == null || waitSteps.isEmpty()) {
+            waitSteps = new LinkedHashSet<>();
+            setWaitSteps(waitSteps);
+        }
+        waitSteps.add(waitStep);
+    }
+
+    public void addWaitErrorStep(String waitStep) {
+        Set<String> waitSteps = getWaitErrorSteps();
+        if (waitSteps == null || waitSteps.isEmpty()) {
+            waitSteps = new LinkedHashSet<>();
+            setWaitErrorSteps(waitSteps);
+        }
+        waitSteps.add(waitStep);
     }
 
     public void normalize() {

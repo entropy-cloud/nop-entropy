@@ -82,7 +82,7 @@ public interface ITaskStateCommon extends ITagSetSupport {
 
     void setResultValue(Object resultValue);
 
-    void result(TaskStepResult result);
+    void result(TaskStepReturn result);
 
     ErrorBean getError();
 

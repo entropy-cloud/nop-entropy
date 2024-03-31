@@ -11,7 +11,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import jakarta.annotation.Nonnull;
 
 public class TryTaskStepWrapper extends DelegateTaskStep {
@@ -26,18 +26,18 @@ public class TryTaskStepWrapper extends DelegateTaskStep {
 
     @Override
     @Nonnull
-    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+    public TaskStepReturn execute(ITaskStepRuntime stepRt) {
 
         boolean async = false;
         try {
-            TaskStepResult result = getTaskStep().execute(stepRt);
+            TaskStepReturn result = getTaskStep().execute(stepRt);
             if (result.isAsync()) {
                 async = true;
                 return result.thenCompose((ret, err) -> {
                     try {
                         if (err != null) {
                             if (catchAction != null) {
-                                return TaskStepResult.of(null, catchAction.invoke(stepRt));
+                                return TaskStepReturn.of(null, catchAction.invoke(stepRt));
                             } else {
                                 throw NopException.adapt(err);
                             }
@@ -54,7 +54,7 @@ public class TryTaskStepWrapper extends DelegateTaskStep {
         } catch (Exception e) {
             async = false;
             if (catchAction != null) {
-                return TaskStepResult.of(null, catchAction.invoke(stepRt));
+                return TaskStepReturn.of(null, catchAction.invoke(stepRt));
             } else {
                 throw NopException.adapt(e);
             }

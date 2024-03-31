@@ -1,10 +1,11 @@
 package io.nop.task.impl;
 
+import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.ioc.IBeanContainer;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.task.ITaskStepRuntime;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import io.nop.task.step.AbstractTaskStep;
 import jakarta.annotation.Nonnull;
 import org.junit.jupiter.api.Test;
@@ -98,6 +99,22 @@ public class TestTaskManager extends AbstractTaskTestCase {
         runTask("test/fork-n-01");
     }
 
+    @Test
+    public void testGraph01() {
+        BeanContainer.registerInstance(new MockBeanContainer());
+        runTask("test/graph-01");
+    }
+
+
+    @Test
+    public void testRunInContext() {
+        BeanContainer.registerInstance(new MockBeanContainer());
+        ContextProvider.getOrCreateContext().runOnContext(()->{
+            runTask("test/run-on-context-01");
+        });
+    }
+
+
     public static class MyHandler {
 
         public int myMethod(int x) {
@@ -108,8 +125,8 @@ public class TestTaskManager extends AbstractTaskTestCase {
     static class MyStep extends AbstractTaskStep {
         @Nonnull
         @Override
-        public TaskStepResult execute(ITaskStepRuntime stepRt) {
-            return TaskStepResult.of(null, 3);
+        public TaskStepReturn execute(ITaskStepRuntime stepRt) {
+            return TaskStepReturn.of(null, 3);
         }
     }
 

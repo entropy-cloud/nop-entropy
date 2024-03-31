@@ -85,7 +85,7 @@ public interface ITaskStepState extends ITaskStateCommon {
 
     boolean needSave();
 
-    TaskStepResult result();
+    TaskStepReturn result();
 
     Throwable exception();
 

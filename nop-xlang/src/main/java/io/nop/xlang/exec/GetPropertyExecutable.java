@@ -15,6 +15,9 @@ import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.reflect.IPropertyGetter;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static io.nop.xlang.XLangErrors.ARG_CLASS_NAME;
 import static io.nop.xlang.XLangErrors.ARG_OBJ_EXPR;
 import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
@@ -35,6 +38,31 @@ public class GetPropertyExecutable extends AbstractPropertyExecutable {
 
     public boolean isOptional() {
         return optional;
+    }
+
+    public String getRootScopeVar() {
+        if (objExpr instanceof ScopeIdentifierExecutable)
+            return ((ScopeIdentifierExecutable) objExpr).getVarName();
+        if (objExpr instanceof GetPropertyExecutable)
+            return ((GetPropertyExecutable) objExpr).getRootScopeVar();
+        return null;
+    }
+
+    public List<String> collectScopePropPath() {
+        List<String> ret = new ArrayList<>();
+        collectScopePropPath(ret);
+        return ret;
+    }
+
+    public void collectScopePropPath(List<String> propPath) {
+        propPath.add(propName);
+        if (objExpr instanceof GetPropertyExecutable) {
+            ((GetPropertyExecutable) objExpr).collectScopePropPath(propPath);
+        } else if (objExpr instanceof ScopeIdentifierExecutable) {
+            propPath.add(((ScopeIdentifierExecutable) objExpr).getVarName());
+        } else {
+            propPath.add(null);
+        }
     }
 
     public String getPropName() {

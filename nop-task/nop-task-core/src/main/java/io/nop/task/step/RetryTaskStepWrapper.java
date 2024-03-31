@@ -10,7 +10,7 @@ package io.nop.task.step;
 import io.nop.commons.util.retry.IRetryPolicy;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 
@@ -24,7 +24,7 @@ public class RetryTaskStepWrapper extends DelegateTaskStep {
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+    public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         return TaskStepHelper.retry(getLocation(), stepRt, retryPolicy,
                 () -> getTaskStep().execute(stepRt));
     }

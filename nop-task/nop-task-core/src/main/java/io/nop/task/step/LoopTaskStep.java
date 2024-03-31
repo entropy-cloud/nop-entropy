@@ -13,13 +13,13 @@ import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import jakarta.annotation.Nonnull;
 
 import java.util.List;
 
-import static io.nop.task.TaskStepResult.RETURN_RESULT;
-import static io.nop.task.TaskStepResult.RETURN_RESULT_END;
+import static io.nop.task.TaskStepReturn.RETURN_RESULT;
+import static io.nop.task.TaskStepReturn.RETURN_RESULT_END;
 
 
 public class LoopTaskStep extends AbstractTaskStep {
@@ -98,7 +98,7 @@ public class LoopTaskStep extends AbstractTaskStep {
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+    public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         LoopStateBean stateBean = stepRt.getStateBean(LoopStateBean.class);
         if (stateBean == null) {
             stateBean = new LoopStateBean();
@@ -121,7 +121,7 @@ public class LoopTaskStep extends AbstractTaskStep {
                 stepRt.setValue(indexName, stateBean.getIndex());
             }
 
-            TaskStepResult stepResult = body.execute(stepRt);
+            TaskStepReturn stepResult = body.execute(stepRt);
             if (stepResult.isSuspend())
                 return stepResult;
 

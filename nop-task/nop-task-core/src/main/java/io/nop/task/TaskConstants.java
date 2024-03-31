@@ -39,7 +39,8 @@ public interface TaskConstants {
 
     String VAR_STEP_RESULTS = "STEP_RESULTS";
 
-    String PREFIX_STEP_RESULTS = "STEP_RESULTS.";
+    String PROP_OUTPUTS = "outputs";
+    String PROP_ERROR = "error";
     String VAR_REQUEST = "request";
 
     String VAR_ERROR = "ERROR";

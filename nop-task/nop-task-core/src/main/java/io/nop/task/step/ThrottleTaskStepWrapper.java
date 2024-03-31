@@ -5,7 +5,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import jakarta.annotation.Nonnull;
 
 public class ThrottleTaskStepWrapper extends DelegateTaskStep {
@@ -23,7 +23,7 @@ public class ThrottleTaskStepWrapper extends DelegateTaskStep {
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+    public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         String key = getKey(stepRt);
 
         return null;

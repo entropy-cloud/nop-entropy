@@ -10,7 +10,7 @@ package io.nop.task.step;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskConstants;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import jakarta.annotation.Nonnull;
 
 import java.util.concurrent.CompletionStage;
@@ -28,11 +28,11 @@ public class EndTaskStep extends AbstractTaskStep {
 
     @Override
     @Nonnull
-    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+    public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         Object ret = result == null ? null : result.invoke(stepRt);
         if (ret instanceof CompletionStage)
-            return TaskStepResult.ASYNC(TaskConstants.STEP_NAME_END, (CompletionStage<?>) ret);
+            return TaskStepReturn.ASYNC(TaskConstants.STEP_NAME_END, (CompletionStage<?>) ret);
 
-        return TaskStepResult.of(TaskConstants.STEP_NAME_END, ret);
+        return TaskStepReturn.of(TaskConstants.STEP_NAME_END, ret);
     }
 }

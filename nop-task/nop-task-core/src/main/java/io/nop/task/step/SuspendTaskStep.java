@@ -9,7 +9,7 @@ package io.nop.task.step;
 
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.task.ITaskStepRuntime;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import jakarta.annotation.Nonnull;
 
 public class SuspendTaskStep extends AbstractTaskStep {
@@ -25,12 +25,12 @@ public class SuspendTaskStep extends AbstractTaskStep {
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+    public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         if (resumeWhen == null)
-            return TaskStepResult.CONTINUE;
+            return TaskStepReturn.CONTINUE;
 
         if (!resumeWhen.passConditions(stepRt))
-            return TaskStepResult.SUSPEND;
-        return TaskStepResult.CONTINUE;
+            return TaskStepReturn.SUSPEND;
+        return TaskStepReturn.CONTINUE;
     }
 }

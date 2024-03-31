@@ -13,7 +13,7 @@ import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.ITaskStepRuntime;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import jakarta.annotation.Nonnull;
 
 import java.util.concurrent.CompletableFuture;
@@ -29,12 +29,12 @@ public class DelayTaskStep extends AbstractTaskStep {
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+    public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         Long delay = ConvertHelper.toLong(delayMillsExpr.invoke(stepRt.getEvalScope()));
         if (delay == null)
             delay = -1L;
         if (delay <= 0)
-            return TaskStepResult.CONTINUE;
+            return TaskStepReturn.CONTINUE;
 
         IScheduledExecutor scheduledExecutor = stepRt.getTaskRuntime().getScheduledExecutor();
 
@@ -46,6 +46,6 @@ public class DelayTaskStep extends AbstractTaskStep {
         ICancelToken cancelToken = stepRt.getCancelToken();
         FutureHelper.bindCancelToken(cancelToken, future);
 
-        return TaskStepResult.ASYNC(null, future);
+        return TaskStepReturn.ASYNC(null, future);
     }
 }

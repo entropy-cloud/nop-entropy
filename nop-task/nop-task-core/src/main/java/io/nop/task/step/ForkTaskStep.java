@@ -13,7 +13,7 @@ import io.nop.commons.util.AsyncHelper;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.ITaskStepRuntime;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 
@@ -47,7 +47,7 @@ public class ForkTaskStep extends AbstractForkTaskStep {
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+    public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         ForkStateBean stateBean = stepRt.getStateBean(ForkStateBean.class);
         if (stateBean == null) {
             stateBean = new ForkStateBean();
@@ -58,12 +58,12 @@ public class ForkTaskStep extends AbstractForkTaskStep {
         }
 
         List<Object> items = stateBean.getItems();
-        List<CompletionStage<TaskStepResult>> promises = new ArrayList<>(items.size());
+        List<CompletionStage<TaskStepReturn>> promises = new ArrayList<>(items.size());
 
         CompletionStage<Void> promise = TaskStepHelper.withCancellable(() -> {
             for (int i = 0; i < items.size(); i++) {
                 try {
-                    TaskStepResult result = executeFork(stepRt, items.get(i), i);
+                    TaskStepReturn result = executeFork(stepRt, items.get(i), i);
                     promises.add(result.getReturnPromise());
                 } catch (Exception e) {
                     promises.add(FutureHelper.reject(e));

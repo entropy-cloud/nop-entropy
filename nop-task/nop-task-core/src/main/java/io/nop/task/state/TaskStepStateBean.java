@@ -9,7 +9,7 @@ package io.nop.task.state;
 
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStepState;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 
 public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskStepState {
     private String stepId;
@@ -60,7 +60,7 @@ public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskS
     }
 
     @Override
-    public TaskStepResult result() {
+    public TaskStepReturn result() {
         return null;
     }
 
@@ -165,7 +165,7 @@ public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskS
     }
 
     @Override
-    public void result(TaskStepResult result) {
+    public void result(TaskStepReturn result) {
 
     }
 

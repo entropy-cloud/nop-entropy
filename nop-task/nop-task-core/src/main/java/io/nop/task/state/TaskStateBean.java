@@ -1,7 +1,7 @@
 package io.nop.task.state;
 
 import io.nop.task.ITaskState;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -131,7 +131,7 @@ public class TaskStateBean extends AbstractTaskStateCommon implements ITaskState
     }
 
     @Override
-    public void result(TaskStepResult result) {
+    public void result(TaskStepReturn result) {
 
     }
 }

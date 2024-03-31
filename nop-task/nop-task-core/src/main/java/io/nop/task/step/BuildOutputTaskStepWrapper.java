@@ -4,7 +4,7 @@ import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskConstants;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import jakarta.annotation.Nonnull;
 
 import java.util.LinkedHashMap;
@@ -24,7 +24,7 @@ public class BuildOutputTaskStepWrapper extends DelegateTaskStep {
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+    public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         return getTaskStep().execute(stepRt).thenApply(res -> {
             stepRt.setValue(TaskConstants.VAR_STEP_RESULT, res.getOutputs());
             Map<String, Object> result = res.getOutputs() != null ? new LinkedHashMap<>(res.getOutputs())
@@ -41,7 +41,7 @@ public class BuildOutputTaskStepWrapper extends DelegateTaskStep {
                     result.remove(name);
                 }
             });
-            return TaskStepResult.of(res.getNextStepName(), result);
+            return TaskStepReturn.of(res.getNextStepName(), result);
         });
     }
 }

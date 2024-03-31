@@ -29,11 +29,11 @@ public class StepResultBean implements Serializable {
     private ErrorBean error;
     private transient Throwable exception;
 
-    public static StepResultBean buildFrom(String stepName, String locale, CompletionStage<TaskStepResult> future) {
+    public static StepResultBean buildFrom(String stepName, String locale, CompletionStage<TaskStepReturn> future) {
         StepResultBean resultBean = new StepResultBean();
         resultBean.setStepName(stepName);
         try {
-            TaskStepResult result = FutureHelper.syncGet(future);
+            TaskStepReturn result = FutureHelper.syncGet(future);
             resultBean.setNextStepName(result.getNextStepName());
             resultBean.setOutputs(result.get());
         } catch (Exception exception) {
@@ -42,7 +42,7 @@ public class StepResultBean implements Serializable {
         return resultBean;
     }
 
-    public static StepResultBean buildFromResult(String stepName, String locale, TaskStepResult result) {
+    public static StepResultBean buildFromResult(String stepName, String locale, TaskStepReturn result) {
         StepResultBean resultBean = new StepResultBean();
         resultBean.setStepName(stepName);
 

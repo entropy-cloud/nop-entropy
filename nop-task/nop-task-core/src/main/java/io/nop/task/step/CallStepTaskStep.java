@@ -12,7 +12,7 @@ import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepLib;
 import io.nop.task.ITaskStepRuntime;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
@@ -56,7 +56,7 @@ public class CallStepTaskStep extends AbstractTaskStep {
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+    public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         ITaskManager taskManager = stepRt.getTaskRuntime().getTaskManager();
         ITaskStepLib lib = taskManager.getTaskStepLib(libName, libVersion);
         ITaskStep step = lib.getStep(stepName);

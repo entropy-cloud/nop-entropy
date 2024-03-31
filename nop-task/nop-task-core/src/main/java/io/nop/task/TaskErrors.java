@@ -40,6 +40,8 @@ public interface TaskErrors {
 
     String ARG_TASK_INSTANCE_ID = "taskInstanceId";
 
+    String ARG_WAIT_STEP = "waitStep";
+
     ErrorCode ERR_TASK_STEP_NOT_RESTARTABLE = define("nop.err.task.step.not-restartable",
             "步骤[{stepName}]不允许多次执行", ARG_TASK_NAME, ARG_STEP_NAME);
 
@@ -65,8 +67,12 @@ public interface TaskErrors {
                     ARG_STEP_ID, ARG_OUTPUT);
 
     ErrorCode ERR_TASK_UNKNOWN_NEXT_STEP =
-            define("nop.err.task.unknown-next-step", "步骤[{stepId}]不支持跳转到子步骤[{nextStep}]",
-                    ARG_STEP_ID, ARG_NEXT_STEP);
+            define("nop.err.task.unknown-next-step", "步骤[{stepName}]不支持跳转到子步骤[{nextStep}]",
+                    ARG_STEP_NAME, ARG_NEXT_STEP);
+
+    ErrorCode ERR_TASK_UNKNOWN_WAIT_STEP =
+            define("nop.err.task.unknown-wait-step", "步骤[{stepName}]等待的步骤[{waitStep}]没有定义",
+                    ARG_STEP_NAME, ARG_WAIT_STEP);
 
     ErrorCode ERR_TASK_LOOP_STEP_INVALID_LOOP_VAR =
             define("nop.err.task.loop-step-invalid-loop-var", "循环步骤的循环变量设置不正确：begin={begin},end={end},step={step}",
@@ -108,4 +114,7 @@ public interface TaskErrors {
     ErrorCode ERR_TASK_UNKNOWN_TASK_INSTANCE =
             define("nop.err.task.unknown-task-instance", "未知的任务实例:{taskInstanceId}",
                     ARG_TASK_INSTANCE_ID);
+
+    ErrorCode ERR_TASK_GRAPH_NO_ACTIVE_STEP =
+            define("nop.err.task.graph-no-active-step", "流程图[{stepId}]已经没有活跃步骤，但是流程执行还没有结束");
 }

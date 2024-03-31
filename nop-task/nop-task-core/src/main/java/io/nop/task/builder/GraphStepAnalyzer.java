@@ -13,12 +13,12 @@ import io.nop.task.model.TaskInputModel;
 import io.nop.task.model.TaskStepModel;
 import io.nop.xlang.api.ExprEvalAction;
 import io.nop.xlang.exec.GetPropertyExecutable;
-import io.nop.xlang.exec.ScopeIdentifierExecutable;
 
-import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
+import static io.nop.task.TaskErrors.ARG_GRAPH_STEP_NAME;
 import static io.nop.task.TaskErrors.ARG_LOOP_EDGES;
 import static io.nop.task.TaskErrors.ARG_STEP_NAME;
 import static io.nop.task.TaskErrors.ERR_TASK_GRAPH_STEP_CONTAINS_LOOP;
@@ -69,9 +69,22 @@ public class GraphStepAnalyzer {
                         .param(ARG_STEP_NAME, stepModel.getName());
         }
 
-        addNextStep(stepModel);
-
+        normalizeWaitSteps(stepModel);
         addDataDepends(stepModel);
+
+        addNextStep(stepModel);
+    }
+
+    private void normalizeWaitSteps(IGraphTaskStepModel stepModel) {
+        for (TaskStepModel subStep : stepModel.getSteps()) {
+            if (!StringHelper.isEmpty(subStep.getNext())) {
+                stepModel.getStep(subStep.getNext()).addWaitStep(subStep.getName());
+            }
+
+            if (!StringHelper.isEmpty(subStep.getNextOnError())) {
+                stepModel.getStep(subStep.getNextOnError()).addWaitErrorStep(subStep.getName());
+            }
+        }
     }
 
     private void addNextStep(IGraphTaskStepModel stepModel) {
@@ -79,16 +92,14 @@ public class GraphStepAnalyzer {
             String name = subStep.getName();
             dag.addNode(name);
 
-            if (!StringHelper.isEmpty(subStep.getNext())) {
-                dag.addNextNode(name, subStep.getNext());
-            }
-
-            if (!StringHelper.isEmpty(subStep.getNextOnError())) {
-                dag.addNextNode(name, subStep.getNextOnError());
-            }
-
             if (subStep.getWaitSteps() != null) {
                 subStep.getWaitSteps().forEach(waitStep -> {
+                    dag.addNextNode(waitStep, name);
+                });
+            }
+
+            if (subStep.getWaitErrorSteps() != null) {
+                subStep.getWaitErrorSteps().forEach(waitStep -> {
                     dag.addNextNode(waitStep, name);
                 });
             }
@@ -107,40 +118,65 @@ public class GraphStepAnalyzer {
      * 步骤依赖于输入变量
      */
     private void addInputDepend(IGraphTaskStepModel stepModel, TaskStepModel subStep, TaskInputModel inputModel) {
-        Set<String> varStepNames = getVarStepNames(inputModel.getSource());
-        for (String varStepName : varStepNames) {
+        ScopeStepCollector collector = getScopeStepInfo(inputModel.getSource());
+        if (collector == null)
+            return;
+
+        for (String varStepName : collector.stepNames) {
             if (!stepModel.hasStep(varStepName))
                 throw new NopException(ERR_TASK_UNKNOWN_STEP_IN_GRAPH)
                         .source(stepModel)
-                        .param(ARG_STEP_NAME, stepModel.getName());
-            dag.addNextNode(varStepName, subStep.getName());
+                        .param(ARG_GRAPH_STEP_NAME, stepModel.getName())
+                        .param(ARG_STEP_NAME, varStepName);
+
+            subStep.addWaitStep(varStepName);
+        }
+
+        for (String varStepName : collector.errorStepNames) {
+            if (!stepModel.hasStep(varStepName))
+                throw new NopException(ERR_TASK_UNKNOWN_STEP_IN_GRAPH)
+                        .source(stepModel)
+                        .param(ARG_GRAPH_STEP_NAME, stepModel.getName())
+                        .param(ARG_STEP_NAME, varStepName);
+
+            subStep.addWaitErrorStep(varStepName);
         }
     }
 
-    private Set<String> getVarStepNames(IEvalAction action) {
+    private ScopeStepCollector getScopeStepInfo(IEvalAction action) {
         if (action instanceof ExprEvalAction) {
             ScopeStepCollector collector = new ScopeStepCollector();
             ((ExprEvalAction) action).getExpr().visit(collector);
-            return collector.getStepNames();
-        } else {
-            return Collections.emptySet();
+            return collector;
         }
+        return null;
     }
 
     static class ScopeStepCollector implements IExecutableExpressionVisitor {
         private final Set<IExecutableExpression> visited = CollectionHelper.newIdentityHashSet();
 
-        private final Set<String> stepNames = new HashSet<>();
+        final Set<String> stepNames = new HashSet<>();
+        final Set<String> errorStepNames = new HashSet<>();
 
         @Override
         public boolean onVisitExpr(IExecutableExpression expr) {
             if (visited.add(expr)) {
                 if (expr instanceof GetPropertyExecutable) {
                     GetPropertyExecutable getExpr = (GetPropertyExecutable) expr;
-                    if (getExpr.getObjExpr() instanceof ScopeIdentifierExecutable) {
-                        String scopeVar = ((ScopeIdentifierExecutable) getExpr.getObjExpr()).getVarName();
-                        if (TaskConstants.VAR_STEP_RESULTS.equals(scopeVar)) {
-                            stepNames.add(getExpr.getPropName());
+                    String scopeVar = getExpr.getRootScopeVar();
+                    if (TaskConstants.VAR_STEP_RESULTS.equals(scopeVar)) {
+                        List<String> propPath = getExpr.collectScopePropPath();
+                        String stepName = propPath.get(propPath.size() - 2);
+                        if (propPath.size() == 2) {
+                            // 例如STEP_RESULTS.step1
+                            stepNames.add(stepName);
+                        } else {
+                            String propName = propPath.get(propPath.size() - 3);
+                            if (propName.equals(TaskConstants.PROP_ERROR)) {
+                                errorStepNames.add(stepName);
+                            } else {
+                                stepNames.add(stepName);
+                            }
                         }
                     }
                 }

@@ -9,7 +9,7 @@ package io.nop.task.step;
 
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.ITaskStepRuntime;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import jakarta.annotation.Nonnull;
 
 public class EvalTaskStep extends AbstractTaskStep {
@@ -21,8 +21,8 @@ public class EvalTaskStep extends AbstractTaskStep {
 
     @Nonnull
     @Override
-    public TaskStepResult execute(ITaskStepRuntime stepRt) {
+    public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         Object result = source.invoke(stepRt);
-        return TaskStepResult.of(null, result);
+        return TaskStepReturn.of(null, result);
     }
 }

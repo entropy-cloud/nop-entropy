@@ -5,7 +5,7 @@ import io.nop.task.ITask;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
-import io.nop.task.TaskStepResult;
+import io.nop.task.TaskStepReturn;
 import io.nop.task.model.ITaskInputModel;
 import io.nop.task.model.ITaskOutputModel;
 
@@ -52,7 +52,7 @@ public class TaskImpl implements ITask {
     }
 
     @Override
-    public TaskStepResult execute(ITaskRuntime taskRt, Set<String> outputNames) {
+    public TaskStepReturn execute(ITaskRuntime taskRt, Set<String> outputNames) {
         ITaskStepRuntime stepRt = taskRt.newMainStepRuntime();
         stepRt.setOutputNames(outputNames);
         return mainStep.execute(stepRt);

@@ -29,7 +29,7 @@ public class TaskRuntimeImpl implements ITaskRuntime {
 
     private final IEvalScope scope;
 
-    private boolean recoverMode;
+    private final boolean recoverMode;
 
     private ITaskState taskState;
 
