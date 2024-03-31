@@ -57,7 +57,7 @@ Engine）、任务调度引擎(Job Scheduler)、批处理引擎（Batch Prcessin
 | nop-tcc         | 分布式事务                     | 50%  |
 | nop-dyn         | 在线设计表单和数据模型、服务函数          | 基本可用 |
 | nop-workflow    | 工作流引擎                     | 65%  |
-| nop-task        | 逻辑流编排                     | 40%  |
+| nop-task        | 逻辑流编排                     | 50%  |
 | nop-job         | 分布式任务调度                   | 40%  |
 | nop-batch       | 批处理引擎                     | 70%  |
 | nop-message     | Kafka/Pulsar消息队列封装        | 10%  |
@@ -264,6 +264,11 @@ switch(贵公司很有钱吗()){
 ## 致谢
 
 * 感谢网友[xyplayman](https://gitee.com/xyplayman)贡献的ORM测试用例，原项目地址 https://gitee.com/xyplayman/nop-orm-demo
+
+## 社区
+中文官网: [https://nop-platform.gitee.io/](https://nop-platform.gitee.io/)
+英文官网: [https://nop-platform.github.io/](https://nop-platform.github.io/)
+网友[Crazydan Studio](https://studio.crazydan.org/)建立的[Nop开发实践分享网站](https://nop.crazydan.io/)
 
 ## 作者微信和微信讨论群
 
