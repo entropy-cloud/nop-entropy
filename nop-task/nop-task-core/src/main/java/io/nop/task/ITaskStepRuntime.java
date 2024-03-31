@@ -3,7 +3,6 @@ package io.nop.task;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.core.context.IEvalContext;
 
-import java.util.Map;
 import java.util.Set;
 
 public interface ITaskStepRuntime extends IEvalContext {
@@ -45,7 +44,7 @@ public interface ITaskStepRuntime extends IEvalContext {
 
     void setOutputNames(Set<String> outputNames);
 
-    default boolean isNeedOutput(String name) {
+    default boolean needOutput(String name) {
         Set<String> names = getOutputNames();
         return names == null || names.contains(name);
     }

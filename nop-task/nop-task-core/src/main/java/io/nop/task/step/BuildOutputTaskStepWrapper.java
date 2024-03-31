@@ -30,7 +30,7 @@ public class BuildOutputTaskStepWrapper extends DelegateTaskStep {
             Map<String, Object> result = res.getOutputs() != null ? new LinkedHashMap<>(res.getOutputs())
                     : new LinkedHashMap<>();
             outputExprs.forEach((name, expr) -> {
-                if (stepRt.isNeedOutput(name)) {
+                if (stepRt.needOutput(name)) {
                     if (expr == null) {
                         if (!result.containsKey(name))
                             result.put(name, stepRt.getValue(name));
