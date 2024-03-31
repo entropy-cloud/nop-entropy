@@ -220,6 +220,7 @@ public class QueryBean implements Serializable {
         this.joins = joins;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public List<String> getLeftJoinProps() {
         return leftJoinProps;
     }

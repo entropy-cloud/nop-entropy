@@ -10,6 +10,7 @@
        singleMode="boolean=false" singleSession="boolean"
        transactionScope="enum:io.nop.batch.core.BatchTransactionScope"
        rateLimit="double" jitterRatio="double"
+       executor="string"
        x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        xmlns:xdef="/nop/schema/xdef.xdef"
 >
@@ -22,13 +23,7 @@
         <exceptionFilter xdef:value="xpl-predicate"/>
     </skipPolicy>
 
-    <executor bean="bean-name"/>
-
-    <stateStore bean="bean-name"/>
-
-    <historyStore bean="bean-name"/>
-
-    <inputCompator xdef:ref="/nop/schema/query/order-by.xdef"/>
+    <inputSorter xdef:ref="/nop/schema/query/order-by.xdef"/>
 
     <reader bean="bean-name">
         <file-reader pathExpr="expr">

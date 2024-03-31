@@ -75,7 +75,7 @@ public class StepResultBean implements Serializable {
         this.outputs = outputs;
     }
 
-    public Object getValue(String name) {
+    public Object getOutput(String name) {
         if (outputs == null)
             return null;
         return outputs.get(name);

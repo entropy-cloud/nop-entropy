@@ -41,9 +41,9 @@ public class MultiStepResultBean {
         return results.get(stepName);
     }
 
-    public Object getStepValue(String stepName, String varName) {
+    public Object getStepOutput(String stepName, String varName) {
         StepResultBean result = results.get(stepName);
-        return result == null ? null : result.getValue(varName);
+        return result == null ? null : result.getOutput(varName);
     }
 
     public Number sum(String varName) {
@@ -51,7 +51,7 @@ public class MultiStepResultBean {
 
         for (StepResultBean result : results.values()) {
             if (result.isSuccess()) {
-                Object value = result.getValue(varName);
+                Object value = result.getOutput(varName);
                 if (value != null)
                     ret = MathHelper.add(ret, value);
             }
@@ -64,7 +64,7 @@ public class MultiStepResultBean {
 
         for (StepResultBean result : results.values()) {
             if (result.isSuccess()) {
-                Object value = result.getValue(varName);
+                Object value = result.getOutput(varName);
                 if (value != null)
                     ret++;
             }
