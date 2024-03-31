@@ -80,6 +80,8 @@ public interface TaskConstants {
 
     String STEP_TYPE_SEQUENTIAL = "sequential";
 
+    String STEP_TYPE_SELECTOR = "selector";
+
     String STEP_TYPE_GRAPH = "graph";
 
     String STEP_TYPE_PARALLEL = "parallel";

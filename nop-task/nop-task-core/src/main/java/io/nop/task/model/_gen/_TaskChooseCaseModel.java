@@ -9,8 +9,8 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [188:18:0:0]/nop/schema/task/task.xdef <p>
- * 可能用于全局跳转，因此不使用嵌套步骤定义
+ * generate from [226:18:0:0]/nop/schema/task/task.xdef <p>
+ * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
@@ -19,7 +19,7 @@ public abstract class _TaskChooseCaseModel extends io.nop.task.model.TaskStepsMo
     /**
      *  
      * xml name: match
-     * 
+     * 用于匹配decider返回的值
      */
     private java.lang.String _match ;
     
@@ -33,7 +33,7 @@ public abstract class _TaskChooseCaseModel extends io.nop.task.model.TaskStepsMo
     /**
      * 
      * xml name: match
-     *  
+     *  用于匹配decider返回的值
      */
     
     public java.lang.String getMatch(){

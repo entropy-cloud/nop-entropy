@@ -28,17 +28,20 @@
                type="generic-type" mandatory="!boolean=false" role="string"
                xdef:unique-attr="name" persist="!boolean=true" fromTaskScope="!boolean=false">
             <description xdef:value="string"/>
+            <schema xdef:ref="../schema/schema.xdef"/>
             <source xdef:value="xpl"/>
         </input>
 
         <!--
         @persist 输出变量是否需要被持久化到数据库中。如果不设置持久化，则一旦中断任务则会丢失相应的输出变量
+        @exportAs 返回时会将output中的变量设置到parentScope中，一般情况下设置的变量名与output变量名相同。可以通过exportAs来改变这个变量名
         @toTaskScope 如果为true，则输出变量到整个task共享的scope中，否则输出到parentScope中
         -->
         <output name="!var-name" displayName="string" persist="!boolean=false"
                 xdef:name="TaskOutputModel" toTaskScope="!boolean=false" type="generic-type"
                 xdef:unique-attr="name" exportAs="var-name" roles="csv-set">
             <description xdef:value="string"/>
+            <schema xdef:ref="../schema/schema.xdef"/>
             <source xdef:value="xpl"/>
         </output>
 
@@ -54,10 +57,13 @@
             <source xdef:value="xpl"/>
         </decorator>
 
+        <!-- 不满足条件的时候将会自动跳过本步骤 -->
         <when xdef:value="xpl-predicate"/>
 
+        <!-- 验证输入数据 -->
         <validator xdef:ref="../validator.xdef"/>
 
+        <!-- 捕获异常后如果不抛出异常，则认为是成功执行，会执行output返回 -->
         <catch xdef:value="xpl"/>
 
         <finally xdef:value="xpl"/>
@@ -75,7 +81,7 @@
 
         <!--
          限制对同一个key的调用并发数不能超过指定值
-      -->
+        -->
         <throttle maxConcurrent="!int" maxWait="!int" keyExpr="expr" xdef:name="TaskThrottleModel"/>
 
         <!--
@@ -99,7 +105,8 @@
     <xdef:define xdef:name="TaskStepModel" xdef:ref="TaskExecutableModel" concurrent="!boolean=false"
                  extType="var-name" tagSet="csv-set" name="var-name"
                  allowStartIfComplete="!boolean=false" internal="!boolean=false" errorName="var-name"
-                 runOnContext="!boolean=false" waitSteps="csv-set" waitErrorSteps="csv-set" ignoreResult="!boolean=false"
+                 runOnContext="!boolean=false" waitSteps="csv-set" waitErrorSteps="csv-set"
+                 ignoreResult="!boolean=false"
                  next="string" nextOnError="string" saveState="boolean">
     </xdef:define>
 
@@ -111,33 +118,51 @@
         <steps xdef:body-type="list" xdef:key-attr="name" xdef:bean-child-name="step"
                xdef:bean-body-type="List&lt;io.nop.task.model.TaskStepModel>" xdef:bean-sub-type-prop="type">
 
+            <!-- 从BeanContainer中获取ITaskStep接口并执行 -->
             <simple name="!var-name" bean="!bean-name" xdef:ref="TaskStepModel" xdef:name="SimpleTaskStepModel"/>
 
+            <!-- 执行xpl模板语言 -->
             <xpl name="!var-name" xdef:ref="TaskStepModel"
                  xdef:name="XplTaskStepModel">
                 <source xdef:value="xpl"/>
             </xpl>
 
+            <!-- 使用ScriptCompilerRegistry中注册的IScriptCompiler执行脚本语言  -->
             <script name="!var-name" lang="!xml-name" xdef:ref="TaskStepModel"
                     xdef:name="ScriptTaskStepModel">
                 <source xdef:value="string"/>
             </script>
 
+            <!--
+            根据明确指定或者数据依赖关系推导得到的步骤依赖关系来确定步骤执行顺序
+            -->
             <graph name="!var-name" enterSteps="!csv-set" exitSteps="!csv-set"
                    xdef:ref="TaskStepsModel" xdef:name="GraphTaskStepModel"/>
 
+            <!--
+            依次执行子步骤，一般情况下以最后一个步骤的返回值作为整体的返回值
+            -->
             <sequential name="!var-name" xdef:ref="TaskStepsModel" xdef:name="SequentialTaskStepModel"/>
 
+            <!-- 类似于Behavior Tree中的Selector机制，依次尝试每个步骤，遇到第一个具有非空返回值的步骤则返回，否则继续执行下一个 -->
+            <selector name="!var-name" xdef:ref="TaskStepsModel" xdef:name="SelectorTaskStepModel"/>
+
+            <!-- 并行执行所有子步骤 -->
             <parallel name="!var-name" xdef:ref="TaskStepsModel" xdef:name="ParallelTaskStepModel"
                       aggregateVarName="var-name"
                       joinType="enum:io.nop.commons.concurrent.AsyncJoinType" autoCancelUnfinished="!boolean=true">
+                <!-- 对并行步骤执行结果进行汇总处理 -->
                 <aggregator xdef:value="xpl"/>
             </parallel>
 
+            <!--
+            推出sequential或者loop
+            -->
             <exit name="!var-name" xdef:ref="TaskStepModel" xdef:name="ExitTaskStepModel">
                 <source xdef:value="xpl"/>
             </exit>
 
+            <!-- 退出整个工作流 -->
             <end name="!var-name" xdef:ref="TaskStepModel" xdef:name="EndTaskStepModel">
                 <source xdef:value="xpl"/>
             </end>
@@ -147,29 +172,41 @@
             -->
             <delay name="!var-name" delayMillisExpr="!expr" xdef:ref="TaskStepModel" xdef:name="DelayTaskStepModel"/>
 
+            <!-- 调用Thread.sleep阻塞当前线程 -->
             <sleep name="!var-name" sleepMillisExpr="!expr" xdef:ref="TaskStepModel" xdef:name="SleepTaskStepModel"/>
 
+            <!--
+            根据producer返回的集合数据，动态复制本步骤生成n个步骤实例，并行执行
+            @varName 对应于fork时的producer产生的某个元素
+            @indexName 对应于fork时的实例下标
+            -->
             <fork name="!var-name" varName="!var-name" indexName="var-name" xdef:ref="TaskStepsModel"
                   xdef:name="ForkTaskStepModel"
                   aggregateVarName="var-name"
                   joinType="enum:io.nop.commons.concurrent.AsyncJoinType" autoCancelUnfinished="!boolean=true">
                 <producer xdef:value="xpl"/>
+                <!-- 对并行步骤执行结果进行汇总处理 -->
                 <aggregator xdef:value="xpl"/>
             </fork>
 
             <fork-n name="!var-name" indexName="var-name" countExpr="!expr" xdef:ref="TaskStepsModel"
                     xdef:name="ForkNTaskStepModel" aggregateVarName="var-name"
                     joinType="enum:io.nop.commons.concurrent.AsyncJoinType" autoCancelUnfinished="!boolean=true">
+                <!-- 对并行步骤执行结果进行汇总处理 -->
                 <aggregator xdef:value="xpl"/>
             </fork-n>
 
             <!--
-            @returnAs 指定bean方法的返回值所对应的返回变量名，缺省为result。
+            执行指定bean上的指定方法
+            @returnAs 指定bean方法的返回值所对应的返回变量名，缺省为RESULT
             -->
             <invoke name="!var-name" bean="!bean-name" method="!var-name" xdef:ref="TaskStepModel" returnAs="var-name"
                     xdef:name="InvokeTaskStepModel">
             </invoke>
 
+            <!--
+            类似于for循环语句，不断执行body
+            -->
             <loop name="!var-name" xdef:ref="TaskStepsModel" xdef:name="LoopTaskStepModel"
                   indexName="var-name" varName="var-name" itemsExpr="!expr" maxCount="!int=0" varType="generic-type">
                 <until xdef:value="xpl-predicate"/>
@@ -179,18 +216,22 @@
                     xdef:name="LoopNTaskStepModel" beginExpr="!expr" endExpr="!expr" stepExpr="expr">
             </loop-n>
 
+            <!--
+            类似于switch语句。根据decider的返回结果动态选择执行哪个分支
+            -->
             <choose name="!var-name" xdef:ref="TaskStepModel" xdef:name="ChooseTaskStepModel">
                 <decider xdef:value="xpl"/>
 
                 <!--
-                可能用于全局跳转，因此不使用嵌套步骤定义
-                -->
+                 @match 用于匹配decider返回的值
+                 -->
                 <case match="!string" to="var-name" xdef:unique-attr="match"
                       xdef:name="TaskChooseCaseModel" xdef:ref="TaskStepsModel"/>
 
                 <otherwise to="var-name" xdef:ref="TaskStepsModel" xdef:name="TaskChooseOtherwiseModel"/>
             </choose>
 
+            <!-- 调用子任务 -->
             <call-task name="!var-name" taskName="!string" taskVersion="long"
                        xdef:ref="TaskStepModel" xdef:name="CallTaskStepModel"/>
 

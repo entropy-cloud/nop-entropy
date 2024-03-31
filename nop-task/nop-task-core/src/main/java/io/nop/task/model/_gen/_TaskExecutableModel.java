@@ -19,7 +19,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     /**
      *  
      * xml name: catch
-     * 
+     * 捕获异常后如果不抛出异常，则认为是成功执行，会执行output返回
      */
     private io.nop.core.lang.eval.IEvalAction _catch ;
     
@@ -124,21 +124,21 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     /**
      *  
      * xml name: validator
-     * 
+     * 验证输入数据
      */
     private io.nop.core.model.validator.ValidatorModel _validator ;
     
     /**
      *  
      * xml name: when
-     * 
+     * 不满足条件的时候将会自动跳过本步骤
      */
     private io.nop.core.lang.eval.IEvalPredicate _when ;
     
     /**
      * 
      * xml name: catch
-     *  
+     *  捕获异常后如果不抛出异常，则认为是成功执行，会执行output返回
      */
     
     public io.nop.core.lang.eval.IEvalAction getCatch(){
@@ -501,7 +501,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     /**
      * 
      * xml name: validator
-     *  
+     *  验证输入数据
      */
     
     public io.nop.core.model.validator.ValidatorModel getValidator(){
@@ -520,7 +520,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     /**
      * 
      * xml name: when
-     *  
+     *  不满足条件的时候将会自动跳过本步骤
      */
     
     public io.nop.core.lang.eval.IEvalPredicate getWhen(){

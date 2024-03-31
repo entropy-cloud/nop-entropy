@@ -9,8 +9,8 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [131:14:0:0]/nop/schema/task/task.xdef <p>
- * 
+ * generate from [149:14:0:0]/nop/schema/task/task.xdef <p>
+ * 并行执行所有子步骤
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
@@ -26,7 +26,7 @@ public abstract class _ParallelTaskStepModel extends io.nop.task.model.TaskSteps
     /**
      *  
      * xml name: aggregator
-     * 
+     * 对并行步骤执行结果进行汇总处理
      */
     private io.nop.core.lang.eval.IEvalAction _aggregator ;
     
@@ -66,7 +66,7 @@ public abstract class _ParallelTaskStepModel extends io.nop.task.model.TaskSteps
     /**
      * 
      * xml name: aggregator
-     *  
+     *  对并行步骤执行结果进行汇总处理
      */
     
     public io.nop.core.lang.eval.IEvalAction getAggregator(){

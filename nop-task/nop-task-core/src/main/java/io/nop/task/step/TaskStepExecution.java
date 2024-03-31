@@ -131,7 +131,7 @@ public class TaskStepExecution implements ITaskStepExecution {
         this.nextStepName = nextStepName;
         this.nextStepNameOnError = nextStepNameOnError;
         this.ignoreResult = ignoreResult;
-        this.errorName = errorName;
+        this.errorName = errorName == null ? TaskConstants.VAR_ERROR : errorName;
         this.useParentScope = useParentScope;
     }
 
@@ -194,6 +194,10 @@ public class TaskStepExecution implements ITaskStepExecution {
                     LOG.info("nop.task.step.run-fail:usedTime={},taskName={},taskInstanceId={},stepId={},runId={},nextStepNameOnError={},loc={}",
                             CoreMetrics.currentTimeMillis() - beginTime, taskRt.getTaskName(), taskRt.getTaskInstanceId(),
                             stepRt.getStepId(), stepRt.getRunId(), nextStepNameOnError, step.getLocation(), err);
+
+                    if (TaskStepHelper.isCancelledException(err))
+                        throw NopException.adapt(err);
+
                     if (nextStepNameOnError != null)
                         return buildErrorResult(stepRt, parentScope, err);
                     throw NopException.adapt(err);
@@ -228,6 +232,9 @@ public class TaskStepExecution implements ITaskStepExecution {
                     CoreMetrics.currentTimeMillis() - beginTime, taskRt.getTaskName(), taskRt.getTaskInstanceId(),
                     stepRt.getStepId(), stepRt.getRunId(), nextStepNameOnError, step.getLocation(), e);
 
+            if (TaskStepHelper.isCancelledException(e))
+                throw NopException.adapt(e);
+
             if (nextStepNameOnError != null) {
                 return buildErrorResult(stepRt, parentScope, e);
             }
@@ -238,9 +245,7 @@ public class TaskStepExecution implements ITaskStepExecution {
     TaskStepReturn buildErrorResult(ITaskStepRuntime stepRt, IEvalScope parentScope, Throwable e) {
         ErrorBean errorBean = ErrorMessageManager.instance().buildErrorMessage(stepRt.getLocale(), e, false, false);
         Map<String, Object> data = Collections.singletonMap(TaskConstants.VAR_ERROR, errorBean);
-        if (errorName != null) {
-            parentScope.setLocalValue(errorName, errorBean);
-        }
+        parentScope.setLocalValue(errorName, errorBean);
         return TaskStepReturn.of(nextStepNameOnError, data);
     }
 

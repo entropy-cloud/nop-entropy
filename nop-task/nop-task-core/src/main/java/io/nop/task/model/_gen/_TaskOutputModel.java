@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [38:10:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [40:10:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -33,7 +33,7 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
     /**
      *  
      * xml name: exportAs
-     * 
+     * 返回时会将output中的变量设置到parentScope中，一般情况下设置的变量名与output变量名相同。可以通过exportAs来改变这个变量名
      */
     private java.lang.String _exportAs ;
     
@@ -57,6 +57,14 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
      * 
      */
     private java.util.Set<java.lang.String> _roles ;
+    
+    /**
+     *  
+     * xml name: schema
+     * schema包含如下几种情况：1. 简单数据类型 2. Map（命名属性集合） 3. List（顺序结构，重复结构） 4. Union（switch选择结构）
+     * Map对应props配置,  List对应item配置, Union对应oneOf配置
+     */
+    private io.nop.xlang.xmeta.ISchema _schema ;
     
     /**
      *  
@@ -120,7 +128,7 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: exportAs
-     *  
+     *  返回时会将output中的变量设置到parentScope中，一般情况下设置的变量名与output变量名相同。可以通过exportAs来改变这个变量名
      */
     
     public java.lang.String getExportAs(){
@@ -195,6 +203,26 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
     
     /**
      * 
+     * xml name: schema
+     *  schema包含如下几种情况：1. 简单数据类型 2. Map（命名属性集合） 3. List（顺序结构，重复结构） 4. Union（switch选择结构）
+     * Map对应props配置,  List对应item配置, Union对应oneOf配置
+     */
+    
+    public io.nop.xlang.xmeta.ISchema getSchema(){
+      return _schema;
+    }
+
+    
+    public void setSchema(io.nop.xlang.xmeta.ISchema value){
+        checkAllowChange();
+        
+        this._schema = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: source
      *  
      */
@@ -258,6 +286,8 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._schema = io.nop.api.core.util.FreezeHelper.deepFreeze(this._schema);
+            
         }
     }
 
@@ -271,6 +301,7 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
         out.putNotNull("name",this.getName());
         out.putNotNull("persist",this.isPersist());
         out.putNotNull("roles",this.getRoles());
+        out.putNotNull("schema",this.getSchema());
         out.putNotNull("source",this.getSource());
         out.putNotNull("toTaskScope",this.isToTaskScope());
         out.putNotNull("type",this.getType());
@@ -291,6 +322,7 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
         instance.setName(this.getName());
         instance.setPersist(this.isPersist());
         instance.setRoles(this.getRoles());
+        instance.setSchema(this.getSchema());
         instance.setSource(this.getSource());
         instance.setToTaskScope(this.isToTaskScope());
         instance.setType(this.getType());

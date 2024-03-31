@@ -21,6 +21,7 @@ import io.nop.task.model.LoopNTaskStepModel;
 import io.nop.task.model.LoopTaskStepModel;
 import io.nop.task.model.ParallelTaskStepModel;
 import io.nop.task.model.ScriptTaskStepModel;
+import io.nop.task.model.SelectorTaskStepModel;
 import io.nop.task.model.SequentialTaskStepModel;
 import io.nop.task.model.SimpleTaskStepModel;
 import io.nop.task.model.SleepTaskStepModel;
@@ -47,6 +48,7 @@ import io.nop.task.step.InvokeTaskStep;
 import io.nop.task.step.LoopNTaskStep;
 import io.nop.task.step.LoopTaskStep;
 import io.nop.task.step.ParallelTaskStep;
+import io.nop.task.step.SelectorTaskStep;
 import io.nop.task.step.SequentialTaskStep;
 import io.nop.task.step.SleepTaskStep;
 import io.nop.task.step.SuspendTaskStep;
@@ -112,6 +114,9 @@ public class TaskStepBuilder implements ITaskStepBuilder {
                 break;
             case TaskConstants.STEP_TYPE_SEQUENTIAL:
                 step = buildSequentialStep((SequentialTaskStepModel) stepModel);
+                break;
+            case TaskConstants.STEP_TYPE_SELECTOR:
+                step = buildSelectorStep((SelectorTaskStepModel) stepModel);
                 break;
             case TaskConstants.STEP_TYPE_PARALLEL:
                 step = buildParallelStep((ParallelTaskStepModel) stepModel);
@@ -243,6 +248,16 @@ public class TaskStepBuilder implements ITaskStepBuilder {
 
     private SequentialTaskStep buildSequentialBody(TaskStepsModel stepModel) {
         return buildSequentialStep(stepModel);
+    }
+
+    private SelectorTaskStep buildSelectorStep(TaskStepsModel stepModel) {
+        List<ITaskStepExecution> steps = new ArrayList<>(stepModel.getSteps().size());
+        for (TaskStepModel subStepModel : stepModel.getSteps()) {
+            steps.add(buildStepExecution(subStepModel));
+        }
+        SelectorTaskStep ret = new SelectorTaskStep();
+        ret.setSteps(steps);
+        return ret;
     }
 
     private ParallelTaskStep buildParallelStep(ParallelTaskStepModel stepModel) {

@@ -18,6 +18,7 @@ import io.nop.task.TaskStepReturn;
 
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -48,6 +49,14 @@ public class TaskStepHelper {
     public static NopException newError(SourceLocation loc, ITaskStepRuntime stepRt, ErrorCode errorCode) {
         throw new NopException(errorCode).loc(loc).param(TaskErrors.ARG_TASK_NAME, stepRt.getTaskRuntime().getTaskName())
                 .param(TaskErrors.ARG_STEP_ID, stepRt.getStepId()).param(TaskErrors.ARG_STEP_TYPE, stepRt.getStepType());
+    }
+
+    public static boolean isCancelledException(Throwable e) {
+        if (e instanceof CancellationException)
+            return true;
+        if (e instanceof NopException)
+            return ((NopException) e).getErrorCode().equals(ERR_TASK_CANCELLED.getErrorCode());
+        return false;
     }
 
     public static long getLong(Map<String, Object> vars, String name, long defaultValue) {

@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [160:14:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [190:14:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -26,7 +26,7 @@ public abstract class _ForkNTaskStepModel extends io.nop.task.model.TaskStepsMod
     /**
      *  
      * xml name: aggregator
-     * 
+     * 对并行步骤执行结果进行汇总处理
      */
     private io.nop.core.lang.eval.IEvalAction _aggregator ;
     
@@ -80,7 +80,7 @@ public abstract class _ForkNTaskStepModel extends io.nop.task.model.TaskStepsMod
     /**
      * 
      * xml name: aggregator
-     *  
+     *  对并行步骤执行结果进行汇总处理
      */
     
     public io.nop.core.lang.eval.IEvalAction getAggregator(){

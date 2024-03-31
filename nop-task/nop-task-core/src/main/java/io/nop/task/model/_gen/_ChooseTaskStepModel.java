@@ -9,8 +9,8 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [182:14:0:0]/nop/schema/task/task.xdef <p>
- * 
+ * generate from [220:14:0:0]/nop/schema/task/task.xdef <p>
+ * 类似于switch语句。根据decider的返回结果动态选择执行哪个分支
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
@@ -19,7 +19,7 @@ public abstract class _ChooseTaskStepModel extends io.nop.task.model.TaskStepMod
     /**
      *  
      * xml name: case
-     * 可能用于全局跳转，因此不使用嵌套步骤定义
+     * 
      */
     private KeyedList<io.nop.task.model.TaskChooseCaseModel> _cases = KeyedList.emptyList();
     
@@ -40,7 +40,7 @@ public abstract class _ChooseTaskStepModel extends io.nop.task.model.TaskStepMod
     /**
      * 
      * xml name: case
-     *  可能用于全局跳转，因此不使用嵌套步骤定义
+     *  
      */
     
     public java.util.List<io.nop.task.model.TaskChooseCaseModel> getCases(){

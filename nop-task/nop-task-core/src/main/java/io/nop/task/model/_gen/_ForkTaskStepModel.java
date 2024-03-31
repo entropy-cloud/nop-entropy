@@ -9,8 +9,8 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [152:14:0:0]/nop/schema/task/task.xdef <p>
- * 
+ * generate from [181:14:0:0]/nop/schema/task/task.xdef <p>
+ * 根据producer返回的集合数据，动态复制本步骤生成n个步骤实例，并行执行
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
@@ -26,7 +26,7 @@ public abstract class _ForkTaskStepModel extends io.nop.task.model.TaskStepsMode
     /**
      *  
      * xml name: aggregator
-     * 
+     * 对并行步骤执行结果进行汇总处理
      */
     private io.nop.core.lang.eval.IEvalAction _aggregator ;
     
@@ -40,7 +40,7 @@ public abstract class _ForkTaskStepModel extends io.nop.task.model.TaskStepsMode
     /**
      *  
      * xml name: indexName
-     * 
+     * 对应于fork时的实例下标
      */
     private java.lang.String _indexName ;
     
@@ -61,7 +61,7 @@ public abstract class _ForkTaskStepModel extends io.nop.task.model.TaskStepsMode
     /**
      *  
      * xml name: varName
-     * 
+     * 对应于fork时的producer产生的某个元素
      */
     private java.lang.String _varName ;
     
@@ -87,7 +87,7 @@ public abstract class _ForkTaskStepModel extends io.nop.task.model.TaskStepsMode
     /**
      * 
      * xml name: aggregator
-     *  
+     *  对并行步骤执行结果进行汇总处理
      */
     
     public io.nop.core.lang.eval.IEvalAction getAggregator(){
@@ -125,7 +125,7 @@ public abstract class _ForkTaskStepModel extends io.nop.task.model.TaskStepsMode
     /**
      * 
      * xml name: indexName
-     *  
+     *  对应于fork时的实例下标
      */
     
     public java.lang.String getIndexName(){
@@ -182,7 +182,7 @@ public abstract class _ForkTaskStepModel extends io.nop.task.model.TaskStepsMode
     /**
      * 
      * xml name: varName
-     *  
+     *  对应于fork时的producer产生的某个元素
      */
     
     public java.lang.String getVarName(){

@@ -9,8 +9,8 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [169:14:0:0]/nop/schema/task/task.xdef <p>
- * 
+ * generate from [201:14:0:0]/nop/schema/task/task.xdef <p>
+ * 执行指定bean上的指定方法
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
@@ -33,7 +33,7 @@ public abstract class _InvokeTaskStepModel extends io.nop.task.model.TaskStepMod
     /**
      *  
      * xml name: returnAs
-     * 指定bean方法的返回值所对应的返回变量名，缺省为result。
+     * 指定bean方法的返回值所对应的返回变量名，缺省为RESULT
      */
     private java.lang.String _returnAs ;
     
@@ -78,7 +78,7 @@ public abstract class _InvokeTaskStepModel extends io.nop.task.model.TaskStepMod
     /**
      * 
      * xml name: returnAs
-     *  指定bean方法的返回值所对应的返回变量名，缺省为result。
+     *  指定bean方法的返回值所对应的返回变量名，缺省为RESULT
      */
     
     public java.lang.String getReturnAs(){

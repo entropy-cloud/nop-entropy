@@ -12,6 +12,7 @@ import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepReturn;
+import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 
 public class TryTaskStepWrapper extends DelegateTaskStep {
@@ -36,6 +37,9 @@ public class TryTaskStepWrapper extends DelegateTaskStep {
                 return result.thenCompose((ret, err) -> {
                     try {
                         if (err != null) {
+                            if (TaskStepHelper.isCancelledException(err))
+                                throw NopException.adapt(err);
+
                             if (catchAction != null) {
                                 return TaskStepReturn.of(null, catchAction.invoke(stepRt));
                             } else {
@@ -52,6 +56,9 @@ public class TryTaskStepWrapper extends DelegateTaskStep {
                 return result;
             }
         } catch (Exception e) {
+            if (TaskStepHelper.isCancelledException(e))
+                throw NopException.adapt(e);
+
             async = false;
             if (catchAction != null) {
                 return TaskStepReturn.of(null, catchAction.invoke(stepRt));

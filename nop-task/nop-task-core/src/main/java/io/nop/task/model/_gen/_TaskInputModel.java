@@ -67,6 +67,14 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: schema
+     * schema包含如下几种情况：1. 简单数据类型 2. Map（命名属性集合） 3. List（顺序结构，重复结构） 4. Union（switch选择结构）
+     * Map对应props配置,  List对应item配置, Union对应oneOf配置
+     */
+    private io.nop.xlang.xmeta.ISchema _schema ;
+    
+    /**
+     *  
      * xml name: source
      * 
      */
@@ -214,6 +222,26 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: schema
+     *  schema包含如下几种情况：1. 简单数据类型 2. Map（命名属性集合） 3. List（顺序结构，重复结构） 4. Union（switch选择结构）
+     * Map对应props配置,  List对应item配置, Union对应oneOf配置
+     */
+    
+    public io.nop.xlang.xmeta.ISchema getSchema(){
+      return _schema;
+    }
+
+    
+    public void setSchema(io.nop.xlang.xmeta.ISchema value){
+        checkAllowChange();
+        
+        this._schema = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: source
      *  
      */
@@ -258,6 +286,8 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._schema = io.nop.api.core.util.FreezeHelper.deepFreeze(this._schema);
+            
         }
     }
 
@@ -272,6 +302,7 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
         out.putNotNull("name",this.getName());
         out.putNotNull("persist",this.isPersist());
         out.putNotNull("role",this.getRole());
+        out.putNotNull("schema",this.getSchema());
         out.putNotNull("source",this.getSource());
         out.putNotNull("type",this.getType());
     }
@@ -292,6 +323,7 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
         instance.setName(this.getName());
         instance.setPersist(this.isPersist());
         instance.setRole(this.getRole());
+        instance.setSchema(this.getSchema());
         instance.setSource(this.getSource());
         instance.setType(this.getType());
     }

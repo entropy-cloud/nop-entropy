@@ -9,8 +9,8 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [173:14:0:0]/nop/schema/task/task.xdef <p>
- * 
+ * generate from [208:14:0:0]/nop/schema/task/task.xdef <p>
+ * 类似于for循环语句，不断执行body
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
