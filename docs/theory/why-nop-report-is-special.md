@@ -13,7 +13,7 @@ NopReport与一般的报表引擎不同，它可以直接采用Excel和Word作�
 整个Nop平台的设计与现有其他开源框架最本质的区别在于，Nop平台的设计都是基于第一性的数学原理推导得到，因此它的做法不是某种聪明的设计模式，
 而是体现了某种数学上的必然，是在某种数学的意义上可以严格证明的最优化的设计。
 
-# 通用的模板可视化方案
+## 通用的模板可视化方案
 
 NopReport的核心设计思想是基于如下数学公式：
 
@@ -47,13 +47,12 @@ Template = BaseModel + ExtModel
 当模型层面存在Base+Ext这种线性分解的时候，我们希望将这种关系保持下来，在可视化设计层面也得到 Base设计器+扩展设计器这种线性分解关系。从数学的意义上说，
 我们希望可视化映射是一种**数学上的同态映射**。如果套用范畴论的术语，我们可以说这是一种函子(Functor)映射关系。
 
-
 ```
  TemplateEditor = BaseModelEditor + ExtModelEditor
 ```
 
 将上述的数学公式对应到具体的Office软件，我们的目标就是利用Office软件中某种内置的扩展机制来存放扩展信息，并自动提供针对扩展信息的可视化设计界面。
-如果一款软件是遵循可逆计算原理构建的，那么它必然会采用 (data,ext_data)的配对设计方案，在任何一个DSL语法节点处都允许引入扩展数据，
+如果一款软件是遵循可逆计算原理构建的，那么它必然会采用 (data,ext\_data)的配对设计方案，在任何一个DSL语法节点处都允许引入扩展数据，
 通过扩展的xdef元模型就可以定义扩展数据的元语义，并根据xdef模型定义自动生成可视化编辑器。
 但是因为Office的设计没有按照可逆计算理论进行，这使得我们只能通过某种Hack的方式来重新诠释它的内置功能，将其中的一些改造为元数据扩展机制。
 NopReport的具体做法就是利用Word中的超链接机制，将`xpl:xxx`这种形式的超链接解释为扩展信息节点。
@@ -65,7 +64,7 @@ NopReport的具体做法就是利用Word中的超链接机制，将`xpl:xxx`这�
 > 需要强调的是，利用上面的方案，我们可以实现任何模型的模板化扩展，所需的只是补充少量Delta信息而已。
 > 关于以上线性映射原理的进一步分析，可以参见我的文章[从张量积看低代码平台的设计](https://zhuanlan.zhihu.com/p/531474176)
 
-# 通用的结构层构造规律
+## 通用的结构层构造规律
 
 很多人都可以直观的感受到，自从Office采用OOXML这种XML存储格式之后，对于Office格式的处理变得大为简化了。现在有很多Office模板库如jxls和poi-tl，底层仍然是基于Apache POI
 技术来操作Office文档，它们在POI的基础上通过深度封装，提供更加简单直观的模板生成方案。但是NopReport通过极少的代码就可以取代这些模板库的功能，同时提供更好的可扩展性，这是为什么？
@@ -90,10 +89,9 @@ NopReport的具体做法就是利用Word中的超链接机制，将`xpl:xxx`这�
 
 对于结构层构造规律的进一步分析，可以参见我的文章[通用的Delta差量化机制](https://zhuanlan.zhihu.com/p/681801076)
 
-
 基于可逆计算理论设计的低代码平台NopPlatform已开源：
 
 - gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 - github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
 - 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
-- [可逆计算原理和Nop平台介绍及答疑_哔哩哔哩_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
+- [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)

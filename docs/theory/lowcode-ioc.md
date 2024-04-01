@@ -11,8 +11,8 @@ SpringBoot是逐渐发展起来的，所以它要解决哪些问题并不是一�
 ### 1.1 POJO的描述式装配
 
 作为EJB(Enterprise Java Bean，Sun公司所推行的企业级对象标准)的反叛者，Spring的初心是服务于大众化的POJO(Plain Old Java Object)
-，主打所谓轻量级框架的概念。这里的轻量级不仅仅是指Spring的代码实现比较简单直接，更重要的是业务对象可以轻装上阵。我们在业务对象中只需要编写普通的get/set属性方法，**
-不需要具有任何高深的、专有的Spring框架的知识（所谓的非侵入性），就可以实现我们的业务**
+，主打所谓轻量级框架的概念。这里的轻量级不仅仅是指Spring的代码实现比较简单直接，更重要的是业务对象可以轻装上阵。我们在业务对象中只需要编写普通的get/set属性方法，\*\*
+不需要具有任何高深的、专有的Spring框架的知识（所谓的非侵入性），就可以实现我们的业务\*\*
 。同时在运行时，我们只需要补充一个不言自明的、描述式的beans.xml装配文件，就可以实现灵活的对象装配。在运行时原则上也不受Spring框架的束缚，我们可以选择其他装配技术实现对象装配，我们甚至可以自行编写一个Spring的优化版本，读取beans.xml配置文件并执行相关装配逻辑。
 
 Spring 1.0中定义的XML装配格式是一种完备的对象装配DSL。它**定义了对象装配所需要的最基本的原语集合，任何复杂的对象装配过程都可以通过这个DSL进行描述**。例如，以下的例子描述了两个相互依赖的bean的装配逻辑，
@@ -51,16 +51,16 @@ a.destroy(); // 容器关闭时负责销毁所有已创建的对象
 。a和b之间相互依赖，需要先设置a和b的属性，然后再调用a和b上的初始化方法，在此过程中必须有一个外部scope环境来暂存临时创建的对象，并提供一种获取临时引用的机制。
 
 Spring 1.0中只区分了bean是否是singleton（不是singleton就是prototype)，但很快人们就意识到了scope是一个需要被明确识别出来的概念，spring
-2.0中为此引入了自定义scope的扩展点。借助于scope，我们就可以把bean的依赖管理扩展到更多的动态环境中，例如Android的Activity（bean仅存在于activity运行期间），后台的批处理任务（bean仅存在于step运行期间）等。
+2\.0中为此引入了自定义scope的扩展点。借助于scope，我们就可以把bean的依赖管理扩展到更多的动态环境中，例如Android的Activity（bean仅存在于activity运行期间），后台的批处理任务（bean仅存在于step运行期间）等。
 
 ### 1.2 @Autowired 自动依赖注入
 
 描述式依赖注入最重要的价值在于，它提供了一种**向系统中延迟注入信息**
-的机制。正向依赖是对象a拥有装配/获取关联对象b的全部知识，它拥有全部信息或者从外部环境中拉取（pull）信息到自身，而依赖注入（控制反转）是由环境推送（push）信息到对象a中。描述式依赖注入则是将push信息的时刻延迟到最后一刻：直到对象被使用之前。在这最后的时刻，我们**
-拥有运行时全部对象的相关信息，并且不再需要对对象的使用场景、使用目的做出预测**，可以选择最符合我们实际需求的实现方式。
+的机制。正向依赖是对象a拥有装配/获取关联对象b的全部知识，它拥有全部信息或者从外部环境中拉取（pull）信息到自身，而依赖注入（控制反转）是由环境推送（push）信息到对象a中。描述式依赖注入则是将push信息的时刻延迟到最后一刻：直到对象被使用之前。在这最后的时刻，我们\*\*
+拥有运行时全部对象的相关信息，并且不再需要对对象的使用场景、使用目的做出预测\*\*，可以选择最符合我们实际需求的实现方式。
 
 Spring
-1.0中的配置文件拥有装配相关的全部信息，装配方式非常灵活，但是我们并不总是需要这样一种完全的灵活性。在编译期我们已经知道所依赖对象的部分信息：对象的接口类型。在一定的scope范围内，很多时候只有唯一的一个对象具有指定的接口类型。通过`@Autowired`
+1\.0中的配置文件拥有装配相关的全部信息，装配方式非常灵活，但是我们并不总是需要这样一种完全的灵活性。在编译期我们已经知道所依赖对象的部分信息：对象的接口类型。在一定的scope范围内，很多时候只有唯一的一个对象具有指定的接口类型。通过`@Autowired`
 注解，我们可以充分利用对象持有的这部分信息，根据它自动注入依赖对象，而不需要在bean.xml文件中再次手工定义对象之间的依赖关系。
 
 在Spring 2.5中引入的`@Autowired`
@@ -157,7 +157,7 @@ Spring 从4.0开始提供`@Conditional`注解来实现条件化装配，并最�
 ### 1.7 @EnableAutoConfiguration 多入口的自动化配置
 
 Spring
-1.0提供的是一个单一入口的静态配置方案，即我们读取固定位置处的beans.xml配置文件，然后分析该文件，递归读取它所包含的子配置文件。SpringBoot所提供的是多入口的动态配置方案，即我们每引入一个依赖模块，都自动引入了它所对应的入口配置类，这些配置类的作用相当于是动态生成配置文件，引入相关的bean。
+1\.0提供的是一个单一入口的静态配置方案，即我们读取固定位置处的beans.xml配置文件，然后分析该文件，递归读取它所包含的子配置文件。SpringBoot所提供的是多入口的动态配置方案，即我们每引入一个依赖模块，都自动引入了它所对应的入口配置类，这些配置类的作用相当于是动态生成配置文件，引入相关的bean。
 
 ```
 Config = Registrar(ScanClassesA) + Registrar(ScanClassesB) + ...
@@ -166,7 +166,7 @@ Config = Registrar(ScanClassesA) + Registrar(ScanClassesB) + ...
 多入口叠加动态扫描注册Bean使得SpringBoot极大简化了应用层缺省情况下的配置，但是它也引入了新的复杂性。
 
 在Spring
-1.0的语法下，bean的解析和注册按照明确的XML描述顺序来执行，执行结果是确定性的，出现问题时诊断也相对容易。而在多入口配置的情况下，扫描得到的bean配置会被动态合并在一起，它们的合并规则和合并结果是隐式的、不显然的。有时，看似无关紧要的包的顺序调整就会导致执行结果的不同，在IDE中的执行结果可能与运行时打包部署也存在微妙的差异。一旦我们偏离缺省配置，就很容易观察到多个模块合并运行时存在的配置混乱的问题，而且一般情况下如果不是非常熟悉源码层面的实现细节，将很难定位问题。
+1\.0的语法下，bean的解析和注册按照明确的XML描述顺序来执行，执行结果是确定性的，出现问题时诊断也相对容易。而在多入口配置的情况下，扫描得到的bean配置会被动态合并在一起，它们的合并规则和合并结果是隐式的、不显然的。有时，看似无关紧要的包的顺序调整就会导致执行结果的不同，在IDE中的执行结果可能与运行时打包部署也存在微妙的差异。一旦我们偏离缺省配置，就很容易观察到多个模块合并运行时存在的配置混乱的问题，而且一般情况下如果不是非常熟悉源码层面的实现细节，将很难定位问题。
 
 > 在日常开发中，经常可以观察到新手在引入新的模块或者调整缺省配置后会花费大量的时间用于诊断SpringBoot的自动配置不起作用的问题。
 
@@ -225,9 +225,10 @@ Schema来提供更加严格的格式定义，但是同时它又引入了自定�
 1. 我们在实现自定义标签的时候无法通过简单的声明式的方式来复用已有功能，增加新的自定义标签必须实现新的NamespaceHandlr，并增加一系列相关注册配置，成本很高，而且很难保证不同名字空间的标签能够正确的嵌套使用。
 
 2. 虽然Spring 1.0提供了完备的对象装配原语，Spring 2.0的自定义标签却无法化归为Spring 1.0的标签定义。也就是说，如果一个软件包是提供了Spring 2.0语法的配置支持，我们无法保证一定可以使用Spring
-   1.0的语法对该软件包进行配置。这导致自定义配置标签越多，系统中语义不明的部分越多。我们难以编制一个通用的Spring配置分析工具。
+   1\.0的语法对该软件包进行配置。这导致自定义配置标签越多，系统中语义不明的部分越多。我们难以编制一个通用的Spring配置分析工具。
 
-3.
+3. 
+
 SpringBoot的设计和发展过程中缺少一个明确定义的语义模型，大量注解的背后是非常复杂的、与全局状态纠缠在一起的、缺少协同规则的命令式识别和处理代码。在实际应用中，bean的装配结果与命令式代码的执行顺序存在非常微妙的关系。这一点当我们需要把SpringBoot的配置代码迁移到别的IoC容器的时候显得特别明显。
 
 以Quarkus迁移为例。[Quarkus](https://quarkus.io/)是专为 GraalVM 和 OpenJDK HotSpot 量身定制的开源 Kubernetes 原生 JavaTM 框架。类似于Go语言，它通过AOT(
@@ -292,7 +293,7 @@ Schema要直观、高效。可以直接根据XDef定义得到可执行的领域�
 
 https://www.springframework.org/schema/beans/spring-beans-4.3.xsd
 
-[nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef)
+[nop-xdefs/src/main/resources/\_vfs/nop/schema/beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef)
 
 关于XDef元模型定义语言，我后续会写一篇专门的文章来介绍相关的技术细节。
 
@@ -340,16 +341,16 @@ public XXX getXx(){
 
 1. 在`resources/_vfs/nop/aop/{模块名称}.annotations`文件中注册需要被AOP识别的注解类。
 
-2. 工程编译的时候会通过maven插件扫描target/classes目录下的类，检查类的方法上是否具有AOP可识别的注解，如果有，则为该类生成一个__aop派生类，用于插入AOP
+2. 工程编译的时候会通过maven插件扫描target/classes目录下的类，检查类的方法上是否具有AOP可识别的注解，如果有，则为该类生成一个\_\_aop派生类，用于插入AOP
    interceptor。这样打包好的jar包中就包含了AOP相关的生成代码，在使用AOP机制的时候就不需要动态生成字节码了。这里的实现原理其实和AspectJ类似，只是操作过程要简化很多。代码生成器的具体实现参见
-
+   
    [nop-core/src/main/java/io/nop/core/reflect/aop/AopCodeGenerator.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/reflect/aop/AopCodeGenerator.java)
 
-3. IoC容器在创建bean的时候，如果发现存在可以应用到该类上的interceptor，则使用__aop派生类来新建对象，并插入interceptor。
+3. IoC容器在创建bean的时候，如果发现存在可以应用到该类上的interceptor，则使用\_\_aop派生类来新建对象，并插入interceptor。
 
 具体生成文件示例如下：
 
-[docs/ref/AuditServiceImpl__aop.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/ref/AuditServiceImpl__aop.java)
+[docs/ref/AuditServiceImpl\_\_aop.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/ref/AuditServiceImpl__aop.java)
 
 ### 3.4 基于可逆计算原理实现的分层抽象
 
@@ -367,10 +368,10 @@ NopIoC利用可逆计算所定义的编译期生成技术来提供类似Spring 2
 ```
 
 Nop平台中所有的DSL模型都支持`x:gen-extends`机制，它在编译期运行，会输出XML节点，然后再和外部的XML节点执行DeltaMerge合并算法，合成为最终的XML配置节点。这相当于是我们使用XPL模板语言来编写Spring
-2.0的自定义标签，然后在编译期执行该标签输出Spring 1.0语法的配置内容。NopIoC引擎只需要支持最基础的Spring 1.0的语法即可免费获得自定义标签抽象。
+2\.0的自定义标签，然后在编译期执行该标签输出Spring 1.0语法的配置内容。NopIoC引擎只需要支持最基础的Spring 1.0的语法即可免费获得自定义标签抽象。
 
-在Nop平台中分层抽象的概念被贯穿始终，使得我们可以将尽可能多的操作放到编译期执行，减少运行时的复杂度，并提升运行时的性能。例如，执行完所有条件判断和按类型扫描之后，NopIoC会输出一个消除了所有可选条件的最终装配版本到_dump目录下，这个版本可以由Spring
-1.0的执行引擎负责执行。在此基础上，我们可以编写一个翻译器，将Spring 1.0语法的XML配置翻译为注解配置，从而适配到其他的IoC运行时，或者翻译为Java创建代码，完全消除IoC的运行时。
+在Nop平台中分层抽象的概念被贯穿始终，使得我们可以将尽可能多的操作放到编译期执行，减少运行时的复杂度，并提升运行时的性能。例如，执行完所有条件判断和按类型扫描之后，NopIoC会输出一个消除了所有可选条件的最终装配版本到\_dump目录下，这个版本可以由Spring
+1\.0的执行引擎负责执行。在此基础上，我们可以编写一个翻译器，将Spring 1.0语法的XML配置翻译为注解配置，从而适配到其他的IoC运行时，或者翻译为Java创建代码，完全消除IoC的运行时。
 
 ### 3.5 生成Java Proxy
 
@@ -402,7 +403,7 @@ NopIoC内置了根据注解来收集bean的能力。例如
 ### 3.7 前缀引导语法
 
 在Spring
-1.0的设计中，为了获取IoC容器内置的一些属性和对象，对象必须实现一些特定的接口，例如BeanNameAware，ApplicationContextAware等，在NopIoC中我们通过前缀引导语法可以获取到对应的值。例如
+1\.0的设计中，为了获取IoC容器内置的一些属性和对象，对象必须实现一些特定的接口，例如BeanNameAware，ApplicationContextAware等，在NopIoC中我们通过前缀引导语法可以获取到对应的值。例如
 
 ```xml
 <bean id="xx">

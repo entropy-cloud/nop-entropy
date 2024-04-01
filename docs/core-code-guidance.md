@@ -236,7 +236,7 @@ Nop平台所有的设计都非常简单直接，一般核心代码集中在少�
 3. RuleExprParser
    手工编写的类似于FEEL（Friendly Enough Expression Language）的表达式语法解析器
 4. DaoRuleModelLoader和DaoRuleModelSaver
-   将规则模型保存到nop_rule_definition表中
+   将规则模型保存到nop\_rule\_definition表中
 5. RuleExcelModelParser
    从xlsx文件中解析规则模型，支持决策树和决策矩阵
 6. RuleServiceImpl

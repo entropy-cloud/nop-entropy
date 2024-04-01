@@ -26,7 +26,7 @@ Schema是根据Meta元数据定义和BizModel业务模型定义自动生成的�
 
 [数据驱动的差量化代码生成器](https://zhuanlan.zhihu.com/p/540022264)
 
-# GraphQL对象定义
+## GraphQL对象定义
 
 NopGraphQL引擎在初始化的时候会利用IoC容器的动态扫描能力发现所有标记了`@BizModel`注解的bean，并把它们按照BizObjName配置进行归类合并。例如
 
@@ -78,7 +78,7 @@ NopGraphQL引擎在构造BizObject的时候还会检查xbiz扩展模型，我们
 
 2. xbiz文件中可以通过XLang中通用的x:gen-extends元编程机制动态生成方法定义。也可以使用外部的CodeGenerator来生成代码。
 
-# CRUD模型
+## CRUD模型
 
 在一般的业务开发中，CRUD(Create/Read/Update/Delete)
 操作往往是不同的业务对象中相似度最高的部分，因此有必要对它们进行统一抽象。NopGraphQL使用设计模式中的模板方法(Template
@@ -95,7 +95,7 @@ Method)模式提供了通用的CRUD实现：CrudBizModel。具体使用方法是
 CrudBizModel采用的是元数据驱动的实现方式，它会读取xmeta配置文件中的内容，内置实现了数据验证、自动初始化、级联删除、逻辑删除、数据权限等多种常见需求，所以一般情况下只需要调整xmeta和xbiz配置文件，并不需要编写定制逻辑。
 
 1. 数据验证：类似于GraphQL的输出选择，NopGraphQL可以对输入字段进行选择性验证和转换，这体现了**输入和输出的对偶性**。
-
+   
    ```javascript
    validatedData = new ObjMetaBasedValidator(bizObjManager,bizObjName,objMeta,context,checkWriteAuth)
                        .validateForSave(input,inputSelection)
@@ -107,7 +107,8 @@ CrudBizModel采用的是元数据驱动的实现方式，它会读取xmeta配置
 
 4. 级联删除：标记为cascade-delete的子表数据会随着主表数据的删除一并删除，而且会执行子表对应的BizObject业务对象上的定义的删除逻辑。
 
-5.
+5. 
+
 逻辑删除：如果启用delFlag逻辑删除标记字段，则底层的ORM引擎会自动将删除调用转换为修改delFlag的操作，并且对所有查询都自动应用delFlag=0的过滤条件，除非明确在SQL对象上设置disableLogicalDelete属性。
 
 6. 数据权限：所有读取到的实体记录都会自动验证是否满足数据权限要求。
@@ -123,9 +124,9 @@ OrmEntity findFirst(@Name("query") QueryBean query);
 ```
 
 1. findPage会根据查询条件返回分页查询结果，分页逻辑可以采用cursor+next
-   page的方式，也可以采用传统的offset+limit的方式。selection对应于前端调用时传入的返回字段集合。*
-   *如果没有要求返回total总页数，则findPage内部会跳过总页数查询，如果没有要求返回items数据列表，则实际会调整真正的分页查询本身
-   **。
+   page的方式，也可以采用传统的offset+limit的方式。selection对应于前端调用时传入的返回字段集合。\*
+   \*如果没有要求返回total总页数，则findPage内部会跳过总页数查询，如果没有要求返回items数据列表，则实际会调整真正的分页查询本身
+   \*\*。
 
 2. findList根据查询条件返回列表数据，如果没有设置分页大小，则按照meta上的配置选择maxPageSize条记录。
 
@@ -134,7 +135,7 @@ OrmEntity findFirst(@Name("query") QueryBean query);
 QueryBean类似于Hibernate中的Criteria查询对象，支持复杂的and/or嵌套查询条件以及排序条件。QueryBean可以由前台直接构造，在送到dao中真正执行之前它会经历如下处理过程：
 
 1. 验证查询条件中只包含`queryable=true`的字段，且查询算符在每个字段的allowFilterOp集合中，缺省只允许按照相等条件进行查询。例如配置用户名支持模糊查询
-
+   
    ```xml
    <!-- 支持按照相等或者模糊匹配的方式进行查询，缺省前端生成的控件为模糊查询 -->
    <prop name="userName" allowFilterOp="eq,contains" queryable="true" 
@@ -168,24 +169,24 @@ o.manager_id in (select user.id from User user, Dept dept
 ```
 
 例如 `filter_userName__contains`表示按照contains运算符对userName字段进行过滤。对于filterOp为eq(等于条件)
-的情况，可以省略filterOp的部分，例如 filter_userId等价于`filter_userId__eq`
+的情况，可以省略filterOp的部分，例如 filter\_userId等价于`filter_userId__eq`
 
 注意：过滤条件的值如果为空，则会忽略该字段条件。如果一定要按照空值进行查询，则可以使用`__null`来表示null,使用`__empty`
 来表示空字符串。
 
 在AMIS的url中调用以findPage/findList/findFirst为后缀的方法时，可以使用filter过滤约定
 
-````javascript
+```javascript
 {
    url: "@query:NopAuthUser__findPage?filter_userStatus=1"
 }
-````
+```
 
 ### 复杂查询条件的构造
 
 直接调用后台的GraphQL服务或者REST服务时，可以构造QueryBean对象。
 
-````
+```
 POST /r/NopAuthUser__findPage
 
 {
@@ -197,7 +198,7 @@ POST /r/NopAuthUser__findPage
       }
    }
 }
-````
+```
 
 filter对应于后台的TreeBean类型的对象，这是一个通用的Tree结构，并且可以自动转换为XML格式。具体转换规则是Nop平台所定义的一种标准转换机制：
 
@@ -206,17 +207,17 @@ filter对应于后台的TreeBean类型的对象，这是一个通用的Tree结�
 3. 不以$为前缀的其他属性对应于XML节点的属性
 4. 以`@:`为前缀的值按照json格式解析
 
-````xml
+```xml
 
 <and>
     <eq name="status" value="@:1"/>
     <gt name="amount" value="@:3"/>
 </and>
-````
+```
 
 对应于
 
-````json
+```json
 {
   "$type": "and",
   "$body": [
@@ -232,27 +233,27 @@ filter对应于后台的TreeBean类型的对象，这是一个通用的Tree结�
     }
   ]
 }
-````
+```
 
 过滤条件中所支持的运算符如eq,gt等，都是[FilterOp.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/model/query/FilterOp.java)
 中定义的操作符。
 重用的算符有：
 
-| 操作符         | 说明           |
-|-------------|--------------|
-| eq          | 等于           |
-| gt          | 大于           |
-| ge          | 大于等于         |
-| lt          | 小于           |
-| xe          | 小于等于         |
-| in          | 在集合中         |
-| between     | 介于min和max之间  |
-| betweenDate | 日期在min和max之间 |
-| alwaysTrue  | 总是为真         |
-| alwaysFalse | 总是为假         |
-| isEmpty     | name对应的值为空   |
-| startsWith  | 字符串的前缀为指定值   |
-| endsWith    | 字符串的后缀为指定值   |
+|操作符|说明|
+|---|---|
+|eq|等于|
+|gt|大于|
+|ge|大于等于|
+|lt|小于|
+|xe|小于等于|
+|in|在集合中|
+|between|介于min和max之间|
+|betweenDate|日期在min和max之间|
+|alwaysTrue|总是为真|
+|alwaysFalse|总是为假|
+|isEmpty|name对应的值为空|
+|startsWith|字符串的前缀为指定值|
+|endsWith|字符串的后缀为指定值|
 
 ## 3.3 this指针：知识的相对化
 
@@ -295,7 +296,7 @@ public NopAuthUserAdminBizModel extends CrudBizModel<NopAuthUser>{
 
 > 面向对象技术创造了一个特殊的名---this指针，它是一种约定了的固化了的局部名称。使用this指针使得我们区分了领域(domain)
 > 的内外。在domain外对象可以有各种称谓，而domain内我们直接通过this直接指代当前对象。
->
+> 
 > 代码本身只是一种形式表达，它的具体含义需要一个诠释的过程才能确定。基于对象指针的调用形式直接导向了诠释的多样化：只要注入不同的this指针，就可以提供不同的诠释。
 
 在前台的实现中，我们使用了类似的策略：前台脚本根据方法名的后缀自动判断方法签名，例如所有以`_findPage`为后缀的方法它的缺省签名都是
@@ -309,7 +310,7 @@ XXX_findPage(query:QueryBeanInput):PageBean_XXX
 BizModel上的服务方法不需要将返回值类型包装为ApiResponse，框架自身会负责进行ApiResponse包装。而且如果返回String类型，那么对应到前台就是String，不会自动解析为JSON。
 如果返回Map或者其他bean对象，则会按照DataLoader机制进行属性加载然后返回。如果返回的是CompletionStage，则表示异步执行。
 
-````
+```
 @BizQuery
 public Map<String,Object> myMethod(){
    ...
@@ -324,7 +325,7 @@ public CompletionStage<Map<String,Object>> myMethod2Async(){
 public MyResultBean myMethod3(){
    return ...
 }
-````
+```
 
 ## 四. 框架无关的设计
 
@@ -413,7 +414,7 @@ NopGraphQL借助lazy字段的概念，对GraphQL类型定义Eager加载的属性
 GET /r/NopAuthUser_get?id=3
 ```
 
-等价于执行 NopAuthUser_get(id:3)。
+等价于执行 NopAuthUser\_get(id:3)。
 
 在POST请求时可以通过http的body传送json格式的请求对象
 
@@ -496,14 +497,14 @@ GraphQL提供了REST所不具备的结果组合能力，可以极大提升系统
 
 在前台我们可以查询后台的全局对象定义，每个全局对象具有methods属性，返回这个全局对象上所定义的方法
 
-````graphql
+```graphql
 query{
    DevDoc__globalVars{
       name
       methods
    }
 }
-````
+```
 
 在DevDocBizModel的实现中，globalVars方法中只初始化了GlobalVarDefinition的name属性等简单属性，并没有加载复杂的methods属性。
 globalVars方法返回`List<GlobalVarDefinition>`之后，由GraphQL引擎进行后续处理，它发现需要返回methods属性之后，会调用methods所对应的DataLoader,
@@ -511,7 +512,7 @@ globalVars方法返回`List<GlobalVarDefinition>`之后，由GraphQL引擎进行
 
 **如果客户端没有请求methods属性，则后台可以避免执行methods加载函数，从而提升性能**
 
-````java
+```java
 
 @BizModel("DevDoc")
 public class DevDocBizModel {
@@ -526,7 +527,7 @@ public class DevDocBizModel {
         return ...
     }
 }
-````
+```
 
 完整实现参考[DevDocBizModel.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/main/java/io/nop/biz/dev/DevDocBizModel.java)
 
@@ -534,7 +535,7 @@ public class DevDocBizModel {
 
 在xbiz中定义query,mutation和loader与在Java中定义是等价的。例如
 
-````java
+```java
 
 @BizModel("NopAuthRole")
 public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
@@ -545,11 +546,11 @@ public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
                 .sorted(comparing(NopAuthUser::getUserName)).collect(Collectors.toList());
     }
 }    
-````
+```
 
 如果写到xbiz文件中，就对应如下方式
 
-````xml
+```xml
 
 <loaders>
     <loader name="roleUsers">
@@ -564,7 +565,7 @@ public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
         </source>
     </loader>
 </loaders>
-````
+```
 
 注意：所有GraphQL中能够使用的属性都必须在meta中配置。仅定义loader并不会自动生成属性定义，这主要是为了保证meta模型的语义完整性。
 
@@ -572,7 +573,7 @@ public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
 
 有些简单的属性适配问题，如果使用xbiz中的loader机制可能觉得过于繁琐，可以直接在meta中通过getter属性来配置。
 
-````xml
+```xml
 
 <prop name="nameEx">
     <getter>
@@ -582,5 +583,4 @@ public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
         </c:script>
     </getter>
 </prop>
-````
-
+```

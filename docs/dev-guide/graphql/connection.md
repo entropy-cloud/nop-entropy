@@ -5,9 +5,9 @@
 
 ![](ref-connection.png)
 
-通过元编程机制会在编译期为meta文件增加对应的Connection属性，例如resourcesConnection。在_dump目录下可以看到最后生成的属性定义
+通过元编程机制会在编译期为meta文件增加对应的Connection属性，例如resourcesConnection。在\_dump目录下可以看到最后生成的属性定义
 
-````xml
+```xml
 
 <meta>
     <prop name="resources" displayName="资源列表" i18n-en:displayName="Resources" tagSet="pub,connection"
@@ -23,7 +23,7 @@
                 bizObjName="NopAuthResource"/>
     </prop>
 </meta>
-````
+```
 
 生成的resourcesConnection节点上通过graphql:connectionProp属性引用实体上的一个一对多关联属性，会自动使用这个关联属性对应的关联条件进行过滤。
 
@@ -31,7 +31,7 @@
 
 resourcesConnection可以接收的参数为GraphQLConnectionInput类型
 
-````java
+```java
 public class GraphQLConnectionInput {
     /**
      * first表示从afterCursor开始向后取n条数据
@@ -48,11 +48,11 @@ public class GraphQLConnectionInput {
     TreeBean filter;
     List<OrderFieldBean> orderBy;
 }    
-````
+```
 
 返回的结果类型为GraphQLConnection类型
 
-````java
+```java
 class GraphQLConnection<T> {
 
     long total;
@@ -69,4 +69,4 @@ class GraphQLPageInfo {
     Boolean hasNextPage;
     Boolean hasPreviousPage;
 }
-````
+```

@@ -2,7 +2,7 @@
 
 单元测试参见 [TestTaskManager.java]()，测试文件参见[/nop/task/test](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-task/nop-task-core/src/test/resources/_vfs/nop/task/test)
 
-# 基本概念
+## 基本概念
 
 1. TaskFlow: 逻辑流模型，存放在task.xml模型文件中，另外也可以存放在task-lib.xml中作为可复用的步骤库
 2. Step: 逻辑流分解为多个子步骤，每个步骤可以嵌套调用其他子步骤。
@@ -13,7 +13,7 @@
 
 基本执行结构如下：
 
-````javascript
+```javascript
 parentScope = parentStepRuntime.scope
 
 for each inputModel 
@@ -23,23 +23,23 @@ outputs = await step.execute(inputs);
 
 for each outputModel
    parentScope[outputModel.exportAs] = outputs[outputModel.name]
-````
+```
 
 在概念层面上非常类似于一般程序语言中的函数调用：
 
-````javascript
+```javascript
 var { a: aName, b: bName} = fn( {x: exprInput1, y: exprInput1} )  
-````
+```
 
 TaskFlow的Step相当于是对于传统的函数对象进行了增强，自动支持异步执行、超时处理、自动重试等功能。
 
-# 步骤的通用配置
+## 步骤的通用配置
 
 TaskFlow的元模型定义参见[task.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef)
 
 TaskFlow内置了sequential/parallel/loop/choose等通用语法步骤，所有这些步骤具有一些通用的配置。
 
-````xml
+```xml
 
 <xdef:define xdef:name="TaskStepModel" executor="bean-name" timeout="!long=0"
              name="var-name" runOnContext="!boolean=false" ignoreResult="!boolean=false"
@@ -65,20 +65,20 @@ TaskFlow内置了sequential/parallel/loop/choose等通用语法步骤，所有�
 
     <rate-limit/>
 </xdef:define>
-````
+```
 
 * input缺省情况下从parentScope获取变量。如果指定了source，则动态执行表达式获取，否则按照name名称获取。如果设置了`fromTaskScope=true`表示从全局task上下文获取
 * 当步骤成功执行之后，会根据output配置更新parentScope。如果指定了source，则根据表达式动态计算返回值。如果不指定source，则根据name从步骤的TaskStepReturn.outputs集合中获取。
-如果设置了`toTaskScope=true`，则表示更新全局task上下文，而不是更新parentScope
+  如果设置了`toTaskScope=true`，则表示更新全局task上下文，而不是更新parentScope
 * 通过output中的exportAs配置可以改变更新scope时的变量名。例如
 
-````xml
+```xml
 <output name="result" exportAs="a" />
-````
+```
 
 表示将返回数据中的result变量更新到父scope中，变量名修改为a
 
-# 内置步骤
+## 内置步骤
 
 ## Xpl脚本
 
@@ -91,15 +91,16 @@ TaskFlow内置了sequential/parallel/loop/choose等通用语法步骤，所有�
 ```
 
 xpl步骤用于执行xpl模板语言。上面的例子相当于是
-````
+
+```
 sum = function(sum){
   return sum + 1
 }(sum)
-````
+```
 
 ## 顺序执行
 
-````xml
+```xml
 <sequential name="test">
     <steps>
         <xpl name="step1">
@@ -116,11 +117,11 @@ sum = function(sum){
         </xpl>
     </steps>
 </sequential>
-````
+```
 
 sequential步骤执行时，会特殊识别每个子步骤返回的名称为RESULT的变量，并自动更新到scope中。以上代码相当于
 
-````
+```
 RESULT = function(){
   return 1
 }();
@@ -128,5 +129,4 @@ RESULT = function(){
 RESULT = function(RESULT){
   return RESULT + 2
 }(RESULT)
-````
-
+```

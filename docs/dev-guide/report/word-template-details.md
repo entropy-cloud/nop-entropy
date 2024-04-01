@@ -17,13 +17,14 @@
 ```
 
 NopReport引擎识别出xpl表达式之后会做如下处理：
+
 1. 如果是xpl-begin或者xpl-end，则将它们配对，插入到它们共同的父节点外部。这样在表格的第一个单元格插入begin，在最后一个单元格插入end，就可以实现整行循环的效果。
 2. 如果是tpl-expr或者expr，需要将`w:hyperlink`标签替换为`w:r`标签（使用sourceNode替换linkNode）。此时的linkNode实际上是从`w:hyperlink`内的`w:r`标签加工而来，这样可以保持样式设置
 3. 如果是xpl，则检查xpl源码解析得到的节点是否是`w:p`,如果是，则将`w:hyperlink`所在的`w:p`标签整体替换为xpl标签的内容，否则只替换linkNode。
 
-
 另外一种超链接形式
-````xml
+
+```xml
 
 <w:p>
     <w:pPr>
@@ -66,4 +67,4 @@ NopReport引擎识别出xpl表达式之后会做如下处理：
         <w:fldChar w:fldCharType="end"/>
     </w:r>
 </w:p>
-````
+```

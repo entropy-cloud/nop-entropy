@@ -79,7 +79,7 @@ XDef描述如下：
         },
    }
 }
-````
+```
 
 json schema的结构与原始数据结构有着类似的嵌套关系，但插入了多余的`properties`层级，且对单个属性进行描述时需要使用复杂的描述对象。
 而XDef描述与原始数据结构完全一致，基本可以看作是删除原始数据中的冗余部分，然后加上局部的类型标注即可，明显比json schema要更加简洁、直观。
@@ -205,7 +205,7 @@ XScript是语法类似于TypeScript的脚本语言。在XPL中可以通过`<c:sc
 3. 调用扩展方法。可以为Java中的对象注册静态的扩展函数，从而为已存在的类增加方法。例如 `"abc".$firstPart('.')` 实际调用的是`StringHelper.firstPart("abc",'.')`
 4. 安全性限制。所有以`$`为前缀的变量名保留为系统变量名，无法在XScript脚本中声明或者设置以`$`为前缀的变量。禁止访问`System`, `Class`等敏感对象。
 
-````
+```
 <c:script>
   // 执行编译期表达式
   let x = #{ a.f(3) }
@@ -213,7 +213,7 @@ XScript是语法类似于TypeScript的脚本语言。在XPL中可以通过`<c:sc
   // 执行xpl标签
   let y = xpl('my:MyTag',{a:1,b:x+3})
 </c:script>
-````
+```
 
 ## XDsl
 
@@ -279,7 +279,7 @@ XPath中使用的表达式语法比较特殊，引入扩展函数也不是很方
 2. 直接使用XScript作为过滤表达式语言，不单独定义XPath使用的表达式语言，因此可以复用已有的函数和标签库
 3. 不仅用于从树形结构上获取数据，对于XDsl中定义的所有领域元素，都可以规定它所对应的唯一的XPath路径，因此还可以通过XPath来设置属性值。
 
-````
+```
   IXSelector selector = XPathHelper.parseXSelector("a/b[id=aaa]/@attr")
   node.updateSelected(selector,"sss");
   node.selectOne(selector);
@@ -290,7 +290,7 @@ XPath中使用的表达式语法比较特殊，引入扩展函数也不是很方
   // 过滤表达式就是普通的XScript，只是增加了对@属性名的识别
   IXSelector complexSelector = XPathHelper.parseXSelector("//b[@a > 3 || @b != 2]/child");
   List<XNode> children = node.selectMany(complexSelector);
-````
+```
 
 ## XTransform
 
@@ -303,7 +303,7 @@ XLang语言中定义了一个专用于AST转换的XTransform语法，它相当�
 2. 通过属性表达式来生成属性，属性表达式返回`null`时表示删除属性。
 3. 利用嵌套结构自然地表达生成过程。
 
-````
+```
 <xt:transform>
   <xt:script>
      编译期执行的xpl
@@ -330,4 +330,4 @@ XLang语言中定义了一个专用于AST转换的XTransform语法，它相当�
   </div>
 
 </xt:transform>
-````
+```

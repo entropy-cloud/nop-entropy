@@ -1,6 +1,6 @@
 # 任务队列
 
-````java
+```java
 class NopJobTask {
     String taskId;
     String jobGroup;
@@ -27,9 +27,9 @@ interface IJobTaskExecutor {
 
     JobTaskState getTaskState(String taskId);
 }
-````
+```
 
-* nop_job_task表中保存了所有执行的异步任务
+* nop\_job\_task表中保存了所有执行的异步任务
 * 任务状态：已创建、待执行、执行中、已暂停、已结束、已失败、已取消
 * 任务可以被分布式执行，因此需要记录执行者地址，执行者端口，执行参数，错误信息
 * 任务执行者提供 start, cancel, getState这三个api，同时应该主动向管理端上传执行状态。

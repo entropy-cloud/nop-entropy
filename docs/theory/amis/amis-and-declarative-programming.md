@@ -40,7 +40,7 @@
 
 ## 声明式 vs. 命令式
 
-  前端框架的发展历程可以看作是一个不断从命令式编程范式向声明式编程范式转换的过程。
+前端框架的发展历程可以看作是一个不断从命令式编程范式向声明式编程范式转换的过程。
 
 ![declarative-vs-imperative](declarative-vs-imperative.png)
 
@@ -87,8 +87,6 @@ AMIS中的[Api对象](https://aisuda.bce.baidu.com/amis/zh-CN/docs/types/api)可
 
 > 个人观点是如果从头开始设计，AMIS的Service和Api对象的概念可以合并，并将Service容器加载Schema的功能独立出来。
 
-
-
-# 总结
+## 总结
 
 从声明式编程的角度上说，AMIS框架引入Api对象完全是非常合理和自然的一种选择。

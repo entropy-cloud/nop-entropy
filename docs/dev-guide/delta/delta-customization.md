@@ -4,7 +4,7 @@ ToB市场中软件产品开发难以摆脱的一个魔咒是所谓的定制化�
 
 具体的定制实例可以参见示例工程 [nop-app-mall/app-mall-delta](https://gitee.com/canonical-entropy/nop-app-mall/tree/master/app-mall-delta)。关于可逆计算理论，可以参见文章 [可逆计算：下一代软件构造理论](https://zhuanlan.zhihu.com/p/64004026)。
 
-# 一. 定制化开发的困局
+## 一. 定制化开发的困局
 
 传统上，我们处理定制化开发的技术方案主要有如下两个：
 
@@ -26,7 +26,7 @@ ToB市场中软件产品开发难以摆脱的一个魔咒是所谓的定制化�
 
 基于现有的软件工程理论，比如软件产品线工程(Software Product Line)，提升软件灵活性的技术手段可以被归类为适配（adaptation)、替换（replacement）和扩展(extension)这三类。它们都可以看作是向核心架构补充功能。但是定制化的原因不一定是来自于缺少新的功能，很多时候也在于需要屏蔽或者简化原先已经存在的功能。现有的技术手段难以高效的实现删除已有功能的目标。
 
-# 二. 可逆计算理论
+## 二. 可逆计算理论
 
 事前预测不靠谱，事后分离成本高。如果希望以低廉的成本实现定制化开发，在理想的情况下，定制化代码和基础产品代码应该物理隔离，同时无需预留接口，即可通过某种通用机制对基础产品功能进行剪裁、扩展。为了实现这个目标，我们有必要重新审视定制化开发的理论基础。
 
@@ -79,7 +79,7 @@ ToB市场中软件产品开发难以摆脱的一个魔咒是所谓的定制化�
 
 Nop平台是可逆计算理论的一个参考实现，基于Nop平台的Delta定制机制，无需付出额外成本，我们就可以实现完全增量式的定制化软件开发。在下一节中我将详细介绍Nop平台中的具体做法。
 
-# 三. Nop平台中的Delta定制
+## 三. Nop平台中的Delta定制
 
 使用Nop平台开发的所有应用都自动支持Delta定制。这里以一个电商应用为例，具体演示在系统的各个层面如何在不修改基础产品源码的情况下增加功能，以及如何修改、删除已有功能。具体示例代码参见 [nop-app-mall/app-mall-delta](https://gitee.com/canonical-entropy/nop-app-mall/tree/master/app-mall-delta)
 
@@ -198,10 +198,10 @@ Nop平台内置了一个兼容Spring1.0配置语法的IoC容器[NopIoC](https://
 
 2. 缺省实现
    NopIoC可以为指定名称的bean提供一个缺省实现，如果在容器中存在其他同名的bean，则缺省实现会被自动忽略，这一点类似于SpringBoot中的`ConditionOnMissingBean`机制。
-
+   
    ```xml
     <bean id="nopActionAuthChecker" class="io.nop.auth.service.auth.DefaultActionAuthChecker" ioc:default="true"/>
-
+   
     <!-- 标记了ioc:default="true"的bean 会被其他文件中定义的同名的bean覆盖 -->
     <bean id="nopActionAuthChecker" class="com.ruoyi.framework.web.service.PermissionService" />
    ```
@@ -263,12 +263,12 @@ public class NopAuthUserExBizModel extends NopAuthUserBizModel {
 ```
 
 2. 在`beans.xml`中覆盖原有的bean定义。
-
+   
    ```xml
     <bean id="io.nop.auth.service.entity.NopAuthUserBizModel"
           class="app.mall.delta.biz.NopAuthUserExBizModel"/>
    ```
-
+   
    自动生成的bean定义上标记了`ioc:default="true"`，所以只要重新按照同样的`id`注册，就会覆盖缺省的定义。
 
 除了扩展已有的`BizModel`类之外，我们可以通过`XBiz`模型来覆盖Java对象中定义的服务方法。例如定制`NopAuthUser.xbiz`文件，在其中增加方法定义
@@ -345,7 +345,7 @@ Nop平台中的所有模型，包括工作流模型、报表模型、规则模�
 
 可以和SpringBoot中的条件开关机制做一个对比：Nop平台内置的`feature`开关可以作用于任何模型文件的任何节点，模型本身并不需要针对条件开关做任何针对性设计，也不需要在运行时引擎增加任何相关代码，特性过滤是在XML加载时实现的。而SpringBoot的条件开关则需要专门编写相关代码，也无法应用于其他模型文件。
 
-# 四. 总结
+## 四. 总结
 
 Nop平台基于可逆计算原理实现了所谓的Delta定制机制，通过它可以在完全不修改基础产品的情况下，实现对于前后端功能的全面定制。
 
@@ -354,4 +354,4 @@ Nop平台的开源地址：
 - gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 - github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
 - 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
-- [可逆计算原理和Nop平台介绍及答疑_哔哩哔哩_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
+- [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)

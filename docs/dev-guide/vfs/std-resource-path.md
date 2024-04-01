@@ -2,7 +2,7 @@
 
 Nop平台内部约定了一定的资源路径模式，会自动查找满足模式的文件进行加载。
 
-````
+```
 META-INF/services
            io.nop.core.initialize.ICoreInitializer 使用Java内置的ServiceLoader机制注册分级初始化函数
                       CoreInitialization会读取所有CoreInitializer，按照优先级顺序执行
@@ -51,6 +51,6 @@ _vfs/
            /{bizObjName}
               {pageId}.page.yaml   可以配置页面文件在系统初始化的情况下加载，它引用的view模型因此被连带加载
               {bizObjName}.view.xml  View模型不会被自动加载，但是一般会放置在这个位置                    
-````
+```
 
 ## 模型文件自动加载顺序

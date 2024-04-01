@@ -226,7 +226,7 @@ Nop的方案具有如下优势：
 1. 多个Delta修改可以合并成一个结果，并且在合并的过程中可以进行简化，抛弃重复修改的部分。而使用API的方式本质是把修改动作作为Delta来使用，但是多个动作无法被自动合并、简化。如果不在脑海中逐个执行这些动作，我们无法理解最终系统会被修改成什么样。这也就是可逆计算理论一直强调的，Delta应该可以被独立被理解、独立被定义，并且Delta应该满足结合律，可以进行局部化简。
 
 2. 领域模型的Delta定义可以被程序自动分析，反向抽取出其中的信息。而如果采用API的方式来实现Delta，我们就没有很简单的工具可以分析Delta的具体组成，在不应用Delta之前无法精确知道它的影响范围等。这种逆向信息抽取的能力也是可逆计算理论所反复强调的内容。
-   
+
 3. Delta修改之所以能够应用到基础模型上在于我们可以精确的定义变化发生的位置，如实体模型的字段集合中的名称为phone3的字段处，这个位置定义应该是有着明确业务含义，且具有唯一性的某种路径定义，而MyEntity模型文件中的第10行到第20行这样的定位描述方式其实是不稳定、不明确的。Nop平台的Delta定制方案是对领域模型坐标系的精确利用，而API调用的方式则将定位坐标这一概念深深的隐藏在函数的调用链中。GPT生成时完全可能使用某些临时的定位手段，而错过领域坐标系中最有效的直接定位手段。
 
 实际上，基于可逆计算理论的指导，**主动从元模型、可逆、差量化的角度去重新审视编程中的具体实践方案**，我们可以得到很多新的认知，并找到进一步改进的方向。
@@ -241,6 +241,7 @@ of tasks with the following format:
 [{"task": task, "id", task_id, "dep": dependency_task_ids,
 "args": {"text": text, "image": URL, "audio": URL, "video": URL}}].
 ```
+
 这个提示词的形式非常接近于XDef元模型定义。而HuggingGPT的运行方式正是让GPT返回满足元模型要求的DSL语句。
 
 微软提出的[guidance项目](https://github.com/microsoft/guidance)采用如下格式的prompt:
@@ -270,12 +271,12 @@ User: {{set 'this.input' (await 'input')}}
 Comment: Remember, answer as a {{role}}. Start your utterance with {{role}}:
 {{~/user}}
 ```
+
 显然，如果引入一种规范化、系统化的树状结构表示方法，可以说机器省心，我们也省心。
 
 基于可逆计算理论设计的低代码平台NopPlatform已开源：
 
 - gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 - github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md) 
-- [可逆计算原理和Nop平台介绍及答疑_哔哩哔哩_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
-
+- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)

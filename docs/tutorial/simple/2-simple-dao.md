@@ -14,7 +14,7 @@ Nop平台的标准开发模式是先设计数据模型，然后再根据数据�
 
 Nop平台启动时会自动加载所有模块的orm目录下的app.orm.xml文件。
 
-> 例如`/_vfs/nop/demo/orm/app.orm.xml`。 nop/orm目录下具有文件_module，表示它是一个Nop模块。
+> 例如`/_vfs/nop/demo/orm/app.orm.xml`。 nop/orm目录下具有文件\_module，表示它是一个Nop模块。
 
 ```xml
 <orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef">
@@ -96,7 +96,7 @@ public class DemoEntityBizModel {
 
 NopGraphQL框架实际返回的业务对象的属性可以由xmeta模型来控制。通过它还可以控制访问权限、转换逻辑等。通过getter属性我们可以为业务对象增加自定义字段。
 
-````xml
+```xml
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <props>
         <prop name="sid" displayName="SID" queryable="true">
@@ -123,7 +123,7 @@ NopGraphQL框架实际返回的业务对象的属性可以由xmeta模型来控�
         </prop>
     </props>
 </meta>
-````
+```
 
 可以看出xmeta中的信息与orm模型中的信息有一定的重叠之处，但是它们用于不同的目的，一般并不会完全一致。Nop平台中的标准做法是使用编译期元编程自动实现两者之间的信息同步，
 并利用Delta合并来引入差异信息。在本文中我们不会涉及这些细节，感兴趣的读者可以参考[Nop平台元编程](../../dev-guide/xlang/meta-programming.md)

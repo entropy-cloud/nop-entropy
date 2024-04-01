@@ -1,6 +1,6 @@
 NopIoC是Nop平台中使用的轻量级依赖注入容器。最开始我的目标是先定义一个兼容Spring和Quarkus的BeanContainer接口，但很快就发现Spring的原生应用支持模块spring-native非常不成熟，而Quarkus依赖注入容器的组织能力远逊于SpringBoot，一些SpringBoot中非常简单的配置在Quarkus中难以实现，并且Quarkus预编译的做法导致运行时调试变得困难，所以我最终决定还是实现一个IoC容器来作为Nop平台的缺省BeanContainer实现。
 
-### 3.1 XDef元模型定义
+# 3.1 XDef元模型定义
 
 **一个描述式的IoC容器一定具有一个语义定义明确的领域模型**，这个模型可以被看作是一种DSL（Domain Specific
 Language）。IoC容器本身是这个DSL的解释器和执行器。如果我们把领域模型对象序列化为文本保存下来，那就成为一个IoC专用的模型文件，例如spring的beans.xml配置文件。Java注解可以看作是这个领域模型的另外一种表现形式，例如Hibernate的模型定义可以用JPA注解来表达，也可以用hbm配置文件来表达。
@@ -17,11 +17,11 @@ Schema要直观、高效。可以直接根据XDef定义得到可执行的领域�
 
 https://www.springframework.org/schema/beans/spring-beans-4.3.xsd
 
-[nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef)
+[nop-xdefs/src/main/resources/\_vfs/nop/schema/beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef)
 
 关于XDef元模型定义语言，我后续会写一篇专门的文章来介绍相关的技术细节。
 
-### 3.2  Spring 1.0语法的自然扩展
+## 3.2  Spring 1.0语法的自然扩展
 
 NopIoC以Spring 1.0的配置语法为基础（NopIoC可以直接解析Spring 1.0的配置文件），为其补充了SpringBoot引入的条件装配等概念。所有扩展属性都以`ioc:`为前缀，用于和Spring内置的属性区分开来。
 
@@ -65,16 +65,16 @@ public XXX getXx(){
 
 1. 在`resources/_vfs/nop/aop/{模块名称}.annotations`文件中注册需要被AOP识别的注解类。
 
-2. 工程编译的时候会通过maven插件扫描target/classes目录下的类，检查类的方法上是否具有AOP可识别的注解，如果有，则为该类生成一个__aop派生类，用于插入AOP
+2. 工程编译的时候会通过maven插件扫描target/classes目录下的类，检查类的方法上是否具有AOP可识别的注解，如果有，则为该类生成一个\_\_aop派生类，用于插入AOP
    interceptor。这样打包好的jar包中就包含了AOP相关的生成代码，在使用AOP机制的时候就不需要动态生成字节码了。这里的实现原理其实和AspectJ类似，只是操作过程要简化很多。代码生成器的具体实现参见
-
+   
    [nop-core/src/main/java/io/nop/core/reflect/aop/AopCodeGenerator.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/reflect/aop/AopCodeGenerator.java)
 
-3. IoC容器在创建bean的时候，如果发现存在可以应用到该类上的interceptor，则使用__aop派生类来新建对象，并插入interceptor。
+3. IoC容器在创建bean的时候，如果发现存在可以应用到该类上的interceptor，则使用\_\_aop派生类来新建对象，并插入interceptor。
 
 具体生成文件示例如下：
 
-[docs/ref/AuditServiceImpl__aop.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/ref/AuditServiceImpl__aop.java)
+[docs/ref/AuditServiceImpl\_\_aop.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/ref/AuditServiceImpl__aop.java)
 
 ### 3.4 基于可逆计算原理实现的分层抽象
 
@@ -92,10 +92,10 @@ NopIoC利用可逆计算所定义的编译期生成技术来提供类似Spring 2
 ```
 
 Nop平台中所有的DSL模型都支持`x:gen-extends`机制，它在编译期运行，会输出XML节点，然后再和外部的XML节点执行DeltaMerge合并算法，合成为最终的XML配置节点。这相当于是我们使用XPL模板语言来编写Spring
-2.0的自定义标签，然后在编译期执行该标签输出Spring 1.0语法的配置内容。NopIoC引擎只需要支持最基础的Spring 1.0的语法即可免费获得自定义标签抽象。
+2\.0的自定义标签，然后在编译期执行该标签输出Spring 1.0语法的配置内容。NopIoC引擎只需要支持最基础的Spring 1.0的语法即可免费获得自定义标签抽象。
 
-在Nop平台中分层抽象的概念被贯穿始终，使得我们可以将尽可能多的操作放到编译期执行，减少运行时的复杂度，并提升运行时的性能。例如，执行完所有条件判断和按类型扫描之后，NopIoC会输出一个消除了所有可选条件的最终装配版本到_dump目录下，这个版本可以由Spring
-1.0的执行引擎负责执行。在此基础上，我们可以编写一个翻译器，将Spring 1.0语法的XML配置翻译为注解配置，从而适配到其他的IoC运行时，或者翻译为Java创建代码，完全消除IoC的运行时。
+在Nop平台中分层抽象的概念被贯穿始终，使得我们可以将尽可能多的操作放到编译期执行，减少运行时的复杂度，并提升运行时的性能。例如，执行完所有条件判断和按类型扫描之后，NopIoC会输出一个消除了所有可选条件的最终装配版本到\_dump目录下，这个版本可以由Spring
+1\.0的执行引擎负责执行。在此基础上，我们可以编写一个翻译器，将Spring 1.0语法的XML配置翻译为注解配置，从而适配到其他的IoC运行时，或者翻译为Java创建代码，完全消除IoC的运行时。
 
 ### 3.5 生成Java Proxy
 
@@ -127,7 +127,7 @@ NopIoC内置了根据注解来收集bean的能力。例如
 ### 3.7 前缀引导语法
 
 在Spring
-1.0的设计中，为了获取IoC容器内置的一些属性和对象，对象必须实现一些特定的接口，例如BeanNameAware，ApplicationContextAware等，在NopIoC中我们通过前缀引导语法可以获取到对应的值。例如
+1\.0的设计中，为了获取IoC容器内置的一些属性和对象，对象必须实现一些特定的接口，例如BeanNameAware，ApplicationContextAware等，在NopIoC中我们通过前缀引导语法可以获取到对应的值。例如
 
 ```xml
 <bean id="xx">

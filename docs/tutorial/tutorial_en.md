@@ -1,13 +1,13 @@
 # Development Tutorial
 
 ## Nop platform source code:
+
 * gitee: [https://gitee.com/canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 * github: [https://github.com/entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
 
 Nop platform is a concrete implementation of reversible computation theory. In order to demonstrate the related concepts of reversible computation theory, it has a built-in low-code development process for the backoffice management system, which can be used to quickly develop the backoffice management system in a low-code manner, and can automatically provide product customization capabilities by using the built-in mechanism of the platform without special design. The following takes the development of the nop-app-mall project as an example to introduce the built-in low-code development process of the Nop platform.
 
 > Nop-app-mall is an example application of a simple electronic mall. The project source code is at [nop-app-mall](https://gitee.com/canonical-entropy/nop-app-mall)
-
 
 ## 1. Design Excel Data Model
 
@@ -25,7 +25,7 @@ In the Excel model, we can specify the following information:
 
 4. Dictionary: The data dictionary is used to restrict field value to a limited range of options. A dictionary can be an enum class in Java, such as a io.nop.xlang.xdef.XDefOverride. It can also be defined in a yaml file, for example, mall/aftersale-status corresponds to a file /nop/dict/mall/aftersale-status.dict.yaml
 
-5. Association: The association relationship between tables can be configured through the Association List. [Attribute Name] is the attribute name of the corresponding parent entity in the child table entity, and [Associated Attribute Name] is the attribute name of the corresponding child table entity set in the parent entity. For example, the [Attribute Name] corresponding to the parentId associated field in the department table is parent, and the [Associated Attribute Name] is children. If you do not need to access the entity collection through the ORM engine, you do not need to configure the associated attribute name.
+5. Association: The association relationship between tables can be configured through the Association List. \[Attribute Name\] is the attribute name of the corresponding parent entity in the child table entity, and \[Associated Attribute Name\] is the attribute name of the corresponding child table entity set in the parent entity. For example, the \[Attribute Name\] corresponding to the parentId associated field in the department table is parent, and the \[Associated Attribute Name\] is children. If you do not need to access the entity collection through the ORM engine, you do not need to configure the associated attribute name.
 
 The dictionary table can be directly defined in the Excel model, and the dict.yaml definition dictionary file will be automatically generated according to the model during code generation.
 
@@ -38,17 +38,15 @@ More detailed configuration information can be found in the documentation
 
 In addition to writing the database model manually, we can also connect to an existing database and use the nop-cli command-line tool to reverse analyze the database structure and generate the Excel model.
 
-
 ```shell
 java -Dfile.encoding=UTF8 -jar nop-cli.jar reverse-db litemall -c=com.mysql.cj.jdbc.Driver --username=litemall --password=litemall123456 --jdbcUrl="jdbc:mysql://127.0.0.1:3306/litemall?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC"
 ```
 
-The reverse-db command for nop-cli needs to pass in the parameter [database schema name], such as litemall, and then pass in information such as the JDBC connection string through options such as jdbcUrl.
+The reverse-db command for nop-cli needs to pass in the parameter \[database schema name\], such as litemall, and then pass in information such as the JDBC connection string through options such as jdbcUrl.
 
 ### Import a Power Designer model or PDManer model
 
 The gen-orm-excel command of the nop-cli tool allows you to generate an Excel data model from the PDM physical model of the Power Designer design tool.
-
 
 ```shell
 java -Dfile.encoding=UTF8 -jar nop-cli.jar gen-orm-excel model/test.pdm
@@ -58,13 +56,11 @@ An open source alternative to Power Designer, which is fee-based software, is [ 
 
 The nop-cli tool can also be used to generate Excel data models from PDManer model files.
 
-
 ```shell
 java -Dfile.encoding=UTF8 -jar nop-cli.jar gen-orm-excel model/test.pdma.json
 ```
 
-According to the theory of reversible computation, Pdm model, PDManer model and Excel model are just a visual representation of ORM domain model. ** These representations contain the same information and can, in principle, be transformed into each other **. With the metaprogramming ability in the Nop platform, we can automatically generate orm model files according to the Pdm model during compilation, so we can directly use PowerDesigner or PDManer as the visual design tool of ORM model in the Nop platform.
-
+According to the theory of reversible computation, Pdm model, PDManer model and Excel model are just a visual representation of ORM domain model. \*\* These representations contain the same information and can, in principle, be transformed into each other \*\*. With the metaprogramming ability in the Nop platform, we can automatically generate orm model files according to the Pdm model during compilation, so we can directly use PowerDesigner or PDManer as the visual design tool of ORM model in the Nop platform.
 
 ```xml
 <!-- app.orm.xml -->
@@ -82,21 +78,19 @@ According to the theory of reversible computation, Pdm model, PDManer model and 
 </orm>
 ```
 
- `x:gen-extends` Is a compile-time running mechanism. In the process of loading the app.orm.xml model file, it will dynamically generate an inheritable base model according to `x:gen-extends` the Xpl template defined in, and then use the x-extends merging algorithm to perform delta merging on the inherited content.
+`x:gen-extends` Is a compile-time running mechanism. In the process of loading the app.orm.xml model file, it will dynamically generate an inheritable base model according to `x:gen-extends` the Xpl template defined in, and then use the x-extends merging algorithm to perform delta merging on the inherited content.
 
->  `x:gen-extends` The mechanism is a built-in syntax for the XLang language, which is described in detail in [xdsl.md](../dev-guide/xlang/xdsl.md)
+> `x:gen-extends` The mechanism is a built-in syntax for the XLang language, which is described in detail in [xdsl.md](../dev-guide/xlang/xdsl.md)
 
 ## 2. Generate initial project code
 
 If you have already obtained an Excel data model, you can use the gen command of the nop-cli command-line tool to generate the initial project code
-
 
 ```shell
 java -jar nop-cli.jar gen -t=/nop/templates/orm model/app-mall.orm.xlsx
 ```
 
 The generated contents are as follows:
-
 
 ```
 ├─app-mall-api       Interface definition and message definition exposed by app-mall-api
@@ -109,7 +103,6 @@ The generated contents are as follows:
 ```
 
 The Nop platform provides code generation capability integrated with Maven. You only need to add the following configuration in the POM file:
-
 
 ```xml
 <pom>
@@ -134,7 +127,6 @@ The Nop platform provides code generation capability integrated with Maven. You 
 
 When the Maven packaging function is used, the xgen code under the precompile and postcompile directories of the project will be automatically executed, where precompile is executed before the compile phase, and the execution environment can access all dependent libraries, but cannot access the class directory of the current project. Postcompile, on the other hand, is executed after the compile phase and has access to the compiled class and resource files. For example, the contents of the precompile/gen-orm.xgen file for the app-mall-codegen module are
 
-
 ```xml
 <c:script>
 // 根据ORM模型生成dao/entity/xbiz
@@ -142,14 +134,13 @@ codeGenerator.withTargetDir("../").renderModel('../../model/app-mall.orm.xlsx','
 </c:script>
 ```
 
-The above instruction is equivalent to manually executing the nop-cli gen command, so ** Once the initial project is generated, the code for the current project can then be updated against the Excel data model through Maven packaging, eliminating the need to use the nop-cli tool **. The Nop platform uses an incremental code generation design, and regeneration does not override manually adjusted business code. See the article for the design principles.
+The above instruction is equivalent to manually executing the nop-cli gen command, so \*\* Once the initial project is generated, the code for the current project can then be updated against the Excel data model through Maven packaging, eliminating the need to use the nop-cli tool \*\*. The Nop platform uses an incremental code generation design, and regeneration does not override manually adjusted business code. See the article for the design principles.
 
 Data-Driven Code Generator (https://zhuanlan.zhihu.com/p/540022264)
 
 To facilitate debugging, the initially generated code contains two test classes, AppMallCodeGen. Java and AppMallWebCodeGen. Java, which can be directly started in IDEA to execute code generation.
 
 The code generated from the ORM model contains the full set of code from the frontend to the backend, which can be compiled and run directly using the mvn install command. Without additional configuration, the test application can be launched by the following command:
-
 
 ```shell
 mvn clean install -DskipTests -Dquarkus.package.type=uber-jar
@@ -164,7 +155,6 @@ app-mall-app uses the built-in H2 memory database to start, and will automatical
 The automatically generated code includes the permission definition file: `app-mall-web/src/resources/_vfs/app/mall/auth/_app-mall.action-auth.xml`, in which the default menu item is defined for each backend entity, corresponding to the standard CRUD page.
 
 In the app-mall.action-auth.xml file, you can manually add new menu items, or you can mark to delete generated menu items.
-
 
 ```xml
  <resource id="goods-manage" displayName="商品管理" icon="ion:grid-outline" resourceType="TOPM"
@@ -189,12 +179,11 @@ The menu structure is designed by the jeecgboot project. The top-level menu is c
 
 ## 4. Improve back-end services
 
-The Nop platform will automatically generate Meta metadata description files and corresponding GraphQL service objects ** A full-featured GraphQL backend service with simple configuration ** according to the Excel data model. Comparing the Litemall GoodsBizModel.java in the app-mall project with the AdminGoodsService.java implementation class in the original litemall project, it is clear that the Nop platform can avoid a lot of repetitive code. Generally, it is only necessary to express the difference logic that deviates from the standard CRUD logic.
+The Nop platform will automatically generate Meta metadata description files and corresponding GraphQL service objects \*\* A full-featured GraphQL backend service with simple configuration \*\* according to the Excel data model. Comparing the Litemall GoodsBizModel.java in the app-mall project with the AdminGoodsService.java implementation class in the original litemall project, it is clear that the Nop platform can avoid a lot of repetitive code. Generally, it is only necessary to express the difference logic that deviates from the standard CRUD logic.
 
 ### 4.1 Add Entity Function
 
 Fixed logic that depends only on entity fields can be directly implemented as methods of entity objects. For example, the retail Price field on the item table corresponds to the lowest price for the relevant product.
-
 
 ```java
 class LitemallGoods extends _LitemallGoods{
@@ -233,7 +222,6 @@ Nop platform can automatically realize all logics of CRUD by using the descripti
 
 Functions such as defaultPrepareSave can be overwritten in the derived class of CrudBizModel when we need to enhance the standard CRUD logic. For example, when saving the product information, the redundant field retailPrice on the product is automatically synchronized.
 
-
 ```java
 @BizModel("LitemallGoods")
 public class LitemallGoodsBizModel extends CrudBizModel<LitemallGoods> {
@@ -267,7 +255,6 @@ The above example code also overwrites the defaultPrepareQuery function. In this
 
 If a mapper tag is added to a database table in the Excel model, a sql-lib.xml file and a Mapper interface will be automatically generated, and we can use the SqlLibManager mechanism, which is more convenient and powerful than MyBatis, to implement database access. The sql-lib file supports the use of EQL object query syntax or native SQL syntax. The EQL syntax can be adapted to most relational databases through the Dialect model, so it is generally recommended to use the EQL syntax as much as possible.
 
-
 ```xml
 <!-- LitemallGoods.sql-lib.xml -->
 <sql-lib x:schema="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
@@ -293,7 +280,6 @@ Similar to MyBatis, EL expressions are automatically replaced with SQL parameter
 
 Add the corresponding Java method in the Mapper interface:
 
-
 ```java
 @SqlLibMapper("/app/mall/sql/LitemallGoods.sql-lib.xml")
 public interface LitemallGoodsMapper {
@@ -307,7 +293,6 @@ The IEntityDao interface in the NOP platform is similar to JpaRespository in Spr
 ### 4.4 Add Query/Mutation/Loader of GraphQL
 
 Normal Java methods can be converted into GraphQL service methods by adding `@BizQuery/@BizMutation/@BizLoader` annotations to them.
-
 
 ```java
 @BizModel("NopAuthRole")
@@ -333,8 +318,7 @@ public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
 }
 ```
 
- `@BizLoader` Indicates that an extended attribute is added to the specified object. For example, there is no roleUsers attribute on the NopAuthRole object, but as long as the attribute definition is added to the xmeta file, and then a BizLoader is defined, all requests returning the Role object can access the attribute. For example
-
+`@BizLoader` Indicates that an extended attribute is added to the specified object. For example, there is no roleUsers attribute on the NopAuthRole object, but as long as the attribute definition is added to the xmeta file, and then a BizLoader is defined, all requests returning the Role object can access the attribute. For example
 
 ```graphql
 query{
@@ -354,12 +338,11 @@ See [ graphql-java.md ](../dev-guide/graphql/graphql-java.md) for more details
 
 ### 4.5 Define the xbiz model
 
-The Nop platform provides built-in support for ** No Code Development **. Through the xbiz model, we can add and modify Query/Mutation/DataLoader in the GraphQL model online without modifying the Java source code.
+The Nop platform provides built-in support for \*\* No Code Development \*\*. Through the xbiz model, we can add and modify Query/Mutation/DataLoader in the GraphQL model online without modifying the Java source code.
 
 The xbiz model has a built-in finite state automaton model, and some simple state transition logic can be completed through configuration without programming in Java. Such as simple approval status migration.
 
 With XDSL's built-in x:gen-extends mechanism, we can introduce workflow support for the xbiz model in one sentence.
-
 
 ```xml
 <biz>
@@ -377,7 +360,6 @@ With XDSL's built-in x:gen-extends mechanism, we can introduce workflow support 
 ### 5.1 Refine Forms and Tables
 
 The view outline model (view.xml) is a front-end DSL that is independent of the specific implementation framework and fully oriented to the business domain. It abstracts key elements such as grid, form, layout, page, dialog, and action, and can describe common addition, deletion, modification, and query logic through simple configuration. It is much more compact than the generic page-oriented description model. For example, when adjusting the new and modified pages of the commodity object, we only need to write the following layout description
-
 
 ```xml
 <form id="edit" size="lg">
@@ -430,12 +412,11 @@ The view outline model (view.xml) is a front-end DSL that is independent of the 
 
 Layout is a specialized layout domain language that separates the layout information from the presentation control information of specific fields. The control used by a specific field is generally determined by the data type or data domain setting, and we only need to supplement the layout information to realize the page display. For a detailed description of the layout language, see [layout.md](../dev-guide/xui/layout.md)
 
-** According to the form and table model, the Nop platform will automatically analyze and obtain the backend field list they need to access, so as to automatically generate the selection part of the graphql request, so as to avoid the inconsistency between the UI interface and the backgroud request data caused by manual writing. **。
+\*\* According to the form and table model, the Nop platform will automatically analyze and obtain the backend field list they need to access, so as to automatically generate the selection part of the graphql request, so as to avoid the inconsistency between the UI interface and the backgroud request data caused by manual writing. \*\*。
 
 ### 5. Adjust field linkage logic
 
 Field linkage logic can be expressed through data binding property expressions, such as
-
 
 ```
  <cell id="pid">
@@ -449,7 +430,6 @@ Field linkage logic can be expressed through data binding property expressions, 
 Common crud pages, single form pages (simple), and multi-tab pages (tab) can be defined and adjusted in the view outline model, and the defined form and table models can be directly referenced in the page model.
 
 > Additional page models can be supported by customizing the xview.xdef metamodel file
-
 
 ```xml
         <crud name="main" grid="list">
@@ -482,15 +462,13 @@ When the code is generated, the corresponding page and operation button will be 
 
 ### 5.4 Visual Designer
 
-The actual front-end framework currently used by the Nop platform is [AMIS Framework from Baidu](https://aisuda.bce.baidu.com/amis/zh-CN/docs/index), which uses a JSON-formatted page file. In the browser address bar, we directly enter the path to view the contents of the page file (** No need to register the path in the front-end router **), for example
-
+The actual front-end framework currently used by the Nop platform is [AMIS Framework from Baidu](https://aisuda.bce.baidu.com/amis/zh-CN/docs/index), which uses a JSON-formatted page file. In the browser address bar, we directly enter the path to view the contents of the page file (\*\* No need to register the path in the front-end router \*\*), for example
 
 ```
 http://localhost:8080/index.html?#/amis/app/mall/pages/LitemallGoods/main.page.yaml
 ```
 
 The actual page it corresponds to is `src/main/resources/_vfs/app/mall/pages/LitemallGoods/main.page.yaml`, and the content is
-
 
 ```yaml
 x:gen-extends: | 
@@ -500,7 +478,7 @@ x:gen-extends: |
 
 This file represents the generation of the AMIS description based on the page model defined in the LitemallGoods.view.xml view outline model.
 
-1. If the page we need to implement is special and cannot be effectively described by the view outline model, we can directly write the page.yaml file and skip the configuration of the view outline model. That is to say, ** Front-end pages have the full capabilities of the AMIS framework and are not limited by the view outline model **.
+1. If the page we need to implement is special and cannot be effectively described by the view outline model, we can directly write the page.yaml file and skip the configuration of the view outline model. That is to say, \*\* Front-end pages have the full capabilities of the AMIS framework and are not limited by the view outline model \*\*.
 
 2. Even if we write page.yaml files by hand, we can still introduce local form or grid definitions through x:gen-extends to simplify page writing. Nested JSON nodes can also be dynamically generated using x:gen-extends or x:extends.
 
@@ -516,12 +494,11 @@ In debug mode, all front-end AMIS pages have two design buttons in the upper rig
 
 2. Click the JSON design button to pop up the YAML editor, which allows you to modify the JSON description directly in the frontend and then see the display immediately.
 
-3. Clicking the visual design button will pop up the amis-editor visual designer, allowing developers to adjust the content of the page through the visual designer. ** Click Save to reversely calculate the difference between the complete page and the generated View, and then save the difference to the page.yaml files **。
+3. Clicking the visual design button will pop up the amis-editor visual designer, allowing developers to adjust the content of the page through the visual designer. \*\* Click Save to reversely calculate the difference between the complete page and the generated View, and then save the difference to the page.yaml files \*\*。
    
    ![](amis-editor-view.png)
 
-For example, after modifying the title of the [商品上架] page in the visual designer as [新增-商品] and saving it, the content in the add.page.yaml file is
-
+For example, after modifying the title of the \[商品上架\] page in the visual designer as \[新增-商品\] and saving it, the content in the add.page.yaml file is
 
 ```yaml
 x:gen-extends: |
@@ -536,7 +513,6 @@ The saved content has been converted to delta form.
 The source code of the front-end framework of the Nop platform is in the project [nop-chaos](https://gitee.com/canonical-entropy/nop-chaos). In general, we use the built-in components of the framework to develop applications. At this time, we only need to introduce the pre-compiled nop-web-site module on the Java side, and do not need to recompile the front-end nop-chaos project.
 
 The front-end framework is mainly developed by vue3.0, ant-design-vue and Baidu AMIS framework. We have made some extensions on the basis of AMIS framework. See the document [amis.md](../dev-guide/xui/amis.md) for details. Nop-chaos has built-in SystemJs module loading capability, which can dynamically load front-end modules. For example
-
 
 ```json
 {
@@ -564,7 +540,6 @@ Refer to the document [debug.md](../dev-guide/debug.md) for detailed introductio
 ## 7. Automated testing
 
 Nop platform has a built-in model-driven automated testing framework, which can achieve fully automated test data preparation and verification without special programming.
-
 
 ```java
 public class TestLitemallGoodsBizModel extends JunitAutoTestCase {
@@ -600,9 +575,9 @@ For a more detailed description, see [ autotest.md ](../dev-guide/autotest.md)
 
 All the XDSL model files are stored in the `src/resources/_vfs` directory, and they form a virtual file system. This virtual file system supports the concept of Delta layered overlay (similar to the overlay-fs layered file system in Docker technology), which has layers `/_delta/default` by default (more layers can be added through configuration). That is, if there is both a file `/_vfs/_delta/default/nop/app.orm.xml` and a file `/nop/app.orm.xml` , the version in the delta directory is actually used. In the delta customization file, you can use  `x:extends="raw:/nop/app.orm.xml"` to inherit the specified base model, or use `x:extends="super"` to inherit the base model of the previous level.
 
-In contrast to the customization mechanisms provided by traditional programming languages, ** The rules of Delta customization are very general and intuitive, and are independent of the specific application implementation**. Taking the customization of the database Dialect used by the ORM engine as an example, if we want to extend the built-in MySQLDialect of the Hibernate framework, we must have some knowledge of the Hibernate framework. Then we also need to know how Spring encapsulates Hibernate, and where to find Dialect and configure it to the current SessionFactory. In the Nop platform, we only need to add files `/_vfs/default/nop/dao/dialect/mysql.dialect.xml` to ensure that all places using the MySQL dialect are updated to use the new Dialect model.
+In contrast to the customization mechanisms provided by traditional programming languages, \*\* The rules of Delta customization are very general and intuitive, and are independent of the specific application implementation\*\*. Taking the customization of the database Dialect used by the ORM engine as an example, if we want to extend the built-in MySQLDialect of the Hibernate framework, we must have some knowledge of the Hibernate framework. Then we also need to know how Spring encapsulates Hibernate, and where to find Dialect and configure it to the current SessionFactory. In the Nop platform, we only need to add files `/_vfs/default/nop/dao/dialect/mysql.dialect.xml` to ensure that all places using the MySQL dialect are updated to use the new Dialect model.
 
-Delta custom code is stored in a separate directory, which can be separated from the code of the main application. For example, the delta customization file is packaged into the nop-platform-delta module, and when this customization is needed, the corresponding module is imported. We can also introduce multiple delta directories at the same time and then control the order of the delta layers through the nop.core.vfs.delta-layer-ids parameter. For example, the configuration nop.core.vfs.delta-layer-ids=base,hunan enables two delta layers, one for the base product and one above it for a specific deployment version. In this way, we can productize software at a very low cost: ** When a basic product with basically complete functions is implemented at various customers, the code of the basic product can be completely unmodified, and only the Delta customization code need to be added. **.
+Delta custom code is stored in a separate directory, which can be separated from the code of the main application. For example, the delta customization file is packaged into the nop-platform-delta module, and when this customization is needed, the corresponding module is imported. We can also introduce multiple delta directories at the same time and then control the order of the delta layers through the nop.core.vfs.delta-layer-ids parameter. For example, the configuration nop.core.vfs.delta-layer-ids=base,hunan enables two delta layers, one for the base product and one above it for a specific deployment version. In this way, we can productize software at a very low cost: \*\* When a basic product with basically complete functions is implemented at various customers, the code of the basic product can be completely unmodified, and only the Delta customization code need to be added. \*\*.
 
 When developing specific applications, we can use the delta customization mechanism to fix platform bugs or enhance platform functionality. For example, the app-mall project adds more field control support by customizing `/_delta/default/nop/web/xlib/control.xlib` . For example, if a control  `<edit-string-array>` is added, as long as the data domain of the field is set to string-array in the Excel data model, the front-end interface will automatically use the input-array control of AMIS to edit the field.
 
@@ -614,7 +589,7 @@ For a more detailed description, see [xdsl.md](../dev-guide/xlang/xdsl.md)
 
 Nop platform further simplifies GraalVM support on the basis of Quarkus framework, and can easily compile application modules into native executables.
 
-1. The Quarkus framework itself adapts many third-party libraries to GraalVM 
+1. The Quarkus framework itself adapts many third-party libraries to GraalVM
 
 2. The Nop platform analyzes the IoC container configuration, learns all the beans that need to be created dynamically, and generates the GraalVM configuration.
 
@@ -622,15 +597,14 @@ Nop platform further simplifies GraalVM support on the basis of Quarkus framewor
 
 Taking the app-mall project as an example, the following steps are required to compile the native executable: ([ Requires prior installation of GraalVM environment ](https://blog.csdn.net/wangpaiblog/article/details/122850438))
 
-
 ```java
 cd app-mall-app
 mvn package -Pnative
 ```
 
 The result is target/app-mall-app-1.0-SNAPSHOT-runner.exe. Currently, the size of exe is a little large (146m), mainly because the graalvm.js engine will occupy nearly 60m. If it is not necessary to dynamically execute the JS packaging task, the dependence on the nop-js module can be removed.
-> You can only use the nop-js module to execute dynamic code in the debugging phase. In principle, you only need to use the generated static JS file when the system is running.
 
+> You can only use the nop-js module to execute dynamic code in the debugging phase. In principle, you only need to use the generated static JS file when the system is running.
 
 ## Summary
 
@@ -650,19 +624,19 @@ GraphQL &= Builder\langle XMeta\rangle + BizModel\\
 \end{aligned}
 $$
 
-Each step of the entire inference relationship is optional: ** We can start directly from any step, or we can completely discard all the information inferred from the previous step. **. For example, we can manually add an xview model without requiring it to have specific xmeta support, or we can directly create a new page. Yaml file and write JSON code according to the AMIS component specification. The ability of the AMIS framework will not be limited by the reasoning pipeline at all.
+Each step of the entire inference relationship is optional: \*\* We can start directly from any step, or we can completely discard all the information inferred from the previous step. \*\*. For example, we can manually add an xview model without requiring it to have specific xmeta support, or we can directly create a new page. Yaml file and write JSON code according to the AMIS component specification. The ability of the AMIS framework will not be limited by the reasoning pipeline at all.
 
-In daily development, we can often find that there are similarities and ** Imprecise derivative relation ** between some logical structures, such as the close relationship between the back-end data model and the front-end page. For the simplest case, we can directly deduce the corresponding CRUD page according to the data model. Or the database storage structure is reversely obtained by deducing from the form field information. However, this imprecise derivative relationship is difficult to be captured and utilized by the existing technical means. If some association rules are forcibly agreed, they can only be applied to very limited specific scenarios, and will also lead to incompatibility with other technical means. It is difficult to reuse existing tools and technologies, and it is also difficult to adapt to the dynamic evolution of requirements from simple to complex.
+In daily development, we can often find that there are similarities and \*\* Imprecise derivative relation \*\* between some logical structures, such as the close relationship between the back-end data model and the front-end page. For the simplest case, we can directly deduce the corresponding CRUD page according to the data model. Or the database storage structure is reversely obtained by deducing from the form field information. However, this imprecise derivative relationship is difficult to be captured and utilized by the existing technical means. If some association rules are forcibly agreed, they can only be applied to very limited specific scenarios, and will also lead to incompatibility with other technical means. It is difficult to reuse existing tools and technologies, and it is also difficult to adapt to the dynamic evolution of requirements from simple to complex.
 
 Nop platform provides a standard technical route for realizing the dynamic similarity-oriented reuse based on the reversible computation theory:
 
-1. With embedded metaprogramming and code generation, ** An inference pipeline can be established between any structure A and C. **
+1. With embedded metaprogramming and code generation, \*\* An inference pipeline can be established between any structure A and C. \*\*
 
-2. ** The reasoning pipeline is broken down into steps: A = > B = > C **
+2. \*\* The reasoning pipeline is broken down into steps: A = \> B = \> C \*\*
 
-3. ** The inference pipeline difference is further quantified. **：A => `_B` => B => `_C` => C
+3. \*\* The inference pipeline difference is further quantified. \*\*：A =\> `_B` =\> B =\> `_C` =\> C
 
-4. ** Each link allows temporary storage and transparent transmission of extended information ** that is not required in this step
+4. \*\* Each link allows temporary storage and transparent transmission of extended information \*\* that is not required in this step
 
 Specifically, the chain of logical reasoning from the back end to the front end can be decomposed into four main models:
 

@@ -6,7 +6,7 @@
 
 > 关于NopORM引擎的理论分析，可以参见 [低代码平台需要什么样的ORM引擎？(1)](https://zhuanlan.zhihu.com/p/543252423)和[低代码平台需要什么样的ORM引擎?(2)](https://zhuanlan.zhihu.com/p/545063021)
 
-# 朴素的评判标准
+## 朴素的评判标准
 
 很多人对于框架技术的评判标准是很朴素的，比如：
 
@@ -19,11 +19,10 @@
 3. **用着方便，容易理解**
    这里表达的其实是一种主观感受，而不是可以客观衡量的判据。在不同的技术环境、技术背景下，每个人有着不同的技术偏好，个体感受可能存在着巨大差异。
 
-4. **体积小，速度快**   
-  这体现的是实现层面优化的结果，未必是框架自身概念设计的一种优势体现。体积小有可能是因为包含的功能特性集比较少导致的，速度快可能是功能特性少的间接结果，也可能是因为使用了某些奇技淫巧（比如大量使用底层不稳定、未公开的API）。
+4. **体积小，速度快**  
+   这体现的是实现层面优化的结果，未必是框架自身概念设计的一种优势体现。体积小有可能是因为包含的功能特性集比较少导致的，速度快可能是功能特性少的间接结果，也可能是因为使用了某些奇技淫巧（比如大量使用底层不稳定、未公开的API）。
 
-
-# 存在客观的评判标准吗？
+## 存在客观的评判标准吗？
 
 软件开发虽然是一种实践性很强的技术活动，但是在科学昌明的今天，它显然也不应该是一种完全依赖于经验积累的玄学。我们可以从计算机科学的基本原理--信息论的角度出发给出一些客观的评判标准。
 
@@ -211,8 +210,6 @@ Nop平台中所有的模型对象都可以自动的转换为对应的DSL模型�
 
 从科学的角度上说，一个科学的解决方案绝不会是一个孤立的设计，而必然是包含从简单到复杂的一组可以渐进演化的策略集合，针对不同的复杂性我们都需要拟定对应的解决策略。因此，一个立足于适应各种使用场景的底层框架一定要在某种程度上保证自己的设计完备性，而且这种完备性往往无法用穷举法来实现。
 
-
-
 ### 函数抽象和模板化
 
 举一个简单的例子。假设我们现在要编写一个流程设计器，流程节点需要显示图标和文字，最简单的设计如下：
@@ -228,6 +225,7 @@ type Node{
 如果我们需要控制文字的显示位置，则还需要加入labelPosition这样的描述字段。如果要求根据流程状态的不同改变背景颜色或者显示额外的一个状态标识，则我们需要继续为节点增加statusIconMapping等属性。显然我们无法通过属性枚举来穷尽所有可能的需求，为了保证设计的完备性，我们必须要引入函数抽象，例如在节点级别提供一个渲染函数render，它负责实现节点的自定义渲染。
 
 一旦建立函数抽象，进一步的问题就是如何去实现这个函数的问题。一个有趣的解决方案是模板化。
+
 ```xml
 <template>
   <span v-if="prop.label">{{prop.label}}</span>
@@ -238,6 +236,7 @@ type Node{
 **借助于一种图灵完备的模板语言，我们可以用描述式的方式实现对函数的分解，甚至可以提供一种可视化的设计器来支持客户自行设计函数内容**。
 
 Nop平台系统化的利用Xpl模板语言来实现对函数的细粒度分解。比如在报表引擎中我们需要连接外部的数据源来获取数据
+
 ```xml
 <beforeExecute>
     <report:UseSplDataSet src="/report.splx" var="ds1" xpl:lib="/report.xlib" />
@@ -359,8 +358,7 @@ dao.batchLoadProps(entityList,Arrays.asList("relatedChildre.otherRelated","relat
 
 很多框架随着功能特性集的不断增加，在运行时需要执行大量的特性选择这样的无效操作，性能不可避免的出现劣化。Nop平台综合利用代码生成、编译期变换、宏函数等机制尽量在开发期或者模型初始化阶段执行大量的特性选择逻辑，确保仅有必要的逻辑在运行时执行。
 
-
-# 总结
+## 总结
 
 * 一个框架相当于是建立一个有独立存在意义的技术空间，它所提供的各种能力相当于是这个空间中定义的运算规律（数学定理）。
 
@@ -376,5 +374,5 @@ dao.batchLoadProps(entityList,Arrays.asList("relatedChildre.otherRelated","relat
 
 - gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 - github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md) 
-- [可逆计算原理和Nop平台介绍及答疑_哔哩哔哩_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
+- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)

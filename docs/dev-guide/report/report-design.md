@@ -8,8 +8,7 @@
 使用示例视频：https://www.bilibili.com/video/BV1Sa4y1K7tD/
 引擎使用文档：https://zhuanlan.zhihu.com/p/620250740
 
-# 一. 报表模型DSL的设计
-
+## 一. 报表模型DSL的设计
 
 ## 报表模型作为Excel模型的扩展
 
@@ -64,7 +63,7 @@ DSL的属性设计与OOXML标准中Excel的属性设置基本保持一致，便�
 
 我们可以利用Excel内置的一些扩展机制来保存扩展模型信息，从而将Excel改造为可视化报表设计器。
 
-````mermaid
+```mermaid
 graph LR;
 
 subgraph DSL
@@ -80,7 +79,7 @@ end
 DSL <-..-> UI
 
 
-````
+```
 
 1. 利用单元格的Comment来保存扩展模型信息
 
@@ -93,7 +92,7 @@ DSL <-..-> UI
 
 **如果上下游所有的工具都满足可逆计算原理，则这些工具可以自动实现无缝融合**
 
-# 二. 非线性中国式报表理论
+## 二. 非线性中国式报表理论
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report/runqian-report.png)
 
@@ -141,8 +140,6 @@ graph LR
       style a3 fill:#eecc00
 ```
 
-
-
 ## 表格展开
 
 非线性报表引擎的关键技术就是报表模板的展开算法，基本思想是**父格展开时自动递归复制所有子单元格，而子单元格展开时，自动延展同一行或者同一列的父单元格**。
@@ -150,12 +147,11 @@ graph LR
 > 如果父单元格与展开单元格不在同一行或者同一列中，则不需要被延展。
 
 具体流程：
+
 1. 自上而下，自左而右，依次执行单元格的展开逻辑
 2. 如果父格尚未展开，则先展开父格
 
-
 实现代码在[TableExpander.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/engine/expand/TableExpander.java)中
-
 
 ```java
 public void expand(IXptRuntime xptRt) {
@@ -202,7 +198,8 @@ expandCells(cell, expandCount)
 ```
 
 新插入的单元格需要建立父子关系，需要注意维护所有父格的rowDescendants集合。这里采用了空间换时间的方案。
-````java
+
+```java
     public void addRowChild(ExpandedCell cell) {
         if (rowDescendants == null)
             rowDescendants = new HashMap<>();
@@ -217,31 +214,28 @@ expandCells(cell, expandCount)
             p = p.getRowParent();
         }
     }
-````
+```
 
 * 行父格和行子格不一定在同一行，但是一个行父格会管辖一块包含所有行子格的连续区域。**处于不同的父格的区域不会出现交叉，只会嵌套，构成严格的树形关系**。
 * 同理，列父格的逻辑类似。
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report/expand-span.png)
 
-
 ## 层次坐标
 
 非线性报表模型理论中发明的层次坐标概念提供了一种访问展开后的单元格的一种精确、快捷的方式，使用它可以极大简化报表计算逻辑的表达。
 类似同步、环比这样的常见计算都可以使用层次坐标来进行简单的表达。
 
-````mermaid
+```mermaid
 graph LR
 层次坐标 --> ExpandedCellSet
-````
+```
 
 一个层次坐标相当于是一个选择符，通过层次坐标可以在父子单元格组成的树结构中定位选择出满足条件的单元格集合。
-
 
 ```
 层次坐标格式： CellName[rowCoordinates ; colCoordinates]
 ```
-
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report/absolute-coord-value.png)
 
@@ -275,8 +269,8 @@ style B-10 fill:#eecc00
 1.  A:-1表示当前A节点的前一个节点，即A-0
 2.  B:1表示A-0节点范围内的第一个B节点，即B-00
 3.  在B-00范围内查找D节点，得到D-0
-   
-# 三. 核心数据结构讲解
+
+## 三. 核心数据结构讲解
 
 ## 展开单元格：ExpandedCell
 
@@ -366,7 +360,6 @@ NopReport区分了expandedValue, value和formattedValue
 
 报表引擎中用户最常用的数据类型就是数据集，一般是通过JDBC请求读取到的列表数据。NopReport提供了DynamicReportDataSet结构来简化报表引擎对表格数据的使用。
 
-
 参见代码[DynamicReportDataSet.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/dataset/DynamicReportDataSet.java)
 
 ```mermaid
@@ -387,12 +380,9 @@ style a1 fill:#eecc00
 > 
 > 单元格可能同时具有行父格和列父格，它自身在执行ds1.field(name)这样的函数时，会取行父格与列父格中子数据集的**交集**，得到一个当前可见的集合列表，然后再执行相关操作
 
-
-
-
 ## 报表上下文： XptRuntime
 
-````mermaid
+```mermaid
 graph LR 
 
 XptRuntime --> scope
@@ -408,14 +398,13 @@ helpFn --> a3[incAndGet]
 
 style var fill:#eecc00
 style helpFn fill:#eecc00
-````
+```
 
 XptRuntime在报表展开算法执行的过程中会记录当前正在处理的单元格，从而在表达式中可以使用相对层次坐标来定位单元格。
 
 XptRuntime还提供了一些使用相对坐标的函数，比如getNamedCells(cellName)返回指定模板单元格生成的、当前单元格可见的所有单元格。这里的可见指的是同属于同一个最近的父单元格。
 
-
-# 四. 报表表达式引擎设计
+## 四. 报表表达式引擎设计
 
 报表引擎中的表达式需要引入层次坐标语法，从而简化数据获取逻辑的编写。
 
@@ -475,7 +464,7 @@ public static Number SUM(@Name("values") Object values) {
 * 通过[ReportFunctionProvider](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/functions/ReportFunctionProvider.java)向报表引擎中注册全局函数。
 
 * NopReport并没有定义任何特殊的函数接口，可以将任意的Java静态函数注册为表达式函数。而一般的报表引擎中定义的函数专为报表引擎设计，无法在报表引擎之外使用。编写也要符合一定的规范，需要有报表引擎相关的知识才能编写。
-  
+
 * 目前内置的函数参见[ReportFunctions.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/functions/ReportFunctions.java)
 
 ## 性能优化
@@ -493,8 +482,7 @@ public static Number SUM(@Name("values") Object values) {
 
 具体实例可以参见[ReportFunctions.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/functions/ReportFunctions.java)中PROPORTION等函数的实现。
 
-
-# 五. 可扩展设计
+## 五. 可扩展设计
 
 与一般的报表引擎不同，NopReport没有引入任何额外的插件机制，也没有设计SPI服务提供接口机制。它利用Nop平台内置的Delta定制能力以及XPL模板语言，可以实现其他引擎所无法达到的可扩展性。
 
@@ -504,7 +492,8 @@ public static Number SUM(@Name("values") Object values) {
 4. 通过ReportFunctionProvider可以将任意的Java静态函数注册为报表表达式可以使用的函数
 
 例如，可以通过spl.xlib标签库引入润乾SPL计算引擎来计算得到数据集。
-````xml
+
+```xml
 <beforeExpand>
    <spl:MakeDataSet xpl:lib="/nop/report/spl/spl.xlib" dsName="ds1" src="/nop/report/demo/spl/test-data.splx"/>
 
@@ -515,7 +504,7 @@ public static Number SUM(@Name("values") Object values) {
       assign("ds2", myHelper.genDataSet())
    </script>
 </beforeExpand>
-````
+```
 
 **有了IoC容器和模板语言，一般不再需要额外设计插件机制**，即使是远程加载Jar包，动态初始化bean等复杂的扩展机制，也可以通过Xpl标签库引入，通过标签调用屏蔽所有底层的复杂性。
 
@@ -538,6 +527,7 @@ ExcelTemplateToXptModelTransformer --> TreeTableDataParser --> BuildXptModelList
 ExcelTemplateToXptModelTransformer分析ExcelWorkbook的结构，自动将它转换为报表模型
 
 基于可逆计算理论设计的低代码平台NopPlatform已开源：
+
 - gitee: https://gitee.com/canonical-entropy/nop-entropy
 - github: https://github.com/entropy-cloud/nop-entropy
 - 开发示例：https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md

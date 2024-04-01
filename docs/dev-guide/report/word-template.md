@@ -1,6 +1,6 @@
 在Word文件中增加少量标注即可将它转化为一个导出模板。
 
-### 1. 为模板中需要被替换的文字增加超链接
+# 1. 为模板中需要被替换的文字增加超链接
 
 ![link-expr](word-template/link-expr.png)
 
@@ -46,6 +46,7 @@
 通过expr可以指定图片资源对象（表达式的返回结果是IResource接口即可）。与poi-tl的图片嵌入方式相比，这种方式可以对图片大小和显示方式进行可视化调整。
 
 ## 5. 直接嵌入EL表达式
+
 在word文本中可以直接插入 `${expr}`这种EL表达式。有的时候因为字体的原因，会导致一个表达式被拆分成多个`<w:t>`标签，导致EL表达式没有被正确解析。
 此时可以将表达式文本选中，然后增加超链接，链接内容设置为`xpl:`即可。另外需要注意`${`等字符必须是英文字符，不要误用为中文字符。
 如果确实要在最终结果中输出`${`字符，可以采用转义的方式: `${'$'}{'`。
@@ -109,4 +110,3 @@ desc=读取到的下一个字符不是期待的字符[}]]
 [payment.docx](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-ooxml/nop-ooxml-docx/src/test/resources/payment.docx)
 
 [result-payment.docx](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-ooxml/nop-ooxml-docx/src/test/resources/result-payment.docx)
-

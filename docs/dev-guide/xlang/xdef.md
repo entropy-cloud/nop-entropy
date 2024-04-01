@@ -5,11 +5,11 @@ Nop平台中所有的DSL语言统一采用XML格式，而不是自定义的表�
 
 XDef元模型文件的作用类似于XSD(XML Schema Definition)文件，都是为XML格式增加语法约束。但是XDef相比于XSD更加简单易用，而且提供了更加强大的约束能力。
 
-# XDef语法示例
+## XDef语法示例
 
 我们来看一个简单的工作流DSL定义：工作流包含多个步骤，每个步骤完成后指定下一个可执行的步骤。
 
-````xml
+```xml
 <workflow name="Test" x:schema="/nop/schema/my-wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <steps>
         <step id="a" displayName="StepA" next="b">
@@ -24,11 +24,11 @@ XDef元模型文件的作用类似于XSD(XML Schema Definition)文件，都是�
         <step id="b" displayName="StepB" joinType="and" />
     </steps>
 </workflow>
-````
+```
 
 对应的元模型为
 
-````xml
+```xml
 
 <workflow name="!string" x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <steps xdef:body-type="list" xdef:key-attr="id">
@@ -38,7 +38,7 @@ XDef元模型文件的作用类似于XSD(XML Schema Definition)文件，都是�
         </step>
     </steps>
 </workflow>
-````
+```
 
 首先我们看到，XDef元模型与它所描述的模型之间是一种同态关系，简单的说，将模型XML中的值替换成类型描述符就可以得到XDef元模型。
 
@@ -55,7 +55,7 @@ xdef文件中的所有属性（除去`xdef`名字空间以及`x`名字空间中�
 * 某些`def-type`定义需要`options`参数，例如`enum:xxx.yyy`，通过`options`来设置具体的字典名称
 * 可以为属性指定缺省值
 
-# XDSL公共语法
+## XDSL公共语法
 
 在XML的根节点上必须通过`x:schema`属性引入元模型定义。例如`x:schema="/nop/schema/my-wf.xdef"`表示模型由`my-wf.xdef`元模型来约束。
 
@@ -68,36 +68,38 @@ XDef元模型定义语言的能力足够强大，它可以被用于描述XDef元
 
 在`xdef.xdef`这个元元模型定义文件中，`xdef`名字空间必须被看作是普通属性空间，不能被解释为XDef元属性，所以在根节点上我们增加了属性定义`xmlns:meta="/nop/schema/xdef.xdef"`，使用`meta`名字空间来表达元属性。
 
-````xml
+```xml
 <workflow xmlns:meta="/nop/schema/xdef.xdef">
     <steps meta:body-type="list" meta:key-attr="id">
         ...
     </steps>
 </workflow>
-````
+```
+
 等价于
-````xml
+
+```xml
 <workflow xmlns:xdef="/nop/schema/xdef.xdef">
     <steps xdef:body-type="list" xdef:key-attr="id">
         ...
     </steps>
 </workflow>
-````
+```
 
-# 复用节点定义
+## 复用节点定义
 
 在xdef文件中可以通过`xdef:ref`来引用已有的元模型定义。
 
 1. 引入外部xdef文件
 
-````xml
+```xml
 <form id="!string" xdef:ref="form.xdef" />
-````
+```
 
 2. 引用内部节点
-在任意节点上可以增加`xdef:name`属性，将它标记为命名节点。然后就可以通过`xdef:ref`来引用。
+   在任意节点上可以增加`xdef:name`属性，将它标记为命名节点。然后就可以通过`xdef:ref`来引用。
 
-````xml
+```xml
 <steps>
     <step id="!string" xdef:name="WorkflowStepModel">
         ...
@@ -106,7 +108,7 @@ XDef元模型定义语言的能力足够强大，它可以被用于描述XDef元
     <join id="!string" xdef:ref="WorkflowStepModel" xdef:name="WfJoinStepModel">
     </join>
 </steps>
-````
+```
 
 > 注：目前因为实现上的原因，`id`等作为集合元素唯一区分的属性需要被重复，而其他属性则可直接引用自其他节点，无需重复定义。
 
@@ -116,7 +118,7 @@ XDef元模型定义语言的能力足够强大，它可以被用于描述XDef元
 
 为了简化节点复用，XDef语言还规定了一种特殊的、仅用于复用的特殊节点`xdef:define`，例如
 
-````xml
+```xml
 <workflow>
     <xdef:define xdef:name="WorkflowStepModel" id="!string">
         ....
@@ -126,20 +128,20 @@ XDef元模型定义语言的能力足够强大，它可以被用于描述XDef元
         <step xdef:ref="WorkflowStepModel" id="!string"/>
     </steps>
 </workflow>
-````
+```
 
-# 集合节点定义
+## 集合节点定义
 
 除了上面介绍的`xdef:body-type="list"`来表示集合节点之外，xdef语言还提供了一种简化的集合节点定义方式: 使用`xdef:unique-attr`表示集合元素的唯一表示属性。
 
-````xml
+```xml
 <arg name="!string" xdef:unique-attr="name" value="any" />
-````
+```
 
 具有`xdef:unique-attr`属性的节点会被解析为集合属性，属性名一般为 `节点名驼峰变换+'s'`，比如`<task-step xdef:unique-attr="id">`对应于`taskSteps`。
 我们也可以通过`xdef:bean-prop`属性来指定对应的属性名，例如可以指定`xdef:bean-prop="taskStepList"`。
 
-````xml
+```xml
 <!--
   以下 DSL 定义等价于代码：
   bp.taskSteps.add({id: 'a', displayName: 'A'})
@@ -147,25 +149,25 @@ XDef元模型定义语言的能力足够强大，它可以被用于描述XDef元
 -->
 <task-step id="a" displayName="A"></task-step>
 <task-step id="b" displayName="B"></task-step>
-````
+```
 
 使用`xdef:body-type="list"`方式来定义集合属性的好处在于，它允许集合中包含不同类型的子节点，例如
 
-````xml
+```xml
 
 <steps xdef:body-type="list" xdef:key-attr="name" xdef:bean-sub-type-prop="type" xdef:bean-child-name="step"
        xdef:bean-body-type="List&lt;io.nop.wf.core.model.WfStepModel>">
     <step name="!string" xdef:bean-tag-prop="type" />
     <join name="!string" xdef:bean-tag-prop="type" />
 </steps>
-````
+```
 
 * `xdef:bean-body-type`用于指定生成的集合属性类型名
 * `xdef:bean-child-name="step"`表示自动为模型对象增加`getStep(String name)`方法，用于按照唯一标识属性来获取子节点
 * `xdef:bean-tag-prop="type"`表示节点的标签名称（`step`、`join`）在json序列化时将被解析为`type`属性的值
 * `xdef:bean-sub-type-prop="type"`表示json反序列化的时候，根据`type`属性来确定子节点类型
 
-````xml
+```xml
 <!--
   以下 DSL 定义转换为 JSON 后的结构为：
   {
@@ -182,4 +184,4 @@ XDef元模型定义语言的能力足够强大，它可以被用于描述XDef元
     <step name="a"/>
     <join name="b"/>
 </steps>
-````
+```

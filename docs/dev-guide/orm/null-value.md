@@ -4,4 +4,4 @@
 
 NopORM为了确保在不同数据库之间的可迁移性，它对于空字符串进行了特殊识别和处理，具体代码参见DialectImpl.getDataParameterBinder函数的实现。
 
-如果字段值设置为空字符串，则保存到数据库中的时候会自动修改为null。可以通过设置nop.orm.auto_convert_empty_string_to_null来关闭这一行为。
+如果字段值设置为空字符串，则保存到数据库中的时候会自动修改为null。可以通过设置nop.orm.auto\_convert\_empty\_string\_to\_null来关闭这一行为。

@@ -1,4 +1,3 @@
-
 # DSL模型文件加载
 
 [B站讲解视频](https://www.bilibili.com/video/BV1rH4y117hd/)
@@ -9,18 +8,17 @@ Nop平台中统一使用ResourceComponentManager来加载DSL模型。
 model = ResourceComponentManager.instance().loadComponentModel(path);
 ```
 
-
 ## 加载时支持两种路径格式：
 
 1. 普通的虚拟路径，例如`/nop/rule/test/myRule/v1.rule.xml`，直接指定具体对应的资源文件，由VirtualFileSystem来处理Delta路径解析
 2. 使用resolve机制动态确定资源文件，例如`resolve-rule:test/myRule`,底层可以是虚拟文件系统管理的资源文件，也可以是存储在数据库中的数据记录。
 
 ## 注册加载器
+
 在平台初始化的过程中，会自动搜集所有/nop/core/registry/xxx.register-model.xml模型注册文件中所定义的注册信息，
 建立文件类型(fileType)与加载器(ResourceObjectLoader)之间的映射关系。
 
 > fileType与fileExt的区别在于，它在fileName中查找最后两个dot, 而不是最后一个dot。 例如 a.orm.xml对应fileType=orm.xml, 而fileExt=xml。
-
 
 ### RuleModel加载器的注册配置
 
@@ -51,8 +49,6 @@ resolve-rule:test/myRule/v1 会查找
 1. /nop/rule/test/myRule/v1.rule.xlsx
 2. /nop/rule/test/myRule/v1.rule.xml
 3. 查找NopRuleDefinition表中定义的规则模型, ruleName=test/myRule
-
-
 
 ## loadComponentModel实现
 
@@ -85,7 +81,7 @@ ComponentModelConfig --> ResourceObjectLoader
 
 例如ORM模型的注册配置为
 
-````xml
+```xml
 <model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        name="orm">
     <loaders>
@@ -93,4 +89,4 @@ ComponentModelConfig --> ResourceObjectLoader
         <xdsl-loader fileType="orm.xml" schemaPath="/nop/schema/orm/orm.xdef"/>
     </loaders>
 </model>
-````
+```

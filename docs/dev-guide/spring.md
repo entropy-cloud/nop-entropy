@@ -2,7 +2,7 @@
 
 只需引入nop-spring-core-starter模块即可实现Spring框架和Nop平台的集成
 
-````xml
+```xml
 <pom>
 <dependencyManagement>
 
@@ -25,7 +25,7 @@
 </dependency>
 </dependencies>
 </pom>
-````
+```
 
 1. Spring框架启动完毕的时候自动调用CoreInitialization.initialize()函数来执行Nop平台的初始化.
    参见[NopSpringCoreWebConfig.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-spring/nop-spring-core-starter/src/main/java/io/nop/spring/core/autoconfig/NopSpringCoreAutoConfig.java)
@@ -37,7 +37,7 @@
 
 如果仅需要使用NopOrm平台提供的ORM引擎，可以在nop-spring-core-starter的基础上再引入nop-orm模块
 
-````xml
+```xml
 
 <dependencies>
     <dependency>
@@ -50,15 +50,15 @@
         <artifactId>nop-sys-dao</artifactId>
     </dependency>
 </dependencies>  
-````
+```
 
 如果需要使用NopSysSequence表来统一管理sequence，或者需要扩展字段支持，则可以引入nop-sys-dao模块。
 
 如果希望和Spring共用DataSource，而不是在Nop平台中使用自己管理的nopDataSource，则可以配置
 
-````
+```
 nop.dao.use-parent-data-source=true
-````
+```
 
 这个配置会禁用Nop平台内部的nopDataSource定义，然后将nopDataSource对应于别名dataSource。因此要求Spring容器中提供一个名称为dataSource的数据源定义。
 
@@ -66,15 +66,15 @@ nop.dao.use-parent-data-source=true
 
 需要注意的时，如果使用Spring事务，则NopORM的异步执行逻辑会不正确，只能采用同步执行。
 
-````
+```
 nop.dao.use-parent-transaction-factory=true
-````
+```
 
 ## 使用NopGraphQL服务
 
 如果需要使用NopGraphQL服务，则可以引入nop-spring-web-starter模块
 
-````xml
+```xml
 
 <dependencies>
     <dependency>
@@ -82,7 +82,8 @@ nop.dao.use-parent-transaction-factory=true
         <artifactId>nop-spring-web-starter</artifactId>
     </dependency>
 </dependencies>    
-````
+```
+
 如果需要引入orm支持，则引入nop-spring-web-orm-starter，它会自动引入nop-orm，从而引入数据源配置，必须在application.yaml中配置nop.datasource.jdbc-url等参数，或者配置nop.orm.use-parent-data-source=true
 
 ## 集成Nop平台的AMIS前端
@@ -96,13 +97,13 @@ B站视频: [在若依(Ruoyi)框架中集成Nop平台](https://www.bilibili.com/
 
 nop-spring-delta对于Java中的Mapper接口也增加了定制能力
 
-````xml
+```xml
 
 <bean id="sysUserMapper" parent="nopBaseMapper">
     <property name="mapperInterface" value="io.nop.demo.spring.SysUserMapper"/>
     <property name="mapperTypeEx" value="io.nop.demo.spring.SysUserMapperEx"/>
 </bean>
-````
+```
 
 mapperInterface对应于Mapper XML文件中的namespace配置，一般情况下mapperTypeEx与namespace相同，但是在扩展模块中我们可以配置mapperTypeEx使用扩展接口。
 
@@ -117,11 +118,11 @@ nop-spring-demo2工程演示了使用nop-all-for-spring的具体方法。
 
 > 因为Nop平台内核已经升级到Quarkus3.0，为了在Spring2.X版本中使用，需要明确指定jakarta相关包的版本号，否则会出现兼容性问题。
 
-
 ### 打包时重命名包
+
 nop-maven-shaded-plugin插件提供了重命名包的功能。可以通过如下配置实现打包时自动重命名为java包名，并自动修改所有dsl文件中的对应名称。
 
-````xml
+```xml
    <plugin>
        <groupId>org.apache.maven.plugins</groupId>
        <artifactId>maven-shade-plugin</artifactId>
@@ -171,4 +172,4 @@ nop-maven-shaded-plugin插件提供了重命名包的功能。可以通过如下
            </dependency>
        </dependencies>
    </plugin>
-````
+```

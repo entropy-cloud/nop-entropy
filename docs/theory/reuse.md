@@ -24,8 +24,8 @@
 
 随着智能化的进一步发展，我们必然会观察到DSL、Delta、可逆、Generator这些概念被更加频繁的提起。而DSL和Generator自身的差量化也必然会进入开发者的视野。
 
-
 可逆计算理论的参考实现Nop平台已开源：
+
 - gitee: [https://gitee.com/canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 - github: [https://github.com/entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
 - 开发示例：[tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)

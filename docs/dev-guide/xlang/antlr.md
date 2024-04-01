@@ -1,10 +1,10 @@
 在Nop平台中，基于g4描述文件，仅仅增加一些命名约定和元数据设置，即可自动解析得到AST语法树，从而极大降低了AST重构的成本。
 
-## AST映射约定
+# AST映射约定
 
 语法解析树(ParseTree)相比于抽象语法树(AST)而言，包含了更多的细节信息，因此理论上说，只要在ParseTree上增加一些标注，忽略我们不关心的部分，只保留我们需要的部分即可。具体来说，我们约定了如下的标注规则：
 
-### 1. 一条解析规则映射为一种AST节点
+## 1. 一条解析规则映射为一种AST节点
 
 最自然的情况是一条解析规则直接对应于一个抽象语法树节点，解析规则的名称直接对应于抽象语法树节点的类名。例如
 
@@ -51,7 +51,7 @@ class SqlUpdate extends SqlStatement{
 
 sqlStatement对应于所有分支结果的基类SqlStatement，每个语法分支解析得到一种特定情况。
 
-> 如果规则名以ast_为前缀，则表示解析函数返回的类型为抽象语法树节点的公共基类。例如XLangParser.g4文件中，ast_topLevelStatement规则的返回类型为XLangASTNode。XLangASTNode是XLangAST中定义的所有抽象语法树节点的公共基类。
+> 如果规则名以ast\_为前缀，则表示解析函数返回的类型为抽象语法树节点的公共基类。例如XLangParser.g4文件中，ast\_topLevelStatement规则的返回类型为XLangASTNode。XLangASTNode是XLangAST中定义的所有抽象语法树节点的公共基类。
 
 ### 3. 多个解析规则或者多个分支映射为同一种AST节点
 
@@ -64,7 +64,7 @@ expression_single
     ...;
 ```
 
-antlr依赖于解析规则的顺序来确定运算符优先级，因此同样的BinaryExpression会根据operator的不同拆分成多个语法分支。这种多条语法规则解析得到同一抽象语法树类型节点的情况很常见，我们可以通过增加后缀名的方式来区分不同的情况。在上面的例子中, BinaryExpression_multiplicative和BinaryExpression_additive规则的解析结果都是BinaryExpression类型。同时整个expression_single规则本身解析得到的类型为Expression类型。
+antlr依赖于解析规则的顺序来确定运算符优先级，因此同样的BinaryExpression会根据operator的不同拆分成多个语法分支。这种多条语法规则解析得到同一抽象语法树类型节点的情况很常见，我们可以通过增加后缀名的方式来区分不同的情况。在上面的例子中, BinaryExpression\_multiplicative和BinaryExpression\_additive规则的解析结果都是BinaryExpression类型。同时整个expression\_single规则本身解析得到的类型为Expression类型。
 
 ### 4. 解析规则映射为AST节点的属性
 
@@ -97,7 +97,7 @@ class AssignmentExpression extends Expression {
 }
 ```
 
-assignmentOperator_规则解析得到AssignmentExpression对象的operator属性，类型为XLangOperator。对于这种不对应于抽象语法树节点的解析规则，我们约定它的名称以`_`结尾。注意，这也等价于约定**所有解析规则，如果后缀名不是`_`,则它的解析结果必须是抽象语法树节点类型**。
+assignmentOperator\_规则解析得到AssignmentExpression对象的operator属性，类型为XLangOperator。对于这种不对应于抽象语法树节点的解析规则，我们约定它的名称以`_`结尾。注意，这也等价于约定**所有解析规则，如果后缀名不是`_`,则它的解析结果必须是抽象语法树节点类型**。
 
 ### 5. 解析规则映射为AST节点列表
 
@@ -114,7 +114,7 @@ columnNames_
     ;    
 ```
 
-我们约定每个列表都对应一条单独的解析规则，且在这个规则中通过属性e来标记列表元素对应的部分。例如columnNames_规则解析得到List类型。
+我们约定每个列表都对应一条单独的解析规则，且在这个规则中通过属性e来标记列表元素对应的部分。例如columnNames\_规则解析得到List类型。
 
 ### 6. 忽略某些语法树节点
 
@@ -149,7 +149,7 @@ literal_string:
 
 > options是antlr内置的一种元数据扩展机制，允许设置自定义的可扩展属性。
 
-注意，在我们的约定中，**终端节点不会直接对应于抽象语法树节点，它最多对应抽象语法树节点的一个属性**。例如在literal_string规则中根据StringLiteral这个
+注意，在我们的约定中，**终端节点不会直接对应于抽象语法树节点，它最多对应抽象语法树节点的一个属性**。例如在literal\_string规则中根据StringLiteral这个
 终端节点解析得到Literal节点的value属性。
 
 对于多个终端符号都对应于同一种抽象语法树节点的情况，可以统一通过 astProp选项来指明解析得到的属性名，从而避免针对每种分支情况单独进行指定。
@@ -171,7 +171,7 @@ expression_initializer
 
 ### 9. 回避命名冲突
 
-由于antlr实现层面的限制，它不允许altLabel与已经存在的规则名重复。当出现冲突时，可以通过为altLabel增加_后缀的方式来回避名称冲突。
+由于antlr实现层面的限制，它不允许altLabel与已经存在的规则名重复。当出现冲突时，可以通过为altLabel增加\_后缀的方式来回避名称冲突。
 
 ```
 arrayBinding
@@ -180,7 +180,7 @@ arrayBinding
     ;
 ```
 
-restBinding本身是解析规则名，它也对应于抽象语法树节点的类名，因此在arrayBinding规则中不能使用restBinding作为altLabel属性名，需要把它替换为restBinding_。
+restBinding本身是解析规则名，它也对应于抽象语法树节点的类名，因此在arrayBinding规则中不能使用restBinding作为altLabel属性名，需要把它替换为restBinding\_。
 
 ### 10. 设置固定的属性值
 
@@ -197,7 +197,7 @@ expression_single
     ;
 ```
 
-antlr中允许通过`<name=value>`的形式为解析元素增加所谓的ELEMENT_OPTIONS元数据。astAssign是我们增加的一个扩展选项，它的格式为astAssign='name1:value1,name2:value2'。如果是boolean属性，则可以简写为属性名，例如 <astAssign=computed>表示解析得到AST节点后，自动设置astNode.computed=true。
+antlr中允许通过`<name=value>`的形式为解析元素增加所谓的ELEMENT\_OPTIONS元数据。astAssign是我们增加的一个扩展选项，它的格式为astAssign='name1:value1,name2:value2'。如果是boolean属性，则可以简写为属性名，例如 \<astAssign=computed\>表示解析得到AST节点后，自动设置astNode.computed=true。
 
 ### 11. 格式化规则
 
@@ -335,5 +335,3 @@ Nop平台的设计目标是成为一个通用的领域语言工作台(Domain Spe
 关于本文中介绍的Antlr自动解析AST技术，具体的配置实例可以参见 [XLangAST.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/model/ast/io/nop/xlang/ast/XLangAST.xjava) [XLangParser.g4](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/model/antlr/XLangParser.g4)
 
 [EqlAST.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm-eql/model/ast/io/nop/orm/eql/ast/EqlAST.xjava) [DMLStatement.g4](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm-eql/model/antlr/DMLStatement.g4)
-
-

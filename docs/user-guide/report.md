@@ -67,7 +67,7 @@ NopReport报表模型可以看作是对Excel模型的一种扩展。在单元格
 NopReport采用的是一种更加灵活、开放的分层式设计，它的运行时直接面向领域模型对象，而数据集（DataSet）仅仅是作为可选的一种数据组织形式。例如，在上一节介绍的档案式报表中，通过JSON变量直接构造报表数据
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/profile-report-data.png)
 
-展开【教育经历】时，只需要配置 expandType=r, expandExpr=entity.educations。而类似帆软报表的报表工具需要定义多个数据集： ds_study、ds_work等，然后再配置这些数据集之间的关联过滤条件。而在NopReport中，我们直接假定用户信息按照树状结构进行组织。从NopOrm引擎中查询得到的用户对象可以直接送到报表引擎中作为输入数据，并不需要在报表引擎中重新定义一个专为报表导出而用的数据集。
+展开【教育经历】时，只需要配置 expandType=r, expandExpr=entity.educations。而类似帆软报表的报表工具需要定义多个数据集： ds\_study、ds\_work等，然后再配置这些数据集之间的关联过滤条件。而在NopReport中，我们直接假定用户信息按照树状结构进行组织。从NopOrm引擎中查询得到的用户对象可以直接送到报表引擎中作为输入数据，并不需要在报表引擎中重新定义一个专为报表导出而用的数据集。
 
 NopOrm引擎中已经针对对象关联属性的存取进行了优化（例如解决ORM引擎常见的[N+1问题](https://zhuanlan.zhihu.com/p/545063021)等），使用起来也非常符合业务直觉： 表格单元格上的父子关系很直接的对应于实体对象上的属性关联关系。
 
@@ -87,7 +87,7 @@ NopReport对数据来源没有任何特殊要求，在【展开前】配置中�
 
 ## 三. 使用通用的表达式语法
 
-中国式报表理论中非常独特的地方是所谓的[层次坐标](https://help.fanruan.com/finereport/doc-view-3802.html)。例如B2[A2:+1]表示返回以 A2 单元格为父格的下一个 B2 单元格纵向扩展的数值（这个所谓的下一个是相对于当前行中的B2单元格而言）。为了配合层次坐标表达式，报表引擎一般都会引入报表专用的表达式引擎，它具有自己特定的语法、函数，从而导致和一般的业务开发中使用的表达式语法有着较大的差异，无法直接复用相应的代码，也需要重新学习相应的表达式语法。
+中国式报表理论中非常独特的地方是所谓的[层次坐标](https://help.fanruan.com/finereport/doc-view-3802.html)。例如B2\[A2:+1\]表示返回以 A2 单元格为父格的下一个 B2 单元格纵向扩展的数值（这个所谓的下一个是相对于当前行中的B2单元格而言）。为了配合层次坐标表达式，报表引擎一般都会引入报表专用的表达式引擎，它具有自己特定的语法、函数，从而导致和一般的业务开发中使用的表达式语法有着较大的差异，无法直接复用相应的代码，也需要重新学习相应的表达式语法。
 
 NopReport直接复用XScript表达式引擎，在XScript表达式语法（类似于JavaScript语法）的基础上扩展了层次坐标语法。实际上只需要几十行代码即可为表达式引擎引入层次坐标支持，具体可以参见[ReportExpressionParser.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/expr/ReportExpressionParser.java)。
 
@@ -252,11 +252,11 @@ class ExpandedCell{
 
 NopReport的设计支持多Sheet页，可以在Excel中增加多个Sheet页，每个Sheet页都可以有自己对应的配置。此外可以配置【循环变量】，从而动态确定具体生成多少个Sheet页，每个Sheet页的名称是什么。利用这个机制，可以更容易的生成档案式报表
 
-
 ## 六. 在Java中调用
+
 具体使用实例参见[TestReportFile.java](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-report/nop-report-core/src/test/java/io/nop/report/core/TestReportFile.java)
 
-````javascript
+```javascript
 IReportEngine reportEngine = newReportEngine();
 File xptFile = attachmentFile("test.xpt.xlsx");
 ExcelWorkbook xptModel = new XptModelLoader().loadModelFromResource(new FileResource(xptFile));
@@ -267,10 +267,11 @@ scope.setLocalValue("title", "测试报表，标题显示在右上角");
 
 File outputFile = getTargetFile("output.xlsx");
 output.generateToFile(outputFile, scope);
-````
+```
 
 可以通过scope对象向报表中传递变量。在报表表达式中即可使用这些变量，并且可以在【展开前】等处理阶段对这些变量进行进一步的加工、计算等。
 
 在【展开前】配置中可以使用xpl模板语言和XScript脚本语言来动态加工数据。
+
 * 可以使用import来引入Java类
 * 可以使用inject(beanName)引入IoC容器中定义的bean

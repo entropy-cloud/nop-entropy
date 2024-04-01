@@ -44,15 +44,15 @@ NopOrm中所有实体类都要求实现IOrmEntity接口，并提供了一个缺�
 
 [IOrmEntity](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/IOrmEntity.java)
 
-每一个column模型都具有一个唯一的propId属性，通过IOrmEntity.orm_propValue(int propId)方法可以代替反射机制来存取属性数据。
+每一个column模型都具有一个唯一的propId属性，通过IOrmEntity.orm\_propValue(int propId)方法可以代替反射机制来存取属性数据。
 
 所有集合属性都是OrmEntitySet类型，它实现了IOrmEntitySet接口。代码生成时实体的集合属性只会生成get方法，并不会生成set方法，从而杜绝了误用的可能。
 
 [IOrmEntitySet](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/IOrmEntitySet.java)
 
-自动生成代码时对每个实体会生成两个Java类，例如SimsExam和_SimsExam，_SimsExam类每次都会被自动覆盖，而SimsExam类如果已经存在则会保持原有内容，因此手工调整的代码可以写在SimsExam类中。参见
+自动生成代码时对每个实体会生成两个Java类，例如SimsExam和\_SimsExam，\_SimsExam类每次都会被自动覆盖，而SimsExam类如果已经存在则会保持原有内容，因此手工调整的代码可以写在SimsExam类中。参见
 
-[_SimsExam](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/test/java/io/nop/app/_gen/_SimsExam.java)
+[\_SimsExam](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/test/java/io/nop/app/_gen/_SimsExam.java)
 
 [SimsExam](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/test/java/io/nop/app/SimsExam.java)
 
@@ -122,8 +122,8 @@ NopOrm继承了Hibernate和Spring框架中一些非常优秀的设计：
 
 8. **敏感数据掩码**：用户的卡号和身份证号等敏感信息字段可以增加mask标签，从而在系统内部打印日志时自动对该字段值进行掩码处理，避免泄露到日志文件中。
 
-9. **组件逻辑复用**：一组相关的字段可能组成一个可以复用的组件，通过OrmComponent机制可以对这些逻辑进行复用。例如，数据库中的Decimal类型精度必须事先指定，但是客户要求必须按照输入时指定的精度来进行显示和计算，这要求我们在记录表中增加一个VALUE_SCALE字段来保留精度信息，但是当我们从数据库中取出值的时候我们又希望直接得到一个scale已经被设置为指定值的BigDecimal。NopOrm提供了一个FloatingScaleDecimal组件来完成这件工作。对于附件、附件列表等具有复杂关联逻辑的字段可以采用类似的方式进行封装。
-
+9. **组件逻辑复用**：一组相关的字段可能组成一个可以复用的组件，通过OrmComponent机制可以对这些逻辑进行复用。例如，数据库中的Decimal类型精度必须事先指定，但是客户要求必须按照输入时指定的精度来进行显示和计算，这要求我们在记录表中增加一个VALUE\_SCALE字段来保留精度信息，但是当我们从数据库中取出值的时候我们又希望直接得到一个scale已经被设置为指定值的BigDecimal。NopOrm提供了一个FloatingScaleDecimal组件来完成这件工作。对于附件、附件列表等具有复杂关联逻辑的字段可以采用类似的方式进行封装。
+   
    [FloatingScaleDecimal](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/support/FloatingScaleDecimal.java)
 
 与外围框架相结合，Nop平台还内置了更多常用的解决方案。比如
@@ -134,7 +134,7 @@ NopOrm继承了Hibernate和Spring框架中一些非常优秀的设计：
 
 3. **复制新建**：一个复杂的业务对象可以通过复制已有对象的方式新建。需要复制的字段可以通过类似GraphQL查询语法的方式指定。
 
-4. **字典表翻译**：前端显示的时候需要把statusId这样的字段通过字典表翻译为对应的显示文本，而且需要根据当前登录用户的locale设置选择对应的多语言版本。Nop平台在元编程阶段会自动发现所有配置了dict属性的字段，并自动为它们所对应的GraphQL描述增加一个关联的显示文本字段，例如根据statusId增加 statusId_text字段。前台GraphQL请求statusId_text字段即可得到字典表翻译后的结果，同时仍然可以通过statusId字段来获得字段原始的值。
+4. **字典表翻译**：前端显示的时候需要把statusId这样的字段通过字典表翻译为对应的显示文本，而且需要根据当前登录用户的locale设置选择对应的多语言版本。Nop平台在元编程阶段会自动发现所有配置了dict属性的字段，并自动为它们所对应的GraphQL描述增加一个关联的显示文本字段，例如根据statusId增加 statusId\_text字段。前台GraphQL请求statusId\_text字段即可得到字典表翻译后的结果，同时仍然可以通过statusId字段来获得字段原始的值。
 
 5. **批量导入导出**：可以通过上传CSV文件或者Excel文件的方式导入数据，导入时执行的逻辑与手工通过界面提交完全一致，并会自动校验数据权限。可以按照CSV或者Excel格式导出文件。
 
@@ -193,7 +193,7 @@ NopOrm通过Dialect模型来封装不同数据库之间的差异。
 
 参考上面的示例，mysql.dialect.xml和postgresql.dialect.xml均从default.dialect.xml继承。与Hibernate通过编程方式构造Dialect对象相比，使用dialect模型文件明显信息密度更高，表达形式更加直观。更重要的是，在postgresql.dialect.xml中可以清楚的识别出相对于default.dialect.xml所**增加、修改和减少**的配置。
 
-因为整个Nop平台的底层都是基于可逆计算原理构建的，因此dialect模型文件的解析和验证可以由通用的DslModelParser完成，同时自动支持Delta定制，即**在不修改default.dialect.xml文件，也不修改所有对default.dialect.xml文件的引用的情况下**（例如不需要修改postgresql.dialect.xml中的x:extends属性），我们可以在/_delta目录下增加一个default.dialect.xml文件，通过它来定制系统内置的模型文件。
+因为整个Nop平台的底层都是基于可逆计算原理构建的，因此dialect模型文件的解析和验证可以由通用的DslModelParser完成，同时自动支持Delta定制，即**在不修改default.dialect.xml文件，也不修改所有对default.dialect.xml文件的引用的情况下**（例如不需要修改postgresql.dialect.xml中的x:extends属性），我们可以在/\_delta目录下增加一个default.dialect.xml文件，通过它来定制系统内置的模型文件。
 
 ```xml
 <!-- /_delta/myapp/nop/dao/dialect/default.dialect.xml -->
@@ -343,7 +343,7 @@ from
 
 Hibernate会使用一条SQL语句把所有数据都取出来，代价就是需要多个表进行关联，并返回了大量冗余数据。
 
-这个问题是否还存在其他解决方案？从数据模型本身的结构来看, Customer -> orders -> details的嵌套结构是非常直观自然的，并没有什么问题，但是**问题出在我们只能按照对象结构定义好的方式去获取数据，而且我们只能逐个遍历对象结构**，从而导致产生大量数据查询语句。**如果我们能够绕过对象结构，直接通过某种方式获取到对象数据，并把它们在内存中按照需要的对象结构组织好，这个问题不就解决了吗？**
+这个问题是否还存在其他解决方案？从数据模型本身的结构来看, Customer -\> orders -\> details的嵌套结构是非常直观自然的，并没有什么问题，但是**问题出在我们只能按照对象结构定义好的方式去获取数据，而且我们只能逐个遍历对象结构**，从而导致产生大量数据查询语句。**如果我们能够绕过对象结构，直接通过某种方式获取到对象数据，并把它们在内存中按照需要的对象结构组织好，这个问题不就解决了吗？**
 
 ```java
 Customer customer = ...
@@ -407,7 +407,7 @@ where c.id = ?
 
 按照ORM的基本原理，虽然查询语句返回了很多重复的Customer和Order对象，但是因为它们的主键都相同，所以最后在内存中构造为对象时只会保留唯一一个实例。甚至如果此前已经装载过某个Customer或者Order对象的话，那么它的数据会以此前装载的结果为准，本次查询得到的数据会自动被忽略。
 
->  也就是说，ORM提供了一种类似数据库中[Repeatable Read事务隔离级别](https://zhuanlan.zhihu.com/p/150107974)的效果。当重复读取的时候只是读取到一个寂寞，ORM引擎只会保留第一次读取的结果。基于同样的原因，对于Load X, Update X , Load X的情况，第二次加载读到的数据会被自动丢弃，从而我们所观察到的总是第一次加载的结果，以及后续我们对实体所做的修改，这相当于是实现了[Read your writes这样的因果一致性](https://zhuanlan.zhihu.com/p/59119088)。
+> 也就是说，ORM提供了一种类似数据库中[Repeatable Read事务隔离级别](https://zhuanlan.zhihu.com/p/150107974)的效果。当重复读取的时候只是读取到一个寂寞，ORM引擎只会保留第一次读取的结果。基于同样的原因，对于Load X, Update X , Load X的情况，第二次加载读到的数据会被自动丢弃，从而我们所观察到的总是第一次加载的结果，以及后续我们对实体所做的修改，这相当于是实现了[Read your writes这样的因果一致性](https://zhuanlan.zhihu.com/p/59119088)。
 
 基于以上认知，EntityGraph的执行过程等价于如下调用
 
@@ -436,8 +436,8 @@ for(Order o: c.getOrders()){
 5. QueryBeanHelper.toPredicate(filter)可以将过滤条件转换为Predicate接口，从而在java中直接过滤。
 
 6. 通过FilterBeans中定义的and,eq等算子，结合代码生成时自动生成的属性名常量，我们可以实现如下编译期安全的构造方式。
-
-   filter = and(eq(PROP_NAME_myFld,"a"), gt(PROP_NAME_otherFld,3))
+   
+   filter = and(eq(PROP\_NAME\_myFld,"a"), gt(PROP\_NAME\_otherFld,3))
 
 QueryBuilder本质上是与ORM无关的，因为在完全脱离关系数据库和SQL语句的情况下，我们仍然可以使用Query模型。例如，在业务规则配置中
 
@@ -848,7 +848,7 @@ GraphQL与ORM本质上提供的是不同层面的信息结构。GraphQL是针对
 </meta>
 ```
 
-上面的例子中，propA属性将会被删除，因此GraphQL查询无法访问到该属性。同时内部的internalProp属性被重命名为propB，即GraphQL查询到propB时实际加载的是internalProp属性。propB配置了auth roles=admin，表示只有管理员才有权限访问该属性。schema中的dict配置表示它的值限定在字典表my.dict.yaml的范围内。在5.2节中，我们介绍了NopOrm中的字典表翻译机制：在元编程阶段，底层的引擎发现了dict设置，会自动生成一个propB_text字段，它将返回经过字典表翻译后得到的国际化文本。
+上面的例子中，propA属性将会被删除，因此GraphQL查询无法访问到该属性。同时内部的internalProp属性被重命名为propB，即GraphQL查询到propB时实际加载的是internalProp属性。propB配置了auth roles=admin，表示只有管理员才有权限访问该属性。schema中的dict配置表示它的值限定在字典表my.dict.yaml的范围内。在5.2节中，我们介绍了NopOrm中的字典表翻译机制：在元编程阶段，底层的引擎发现了dict设置，会自动生成一个propB\_text字段，它将返回经过字典表翻译后得到的国际化文本。
 
 对于最顶层的GraphQL对象，Nop平台会自动生成如下结构定义:
 
@@ -905,7 +905,7 @@ public class MyChildBizModel {
 
 BizModel中通过@BizQuery和@BizMutation来分别定义GraphQL Query和Mutation操作，GraphQL操作名称的格式为 `{bizObj}__{bizAction}`。同时，我们可以通过@BizLoader来增加GraphQL的fetcher定义，通过@ContextSource来引入GraphQL的父对象实例，通过@ReflectionName来标记argument，参数映射时会自动进行类型转换。
 
-> 如果BizModel中也定义了get/findPage等函数，则会覆盖缺省的MyObj__get等函数的实现。
+> 如果BizModel中也定义了get/findPage等函数，则会覆盖缺省的MyObj\_\_get等函数的实现。
 
 BizModel的设计空间中只存在业务对象、业务方法和业务参数的概念，它与GraphQL是完全解耦的，因此我们可以很容易的为BizModel提供REST服务绑定或者其他RPC调用接口标准的绑定。在我们的具体实现中，我们甚至为它提供了一个批处理文件的绑定，即后台批处理任务定期运行，解析批处理文件得到请求对象，然后调用BizModel执行业务逻辑，将返回对象作为结果写入到结果文件中。这其中设计的关键是实现批处理的优化，即批处理任务每批次处理100条记录，应该整个批次完全处理完毕之后再一次性更新数据库，而不是处理每个业务请求后都立刻更新数据库。借助于ORM引擎的session机制，这种批处理优化完全是免费附赠的。
 
@@ -925,10 +925,9 @@ NopOrm遵循可逆计算原理，可以通过Delta定制和元编程对底层模
 
 最后，对于能坚持看到这里的同学说一句，真的是太不容易了，真心为你的好学精神点个赞！
 
-
 基于可逆计算理论设计的低代码平台NopPlatform已开源：
 
 - gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 - github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
 - 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
-- [可逆计算原理和Nop平台介绍及答疑_哔哩哔哩_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
+- [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)

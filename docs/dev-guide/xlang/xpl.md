@@ -257,6 +257,7 @@ xpl标签既有返回值，又有输出。输出具有多种模式
 ```
 
 ## slot机制
+
 xpl模板标签的slot机制类似于Vue组件中的slot机制。
 
 ### 1. 在标签库中定义标签时声明slot
@@ -281,8 +282,7 @@ xpl模板标签的slot机制类似于Vue组件中的slot机制。
 
 * 在标签实现中通过`xpl:slot`属性来引用外部传入的slot实现，通过`xpl:slotArgs`向slot传递参数。具体能够传递哪些参数需要在slot定义时指定
 * `xpl:slot`可以标记在任何标签上，并不是只能标记在`c:unit`标签上。与vue的slot类似，当`xpl:slot`指定的slot不存在时，会继续执行该标签，否则会用slot替换该标签。
-也就是说`xpl:slot`所在的标签相当于是提供了slot的缺省值。
-
+  也就是说`xpl:slot`所在的标签相当于是提供了slot的缺省值。
 
 ### 2. 调用标签时指定slot
 
@@ -296,14 +296,16 @@ xpl模板标签的slot机制类似于Vue组件中的slot机制。
 
 * 调用标签时通过`xpl:slotScope`来引入`xpl:slotArgs`传入的参数，此时可以利用javascript的解构语法来给变量重命名。
 * 如果不写`xpl:slotScope`，实际上仍然可以访问到`xpl:slotArgs`传入的参数
-* slot编译为一个函数 slot_{name}, `xpl:slotArgs`就是向这个函数传递的参数，必须是一个Map。而在标签调用时指定的`xpl:slotScope`相当于是声明这个函数的参数列表，此时可以重命名参数
+* slot编译为一个函数 slot\_{name}, `xpl:slotArgs`就是向这个函数传递的参数，必须是一个Map。而在标签调用时指定的`xpl:slotScope`相当于是声明这个函数的参数列表，此时可以重命名参数
 
 换句话说：
+
 1. slot是将调用方的body内容，放入实现方的`xpl:slot`位置
 2. slotArgs 是实现方向调用方传递的参数，在调用方的body中，可以使用这些参数
 3. 调用方可以使用`xpl:slotScope` 来明确引入实现方的参数，同时可以重命名
 
 ### 3. 指定slotType=node
+
 缺省情况下slot的类型为renderer，编译为一个函数，这个函数的输出模式可以在slot上指定outputMode来定制。除了编译为函数之外，还可以将指定slotType=node，此时
 slot就保持XNode节点形式直接传入，而不会被转化为函数。此时也不能通过`xpl:slot="slotName"`来调用这个slot。
 
@@ -332,11 +334,13 @@ slot就保持XNode节点形式直接传入，而不会被转化为函数。此�
     </source>
 </Validator>
 ```
-* slot的`name=default`和`slotType=node`表示调用时整个标签的body作为XNode类型的节点对象，名称为slot_default
+
+* slot的`name=default`和`slotType=node`表示调用时整个标签的body作为XNode类型的节点对象，名称为slot\_default
 * Validator标签的`macro=true` 表示它是宏标签。它的source段在编译期会运行，输出的结果是一个表达式对象，然后再对该表达式对象进行编译。
   宏标签相当于是一种内嵌的代码生成器
 
 调用时
+
 ```xml
 <biz:Validator xpl:lib="/nop/core/xlib/biz.xlib" fatalSeverity="100"
                obj="${entity}">
@@ -353,9 +357,9 @@ slot就保持XNode节点形式直接传入，而不会被转化为函数。此�
 ## xpl专用属性
 
 XPL内置了一些通用属性，所有标签都可以指定这些属性。xpl属性的处理顺序为
-`xpl:enableNs` -->  `xpl:disableNs` --> `xpl:attrs` -> `xpl:frame` -> `xpl:decorator`
---> `xpl:lib` --> `xpl:outputMode` --> `xpl:is` --> `xpl:invert` --> `xpl:return`
---> `xpl:if`
+`xpl:enableNs` --\>  `xpl:disableNs` --\> `xpl:attrs` -\> `xpl:frame` -\> `xpl:decorator`
+\--\> `xpl:lib` --\> `xpl:outputMode` --\> `xpl:is` --\> `xpl:invert` --\> `xpl:return`
+\--\> `xpl:if`
 
 1. `xpl:disableNs`/`xpl:enableNs`
    `xpl:disableNs` 忽略指定的名字空间，不把它们看作是xpl标签库中的标签
@@ -486,6 +490,7 @@ XPL内置了一些通用属性，所有标签都可以指定这些属性。xpl�
 ```
 
 ## Xpl模板语言的意义
+
 xpl模板语言是XLang语言家族中的关键性成员，它的设计超越了现在所有的开源模板语言，特别是为元编程补充了大量语法特性。在XScript脚本语言中可以通过
 
 ```js

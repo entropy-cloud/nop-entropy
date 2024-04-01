@@ -10,7 +10,7 @@
 1. 普通字段的布局应该是 `字段名 - 字段值`，即字段名所在单元格的右侧为字段值
 2. 列表字段的字段名字段的下方为它的值的列表，列表的第一列必须是序号列，其中为数字格式。注意字段名所在的单元格必须能够覆盖它的所有列。
 
-# 配置
+## 配置
 
 * `registerShortName`：实体名为包含包名的全类名，如果`registerShortName`设置为`true`，则也可以通过去除包名的短类名来访问实体
 * `appName`：所有子模块的前缀名，**格式必须为 `xxx-yyy`，例如`nop-sys`**，它会自动成为虚拟文件系统中的两级子目录名，如，`src/resources/_vfs/nop/sys`，并且平台限制其只能为两级，以控制模块扫描的范围。Excel模型的名称应该与`appName`相同（即，Excel文件名称需命名为`${appName}.orm.xlsx`），否则自动生成`codegen`模块中的配置会不正确
@@ -23,7 +23,7 @@
 * `dialect`：生成对应数据库的建表语句，可以是逗号分隔的多个名称，例如 `mysql,oracle,postgresql`
 * `deltaDir`：仅在差量化数据模型中使用，用于指定生成到哪个delta定制目录下
 
-# 数据域
+## 数据域
 
 数据域(`domain`)的概念类似于PowerDesigner设计工具中的`domain`概念，它可以为反复出现的、具有一定业务含义的字段定义提供一个可以被复用的名称。
 
@@ -35,7 +35,7 @@
 
 4. 生成`meta`文件的时候，会自动生成为`schema`节点的`domain`属性。在前台布局引擎中会自动映射到`control.xlib`中定义的显示和编辑控件。例如 `domain=phone`会对应于控件`<edit-phone/>`
 
-# 字典表
+## 字典表
 
 ## 数据表作为字典表
 
@@ -69,7 +69,7 @@ public interface _AppMallDaoConstants {
 }
 ```
 
-# 数据表
+## 数据表
 
 表名会直接按照驼峰规则映射为GraphQL中的对象名，所以表名原则上需要全局唯一（不同模块之间的表名不应该冲突）。建议每个模块具有自己特殊的表名前缀，比如`litemall_xxx`,`nop_wf_xxx`等。
 Nop平台内置的表名都具有前缀`nop_`。
@@ -79,7 +79,7 @@ Nop平台内置的表名都具有前缀`nop_`。
 * `dict`：标记为字典表，其他地方可以通过`obj/{objName}`来将该表的数据作为字典表来使用
 * `mapper`：为该表生成类似MyBatis的Mapper定义文件和Mapper接口类。
 * `no-web`：后台使用的数据对象，不为它单独生成前台页面入口
-* `no-tenant`: 全局开启租户支持时，本表也不自动启用租户过滤，例如nop_auth_user表和nop_auth_tenant表
+* `no-tenant`: 全局开启租户支持时，本表也不自动启用租户过滤，例如nop\_auth\_user表和nop\_auth\_tenant表
 * `kv-table`：标记当前实体需要实现`IOrmKeyValueTable`接口。这个接口要求表中必须具有`fieldName`、`fieldType`、`stringValue`等字段，具体参考`nop_sys_ext_field`表的字段设计。
 * `use-ext-field`：为当前实体增加扩展字段支持，将扩展字段值以数据行的形式保存到`nop_sys_ext_field`表中。关于扩展字段详细介绍参见[ext-field.md](../orm/ext-field.md)
 * `many-to-many`：标注是多对多关联的中间表，根据此标签会在Java实体上生成多个帮助函数，用于自动处理多对多关联。参见[many-to-many.md](../orm/many-to-many.md)
@@ -90,8 +90,9 @@ Nop平台内置的表名都具有前缀`nop_`。
 ## 字段标签
 
 * `seq`：利用`SequenceGenerator`来自动生成主键，Nop内置实现类`UuidSequenceGenerator`和`SysSequenceGenerator`（在`/_vfs/nop/orm/beans/orm-defaults.beans.xml`中id为`nopSequenceGenerator`的bean上指定默认的生成器），当字段类型为字符串时，二者均默认生成UUID，若字段为数字，则默认生成随机数。如果`SysSequenceGenerator`禁用UUID，则其将使用`nop_sys_sequence`表来记录递增的整数序列，并在字段为字符串时取其字符串形式作为该字段的值。
-    在nop_sys_sequence表中，可以为每个实体指定自己的sequence，名称为{entityName}@{colPropName}
-* `seq-default`：与seq的区别在于，如果在nop_sys_sequence表中如果不存在针对指定实体字段的sequence，则会自动选择名称为default的sequence。配置项 `nop.sys.seq.default-seq-init-next-value` 可以设置名称为 default 的 sequence 的起始值，缺省为 `1`。
+  在nop\_sys\_sequence表中，可以为每个实体指定自己的sequence，名称为{entityName}@{colPropName}
+
+* `seq-default`：与seq的区别在于，如果在nop\_sys\_sequence表中如果不存在针对指定实体字段的sequence，则会自动选择名称为default的sequence。配置项 `nop.sys.seq.default-seq-init-next-value` 可以设置名称为 default 的 sequence 的起始值，缺省为 `1`。
 
 * `var`：表示随机生成的变量。在自动化测试框架中，这个字段将被记录为变量，录制到数据文件中时会被替换为变量名保存。例如`NopAuthUser`表的`userId`字段，新建用户时自动录制的`nop_auth_user.csv`中，`userId`列的值为 `@var:NopAuthUser@userId`
 

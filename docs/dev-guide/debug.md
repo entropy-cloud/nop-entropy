@@ -1,6 +1,7 @@
 # 开发调试
 
 ## debug模式
+
 设置nop.debug=true会开启debug模式，此时才会注册DevDoc等用于调试的后台服务。
 
 ## 错误定位
@@ -17,58 +18,63 @@ io.nop.api.core.exceptions.NopException: NopException[seq=4,status=-1,errorCode=
 以上异常表示
 
 1. add.page.yaml调用了web.xlib中的GenPage标签
-2. GenPage标签调用了page_simple.xpl
-3. page_simple.xpl在第7行调用了getFormSelection函数
+2. GenPage标签调用了page\_simple.xpl
+3. page\_simple.xpl在第7行调用了getFormSelection函数
 4. 在函数内部访问到LitemallGoods.view.xml模型文件，发现它的第114行的配置不正确。
 
 ## 日志信息
 
 1. 配置项信息
-如果设置了nop.debug=true，则系统启动的时候会打印所有配置参数的值以及所在的配置文件（因为可能存在多个配置文件，而且高优先级的文件会覆盖低优先级的文件）
-````
+   如果设置了nop.debug=true，则系统启动的时候会打印所有配置参数的值以及所在的配置文件（因为可能存在多个配置文件，而且高优先级的文件会覆盖低优先级的文件）
+
+```
 # [84:11:0:0]classpath:application.yaml
 quarkus.log.level=INFO
-````
+```
 
 2. 模型文件解析
-所有模型文件解析时都会打印日志，并且会打印解析花费时间
-````
+   所有模型文件解析时都会打印日志，并且会打印解析花费时间
+
+```
 2023-07-11 21:13:16,152 INFO  [io.nop.cor.res.com.par.AbstractResourceParser] (Quarkus Main Thread) nop.core.component.finish-parse-resource:usedTime=10,path=/nop/schema/beans.xdef,parser=class io.nop.core.lang.xml.parse.XNodeParser
-````
+```
 
 3. 动态装配的bean
-将io.nop.ioc的调试级别设置为debug，则系统启动的时候会打印出条件bean的执行情况。
-````
+   将io.nop.ioc的调试级别设置为debug，则系统启动的时候会打印出条件bean的执行情况。
+
+```
 quarkus:
   log:
     category:
       "io.nop":
         level: DEBUG
-````
+```
 
 NopIoC容器会先分析所有bean的存在条件，然后再创建bean。分析结果会打印到日志文件中。对于disabled的bean会打印出禁用的原因
 
-````
+```
 disabled-bean:id=nopLoginService
     loc=[15:6:0:0]/nop/auth/beans/sso-defaults.beans.xml,trace=null
     check-if-property-fail:nop.auth.sso.enabled=null
-````
+```
 
-在_dump目录下，/nop/main/beans/merged-app.beans.xml中输出了所有最终被激活的bean以及它们所对应的配置文件源码位置。
+在\_dump目录下，/nop/main/beans/merged-app.beans.xml中输出了所有最终被激活的bean以及它们所对应的配置文件源码位置。
 
 4. 数据库访问
-所有的数据库访问SQL都会记录在日志中，并且显示SQL执行时间
-````
+   所有的数据库访问SQL都会记录在日志中，并且显示SQL执行时间
+
+```
 2023-07-11 21:14:39,637 INFO  [io.nop.dao.jdb.imp.JdbcTemplateImpl] (Quarkus Main Thread) nop.jdbc.run:usedTime=1,querySpace=default,range=0,1,name=jdbc:null,sql=select o.SEQ_NAME as c1 
 from nop_sys_sequence as o 
  where o.DEL_FLAG =  0 
-```` 
+```
 
 5. 成功初始化
-Nop平台成功初始化之后会打印出初始化总共执行的时间，并且会打印banner
-````
+   Nop平台成功初始化之后会打印出初始化总共执行的时间，并且会打印banner
+
+```
 2023-07-11 21:14:40,562 INFO  [io.nop.cor.ini.CoreInitialization] (Quarkus Main Thread) nop.core.end-initialize:usedTime=87286
-````
+```
 
 ## 日志打印
 
@@ -78,7 +84,7 @@ Nop平台成功初始化之后会打印出初始化总共执行的时间，并�
  logInfo("nop.err.invalid-name:name={}",name);
 ```
 
- 第一个参数必须是静态字符串，不允许"sss"+yyy这种形式，从而也避免了log注入攻击。
+第一个参数必须是静态字符串，不允许"sss"+yyy这种形式，从而也避免了log注入攻击。
 
 2. 任意对象调用$函数都会导致打印调试语句
 
@@ -98,13 +104,14 @@ test为自定义前缀信息。 a.f()为待查看的表达式源码, `=> 1`表�
 > 可以在DebugHelper中加条件断点来调试Java源码
 
 3. 在xpl模板语言中
-````
+
+```
 <c:log info="${data}" />
-````
+```
 
 ## 模型dump
 
-Nop平台大量使用了元编程来动态生成代码，为了有效跟踪代码生成的细节过程，让最终运行代码片段的实际来源一目了然，Nop平台在调试模式下会自动输出合并后的结果模型文件到项目根目录下的_dump目录中。当我们启动应用程序后，可以看到`_dump`目录下存在大量输出文件
+Nop平台大量使用了元编程来动态生成代码，为了有效跟踪代码生成的细节过程，让最终运行代码片段的实际来源一目了然，Nop平台在调试模式下会自动输出合并后的结果模型文件到项目根目录下的\_dump目录中。当我们启动应用程序后，可以看到`_dump`目录下存在大量输出文件
 ![](model-dump.png)
 
 如果结果文件是由多个delta文件合并得来，则在结果文件中我们会看到每个来源节点/属性的源码位置信息。
@@ -122,7 +129,7 @@ Quarkus框架内置了graphql-ui调试工具。以调试模式启动应用之后
 
 ![](../tutorial/graphql-ui.png)
 
-# 常见问题
+## 常见问题
 
 ## 前端
 
@@ -135,8 +142,9 @@ Quarkus框架内置了graphql-ui调试工具。以调试模式启动应用之后
 ```
 
 ### 2. 上传文件时提示 415 Unsupported Media Type
+
 这是Quarkus框架报错，可以将quarkus.log.level设置为DEBUG。
-后端服务需要引入 
+后端服务需要引入
 
 ## 后端
 

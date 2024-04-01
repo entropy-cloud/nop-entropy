@@ -1,6 +1,8 @@
 # 配置
+
 1. 修改maven的settings文件
-````xml
+
+```xml
     <profile>
       <id>sonar</id>
       <activation>
@@ -12,10 +14,11 @@
         <sonar.scm.provider>git</sonar.scm.provider>
       </properties>
     </profile>
-````
+```
 
 2. 修改工程根目录的pom文件
-````xml
+
+```xml
 
 <pom>
     <properties>
@@ -85,6 +88,4 @@
         </profile>
     </profiles>
 </pom>
-````
-
-
+```

@@ -69,13 +69,13 @@ public class DemoBizModel {
 
 与springboot不同，Nop平台并不会通过类扫描来发现bean，所以需要在模块的beans目录下增加ioc配置文件。
 
-````xml
+```xml
 <!-- _vfs/nop/demo/beans/app-simple-demo.beans.xml -->
 <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
     <bean id="DemoBizModel" class="io.nop.demo.biz.DemoBizModel"/>
 </beans>
-````
+```
 
 `_vfs/nop/demo`目录下存在一个空文件`_module`，它标识`nop/demo`是一个Nop模块。Nop平台启动时会自动加载所有模块的beans目录下以`app-`为前缀的beans.xml
 配置文件。注意，并不是beans目录下的配置文件都会被加载，只有哪些以`app-`为前缀的beans.xml文件才会被自动加载。
@@ -160,5 +160,5 @@ service Demo{
 
 设置了nop.debug=true的时候，Nop平台会以调试模式启动。此时可以访问如下链接来获取所有服务定义：
 
-1. /p/DevDoc__graphql
-2. /p/DevDoc__beans
+1. /p/DevDoc\_\_graphql
+2. /p/DevDoc\_\_beans

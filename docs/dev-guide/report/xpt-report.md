@@ -81,11 +81,11 @@ xptRt.makeDs函数将一个列表数据包装为ReportDataSet对象，并设置�
 
 1. 在C3(占比)单元格中直接使用占比公式：=PROPORTION(B3)；占比：当前值占总值的比例
 
-2. 比较：当前值与第一个值做比较 计算公式为：当前值减去第一个值（C2/C2[A2:1]）
+2. 比较：当前值与第一个值做比较 计算公式为：当前值减去第一个值（C2/C2\[A2:1\]）
 
-3. 环比：当前值比上月份的值； 计算公式 IF(B4.expandIndex > 0 , C4 / C4[B4:-1] , '--') , B4为月份，C4为金额
+3. 环比：当前值比上月份的值； 计算公式 IF(B4.expandIndex \> 0 , C4 / C4\[B4:-1\] , '--') , B4为月份，C4为金额
 
-4. 单元格展开位置： A2.expandIndex 从0开始，对应于帆软表达式的 &A2
+4. 单元格展开位置： A2.expandIndex 从0开始，对应于帆软表达式的 \&A2
 
 5. 同期比：
 
@@ -107,6 +107,7 @@ xptRt.makeDs函数将一个列表数据包装为ReportDataSet对象，并设置�
 * ACCSUM: 累积汇总
 
 ## 导出Excel公式
+
 如果在Excel单元格中配置了Excel公式，则导出Excel的时候会将valueExpr转换为Excel公式输出。例如 SUM(A3)将可以经过报表展开后成为 SUM(A3:D5)
 
 对于复杂的层次坐标表达式，无法直接用Excel公式直接表达，则可以配置valueExpr,然后设置单元格的exportFormula=true。

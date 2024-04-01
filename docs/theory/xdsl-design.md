@@ -25,10 +25,10 @@ DSL的价值在于它所抽象出来的具有业务价值的领域语义空间�
 ```
 
 * 在模型文件的根节点上，我们通过`x:schema`来指定元模型定义文件。
+
 * [orm.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/orm.xdef)这个元模型使用[xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef)这个元元模型来定义。
 
 * xdef.xdef采用xdef.xdef自身来定义，所以我们不需要更高层次的元元元模型。
-
 
 ### 统一的元模型语言促进DSL之间的无缝嵌套
 
@@ -60,7 +60,6 @@ Nop平台提供了一个IDEA插件[nop-idea-plugin](https://gitee.com/canonical-
 
 `x:override`用于指定合并节点时所采用的合并策略，具体定义参见[可逆计算理论中的Delta合并算法](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/xlang/x-override.md)
 
-
 ## 四. 通过差量文件系统管理所有DSL文件
 
 Nop平台将所有的模型文件纳入统一的虚拟文件系统来管理。这个虚拟文件系统提供了类似Docker技术中UnionFS文件系统的功能，内部不同的目录构成不同的层，高层目录中的文件会自动覆盖低层目录中的相同虚拟路径下的文件。
@@ -71,7 +70,6 @@ Nop平台将所有的模型文件纳入统一的虚拟文件系统来管理。�
 * 可以将数据库表中保存的模型文件也映射到某个虚拟文件路径，比如wf:MyWf/1.0表示从数据库中的NopWfDefinition表中加载模型文件。
 
 借助于差量文件系统以及XDSL内置的Delta合并算法，我们可以实现系统级别的Delta定制机制，在完全不修改基础产品源代码的情况下，通过增加Delta模块实现对系统的数据模型、业务逻辑、前端界面等进行深度的定制调整，参见[如何在不修改基础产品源码的情况下实现定制化开发](https://zhuanlan.zhihu.com/p/628770810)
-
 
 ## 五. 通过统一的Loader来加载DSL模型
 

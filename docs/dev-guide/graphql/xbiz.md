@@ -3,6 +3,7 @@
 视频介绍：[Nop平台中如何通过XBiz配置文件实现后台服务函数](https://www.bilibili.com/video/BV1aN411B7Ju/)
 
 ## 代码生成
+
 缺省的代码生成模板会根据meta文件自动生成对应的xbiz模型文件，并且会自动引入biz-gen.xlib标签库，为CRUD操作生成缺省的函数参数声明。
 
 在xbiz文件中可以直接编写query,muation, loader等函数定义，它们会覆盖Java的BizModel中的相应函数实现。
@@ -11,9 +12,9 @@
 
 **XBiz中定义的函数优先级最高，如果与已有的函数同名，则会自动覆盖**
 
-例如NopAuthUser.xbiz中增加了一个active_findPage函数
+例如NopAuthUser.xbiz中增加了一个active\_findPage函数
 
-````xml
+```xml
 <query name="active_findPage" x:prototype="findPage">
 
     <source>
@@ -26,10 +27,11 @@
         </bo:DoFindPage>
     </source>
 </query>
-````
+```
 
 x:prototype="findPage"表示继承了缺省生成的findPage函数的参数定义。如果不继承，完整编写的函数如下：
-````xml
+
+```xml
 <query name="active_findPage">
     <arg name="query" type="io.nop.api.core.beans.query.QueryBean"/>
     <arg name="selection" type="io.nop.api.core.beans.FieldSelectionBean" kind="FieldSelection"/>
@@ -44,15 +46,15 @@ x:prototype="findPage"表示继承了缺省生成的findPage函数的参数定�
         </bo:DoFindPage>
     </source>
 </query>
-````
+```
 
 这个函数定义等价于在Java中定义函数
 
-````javascript
+```javascript
 
 @BizQuery
 public PageBean<NopAuthUser> active_findPage(@Name("query") QueryBean query, 
     FieldSelection selection, IServiceContext ctx){
     return ...    
 }
-````
+```

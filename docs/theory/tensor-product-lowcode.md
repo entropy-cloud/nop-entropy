@@ -85,7 +85,7 @@ f(\sum_i \lambda_i \mathbf u_i,\sum_j \beta_j \mathbf v_j)=
 \sum_{ij} \lambda_i \beta_j f(\mathbf u_i,\mathbf v_j)
 $$
 
-$f(\mathbf u_i,\mathbf v_j)$实际上等价于传入一个tuple，即 
+$f(\mathbf u_i,\mathbf v_j)$实际上等价于传入一个tuple，即
 
 $$
 f(\mathbf u_i, \mathbf v_j)\cong f(tuple(\mathbf u_i,\mathbf v_j)) \cong f(\mathbf u_i\otimes  \mathbf v_j )
@@ -107,20 +107,22 @@ $$
 
 $\mathbf u \otimes \mathbf v$被称作是向量$\mathbf u$和向量$\mathbf v$的张量积，它可以被看作是一个新的向量空间中的向量，这个空间就是所谓的张量空间，它的基是 $\mathbf u_i \otimes \mathbf v_j$。
 
-如果$\mathbf u \in U$ 是m维向量空间，而$\mathbf v \in V$是n维向量空间，则张量空间$U\otimes V$包含了所有形如$\sum _i T_{ij} \mathbf u_i \otimes \mathbf v_j$的向量，它对应于一个$m\times n$维的向量空间（它也被称为是$U$和$V$的张量积空间）。
+如果$\mathbf u \in U$ 是m维向量空间，而$\mathbf v \in V$是n维向量空间，则张量空间$U\otimes V$包含了所有形如\\sum _i T_{ij} \\mathbf u\_i \\otimes \\mathbf v\_j$的向量，它对应于一个$m\\times n$维的向量空间（它也被称为是$U$和$V的张量积空间）。
 
-> $U\otimes V$是由所有形如$\mathbf u\otimes \mathbf v$这样的张量积所张成的空间，这里的张成指的是线性张成，即这些向量的所有线性组合所构成的集合。这个空间中的元素比单纯的$\mathbf u \otimes \mathbf v$这种形式的向量要多，即不是所有张量空间中的向量都能写成$\mathbf u \otimes \mathbf v$的形式。例如 
+> $U\otimes V$是由所有形如$\mathbf u\otimes \mathbf v$这样的张量积所张成的空间，这里的张成指的是线性张成，即这些向量的所有线性组合所构成的集合。这个空间中的元素比单纯的$\mathbf u \otimes \mathbf v$这种形式的向量要多，即不是所有张量空间中的向量都能写成$\mathbf u \otimes \mathbf v$的形式。例如
 > 
 > $$
-> \begin{aligned}
- \mathbf u_1 \otimes \mathbf v_1 + 4 \mathbf u_1 \otimes \mathbf v_2 
- + 3 \mathbf u_2 \otimes \mathbf v_1 
- + 6 \mathbf u_2 \otimes \mathbf v_2 
- &= (2\mathbf u_1 + 3 \mathbf u_2)\otimes (\mathbf v_1 
- + 2 \mathbf v_2) \\
- &= 
- \mathbf u \otimes \mathbf v 
- \end{aligned}
+> \\begin{aligned}
+> \\mathbf u\_1 \\otimes \\mathbf v\_1 + 4 \\mathbf u\_1 \\otimes \\mathbf v\_2
+
+ + 3 \\mathbf u\_2 \\otimes \\mathbf v\_1
+ + 6 \\mathbf u\_2 \\otimes \\mathbf v\_2
+   \&= (2\\mathbf u\_1 + 3 \\mathbf u\_2)\\otimes (\\mathbf v\_1
+ + 2 \\mathbf v\_2) \\
+   \&=
+   \\mathbf u \\otimes \\mathbf v
+   \\end{aligned}
+
 > $$
 > 
 > 但是 $2 \mathbf u_1 \otimes \mathbf v_1 + 3 \mathbf u_2 \otimes \mathbf v_2$无法被分解为$\mathbf u \otimes \mathbf v$这种形式，只能保持线性组合的形式。
@@ -153,7 +155,7 @@ $$
 
 ## 三. Everything is Loader
 
-> 程序员问函数：汝从哪里来，欲往哪里去？ 
+> 程序员问函数：汝从哪里来，欲往哪里去？
 > 
 > 函数答曰：生于Loader，归于data
 
@@ -167,7 +169,7 @@ loader("f")(data)。很多框架、插件的设计都可以从这个角度去审
   
   $$
   Loader(beansFile\otimes beanName\otimes beanScope \otimes methodName)
-  $$
+$$
 
 * 插件系统
   
@@ -175,15 +177,15 @@ loader("f")(data)。很多框架、插件的设计都可以从这个角度去审
   
   $$
   Loader(extensionPoint \otimes methodName)
-  $$
+$$
 
 * 工作流：
   
-    getWorkflow(wfName).getStep(stepName).getAction(actionName).invoke(data)
+  getWorkflow(wfName).getStep(stepName).getAction(actionName).invoke(data)
   
   $$
   Loader(wfName\otimes stepName \otimes actionName)
-  $$
+$$
 
 当我们在系统的各个层面都识别出相似的Loader结构之后，一个有趣的问题是：这些Loader内在的一致性到底有多高？它们之间能不能复用代码？工作流引擎、IoC引擎、报表引擎、ORM引擎...，林林总总的引擎都需要加载自身特定的模型，它们目前大多是各自为战，能否抽象出一个**系统级的、统一的Loader**来负责模型加载？如果可以，那么具体有哪些公共逻辑可以在这个统一的Loader中实现？
 
@@ -398,7 +400,7 @@ interface ExcelModelParser{
    它可以完全不涉及到任何运行时框架，可以成为多阶段编译的上游部分。可逆计算为领域特定语言、领域特定模型的构造、编译、转换等提供了一系列的基础架构支撑。
    只要使用可逆计算内置的合并操作和动态生成操作，即可以通用的方式实现领域模型的分解、合并、抽象。这种机制既可以用于后端的Workflow和BizRule, 也可以应用于前端页面。同样的，它可以应用于AI模型，分布式计算模型等。唯一的要求就是，这些模型需要以某种结构化的Tree形式来表达。比如，将这一技术应用于k8s，本质上与k8s目前力推的kustomize完全一致。[https://zhuanlan.zhihu.com/p/64153956](https://zhuanlan.zhihu.com/p/64153956)
 
-3. 任何根据名称加载数据、对象、结构的接口，例如loader、resolver、require等函数，都可以成为可逆计算的切入点。 表面上看起来路径名已经是最简单的、无内在结构的原子概念，但可逆计算指出任何量都是差量计算的结果，都存在内在的演化动力。我们可以不把路径名被看作是指向一个静态对象的符号，而把它看作是指向一个计算结果的符号，一个指向可能的未来世界的符号。 Path -> Possible Path -> Possible Model
+3. 任何根据名称加载数据、对象、结构的接口，例如loader、resolver、require等函数，都可以成为可逆计算的切入点。 表面上看起来路径名已经是最简单的、无内在结构的原子概念，但可逆计算指出任何量都是差量计算的结果，都存在内在的演化动力。我们可以不把路径名被看作是指向一个静态对象的符号，而把它看作是指向一个计算结果的符号，一个指向可能的未来世界的符号。 Path -\> Possible Path -\> Possible Model
 
 ## 小结
 
@@ -408,9 +410,9 @@ interface ExcelModelParser{
 
 2. 多重线性系统可以化归为线性系统
 
-3. 线性系统的核心是 Loader:: Path -> Model
+3. 线性系统的核心是 Loader:: Path -\> Model
 
-4. Loader可以扩展为 Possible Path -> Possible Model，加载 = 合成
+4. Loader可以扩展为 Possible Path -\> Possible Model，加载 = 合成
 
 5. 可逆计算理论提供了更加深刻的理论解释
 
@@ -418,5 +420,5 @@ interface ExcelModelParser{
 
 - gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 - github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md) 
-- [可逆计算原理和Nop平台介绍及答疑_哔哩哔哩_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
+- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)

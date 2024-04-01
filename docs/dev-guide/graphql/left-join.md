@@ -2,7 +2,7 @@
 
 QueryBean中增加了leftJoinProps集合属性，这里指定的属性会转换为左连接语法。
 
-````json
+```json
 {
   "leftJoinProps": [
     "dept"
@@ -14,15 +14,15 @@ QueryBean中增加了leftJoinProps集合属性，这里指定的属性会转换�
   }
 }
 
-````
+```
 
 翻译成EQL对象查询时会变为
 
-````sql
+```sql
 select o 
 from MyEntity o left join o.dept
 where o.dept.name = 'a'
-````
+```
 
 ## 安全性控制
 

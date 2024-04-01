@@ -1,4 +1,4 @@
-## 一. 数据驱动测试
+# 一. 数据驱动测试
 
 NopAutoTest测试框架是一个数据驱动的测试框架，这意味着一般情况下我们不需要编写任何准备输入数据和校验输出结果的代码，只需要编写一个骨架函数，并提供一批测试数据文件即可。具体来看一个示例
 
@@ -29,7 +29,7 @@ class TestLoginApi extends JunitAutoTestCase {
 
 调用被测函数之后，通过output(fileName, result)将结果数据保存到外部数据文件中，而不是编写结果校验代码。
 
-### 1.1 录制模式
+## 1.1 录制模式
 
 testLogin在录制模式下执行时会生成如下数据文件
 
@@ -79,15 +79,15 @@ TestLoginApi
 
 可以注意到，accessToken和refreshToken已经被自动替换为了变量匹配表达式。这一过程完全不需要程序员手工介入。
 
-至于录制得到的nop_auth_session.csv，它的内容如下
+至于录制得到的nop\_auth\_session.csv，它的内容如下
 
 ```csv
 _chgType,SID,USER_ID,LOGIN_ADDR,LOGIN_DEVICE,LOGIN_APP,LOGIN_OS,LOGIN_TIME,LOGIN_TYPE,LOGOUT_TIME,LOGOUT_TYPE,LOGIN_STATUS,LAST_ACCESS_TIME,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME,REMARK
 A,@var:NopAuthSession@sid,067e0f1a03cf4ae28f71b606de700716,,,,,@var:NopAuthSession@loginTime,1,,,,,0,autotest-ref,*,autotest-ref,*,
 ```
 
-第一列_chgType表示数据变更类型，A-新增，U-修改,D-删除。随机生成的主键已经被替换为变量匹配表达式`@var:NopAuthSession@sid`
-。同时，根据ORM模型所提供的信息，createTime字段和updateTime字段为簿记字段，它们不参与数据匹配校验，因此被替换为了*，表示匹配任意值。
+第一列\_chgType表示数据变更类型，A-新增，U-修改,D-删除。随机生成的主键已经被替换为变量匹配表达式`@var:NopAuthSession@sid`
+。同时，根据ORM模型所提供的信息，createTime字段和updateTime字段为簿记字段，它们不参与数据匹配校验，因此被替换为了\*，表示匹配任意值。
 
 ### 1.2 验证模式
 
@@ -95,7 +95,7 @@ A,@var:NopAuthSession@sid,067e0f1a03cf4ae28f71b606de700716,,,,,@var:NopAuthSessi
 在验证模式下，测试用例在setUp阶段会执行如下操作:
 
 1. 调整jdbcUrl等配置，强制使用本地内存数据库（H2）
-2. 装载input/init_vars.json5文件，初始化变量环境（可选）
+2. 装载input/init\_vars.json5文件，初始化变量环境（可选）
 3. 收集input/tables和output/tables目录下对应的表名，根据ORM模型生成对应建表语句并执行
 4. 执行input目录下的所有xxx.sql脚本文件，对新建的数据库进行自定义的初始化（可选）。
 5. 将input/tables目录下的数据插入到数据库中
@@ -113,7 +113,7 @@ public void testXXXThrowException(){
 在teardown阶段，测试用例会自动执行如下操作：
 
 1. 比较output/tables中定义的数据变化与当前数据库中的状态，确定它们是否吻合。
-2. 执行sql_check.yaml文件中定义的校验SQL，并和期待的结果进行比较（可选）。
+2. 执行sql\_check.yaml文件中定义的校验SQL，并和期待的结果进行比较（可选）。
 
 ### 1.3 测试更新
 
@@ -132,8 +132,8 @@ public void testLogin(){
 在上一节中，用于匹配的数据模板文件中匹配条件只包含固定值和变量表达式`@var:xx`
 两种，其中变量表达式采用了所谓的前缀引导语法（详细介绍可以参加我的文章[DSL分层语法设计及前缀引导语法](https://zhuanlan.zhihu.com/p/548314138)
 ），这是一种可扩展的领域特定语法（DSL）设计。首先，我们注意到`@var:`前缀可以被扩展为更多情况，例如 `@ge:3`
-表示大于等于3。第二，这是一种开放式的设计。**
-我们随时可以增加更多的语法支持，而且可以确保它们之间不会出现语法冲突**。第三，这是一种局域化的嵌入式语法设计，`String->DSL`
+表示大于等于3。第二，这是一种开放式的设计。\*\*
+我们随时可以增加更多的语法支持，而且可以确保它们之间不会出现语法冲突\*\*。第三，这是一种局域化的嵌入式语法设计，`String->DSL`
 这一转换可以将任意字符串增强为可执行的表达式，例如在csv文件中表示字段匹配条件。我们来看一个更加复杂的匹配配置
 
 ```json
@@ -245,7 +245,7 @@ public void testLoginLogout(){
         }
 ```
 
-其中2_userRequest.json5中的内容为
+其中2\_userRequest.json5中的内容为
 
 ```json
 {
@@ -411,7 +411,7 @@ SID, AMOUNT
 在测试类上可以通过@NopTestConfig注解控制测试用例中的初始化过程。使用@NopTestConfig注解需要从JunitAutoTestCase或者JunitBaseTestCase类继承。
 这两个基类的区别在于JunitBaseTestCase不是使用录制回放机制，仅仅是启动NopIoC容器。
 
-````java
+```java
 public @interface NopTestConfig {
     /**
      * 是否强制设置nop.datasource.jdbc-url为h2内存数据库
@@ -464,16 +464,16 @@ public @interface NopTestConfig {
 
     boolean initDatabaseSchema() default false;
 }
-````
+```
 
 ### @NopTestProperty
 
 在测试类上可以通过@NopTestProperty注解直接指定专门针对本测试类的配置项，这样可以不用修改application.yaml文件，例如
 
-````java
+```java
 @NopTestProperty(name="my.xxx",value="true")
 @NopTestProperty(name="my.yyy",value="123")
 class MyTestCase extends JunitBaseTestCase{
 
 }
-````
+```

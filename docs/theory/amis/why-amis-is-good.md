@@ -6,9 +6,9 @@ AMIS内置的组件主要是后台管理软件常用的组件，但是它的设�
 
 > AMIS的代码实现质量并不算高，特别是因为它的发展时间较长，导致内部实现中冗余代码较多，存在很大的可改进空间。最近一两年，百度投入了一定的资源对AMIS进行了比较大的代码重构，整体情况还在持续改进的过程中。本文主要是在概念设计层面所做的一些分析，不涉及到具体实现层面的代码。
 
-# 一. Env: 环境抽象
+## 一. Env: 环境抽象
 
-  AMIS与其他开源低代码框架的第一个显著的区别就是，它显式定义了[环境抽象Env](https://aisuda.bce.baidu.com/amis/zh-CN/docs/start/getting-started#%E6%8E%A7%E5%88%B6-amis-%E7%9A%84%E8%A1%8C%E4%B8%BA)，其中包含了输入、输出相关以及页面跳转相关的所有执行逻辑。这一设计极大降低了AMIS框架的集成难度，使得它可以很容易插入到其他的底层界面框架中。例如，在Nop平台中，我们使用Vue3.0开发主界面框架，通过Vue Router实现单页跳转，而在具体页面或者某个嵌入组件的实现上，我们可以使用基于React技术的AMIS来实现。
+AMIS与其他开源低代码框架的第一个显著的区别就是，它显式定义了[环境抽象Env](https://aisuda.bce.baidu.com/amis/zh-CN/docs/start/getting-started#%E6%8E%A7%E5%88%B6-amis-%E7%9A%84%E8%A1%8C%E4%B8%BA)，其中包含了输入、输出相关以及页面跳转相关的所有执行逻辑。这一设计极大降低了AMIS框架的集成难度，使得它可以很容易插入到其他的底层界面框架中。例如，在Nop平台中，我们使用Vue3.0开发主界面框架，通过Vue Router实现单页跳转，而在具体页面或者某个嵌入组件的实现上，我们可以使用基于React技术的AMIS来实现。
 
 ```javascript
  const env = {
@@ -44,7 +44,7 @@ AMIS内置的组件主要是后台管理软件常用的组件，但是它的设�
 
 所有的输入、输出动作都被虚拟化之后，output = AmisPage(Input)，AMIS页面就可以被看作是某种影响范围受限的局部处理函数，很容易被编织到外部的业务处理流程中。
 
-# 二. Api: 值与函数的对偶
+## 二. Api: 值与函数的对偶
 
 对于远程服务调用的封装，AMIS框架提供了一个描述式的定义方式，即所谓的[Api对象](https://aisuda.bce.baidu.com/amis/zh-CN/docs/types/api)。
 
@@ -177,7 +177,7 @@ function handleChange(value){
 
 第一个下拉选择控件的name为a，表示它的选择值对应于上下文环境中的名称为a的变量，下拉选择控件可以看作是这一变量的查看器和修改器。另一个select控件的source属性对应于一个Api类型的对象，它通过数据绑定表达式监听了变量a的变化，当a发生变化的时候，会自动执行ajax调用获取到新的下拉选项列表。
 
-如果我们**不只是关注单次事件触发的函数调用过程**，而是强调整体结构，**观察应用运行的完整过程**，我们会发现它的结构为 "...数据 -->函数 --> 数据 --> 函数 --> 数据 ..."。**这样一个信息传递网络具有两种对偶的观察视角。一种是"函数-->数据-->函数"，另一种是"数据--> 函数--> 数据"**。我们可以将信息流解释为函数调用其他函数，调用时传递函数参数，也可以解释为数据发生变化后触发响应函数产生新的数据。
+如果我们**不只是关注单次事件触发的函数调用过程**，而是强调整体结构，**观察应用运行的完整过程**，我们会发现它的结构为 "...数据 --\>函数 --\> 数据 --\> 函数 --\> 数据 ..."。**这样一个信息传递网络具有两种对偶的观察视角。一种是"函数--\>数据--\>函数"，另一种是"数据--\> 函数--\> 数据"**。我们可以将信息流解释为函数调用其他函数，调用时传递函数参数，也可以解释为数据发生变化后触发响应函数产生新的数据。
 
 > 具有副作用的void函数，本质上并不是没有返回值，而是改变了某些未被显式表达的状态变量。
 
@@ -550,7 +550,7 @@ dataProvider函数中可以通过data属性来访问data参数数据，通过调
 
 在一种理想的响应式前端框架中，我们可以期待绑定组件的属性值时，可以使用静态值，动态表达式，响应式Ref引用，或者具有状态跟踪功能的异步Api对象（流数据）。但是，目前在AMIS的实现中我们做不到这一点，所以select控件设置静态配置的选项列表时使用options属性，而如果需要动态获取选项列表时需要使用一个单独定义的source属性。这也意味着控件的哪些属性支持异步Api调用目前是需要逐个控件单独去实现的。
 
-# 三. 数据链: 状态树与词法作用域
+## 三. 数据链: 状态树与词法作用域
 
 在Vue3.0之前，Vuex框架为vue组件提供了整个应用层面的单一状态树管理。
 
@@ -611,7 +611,7 @@ AMIS中专门提供了一个[Combo组件](https://aisuda.bce.baidu.com/amis/zh-C
 
 1. canAccessSuperData属性可以控制不访问父级数据域中的数据
 
-2. 通过重置data中的数据为__undefined来覆盖父级数据域中的值。
+2. 通过重置data中的数据为\_\_undefined来覆盖父级数据域中的值。
    
    ```javascript
    {
@@ -624,7 +624,7 @@ AMIS中专门提供了一个[Combo组件](https://aisuda.bce.baidu.com/amis/zh-C
    }
    ```
 
-# 四. 表单：验证与联动
+## 四. 表单：验证与联动
 
 表单字段模型相当于是在原有业务字段值的基础上，增加一些额外的功能，例如：
 
@@ -807,7 +807,7 @@ AMIS对组件的reload语义进行了规范化，所以Formula组件、Service�
 
 在AMIS最新的action触发设计中，componentId只支持id绝对定义，而不支持按照name进行相对定位，这应该是设计上的一种倒退。没有相对定位，在我们对多个页面进行组合的时候，很容易出现冲突的情况。如果使用完全无意义的uuid，则会难以支持手工编写，从DSL退化为可视化编辑器的附属物。
 
-# 五. Action: 动作触发与编配
+## 五. Action: 动作触发与编配
 
 [Action行为按钮](https://aisuda.bce.baidu.com/amis/zh-CN/components/action)是触发页面行为的最常见的方式。AMIS中的Action组件和外部的容器组件相互配合，内置了大量前端页面模型相关的知识，有效减少了一般应用场景中的配置工作量。
 首先，Action组件内置了常见的处理工作流：
@@ -913,7 +913,7 @@ Action也可以用于触发对话框的弹出，基本调用结构为
 }
 ```
 
-上面的例子中演示了在一个输入框旁增加一个附加按钮[设置]，点击后弹出一个表单，在表单中录入信息后，点击表单中的按钮将把信息复制到下面的输入框中，并自动关闭对话框。
+上面的例子中演示了在一个输入框旁增加一个附加按钮\[设置\]，点击后弹出一个表单，在表单中录入信息后，点击表单中的按钮将把信息复制到下面的输入框中，并自动关闭对话框。
 
 无论在框架中内置多么复杂的动作处理流，对于变换莫测的业务需求而言都是不充分的。AMIS在1.7.0版本之后增加了[事件动作](https://aisuda.bce.baidu.com/amis/zh-CN/docs/concepts/event-action)机制，允许在一次事件响应的过程中执行多个自定义的动作，而且**这些动作可以并行、串行、异步执行，可以执行循环和分支选择，具有前后依赖关系，相当于是实现了一个小型的逻辑流编配系统**。
 
@@ -943,7 +943,7 @@ Action也可以用于触发对话框的弹出，基本调用结构为
 
 AMIS提供了actionType=loop/break/continue/switch/parallel等多种流程控制指令。后续动作会自动等待前一个动作执行完毕后再执行。http 请求动作执行结束后，后面的动作可以通过 `${responseResult}`或`${{outputVar}}`来获取请求响应结果。
 
-# 六. Nop平台中的扩展
+## 六. Nop平台中的扩展
 
 Nop平台是基于可逆计算原理从零开始构建的、面向DSL开发的新一代低代码开发平台。它的前端可以使用任何基于JSON格式或者XML格式的渲染层。此前我考察过国外的[Appsmith](https://www.appsmith.com/)，阿里的[LowCodeEngine](https://lowcode-engine.cn/index)等技术，但是最后还是选择AMIS作为示例，因为集成其他的技术都需要更多的工作，也受到更多的限制。
 
@@ -1149,6 +1149,7 @@ AMIS的JSON格式，可以很容易的被读取和处理。因此很多结构变
 Nop平台中对JSON提供了统一的i18n字符串替换机制，它规定了如下两种方式：
 
 1. 使用前缀引导语法识别并替换所有具有`@i18n:`的值
+
 2. 为每个需要被国际化的key，增加对应的`@i18n:key`属性
    例如
    
@@ -1181,7 +1182,7 @@ AMIS底层是基于React技术开发，而Nop平台的前端主要基于Vue3.0�
 }
 ```
 
-# 总结
+## 总结
 
 百度AMIS框架是一个设计精巧，集成难度很低的低代码前端框架。Nop平台在AMIS框架的基础上做了一定的改进和扩展，为一些常见问题提供了相应的解决方案。 Nop平台对于AMIS的封装代码已经上传到gitee
 [nop-chaos](https://gitee.com/canonical-entropy/nop-chaos.git)
@@ -1191,5 +1192,5 @@ Nop平台的开源地址：
 
 - gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 - github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md) 
-- [可逆计算原理和Nop平台介绍及答疑_哔哩哔哩_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
+- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)

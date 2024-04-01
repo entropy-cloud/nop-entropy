@@ -20,7 +20,7 @@ model = ResourceComponentManager.instance().loadComponentModel(resourcePath)
 
 > 参考[custom-model.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/model/custom-model.md)可以配置文件类型所对应的模型加载器
 
-对于/nop/auth/model/NopAuthUser/NopAuthUser.xmeta文件，我们可以增加一个`/_delta/default/nop/auth/model/NopAutUser/NopAuthUser.xmeta`文件，装载时优先查找的是_delta目录下的文件。缺省启用的是default这个delta层，我们可以通过nop.core.vfs.delta-layer-ids参数来明确指定启用的delta层列表，也就是说，**Delta定制是可以是多层的**，而不是Skyve这种单层的Delta定制。
+对于/nop/auth/model/NopAuthUser/NopAuthUser.xmeta文件，我们可以增加一个`/_delta/default/nop/auth/model/NopAutUser/NopAuthUser.xmeta`文件，装载时优先查找的是\_delta目录下的文件。缺省启用的是default这个delta层，我们可以通过nop.core.vfs.delta-layer-ids参数来明确指定启用的delta层列表，也就是说，**Delta定制是可以是多层的**，而不是Skyve这种单层的Delta定制。
 
 > 在历史上我们使用过三层定制： platform -- 定制和修正平台内置功能， product --基础产品通用功能，app -- 特定应用定制功能
 
@@ -440,8 +440,7 @@ Nop平台的开源地址：
 
 - gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 - github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md) 
-- [可逆计算原理和Nop平台介绍及答疑_哔哩哔哩_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
-
+- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
 
 建议Skyvue将模型定制的逻辑进行标准化，这样在增加新的模型类型的时候不需要FileSystemRepository

@@ -13,7 +13,7 @@ AST的元编程机制，而XLang除了引入宏函数用于生成XLang AST之外
 这样的差量生成机制，可以在模型解析、加载的过程中动态生成模型差量再自动实现差量合并，
 从而创造了一种新的软件结构复用手段，解决了很多在传统编程范式下难以处理的技术问题。在本文中，我将简单介绍一下Nop平台中所内置的这些元编程机制。
 
-# 宏函数
+## 宏函数
 
 XLang语言中也定义了类似Lisp宏的宏函数。所谓宏函数是在编译期执行，自动生成Expression抽象语法树节点的函数。
 
@@ -22,57 +22,57 @@ XLang语言中也定义了类似Lisp宏的宏函数。所谓宏函数是在编�
 
 > EvalGlobalRegistry.instance().registerStaticFunctions(GlobalFunctions.class) 会将类中的所有静态函数注册为XScript脚本语言中可用的全局函数
 
-````javascript
+```javascript
     @Macro
     public static Expression xpl(@Name("scope") IXLangCompileScope scope, @Name("expr") CallExpression expr) {
         return TemplateMacroImpls.xpl(scope, expr);
     }
-````
+```
 
 宏函数的第一个参数必须是IXLangCompileScope类型，第二个参数必须是CallExpression类型，返回值必须是Expression类型。
 
 编译宏函数的时候，会把函数调用所对应的AST作为CallExpression传入。例如
 
-````
+```
 let result = xpl `<c:if test="${x}">aaa</c:if>`
-````
+```
 
 编译xpl宏函数的时候CallExpression的第一个参数是TemplateStringLiteral，也就是上面调用中的XML文本 `<c:if test="${x}">aaa</c:if>`。
 在宏函数中我们可以自行解析这个XML文本，然后构造出新的Expression对象返回。
 
-利用宏函数机制，结合XScript语言中的TemplateStringLiteral，我们可以很容易的将不同语法格式的DSL嵌入到XScript语言中。例如，*
-*提供类似C# LinQ的SQL查询语法**。
+利用宏函数机制，结合XScript语言中的TemplateStringLiteral，我们可以很容易的将不同语法格式的DSL嵌入到XScript语言中。例如，\*
+*提供类似C# LinQ的SQL查询语法*\*。
 
-````
+```
 let result = linq `select ff from myObject o  where o.value > 3`
-````
+```
 
 目前在Nop平台中，内置了如下宏函数
 
-| 函数名       | 说明                                                                  |
-|-----------|---------------------------------------------------------------------|
-| xml       | 解析XML文本得到XNode节点，并包装为LiteralExpression                              |
-| xpl       | 解析Xpl模板文本得到Expression                                               |
-| sql       | 解析Xpl模板文本得到生成SQL语句的Expression                                       |
-| jpath     | 解析json path得到JPath对象，并包装为LiteralExpression                          |
-| xpath     | 解析 XSelector文本得到XSeletor对象，并包装为LiteralExpression                    |
-| selection | 解析类似GraphQL Query的对象属性选择文本得到 FieldSelection对象，并包装为LiteralExpression |
-| order_by  | 解析 order by语句片段，得到List<OrderFieldBean>对象，并包装为LiteralExpression      |
-| location  | 返回调用函数所在的源码位置，并包装为LiteralExpression                                 | 
-| IF        | 实现类似Excel公式中IF函数的功能                                                 |
-| SWITCH    | 实现类似Excel公式中SWITCH函数的功能                                             | 
+|函数名|说明|
+|---|---|
+|xml|解析XML文本得到XNode节点，并包装为LiteralExpression|
+|xpl|解析Xpl模板文本得到Expression|
+|sql|解析Xpl模板文本得到生成SQL语句的Expression|
+|jpath|解析json path得到JPath对象，并包装为LiteralExpression|
+|xpath|解析 XSelector文本得到XSeletor对象，并包装为LiteralExpression|
+|selection|解析类似GraphQL Query的对象属性选择文本得到 FieldSelection对象，并包装为LiteralExpression|
+|order\_by|解析 order by语句片段，得到List<OrderFieldBean>对象，并包装为LiteralExpression|
+|location|返回调用函数所在的源码位置，并包装为LiteralExpression|
+|IF|实现类似Excel公式中IF函数的功能|
+|SWITCH|实现类似Excel公式中SWITCH函数的功能|
 
 因为宏函数在编译期执行，因此用宏函数来实现解析功能可以优化系统执行性能。例如从XNode中读取子节点a的b属性时
 
-````
+```
   node.selectOne(xpath `a/@b`) 
-````
+```
 
 因为xpath是一个宏函数，所以它在编译期就会完成解析，在运行期相当于是传送一个常量对象给selectOne函数。
 
 通过宏函数可以实现自定义的语法结构，例如IF(X,Y,Z)会被转换为if语句。
 
-# 面向代码生成的Xpl模板语言
+## 面向代码生成的Xpl模板语言
 
 Xpl模板语言是XLang语言的一部分，它采用XML格式，包含`<c:if>`和`<c:for>`
 等图灵完备的逻辑运算语法规则。**XML格式的模板语言可以实现Lisp同像性，即代码的格式与生成的数据的格式相同**。
@@ -83,64 +83,64 @@ Xpl模板语言为了支持代码生成，它提供了多种输出模式：
 1. node模式：输出XNode节点。**这种方式会保留源代码位置信息**，即在最终得到的结果中我们可以知道每个属性和节点到底是那一段源码生成的。
 2. xml模式：输出XML文本，自动对属性和文本内容进行XML转义。
 3. html模式：输出XHTML文本，除`<br/>`等少数标签之外，大部分标签都采用完整格式输出，即总是输出`<div></div>`而不会输出`<div/>`
-3. text模式：不允许输出节点和属性，只允许输出文本内容，而且不需要进行XML转义。
-4. xjson模式：输出XNode节点自动按照固定规则转换为JSON对象。
-4. sql模式：输出SQL语句，对于表达式输出结果，自动变换为SQL参数
+4. text模式：不允许输出节点和属性，只允许输出文本内容，而且不需要进行XML转义。
+5. xjson模式：输出XNode节点自动按照固定规则转换为JSON对象。
+6. sql模式：输出SQL语句，对于表达式输出结果，自动变换为SQL参数
 
 例如对于以下SQL输出，
 
-````
+```
 <filter:sql>
   o.id in (select o.id from MyTable o where o.id = ${entity.id}) 
 </filter:sql> 
-````
+```
 
 实际会生成 `o.id in (select o.id from MyTable o where o.id = ? )`，表达式的值不会直接拼接到SQL文本中，而是会被替换为SQL参数。
 
-# 编译期表达式
+## 编译期表达式
 
 Xpl模板语言内置了`<macro:gen>`和`<macro:script>`等标签，它们会在编译期自动执行。
 
 * `<macro:script>`表示在编译期执行表达式，比如可以在编译期动态解析Excel模型文件得到一个模型对象等
 
-````xml
+```xml
 
 <macro:script>
     import test.MyModelHelper;
 
     const myModel = MyModelHelper.loadModel('/nop/test/test.my-model.xlsx');
 </macro:script>
-````
+```
 
 得到编译期变量之后，后续表达式可以使用编译期表达式来访问该对象，例如 `#{myModel.myFunc(3)}`
 
 * 编译期表达式采用 `#{expr}`这种形式。编译期表达式会在编译到该表达式的时候立刻执行，直接保留到运行期的是它的返回结果。
-* 在普通的表达式中可以使用编译期表达式，例如 ${ x > #{MyConstants.MIN_VALUE} }
+* 在普通的表达式中可以使用编译期表达式，例如 ${ x \> #{MyConstants.MIN\_VALUE} }
 * Xpl模板语言在编译期时会自动执行编译期表达式，并根据执行结果进行优化，例如`<div xpl:if="#{false}>` 在编译期可以获知xpl:
   if的值是false，此节点会被自动删除。
 
 `<macro:gen>`的内容是Xpl模板语法，它会先编译body，再执行body，收集输出结果，然后再编译生成的结果。而`<macro:script>`
 的内容是XScript语法，并且它会丢弃返回结果
 
-# 自定义宏标签
+## 自定义宏标签
 
 Xpl模板语言中的标签库中可以定义宏标签。宏标签与普通标签的区别在于，宏标签的source段在编译之后会立刻执行，然后再收集执行过程中输出的内容进行编译。
 
 比如，我们可以定义一个宏标签`<sql:filter>`,它可以实现如下结构变换
 
-````xml
+```xml
 
 <sql:filter>and o.fld = :param</sql:filter>
         变换为
 <c:if test="${!_.isEmpty(param)}">
 and o.fld = ${param}
 </c:if>
-````
+```
 
 具体实现在[sql.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/sql.xlib)
 标签库中
 
-````xml
+```xml
 
 <filter macro="true" outputMode="node">
     <slot name="default" slotType="node"/>
@@ -162,7 +162,7 @@ and o.fld = ${param}
         </c:if>
     </source>
 </filter>
-````
+```
 
 上述的宏标签会对节点内容进行结构变换，生成`<c:if>`节点，然后模板引擎会再对输出的`<c:if>`节点进行编译，效果等价于手工编写对应节点。
 
@@ -170,13 +170,13 @@ and o.fld = ${param}
 * `xpl:ignoreTag`表示不将当前节点以及子节点识别为xpl标签，将`<c:if>`直接作为普通XML节点输出。
 * `test="${'$'}{$cond}"`中的表达式会被识别，执行表达式后生成`test="${cond}"`
 
-** 宏标签类似于Lisp语言中的宏，它提供了一种简易的AST语法树变换机制，相当于是一种内嵌的代码生成器 **
+\*\* 宏标签类似于Lisp语言中的宏，它提供了一种简易的AST语法树变换机制，相当于是一种内嵌的代码生成器 \*\*
 
-# 编译得到AST
+## 编译得到AST
 
 通过`<c:ast>`标签可以得到内容部分所对应的抽象语法树（Expression类型）。
 
-````xml
+```xml
 
 <Validator ignoreUnknownAttrs="true" macro="true">
 
@@ -211,9 +211,9 @@ and o.fld = ${param}
                 ]]></c:script>
     </source>
 </Validator>
-````
+```
 
-* 宏标签的source段在编译的时候执行， BizValidatorHelper.parseValidator(slot_default)
+* 宏标签的source段在编译的时候执行， BizValidatorHelper.parseValidator(slot\_default)
   表示解析标签节点得到ValidatorModel对象（这个对象是在编译期存在）。
 * 在XScript脚本语言（语法类似TypeScript）中，可以通过xpl模板函数来嵌入XML格式的Xpl模板代码。
 * ast = xpl `<c:ast>...</c:ast>` 表示执行xpl模板函数，`<c:ast>`表示仅仅是得到它的子节点所对应的AST语法树，而不是执行其中的内容
@@ -224,12 +224,12 @@ and o.fld = ${param}
 * `<attr name="obj" runtime="true">`
   表示obj属性为运行时属性，在source段中它对应于一个Expression，而不是它的值。如果没有标记runtime=true，则在source段中可以使用，但是因为宏标签的source段是在编译期运行，所以调用时属性值只能是固定值或者编译期表达式。
 
-````xml
+```xml
 
 <biz:Validator obj="${entity}"/>
-````
+```
 
-# XDSL的差量生成与合并机制
+## XDSL的差量生成与合并机制
 
 Nop平台中所有的DSL都支持x-extends差量合并机制，通过它实现了可逆计算理论所要求的计算模式
 
@@ -263,7 +263,7 @@ F x-extends E x-extends model x-extends D x-extends C x-extends B x-extends A
 借助于`x:extends`和`x:gen-extends`
 我们可以有效的实现DSL的分解和组合。具体介绍参见 [XDSL：通用的领域特定语言设计](https://zhuanlan.zhihu.com/p/612512300)
 
-# 数据驱动的差量化代码生成器
+## 数据驱动的差量化代码生成器
 
 为了在系统级别实现可逆计算理论所要求的软件构造模式，Nop平台提供了一个数据驱动的差量化代码生成器XCodeGenerator。
 
@@ -271,9 +271,9 @@ F x-extends E x-extends model x-extends D x-extends C x-extends B x-extends A
 
 XCodeGenerator的做法与传统的代码生成器不同，它将模板路径看作是一种微格式的DSL，把判断和循环逻辑编码在路径格式中，从而由模板自身的组织结构来控制代码生成过程。例如
 
-````
+```
 /src/{package.name}/{model.webEnabled}{model.name}Controller.java.xgen
-````
+```
 
 以上模式可以表示遍历package下的每个model，对每个webEnabled属性设置为true的Model都生成一个Controller.java类。
 

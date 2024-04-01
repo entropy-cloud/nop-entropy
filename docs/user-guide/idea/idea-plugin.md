@@ -2,7 +2,7 @@
 
 在Nop平台中，所有的DSL都采用XML语法格式，使用统一的xdef元模型来提供规范化的形式约束和基本的属性语义。基于xdef元模型，我们可以实现统一的语法提示、关联分析、断点调试等功能，而无需针对每个DSL语言单独编写IDE插件。
 
->  插件的编译、安装可以参考文档： [idea.md](../../dev-guide/ide/idea.md)
+> 插件的编译、安装可以参考文档： [idea.md](../../dev-guide/ide/idea.md)
 
 ## DSL语法格式
 
@@ -48,10 +48,10 @@ XLang DSL采用XML格式，根节点上必须通过x:schema属性来指定所对
 
 为了调试XLang，需要引入nop-xlang-debugger模块
 
-````xml
+```xml
 <dependency>
     <groupId>io.github.entropy-cloud</groupId>
     <artifactId>nop-xlang-debugger</artifactId>
     <version>2.0.0-SNAPSHOT</version>
 </dependency>
-````
+```

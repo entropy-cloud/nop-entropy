@@ -11,7 +11,7 @@ NopRule是一个非常轻量级的规则引擎，它可以嵌入在Java程序内
 
 与NopReport报表引擎类似，NopRule可以使用Excel作为可视化设计工具，直接导入Excel格式的规则模型，极大简化了业务规则的设计和使用。
 
-# 一. 使用方式
+## 一. 使用方式
 
 仿照nop-quarks-demo工程中的做法，在pom文件中可以引入如下模块
 
@@ -88,7 +88,7 @@ assertEquals("Roastbeef", output.get("dish"));
 
 点击提交按钮之后，会弹出结果显示页，其中**包含了返回的输出变量集合，以及规则执行过程中产生的详细日志信息，从中可以看出具体规则节点的匹配顺序和匹配结果**。
 
-# 二. 配置
+## 二. 配置
 
 ## 2.1 Excel模型配置
 
@@ -152,7 +152,7 @@ Excel规则模型必须包含两个Sheet，其中Rule表单配置决策规则，
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/images/config-online.png)
 
-# 三. 设计原理
+## 三. 设计原理
 
 在Nop平台的整体设计中，NopRule负责的是对复杂判断逻辑的抽象，这其中最核心的部分是Filter模型
 
@@ -162,7 +162,7 @@ Excel规则模型必须包含两个Sheet，其中Rule表单配置决策规则，
 
 filter模型由[filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/query/filter.xdef)元模型来定义，它可以用于描述复杂的and/or条件
 
-````xml
+```xml
 <and>
     <or>
         <eq name="status" value="1" />
@@ -170,14 +170,14 @@ filter模型由[filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blo
     </or>
     <gt name="amount" value="3" />
 </and>
-````
+```
 
 1. Nop平台在所有需要表达判断条件的地方都统一使用Filter模型,在Java程序中对应ITreeBean类型
 2. 利用XML和JSON的双向转换，Filter模型可以保存为XML格式或者JSON格式
 3. Nop平台中高级查询使用的就是Filter模型，后台通过[FilterBeanToSQLTransformer](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/lang/sql/FilterBeanToSQLTransformer.java)类将它转换为SQL语句
 4. 前端AMIS的ConditionBuilder控件可以将复杂判断条件保存为Condition对象。[ConditionExprHelper](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-web-page/src/main/java/io/nop/web/page/condition/ConditionExprHelper.java)负责实现Condition和Filter模型之间的双向转换。
 5. Filter模型可以通过[FilterBeanToPredicateTransformer](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rule/nop-rule-core/src/main/java/io/nop/rule/core/model/compile/FilterBeanToPredicateTransformer.java)编译得到IEvalPredicate接口，直接在内存中执行过滤逻辑，
-6. Filter模型也可以通过[FilterBeanEvaluator](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/model/query/FilterBeanEvaluator.java)在内存中执行 
+6. Filter模型也可以通过[FilterBeanEvaluator](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/model/query/FilterBeanEvaluator.java)在内存中执行
 7. Filter模型与表达式语言Expression之间可以利用[FilterBeanExpressionCompiler](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/xpl/tags/FilterBeanExpressionCompiler.java)和[ExpressionToFilterBeanTransformer](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/expr/filter/ExpressionToFilterBeanTransformer.java)进行可逆转换，
 
 ## 3.2 Schema模型
@@ -195,24 +195,23 @@ Nop平台提供了Excel数据模型和Java领域模型对象之间的双向转�
 
 * NopRule在解析Excel格式的规则模式时，对于Config表单页的解析就是使用的标准Excel转换技术。
 
-````
+```
  RuleModel rule = ImportModelHelper.parseSheet(sheetModel, configSheet, compileTool, scope, RuleModel.class);
-````
+```
 
 * NopRule使用Excel格式的API模型来定义对外服务接口，自动生成对应的接口定义和服务框架类，参见[nop-rule.api.xlsx](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rule/model/nop-rule.api.xlsx)
 
-# 总结
+## 总结
 
 NopRule的实现采用了Nop平台的基本技术战略：
+
 1. 通过元模型来定义领域模型
 2. 尽量通过自动推导实现模型之间的双向转换，减少硬编码
 3. 通过复用底层的通用模型，如Filter、Expression等，我们可以快速组装出更复杂的领域模型，如规则模型
-
-
 
 基于可逆计算理论设计的低代码平台NopPlatform已开源：
 
 - gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 - github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md) 
-- [可逆计算原理和Nop平台介绍及答疑_哔哩哔哩_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
+- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)

@@ -5,7 +5,7 @@ QueryBean提供了复杂查询条件封装，它所支持的查询操作符可�
 
 ## 1. 复杂查询条件
 
-````javascript
+```javascript
 // MyBatisPlus
 LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
 wrapper.eq(User::getUsername, "张三")
@@ -35,11 +35,11 @@ List<User> userList = dao.findPageByQuery(query);
 
 // 如果只查询一条记录
 User user = dao.findFirstByQuery(query);
-````
+```
 
 ## 2. 仅根据等于条件进行查询
 
-`````javascript
+```javascript
 User example = new User();
 user.setStatus(10);
 
@@ -47,31 +47,31 @@ IEntityDao<User> dao = daoProvider.daoFor(User.class);
 List<User> userList = dao.findAllByExample(example);
 User user = dao.findFirstbyExample(example);
 long count = dao.countByExample(example);
-`````
+```
 
 ## 3. 嵌入子查询
 
-``````javascript
+```javascript
 QueryBean query = new QueryBean();
 query.addFilter(SQL.begin("o.id in (select y.xx from tbl y where y.id=?", 3).end().asFilter());
 dao.findPageByQuery(query);
-``````
+```
 
 ## 4. 联表查询
 
 如果按照主表上的字段进行查询，可以直接使用复合属性，在NopORM引擎中，o.product.productType.name这种复合属性会自动根据主外键关联配置生成关联表查询语句
 
-````
+```
 QueryBean query = new QueryBean();
 query.addFiler(eq("product.productType.name","abc"));
 dao.findFirstByQuery(query);
-````
+```
 
 如果需要按照子表中的属性查找主表对象，可以使用上一节中介绍的子查询过滤，也可以直接使用EQL查询语言
 
-````
+```
 select distinct o.book from BookAuthor o where o.author.name like '张%'
-````
+```
 
 以上查询语句根据作者的名称查找他所写过的书, BookAuthor是一个关联表，通过o.author.name实现对author表的关联查询，而通过o.book返回关联的书籍对象。
 
@@ -95,7 +95,7 @@ Nop平台非常强调同一种模型信息存在多种表达形式，并且这�
 
 * 在xbiz模型中实现查询函数
 
-``````xml
+```xml
 
 <query name="active_findPage">
     <source>
@@ -106,24 +106,24 @@ Nop平台非常强调同一种模型信息存在多种表达形式，并且这�
         </bo:FindPage>
     </source>
 </query>
-``````
+```
 
 bo.xlib中提供了对CrudBizModel中doFindPage等函数的封装
 
 * 在sql-lib中定义SQL语句
   sql-lib提供了类似MyBatis的SQL管理功能，可以通过SqlMapper接口来调用sql-lib中管理的sql语句，也可以直接通过SqlLibManager来调用
 
-````java
+```java
 
 @SqlLibMapper("/app/mall/sql/LitemallGoods.sql-lib.xml")
 public interface LitemallGoodsMapper {
     void syncCartProduct(@Name("product") LitemallGoodsProduct product);
 }
-````
+```
 
 在LitmallGoods.sql-lib.xml中
 
-````xml
+```xml
 
 <sql-lib>
     <sqls>
@@ -141,7 +141,7 @@ public interface LitemallGoodsMapper {
         </eql>
     </sqls>
 </sql-lib>
-````
+```
 
 其中eql表示使用EQL对象查询语法，它使用实体名、属性名来访问数据，语法与SQL类似，但是支持复合属性，例如 o.product.type
 会自动识别外键关联，并转换为关联查询条件。
@@ -151,7 +151,7 @@ public interface LitemallGoodsMapper {
 * 在数据权限配置中使用
   在/nop/main/auth/app.data-auth.xml文件中配置数据权限
 
-````xml
+```xml
 
 <data-auth>
     <objs>
@@ -166,23 +166,23 @@ public interface LitemallGoodsMapper {
         </obj>
     </objs>
 </data-auth>
-````
+```
 
 在xpl模板语言中，我们引入自定义标签来简化Filter的编写，例如
 
-````xml
+```xml
 
 <and>
     <eq name="status" value="1"/>
     <app:FilterByTask/>
 </and>
-````
+```
 
 `<app:FilterByTask>`是一个自定义标签，它只要能够输出一个符合格式要求的XML节点即可（实际上是XNode类型，它实现了ITreeBean接口）。
 
 也可以增加动态判断条件
 
-````
+```
 <bo:FindPage>
   <filter>
      <c:if test="${request.status}">
@@ -190,7 +190,7 @@ public interface LitemallGoodsMapper {
      </c:if>
   </filter>
 </bo:FindPage>
-````
+```
 
 也可以利用元编程机制简化标签编写,例如 `<sql:filter>`是一个宏标签，它在编译期执行，相当于是对源码结构进行变换
 
@@ -201,12 +201,12 @@ public interface LitemallGoodsMapper {
 
 等价于手写如下代码
 
-````xml
+```xml
 
 <c:if test="${!_.isEmpty(myVar)}">
     and o.classId = ${myVar}
 </c:if>
-````
+```
 
 ## SingleSession支持
 
@@ -220,7 +220,7 @@ NopGraphQL引擎执行时已经自动开启了OrmSession，所以一般的业务
 
 如果要手工打开session，可以采用如下方法
 
-````javascript
+```javascript
 
 @Inject
 IOrmTemplate ormTemplate;
@@ -228,11 +228,11 @@ IOrmTemplate ormTemplate;
 ormTemplate.runInSession(session->{
   ...
 })
-````
+```
 
 事务管理类似
 
-````javascript
+```javascript
 
 @Inject
 ITransactionTemplate transactionTemplate;
@@ -240,4 +240,4 @@ ITransactionTemplate transactionTemplate;
 transactionTemplate.runInTransaction(txn->{
    ...
 })
-````
+```

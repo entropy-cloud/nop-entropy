@@ -8,7 +8,7 @@ nop-chaos前端项目中所有nop平台相关的代码都集中在`@nop-chaos/sd
 
 ## 1. 引入nop-sdk模块
 
-````
+```
 "@nop-chaos/sdk": "file:./nop-sdk",
 "react": "^18.0.0",
 "react-dom": "^18.0.0",
@@ -16,17 +16,16 @@ nop-chaos前端项目中所有nop平台相关的代码都集中在`@nop-chaos/sd
 "amis-core": "^3.4.0",
 "amis-formula": "^3.4.0",
 "amis-ui": "^3.4.0",
-````
+```
 
 [nop-sdk](https://gitee.com/canonical-entropy/nop-chaos/tree/master/nop-sdk)是`@nop-chaos/sdk`模块打包后的结果。直接将它拷贝到目标工程中。
 `file:./nop-sdk`表示模块代码在当前目录的nop-sdk子目录中。
 
-
-# 2. 实现adapter
+## 2. 实现adapter
 
 在[src/nop/initNopApp.ts](https://gitee.com/canonical-entropy/nop-chaos/blob/master/packages/nop-site/src/nop/initNopApp.ts)文件中为适配器接口提供实现，实现nop-sdk集成。
 
-````javascript
+```javascript
 // 调试器使用了element的组件
 import 'element-plus/dist/index.css'
 
@@ -72,11 +71,11 @@ export function initNopApp(app: App) {
     app.component("XuiPage", XuiPage)
     ...
 }
-````
+```
 
 ## 3. 在main.ts中加入对initNopApp的调用
 
-````javascript
+```javascript
 
 import {initNopApp} from '@/nop/initNopApp'
 
@@ -85,13 +84,13 @@ const app = createApp(App)
 initNopApp(app)
 
 app.mount('#app')
-````
+```
 
 ## 4. 在主页面上增加AmisToast控件，用于弹出错误消息
 
 一般在App.vue页面中增加控件
 
-````javascript
+```javascript
 <template>
   <ConfigProvider :locale="getAntdLocale">
     <AmisToast theme="cxd"/>
@@ -104,4 +103,4 @@ app.mount('#app')
   ...
   import {AmisToast} from '@nop-chaos/sdk'
 </script>
-````
+```

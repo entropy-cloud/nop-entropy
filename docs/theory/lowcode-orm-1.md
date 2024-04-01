@@ -70,7 +70,7 @@ where c.d = 3
 
 ## 二. EQL = SQL + AutoJoin
 
-关于ORM引擎，长期以来一直存在的一种批评的声音是：对象查询语法限制很大，特别是对非主外键关联的多表联合查询支持很差，不支持任意表之间的任意关联，也不支持select * from (select xxx)这样的以子查询为数据源的查询语句等。但是，这个问题到底是ORM引擎本质上存在的问题，还是Hibernate这种具体实现所存在的问题？
+关于ORM引擎，长期以来一直存在的一种批评的声音是：对象查询语法限制很大，特别是对非主外键关联的多表联合查询支持很差，不支持任意表之间的任意关联，也不支持select \* from (select xxx)这样的以子查询为数据源的查询语句等。但是，这个问题到底是ORM引擎本质上存在的问题，还是Hibernate这种具体实现所存在的问题？
 
 根据上一节的理论分析，能够充分利用对象关联关系的对象查询语言是ORM引擎的本质性价值之一，那么实现这一本质性价值的**最小化的对象查询语言**应该是什么？NopOrm引擎中的对象查询语言EQL(Entity Query Language)被定义为**SQL语言的超集**，它是在SQL查询语法的基础上（理论上可以支持所有SQL语法）增加一个最小化的对象关联属性扩展。EQL放弃了所有Hibernate所引入的对象特有的查询语法，仅仅是增加了对a.b.c这样的属性关联语法的处理，因此它在使用上非常类似传统的SQL语言，可以很自然的支持如下查询语句:
 
@@ -185,7 +185,7 @@ extField的模型定义中指定了notGenCode=true，它表示根据orm.xml模�
 
 如果我们不需要生成代码，则可以通过className属性为实体指定实现类为io.nop.orm.support.DynamicOrmEntity，从而将所有字段都作为动态属性来存取。
 
-在Nop平台中内置支持了类似于Ruby语言的MethodMissing机制，允许为对象动态增加属性。在Java代码中，我们可以通过BeanTool.getProperty(entity,"extField")或者entity.prop_get("extField")来获得动态属性的值。
+在Nop平台中内置支持了类似于Ruby语言的MethodMissing机制，允许为对象动态增加属性。在Java代码中，我们可以通过BeanTool.getProperty(entity,"extField")或者entity.prop\_get("extField")来获得动态属性的值。
 
 Nop平台内置的脚本语言XScript识别IPropGetMissingHook和IPropSetMissingHook扩展接口，因此在脚本代码或者表达式语言中访问动态实体属性时，形式与访问普通属性相同。
 
@@ -363,7 +363,7 @@ where f.fieldName = 'fldA' and f.stringValue = 'a'
 </entity>
 ```
 
-上面的示例中所有的实体数据都存放在统一的GLOBAL_STORE_TABLE表中，其中为了存放MyEntity实体的数据，entityName这一列的值被设置为固定的字符串`"MyEntity"`。同时value1和value2被重命名为name和amount。VALUE2属性在数据库中的类型是VARCHAR，在java中的类型是Integer，通过指定stdDataType属性我们可以明确区分这两个层面的数据类型，并且自动实现两者之间的转换。基于上面的定义，我们可以像访问普通数据库表一样使用EQL语法来查询
+上面的示例中所有的实体数据都存放在统一的GLOBAL\_STORE\_TABLE表中，其中为了存放MyEntity实体的数据，entityName这一列的值被设置为固定的字符串`"MyEntity"`。同时value1和value2被重命名为name和amount。VALUE2属性在数据库中的类型是VARCHAR，在java中的类型是Integer，通过指定stdDataType属性我们可以明确区分这两个层面的数据类型，并且自动实现两者之间的转换。基于上面的定义，我们可以像访问普通数据库表一样使用EQL语法来查询
 
 ```sql
 select * from MyEntity o where o.name = 'a' and o.amount > 3
@@ -414,11 +414,9 @@ Predicate<Object> filter = QueryBeanHelper.toPredicate(
 
 [从张量积看低代码平台的设计](https://zhuanlan.zhihu.com/p/531474176)
 
-
-
 基于可逆计算理论设计的低代码平台NopPlatform已开源：
 
 - gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 - github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md) 
-- [可逆计算原理和Nop平台介绍及答疑_哔哩哔哩_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
+- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)

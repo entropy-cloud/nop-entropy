@@ -5,16 +5,17 @@ Nop平台提供了标准化的对象元数据模型XMeta，所有需要定义对
 * XMeta和XDef可以相互转换。XDef对应于XML结构，而XMeta对应于对象属性结构
 * NopGraphQL会根据XMeta配置生成对外暴露的GraphQL类型。
 
-# 实体元数据
+## 实体元数据
 
 Nop平台的代码生成器会自动根据ORM模型为每个实体生成一个对应的XMeta文件，每个实体属性都会对应生成一个对象prop配置，在此基础上还会根据一对多、多对多等关联配置生成生成一些辅助属性。
 
 > 缺省配置下会使用/nop/template/meta模板生成到{appName}-meta模块中。
 
 ## 对象配置
+
 对象级别存在如下配置
 
-````xml
+```xml
 <meta>
     <entityName xdef:value="string"/>
 
@@ -51,7 +52,7 @@ Nop平台的代码生成器会自动根据ORM模型为每个实体生成一个�
     <tree isLeafProp="string" parentProp="!string" childrenProp="string"
           levelProp="string" rootLevelValue="string" xdef:name="ObjTreeModel"/>
 </meta>
-````
+```
 
 * entityName指定对应的实体名称。如果没有对应于ORM层面的实体对象，则这里可以为空。meta元数据并不是只能应用于数据库实体
 * primaryKey指定主键字段列表。如果没有主键，则可以为空
@@ -65,29 +66,29 @@ Nop平台的代码生成器会自动根据ORM模型为每个实体生成一个�
 
 prop节点支持如下属性配置：
 
-| 名称               | 缺省值           | 说明                                                                             |
-|------------------|---------------|--------------------------------------------------------------------------------|
-| tagSet           |               | 逗号分隔的扩展标签，在代码生成时会使用                                                            |
-| published        | true          | 是否发布为GraphQL属性，可以通过服务访问                                                        |
-| readable         | true          | 是否可以作为返回值返回。readable=false一般是作为输入数据使用，只允许提交，而不允许查看                             |
-| insertable       | true          | 是否允许save操作的参数中包含此属性                                                            |
-| updatable        | true          | 是否允许通过update操作修改此属性                                                            |                                       
-| queryable        | false         | 是否允许在查询条件中包含此属性                                                                |
-| sortable         | false         | 是否允许按照此属性进行排序                                                                  |
-| lazy             | false         | 利用REST协议访问实体对象时是否缺省不返回此属性                                                      |
-| allowFilterOp    |               | 允许针对此字段执行哪些查询运算，例如gt,ge,contains,like等，缺省只允许in,eq                              |
-| ui:filterOp      | eq            | 生成前台查询表单时缺省按照什么查询运算生成查询条件                                                      |
-| ui:control       |               | 可以直接指定缺省使用哪种控件来展现此属性，在control.xlib中会根据这里的配置查找实际对应的控件                           |
-| ui:labelProp     |               | 如果指定了labelProp，则生成表单和表格时查看模式下实际显示的是label字段, GraphQL每次请求也会多返回label字段用于前台显示      | 
-| ui:maskPattern   |               | 如果指定了掩码模式，则GraphQL返回前台的数据会自动调用StringHelper.maskPattern函数进行掩码操作                 |
-| biz:codeRule     |               | 如果指定了编码规则，则新建实体的时候如果前台没有提交编码值，则会根据编码规则名称查找编码规则配置自动生成一个编码                       |
-| ui:maxUploadSize |               | 文件上传时最大允许的文件大小，可以是20M这种写法                                                      |
-| ui:editGrid      | sub-grid-edit | 对于子表集合属性，如果tagSet中包含grid标签，则表示在新建和修改时使用嵌入表格来编辑子表，主子表同时提交。通过此参数指定使用子表的哪个表格配置来编辑 |
-| ui:viewGrid      | sub-grid-view | 对于子表集合属性，指定使用子表的哪个表格配置来展现数据                                                    |
+|名称|缺省值|说明|
+|---|---|---|
+|tagSet||逗号分隔的扩展标签，在代码生成时会使用|
+|published|true|是否发布为GraphQL属性，可以通过服务访问|
+|readable|true|是否可以作为返回值返回。readable=false一般是作为输入数据使用，只允许提交，而不允许查看|
+|insertable|true|是否允许save操作的参数中包含此属性|
+|updatable|true|是否允许通过update操作修改此属性|
+|queryable|false|是否允许在查询条件中包含此属性|
+|sortable|false|是否允许按照此属性进行排序|
+|lazy|false|利用REST协议访问实体对象时是否缺省不返回此属性|
+|allowFilterOp||允许针对此字段执行哪些查询运算，例如gt,ge,contains,like等，缺省只允许in,eq|
+|ui:filterOp|eq|生成前台查询表单时缺省按照什么查询运算生成查询条件|
+|ui:control||可以直接指定缺省使用哪种控件来展现此属性，在control.xlib中会根据这里的配置查找实际对应的控件|
+|ui:labelProp||如果指定了labelProp，则生成表单和表格时查看模式下实际显示的是label字段, GraphQL每次请求也会多返回label字段用于前台显示|
+|ui:maskPattern||如果指定了掩码模式，则GraphQL返回前台的数据会自动调用StringHelper.maskPattern函数进行掩码操作|
+|biz:codeRule||如果指定了编码规则，则新建实体的时候如果前台没有提交编码值，则会根据编码规则名称查找编码规则配置自动生成一个编码|
+|ui:maxUploadSize||文件上传时最大允许的文件大小，可以是20M这种写法|
+|ui:editGrid|sub-grid-edit|对于子表集合属性，如果tagSet中包含grid标签，则表示在新建和修改时使用嵌入表格来编辑子表，主子表同时提交。通过此参数指定使用子表的哪个表格配置来编辑|
+|ui:viewGrid|sub-grid-view|对于子表集合属性，指定使用子表的哪个表格配置来展现数据|
 
 prop还具有如下节点配置：
 
-````xml
+```xml
 
 <prop>
     <!--
@@ -122,7 +123,7 @@ prop还具有如下节点配置：
     <!--对外部传入的值进行处理，可能会设置entity对象的属性-->
     <setter xdef:value="xpl"/>
 </prop>
-````
+```
 
 * 通过auth配置可以指定字段级别的权限控制规则。read和write可以具有不同的权限设置
 * 通过arg配置可以设置GraphQL协议所支持的请求参数。也就是说prop实际可能对应的是一个支持请求参数的动态属性函数。
@@ -133,16 +134,16 @@ prop还具有如下节点配置：
 
 ui:filterOp实际对应前端生成的控件的name格式为 `filter_{name}__{filterOp}`，例如`filter_userStatus__in`
 
-
-# 对象元数据
+## 对象元数据
 
 xmeta文件定义了后台服务对象的元数据，描述了对象具有哪些属性，以及这些属性是否可以修改，是否可以查询等信息。
 NopGraphQL引擎返回的对象信息完全由XMeta来定义。如果一个属性在XMeta中没有定义，则即使实体上具有这个字段，前台GraphQL和REST请求也无法访问到该字段。
 
 ## 定义关联属性
+
 实体模型中的关联对象生成到XMeta模型中体现为如下配置
 
-````
+```
 <props>
   <prop name="parent">
     <schema bizObjName="NopAuthDepartment" />
@@ -154,7 +155,7 @@ NopGraphQL引擎返回的对象信息完全由XMeta来定义。如果一个属�
      </schema>
   </prop>
 </props>
-````
+```
 
 * schema如果具有item，则表示是集合属性，集合元素的类型由 item节点的bizObjName属性来指定。
 * 如果是关联对象，则通过schema的bizObjName属性来指定关联类型
@@ -163,15 +164,15 @@ NopGraphQL引擎返回的对象信息完全由XMeta来定义。如果一个属�
 
 通过GraphQL的findPage当方法查询时，可以直接查询关联对象上的字段，但是要求在xmeta中设置允许queryable。这是从安全性角度考虑，避免客户端可以任意查询所有字段导致安全漏洞。
 
-````xml
+```xml
 <prop name="parent.name" querable="true">
     
 </prop>
-````
+```
 
 这样就可以查询
 
-````json
+```json
 {
   "query": [
     {
@@ -181,6 +182,6 @@ NopGraphQL引擎返回的对象信息完全由XMeta来定义。如果一个属�
     }
   ]
 }
-````
+```
 
 需要注意的是，在parent属性上设置queryable并不会自动使得parent的所有属性都开放查询。必须逐个属性指定。

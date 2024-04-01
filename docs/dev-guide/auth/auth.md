@@ -27,7 +27,7 @@
 
 通过`action-auth.xml`和`NopAuthResource`后台对象可以配置操作权限。`resource`的类型分为`TOPM`、`SUBM`和`FNPT`，分为对应于顶级菜单、子菜单和功能点。在功能点上可以标记对应的`permissions`。
 
-````xml
+```xml
 
 <resource id="NopAuthDept-main" displayName="部门" orderNo="10001" i18n-en:displayName="Department"
           icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
@@ -44,7 +44,7 @@
         </resource>
     </children>
 </resource>
-````
+```
 
 然后系统后台可以配置用户角色和`NopAuthResource`的对应关系，用于控制用户能访问哪些菜单，再由此推断出用户具有哪些`permission`。
 
@@ -52,6 +52,7 @@
 2. 如果使用amis页面，需要配置`component=AMIS`，`url=页面的虚拟文件路径`
 
 ### 通过界面配置权限
+
 先不要开启操作权限，通过界面增加admin角色，然后给指定用户分配admin角色，此后再开启操作权限。通过具有admin角色的用户给其他用户分配角色，
 并为角色指定它所能访问的NopAuthResource。
 
@@ -67,13 +68,13 @@ NopAuthResource按照siteId进行组织，缺省使用siteId=MAIN作为主站点
 
 例如
 
-````javascript
+```javascript
 @Auth(permissions="delete")
 @BizMutation
 public boolean delete(@Name("id") @Description("@i18n:biz.id|对象的主键标识") String id, IServiceContext context) {
     return super.delete(id, context);
 }
-````
+```
 
 `permission`的完整格式为`bizObjName:action`，如果只写action部分，则会自动补充`bizObjName`前缀。例如上面配置的`permissions="delete"`最终转换得到的
 可能是`NopAuthUser:delete`。
@@ -82,12 +83,12 @@ public boolean delete(@Name("id") @Description("@i18n:biz.id|对象的主键标�
 
 在xbiz文件中可以为对应action设置`auth`配置，它会覆盖同名的Java方法上通过`@Auth`注解引入的权限设置。例如
 
-````xml
+```xml
 
 <mutation name="delete">
     <auth permissions="delete"/>
 </mutation>
-````
+```
 
 ### 结果对象上的属性
 
@@ -104,6 +105,7 @@ public boolean delete(@Name("id") @Description("@i18n:biz.id|对象的主键标�
 通过这里的配置可以实现字段级别的读写权限控制. `for="read"`表示控制字段读权限，`for="write"`控制字段写权限，而`for="all"`同时允许读和写
 
 ### 公开访问
+
 如果`@Auth`注解或者xbiz中的auth配置指定了publicAccess=true，则该方法为公开可访问方法，会自动跳过操作权限检查。但是数据权限仍然会应用。
 
 所有的用户都自动具有角色user，所以如果配置`@Auth(roles="user")`则表示允许所有登录用户访问。这种方式与publicAccess的区别在于，如果标记为
@@ -184,7 +186,7 @@ if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
 
 在`/nop/main/auth/app.data-auth.xml`文件中配置数据权限。`filter`段为xpl格式，输出`filter`定义节点。xpl执行时上下文具有`entity`、`userContext`等变量
 
-````xml
+```xml
 
 <data-auth>
     <objs>
@@ -202,7 +204,7 @@ if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
         </obj>
     </objs>
 </data-auth>
-````
+```
 
 * 针对不同的角色可以设置不同的数据权限规则。一个用户只会匹配优先级最高的一条规则（如果规则优先级相同，则按照顺序检查用户是否具有指定角色）
 
@@ -220,12 +222,13 @@ if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
 这本质上是同一个业务对象分裂为两个业务场景，一个是查询owner的数据，一个是查询全部数据。对于这种应用可以有三种解决方案：
 
 1. 对象拆分
-直接新建一个新的业务对象，比如MyObject_self，然后它会自动使用缺省的xmeta模型和xbiz配置。
-````
-<bean id="MyObject_self" class="xxx.MyObjectBizModel" />
-````
+   直接新建一个新的业务对象，比如MyObject\_self，然后它会自动使用缺省的xmeta模型和xbiz配置。
 
-如果增加MyObject_self.xmeta，则MyObject_self会使用这个meta配置，否则会使用缺省的MyObject.xmeta。对于xbiz配置，同样是这样处理。
+```
+<bean id="MyObject_self" class="xxx.MyObjectBizModel" />
+```
+
+如果增加MyObject\_self.xmeta，则MyObject\_self会使用这个meta配置，否则会使用缺省的MyObject.xmeta。对于xbiz配置，同样是这样处理。
 
 > 这种缺省模型的识别逻辑在BizObjectBuilder.java类中实现。
 
@@ -233,7 +236,7 @@ if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
 
 2. 如果不拆分对象，也可以在查询方法中增加过滤条件
 
-````xml
+```xml
  <query name="active_findPage" x:prototype="findPage">
     <source>
         <c:import class="io.nop.auth.api.AuthApiConstants" />
@@ -245,23 +248,24 @@ if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
         </bo:DoFindPage>
     </source>
 </query>
-````
+```
 
 或者在java中实现
-````
+
+```
 public PageBean<MyObject> findPage_self(@Name("query")QueryBean query, FieldSelectonBean selection, IServiceContext context){
   return doFindPage(query, (q,ctx)->{
      q.addFilter(FilterBeans.eq("ownerId", ctx.getUserId());
   }, selection, context);
 }
-````
+```
 
 3. 通过authObjName实现数据权限配置切换
-上面的第二种方法会导致data-auth.xml的配置总是应用到当前对象上。如果是不同的业务场景需要启用不同的权限配置，可以使用authObjName参数来区分。
+   上面的第二种方法会导致data-auth.xml的配置总是应用到当前对象上。如果是不同的业务场景需要启用不同的权限配置，可以使用authObjName参数来区分。
 
 CrudBizModel的doFindPage0/doFindList0/doFindFirst0等方法可以通过authObjName参数指定不同于当前对象名的权限对象名，从而启用不同的数据权限配置。
 
-````
+```
     @BizQuery
     @BizArgsNormalizer(BizConstants.BEAN_nopQueryBeanArgsNormalizer)
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
@@ -287,6 +291,6 @@ CrudBizModel的doFindPage0/doFindList0/doFindFirst0等方法可以通过authObjN
                                IServiceContext context){
         ...
     }
-````
+```
 
 内置的findList使用doFindList函数实现，而doFindList实际是使用doFindList0，然后传入authObjName为当前业务对象名。

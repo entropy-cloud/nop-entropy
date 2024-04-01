@@ -5,12 +5,12 @@ to-one关联。如果需要在父表实体上增加集合属性，则只需要�
 
 ![](to-one-excel-config.png)
 
-例如，在nop_auth_user_role表中的user_id字段关联了nop_auth_user表。只需要在nop_auth_user_role的配置中增加to-one关联属性，属性名user，
+例如，在nop\_auth\_user\_role表中的user\_id字段关联了nop\_auth\_user表。只需要在nop\_auth\_user\_role的配置中增加to-one关联属性，属性名user，
 关联的实体对象是NopAuthUser。因为设置了关联属性名roleMappings，代码生成时NopAuthUser对象上会增加一个Set<NopAuthUserRole>
 类型的集合属性，
 属性名为roleMappings。具体生成的实体类伪代码如下:
 
-````java
+```java
 class NopAuthUserRole {
     String userId;
     NopAuthUser user;
@@ -22,7 +22,7 @@ class NopAuthUser {
     //...
     Set<NopAuthUserRole> roleMappings;
 }
-````
+```
 
 ## 支持关联查询
 
@@ -42,7 +42,7 @@ class NopAuthUser {
 具体参见[NopAuthOpLog.xmeta](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-service/src/main/resources/_vfs/nop/auth/model/NopAuthOpLog/NopAuthOpLog.xmeta)
 中的配置
 
-````xml
+```xml
 
 <meta>
     <props>
@@ -50,7 +50,7 @@ class NopAuthUser {
         </prop>
     </props>
 </meta>
-````
+```
 
 queryable表示该字段可查询，sortable表示该字段可排序。此外还可以设置insertable,updatable等属性。
 
@@ -58,7 +58,7 @@ queryable表示该字段可查询，sortable表示该字段可排序。此外还
 
 在前端的XView模型中就可以使用session.loginAddr这样的字段了。
 
-````xml
+```xml
 
 <grid>
     <cols>
@@ -66,11 +66,12 @@ queryable表示该字段可查询，sortable表示该字段可排序。此外还
         <col id="session.loginAddr" sortable="true"/>
     </cols>
 </grid>
-````
+```
 
 meta中prop的sortable是后台服务是否支持排序，而grid的prop上的sortable则是在前台是否允许排序
 
 sessionId是列表中已有的字段。session.loginAddr是新增的关联字段，它被插入到sessionId字段的后面。
 
->
+> 
+
 Nop平台的Delta合并策略会尽量保持原有节点顺序，具体规则参见 [x-override.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/xlang/x-override.md)

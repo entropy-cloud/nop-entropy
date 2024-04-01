@@ -3,11 +3,11 @@
 标准的GraphQL引擎只支持JSON格式的输入输出。为了支持文件上传下载，NopGraphQL在接口层增加了一些扩展约定。
 
 1. 文件上传信息被转换为UploadRequestBean对象，在GraphQL引擎内部只要针对UploadRequestBean进行编程即可。相当于是在JSON序列化协议的基础上增加一个自动的针对上传文件的序列化机制。
-目前缺省情况下/f/upload这个端点会自动解析上传文件并调用GraphQL引擎。
+   目前缺省情况下/f/upload这个端点会自动解析上传文件并调用GraphQL引擎。
 2. GraphQL引擎可以返回WebContentBean来表示下载资源文件。Web框架调用GraphQL引擎发现返回结果是WebContentBean之后，会自动从中读取到Resource对象，并设置Content-Type和Content-Disposition等header配置。
-目前缺省情况下/p/{bizObjName}__{bizAction}以及/f/download/{fileId}这两种调用形式会自动识别WebContentBean
+   目前缺省情况下/p/{bizObjName}\_\_{bizAction}以及/f/download/{fileId}这两种调用形式会自动识别WebContentBean
 
-````java
+```java
 
 @BizModel("NopFileStore")
 public class NopFileStoreBizModel {
@@ -44,11 +44,11 @@ public class NopFileStoreBizModel {
         return record;
     }
 }
-````
+```
 
 NopFileStoreBizModel只是针对POJO对象进行编程，它完全不需要具有任何关于特定Web框架的知识，因此我们可以将它适配到不同的Web框架。例如，对于SpringMVC，
 
-````java
+```java
 @RestController
 public class SpringFileService extends AbstractGraphQLFileService {
 
@@ -88,7 +88,7 @@ public class SpringFileService extends AbstractGraphQLFileService {
         return ret;
     }
 }
-````
+```
 
 ## 模块依赖
 
@@ -103,8 +103,7 @@ public class SpringFileService extends AbstractGraphQLFileService {
 
 nop-integration-oss目前是可选模块，使用云存储来保存附件时需要自行引入这个模块。
 
-
-# 实体字段支持附件类型
+## 实体字段支持附件类型
 
 NopORM并没有内置对于附件字段的支持，在应用层我们通过OrmFileComponent这种字段级别的抽象将文件存储与数据库存储结合在一起。
 
@@ -121,7 +120,7 @@ NopORM并没有内置对于附件字段的支持，在应用层我们通过OrmFi
 
 根据Excel模型生成orm.xml模型文件中会为字段生成stdDomain配置。
 
-````xml
+```xml
 
 <orm>
     <x:post-extends x:override="replace">
@@ -138,7 +137,7 @@ NopORM并没有内置对于附件字段的支持，在应用层我们通过OrmFi
         </entity>
     </entites>
 </orm>
-````
+```
 
 在编译期执行的`x:post-extends`段会执行标签函数 `<orm-gen:FileComponentSupport/>`，它会为每个文件链接字段生成一个对应的OrmFileComponent属性。
 
@@ -148,7 +147,7 @@ NopORM并没有内置对于附件字段的支持，在应用层我们通过OrmFi
 
 当实体更新或者删除的时候，会触发IOrmComponent接口上的onEntityFlush和onEntityDelete回调函数，在回调函数中将更新NopFileRecord对象上的bizObjName,bizObjId属性。
 
-````java
+```java
 
 public class OrmFileComponent extends AbstractOrmComponent {
     public static final String PROP_NAME_filePath = "filePath";
@@ -189,7 +188,7 @@ public class OrmFileComponent extends AbstractOrmComponent {
     }
     
 }
-````
+```
 
 这里很重要的一个设计就是实体层面上记录了附件字段是否已经被修改，以及修改前的值。可以想见，如果没有这种历史记录信息，我们就无法在单个字段层面确定如何实现文件存储与实体字段的同步，
 而必须上升到整个实体的处理函数中进行。
@@ -198,15 +197,16 @@ public class OrmFileComponent extends AbstractOrmComponent {
 
 在control.xlib标签库中，根据stdDomain设置会自动为字段选择对应的编辑和显示控件。
 
-`<edit-file>`控件缺省会上传文件到/f/upload这个链接，返回的数据格式为 
-````
+`<edit-file>`控件缺省会上传文件到/f/upload这个链接，返回的数据格式为
+
+```
 {
   status:0,
   data:{
      value: "文件下载链接"
   }
 }  
-````
+```
 
 下载链接的格式为 /f/download/{fileId}
 
@@ -217,6 +217,7 @@ public class OrmFileComponent extends AbstractOrmComponent {
 * ui:accept 可以控制允许的文件后缀，例如 .txt,.md表示只允许上传txt和markddown文件
 
 另外也可以通过全局配置来设置上传控件属性
+
 * nop.file.upload-url 全局指定的上传文件端点，缺省为/f/upload
 * nop.file.upload.max-size 全局指定的上传文件大小限制。每个prop上指定的ui:maxUploadSize不能超过这个值，实际起作用的是min(prop.uploadFileSize,global.uploadMaxSize)
 
@@ -226,7 +227,7 @@ public class OrmFileComponent extends AbstractOrmComponent {
 
 使用如下配置启用Minio支持。**注意，使用oss云存储支持时需要先引入nop-integration-oss模块**。
 
-````yaml
+```yaml
 nop:
   file:
     store-impl: oss
@@ -239,7 +240,7 @@ nop:
       access-key: xxx
       secret-key: yyy
       #path-style-access: false
-````
+```
 
 * nop.file.store-impl指定为oss时会使用对象存储来保存文件，否则会使用本地文件系统，存放在/nop/file目录下
 * 阿里云要求pathStyleAccess必须设置为false
@@ -249,8 +250,8 @@ nop:
 ## 配置变量
 
 * nop.file.store-dir
-使用本地文件系统存储上传文件时使用的目录，缺省为/nop/file
+  使用本地文件系统存储上传文件时使用的目录，缺省为/nop/file
 * nop.file.store-impl
-如果设置为oss则表示启用分布式存储，否则使用本地存储
+  如果设置为oss则表示启用分布式存储，否则使用本地存储
 * nop.file.upload-url 全局指定的上传文件端点，缺省为/f/upload
 * nop.file.upload.max-size 全局指定的上传文件大小限制。每个prop上指定的ui:maxUploadSize不能超过这个值，实际起作用的是min(prop.uploadFileSize,global.uploadMaxSize)

@@ -32,7 +32,7 @@ RPC是分布式系统设计中不可或缺的一个部分。国内开源的RPC�
 
 NopRPC的具体使用文档参见[rpc.md](rpc.md)
 
-# 一. 请求和响应消息设计
+## 一. 请求和响应消息设计
 
 RPC的核心功能是发送请求消息和接收响应消息，所以请求消息和响应消息的结构是RPC中的一项关键性设计。NopRPC框架中的消息结构定义如下：
 
@@ -65,7 +65,7 @@ class ApiResponse<T>{
 
 一般的RPC框架中，Request和Response消息往往会包含大量实现细节，导致它们仅限于在框架实现层面作为内部类来使用，而NopRPC的设计则是将ApiRequest和ApiResponse通用化，在所有需要传输消息、返回信息的地方都采用统一的消息结构，实现了RPC、Web框架、消息队列、批处理服务、命令行应用等一系列接口的无缝对接。
 
-# 二. RPC的解构
+## 二. RPC的解构
 
 NopRPC的核心接口是IRpcService
 
@@ -209,7 +209,7 @@ NopRPC这一双向信息交互抽象可以建筑在单向的消息流抽象之�
 
 基于这种通用抽象，NopRPC的实现非常简洁、通用，而很多RPC框架的实现都和底层的Netty交换信道深度绑定，无法轻易应用到新的交换信道上。
 
-# 二. 负载均衡设计
+## 二. 负载均衡设计
 
 分布式RPC最核心的价值就在于它提供了自定义的客户端负载均衡机制，从而可以利用集群冗余来扩展系统吞吐能力。分布式RPC的其他部分主要是为了运行负载均衡算法所做的准备工作。
 
@@ -280,7 +280,7 @@ CompletionStage<ApiResponse> response = rpcService.callAsync(
 * 如果ApiRequest中包含nop-tags这个header，则只会选择具有指定标签的ServiceInstance。例如`nop-tags=a,b`，则要求ServiceInstance必须同时具有这两个标签。
 * 通过nop-svc-route这个header可以直接指定服务版本，例如nop-svc-route=ServiceA:1.0.0,ServiceB:^2.0.3表示对服务A使用版本1.0.0，而对于ServiceB，则使用2.0.3以上的版本。nop-svc-route的格式为`服务名:NPM版本定义，服务名:NPM版本定义`，版本定义采用NPM包的语义版本号规则。
 
-# 三. 取消执行和状态轮询
+## 三. 取消执行和状态轮询
 
 NopRPC的设计并没有选择利用CompletableFuture对象上的cancel方法，因为在实践中，通过参数传递cancelToken要比返回具有cancel函数的Future对象要容易处理得多，也更容易实现性能优化。
 
@@ -314,25 +314,25 @@ interface MyEntityService{
 
 具体pollingMethod的处理逻辑参见 [PollingRpcClient.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/composite/PollingRpcClient.java)
 
-# 四. 上下文传播
+## 四. 上下文传播
 
 在微服务架构下，一次业务操作可能会产生多个相关联的RPC调用，必须要建立一种自动的上下文传播机制，将一些共享的信息从上游的服务传播到下游的服务。在NopRPC的具体实现中[ContextBinder](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rpc/nop-rpc-api/src/main/java/io/nop/rpc/api/ContextBinder.java)负责将ApiRequest的部分header信息复制到异步上下文对象IContext上，而[ClientContextRpcServiceInterceptor](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/interceptors/ClientContextRpcServiceInterceptor.java)负责将IContext上的信息传播到下游的ApiRequest的headers中。
 
 缺省情况下，以下header会自动跨系统传播
 
 |名称|说明|
-|---|-----|
-|nop-svc-tags| 灰度发布时使用的过滤标签|
-|nop-svc-route| 灰度发布时使用的路由信息|
-|nop-tenant| 租户ID|
-|nop-user-id| 当前登录用户|
+|---|---|
+|nop-svc-tags|灰度发布时使用的过滤标签|
+|nop-svc-route|灰度发布时使用的路由信息|
+|nop-tenant|租户ID|
+|nop-user-id|当前登录用户|
 |nop-locale|返回响应消息时使用的国际化语言|
 |nop-timezone|返回消息中时间类型的字段所对应的时区|
-|nop-txn-id| 分布式式事务所对应的事务id|
-|nop-txn-branch-id| 分布式事务的分支事务id|
-|nop-trace| 入口服务所分配的traceId，用于将一系列相关的RPC调用关联在一起|
+|nop-txn-id|分布式式事务所对应的事务id|
+|nop-txn-branch-id|分布式事务的分支事务id|
+|nop-trace|入口服务所分配的traceId，用于将一系列相关的RPC调用关联在一起|
 |nop-client-addr|客户端的真实ip和端口|
-|nop-timeout| 端到端的超时控制所需要的超时时间参数|
+|nop-timeout|端到端的超时控制所需要的超时时间参数|
 
 ## 端到端的超时控制
 
@@ -341,7 +341,7 @@ NopRPC的nop-timeout消息头表示的是整个RPC调用的超时时间，因此
 
 例如下游的服务B还在执行的过程中服务A认为它已经超时了，可能会发起重试，如果服务B没有发现自己已超时，还在继续执行未完成的操作，则可能会同时执行两个业务操作，导致系统的压力倍增。
 
-# 五. 模型驱动开发
+## 五. 模型驱动开发
 
 在Nop平台中我们提供了一个API模型，可以在Excel中定义系统对外暴露哪些服务，这些服务的请求和响应消息是什么。具体实例参见[nop-wf.api.xlsx](https://gitee.com/canonical-entropy/nop-entropy/raw/master/nop-wf/model/nop-wf.api.xlsx)
 
@@ -349,7 +349,7 @@ NopRPC的nop-timeout消息头表示的是整个RPC调用的超时时间，因此
 
 在RPC的实现层面，我们也可以直接生成对[TaskFlow](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef)或者[Workflow](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/wf/wf.xdef)模型的调用，通过可视化编配来实现业务功能。
 
-# 六. 关于Dubbo的设计
+## 六. 关于Dubbo的设计
 
 Dubbo框架中大量代码实现的都是辅助性的工作，从今天的角度看已经过时。
 
@@ -398,7 +398,7 @@ public interface ILoadBalanceAdapter<T> {
 
 通过这种抽象，负载均衡算法成为纯粹的逻辑函数，与RPC的执行逻辑完全解耦，可以应用到所有需要负载均衡算法的地方，而不仅仅限于RPC调用场景。
 
-# 总结
+## 总结
 
 NopRPC是从第一性原理出发，重新审视RPC的概念，完全重新设计的Yet Another PRC框架，它的设计非常简洁直观，易于扩展，是Nop平台的一个有机组成部分。
 
@@ -406,5 +406,5 @@ NopRPC是从第一性原理出发，重新审视RPC的概念，完全重新设�
 
 - gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 - github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md) 
-- [可逆计算原理和Nop平台介绍及答疑_哔哩哔哩_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
+- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)

@@ -10,7 +10,7 @@ Nop平台提供了面向语言编程的编程范式，即我们解决问题时�
 
 我们使用XDef元模型定义语言来约束DSL的语法结构，例如 [beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef)。相比于XML Schema或者JSON Schema，XDef定义更加简单直观，而且可以表达更复杂的约束条件。关于XDef语言的细节，可以参考[xdef.md](xdef.md)
 
->  Nop平台中的所有DSL都通过XDef语言来定义，包括工作流、报表、IoC、ORM等，定义文件统一存放在[nop-xdefs模块](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-xdefs/src/main/resources/_vfs/nop/schema)中。
+> Nop平台中的所有DSL都通过XDef语言来定义，包括工作流、报表、IoC、ORM等，定义文件统一存放在[nop-xdefs模块](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-xdefs/src/main/resources/_vfs/nop/schema)中。
 
 ![](xml-to-json.png)
 
@@ -48,7 +48,7 @@ XDSL的主要语法元素示例如下:
 ```
 
 1. 所有的XDSL文件都要求根节点上必须使用`x:schema`属性来指定所使用的xdef定义文件
-2. 根节点上可以设置`x:dump="true"`来打印差量合并过程的中间结果以及最终生成的合并结果。在Quarkus框架的调试模式下最终的合并结果会输出到当前工程的_dump目录下。
+2. 根节点上可以设置`x:dump="true"`来打印差量合并过程的中间结果以及最终生成的合并结果。在Quarkus框架的调试模式下最终的合并结果会输出到当前工程的\_dump目录下。
 3. `x:extends`属性引入被继承的基础模型，当前模型和base模型将按照树形结构逐级进行合并。
 4. `x:gen-extends`和`x:post-extends`提供内置的元编程机制，它们可以动态生成模型对象，然后再和当前模型进行合并。
 5. 通过`x:override`属性可以控制两个节点合并时的细节，例如`x:override="remove"`表示删除基础模型中的对应节点，而`x:override="replace"`则表示由当前节点完全覆盖基础模型中的对应节点。缺省情况下`x:override="merge"`，它表示逐级进行子节点合并。合并规则的详细介绍参见文档[x-override.md](x-override.md)

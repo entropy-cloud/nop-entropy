@@ -4,14 +4,14 @@ nop-idea-plugin工程是Gradle工程，在IDEA中可以鼠标右键点击文件b
 
 ![idea-link-gradle](idea-link-gradle.png)
 
-# 调试
+## 调试
 
 导入Gradle工程之后，可以在Gradle任务的管理窗口中，选择Tasks/intellij/runIde任务，右键选择调试插件。
 IDEA会启动一个新的应用实例进行调试。
 
 ![idea-plugin-runIde](idea-plugin-runIde.png)
 
-# 插件功能
+## 插件功能
 
 ## 语法校验
 

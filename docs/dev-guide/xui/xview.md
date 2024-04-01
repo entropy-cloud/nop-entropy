@@ -115,7 +115,6 @@ codeGenerator.withTplDir('/nop/templates/orm-web').execute("/",{ moduleId: "nop/
 
 `x:override="bounded-merge"`表示`cols`子节点的范围限制在当前指定的范围之内，在被继承的基础模型中定义的多余的字段会被自动删除。如果不指定`x:override`，则缺省为`merge`模式，执行结果是向基础模型增加字段以及修改字段，除非显式通过`x:override="remove"`来表示删除字段。
 
-
 #### 2. 指定列表字段的表头、宽度、对齐模式等
 
 ```xml
@@ -142,15 +141,11 @@ codeGenerator.withTplDir('/nop/templates/orm-web').execute("/",{ moduleId: "nop/
 </col>
 ```
 
-
-
 ### 表单基本配置
 
 表单布局使用的DSL参见[layout.md](layout.md)。
 
 表单的配置选项可以参见 [form.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/form.xdef)元模型定义。
-
-
 
 ## 常见功能配置
 
@@ -219,7 +214,6 @@ url: "@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildre
 ```
 
 缺省情况下字段总是采用等于条件进行查询，可以在`NopAuthUser.xmeta`文件中定制属性设置，指定查询算符。
-
 
 ```xml
 <prop name="userName" allowFilterOp="eq,contains" xui:defaultFilterOp="contains"/>
@@ -330,10 +324,9 @@ url: "@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildre
 
 配置`layoutControl="tabs"`。
 
-
 ### 11. 点击行上按钮弹出关联子表的增删改查页面
 
-````xml
+```xml
 <action id="row-edit-rule-nodes" label="@i18n:rule.ruleNodes|规则节点" actionType="drawer">
     <dialog page="/nop/rule/pages/NopRuleNode/ref-ruleDefinition.page.yaml" size="xl">
         <data>
@@ -344,7 +337,7 @@ url: "@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildre
         </data>
     </dialog>
 </action>
-````
+```
 
 弹出对话框时通过`data`段指定在弹出页面中哪些字段的值为固定值。
 
@@ -352,46 +345,46 @@ url: "@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildre
 
 在弹出页面文件`ref-ruleDefinition.page.yaml`中我们可以引用已有的crud页面，但是通过`fixedProps`指定哪些字段使用固定值，不允许用户编辑
 
-````yaml
+```yaml
 x:gen-extends: |
   <web:GenPage view="NopRuleNode.view.xml" page="main" fixedProps="ruleId" xpl:lib="/nop/web/xlib/web.xlib" />
-````
+```
 
 ### 12. 适用Combo组件显示递归数据结构
 
 参考`NopRuleDefinition.view.xml`中`ruleInputs`的配置
 
-````xml
+```xml
 <cell id="ruleInputs">
     <gen-control>
         return { "$ref": "viewInputDefinition" }
     </gen-control>
 </cell>
-````
+```
 
 在`page.yaml`文件中引入`definitions`
 
-````yaml
+```yaml
 x:gen-extends: |
     <web:GenPage view="NopRuleDefinition.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />
 
 definitions:
     "x:extends": "var-definitions.json5"
-````
+```
 
 ### 13. 增加一个仅在前台使用的字段，它的值不会提交到后台
 
 `custom="true"`表示此字段不需要在meta中定义。两个下划线作为前缀表示此字段仅在前端使用，不会提交到后台
 
-````xml
+```xml
     <cell id="__useImportFile" label="导入模型文件" custom="true" stdDomain="boolean">
     </cell>
-````
+```
 
 ### 14. 通过url指定查询条件和排序条件
 
-````xml
+```xml
 <api url="@query:NopAuthUser__findList?filter_userStatus=1&amp;orderField=userName&amp;orderDir=asc" />
-````
+```
 
 排序条件通过`orderField={fieldName}&orderDir={asc|desc}`来表示，也可以传入Array格式的

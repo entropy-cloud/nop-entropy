@@ -1,4 +1,4 @@
-## Maven集成代码生成器
+# Maven集成代码生成器
 
 Nop平台提供了与Maven相集成的代码生成能力，但是并没有做成maven插件，而是利用`exec-maven-plugin`插件来执行`CodeGenTask`类的`main`函数来实现。
 
@@ -25,9 +25,9 @@ Nop平台提供了与Maven相集成的代码生成能力，但是并没有做成
 
 如果不使用pom的parent继承机制，则需要为`exec-maven-plugin`插件提供更多的参数配置，具体可以参见[nop-entropy/pom.xml](../../pom.xml)中的配置
 
->  例如`nop-auth-service`模块中precompile阶段根据`nop-auth-dao`模块中的orm模型生成meta模型，而postcompile阶段根据当前工程中的meta模型生成i18n配置文件。
+> 例如`nop-auth-service`模块中precompile阶段根据`nop-auth-dao`模块中的orm模型生成meta模型，而postcompile阶段根据当前工程中的meta模型生成i18n配置文件。
 
-### 在Maven之外调用代码生成器
+## 在Maven之外调用代码生成器
 
 `CodeGenTask`是一个普通的java类，可以在Maven外直接调用。例如
 
@@ -58,6 +58,7 @@ Nop平台提供了XLang语言的Idea调试插件，可以在xgen文件中增加�
 使用它们可以在IDEA中直接执行代码生成逻辑，而不用通过Maven工具来执行。Maven工具执行时总是先执行Java编译过程，影响性能。
 
 ## Analyze模式
+
 代码生成的时候一般不需要启动IoC容器，因此可以如下配置控制Nop平台的初始化级别。
 
 ```
@@ -83,15 +84,15 @@ nop-cli gen model/app-mall.orm.xlsx -t=/nop/templates/orm
 
 1. 在自己的工程（例如`myapp-templates`）中增加模板目录，必须要放到`src/resources/_vfs`目录下，例如`src/resources/_vfs/xxx/yyy`，然后在其中增加xgen文件。
 2. 代码生成器执行时引入`myapp-templates.jar`的依赖，这样虚拟文件系统初始化时会自动扫描所有jar包中的`_vfs`目录，并把它们合成为一个统一的虚拟文件系统。
-此时就可以在代码生成时指定`-t=/xxx/yyy`来生成代码。
+   此时就可以在代码生成时指定`-t=/xxx/yyy`来生成代码。
 
-````
+```
 java -Xbootclasspath/a:myapp-templates.jar -jar nop-cli-2.0.0-BETA.1.jar  gen model/demo.orm.xlsx -t=/xxx/yyy
-````
+```
 
 如果是使用maven集成的代码生成工具，可以在test scope中引入自己新建的模板工程
 
-````xml
+```xml
 
 <pom>
     <dependencies>
@@ -112,7 +113,7 @@ java -Xbootclasspath/a:myapp-templates.jar -jar nop-cli-2.0.0-BETA.1.jar  gen mo
         </plugins>
     </build>
 </pom>
-````
+```
 
 ## 数据驱动的代码生成器
 
@@ -179,11 +180,12 @@ if(globalVar){
 ```
 
 ### 表达式特殊约定
+
 1. `{!!entity.field}` 这样的表达式中!表示取反，`!!`表示连续取反，因此对于空值它会返回false。
-表达式如果返回false，则会跳过此次处理，但是对于空值，则该表达式的值将会被忽略。因此空值与false并不等价。
+   表达式如果返回false，则会跳过此次处理，但是对于空值，则该表达式的值将会被忽略。因此空值与false并不等价。
 
 2. `{data.@mapper}` 属性表达式存在一种特殊的约定。对于HashSet或者LinkedHashSet类型，`@mapper`属性会判断集合中是否存在该文本值。
-相当于 `((Set)data).contains('mapper')`
+   相当于 `((Set)data).contains('mapper')`
 
 ## 二. 差量化的代码生成器
 
@@ -298,9 +300,9 @@ class _SqlTableSource extends EqlASTNode {...}
 * 在其中增加一个`a-impl.xrun`文件。`xrun`表示只执行代码不生成文件。`a-impl`的名称可以随意取，可以通过文件名控制它的执行顺序，所有模板文件按照文本顺序排序。
 * 在xrun文件中通过`gen:Render`标签来引用已有的模板
 
-````xml
+```xml
 <c:unit>
     <gen:Render template="/nop/templates/orm/{appName}-dao" targetDir="${targetResource.path.$filePath()}"
                 xpl:lib="/nop/codegen/xlib/gen.xlib" inheritCodeGenLoop="true"/>
 </c:unit>
-````
+```

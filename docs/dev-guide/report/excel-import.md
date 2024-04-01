@@ -2,7 +2,7 @@
 
 在Nop平台中只需要增加imp.xml导入模型即可实现对存储在Excel中的复杂业务对象的解析，具体imp模型的定义参见[imp.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/excel/imp.xdef)
 
-# 基本原理
+## 基本原理
 
 * 对于普通字段，按照左侧是label，右侧是值来解析
 * 对于列表字段，可以按照上面是label，下方是列表来解析
@@ -12,48 +12,49 @@
 * 字段的前后顺序不影响解析。在imp.xml中定义的field是全集，实际的模板中可以只使用部分字段。
 * 但是标记为mandatory的字段必须在模板中存在，否则解析后发现对应字段值为空，会抛出异常。
 
-# 配置说明
+## 配置说明
 
 ## 如果解析列表
+
 * sheet或者field上标注list=true，表示将会解析得到一个列表
 * 列表的第一列必须是数字列，不要求编号唯一，也不要求编号列在字段列表中定义。它仅仅被用于确定列表行的范围。
 
 ## 如何解析一组sheet得到一个值
 
-````xml
+```xml
 <sheet name="ss" namePattern=".*" multiple="true" multipleAsMap="true" field="ss">
     
 </sheet>
-````
+```
 
 * namePattern指定一个正则表达式，它描述如何匹配对应的sheet
 * multiple=true表示会匹配到多个sheet
 * multipleAsMap=true表示匹配到的多个sheet解析后，会按照sheetName汇总成一个Map。如果不指定这个属性或者设置为false，则多个sheet的解析结果会合并为一个List
 
-# 使用导入模板来实现导出
+## 使用导入模板来实现导出
 
 1. 首先制作一个空的导入模板，即把导入数据删除，保留列表数据的序号列。具体样例参考[template.orm.xlsx](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm-model/src/main/resources/_vfs/nop/orm/imp/template.orm.xlsx)
 2. 在imp.xml文件中通过templatePath属性来指向导入模板
 
-````xml
+```xml
 <imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:xpt="xpt"
      templatePath="template.orm.xlsx" >
 </imp>
-````
+```
 
 ExcelReportHelper中提供了根据导入的业务数据自动生成html或者xlsx文件的方法。
 
-````javascript
+```javascript
     Object bean = ExcelHelper.loadXlsxObject("/nop/test/imp/test5.imp.xml", resource);    
     String html = ExcelReportHelper.getHtmlForXlsxObject(impModelPath, bean, scope);
     ExcelReportHelper.saveXlsxObject(impModelPath, resource, bean);
-````
+```
 
 在imp模型的帮助下，Excel可以被看作是Java对象的一种序列化形式，类似于JSON和Java对象之间的自动双向转换，我们可以实现Excel和Java对象之间的自动双向转换。
 
 具体示例参见[TestImportExcelModel.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/test/java/io/nop/biz/impl/TestImportExcelModel.java)
 
-# 动态确定需要导入的列
+## 动态确定需要导入的列
 
 示例配置[test3.imp.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/test/resources/_vfs/nop/test/imp/test3.imp.xml),
 测试用例[TestParseTreeTable.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/test/java/io/nop/biz/impl/TestParseTreeTable.java)
@@ -61,7 +62,7 @@ ExcelReportHelper中提供了根据导入的业务数据自动生成html或者xl
 通过fieldDecider可以动态确定数据列所对应的解析配置。例如 2002指标、2003指标等列是动态变化的，我们希望解析这些列并把它们转换为一个列表属性。
 ![](excel-import/import-dynamic-col.png)
 
-````xml
+```xml
 <field name="columns" displayName="项目指标" list="true">
     <fields>
         <field name="name" displayName="指标" mandatory="true"/>
@@ -97,18 +98,19 @@ ExcelReportHelper中提供了根据导入的业务数据自动生成html或者xl
         fieldLabel.endsWith("指标") ? "indexValue" : null
     </fieldDecider>
 </field>
-````
+```
 
 * virtual=true表示是虚拟字段。导入时只会执行字段的valueExpr，但并不会把返回的value设置到record的属性上。
 * 在valueExpr执行的时候可以通过fieldLabel来引用字段的标题，通过value引用从单元格中解析得到的值，通过cell引用当前单元格
 * xpt:labelExpandExpr等以`xpt:`为前缀的标签在数据导出的时候使用。xpt:labelExpandExpr用于动态生成表格列
 * xpt:valueExpr返回动态生成的列所对应的单元格的值。cell.rp.ev相当于 cell.rowParent.expandValue用于获取行父格的展开值，而
-cell.cp.ev对应于cell.colParent.expandValue，用于获取列的展开值。_.findWhere根据行父格和列父格的值，动态查找得到当前单元格对应的值。
+  cell.cp.ev对应于cell.colParent.expandValue，用于获取列的展开值。\_.findWhere根据行父格和列父格的值，动态查找得到当前单元格对应的值。
 
-# 动态设置单元格样式
+## 动态设置单元格样式
+
 导出数据的时候可以增加动态样式：当单元格的值满足某些条件的时候采用指定的样式来显示。例如当单元格的值大于300的时候，将单元格背景设置为红色。
 
-````xml
+```xml
 <field>
     <xpt:labelStyleIdExpr>
         cell.ev == 2002 ? 'red' : null
@@ -118,7 +120,7 @@ cell.cp.ev对应于cell.colParent.expandValue，用于获取列的展开值。_.
         cell.value > 300 ? 'red' : null
     </xpt:styleIdExpr>
 </field>
-````
+```
 
 在数据模板中需要增加XptWorkbookModel这个Sheet页，在其中定义命名样式。
 ![](excel-import/named-styles.png)
@@ -126,7 +128,8 @@ cell.cp.ev对应于cell.colParent.expandValue，用于获取列的展开值。_.
 实际导出的结果为
 ![](excel-import/export-with-style.png)
 
-# 支持复合表头
+## 支持复合表头
+
 导入数据的时候可以支持多级表头（目前只支持两级）
 ![](excel-import/template-group-header.png)
 
@@ -137,7 +140,7 @@ cell.cp.ev对应于cell.colParent.expandValue，用于获取列的展开值。_.
 
 在field配置上增加groupField配置，它对应于另一个field配置，在其中可以配置`xpt:labelExpandExpr`等导出配置。
 
-````xml
+```xml
 <fields>
     <field name="indexValue" displayName="X年" virtual="true" groupField="group">
         <schema stdDomain="int"/>
@@ -189,14 +192,15 @@ cell.cp.ev对应于cell.colParent.expandValue，用于获取列的展开值。_.
         </xpt:labelExpandExpr>
     </field>
 </fields>
-````
+```
 
 在导入具体数据单元格的时候，可以通过labelData变量（LabelData类型）访问到对应的labelCell和groupCell, 以及对应的field配置等。
 
-# 与Spring框架集成
+## 与Spring框架集成
+
 如果要使用Nop平台的Excel导入导出功能，只需要在pom文件中引入如下模块
 
-````xml
+```xml
         <!-- 实现Nop平台与spring框架的集成，不依赖于数据库，不依赖Web环境 -->
 <dependency>
     <groupId>io.github.entropy-cloud</groupId>
@@ -209,6 +213,6 @@ cell.cp.ev对应于cell.colParent.expandValue，用于获取列的展开值。_.
 <artifactId>nop-report-core</artifactId>
 </dependency>
 
-````
+```
 
 具体示例项目参见 [nop-spring-report-demo](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-demo/nop-spring-report-demo)

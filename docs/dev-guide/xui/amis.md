@@ -92,7 +92,7 @@ AMIS的语法设计相对比较规整，转成XML之后很接近于普通的HTML
 
 在`XView`模型的grid或者form配置中，如果根据数据类型和数据域自动推定的控件不满足要求，我们可以手工实现`gen-control`。例如
 
-````xml
+```xml
 <form id="add">
    <layout>fldA fldB</layout>
    <cells>
@@ -103,33 +103,33 @@ AMIS的语法设计相对比较规整，转成XML之后很接近于普通的HTML
       </cell>
    </cells>
 </form>
-````
+```
 
 在json中可以通过`x:extends`来继承已有的页面。
 
-````
+```
  <gen-control>
    // title会覆盖继承的页面中的title配置, 而initApi.url会覆盖对应的initApi对象中的url属性。依此类推，可以覆盖任意深度的属性
    return { "x:extends": "/nop/xxx/pages/zzz.page.yaml", title:"xxx", initApi: {url: "xxx"} }
  </gen-control>
-````
+```
 
 在`gen-control`段中也可以采用XML格式输出
 
-`````xml
+```xml
 <gen-control>
    <input-text />
 </gen-control>
-`````
+```
 
 XML格式将按照前面介绍的转换规则转换为对应的json. 在`gen-control`段中使用xml格式时，如果要用`x:extends`机制，则因为编译器解析XView时也要处理`x:extends`属性,
 所以我们必须回避这个名字，使用`xdsl:extends`来代替。例如
 
-````xml
+```xml
 <gen-control>
    <dialog xdsl:extends="/nop/xxx/pages/yyy.page.yaml" title="ss" />
 </gen-control>
-````
+```
 
 ## 1.2 可逆计算分解
 
@@ -248,7 +248,7 @@ Nop平台中对JSON提供了统一的i18n字符串替换机制，它规定了如
 
 2. 为每个需要被国际化的key，增加对应的`@i18n:key`属性
    例如
-
+   
    ```javascript
    {
    label: "@i18n:common.batchDelete|批量删除"
@@ -293,7 +293,7 @@ api:{
 
 ## 使用Vue3实现AMIS控件
 
-````javascript
+```javascript
 import appva from '../../views/breadcrumb_example/Elbutton.vue'
  function CustomComponent(props) {
     let dom = React.useRef(null);
@@ -309,8 +309,7 @@ import appva from '../../views/breadcrumb_example/Elbutton.vue'
   amisLib.Renderer({
     test: /(^|\/)my-custom/
   })(CustomComponent);
-````
-
+```
 
 ## 问题
 

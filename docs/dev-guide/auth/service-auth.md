@@ -9,7 +9,7 @@
 
 在`auth-service.beans.xml`配置文件中通过nopAuthFilterConfig配置了服务路径，
 
-````xml
+```xml
 <bean id="nopAuthFilterConfig" class="io.nop.auth.core.filter.AuthFilterConfig">
         <property name="servicePaths">
             <list>
@@ -25,7 +25,7 @@
     
         <property name="servicePublic" value="@cfg:nop.auth.service-public|false"/>
     </bean>
-````
+```
 
 * 可以通过nop-tenant, nop-timezone, nop-locale等http header来设置系统用户上下文的tenantId和locale等信息
 * 系统用户的id固定为sys

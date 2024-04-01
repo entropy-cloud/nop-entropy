@@ -99,11 +99,9 @@ NopIoC内置了类似springboot的autoconfig机制，因此只要引入nop-clust
 
 * nop-auth模块提供用户角色权限控制相关的后端服务和前端页面
 
-
 Nop平台整体设计采用了可分可合的灵活组织形式。初始代码生成时对于每一个Excel数据模型，我们会生成一个app模块，它引用了本模型对应的service和web子模块，例如nop-auth-app引用了nop-auth-web和nop-auth-service。在开发调试的过程中，我们可以使用nop-auth-app模块作为微服务单独启动，通过内置的sso机制即可将多个微服务集成为一个整体应用系统。
 
 除此之外，**我们也可以在一个应用中引用所有模块的web和service子模块，从而构成一个单体应用**，例如nop-quarkus-demo模块中的做法。
-
 
 ## 六. 报表引擎
 
@@ -118,8 +116,6 @@ NopReport是一个采用Excel作为可视化设计器的支持中国式报表的
 * nop-excel提供了ExcelWorkbook模型对象，利用workbook.xdef元模型，可以自动实现XML格式的DSL与ExcelWorkbook对象之间的双向转换。因此ExcelWorkbook作为领域模型是脱离Excel软件独立存在的。
 
 * nop-ooxml-docx提供了可以进行可视化编辑的Word模板机制，具体使用参见[word-temlate.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/report/word-template.md)
-
-
 
 ## 七. 自动化测试框架
 
@@ -152,4 +148,3 @@ nop-cli命令行工具聚合了一批可以独立使用的功能，具体参见[
 * gen指令需要用到nop-codegen模块来执行代码生成
 
 * reverse-db指令需要用到nop-dbtool模块从数据库中逆向分析数据表定义，然后转换为nop-orm模块中定义的实体对象模型，最后利用nop-report模块提供的报表导出功能将实体对象模型保存到Excel文件中
-

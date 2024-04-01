@@ -1,46 +1,50 @@
-## 1. 解析XML文本
+# 1. 解析XML文本
 
-````
+```
 XNode node = XNodeParser.instance().parseFromText(loc, text);
-````
+```
 
 XNode解析结果与DOM解析不同。DOM总是保留节点之间的空白节点。而XNode解析时如果两个节点之间只有空白文本，则该空白文本会被忽略。例如
+
 ```xml
 <root>
 	<child1/>
 	<child2/>
 </root>	
 ```
-XNode解析得到的root节点，它具有两个子节点child1和child2。
 
+XNode解析得到的root节点，它具有两个子节点child1和child2。
 
 ## 2. 解析XML文件
 
-````
+```
 XNode node = XNodeParser.instance().parseFromReource(resource);
 或者
 
 XNode node = ResourceHelper.readXml(resource);
-````
+```
 
 ## 3. 将XNode序列化为XML保存到文件中
-````
+
+```
 ResourceHelper.writeXml(resource,node);e
-````
+```
 
 ## 4. 根据XDef元模型定义将XML文件解析为Java对象
 
-````javascript
+```javascript
 new DslModelParser(xdefPath).parseFromResource(resource);
-````
+```
 
 ## 5. 递归遍历XNode的每一个节点
-````
+
+```
 node.forEachNode(n-> process(n));
-````
+```
 
 ## 6. 常用函数
-````javascript
+
+```javascript
 
 node.getTagName() // 读取标签名
 node.getAttr(name) // 读取属性
@@ -86,23 +90,25 @@ node.toTreeBean() // 转换为TreeBean对象
 
 XNode.fromTreeBean(treeBean) // 从TreeBean转换为XNode
 
-````
+```
 
 ## 7. XML和JSON之间的转换
 
-````javascript
+```javascript
 
 node.toXJson() // 按照XJson格式转换为JSON对象
 
 node.toJsonObject() // 按照标准格式转换为json
-````
+```
 
 标准格式规定如下：
+
 1. tagName 对应于  $type
 2. children和content 对应于  $body
 3. 属性直接对应于对象属性。
 
 例如:
+
 ```xml
 <div class='a'>
 	<span />
@@ -110,6 +116,7 @@ node.toJsonObject() // 按照标准格式转换为json
 ```
 
 转换为
+
 ```json
 {
 	"$type": "div",
@@ -123,6 +130,7 @@ node.toJsonObject() // 按照标准格式转换为json
 ```
 
 XJson规定如下：
+
 1. 一般情况下属性和子节点都对应于对象属性
 2. 如果节点上标记了j:list='true'表示当前节点对应于一个列表对象
 3. 如果节点名为 `_`，则表示节点名被忽略
@@ -131,6 +139,7 @@ XJson规定如下：
 6. 列表节点的子节点的tagName对应于type属性。但有个例外，如果节点名为 `_`，则表示节点名被忽略
 
 例如:
+
 ```xml
 <root a="1">
 	<buttons j:list="true">
@@ -145,8 +154,10 @@ XJson规定如下：
 	</options>	
 </root>
 ```
+
 对应于
-````json
+
+```json
 {
 	"type": "root",
 	"a": "1",
@@ -159,4 +170,4 @@ XJson规定如下：
 	],
 	"options": ["A","B"]
 }
-````
+```

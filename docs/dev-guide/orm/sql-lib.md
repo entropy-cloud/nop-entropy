@@ -17,7 +17,7 @@
 
 sql-lib提供了如下特性
 
-### 1  统一管理SQL/EQL/DQL
+# 1  统一管理SQL/EQL/DQL
 
 在sql-lib文件中存在三种节点，sql/eql/query分别对应于SQL语句，EQL语句和上一节介绍的润乾DQL查询模型，对它们可以采取统一的方式进行管理。
 
@@ -63,7 +63,7 @@ sql-lib提供了如下特性
         </sql-lib>
 ```
 
-### 2. XPL模板的组件抽象能力
+## 2. XPL模板的组件抽象能力
 
 MyBatis只提供了foreach/if/include等少数几个固定标签，真正编写起高度复杂的动态SQL语句时可以说是有心无力。很多人觉得在xml中拼接sql比较麻烦，归根结底是因为MyBatis提供的是一个不完善的解决方案，它
 **缺少二次抽象的机制**。 而在java程序中我们总可以通过函数封装来实现对某一段SQL拼接逻辑的复用，对比MyBatis却只有内置的三板斧，基本没有提供任何辅助复用的能力。
@@ -261,14 +261,14 @@ public interface LitemallGoodsMapper {
 
 ## 与MyBatis的对比
 
-| MyBatis            | Nop平台                                            |
-|--------------------|--------------------------------------------------|
-| 通过XML配置动态SQL       | 通过统一的Delta定制实现配置修正                               |
-| 通过Mapper接口封装SQL的执行 | Nop平台使用统一的@Name注解定义参数名，通过IEvalContext来传递上下文对象    |
-| 通过标签函数生成动态SQL      | Nop平台中通过Xpl标签库引入自定义标签                            |
-| 通过表达式生成SQL参数       | 表达式使用通用的表达式引擎，利用Xpl模板语言的SQL输出模式将输出的表达式结果转换为SQL参数 |
-| 支持事务、结果数据缓存等       | 利用Dao层的JdbcTemplate，自动支持事务和结果缓存                  |
-| 管理SQL语句            | 同时管理EQL、SQL、DQL等各类查询语言                           |
+|MyBatis|Nop平台|
+|---|---|
+|通过XML配置动态SQL|通过统一的Delta定制实现配置修正|
+|通过Mapper接口封装SQL的执行|Nop平台使用统一的@Name注解定义参数名，通过IEvalContext来传递上下文对象|
+|通过标签函数生成动态SQL|Nop平台中通过Xpl标签库引入自定义标签|
+|通过表达式生成SQL参数|表达式使用通用的表达式引擎，利用Xpl模板语言的SQL输出模式将输出的表达式结果转换为SQL参数|
+|支持事务、结果数据缓存等|利用Dao层的JdbcTemplate，自动支持事务和结果缓存|
+|管理SQL语句|同时管理EQL、SQL、DQL等各类查询语言|
 
 利用Nop平台的内置机制，还可以自动支持如下功能：
 
@@ -297,21 +297,20 @@ public interface LitemallGoodsMapper {
 
 OrmSessionFactory支持IEntityFilterProvider配置，nop-auth-service模块提供的缺省实现对应于数据权限过滤
 
-````xml
+```xml
 
 <eql name="xxx" enableFilter="true">
     <source>
         select u.xx from MyEntity u, OtherEntity t where u.fldA = t.fldA
     </source>
 </eql>
-````
+```
 
 也可以使用在构造SQL对象时直接指定enableFilter属性
 
-
-````javascript
+```javascript
    SQL sql = SQL.begin().enableFilter(true).sql("...").end();
-````
+```
 
 启用enableFilter后，会自动利用`IServiceContext.bindingCtx()`获取当前上下文中的IServiceContext，并调用`IDataAuthChecker.getFilter()`
 来获取到数据权限过滤条件，转换为SQL语句后拼接到原始的SQL语句中。
@@ -320,18 +319,18 @@ OrmSessionFactory支持IEntityFilterProvider配置，nop-auth-service模块提�
 
 ### allowUnderscoreName设置为true，将会允许在EQL中直接使用数据库字段名
 
-````
+```
 <eql name="xx" allowUnderscoreName="true">
   <source>
      select o.statusId, o.status_id from MyEntity o
   </source>
 </eql>
-````
+```
 
-使用statusId或者status_id都可以访问实体上的属性。
+使用statusId或者status\_id都可以访问实体上的属性。
 
 也可以使用在构造SQL对象时直接指定allowUnderscoreName属性
 
-````javascript
+```javascript
    SQL.begin().allowUnderscoreName(true).sql("....").end();
-````
+```

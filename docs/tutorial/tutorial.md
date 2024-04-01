@@ -7,10 +7,9 @@ Nop平台是可逆计算理论的一个具体落地实现方案。为了演示�
 > `nop-app-mall`是一个简单电子商城的示例应用，项目工程为 [nop-app-mall](https://gitee.com/canonical-entropy/nop-app-mall)
 
 > Nop平台开源网址：
->
+> 
 > * gitee: [https://gitee.com/canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 > * github: [https://github.com/entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-
 
 ## 一. 设计Excel数据模型
 
@@ -482,7 +481,6 @@ Nop平台为 **无代码开发模式（NoCode）** 提供了内置支持。通�
 http://localhost:8080/index.html?#/amis/app/mall/pages/LitemallGoods/main.page.yaml
 ```
 
-
 它实际对应的页面是 `src/main/resources/_vfs/app/mall/pages/LitemallGoods/main.page.yaml`，其中的内容为
 
 ```yaml
@@ -510,7 +508,7 @@ x:gen-extends: |
 2. 点击JSON设计按钮弹出YAML编辑器，允许在前端直接修改JSON描述然后立刻看到展现效果。
 
 3. 点击可视化设计按钮会弹出amis-editor可视化设计器，允许开发人员通过可视化设计器来调整页面内容。**点击保存后会反向计算出完整页面与生成View的差量，然后将差量部分保存到`page.yaml`文件中**。
-
+   
    ![](amis-editor-view.png)
 
 例如，在可视化设计器中修改【商品上架】页面的标题为【新增-商品】并保存之后，`add.page.yaml`文件中的内容为
@@ -629,7 +627,7 @@ Nop平台内置的差量化软件生产线如下图所示：
 
 它可以用如下公式表达
 
-$$\begin{aligned} XORM   &= Generator\langle XExcel \rangle + \Delta XORM \\\ XMeta &= Generator\langle XORM \rangle + \Delta XMeta \\\ GraphQL &= Builder\langle XMeta\rangle + BizModel \\\\ XView &= Generator\langle XMeta\rangle  + \Delta XView \\\ XPage &=  Generator\langle XView\rangle  + \Delta XPage \end{aligned}$$
+$$\\begin{aligned} XORM   \&= Generator\\langle XExcel \\rangle + \\Delta XORM \\\\ XMeta \&= Generator\\langle XORM \\rangle + \\Delta XMeta \\\\ GraphQL \&= Builder\\langle XMeta\\rangle + BizModel \\\\ XView \&= Generator\\langle XMeta\\rangle  + \\Delta XView \\\\ XPage \&=  Generator\\langle XView\\rangle  + \\Delta XPage \\end{aligned}$$
 
 整个推理关系的各个步骤都是可选环节：**我们可以从任意步骤直接开始，也可以完全舍弃此前步骤所推理得到的所有信息**。例如我们可以手动增加`xview`模型，并不需要它一定具有特定的`xmeta`支持，也可以直接新建`page.yaml`文件，按照AMIS组件规范编写JSON代码，AMIS框架的能力完全不会受到推理管线的限制。
 
@@ -639,9 +637,9 @@ Nop平台基于可逆计算理论为实现这种面向动态相似性的复用�
 
 1. 借助于嵌入式元编程和代码生成，**任意结构A和C之间都可以建立一条推理管线**
 
-2. **将推理管线分解为多个步骤 :  A => B => C**
+2. **将推理管线分解为多个步骤 :  A =\> B =\> C**
 
-3. **进一步将推理管线差量化**：A => `_B`  => B => `_C` => C
+3. **进一步将推理管线差量化**：A =\> `_B`  =\> B =\> `_C` =\> C
 
 4. **每一个环节都允许暂存和透传本步骤不需要使用的扩展信息**
 

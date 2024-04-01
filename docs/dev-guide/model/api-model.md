@@ -4,14 +4,15 @@
 
 在xxx-codegen模块中我们可以增加代码生成脚本，根据Excel模型自动生成代码。例如gen-orm.xgen中
 
-````xml
+```xml
 <c:script>
 // 根据API模型生成服务消息和接口类
 codeGenerator.withTargetDir("../").renderModel('../../model/nop-wf.api.xlsx','/nop/templates/api', '/',$scope);
 </c:script>
-````
+```
 
 ## 配置说明
+
 在【配置】页中可以配置如下变量
 
 1. apiName: 所有子模块的前缀，例如nop-wf
@@ -22,6 +23,7 @@ codeGenerator.withTargetDir("../").renderModel('../../model/nop-wf.api.xlsx','/n
 6. apiPackageName: api模块的包名
 
 ## 服务定义
+
 在【服务定义】页中可以定义当前模块对外暴露的所有服务。
 
 1. 【变更】用于配置服务方法是否对应于GraphQL中的mutation还是query

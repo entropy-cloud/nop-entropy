@@ -18,7 +18,7 @@
 
 ## 配置示例
 
-````yaml
+```yaml
 
 quarkus:
   log:
@@ -40,15 +40,16 @@ quarkus:
         max-backup-index: 300
         file-suffix: .yyyy-MM-dd
 
-````
+```
 
 要开启TRACE级别的日志，必须同时配置 quarkus.log.min-level=TRACE, 否则最多只输出DEBUG级别
 
 ## 分包编译
+
 使用了quarkus的IoC注解的bean，在打包成jar包时，必须引入jandex插件，将bean的详细信息记录在jandex索引文件中，否则quarkus只会扫描当前工程中的文件，而无法使用
 jar包中的bean。
 
-````
+```
  <plugin>
     <groupId>org.jboss.jandex</groupId>
     <artifactId>jandex-maven-plugin</artifactId>
@@ -62,14 +63,15 @@ jar包中的bean。
         </execution>
     </executions>
 </plugin>
-````
+```
 
 ## 原生编译
+
 需要使用maven 3.9.3以后版本
 
-````
+```
 mvnw install -Dnative -DskipTests -Dquarkus.native.container-build=true
-````
+```
 
 * windows下中文VC存在问题，配置-H:-CheckToolchain 可以跳过
 * 不能使用awt模块下的Font等类
@@ -77,9 +79,10 @@ mvnw install -Dnative -DskipTests -Dquarkus.native.container-build=true
 * GraalVM 23.1无法使用quarkus3.3.3进行原生编译，必须升级到3.4.1
 
 ## 上传解析
+
 需要引入com.sun.mail依赖，并禁用内置依赖的angus-mail模块，并且不能排除jaxb-provider
 
-````xml
+```xml
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-resteasy-multipart</artifactId>
@@ -95,13 +98,13 @@ mvnw install -Dnative -DskipTests -Dquarkus.native.container-build=true
             <groupId>com.sun.mail</groupId>
             <artifactId>jakarta.mail</artifactId>
         </dependency>
-````
+```
 
 ## 仅使用Nop平台的后端
 
 如果需要使用NopGraphQL服务，则可以引入nop-quarkus-web-starter模块
 
-````xml
+```xml
 
 <pom>
     <!--  parent 设置为nop-entropy可以集成缺省的maven plugin，缺省的包管理配置 -->
@@ -149,11 +152,11 @@ mvnw install -Dnative -DskipTests -Dquarkus.native.container-build=true
 
     </dependencies>
 </pom>
-````
+```
 
 ## 仅使用NopReport报表引擎
 
-````xml
+```xml
 
 <dependencies>
     <dependency>
@@ -166,4 +169,4 @@ mvnw install -Dnative -DskipTests -Dquarkus.native.container-build=true
         <artifactId>nop-report-core</artifactId>
     </dependency>
 </dependencies>
-````
+```

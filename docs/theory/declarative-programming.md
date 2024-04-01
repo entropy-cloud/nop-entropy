@@ -231,7 +231,7 @@ const resolvers = {
 
 在Antlr4中，import语法类似面向对象编程语言中的继承概念。它是一种智能的include，当前的grammar会继承导入的grammar的所有规则，tokens specifications，names actions等，并可以重写规则来覆盖继承的规则。
 
-![antlr_combined](https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/10/7/16da6af3d900971f~tplv-t2oaga2asx-image.image)
+![antlr\_combined](https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/10/7/16da6af3d900971f~tplv-t2oaga2asx-image.image)
 
 在上面的例子中，MyElang通过继承ELang得到若干规则，同时也重写了expr规则并增加了INT规则。终于，我们不再需要每次扩展语法都要拷贝粘贴了。
 
