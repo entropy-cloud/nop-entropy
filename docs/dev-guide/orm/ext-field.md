@@ -147,7 +147,7 @@ order by o.extFldA
 ````sql
 select o.children.myKey.value from MyEntity o
 // 会被转换为
-select c.value from MyEntity o , Children u where o.id = u.parent_id and u.key = 'myKey'
+select u.value from MyEntity o  left join Children u on o.id = u.parent_id and u.key = 'myKey'
 ````
 
 即一个集合只要具有某种唯一标识，那么数学上它就一定能够展平成为具有唯一访问路径的关联属性。而ORM引擎的EQL查询语言负责的就是把`o.a.b.c`这种关联属性转换为表关联查询。
@@ -158,9 +158,11 @@ where o.children.myKey1.intValue = 3 and o.children.myKey2.strValue like 'a%'
 
 -- 会被变换为
 
-select o.name from MyEntity o, Children u1, Children u2
-where o.sid = u1.parent_id and o.sid = u2.parent_id
-and u1.key = 'myKey1' and u2.key = 'myKey2' and u1.intValue = 3
+select o.name from MyEntity o left join Children u1
+on o.sid = u1.parent_id and u1.key = 'myKey1'
+left join Children u2
+on o.sid = u2.parent_id and u2.key = 'myKey2'
+where u1.intValue = 3
 and u2.strValue like 'a%'
 ````
 
@@ -172,9 +174,10 @@ from MyEntity o
 
 -- 会被转换为
 select o.key1, u1.value, u2.value
-from MyEntity o , Children u1, Children u2
-where o.sid = u1.parent_id and u1.key = 'myKey1'
-and o.sid = u1.parent_id and u2.key = 'myKey2'
+from MyEntity o left join Children u1 on 
+on o.sid = u1.parent_id and u1.key = 'myKey1'
+left join Children u2
+on o.sid = u2.parent_id and u2.key = 'myKey2'
 ````
 
 按照规则，从`o.children.myKey`抽取出关联表，这在数学层面就是一个具有确定性的局部变换规则
