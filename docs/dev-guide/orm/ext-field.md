@@ -174,7 +174,7 @@ from MyEntity o
 
 -- 会被转换为
 select o.key1, u1.value, u2.value
-from MyEntity o left join Children u1 on 
+from MyEntity o left join Children u1 on
 on o.sid = u1.parent_id and u1.key = 'myKey1'
 left join Children u2
 on o.sid = u2.parent_id and u2.key = 'myKey2'
