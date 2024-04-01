@@ -146,6 +146,14 @@ public class MutableIntArray implements IntArray {
         return this;
     }
 
+    public int first() {
+        return get(0);
+    }
+
+    public int last() {
+        return get(size - 1);
+    }
+
     public int get(int index) {
         if (index >= size)
             throw new IndexOutOfBoundsException(String.valueOf(index));
