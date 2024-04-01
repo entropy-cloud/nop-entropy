@@ -12,7 +12,7 @@ import io.nop.core.context.IServiceContext;
 
 public interface ITaskManager {
 
-    ITaskRuntime newTaskRuntime(String taskName, long version, boolean saveState, IServiceContext svcCtx);
+    ITaskRuntime newTaskRuntime(ITask task, boolean saveState, IServiceContext svcCtx);
 
     ITaskRuntime getTaskRuntime(String taskInstanceId, IServiceContext svcCtx);
 

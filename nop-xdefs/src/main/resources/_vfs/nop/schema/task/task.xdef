@@ -5,10 +5,10 @@
 
 @firstStep 当graphMode为true时，第一个执行的步骤id
 -->
-<task defaultSaveState="!boolean=false" version="!long=0"
+<task defaultSaveState="!boolean=false" version="!long=0" recordMetrics="!boolean=true"
       restartable="!boolean=true" graphMode="!boolean=false" enterSteps="csv-set" exitSteps="csv-set"
       x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
-      xdef:name="TaskFlowModel" xdef:bean-package="io.nop.task.model"
+      xdef:name="TaskFlowModel" xdef:bean-package="io.nop.task.model" xmlns:graphql="graphql"
       xdef:ref="TaskStepsModel" xdef:model-name-prop="name" xdef:model-version-prop="version"
 >
     <!--
@@ -106,7 +106,7 @@
                  extType="var-name" tagSet="csv-set" name="var-name"
                  allowStartIfComplete="!boolean=false" internal="!boolean=false" errorName="var-name"
                  runOnContext="!boolean=false" waitSteps="csv-set" waitErrorSteps="csv-set"
-                 ignoreResult="!boolean=false"
+                 ignoreResult="!boolean=false" graphql:operationType="string" recordMetrics="!boolean=false"
                  next="string" nextOnError="string" saveState="boolean">
     </xdef:define>
 

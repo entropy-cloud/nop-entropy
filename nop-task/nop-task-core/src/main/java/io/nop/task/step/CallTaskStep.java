@@ -69,14 +69,14 @@ public class CallTaskStep extends AbstractTaskStep {
         ITask task;
         ITaskRuntime subRt;
         if (StringHelper.isEmpty(taskId)) {
-            subRt = taskRt.newChildRuntime(taskName, taskVersion, stepRt.isSupportPersist());
             task = taskManager.getTask(taskName, taskVersion);
+            subRt = taskRt.newChildRuntime(task, stepRt.isSupportPersist());
 
             stepRt.setStateBean(subRt.getTaskInstanceId());
             stepRt.saveState();
         } else {
-            subRt = taskManager.getTaskRuntime(taskId, taskRt.getSvcCtx());
             task = taskManager.getTask(taskName, taskVersion);
+            subRt = taskManager.getTaskRuntime(taskId, taskRt.getSvcCtx());
         }
 
         IEvalScope scope = stepRt.getEvalScope();

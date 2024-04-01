@@ -81,6 +81,13 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      *  
+     * xml name: recordMetrics
+     * 
+     */
+    private boolean _recordMetrics  = false;
+    
+    /**
+     *  
      * xml name: runOnContext
      * 指定本步骤中的操作都使用IContext.runOnContext来执行
      */
@@ -287,6 +294,25 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      * 
+     * xml name: recordMetrics
+     *  
+     */
+    
+    public boolean isRecordMetrics(){
+      return _recordMetrics;
+    }
+
+    
+    public void setRecordMetrics(boolean value){
+        checkAllowChange();
+        
+        this._recordMetrics = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: runOnContext
      *  指定本步骤中的操作都使用IContext.runOnContext来执行
      */
@@ -404,6 +430,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         out.putNotNull("name",this.getName());
         out.putNotNull("next",this.getNext());
         out.putNotNull("nextOnError",this.getNextOnError());
+        out.putNotNull("recordMetrics",this.isRecordMetrics());
         out.putNotNull("runOnContext",this.isRunOnContext());
         out.putNotNull("saveState",this.getSaveState());
         out.putNotNull("tagSet",this.getTagSet());
@@ -429,6 +456,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         instance.setName(this.getName());
         instance.setNext(this.getNext());
         instance.setNextOnError(this.getNextOnError());
+        instance.setRecordMetrics(this.isRecordMetrics());
         instance.setRunOnContext(this.isRunOnContext());
         instance.setSaveState(this.getSaveState());
         instance.setTagSet(this.getTagSet());

@@ -8,9 +8,11 @@
 package io.nop.task;
 
 import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.context.IContext;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.context.IServiceContext;
+import io.nop.task.metrics.ITaskFlowMetrics;
 
 import java.util.Map;
 import java.util.Set;
@@ -28,6 +30,8 @@ import java.util.function.Function;
  */
 public interface ITaskRuntime extends IEvalContext {
     IServiceContext getSvcCtx();
+
+    IContext getContext();
 
     default String getLocale() {
         IServiceContext ctx = getSvcCtx();
@@ -59,6 +63,8 @@ public interface ITaskRuntime extends IEvalContext {
 
     ITaskState getTaskState();
 
+    ITaskFlowMetrics getMetrics();
+
     /**
      * 分配一个新的runId
      */
@@ -80,7 +86,7 @@ public interface ITaskRuntime extends IEvalContext {
         return getTaskState().getJobInstanceId();
     }
 
-    ITaskRuntime newChildRuntime(String taskName, long taskVersion, boolean saveState);
+    ITaskRuntime newChildRuntime(ITask task, boolean saveState);
 
     ITaskManager getTaskManager();
 

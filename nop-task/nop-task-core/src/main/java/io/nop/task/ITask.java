@@ -32,6 +32,10 @@ public interface ITask {
     }
 
     default CompletionStage<Map<String, Object>> executeAsync(ITaskRuntime taskRt) {
+        return executeAsync(taskRt, null);
+    }
+
+    default CompletionStage<Map<String, Object>> executeAsync(ITaskRuntime taskRt, Set<String> outputNames) {
         try {
             return execute(taskRt).getReturnPromise().thenApply(TaskStepReturn::getOutputs);
         } catch (Exception e) {

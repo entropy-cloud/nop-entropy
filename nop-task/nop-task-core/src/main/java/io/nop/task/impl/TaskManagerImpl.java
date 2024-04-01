@@ -3,6 +3,7 @@ package io.nop.task.impl;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
+import io.nop.commons.metrics.GlobalMeterRegistry;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.component.version.ResourceVersionHelper;
@@ -12,6 +13,7 @@ import io.nop.task.ITaskState;
 import io.nop.task.ITaskStateStore;
 import io.nop.task.ITaskStepLib;
 import io.nop.task.TaskConstants;
+import io.nop.task.metrics.TaskFlowMetricsImpl;
 import io.nop.task.model.TaskFlowModel;
 import io.nop.task.state.DefaultTaskStateStore;
 import jakarta.annotation.Nullable;
@@ -49,13 +51,21 @@ public class TaskManagerImpl implements ITaskManagerImplementor {
     }
 
     @Override
-    public ITaskRuntime newTaskRuntime(String taskName, long version, boolean saveState, IServiceContext svcCtx) {
+    public ITaskRuntime newTaskRuntime(ITask task, boolean saveState, IServiceContext svcCtx) {
         ITaskStateStore stateStore = saveState ? requirePersistStateState() : nonPersistStateStore;
         TaskRuntimeImpl taskRt = new TaskRuntimeImpl(this, stateStore, svcCtx, false);
 
-        ITaskState taskState = stateStore.newTaskState(taskName, version, taskRt);
+        ITaskState taskState = stateStore.newTaskState(task.getTaskName(), task.getTaskVersion(), taskRt);
         taskRt.setTaskState(taskState);
+
+        prepareTaskRuntime(taskRt, task);
         return taskRt;
+    }
+
+    protected void prepareTaskRuntime(TaskRuntimeImpl taskRt, ITask task) {
+        String taskName = task.getTaskName();
+        long taskVersion = task.getTaskVersion();
+        taskRt.setMetrics(new TaskFlowMetricsImpl(GlobalMeterRegistry.instance(), null, taskName, taskVersion));
     }
 
     private ITaskStateStore requirePersistStateState() {
@@ -78,14 +88,14 @@ public class TaskManagerImpl implements ITaskManagerImplementor {
 
     @Override
     public ITask getTask(String taskName, long taskVersion) {
-        String path = ResourceVersionHelper.buildResolvePath(TaskConstants.MODEL_TYPE_TASk, taskName, taskVersion);
+        String path = ResourceVersionHelper.buildResolvePath(TaskConstants.MODEL_TYPE_TASK, taskName, taskVersion);
         TaskFlowModel taskFlowModel = (TaskFlowModel) ResourceComponentManager.instance().loadComponentModel(path);
         return taskFlowModel.getTask();
     }
 
     @Override
     public ITaskStepLib getTaskStepLib(String libName, long libVersion) {
-        String path = ResourceVersionHelper.buildResolvePath(TaskConstants.MODEL_TYPE_TASk, libName, libVersion);
+        String path = ResourceVersionHelper.buildResolvePath(TaskConstants.MODEL_TYPE_TASK, libName, libVersion);
         TaskFlowModel taskFlowModel = (TaskFlowModel) ResourceComponentManager.instance().loadComponentModel(path);
         return taskFlowModel.getTaskStepLib();
     }

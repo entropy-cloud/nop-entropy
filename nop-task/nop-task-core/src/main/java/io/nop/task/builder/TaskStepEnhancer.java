@@ -28,11 +28,11 @@ import io.nop.task.model.TaskStepModel;
 import io.nop.task.model.TaskThrottleModel;
 import io.nop.task.step.AbstractTaskStep;
 import io.nop.task.step.BuildOutputTaskStepWrapper;
-import io.nop.task.step.TaskStepExecution;
 import io.nop.task.step.ExecutorTaskStepWrapper;
 import io.nop.task.step.RateLimitTaskStepWrapper;
 import io.nop.task.step.RetryTaskStepWrapper;
 import io.nop.task.step.RunOnContextTaskStepWrapper;
+import io.nop.task.step.TaskStepExecution;
 import io.nop.task.step.ThrottleTaskStepWrapper;
 import io.nop.task.step.TimeoutTaskStepWrapper;
 import io.nop.task.step.TryTaskStepWrapper;
@@ -79,6 +79,7 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
         return new TaskStepExecution(stepModel.getLocation(), stepModel.getName(), inputs, outputs, outputVars,
                 stepModel.getWhen(), step,
                 stepModel.getNextOnError(), stepModel.getNextOnError(), stepModel.isIgnoreResult(),
+                stepModel.isRecordMetrics(),
                 stepModel.getErrorName(), stepModel.isUseParentScope());
     }
 

@@ -1,11 +1,13 @@
 package io.nop.task.impl;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.task.ITask;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepReturn;
+import io.nop.task.metrics.ITaskFlowMetrics;
 import io.nop.task.model.ITaskInputModel;
 import io.nop.task.model.ITaskOutputModel;
 
@@ -17,17 +19,19 @@ public class TaskImpl implements ITask {
     private final long taskVersion;
     private final ITaskStep mainStep;
 
+    private final boolean recordMetrics;
     private final List<? extends ITaskInputModel> inputs;
 
     private final List<? extends ITaskOutputModel> outputs;
 
-    public TaskImpl(String taskName, long taskVersion, ITaskStep mainStep,
+    public TaskImpl(String taskName, long taskVersion, ITaskStep mainStep, boolean recordMetrics,
                     List<? extends ITaskInputModel> inputs, List<? extends ITaskOutputModel> outputs) {
         this.inputs = inputs;
         this.outputs = outputs;
         Guard.checkArgument(taskVersion > 0, "taskVersion");
         this.taskName = Guard.notEmpty(taskName, "taskName");
         this.taskVersion = taskVersion;
+        this.recordMetrics = recordMetrics;
         this.mainStep = Guard.notNull(mainStep, "mainStep");
     }
 
@@ -55,6 +59,21 @@ public class TaskImpl implements ITask {
     public TaskStepReturn execute(ITaskRuntime taskRt, Set<String> outputNames) {
         ITaskStepRuntime stepRt = taskRt.newMainStepRuntime();
         stepRt.setOutputNames(outputNames);
-        return mainStep.execute(stepRt);
+        if (!recordMetrics)
+            return mainStep.execute(stepRt);
+
+        ITaskFlowMetrics metrics = taskRt.getMetrics();
+        Object meter = metrics.beginTask();
+        try {
+            return mainStep.execute(stepRt).thenCompose((ret, err) -> {
+                metrics.endTask(meter, err != null);
+                if (err == null)
+                    return ret;
+                throw NopException.adapt(err);
+            });
+        } catch (Exception e) {
+            metrics.endTask(meter, false);
+            throw NopException.adapt(e);
+        }
     }
 }

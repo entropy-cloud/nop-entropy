@@ -9,6 +9,7 @@ package io.nop.task;
 
 
 import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.context.IContext;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ResolvedPromise;
 
@@ -191,10 +192,7 @@ public final class TaskStepReturn {
         return new TaskStepReturn(future.whenComplete(consumer));
     }
 
-    public TaskStepReturn runOnContext() {
-        if (isDone())
-            return this;
-
-        return ASYNC(null, ContextProvider.thenOnContext(getReturnPromise()));
+    public TaskStepReturn thenOnContext(IContext context) {
+        return ASYNC(null, ContextProvider.thenOnContext(getReturnPromise(), context));
     }
 }

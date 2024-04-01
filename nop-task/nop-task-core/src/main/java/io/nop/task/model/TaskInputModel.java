@@ -7,10 +7,21 @@
  */
 package io.nop.task.model;
 
+import io.nop.core.lang.xml.XNode;
 import io.nop.task.model._gen._TaskInputModel;
+import io.nop.xlang.xmeta.ISchema;
+
+import java.util.HashMap;
 
 public class TaskInputModel extends _TaskInputModel implements ITaskInputModel {
     public TaskInputModel() {
 
+    }
+
+    public XNode getSchemaNode() {
+        ISchema schema = getSchema();
+        if (schema == null)
+            return null;
+        return schema.toNode(new HashMap<>());
     }
 }

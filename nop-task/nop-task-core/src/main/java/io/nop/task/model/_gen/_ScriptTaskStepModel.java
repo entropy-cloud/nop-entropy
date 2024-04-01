@@ -9,8 +9,8 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [129:14:0:0]/nop/schema/task/task.xdef <p>
- * 
+ * generate from [131:14:0:0]/nop/schema/task/task.xdef <p>
+ * 使用ScriptCompilerRegistry中注册的IScriptCompiler执行脚本语言
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})

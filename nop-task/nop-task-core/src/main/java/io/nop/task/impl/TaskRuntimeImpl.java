@@ -1,9 +1,13 @@
 package io.nop.task.impl;
 
+import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.context.IContext;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.task.ITask;
 import io.nop.task.ITaskManager;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskState;
@@ -11,6 +15,8 @@ import io.nop.task.ITaskStateStore;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskConstants;
+import io.nop.task.metrics.EmptyTaskFlowMetrics;
+import io.nop.task.metrics.ITaskFlowMetrics;
 import io.nop.xlang.api.XLang;
 
 import java.util.Map;
@@ -27,11 +33,15 @@ public class TaskRuntimeImpl implements ITaskRuntime {
 
     private final IServiceContext svcCtx;
 
+    private final IContext context;
+
     private final IEvalScope scope;
 
     private final boolean recoverMode;
 
     private ITaskState taskState;
+
+    private ITaskFlowMetrics metrics = EmptyTaskFlowMetrics.INSTANCE;
 
     public TaskRuntimeImpl(ITaskManagerImplementor taskManager,
                            ITaskStateStore stateStore,
@@ -40,8 +50,11 @@ public class TaskRuntimeImpl implements ITaskRuntime {
         this.stateStore = stateStore;
         this.svcCtx = svcCtx;
         this.recoverMode = recoverMode;
-        this.scope = svcCtx != null ? svcCtx.getEvalScope().newChildScope() : XLang.newEvalScope();
+        // taskRt可能会被多线程访问，所以这里scope线程安全
+        this.scope = svcCtx != null ? svcCtx.getEvalScope().newChildScope(true, true)
+                : XLang.newEvalScope(CollectionHelper.newConcurrentMap(4));
         this.scope.setLocalValue(TaskConstants.VAR_TASK_RT, this);
+        this.context = svcCtx == null ? ContextProvider.getOrCreateContext() : svcCtx.getContext();
     }
 
     public boolean isRecoverMode() {
@@ -59,12 +72,26 @@ public class TaskRuntimeImpl implements ITaskRuntime {
     }
 
     @Override
+    public IContext getContext() {
+        return context;
+    }
+
+    @Override
     public ITaskState getTaskState() {
         return taskState;
     }
 
     public void setTaskState(ITaskState taskState) {
         this.taskState = Guard.notNull(taskState, "taskState");
+    }
+
+    @Override
+    public ITaskFlowMetrics getMetrics() {
+        return metrics;
+    }
+
+    public void setMetrics(ITaskFlowMetrics metrics) {
+        this.metrics = Guard.notNull(metrics, "metrics");
     }
 
     @Override
@@ -78,8 +105,8 @@ public class TaskRuntimeImpl implements ITaskRuntime {
     }
 
     @Override
-    public ITaskRuntime newChildRuntime(String taskName, long taskVersion, boolean saveState) {
-        return taskManager.newTaskRuntime(taskName, taskVersion, saveState, getSvcCtx());
+    public ITaskRuntime newChildRuntime(ITask task, boolean saveState) {
+        return taskManager.newTaskRuntime(task, saveState, getSvcCtx());
     }
 
     @Override

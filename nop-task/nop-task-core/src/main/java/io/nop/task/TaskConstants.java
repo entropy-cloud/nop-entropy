@@ -8,7 +8,7 @@
 package io.nop.task;
 
 public interface TaskConstants {
-    String MODEL_TYPE_TASk = "task";
+    String MODEL_TYPE_TASK = "task";
 
     String FILE_TYPE_TASK = "task.xml";
 
@@ -119,4 +119,19 @@ public interface TaskConstants {
     String STEP_TYPE_CALL_STEP = "call-step";
 
     String STEP_TYPE_CALL_TASK = "call-task";
+
+    String ATTR_GRAPHQL_OPERATION_TYPE = "graphql:operationType";
+
+    String OPERATION_TYPE_QUERY = "query";
+
+    String OPERATION_TYPE_MUTATION = "mutation";
+
+    String METER_TASK = "flow.task";
+
+    String METER_STEP = "flow.step";
+
+    String STATUS_SUCCESS = "SUCCESS";
+    String STATUS_FAILURE = "FAILURE";
+
+    String DEFAULT_METER_PREFIX = "nop.";
 }

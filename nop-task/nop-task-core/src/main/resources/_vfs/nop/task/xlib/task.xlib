@@ -1,0 +1,43 @@
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c"
+>
+
+    <tags>
+
+        <GenActionFromTaskFlow>
+            <attr name="name" type="String" mandatory="true" />
+            <attr name="taskName" type="String" mandatory="true"/>
+            <attr name="taskVersion" type="Long" optional="true"/>
+
+            <source>
+                <c:script>
+                    import io.nop.task.utils.TaskFlowModelHelper;
+
+                    const taskFlowModel = TaskFlowModelHelper.loadTaskFlowModel(taskName,taskVersion);
+                </c:script>
+
+
+                <query xpl:is="${stepModel.graphqlOperationType}" name="${name}" displayName="${stepModel.displayName}">
+                    <arg name="request" kind="RequestBean">
+                        ${taskFlowModel.inputsSchemaNode}
+                    </arg>
+                    <arg name="selection" type="io.nop.api.core.beans.FieldSelectionBean"
+                         kind="FieldSelection"/>
+                    <arg name="svcCtx" type="io.nop.core.context.IServiceContext" kind="ServiceContext"/>
+
+                    <return>
+                        ${taskFlowModel.outputsSchemaNode}
+                    </return>
+
+                    <source><![CDATA[
+                        const taskManager = inject('nopTaskManager');
+                        const task = taskManager.getTask(taskName,taskVersion);
+                        const taskRt = taskManager.newTaskRuntime("${taskName}",
+                                        ${taskVersion||0}, false, svcCtx);
+                        return task.executeAsync(taskRt, selection?.sourceFields);
+                    ]]></source>
+                </query>
+            </source>
+        </GenActionFromTaskFlow>
+
+    </tags>
+</lib>
