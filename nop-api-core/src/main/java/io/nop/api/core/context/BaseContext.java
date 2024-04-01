@@ -201,9 +201,15 @@ public class BaseContext implements IContext {
             IContext oldCtx = BaseContextProvider.contextHolder().get();
             try {
                 BaseContextProvider.contextHolder().set(this);
+                LOG.trace("nop.run-on-context-enter:seq={}", seq);
                 taskQueue.flush();
             } finally {
-                BaseContextProvider.contextHolder().set(oldCtx);
+                LOG.trace("nop.run-on-context-leave:seq={}", seq);
+                if (oldCtx != null) {
+                    BaseContextProvider.contextHolder().set(oldCtx);
+                } else {
+                    BaseContextProvider.contextHolder().remove();
+                }
             }
         }
     }
@@ -215,12 +221,16 @@ public class BaseContext implements IContext {
         if (oldCtx == this)
             return task.call();
 
+        if (taskQueue.isProcessing()) {
+            LOG.warn("nop.warn.context.concurrent-execute-with-same-context:seq={}", seq);
+        }
+
         try {
-            LOG.trace("nop.context-enter:seq={}",seq);
+            LOG.trace("nop.context-enter:seq={}", seq);
             BaseContextProvider.contextHolder().set(this);
             return task.call();
         } finally {
-            LOG.trace("nop.context-leave:seq={}",seq);
+            LOG.trace("nop.context-leave:seq={}", seq);
             if (oldCtx != null) {
                 BaseContextProvider.contextHolder().set(oldCtx);
             } else {
@@ -241,7 +251,15 @@ public class BaseContext implements IContext {
 
     @Override
     public boolean isRunningOnContext() {
-        return ContextProvider.currentContext() == this;
+        IContext context = ContextProvider.currentContext();
+        if (context == null)
+            return false;
+        return context.getSourceContext() == this;
+    }
+
+    @Override
+    public IContext getSourceContext(){
+        return this;
     }
 
     @Override

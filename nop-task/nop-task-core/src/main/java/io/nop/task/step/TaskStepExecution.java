@@ -15,6 +15,7 @@ import io.nop.task.ITaskStepExecution;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskConstants;
 import io.nop.task.TaskStepReturn;
+import io.nop.task.metrics.ITaskFlowMetrics;
 import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
@@ -110,6 +111,8 @@ public class TaskStepExecution implements ITaskStepExecution {
      */
     private final boolean ignoreResult;
 
+    private final boolean recordMetrics;
+
     private final String errorName;
     private final boolean useParentScope;
 
@@ -118,7 +121,7 @@ public class TaskStepExecution implements ITaskStepExecution {
                              List<OutputConfig> outputConfigs, Set<String> outputVars,
                              IEvalPredicate when,
                              ITaskStep step, String nextStepName, String nextStepNameOnError,
-                             boolean ignoreResult, String errorName,
+                             boolean ignoreResult, boolean recordMetrics, String errorName,
                              boolean useParentScope
     ) {
         this.location = location;
@@ -131,6 +134,7 @@ public class TaskStepExecution implements ITaskStepExecution {
         this.nextStepName = nextStepName;
         this.nextStepNameOnError = nextStepNameOnError;
         this.ignoreResult = ignoreResult;
+        this.recordMetrics = recordMetrics;
         this.errorName = errorName == null ? TaskConstants.VAR_ERROR : errorName;
         this.useParentScope = useParentScope;
     }
@@ -184,12 +188,20 @@ public class TaskStepExecution implements ITaskStepExecution {
             stepRt.saveState();
         }
 
+        ITaskFlowMetrics metrics = parentRt.getTaskRuntime().getMetrics();
+        Object meter = recordMetrics ? metrics.beginStep(stepRt.getStepId(), step.getStepType()) : null;
+
         try {
             TaskStepReturn stepResult = step.execute(stepRt);
-            if (stepResult.isSuspend())
+            if (stepResult.isSuspend()) {
+                metrics.endStep(meter,false);
                 return stepResult;
+            }
 
             return stepResult.thenCompose((ret, err) -> {
+                if (meter != null)
+                    metrics.endStep(meter, err != null);
+
                 if (err != null) {
                     LOG.info("nop.task.step.run-fail:usedTime={},taskName={},taskInstanceId={},stepId={},runId={},nextStepNameOnError={},loc={}",
                             CoreMetrics.currentTimeMillis() - beginTime, taskRt.getTaskName(), taskRt.getTaskInstanceId(),
@@ -231,6 +243,9 @@ public class TaskStepExecution implements ITaskStepExecution {
             LOG.info("nop.task.step.run-fail:usedTime={},taskName={},taskInstanceId={},stepId={},runId={},nextStepNameOnError={},loc={}",
                     CoreMetrics.currentTimeMillis() - beginTime, taskRt.getTaskName(), taskRt.getTaskInstanceId(),
                     stepRt.getStepId(), stepRt.getRunId(), nextStepNameOnError, step.getLocation(), e);
+
+            if (meter != null)
+                metrics.endStep(meter, false);
 
             if (TaskStepHelper.isCancelledException(e))
                 throw NopException.adapt(e);

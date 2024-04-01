@@ -25,6 +25,7 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -236,6 +237,22 @@ public class FieldSelectionBean implements Serializable, IDeepCloneable, IFreeza
     public void setHidden(boolean hidden) {
         checkNotFrozen(this);
         this.hidden = hidden;
+    }
+
+    @JsonIgnore
+    public Set<String> getSourceFields() {
+        if (fields == null || fields.isEmpty())
+            return null;
+
+        Set<String> fields = new LinkedHashSet<>();
+        this.fields.forEach((name, field) -> {
+            if (field.getName() != null) {
+                fields.add(field.getName());
+            } else {
+                fields.add(name);
+            }
+        });
+        return fields;
     }
 
     public boolean hasField() {

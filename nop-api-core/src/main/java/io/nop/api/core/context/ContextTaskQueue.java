@@ -31,7 +31,7 @@ public class ContextTaskQueue {
     /**
      * 同一时刻只允许一个线程在执行任务
      */
-    private Thread processingThread;
+    private volatile Thread processingThread;
 
     /**
      * 当前正在同步等待的线程个数
@@ -171,11 +171,10 @@ public class ContextTaskQueue {
     }
 
     public boolean isProcessingThread() {
-        lock.lock();
-        try {
-            return Thread.currentThread() == processingThread;
-        } finally {
-            lock.unlock();
-        }
+        return Thread.currentThread() == processingThread;
+    }
+
+    public boolean isProcessing() {
+        return processingThread != null;
     }
 }

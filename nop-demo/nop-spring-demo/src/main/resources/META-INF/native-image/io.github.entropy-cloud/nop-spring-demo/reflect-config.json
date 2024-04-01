@@ -1917,6 +1917,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getSourceFields",
+        "parameterTypes": []
+      },
+      {
         "name": "hasField",
         "parameterTypes": []
       },
@@ -3499,6 +3503,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getLeftJoinProps",
+        "parameterTypes": []
+      },
+      {
         "name": "getLimit",
         "parameterTypes": []
       },
@@ -3618,6 +3626,12 @@
       },
       {
         "name": "setJoins",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setLeftJoinProps",
         "parameterTypes": [
           "java.util.List"
         ]

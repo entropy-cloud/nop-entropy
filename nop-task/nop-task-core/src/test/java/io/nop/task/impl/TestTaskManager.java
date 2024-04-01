@@ -107,9 +107,9 @@ public class TestTaskManager extends AbstractTaskTestCase {
 
 
     @Test
-    public void testRunInContext() {
+    public void testRunOnContext() {
         BeanContainer.registerInstance(new MockBeanContainer());
-        ContextProvider.getOrCreateContext().runOnContext(()->{
+        ContextProvider.getOrCreateContext().runOnContext(() -> {
             runTask("test/run-on-context-01");
         });
     }

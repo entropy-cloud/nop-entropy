@@ -24,6 +24,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @NoReflection
 public class EvalScopeImpl implements IEvalScope {
+    private static final Object NULL_VALUE = new Object();
+
     private final IEvalScope parentScope;
     private final Map<String, Object> variables;
     private Map<String, SourceLocation> locations;
@@ -122,17 +124,16 @@ public class EvalScopeImpl implements IEvalScope {
     @Override
     public Object getLocalValue(String name) {
         Object value = variables.get(name);
-        return value;
+        return value == NULL_VALUE ? null : value;
     }
 
     @Override
     public ValueWithLocation recordValueLocation(String name) {
         Object value = variables.get(name);
         if (value == null) {
-            if (!variables.containsKey(name))
-                return ValueWithLocation.UNDEFINED_VALUE;
+            return ValueWithLocation.UNDEFINED_VALUE;
         }
-        return ValueWithLocation.of(getLocalLocation(name), value);
+        return ValueWithLocation.of(getLocalLocation(name), value == NULL_VALUE ? null : value);
     }
 
     public SourceLocation getLocalLocation(String name) {
@@ -174,12 +175,9 @@ public class EvalScopeImpl implements IEvalScope {
         // return var.getValue(this);
         // }
 
-        Object value = getLocalValue(name);
+        Object value = variables.get(name);
         if (value != null)
-            return value;
-
-        if (variables.containsKey(name))
-            return null;
+            return value == NULL_VALUE ? null : value;
 
         if (extension != null) {
             if (extension.containsValue(name))
@@ -205,6 +203,9 @@ public class EvalScopeImpl implements IEvalScope {
 
     @Override
     public void setLocalValue(SourceLocation loc, String name, Object value) {
+        if (value == null) {
+            value = NULL_VALUE;
+        }
         variables.put(name, value);
         if (ENABLE_EVAL_DEBUG) {
             if (locations == null) {

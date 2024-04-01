@@ -142,7 +142,7 @@ public class ContextProvider {
     }
 
     /**
-     * 确保回调函数在当前context上执行
+     * 确保回调函数在当前context上执行。但是返回的promise需要立刻被使用，如果传递到其他线程上使用，则不确保这一点
      */
     public static <T> CompletionStage<T> thenOnContext(CompletionStage<T> future) {
         IContext context = getOrCreateContext();
@@ -151,16 +151,12 @@ public class ContextProvider {
     }
 
     /**
-     * 确保future的回调函数执行时，上下文环境为context
+     * 确保future的回调函数执行时，上下文环境为context。
      *
      * @return 一个包装后的CompletionStage对象，它的complete回调函数在context上下文中调用
      */
-    public static <T> CompletionStage<T> thenOnContext(CompletionStage<T> future, IContext context) {
+    public static <T> CompletionStage<T> thenOnContext0(CompletionStage<T> future, IContext context) {
         Guard.notNull(context, "context");
-
-        if (FutureHelper.isDone(future) && context.isRunningOnContext()) {
-            return future;
-        }
 
         CompletableFuture<T> promise = new CompletableFuture<>();
         future.whenComplete((value, err) -> {
@@ -170,6 +166,18 @@ public class ContextProvider {
         });
 
         return promise;
+    }
+
+    /**
+     * 将回调函数发送到context的任务队列中执行，执行时线程上下文绑定context，且当前只有一个线程在执行。
+     * 返回的promise需要立刻被使用，如果传递到其他线程上使用，则不确保这一点。
+     */
+    public static <T> CompletionStage<T> thenOnContext(CompletionStage<T> future, IContext context) {
+        Guard.notNull(context, "context");
+        if (FutureHelper.isDone(future) && context.isRunningOnContext()) {
+            return future;
+        }
+        return thenOnContext0(future, context);
     }
 
     public static <T> void completeOnContext(CompletionStage<T> future, BiConsumer<? super T, Throwable> handler) {

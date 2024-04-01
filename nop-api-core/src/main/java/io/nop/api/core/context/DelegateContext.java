@@ -168,6 +168,11 @@ public class DelegateContext implements IContext {
     }
 
     @Override
+    public IContext getSourceContext() {
+        return context.getSourceContext();
+    }
+
+    @Override
     public <T> CompletionStage<T> executeBlocking(Supplier<?> task, boolean ordered) {
         return context.executeBlocking(task, ordered);
     }

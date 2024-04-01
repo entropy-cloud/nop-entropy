@@ -138,6 +138,8 @@ public interface IContext extends Executor, AutoCloseable {
      */
     boolean isRunningOnContext();
 
+    IContext getSourceContext();
+
     /**
      * 利用内部workerExecutor来执行
      *

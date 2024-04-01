@@ -1,11 +1,17 @@
 package io.nop.task;
 
+import io.nop.api.core.context.IContext;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.core.context.IEvalContext;
 
 import java.util.Set;
 
 public interface ITaskStepRuntime extends IEvalContext {
+
+    default IContext getContext(){
+        return getTaskRuntime().getContext();
+    }
+    
     ITaskRuntime getTaskRuntime();
 
     ICancelToken getCancelToken();
