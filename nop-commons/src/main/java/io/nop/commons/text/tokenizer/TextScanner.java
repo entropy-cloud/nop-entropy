@@ -1138,6 +1138,35 @@ public class TextScanner {
         } while (true);
     }
 
+    public boolean nextUntilUnescaped(char c, IntConsumer out) {
+        do {
+            if (isEnd())
+                return false;
+
+            if (cur == '\\') {
+                if (out != null) {
+                    out.accept(cur);
+                }
+                next();
+                if (out != null) {
+                    out.accept(cur);
+                }
+
+                if (!isEnd())
+                    next();
+                continue;
+            }
+
+            if (cur == c)
+                return true;
+
+            if (out != null)
+                out.accept(cur);
+
+            next();
+        } while (true);
+    }
+
     public void nextUntilEnd(IntConsumer out) {
         do {
             if (isEnd())

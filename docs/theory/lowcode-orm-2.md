@@ -123,7 +123,7 @@ NopOrm继承了Hibernate和Spring框架中一些非常优秀的设计：
 8. **敏感数据掩码**：用户的卡号和身份证号等敏感信息字段可以增加mask标签，从而在系统内部打印日志时自动对该字段值进行掩码处理，避免泄露到日志文件中。
 
 9. **组件逻辑复用**：一组相关的字段可能组成一个可以复用的组件，通过OrmComponent机制可以对这些逻辑进行复用。例如，数据库中的Decimal类型精度必须事先指定，但是客户要求必须按照输入时指定的精度来进行显示和计算，这要求我们在记录表中增加一个VALUE_SCALE字段来保留精度信息，但是当我们从数据库中取出值的时候我们又希望直接得到一个scale已经被设置为指定值的BigDecimal。NopOrm提供了一个FloatingScaleDecimal组件来完成这件工作。对于附件、附件列表等具有复杂关联逻辑的字段可以采用类似的方式进行封装。
-   
+
    [FloatingScaleDecimal](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/support/FloatingScaleDecimal.java)
 
 与外围框架相结合，Nop平台还内置了更多常用的解决方案。比如
@@ -225,7 +225,7 @@ NopOrm采用orm.xml模型文件来定义实体模型。首先，它是一个完�
         />
           ...
     </x:gen-extends>
-</orm>  
+</orm>
 ```
 
 [Pdman](http://www.pdman.cn/)是一个开源的数据库建模工具，它将模型信息保存为json文件格式。`<pdman:GenOrm>`是一个在编译期元编程阶段运行的XPL模板语言标签，它会根据pdman的json模型自动生成orm模型文件。这种生成是即时生效的，即只要修改了test.pdma.json文件，OrmModel的解析缓存就会失效，再次访问时会重新解析得到新的模型对象。
@@ -272,7 +272,7 @@ class Customer{
 }
 
 class Order{
-   Set<OrderDetail> details;   
+   Set<OrderDetail> details;
 }
 ```
 
@@ -305,7 +305,7 @@ N+1问题之所以臭名昭著，原因在于开发阶段数据量很小，性�
        }
    )}
 )
-@Entity       
+@Entity
 class Customer{
     ...
 }
@@ -334,11 +334,11 @@ detailGraph.addAttributeNodes("details");
 select customer0.*,
        order1.*,
        detail2.*
-from 
-     customer customer0 
+from
+     customer customer0
        left join order order1 on ...
        left join order_detail detail2 on ...
- where customer0.id = ?   
+ where customer0.id = ?
 ```
 
 Hibernate会使用一条SQL语句把所有数据都取出来，代价就是需要多个表进行关联，并返回了大量冗余数据。
@@ -436,7 +436,7 @@ for(Order o: c.getOrders()){
 5. QueryBeanHelper.toPredicate(filter)可以将过滤条件转换为Predicate接口，从而在java中直接过滤。
 
 6. 通过FilterBeans中定义的and,eq等算子，结合代码生成时自动生成的属性名常量，我们可以实现如下编译期安全的构造方式。
-   
+
    filter = and(eq(PROP_NAME_myFld,"a"), gt(PROP_NAME_otherFld,3))
 
 QueryBuilder本质上是与ORM无关的，因为在完全脱离关系数据库和SQL语句的情况下，我们仍然可以使用Query模型。例如，在业务规则配置中
@@ -504,7 +504,7 @@ SELECT
     send_city.name city,
     send_city.pid.name province,
     send_city.pid.pid.name region
-FROM 
+FROM
     orders
 ```
 
@@ -525,13 +525,13 @@ DQL的第三个关键思想是：**子表集合化**，例如订单明细表可�
 
 ```sql
 -- SQL
-SELECT T1.订单编号,T1.客户,SUM(T2.价格)  
-FROM 订单表T1  
-JOIN 订单明细表T2 ON T1.订单编号=T2.订单编号  
+SELECT T1.订单编号,T1.客户,SUM(T2.价格)
+FROM 订单表T1
+JOIN 订单明细表T2 ON T1.订单编号=T2.订单编号
 GROUP BY T1.订单编号,T1.客户
 
 -- DQL
-SELECT 订单编号,客户,订单明细表.SUM(价格)  
+SELECT 订单编号,客户,订单明细表.SUM(价格)
 FROM 订单表
 ```
 
@@ -630,7 +630,7 @@ sql-lib提供了如下特性
 
   <sqls>
      <!-- 在这里可以对自动生成SQL进行定制 -->
-     <eql name=”yyy“>...</eql> 
+     <eql name=”yyy“>...</eql>
   </sqls>
 </sql-lib>
 ```
@@ -718,7 +718,7 @@ where id = :id
 <c:script>
 function f(x,y){
     return x + y;
-} 
+}
 let obj = ...
 let {a,b} = linq `
   select sum(x + y) as a , sum(x * y) as b
@@ -748,9 +748,9 @@ Xpl模板语言支持多种输出模式（Output Mode）
 
 sql模式针对SQL输出的情况做了特殊处理，主要增加了如下规则
 
-1. 如果输出对象，则替换为?，并把对象收集到参数集合中。例如  id = \${id} 实际将生成id=?的sql文本，同时通过一个List来保存参数值。
+1. 如果输出对象，则替换为?，并把对象收集到参数集合中。例如  `id = ${id}` 实际将生成id=?的sql文本，同时通过一个List来保存参数值。
 
-2. 如果输出集合对象，则自动展开为多个参数。例如  id in (\${ids}) 对应生成id in (?,?,?)。
+2. 如果输出集合对象，则自动展开为多个参数。例如  `id in (${ids})` 对应生成id in (?,?,?)。
 
 如果确实希望直接输出SQL文本，拼接到SQL语句中，可以使用raw函数来包装。
 
@@ -784,7 +784,7 @@ XLang语言还内置了一些调试特性，方便在元编程阶段对问题进
 
 2. Xpl模板语言节点上可以增加xpl:dump属性，打印出当前节点经动态编译后得到的AST语法树
 
-3. 任何表达式都可以追加调用扩展函数\$，它会自动打印当前表达式对应的文本、行号以及表达式执行的结果, 并返回表达式的结果值。例如
+3. 任何表达式都可以追加调用扩展函数`$`，它会自动打印当前表达式对应的文本、行号以及表达式执行的结果, 并返回表达式的结果值。例如
 
 ```
 x = a.f().$(prefix) 实际对应于
@@ -930,5 +930,5 @@ NopOrm遵循可逆计算原理，可以通过Delta定制和元编程对底层模
 
 - gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 - github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md) 
+- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
 - [可逆计算原理和Nop平台介绍及答疑_哔哩哔哩_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)

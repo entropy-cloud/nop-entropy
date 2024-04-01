@@ -1,13 +1,19 @@
 package io.nop.markdown;
 
 import io.nop.commons.collections.MutableIntArray;
+import io.nop.commons.text.MutableString;
+import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.impl.FileResource;
+import io.nop.markdown.math.MathExtension;
+import io.nop.markdown.math.MathNode;
 import org.commonmark.ext.gfm.tables.TablesExtension;
 import org.commonmark.node.AbstractVisitor;
+import org.commonmark.node.FencedCodeBlock;
 import org.commonmark.node.Heading;
 import org.commonmark.node.Node;
+import org.commonmark.node.Text;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.Renderer;
 import org.commonmark.renderer.markdown.MarkdownRenderer;
@@ -19,14 +25,14 @@ public class MarkdownNormalizer {
 
     protected Parser buildParser() {
         Parser parser = Parser.builder()
-                .extensions(Arrays.asList(TablesExtension.create()))
+                .extensions(Arrays.asList(TablesExtension.create(), MathExtension.create()))
                 .build();
         return parser;
     }
 
     protected Renderer buildRenderer() {
         MarkdownRenderer.Builder builder = MarkdownRenderer.builder()
-                .extensions(Arrays.asList(TablesExtension.create()));
+                .extensions(Arrays.asList(TablesExtension.create(), MathExtension.create()));
         return builder.build();
     }
 
@@ -34,7 +40,8 @@ public class MarkdownNormalizer {
         Parser parser = buildParser();
         Node document = parser.parse(text);
         document.accept(new NormalizeVisitor());
-        return buildRenderer().render(document);
+        String normalized = buildRenderer().render(document);
+        return normalized;
     }
 
     public void normalizeResource(IResource resource) {
@@ -91,6 +98,49 @@ public class MarkdownNormalizer {
             fencedCodeBlock.setOpeningFenceLength(3);
             fencedCodeBlock.setClosingFenceLength(3);
             super.visit(fencedCodeBlock);
+        }
+
+        @Override
+        public void visit(Text text) {
+            String literal = text.getLiteral();
+            int pos = literal.indexOf('$');
+            if (pos >= 0 && literal.length() > pos + 2 && literal.indexOf('$', pos + 1) > 0) {
+                normalizeMathNode(text);
+                text.unlink();
+            } else {
+                super.visit(text);
+            }
+        }
+
+        private void normalizeMathNode(Text text) {
+            String literal = text.getLiteral();
+            TextScanner sc = TextScanner.fromString(null, literal);
+            Node prev = text;
+            do {
+                MutableString buf = sc.useBuf();
+                if (sc.nextUntilUnescaped('$', sc::appendToBuf)) {
+                    sc.next();
+                    if (!buf.isEmpty()) {
+                        Text newNode = new Text(buf.toString());
+                        prev.insertAfter(newNode);
+                        prev = newNode;
+                    }
+
+                    buf = sc.useBuf();
+                    if (sc.nextUntilUnescaped('$', sc::appendToBuf)) {
+                        MathNode newNode = new MathNode(buf.toString());
+                        prev.insertAfter(newNode);
+                        prev = newNode;
+                        buf.clear();
+                        sc.next();
+                    }
+                }
+                if (!buf.isEmpty()) {
+                    Text newNode = new Text(buf.toString());
+                    prev.insertAfter(newNode);
+                    prev = newNode;
+                }
+            } while (!sc.isEnd());
         }
     }
 }
