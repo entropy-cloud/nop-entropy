@@ -1,4 +1,4 @@
-# x$\delta +1 $
+# `$`x$\delta +1 $
 
 ## some
 
