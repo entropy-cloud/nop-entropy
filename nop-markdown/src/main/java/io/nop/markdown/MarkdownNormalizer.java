@@ -73,14 +73,24 @@ public class MarkdownNormalizer {
                 }
 
                 while (levels.size() > 1) {
-                    if (level <= levels.size())
+                    if (level <= levels.size()) {
                         levels.pop();
+                    } else {
+                        break;
+                    }
                 }
 
                 levels.push(level);
                 heading.setLevel(levels.size());
             }
             super.visit(heading);
+        }
+
+        @Override
+        public void visit(FencedCodeBlock fencedCodeBlock) {
+            fencedCodeBlock.setOpeningFenceLength(3);
+            fencedCodeBlock.setClosingFenceLength(3);
+            super.visit(fencedCodeBlock);
         }
     }
 }
