@@ -139,6 +139,8 @@ public interface OrmErrors {
 
     String ARG_ROLES = "roles";
 
+    ErrorCode ERR_ORM_SESSION_NOT_RUN_ON_CONTEXT =
+            define("nop.err.orm.session-not-run-on-context","ORM会话只能在单线程上访问，不支持并发访问");
     ErrorCode ERR_ORM_SESSION_CLOSED = define("nop.err.orm.session-closed", "session已关闭");
 
     ErrorCode ERR_ORM_READONLY_NOT_ALLOW_UPDATE = define("nop.err.orm.read-only-session-not-allow-update",

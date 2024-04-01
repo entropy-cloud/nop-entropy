@@ -10,6 +10,8 @@ package io.nop.orm.session;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.LongRangeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
+import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.IBeanProvider;
@@ -82,6 +84,7 @@ import static io.nop.orm.OrmErrors.ERR_ORM_READONLY_NOT_ALLOW_UPDATE;
 import static io.nop.orm.OrmErrors.ERR_ORM_SAVE_ENTITY_NOT_TRANSIENT;
 import static io.nop.orm.OrmErrors.ERR_ORM_SAVE_ENTITY_REPLACE_EXISTING_ENTITY;
 import static io.nop.orm.OrmErrors.ERR_ORM_SESSION_CLOSED;
+import static io.nop.orm.OrmErrors.ERR_ORM_SESSION_NOT_RUN_ON_CONTEXT;
 import static io.nop.orm.OrmErrors.ERR_ORM_UNKNOWN_COLLECTION_PERSISTER;
 import static io.nop.orm.OrmErrors.ERR_ORM_UPDATE_ENTITY_NOT_MANAGED;
 
@@ -116,6 +119,9 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     private ICache<Object, Object> sessionCache;
 
     private long sessionRevVersion = -1L;
+
+    // 这里总使用当前的context，不需要自己创建
+    private final IContext context = ContextProvider.currentContext();
 
     public OrmSessionImpl(boolean stateless, IPersistEnv env, List<IOrmInterceptor> interceptors) {
         this.env = env;
@@ -160,6 +166,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public void flush() {
+        checkContext();
         checkValid();
 
         LOG.debug("orm.begin-flush");
@@ -208,6 +215,11 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
         LOG.debug("orm.end-flush");
     }
 
+    void checkContext() {
+        if (context != null && !context.isRunningOnContext())
+            throw new OrmException(ERR_ORM_SESSION_NOT_RUN_ON_CONTEXT);
+    }
+
     void checkValid() {
         if (closed)
             throw new OrmException(ERR_ORM_SESSION_CLOSED);
@@ -242,6 +254,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public IOrmBatchLoadQueueImplementor getBatchLoadQueue() {
+        checkContext();
         if (batchLoadQueue == null)
             this.batchLoadQueue = new OrmBatchLoadQueueImpl(this);
         return this.batchLoadQueue;
@@ -249,6 +262,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public void flushBatchLoadQueue() {
+        checkContext();
         if (this.batchLoadQueue != null)
             this.batchLoadQueue.flush();
     }
@@ -272,24 +286,28 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public boolean contains(IOrmEntity object) {
+        checkContext();
         checkValid();
         return cache.contains(object);
     }
 
     @Override
     public void evict(IOrmEntity entity) {
+        checkContext();
         checkValid();
         cache.remove(entity);
     }
 
     @Override
     public void evictAll(String entityName) {
+        checkContext();
         checkValid();
         cache.removeAll(entityName);
     }
 
     @Override
     public void clear() {
+        checkContext();
         checkValid();
         LOG.debug("orm.session_clear");
         cache.clear();
@@ -326,6 +344,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public boolean internalLoad(IOrmEntity entity) {
+        checkContext();
         checkValid();
 
         IEntityPersister persister = this.requireEntityPersister(entity.orm_entityName());
@@ -717,6 +736,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     }
 
     IOrmEntity makeProxy(String entityName, Object id) {
+        checkContext();
         checkValid();
 
         IEntityPersister persister = requireEntityPersister(entityName);
@@ -770,6 +790,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public boolean internalLoadProperty(IOrmEntity entity, int propId) {
+        checkContext();
         checkValid(entity);
         IEntityPersister persister = this.requireEntityPersister(entity.orm_entityName());
         IEntityModel entityModel = persister.getEntityModel();
@@ -810,6 +831,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     @Override
     public CompletionStage<Void> internalBatchLoadAsync(String entityName, Collection<IOrmEntity> entities,
                                                         IntArray propIds, FieldSelectionBean subSelection) {
+        checkContext();
         checkValid();
         IEntityPersister persister = this.requireEntityPersister(entityName);
 
@@ -819,6 +841,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     @Override
     public CompletionStage<Void> internalBatchLoadCollectionAsync(String collectionName,
                                                                   Collection<IOrmEntitySet> collections, IntArray propIds, FieldSelectionBean subSelection) {
+        checkContext();
         checkValid();
         ICollectionPersister persister = this.requireCollectionPersister(collectionName);
 
@@ -1110,6 +1133,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public IOrmEntity internalLoadRefEntity(IOrmEntity entity, String propName) {
+        checkContext();
         checkValid(entity);
         IEntityPersister persister = requireEntityPersister(entity.orm_entityName());
         IEntityModel entityModel = persister.getEntityModel();
@@ -1145,6 +1169,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public void internalLoadCollection(IOrmEntitySet coll) {
+        checkContext();
         checkValid(coll);
         ICollectionPersister persister = requireCollectionPersister(coll.orm_collectionName());
         persister.loadCollection(coll, persister.getCollectionModel().getRefEntityModel().getEagerLoadProps(), null,
@@ -1153,6 +1178,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public ICache<Object, Object> getSessionCache() {
+        checkContext();
         if (sessionCache == null)
             sessionCache = new MapCache<>("orm-session-cache", false);
         return sessionCache;
@@ -1160,6 +1186,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public void reset() {
+        checkContext();
         checkValid();
         cache.forEachCurrent(entity -> {
             resetEntity(entity);
@@ -1185,6 +1212,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public void attach(IOrmEntity entity) {
+        checkContext();
         if (entity.orm_enhancer() == this)
             return;
 
@@ -1273,12 +1301,14 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public long executeUpdate(SQL sql) {
+        checkContext();
         IQueryExecutor executor = env.getQueryExecutor(sql.getQuerySpace());
         return executor.executeUpdate(this, sql);
     }
 
     @Override
     public <T> T executeQuery(@Nonnull SQL sql, LongRangeBean range, @Nonnull Function<? super IDataSet, T> callback) {
+        checkContext();
         IQueryExecutor executor = env.getQueryExecutor(sql.getQuerySpace());
         return executor.executeQuery(this, sql, range, callback);
     }
@@ -1286,6 +1316,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     @Override
     public <T> T executeStatement(@Nonnull SQL sql, LongRangeBean range, @Nonnull Function<IComplexDataSet, T> callback,
                                   ICancelToken cancelToken) {
+        checkContext();
         IQueryExecutor executor = env.getQueryExecutor(sql.getQuerySpace());
         return executor.executeStatement(this, sql, range, callback, cancelToken);
     }

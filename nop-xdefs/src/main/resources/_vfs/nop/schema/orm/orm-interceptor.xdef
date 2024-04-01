@@ -22,6 +22,8 @@
 
         <post-reset id="!string" xdef:ref="OrmInterceptorActionModel"/>
 
+        <post-save id="!string" xdef:ref="OrmInterceptorActionModel"/>
+
         <post-update id="!string" xdef:ref="OrmInterceptorActionModel"/>
 
         <post-delete id="!string" xdef:ref="OrmInterceptorActionModel"/>
