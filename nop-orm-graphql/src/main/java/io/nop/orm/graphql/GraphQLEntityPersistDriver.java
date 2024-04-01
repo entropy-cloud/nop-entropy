@@ -117,7 +117,7 @@ public class GraphQLEntityPersistDriver implements IEntityPersistDriver, IEntity
                     bindEntity(entity, (Map<String, Object>) res, propIds);
                 });
 
-        return task.getPromise();
+        return task.invokeAsync();
     }
 
     @Override
@@ -139,7 +139,7 @@ public class GraphQLEntityPersistDriver implements IEntityPersistDriver, IEntity
 
             task.getRequest().addOperation(newEntityAction("batchModify"))
                     .addArg("data", "[Map]", data);
-            return task.getPromise();
+            return task.invokeAsync();
         } else {
             if (deleteActions == null || deleteActions.isEmpty())
                 return null;
@@ -147,7 +147,7 @@ public class GraphQLEntityPersistDriver implements IEntityPersistDriver, IEntity
             List<String> ids = deleteActions.stream().map(IBatchAction.EntityDeleteAction::getIdString).collect(Collectors.toList());
             task.getRequest().addOperation(newEntityAction("batchDelete"))
                     .addArg("ids", "[String]", ids);
-            return task.getPromise();
+            return task.invokeAsync();
         }
     }
 
@@ -191,7 +191,7 @@ public class GraphQLEntityPersistDriver implements IEntityPersistDriver, IEntity
                 .selection(selection).onSuccess(res -> {
                     bindEntities(entities, (List<Map<String, Object>>) res, propIds);
                 });
-        return task.getPromise();
+        return task.invokeAsync();
     }
 
     protected FieldSelectionBean newSelection(IntArray propIds, FieldSelectionBean subSelection) {
