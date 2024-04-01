@@ -1,4 +1,6 @@
-# 功能设计
+# XView视图模型
+
+## 功能设计
 
 XView是与前台框架无关、面向业务领域的前端界面描述。它通过页面(page)、表格(grid)、表单(form)、操作(action)等少量概念来表达前台的核心交互逻辑。最终使用的前台页面`page.yaml`可以利用`x:gen-extends`元编程机制根据xview模型来动态生成AMIS页面。
 
@@ -8,7 +10,7 @@ XView模型将前端界面的构造分解为字段级、表单/表格级、页�
 2. 表单的layout模型控制页面如何布局，在不改变字段控件的情况下可以调整页面布局
 3. 构造页面的使用可以直接引用已定义的表单和表格。
 
-## 增删改查标准页面
+### 增删改查标准页面
 
 一般`xxx-web`模块在maven打包的时候会执行precompile目录下的代码生成器，根据xmeta来生成web前端的代码,例如`nop-auth-web/precompile/gen-page.xgen`中
 
@@ -93,11 +95,11 @@ codeGenerator.withTplDir('/nop/templates/orm-web').execute("/",{ moduleId: "nop/
 4. 类似于`pick-list`与`list`的关系，新增表单`add`缺省情况下从`edit`继承，表示除非特殊定制，新增页面的布局与编辑页面相同。每个表单都有自己对应的编辑模式`editMode`，这样可以使得新增、修改、选择、查看的时候，同一个字段可以使用不同的控件来显示。
 5. `main`页面设置了`filterForm="query"`, `asiderFilterForm="asideFilter"`。这表示如果query表单会作为main页面的查询条件表单。如果配置了`asideFilter`表单，则会在main页面上通过左侧的side边栏用于显示一部分查询条件。
 
-## 表格基本配置
+### 表格基本配置
 
 具体配置选项可以参见 [grid.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/grid.xdef)元模型定义。
 
-### 1. 控制列表显示哪些字段，以及字段的顺序
+#### 1. 控制列表显示哪些字段，以及字段的顺序
 
 ```xml
 <grid id="list">
@@ -114,7 +116,7 @@ codeGenerator.withTplDir('/nop/templates/orm-web').execute("/",{ moduleId: "nop/
 `x:override="bounded-merge"`表示`cols`子节点的范围限制在当前指定的范围之内，在被继承的基础模型中定义的多余的字段会被自动删除。如果不指定`x:override`，则缺省为`merge`模式，执行结果是向基础模型增加字段以及修改字段，除非显式通过`x:override="remove"`来表示删除字段。
 
 
-### 2. 指定列表字段的表头、宽度、对齐模式等
+#### 2. 指定列表字段的表头、宽度、对齐模式等
 
 ```xml
 
@@ -122,7 +124,7 @@ codeGenerator.withTplDir('/nop/templates/orm-web').execute("/",{ moduleId: "nop/
 
 ```
 
-### 3. 指定显式控件
+#### 3. 指定显式控件
 
 缺省情况下表格字段的显式控件是根据字段类型和表格上指定的`editMode`来确定，具体使用的控件在[control.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-web/src/main/resources/_vfs/nop/web/xlib/control.xlib)中定义。
 
@@ -142,7 +144,7 @@ codeGenerator.withTplDir('/nop/templates/orm-web').execute("/",{ moduleId: "nop/
 
 
 
-## 表单基本配置
+### 表单基本配置
 
 表单布局使用的DSL参见[layout.md](layout.md)。
 
@@ -150,9 +152,9 @@ codeGenerator.withTplDir('/nop/templates/orm-web').execute("/",{ moduleId: "nop/
 
 
 
-# 常见功能配置
+## 常见功能配置
 
-## 1. 左侧以树形结构展示过滤条件
+### 1. 左侧以树形结构展示过滤条件
 
 例如`NopAuthUser`对应的用户管理页面，它左侧是单位树，点击单位后，会按照单位过滤右侧的用户列表。用户列表已有的查询条件和左侧单位树的查询条件会合并在一起传到后台。
 
@@ -175,7 +177,7 @@ codeGenerator.withTplDir('/nop/templates/orm-web').execute("/",{ moduleId: "nop/
 
 只需要增加`id="asideFilter"`的form。`submitOnChange`表示点击后立刻提交查询。
 
-## 2. 列表数据具有嵌套的父子关系
+### 2. 列表数据具有嵌套的父子关系
 
 例如单位树，`父单位-子单位`构成Tree结构。
 
@@ -189,7 +191,7 @@ url: "@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildre
 
 `filter_parentId=__null`表示按照`parentId=null`条件过滤得到根节点列表。
 
-## 3. 把多个已有的页面采用Tab页的形式组织成一个复合页面
+### 3. 把多个已有的页面采用Tab页的形式组织成一个复合页面
 
 参见`NopAuthDept.view.xml`中部门管理功能所使用的`tab`页
 
@@ -200,7 +202,7 @@ url: "@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildre
     </tabs>
 ```
 
-## 4. 为列表页面增加多个查询条件
+### 4. 为列表页面增加多个查询条件
 
 参考`NopAuthUser.view.xml`中，只要在`id="query"`的form中增加字段即可。缺省生成的crud页面会使用`filterForm`属性来引用`query`表单
 
@@ -228,7 +230,7 @@ url: "@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildre
 
 所有支持的过滤算符在`FilterOp.java`类中定义，常用的有`eq`、`ne`、`gt`、`ge`、`lt`、`le`、`contains`、`in`、`startsWith`、`endsWith`等
 
-## 5. 列表页面没有行操作按钮，希望隐藏操作按钮列
+### 5. 列表页面没有行操作按钮，希望隐藏操作按钮列
 
 ```xml
  <crud name="xxx">
@@ -236,7 +238,7 @@ url: "@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildre
  </crud>
 ```
 
-## 6. 增加一个页面，与缺省的增删改查页面类似，但是列表的查询条件不同
+### 6. 增加一个页面，与缺省的增删改查页面类似，但是列表的查询条件不同
 
 ```xml
 
@@ -250,7 +252,7 @@ url: "@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildre
 
 `x:prototype`表示从兄弟节点继承。 `x:prototype-override=replace`表示使用本节点覆盖得来的`table`节点，缺省情况下是合并(`merge`)而不是完全覆盖。
 
-## 7. 点击按钮，弹出一个对话框，填写完毕后执行后台操作，关闭对话框，并刷新原页面
+### 7. 点击按钮，弹出一个对话框，填写完毕后执行后台操作，关闭对话框，并刷新原页面
 
 参见[LitemallGoods.view.xml](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallGoods/LitemallGoods.view.xml)
 
@@ -284,7 +286,7 @@ url: "@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildre
 * `dialog`的`noActions="true"`表示不使用对话框内置的提交、取消按钮。
 * `action`上`batch="true"`表示是针对批量选择的列表条目的操作。`close`表示执行完当前操作后会关闭窗口。而`reload`表示会重新加载指定名称的表格，即`role-users`页面中的增删改查表格。
 
-## 8. 将子表数据和主表一起提交
+### 8. 将子表数据和主表一起提交
 
 ```xml
 <form id="edit">
@@ -300,7 +302,7 @@ url: "@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildre
 
 为子表属性增加一个view配置，指定用哪个表格去编辑该子表的数据。XView模型会自动分析view配置，得到表格字段列表，合并到当前表单所对应的GraphQL请求中。
 
-## 9. 定制列表行上的按钮
+### 9. 定制列表行上的按钮
 
 ```xml
 <crud name="main">
@@ -320,7 +322,7 @@ url: "@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildre
 </crud>
 ```
 
-## 10. 表单数据过多，希望采用tab页的形式显示
+### 10. 表单数据过多，希望采用tab页的形式显示
 
 ```xml
 <form id="view" layoutControl="tabs" >...</form>
@@ -329,7 +331,7 @@ url: "@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildre
 配置`layoutControl="tabs"`。
 
 
-## 11. 点击行上按钮弹出关联子表的增删改查页面
+### 11. 点击行上按钮弹出关联子表的增删改查页面
 
 ````xml
 <action id="row-edit-rule-nodes" label="@i18n:rule.ruleNodes|规则节点" actionType="drawer">
@@ -355,7 +357,7 @@ x:gen-extends: |
   <web:GenPage view="NopRuleNode.view.xml" page="main" fixedProps="ruleId" xpl:lib="/nop/web/xlib/web.xlib" />
 ````
 
-## 12. 适用Combo组件显示递归数据结构
+### 12. 适用Combo组件显示递归数据结构
 
 参考`NopRuleDefinition.view.xml`中`ruleInputs`的配置
 
@@ -377,7 +379,7 @@ definitions:
     "x:extends": "var-definitions.json5"
 ````
 
-## 13. 增加一个仅在前台使用的字段，它的值不会提交到后台
+### 13. 增加一个仅在前台使用的字段，它的值不会提交到后台
 
 `custom="true"`表示此字段不需要在meta中定义。两个下划线作为前缀表示此字段仅在前端使用，不会提交到后台
 
@@ -386,7 +388,7 @@ definitions:
     </cell>
 ````
 
-## 14. 通过url指定查询条件和排序条件
+### 14. 通过url指定查询条件和排序条件
 
 ````xml
 <api url="@query:NopAuthUser__findList?filter_userStatus=1&amp;orderField=userName&amp;orderDir=asc" />

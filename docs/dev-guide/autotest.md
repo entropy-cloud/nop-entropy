@@ -39,11 +39,11 @@ TestLoginApi
        /tables
           nop_auth_user.csv
           nop_auth_user_role.csv
-       request.json5    
+       request.json5
     /output
        /tables
           nop_auth_session.csv
-      response.json5    
+      response.json5
 ```
 
 /input/tables目录下会记录读取过的所有数据库记录，每张表对应一个csv文件。
@@ -404,9 +404,9 @@ SID, AMOUNT
 
 具体实例可以参见TestXpl的测试用例 [TestXpl](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-xlang/src/test/resources/io/nop/xlang/xpl/xpls)
 
-# 其他注解
+## 其他注解
 
-## @NopTestConfig
+### @NopTestConfig
 
 在测试类上可以通过@NopTestConfig注解控制测试用例中的初始化过程。使用@NopTestConfig注解需要从JunitAutoTestCase或者JunitBaseTestCase类继承。
 这两个基类的区别在于JunitBaseTestCase不是使用录制回放机制，仅仅是启动NopIoC容器。
@@ -466,7 +466,7 @@ public @interface NopTestConfig {
 }
 ````
 
-## @NopTestProperty
+### @NopTestProperty
 
 在测试类上可以通过@NopTestProperty注解直接指定专门针对本测试类的配置项，这样可以不用修改application.yaml文件，例如
 
@@ -474,6 +474,6 @@ public @interface NopTestConfig {
 @NopTestProperty(name="my.xxx",value="true")
 @NopTestProperty(name="my.yyy",value="123")
 class MyTestCase extends JunitBaseTestCase{
-    
+
 }
 ````

@@ -1,6 +1,8 @@
+# 模块依赖关系
+
 Nop平台的模块虽然很多，但是因为整体设计采用了依赖注入、动态加载等方式，各个模块的耦合度很低，大部分模块都可以独立使用，并且可以脱离Nop平台与其他框架集成使用。
 
-# 一. 核心模块
+## 一. 核心模块
 
 Nop平台最核心的模块是nop-core、nop-xlang这两个模块。**所谓的可逆计算原理的具体实现都集中在这两个模块中**。
 
@@ -29,7 +31,7 @@ nop-codegen工具可以独立于Nop平台被使用，生成其他框架或者其
 引入nop-xlang模块之后，我们就可以调用`ResourceComponentManager.instance().loadComponentModel(path)`来加载`src/resources/_vfs/`
 目录下的虚拟文件系统中的模型文件，自动根据xdef元模型定义实现模型解析，自动执行编译期代码生成、Delta差量合并等模型变换操作，并缓存模型解析结果。
 
-# 二. GraphQL引擎
+## 二. GraphQL引擎
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/arch/images/graphql-modules.png)
 
@@ -51,7 +53,7 @@ Nop平台的后端服务使用NopGraphQL引擎实现。NopGraphQL引擎没有使
 
 * nop-biz并不强依赖于NopIoC容器，但是依赖nop-ioc模块可以利用模块内置的beans.xml配置。
 
-# 三. 分布式RPC框架
+## 三. 分布式RPC框架
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/arch/images/rpc-modules.png)
 
@@ -73,7 +75,7 @@ NopIoC内置了类似springboot的autoconfig机制，因此只要引入nop-clust
 
 * nop-biz通过GraphQL引擎实现了RPC服务接口
 
-# 四. 应用入口
+## 四. 应用入口
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/arch/images/boot-modules.png)
 
@@ -83,7 +85,7 @@ NopIoC内置了类似springboot的autoconfig机制，因此只要引入nop-clust
 
 * nop-spring-web-starter实现了Nop平台与Spring框架的集成。
 
-# 五. 应用模块
+## 五. 应用模块
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/arch/images/app-modules.png)
 
@@ -103,7 +105,7 @@ Nop平台整体设计采用了可分可合的灵活组织形式。初始代码�
 除此之外，**我们也可以在一个应用中引用所有模块的web和service子模块，从而构成一个单体应用**，例如nop-quarkus-demo模块中的做法。
 
 
-# 六. 报表引擎
+## 六. 报表引擎
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/arch/images/report-modules.png)
 
@@ -117,9 +119,9 @@ NopReport是一个采用Excel作为可视化设计器的支持中国式报表的
 
 * nop-ooxml-docx提供了可以进行可视化编辑的Word模板机制，具体使用参见[word-temlate.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/report/word-template.md)
 
- 
 
-# 七. 自动化测试框架
+
+## 七. 自动化测试框架
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/arch/images/autotest-modules.png)
 
@@ -131,7 +133,7 @@ Nop平台的自动化测试框架原则上是一种通用设计，不依赖于JU
 
 * nop-autotest-junit提供JUnit框架集成所需的封装，并和nop-ioc、nop-config模块集成在一起，简化自动化测试用例的配置和使用
 
-# 八. IDEA插件
+## 八. IDEA插件
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/arch/images/idea-plugin-modules.png)
 
@@ -141,7 +143,7 @@ Nop平台的自动化测试框架原则上是一种通用设计，不依赖于JU
 
 * 在被调试的应用程序中也要引入nop-xlang-debugger模块依赖。因为调试的基本原理是应用启动的时候打开一个socket监听端口，然后IDEA调试器链接到这个端口上发送调试指令。
 
-# 九. 命令行工具
+## 九. 命令行工具
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/arch/images/cli-modules.png)
 

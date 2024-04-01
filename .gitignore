@@ -62,3 +62,16 @@ _dump
 /nop-antlr4/nop-antlr4-xpath/src/main/antlr4/imports/gen
 /nop-tool/src/test/java/io/nop/tool/log/TestLogProcessor.java
 /nop-all-for-spring/dependency-reduced-pom.xml
+
+/package.json
+/scripts/ksio
+/.knosys
+/.knosys/sites/*/.cache/
+/.knosys/sites/*/.asset-cache/
+/.knosys/sites/*/.sass-cache/
+/.knosys/sites/*/*/ksio/
+/.knosys/sites/*/_assets/*/ksio/
+/.knosys/sites/*/_assets/*/knosys/
+/.knosys/sites/*/_data/knosys/
+/.knosys/sites/*/_knosys/
+/.knosys/sites/*/_site/

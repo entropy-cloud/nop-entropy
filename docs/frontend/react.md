@@ -1,4 +1,6 @@
-# useEffect的使用
+# React
+
+## useEffect的使用
 一般仅在跳出react代码，发起远程调用时使用。根据props或者state中的变量进行计算没必要使用。
 
 1. 缓存耗时的复杂计算结果时，使用useMemo。
