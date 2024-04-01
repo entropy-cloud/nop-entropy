@@ -14,38 +14,38 @@ NopReport在[Nop平台](https://gitee.com/canonical-entropy/nop-entropy)中的�
 
 与其他报表引擎相比，NopReport具有如下非常鲜明的个性化特点：
 
-# 一. 采用Excel作为设计器
+## 一. 采用Excel作为设计器
 
 [操作演示视频](https://www.bilibili.com/video/BV1Sa4y1K7tD/)
 
 根据可逆计算原理，报表引擎的本质是定义了一个针对表格形式数据结构的DSL（参见元模型定义[workbook.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/excel/workbook.xdef)），而可视化设计器不过是这个DSL的一种可视化展现形式。Nop平台为了实现模型驱动的代码生成器，已经实现了Excel文件的解析和生成，那么只要再做少量扩展标注，就可以把Excel作为报表设计器来使用。具体做法是将Excel的批注作为扩展信息，并识别单元格文本中的表达式语法。目前NopReport已经可以支持如下几种报表：
 
-## 档案式报表
+### 档案式报表
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/profile-report.png)
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/profile-report-result.png)
 
-## 段落明细表
+### 段落明细表
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/block-report.png)
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/block-report-result.png)
 
-## 复杂多源报表
+### 复杂多源报表
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/multi-ds-report.png)
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/multi-ds-report-result.png)
 
-## 交叉报表—数据双向扩展
+### 交叉报表—数据双向扩展
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/cross-table-report.png)
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/cross-table-report-result.png)
 
-## 同比环比等财务统计表
+### 同比环比等财务统计表
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/MOM-YOY-report.png)
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/MOM-YOY-report-result.png)
 
-## Excel模型扩展
+### Excel模型扩展
 
 NopReport报表模型可以看作是对Excel模型的一种扩展。在单元格的批注中我们可以通过expandType、expandExpr和field等属性来指定单元格展开方向和展开内容。另外在单元格的文本中，我们可以直接写表达式语法。优点是在界面上可以直接看见表达式内容，而不需要把批注展开。支持两种格式的文本表达式语法：
 

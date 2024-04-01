@@ -1,9 +1,10 @@
+# Vite
 
-# 多模块
+## 多模块
 多个模块中引入的amis版本需要一致，否则可能在调试开发时会出现多个版本的包被加载。
 
 
-# turbo
+## turbo
 1. 在根项目的package.json中增加postinstall配置。 pnpm i会自动执行postinstall脚本
 
 ````

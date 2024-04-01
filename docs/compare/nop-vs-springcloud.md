@@ -27,7 +27,7 @@ Nop平台没有采用目前业内主流的基础开源框架，而是选择了�
 
 Nop平台可以直接作为类似SpringCloud的基础开发框架来使用，在ProCode层面也可以极大简化软件开发过程，并明显提升软件的可扩展性。
 
-# 一. IoC容器
+## 一. IoC容器
 
 声明式的IoC容器是Spring发家时的基本技能。但是自从Spring2.0版本之后，SpringIoC就逐渐失去了它的声明式特性，导致现在它的执行掺杂了大量命令式逻辑，典型的体现就是：**改变Spring中包扫描的顺序会以微妙的方式改变bean装配的结果**。
 
@@ -65,7 +65,7 @@ NopIoC支持`@Inject`,`@PostConstruct`,` @PreDestroy`等规范化注解，也兼
 </beans>
 ```
 
-## Bean的定制
+### Bean的定制
 
 NopIoC的独特之处在于**可以通过标准的Delta定制来实现对装配逻辑的定制**，例如可以通过如下代码**删除已有的bean的定义**。
 
@@ -75,13 +75,13 @@ NopIoC的独特之处在于**可以通过标准的Delta定制来实现对装配�
 </beans>
 ```
 
-## 动态配置
+### 动态配置
 
 NopIoC的设计中包含了与NopConfig配置中心的一体化设计。在beans.xml配置中可以通过特殊的前缀表示动态配置项：
 
 ```xml
 <bean id="xx">
-   <property name="poolSize" value="@r-cfg:my.pool-size|5" /> 
+   <property name="poolSize" value="@r-cfg:my.pool-size|5" />
 </bean>
 ```
 
@@ -90,7 +90,7 @@ NopIoC的设计中包含了与NopConfig配置中心的一体化设计。在beans
 另外在beans语法中还定义专门的ioc:config节点
 
 ```xml
-  <ioc:config id="nopOrmGlobalCacheConfig" class="io.nop.commons.cache.CacheConfig" 
+  <ioc:config id="nopOrmGlobalCacheConfig" class="io.nop.commons.cache.CacheConfig"
     ioc:config-prefix="nop.orm.global-cache"  ioc:default="true"/>
 ```
 
@@ -98,7 +98,7 @@ NopIoC容器会自动跟踪所有对于`ioc:config`的引用，一旦配置发�
 
 ioc:config-prefix的作用类似于Spring中`@ConfigurationProperties`，用于指定配置项在配置文件中所对应的前缀。
 
-## 与SpringIoC的互操作
+### 与SpringIoC的互操作
 
 NopIoC与Spring容器可以同时使用，一般情况下NopIoC会在SpringIoC初始化之后再启动，它可以通过parentContainer拿到Spring容器所管理的bean。所以在NopIoC中可以通过`@Inject`直接注入Spring所管理的bean，而在Spring所管理的bean中，可以使用beanContainer来按照名称或者类型获取NopIoC所管理的bean。
 
@@ -109,7 +109,7 @@ BeanContainer.intance().getBeanByType(beanType)
 
 NopIoC的设计目标是成为一个更好的SpringIoC，它坚持了严格的声明式设计，可以集成到Spring生态中使用，全部代码不超过5000行。更详细的设计可以参见文章： [如果重写SpringBoot，我们会做哪些不同的选择？](https://zhuanlan.zhihu.com/p/579847124)
 
-# 二. Web框架
+## 二. Web框架
 
 在SpringCloud的技术体系中，我们一般是在Controller中调用Service来完成具体业务逻辑，而在Controller中会处理一些对象结构转换或者组合的工作，例如将实体对象转换为DTO对象等。为了实现GraphQL服务接口，我们需要使用graphql-java包重新编写接口层代码，并不能直接复用Controller对外提供服务。
 
@@ -134,7 +134,7 @@ public class MyController{
 @BizModel("MyObject")
 public class MyObjectBizModel{
     @BizQuery
-    public PageBean<MyEntity> findPage(@Name("id") id, 
+    public PageBean<MyEntity> findPage(@Name("id") id,
              FieldSelection selection, IServiceContext ctx){
        return ....
     }
@@ -149,7 +149,7 @@ public class MyObjectBizModel{
 
 4. 标记为@BizMutation的函数会自动启用事务管理，无需额外标记@Transactional
 
-## GraphQL作为通用分解组合方案
+### GraphQL作为通用分解组合方案
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/compare/graphql-engine.png)
 
@@ -159,7 +159,7 @@ NopGraphQL引擎不仅仅可以同时提供GraphQL和REST两种服务模式，�
 
 NopGraphQL引擎可以脱离Web环境，在任何需要工作分解和结果选择、适配的场景下使用。它提供了与运行时无关的IServiceContext上下文对象（基本等价于一个Map），可以利用它缓存在多个服务调用之间共享的数据，优化批处理的性能。
 
-## 分布式RPC
+### 分布式RPC
 
 在SpringCloud的技术体系中，服务端启动时自动注册到服务注册中心，然后在客户端增加Feign接口，就可以实现负载均衡调用，灰度发布、AB测试等都可以利用这里的服务路由机制来实现。
 
@@ -199,7 +199,7 @@ NopGraphQL引擎可以脱离Web环境，在任何需要工作分解和结果选�
 
 2. [低代码平台中的分布式RPC框架(约3000行代码)](https://zhuanlan.zhihu.com/p/631686718)
 
-# 三. 存储层
+## 三. 存储层
 
 NopORM引擎包含了SpringData, JPA以及MyBatis的大部分功能，同时补充了大量业务开发中的常用功能，例如字段加密、逻辑删除、修改历史跟踪、扩展字段、多租户等。
 
@@ -251,13 +251,13 @@ public interface LitemallGoodsMapper {
         </eql>
 ```
 
-## Excel模型驱动
+### Excel模型驱动
 
 Nop平台提供了非常强大的模型驱动开发模式，可以解析Excel数据模型文件自动生成实体定义、Mapper接口定义、元数据定义，后台GraphQL服务，甚至包括前台增加改查页面等。
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/excel-model.png)
 
-详细设计可以参见文章 
+详细设计可以参见文章
 
 1. [低代码平台需要什么样的ORM引擎?(2)](https://zhuanlan.zhihu.com/p/545063021)
 
@@ -267,7 +267,7 @@ Nop平台提供了非常强大的模型驱动开发模式，可以解析Excel数
 
 4. [低代码平台如何在不改表的情况下为实体增加扩展字段](https://zhuanlan.zhihu.com/p/618851796)
 
-# 四. 底层语言
+## 四. 底层语言
 
 Nop平台提供了专为DSL开发而设计的XLang语言，它包含了XScript脚本语言，Xpl模板语言，XTransform结构转换语言，XDef元模型定义语言等多个子语言。其中
 
@@ -347,13 +347,13 @@ XNode.fromTreeBean(treeBean) // 从TreeBean转换为XNode
 
 进一步的详细信息可以参考文章：
 
-1. [低代码平台中的元编程(Meta Programming)](https://zhuanlan.zhihu.com/p/652413095), 
+1. [低代码平台中的元编程(Meta Programming)](https://zhuanlan.zhihu.com/p/652413095),
 
 2. [替代XSD的统一元模型定义语言:XDef](https://zhuanlan.zhihu.com/p/652191061),
 
 3. [从可逆计算看DSL的设计要点](https://zhuanlan.zhihu.com/p/646144092)
 
-# 五. 导入导出
+## 五. 导入导出
 
 NopReport是基于可逆计算理论从零开始独立实现的一套开源中国式报表引擎，它的核心代码很短，只有3000多行（参见[nop-report-core](https://link.zhihu.com/?target=https%3A//gitee.com/canonical-entropy/nop-entropy/tree/master/nop-report/nop-report-core)模块），具有较高的性能（性能测试代码参见[TestReportSpeed.java](https://link.zhihu.com/?target=https%3A//gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-demo/src/test/java/io/nop/report/demo/TestReportSpeed.java)），以及其他报表引擎难以达到的灵活性和可扩展性。
 
@@ -383,7 +383,7 @@ NopReport除了用于导出数据之外，它还支持自定义数据结构的�
 
 3. [导入导出Excel时如何支持动态列和动态样式](https://www.bilibili.com/video/BV1M14y1271a/)
 
-# 六. 逻辑编排
+## 六. 逻辑编排
 
 Nop平台提供了业务规则、工作流引擎、批处理引擎、任务调度引擎等逻辑编排相关的引擎实现，可以对一般的业务逻辑进行完整的描述。
 
@@ -391,7 +391,7 @@ Nop平台提供了业务规则、工作流引擎、批处理引擎、任务调�
 
 具体介绍可以参见 [采用Excel作为可视化设计器的规则引擎 NopRule](https://zhuanlan.zhihu.com/p/655192140)
 
-# 七. 自动化测试
+## 七. 自动化测试
 
 SprintBootTest提供了Spring框架与JUnit等测试框架的集成。在Nop平台中，从JunitAutoTest基类继承即可使用依赖注入来得到需要测试的Bean。
 
@@ -424,7 +424,7 @@ NopAutoTest自动化测试框架的独特之处是它**提供了模型驱动的�
 
 具体设计参见 [低代码平台中的自动化测试](https://zhuanlan.zhihu.com/p/569315603)
 
-# 八. 外围工具
+## 八. 外围工具
 
 Nop平台提供了与Maven相集成的代码生成器，它**可以在Nop平台之外独立使用，基于用户自定义的模型文件，应用用户自定义的代码模板，以增量化的方式生成指定代码**。而一般的代码生成器，无论是模型还是代码模板都很难支持细粒度的定制。
 
@@ -436,7 +436,7 @@ NopIdeaPlugin提供了一个通用的IDEA插件，它会自动识别XML根节点
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/idea/xlang-debugger.png)
 
-# 总结
+## 总结
 
 Nop平台的实现与SpringCloud相比，主要有如下特点：
 
@@ -448,6 +448,6 @@ Nop平台的实现与SpringCloud相比，主要有如下特点：
 
 4. 统一使用XDSL规范来实现模型DSL，可以随时新增DSL模型，也可以在原有DSL模型中增加新的扩展属性。IDE插件自动识别并支持新的DSL模型，无需特殊编写支持插件。
 
-5. 模型驱动集成在DevOps开发流程中，在maven打包过程中实现代码生成、模型转换等，不需要单独部署模型管理平台。   
+5. 模型驱动集成在DevOps开发流程中，在maven打包过程中实现代码生成、模型转换等，不需要单独部署模型管理平台。
 
 Nop平台可以作为运行在SpringCloud之上的一种扩展组件，它与SpringCloud内置机制并不冲突，它内部的各种组件也可以被替换为SpringCloud的实现，只是会丢失很多高级特性、损失性能、损失扩展性，破坏程序结构的可推理性。

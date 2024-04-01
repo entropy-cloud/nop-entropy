@@ -1,4 +1,6 @@
-# 1. BizModel层类型转换错误
+# 调试错误
+
+## 1. BizModel层类型转换错误
 
 ````
 2024-01-13 22:34:08 [http-nio-8000-exec-7] ERROR io.nop.core.exceptions.ErrorMessageManager - nop.build-error-message

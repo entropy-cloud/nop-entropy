@@ -1,4 +1,6 @@
-# 启用权限
+# 权限
+
+## 启用权限
 
 * 配置`nop.auth.enable-action-auth=true`后启用操作权限。字段级别权限也利用这一开关
 * 配置`nop.auth.enable-data-auth=true`后启用数据权限。
@@ -11,7 +13,7 @@
 
 > 平台在调试模式下启动时会打印出所有已知配置变量以及它对应的配置位置
 
-# 核心接口
+## 核心接口
 
 1. `IUserContext`: 保存`userId`, `roles`等用户身份和权限相关信息。通过`IUserContext.set()/get()`函数存取。
 2. `IActionAuthChecker`: 检查操作权限和字段权限。在`GraphQLExecutor`中针对每个GraphQL field调用。
@@ -19,9 +21,9 @@
 4. 登录验证在`AuthHttpServerFilter`类中通过`ILoginService`接口调用实现。
 5. `ILoginService`接口负责登入登出和`token`校验相关的所有逻辑。平台内置了`LoginServiceImpl`和`OAuthLoginServiceImpl`两个实现。
 
-# 操作权限
+## 操作权限
 
-## 操作权限配置
+### 操作权限配置
 
 通过`action-auth.xml`和`NopAuthResource`后台对象可以配置操作权限。`resource`的类型分为`TOPM`、`SUBM`和`FNPT`，分为对应于顶级菜单、子菜单和功能点。在功能点上可以标记对应的`permissions`。
 
@@ -49,14 +51,14 @@
 1. 菜单项对应的`resourceType=SUBM`， 页面中对应的具体的功能点（例如修改按钮）对应`resourceType=FNPT`
 2. 如果使用amis页面，需要配置`component=AMIS`，`url=页面的虚拟文件路径`
 
-## 通过界面配置权限
+### 通过界面配置权限
 先不要开启操作权限，通过界面增加admin角色，然后给指定用户分配admin角色，此后再开启操作权限。通过具有admin角色的用户给其他用户分配角色，
 并为角色指定它所能访问的NopAuthResource。
 
 NopAuthResource按照siteId进行组织，缺省使用siteId=MAIN作为主站点的网站菜单。nop-auth支持同时管理多个前端应用所对应的菜单链接。
 比如siteId=mobile可以用于移动端菜单，而siteId=MAIN用于Web端等。
 
-## 后台Action
+### 后台Action
 
 在action函数上通过`@Auth`注解来指定需要对应的`permissions`或者允许访问的`roles`。如果不指定，则按照是否是`@BizQuery`
 或者`@BizMutation`自动设置`permissions`为`{BizObjName}:{actionName}|{BizObjName}:query`，以及`{BizObjName}:{actionName}|{BizObjName}:mutation`
@@ -87,7 +89,7 @@ public boolean delete(@Name("id") @Description("@i18n:biz.id|对象的主键标�
 </mutation>
 ````
 
-## 结果对象上的属性
+### 结果对象上的属性
 
 在xmeta文件中，可以为`prop`指定`auth`设置
 
@@ -101,13 +103,13 @@ public boolean delete(@Name("id") @Description("@i18n:biz.id|对象的主键标�
 
 通过这里的配置可以实现字段级别的读写权限控制. `for="read"`表示控制字段读权限，`for="write"`控制字段写权限，而`for="all"`同时允许读和写
 
-## 公开访问
+### 公开访问
 如果`@Auth`注解或者xbiz中的auth配置指定了publicAccess=true，则该方法为公开可访问方法，会自动跳过操作权限检查。但是数据权限仍然会应用。
 
 所有的用户都自动具有角色user，所以如果配置`@Auth(roles="user")`则表示允许所有登录用户访问。这种方式与publicAccess的区别在于，如果标记为
 publicAccess的方法不会检查当前访问用户是否已经登录。
 
-# 操作权限检查接口
+## 操作权限检查接口
 
 系统通过`IActionAuthChecker`接口来检查操作权限。
 
@@ -173,7 +175,7 @@ if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
 
 > 根据`permission`查找到所有的`role`这一步不依赖于具体用户，可以统一完成计算然后缓存映射结果。
 
-# 数据权限
+## 数据权限
 
 后台内置的`findPage`、`findList`和`findFirst`动作都会应用数据权限检查接口`IDataAuthChecker`。
 通过`nop.auth.enable-data-auth`来启用数据权限，缺省为`true`
@@ -276,7 +278,7 @@ CrudBizModel的doFindPage0/doFindList0/doFindFirst0等方法可以通过authObjN
                               IServiceContext context) {
         return doFindList0(query, getBizObjName(), prepareQuery, selection, context);
     }
-    
+
     @BizAction
     public List<T> doFindList0(@Name("query") QueryBean query,
                                @Name("authObjName") String authObjName,
