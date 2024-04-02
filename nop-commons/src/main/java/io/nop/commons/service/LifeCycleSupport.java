@@ -8,11 +8,11 @@
 package io.nop.commons.service;
 
 import io.nop.api.core.exceptions.NopException;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.nop.commons.CommonErrors.ARG_SERVICE;
@@ -109,6 +109,11 @@ public abstract class LifeCycleSupport implements ILifeCycle {
             }
             LOG.debug("nop.commons.service.stop:service={}", this);
         }
+    }
+
+    public boolean isStopping() {
+        int status = this.status.get();
+        return status >= ServiceStatus.STOPPING.ordinal();
     }
 
     protected abstract void doStart();

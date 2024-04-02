@@ -55,6 +55,8 @@ public class NetHelper {
      */
     public static final int PORT_RANGE_MIN = 1024;
 
+    public static final int DEFAULT_PORT_START = 10200;
+
     /**
      * The default maximum value for port ranges used when finding an available socket port.
      */
@@ -73,21 +75,21 @@ public class NetHelper {
     /**
      * GraalVM不允许静态创建InetAddress以及其派生类，必须动态创建
      */
-    public static Inet4Address LOCALHOST4(){
-        if(LOCALHOST4 == null){
+    public static Inet4Address LOCALHOST4() {
+        if (LOCALHOST4 == null) {
             _initLocalHost();
         }
         return LOCALHOST4;
     }
 
-    public static InetAddress LOCALHOST6(){
-        if(LOCALHOST6 == null){
+    public static InetAddress LOCALHOST6() {
+        if (LOCALHOST6 == null) {
             _initLocalHost();
         }
         return LOCALHOST6;
     }
 
-    private static void _initLocalHost(){
+    private static void _initLocalHost() {
         byte[] LOCALHOST4_BYTES = {127, 0, 0, 1};
         byte[] LOCALHOST6_BYTES = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
 
@@ -125,7 +127,7 @@ public class NetHelper {
      * @throws IllegalStateException if no available port could be found
      */
     public static int findAvailableTcpPort() {
-        return findAvailableTcpPort(PORT_RANGE_MIN);
+        return findAvailableTcpPort(DEFAULT_PORT_START);
     }
 
     /**

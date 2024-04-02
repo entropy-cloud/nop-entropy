@@ -36,12 +36,12 @@ public class RetryPolicy<C> implements Serializable, IRetryPolicy<C>, ICloneable
         return sb.toString();
     }
 
-    public static RetryPolicy createRetryPolicy() {
-        return new RetryPolicy();
+    public static <T> RetryPolicy<T> createRetryPolicy() {
+        return new RetryPolicy<T>();
     }
 
-    public RetryPolicy cloneInstance() {
-        RetryPolicy ret = new RetryPolicy();
+    public RetryPolicy<C> cloneInstance() {
+        RetryPolicy<C> ret = new RetryPolicy<C>();
         ret.maxRetryCount = maxRetryCount;
         ret.retryDelay = retryDelay;
         ret.maxRetryDelay = maxRetryDelay;
@@ -51,8 +51,8 @@ public class RetryPolicy<C> implements Serializable, IRetryPolicy<C>, ICloneable
         return ret;
     }
 
-    public static RetryPolicy retryNTimes(int times) {
-        RetryPolicy retry = new RetryPolicy();
+    public static <C> RetryPolicy<C> retryNTimes(int times) {
+        RetryPolicy<C> retry = new RetryPolicy<>();
         retry.setMaxRetryCount(times);
         retry.setRetryDelay(0);
         return retry;
@@ -66,7 +66,7 @@ public class RetryPolicy<C> implements Serializable, IRetryPolicy<C>, ICloneable
         this.jitterRatio = jitterRatio;
     }
 
-    public RetryPolicy withJitterRatio(double jitterRatio) {
+    public RetryPolicy<C> withJitterRatio(double jitterRatio) {
         this.setJitterRatio(jitterRatio);
         return this;
     }
@@ -79,7 +79,7 @@ public class RetryPolicy<C> implements Serializable, IRetryPolicy<C>, ICloneable
         this.maxRetryCount = maxRetryCount;
     }
 
-    public RetryPolicy withMaxRetryCount(int maxRetryCount) {
+    public RetryPolicy<C> withMaxRetryCount(int maxRetryCount) {
         this.setMaxRetryCount(maxRetryCount);
         return this;
     }
@@ -93,7 +93,7 @@ public class RetryPolicy<C> implements Serializable, IRetryPolicy<C>, ICloneable
         this.retryDelay = retryDelay;
     }
 
-    public RetryPolicy withRetryDelay(int retryDelay) {
+    public RetryPolicy<C> withRetryDelay(int retryDelay) {
         this.setMaxRetryDelay(retryDelay);
         return this;
     }
@@ -107,7 +107,7 @@ public class RetryPolicy<C> implements Serializable, IRetryPolicy<C>, ICloneable
         this.maxRetryDelay = maxRetryDelay;
     }
 
-    public RetryPolicy withMaxRetryDelay(int maxRetryDelay) {
+    public RetryPolicy<C> withMaxRetryDelay(int maxRetryDelay) {
         this.setMaxRetryDelay(maxRetryDelay);
         return this;
     }

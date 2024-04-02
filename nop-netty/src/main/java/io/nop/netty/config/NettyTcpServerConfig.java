@@ -8,4 +8,32 @@
 package io.nop.netty.config;
 
 public class NettyTcpServerConfig extends NettyBaseConfig {
+    private int bossGroupSize;
+
+    private String host;
+    private int port;
+
+    public int getBossGroupSize() {
+        return bossGroupSize;
+    }
+
+    public void setBossGroupSize(int bossGroupSize) {
+        this.bossGroupSize = bossGroupSize;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
+    }
 }

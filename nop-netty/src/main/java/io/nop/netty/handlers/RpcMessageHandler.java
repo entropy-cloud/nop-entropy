@@ -53,11 +53,15 @@ public class RpcMessageHandler extends ChannelDuplexHandler implements IRpcMessa
             this.expireTime = expireTime;
             this.future = future;
         }
+
+        public boolean isDone() {
+            return future.isDone();
+        }
     }
 
     @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        super.channelActive(ctx);
+    public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
+        super.channelRegistered(ctx);
         this.executor = ctx.executor();
         this.channel = ctx.channel();
         timer = executor.scheduleWithFixedDelay(this::checkTimeout, 100, 100, TimeUnit.MILLISECONDS);
@@ -90,7 +94,8 @@ public class RpcMessageHandler extends ChannelDuplexHandler implements IRpcMessa
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        LOG.info("nop.netty.channel.inactive:remoteAddr={},localAddr={}", channel.remoteAddress(), channel.localAddress());
+        LOG.info("nop.netty.channel.inactive:remoteAddr={},localAddr={},waitingFutures={}",
+                channel.remoteAddress(), channel.localAddress(), futures.size());
         for (ResponseFuture future : futures.values()) {
             future.future.cancel(false);
         }
@@ -124,13 +129,18 @@ public class RpcMessageHandler extends ChannelDuplexHandler implements IRpcMessa
     }
 
     private void write(ResponseFuture future, Object msg) {
+        Object msgId = adapter.getRequestId(msg);
+        if (future.isDone()) {
+            LOG.info("nop.netty.skip-send-done:msgId={}", msgId);
+            return;
+        }
+
         int current = futures.size();
         if (current >= maxInFlightCount) {
-            LOG.error("nop.err.netty.too-many-request-in-flight:count={}", current);
+            LOG.error("nop.err.netty.too-many-request-in-flight:count={},msgId={}", current, msgId);
             future.future.completeExceptionally(
                     new NopException(ERR_TOO_MANY_REQUEST_IN_FLIGHT));
         } else {
-            Object msgId = adapter.getRequestId(msg);
             futures.put(msgId, future);
             channel.writeAndFlush(msg);
         }
@@ -147,6 +157,8 @@ public class RpcMessageHandler extends ChannelDuplexHandler implements IRpcMessa
         ResponseFuture future = futures.remove(msgId);
         if (future == null) {
             LOG.info("nop.netty.ignore-response-not-match-id:msgId={},msg={}", msgId, msg);
+        } else if (future.isDone()) {
+            LOG.info("nop.netty.ignore-response-when-future-is-done:msgId={},msg={}", msgId, msg);
         } else {
             LOG.debug("nop.netty.receive-response:msgId={},msg={}", msgId, msg);
             future.future.complete(msg);
