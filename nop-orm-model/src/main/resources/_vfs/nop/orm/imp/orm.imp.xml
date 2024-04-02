@@ -47,7 +47,7 @@
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="ext:moduleId" displayName="moduleId">
+                <field name="ext:moduleName" displayName="moduleName">
                     <schema stdDomain="string"/>
                 </field>
 
