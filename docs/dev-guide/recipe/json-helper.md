@@ -1,4 +1,6 @@
-# 1. 解析JSON文本
+# JSON处理
+
+## 1. 解析JSON文本
 
 ```javascript
 JsonTool.parseNonStrict(text);

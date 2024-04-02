@@ -1,4 +1,6 @@
-# [Excel数据模型](excel-model.md)
+# Excel模型
+
+## [Excel数据模型](excel-model.md)
 
 ## [读写Excel模型](excel-xlsx.md)
 

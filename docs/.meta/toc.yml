@@ -1,0 +1,24 @@
+- text: 介绍
+  children:
+    - text: 文档概览
+      uri: index.md
+    - text: 入门教程
+      uri: tutorial/tutorial.md
+- text: 用户指南
+  children:
+    - text: 安装和配置
+      uri: user-guide/installation.md
+    - text: 报表引擎
+      uri: user-guide/report.md
+- text: 软件架构
+  children:
+    - text: 模块依赖关系
+      uri: arch/module-dependency.md
+    - text: 核心代码阅读导引
+      uri: core-code-guidance.md
+- text: 开发指南
+  children:
+    - text: config
+      uri: dev-guide/config.md
+    - text: orm
+      uri: dev-guide/orm/index.md
