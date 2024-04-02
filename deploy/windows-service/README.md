@@ -1,18 +1,18 @@
-# 1. ×¢²áWindows·þÎñ
+# 1. æ³¨å†ŒWindowsæœåŠ¡
 
-½«jar°üÖØÃüÃûÎªnop-application.jar£¬·ÅÖÃµ½±¾Ä¿Â¼ÏÂ
+å°†jaråŒ…é‡å‘½åä¸ºnop-application.jarï¼Œæ”¾ç½®åˆ°æœ¬ç›®å½•ä¸‹
 
-Ö´ÐÐ NopApplication.bat install×¢²á·þÎñ
+æ‰§è¡Œ NopApplication.bat installæ³¨å†ŒæœåŠ¡
 
-Ö´ÐÐ NopApplication.bat uninstall É¾³ý·þÎñ
+æ‰§è¡Œ NopApplication.bat uninstall åˆ é™¤æœåŠ¡
 
-×¢²á·þÎñºóÔÚWindowsµÄ·þÎñÁÐ±íÖÐ¿ÉÒÔ¿´µ½NopApplication·þÎñ¡£¿ÉÒÔÍ¨¹ýÐÞ¸ÄlibÄ¿Â¼ÏÂµÄxmlÎÄ¼þÀ´ÐÞ¸Ä·þÎñÃûºÍjar°üÃû³Æ
+æ³¨å†ŒæœåŠ¡åŽåœ¨Windowsçš„æœåŠ¡åˆ—è¡¨ä¸­å¯ä»¥çœ‹åˆ°NopApplicationæœåŠ¡ã€‚å¯ä»¥é€šè¿‡ä¿®æ”¹libç›®å½•ä¸‹çš„xmlæ–‡ä»¶æ¥ä¿®æ”¹æœåŠ¡åå’ŒjaråŒ…åç§°
 
-# 2. Æô¶¯ºÍÍ£Ö¹
+# 2. å¯åŠ¨å’Œåœæ­¢
 
 NopApplication.bat start 
 
 NopApplication.bat stop
 
-# 3. ²âÊÔ
-Ö´ÐÐ StartNopApplication.batÓÃÓÚÔÚÃüÁîÐÐ´°¿ÚÖÐ²âÊÔ·þÎñÆô¶¯
+# 3. æµ‹è¯•
+æ‰§è¡Œ StartNopApplication.batç”¨äºŽåœ¨å‘½ä»¤è¡Œçª—å£ä¸­æµ‹è¯•æœåŠ¡å¯åŠ¨
