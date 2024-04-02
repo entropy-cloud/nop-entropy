@@ -1,4 +1,4 @@
-# \# XML、JSON和函数AST的等价性
+# XML、JSON和函数AST的等价性
 
 Nop平台的整体技术战略可以说是围绕着Tree结构来制定的，如何表达Tree结构是Nop平台所需要解决的第一个战术问题。在Java后端架构中，XML曾经是表达Tree结构的首选方式，Spring、Hibernate、SOA、BPMN等都是XML的经典应用案例，但是长期以来，一直也存在一种声音，批评XML繁琐冗长、性能低下，这是否真的是XML先天存在的缺陷？随着Web前端的兴起，便于在javascript中解析和操作的JSON格式逐渐取代了XML的地位，成为表达复杂数据对象的事实标准，这是否意味着XML已经完全过时？低代码的兴起带来了一个新的需求，我们如何对可执行的函数逻辑进行结构化表达？如何以自然、直观的方式实现对AST语法树的转换和处理？本文将简单介绍Nop Platform2.0中对Tree结构的基本抽象，以及XML、JSON和AST之间的等价转换方案。
 
@@ -131,8 +131,8 @@ class ValueWithLocation{
 2. XNode的属性值不允许为null，如果将XNode的属性值设置为null则等价于删除该属性。利用这一特性可以简化可选属性的生成。
 
 ```xml
-<prop name="a" mandatory="${model.mandatory ? true: null}" /> 
-对于mandatory=false的情况，实际会生成 
+<prop name="a" mandatory="${model.mandatory ? true: null}" />
+对于mandatory=false的情况，实际会生成
 <prop name="a" />
 ```
 
@@ -242,7 +242,7 @@ myFunc({a:1,b:"xx"})
    <c:lib from="/test/oa.xlib" />
    <oa:SendMail receiver="a@b.com">
       <content>data</content>
-   </oa:SendMail> 
+   </oa:SendMail>
  </source>
 </action>
 ```
@@ -266,7 +266,7 @@ myFunc({a:1,b:"xx"})
           <c:lib from="/test/oa.xlib" />
           <oa:SendMail receiver="a@b.com">
              <xt:copy-node xpath="content" />
-          </oa:SendMail> 
+          </oa:SendMail>
        </source>
      </action>
    </match>

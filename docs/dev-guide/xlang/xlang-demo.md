@@ -1,4 +1,6 @@
-# 一. 使用XDef来定义元模型
+# XLang综合示例
+
+## 一. 使用XDef来定义元模型
 
 例如 [imp.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/excel/imp.xdef)
 是Excel导入模型的元模型，它描述了为了实现Excel文件解析，我们需要提供哪些信息。
@@ -132,7 +134,7 @@ xpl('my:MyTag',x,y);
 
 ```xml
 <!-- /my/my-imp.xdef -->
-<imp x:extends="/nop/schema/excel/imp.xdef" xdef:base="/nop/schema/excel/imp.xdef" 
+<imp x:extends="/nop/schema/excel/imp.xdef" xdef:base="/nop/schema/excel/imp.xdef"
      x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" >
     <imp:MyExt value="!string" />
 </imp>
