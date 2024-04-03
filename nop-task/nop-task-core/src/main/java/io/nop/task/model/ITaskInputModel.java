@@ -7,9 +7,10 @@
  */
 package io.nop.task.model;
 
+import io.nop.core.reflect.hook.IExtensibleObject;
 import io.nop.core.type.IGenericType;
 
-public interface ITaskInputModel {
+public interface ITaskInputModel extends IExtensibleObject {
     String getName();
 
     IGenericType getType();
