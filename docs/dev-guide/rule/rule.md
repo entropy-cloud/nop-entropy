@@ -39,7 +39,7 @@ nop-rule-service提供后端规则服务。nop-rule-web包含对应的amis前端
 
 启动后访问http://localhost:8080/#/NopRuleDefinition-main
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/images/rule-definition-page.png)
+![](images/rule-definition-page.png)
 
 ## 1.1 规则调用
 
@@ -78,13 +78,13 @@ assertEquals("Roastbeef", output.get("dish"));
 
 在【规则模型】的管理页面上，新增以及修改的时候都可以通过上传Excel模型文件来导入模型定义。
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/images/import-excel-rule.png)
+![](images/import-excel-rule.png)
 
 ## 1.3 测试规则
 
 导入规则模型之后，点击行数据上的【测试规则】按钮，可以弹出测试页面。
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/images/test-rule-input.png)
+![](images/test-rule-input.png)
 
 点击提交按钮之后，会弹出结果显示页，其中**包含了返回的输出变量集合，以及规则执行过程中产生的详细日志信息，从中可以看出具体规则节点的匹配顺序和匹配结果**。
 
@@ -94,12 +94,12 @@ assertEquals("Roastbeef", output.get("dish"));
 
 Excel规则模型必须包含两个Sheet，其中Rule表单配置决策规则，而Config表单配置输入输出变量等描述信息。
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/images/rule-config.png)
+![](images/rule-config.png)
 
 输入变量是规则模型中用于判断的那些变量，而输出变量是满足匹配条件的那些规则节点所产生的输出。为了支持在线可视化设计，我们需要为输入输出变量指定显示名和数据类型。
 
 **输入变量支持复杂对象结构**。
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/images/complex-rule-input.png)
+![](images/complex-rule-input.png)
 
 1. 在变量名前增加`*`号可以表示嵌套对象结构，增加几个`*`号表示对应第几个层级
 2. 通过设置【计算】列为Y，则表示这个属性不是由外部调用者传入的，而是根据输出数据和上下文环境变量动态计算得到的值，计算使用的表达式由【缺省表达式】列指定
@@ -109,7 +109,7 @@ Excel规则模型必须包含两个Sheet，其中Rule表单配置决策规则，
 
 在输入列的单元格中配置规则判断表达式RuleExpr，它的语法有些类似Friendly Enough Expression Language (FEEL)，是XLang Expression的一个更容易阅读的版本，使用[RulExprParser](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rule/nop-rule-core/src/main/java/io/nop/rule/core/expr/RuleExprParser.java)来解析。
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/images/rule-expr.png)
+![](images/rule-expr.png)
 
 1. true和false可以直接指定是否匹配
 
@@ -128,7 +128,7 @@ Excel规则模型必须包含两个Sheet，其中Rule表单配置决策规则，
 ## 2.3 决策表配置
 
 决策表的配置示例可以参见 [decision-tree.rule.xlsx](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rule/nop-rule-service/cases/io/nop/rule/service/entity/TestNopRuleDefinitionBizModel/testImport/input/decision-tree.rule.xlsx)
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/decision-tree.png)
+![](decision-tree.png)
 
 决策表的左上角的内容必须是字母T，表示Table。然后是输入列和输出列。输入列和输出列的每一列都是对应的输入输出变量名。
 
@@ -136,11 +136,11 @@ Excel规则模型必须包含两个Sheet，其中Rule表单配置决策规则，
 
 决策矩阵的配置示例可以参见 [decision-matrix.rule.xlsx](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rule/nop-rule-service/cases/io/nop/rule/service/entity/TestNopRuleDefinitionBizModel/testDecisionMatrix/input/decision-matrix.rule.xlsx)
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/decision-matrix.png)
+![](decision-matrix.png)
 
 决策表的左上交的内容必须是字母M，表示Matrix。
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/images/matrix-input-var.png)
+![](images/matrix-input-var.png)
 
 1. 在左侧的每一列以及头部的每一行的第一个单元格中可以配置输入变量名。
 2. 单元格中可以通过批注valueExpr来指定表达式，此时单元格文本仅作为显示用的label。如果不配置，则以单元格的文本为表达式。
@@ -150,7 +150,7 @@ Excel规则模型必须包含两个Sheet，其中Rule表单配置决策规则，
 
 对于决策树模型可以通过在线页面进行修改，规则匹配条件的配置使用AMIS的ConditionBuilder控件
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/images/config-online.png)
+![](images/config-online.png)
 
 ## 三. 设计原理
 

@@ -151,7 +151,7 @@ public class MyObjectBizModel{
 
 ### GraphQL作为通用分解组合方案
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/compare/graphql-engine.png)
+![](graphql-engine.png)
 
 NopGraphQL引擎不仅仅可以同时提供GraphQL和REST两种服务模式，它在Nop平台中的作用是作为一个通用的分解组合方案。在Nop平台中，所有的消息服务、批处理服务、RPC服务等，**在接收到请求消息之后，都是把它们投递到GraphQLEngine中去处理**。
 
@@ -255,7 +255,7 @@ public interface LitemallGoodsMapper {
 
 Nop平台提供了非常强大的模型驱动开发模式，可以解析Excel数据模型文件自动生成实体定义、Mapper接口定义、元数据定义，后台GraphQL服务，甚至包括前台增加改查页面等。
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/excel-model.png)
+![](../tutorial/excel-model.png)
 
 详细设计可以参见文章
 
@@ -279,7 +279,7 @@ Nop平台提供了专为DSL开发而设计的XLang语言，它包含了XScript�
 
 4. XTransform是类似于XSLT的通用Tree结构转换语言。
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/compare/XLang.png)
+![](XLang.png)
 
 Nop平台底层对于XML语言进行了很多改造，它只是使用基本的XML语法形式，并没有使用JAXB标准，也没有使用Java中常用的XML解析器，而是完全从零编写了XML解析器和JSON解析器。相比于常用的XML解析器和DOM模型，Nop平台的XNode结构要更加简单、直观，并且它内置SourceLocation跟踪机制，可以直接作为通用的AST语法树节点来使用。
 
@@ -359,9 +359,9 @@ NopReport是基于可逆计算理论从零开始独立实现的一套开源中�
 
 NopReport在[Nop平台](https://link.zhihu.com/?target=https%3A//gitee.com/canonical-entropy/nop-entropy)中的定位是对表格形式数据结构的通用建模工具，所有需要生成表格形式数据的功能都可以转化为NopReport报表模型对象来实现。例如，NopCli命令行工具提供的数据库逆向工程命令会逆向分析数据库表结构，生成Excel模型文件，这个Excel模型文件就是通过**将导入模板转化为报表输出模型**来生成。
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/cross-table-report-result.png)
+![](../user-guide/report/cross-table-report-result.png)
 
-<img title="" src="https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/cross-table-report.png" alt="" width="499">
+<img title="" src="../user-guide/report/cross-table-report.png" alt="" width="499">
 
 与其他报表引擎相比，NopReport具有如下非常鲜明的个性化特点：
 
@@ -387,7 +387,7 @@ NopReport除了用于导出数据之外，它还支持自定义数据结构的�
 
 Nop平台提供了业务规则、工作流引擎、批处理引擎、任务调度引擎等逻辑编排相关的引擎实现，可以对一般的业务逻辑进行完整的描述。
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/decision-matrix.png)
+![](../dev-guide/rule/decision-matrix.png)
 
 具体介绍可以参见 [采用Excel作为可视化设计器的规则引擎 NopRule](https://zhuanlan.zhihu.com/p/655192140)
 
@@ -432,9 +432,9 @@ Nop平台提供了与Maven相集成的代码生成器，它**可以在Nop平台�
 
 NopIdeaPlugin提供了一个通用的IDEA插件，它会自动识别XML根节点上x:schema属性所指定的元模型，然后根据元模型自动实现属性提示、链接跳转、格式校验等，对于代码段还提供了断点调试功能。
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/idea/idea-completion.jpg)
+![](../user-guide/idea/idea-completion.jpg)
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/idea/xlang-debugger.png)
+![](../user-guide/idea/xlang-debugger.png)
 
 ## 总结
 

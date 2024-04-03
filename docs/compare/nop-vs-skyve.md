@@ -91,7 +91,7 @@ XDef明确采用了同态映射的设计思想，XDef元模型的结构与模型
 它所描述的模型结构如下所示：
 
 ```xml
-<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopAuthUser" 
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopAuthUser"
       xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j">
     <grids>
         <grid id="list" >
@@ -104,7 +104,7 @@ XDef明确采用了同态映射的设计思想，XDef元模型的结构与模型
             </cols>
         </grid>
     </grids>
-</view>  
+</view>
 ```
 
 基本上只需要将原始模型文件作为模板，把具体的值替换为对应的stdDomain定义即可。例如id="!xml-name"表示id属性是非空属性，而且它的格式必须满足xml-name定义要求，即必须符合XML名称规范要求。
@@ -266,7 +266,7 @@ Nop平台的NopGraphQL引擎分解到对象层面对应于BizModel模型，它�
 
 另外一个需要关注的设计要点是Nop平台强调了**业务逻辑表达的框架无关性**。传统的服务实现都是依赖于某个具体框架的，比如Skyve的后台服务会用到WebContext对象，它直接包含了HttpServletRequest对象和HttpServletResponse对象，这导致它必然和Web运行环境绑定在一起，我们编写的业务代码难以迁移到非Web环境中使用。而在Nop平台中，GraphQL引擎的入口参数和返回对象都是POJO对象，没有任何特定运行时环境依赖。NopGraphQL可以看作是一个纯逻辑的运行引擎，它的输入可以来源于各种渠道，例如可以从批处理文件中读取请求对象，自动将在线服务转化为批处理服务（基于NopOrm引擎会自动实现批量提交优化）。此外，还可以直接对接Kafka消息队列，将GraphQL服务直接转化为消息处理服务（返回消息可以发送到一个Reply Topic上）。
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/arch/BizModel.svg)
+![](../arch/BizModel.svg)
 
 基于POJO的设计也极大的降低了单元测试的难度，无需和服务器整合即可对单个服务函数进行测试。
 
@@ -367,7 +367,7 @@ Nop平台的前端使用百度AMIS框架，这是一个非常优秀、强大的�
 # main.page.yaml页面文件缺省根据XView模型生成
 
 x:gen-extends: |
-  <web:GenPage view="NopAuthUser.view.xml" page="main" 
+  <web:GenPage view="NopAuthUser.view.xml" page="main"
         xpl:lib="/nop/web/xlib/web.xlib" />
 ```
 
@@ -399,9 +399,9 @@ Skyve使用JasperReport来生成报表，这对于复杂的中国式报表需求
 Skyve提供了一个有趣的自动化测试支持，它可以根据数据模型和View模型自动生成对应的WebDriver自动化测试用例。
 
 ```xml
-<automation uxui="external" userAgentType="tablet" testStrategy="Assert" 
-    xsi:schemaLocation="http://www.skyve.org/xml/sail ../../../skyve/schemas/sail.xsd" 
-    xmlns="http://www.skyve.org/xml/sail" 
+<automation uxui="external" userAgentType="tablet" testStrategy="Assert"
+    xsi:schemaLocation="http://www.skyve.org/xml/sail ../../../skyve/schemas/sail.xsd"
+    xmlns="http://www.skyve.org/xml/sail"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
     <interaction name="Menu Document Numbers">

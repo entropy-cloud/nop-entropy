@@ -6,19 +6,22 @@ structure:
     uri: core-code-guidance.md
   - title: Nop平台的定位和发展规划
     uri: why-nop.md
-  - uri: arch
+  - title: arch
+    uri: arch
     children:
       - title: 架构
         uri: arch/index.md
       - title: 模块依赖关系
         uri: arch/module-dependency.md
-  - uri: compare
+  - title: compare
+    uri: compare
     children:
       - title: 从可逆计算看开源低代码平台Skyve的设计
         uri: compare/nop-vs-skyve.md
       - title: Nop平台与SpringCloud的功能对比
         uri: compare/nop-vs-springcloud.md
-  - uri: dev-guide
+  - title: dev-guide
+    uri: dev-guide
     children:
       - title: 开发指南
         uri: dev-guide/index.md
@@ -40,8 +43,10 @@ structure:
         uri: dev-guide/dict.md
       - title: 统一响应格式
         uri: dev-guide/error-code.md
-      - uri: dev-guide/i18n.md
-      - uri: dev-guide/intro.md
+      - title: dev-guide/i18n.md
+        uri: dev-guide/i18n.md
+      - title: dev-guide/intro.md
+        uri: dev-guide/intro.md
       - title: 3.1 XDef元模型定义
         uri: dev-guide/ioc.md
       - title: 日志配置
@@ -50,7 +55,8 @@ structure:
         uri: dev-guide/spring.md
       - title: 租户配置
         uri: dev-guide/tenant.md
-      - uri: dev-guide/auth
+      - title: dev-guide/auth
+        uri: dev-guide/auth
         children:
           - title: 权限
             uri: dev-guide/auth/auth.md
@@ -62,27 +68,34 @@ structure:
             uri: dev-guide/auth/service-auth.md
           - title: 启用SSO支持
             uri: dev-guide/auth/sso.md
-      - uri: dev-guide/batch
+      - title: dev-guide/batch
+        uri: dev-guide/batch
         children:
           - title: SpringBatch存在的设计问题
             uri: dev-guide/batch/batch-design.md
-          - uri: dev-guide/batch/batch-gen.md
-          - uri: dev-guide/batch/batch-task.md
-      - uri: dev-guide/biz
+          - title: dev-guide/batch/batch-gen.md
+            uri: dev-guide/batch/batch-gen.md
+          - title: dev-guide/batch/batch-task.md
+            uri: dev-guide/batch/batch-task.md
+      - title: dev-guide/biz
+        uri: dev-guide/biz
         children:
           - title: 编码规则
             uri: dev-guide/biz/coderule.md
           - title: CrudBizModel中的自动验证
             uri: dev-guide/biz/validate.md
-      - uri: dev-guide/command
+      - title: dev-guide/command
+        uri: dev-guide/command
         children:
           - title: 命令行程序支持
             uri: dev-guide/command/command.md
-      - uri: dev-guide/delta
+      - title: dev-guide/delta
+        uri: dev-guide/delta
         children:
           - title: 如何在不修改基础产品源码的情况下实现定制化开发
             uri: dev-guide/delta/delta-customization.md
-      - uri: dev-guide/graphql
+      - title: dev-guide/graphql
+        uri: dev-guide/graphql
         children:
           - title: connection配置
             uri: dev-guide/graphql/connection.md
@@ -98,23 +111,29 @@ structure:
             uri: dev-guide/graphql/upload.md
           - title: Biz模型
             uri: dev-guide/graphql/xbiz.md
-      - uri: dev-guide/ide
+      - title: dev-guide/ide
+        uri: dev-guide/ide
         children:
           - title: 安装JDK
             uri: dev-guide/ide/idea.md
           - title: 关联Gradle工程
             uri: dev-guide/ide/plugin-dev.md
-      - uri: dev-guide/ioc
+      - title: dev-guide/ioc
+        uri: dev-guide/ioc
         children:
           - title: 编译期代码生成
             uri: dev-guide/ioc/aop.md
-      - uri: dev-guide/job
+      - title: dev-guide/job
+        uri: dev-guide/job
         children:
           - title: 分布式任务调度
             uri: dev-guide/job/job-design.md
-          - uri: dev-guide/job/job.md
-          - uri: dev-guide/job/trigger.md
-      - uri: dev-guide/microservice
+          - title: dev-guide/job/job.md
+            uri: dev-guide/job/job.md
+          - title: dev-guide/job/trigger.md
+            uri: dev-guide/job/trigger.md
+      - title: dev-guide/microservice
+        uri: dev-guide/microservice
         children:
           - title: Feign集成
             uri: dev-guide/microservice/feign.md
@@ -126,7 +145,8 @@ structure:
             uri: dev-guide/microservice/rpc.md
           - title: 配置项
             uri: dev-guide/microservice/web-filter.md
-      - uri: dev-guide/model
+      - title: dev-guide/model
+        uri: dev-guide/model
         children:
           - title: Excel模型
             uri: dev-guide/model/index.md
@@ -140,7 +160,8 @@ structure:
             uri: dev-guide/model/excel-model.md
           - title: 1. 解析Excel文件得到Workbook对象
             uri: dev-guide/model/excel-xlsx.md
-      - uri: dev-guide/nocode
+      - title: dev-guide/nocode
+        uri: dev-guide/nocode
         children:
           - title: '在线配置数据模型和服务模型: [dyn-model.md](dyn-model.md)'
             uri: dev-guide/nocode/index.md
@@ -148,7 +169,8 @@ structure:
             uri: dev-guide/nocode/dyn-model.md
           - title: 内置工作流支持的动态实体
             uri: dev-guide/nocode/dynamic-orm.md
-      - uri: dev-guide/orm
+      - title: dev-guide/orm
+        uri: dev-guide/orm
         children:
           - title: '[数据库方言](dialect.md)'
             uri: dev-guide/orm/index.md
@@ -160,7 +182,8 @@ structure:
             uri: dev-guide/orm/data-change-log.md
           - title: Dialect的继承和定制
             uri: dev-guide/orm/dialect.md
-          - uri: dev-guide/orm/dql.md
+          - title: dev-guide/orm/dql.md
+            uri: dev-guide/orm/dql.md
           - title: EQL对象查询语言
             uri: dev-guide/orm/eql.md
           - title: 如何在不改表的情况下为实体增加扩展字段
@@ -189,7 +212,8 @@ structure:
             uri: dev-guide/orm/to-one-relation.md
           - title: 事务模板
             uri: dev-guide/orm/transaction.md
-      - uri: dev-guide/recipe
+      - title: dev-guide/recipe
+        uri: dev-guide/recipe
         children:
           - title: '1. [在后台增加字段](add-field.md)'
             uri: dev-guide/recipe/index.md
@@ -205,7 +229,8 @@ structure:
             uri: dev-guide/recipe/tree-entity.md
           - title: 1. 解析XML文本
             uri: dev-guide/recipe/xml-helper.md
-      - uri: dev-guide/report
+      - title: dev-guide/report
+        uri: dev-guide/report
         children:
           - title: '[Excel报表](xpt-report.md)'
             uri: dev-guide/report/index.md
@@ -223,7 +248,8 @@ structure:
             uri: dev-guide/report/word-template.md
           - title: 报表引擎
             uri: dev-guide/report/xpt-report.md
-          - uri: dev-guide/report/examples
+          - title: dev-guide/report/examples
+            uri: dev-guide/report/examples
             children:
               - title: 基础报表示例
                 uri: dev-guide/report/examples/base.md
@@ -231,25 +257,30 @@ structure:
                 uri: dev-guide/report/examples/dynamic-col.md
               - title: 套打
                 uri: dev-guide/report/examples/form-printing.md
-      - uri: dev-guide/rule
+      - title: dev-guide/rule
+        uri: dev-guide/rule
         children:
           - title: 采用Excel作为可视化设计器的规则引擎 NopRule
             uri: dev-guide/rule/rule.md
           - title: 验证模型
             uri: dev-guide/rule/validator.md
-      - uri: dev-guide/security
+      - title: dev-guide/security
+        uri: dev-guide/security
         children:
           - title: Nop平台这么灵活，是不是很容易出现安全性问题？
             uri: dev-guide/security/security-design.md
-      - uri: dev-guide/sonar
+      - title: dev-guide/sonar
+        uri: dev-guide/sonar
         children:
           - title: 配置
             uri: dev-guide/sonar/sonarqube.md
-      - uri: dev-guide/spring
+      - title: dev-guide/spring
+        uri: dev-guide/spring
         children:
           - title: 如何为Spring和Mybatis增加可逆计算支持
             uri: dev-guide/spring/spring-delta.md
-      - uri: dev-guide/vfs
+      - title: dev-guide/vfs
+        uri: dev-guide/vfs
         children:
           - title: DSL模型文件加载
             uri: dev-guide/vfs/model-loader.md
@@ -257,7 +288,8 @@ structure:
             uri: dev-guide/vfs/std-resource-path.md
           - title: 虚拟文件系统
             uri: dev-guide/vfs/vfs.md
-      - uri: dev-guide/workflow
+      - title: dev-guide/workflow
+        uri: dev-guide/workflow
         children:
           - title: 类钉钉工作流
             uri: dev-guide/workflow/flow-builder.md
@@ -269,7 +301,8 @@ structure:
             uri: dev-guide/workflow/task-queue.md
           - title: 堆栈式任务流
             uri: dev-guide/workflow/task.md
-      - uri: dev-guide/xlang
+      - title: dev-guide/xlang
+        uri: dev-guide/xlang
         children:
           - title: XLang
             uri: dev-guide/xlang/index.md
@@ -293,13 +326,16 @@ structure:
             uri: dev-guide/xlang/xlang.md
           - title: 元数据
             uri: dev-guide/xlang/xmeta.md
-          - uri: dev-guide/xlang/xpath.md
+          - title: dev-guide/xlang/xpath.md
+            uri: dev-guide/xlang/xpath.md
           - title: 说明
             uri: dev-guide/xlang/xpl.md
           - title: XScript
             uri: dev-guide/xlang/xscript.md
-          - uri: dev-guide/xlang/xtransform.md
-      - uri: dev-guide/xui
+          - title: dev-guide/xlang/xtransform.md
+            uri: dev-guide/xlang/xtransform.md
+      - title: dev-guide/xui
+        uri: dev-guide/xui
         children:
           - title: XUI
             uri: dev-guide/xui/index.md
@@ -321,13 +357,15 @@ structure:
             uri: dev-guide/xui/xpage.md
           - title: XView视图模型
             uri: dev-guide/xui/xview.md
-  - uri: faq
+  - title: faq
+    uri: faq
     children:
       - title: 调试错误
         uri: faq/debug-errors.md
       - title: 常见问题
         uri: faq/faq.md
-  - uri: frontend
+  - title: frontend
+    uri: frontend
     children:
       - title: 前端架构设计
         uri: frontend/frontend-design.md
@@ -337,33 +375,48 @@ structure:
         uri: frontend/react.md
       - title: Vite
         uri: frontend/vite.md
-  - uri: gpt
+  - title: gpt
+    uri: gpt
     children:
-      - uri: gpt/copilot-prompts.md
-      - uri: gpt/create-module.md
-      - uri: gpt/create-workflow.md
-      - uri: gpt/read-doc.md
-      - uri: gpt/update-table.md
-      - uri: gpt/alpha-codium
+      - title: gpt/copilot-prompts.md
+        uri: gpt/copilot-prompts.md
+      - title: gpt/create-module.md
+        uri: gpt/create-module.md
+      - title: gpt/create-workflow.md
+        uri: gpt/create-workflow.md
+      - title: gpt/read-doc.md
+        uri: gpt/read-doc.md
+      - title: gpt/update-table.md
+        uri: gpt/update-table.md
+      - title: gpt/alpha-codium
+        uri: gpt/alpha-codium
         children:
-          - uri: gpt/alpha-codium/READM.md
-      - uri: gpt/gpt-pilot
+          - title: gpt/alpha-codium/READM.md
+            uri: gpt/alpha-codium/READM.md
+      - title: gpt/gpt-pilot
+        uri: gpt/gpt-pilot
         children:
-          - uri: gpt/gpt-pilot/READM.md
-      - uri: gpt/reference
+          - title: gpt/gpt-pilot/READM.md
+            uri: gpt/gpt-pilot/READM.md
+      - title: gpt/reference
+        uri: gpt/reference
         children:
-          - uri: gpt/reference/tutor.md
-  - uri: intro
+          - title: gpt/reference/tutor.md
+            uri: gpt/reference/tutor.md
+  - title: intro
+    uri: intro
     children:
       - title: 介绍
         uri: intro/intro.md
-  - uri: performance
+  - title: performance
+    uri: performance
     children:
       - title: 性能优化方法论
         uri: performance/optimize-theory.md
       - title: 性能优化工具
         uri: performance/optimize-tool.md
-  - uri: theory
+  - title: theory
+    uri: theory
     children:
       - title: '知乎专栏: [可逆计算](https://www.zhihu.com/column/reversible-computation)'
         uri: theory/index.md
@@ -389,7 +442,8 @@ structure:
         uri: theory/framework-agnostic.md
       - title: 通用的Delta差量化机制
         uri: theory/generic-delta-composition.md
-      - uri: theory/good_design.md
+      - title: theory/good_design.md
+        uri: theory/good_design.md
       - title: 为什么在数学的意义上GraphQL严格的优于REST？
         uri: theory/graphql-vs-rest.md
       - title: 1. 代码生成器是低码吗？
@@ -400,7 +454,7 @@ structure:
         uri: theory/lowcode-orm-1.md
       - title: 低代码平台需要什么样的ORM引擎?(2)
         uri: theory/lowcode-orm-2.md
-      - title: 从零开始编写一款高度可扩展的逻辑编排引擎
+      - title: 从零开始编写的下一代逻辑编排引擎
         uri: theory/lowcode-task-flow.md
       - title: 可逆计算理论
         uri: theory/methodology-of-reversible-computation.md
@@ -436,19 +490,22 @@ structure:
         uri: theory/xdsl-design.md
       - title: XML、JSON和函数AST的等价性
         uri: theory/xml-json-equivalence.md
-      - uri: theory/amis
+      - title: theory/amis
+        uri: theory/amis
         children:
           - title: 再谈百度AMIS框架和声明式编程
             uri: theory/amis/amis-and-declarative-programming.md
           - title: 为什么说百度AMIS框架是一个优秀的设计
             uri: theory/amis/why-amis-is-good.md
-  - uri: tutorial
+  - title: tutorial
+    uri: tutorial
     children:
       - title: 开发示例
         uri: tutorial/tutorial.md
       - title: Development Tutorial
         uri: tutorial/tutorial_en.md
-      - uri: tutorial/simple
+      - title: tutorial/simple
+        uri: tutorial/simple
         children:
           - title: Nop入门：极简服务层开发
             uri: tutorial/simple/1-simple-service.md
@@ -456,20 +513,26 @@ structure:
             uri: tutorial/simple/2-simple-dao.md
           - title: 极简前端页面开发
             uri: tutorial/simple/3-simple-page.md
-  - uri: user-guide
+  - title: user-guide
+    uri: user-guide
     children:
       - title: 用户指南
         uri: user-guide/index.md
-      - uri: user-guide/batch.md
+      - title: user-guide/batch.md
+        uri: user-guide/batch.md
       - title: 采用Excel作为设计器的开源中国式报表引擎：NopReport
         uri: user-guide/report.md
-      - uri: user-guide/rule.md
-      - uri: user-guide/workflow.md
-      - uri: user-guide/idea
+      - title: user-guide/rule.md
+        uri: user-guide/rule.md
+      - title: user-guide/workflow.md
+        uri: user-guide/workflow.md
+      - title: user-guide/idea
+        uri: user-guide/idea
         children:
           - title: XLang DSL Plugin
             uri: user-guide/idea/idea-plugin.md
-      - uri: user-guide/monitor
+      - title: user-guide/monitor
+        uri: user-guide/monitor
         children:
           - title: 运行时监控
             uri: user-guide/monitor/grafana.md

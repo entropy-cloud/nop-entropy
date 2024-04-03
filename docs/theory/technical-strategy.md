@@ -186,7 +186,7 @@ Nop平台大量采用代码生成机制通过自动推理来生产代码，但�
 4. **每一个环节都允许暂存和透传本步骤不需要使用的扩展信息**
 
 例如在Nop平台中我们内置了一条从Excel数据模型自动生成前后端全套代码的推理i管线。
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/delta-pipeline.png)
+![](../tutorial/delta-pipeline.png)
 
 具体来说，从后端到前端的逻辑推理链条可以分解为四个主要模型：
 

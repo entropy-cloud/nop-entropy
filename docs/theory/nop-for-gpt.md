@@ -122,7 +122,7 @@
              <api>/amis/api/mock2/sample/bulkUpdate2</api>
              <body>
                <hidden name="ids" />
-               <input-text name="engine" label="Engine" /> 
+               <input-text name="engine" label="Engine" />
              </body>
            </form>
         </body>
@@ -142,8 +142,8 @@
 <columns>
   <c:forEach var="col" items="${entityModel.columns}">
     <column name="${col.name}" sqlType="${col.sqlType}" />
-  </c:forEach>  
-</columns>  
+  </c:forEach>
+</columns>
 ```
 
 关于XML和JSON的等价性，进一步的讨论可以参见 [XML、JSON和函数AST的等价性](https://zhuanlan.zhihu.com/p/554294376)
@@ -169,7 +169,7 @@ AI大模型之所以引起轰动，本质上在于它表现出了超越简单模
    <columns xdef:body-type="list" xdef:key-attr="name">
      <column name="!prop-name" sqlType="!std-sql-type" length="int" />
   </columns>
-</entity>  
+</entity>
 ```
 
 基本上XDef就是把具体的值替换为stdDomain定义，同时对于列表元素只保留唯一的一个条目。
@@ -190,7 +190,7 @@ Nop平台与GPT沟通的策略如下：
 2. 通过可逆计算的差量合并规则，指导GPT直接返回差量描述
 3. 将返回差量合并到当前模型上，成为新的当前模型，在此基础上可以无限次与GPT沟通。
 4. 对于复杂的逻辑推理往往无法通过单一的DSL一步到位的解决问题，此时我们可以通过多个DSL来建立一个差量流水线，将问题分解为几个步骤来解决。
-   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/delta-pipeline.png)
+   ![](../tutorial/delta-pipeline.png)
 
 基于Nop平台提供的DSL支持，AI和人工可以采用如下的相互配合方式：
 
@@ -237,7 +237,7 @@ Nop的方案具有如下优势：
 
 ```
 The AI assistant performs task parsing on user input, generating a list
-of tasks with the following format: 
+of tasks with the following format:
 [{"task": task, "id", task_id, "dep": dependency_task_ids,
 "args": {"text": text, "image": URL, "audio": URL, "video": URL}}].
 ```
@@ -251,12 +251,12 @@ role_simulator = guidance('''
 {{#system~}}
 You are a helpful assistant
 {{~/system}}
-                                           
+
 {{#user~}}
 You will answer the user as {{role}} in the following conversation. At every step, I will provide you with the user input, as well as a comment reminding you of your instructions. Never talk about the fact that you are an AI, even if the user asks you. Always answer as {{role}}.
 {{#if first_question}}You can also start the conversation.{{/if}}
 {{~/user}}
-                                           
+
 {{~! The assistant either starts the conversation or not, depending on if this is the first or second agent }}
 {{#assistant~}}
 Ok, I will follow these instructions.

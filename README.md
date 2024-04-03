@@ -1,6 +1,6 @@
-[[English]](README.en.md)   [[Tutorial]](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial_en.md)  [[开发示例]](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md) [[介绍和答疑视频]](https://www.bilibili.com/video/BV1u84y1w7kX/)
+[[English]](README.en.md)   [[Tutorial]](./docs/tutorial/tutorial_en.md)  [[开发示例]](./docs/tutorial/tutorial.md) [[介绍和答疑视频]](https://www.bilibili.com/video/BV1u84y1w7kX/)
 
-#### 介绍
+## 介绍
 
 [可逆计算：下一代软件构造理论](https://zhuanlan.zhihu.com/p/64004026)
 
@@ -72,12 +72,12 @@ Engine）、任务调度引擎(Job Scheduler)、批处理引擎（Batch Prcessin
 | nop-auth        | 用户权限管理                    | 已完成  |
 | nop-sys         | 系统配置管理                    | 已完成  |
 
-#### 源码地址
+## 源码地址
 
 - gitee: [https://gitee.com/canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 - github: [https://github.com/entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
 
-#### 设计原理
+## 设计原理
 
 [可逆计算：下一代软件构造理论](https://zhuanlan.zhihu.com/p/64004026)
 
@@ -89,19 +89,19 @@ Engine）、任务调度引擎(Job Scheduler)、批处理引擎（Batch Prcessin
 
 [写给程序员的可逆计算理论辨析补遗](docs/theory/reversible-computation-for-programmers2.md)
 
-#### 快速开始
+## 快速开始
 
-[开发示例](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+[开发示例](./docs/tutorial/tutorial.md)
 
 [介绍和答疑视频](https://www.bilibili.com/video/BV1u84y1w7kX/)
 
-[开发文档导引](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/index.md)
+[开发文档导引](./docs/index.md)
 
 [与若依Ruoyi框架集成](https://gitee.com/canonical-entropy/nop-for-ruoyi)
 
 [更多介绍视频](https://space.bilibili.com/3493261219990250)
 
-#### 软件架构
+## 软件架构
 
 nop-entropy没有使用Spring框架，所有模块均从零开始采用模型驱动的方式研发（框架本身的很多代码也是根据模型生成并可以通过声明式方式进行定制调整的）。原则上说，nop-entropy可以运行在任何支持REST服务标准的微服务框架之上。目前，我们主要是支持Quarkus框架以及Spring框架的集成。
 
@@ -115,7 +115,7 @@ Nop平台的前端代码在[nop-chaos项目](https://gitee.com/canonical-entropy
 2. nop-web-amis-editor: 前端使用的AMIS可视化编辑器的打包结果
    在一般的业务开发中我们只会编写JSON和少量JS文件，不需要重新编译nop-chaos项目。
 
-#### 安装教程
+## 安装教程
 
 环境准备： JDK 17+、Maven 3.9.3+、Git
 
@@ -211,33 +211,33 @@ nop-entropy不依赖于spring或者quarkus框架，也不依赖于特定数据�
 ## 示例页面
 
 1. 界面框架
-   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/demo/framework.jpg)
+   ![](./docs/demo/framework.jpg)
 
 2. 使用Excel来定义数据模型
-   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/excel-model.png)
+   ![](./docs/tutorial/excel-model.png)
 
 3. 使用Excel来定义对外发布的API模型
-   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/microservice/api-model.png)
+   ![](./docs/dev-guide/microservice/api-model.png)
 
 4. 集成百度的前端低代码框架AMIS
-   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/amis-editor-view.png)
+   ![](./docs/tutorial/amis-editor-view.png)
 
 5. 集成GraphQL调试工具
-   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/graphql-ui.png)
+   ![](./docs/tutorial/graphql-ui.png)
 
 6. 提供IDEA插件，支持自定义DSL的断点调试
-   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/xlang-debugger.png)
+   ![](./docs/tutorial/xlang-debugger.png)
 
 7. 使用Excel作为报表设计器，支持复杂的中国式报表
-   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/block-report-result.png)
-   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/cross-table-report-result.png)
+   ![](./docs/user-guide/report/block-report-result.png)
+   ![](./docs/user-guide/report/cross-table-report-result.png)
 
 8. 使用Word模板来导出Word报表
-   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/word-template/word-report.png)
+   ![](./docs/dev-guide/report/word-template/word-report.png)
 
 9. 使用Excel来设计决策表和决策矩阵
-   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/decision-tree.png)
-   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/decision-matrix.png)
+   ![](./docs/dev-guide/rule/decision-tree.png)
+   ![](./docs/dev-guide/rule/decision-matrix.png)
 
 ## 开源协议
 
@@ -266,16 +266,17 @@ switch(贵公司很有钱吗()){
 * 感谢网友[xyplayman](https://gitee.com/xyplayman)贡献的ORM测试用例，原项目地址 https://gitee.com/xyplayman/nop-orm-demo
 
 ## 社区
+
 * 中文官网: [https://nop-platform.gitee.io/](https://nop-platform.gitee.io/)
 * 英文官网: [https://nop-platform.github.io/](https://nop-platform.github.io/)
 * 网友[Crazydan Studio](https://studio.crazydan.org/)建立的[Nop开发实践分享网站](https://nop.crazydan.io/)
 
 ## 作者微信和微信讨论群
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/wechat-group.png)
+![](wechat-group.png)
 
 添加微信时请注明：加入Nop平台群
 
 ## 微信公众号
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/wechat-public-account.jpg)
+![](wechat-public-account.jpg)

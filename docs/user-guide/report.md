@@ -22,28 +22,28 @@ NopReport在[Nop平台](https://gitee.com/canonical-entropy/nop-entropy)中的�
 
 ### 档案式报表
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/profile-report.png)
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/profile-report-result.png)
+![](report/profile-report.png)
+![](report/profile-report-result.png)
 
 ### 段落明细表
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/block-report.png)
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/block-report-result.png)
+![](report/block-report.png)
+![](report/block-report-result.png)
 
 ### 复杂多源报表
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/multi-ds-report.png)
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/multi-ds-report-result.png)
+![](report/multi-ds-report.png)
+![](report/multi-ds-report-result.png)
 
 ### 交叉报表—数据双向扩展
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/cross-table-report.png)
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/cross-table-report-result.png)
+![](report/cross-table-report.png)
+![](report/cross-table-report-result.png)
 
 ### 同比环比等财务统计表
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/MOM-YOY-report.png)
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/MOM-YOY-report-result.png)
+![](report/MOM-YOY-report.png)
+![](report/MOM-YOY-report-result.png)
 
 ### Excel模型扩展
 
@@ -56,7 +56,7 @@ NopReport报表模型可以看作是对Excel模型的一种扩展。在单元格
    C. `*=>ds1!fieldName` 等价于配置 expandType=c, ds=ds1, field=fieldName
    D. `*=^fieldName@entity.children` 等价于配置expandType=r,field=fieldName,expandExpr=entity.children
 
-详细说明参见文档[xpt-report.md](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report.md)
+详细说明参见文档[xpt-report.md](../dev-guide/report/xpt-report.md)
 
 ## 二. 高度灵活的数据对象支持
 
@@ -65,7 +65,7 @@ NopReport报表模型可以看作是对Excel模型的一种扩展。在单元格
 这种做法的好处是报表引擎比较容易通用化，可以独立于业务系统运行。但是坏处也很明显，那就是报表引擎无法直接使用应用程序内部已经建立的领域对象模型，也无法利用领域模型内在的结构关系来进行性能优化。
 
 NopReport采用的是一种更加灵活、开放的分层式设计，它的运行时直接面向领域模型对象，而数据集（DataSet）仅仅是作为可选的一种数据组织形式。例如，在上一节介绍的档案式报表中，通过JSON变量直接构造报表数据
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/profile-report-data.png)
+![](report/profile-report-data.png)
 
 展开【教育经历】时，只需要配置 expandType=r, expandExpr=entity.educations。而类似帆软报表的报表工具需要定义多个数据集： ds\_study、ds\_work等，然后再配置这些数据集之间的关联过滤条件。而在NopReport中，我们直接假定用户信息按照树状结构进行组织。从NopOrm引擎中查询得到的用户对象可以直接送到报表引擎中作为输入数据，并不需要在报表引擎中重新定义一个专为报表导出而用的数据集。
 
