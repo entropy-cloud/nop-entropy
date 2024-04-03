@@ -1,7 +1,6 @@
-[[中文]](README.md)   [[Tutorial]](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial_en.md)  [[开发示例]](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md) [[介绍和答疑视频]](https://www.bilibili.com/video/BV1u84y1w7kX/)
+[[中文]](README.md)   [[Tutorial]](./docs/tutorial/tutorial_en.md)  [[开发示例]](./docs/tutorial/tutorial.md) [[介绍和答疑视频]](https://www.bilibili.com/video/BV1u84y1w7kX/)
 
-
-#### Introduction
+## Introduction
 
 Nop Platform 2.0 is a new generation of low-code platform based on the theory of reversible computation. It is committed to overcoming the dilemma that low-code platform can not get rid of the exhaustive method, transcending the component technology from the theoretical level, and effectively solving the problem of coarse-grained software reuse.
 
@@ -18,12 +17,12 @@ At present, the open source part mainly includes the implementation of XLang lan
 
 ** WARNING: The code of Nop Platform 2.0 is refactored from Entropy Platform 1.0. At present, the refactoring work has not been completely completed, and it has not been used in the actual project. **
 
-#### Source code address
+## Source code address
 
 - gitee: [https://gitee.com/canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 - github: [https://github.com/entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
 
-#### Design principle
+## Design principle
 
 [Reversible Computation: Next Generation Software Construction Theory] (https://zhuanlan.zhihu.com/p/64004026)
 
@@ -37,11 +36,11 @@ At present, the open source part mainly includes the implementation of XLang lan
 
 [What ORM engine is needed for low-code platforms?] (https://zhuanlan.zhihu.com/p/543252423)
 
-#### A quick start
+## A quick start
 
 [Development Example] (docs/tutorial/tutorial.md)
 
-#### Software architecture
+## Software architecture
 
 Nop-entropy does not use the Spring framework, and all modules are developed from scratch in a model-driven manner (much of the code for the framework itself is also generated from the model and can be customized in a declarative manner). In principle, nop-entropy can run on top of any microservices framework that supports the REST services standard. At present, we mainly support the integration of Quarkus framework and Spring framework.
 
@@ -82,7 +81,7 @@ The front-end code for the Nop platform In [ nop-chaos project ](https://gitee.c
 1. nop-web-site: the packaging result of the front-end main page frame
 2. nop-web-amis-editor: The packaging result of the AMIS visual editor used by the front end. In general business development, we will only write JSON and a few JS files, and there is no need to recompile the nop-chaos project.
 
-#### Installation tutorial
+## Installation tutorial
 
 Environment preparation: JDK 11 +, Maven 3.6 +, Git
 
@@ -107,7 +106,7 @@ gradlew buildPlugin
 
 The compiled plug-ins are stored in the build/distributions directory. See [Installation and Usage of Nop Idea Plugin](docs/dev-guide/ide/idea.md).
 
-#### Instructions for use
+## Instructions for use
 
 * The platform has a built-in demo program, which can be started and run directly using the H2 memory database.
 
@@ -130,7 +129,7 @@ You can view the definitions and parameters of all the back-end service function
 
 * For a complete development example, see [tutorial](docs/tutorial/tutorial.md)
 
-#### Framework integration
+## Framework integration
 
 nop-entroy doesn't depend on the spring or quarkus frameworks, nor does it depend on a specific database, so it's easy to integrate and use in third-party applications.
 
@@ -154,7 +153,7 @@ nop-entroy doesn't depend on the spring or quarkus frameworks, nor does it depen
 
 9. As a data-driven automated testing framework: through the recording, playback mechanism to achieve automated testing. Automatically record the output data when running for the first time, and then automatically compare it with the recorded data snapshot when running, so as to reduce the amount of code that needs to be written manually. See [ autotest.md ](docs/dev-guide/autotest.md)
 
-#### Open source license
+## Open source license
 
 The front-end of Nop platform adopts MIT license, and the back-end adopts AGPL3.0 open source license. However, small and medium-sized enterprises can use the code of this project under the conditions similar to Apache 2.0 license (free commercial use, modification of the code does not require open source, but the original copyright information in the source code must be retained). To facilitate third-party integration, the nop-api-support/nop-commons/nop-core packages use the Apache 2.0 license.
 
@@ -172,10 +171,10 @@ switch(贵公司很有钱吗()){
 }
 ```
 
-#### Technical support
+## Technical support
 
 Problems or BUGs encountered in use can be found in [ Gitee Mention Issues ](https://gitee.com/canonical-entropy/nop-chaos/issues)
 
-#### Wechat group
+## Wechat group
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/wechat-group.png)
+![](wechat-group.png)

@@ -6,7 +6,7 @@ Nop平台的模块虽然很多，但是因为整体设计采用了依赖注入�
 
 Nop平台最核心的模块是nop-core、nop-xlang这两个模块。**所谓的可逆计算原理的具体实现都集中在这两个模块中**。
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/arch/images/core-modules.png)
+![](images/core-modules.png)
 
 * **nop-api-core包含了整个平台对内、对外都需要共享的全局对象和交互消息**。例如平台中使用的所有注解、API调用用到的公共Bean（如ApiRequest, ApiResponse, PageBean），NopException统一异常处理类，IContext全局上下文，IUserContext用户上下文等。当第三方框架需要调用Nop平台提供的服务接口时一般会引用这个模块。
 
@@ -33,7 +33,7 @@ nop-codegen工具可以独立于Nop平台被使用，生成其他框架或者其
 
 ## 二. GraphQL引擎
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/arch/images/graphql-modules.png)
+![](images/graphql-modules.png)
 
 Nop平台的后端服务使用NopGraphQL引擎实现。NopGraphQL引擎没有使用graphql-java包，是完全从零开始实现的一个新的GraphQL引擎。相比于graphql-java，它充分利用了可逆计算原理，极大减少了需要手工编写的代码量，提高了运行时性能。此外，NopGraphQL支持模型动态加载，支持REST调用接口与GraphQL调用接口。
 
@@ -55,7 +55,7 @@ Nop平台的后端服务使用NopGraphQL引擎实现。NopGraphQL引擎没有使
 
 ## 三. 分布式RPC框架
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/arch/images/rpc-modules.png)
+![](images/rpc-modules.png)
 
 Nop平台在GraphQL引擎的基础上建立了分布式RPC机制，参见[rpc-design.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/microservice/rpc-design.md)
 
@@ -77,7 +77,7 @@ NopIoC内置了类似springboot的autoconfig机制，因此只要引入nop-clust
 
 ## 四. 应用入口
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/arch/images/boot-modules.png)
+![](images/boot-modules.png)
 
 * nop-boot模块中的NopApplication类类似springboot中SpringApplication类的作用，负责整个应用的创建和初始化工作
 
@@ -87,7 +87,7 @@ NopIoC内置了类似springboot的autoconfig机制，因此只要引入nop-clust
 
 ## 五. 应用模块
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/arch/images/app-modules.png)
+![](images/app-modules.png)
 
 * nop-web-site中包含了Nop平台的前端框架代码，它是nop-chaos项目打包的产物
 
@@ -105,7 +105,7 @@ Nop平台整体设计采用了可分可合的灵活组织形式。初始代码�
 
 ## 六. 报表引擎
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/arch/images/report-modules.png)
+![](images/report-modules.png)
 
 NopReport是一个采用Excel作为可视化设计器的支持中国式报表的报表引擎，使用方法参见[report.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/user-guide/report.md)。
 
@@ -119,7 +119,7 @@ NopReport是一个采用Excel作为可视化设计器的支持中国式报表的
 
 ## 七. 自动化测试框架
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/arch/images/autotest-modules.png)
+![](images/autotest-modules.png)
 
 Nop平台的自动化测试框架原则上是一种通用设计，不依赖于JUnit测试框架。
 
@@ -131,7 +131,7 @@ Nop平台的自动化测试框架原则上是一种通用设计，不依赖于JU
 
 ## 八. IDEA插件
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/arch/images/idea-plugin-modules.png)
+![](images/idea-plugin-modules.png)
 
 * nop-idea-plugin插件基于xdef元模型实现统一的DSL语法提示、校验、链接跳转、端点调试等功能
 
@@ -141,7 +141,7 @@ Nop平台的自动化测试框架原则上是一种通用设计，不依赖于JU
 
 ## 九. 命令行工具
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/arch/images/cli-modules.png)
+![](images/cli-modules.png)
 
 nop-cli命令行工具聚合了一批可以独立使用的功能，具体参见[cli.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/cli.md)
 

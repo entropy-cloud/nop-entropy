@@ -83,10 +83,10 @@ DSL <-..-> UI
 
 1. 利用单元格的Comment来保存扩展模型信息
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report/cell-model-as-comment.png)
+![](xpt-report/cell-model-as-comment.png)
 
 2. 利用单独的Sheet页来保存扩展模型信息
-   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report/model-as-sheet.png)
+   ![](xpt-report/model-as-sheet.png)
 
 **如果Excel工具引入一种自定义Schema机制，就可以自动实现对扩展模型的格式校验。**
 
@@ -94,12 +94,12 @@ DSL <-..-> UI
 
 ## 二. 非线性中国式报表理论
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report/runqian-report.png)
+![](xpt-report/runqian-report.png)
 
 润乾公司的创始人蒋步星学长发明了非线性中国式报表模型的相关理论，是报表引擎领域一项真正原创的技术。后续的商业报表公司如帆软报表等都延续了这种类Excel单元格展开的设计思想。
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report/chinese-style-report.png)
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report/nonlinear-report-model.png)
+![](xpt-report/chinese-style-report.png)
+![](xpt-report/nonlinear-report-model.png)
 
 > 所谓的非线性报表是相对于线性报表而言。国外的水晶报表只能沿着一个方向延展，列方向一般是固定的，所以被定义为线性报表。非线性报表是行与列都构成复杂的树形嵌套关系，不再是线性平铺
 
@@ -219,7 +219,7 @@ expandCells(cell, expandCount)
 * 行父格和行子格不一定在同一行，但是一个行父格会管辖一块包含所有行子格的连续区域。**处于不同的父格的区域不会出现交叉，只会嵌套，构成严格的树形关系**。
 * 同理，列父格的逻辑类似。
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report/expand-span.png)
+![](xpt-report/expand-span.png)
 
 ## 层次坐标
 
@@ -237,13 +237,13 @@ graph LR
 层次坐标格式： CellName[rowCoordinates ; colCoordinates]
 ```
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report/absolute-coord-value.png)
+![](xpt-report/absolute-coord-value.png)
 
 ```mermaid
 graph RL
 B1 --> A1
 C1 --> B1
-A1 --> D1 
+A1 --> D1
 ```
 
 D1是A1的rowParent，所以A1展开的时候，D1会自动延展。
@@ -304,7 +304,7 @@ style a4 fill:#eecc00
 ```
 
 ```java
-public class ExpandedCell implements ICellView {   
+public class ExpandedCell implements ICellView {
    ExpandedRow row;
    ExpandedCol col;
 
@@ -377,13 +377,13 @@ style a1 fill:#eecc00
 3. current()函数实现动态查找当前实际可用数据列表。
 
 > ds=ds1, expandType=r, field=xxx这种配置实际等价于 expandType=r,expandExpr=ds1.group("xxx")，它会设置展开单元格的expandedValue为分组汇总后的子数据集。
-> 
+>
 > 单元格可能同时具有行父格和列父格，它自身在执行ds1.field(name)这样的函数时，会取行父格与列父格中子数据集的**交集**，得到一个当前可见的集合列表，然后再执行相关操作
 
 ## 报表上下文： XptRuntime
 
 ```mermaid
-graph LR 
+graph LR
 
 XptRuntime --> scope
 XptRuntime --> var[/内置变量/]

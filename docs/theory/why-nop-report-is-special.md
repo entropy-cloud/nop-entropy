@@ -57,7 +57,7 @@ Template = BaseModel + ExtModel
 但是因为Office的设计没有按照可逆计算理论进行，这使得我们只能通过某种Hack的方式来重新诠释它的内置功能，将其中的一些改造为元数据扩展机制。
 NopReport的具体做法就是利用Word中的超链接机制，将`xpl:xxx`这种形式的超链接解释为扩展信息节点。
 
-![word-report.png](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/word-template/word-report.png)
+![word-report.png](../dev-guide/report/word-template/word-report.png)
 
 使用超链接只是一种不重要的技术细节。我们也可以选择使用Word中的批注机制来保存扩展信息。
 

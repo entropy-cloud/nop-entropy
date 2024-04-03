@@ -244,23 +244,23 @@ $$
 
 比如说，制作柠檬派的过程可以构成一个范畴。
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/reversible/make-lemon-pie.png)
+![](reversible/make-lemon-pie.png)
 
 再比如，数据库的schema定义也构成一个范畴
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/reversible/database-schema.png)
+![](reversible/database-schema.png)
 
 这里需要注意的是，不是所有的有向图（Graph）都是范畴，因为范畴要求每个点上都存在单位箭头，而且箭头之间需要能够复合，复合关系还要满足结合律。数学上更加严谨的说法是，从任意一个有向图出发，我们可以通过Free Construction构造出一个范畴来。所以从下面这种只有两个箭头的图构造得到的范畴实际上包含6个箭头。
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/reversible/free-category.png)
+![](reversible/free-category.png)
 
 v1,v2,v3上需要增加3个单位箭头，而f1和f2的复合需要被定义为一个新的箭头，所以总共有6个箭头。
 
 这里的所谓Free指的是我们没有添加任何新的约束条件，仅仅是从补足范畴论定义的需要出发向图中补充了最少量的元素。而一个不Free的构造方式是向图中引入约束条件：规定两条连接同样起点和钟点的路径是等价的。
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/reversible/commu-equations.png)
+![](reversible/commu-equations.png)
 
 一个比较容易理解的例子是向数据库的schema关系图中增加业务约束条件：
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/reversible/my-schema.png)
+![](reversible/my-schema.png)
 
 * 每个部门的秘书必须在这个部门中工作
 * 每个雇员的经理必须和雇员在同一个部门

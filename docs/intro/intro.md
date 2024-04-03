@@ -22,19 +22,19 @@ DockerApp = DockerBuilder<DockerFile> overlay-fs BaseImage
 https://github.com/entropy-cloud/nop-entropy
 
 Nop平台现在内置了一个演示用的软件生产线，可以从Excel格式的数据模型自动生成GraphQL服务以及前端页面，然后在自动生成的代码基础上我们可以手工调整，手工编写的差量代码与自动生成的代码相互隔离，不会相互影响。
-![delta-pipeline](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/delta-pipeline.png)
+![delta-pipeline](../tutorial/delta-pipeline.png)
 
 实际上，基于Nop平台开发的软件产品都支持Delta定制机制，应用层代码无需做出任何特殊的设计（比如预先抽象出扩展接口）即可获得完全增量式的定制化开发能力（定制的增量代码完全独立于基础产品代码，定制基础产品或者Nop平台的功能都无需修改原始代码
 
 [如何在不修改基础产品源码的情况下实现定制化开发](https://zhuanlan.zhihu.com/p/628770810)
 
 nop-ide-plugin为所有DSL提供断点调试、语法提示的功能
-![xlang-debugger](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/xlang-debugger.png)
+![xlang-debugger](../tutorial/xlang-debugger.png)
 
 通过Excel来设计数据模型
-![excel-data-model](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/excel-model.png)
+![excel-data-model](../tutorial/excel-model.png)
 
 使用Excel来定义业务规则
-![decision-matrix](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/decision-matrix.png)
+![decision-matrix](../dev-guide/rule/decision-matrix.png)
 
-![decision-tree](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/decision-tree.png)
+![decision-tree](../dev-guide/rule/decision-tree.png)

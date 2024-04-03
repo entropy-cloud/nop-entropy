@@ -167,7 +167,7 @@ XDSL中通过XLang语言来实现可执行语义。只要在xdef元模型中标�
 
 Nop平台通过`nop-idea-plugin`插件为XLang语言提供了文档提示、自动补全、语法校验、断点调试等功能。具体参见[idea-plugin.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/user-guide/idea/idea-plugin.md)
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/idea/idea-executor.png)
+![](../../user-guide/idea/idea-executor.png)
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/xlang-debugger.png)
 
