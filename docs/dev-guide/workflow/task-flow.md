@@ -28,7 +28,7 @@ for each outputModel
 在概念层面上非常类似于一般程序语言中的函数调用：
 
 ```javascript
-var { a: aName, b: bName} = fn( {x: exprInput1, y: exprInput1} )  
+var { a: aName, b: bName} = await fn( {x: exprInput1, y: exprInput1} )  
 ```
 
 TaskFlow的Step相当于是对于传统的函数对象进行了增强，自动支持异步执行、超时处理、自动重试等功能。
