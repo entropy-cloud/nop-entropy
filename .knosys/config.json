@@ -1,0 +1,11 @@
+{
+  "command": "./scripts/ksio",
+  "site": {
+    "default": {
+      "generator": "hexo",
+      "data": {
+        "project-nop-entropy": "./docs"
+      }
+    }
+  }
+}

@@ -1,0 +1,164 @@
+# Hexo Configuration
+## Docs: https://hexo.io/docs/configuration.html
+## Source: https://github.com/hexojs/hexo/
+
+# Site
+title: Nop Entropy
+subtitle: 基于可逆计算原理从零开始构建的新一代低代码平台
+description: Nop Platform 2.0 是基于可逆计算原理从零开始构建的新一代低代码平台，它致力于克服低代码平台无法摆脱穷举法的困境，从理论层面超越组件技术，有效的解决粗粒度软件复用的问题。
+keywords: Nop,Nop平台,Nop 平台,Nop Platform,Nop社区,Nop 社区,Nop Community,可逆计算,软件构造理论,低代码,lowcode,low-code,low code,低代码平台,lcdp,软件工程
+author: canonical
+language: zh-CN
+timezone: Asia/Shanghai
+
+# URL
+## Set your site url here. For example, if you use GitHub Page, set url as 'https://username.github.io/project'
+url: https://example.io
+permalink: posts/:title/
+permalink_defaults:
+pretty_urls:
+  trailing_index: false
+  trailing_html: false
+
+# Directory
+source_dir: source
+public_dir: public
+tag_dir: tags
+archive_dir: archives
+category_dir: categories
+code_dir: downloads/code
+i18n_dir: :lang
+skip_render:
+
+# Writing
+new_post_name: :title.md # File name of new posts
+default_layout: post
+titlecase: false # Transform title into titlecase
+external_link:
+  enable: true # Open external links in new tab
+  field: site # Apply to the whole site
+  exclude: ''
+filename_case: 0
+render_drafts: false
+post_asset_folder: false
+relative_link: false
+future: true
+highlight:
+  enable: true
+  line_number: true
+  auto_detect: false
+  tab_replace: ''
+  wrap: true
+  hljs: false
+prismjs:
+  enable: false
+  preprocess: true
+  line_number: true
+  tab_replace: ''
+
+# Home page setting
+# path: Root path for your blogs index page. (default = '')
+# per_page: Posts displayed per page. (0 = disable pagination)
+# order_by: Posts order. (Order by date descending by default)
+index_generator:
+  path: '/'
+  per_page: 10
+  order_by: -date
+
+# Category & Tag
+default_category: uncategorized
+category_map:
+tag_map:
+
+# Metadata elements
+## https://developer.mozilla.org/en-US/docs/Web/HTML/Element/meta
+meta_generator: true
+
+# Date / Time format
+## Hexo uses Moment.js to parse and display date
+## You can customize the date format as defined in
+## http://momentjs.com/docs/#/displaying/format/
+date_format: YYYY-MM-DD
+time_format: HH:mm:ss
+## updated_option supports 'mtime', 'date', 'empty'
+updated_option: 'mtime'
+
+# Pagination
+## Set per_page to 0 to disable pagination
+per_page: 10
+pagination_dir: page
+
+# Include / Exclude file(s)
+## include:/exclude: options only apply to the 'source/' folder
+include:
+exclude:
+ignore:
+
+# Extensions
+## Plugins: https://hexo.io/plugins/
+## Themes: https://hexo.io/themes/
+theme: nop-project
+theme_config:
+  header:
+    navs:
+      - text: 指南
+        url: /projects/nop-entropy/docs/
+  footer:
+    links:
+      - text: 指南
+        url: /projects/nop-entropy/docs/
+
+ksio:
+  defaults:
+    layout:
+      page:
+        values:
+          ksio_asset_css:
+            - stylesheets/ksio/vendors/share
+          ksio_asset_js:
+            - javascripts/ksio/vendors/share.min
+            - javascripts/ksio/components/page
+            - javascripts/ksio/components/toc
+      post:
+        extends: page
+      ksio/doc:
+        values:
+          ksio_asset_css:
+            - stylesheets/ksio/vendors/share
+          ksio_asset_js:
+            - javascripts/ksio/vendors/share.min
+            - javascripts/ksio/components/page
+            - javascripts/ksio/components/toc
+      _nop/layouts/doc:
+        extends: ksio/doc
+    page:
+      - scope:
+          type: posts
+        values:
+          ksio_asset_css:
+            - stylesheets/pages/post
+          ksio_asset_js:
+            - javascripts/ksio/vendors/jquery.timeago
+            - javascripts/ksio/vendors/jquery.timeago.zh-CN
+            - javascripts/ksio/initializers/time
+            - javascripts/ksio/vendors/jquery.lazyload
+            - javascripts/ksio/initializers/lazyload
+      - scope:
+          type: knosys
+        values:
+          layout: _nop/layouts/doc
+          ksio_asset_css:
+            - stylesheets/pages/post
+            - stylesheets/pages/doc
+          ksio_asset_js:
+            - javascripts/ksio/vendors/jquery.timeago
+            - javascripts/ksio/vendors/jquery.timeago.zh-CN
+            - javascripts/ksio/initializers/time
+            - javascripts/ksio/vendors/jquery.lazyload
+            - javascripts/ksio/initializers/lazyload
+          repo: nop-entropy
+
+# Deployment
+## Docs: https://hexo.io/docs/one-command-deployment
+deploy:
+  type: ''

@@ -63,15 +63,19 @@ _dump
 /nop-tool/src/test/java/io/nop/tool/log/TestLogProcessor.java
 /nop-all-for-spring/dependency-reduced-pom.xml
 
-/package.json
-/scripts/ksio
-/.knosys
-/.knosys/sites/*/.cache/
-/.knosys/sites/*/.asset-cache/
-/.knosys/sites/*/.sass-cache/
-/.knosys/sites/*/*/ksio/
-/.knosys/sites/*/_assets/*/ksio/
-/.knosys/sites/*/_assets/*/knosys/
-/.knosys/sites/*/_data/knosys/
-/.knosys/sites/*/_knosys/
-/.knosys/sites/*/_site/
+package-lock.json
+node_modules/
+
+# KnoSys sites
+/.knosys/sites/default/source/_data/knosys/
+/.knosys/sites/default/source/_data/local/repos.yml
+/.knosys/sites/default/source/knosys/
+/.knosys/sites/default/source/_posts/*
+!/.knosys/sites/default/source/_posts/hello-world.md
+/.knosys/sites/default/themes/
+/.knosys/sites/default/public/
+/.knosys/sites/default/.deploy*/
+/.knosys/sites/default/_multiconfig.yml
+/.knosys/sites/default/Thumbs.db
+/.knosys/sites/default/db.json
+/.knosys/sites/default/package.json
