@@ -12,13 +12,16 @@ import io.nop.task.ITaskManager;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskState;
 import io.nop.task.ITaskStateStore;
+import io.nop.task.ITaskStepFlagOperation;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskConstants;
 import io.nop.task.metrics.EmptyTaskFlowMetrics;
 import io.nop.task.metrics.ITaskFlowMetrics;
 import io.nop.xlang.api.XLang;
+import jakarta.annotation.Nonnull;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,13 +42,18 @@ public class TaskRuntimeImpl implements ITaskRuntime {
 
     private final boolean recoverMode;
 
+    private final ITaskStepFlagOperation flagOperation;
+
+    private Set<String> enabledFlags = Collections.emptySet();
+
     private ITaskState taskState;
 
     private ITaskFlowMetrics metrics = EmptyTaskFlowMetrics.INSTANCE;
 
     public TaskRuntimeImpl(ITaskManagerImplementor taskManager,
                            ITaskStateStore stateStore,
-                           IServiceContext svcCtx, boolean recoverMode) {
+                           IServiceContext svcCtx, boolean recoverMode,
+                           ITaskStepFlagOperation flagOperation) {
         this.taskManager = taskManager;
         this.stateStore = stateStore;
         this.svcCtx = svcCtx;
@@ -55,6 +63,7 @@ public class TaskRuntimeImpl implements ITaskRuntime {
                 : XLang.newEvalScope(CollectionHelper.newConcurrentMap(4));
         this.scope.setLocalValue(TaskConstants.VAR_TASK_RT, this);
         this.context = svcCtx == null ? ContextProvider.getOrCreateContext() : svcCtx.getContext();
+        this.flagOperation = flagOperation;
     }
 
     public boolean isRecoverMode() {
@@ -97,6 +106,17 @@ public class TaskRuntimeImpl implements ITaskRuntime {
     @Override
     public ITaskManager getTaskManager() {
         return taskManager;
+    }
+
+    @Nonnull
+    @Override
+    public Set<String> getEnabledFlags() {
+        return enabledFlags;
+    }
+
+    @Override
+    public void setEnabledFlags(Set<String> enabledFlags) {
+        this.enabledFlags = enabledFlags == null ? Collections.emptySet() : enabledFlags;
     }
 
     @Override
@@ -151,6 +171,11 @@ public class TaskRuntimeImpl implements ITaskRuntime {
         stepRt.setCancelToken(getSvcCtx());
         stepRt.setState(state);
         stepRt.setRecoverMode(recoverMode);
+        if (flagOperation == null) {
+            stepRt.setEnabledFlags(this.getEnabledFlags());
+        } else {
+            stepRt.setEnabledFlags(flagOperation.buildChildFlags(this.getEnabledFlags()));
+        }
         return stepRt;
     }
 }

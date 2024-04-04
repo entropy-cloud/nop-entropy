@@ -21,6 +21,14 @@
 
         <description xdef:value="string"/>
 
+        <!-- 可以根据动态设置的flag来决定是否执行本步骤
+        @match 满足flag条件才执行本步骤
+        @enable 设置flag，在子步骤范围内，这些flag有效
+        @disable 删除flag, 在子步骤范围内，这些flag无效
+        @rename 重命名flag。在子步骤范围内，flag被重命名为指定名称
+        -->
+        <flags match="flags-expr" enable="word-set" disable="word-set" rename="string-map" xdef:name="TaskFlagsModel"/>
+
         <!--
         @persist [是否持久化保存] 标记为persist的变量会自动保存，支持中断后恢复执行
         -->

@@ -12,6 +12,7 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepExecution;
+import io.nop.task.ITaskStepFlagOperation;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskConstants;
 import io.nop.task.TaskStepReturn;
@@ -101,6 +102,8 @@ public class TaskStepExecution implements ITaskStepExecution {
     private final List<OutputConfig> outputConfigs;
 
     private final Set<String> outputVars;
+
+    private final ITaskStepFlagOperation flagOperation;
     private final IEvalPredicate when;
     private final ITaskStep step;
     private final String nextStepName;
@@ -119,7 +122,7 @@ public class TaskStepExecution implements ITaskStepExecution {
     public TaskStepExecution(SourceLocation location, String stepName,
                              List<InputConfig> inputConfigs,
                              List<OutputConfig> outputConfigs, Set<String> outputVars,
-                             IEvalPredicate when,
+                             ITaskStepFlagOperation flagOperation, IEvalPredicate when,
                              ITaskStep step, String nextStepName, String nextStepNameOnError,
                              boolean ignoreResult, boolean recordMetrics, String errorName,
                              boolean useParentScope
@@ -128,6 +131,7 @@ public class TaskStepExecution implements ITaskStepExecution {
         this.stepName = stepName;
         this.inputConfigs = inputConfigs;
         this.step = step;
+        this.flagOperation = flagOperation;
         this.when = when;
         this.outputConfigs = outputConfigs;
         this.outputVars = outputVars;
@@ -175,7 +179,7 @@ public class TaskStepExecution implements ITaskStepExecution {
         }
 
         if (!stepRt.isRecoverMode()) {
-            if (when != null && !when.passConditions(parentScope)) {
+            if (allowExecute(parentRt)) {
                 LOG.info("nop.task.step.skip-when-condition-not-satisfied:taskName={},taskInstanceId={},"
                                 + "stepId={},runId={},loc={}", taskRt.getTaskName(), taskRt.getTaskInstanceId(),
                         stepRt.getStepId(), stepRt.getRunId(), step.getLocation());
@@ -188,13 +192,19 @@ public class TaskStepExecution implements ITaskStepExecution {
             stepRt.saveState();
         }
 
+        if (flagOperation != null) {
+            stepRt.setEnabledFlags(flagOperation.buildChildFlags(parentRt.getEnabledFlags()));
+        } else {
+            stepRt.setEnabledFlags(parentRt.getEnabledFlags());
+        }
+
         ITaskFlowMetrics metrics = parentRt.getTaskRuntime().getMetrics();
         Object meter = recordMetrics ? metrics.beginStep(stepRt.getStepId(), step.getStepType()) : null;
 
         try {
             TaskStepReturn stepResult = step.execute(stepRt);
             if (stepResult.isSuspend()) {
-                metrics.endStep(meter,false);
+                metrics.endStep(meter, false);
                 return stepResult;
             }
 
@@ -255,6 +265,15 @@ public class TaskStepExecution implements ITaskStepExecution {
             }
             throw NopException.adapt(e);
         }
+    }
+
+    boolean allowExecute(ITaskStepRuntime parentRt) {
+        if (flagOperation != null && !flagOperation.checkMatchFlag(parentRt.getEnabledFlags())) {
+            return false;
+        }
+        if (when != null && !when.passConditions(parentRt))
+            return false;
+        return true;
     }
 
     TaskStepReturn buildErrorResult(ITaskStepRuntime stepRt, IEvalScope parentScope, Throwable e) {

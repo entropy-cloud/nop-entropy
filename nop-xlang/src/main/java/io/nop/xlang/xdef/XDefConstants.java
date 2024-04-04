@@ -123,6 +123,8 @@ public interface XDefConstants {
     String STD_DOMAIN_XT_VALUE = "xt-value";
     String STD_DOMAIN_XT_EXPR = "xt-expr";
 
+    String STD_DOMAIN_FLAGS_EXPR = "flags-expr";
+
     String STD_DOMAIN_ENUM = "enum";
     // String STD_DOMAIN_DICT = "dict";
 

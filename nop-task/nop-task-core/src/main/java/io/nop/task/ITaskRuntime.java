@@ -13,6 +13,7 @@ import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.context.IServiceContext;
 import io.nop.task.metrics.ITaskFlowMetrics;
+import jakarta.annotation.Nonnull;
 
 import java.util.Map;
 import java.util.Set;
@@ -107,6 +108,11 @@ public interface ITaskRuntime extends IEvalContext {
     default Map<String, Object> getTaskVars() {
         return getTaskState().getTaskVars();
     }
+
+    @Nonnull
+    Set<String> getEnabledFlags();
+
+    void setEnabledFlags(Set<String> enabledFlags);
 
     Object getAttribute(String name);
 

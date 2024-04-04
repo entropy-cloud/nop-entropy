@@ -8,6 +8,7 @@
 package io.nop.commons.functional.predicate;
 
 import jakarta.annotation.Nonnull;
+
 import java.util.function.Predicate;
 
 /**

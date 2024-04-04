@@ -3,15 +3,16 @@ package io.nop.task;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.core.context.IEvalContext;
+import jakarta.annotation.Nonnull;
 
 import java.util.Set;
 
 public interface ITaskStepRuntime extends IEvalContext {
 
-    default IContext getContext(){
+    default IContext getContext() {
         return getTaskRuntime().getContext();
     }
-    
+
     ITaskRuntime getTaskRuntime();
 
     ICancelToken getCancelToken();
@@ -72,6 +73,16 @@ public interface ITaskStepRuntime extends IEvalContext {
     }
 
     ITaskStepState getState();
+
+    @Nonnull
+    Set<String> getEnabledFlags();
+
+    void setEnabledFlags(Set<String> enabledFlags);
+
+    default boolean isFlagEnabled(String flag) {
+        return getEnabledFlags().contains(flag);
+    }
+
 
     boolean isSupportPersist();
 

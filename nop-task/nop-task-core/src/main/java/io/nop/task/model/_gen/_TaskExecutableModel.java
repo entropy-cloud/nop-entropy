@@ -60,6 +60,13 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: flags
+     * 可以根据动态设置的flag来决定是否执行本步骤
+     */
+    private io.nop.task.model.TaskFlagsModel _flags ;
+    
+    /**
+     *  
      * xml name: input
      * 
      */
@@ -271,6 +278,25 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         checkAllowChange();
         
         this._finally = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: flags
+     *  可以根据动态设置的flag来决定是否执行本步骤
+     */
+    
+    public io.nop.task.model.TaskFlagsModel getFlags(){
+      return _flags;
+    }
+
+    
+    public void setFlags(io.nop.task.model.TaskFlagsModel value){
+        checkAllowChange();
+        
+        this._flags = value;
            
     }
 
@@ -546,6 +572,8 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         
            this._decorators = io.nop.api.core.util.FreezeHelper.deepFreeze(this._decorators);
             
+           this._flags = io.nop.api.core.util.FreezeHelper.deepFreeze(this._flags);
+            
            this._inputs = io.nop.api.core.util.FreezeHelper.deepFreeze(this._inputs);
             
            this._outputs = io.nop.api.core.util.FreezeHelper.deepFreeze(this._outputs);
@@ -571,6 +599,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("executor",this.getExecutor());
         out.putNotNull("finally",this.getFinally());
+        out.putNotNull("flags",this.getFlags());
         out.putNotNull("inputs",this.getInputs());
         out.putNotNull("onReload",this.getOnReload());
         out.putNotNull("outputs",this.getOutputs());
@@ -599,6 +628,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         instance.setDisplayName(this.getDisplayName());
         instance.setExecutor(this.getExecutor());
         instance.setFinally(this.getFinally());
+        instance.setFlags(this.getFlags());
         instance.setInputs(this.getInputs());
         instance.setOnReload(this.getOnReload());
         instance.setOutputs(this.getOutputs());

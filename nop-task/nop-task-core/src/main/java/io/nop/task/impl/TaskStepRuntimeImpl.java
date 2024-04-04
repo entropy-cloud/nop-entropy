@@ -7,7 +7,9 @@ import io.nop.task.ITaskStateStore;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskConstants;
+import jakarta.annotation.Nonnull;
 
+import java.util.Collections;
 import java.util.Set;
 
 public class TaskStepRuntimeImpl implements ITaskStepRuntime {
@@ -17,6 +19,8 @@ public class TaskStepRuntimeImpl implements ITaskStepRuntime {
     private ICancelToken cancelToken;
     private Set<String> outputNames;
     private ITaskStepState stepState;
+
+    private Set<String> enabledFlags = Collections.emptySet();
     private boolean recoverMode;
     private Set<String> persistVars;
 
@@ -69,6 +73,17 @@ public class TaskStepRuntimeImpl implements ITaskStepRuntime {
     @Override
     public void saveState() {
         stateStore.saveStepState(this);
+    }
+
+    @Nonnull
+    @Override
+    public Set<String> getEnabledFlags() {
+        return enabledFlags;
+    }
+
+    @Override
+    public void setEnabledFlags(Set<String> enabledFlags) {
+        this.enabledFlags = enabledFlags == null ? Collections.emptySet() : enabledFlags;
     }
 
     @Override

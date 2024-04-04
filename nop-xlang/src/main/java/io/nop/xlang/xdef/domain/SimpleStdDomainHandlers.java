@@ -45,6 +45,7 @@ import io.nop.core.type.utils.GenericTypeHelper;
 import io.nop.core.type.utils.TypeReference;
 import io.nop.xlang.XLangConstants;
 import io.nop.xlang.api.XLangCompileTool;
+import io.nop.xlang.expr.flags.FlagsExprParser;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.IStdDomainOptions;
 import io.nop.xlang.xdef.XDefConstants;
@@ -57,9 +58,11 @@ import io.nop.xlang.xmeta.layout.parse.LayoutModelParser;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static io.nop.core.type.PredefinedGenericTypes.I_GENERIC_TYPE_TYPE;
@@ -416,6 +419,28 @@ public class SimpleStdDomainHandlers {
         public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
                                 XLangCompileTool cp) {
             return LongRangeBean.parse(value.toString());
+        }
+    }
+
+    public static class FlagsExprType extends SimpleStdDomainHandler {
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_FLAGS_EXPR;
+        }
+
+        @Override
+        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+            return GenericTypeHelper.buildParameterizedType(PredefinedGenericTypes.PREDICATE_TYPE,
+                    Collections.singletonList(PredefinedGenericTypes.SET_STRING_TYPE));
+        }
+
+        @Override
+        public Predicate<Set<String>> parseProp(IStdDomainOptions options, SourceLocation loc,
+                                                String propName, Object text, XLangCompileTool cp) {
+            String str = (String) text;
+            if (StringHelper.isBlank(str))
+                return null;
+            return new FlagsExprParser().parseExpr(loc, str);
         }
     }
 
