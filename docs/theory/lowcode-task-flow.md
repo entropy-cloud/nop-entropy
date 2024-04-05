@@ -179,7 +179,7 @@ var { a: aName, b: bName} = await fn( {x: exprInput1, y: exprInput1} )
     </call-step>
   </steps>
   <output name="b2"/>
-</sequantial>
+</sequential>
 ```
 
 TaskFlow内置了sequential/parallel/loop/choose/xpl/call-step等多种步骤类型，相当于是一种图灵完备的函数式编程语言。
@@ -307,8 +307,6 @@ IEvalScope是步骤内部的变量作用域，它通过父子关系构成了类�
 </sequential>
 ```
 
-
-
 ## 三. 比函数更强的是包装后的函数
 
 如果逻辑编排的对象就是普通的函数，那它和手写代码有什么区别？除了把AST抽象语法树可视化之外，逻辑编排还能做点更有价值的事情吗？可以，我们可以升级一下编排的对象。
@@ -371,23 +369,16 @@ NopTaskFlow中所有Step的元模型都继承自如下基础结构，相当于�
     <source xdef:value="xpl"/>
   </output>
 
-  <when
-  .../>
-  <validator
-  .../>
+  <when/>
+  <validator/>
 
-  <retry
-  .../>
-  <catch
-  .../>
-  <finally
-  .../>
+  <retry/>
+  <catch/>
+  <finally/>
 
-  <throttle
-  .../>
+  <throttle/>
 
-  <rate-limit
-  .../>
+  <rate-limit/>
   <decorator name="!string"/>
 </xdef:define>
 ```
@@ -563,7 +554,7 @@ class LoopNTaskStep extends AbstractTaskStep{
 
 ```javascript
   while(state.index < state.end)
-      executeBody(state.bodyStepIndex)
+      executeBody(state.bodyStepIndex, state)
       state.index += state.step
   }
 ```
@@ -575,21 +566,29 @@ class LoopNTaskStep extends AbstractTaskStep{
 > 单点定位可以被实现为扫描+过滤。
 
 ## 五. 数据驱动的图模式
+NopTaskFlow的`sequential`、`loop`等步骤相当于是模拟了过程式编程语言中的函数运行过程。此时，函数之间是通过**位置关系**形成隐式关联关系，也就是说当一个步骤执行完毕之后，我们会找到它的后续位置处的步骤继续执行。这里所说的位置，就是在源码层面可以确定的一组坐标，所以过程式的执行可以看作是一种**坐标驱动**的运行模式。
 
-
+虽然NopTaskFlow提供了parallel步骤，可以实现一种结构化的并行处理（这里所谓的结构化指的是并行执行的步骤在执行完毕后会自动执行join操作得到最终汇总后的返回结果）。
 
 ## 六. TaskFlow与行为树(Behavior Tree)的区别
 
-如果你问智谱清言AI: 什么是行为树？回答限制在100个字以内。它会回复
+行为树是游戏AI领域常用的一种逻辑编排方案。著名的游戏设计引擎Unity就支持行为树的插件。应该说，NopTaskFlow的设计也受到了行为树的直接影响，以至于它可以直接表达行为树的逻辑。
 
-> 行为树是一种用于模拟和控制人工智能(AI)行为的图形化编程范式，它将复杂的行为分解为一系列简单的任务和条件，并通过树状结构组织这些任务。每个节点代表一个动作或条件判断，AI通过从根节点遍历至叶节点来选择和执行行为。
+关于行为树的介绍可以参考如下文章：
+
+* [行为树入门教程](https://zhuanlan.zhihu.com/p/463182588)
+
+* [行为树的理论与实践入门](https://zhuanlan.zhihu.com/p/611393851)
+
+我们也可以利用AI快速学习一下。如果你问智谱清言AI: 什么是行为树？回答限制在100个字以内。它会回复：
+
+**行为树是一种用于模拟和控制人工智能(AI)行为的图形化编程范式，它将复杂的行为分解为一系列简单的任务和条件，并通过树状结构组织这些任务。每个节点代表一个动作或条件判断，AI通过从根节点遍历至叶节点来选择和执行行为**。
 
 > *AI每次回复的内容是随机的，需要自己从中进行挑选。也可以一次性让它返回五个不同的回复。*
 
-[行为树入门教程](https://zhuanlan.zhihu.com/p/463182588)
+然后可以问它更详细的介绍，并举例说明
 
 > ===以下为智谱清言AI的创作===
-
 
 行为树（Behavior Tree）是人工智能领域中使用的一种用于描述和控制机器人或虚拟角色行为的算法。它是一种层次化的图形化工具，能够清晰地表示复杂的决策逻辑，并易于理解和修改。
 行为树由节点组成，主要分为以下几种类型：
@@ -639,7 +638,7 @@ Selector
 
 > ===智谱清言创作结束===
 
-使用TaskFlow我们可以用一种一比一的方式实现以上行为树的逻辑。
+使用NopTaskFlow我们可以用一种一比一的方式实现以上行为树的逻辑。
 
 ```xml
 <task>
@@ -688,9 +687,19 @@ Selector
 </task>
 ```
 
-[行为树的理论与实践入门](https://zhuanlan.zhihu.com/p/611393851)
+* 行为树要求它的节点总是返回当前执行状态，它具有三个可能的值：成功（Success）、失败（Failure）和运行中（Running）。NopTaskFlow的步骤节点返回类型为TaskStepReturn，它提供了判断函数可以区分出行为树所要求的三种状态。同时，TaskStepReturn还支持返回`CompletionStage`异步对象，可以触发异步回调。
 
-行为树更好还是状态机更好主要看所要定义的行为是更偏向模块化，还是更偏向反应式。一般来说，行为树更方便进行组合和修改，状态机更方便进行反应式动作设计。
+* NopTaskFlow内置了`selector`步骤，可以直接表达行为树的选择节点功能。
+
+* NopTaskFlow的`exit`步骤用于退出当前顺序执行序列，结合`when`装饰器，可以起到行为树的`Condition`节点的作用。
+
+* NopTaskFlow的parallel步骤可以表达行为树中的Parallel节点的功能。同时，parallel步骤还提供了aggregator配置，可以实现最简单的并行任务分解合并。
+
+原则上使用行为树能够表达的逻辑，使用NopTaskFlow都可以表达，而且因为NopTaskFlow的步骤内置了timeout/retry等修饰功能，在表达常见逻辑的时候嵌套层级数比行为树要更少，表达更加紧凑。
+
+> 行为树的一个优点是所有逻辑都直观可见。NopTaskFlow可以考虑使用类似脑图的方式去显示，使用脑图中常用的图标、标签等表达各种步骤修饰功能，而不必一定要把这些信息展现为一个节点。
+
+行为树主要应用于单个Agent的决策和行动过程，相当于是将决策树和行动序列编织在一起。在概念层面上，**Sequence相当于and(与)逻辑，而Selector相当于or(或)逻辑**。行为树的步骤更接近于Predicate抽象，只返回True/False（一般还会更新全局上下文），并不支持更通用的返回值类型。NopTaskFlow建立在更一般化的函数抽象上，包含了行为树的功能，但是在实现层面上，它并没有针对游戏AI应用场景进行优化。
 
 ## 七. TaskFlow与工作流(Workflow)的区别
 
@@ -710,5 +719,7 @@ Selector
 不是针对单个引擎构建，而是大量引擎共享结构共性。
 
 差量化和元编程
+
+为什么要将decorator从步骤的父节点独立出来，本质上还是要使得业务层面认知的坐标更加稳定。
 
 信息最小化表达，描述式结构与运行时结构分离
