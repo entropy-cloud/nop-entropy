@@ -1,0 +1,45 @@
+name: Sync Docs to Nop Community
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - docs/*
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  sync-docs-to-community:
+    runs-on: ubuntu-latest
+    env:
+      NOP_PROJECT_DOCS_REPO: nop-platform/nop-entropy-docs
+    steps:
+      - name: Create temp dirs
+        run: mkdir docs-src docs-dist
+      - uses: actions/checkout@v3
+        with:
+          path: docs-src
+      - uses: actions/checkout@v3
+        with:
+          repository: ${{ env.NOP_PROJECT_DOCS_REPO }}
+          persist-credentials: false
+          path: docs-dist
+      - name: Copy docs
+        run: |
+          rm -rf docs-dist/src
+          mv docs-src/docs docs-dist/src
+      - name: Commit changes
+        run: |
+          cd docs-dist
+          git config --local user.email "nop-assistant+project-docs-syncer@domain.does-not.exist"
+          git config --local user.name "Nop Assistant"
+          git add .
+          git commit -m "chore: update docs via GitHub Actions"
+      - uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.NOP_PROJECT_DOCS_PAT }}
+          repository: ${{ env.NOP_PROJECT_DOCS_REPO }}
+          directory: docs-dist
+          force: true
