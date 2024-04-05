@@ -5,7 +5,15 @@
 - 文档中的标题用 `#` 设置，每个文档都需要有一级标题且只能有一个；
 - 代码块用连续的三个 <code>`</code> 表示，不要超过三个。
 
-用 [KnoSys](https://knosysio.github.io/) 处理成功后会生成 `/docs/.meta/generated.yml` 文件，内容为文档总数及按目录结构排列的文档元数据。
+## 文档生成效果预览
+
+首次操作时需在项目根目录 `npm i` 安装依赖，限制 Node.js 版本为 14 及以上。
+
+接着用 `npm start` 启动本地服务，并在浏览器中访问 `http://localhost:4000/projects/nop-entropy/docs/` 查看效果。
+
+在执行 `npm start` 时自动先处理 `/docs` 下的文件，成功后会生成 `/.knosys/sites/default/source/_data/knosys/project-nop-entropy/docs.yml` 文件，内容为文档总数及按文件目录结构排列的元数据。
+
+值得注意的是——**`npm start` 后并未监听 `/docs` 下文件的变动，若文档源文件有修改需重新执行。**
 
 ## 文档站目录编排
 
