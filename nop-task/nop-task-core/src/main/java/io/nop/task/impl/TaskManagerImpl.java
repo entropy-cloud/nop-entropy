@@ -53,7 +53,7 @@ public class TaskManagerImpl implements ITaskManagerImplementor {
     @Override
     public ITaskRuntime newTaskRuntime(ITask task, boolean saveState, IServiceContext svcCtx) {
         ITaskStateStore stateStore = saveState ? requirePersistStateState() : nonPersistStateStore;
-        TaskRuntimeImpl taskRt = new TaskRuntimeImpl(this, stateStore, svcCtx, false);
+        TaskRuntimeImpl taskRt = new TaskRuntimeImpl(this, stateStore, svcCtx, false,null);
 
         ITaskState taskState = stateStore.newTaskState(task.getTaskName(), task.getTaskVersion(), taskRt);
         taskRt.setTaskState(taskState);
@@ -77,7 +77,7 @@ public class TaskManagerImpl implements ITaskManagerImplementor {
     @Override
     public ITaskRuntime getTaskRuntime(String taskInstanceId, IServiceContext svcCtx) {
         ITaskStateStore stateStore = requirePersistStateState();
-        TaskRuntimeImpl taskRt = new TaskRuntimeImpl(this, stateStore, svcCtx, true);
+        TaskRuntimeImpl taskRt = new TaskRuntimeImpl(this, stateStore, svcCtx, true,null);
         ITaskState taskState = stateStore.loadTaskState(taskInstanceId, taskRt);
         if (taskState == null)
             throw new NopException(ERR_TASK_UNKNOWN_TASK_INSTANCE)
