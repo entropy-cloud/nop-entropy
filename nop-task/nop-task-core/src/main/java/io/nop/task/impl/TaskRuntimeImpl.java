@@ -12,7 +12,6 @@ import io.nop.task.ITaskManager;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskState;
 import io.nop.task.ITaskStateStore;
-import io.nop.task.ITaskStepFlagOperation;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskConstants;
@@ -42,8 +41,6 @@ public class TaskRuntimeImpl implements ITaskRuntime {
 
     private final boolean recoverMode;
 
-    private final ITaskStepFlagOperation flagOperation;
-
     private Set<String> enabledFlags = Collections.emptySet();
 
     private ITaskState taskState;
@@ -52,8 +49,7 @@ public class TaskRuntimeImpl implements ITaskRuntime {
 
     public TaskRuntimeImpl(ITaskManagerImplementor taskManager,
                            ITaskStateStore stateStore,
-                           IServiceContext svcCtx, boolean recoverMode,
-                           ITaskStepFlagOperation flagOperation) {
+                           IServiceContext svcCtx, boolean recoverMode) {
         this.taskManager = taskManager;
         this.stateStore = stateStore;
         this.svcCtx = svcCtx;
@@ -63,7 +59,6 @@ public class TaskRuntimeImpl implements ITaskRuntime {
                 : XLang.newEvalScope(CollectionHelper.newConcurrentMap(4));
         this.scope.setLocalValue(TaskConstants.VAR_TASK_RT, this);
         this.context = svcCtx == null ? ContextProvider.getOrCreateContext() : svcCtx.getContext();
-        this.flagOperation = flagOperation;
     }
 
     public boolean isRecoverMode() {
@@ -171,11 +166,6 @@ public class TaskRuntimeImpl implements ITaskRuntime {
         stepRt.setCancelToken(getSvcCtx());
         stepRt.setState(state);
         stepRt.setRecoverMode(recoverMode);
-        if (flagOperation == null) {
-            stepRt.setEnabledFlags(this.getEnabledFlags());
-        } else {
-            stepRt.setEnabledFlags(flagOperation.buildChildFlags(this.getEnabledFlags()));
-        }
         return stepRt;
     }
 }

@@ -179,7 +179,7 @@ public class TaskStepExecution implements ITaskStepExecution {
         }
 
         if (!stepRt.isRecoverMode()) {
-            if (allowExecute(parentRt)) {
+            if (!allowExecute(parentRt)) {
                 LOG.info("nop.task.step.skip-when-condition-not-satisfied:taskName={},taskInstanceId={},"
                                 + "stepId={},runId={},loc={}", taskRt.getTaskName(), taskRt.getTaskInstanceId(),
                         stepRt.getStepId(), stepRt.getRunId(), step.getLocation());

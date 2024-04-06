@@ -5,6 +5,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.task.ITask;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStep;
+import io.nop.task.ITaskStepFlagOperation;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepReturn;
 import io.nop.task.metrics.ITaskFlowMetrics;
@@ -20,14 +21,18 @@ public class TaskImpl implements ITask {
     private final ITaskStep mainStep;
 
     private final boolean recordMetrics;
+
+    private final ITaskStepFlagOperation flagOperation;
     private final List<? extends ITaskInputModel> inputs;
 
     private final List<? extends ITaskOutputModel> outputs;
 
     public TaskImpl(String taskName, long taskVersion, ITaskStep mainStep, boolean recordMetrics,
+                    ITaskStepFlagOperation flagOperation,
                     List<? extends ITaskInputModel> inputs, List<? extends ITaskOutputModel> outputs) {
         this.inputs = inputs;
         this.outputs = outputs;
+        this.flagOperation = flagOperation;
         Guard.checkArgument(taskVersion > 0, "taskVersion");
         this.taskName = Guard.notEmpty(taskName, "taskName");
         this.taskVersion = taskVersion;
@@ -58,6 +63,12 @@ public class TaskImpl implements ITask {
     @Override
     public TaskStepReturn execute(ITaskRuntime taskRt, Set<String> outputNames) {
         ITaskStepRuntime stepRt = taskRt.newMainStepRuntime();
+        if (flagOperation == null) {
+            stepRt.setEnabledFlags(taskRt.getEnabledFlags());
+        } else {
+            stepRt.setEnabledFlags(flagOperation.buildChildFlags(taskRt.getEnabledFlags()));
+        }
+
         stepRt.setOutputNames(outputNames);
         if (!recordMetrics)
             return mainStep.execute(stepRt);

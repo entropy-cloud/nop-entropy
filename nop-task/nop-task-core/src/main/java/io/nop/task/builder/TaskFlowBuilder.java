@@ -10,7 +10,7 @@ public class TaskFlowBuilder {
         TaskStepBuilder stepBuilder = new TaskStepBuilder();
         ITaskStep mainStep = stepBuilder.buildMainStep(taskFlowModel);
         TaskImpl task = new TaskImpl(taskFlowModel.getName(), taskFlowModel.getVersion(), mainStep,
-                taskFlowModel.isRecordMetrics(),
+                taskFlowModel.isRecordMetrics(), taskFlowModel.getFlags(),
                 taskFlowModel.getInputs(), taskFlowModel.getOutputs());
         return task;
     }
