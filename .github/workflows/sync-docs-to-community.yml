@@ -6,7 +6,8 @@ on:
       - master
     paths:
       - docs/*
-
+  workflow_dispatch:
+  
 jobs:
   sync-docs-to-community:
     uses: nop-platform/.github/.github/workflows/sync-project-docs.yml@main
