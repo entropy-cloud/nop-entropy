@@ -3,6 +3,8 @@ package io.nop.task.impl;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
+import io.nop.commons.concurrent.ratelimit.DefaultRateLimiter;
+import io.nop.commons.concurrent.ratelimit.IRateLimiter;
 import io.nop.commons.metrics.GlobalMeterRegistry;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.resource.component.ResourceComponentManager;
@@ -104,6 +106,12 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
         return taskFlowModel.getTaskStepLib(newTaskStepLibBuilder());
     }
 
+    @Override
+    public IRateLimiter getRateLimiter(ITaskRuntime taskRt, String key, double requestPerSecond, boolean global) {
+        return (IRateLimiter) taskRt.computeAttributeIfAbsent("rate-limit:" + key, k -> {
+            return new DefaultRateLimiter(requestPerSecond);
+        });
+    }
 
     protected ITaskFlowBuilder newTaskFlowBuilder() {
         return new TaskFlowBuilder();

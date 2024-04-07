@@ -10,6 +10,7 @@ package io.nop.task;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
+import io.nop.commons.concurrent.ratelimit.IRateLimiter;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.context.IServiceContext;
 import io.nop.task.metrics.ITaskFlowMetrics;
@@ -127,4 +128,6 @@ public interface ITaskRuntime extends IEvalContext {
     IScheduledExecutor getScheduledExecutor();
 
     ITaskStepRuntime newMainStepRuntime();
+
+    IRateLimiter getRateLimiter(String key, double requestsPerSecond, boolean global);
 }

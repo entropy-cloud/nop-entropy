@@ -18,6 +18,13 @@ public abstract class _TaskThrottleModel extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: global
+     * 
+     */
+    private boolean _global  = false;
+    
+    /**
+     *  
      * xml name: keyExpr
      * 
      */
@@ -36,6 +43,25 @@ public abstract class _TaskThrottleModel extends io.nop.core.resource.component.
      * 
      */
     private int _maxWait ;
+    
+    /**
+     * 
+     * xml name: global
+     *  
+     */
+    
+    public boolean isGlobal(){
+      return _global;
+    }
+
+    
+    public void setGlobal(boolean value){
+        checkAllowChange();
+        
+        this._global = value;
+           
+    }
+
     
     /**
      * 
@@ -109,6 +135,7 @@ public abstract class _TaskThrottleModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("global",this.isGlobal());
         out.putNotNull("keyExpr",this.getKeyExpr());
         out.putNotNull("maxConcurrent",this.getMaxConcurrent());
         out.putNotNull("maxWait",this.getMaxWait());
@@ -123,6 +150,7 @@ public abstract class _TaskThrottleModel extends io.nop.core.resource.component.
     protected void copyTo(TaskThrottleModel instance){
         super.copyTo(instance);
         
+        instance.setGlobal(this.isGlobal());
         instance.setKeyExpr(this.getKeyExpr());
         instance.setMaxConcurrent(this.getMaxConcurrent());
         instance.setMaxWait(this.getMaxWait());

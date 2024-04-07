@@ -4,6 +4,7 @@ import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
+import io.nop.commons.concurrent.ratelimit.IRateLimiter;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
@@ -167,5 +168,10 @@ public class TaskRuntimeImpl implements ITaskRuntime {
         stepRt.setState(state);
         stepRt.setRecoverMode(recoverMode);
         return stepRt;
+    }
+
+    @Override
+    public IRateLimiter getRateLimiter(String key, double requestsPerSecond, boolean global) {
+        return taskManager.getRateLimiter(this, key, requestsPerSecond, global);
     }
 }

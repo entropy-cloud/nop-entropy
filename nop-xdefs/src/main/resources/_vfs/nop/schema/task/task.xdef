@@ -90,12 +90,14 @@
         <!--
          限制对同一个key的调用并发数不能超过指定值
         -->
-        <throttle maxConcurrent="!int" maxWait="!int" keyExpr="expr" xdef:name="TaskThrottleModel"/>
+        <throttle maxConcurrent="!int" maxWait="!int" keyExpr="expr" global="!boolean=false"
+                  xdef:name="TaskThrottleModel"/>
 
         <!--
           限制对同一个key的调用速率不能超过指定值
         -->
-        <rate-limit requestPerSecond="!double" maxWait="!int" keyExpr="expr" xdef:name="TaskRateLimitModel"/>
+        <rate-limit requestPerSecond="!double" maxWait="!int" keyExpr="expr" global="!boolean=false"
+                    xdef:name="TaskRateLimitModel"/>
 
 
     </xdef:define>

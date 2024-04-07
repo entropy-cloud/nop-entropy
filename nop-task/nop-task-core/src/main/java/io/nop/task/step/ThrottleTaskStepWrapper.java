@@ -9,13 +9,17 @@ import io.nop.task.TaskStepReturn;
 import jakarta.annotation.Nonnull;
 
 public class ThrottleTaskStepWrapper extends DelegateTaskStep {
+
+    private final boolean global;
     private final int maxConcurrent;
     private final int maxWait;
 
     private final IEvalAction keyExpr;
 
-    public ThrottleTaskStepWrapper(ITaskStep taskStep, int maxConcurrent, int maxWait, IEvalAction keyExpr) {
+    public ThrottleTaskStepWrapper(ITaskStep taskStep, boolean global,
+                                   int maxConcurrent, int maxWait, IEvalAction keyExpr) {
         super(taskStep);
+        this.global = global;
         this.maxConcurrent = maxConcurrent;
         this.maxWait = maxWait;
         this.keyExpr = keyExpr;
@@ -38,6 +42,6 @@ public class ThrottleTaskStepWrapper extends DelegateTaskStep {
             if (StringHelper.isEmpty(key))
                 key = stepRt.getStepId();
         }
-        return "throttle:" + key;
+        return key;
     }
 }

@@ -9,12 +9,19 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [98:10:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [99:10:0:0]/nop/schema/task/task.xdef <p>
  * 限制对同一个key的调用速率不能超过指定值
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _TaskRateLimitModel extends io.nop.core.resource.component.AbstractComponentModel {
+    
+    /**
+     *  
+     * xml name: global
+     * 
+     */
+    private boolean _global  = false;
     
     /**
      *  
@@ -36,6 +43,25 @@ public abstract class _TaskRateLimitModel extends io.nop.core.resource.component
      * 
      */
     private double _requestPerSecond ;
+    
+    /**
+     * 
+     * xml name: global
+     *  
+     */
+    
+    public boolean isGlobal(){
+      return _global;
+    }
+
+    
+    public void setGlobal(boolean value){
+        checkAllowChange();
+        
+        this._global = value;
+           
+    }
+
     
     /**
      * 
@@ -109,6 +135,7 @@ public abstract class _TaskRateLimitModel extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("global",this.isGlobal());
         out.putNotNull("keyExpr",this.getKeyExpr());
         out.putNotNull("maxWait",this.getMaxWait());
         out.putNotNull("requestPerSecond",this.getRequestPerSecond());
@@ -123,6 +150,7 @@ public abstract class _TaskRateLimitModel extends io.nop.core.resource.component
     protected void copyTo(TaskRateLimitModel instance){
         super.copyTo(instance);
         
+        instance.setGlobal(this.isGlobal());
         instance.setKeyExpr(this.getKeyExpr());
         instance.setMaxWait(this.getMaxWait());
         instance.setRequestPerSecond(this.getRequestPerSecond());

@@ -169,8 +169,4 @@ public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskS
 
     }
 
-    public void setInput(String name, Object value) {
-
-    }
-
 }

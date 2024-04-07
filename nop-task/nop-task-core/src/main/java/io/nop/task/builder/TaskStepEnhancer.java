@@ -124,13 +124,14 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
 
         if (stepModel.getThrottle() != null) {
             TaskThrottleModel throttleModel = stepModel.getThrottle();
-            step = new ThrottleTaskStepWrapper(step, throttleModel.getMaxConcurrent(), throttleModel.getMaxWait(),
+            step = new ThrottleTaskStepWrapper(step, throttleModel.isGlobal(),
+                    throttleModel.getMaxConcurrent(), throttleModel.getMaxWait(),
                     throttleModel.getKeyExpr());
         }
 
         if (stepModel.getRateLimit() != null && stepModel.getRateLimit().getRequestPerSecond() > 0) {
             TaskRateLimitModel rateLimitModel = stepModel.getRateLimit();
-            step = new RateLimitTaskStepWrapper(step, rateLimitModel.getRequestPerSecond(),
+            step = new RateLimitTaskStepWrapper(step, rateLimitModel.getRequestPerSecond(), rateLimitModel.isGlobal(),
                     rateLimitModel.getMaxWait(), rateLimitModel.getKeyExpr());
         }
 
