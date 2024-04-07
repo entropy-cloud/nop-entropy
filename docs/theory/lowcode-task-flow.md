@@ -1,6 +1,6 @@
 # 从零开始编写的下一代逻辑编排引擎 NopTaskFlow
 
-随着低代码概念和产品的流行，很多人都在考虑在自己的项目中引入逻辑编排的概念，将传统上通过手工硬编码生产的逻辑卸载到某个可以灵活配置的逻辑编排引擎上。在本文中，我将介绍一下Nop平台中的逻辑编排引擎NopTaskFlow的设计思想，分析一下NopTaskFlow的设计在数学层面的必然性。在文章的最后我会解释一下为什么NopTaskFlow是下一代逻辑编排引擎，这个所谓的下一代具有什么典型特征。
+随着低代码概念和产品的流行，很多人都在考虑在自己的项目中引入逻辑编排的概念，将传统上通过手工硬编码生产的逻辑卸载到某个可以灵活配置的逻辑编排引擎上。在本文中，我将介绍Nop平台中的逻辑编排引擎NopTaskFlow的设计思想，分析一下NopTaskFlow的设计在数学层面的必然性。在文章的最后我会解释为什么NopTaskFlow是下一代逻辑编排引擎，这个所谓的下一代具有什么典型特征。
 
 ## 一. 逻辑编排到底在编排什么？
 
@@ -1027,6 +1027,6 @@ taskStepReturn = task.execute(taskRt);
 
 在可视化设计器层面，我们可以识别extType属性，然后将xpl节点的source段视为固定的XML配置格式，从而实现可视化编辑。
 
-NopPlatform整体已经开源，可以在官网[https://nop-platform.gitee.io](https://nop-platform.gitee.io/) 获取相关资料。
+**NopPlatform整体已经开源，可以在官网[https://nop-platform.gitee.io](https://nop-platform.gitee.io/) 获取相关资料。**
 
-目前NopTaskFlow的核心代码只有3000多行，很容易集成在其他项目中使用。在下周六DDD和微服务系统设计在线研讨会中我会详细讲解设计中的一些细节，欢迎参加。
+目前NopTaskFlow的核心代码只有3000多行，很容易集成在其他项目中使用。在下周六DDD和微服务系统设计在线研讨会中我会详细讲解NopTaskFlow设计中的一些细节，欢迎参加。
