@@ -1014,7 +1014,7 @@ taskStepReturn = task.execute(taskRt);
    ```
    
    这种方式依赖于通过成员变量来传播上下文信息或者强制要求使用ThreadLocal等全局对象，会导致不必要的结构依赖，难以实现动态模型更新，也难以实现性能的最优化。
-   
+
 4. **通过元编程和Xpl模板语言实现扩展**。在Nop平台中无需额外进行插件设计和扩展点设计，Nop平台内置的Delta定制机制自动支持对于任意模型属性和节点的定制修改，并且每个模型节点都支持扩展属性和扩展子节点，配合`x:gen-extends`和`x:post-extends`元编程机制，可以在现有模型基础上实现二次抽象封装。可以同故宫Xpl模板语言的自定义标签实现无限扩展。比如在NopTaskFlow中嵌入对于规则引擎的调用。
 
 ```xml
@@ -1024,11 +1024,9 @@ taskStepReturn = task.execute(taskRt);
   </source>  
 </xpl>
 ```
+
 在可视化设计器层面，我们可以识别extType属性，然后将xpl节点的source段视为固定的XML配置格式，从而实现可视化编辑。
 
-基于可逆计算理论设计的低代码平台NopPlatform已开源：
+NopPlatform整体已经开源，可以在官网[https://nop-platform.gitee.io](https://nop-platform.gitee.io/) 获取相关资料。
 
-- gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
-- github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
-- [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
+目前NopTaskFlow的核心代码只有3000多行，很容易集成在其他项目中使用。在下周六DDD和微服务系统设计在线研讨会中我会详细讲解设计中的一些细节，欢迎参加。
