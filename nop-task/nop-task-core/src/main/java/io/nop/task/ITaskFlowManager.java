@@ -10,7 +10,7 @@ package io.nop.task;
 
 import io.nop.core.context.IServiceContext;
 
-public interface ITaskManager {
+public interface ITaskFlowManager {
 
     ITaskRuntime newTaskRuntime(ITask task, boolean saveState, IServiceContext svcCtx);
 

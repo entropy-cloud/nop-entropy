@@ -8,7 +8,7 @@ import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.task.ITask;
-import io.nop.task.ITaskManager;
+import io.nop.task.ITaskFlowManager;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskState;
 import io.nop.task.ITaskStateStore;
@@ -29,7 +29,7 @@ import java.util.function.Function;
 public class TaskRuntimeImpl implements ITaskRuntime {
     private final Map<String, Object> attrs = new ConcurrentHashMap<>();
 
-    private final ITaskManagerImplementor taskManager;
+    private final ITaskFlowManagerImplementor taskManager;
 
     private final ITaskStateStore stateStore;
 
@@ -47,7 +47,7 @@ public class TaskRuntimeImpl implements ITaskRuntime {
 
     private ITaskFlowMetrics metrics = EmptyTaskFlowMetrics.INSTANCE;
 
-    public TaskRuntimeImpl(ITaskManagerImplementor taskManager,
+    public TaskRuntimeImpl(ITaskFlowManagerImplementor taskManager,
                            ITaskStateStore stateStore,
                            IServiceContext svcCtx, boolean recoverMode) {
         this.taskManager = taskManager;
@@ -99,7 +99,7 @@ public class TaskRuntimeImpl implements ITaskRuntime {
     }
 
     @Override
-    public ITaskManager getTaskManager() {
+    public ITaskFlowManager getTaskManager() {
         return taskManager;
     }
 

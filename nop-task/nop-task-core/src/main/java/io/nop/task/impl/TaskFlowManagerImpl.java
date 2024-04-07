@@ -13,6 +13,10 @@ import io.nop.task.ITaskState;
 import io.nop.task.ITaskStateStore;
 import io.nop.task.ITaskStepLib;
 import io.nop.task.TaskConstants;
+import io.nop.task.builder.ITaskFlowBuilder;
+import io.nop.task.builder.ITaskStepLibBuilder;
+import io.nop.task.builder.TaskFlowBuilder;
+import io.nop.task.builder.TaskStepLibBuilder;
 import io.nop.task.metrics.TaskFlowMetricsImpl;
 import io.nop.task.model.TaskFlowModel;
 import io.nop.task.state.DefaultTaskStateStore;
@@ -23,7 +27,7 @@ import static io.nop.task.TaskErrors.ARG_TASK_INSTANCE_ID;
 import static io.nop.task.TaskErrors.ERR_TASK_NO_PERSIST_STATE_STORE;
 import static io.nop.task.TaskErrors.ERR_TASK_UNKNOWN_TASK_INSTANCE;
 
-public class TaskManagerImpl implements ITaskManagerImplementor {
+public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
     private IScheduledExecutor scheduledExecutor;
 
     private ITaskStateStore taskStateStore;
@@ -90,13 +94,22 @@ public class TaskManagerImpl implements ITaskManagerImplementor {
     public ITask getTask(String taskName, long taskVersion) {
         String path = ResourceVersionHelper.buildResolvePath(TaskConstants.MODEL_TYPE_TASK, taskName, taskVersion);
         TaskFlowModel taskFlowModel = (TaskFlowModel) ResourceComponentManager.instance().loadComponentModel(path);
-        return taskFlowModel.getTask();
+        return taskFlowModel.getTask(newTaskFlowBuilder());
     }
 
     @Override
     public ITaskStepLib getTaskStepLib(String libName, long libVersion) {
         String path = ResourceVersionHelper.buildResolvePath(TaskConstants.MODEL_TYPE_TASK, libName, libVersion);
         TaskFlowModel taskFlowModel = (TaskFlowModel) ResourceComponentManager.instance().loadComponentModel(path);
-        return taskFlowModel.getTaskStepLib();
+        return taskFlowModel.getTaskStepLib(newTaskStepLibBuilder());
+    }
+
+
+    protected ITaskFlowBuilder newTaskFlowBuilder() {
+        return new TaskFlowBuilder();
+    }
+
+    protected ITaskStepLibBuilder newTaskStepLibBuilder() {
+        return new TaskStepLibBuilder();
     }
 }

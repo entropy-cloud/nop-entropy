@@ -17,7 +17,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-public class TestTaskManager extends AbstractTaskTestCase {
+public class TestTaskFlowManager extends AbstractTaskTestCase {
     @Test
     public void testXpl01() {
         runTask("test/xpl-01");

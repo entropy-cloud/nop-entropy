@@ -9,7 +9,8 @@ import io.nop.task.model.TaskStepModel;
 import java.util.HashMap;
 import java.util.Map;
 
-public class TaskStepLibBuilder {
+public class TaskStepLibBuilder implements ITaskStepLibBuilder {
+    @Override
     public ITaskStepLib buildTaskStepLib(TaskFlowModel taskFlowModel) {
         Map<String, ITaskStep> steps = new HashMap<>();
         TaskStepBuilder stepBuilder = new TaskStepBuilder();

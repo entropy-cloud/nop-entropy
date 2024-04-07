@@ -7,7 +7,7 @@
  */
 package io.nop.task.step;
 
-import io.nop.task.ITaskManager;
+import io.nop.task.ITaskFlowManager;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepLib;
@@ -57,7 +57,7 @@ public class CallStepTaskStep extends AbstractTaskStep {
     @Nonnull
     @Override
     public TaskStepReturn execute(ITaskStepRuntime stepRt) {
-        ITaskManager taskManager = stepRt.getTaskRuntime().getTaskManager();
+        ITaskFlowManager taskManager = stepRt.getTaskRuntime().getTaskManager();
         ITaskStepLib lib = taskManager.getTaskStepLib(libName, libVersion);
         ITaskStep step = lib.getStep(stepName);
         if (step == null) {

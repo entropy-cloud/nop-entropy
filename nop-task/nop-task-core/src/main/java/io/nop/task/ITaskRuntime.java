@@ -89,7 +89,7 @@ public interface ITaskRuntime extends IEvalContext {
 
     ITaskRuntime newChildRuntime(ITask task, boolean saveState);
 
-    ITaskManager getTaskManager();
+    ITaskFlowManager getTaskManager();
 
     default Object getTaskVar(String name) {
         Map<String, Object> vars = getTaskVars();

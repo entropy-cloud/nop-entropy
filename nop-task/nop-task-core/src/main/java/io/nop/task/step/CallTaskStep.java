@@ -10,7 +10,7 @@ package io.nop.task.step;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.task.ITask;
-import io.nop.task.ITaskManager;
+import io.nop.task.ITaskFlowManager;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepReturn;
@@ -63,7 +63,7 @@ public class CallTaskStep extends AbstractTaskStep {
     @Override
     public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         ITaskRuntime taskRt = stepRt.getTaskRuntime();
-        ITaskManager taskManager = taskRt.getTaskManager();
+        ITaskFlowManager taskManager = taskRt.getTaskManager();
 
         String taskId = stepRt.getStateBean(String.class);
         ITask task;

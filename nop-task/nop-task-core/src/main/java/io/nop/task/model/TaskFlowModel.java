@@ -11,9 +11,9 @@ import io.nop.api.core.util.INeedInit;
 import io.nop.task.ITask;
 import io.nop.task.ITaskStepLib;
 import io.nop.task.TaskConstants;
+import io.nop.task.builder.ITaskFlowBuilder;
+import io.nop.task.builder.ITaskStepLibBuilder;
 import io.nop.task.builder.TaskFlowAnalyzer;
-import io.nop.task.builder.TaskFlowBuilder;
-import io.nop.task.builder.TaskStepLibBuilder;
 import io.nop.task.model._gen._TaskFlowModel;
 
 public class TaskFlowModel extends _TaskFlowModel implements IGraphTaskStepModel, INeedInit {
@@ -30,9 +30,9 @@ public class TaskFlowModel extends _TaskFlowModel implements IGraphTaskStepModel
         new TaskFlowAnalyzer().analyze(this);
     }
 
-    public synchronized ITask getTask() {
+    public synchronized ITask getTask(ITaskFlowBuilder taskFlowBuilder) {
         if (task == null) {
-            task = new TaskFlowBuilder().buildTask(this);
+            task = taskFlowBuilder.buildTask(this);
         }
         return task;
     }
@@ -41,9 +41,9 @@ public class TaskFlowModel extends _TaskFlowModel implements IGraphTaskStepModel
         this.task = task;
     }
 
-    public synchronized ITaskStepLib getTaskStepLib() {
+    public synchronized ITaskStepLib getTaskStepLib(ITaskStepLibBuilder stepLibBuilder) {
         if (taskStepLib == null) {
-            taskStepLib = new TaskStepLibBuilder().buildTaskStepLib(this);
+            taskStepLib = stepLibBuilder.buildTaskStepLib(this);
         }
         return taskStepLib;
     }

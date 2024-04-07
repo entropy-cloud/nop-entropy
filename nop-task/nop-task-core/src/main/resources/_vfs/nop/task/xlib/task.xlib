@@ -15,7 +15,6 @@
                     const taskFlowModel = TaskFlowModelHelper.loadTaskFlowModel(taskName,taskVersion);
                 </c:script>
 
-
                 <query xpl:is="${stepModel.graphqlOperationType}" name="${name}" displayName="${stepModel.displayName}">
                     <arg name="request" kind="RequestBean">
                         ${taskFlowModel.inputsSchemaNode}
@@ -29,10 +28,9 @@
                     </return>
 
                     <source><![CDATA[
-                        const taskManager = inject('nopTaskManager');
-                        const task = taskManager.getTask(taskName,taskVersion);
-                        const taskRt = taskManager.newTaskRuntime("${taskName}",
-                                        ${taskVersion||0}, false, svcCtx);
+                        const taskFlowManager = inject('nopTaskFlowManager');
+                        const task = taskFlowManager.getTask(taskName,taskVersion);
+                        const taskRt = taskFlowManager.newTaskRuntime(task, false, svcCtx);
                         return task.executeAsync(taskRt, selection?.sourceFields);
                     ]]></source>
                 </query>
