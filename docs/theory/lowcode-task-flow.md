@@ -1,4 +1,4 @@
-# 从零开始编写的下一代逻辑编排引擎
+# 从零开始编写的下一代逻辑编排引擎 NopTaskFlow
 
 随着低代码概念和产品的流行，很多人都在考虑在自己的项目中引入逻辑编排的概念，将传统上通过手工硬编码生产的逻辑卸载到某个可以灵活配置的逻辑编排引擎上。在本文中，我将介绍一下Nop平台中的逻辑编排引擎NopTaskFlow的设计思想，分析一下NopTaskFlow的设计在数学层面的必然性。在文章的最后我会解释一下为什么NopTaskFlow是下一代逻辑编排引擎，这个所谓的下一代具有什么典型特征。
 
@@ -318,7 +318,7 @@ IEvalScope是步骤内部的变量作用域，它通过父子关系构成了类�
 在现代的面向对象程序语言中，注解（Annotation）机制基本已经成为标配，甚至发展到了某种近乎泛滥的程度。很多程序框架的主要工作就是不辞辛苦的将执行逻辑都搬迁到注解处理器中。
 
 ```javascript
-  // 示例函数由智谱清言AI生成 
+  // 示例函数由智谱清言AI生成
     @GetMapping("/example/{id}")
     @Cacheable(value = "examples", unless = "#result == null") // 缓存响应结果
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000)) // 重试策略
@@ -412,6 +412,8 @@ interface ITaskStepDecorator {
   ITaskStep decorate(ITaskStep step, TaskDecoratorModel config);
 }
 ```
+
+decorator如果是节点的父节点，会导致节点的坐标（从父节点开始的唯一路径）不稳定。例如假设当前路径为 main/step1/sub-step1，如果仅仅是做一些局部调整，增加了一个装饰器decorator1，则路径就可能变成了 /main/step1/decorator1/sub-step1。如果将decorator独立出来，将它们作为步骤节点的属性节点，则可以使得我们在业务层面认知的坐标更加稳定。
 
 ## 四. 考不上三本也能实现Coroutine
 
@@ -566,13 +568,128 @@ class LoopNTaskStep extends AbstractTaskStep{
 > 单点定位可以被实现为扫描+过滤。
 
 ## 五. 数据驱动的图模式
-NopTaskFlow的`sequential`、`loop`等步骤相当于是模拟了过程式编程语言中的函数运行过程。此时，函数之间是通过**位置关系**形成隐式关联关系，也就是说当一个步骤执行完毕之后，我们会找到它的后续位置处的步骤继续执行。这里所说的位置，就是在源码层面可以确定的一组坐标，所以过程式的执行可以看作是一种**坐标驱动**的运行模式。
 
-虽然NopTaskFlow提供了parallel步骤，可以实现一种结构化的并行处理（这里所谓的结构化指的是并行执行的步骤在执行完毕后会自动执行join操作得到最终汇总后的返回结果）。
+NopTaskFlow的`sequential`、`loop`等步骤相当于是模拟了过程式编程语言中的函数运行过程。此时，函数之间是通过**位置关系**形成隐式关联，也就是说当一个步骤执行完毕之后，我们会找到它的后续位置处的步骤继续执行。这里所说的位置，就是在源码层面可以确定的一组坐标，所以过程式的执行可以看作是一种**坐标驱动**的运行模式。
+
+虽然NopTaskFlow提供了parallel步骤，可以实现一种结构化的并行处理（这里所谓的结构化指的是并行执行的步骤在执行完毕后会自动执行join操作得到最终汇总后的返回结果），但是这种结构化也带来一些组织形式上的限制，使得我们不能榨取系统的最大价值，实现最大限度的并行化。如果我们编写的本来就是一个数据处理系统，此时我们可以**把关注的重点转移到数据对象**上来，想象一下跟随着数据对象在系统中传播（专注于数据流而不是控制流）。只有计算中确实需要用到某个数据时，我们才需要建立连接管道，把相应的数据传播过去。
+
+NopTaskFlow提供了一种称为图模式(graphMode)的运行模式。在这种运行模式下，执行器不会像过程式编程那样依次选择下一个执行步骤，而是会对TaskStep的Input和Output进行依赖关系分析，根据实际数据使用情况来建立依赖图，再根据依赖图确定步骤的调度顺序。
+
+```xml
+<graph name="test" enterSteps="enter1,enter2" exitSteps="exit">
+  <input name="x">
+      <source>1</source>
+  </input>
+
+  <steps>
+    <xpl name="enter1" executor="myExecutor">
+        <input name="x"/>
+        <source>
+            return x + 1
+        </source>
+    </xpl>
+
+    <xpl name="enter2" executor="myExecutor">
+        <input name="x"/>
+        <source>
+            return x + 2
+        </source>
+    </xpl>
+
+    <xpl name="process">
+        <input name="a">
+            <source>
+                STEP_RESULTS.enter1.outputs.RESULT
+            </source>
+        </input>
+
+        <input name="b">
+            <source>
+                STEP_RESULTS.enter2.outputs.RESULT
+            </source>
+        </input>
+
+        <source>
+            return a + b
+        </source>
+    </xpl>
+    ...
+  </steps>
+</graph>
+```
+
+* 图模式的graph步骤从enterSteps开始执行，执行到任意一个exitStep结束。
+
+* [GraphStepAnalyzer](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-task/nop-task-core/src/main/java/io/nop/task/builder/GraphStepAnalyzer.java)会自动对Input配置的source表达式进行抽象语法树分析，提取其中的`STEP_RESULTS.{stepName}.outputs.{ouputVar}`变量信息来构建DAG依赖关系图，如果发现循环依赖则会抛出异常。`STEP_RESULTS`是graph步骤的scope中定义的一个Map变量，用于统一管理所有步骤的输出。Input是在父步骤的scope中执行，所以可以通过`STEP_RESULTS`获取到其他步骤的输出。
+
+* [GraphTaskStep](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-task/nop-task-core/src/main/java/io/nop/task/step/GraphTaskStep.java)执行时自动为子步骤增加了等待语义：只有当子步骤的Input变量都计算完毕之后，才会执行该子步骤。所以上面的process子步骤会在enter1和enter2两个步骤都执行完毕后才会被启动。 
+  
+  数据驱动只有在流处理的应用场景中才可以发挥最大效用。NopTaskFlow在定位上还是专注于逻辑步骤的组织，所以只提供了一种最简单的DAG(有向无环图)的运行模式。
+
+### **退化的数据管道**：
+
+完整的流处理必然要求对数据连接管道进行建模，比如一定的暂存能力，窗口划分能力等，管道容量被占满时还需要处理背压(BackPressure)问题等。但是在NopTaskFlow中，因为已经假定了不支持流处理，同时限定了图不会出现循环（DAG），所以我们可以推理得到一个结论：**每个步骤最多只会被触发一次**。
+
+1. 只有所有的Input都计算完毕的时候，才会执行步骤，一次执行只会产生一次Output。
+
+2. 所有的Input要么来自于此前步骤的Output，要么来自于外部输入，所以如果前面的步骤只执行一次，产生一次输出，则本步骤也只会执行一次。
+
+3. enterStep只受外部输入影响，它只会执行一次。
+
+在NopTaskFlow的设计中，每一个步骤都有一个唯一的坐标（步骤名称）。再考虑到每个步骤最多只会被触发一次，由此可以推论得到：**每一个Input和每一个Output在运行时也都具有唯一的坐标**。Input和Output的连接可以看作是Input坐标和Output坐标之间的引用匹配。
+
+> 例如 STEP_RESULTS.step1.outputs.a 表示子步骤step1的输出变量a
+
+在这种情况下，连接输入和输出的数据管道处于一种退化的状态，它的设计容量为1，最多 只需要暂存一个元素即可，也就是说**用一个Promise对象来表示就可以**。在NopTaskFlow的[GraphTaskStep](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-task/nop-task-core/src/main/java/io/nop/task/step/GraphTaskStep.java)实现中，我们的做法非常简单：
+
+1. 注册所有步骤的Promise，并通过Promise.waitAll建立依赖关系。
+
+2. 启动所有enterStep
+
+这里并不需要建立复杂的任务队列管理和调度机制，通过Promise建立依赖链条就足够了。
+
+### 步骤级别的依赖
+
+表面上看起来Input和Output之间的依赖是变量级别，比步骤依赖要更细化一下。但是因为NopTaskFlow采用的是函数抽象，且不支持流式输出，这导致步骤的Output只能在步骤结束之后才能被使用，而且多个Output要么同时产生要么同时不产生（步骤失败的时候不会产生任何输出）。这种情况下，我们**依赖一个步骤的Output就是在依赖这个 步骤本身**。
+
+另外一个需要考虑的现实情况是，在实践中我们实现的很多函数都不是纯函数，它们都带有没有被输出变量明确表达的副作用。如果不同的步骤相互协作的时候不仅仅依赖明确表达的输入输出关系，还需要依赖隐式存在的副作用，那么我们也必然需要明确指定步骤级别的依赖关系。所以，NopTaskFlow在输入输出分析之外，还增加了waitSteps和next、nextOnError步骤依赖关系配置。
+
+```xml
+<xpl waitSteps="step1,step2" next="step4">
+</xpl>
+```
+
+### 区分正常和异常输出
+
+Java中的CompletionStage/CompletableFuture异步结果对象提供了thenApply/exceptionally/whenComplete等多种回调机制，可以分别在执行成功、执行异常以及执行结束（无论是否成功）时触发回调函数，这使得我们可以针对自己的需求选择性的识别成功和失败路径。
+
+类似的，在NopTaskFlow的图模式中，每个步骤的输出结果都对应一个StepResultBean对象，它包含error和outputs两个部分。
+
+```java
+class StepResultBean {
+    ErrorBean error;
+    Map<String,Object> outputs;
+}
+```
+
+在Input表达式中如果引用了error属性，则表示应该在前驱步骤异常时触发。如果同时引用了error和outputs中的变量，则表示在前驱步骤结束时触发。
+
+```xml
+<xpl name="process">
+   <input name="step1Error">
+      <source> STEP_RESULTS.step1.error </source>
+   </input>
+   <input name="step2Result">
+      <source> STEP_RESULTS.step2.outputs.RESULT </source>
+   </input>
+</xpl>
+```
+
+上面的示例表明，process步骤只会在step1出错、step2成功的情况下才会被触发。
 
 ## 六. TaskFlow与行为树(Behavior Tree)的区别
 
-行为树是游戏AI领域常用的一种逻辑编排方案。著名的游戏设计引擎Unity就支持行为树的插件。应该说，NopTaskFlow的设计也受到了行为树的直接影响，以至于它可以直接表达行为树的逻辑。
+行为树是游戏AI领域常用的一种逻辑编排方案。著名的游戏设计引擎Unity就支持行为树插件。应该说，NopTaskFlow的设计也受到了行为树的直接影响，以至于它可以直接表达行为树的逻辑。
 
 关于行为树的介绍可以参考如下文章：
 
@@ -586,7 +703,7 @@ NopTaskFlow的`sequential`、`loop`等步骤相当于是模拟了过程式编程
 
 > *AI每次回复的内容是随机的，需要自己从中进行挑选。也可以一次性让它返回五个不同的回复。*
 
-然后可以问它更详细的介绍，并举例说明
+然后可以要求它进行更详细的介绍，并举例说明
 
 > ===以下为智谱清言AI的创作===
 
@@ -691,7 +808,7 @@ Selector
 
 * NopTaskFlow内置了`selector`步骤，可以直接表达行为树的选择节点功能。
 
-* NopTaskFlow的`exit`步骤用于退出当前顺序执行序列，结合`when`装饰器，可以起到行为树的`Condition`节点的作用。
+* NopTaskFlow的`exit`步骤用于退出当前顺序执行序列，结合`when` 判断条件，可以起到行为树的`Condition`节点的作用。
 
 * NopTaskFlow的parallel步骤可以表达行为树中的Parallel节点的功能。同时，parallel步骤还提供了aggregator配置，可以实现最简单的并行任务分解合并。
 
@@ -699,14 +816,145 @@ Selector
 
 > 行为树的一个优点是所有逻辑都直观可见。NopTaskFlow可以考虑使用类似脑图的方式去显示，使用脑图中常用的图标、标签等表达各种步骤修饰功能，而不必一定要把这些信息展现为一个节点。
 
-行为树主要应用于单个Agent的决策和行动过程，相当于是将决策树和行动序列编织在一起。在概念层面上，**Sequence相当于and(与)逻辑，而Selector相当于or(或)逻辑**。行为树的步骤更接近于Predicate抽象，只返回True/False（一般还会更新全局上下文），并不支持更通用的返回值类型。NopTaskFlow建立在更一般化的函数抽象上，包含了行为树的功能，但是在实现层面上，它并没有针对游戏AI应用场景进行优化。
+行为树主要应用于单个Agent的决策和行动过程，相当于是将决策树和行动序列编织在一起。在概念层面上，**Sequence相当于AND(与)逻辑，而Selector相当于OR(或)逻辑**。行为树的步骤更接近于Predicate抽象，只返回True/False（一般还会更新全局上下文），并不支持更通用的返回值类型。NopTaskFlow建立在更一般化的函数抽象上，包含了行为树的功能，但是在实现层面上，它并没有针对游戏AI应用场景进行优化。
 
 ## 七. TaskFlow与工作流(Workflow)的区别
 
+工作流是普通程序员比较熟悉的一类可视化编排工具，那么工作流与本文所介绍的逻辑编排有什么区别？能不能用工作流引擎来实现逻辑编排？
+
+在Nop平台中，NopTaskFlow和NopWorkflow是两个独立设计的编排引擎。因为两者都是图灵完备的，所以实际上可以用任何一个来完成逻辑编排工作。内部结构上，NopWorkflow与NopTaskFlow的图模式也有些接近。但是另一方面，NopTaskFlow和NopWorkflow内置了不同的设计假定，要解决的具体问题实际上有比较大的差异，面对不同的业务场景时我们会选择使用不同的编排引擎。
+
+首先来看一下工作流引擎的核心概念。
+
+> ====以下是智谱清言AI对工作流的介绍===
+
+软件开发中常用的工作流引擎通常涉及以下几个核心概念：
+
+1. **流程定义（Process Definition）**：
+   
+   - 这是对业务流程的模型化表示，通常通过流程图来展现。流程定义包含了流程中的各个步骤、决策点、任务分配以及流转规则等。
+
+2. **节点（Node）或任务（Task）**：
+   
+   - 节点或任务是工作流中的基本单元，代表了流程中的一个步骤或活动。每个节点可以指派给不同的角色或个人去执行。
+
+3. **流转（Transition）**：
+   
+   - 流转定义了从一个节点到另一个节点的路径和条件。条件可以是自动的（如时间到达、某个事件发生）或需要人工判断的。
+
+4. **事件（Event）**：
+   
+   - 事件是在特定条件下触发的，可以导致流程中的特定操作，如开始一个新任务、结束一个任务或改变流程的方向。
+
+5. **网关（Gateway）**：
+   
+   - 网关用于控制流程的分支和合并。例如，排他网关（Exclusive Gateway）在流程中实现决策，并行网关（Parallel Gateway）允许流程中的多个分支并发执行。
+
+6. **变量（Variable）**：
+   
+   - 变量用于存储流程执行过程中的数据，可以是业务数据也可以是流程控制数据，如用户输入、系统数据等。
+
+7. **任务分配（Task Assignment）**：
+   
+   - 任务分配定义了如何将任务分配给执行者，可以基于角色、个人、技能或其他业务规则。
+
+8. **业务规则（Business Rule）**：
+   
+   - 业务规则用于指导和约束流程的流转，通常用于复杂的决策逻辑。
+
+9. **工作项（Work Item）**：
+   
+   - 当流程执行到某个节点时，会生成一个工作项，它代表了需要执行的具体任务。
+
+10. **历史记录（History）**：
+    
+    - 工作流引擎通常会记录流程实例的执行历史，包括哪个节点被谁在何时执行，以及执行的结果等。
+
+11. **用户界面（User Interface）**：
+    
+    - 用户界面允许最终用户与工作流引擎交互，执行任务、查看流程状态等。
+
+12. **集成（Integration）**：
+    
+    - 工作流引擎通常需要与企业中的其他系统（如ERP、CRM等）集成，以便于交换数据和触发流程。
+
+这些核心概念在不同的工作流引擎中可能有不同的称呼和实现方式，但基本原理是相似的。工作流引擎通过这些核心概念为业务流程提供自动化、监控和管理的能力。
+
+> ====智谱清言的创作结束====
+
+从上面的描述可以看出，在概念层面上，工作流引擎主要编排的是业务流程，也就是有多种人员参与的、更高层（贴近人和实际的业务）的、时间跨度更长的逻辑。而一般我们说的逻辑编排是应用在比较局部的、更加底层的技术逻辑。
+
+**在工作流引擎中，参与者（Participant）和工作分配(Assignment)是一个核心概念**。在国内的应用中，更是特化成了所谓的审批流，全部逻辑都是关于任务指派与分配。逻辑编排的任务一般都是自动执行，不会直接涉及到人机交互。
+
+在Nop平台的设计中，NopWorkflow的Step的执行内容可以用NopTaskFlow去表达。总的来说，NopTaskFlow要更轻量级，比如说NopTaskFlow可以复用单个步骤，而且可以不对执行状态进行持久化，而NopWorkflow只能复用整个子流程，同时所有执行状态都要求持久化。
+
+一个有趣的事情是，国外的工作流引擎的设计原理也是源于流程自动化，也就是说不需要人工介入的场景，当它应用于人机交互频繁的场景时天然的会显现出一种不适应性。NopWorkflow为此对基础结构进行了补充调整，因此偏离了目前业内主流的BPMN（Business Process Model and Notation，业务流程模型与符号）建模语言，但是更容易映射到界面操作上。更有意思的事情是，NopWorkflow的设计在形式上反而更接近于工作流理论鼻祖之一的Petri网的结构。下面简单介绍一下Petri网。
+
+* 详细介绍可以参考[Hello，工作流](https://zhuanlan.zhihu.com/p/107253393)
+
+> ====以下是智谱清言AI对Petri网的介绍====
+
+Petri网是一种用于描述和分析并发系统、分布式系统、通信协议以及其他各种信息处理系统的数学模型。它由卡尔·亚当·佩特里（Carl Adam Petri）在1962年首次提出，并以他的名字命名。Petri网提供了一种图形化的表示方法，通过一组节点和连接这些节点的有向弧来表示系统的状态和状态变化。
+
+Petri网的主要元素包括：
+
+1. **位置（Place）**：用圆圈表示，代表系统中的资源或条件。位置可以包含令牌（Token），令牌的数量代表资源的数量或条件的满足程度。
+
+2. **变迁（Transition）**：用条形或矩形表示，代表系统中的事件或操作。变迁的触发会导致令牌在位置之间移动。
+
+3. **弧（Arc）**：用有向线段表示，连接位置和变迁。弧上可以标记权重，表示触发变迁所需的令牌数量。
+
+Petri网的工作原理基于令牌的流动。当一个变迁的所有输入位置都包含足够数量的令牌时，这个变迁被称为“可触发的”。触发变迁后，输入位置中的令牌会被消耗，而输出位置则会根据弧的连接产生新的令牌。这个过程代表了系统状态的变化。
+
+Petri网的特性使其适用于多种领域的建模和分析，包括：
+
+- 并发性和并行性
+- 同步和通信
+- 资源分配和死锁分析
+- 性能评估和优化
+- 软件工程和业务流程管理
+
+Petri网的一个重要特性是它的数学基础，这使得可以通过形式化的方法来分析和验证系统的性质，如可达性、活性、安全性等。此外，Petri网还可以扩展为有色Petri网、时间Petri网等多种变体，以适应更复杂的建模需求。
+
+> ====智谱清言的创作结束====
+
+<img src="taskflow/petri_net.png" title="" alt="" data-align="center">
+
+**Petri网在形式上的一个明显特征是它是一个二部图(Bipartite Graph)**。在状态节点之间迁移的时候必须经过一个明确标记出来的操作节点，而且这两类节点之间都直接支持多对一和一对多连接，这使得Petri网在映射到具体应用时可以非常灵活。
+
+NopWorkflow的基本结构也是step和action所构成的一个二部图。
+
+![](taskflow/workflow.png)
+
+```xml
+<workflow>
+   <actions>
+      <action name="action1" forActivated="true">
+        <when> 动态显示条件</when>
+        <transition>
+           <to-step stepName="step2" />
+           <to-step stepName="step3" />
+        </transition>
+      </action>
+      ...
+   </actions>
+   <steps>
+     <step name="step1">
+       <ref-actions>
+          <ref-action name="action1" />
+          <ref-action name="action2" />
+       </ref-actions>
+     </step>
+     ...
+   </steps>
+</workflow>
+```
+
+action可以直接映射到界面上显示的操作按钮，并且可以通过forActivated/forHistory/forReject/forWithdraw等开关属性控制在不同的步骤状态下是否允许执行此action，也可以由此来控制按钮的显隐。如果需要更加动态化的业务判断条件，还可以配置action的when代码段。**明确定义出action节点使得人工操作界面和工作流模型的映射更加自然、直接**。
+
 ## 八. 为什么说是下一代
 
-说NopTaskFlow是下一代逻辑编排引擎，可能有些人会不服气：我看这个设计平平无奇，都是早已被反复实现过的东西，创新点在哪？别急，这里的下一代指的不是它的功能多，也不是性能高，而是它基于下一代软件构造理论：可逆计算理论所构建，从而呈现出与现有的软件架构设计迥然不同的典型特征。
-**这些特征是与逻辑编排本身无关的**。这里的逻辑是这样的：
+说NopTaskFlow是下一代逻辑编排引擎，可能有些人会不服气：我看这个设计平平无奇，都是早已被反复实现过的东西，创新点在哪？别急，这里的下一代指的不是它的功能多，也不是性能高，而是它基于下一代软件构造理论：可逆计算理论所构建，从而呈现出与现有的软件架构设计迥然不同的典型特征。**这些特征是与逻辑编排本身无关的**。这里的逻辑是这样的：
 
 1. 可逆计算是下一代软件构造理论
 
@@ -714,12 +962,73 @@ Selector
 
 3. NopTaskFlow是Nop平台的一个组成部分，它自动继承了这个所谓下一代的特征
 
-这是一件真正有趣的事情。
+这是一件真正有趣的事情。一般情况下，对于规则引擎、工作流引擎、报表引擎、逻辑编排引擎、ORM引擎、IoC引擎、GraphQL引擎等这些应用场景存在本质性差异的各类引擎框架，我们在开发的时候都是分别去分析、实现的，它们之间也很少共享底层设计和代码（除了一些帮助类和通用的脚本引擎等）。Nop平台所提出的一个核心问题是：**如何同时设计并实现所有可设想到的引擎**？如果这个问题存在答案，那么它一定不是一种业务层面的解决方案，也不可能是靠经验积累而产生的设计技巧，必然只能是基于某种普适的数学原理。
 
-不是针对单个引擎构建，而是大量引擎共享结构共性。
+如果我们仔细观察一下现有的各类引擎框架，会发现**每个有价值的引擎背后都存在一个特定的模型结构**，而所有这些模型结构的构建存在着大量共性的要求：
 
-差量化和元编程
+1. 如何实现模型的构建？如何验证模型的有效性？
 
-为什么要将decorator从步骤的父节点独立出来，本质上还是要使得业务层面认知的坐标更加稳定。
+2. 有没有IDE中的编辑插件？能不能进行断点调试？
 
-信息最小化表达，描述式结构与运行时结构分离
+3. 模型能不能动态更新？如何动态更新？
+
+4. 能不能进行可视化设计？怎么实现可视化设计器？
+
+5. 能不能扩展已有的模型？如何进行扩展？
+
+6. 不同的模型如何无缝嵌入并协同工作？
+
+7. 越来越多针对特定需求的假定被引入模型，如何保证运行时性能？
+
+8. 如何在已有模型的基础上提供二次抽象机制？
+
+很多人其实意识到了共性问题的存在，但是总结得到的只是一些抽象的设计原则和设计模式，并无法得到一个可复用的基础技术底座。Nop平台则不同，它在可逆计算理论的指导下为DSL（Domain Specific Language）的设计和实现提供了一个标准化的套路，并为这个套路的实施配套建立了可复用的基础技术设施。沿着这个套路去操作，无需编程即可自动实现很多功能。因此，Nop平台中的引擎实现代码量往往要比类似的开源软件框架要小一个数量级。详细介绍参见:
+
+1. [XDSL：通用的领域特定语言设计](https://zhuanlan.zhihu.com/p/612512300)
+2. [通用的Delta差量化机制](https://zhuanlan.zhihu.com/p/681801076)
+3. [低代码平台中的元编程(Meta Programming)](https://zhuanlan.zhihu.com/p/652413095)
+
+具体到NopTaskFlow的实现，它的基本逻辑结构如下：
+
+```javascript
+TaskFlowModel taskFlowModel = resourceComponentManager.loadComponentModel(taskFlowPath);
+
+ITask task = taskFlowModel.getTask(new TaskFlowBuilder());
+
+ITaskRuntime taskRt = new TaskRuntimeImpl(taskStateStore);
+taskStepReturn = task.execute(taskRt);
+```
+
+1. 实现NopTaskFlow的第一步也是最重要的一步是**定义元模型[task.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef)**。然后平台就会根据元模型自动推导得到大量功能，包括生成解析器、验证器、IDE插件、可视化设计器，实现动态模型缓存、差量合并、元编程等，解决前面提到的众多共性问题。所有这些功能都被封装在Loader抽象之下，loadComponentModel函数返回的就是经过可逆计算处理的模型对象。
+
+2. **描述式结构与运行时结构分离**。描述式模型TaskFlowModel采用最小化信息表达，可以独立分析并从中反向提取信息。可执行的运行时模型 ITask独立于描述式结构，它由TaskFlowModel编译得到，编译结果可以缓存下来。一些逻辑编排引擎在设计时和运行时采用同样的模型结果，就无法实现性能的最优化，同时会导致运行时的实现细节侵入到模型定义层面，无法实现最小化信息表达。关于最小化信息表达，可以参见[业务开发自由之路：如何打破框架束缚，实现真正的框架中立性](https://zhuanlan.zhihu.com/p/682910525)
+
+3. **运行时结构采用无状态设计**，通过ITaskRuntime这种上下文对象来传递状态。一些逻辑编排引擎会采用比较传统的面向对象结构，比如
+   
+   ```java
+   class MyStep extends AbstractStep{
+       public void process(){
+          ...
+       }
+   }
+   ```
+   
+   这种方式依赖于通过成员变量来传播上下文信息或者强制要求使用ThreadLocal等全局对象，会导致不必要的结构依赖，难以实现动态模型更新，也难以实现性能的最优化。
+   
+4. **通过元编程和Xpl模板语言实现扩展**。在Nop平台中无需额外进行插件设计和扩展点设计，Nop平台内置的Delta定制机制自动支持对于任意模型属性和节点的定制修改，并且每个模型节点都支持扩展属性和扩展子节点，配合`x:gen-extends`和`x:post-extends`元编程机制，可以在现有模型基础上实现二次抽象封装。可以同故宫Xpl模板语言的自定义标签实现无限扩展。比如在NopTaskFlow中嵌入对于规则引擎的调用。
+
+```xml
+<xpl name="ruleStep" extType="rule-step">
+  <source>
+     <rule:ExecuteRule ruleName="test.MyRule" />
+  </source>  
+</xpl>
+```
+在可视化设计器层面，我们可以识别extType属性，然后将xpl节点的source段视为固定的XML配置格式，从而实现可视化编辑。
+
+基于可逆计算理论设计的低代码平台NopPlatform已开源：
+
+- gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
+- github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
+- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)

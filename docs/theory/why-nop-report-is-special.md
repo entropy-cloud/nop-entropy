@@ -32,7 +32,8 @@ Template = BaseModel + ExtModel
 当我们需要进行可视化设计时，在数学的层面，相当于是引入一种双向可逆变换：
 
 ```
- VisualView = Editor(Model),  Model = Serializer(VisualView)
+ VisualView = Editor(Model)
+ Model = Serializer(VisualView)
 ```
 
 可视化设计器负责将模型信息展现为可视化的视图，并提供相应的编辑手段。反向的，针对可视化的视图，我们可以将其中的信息序列化，得到可以用文本（或者二进制）形式保存的模型信息。
@@ -41,7 +42,8 @@ Template = BaseModel + ExtModel
 一种理想的可视化映射应该满足线性映射原理，即满足如下数学公式：
 
 ```
- Editor(Template) = Editor(BaseModel + ExtModel) = Editor(BaseModel) + Editor(ExtModel)
+ Editor(Template) = Editor(BaseModel + ExtModel) 
+                  = Editor(BaseModel) + Editor(ExtModel)
 ```
 
 当模型层面存在Base+Ext这种线性分解的时候，我们希望将这种关系保持下来，在可视化设计层面也得到 Base设计器+扩展设计器这种线性分解关系。从数学的意义上说，
