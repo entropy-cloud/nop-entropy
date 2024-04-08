@@ -99,7 +99,7 @@ public interface ITaskRuntime extends IEvalContext {
 
     default boolean hasTaskVar(String name) {
         Map<String, Object> vars = getTaskVars();
-        return vars == null ? false : vars.containsKey(name);
+        return vars != null && vars.containsKey(name);
     }
 
     default void setTaskVar(String name, Object value) {

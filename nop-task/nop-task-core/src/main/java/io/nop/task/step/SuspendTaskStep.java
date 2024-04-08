@@ -26,8 +26,16 @@ public class SuspendTaskStep extends AbstractTaskStep {
     @Nonnull
     @Override
     public TaskStepReturn execute(ITaskStepRuntime stepRt) {
-        if (resumeWhen == null)
+        Boolean first = stepRt.getStateBean(Boolean.class);
+        if (first == null) {
+            stepRt.setStateBean(true);
+            // 第一次进入总是挂起。这里的语义类似yield
+            return TaskStepReturn.SUSPEND;
+        }
+
+        if (resumeWhen == null) {
             return TaskStepReturn.CONTINUE;
+        }
 
         if (!resumeWhen.passConditions(stepRt))
             return TaskStepReturn.SUSPEND;

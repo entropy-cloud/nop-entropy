@@ -17,7 +17,7 @@
     <auth xdef:ref="../schema/auth.xdef"/>
 
     <xdef:define xdef:name="TaskExecutableModel" executor="bean-name" returnType="generic-type"
-                 displayName="string" timeout="!long=0" persisVars="csv-set">
+                 displayName="string" timeout="!long=0" persisVars="csv-set" catchInternalException="boolean">
 
         <description xdef:value="string"/>
 

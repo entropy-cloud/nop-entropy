@@ -25,6 +25,13 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: catchInternalException
+     * 
+     */
+    private java.lang.Boolean _catchInternalException ;
+    
+    /**
+     *  
      * xml name: decorator
      * 对taskStep进行增强，返回新的step
      */
@@ -157,6 +164,25 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         checkAllowChange();
         
         this._catch = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: catchInternalException
+     *  
+     */
+    
+    public java.lang.Boolean getCatchInternalException(){
+      return _catchInternalException;
+    }
+
+    
+    public void setCatchInternalException(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._catchInternalException = value;
            
     }
 
@@ -594,6 +620,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         super.outputJson(out);
         
         out.putNotNull("catch",this.getCatch());
+        out.putNotNull("catchInternalException",this.getCatchInternalException());
         out.putNotNull("decorators",this.getDecorators());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
@@ -623,6 +650,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         super.copyTo(instance);
         
         instance.setCatch(this.getCatch());
+        instance.setCatchInternalException(this.getCatchInternalException());
         instance.setDecorators(this.getDecorators());
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());

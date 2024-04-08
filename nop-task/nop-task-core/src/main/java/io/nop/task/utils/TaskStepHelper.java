@@ -15,6 +15,7 @@ import io.nop.task.ITaskStepRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskErrors;
 import io.nop.task.TaskStepReturn;
+import io.nop.task.exceptions.NopTaskFailException;
 
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -53,6 +54,8 @@ public class TaskStepHelper {
 
     public static boolean isCancelledException(Throwable e) {
         if (e instanceof CancellationException)
+            return true;
+        if (e instanceof NopTaskFailException)
             return true;
         if (e instanceof NopException)
             return ((NopException) e).getErrorCode().equals(ERR_TASK_CANCELLED.getErrorCode());

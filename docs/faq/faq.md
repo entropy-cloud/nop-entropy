@@ -450,7 +450,7 @@ Nop平台的具体做法是统一使用xpl模板语言，通过将函数结构�
 
 根据可逆计算理论，一切信息结构都可以存在多种表示形式，这些表示形式之间可以进行可逆转换。可视化编辑不过是可视化表示与文本表示之间的一种双向映射。
 
-这种双向映射的能力具有复合性。也就是说，如果a \<--\> A, b \<--\> B, 那么我们有可能自动得到 a + b \<--\> A + B
+这种双向映射的能力具有复合性。也就是说，如果`a <--> A`, `b <--> B`, 那么我们有可能自动得到 `a + b <--> A + B`
 
 #### 通过XPL模板语言实现函数结构的模板化
 
@@ -482,8 +482,8 @@ return true
 xlib就是xpl模板语言的函数库，一般写在自己模块的xlib目录下。它可以写在任何地方，只是普通的函数库而已，在xpl段中调用时通过import语句导入
 标签库就可以使用。常用的内置标签库有：
 
-1. web.xlib是用于根据xview模型生成amis页面
-2. control.xlib根据字段的domain和type等信息推导得到显示控件。
+1. `web.xlib`是用于根据xview模型生成amis页面
+2. `control.xlib`根据字段的domain和type等信息推导得到显示控件。
 
 ### 3. 没有实体定义的情况下也可以写BizModel吗？
 
@@ -524,7 +524,7 @@ Nop平台的发展目标是成为通用的领域语言工作台，其他都是�
 
 ### 7. Nop平台中的GraphQL可以独立于Spring和Quarks框架使用吗?
 
-Nop平台的GraphQL引擎是纯逻辑的实现，它相当于是一种通用的服务分解机制，可以应用到所有request=\>response这种处理逻辑流程中。
+Nop平台的GraphQL引擎是纯逻辑的实现，它相当于是一种通用的服务分解机制，可以应用到所有`request=>response`这种处理逻辑流程中。
 GraphQLWebService提供了基于jaxrs标准的与Web层对接的一个实现。QuarkusGraphQLWebService和SpringGraphQLWebService等派生类填充了具体的一些框架相关的实现细节，
 由此对外暴露 `/graphql`和`/r/{operationName}`这两种对外接口方式。
 

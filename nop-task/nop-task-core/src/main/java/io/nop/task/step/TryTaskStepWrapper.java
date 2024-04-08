@@ -19,10 +19,14 @@ public class TryTaskStepWrapper extends DelegateTaskStep {
     private final IEvalAction catchAction;
     private final IEvalAction finallyAction;
 
-    public TryTaskStepWrapper(ITaskStep body, IEvalAction catchAction, IEvalAction finallyAction) {
+    private final boolean catchInternalException;
+
+    public TryTaskStepWrapper(ITaskStep body, IEvalAction catchAction, IEvalAction finallyAction,
+                              Boolean catchInternalException) {
         super(body);
         this.catchAction = catchAction;
         this.finallyAction = finallyAction;
+        this.catchInternalException = Boolean.TRUE.equals(catchInternalException);
     }
 
     @Override
@@ -37,7 +41,7 @@ public class TryTaskStepWrapper extends DelegateTaskStep {
                 return result.thenCompose((ret, err) -> {
                     try {
                         if (err != null) {
-                            if (TaskStepHelper.isCancelledException(err))
+                            if (!catchInternalException && TaskStepHelper.isCancelledException(err))
                                 throw NopException.adapt(err);
 
                             if (catchAction != null) {
@@ -56,7 +60,7 @@ public class TryTaskStepWrapper extends DelegateTaskStep {
                 return result;
             }
         } catch (Exception e) {
-            if (TaskStepHelper.isCancelledException(e))
+            if (!catchInternalException && TaskStepHelper.isCancelledException(e))
                 throw NopException.adapt(e);
 
             async = false;

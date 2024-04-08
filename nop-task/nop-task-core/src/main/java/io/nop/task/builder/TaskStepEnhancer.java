@@ -99,7 +99,7 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
         step = decorateStep(stepModel, step);
 
         if (stepModel.getCatch() != null || stepModel.getFinally() != null) {
-            step = new TryTaskStepWrapper(step, stepModel.getCatch(), stepModel.getFinally());
+            step = new TryTaskStepWrapper(step, stepModel.getCatch(), stepModel.getFinally(), stepModel.getCatchInternalException());
         }
 
         step = addOutput(stepModel, step);

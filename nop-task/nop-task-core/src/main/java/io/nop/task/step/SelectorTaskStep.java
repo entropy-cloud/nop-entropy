@@ -1,14 +1,20 @@
 package io.nop.task.step;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.task.ITaskStepExecution;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskConstants;
 import io.nop.task.TaskStepReturn;
+import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 public class SelectorTaskStep extends AbstractTaskStep {
+    static final Logger LOG = LoggerFactory.getLogger(SelectorTaskStep.class);
+
     private List<ITaskStepExecution> steps;
 
     public List<ITaskStepExecution> getSteps() {
@@ -36,6 +42,11 @@ public class SelectorTaskStep extends AbstractTaskStep {
             try {
                 stepResult = step.executeWithParentRt(stepRt);
             } catch (Exception e) {
+                if (TaskStepHelper.isCancelledException(e))
+                    throw e;
+
+                LOG.debug("nop.task.selector-ignore-exception:stepId={},subStep={},loc={}",
+                        stepRt.getStepId(), step.getStepName(), step.getLocation(), e);
                 index++;
                 stepRt.setBodyStepIndex(index);
                 stepRt.saveState();
@@ -49,41 +60,47 @@ public class SelectorTaskStep extends AbstractTaskStep {
                 if (stepResult.isEnd()) {
                     stepRt.setBodyStepIndex(steps.size());
                     return TaskStepReturn.RETURN_RESULT_END(stepRt.getResult());
+                } else if (stepResult.isExit()) {
+                    stepRt.setBodyStepIndex(steps.size());
+                    return TaskStepReturn.RETURN(stepResult.getOutputs());
                 }
-
-                if (hasResult(stepResult))
-                    return stepResult;
 
                 index++;
                 stepRt.setBodyStepIndex(index);
+
+                if (stepResult.isResultTruthy())
+                    return stepResult;
+
                 stepRt.saveState();
             } else {
                 int indexParam = index;
-                return stepResult.thenApply(result -> {
-                    if (stepResult.isEnd()) {
+                return stepResult.thenCompose((result, err) -> {
+                    if (err != null) {
+                        if (TaskStepHelper.isCancelledException(err))
+                            throw NopException.adapt(err);
+                        LOG.debug("nop.task.selector-ignore-exception:stepId={},subStep={},loc={}",
+                                stepRt.getStepId(), step.getStepName(), step.getLocation(), err);
+
+                        stepRt.setBodyStepIndex(indexParam + 1);
+                        stepRt.saveState();
+                        return execute(stepRt);
+
+                    } else if (result.isEnd()) {
                         stepRt.setBodyStepIndex(steps.size());
-                        return stepResult;
-                    } else if (stepResult.isExit()) {
+                        return result;
+                    } else if (result.isExit()) {
                         stepRt.setBodyStepIndex(steps.size());
-                        return TaskStepReturn.RETURN(stepResult.getOutputs());
+                        return TaskStepReturn.RETURN(result.getOutputs());
                     } else {
                         stepRt.setBodyStepIndex(indexParam + 1);
+                        if (result.isResultTruthy())
+                            return result;
+
                         stepRt.saveState();
                         return execute(stepRt);
                     }
                 });
             }
         } while (true);
-    }
-
-    private boolean hasResult(TaskStepReturn stepReturn) {
-        if (stepReturn.getOutputs().isEmpty())
-            return false;
-        if (stepReturn.getOutputs().size() == 1) {
-            if (stepReturn.getOutputs().containsKey(TaskConstants.VAR_RESULT)) {
-                return stepReturn.getOutput(TaskConstants.VAR_RESULT) != null;
-            }
-        }
-        return true;
     }
 }

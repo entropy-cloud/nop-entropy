@@ -10,6 +10,7 @@ package io.nop.task;
 
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ResolvedPromise;
 
@@ -98,6 +99,23 @@ public final class TaskStepReturn {
         Map<String, Object> ret = Collections.singletonMap(TaskConstants.VAR_RESULT, returnValue);
 
         return new TaskStepReturn(nextStepName, ret);
+    }
+
+    /**
+     * 判断返回结果是否可以被看作是TRUE值，用于上层的selector判断。
+     *
+     * <p>1. 如果没有任何输出，则认为是false</p>
+     * <p>2. 如果输出中有RESULT变量，则判断RESULT变量是否为true</p>
+     * <p>3. 如果没有RESULT变量，但是有其他输出，则认为是true </p>
+     */
+    public boolean isResultTruthy() {
+        if (outputs == null || outputs.isEmpty())
+            return false;
+
+        if (outputs.containsKey(TaskConstants.VAR_RESULT))
+            return ConvertHelper.toTruthy(outputs.get(TaskConstants.VAR_RESULT));
+
+        return true;
     }
 
     public boolean isAsync() {
