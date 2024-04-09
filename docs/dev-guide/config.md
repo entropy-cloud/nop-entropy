@@ -1,4 +1,6 @@
-# 配置规范
+# 动态配置管理
+
+## 配置规范
 
 * 配置变量为全小写字母，以`.`和`-`为分隔符，与Spring的约定不同，NopConfig实际上不支持大小写混排的命名方式
 * 如果通过环境变量来传递配置变量，则`.`被替换为`_`，而`-`被替换为`__`，而`_`被替换为`___`
@@ -22,7 +24,7 @@
 11. 识别quarkus配置规范规定的`'%dev.'`等profile配置前缀，根据当前的profile配置调整专属于profile的配置项的访问顺序。例如
     dev模式下，`%dev.a.b.c`的值将会覆盖配置项`a.b.c`的值
 
-> 
+>
 
 具体配置加载逻辑全部集中在[ConfigStarter.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-config/src/main/java/io/nop/config/starter/ConfigStarter.java)
 类中
@@ -39,7 +41,7 @@
 
 ```javascript
   static final IConfigReference<Boolean> CFG_USE_CACHE = AppConfig.varRef("global.use_cache",true);
-  
+
   public void myFunc(){
      if(CFG_USE_CACHE.get()){
        // ...
@@ -52,7 +54,7 @@
 ```xml
 <beans>
   <ioc:config id="myConfig" class="xxx.MyConfig" prefix="app.xxx" />
-  
+
   <bean id="myBean" class="xxx.MyBean">
     <property name="config" ref="myConfig" />
   </bean>

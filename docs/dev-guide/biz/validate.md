@@ -6,6 +6,8 @@
 
 如果字段配置了validator，则会首先使用`BizValidatorHelper.runValidatorModelForValue`来验证字段值合法
 
+验证模型详细介绍参见 [validator.md](validator.md)
+
 ## 2. 字典数据
 
 如果字段配置了dict，则会自动加载字典数据，验证前台提交的值在字段范围之内
@@ -20,7 +22,7 @@
     <prop name="deptId" ext:relation="dept">
         ...
     </prop>
-    
+
     <prop name="dept">
         <schema bizObjName="NopAuthDepartment"/>
     </prop>

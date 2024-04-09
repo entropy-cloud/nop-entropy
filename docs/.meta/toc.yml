@@ -1,24 +1,112 @@
 - text: 介绍
+  uri: why-nop.md
   children:
     - text: 文档概览
       uri: index.md
     - text: 入门教程
       uri: tutorial/tutorial.md
+      children:
+        - text: 极简服务层开发
+          uri: tutorial/simple/1-simple-service.md
+        - text: 极简数据访问层开发
+          uri: tutorial/simple/2-simple-dao.md
+    - text: 与其他平台的对比
+      uri: compare/index.md
 - text: 用户指南
+  uri: user-guide/index.md
   children:
     - text: 安装和配置
       uri: user-guide/installation.md
     - text: 报表引擎
       uri: user-guide/report.md
+    - text: IDEA插件使用
+      uri: user-guide/idea/idea-plugin.md
+    - text: 监控
+      uri: user-guide/monitor/grafana.md
 - text: 软件架构
+  uri: arch/index.md
   children:
     - text: 模块依赖关系
       uri: arch/module-dependency.md
     - text: 核心代码阅读导引
       uri: core-code-guidance.md
+- text: 理论基础
+  uri: theory/index.md
 - text: 开发指南
+  uri: dev-guide/index.md
   children:
+    - text: 代码生成器
+      uri: dev-guide/codegen.md
+      children:
+        - text: 命令行工具
+          uri: dev-guide/cli.md
+        - text: 命令行开发支持
+          uri: dev-guide/command/command.md
     - text: config
       uri: dev-guide/config.md
+    - text: IoC容器
+      uri: dev-guide/ioc.md
+      children:
+        - text: AOP支持
+          uri: dev-guide/ioc/aop.md
     - text: orm
       uri: dev-guide/orm/index.md
+    - text: XLang
+      uri: dev-guide/xlang/index.md
+      children:
+        - text: XDef元模型
+          uri: dev-guide/xlang/xdef.md
+        - text: XDSL
+          uri: dev-guide/xlang/xdsl.md
+        - text: XScript脚本语言
+          uri: dev-guide/xlang/xscript.md
+        - text: Xpl模板语言
+          uri: dev-guide/xlang/xpl.md
+        - text: 元编程
+          uri: dev-guide/xlang/meta-programming.md
+    - text: Excel模型
+      uri: dev-guide/model/index.md
+    - text: GraphQL引擎
+      uri: dev-guide/graphql/index.md
+    - text: 分布式微服务
+      uri: dev-guide/microservice/index.md
+    - text: 规则引擎
+      uri: dev-guide/rule/rule.md
+    - text: 逻辑编排
+      uri: dev-guide/workflow/task-flow.md
+    - text: 自动化测试
+      uri: dev-guide/autotest.md
+    - text: 多租户
+      uri: dev-guide/tenant.md
+    - text: Delta定制
+      uri: dev-guide/delta/delta-customization.md
+      children:
+        - text: Delta文件系统
+          uri: dev-guide/vfs/index.md
+    - text: 权限配置
+      uri: dev-guide/auth/index.md
+    - text: 业务规则
+      uri: dev-guide/biz/index.md
+    - text: 动态模型
+      uri: dev-guide/nocode/index.md
+    - text: 前端模型
+      uri: dev-guide/xui/index.md
+- text: 第三方集成
+  uri: dev-guide/integration.md
+  children:
+    - text: spring集成
+      uri: dev-guide/spring.md
+    - text: quarkus集成
+      uri: dev-guide/quarkus.md
+- text: IDEA插件
+  uri: dev-guide/ide/idea.md
+  children:
+    - text: 插件开发
+      uri: dev-guide/ide/plugin-dev.md
+- text: 常见问题
+  uri: faq/faq.md
+  children:
+    - text: 错误诊断
+      uri: faq/debug-errors.md
+    - text: 常见问题解决方案
+      uri: dev-guide/recipe/index.md

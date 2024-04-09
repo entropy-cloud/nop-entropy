@@ -2,6 +2,12 @@
 
 ## [常见开发任务](recipe/index.md)
 
+## 数据字典[dict.md](dict.md)
+
+## 错误码规范[error-code.md](error-code.md)
+
+## 国际化[i18n.md](i18n.md)
+
 ## 基础模型
 
 ### [Excel数据模型](model/excel-model.md)

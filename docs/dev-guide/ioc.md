@@ -1,6 +1,8 @@
+# NopIoC容器
+
 NopIoC是Nop平台中使用的轻量级依赖注入容器。最开始我的目标是先定义一个兼容Spring和Quarkus的BeanContainer接口，但很快就发现Spring的原生应用支持模块spring-native非常不成熟，而Quarkus依赖注入容器的组织能力远逊于SpringBoot，一些SpringBoot中非常简单的配置在Quarkus中难以实现，并且Quarkus预编译的做法导致运行时调试变得困难，所以我最终决定还是实现一个IoC容器来作为Nop平台的缺省BeanContainer实现。
 
-# 3.1 XDef元模型定义
+## 3.1 XDef元模型定义
 
 **一个描述式的IoC容器一定具有一个语义定义明确的领域模型**，这个模型可以被看作是一种DSL（Domain Specific
 Language）。IoC容器本身是这个DSL的解释器和执行器。如果我们把领域模型对象序列化为文本保存下来，那就成为一个IoC专用的模型文件，例如spring的beans.xml配置文件。Java注解可以看作是这个领域模型的另外一种表现形式，例如Hibernate的模型定义可以用JPA注解来表达，也可以用hbm配置文件来表达。
@@ -33,7 +35,7 @@ NopIoC以Spring 1.0的配置语法为基础（NopIoC可以直接解析Spring 1.0
         <on-missing-bean-type>java.sql.DataSource</on-missing-bean-type>
         <on-class>test.MyObject</on-class>
      </ioc:condition>
-  </bean> 
+  </bean>
 </beans>
 ```
 
@@ -53,7 +55,7 @@ public XXX getXx(){
 在NopIoC中使用AOP非常简单，只要配置interceptor对应的pointcut
 
 ```xml
- <bean id="nopTransactionalMethodInterceptor" 
+ <bean id="nopTransactionalMethodInterceptor"
       class="io.nop.dao.txn.interceptor.TransactionalMethodInterceptor">
      <ioc:pointcut annotations="io.nop.api.core.annotations.txn.Transactional"
           order="1000"/>
@@ -67,7 +69,7 @@ public XXX getXx(){
 
 2. 工程编译的时候会通过maven插件扫描target/classes目录下的类，检查类的方法上是否具有AOP可识别的注解，如果有，则为该类生成一个\_\_aop派生类，用于插入AOP
    interceptor。这样打包好的jar包中就包含了AOP相关的生成代码，在使用AOP机制的时候就不需要动态生成字节码了。这里的实现原理其实和AspectJ类似，只是操作过程要简化很多。代码生成器的具体实现参见
-   
+
    [nop-core/src/main/java/io/nop/core/reflect/aop/AopCodeGenerator.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/reflect/aop/AopCodeGenerator.java)
 
 3. IoC容器在创建bean的时候，如果发现存在可以应用到该类上的interceptor，则使用\_\_aop派生类来新建对象，并插入interceptor。
@@ -102,7 +104,7 @@ Nop平台中所有的DSL模型都支持`x:gen-extends`机制，它在编译期�
 NopIoC内置了一个ioc:proxy属性，可以直接根据当前bean，创建实现了指定接口的Proxy对象。
 
 ```xml
-<bean id="myBean" class="xx.MyInvocationHandler" 
+<bean id="myBean" class="xx.MyInvocationHandler"
       ioc:type="xx.MyInterface" ioc:proxy="true" />
 ```
 
@@ -115,7 +117,7 @@ NopIoC内置了根据注解来收集bean的能力。例如
 ```xml
  <bean id="nopBizObjectManager" class="io.nop.biz.impl.BizObjectManager">
      <property name="bizModelBeans">
-        <ioc:collect-beans 
+        <ioc:collect-beans
            by-annotation="io.nop.api.core.annotations.biz.BizModel"
            only-concrete-classes="true"/>
      </property>

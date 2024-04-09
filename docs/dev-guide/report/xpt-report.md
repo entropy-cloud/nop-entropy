@@ -38,6 +38,7 @@ xptRt.makeDs函数将一个列表数据包装为ReportDataSet对象，并设置�
 - workbook: 等价于xptRt.workbook
 
 ### cell对象上的属性
+cell对应于 ExpandedCell类型
 
 * rowParent或者rp: 行父格
 * colParent或者cp: 列父格
@@ -55,6 +56,8 @@ xptRt.makeDs函数将一个列表数据包装为ReportDataSet对象，并设置�
 - keepExpandEmpty: 当展开集合返回空时，缺省情况下会把对应单元格及其子单元格都删除。但是如果设置了keepExpandEmpty，则这些未展开的单元格会保留，但值会被设置为null
 - rowParent: 行父格。必须是一个设置了expandType的单元格。行父格展开时会复制所有的子单元格。如果不指定，则向左侧查找。
 - colParent: 列父格。必须是一个设置了expandType的单元格。列父格展开时会复制所有的子单元格。如果不指定，则向上查找。
+
+批注中可配置的属性参考 workflow.xdef元模型中的cell节点的model部分。
 
 在单元格的文本中，我们可以直接写表达式语法。优点是在界面上可以直接看见表达式内容，而不需要把批注展开。
 支持两种格式的文本表达式语法：
