@@ -26,6 +26,8 @@ public interface RpcConstants {
 
     String PROP_POLL_INTERVAL = "pollInterval";
 
+    String PROP_MAX_POLL_ERROR_COUNT = "maxPollErrorCount";
+
     String PROP_RESPONSE_NORMALIZER = "responseNormalizer";
 
     String PROP_HTTP_METHOD = "httpMethod";

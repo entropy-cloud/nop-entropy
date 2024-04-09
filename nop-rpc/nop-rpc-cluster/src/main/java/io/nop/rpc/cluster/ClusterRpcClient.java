@@ -144,7 +144,8 @@ public class ClusterRpcClient implements IRpcService {
         if (pollingMethod != null) {
             int interval = RpcHelper.getPollInterval(request);
             if (interval > 0) {
-                service = new PollingRpcClient(service, pollingMethod, timer, RpcHelper.getPollInterval(request));
+                service = new PollingRpcClient(service, pollingMethod, timer,
+                        interval, RpcHelper.getMaxPollErrorCount(request));
             }
         }
         return service;

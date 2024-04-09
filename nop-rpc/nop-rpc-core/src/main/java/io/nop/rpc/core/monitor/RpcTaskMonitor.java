@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
  * 定时抓取正在执行的长时任务的状态，并保存到持久化存储中
  */
 public class RpcTaskMonitor extends LifeCycleSupport {
-    private Map<String, RpcTask> activeTasks = new ConcurrentHashMap<>();
+    private final Map<String, RpcTask> activeTasks = new ConcurrentHashMap<>();
 
     private IRpcTaskStatusStore statusStorage;
     private ICancellable cancellable;

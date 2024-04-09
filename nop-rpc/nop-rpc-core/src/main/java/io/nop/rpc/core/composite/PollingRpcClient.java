@@ -25,6 +25,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * 将启动方法和状态检查方法组合成一个完整的RPC调用。执行启动方法之后不直接启动方法的返回结果，而是不断的调用statusMethod来获取返回结果。
@@ -37,19 +38,27 @@ public class PollingRpcClient implements IRpcService {
     private final IScheduledExecutor timer;
     private final long pollInterval;
 
-    public PollingRpcClient(IRpcService rpcService, String statusMethod, IScheduledExecutor timer, long pollInterval) {
+    /**
+     * 检查status的时候最多失败多少次会中断执行
+     */
+    private final int maxErrorCount;
+
+    public PollingRpcClient(IRpcService rpcService, String statusMethod, IScheduledExecutor timer, long pollInterval, int maxErrorCount) {
         this.rpcService = Guard.notNull(rpcService, "rpcService");
         this.statusMethod = Guard.notEmpty(statusMethod, "statusMethod");
         this.timer = Guard.notNull(timer, "timer");
         this.pollInterval = Guard.positiveLong(pollInterval, "pollInterval");
+        this.maxErrorCount = Guard.positiveInt(maxErrorCount, "maxErrorCount");
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public CompletionStage<ApiResponse<?>> callAsync(String serviceMethod, ApiRequest<?> request,
                                                      ICancelToken cancelToken) {
         return rpcService.callAsync(serviceMethod, request, cancelToken).thenCompose(ret -> {
-            if (!ret.isBizSuccess()) {
-                return FutureHelper.success(ret);
+            ApiResponse<TaskStatusBean> res = RpcHelper.toTaskStatusResponse(ret);
+            if (!ret.isBizSuccess() || isCompleted(res)) {
+                return FutureHelper.success(res);
             } else {
                 PollTask task = new PollTask(request, cancelToken);
                 task.schedule();
@@ -59,25 +68,27 @@ public class PollingRpcClient implements IRpcService {
     }
 
     private class PollTask implements Callable<Void> {
+        final CompletableFuture<ApiResponse<?>> future = new CompletableFuture<>();
         final ApiRequest<?> request;
         final ICancelToken cancelToken;
-        final CompletableFuture<ApiResponse<?>> future = new CompletableFuture<>();
-        Future<?> timerFuture;
+        volatile Future<?> timerFuture;
+        int errorCount;
 
         public PollTask(ApiRequest<?> request, ICancelToken cancelToken) {
             this.request = request;
             this.cancelToken = cancelToken;
             if (cancelToken != null) {
-                cancelToken.appendOnCancelTask(() -> cancel());
+                Consumer<String> cancel = this::cancel;
+                cancelToken.appendOnCancel(cancel);
+                future.whenComplete((ret, err) -> cancelToken.removeOnCancel(cancel));
             }
         }
 
-        public void cancel() {
-            Future<?> f = this.future;
-            if (f != null) {
-                f.cancel(false);
-            }
-            future.cancel(false);
+        public void cancel(String reason) {
+            this.future.cancel(false);
+            Future<?> timerFuture = this.timerFuture;
+            if (timerFuture != null)
+                timerFuture.cancel(false);
         }
 
         public void schedule() {
@@ -87,13 +98,20 @@ public class PollingRpcClient implements IRpcService {
         public Void call() {
             rpcService.callAsync(statusMethod, request, cancelToken).whenComplete((ret, err) -> {
                 if (err != null) {
-                    future.completeExceptionally(err);
+                    handleError(err);
                 } else {
                     try {
                         if (!ret.isOk()) {
-                            future.complete(ret);
+                            errorCount++;
+                            if (errorCount > maxErrorCount) {
+                                future.complete(ret);
+                            } else {
+                                LOG.info("nop.rpc.ignore-poll-error:errorCount={},method={}", errorCount, statusMethod, err);
+                                schedule();
+                            }
                         } else {
-                            if (isCompleted(ret)) {
+                            ApiResponse<TaskStatusBean> res = RpcHelper.toTaskStatusResponse(ret);
+                            if (isCompleted(res)) {
                                 future.complete(ret);
                             } else {
                                 if (LOG.isDebugEnabled()) {
@@ -103,16 +121,25 @@ public class PollingRpcClient implements IRpcService {
                             }
                         }
                     } catch (Throwable e) {
-                        future.completeExceptionally(e);
+                        handleError(e);
                     }
                 }
             });
             return null;
         }
+
+        void handleError(Throwable err) {
+            errorCount++;
+            if (errorCount > maxErrorCount) {
+                future.completeExceptionally(err);
+            } else {
+                LOG.info("nop.rpc.ignore-poll-error:errorCount={},method={}", errorCount, statusMethod, err);
+                schedule();
+            }
+        }
     }
 
-    protected boolean isCompleted(ApiResponse<?> ret) {
-        ApiResponse<TaskStatusBean> res = RpcHelper.toTaskStatusResponse(ret);
+    protected boolean isCompleted(ApiResponse<TaskStatusBean> res) {
         return res.getData() != null && res.getData().isCompleted();
     }
 }

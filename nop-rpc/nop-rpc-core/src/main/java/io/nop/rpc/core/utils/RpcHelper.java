@@ -17,6 +17,7 @@ import io.nop.rpc.core.RpcConstants;
 import java.time.Duration;
 
 import static io.nop.rpc.core.RpcConfigs.CFG_RPC_CLIENT_EXT_DEFAULT_POLL_INTERVAL;
+import static io.nop.rpc.core.RpcConfigs.CFG_RPC_CLIENT_EXT_MAX_POLL_ERROR_COUNT;
 
 public class RpcHelper {
     public static ApiResponse<TaskStatusBean> toTaskStatusResponse(ApiResponse<?> response) {
@@ -54,6 +55,11 @@ public class RpcHelper {
 
     public static void setPollInterval(ApiRequest<?> request, int interval) {
         request.setProperty(RpcConstants.PROP_POLL_INTERVAL, interval);
+    }
+
+    public static int getMaxPollErrorCount(ApiRequest<?> request) {
+        int defaultValue = CFG_RPC_CLIENT_EXT_MAX_POLL_ERROR_COUNT.get();
+        return request.getIntProperty(RpcConstants.PROP_MAX_POLL_ERROR_COUNT, defaultValue);
     }
 
     public static IApiResponseNormalizer getResponseNormalizer(ApiRequest<?> request) {

@@ -15,6 +15,8 @@ import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.util.StringHelper;
 import io.nop.rpc.api.IRpcService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -23,6 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 发出请求后允许通过cancelMethod来取消执行
  */
 public class CancellableRpcClient implements IRpcService {
+    static final Logger LOG = LoggerFactory.getLogger(CancellableRpcClient.class);
     private final IRpcService rpcService;
     private final String cancelMethod;
 
@@ -58,7 +61,13 @@ public class CancellableRpcClient implements IRpcService {
                     bean.setReqId(reqId);
                     bean.setData(request.getData());
                     copy.setData(bean);
-                    rpcService.callAsync(cancelMethod, copy, null);
+                    rpcService.callAsync(cancelMethod, copy, null).whenComplete((ret, err) -> {
+                        if (err != null) {
+                            LOG.error("nop.rpc.cancel-request-fail:cancelMethod={},reqId={}", cancelMethod, reqId, err);
+                        } else {
+                            LOG.info("nop.rpc.cancel-request-ok:cancelMethod={},reqId={},cancelResult={}", cancelMethod, reqId, ret);
+                        }
+                    });
                 }
             });
         }

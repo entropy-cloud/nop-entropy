@@ -7,8 +7,6 @@
  */
 package io.nop.api.core.beans.task;
 
-import com.fasterxml.jackson.annotation.JsonAnyGetter;
-import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.meta.PropMeta;
@@ -19,11 +17,18 @@ import java.util.Map;
 
 @DataBean
 public class TaskStatusBean {
+    public static final int STATUS_UNKNOWN = 0;
+    public static final int STATUS_RUNNING = 1;
+    public static final int STATUS_SUCCESS = 2;
+    public static final int STATUS_FAILURE = 3;
+    public static final int STATUS_CANCELLED = 4;
+    public static final int STATUS_TIMEOUT = 5;
+    public static final int STATUS_NOT_FOUND = 6;
+
     private String taskName;
     private String taskId;
-    private int status;
-
-    private String stateId;
+    private int taskStatus;
+    private String taskState;
 
     private ErrorBean error;
     private Map<String, Object> details;
@@ -37,12 +42,7 @@ public class TaskStatusBean {
         this.taskName = taskName;
     }
 
-    @JsonIgnore
-    public boolean isCompleted() {
-        return false;
-    }
-
-    @PropMeta(propId = 2)
+    @PropMeta(propId = 2, mandatory = true)
     public String getTaskId() {
         return taskId;
     }
@@ -51,22 +51,27 @@ public class TaskStatusBean {
         this.taskId = taskId;
     }
 
-    @PropMeta(propId = 3)
-    public int getStatus() {
-        return status;
+    @JsonIgnore
+    public boolean isCompleted() {
+        return taskStatus > STATUS_RUNNING;
     }
 
-    public void setStatus(int status) {
-        this.status = status;
+    @PropMeta(propId = 3, mandatory = true)
+    public int getTaskStatus() {
+        return taskStatus;
+    }
+
+    public void setTaskStatus(int taskStatus) {
+        this.taskStatus = taskStatus;
     }
 
     @PropMeta(propId = 4)
-    public String getStateId() {
-        return stateId;
+    public String getTaskState() {
+        return taskState;
     }
 
-    public void setStateId(String stateId) {
-        this.stateId = stateId;
+    public void setTaskState(String taskState) {
+        this.taskState = taskState;
     }
 
     @PropMeta(propId = 5)
