@@ -1143,6 +1143,10 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
         IEntityModel refEntityModel = relModel.getRefEntityModel();
         List<? extends IEntityJoinConditionModel> join = relModel.getJoin();
+        if (relModel.isJoinOnNonPkColumn()) {
+            return loadRefEntityByProp(entity, relModel);
+        }
+
         Object id;
         if (join.size() == 1) {
             IEntityJoinConditionModel cond = join.get(0);
@@ -1166,6 +1170,19 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
             return null;
         return load(refEntityModel.getName(), id);
     }
+
+    // 通过非主键字段加载关联对象
+    private IOrmEntity loadRefEntityByProp(IOrmEntity entity, IEntityRelationModel relModel) {
+        IOrmEntity example = this.newEntity(relModel.getRefEntityName());
+        for (IEntityJoinConditionModel cond : relModel.getJoin()) {
+            Object leftValue = OrmEntityHelper.getLeftValue(cond, entity);
+            if (cond.getRightPropModel() != null) {
+                OrmEntityHelper.setPropValue(cond.getRightPropModel(), example, leftValue);
+            }
+        }
+        return findFirstByExample(example);
+    }
+
 
     @Override
     public void internalLoadCollection(IOrmEntitySet coll) {

@@ -50,7 +50,7 @@ public class OrmSessionEntityCache implements IOrmSessionEntityCache {
         boolean dirty;
 
         // 尽量保证实体的处理顺序，避免执行过程中的随机性，便于基于录制回放机制实现自动化测试
-        Map<Object /* id */, IOrmEntity> idToEntities = new LinkedHashMap<>();
+        final Map<Object /* id */, IOrmEntity> idToEntities = new LinkedHashMap<>();
 
         // 是否某个实体被修改了
         public boolean isDirty() {

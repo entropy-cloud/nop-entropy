@@ -32,6 +32,8 @@ public abstract class OrmReferenceModel extends _OrmReferenceModel implements IE
      */
     private boolean mandatory;
 
+    private boolean joinOnNonPkColumn;
+
     private List<OrmColumnModel> columns;
     private int[] propIds;
     private int[] refPropIds;
@@ -117,6 +119,15 @@ public abstract class OrmReferenceModel extends _OrmReferenceModel implements IE
                 return true;
         }
         return false;
+    }
+
+    @Override
+    public final boolean isJoinOnNonPkColumn() {
+        return joinOnNonPkColumn;
+    }
+
+    public void setJoinOnNonPkColumn(boolean joinOnNonPkColumn) {
+        this.joinOnNonPkColumn = joinOnNonPkColumn;
     }
 
     @Override

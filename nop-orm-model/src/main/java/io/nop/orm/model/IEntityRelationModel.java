@@ -82,4 +82,9 @@ public interface IEntityRelationModel extends IEntityPropModel {
         }
         return false;
     }
+
+    /**
+     * 是否关联到非主键字段
+     */
+    boolean isJoinOnNonPkColumn();
 }

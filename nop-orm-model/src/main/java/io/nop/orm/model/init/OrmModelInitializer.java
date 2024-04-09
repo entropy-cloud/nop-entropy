@@ -13,17 +13,64 @@ import io.nop.commons.collections.CaseInsensitiveMap;
 import io.nop.commons.collections.IntHashMap;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.model.graph.*;
+import io.nop.core.model.graph.DefaultDirectedGraph;
+import io.nop.core.model.graph.DefaultEdge;
+import io.nop.core.model.graph.IDirectedGraph;
+import io.nop.core.model.graph.TopoEntry;
+import io.nop.core.model.graph.TopologicalOrderIterator;
 import io.nop.core.reflect.bean.BeanTool;
-import io.nop.orm.model.*;
+import io.nop.orm.model.IColumnModel;
+import io.nop.orm.model.IEntityJoinConditionModel;
+import io.nop.orm.model.IEntityModel;
+import io.nop.orm.model.IEntityPropModel;
+import io.nop.orm.model.IEntityRelationModel;
+import io.nop.orm.model.OrmColumnModel;
+import io.nop.orm.model.OrmDomainModel;
+import io.nop.orm.model.OrmEntityModel;
+import io.nop.orm.model.OrmJoinOnModel;
+import io.nop.orm.model.OrmModel;
+import io.nop.orm.model.OrmModelConstants;
+import io.nop.orm.model.OrmRefSetModel;
+import io.nop.orm.model.OrmReferenceModel;
+import io.nop.orm.model.OrmToManyReferenceModel;
+import io.nop.orm.model.OrmToOneReferenceModel;
 import io.nop.orm.model.utils.OrmModelHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import static io.nop.orm.model.OrmModelErrors.*;
+import static io.nop.orm.model.OrmModelErrors.ARG_ALLOWED_NAMES;
+import static io.nop.orm.model.OrmModelErrors.ARG_COL_NAME;
+import static io.nop.orm.model.OrmModelErrors.ARG_DATA_TYPE;
+import static io.nop.orm.model.OrmModelErrors.ARG_DOMAIN;
+import static io.nop.orm.model.OrmModelErrors.ARG_DOMAIN_DATA_TYPE;
+import static io.nop.orm.model.OrmModelErrors.ARG_ENTITY_NAME;
+import static io.nop.orm.model.OrmModelErrors.ARG_LOOP_ENTITY_NAMES;
+import static io.nop.orm.model.OrmModelErrors.ARG_OTHER_ENTITY_NAME;
+import static io.nop.orm.model.OrmModelErrors.ARG_OTHER_LOC;
+import static io.nop.orm.model.OrmModelErrors.ARG_PROP_NAME;
+import static io.nop.orm.model.OrmModelErrors.ARG_REF_ENTITY_NAME;
+import static io.nop.orm.model.OrmModelErrors.ARG_REF_NAME;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_COL_DATA_TYPE_NOT_MATCH_DOMAIN_DEFINITION;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_COL_NO_STD_SQL_TYPE;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_DUPLICATE_ENTITY_SHORT_NAME;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_INVALID_COLUMN_DOMAIN;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_JOIN_COLUMN_COUNT_LESS_THAN_PK_COLUMN_COUNT;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_DEPENDS_CONTAINS_LOOP;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_ENTITY_NO_PROP;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_ENTITY_PROP_NOT_PRIMARY_KEY;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_PROP_NOT_COLUMN;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_UNKNOWN_ENTITY;
 
 public class OrmModelInitializer {
     static final Logger LOG = LoggerFactory.getLogger(OrmModelInitializer.class);
@@ -403,24 +450,28 @@ public class OrmModelInitializer {
                 if (col == null && OrmModelConstants.PROP_ID.endsWith(join.getRightProp())) {
                     col = refEntityModel.getIdProp().isColumnModel() ? (OrmColumnModel) refEntityModel.getIdProp() : null;
                 }
-                if (col == null || !col.isPrimary())
+                if (col == null)
                     throw new NopException(ERR_ORM_MODEL_REF_ENTITY_PROP_NOT_PRIMARY_KEY).loc(join.getLocation())
                             .param(ARG_PROP_NAME, join.getRightProp()).param(ARG_REF_ENTITY_NAME, refEntityModel.getName());
+                if (!col.isPrimary())
+                    ref.setJoinOnNonPkColumn(true);
                 join.setRightPropModel(col);
             }
 
-            if (ref.getJoin().size() != refEntityModel.getPkColumns().size())
-                throw new NopException(ERR_ORM_MODEL_JOIN_COLUMN_COUNT_LESS_THAN_PK_COLUMN_COUNT).source(ref)
-                        .param(ARG_ENTITY_NAME, entityModel.getName())
-                        .param(ARG_REF_ENTITY_NAME, refEntityModel.getName()).param(ARG_PROP_NAME, ref.getName());
+            if (!ref.isJoinOnNonPkColumn()) {
+                if (ref.getJoin().size() != refEntityModel.getPkColumns().size())
+                    throw new NopException(ERR_ORM_MODEL_JOIN_COLUMN_COUNT_LESS_THAN_PK_COLUMN_COUNT).source(ref)
+                            .param(ARG_ENTITY_NAME, entityModel.getName())
+                            .param(ARG_REF_ENTITY_NAME, refEntityModel.getName()).param(ARG_PROP_NAME, ref.getName());
 
-            // 确保join字段的顺序按照关联表主键字段的顺序排列
-            if (ref.getJoin().size() > 1 && !isRefColAligned(ref.getJoin(), refEntityModel.getPkColumns())) {
-                List<OrmJoinOnModel> ordered = new ArrayList<>(ref.getJoin().size());
-                for (IColumnModel col : refEntityModel.getPkColumns()) {
-                    ordered.add(findJoinByRefCol(ref.getJoin(), col));
+                // 确保join字段的顺序按照关联表主键字段的顺序排列
+                if (ref.getJoin().size() > 1 && !isRefColAligned(ref.getJoin(), refEntityModel.getPkColumns())) {
+                    List<OrmJoinOnModel> ordered = new ArrayList<>(ref.getJoin().size());
+                    for (IColumnModel col : refEntityModel.getPkColumns()) {
+                        ordered.add(findJoinByRefCol(ref.getJoin(), col));
+                    }
+                    ref.setJoin(ordered);
                 }
-                ref.setJoin(ordered);
             }
         }
     }

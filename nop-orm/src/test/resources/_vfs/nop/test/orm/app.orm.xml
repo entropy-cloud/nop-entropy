@@ -28,7 +28,7 @@
                 <column name="collegeId" propId="100" lazy="true"/>
                 <column name="jsonExt" code="JSON_EXT" propId="101" tagSet="json" stdSqlType="JSON"
                         precision="4000"/>
-                <column name="byteField" code="BYTE_FIELD" propId="102" stdSqlType="TINYINT" stdDataType="int" />
+                <column name="byteField" code="BYTE_FIELD" propId="102" stdSqlType="TINYINT" stdDataType="int"/>
             </columns>
             <aliases>
                 <alias name="collegeName" propPath="simsCollege.collegeName" type="String"/>
@@ -49,6 +49,14 @@
                 <to-one name="simsCollege" refEntityName="io.nop.app.SimsCollege" refPropName="simsClasses">
                     <join>
                         <on leftProp="collegeId" rightProp="collegeId"/>
+                    </join>
+                </to-one>
+
+                <!-- 使用非主键字段进行关联 -->
+                <to-one name="refByName" refEntityName="io.nop.app.SimsCollege" refPropName="refClasses"
+                        notGenCode="true">
+                    <join>
+                        <on leftProp="className" rightProp="collegeName"/>
                     </join>
                 </to-one>
             </relations>
