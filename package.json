@@ -15,7 +15,7 @@
     "version": "6.3.0"
   },
   "dependencies": {
-    "@nop-community/hexo-theme-site": "0.0.0",
+    "@nop-community/hexo-theme-site": "0.0.1",
     "hexo": "^6.3.0",
     "hexo-generator-archive": "^2.0.0",
     "hexo-generator-category": "^2.0.0",
