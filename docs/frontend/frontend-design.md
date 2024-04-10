@@ -44,7 +44,8 @@ Store的作用将替代Event处理。真正需要原生Event的逻辑都属于�
 状态数据和处理函数，也就是Store对象。
 
 1. Store也是一个Module。Module中包含createStore函数用于创建Store。
-2. 引入StoreModule的节点会自动创建Store，然后存放在Scope上下文对象中，实现类似于词法作用域的变量查找链。框架层面使用useContext机制来提供Store Scope。store的传递不再需要逐级通过props传递，可以直接作为implicit context传递。
+2. 引入StoreModule的节点会自动创建Store，然后存放在Scope上下文对象中，实现类似于词法作用域的变量查找链。框架层面使用useContext机制来提供Store
+   Scope。store的传递不再需要逐级通过props传递，可以直接作为implicit context传递。
 3. 构造函数主要可以传入从父Store继承的部分，以及初始化的数据集
 4. Store采用不可变数据集实现比较简单，它的信息衍生方向可预测性更强。应该可以为zustand增加Vue3响应式适配。
 5. 子节点可以看到父节点提供的Store，并直接触发store中的函数。一般情况下应该不需要兄弟节点之间的通信。如果有共享信息部分，都可以考虑直接提升到父节点。
@@ -78,6 +79,33 @@ render函数的作用就是生成虚拟DOM树。
 
 1. xui:schema-type
 2. xui:import
-3. xui:store-lib
-4. xui:store-init-data
-5. xui:store-inherit
+3. xui:store-lib, xui:store-init-data, xui:store-inherit
+4. xui:component-lib
+
+## 动态加载
+
+### 控件库动态加载
+
+控件提供原子语义。控件库可以动态加载、局部应用
+
+1. componentLib参数为控件库路径，从后台按照SystemJS格式加载。
+2. 使用timestamp来控制不重复加载。后台返回时会自动为url增加timestamp。
+3. 加载的控件集合直接放到Context中
+
+### 状态库动态加载
+
+根据storeLib加载状态库，根据其中的createStore函数创建store，并注册到Context中。
+
+### Schema组织
+
+Schema是在控件库基础上进行组织，采用JSON格式表达。
+
+节点可以作为生命周期控制基础，用于控制组件的创建。
+
+库文件按照页面的粒度进行加载，在加载schema之后先扫描所有lib，动态加载所有库。加载完毕之后再根据schema创建Page对象。
+
+### Schema渲染
+
+Schema实际渲染的时候可能需要插入额外的中间节点，用于适配低代码框架和Nop上下文
+
+`xui:import`导入的函数不需要初始化，但是store则需要构建，需要额外处理。

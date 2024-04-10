@@ -20,3 +20,18 @@
 ```
 
 6. 订阅外部存储时使用useSyncExternalStore
+
+
+## 状态库
+zustand，参考 https://zhuanlan.zhihu.com/p/691233120
+
+```javascript
+import { useShallow } from 'zustand/react/shallow';
+...
+ const { theme, setTheme } = useConfigStore(
+    useShallow(state => ({
+      theme: state.theme,
+      setTheme: state.setTheme,
+    }))
+  );
+```
