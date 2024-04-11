@@ -184,7 +184,7 @@ class _NopAuthUserEx extends NopAuthUser{
 
 Nop平台内置了一个兼容Spring1.0配置语法的IoC容器[NopIoC](https://zhuanlan.zhihu.com/p/579847124)。
 
-1. 条件开关
+#### 1. 条件开关
    NopIoC在Spring1.0的XML语法的基础之上补充了类似SpringBoot的条件装配能力。我们可以采用配置变量开关来启用或者禁用参与装配的bean
 
 ```xml
@@ -196,19 +196,19 @@ Nop平台内置了一个兼容Spring1.0配置语法的IoC容器[NopIoC](https://
     </bean>
 ```
 
-2. 缺省实现
+#### 2. 缺省实现
    NopIoC可以为指定名称的bean提供一个缺省实现，如果在容器中存在其他同名的bean，则缺省实现会被自动忽略，这一点类似于SpringBoot中的`ConditionOnMissingBean`机制。
    
-   ```xml
-    <bean id="nopActionAuthChecker" class="io.nop.auth.service.auth.DefaultActionAuthChecker" ioc:default="true"/>
-   
-    <!-- 标记了ioc:default="true"的bean 会被其他文件中定义的同名的bean覆盖 -->
-    <bean id="nopActionAuthChecker" class="com.ruoyi.framework.web.service.PermissionService" />
-   ```
+```xml
+<bean id="nopActionAuthChecker" class="io.nop.auth.service.auth.DefaultActionAuthChecker" ioc:default="true"/>
+
+<!-- 标记了ioc:default="true"的bean 会被其他文件中定义的同名的bean覆盖 -->
+<bean id="nopActionAuthChecker" class="com.ruoyi.framework.web.service.PermissionService" />
+```
 
 也可以为新增的bean增加`primary=true`配置，它的优先级会高于所有没有标记为`primary`的bean的定义。
 
-3. x-extends继承
+#### 3. x-extends继承
 
 NopIoC更为强大的地方是它支持XLang语言内置的Delta定制机制。我们可以在delta目录下增加同名的`beans.xml`配置文件来覆盖基础产品中已有的配置文件。例如`app-mall-delta`模块中`/_vfs/_delta/default/nop/auth/auth-service.beans.xml`
 
@@ -231,7 +231,7 @@ NopIoC更为强大的地方是它支持XLang语言内置的Delta定制机制。�
 
 除了覆盖bean的配置之外，我们可以通过delta定制来删除bean的配置。例如Nop平台与Ruoyi框架集成的时候需要删除内置的`dataSource`配置
 
-```
+```xml
     <bean id="nopDataSource" x:override="remove" />
 ```
 
@@ -247,7 +247,7 @@ Delta定制非常简单直观，**适用于所有模型文件而且可以定制�
 
 Nop平台的GraphQL服务一般对应于`BizModel`对象，例如`NopAuthUser__findPage`表示调用`NopAuthUserBizModel`类上的`findPage`方法。我们可以通过覆盖`BizModel`注册类的方式来实现对GraphQL服务的定制。具体做法如下：
 
-1. 从已有的`BizModel`类继承，在其中增加新的服务方法，或者重载原有的方法
+#### 1. 从已有的`BizModel`类继承，在其中增加新的服务方法，或者重载原有的方法
 
 ```java
 public class NopAuthUserExBizModel extends NopAuthUserBizModel {
@@ -262,7 +262,7 @@ public class NopAuthUserExBizModel extends NopAuthUserBizModel {
 }
 ```
 
-2. 在`beans.xml`中覆盖原有的bean定义。
+#### 2. 在`beans.xml`中覆盖原有的bean定义。
    
    ```xml
     <bean id="io.nop.auth.service.entity.NopAuthUserBizModel"

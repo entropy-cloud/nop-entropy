@@ -1,4 +1,7 @@
-# 知乎专栏: [可逆计算](https://www.zhihu.com/column/reversible-computation)
+# 可逆计算理论
+
+## 知乎专栏
+[可逆计算](https://www.zhihu.com/column/reversible-computation)
 
 集中收录了作者关于可逆计算理论和Nop平台实现原理的相关论述
 

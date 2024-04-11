@@ -42,21 +42,21 @@
           uri: dev-guide/cli.md
         - text: 命令行开发支持
           uri: dev-guide/command/command.md
-    - text: config
+    - text: 配置管理
       uri: dev-guide/config.md
     - text: IoC容器
       uri: dev-guide/ioc.md
       children:
         - text: AOP支持
           uri: dev-guide/ioc/aop.md
-    - text: orm
+    - text: ORM框架
       uri: dev-guide/orm/index.md
-    - text: XLang
+    - text: XLang语言
       uri: dev-guide/xlang/index.md
       children:
         - text: XDef元模型
           uri: dev-guide/xlang/xdef.md
-        - text: XDSL
+        - text: XDSL领域语言
           uri: dev-guide/xlang/xdsl.md
         - text: XScript脚本语言
           uri: dev-guide/xlang/xscript.md
