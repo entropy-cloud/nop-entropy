@@ -2,7 +2,7 @@
   "name": "@nop-entropy/docs",
   "version": "0.0.0",
   "private": true,
-  "main": "scripts/ksio/index.js",
+  "main": ".knosys/scripts/index.js",
   "scripts": {
     "build": "ksio gen",
     "start": "ksio serve",
@@ -15,20 +15,15 @@
     "version": "6.3.0"
   },
   "dependencies": {
-    "@nop-community/hexo-theme-site": "0.0.2",
+    "@nop-community/hexo-theme-site": "0.0.4",
     "hexo": "^6.3.0",
-    "hexo-generator-archive": "^2.0.0",
-    "hexo-generator-category": "^2.0.0",
-    "hexo-generator-index": "^3.0.0",
-    "hexo-generator-tag": "^2.0.0",
     "hexo-renderer-coffeescript": "^0.2.0",
     "hexo-renderer-ejs": "^2.0.0",
     "hexo-renderer-marked": "^6.0.0",
     "hexo-renderer-sass": "^0.4.0",
-    "hexo-renderer-stylus": "^2.1.0",
     "hexo-server": "^3.0.0"
   },
   "devDependencies": {
-    "ksio": "0.0.0"
+    "ksio": "0.0.2"
   }
 }

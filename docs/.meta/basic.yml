@@ -1,2 +1,5 @@
 permalink: /projects/nop-entropy/docs/:path/
 spec: file
+editable:
+  default: https://github.com/entropy-cloud/nop-entropy/edit/master/docs/:path
+  zh: https://gitee.com/canonical-entropy/nop-entropy/edit/master/docs/:path
