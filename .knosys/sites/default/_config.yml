@@ -72,7 +72,7 @@ tag_map:
 
 # Metadata elements
 ## https://developer.mozilla.org/en-US/docs/Web/HTML/Element/meta
-meta_generator: true
+meta_generator: false
 
 # Date / Time format
 ## Hexo uses Moment.js to parse and display date
@@ -129,6 +129,10 @@ ksio:
             - javascripts/ksio/vendors/share.min
             - javascripts/ksio/components/page
             - javascripts/ksio/components/toc
+      _nop/layouts/index:
+        values:
+          ksio_asset_css:
+            - nop/pages/index
       _nop/layouts/doc:
         extends: ksio/doc
     page:
