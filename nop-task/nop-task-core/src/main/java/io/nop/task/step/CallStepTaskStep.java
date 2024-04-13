@@ -66,9 +66,9 @@ public class CallStepTaskStep extends AbstractTaskStep {
         }
 
         ITaskRuntime taskRt = stepRt.getTaskRuntime();
-        LOG.debug("nop.task.step.run:taskName={},taskInstanceId={},stepId={},runId={},loc={}",
+        LOG.debug("nop.task.step.run:taskName={},taskInstanceId={},stepPath={},runId={},loc={}",
                 taskRt.getTaskName(), taskRt.getTaskInstanceId(),
-                stepRt.getStepId(), stepRt.getRunId(), step.getLocation());
+                stepRt.getStepPath(), stepRt.getRunId(), step.getLocation());
 
         return step.execute(stepRt);
     }

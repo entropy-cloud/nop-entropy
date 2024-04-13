@@ -14,7 +14,7 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
 
 @Locale("zh-CN")
 public interface TaskErrors {
-    String ARG_STEP_ID = "stepId";
+    String ARG_STEP_PATH = "stepPath";
     String ARG_STEP_NAME = "stepName";
     String ARG_STEP_TYPE = "stepType";
     String ARG_TASK_NAME = "taskName";
@@ -63,8 +63,8 @@ public interface TaskErrors {
             define("nop.err.task.step-timeout", "步骤已超时");
 
     ErrorCode ERR_TASK_STEP_MANDATORY_OUTPUT_IS_EMPTY =
-            define("nop.err.task.step-mandatory-output-is-empty", "步骤[{stepId}]的输出[{output}]不允许为空",
-                    ARG_STEP_ID, ARG_OUTPUT);
+            define("nop.err.task.step-mandatory-output-is-empty", "步骤[{stepPath}]的输出[{output}]不允许为空",
+                    ARG_STEP_PATH, ARG_OUTPUT);
 
     ErrorCode ERR_TASK_UNKNOWN_NEXT_STEP =
             define("nop.err.task.unknown-next-step", "步骤[{stepName}]不支持跳转到子步骤[{nextStep}]",
@@ -116,5 +116,5 @@ public interface TaskErrors {
                     ARG_TASK_INSTANCE_ID);
 
     ErrorCode ERR_TASK_GRAPH_NO_ACTIVE_STEP =
-            define("nop.err.task.graph-no-active-step", "流程图[{stepId}]已经没有活跃步骤，但是流程执行还没有结束");
+            define("nop.err.task.graph-no-active-step", "流程图[{stepPath}]已经没有活跃步骤，但是流程执行还没有结束");
 }

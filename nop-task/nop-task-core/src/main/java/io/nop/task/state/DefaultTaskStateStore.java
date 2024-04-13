@@ -23,7 +23,7 @@ public class DefaultTaskStateStore implements ITaskStateStore {
     @Override
     public ITaskStepState newMainStepState(ITaskState taskState) {
         TaskStepStateBean state = new TaskStepStateBean();
-        state.setStepId(TaskConstants.MAIN_STEP_NAME);
+        state.setStepPath(TaskConstants.MAIN_STEP_NAME);
         state.setRunId(0);
         state.setStepType(TaskConstants.STEP_TYPE_TASK);
         state.setStepStatus(TaskConstants.TASK_STEP_STATUS_ACTIVE);
@@ -33,14 +33,14 @@ public class DefaultTaskStateStore implements ITaskStateStore {
     @Override
     public ITaskStepState newStepState(ITaskStepState parentState, String stepName, String stepType, ITaskRuntime taskRt) {
         TaskStepStateBean state = new TaskStepStateBean();
-        String parentId = parentState == null ? null : parentState.getStepId();
-        state.setStepId(TaskStepHelper.buildStepId(parentId, stepName));
+        String parentPath = parentState == null ? null : parentState.getStepPath();
+        state.setStepPath(TaskStepHelper.buildStepPath(parentPath, stepName));
         state.setRunId(taskRt.newRunId());
         state.setStepType(stepType);
         state.setStepStatus(TaskConstants.TASK_STEP_STATUS_ACTIVE);
 
         if (parentState != null) {
-            state.setParentStepId(parentState.getParentStepId());
+            state.setParentStepPath(parentState.getParentStepPath());
             state.setParentRunId(parentState.getRunId());
         }
         return state;

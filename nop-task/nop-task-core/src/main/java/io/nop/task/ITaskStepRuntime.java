@@ -32,8 +32,8 @@ public interface ITaskStepRuntime extends IEvalContext {
         return getTaskRuntime().getLocale();
     }
 
-    default String getStepId() {
-        return getState().getStepId();
+    default String getStepPath() {
+        return getState().getStepPath();
     }
 
     default int getRunId() {

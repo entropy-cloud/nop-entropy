@@ -29,7 +29,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.nop.task.TaskErrors.ARG_STEP_ID;
+import static io.nop.task.TaskErrors.ARG_STEP_PATH;
 import static io.nop.task.TaskErrors.ERR_TASK_GRAPH_NO_ACTIVE_STEP;
 
 public class GraphTaskStep extends AbstractTaskStep {
@@ -196,7 +196,7 @@ public class GraphTaskStep extends AbstractTaskStep {
             if (runningCount.get() == 0 && !future.isDone())
                 throw new NopException(ERR_TASK_GRAPH_NO_ACTIVE_STEP)
                         .source(this)
-                        .param(ARG_STEP_ID, stepRt.getStepId());
+                        .param(ARG_STEP_PATH, stepRt.getStepPath());
 
             return future;
         }, stepRt, true);
@@ -238,7 +238,7 @@ public class GraphTaskStep extends AbstractTaskStep {
             if (runningCount.get() == 0 && !future.isDone())
                 throw new NopException(ERR_TASK_GRAPH_NO_ACTIVE_STEP)
                         .source(this)
-                        .param(ARG_STEP_ID, stepRt.getStepId());
+                        .param(ARG_STEP_PATH, stepRt.getStepPath());
         });
     }
 

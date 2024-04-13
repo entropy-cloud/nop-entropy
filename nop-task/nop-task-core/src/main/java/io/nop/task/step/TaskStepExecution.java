@@ -170,9 +170,9 @@ public class TaskStepExecution implements ITaskStepExecution {
 
         stepRt.setOutputNames(outputVars);
 
-        LOG.debug("nop.task.step.run:taskName={},taskInstanceId={},stepId={},runId={},loc={}",
+        LOG.debug("nop.task.step.run:taskName={},taskInstanceId={},stepPath={},runId={},loc={}",
                 taskRt.getTaskName(), taskRt.getTaskInstanceId(),
-                stepRt.getStepId(), stepRt.getRunId(), step.getLocation());
+                stepRt.getStepPath(), stepRt.getRunId(), step.getLocation());
 
         if (parentRt.isCancelled()) {
             throw TaskStepHelper.newError(location, stepRt, ERR_TASK_CANCELLED);
@@ -181,8 +181,8 @@ public class TaskStepExecution implements ITaskStepExecution {
         if (!stepRt.isRecoverMode()) {
             if (!allowExecute(parentRt)) {
                 LOG.info("nop.task.step.skip-when-condition-not-satisfied:taskName={},taskInstanceId={},"
-                                + "stepId={},runId={},loc={}", taskRt.getTaskName(), taskRt.getTaskInstanceId(),
-                        stepRt.getStepId(), stepRt.getRunId(), step.getLocation());
+                                + "stepPath={},runId={},loc={}", taskRt.getTaskName(), taskRt.getTaskInstanceId(),
+                        stepRt.getStepPath(), stepRt.getRunId(), step.getLocation());
 
                 return TaskStepReturn.CONTINUE;
             }
@@ -199,7 +199,7 @@ public class TaskStepExecution implements ITaskStepExecution {
         }
 
         ITaskFlowMetrics metrics = parentRt.getTaskRuntime().getMetrics();
-        Object meter = recordMetrics ? metrics.beginStep(stepRt.getStepId(), step.getStepType()) : null;
+        Object meter = recordMetrics ? metrics.beginStep(stepRt.getStepPath(), step.getStepType()) : null;
 
         try {
             TaskStepReturn stepResult = step.execute(stepRt);
@@ -213,9 +213,9 @@ public class TaskStepExecution implements ITaskStepExecution {
                     metrics.endStep(meter, err != null);
 
                 if (err != null) {
-                    LOG.info("nop.task.step.run-fail:usedTime={},taskName={},taskInstanceId={},stepId={},runId={},nextStepNameOnError={},loc={}",
+                    LOG.info("nop.task.step.run-fail:usedTime={},taskName={},taskInstanceId={},stepPath={},runId={},nextStepNameOnError={},loc={}",
                             CoreMetrics.currentTimeMillis() - beginTime, taskRt.getTaskName(), taskRt.getTaskInstanceId(),
-                            stepRt.getStepId(), stepRt.getRunId(), nextStepNameOnError, step.getLocation(), err);
+                            stepRt.getStepPath(), stepRt.getRunId(), nextStepNameOnError, step.getLocation(), err);
 
                     if (TaskStepHelper.isCancelledException(err))
                         throw NopException.adapt(err);
@@ -241,18 +241,18 @@ public class TaskStepExecution implements ITaskStepExecution {
                     if (ret.getNextStepName() == null && nextStepName != null)
                         ret = TaskStepReturn.RETURN(nextStepName, ret.get());
 
-                    LOG.debug("nop.task.step.run-ok:usedTime={},taskName={},taskInstanceId={},stepId={},runId={}," +
+                    LOG.debug("nop.task.step.run-ok:usedTime={},taskName={},taskInstanceId={},stepPath={},runId={}," +
                                     "nextStepName={},outputs={},loc={}",
                             CoreMetrics.currentTimeMillis() - beginTime, taskRt.getTaskName(), taskRt.getTaskInstanceId(),
-                            stepRt.getStepId(), stepRt.getRunId(), ret.getNextStepName(), ret.getOutputs(),
+                            stepRt.getStepPath(), stepRt.getRunId(), ret.getNextStepName(), ret.getOutputs(),
                             step.getLocation());
                     return ret;
                 }
             });
         } catch (Exception e) {
-            LOG.info("nop.task.step.run-fail:usedTime={},taskName={},taskInstanceId={},stepId={},runId={},nextStepNameOnError={},loc={}",
+            LOG.info("nop.task.step.run-fail:usedTime={},taskName={},taskInstanceId={},stepPath={},runId={},nextStepNameOnError={},loc={}",
                     CoreMetrics.currentTimeMillis() - beginTime, taskRt.getTaskName(), taskRt.getTaskInstanceId(),
-                    stepRt.getStepId(), stepRt.getRunId(), nextStepNameOnError, step.getLocation(), e);
+                    stepRt.getStepPath(), stepRt.getRunId(), nextStepNameOnError, step.getLocation(), e);
 
             if (meter != null)
                 metrics.endStep(meter, false);

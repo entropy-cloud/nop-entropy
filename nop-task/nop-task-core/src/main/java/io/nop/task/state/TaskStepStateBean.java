@@ -12,11 +12,11 @@ import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepReturn;
 
 public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskStepState {
-    private String stepId;
+    private String stepPath;
     private int runId;
 
     private int bodyStepIndex;
-    private String parentStepId;
+    private String parentStepPath;
     private int parentRunId;
     private String stepType;
     private Integer stepStatus;
@@ -75,13 +75,13 @@ public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskS
     }
 
     @Override
-    public String getStepId() {
-        return stepId;
+    public String getStepPath() {
+        return stepPath;
     }
 
     @Override
-    public void setStepId(String stepId) {
-        this.stepId = stepId;
+    public void setStepPath(String stepPath) {
+        this.stepPath = stepPath;
     }
 
     @Override
@@ -105,13 +105,13 @@ public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskS
     }
 
     @Override
-    public String getParentStepId() {
-        return parentStepId;
+    public String getParentStepPath() {
+        return parentStepPath;
     }
 
     @Override
-    public void setParentStepId(String parentStepId) {
-        this.parentStepId = parentStepId;
+    public void setParentStepPath(String parentStepPath) {
+        this.parentStepPath = parentStepPath;
     }
 
     @Override

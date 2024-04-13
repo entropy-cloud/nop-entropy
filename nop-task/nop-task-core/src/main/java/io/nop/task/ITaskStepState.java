@@ -19,12 +19,12 @@ public interface ITaskStepState extends ITaskStateCommon {
     /**
      * stepId为静态定义的步骤id. runId为动态执行路径所确定的id. 两者结合在一起唯一确定一个TaskStepState
      */
-    String getStepId();
+    String getStepPath();
 
-    void setStepId(String stepId);
+    void setStepPath(String stepPath);
 
     default String getStepName() {
-        return StringHelper.lastPart(getStepId(), '/');
+        return StringHelper.lastPart(getStepPath(), '/');
     }
 
     /**
@@ -38,9 +38,9 @@ public interface ITaskStepState extends ITaskStateCommon {
 
     void setBodyStepIndex(int bodyIndex);
 
-    String getParentStepId();
+    String getParentStepPath();
 
-    void setParentStepId(String parentStepId);
+    void setParentStepPath(String parentStepPath);
 
     int getParentRunId();
 

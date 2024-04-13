@@ -14,7 +14,7 @@ public class EmptyTaskFlowMetrics implements ITaskFlowMetrics {
     }
 
     @Override
-    public Object beginStep(String stepId, String stepType) {
+    public Object beginStep(String stepPath, String stepType) {
         return null;
     }
 

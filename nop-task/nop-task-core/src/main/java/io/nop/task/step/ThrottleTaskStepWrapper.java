@@ -36,11 +36,11 @@ public class ThrottleTaskStepWrapper extends DelegateTaskStep {
     private String getKey(ITaskStepRuntime stepRt) {
         String key;
         if (keyExpr == null) {
-            key = stepRt.getStepId();
+            key = stepRt.getStepPath();
         } else {
             key = ConvertHelper.toString(keyExpr.invoke(stepRt));
             if (StringHelper.isEmpty(key))
-                key = stepRt.getStepId();
+                key = stepRt.getStepPath();
         }
         return key;
     }

@@ -33,10 +33,10 @@ import static io.nop.task.TaskErrors.ERR_TASK_RETRY_TIMES_EXCEED_LIMIT;
 
 public class TaskStepHelper {
 
-    public static String buildStepId(String parentId, String stepName) {
-        if (StringHelper.isEmpty(parentId))
+    public static String buildStepPath(String parentPath, String stepName) {
+        if (StringHelper.isEmpty(parentPath))
             return stepName;
-        return parentId + '/' + stepName;
+        return parentPath + '/' + stepName;
     }
 
     public static NopException newError(SourceLocation loc,
@@ -44,12 +44,14 @@ public class TaskStepHelper {
         if (e == null)
             return newError(loc, stepRt, errorCode);
         throw new NopException(errorCode, e).loc(loc).param(TaskErrors.ARG_TASK_NAME, stepRt.getTaskRuntime().getTaskName())
-                .param(TaskErrors.ARG_STEP_ID, stepRt.getStepId()).param(TaskErrors.ARG_STEP_TYPE, stepRt.getStepType());
+                .param(TaskErrors.ARG_STEP_PATH, stepRt.getStepPath()).param(TaskErrors.ARG_RUN_ID, stepRt.getRunId())
+                .param(TaskErrors.ARG_STEP_TYPE, stepRt.getStepType());
     }
 
     public static NopException newError(SourceLocation loc, ITaskStepRuntime stepRt, ErrorCode errorCode) {
         throw new NopException(errorCode).loc(loc).param(TaskErrors.ARG_TASK_NAME, stepRt.getTaskRuntime().getTaskName())
-                .param(TaskErrors.ARG_STEP_ID, stepRt.getStepId()).param(TaskErrors.ARG_STEP_TYPE, stepRt.getStepType());
+                .param(TaskErrors.ARG_STEP_PATH, stepRt.getStepPath()).param(TaskErrors.ARG_RUN_ID, stepRt.getRunId())
+                .param(TaskErrors.ARG_STEP_TYPE, stepRt.getStepType());
     }
 
     public static boolean isCancelledException(Throwable e) {
