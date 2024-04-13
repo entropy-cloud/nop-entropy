@@ -23,9 +23,9 @@ quarkus.package.type参数是quarkus框架所识别的一个参数，指定它�
 
 可以将PowerShell的编码设置为UTF8
 
-````
+```
 $OutputEncoding = [Console]::OutputEncoding = [Text.Encoding]::UTF8
-````
+```
 
 目前已经升级到quarkus3.0版本，用低版本maven运行nop-auth-app等模块可能会失败。建议升级到maven
 3.9.3版本，或者使用nop-entropy跟目录下的mvnw指令，它会自动下载并使用maven 3.9.3。
