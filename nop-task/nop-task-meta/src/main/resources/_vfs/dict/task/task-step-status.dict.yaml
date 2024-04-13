@@ -1,0 +1,43 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 步骤状态
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 已创建
+    value: 0
+    description: 
+  
+  - label: 已暂停
+    value: 10
+    description: 
+  
+  - label: 等待中
+    value: 20
+    description: join步骤在等待上游步骤完成的过程中或者flow步骤在等待子流程完成的过程中处于此状态
+  
+  - label: 执行中
+    value: 30
+    description: 步骤处于激活状态，一般此时在界面上才显示操作按钮
+  
+  - label: 已执行
+    value: 35
+    description: 步骤工作已经完成，等待执行步骤迁移
+  
+  - label: 已完成
+    value: 40
+    description: 步骤正常结束
+  
+  - label: 已超时
+    value: 50
+    description: 已超时
+  
+  - label: 已失败
+    value: 60
+    description: 步骤异常结束
+  
+  - label: 已中止
+    value: 70
+    description: 主动中止
+  

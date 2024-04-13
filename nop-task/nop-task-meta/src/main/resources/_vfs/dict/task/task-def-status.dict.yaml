@@ -1,0 +1,23 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 逻辑流定义状态
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 未发布
+    value: 0
+    description: 
+  
+  - label: 已发布
+    value: 1
+    description: 
+  
+  - label: 已过时
+    value: 2
+    description: 过时的流程不推荐使用
+  
+  - label: 已归档
+    value: 3
+    description: 已归档的流程不能新建实例
+  

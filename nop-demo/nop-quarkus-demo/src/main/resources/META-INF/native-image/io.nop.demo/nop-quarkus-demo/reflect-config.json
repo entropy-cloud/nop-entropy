@@ -1462,6 +1462,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getSourceFields",
+        "parameterTypes": []
+      },
+      {
         "name": "hasField",
         "parameterTypes": []
       },
@@ -2350,6 +2354,10 @@
         ]
       },
       {
+        "name": "isAutoCleanResource",
+        "parameterTypes": []
+      },
+      {
         "name": "js",
         "parameterTypes": [
           "java.lang.String"
@@ -3100,6 +3108,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getLeftJoinProps",
+        "parameterTypes": []
+      },
+      {
         "name": "getLimit",
         "parameterTypes": []
       },
@@ -3219,6 +3231,12 @@
       },
       {
         "name": "setJoins",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setLeftJoinProps",
         "parameterTypes": [
           "java.util.List"
         ]
@@ -15760,6 +15778,15 @@
         ]
       },
       {
+        "name": "doFindCount0",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
+          "java.util.function.BiConsumer",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "doFindFirst",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean",
@@ -15845,6 +15872,13 @@
         "name": "doUpdateEntity",
         "parameterTypes": [
           "io.nop.biz.crud.EntityData",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "findCount",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -19496,6 +19530,10 @@
     "fields": [],
     "methods": [
       {
+        "name": "bindingCtx",
+        "parameterTypes": []
+      },
+      {
         "name": "fromEvalContext",
         "parameterTypes": [
           "io.nop.core.context.IEvalContext"
@@ -22413,6 +22451,12 @@
         "parameterTypes": [
           "java.lang.String",
           "java.lang.Object"
+        ]
+      },
+      {
+        "name": "removeProp",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -27392,6 +27436,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isSupportSomeSubQuery",
+        "parameterTypes": []
+      },
+      {
         "name": "isSupportTransaction",
         "parameterTypes": []
       },
@@ -27602,6 +27650,10 @@
         ]
       },
       {
+        "name": "getExceptKeyword",
+        "parameterTypes": []
+      },
+      {
         "name": "getForUpdateSql",
         "parameterTypes": [
           "io.nop.dao.dialect.lock.LockOption"
@@ -27763,6 +27815,10 @@
       },
       {
         "name": "isSupportSequence",
+        "parameterTypes": []
+      },
+      {
+        "name": "isSupportSomeSubQuery",
         "parameterTypes": []
       },
       {
@@ -28367,6 +28423,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getSupportSomeSubQuery",
+        "parameterTypes": []
+      },
+      {
         "name": "getSupportTransaction",
         "parameterTypes": []
       },
@@ -28480,6 +28540,12 @@
       },
       {
         "name": "setSupportSequence",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setSupportSomeSubQuery",
         "parameterTypes": [
           "java.lang.Boolean"
         ]
@@ -28923,6 +28989,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getExceptKeyword",
+        "parameterTypes": []
+      },
+      {
         "name": "getFalseString",
         "parameterTypes": []
       },
@@ -29010,6 +29080,12 @@
         "name": "setEscapeSlash",
         "parameterTypes": [
           "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setExceptKeyword",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -29287,6 +29363,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isOnlyForWindowExpr",
+        "parameterTypes": []
+      },
+      {
         "name": "isReturnFirstArgType",
         "parameterTypes": []
       },
@@ -29334,6 +29414,12 @@
         "name": "setName",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setOnlyForWindowExpr",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -29428,6 +29514,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isOnlyForWindowExpr",
+        "parameterTypes": []
+      },
+      {
         "name": "isReturnFirstArgType",
         "parameterTypes": []
       },
@@ -29457,6 +29547,12 @@
         "name": "setName",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setOnlyForWindowExpr",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -44917,6 +45013,10 @@
         ]
       },
       {
+        "name": "orm_requireEntity",
+        "parameterTypes": []
+      },
+      {
         "name": "orm_reset",
         "parameterTypes": []
       },
@@ -46734,6 +46834,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isJoinOnNonPkColumn",
+        "parameterTypes": []
+      },
+      {
         "name": "isMandatory",
         "parameterTypes": []
       },
@@ -47576,6 +47680,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isJoinOnNonPkColumn",
+        "parameterTypes": []
+      },
+      {
         "name": "isMandatory",
         "parameterTypes": []
       },
@@ -47599,6 +47707,12 @@
       },
       {
         "name": "setDynamicRelation",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setJoinOnNonPkColumn",
         "parameterTypes": [
           "boolean"
         ]
@@ -51198,6 +51312,10 @@
         "parameterTypes": [
           "boolean"
         ]
+      },
+      {
+        "name": "orm_requireEntity",
+        "parameterTypes": []
       },
       {
         "name": "orm_reset",
@@ -61782,6 +61900,12 @@
         "name": "runLocal",
         "parameterTypes": [
           "java.util.function.Function"
+        ]
+      },
+      {
+        "name": "setDefaultSeqInitNextValue",
+        "parameterTypes": [
+          "long"
         ]
       },
       {
@@ -72596,6 +72720,14 @@
         "parameterTypes": []
       },
       {
+        "name": "getModelNameProp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getModelVersionProp",
+        "parameterTypes": []
+      },
+      {
         "name": "getOrderBy",
         "parameterTypes": []
       },
@@ -72751,6 +72883,18 @@
         "name": "setKeys",
         "parameterTypes": [
           "java.util.List"
+        ]
+      },
+      {
+        "name": "setModelNameProp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setModelVersionProp",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
