@@ -684,6 +684,9 @@ public interface CoreErrors {
     ErrorCode ERR_REFLECT_BEAN_NO_CLASS_FOR_TYPE = define("nop.err.core.reflect.bean-no-class-for-type",
             "{typeValue}没有对应的实现类", ARG_CLASS_NAME, ARG_TYPE_VALUE);
 
+    ErrorCode ERR_REFLECT_BEAN_CLASS_NO_FACTORY_METHOD = define("nop.err.core.reflect.bean-class-no-factory-method",
+            "{className}类没有定义工厂方法，也不是枚举类", ARG_CLASS_NAME);
+
     ErrorCode ERR_REFLECT_BEAN_NO_DEFAULT_CONSTRUCTOR = define("nop.err.core.reflect.bean-no-default-constructor",
             "类[{className}]没有缺省构造器", ARG_CLASS_NAME);
 
@@ -700,6 +703,8 @@ public interface CoreErrors {
             "[{className}]类中的方法[{methodName}]标注了@TemplateStringMethod注解，" + "但是函数声明不符合模板字符串方法要求", ARG_CLASS_NAME,
             ARG_METHOD_NAME);
 
+    ErrorCode ERR_REFLECT_INVALID_VALUE_TEXT_FOR_BEAN = define("nop.err.core.reflect.invalid-value-text-for-bean",
+            "{text}不是{className}类中定义的合法值", ARG_TEXT, ARG_CLASS_NAME);
     ErrorCode ERR_BEAN_SET_BY_INDEX_NOT_IN_RANGE = define("nop.err.core.bean.set-by-index-not-in-range",
             "setByIndex的参数[{index}]不在有效范围内", ARG_INDEX);
 
