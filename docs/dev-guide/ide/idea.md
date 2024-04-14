@@ -32,3 +32,15 @@ gradlew buildPlugin
 插件使用过程中，如果IDEA异常关闭，可能导致文件索引损坏，插件无法正常工作。此时可以点击菜单 File/Invalidate Caches清空缓存，重建索引。
 
 ![idea-clear-cache](idea-clear-cache.png)
+
+
+## 更新 IDEA 之后，插件报错：Plugin 'Nop Entropy' (version '*') is not compatible with the current version of the IDE, because it requires build * or older but the current build is *。
+
+这是因为插件的版本号不兼容当前IDEA版本。可以通过修改 [build.gradle.kts](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-idea-plugin/build.gradle.kts) 文件，将插件的版本号修改为当前IDEA版本号，之后重新编译插件。
+
+```
+patchPluginXml {
+    sinceBuild.set("211")
+    untilBuild.set("233.*")  // 修改为当前IDEA版本号
+}
+```
