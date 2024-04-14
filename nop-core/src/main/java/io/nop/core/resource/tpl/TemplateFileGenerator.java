@@ -302,6 +302,7 @@ public class TemplateFileGenerator {
             return;
         }
 
+        scope.setLocalValue(null, "tplResource", resource);
         scope.setLocalValue(null, VAR_TARGET_RESOURCE, targetFile);
         if (resource.getName().endsWith(XRUN_FILE_SUFFIX)) {
             // xrun文件表示忽略其直接输出内容
