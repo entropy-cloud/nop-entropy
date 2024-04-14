@@ -150,7 +150,7 @@ public final class TaskStepReturn {
         return outputs;
     }
 
-    public TaskStepReturn resolve() {
+    public TaskStepReturn sync() {
         if (future == null)
             return this;
 

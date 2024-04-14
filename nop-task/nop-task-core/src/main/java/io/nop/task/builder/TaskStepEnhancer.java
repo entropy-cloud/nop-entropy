@@ -32,6 +32,7 @@ import io.nop.task.step.ExecutorTaskStepWrapper;
 import io.nop.task.step.RateLimitTaskStepWrapper;
 import io.nop.task.step.RetryTaskStepWrapper;
 import io.nop.task.step.RunOnContextTaskStepWrapper;
+import io.nop.task.step.SyncTaskStepWrapper;
 import io.nop.task.step.TaskStepExecution;
 import io.nop.task.step.ThrottleTaskStepWrapper;
 import io.nop.task.step.TimeoutTaskStepWrapper;
@@ -46,6 +47,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static io.nop.task.TaskConstants.BEAN_PREFIX_TASK_STEP_DECORATOR;
 
 public class TaskStepEnhancer implements ITaskStepEnhancer {
 
@@ -138,6 +141,9 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
         if (stepModel.getValidator() != null || stepModel.getOnReload() != null) {
             step = new ValidatorTaskStepWrapper(step, buildValidator(stepModel.getValidator()), stepModel.getOnReload());
         }
+
+        if (stepModel.isSync())
+            step = new SyncTaskStepWrapper(step);
         return step;
     }
 
@@ -159,15 +165,15 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
 
         List<TaskDecoratorModel> decorators = stepModel.getDecorators();
         for (TaskDecoratorModel decoratorModel : decorators) {
-            step = decorate(decoratorModel, step);
+            step = decorate(decoratorModel, stepModel, step);
         }
         return step;
     }
 
-    private ITaskStep decorate(TaskDecoratorModel decoratorModel, ITaskStep step) {
+    private ITaskStep decorate(TaskDecoratorModel decoratorModel, TaskStepModel stepModel, ITaskStep step) {
         if (!StringHelper.isEmpty(decoratorModel.getBean())) {
             ITaskStepDecorator decorator = (ITaskStepDecorator) BeanContainer.instance().getBean(decoratorModel.getBean());
-            return decorator.decorate(step, decoratorModel);
+            return decorator.decorate(step, decoratorModel, stepModel);
         }
 
         if (decoratorModel.getSource() != null) {
@@ -177,7 +183,9 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
             return (ITaskStep) decoratorModel.getSource().invoke(scope);
         }
 
-        return step;
+        String bean = BEAN_PREFIX_TASK_STEP_DECORATOR + decoratorModel.getName();
+        ITaskStepDecorator decorator = (ITaskStepDecorator) BeanContainer.instance().getBean(bean);
+        return decorator.decorate(step, decoratorModel, stepModel);
     }
 
     private IRetryPolicy<ITaskStepRuntime> buildRetryPolicy(TaskRetryModel retryModel) {

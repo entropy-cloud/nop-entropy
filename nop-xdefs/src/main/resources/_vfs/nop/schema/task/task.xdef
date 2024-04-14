@@ -60,7 +60,7 @@
 
         @order 按照从小到大的顺序排序。order更小的decorator会先被应用
         -->
-        <decorator order="!int" name="!string" bean="bean-name"
+        <decorator order="!int=100" name="!string" bean="bean-name"
                    xdef:name="TaskDecoratorModel" xdef:unique-attr="name">
             <source xdef:value="xpl"/>
         </decorator>
@@ -113,7 +113,7 @@
     @waitSteps 图模式执行时，需要等待前置步骤执行完毕才能执行本步骤
     -->
     <xdef:define xdef:name="TaskStepModel" xdef:ref="TaskExecutableModel" concurrent="!boolean=false"
-                 extType="var-name" tagSet="csv-set" name="var-name"
+                 extType="var-name" tagSet="csv-set" name="var-name" sync="!boolean=false"
                  allowStartIfComplete="!boolean=false" internal="!boolean=false" errorName="var-name"
                  runOnContext="!boolean=false" waitSteps="csv-set" waitErrorSteps="csv-set"
                  ignoreResult="!boolean=false" graphql:operationType="string" recordMetrics="!boolean=false"

@@ -33,7 +33,7 @@ public class ExecutorTaskStepWrapper extends DelegateTaskStep {
             try {
                 TaskStepReturn result = getTaskStep().execute(stepRt);
                 if (result.isDone()) {
-                    ret.complete(result.resolve());
+                    ret.complete(result.sync());
                 } else {
                     result.whenComplete((data, err) -> {
                         if (err != null) {

@@ -102,6 +102,13 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      *  
+     * xml name: sync
+     * 
+     */
+    private boolean _sync  = false;
+    
+    /**
+     *  
      * xml name: tagSet
      * 
      */
@@ -351,6 +358,25 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      * 
+     * xml name: sync
+     *  
+     */
+    
+    public boolean isSync(){
+      return _sync;
+    }
+
+    
+    public void setSync(boolean value){
+        checkAllowChange();
+        
+        this._sync = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: tagSet
      *  
      */
@@ -433,6 +459,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         out.putNotNull("recordMetrics",this.isRecordMetrics());
         out.putNotNull("runOnContext",this.isRunOnContext());
         out.putNotNull("saveState",this.getSaveState());
+        out.putNotNull("sync",this.isSync());
         out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("waitErrorSteps",this.getWaitErrorSteps());
         out.putNotNull("waitSteps",this.getWaitSteps());
@@ -459,6 +486,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         instance.setRecordMetrics(this.isRecordMetrics());
         instance.setRunOnContext(this.isRunOnContext());
         instance.setSaveState(this.getSaveState());
+        instance.setSync(this.isSync());
         instance.setTagSet(this.getTagSet());
         instance.setWaitErrorSteps(this.getWaitErrorSteps());
         instance.setWaitSteps(this.getWaitSteps());

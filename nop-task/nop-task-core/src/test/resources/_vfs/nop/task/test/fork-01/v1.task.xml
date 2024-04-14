@@ -1,4 +1,4 @@
-<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" >
     <steps>
         <fork name="test" varName="data" aggregateVarName="results">
             <input name="x">

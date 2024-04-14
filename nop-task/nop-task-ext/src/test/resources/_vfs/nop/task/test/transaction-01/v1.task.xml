@@ -1,0 +1,29 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
+    <steps>
+        <sequential name="parentStep">
+            <decorator name="transaction" />
+
+            <steps>
+                <xpl name="step1">
+                    <source><![CDATA[
+                        import io.nop.sys.dao.entity.NopSysDict;
+
+                        const daoProvider = inject("nopDaoProvider");
+                        const dao = daoProvider.dao("NopSysDict");
+                        const dict = new NopSysDict();
+                        dict.setDictName("sys/test2");
+                        dict.setDisplayName("test");
+                        dao.saveEntity(dict);
+                        dao.flushSession();
+                    ]]></source>
+                </xpl>
+
+                <xpl name="step2">
+                    <source>
+                        <c:throw errorCode="test-error" />
+                    </source>
+                </xpl>
+            </steps>
+        </sequential>
+    </steps>
+</task>

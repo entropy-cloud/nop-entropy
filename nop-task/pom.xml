@@ -24,5 +24,6 @@
         <module>nop-task-meta</module>
         <module>nop-task-service</module>
         <module>nop-task-app</module>
+        <module>nop-task-ext</module>
     </modules>
 </project>

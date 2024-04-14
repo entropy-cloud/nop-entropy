@@ -134,4 +134,6 @@ public interface TaskConstants {
     String STATUS_FAILURE = "FAILURE";
 
     String DEFAULT_METER_PREFIX = "nop.";
+
+    String BEAN_PREFIX_TASK_STEP_DECORATOR = "nopTaskStepDecorator_";
 }
