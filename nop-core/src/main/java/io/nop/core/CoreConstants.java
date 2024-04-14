@@ -134,6 +134,7 @@ public interface CoreConstants extends ResourceConstants {
     String XGEN_FILE_PREFIX = "_";
     String XGEN_FILE_DIR = "/_gen/";
 
+    String VAR_TPL_RESOURCE = "tplResource";
     String VAR_TARGET_RESOURCE = "targetResource";
     String XGEN_MARK_IGNORE = "|XGEN_IGNORE|";
     String XGEN_MARK_FORCE_OVERRIDE = "__XGEN_FORCE_OVERRIDE__";

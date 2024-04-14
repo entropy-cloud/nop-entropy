@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 
 import static io.nop.core.CoreConstants.POSTFIX_NOT_DELETE;
 import static io.nop.core.CoreConstants.VAR_TARGET_RESOURCE;
+import static io.nop.core.CoreConstants.VAR_TPL_RESOURCE;
 import static io.nop.core.CoreConstants.XGEN_FILE_DIR;
 import static io.nop.core.CoreConstants.XGEN_FILE_PREFIX;
 import static io.nop.core.CoreConstants.XGEN_FILE_SUFFIX;
@@ -103,11 +104,11 @@ public class TemplateFileGenerator {
         return this;
     }
 
-    public boolean isCheckOverrideHead(){
+    public boolean isCheckOverrideHead() {
         return checkOverrideHead;
     }
 
-    public boolean isAutoFormat(){
+    public boolean isAutoFormat() {
         return autoFormat;
     }
 
@@ -302,7 +303,7 @@ public class TemplateFileGenerator {
             return;
         }
 
-        scope.setLocalValue(null, "tplResource", resource);
+        scope.setLocalValue(null, VAR_TPL_RESOURCE, resource);
         scope.setLocalValue(null, VAR_TARGET_RESOURCE, targetFile);
         if (resource.getName().endsWith(XRUN_FILE_SUFFIX)) {
             // xrun文件表示忽略其直接输出内容
