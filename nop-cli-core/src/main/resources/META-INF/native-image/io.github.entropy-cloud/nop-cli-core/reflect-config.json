@@ -13033,6 +13033,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isJoinOnNonPkColumn",
+        "parameterTypes": []
+      },
+      {
         "name": "isMandatory",
         "parameterTypes": []
       },
@@ -13653,6 +13657,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isJoinOnNonPkColumn",
+        "parameterTypes": []
+      },
+      {
         "name": "isMandatory",
         "parameterTypes": []
       },
@@ -13676,6 +13684,12 @@
       },
       {
         "name": "setDynamicRelation",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setJoinOnNonPkColumn",
         "parameterTypes": [
           "boolean"
         ]

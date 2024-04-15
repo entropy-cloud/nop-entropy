@@ -89,6 +89,8 @@ public interface GraphQLConstants {
     String GRAPHQL_CONNECTION = "GraphQLConnection";
 
     String FIELD_ITEMS = "items";
+
+    String FIELD_EDGES = "edges";
     String FIELD_TOTAL = "total";
 
     String FIELD_PAGE_INFO = "pageInfo";

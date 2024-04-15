@@ -33,6 +33,8 @@ public class GraphQLConnectionInput {
      * 如果没有设置cursor，则也可以使用offset/limit机制进行分页
      */
     private long offset;
+
+    private int limit;
     private TreeBean filter;
     private List<OrderFieldBean> orderBy;
 
@@ -82,6 +84,15 @@ public class GraphQLConnectionInput {
     }
 
     @PropMeta(propId = 6)
+    public int getLimit() {
+        return limit;
+    }
+
+    public void setLimit(int limit) {
+        this.limit = limit;
+    }
+
+    @PropMeta(propId = 7)
     public TreeBean getFilter() {
         return filter;
     }
@@ -90,7 +101,7 @@ public class GraphQLConnectionInput {
         this.filter = filter;
     }
 
-    @PropMeta(propId = 7)
+    @PropMeta(propId = 8)
     public List<OrderFieldBean> getOrderBy() {
         return orderBy;
     }

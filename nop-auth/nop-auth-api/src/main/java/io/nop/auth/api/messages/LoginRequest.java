@@ -70,6 +70,11 @@ public class LoginRequest extends ExtensibleBean {
 
     private String timeZone;
 
+    /**
+     * 自动注册
+     */
+    private boolean signUp;
+
     @PropMeta(propId = 1)
     public boolean isRememberMe() {
         return rememberMe;
@@ -200,5 +205,14 @@ public class LoginRequest extends ExtensibleBean {
 
     public void setTimeZone(String timeZone) {
         this.timeZone = timeZone;
+    }
+
+    @PropMeta(propId = 16)
+    public boolean isSignUp() {
+        return signUp;
+    }
+
+    public void setSignUp(boolean signUp) {
+        this.signUp = signUp;
     }
 }

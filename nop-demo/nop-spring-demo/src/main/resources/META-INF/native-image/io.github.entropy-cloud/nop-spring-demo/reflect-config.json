@@ -30855,10 +30855,24 @@
     ],
     "methods": [
       {
+        "name": "addDataSource",
+        "parameterTypes": [
+          "java.lang.String",
+          "javax.sql.DataSource"
+        ]
+      },
+      {
         "name": "addQuerySpace",
         "parameterTypes": [
           "java.lang.String",
           "javax.sql.DataSource"
+        ]
+      },
+      {
+        "name": "addTransactionFactory",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.dao.txn.ITransactionFactory"
         ]
       },
       {
@@ -30912,7 +30926,19 @@
         ]
       },
       {
+        "name": "removeDataSource",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "removeQuerySpace",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "removeTransactionFactory",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -38103,6 +38129,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isJoinOnNonPkColumn",
+        "parameterTypes": []
+      },
+      {
         "name": "isMandatory",
         "parameterTypes": []
       },
@@ -38897,6 +38927,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isJoinOnNonPkColumn",
+        "parameterTypes": []
+      },
+      {
         "name": "isMandatory",
         "parameterTypes": []
       },
@@ -38920,6 +38954,12 @@
       },
       {
         "name": "setDynamicRelation",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setJoinOnNonPkColumn",
         "parameterTypes": [
           "boolean"
         ]

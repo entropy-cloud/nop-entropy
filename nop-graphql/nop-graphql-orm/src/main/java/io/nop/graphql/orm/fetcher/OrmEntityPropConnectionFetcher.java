@@ -11,6 +11,8 @@ import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.graphql.GraphQLConnection;
 import io.nop.api.core.beans.graphql.GraphQLConnectionInput;
+import io.nop.api.core.beans.graphql.GraphQLEdgeBean;
+import io.nop.api.core.beans.graphql.GraphQLNode;
 import io.nop.api.core.beans.graphql.GraphQLPageInfo;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
@@ -29,6 +31,7 @@ import io.nop.orm.IOrmEntity;
 import io.nop.orm.OrmConstants;
 import io.nop.orm.utils.OrmQueryHelper;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -70,6 +73,7 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
         AuthHelper.appendFilter(context.getDataAuthChecker(), query, bizObjName, fetchAction, context);
 
         query.setOffset(input.getOffset());
+        query.setLimit(input.getLimit());
 
         if (input.getFirst() > 0) {
             query.setLimit(input.getFirst());
@@ -127,8 +131,26 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
             if (selection.hasField(GraphQLConstants.FIELD_TOTAL)) {
                 conn.setTotal(entityDao.countByQuery(query));
             }
-            if (selection.hasField(GraphQLConstants.FIELD_PAGE_INFO) || selection.hasField(GraphQLConstants.FIELD_ITEMS)) {
+            if (selection.hasField(GraphQLConstants.FIELD_PAGE_INFO)
+                    || selection.hasField(GraphQLConstants.FIELD_ITEMS)
+                    || selection.hasField(GraphQLConstants.FIELD_EDGES)) {
                 fetchItems(conn, query, input);
+            }
+
+            if (selection.hasField(GraphQLConstants.FIELD_EDGES)) {
+                List<Object> items = conn.getItems();
+                if (items != null) {
+                    List<GraphQLEdgeBean> edges = new ArrayList<>(items.size());
+                    for (Object item : items) {
+                        GraphQLEdgeBean edge = new GraphQLEdgeBean();
+                        GraphQLNode node = new GraphQLNode();
+                        node.setId(ConvertHelper.toString(BeanTool.getProperty(item, OrmConstants.PROP_ID)));
+                        edge.setNode(node);
+                        edge.setCursor(getCursor(item));
+                        edges.add(edge);
+                    }
+                    conn.setEdges(edges);
+                }
             }
             return conn;
         }
@@ -154,7 +176,7 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
                 pageInfo.setEndCursor(getCursor(data.get(data.size() - 1)));
             }
             conn.setItems(data);
-        } else {
+        } else if (input.getFirst() > 0) {
             query.setLimit(input.getFirst() + 1);
             List<Object> data = entityDao.findPageByQuery(query);
             GraphQLPageInfo pageInfo = new GraphQLPageInfo();
@@ -164,6 +186,22 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
                 pageInfo.setHasNextPage(true);
             } else {
                 pageInfo.setHasNextPage(false);
+            }
+
+            if (!data.isEmpty()) {
+                pageInfo.setStartCursor(getCursor(data.get(0)));
+                pageInfo.setEndCursor(getCursor(data.get(data.size() - 1)));
+            }
+            conn.setPageInfo(pageInfo);
+            conn.setItems(data);
+        } else {
+            List<Object> data = entityDao.findPageByQuery(query);
+            GraphQLPageInfo pageInfo = new GraphQLPageInfo();
+            pageInfo.setHasPreviousPage(query.getOffset() > 0);
+            if (data.size() < input.getLimit()) {
+                pageInfo.setHasNextPage(false);
+            } else {
+                pageInfo.setHasNextPage(true);
             }
 
             if (!data.isEmpty()) {

@@ -2495,6 +2495,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getLimit",
+        "parameterTypes": []
+      },
+      {
         "name": "getOffset",
         "parameterTypes": []
       },
@@ -2528,6 +2532,12 @@
       },
       {
         "name": "setLast",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setLimit",
         "parameterTypes": [
           "int"
         ]
@@ -30044,10 +30054,24 @@
     ],
     "methods": [
       {
+        "name": "addDataSource",
+        "parameterTypes": [
+          "java.lang.String",
+          "javax.sql.DataSource"
+        ]
+      },
+      {
         "name": "addQuerySpace",
         "parameterTypes": [
           "java.lang.String",
           "javax.sql.DataSource"
+        ]
+      },
+      {
+        "name": "addTransactionFactory",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.dao.txn.ITransactionFactory"
         ]
       },
       {
@@ -30101,7 +30125,19 @@
         ]
       },
       {
+        "name": "removeDataSource",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "removeQuerySpace",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "removeTransactionFactory",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -45361,6 +45397,120 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "NOT_INITED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME__jsonText"
+      }
+    ],
+    "methods": [
+      {
+        "name": "flushToEntity",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStringList",
+        "parameterTypes": []
+      },
+      {
+        "name": "getValue",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "get_jsonMap",
+        "parameterTypes": []
+      },
+      {
+        "name": "get_jsonText",
+        "parameterTypes": []
+      },
+      {
+        "name": "get_jsonValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "isJsonList",
+        "parameterTypes": []
+      },
+      {
+        "name": "isJsonMap",
+        "parameterTypes": []
+      },
+      {
+        "name": "prop_get",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "prop_has",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "prop_names",
+        "parameterTypes": []
+      },
+      {
+        "name": "prop_set",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "require_jsonMap",
+        "parameterTypes": []
+      },
+      {
+        "name": "serializeToJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setStringList",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setValue",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "set_jsonText",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "set_jsonValue",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.orm.component.JsonOrmComponent",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_xmlText"
       }
     ],
@@ -51759,6 +51909,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
         "name": "getPassword",
         "parameterTypes": []
       },
@@ -51836,6 +51990,12 @@
         "name": "setMinSize",
         "parameterTypes": [
           "int"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {

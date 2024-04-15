@@ -7,6 +7,7 @@
  */
 package io.nop.api.core.beans.graphql;
 
+import io.nop.api.core.annotations.core.LazyLoad;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
 import io.nop.api.core.annotations.meta.PropMeta;
@@ -33,6 +34,7 @@ public class GraphQLConnection<T> {
         this.total = total;
     }
 
+    @LazyLoad
     @PropMeta(propId = 2)
     public List<GraphQLEdgeBean> getEdges() {
         return edges;
