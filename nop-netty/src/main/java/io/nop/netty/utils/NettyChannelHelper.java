@@ -27,15 +27,13 @@ public class NettyChannelHelper {
                                                ISslEngineFactory sslEngineFactory) {
         ChannelPipeline pipeline = channel.pipeline();
         if (config.isUseSsl() && config.getSsl() != null) {
-            SSLEngine sslEngine = sslEngineFactory.newSslEngine(config.getSsl());
-            sslEngine.setUseClientMode(clientMode);
+            SSLEngine sslEngine = sslEngineFactory.newSslEngine(config.getSsl(), clientMode);
             pipeline.addLast(NopNettyConstants.HANDLER_SSL, new SslHandler(sslEngine));
         }
 
         if (config.getLogLevel() != null) {
             pipeline.addLast(NopNettyConstants.HANDLER_LOG, new LoggingHandler(config.getLogLevel()));
         }
-
 
         if (config.getReadIdleTimeout() > 0) {
             pipeline.addLast(NopNettyConstants.HANDLER_READ_IDLE_TIMEOUT,
