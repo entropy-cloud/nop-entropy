@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.util.Map;
 
 public class DataSourceConfig {
+    private String name;
     private String driverClassName;
     private String jdbcUrl;
     private String username;
@@ -138,5 +139,13 @@ public class DataSourceConfig {
 
     public void setMaxSize(int maxSize) {
         this.maxSize = maxSize;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 }
