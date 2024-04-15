@@ -20,6 +20,7 @@ import io.nop.commons.util.IoHelper;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.api.AbstractSqlExecutor;
+import io.nop.dao.api.QuerySpaceEnv;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.IDialectProvider;
 import io.nop.dao.dialect.pagination.IPaginationHandler;
@@ -59,6 +60,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 import static io.nop.dao.DaoConfigs.CFG_DAO_DB_TIME_CACHE_TIMEOUT;
+import static io.nop.dao.DaoConfigs.CFG_ORM_ENABLE_DYNAMIC_QUERY_SPACE;
 import static io.nop.dao.DaoErrors.ARG_QUERY_SPACE;
 import static io.nop.dao.DaoErrors.ARG_TXN;
 import static io.nop.dao.DaoErrors.ERR_DAO_QUERY_SPACE_NOT_JDBC_CONNECTION;
@@ -156,15 +158,26 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
     }
 
     private <T> T withTxn(String querySpace, Function<Connection, T> callback) {
-        T ret = transactionTemplate.runInTransaction(querySpace, TransactionPropagation.SUPPORTS, txn -> {
+        String dynamicQuerySpace = useDynamicQuerySpace(querySpace);
+        T ret = transactionTemplate.runInTransaction(dynamicQuerySpace, TransactionPropagation.SUPPORTS, txn -> {
             if (!(txn instanceof IJdbcTransaction))
-                throw new NopException(ERR_DAO_QUERY_SPACE_NOT_JDBC_CONNECTION).param(ARG_QUERY_SPACE, querySpace)
+                throw new NopException(ERR_DAO_QUERY_SPACE_NOT_JDBC_CONNECTION).param(ARG_QUERY_SPACE, dynamicQuerySpace)
                         .param(ARG_TXN, txn);
 
             // 如果没有调用过transaction.open，则这里返回的连接实际上是非事务状态的。
             return callback.apply(((IJdbcTransaction) txn).getConnection());
         });
         return ret;
+    }
+
+    private String useDynamicQuerySpace(String querySpace) {
+        if (!CFG_ORM_ENABLE_DYNAMIC_QUERY_SPACE.get())
+            return querySpace;
+
+        // 如果是缺省的querySpace，则尝试映射到动态querySpace
+        if (DaoHelper.isDefaultQuerySpace(querySpace))
+            return QuerySpaceEnv.getQuerySpaceOrDefault();
+        return querySpace;
     }
 
     private String getQuerySpace(SQL sql) {

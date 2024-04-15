@@ -58,4 +58,7 @@ public interface DaoConfigs {
     @Description("启用租户特性")
     IConfigReference<Boolean> CFG_ORM_ENABLE_TENANT_BY_DEFAULT = varRef(s_loc, "nop.orm.enable-tenant-by-default", Boolean.class, false);
 
+    @Description("启用动态querySpace支持，可以动态将default的querySpace映射为指定的querySpace")
+    IConfigReference<Boolean> CFG_ORM_ENABLE_DYNAMIC_QUERY_SPACE = varRef(s_loc,
+            "nop.orm.enable-dynamic-query-space", Boolean.class, true);
 }

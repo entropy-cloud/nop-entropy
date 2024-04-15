@@ -56,10 +56,14 @@
         <property name="username" value="@cfg:nop.datasource.username"/>
         <property name="password" value="@cfg:nop.datasource.password|"/>
         <property name="maximumPoolSize" value="@cfg:nop.datasource.max-size|8"/>
-        <property name="minimumIdle" value="@cfg:nop.datasource.min-size|4" />
+        <property name="minimumIdle" value="@cfg:nop.datasource.min-size|4"/>
         <property name="connectionTimeout" value="@cfg:nop.datasource.connection-timeout|10000"/>
-        <property name="idleTimeout" value="@cfg:nop.datasource.idle-timeout|600000" />
-        <property name="maxLifetime" value="@cfg:nop.datasource.max-lifetime|3600000" />
+        <property name="idleTimeout" value="@cfg:nop.datasource.idle-timeout|600000"/>
+        <property name="maxLifetime" value="@cfg:nop.datasource.max-lifetime|3600000"/>
+
+        <property name="metricRegistry" feature:on="nop.datasource.metrics-enabled != 'false'">
+            <bean class="io.nop.commons.metrics.GlobalMeterRegistry" factory-method="instance"/>
+        </property>
     </bean>
 
     <alias name="dataSource" alias="nopDataSource" feature:on="nop.dao.use-parent-data-source"/>
@@ -75,12 +79,12 @@
 
     <bean id="nopDaoMetrics" class="io.nop.dao.metrics.DaoMetricsImpl" ioc:default="true"/>
 
-<!--    <bean id="nopDialectProvider" class="io.nop.dao.jdbc.impl.JdbcDialectProvider" ioc:default="true">-->
-<!--        <constructor-arg index="0" ref="nopTransactionTemplate"/>-->
-<!--        <property name="querySpaceToDialectConfig" value="@cfg:nop.dao.config.query-space-to-dialect|"/>-->
-<!--    </bean>-->
+    <!--    <bean id="nopDialectProvider" class="io.nop.dao.jdbc.impl.JdbcDialectProvider" ioc:default="true">-->
+    <!--        <constructor-arg index="0" ref="nopTransactionTemplate"/>-->
+    <!--        <property name="querySpaceToDialectConfig" value="@cfg:nop.dao.config.query-space-to-dialect|"/>-->
+    <!--    </bean>-->
 
-    <alias name="nopTransactionTemplate" alias="nopDialectProvider" />
+    <alias name="nopTransactionTemplate" alias="nopDialectProvider"/>
 
     <bean id="nopTransactionalMethodInterceptor" ioc:default="true"
           class="io.nop.dao.txn.interceptor.TransactionalMethodInterceptor">

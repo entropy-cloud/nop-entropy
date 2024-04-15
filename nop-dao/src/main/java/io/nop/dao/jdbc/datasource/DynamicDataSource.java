@@ -31,6 +31,12 @@ public class DynamicDataSource implements DataSource {
         this.defaultDataSource = defaultDataSource;
     }
 
+    public DataSource switchDataSource(DataSource dataSource) {
+        DataSource old = s_dataSource.get();
+        s_dataSource.set(dataSource);
+        return old;
+    }
+
     protected DataSource resolveDataSource() {
         DataSource current = s_dataSource.get();
         if (current != null)

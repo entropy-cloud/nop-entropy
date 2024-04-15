@@ -95,6 +95,22 @@ public class DefaultTransactionManager implements ITransactionManager {
         }
     }
 
+    public void addTransactionFactory(String querySpace, ITransactionFactory transactionFactory) {
+        transactionFactoryMap.put(querySpace, transactionFactory);
+    }
+
+    public void removeTransactionFactory(String querySpace) {
+        transactionFactoryMap.remove(querySpace);
+    }
+
+    public void addDataSource(String querySpace, DataSource dataSource) {
+        addTransactionFactory(querySpace, new JdbcTransactionFactory(dataSource));
+    }
+
+    public void removeDataSource(String querySpace) {
+        transactionFactoryMap.remove(querySpace);
+    }
+
     public Set<String> getNamedQuerySpaces() {
         return transactionFactoryMap.keySet();
     }
