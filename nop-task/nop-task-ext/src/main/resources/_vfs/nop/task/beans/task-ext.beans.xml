@@ -12,4 +12,10 @@
         </ioc:condition>
     </bean>
 
+    <bean id="nopTaskStepDecorator_ormSession" class="io.nop.task.ext.orm.OrmSessionTaskStepDecorator">
+        <ioc:condition>
+            <on-class>io.nop.orm.IOrmTemplate</on-class>
+        </ioc:condition>
+    </bean>
+
 </beans>

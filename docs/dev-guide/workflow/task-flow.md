@@ -2,6 +2,8 @@
 
 单元测试参见 [TestTaskManager.java]()，测试文件参见[/nop/task/test](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-task/nop-task-core/src/test/resources/_vfs/nop/task/test)
 
+设计原理的介绍，参见[lowcode-task-flow.md](../../theory/lowcode-task-flow.md)
+
 ## 基本概念
 
 1. TaskFlow: 逻辑流模型，存放在task.xml模型文件中，另外也可以存放在task-lib.xml中作为可复用的步骤库
@@ -16,7 +18,7 @@
 ```javascript
 parentScope = parentStepRuntime.scope
 
-for each inputModel 
+for each inputModel
    inputs[inputModel.name] = inputModel.source.evaluate(parentScope)
 
 outputs = await step.execute(inputs);
@@ -28,7 +30,7 @@ for each outputModel
 在概念层面上非常类似于一般程序语言中的函数调用：
 
 ```javascript
-var { a: aName, b: bName} = await fn( {x: exprInput1, y: exprInput1} )  
+var { a: aName, b: bName} = await fn( {x: exprInput1, y: exprInput1} )
 ```
 
 TaskFlow的Step相当于是对于传统的函数对象进行了增强，自动支持异步执行、超时处理、自动重试等功能。
@@ -108,7 +110,7 @@ sum = function(sum){
                 return 1
             </source>
         </xpl>
-        
+
         <xpl name="step2">
             <input name="RESULT" />
             <source>
@@ -130,3 +132,7 @@ RESULT = function(RESULT){
   return RESULT + 2
 }(RESULT)
 ```
+
+## 步骤装饰器
+
+通过步骤装饰器可以引入transaction、ormSession等依赖更多的类AOP支持，参见[task-step-decorator.md](task-step-decorator.md)

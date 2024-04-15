@@ -10,7 +10,7 @@ TaskFlow是采用堆栈结构的轻量级工作流。它具有如下功能：
 * 每个步骤具有一个IEvalScope，子步骤通过input从父scope中获取变量，通过output将数据返回到父scope中。相当于是函数调用
 
 ```
- var { outVar } = child( {inputVar: expr_eval_in_parent_scope }) 
+ var { outVar } = child( {inputVar: expr_eval_in_parent_scope })
 ```
 
 **每个Step就相当于是一个可配置的、异步执行、可中断重启、可插入interceptor的函数**
@@ -26,10 +26,9 @@ interface ITaskStep {
     List<? extends ITaskOutputModel> getOutputs();
 
     TaskStepResult execute(ITaskStepRuntime stepRt);
-} 
+}
 ```
 
-* stepId: 每个步骤具有唯一的定义id，它在整个流程图定义中唯一
 * runId: 步骤每次执行都产生一个新的runId。例如循环执行10次，则产生10个不同的runId，通过runId可以区分步骤多次执行产生的不同实例。id=stepId+runId
 * parentState: 步骤的执行实例记录了父子关系，从而可以根据这些状态记录恢复出调用堆栈结构。
 * taskRt: 任务执行过程中的全局上下文。每个步骤的input都从taskRt中读取数据，步骤执行完毕后再通过output修改taskRt中的全局变量
@@ -52,9 +51,9 @@ interface ITaskStep {
 
 ```javascript
   if(task.cancelled) stop;
-  
+
   stepRt = taskRt.newStepRunTime(stepName);
-  
+
   if(第一次执行){
     if(不满足条件) return SUCCESS;
     根据parentScope初始化inputs
@@ -64,7 +63,7 @@ interface ITaskStep {
   }
 
   registerTimeout()
-  
+
   retry{
     try{
        rateLimit()
@@ -75,7 +74,7 @@ interface ITaskStep {
        onFinally()
     }
   }
-  
+
   将result中的变量按照输出配置拷贝到parentScope中
 ```
 
@@ -99,7 +98,7 @@ interface ITaskStep {
 错误恢复：
 
 * 实现类似于continuation机制，基本做法是将内部执行状态明确保存在taskState中，这样只需要恢复taskState就恢复了内部执行状态
-* inputs + internalStates ==\> change internalStates ==\> outputs when finished
+* `inputs + internalStates ==> change internalStates ==> outputs when finished`
 
 ```javascript
   internalStates = initState(inputs);
@@ -110,9 +109,6 @@ interface ITaskStep {
   outputs = buildOutputs(scope)
 ```
 
-## 结构
-
-chain/pipeline是一个特别常用的模式，应该可以直接通过约定来构建
 
 ## 数据驱动模式
 
@@ -127,10 +123,9 @@ chain/pipeline是一个特别常用的模式，应该可以直接通过约定来
 ## 输入输出和引用
 
 * Step类似于函数，不允许跨层架跳转，因此只需要使用局部的stepName即可。
-* Step具有全局id，它由各层级的stepName拼接而成: stepId={stepName}/{stepName}。id仅在运行时存在
+* Step具有全局path，它由各层级的stepName拼接而成: stepPath={stepName}/{stepName}
 * SubTask提供基本的复用机制。可以构建独立的taskRt，也可以直接嵌入到当前taskRt中执行
-* 自定义的运行结构往往在某种程度上是破坏函数抽象。
-* 返回值类型规范化为Map类型，从而自动支持多输出。如果只返回单一结果值，则变量名为result。
+* 返回值类型规范化为Map类型，从而自动支持多输出。如果只返回单一结果值，则变量名为RESULT
 
 ## 设计细节
 
