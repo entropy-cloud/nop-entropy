@@ -53,12 +53,6 @@ public class MultiLineConfigParser {
             return ValueWithLocation.of(loc, text);
         }
 
-        if (sc.cur == '\"' || sc.cur == '\'') {
-            SourceLocation loc = sc.location();
-            String text = sc.nextJavaString();
-            return ValueWithLocation.of(loc, text);
-        }
-
         if (sc.cur == '`') {
             SourceLocation loc = sc.location();
             String text = sc.nextDoubleEscapeString();

@@ -15,6 +15,7 @@ import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.IExcelSheet;
 import io.nop.excel.model.XptSheetModel;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ExpandedSheet implements IExcelSheet {
@@ -51,6 +52,12 @@ public class ExpandedSheet implements IExcelSheet {
 
     public void setImages(List<ExcelImage> images) {
         this.images = images;
+    }
+
+    public List<ExcelImage> makeImages() {
+        if (images == null)
+            images = new ArrayList<>();
+        return images;
     }
 
     public XptSheetModel getModel() {

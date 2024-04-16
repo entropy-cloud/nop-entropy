@@ -19,6 +19,7 @@ import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.IExcelSheet;
 import io.nop.ooxml.common.IOfficePackagePart;
 import io.nop.ooxml.common.OfficeConstants;
+import io.nop.ooxml.common.constants.ContentTypes;
 import io.nop.ooxml.common.impl.XmlOfficePackagePart;
 import io.nop.ooxml.common.model.ContentTypesPart;
 import io.nop.ooxml.common.model.OfficeRelsPart;
@@ -163,6 +164,8 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         String[] pathAndId = genState.images.get(data);
         if (pathAndId == null) {
             int index = genState.nextImageIndex++;
+            if (imgType == null)
+                imgType = ContentTypes.EXTENSION_PNG;
             IResource resource = new ByteArrayResource("/" + index, data.toByteArray(), -1);
             String path = pkg.addImage(imgType, resource);
             pathAndId = new String[]{path, null};

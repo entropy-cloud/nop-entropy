@@ -9,6 +9,7 @@ package io.nop.report.core.engine;
 
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.IVariableScope;
 import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.commons.util.CollectionHelper;
@@ -227,5 +228,11 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
             return new ReportExpressionParser().parseCellExpr(TextScanner.fromString(null, cellExpr)).getExecutable();
         });
         return (ExpandedCellSet) XLang.execute(expr, evalRt);
+    }
+
+    @Override
+    public ExcelImage makeImage() {
+        Guard.notNull(cell, "cell");
+        return cell.makeImage();
     }
 }

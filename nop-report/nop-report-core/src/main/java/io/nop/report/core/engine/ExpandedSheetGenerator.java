@@ -9,12 +9,15 @@ package io.nop.report.core.engine;
 
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.Guard;
+import io.nop.api.core.util.ProcessResult;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.excel.model.ExcelClientAnchor;
+import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.IExcelSheet;
@@ -133,10 +136,26 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
 
         expandedSheet.getTable().assignRowIndexAndColIndex();
         ExpandedSheetEvaluator.INSTANCE.evaluateImages(expandedSheet, sheet.getImages(), xptRt);
+        collectImages(expandedSheet);
 
         initExportFormula(expandedSheet, xptRt);
 
         consumer.accept(expandedSheet);
+    }
+
+    private void collectImages(ExpandedSheet sheet) {
+        sheet.getTable().forEachRealCell((cell, rowIndex, colIndex) -> {
+            ExpandedCell ec = (ExpandedCell) cell;
+            if (ec.getImage() != null) {
+                ExcelImage image = ec.getImage();
+                ExcelClientAnchor anchor = image.makeAnchor();
+                anchor.setRow1(rowIndex);
+                anchor.setCol1(colIndex);
+                image.calcSize(sheet);
+                sheet.makeImages().add(image);
+            }
+            return ProcessResult.CONTINUE;
+        });
     }
 
     private boolean dropRemoved(ExpandedSheet sheet) {

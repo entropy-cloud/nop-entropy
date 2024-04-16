@@ -134,6 +134,13 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     
     /**
      *  
+     * xml name: processExpr
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _processExpr ;
+    
+    /**
+     *  
      * xml name: rowExtendForSibling
      * 同一行的兄弟单元格展开时是否自动拉伸本单元格
      */
@@ -484,6 +491,25 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     
     /**
      * 
+     * xml name: processExpr
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getProcessExpr(){
+      return _processExpr;
+    }
+
+    
+    public void setProcessExpr(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._processExpr = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: rowExtendForSibling
      *  同一行的兄弟单元格展开时是否自动拉伸本单元格
      */
@@ -627,6 +653,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         out.putNotNull("formatExpr",this.getFormatExpr());
         out.putNotNull("keepExpandEmpty",this.isKeepExpandEmpty());
         out.putNotNull("linkExpr",this.getLinkExpr());
+        out.putNotNull("processExpr",this.getProcessExpr());
         out.putNotNull("rowExtendForSibling",this.isRowExtendForSibling());
         out.putNotNull("rowParent",this.getRowParent());
         out.putNotNull("rowTestExpr",this.getRowTestExpr());
@@ -660,6 +687,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         instance.setFormatExpr(this.getFormatExpr());
         instance.setKeepExpandEmpty(this.isKeepExpandEmpty());
         instance.setLinkExpr(this.getLinkExpr());
+        instance.setProcessExpr(this.getProcessExpr());
         instance.setRowExtendForSibling(this.isRowExtendForSibling());
         instance.setRowParent(this.getRowParent());
         instance.setRowTestExpr(this.getRowTestExpr());

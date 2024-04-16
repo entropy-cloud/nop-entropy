@@ -13,6 +13,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.utils.Underscore;
 import io.nop.core.model.table.ICellView;
+import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.XptCellModel;
 import io.nop.excel.model.constants.XptExpandType;
 import io.nop.report.core.dataset.KeyedReportDataSet;
@@ -65,6 +66,8 @@ public class ExpandedCell implements ICellView {
     private ExpandedRow row;
     private ExpandedCol col;
 
+    private ExcelImage image;
+
     private boolean removed;
 
     /**
@@ -86,6 +89,32 @@ public class ExpandedCell implements ICellView {
             computedValues = new HashMap<>();
         }
         return computedValues.computeIfAbsent(key, k -> fn.apply(this));
+    }
+
+    public ExcelImage getImage() {
+        return image;
+    }
+
+    public void setExcelImage(ExcelImage image) {
+        this.image = image;
+    }
+
+    public ExcelImage makeImage() {
+        if (image == null)
+            image = new ExcelImage();
+        return image;
+    }
+
+    public double getWidth() {
+        ExpandedSheet sheet = getTable().getSheet();
+        int colIndex = getColIndex();
+        return sheet.getWidth(colIndex, colIndex + getMergeAcross());
+    }
+
+    public double getHeight() {
+        ExpandedSheet sheet = getTable().getSheet();
+        int rowIndex = getRowIndex();
+        return sheet.getHeight(rowIndex, rowIndex + getMergeDown());
     }
 
     @Override

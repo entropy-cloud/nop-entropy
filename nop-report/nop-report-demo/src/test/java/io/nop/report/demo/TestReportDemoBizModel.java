@@ -115,4 +115,18 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
         FileHelper.copyFile(file, getTargetFile("test-export-formula.xlsx"));
         file.delete();
     }
+
+    @EnableSnapshot
+    @Test
+    public void testQrcode() {
+        setTestConfig(ApiConfigs.CFG_EXCEPTION_FILL_STACKTRACE, true);
+        String reportName = "/base/11-打印条码和二维码.xpt.xlsx";
+        String html = reportDemo.renderHtml(reportName);
+        outputText(reportName + ".html", html);
+
+        WebContentBean result = reportDemo.download(reportName, XptConstants.RENDER_TYPE_XLSX);
+        File file = (File) result.getContent();
+        FileHelper.copyFile(file, getTargetFile("test-qrcode.xlsx"));
+        file.delete();
+    }
 }

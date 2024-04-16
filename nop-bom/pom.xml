@@ -336,6 +336,12 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-report-ext</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-report-dao</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
@@ -799,6 +805,12 @@
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-integration-sms-yunpian</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-integration-zxing</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 

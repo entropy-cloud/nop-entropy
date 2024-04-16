@@ -83,9 +83,8 @@ public class ExpandedSheetEvaluator {
             image.calcSize(sheet);
         }
 
-        List<ExcelImage> genImages = new ArrayList<>();
         MutableInt index = new MutableInt(0);
-        sheet.getTable().forEachCell((cell, rowIndex, colIndex) -> {
+        sheet.getTable().forEachRealCell((cell, rowIndex, colIndex) -> {
             ExpandedCell ec = (ExpandedCell) cell.getRealCell();
             if (ec != null) {
                 XptCellModel cm = ec.getModel();
@@ -97,7 +96,7 @@ public class ExpandedSheetEvaluator {
                             if (image != null) {
                                 image.calcSize(sheet);
                                 index.incrementAndGet();
-                                genImages.add(image);
+                                sheet.makeImages().add(image);
                             }
                         }
                     }
@@ -105,7 +104,6 @@ public class ExpandedSheetEvaluator {
             }
             return ProcessResult.CONTINUE;
         });
-        sheet.setImages(genImages);
     }
 
     public Object evaluateCell(ExpandedCell cell, IXptRuntime xptRt) {
@@ -185,6 +183,10 @@ public class ExpandedSheetEvaluator {
                 cell.setLinkUrl(linkUrl);
             }
             evalTestExpr(cellModel, xptRt);
+
+            if (cellModel.getProcessExpr() != null) {
+                cellModel.getProcessExpr().invoke(xptRt);
+            }
 
             if (LOG.isTraceEnabled())
                 LOG.trace("nop.xpt.eval-cell:cell={},value={}", cell.getName(), cell.getValue());

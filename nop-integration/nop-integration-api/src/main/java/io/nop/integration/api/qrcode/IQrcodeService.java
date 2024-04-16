@@ -7,18 +7,11 @@
  */
 package io.nop.integration.api.qrcode;
 
-import java.io.File;
-
 public interface IQrcodeService {
     /**
      * 生成二维码图片
      *
-     * @param type  二维码类型
-     * @param page  页面路径
-     * @param width 宽度
      * @return 图片的二进制数据
      */
-    byte[] createQrcodeBytes(String type, String scene, String page, int width);
-
-    File createQrcodeFile(String type, String scene, String page, int width, File dir);
+    byte[] createQrcodeBytes(QrcodeOptions options);
 }

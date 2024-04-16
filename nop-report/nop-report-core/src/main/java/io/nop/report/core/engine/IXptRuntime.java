@@ -70,4 +70,6 @@ public interface IXptRuntime extends IEvalContext {
      * @return 递增前的值
      */
     int incAndGet(String name);
+
+    ExcelImage makeImage();
 }

@@ -33,14 +33,14 @@ public interface IExcelSheet {
 
     List<ExcelImage> getImages();
 
-    default double getCellLeft(int colIndex) {
+    default double getWidth(int fromColIndex, int toColIndex) {
         double sum = 0;
-        for (int i = 0; i < colIndex; i++) {
+        for (int i = fromColIndex; i <= toColIndex; i++) {
             IColumnConfig col = getTable().getCol(i);
             Double d;
             if (col == null || col.getWidth() == null) {
                 d = getDefaultColumnWidth();
-            }else{
+            } else {
                 d = col.getWidth();
             }
             if (d == null)
@@ -50,14 +50,14 @@ public interface IExcelSheet {
         return sum;
     }
 
-    default double getCellTop(int rowIndex) {
+    default double getHeight(int fromRowIndex, int toRowIndex) {
         double sum = 0;
-        for (int i = 0; i < rowIndex; i++) {
+        for (int i = fromRowIndex; i <= toRowIndex; i++) {
             IRowView row = getTable().getRow(i);
             Double d;
             if (row == null || row.getHeight() == null) {
                 d = getDefaultRowHeight();
-            }else{
+            } else {
                 d = row.getHeight();
             }
             if (d == null)
@@ -65,5 +65,13 @@ public interface IExcelSheet {
             sum += d;
         }
         return sum;
+    }
+
+    default double getCellLeft(int colIndex) {
+        return getWidth(0, colIndex - 1);
+    }
+
+    default double getCellTop(int rowIndex) {
+        return getHeight(0, rowIndex - 1);
     }
 }

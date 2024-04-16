@@ -272,7 +272,7 @@
             <dependency>
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk-s3</artifactId>
-                <version>1.12.86</version>
+                <version>1.12.638</version>
             </dependency>
 
             <dependency>
@@ -353,6 +353,12 @@
                 <groupId>org.apache.lucene</groupId>
                 <artifactId>lucene-analysis-common</artifactId>
                 <version>${lucene.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.zxing</groupId>
+                <artifactId>javase</artifactId>
+                <version>3.5.3</version>
             </dependency>
 
         </dependencies>

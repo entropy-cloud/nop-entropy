@@ -7,6 +7,8 @@
  */
 package io.nop.excel.model;
 
+import io.nop.api.core.convert.IByteArrayView;
+import io.nop.commons.bytes.ByteString;
 import io.nop.commons.util.StringHelper;
 import io.nop.excel.model._gen._ExcelImage;
 
@@ -51,8 +53,32 @@ public class ExcelImage extends _ExcelImage {
         return top;
     }
 
-    public void calcSize(IExcelSheet sheet) {
+    public ExcelClientAnchor makeAnchor() {
         ExcelClientAnchor anchor = getAnchor();
+        if (anchor == null) {
+            anchor = new ExcelClientAnchor();
+            setAnchor(anchor);
+        }
+        return anchor;
+    }
+
+    public void setDataBytes(byte[] bytes) {
+        this.setData(ByteString.of(bytes));
+    }
+
+    public ExcelImage data(Object data) {
+        if (data instanceof ByteString) {
+            setData((ByteString) data);
+        } else if (data instanceof byte[]) {
+            setDataBytes((byte[]) data);
+        } else if (data instanceof IByteArrayView) {
+            setDataBytes(((IByteArrayView) data).toByteArray());
+        }
+        return this;
+    }
+
+    public void calcSize(IExcelSheet sheet) {
+        ExcelClientAnchor anchor = makeAnchor();
         left = sheet.getCellLeft(anchor.getCol1()) + anchor.getDx1();
         top = sheet.getCellTop(anchor.getRow1()) + anchor.getDy1();
 

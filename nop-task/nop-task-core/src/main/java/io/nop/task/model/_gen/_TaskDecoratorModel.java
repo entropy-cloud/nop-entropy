@@ -35,7 +35,7 @@ public abstract class _TaskDecoratorModel extends io.nop.core.resource.component
      * xml name: order
      * 按照从小到大的顺序排序。order更小的decorator会先被应用
      */
-    private int _order ;
+    private int _order  = 100;
     
     /**
      *  

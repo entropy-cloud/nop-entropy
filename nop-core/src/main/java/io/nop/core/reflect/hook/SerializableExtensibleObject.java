@@ -10,8 +10,8 @@ package io.nop.core.reflect.hook;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.core.reflect.bean.BeanTool;
 
-import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,6 +35,16 @@ public class SerializableExtensibleObject implements IExtensibleObject {
         obj.extProps.forEach((name, value) -> {
             if (!hasExtProp(name)) {
                 setExtProp(name, value);
+            }
+        });
+    }
+
+    public void readExtProps(String prefix, boolean removePrefix, Object bean) {
+        extProps.forEach((name, value) -> {
+            if (name.startsWith(prefix)) {
+                if (removePrefix)
+                    name = name.substring(prefix.length());
+                BeanTool.setProperty(bean, name, value);
             }
         });
     }

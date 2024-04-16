@@ -38,7 +38,7 @@ public class HtmlReportRendererFactory implements IReportRendererFactory {
         return new HtmlTemplate(model, sheetGenerator);
     }
 
-    static class HtmlTemplate implements ITextTemplateOutput {
+    public static class HtmlTemplate implements ITextTemplateOutput {
 
         private final ExcelWorkbook model;
         private final IExcelSheetGenerator sheetGenerator;
@@ -91,7 +91,7 @@ public class HtmlReportRendererFactory implements IReportRendererFactory {
             return reportId;
         }
 
-        private String getScopeCssPrefix(IEvalContext context) {
+        protected String getScopeCssPrefix(IEvalContext context) {
             String prefix = (String) context.getEvalScope().getLocalValue(XptConstants.VAR_SCOPED_CSS_PREFIX);
             if (StringHelper.isEmpty(prefix)) {
                 prefix = XptConstants.CSS_PREFIX_SCOPED;
@@ -99,7 +99,7 @@ public class HtmlReportRendererFactory implements IReportRendererFactory {
             return prefix;
         }
 
-        private void renderStyles(List<ExcelStyle> styles, String reportId, String scopedCssPrefix, Writer out) throws IOException {
+        protected void renderStyles(List<ExcelStyle> styles, String reportId, String scopedCssPrefix, Writer out) throws IOException {
             out.write("<style>\n");
             out.append("#").append(reportId).append(' ');
             out.append(".xpt-table{\n" +
@@ -117,14 +117,14 @@ public class HtmlReportRendererFactory implements IReportRendererFactory {
             out.write("</style>\n");
         }
 
-        private void renderStyle(ExcelStyle style, String reportId, String scopedCssPrefix, Writer out) throws IOException {
+        protected void renderStyle(ExcelStyle style, String reportId, String scopedCssPrefix, Writer out) throws IOException {
             out.write("#");
             out.write(reportId);
             out.write(" ");
             out.write(style.toCssStyle(scopedCssPrefix));
         }
 
-        private void renderSheet(IExcelSheet sheet, String sheetId, String scopedCssPrefix, Writer out, IEvalContext context) {
+        protected void renderSheet(IExcelSheet sheet, String sheetId, String scopedCssPrefix, Writer out, IEvalContext context) {
             try {
                 out.write("<div id=\"");
                 out.write(sheetId);
@@ -179,7 +179,7 @@ public class HtmlReportRendererFactory implements IReportRendererFactory {
         }
 
 
-        private void outputBackground(Stream<ExcelImage> images, Writer out) throws IOException {
+        protected void outputBackground(Stream<ExcelImage> images, Writer out) throws IOException {
             List<String> urls = new ArrayList<>();
             List<String> sizes = new ArrayList<>();
             List<String> posList = new ArrayList<>();

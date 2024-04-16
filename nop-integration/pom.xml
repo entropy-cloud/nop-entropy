@@ -21,6 +21,7 @@
         <module>nop-integration-email-tencent</module>
         <module>nop-integration-file-local</module>
         <module>nop-integration-oss</module>
+        <module>nop-integration-zxing</module>
     </modules>
 
 

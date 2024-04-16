@@ -133,6 +133,8 @@ public class ExcelToXptModelTransformer {
                     Object value = transformer.parseValue(vl, varName, child.getXdefValue());
                     value = addSource(vl, value);
                     BeanTool.instance().setProperty(cellModel, child.getXdefBeanProp(), value);
+                } else if (varName.indexOf(':') > 0) {
+                    cellModel.prop_set(varName, vl.getValue());
                 } else {
                     throw new NopException(ERR_XPT_UNDEFINED_CELL_MODEL_PROP)
                             .source(vl)

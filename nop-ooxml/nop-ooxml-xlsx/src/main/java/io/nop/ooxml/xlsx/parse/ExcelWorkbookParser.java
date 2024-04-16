@@ -64,6 +64,8 @@ public class ExcelWorkbookParser extends AbstractXlsxParser {
                     ec.setComment(comment.getComment());
                 } else {
                     ExcelCell ec = new ExcelCell();
+                    ec.setLocation(new SourceLocation(workbook.resourcePath(), 0, 0, 0, 0,
+                            sheet.getName(), cellPos.toABString(), null));
                     ec.setComment(comment.getComment());
                     sheet.getTable().setCell(cellPos.getRowIndex(), cellPos.getColIndex(), ec);
                 }

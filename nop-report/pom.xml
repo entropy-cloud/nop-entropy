@@ -30,5 +30,6 @@
         <module>nop-report-spl</module>
         <module>nop-report-pdf</module>
         <module>nop-report-meta</module>
+        <module>nop-report-ext</module>
     </modules>
 </project>

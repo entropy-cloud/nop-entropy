@@ -98,7 +98,8 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
                                     格式化为字符串后导出，而不是导出单元格的原始值。缺省情况下会导出原始值，使用Excel的NumberFormat来格式化
                                 -->
                                 <model xdef:name="XptCellModel" domain="string" editorId="var-name" viewerId="var-name"
-                                       field="prop-name" ds="var-name" expandInplaceCount="int" exportFormula="!boolean=false"
+                                       field="prop-name" ds="var-name" expandInplaceCount="int"
+                                       exportFormula="!boolean=false"
                                        expandType="enum:io.nop.excel.model.constants.XptExpandType"
                                        keepExpandEmpty="!boolean=false" exportFormattedValue="!boolean=false"
                                        rowExtendForSibling="!boolean=false" colExtendForSibling="!boolean=false"
@@ -126,6 +127,7 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
                                     <formatExpr xdef:value="report-expr"/>
                                     <linkExpr xdef:value="report-expr"/>
                                     <styleIdExpr xdef:value="report-expr"/>
+                                    <processExpr xdef:value="report-expr"/>
 
                                     <!--
                                     返回false的时候表示当前单元格所在的行需要被删除
@@ -150,17 +152,17 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
                 @print 控制图片是否被打印。套打对应的背景图片不需要被打印
                 -->
                 <image name="!string" xdef:name="ExcelImage" imgType="string"
-                    print="!boolean=true" noChangeAspect="!boolean=false" rotateDegree="!double=0">
+                       print="!boolean=true" noChangeAspect="!boolean=false" rotateDegree="!double=0">
                     <anchor xdef:name="ExcelClientAnchor"
                             xdef:ref="anchor.xdef"
                             type="enum:io.nop.excel.model.constants.ExcelAnchorType"/>
                     <!-- data为对应图片数据 -->
                     <data xdef:value="base64-bytes"/>
                     <description xdef:value="string"/>
-                    <linkUrl xdef:value="string" />
+                    <linkUrl xdef:value="string"/>
                     <linkExpr xdef:value="report-expr"/>
                     <testExpr xdef:value="xpl-predicate"/>
-                    <dataExpr xdef:value="xpl"/>
+                    <dataExpr xdef:value="report-expr"/>
                 </image>
             </images>
 
