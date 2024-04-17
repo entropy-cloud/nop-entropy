@@ -4734,6 +4734,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isSignUp",
+        "parameterTypes": []
+      },
+      {
         "name": "setCertId",
         "parameterTypes": [
           "java.lang.String"
@@ -4789,6 +4793,12 @@
       },
       {
         "name": "setRememberMe",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setSignUp",
         "parameterTypes": [
           "boolean"
         ]
@@ -24186,6 +24196,14 @@
         ]
       },
       {
+        "name": "readExtProps",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean",
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "removeExtProp",
         "parameterTypes": [
           "java.lang.String"
@@ -42189,6 +42207,23 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [
+      {
+        "name": "createQrcodeBytes",
+        "parameterTypes": [
+          "io.nop.integration.api.qrcode.QrcodeOptions"
+        ]
+      }
+    ],
+    "name": "io.nop.integration.qrcode.ZxingQrcodeService",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [],
     "name": "io.nop.ioc.initialize.IocCoreInitializer",
     "unsafeAllocated": false
@@ -52150,6 +52185,96 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [
+      {
+        "name": "ACCSUM",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "io.nop.report.core.model.ExpandedCellSet",
+          "io.nop.report.core.model.ExpandedCellSet"
+        ]
+      },
+      {
+        "name": "AVERAGE",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "COUNT",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "COUNTA",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "MAX",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "MIN",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "NVL",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "PRODUCT",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "PROPORTION",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "io.nop.report.core.model.ExpandedCellSet",
+          "io.nop.report.core.model.ExpandedCellSet"
+        ]
+      },
+      {
+        "name": "RANK",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "io.nop.report.core.model.ExpandedCellSet",
+          "io.nop.report.core.model.ExpandedCellSet"
+        ]
+      },
+      {
+        "name": "SUM",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "computeRank",
+        "parameterTypes": [
+          "io.nop.report.core.model.ExpandedCellSet"
+        ]
+      }
+    ],
+    "name": "io.nop.report.core.functions.ReportFunctions",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [],
     "name": "io.nop.report.core.initialize.ReportCoreInitializer",
     "unsafeAllocated": false
@@ -54126,6 +54251,54 @@
       }
     ],
     "name": "io.nop.report.demo.biz.ReportDemoBizModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "QRCODE",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "QRCODE_IMAGE",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "io.nop.excel.model.ExcelImage",
+          "io.nop.integration.api.qrcode.QrcodeOptions"
+        ]
+      },
+      {
+        "name": "register",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.report.ext.ReportExtFunctions",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "destroy",
+        "parameterTypes": []
+      },
+      {
+        "name": "init",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.report.ext.ReportExtInitializer",
     "unsafeAllocated": false
   },
   {

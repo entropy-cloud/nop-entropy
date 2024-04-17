@@ -99,7 +99,7 @@ quarkus:
     devservices:
       enabled: false
 
-  smallrye-graphql:
+  vertx-graphql:
     ui:
       always-include: true
 

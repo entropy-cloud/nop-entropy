@@ -108,7 +108,7 @@ public class PartitionDispatchQueue<T> {
             try {
                 if (finished)
                     return null;
-                
+
                 try {
                     partitions.randomForEachEntry((queue, index) -> {
                         // threadId如果小于0，则表示此partition没有被某个线程处理

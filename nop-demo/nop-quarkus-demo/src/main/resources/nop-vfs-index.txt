@@ -261,8 +261,10 @@
 /nop/autoconfig/nop-dao.beans
 /nop/autoconfig/nop-gateway.beans
 /nop/autoconfig/nop-http-client-jdk.beans
+/nop/autoconfig/nop-integration-zxing.beans
 /nop/autoconfig/nop-orm.beans
 /nop/autoconfig/nop-quarkus-web-starter.beans
+/nop/autoconfig/nop-report-ext.beans
 /nop/autoconfig/nop-report.beans
 /nop/autoconfig/nop-rule-core.beans
 /nop/autoconfig/nop-web.beans
@@ -484,6 +486,7 @@
 /nop/graphql/default.graphql
 /nop/graphql/introspection.graphql
 /nop/http/beans/http-client-jdk.beans.xml
+/nop/integration/beans/zxing-defaults.beans.xml
 /nop/main/app.gateway.xml
 /nop/orm/beans/orm-defaults.beans.xml
 /nop/orm/imp/orm.imp.xml
@@ -511,6 +514,7 @@
 /nop/report/beans/app-report-demo.beans.xml
 /nop/report/beans/app-service.beans.xml
 /nop/report/beans/report-defaults.beans.xml
+/nop/report/beans/report-ext.beans.xml
 /nop/report/demo/base/01-档案式报表.xpt.xlsx
 /nop/report/demo/base/02-段落明细表.xpt.xlsx
 /nop/report/demo/base/03-复杂多源报表.xpt.xlsx
@@ -521,6 +525,7 @@
 /nop/report/demo/base/08-动态展开列.xpt.xlsx
 /nop/report/demo/base/09-套打.xpt.xlsx
 /nop/report/demo/base/10-导出Excel公式.xpt.xlsx
+/nop/report/demo/base/11-打印条码和二维码.xpt.xlsx
 /nop/report/demo/pages/demo.page.yaml
 /nop/report/demo/performance/测试同比环比.xpt.xlsx
 /nop/report/imp/xpt.imp.xml
@@ -650,6 +655,7 @@
 /nop/schema/data-auth.xdef
 /nop/schema/designer/graph-designer.xdef
 /nop/schema/errors.xdef
+/nop/schema/excel/a.xml
 /nop/schema/excel/anchor.xdef
 /nop/schema/excel/imp.xdef
 /nop/schema/excel/workbook.xdef
