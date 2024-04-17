@@ -1,5 +1,10 @@
 [[中文]](README.md)   [[Tutorial]](./docs/tutorial/tutorial_en.md)  [[开发示例]](./docs/tutorial/tutorial.md) [[介绍和答疑视频]](https://www.bilibili.com/video/BV1u84y1w7kX/)
 
+# Nop Entropy
+
+[![](https://img.shields.io/github/stars/entropy-cloud/nop-entropy)](https://github.com/entropy-cloud/nop-entropy/stargazers)
+[![](https://gitee.com/canonical-entropy/nop-entropy/badge/star.svg?theme=white)](https://gitee.com/canonical-entropy/nop-entropy/stargazers)
+
 ## Introduction
 
 Nop Platform 2.0 is a new generation of low-code platform based on the theory of reversible computation. It is committed to overcoming the dilemma that low-code platform can not get rid of the exhaustive method, transcending the component technology from the theoretical level, and effectively solving the problem of coarse-grained software reuse.
