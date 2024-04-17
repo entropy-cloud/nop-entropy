@@ -20,7 +20,9 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
@@ -58,12 +60,26 @@ public class PartitionDispatchQueue<T> {
 
     private final int capacity;
 
-    private volatile boolean noMoreData = false;
+    private final CountDownLatch fetchThreadCount;
 
-    public PartitionDispatchQueue(int capacity, Function<T, Integer> partitionFn) {
+    public PartitionDispatchQueue(int capacity, Function<T, Integer> partitionFn, int fetchThreadCount) {
         this.semaphore = new Semaphore(capacity);
         this.capacity = capacity;
         this.partitionFn = partitionFn;
+        this.fetchThreadCount = new CountDownLatch(fetchThreadCount);
+    }
+
+    public void exitFetchThread() {
+        fetchThreadCount.countDown();
+        // 所有线程都已经结束
+        if (fetchThreadCount.getCount() == 0) {
+            lock.lock();
+            try {
+                notEmpty.signalAll();
+            } finally {
+                lock.unlock();
+            }
+        }
     }
 
     public int getCapacity() {
@@ -115,8 +131,8 @@ public class PartitionDispatchQueue<T> {
                     return ret;
                 }
 
-                // 没有获取到数据。如果已经结束则直接返回
-                if (noMoreData) {
+                // 如果所有fetch线程都已经结束，并且当前队列中也没有任何元素
+                if (count <= 0 && fetchThreadCount.getCount() == 0) {
                     if (LOG.isDebugEnabled())
                         LOG.debug("noMoreData:count={},semaphore={},threadId={},queue={}", count,
                                 semaphore.availablePermits(), threadId, info());
@@ -128,7 +144,7 @@ public class PartitionDispatchQueue<T> {
                     LOG.debug("wait-queue:count={},semaphore={},threadId={},queue={}", count,
                             semaphore.availablePermits(), threadId, info());
                 try {
-                    notEmpty.await();
+                    notEmpty.await(500, TimeUnit.MILLISECONDS);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     throw NopException.adapt(e);
@@ -155,20 +171,6 @@ public class PartitionDispatchQueue<T> {
             sb.append(',');
         });
         return sb.toString();
-    }
-
-    public void finish() {
-        markNoMoreData();
-    }
-
-    public void markNoMoreData() {
-        lock.lock();
-        try {
-            noMoreData = true;
-            notEmpty.signalAll();
-        } finally {
-            lock.unlock();
-        }
     }
 
     public void completeBatch(MapOfInt<List<T>> batch, long threadId) {

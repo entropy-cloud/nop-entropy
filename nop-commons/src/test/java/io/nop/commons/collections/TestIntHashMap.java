@@ -48,4 +48,23 @@ public class TestIntHashMap {
             assertEquals(n, set.size());
         }
     }
+
+    @Test
+    public void testCount() {
+        IntHashMap<Integer> map = new IntHashMap<>();
+
+        for (int n = 100; n < 10000; n++) {
+
+            for (int i = 0; i < n; i++) {
+                map.put(i, i);
+            }
+
+            Set<Integer> set = new HashSet<>(n * 2);
+            map.randomForEachEntry((v, k) -> {
+                set.add(v);
+            });
+
+            assertEquals(n, set.size());
+        }
+    }
 }

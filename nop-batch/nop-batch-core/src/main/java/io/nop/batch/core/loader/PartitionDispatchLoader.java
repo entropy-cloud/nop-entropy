@@ -54,27 +54,30 @@ public class PartitionDispatchLoader<S>
 
     @Override
     public void onTaskBegin(IBatchTaskContext context) {
-        PartitionDispatchQueue<S> queue = new PartitionDispatchQueue<>(loadBatchSize * 20, partitionFn);
+        PartitionDispatchQueue<S> queue = new PartitionDispatchQueue<>(loadBatchSize * 20, partitionFn, fetchThreadCount);
         this.queue = queue;
 
         for (int i = 0; i < fetchThreadCount; i++) {
-            int threadIndex = i;
+            final int threadIndex = i;
             executor.execute(() -> {
-                while (!context.isCancelled()) {
-                    IBatchChunkContext ctx = context.newChunkContext();
-                    ctx.setConcurrency(fetchThreadCount);
-                    ctx.setThreadIndex(threadIndex);
-                    try {
-                        List<S> list = loader.load(loadBatchSize, ctx);
-                        if (list.isEmpty()) {
-                            queue.markNoMoreData();
+                try {
+                    while (!context.isCancelled()) {
+                        IBatchChunkContext ctx = context.newChunkContext();
+                        ctx.setConcurrency(fetchThreadCount);
+                        ctx.setThreadIndex(threadIndex);
+                        try {
+                            List<S> list = loader.load(loadBatchSize, ctx);
+                            if (list.isEmpty()) {
+                                return;
+                            }
+                            queue.addBatch(list);
+                        } catch (Exception e) {
+                            exception = e;
                             return;
                         }
-                        queue.addBatch(list);
-                    } catch (Exception e) {
-                        exception = e;
-                        return;
                     }
+                } finally {
+                    queue.exitFetchThread();
                 }
             });
         }
