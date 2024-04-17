@@ -53,6 +53,8 @@ public class PartitionDispatchQueue<T> {
 
     private final Condition notEmpty = lock.newCondition();
 
+    private volatile boolean finished;
+
     /**
      * 当前尚未被处理的记录数
      */
@@ -82,6 +84,16 @@ public class PartitionDispatchQueue<T> {
         }
     }
 
+    public void finish() {
+        lock.lock();
+        try {
+            finished = true;
+            notEmpty.signalAll();
+        } finally {
+            lock.unlock();
+        }
+    }
+
     public int getCapacity() {
         return capacity;
     }
@@ -94,6 +106,9 @@ public class PartitionDispatchQueue<T> {
         do {
             lock.lock();
             try {
+                if (finished)
+                    return null;
+                
                 try {
                     partitions.randomForEachEntry((queue, index) -> {
                         // threadId如果小于0，则表示此partition没有被某个线程处理
