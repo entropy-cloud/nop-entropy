@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <tags>
+        <Run>
+            <attr name="command" mandatory="true" type="String"/>
+            <attr name="workDir" type="String" optional="true"/>
+            <attr name="inheritEnv" type="Boolean" optional="true"/>
+            <attr name="timeout" type="Long" optional="true"/>
+            <attr name="binaryOutput" type="Boolean" optional="true"/>
+            <attr name="encoding" type="String" optional="true"/>
+            <attr name="redirectErrorStream" type="Boolean" optional="true"/>
+            <attr name="envs" type="Map" optional="true"/>
+            <attr name="inputBytes" optional="true"/>
+
+            <return type="io.nop.shell.ShellResult"/>
+
+            <source>
+                import io.nop.shell.ShellCommand;
+
+                const cmd = ShellCommand.create(command);
+                cmd.inheritEnv = inheritEnv;
+                cmd.timeout = timeout;
+                cmd.encoding = encoding;
+                cmd.redirectErrorStream = redirectErrorStream;
+                cmd.envs = envs;
+                cmd.inputBytes = inputBytes;
+                cmd.workDir = workDir;
+
+                const shellRunner = inject("nopShellRunner");
+                return shellRunner.run(cmd);
+            </source>
+        </Run>
+    </tags>
+</lib>

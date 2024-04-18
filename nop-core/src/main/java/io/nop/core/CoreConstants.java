@@ -40,6 +40,8 @@ public interface CoreConstants extends ResourceConstants {
     String GLOBAL_VAR_SCOPE = "$scope";
     String GLOBAL_VAR_OUT = "$out";
 
+    String GLOBAL_VAR_EVAL_RUNTIME = "$evalRt";
+
     String GLOBAL_VAR_JSON = "$JSON";
 
     String GLOBAL_VAR_MATH = "$Math";

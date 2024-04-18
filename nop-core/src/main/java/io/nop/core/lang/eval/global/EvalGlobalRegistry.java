@@ -45,6 +45,7 @@ public class EvalGlobalRegistry {
         registerVariable(CoreConstants.GLOBAL_VAR_CONTEXT, new ContextGlobalVariable());
         registerVariable(CoreConstants.GLOBAL_VAR_SCOPE, new ScopeGlobalVariable());
         registerVariable(CoreConstants.GLOBAL_VAR_OUT, new SysOutGlobalVariable());
+        registerVariable(CoreConstants.GLOBAL_VAR_EVAL_RUNTIME, new EvalRuntimeGlobalVariable());
         registerVariable(CoreConstants.GLOBAL_VAR_EVAL_HELPER, new SysEvalHelperGlobalVariable());
         registerVariable(CoreConstants.GLOBAL_VAR_JSON, new StaticClassGlobalVariableDefinition(JsonTool.class));
         registerVariable(CoreConstants.GLOBAL_VAR_MATH, new StaticClassGlobalVariableDefinition(MathHelper.class));

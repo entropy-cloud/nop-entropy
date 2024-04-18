@@ -8,8 +8,10 @@
 package io.nop.shell;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.shell.utils.ShellCommands;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -23,6 +25,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ShellCommand {
+    public static final String TASK_PREFIX = "@task:";
+
     static final AtomicInteger s_sequence = new AtomicInteger(0);
 
     private int id = MathHelper.nonNegativeMod(s_sequence.getAndIncrement(), 1000000);
@@ -48,8 +52,18 @@ public class ShellCommand {
         this.cmds.addAll(Arrays.asList(cmds));
     }
 
+    public ShellCommand() {
+    }
+
     public int getId() {
         return id;
+    }
+
+    public static ShellCommand create(String command) {
+        if (command.startsWith(TASK_PREFIX)) {
+            return ShellCommands.task(command.substring(TASK_PREFIX.length()));
+        }
+        return new ShellCommand(command);
     }
 
     public String toString() {
@@ -74,6 +88,7 @@ public class ShellCommand {
     }
 
     public ShellCommand addCmd(String cmd) {
+        Guard.notEmpty(cmd, "cmd");
         this.cmds.add(cmd);
         return this;
     }
@@ -85,6 +100,7 @@ public class ShellCommand {
     }
 
     public ShellCommand addCmd(String name, String value) {
+        Guard.notEmpty(name, "name");
         addCmd(name);
         addCmd(value);
         return this;
@@ -219,8 +235,14 @@ public class ShellCommand {
         return this;
     }
 
+    public void setEnvs(Map<String, String> envs) {
+        if (envs != null)
+            this.envs.putAll(envs);
+    }
+
     public ShellCommand addEnvs(Map<String, String> envs) {
-        this.envs.putAll(envs);
+        if (envs != null)
+            this.envs.putAll(envs);
         return this;
     }
 

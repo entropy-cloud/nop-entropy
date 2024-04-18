@@ -36,7 +36,7 @@ public class ShellRunner implements IShellRunner {
 
     static final Logger LOG = LoggerFactory.getLogger(ShellRunner.class);
 
-    public static String exeCmd(String command) {
+    public static String runCommand(String command) {
         ShellCommand cmd = new ShellCommand(command).redirectErrorStream(true);
         ShellRunner runner = new ShellRunner();
         DefaultShellOutputCollector collector = new DefaultShellOutputCollector();

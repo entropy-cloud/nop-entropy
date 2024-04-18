@@ -22,6 +22,7 @@ import io.nop.xlang.api.IXLangCompileScope;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.ast.Expression;
 
+import java.io.StringWriter;
 import java.io.Writer;
 import java.util.Collections;
 import java.util.function.Function;
@@ -31,6 +32,13 @@ import static io.nop.xlang.XLangErrors.ARG_VALUE;
 import static io.nop.xlang.XLangErrors.ERR_XPL_NOT_ALLOW_BOTH_RETURN_AND_OUTPUT_NODE;
 
 public class ExprEvalHelper {
+
+    public static String generateText(Function<EvalRuntime, ?> task, EvalRuntime rt) {
+        StringWriter out = new StringWriter();
+        generateToWriter(task, out, rt);
+        return out.toString();
+    }
+
     public static void generateToWriter(Function<EvalRuntime, ?> task, Writer out, EvalRuntime rt) {
         IEvalOutput oldOut = rt.getOut();
         try {

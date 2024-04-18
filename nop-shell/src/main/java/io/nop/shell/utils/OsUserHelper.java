@@ -33,7 +33,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import static io.nop.shell.ShellRunner.exeCmd;
+import static io.nop.shell.ShellRunner.runCommand;
 
 /**
  * os utils
@@ -93,7 +93,7 @@ public class OsUserHelper {
      * @return user list
      */
     private static List<String> getUserListFromMac() throws IOException {
-        String result = exeCmd("dscl . list /users");
+        String result = runCommand("dscl . list /users");
         if (!StringHelper.isEmpty(result)) {
             return Arrays.asList(result.split("\n"));
         }
@@ -107,7 +107,7 @@ public class OsUserHelper {
      * @return user list
      */
     private static List<String> getUserListFromWindows() throws IOException {
-        String result = exeCmd("net user");
+        String result = runCommand("net user");
         String[] lines = result.split("\n");
 
         int startPos = 0;
@@ -194,7 +194,7 @@ public class OsUserHelper {
         logger.info("create linux os user: {}", userName);
         String cmd = String.format("sudo useradd -g %s %s", userGroup, userName);
         logger.info("execute cmd: {}", cmd);
-        exeCmd(cmd);
+        runCommand(cmd);
     }
 
     /**
@@ -209,11 +209,11 @@ public class OsUserHelper {
 
         String createUserCmd = String.format("sudo sysadminctl -addUser %s -password %s", userName, userName);
         logger.info("create user command: {}", createUserCmd);
-        exeCmd(createUserCmd);
+        runCommand(createUserCmd);
 
         String appendGroupCmd = String.format("sudo dseditgroup -o edit -a %s -t user %s", userName, userGroup);
         logger.info("append user to group: {}", appendGroupCmd);
-        exeCmd(appendGroupCmd);
+        runCommand(appendGroupCmd);
     }
 
     /**
@@ -228,11 +228,11 @@ public class OsUserHelper {
 
         String userCreateCmd = String.format("net user \"%s\" /add", userName);
         logger.info("execute create user command: {}", userCreateCmd);
-        exeCmd(userCreateCmd);
+        runCommand(userCreateCmd);
 
         String appendGroupCmd = String.format("net localgroup \"%s\" \"%s\" /add", userGroup, userName);
         logger.info("execute append user to group: {}", appendGroupCmd);
-        exeCmd(appendGroupCmd);
+        runCommand(appendGroupCmd);
     }
 
     /**
@@ -244,7 +244,7 @@ public class OsUserHelper {
     public static String getGroup() throws IOException {
         if (PlatformEnv.isWindows()) {
             String currentProcUserName = System.getProperty("user.name");
-            String result = exeCmd(String.format("net user \"%s\"", currentProcUserName));
+            String result = runCommand(String.format("net user \"%s\"", currentProcUserName));
             String line = result.split("\n")[22];
             String group = PATTERN.split(line)[1];
             if (group.charAt(0) == '*') {
@@ -253,7 +253,7 @@ public class OsUserHelper {
                 return group;
             }
         } else {
-            String result = exeCmd("groups");
+            String result = runCommand("groups");
             if (!StringHelper.isEmpty(result)) {
                 String[] groupInfo = result.split(" ");
                 return groupInfo[0];

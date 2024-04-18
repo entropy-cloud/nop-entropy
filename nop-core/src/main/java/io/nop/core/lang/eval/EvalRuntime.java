@@ -3,7 +3,7 @@ package io.nop.core.lang.eval;
 import io.nop.api.core.util.IVariableScope;
 import io.nop.api.core.util.SourceLocation;
 
-public class EvalRuntime implements IVariableScope {
+public final class EvalRuntime implements IVariableScope {
     private final IEvalScope scope;
     private ExitMode exitMode;
     private EvalFrame currentFrame;
