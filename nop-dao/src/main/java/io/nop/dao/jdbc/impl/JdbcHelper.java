@@ -194,13 +194,7 @@ public class JdbcHelper {
         PreparedStatement ps = conn.prepareStatement(sql.getText());
 
         try {
-<<<<<<< ours
-            // fetchSize 为Integer.MIN_VALUE对于MySQL驱动而言是启用stream的特殊标记
-            if (sql.getFetchSize() > 0 || sql.getFetchSize() == Integer.MIN_VALUE)
-                ps.setFetchSize(sql.getFetchSize());
-=======
             setFetchSize(sql, ps);
->>>>>>> theirs
 
             setParameters(dialect, ps, sql);
         } catch (SQLException e) {
