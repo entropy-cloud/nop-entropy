@@ -72,4 +72,16 @@ public interface IXptRuntime extends IEvalContext {
     int incAndGet(String name);
 
     ExcelImage makeImage();
+
+    void addSheetCleanup(Runnable cleanup);
+
+    void addWorkbookCleanup(Runnable cleanup);
+
+    void addSheetLoopCleanup(Runnable cleanup);
+
+    void runSheetCleanup();
+
+    void runWorkbookCleanup();
+
+    void runSheetLoopCleanup();
 }

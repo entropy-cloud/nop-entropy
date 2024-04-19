@@ -76,6 +76,7 @@
             <attr name="cacheKey" type="Object" implicit="true"/>
             <attr name="querySpace" type="String" implicit="true"/>
             <attr name="timeout" type="Integer" implicit="true"/>
+            <attr name="fetchSize" type="Integer" implicit="true" />
             <attr name="disableLogicalDelete" type="Boolean" implicit="true"/>
 
             <source>
@@ -84,7 +85,7 @@
 
                     const builder = generator().extend();
                     return builder.cache(cacheName, cacheKey).querySpace(querySpace)
-                                .timeout(timeout).disableLogicalDelete(disableLogicalDelete)
+                                .timeout(timeout).fetchSize(fetchSize).disableLogicalDelete(disableLogicalDelete)
                                 .end();
                 ]]></c:script>
             </source>

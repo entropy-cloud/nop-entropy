@@ -9,6 +9,7 @@ package io.nop.dao.jdbc.impl;
 
 import io.nop.api.core.beans.LongRangeBean;
 import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopTimeoutException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.text.CharacterCase;
@@ -178,8 +179,7 @@ public class JdbcHelper {
                 ps = conn.prepareStatement(sql.getText());
             }
 
-            if (sql.getFetchSize() > 0)
-                ps.setFetchSize(sql.getFetchSize());
+            setFetchSize(sql, ps);
 
             setParameters(dialect, ps, sql);
         } catch (SQLException e) {
@@ -194,9 +194,13 @@ public class JdbcHelper {
         PreparedStatement ps = conn.prepareStatement(sql.getText());
 
         try {
+<<<<<<< ours
             // fetchSize 为Integer.MIN_VALUE对于MySQL驱动而言是启用stream的特殊标记
             if (sql.getFetchSize() > 0 || sql.getFetchSize() == Integer.MIN_VALUE)
                 ps.setFetchSize(sql.getFetchSize());
+=======
+            setFetchSize(sql, ps);
+>>>>>>> theirs
 
             setParameters(dialect, ps, sql);
         } catch (SQLException e) {
@@ -205,6 +209,12 @@ public class JdbcHelper {
         }
         return ps;
     }
+
+    public static void setFetchSize(SQL sql, PreparedStatement ps) throws SQLException {
+        if (sql.getFetchSize() > 0 || sql.getFetchSize() == Integer.MIN_VALUE)
+            ps.setFetchSize(sql.getFetchSize());
+    }
+
 
     public static void setQueryTimeout(IDialect dialect, PreparedStatement ps, SQL sql, boolean update)
             throws SQLException {
@@ -221,13 +231,17 @@ public class JdbcHelper {
         return DaoConfigs.CFG_DAO_MAX_QUERY_TIMEOUT.get();
     }
 
+    public static int getQueryTimeout(SQL sql, boolean update) {
+        return getQueryTimeout(sql, update, true);
+    }
+
     /**
      * 计算指定的SQL超时时间和上下文超时时间的最小值，转换为单位秒之后返回
      *
      * @param sql SQL对象
      * @return 单位为秒
      */
-    public static int getQueryTimeout(SQL sql, boolean update) {
+    public static int getQueryTimeout(SQL sql, boolean update, boolean checkCallExpireTime) {
         long timeout = sql.getTimeout();
         if (timeout > 0) {
             int maxTimeout = getMaxTimeout(update);
@@ -235,22 +249,28 @@ public class JdbcHelper {
                 timeout = maxTimeout;
         }
 
-        long expireTime = ContextProvider.currentContext().getCallExpireTime();
-        if (expireTime > 0) {
-            long contextTimeout = expireTime - CoreMetrics.currentTimeMillis();
-            if (contextTimeout <= 0)
-                throw new NopTimeoutException(ERR_CONTEXT_TIMEOUT, true).param(ARG_SQL, sql);
-            // 如果sql本身没有设置超时时间或者sql指定的超时时间小于上下文超时时间
-            if (timeout < 0 || timeout > contextTimeout)
-                timeout = contextTimeout;
+        if (checkCallExpireTime) {
+            IContext context = ContextProvider.currentContext();
+            if (context != null) {
+                long expireTime = context.getCallExpireTime();
+                if (expireTime > 0) {
+                    long contextTimeout = expireTime - CoreMetrics.currentTimeMillis();
+                    if (contextTimeout <= 0)
+                        throw new NopTimeoutException(ERR_CONTEXT_TIMEOUT, true).param(ARG_SQL, sql);
+                    // 如果sql本身没有设置超时时间或者sql指定的超时时间小于上下文超时时间
+                    if (timeout < 0 || timeout > contextTimeout)
+                        timeout = contextTimeout;
+                }
+            }
         }
+
         if (timeout > 0) {
             return (int) ((timeout + 999) / 1000);
         }
         return -1;
     }
 
-    public static void setParameters(IDialect dialect, PreparedStatement ps, SQL sql) throws SQLException {
+    public static void setParameters(IDialect dialect, PreparedStatement ps, SQL sql) {
         if (sql.getMarkers().isEmpty())
             return;
 
@@ -274,12 +294,11 @@ public class JdbcHelper {
         }
     }
 
-    public static void setParameters(IDialect dialect, PreparedStatement ps, List<Object> params) throws SQLException {
+    public static void setParameters(IDialect dialect, PreparedStatement ps, List<Object> params) {
         setParameters(dialect, ps, 0, params);
     }
 
-    public static void setParameters(IDialect dialect, PreparedStatement ps, int index, List<Object> params)
-            throws SQLException {
+    public static void setParameters(IDialect dialect, PreparedStatement ps, int index, List<Object> params) {
 
         for (int i = 0, n = params.size(); i < n; ++i) {
             dialect.jdbcSet(ps, index + i, params.get(i));

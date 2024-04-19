@@ -14,6 +14,9 @@ import io.nop.api.core.annotations.data.ImmutableBean;
 import io.nop.commons.type.StdDataType;
 import io.nop.dataset.IDataFieldMeta;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @DataBean
 @ImmutableBean
 public class BaseDataFieldMeta implements IDataFieldMeta {
@@ -37,12 +40,24 @@ public class BaseDataFieldMeta implements IDataFieldMeta {
         this.computed = computed;
     }
 
+    public static BaseDataFieldMeta build(String fieldName, StdDataType fieldStdType) {
+        return new BaseDataFieldMeta(fieldName, null, null, fieldStdType, false);
+    }
+
     public static BaseDataFieldMeta fromColumnMeta(IDataFieldMeta columnMeta) {
         if (columnMeta instanceof BaseDataFieldMeta)
             return (BaseDataFieldMeta) columnMeta;
 
         return new BaseDataFieldMeta(columnMeta.getFieldName(), columnMeta.getSourceFieldName(),
                 columnMeta.getFieldOwnerEntityName(), columnMeta.getFieldStdType(), columnMeta.isComputed());
+    }
+
+    public static List<BaseDataFieldMeta> fromColumnMetas(List<? extends IDataFieldMeta> metas) {
+        List<BaseDataFieldMeta> result = new ArrayList<>(metas.size());
+        for (IDataFieldMeta meta : metas) {
+            result.add(fromColumnMeta(meta));
+        }
+        return result;
     }
 
     @Override
@@ -70,5 +85,9 @@ public class BaseDataFieldMeta implements IDataFieldMeta {
     @Override
     public String getSourceFieldName() {
         return sourceFieldName;
+    }
+
+    public BaseDataFieldMeta renameTo(String newName) {
+        return new BaseDataFieldMeta(newName, sourceFieldName, fieldOwnerEntityName, fieldStdType, computed);
     }
 }

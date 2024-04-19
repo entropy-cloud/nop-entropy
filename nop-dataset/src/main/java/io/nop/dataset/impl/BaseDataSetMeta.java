@@ -70,11 +70,16 @@ public class BaseDataSetMeta implements IDataSetMeta {
         this(fieldMetas, false, null, null);
     }
 
+    public BaseDataSetMeta(IDataSetMeta dataSetMeta) {
+        this(BaseDataFieldMeta.fromColumnMetas(dataSetMeta.getFieldMetas()),
+                dataSetMeta.isCaseSensitive(), dataSetMeta.getHeaderMeta(), dataSetMeta.getTrailerMeta());
+    }
+
     public static BaseDataSetMeta fromColNames(String[] columnNames) {
         List<BaseDataFieldMeta> colMetas = new ArrayList<>(columnNames.length);
         for (int i = 0, n = columnNames.length; i < n; i++) {
             BaseDataFieldMeta colMeta = new BaseDataFieldMeta(
-                    columnNames[i], null, null, StdDataType.ANY,false);
+                    columnNames[i], null, null, StdDataType.ANY, false);
             colMetas.add(colMeta);
         }
         return new BaseDataSetMeta(colMetas);
@@ -89,6 +94,18 @@ public class BaseDataSetMeta implements IDataSetMeta {
             columns.add(BaseDataFieldMeta.fromColumnMeta(column));
         }
         return new BaseDataSetMeta(columns, meta.isCaseSensitive(), meta.getHeaderMeta(), meta.getTrailerMeta());
+    }
+
+    @Override
+    public IDataSetMeta projectWithRename(Map<String, String> new2old) {
+        List<BaseDataFieldMeta> newColumns = new ArrayList<>(new2old.size());
+        new2old.forEach((newName, oldName) -> {
+            BaseDataFieldMeta field = fieldMetas.get(getFieldIndex(oldName));
+            if (field != null) {
+                newColumns.add(field);
+            }
+        });
+        return new BaseDataSetMeta(newColumns, caseSensitive, headerMeta, trailerMeta);
     }
 
     @Override
@@ -132,6 +149,11 @@ public class BaseDataSetMeta implements IDataSetMeta {
     @Override
     public boolean hasField(String colName) {
         return nameToIndex.containsKey(colName);
+    }
+
+    @Override
+    public BaseDataSetMeta toBaseDataSetMeta() {
+        return this;
     }
 
     @JsonIgnore

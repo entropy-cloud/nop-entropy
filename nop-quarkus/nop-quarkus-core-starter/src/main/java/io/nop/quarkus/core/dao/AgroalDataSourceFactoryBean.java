@@ -21,7 +21,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.nop.api.core.annotations.ioc.BeanMethod;
 import io.nop.commons.metrics.GlobalMeterRegistry;
 import io.nop.commons.util.StringHelper;
-import io.quarkus.datasource.common.runtime.DataSourceUtil;
+import io.nop.dao.jdbc.datasource.DataSourceConfig;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;

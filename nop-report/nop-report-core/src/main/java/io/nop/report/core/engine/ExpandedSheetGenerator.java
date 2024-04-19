@@ -63,15 +63,19 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
         XptWorkbookModel workbookModel = workbook.getModel();
         runLoop(workbook.getModel(), XptConstants.WORKBOOK_LOOP_VAR, XptConstants.WORKBOOK_LOOP_INDEX,
                 xptRt, () -> {
-                    if (workbookModel != null)
-                        runXpl(workbookModel.getBeforeExpand(), xptRt);
+                    try {
+                        if (workbookModel != null)
+                            runXpl(workbookModel.getBeforeExpand(), xptRt);
 
-                    for (ExcelSheet sheet : workbook.getSheets()) {
-                        generateSheetLoop(sheet, workbook, xptRt, consumer);
+                        for (ExcelSheet sheet : workbook.getSheets()) {
+                            generateSheetLoop(sheet, workbook, xptRt, consumer);
+                        }
+
+                        if (workbookModel != null)
+                            runXpl(workbookModel.getAfterExpand(), xptRt);
+                    } finally {
+                        xptRt.runWorkbookCleanup();
                     }
-
-                    if (workbookModel != null)
-                        runXpl(workbookModel.getAfterExpand(), xptRt);
                 });
     }
 
@@ -89,18 +93,25 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
         // 用于避免生成重复的sheet名称
         Map<String, Integer> sheetNames = new HashMap<>();
 
-        runLoop(sheetModel, XptConstants.SHEET_LOOP_VAR, XptConstants.SHEET_LOOP_INDEX,
-                xptRt, () -> {
-                    if (sheetModel != null) {
-                        runXpl(sheetModel.getBeforeExpand(), xptRt);
-                    }
+        try {
+            runLoop(sheetModel, XptConstants.SHEET_LOOP_VAR, XptConstants.SHEET_LOOP_INDEX,
+                    xptRt, () -> {
+                        try {
+                            if (sheetModel != null) {
+                                runXpl(sheetModel.getBeforeExpand(), xptRt);
+                            }
 
-                    generateSheet(sheet, xptRt, consumer, sheetNames);
+                            generateSheet(sheet, xptRt, consumer, sheetNames);
 
-                    if (sheetModel != null)
-                        runXpl(sheetModel.getAfterExpand(), xptRt);
-
-                });
+                            if (sheetModel != null)
+                                runXpl(sheetModel.getAfterExpand(), xptRt);
+                        } finally {
+                            xptRt.runSheetCleanup();
+                        }
+                    });
+        } finally {
+            xptRt.runSheetLoopCleanup();
+        }
     }
 
     private void generateSheet(ExcelSheet sheet, IXptRuntime xptRt, Consumer<IExcelSheet> consumer,

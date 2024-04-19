@@ -49,7 +49,8 @@ public class CliGenFileCommand implements Callable<Integer> {
 
     @Override
     public Integer call() {
-        Map<String, Object> json = JsonTool.parseBeanFromResource(new FileResource(file), Map.class);
+        Map<String, Object> json = file == null ? new HashMap<>() :
+                JsonTool.parseBeanFromResource(new FileResource(file), Map.class);
 
         File outputFile = this.outputFile;
         if (outputFile == null) {

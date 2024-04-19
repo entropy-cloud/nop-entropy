@@ -25,10 +25,6 @@
             <artifactId>nop-quarkus-core-starter</artifactId>
             <exclusions>
                 <exclusion>
-                    <artifactId>nop-ioc</artifactId>
-                    <groupId>io.github.entropy-cloud</groupId>
-                </exclusion>
-                <exclusion>
                     <artifactId>quarkus-agroal</artifactId>
                     <groupId>io.quarkus</groupId>
                 </exclusion>
@@ -42,6 +38,16 @@
         <dependency>
             <groupId>info.picocli</groupId>
             <artifactId>picocli-codegen</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-ioc</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-orm</artifactId>
         </dependency>
 
         <dependency>
@@ -117,6 +123,11 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
         </dependency>
 
         <dependency>

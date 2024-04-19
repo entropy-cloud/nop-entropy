@@ -3,7 +3,7 @@ quarkus:
     level: INFO
 
     category:
-      "io.nop.core":
+      "io.nop":
         level: ERROR
 
 nop:

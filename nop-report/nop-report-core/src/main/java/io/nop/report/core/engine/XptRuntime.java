@@ -31,6 +31,7 @@ import io.nop.xlang.api.XLang;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -51,6 +52,11 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
     private ExcelWorkbook workbook;
 
     private ExcelImage image;
+
+    private List<Runnable> sheetCleanups = null;
+    private List<Runnable> workbookCleanups = null;
+
+    private List<Runnable> sheetLoopCleanups = null;
 
     private final Map<String, IExecutableExpression> cellExprCache = new HashMap<>();
 
@@ -234,5 +240,64 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
     public ExcelImage makeImage() {
         Guard.notNull(cell, "cell");
         return cell.makeImage();
+    }
+
+    @Override
+    public void addSheetCleanup(Runnable cleanup) {
+        if (cleanup == null)
+            return;
+        if (sheetCleanups == null)
+            sheetCleanups = new ArrayList<>();
+        sheetCleanups.add(cleanup);
+    }
+
+    @Override
+    public void addWorkbookCleanup(Runnable cleanup) {
+        if (cleanup == null)
+            return;
+        if (workbookCleanups == null)
+            workbookCleanups = new ArrayList<>();
+        workbookCleanups.add(cleanup);
+    }
+
+    @Override
+    public void addSheetLoopCleanup(Runnable cleanup) {
+        if (cleanup == null)
+            return;
+        if (sheetLoopCleanups == null)
+            sheetLoopCleanups = new ArrayList<>();
+        sheetLoopCleanups.add(cleanup);
+    }
+
+    @Override
+    public void runSheetCleanup() {
+        if (sheetCleanups != null) {
+            sheetCleanups.forEach(this::runCleanup);
+            sheetCleanups.clear();
+        }
+    }
+
+    private void runCleanup(Runnable cleanup) {
+        try {
+            cleanup.run();
+        } catch (Exception e) {
+            LOG.error("nop.err.xpt.run-cleanup-error", e);
+        }
+    }
+
+    @Override
+    public void runWorkbookCleanup() {
+        if (workbookCleanups != null) {
+            workbookCleanups.forEach(this::runCleanup);
+            workbookCleanups.clear();
+        }
+    }
+
+    @Override
+    public void runSheetLoopCleanup() {
+        if (sheetLoopCleanups != null) {
+            sheetLoopCleanups.forEach(this::runCleanup);
+            sheetLoopCleanups.clear();
+        }
     }
 }

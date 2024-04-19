@@ -7,6 +7,8 @@
  */
 package io.nop.dataset.record;
 
+import io.nop.dataset.record.support.ProjectRecordResourceMeta;
+
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
@@ -25,5 +27,9 @@ public interface IRecordResourceMeta extends Serializable {
 
     default Map<String, Object> getTrailerMeta() {
         return null;
+    }
+
+    default IRecordResourceMeta project(List<String> fields) {
+        return new ProjectRecordResourceMeta(this, fields);
     }
 }

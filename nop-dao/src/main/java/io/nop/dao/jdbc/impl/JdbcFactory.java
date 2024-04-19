@@ -8,8 +8,11 @@
 package io.nop.dao.jdbc.impl;
 
 import io.nop.commons.cache.ICacheProvider;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.jdbc.IJdbcTemplateFactory;
+import io.nop.dao.jdbc.datasource.DataSourceConfig;
+import io.nop.dao.jdbc.datasource.SimpleDataSource;
 import io.nop.dao.jdbc.txn.JdbcTransactionFactory;
 import io.nop.dao.metrics.IDaoMetrics;
 import io.nop.dao.txn.ITransactionTemplate;
@@ -31,6 +34,17 @@ public class JdbcFactory implements IJdbcTemplateFactory {
 
     public void setDaoMetrics(IDaoMetrics daoMetrics) {
         this.daoMetrics = daoMetrics;
+    }
+
+    public static SimpleDataSource newSimpleDataSource(DataSourceConfig config) {
+        SimpleDataSource dataSource = new SimpleDataSource();
+        dataSource.setPassword(config.getPassword());
+        dataSource.setUsername(config.getUsername());
+        if (config.getProperties() != null)
+            dataSource.setProperties(CollectionHelper.mapToProperties(config.getProperties()));
+        dataSource.setDriverClassName(config.getDriverClassName());
+        dataSource.setUrl(config.getJdbcUrl());
+        return dataSource;
     }
 
     public static IJdbcTemplate newJdbcTemplateFor(DataSource dataSource) {

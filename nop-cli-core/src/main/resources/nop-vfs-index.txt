@@ -11,10 +11,6 @@
 /dict/core/std-sql-type.dict.yaml
 /dict/rpt/data-display-mode.dict.yaml
 /i18n/en/nop-core.i18n.yaml
-/meta/test/NopAuthUser.xmeta
-/meta/test/NopAuthUser2.xmeta
-/meta/test/_NopAuthUser.xmeta
-/meta/test/_NopAuthUser2.xmeta
 /nop/aop/nop-api-core.annotations
 /nop/autoconfig/nop-dao.beans
 /nop/autoconfig/nop-orm.beans
@@ -97,6 +93,7 @@
 /nop/schema/biz/xbiz.xdef
 /nop/schema/conf.xdef
 /nop/schema/data-auth.xdef
+/nop/schema/datav/chart.xdef
 /nop/schema/designer/graph-designer.xdef
 /nop/schema/errors.xdef
 /nop/schema/excel/anchor.xdef
@@ -291,7 +288,4 @@
 /nop/templates/xdsl/@lib/gen-xdsl.xlib
 /nop/templates/xdsl/src/main/java/{objMeta.packagePath}/_gen/_{objSchema.simpleClassName}.java.xgen
 /nop/templates/xdsl/src/main/java/{objMeta.packagePath}/{objSchema.simpleClassName}.java.xgen
-/nop/test/meta-web/@init.xrun
-/nop/test/meta-web/src/resources/_vfs/{metaModel.name}/_main.page.json5.xgen
-/nop/test/meta-web/src/resources/_vfs/{metaModel.name}/main.page.json5.xgen
 /xdef.register-model.xml

@@ -43,6 +43,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -200,6 +201,15 @@ public class CollectionHelper {
 
     public static <K, V> ConcurrentMap<K, V> newConcurrentMap(int expectedSize) {
         return new ConcurrentHashMap<>(expectedSize);
+    }
+
+    public static Properties mapToProperties(Map<String, ?> map) {
+        if (map == null)
+            return null;
+
+        Properties props = new Properties();
+        props.putAll(map);
+        return props;
     }
 
     public static <K, V> boolean isFixedEmptyMap(Map<K, V> map) {

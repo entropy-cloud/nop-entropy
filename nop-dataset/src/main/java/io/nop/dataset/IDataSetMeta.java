@@ -7,10 +7,14 @@
  */
 package io.nop.dataset;
 
-import io.nop.dataset.record.IRecordResourceMeta;
 import io.nop.commons.type.StdDataType;
+import io.nop.dataset.impl.BaseDataSetMeta;
+import io.nop.dataset.impl.ProjectDataSetMeta;
+import io.nop.dataset.record.IRecordResourceMeta;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public interface IDataSetMeta extends IRecordResourceMeta {
 
@@ -47,4 +51,23 @@ public interface IDataSetMeta extends IRecordResourceMeta {
     StdDataType getFieldStdType(int index);
 
     List<? extends IDataFieldMeta> getFieldMetas();
+
+    BaseDataSetMeta toBaseDataSetMeta();
+
+    default IDataSetMeta project(List<String> fields) {
+        return new ProjectDataSetMeta(this, fields);
+    }
+
+    IDataSetMeta projectWithRename(Map<String, String> new2old);
+
+    default IDataSetMeta rename(Map<String, String> new2old) {
+        Map<String, String> full = new LinkedHashMap<>();
+        for (int i = 0; i < getFieldCount(); i++) {
+            String old = getFieldName(i);
+            full.put(old, old);
+        }
+        full.keySet().removeAll(new2old.values());
+        full.putAll(new2old);
+        return projectWithRename(full);
+    }
 }

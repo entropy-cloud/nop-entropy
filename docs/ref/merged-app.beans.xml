@@ -38,8 +38,8 @@
           ioc:aop="false" name="nopVerifyCodeGenerator"/>
 
 <!--LOC:[15:14:0:0]/nop/quarkus/beans/quarkus-defaults.beans.xml-->
-    <bean class="io.nop.quarkus.core.dao.DataSourceConfig" ioc:aop="false"
-          id="$GEN$io.nop.quarkus.core.dao.DataSourceConfig$3">
+    <bean class="io.nop.dao.jdbc.datasource.DataSourceConfig" ioc:aop="false"
+          id="$GEN$io.nop.dao.jdbc.datasource.DataSourceConfig$3">
         <property name="maxSize" value="5"/>
         <property name="driverClassName" value="${nop.datasource.driver-class-name}"/>
         <property name="jdbcUrl" value="${nop.datasource.jdbc-url}"/>
@@ -88,7 +88,7 @@
           ioc:type="io.nop.quarkus.core.dao.AgroalDataSourceFactoryBean" name="nopDataSource" ioc:bean-method="get"
           init-method="init" destroy-method="destroy">
         <property name="config">
-            <ref bean="$GEN$io.nop.quarkus.core.dao.DataSourceConfig$3"
+            <ref bean="$GEN$io.nop.dao.jdbc.datasource.DataSourceConfig$3"
                  ext:resolved-loc="[15:14:0:0]/nop/quarkus/beans/quarkus-defaults.beans.xml"/>
         </property>
     </bean>

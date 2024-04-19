@@ -5,11 +5,14 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.quarkus.core.dao;
+package io.nop.dao.jdbc.datasource;
+
+import io.nop.api.core.annotations.data.DataBean;
 
 import java.time.Duration;
 import java.util.Map;
 
+@DataBean
 public class DataSourceConfig {
     private String name;
     private String driverClassName;

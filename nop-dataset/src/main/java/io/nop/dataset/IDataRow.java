@@ -8,7 +8,10 @@
 package io.nop.dataset;
 
 
+import io.nop.commons.util.CollectionHelper;
 import io.nop.dataset.binder.IDataParameters;
+
+import java.util.Map;
 
 /**
  * 数据行
@@ -32,4 +35,12 @@ public interface IDataRow extends IDataParameters {
     Object[] getFieldValues();
 
     IDataRow toDetachedDataRow();
+
+    default Map<String, Object> toMap() {
+        Map<String, Object> map = CollectionHelper.newLinkedHashMap(getFieldCount());
+        for (int i = 0, n = getFieldCount(); i < n; i++) {
+            map.put(getMeta().getFieldName(i), getObject(i));
+        }
+        return map;
+    }
 }

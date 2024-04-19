@@ -11,6 +11,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.dataset.IDataRow;
 import io.nop.dataset.IDataSetMeta;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -84,5 +85,10 @@ public class MapDataRow implements IDataRow {
     @Override
     public IDataRow toDetachedDataRow() {
         return this;
+    }
+
+    @Override
+    public Map<String, Object> toMap() {
+        return Collections.unmodifiableMap(fields);
     }
 }

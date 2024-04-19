@@ -10,6 +10,9 @@ package io.nop.dataset.impl;
 import io.nop.dataset.IDataRow;
 import io.nop.dataset.IDataSetMeta;
 
+import java.util.Collections;
+import java.util.Map;
+
 public class SingleColumnRow implements IDataRow {
     private final IDataSetMeta meta;
     private final Object value;
@@ -64,5 +67,10 @@ public class SingleColumnRow implements IDataRow {
     @Override
     public IDataRow toDetachedDataRow() {
         return this;
+    }
+
+    @Override
+    public Map<String, Object> toMap() {
+        return Collections.singletonMap(meta.getFieldName(0), value);
     }
 }

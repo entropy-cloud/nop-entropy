@@ -9,8 +9,8 @@ package io.nop.dataset.record;
 
 import io.nop.dataset.record.impl.LimitRecordInput;
 import io.nop.dataset.record.impl.RecordInputImpls;
-
 import jakarta.annotation.Nonnull;
+
 import java.io.Closeable;
 import java.util.Iterator;
 import java.util.List;
@@ -80,18 +80,35 @@ public interface IRecordInput<T> extends Closeable, Iterator<T>, Iterable<T> {
     }
 
     default @Nonnull List<T> readBatch(int maxCount) {
-        return RecordInputImpls.defaultReadBatch(this, maxCount, Function.identity());
+        return readBatchWithTransformer(maxCount, Function.identity());
     }
 
     default @Nonnull List<T> readFiltered(int maxCount, Predicate<T> filter) {
-        return RecordInputImpls.defaultReadBatch(this, maxCount, filter, Function.identity());
+        return readFilteredWithTransformer(maxCount, filter, Function.identity());
     }
 
     default void readBatch(int maxCount, Consumer<T> ret) {
-        RecordInputImpls.defaultReadBatch(this, maxCount, Function.identity(), ret);
+        readBatchWithTransformer(maxCount, Function.identity(), ret);
     }
 
     default @Nonnull List<T> readAll() {
-        return RecordInputImpls.defaultReadAll(this, Function.identity());
+        return readAllWithTransformer(Function.identity());
+    }
+
+    default @Nonnull <R> List<R> readAllWithTransformer(Function<T, R> transformer) {
+        return RecordInputImpls.defaultReadAll(this, transformer);
+    }
+
+    default @Nonnull <R> List<R> readBatchWithTransformer(int maxCount, Function<T, R> transformer) {
+        return RecordInputImpls.defaultReadBatch(this, maxCount, transformer);
+    }
+
+    default @Nonnull <R> List<R> readFilteredWithTransformer(int maxCount, Predicate<T> filter,
+                                                             Function<T, R> transformer) {
+        return RecordInputImpls.defaultReadBatch(this, maxCount, filter, transformer);
+    }
+
+    default <R> void readBatchWithTransformer(int maxCount, Function<T, R> transformer, Consumer<R> ret) {
+        RecordInputImpls.defaultReadBatch(this, maxCount, transformer, ret);
     }
 }
