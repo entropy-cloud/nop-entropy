@@ -28,5 +28,6 @@
         <module>nop-batch-app</module>
         <module>nop-batch-jdbc</module>
         <module>nop-batch-meta</module>
+        <module>nop-batch-dsl</module>
     </modules>
 </project>

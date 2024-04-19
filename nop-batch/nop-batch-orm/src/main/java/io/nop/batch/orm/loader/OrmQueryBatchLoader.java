@@ -16,8 +16,8 @@ import io.nop.dao.api.IDaoEntity;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dao.api.IQueryBuilder;
-
 import jakarta.inject.Inject;
+
 import java.util.List;
 
 public class OrmQueryBatchLoader<S extends IDaoEntity> implements IBatchLoader<S, IBatchChunkContext>, IBatchTaskListener {
@@ -29,6 +29,10 @@ public class OrmQueryBatchLoader<S extends IDaoEntity> implements IBatchLoader<S
     private S lastEntity;
     private QueryBean query;
 
+    private IEntityDao<S> dao;
+
+    private List<String> batchLoadProps;
+
     @Inject
     public void setDaoProvider(IDaoProvider daoProvider) {
         this.daoProvider = daoProvider;
@@ -38,10 +42,19 @@ public class OrmQueryBatchLoader<S extends IDaoEntity> implements IBatchLoader<S
         this.queryBuilder = queryBuilder;
     }
 
+    public List<String> getBatchLoadProps() {
+        return batchLoadProps;
+    }
+
+    public void setBatchLoadProps(List<String> batchLoadProps) {
+        this.batchLoadProps = batchLoadProps;
+    }
+
     @Override
     public void onTaskBegin(IBatchTaskContext context) {
         query = queryBuilder.buildQuery(context);
         lastEntity = null;
+        dao = daoProvider.dao(query.getSourceName());
     }
 
     @Override
@@ -51,8 +64,7 @@ public class OrmQueryBatchLoader<S extends IDaoEntity> implements IBatchLoader<S
     }
 
     @Override
-    public List<S> load(int batchSize, IBatchChunkContext context) {
-        IEntityDao<S> dao = daoProvider.dao(query.getSourceName());
+    public synchronized List<S> load(int batchSize, IBatchChunkContext context) {
         List<S> list = dao.findNext(lastEntity, query.getFilter(), query.getOrderBy(), batchSize);
 
         if (list.isEmpty()) {
@@ -60,6 +72,9 @@ public class OrmQueryBatchLoader<S extends IDaoEntity> implements IBatchLoader<S
         }
 
         lastEntity = list.get(list.size() - 1);
+
+        if (batchLoadProps != null)
+            dao.batchLoadProps(list, batchLoadProps);
         return list;
     }
 }

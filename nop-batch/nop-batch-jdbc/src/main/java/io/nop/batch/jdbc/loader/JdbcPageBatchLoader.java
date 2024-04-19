@@ -19,8 +19,8 @@ import io.nop.dao.api.INamedSqlBuilder;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dataset.IRowMapper;
 import io.nop.dataset.rowmapper.ColumnMapRowMapper;
-
 import jakarta.inject.Inject;
+
 import java.util.List;
 
 public class JdbcPageBatchLoader<T> implements IBatchLoader<T, IBatchChunkContext>, IBatchTaskListener {
@@ -30,6 +30,7 @@ public class JdbcPageBatchLoader<T> implements IBatchLoader<T, IBatchChunkContex
 
     private INamedSqlBuilder namedSqlBuilder;
 
+    @SuppressWarnings("unchecked")
     private IRowMapper<T> rowMapper = (IRowMapper<T>) ColumnMapRowMapper.CASE_INSENSITIVE;
 
     private SQL sql;

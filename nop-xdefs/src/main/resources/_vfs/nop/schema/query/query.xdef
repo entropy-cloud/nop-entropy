@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <query x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:xdef="/nop/schema/xdef.xdef"
+       xdef:name="QueryBean" xdef:bean-package="io.nop.api.core.beans.query"
 >
     <fields xdef:body-type="list" xdef:key-attr="name">
         <field name="!string"/>

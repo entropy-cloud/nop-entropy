@@ -15,18 +15,18 @@ import io.nop.commons.text.CharacterCase;
 import io.nop.commons.text.marker.Marker;
 import io.nop.commons.text.marker.Markers;
 import io.nop.commons.type.StdDataType;
+import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.lang.sql.SQL;
-import io.nop.commons.type.StdSqlType;
 import io.nop.core.lang.sql.TypedValueMarker;
-import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.dao.DaoConfigs;
-import io.nop.dataset.IDataSetMeta;
-import io.nop.dataset.impl.BaseDataFieldMeta;
-import io.nop.dataset.impl.BaseDataSetMeta;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.pagination.IPaginationHandler;
 import io.nop.dao.jdbc.dataset.JdbcStatement;
+import io.nop.dataset.IDataSetMeta;
+import io.nop.dataset.binder.IDataParameterBinder;
+import io.nop.dataset.impl.BaseDataFieldMeta;
+import io.nop.dataset.impl.BaseDataSetMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,7 +72,7 @@ public class JdbcHelper {
     }
 
     public static void setAutoCommit(Connection conn, boolean autoCommit, IDialect dialect) {
-        LOG.trace("nop.jdbc.set-auto-commit:autoCommit={},conn={}",conn,autoCommit);
+        LOG.trace("nop.jdbc.set-auto-commit:autoCommit={},conn={}", conn, autoCommit);
         try {
             conn.setAutoCommit(autoCommit);
         } catch (SQLException e) {
@@ -142,7 +142,7 @@ public class JdbcHelper {
         tableName = normalize(tableName, tableNameLowerCase);
         StdSqlType sqlType = StdSqlType.fromJdbcType(metadata.getColumnType(column));
         StdDataType dataType = sqlType == null ? StdDataType.ANY : sqlType.getStdDataType();
-        return new BaseDataFieldMeta(name, sourceName, tableName, dataType,false);
+        return new BaseDataFieldMeta(name, sourceName, tableName, dataType, false);
     }
 
     public static CallableStatement prepareCallableStatement(IDialect dialect, Connection conn, SQL sql)
@@ -194,7 +194,8 @@ public class JdbcHelper {
         PreparedStatement ps = conn.prepareStatement(sql.getText());
 
         try {
-            if (sql.getFetchSize() > 0)
+            // fetchSize 为Integer.MIN_VALUE对于MySQL驱动而言是启用stream的特殊标记
+            if (sql.getFetchSize() > 0 || sql.getFetchSize() == Integer.MIN_VALUE)
                 ps.setFetchSize(sql.getFetchSize());
 
             setParameters(dialect, ps, sql);

@@ -10,32 +10,46 @@
        singleMode="boolean=false" singleSession="boolean"
        transactionScope="enum:io.nop.batch.core.BatchTransactionScope"
        rateLimit="double" jitterRatio="double"
-       executor="string"
+       executor="string" xdef:name="BatchTaskModel" xdef:bean-package="io.nop.batch.dsl.model"
        x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        xmlns:xdef="/nop/schema/xdef.xdef"
 >
-    <retryPolicy maxRetryCount="int" retryDelay="int" maxRetryDelay="int"
+    <retryPolicy maxRetryCount="int" retryDelay="int" maxRetryDelay="int" xdef:name="BatchRetryPolicyModel"
                  exponentialDelay="boolean=true" jitterRatio="double=0.3">
         <exceptionFilter xdef:value="xpl-predicate"/>
     </retryPolicy>
 
-    <skipPolicy maxSkipCount="int">
+    <skipPolicy maxSkipCount="int" xdef:name="BatchSkipPolicyModel">
         <exceptionFilter xdef:value="xpl-predicate"/>
     </skipPolicy>
 
     <inputSorter xdef:ref="/nop/schema/query/order-by.xdef"/>
 
-    <reader bean="bean-name">
-        <file-reader pathExpr="expr">
+    <xdef:define xdef:name="BatchListenersModel">
+        <onTaskBegin xdef:value="xpl-fn:(ctx)=>void"/>
+        <onTaskEnd xdef:value="xpl-fn:(err,ctx)=>void"/>
+
+        <onChunkBegin xdef:value="xpl-fn:(ctx)=>void"/>
+        <onChunkEnd xdef:value="xpl-fn:(err,ctx)=>void"/>
+
+        <onLoadBegin xdef:value="xpl-fn:(batchSize,ctx)=>void"/>
+        <onLoadEnd xdef:value="xpl-fn:(err,batchSize,ctx)=>void"/>
+
+        <onConsumeBegin xdef:value="xpl-fn:(items,ctx)=>void"/>
+        <onConsumeEnd xdef:value="xpl-fn:(err,items,ctx)=>void"/>
+    </xdef:define>
+
+    <reader bean="bean-name" xdef:name="BatchReaderModel" xdef:ref="BatchListenersModel">
+        <file-reader pathExpr="expr" xdef:name="BatchFileReaderModel">
             <headers xdef:value="csv-set"/>
         </file-reader>
 
-        <orm-reader>
+        <orm-reader xdef:name="BatchOrmReaderModel" batchLoadProps="csv-list">
             <eql xdef:value="xpl-sql"/>
             <query xdef:ref="../query/query.xdef"/>
         </orm-reader>
 
-        <jdbc-reader querySpace="string">
+        <jdbc-reader querySpace="string" sqlName="string" xdef:name="BatchJdbcReaderModel">
             <sql xdef:value="xpl-sql"/>
             <query xdef:ref="../query/query.xdef"/>
         </jdbc-reader>
@@ -43,17 +57,19 @@
         <source xdef:value="xpl"/>
     </reader>
 
-    <processor bean="bean-name" id="var-name" xdef:unique-attr="id">
-        <filter xdef:value="xpl-predicate" />
+    <processor bean="bean-name" id="var-name" order="!int=0"
+               xdef:unique-attr="id" xdef:name="BatchProcessorModel" xdef:ref="BatchListenersModel">
+        <filter xdef:value="xpl-predicate"/>
         <source xdef:value="xpl"/>
     </processor>
 
-    <chunk-processor bean="bean-name">
+    <chunk-processor bean="bean-name" xdef:name="BatchChunkProcessorModel" xdef:ref="BatchListenersModel">
         <source xdef:value="xpl"/>
     </chunk-processor>
 
-    <writer bean="bean-name" id="var-name" xdef:unique-attr="id">
-        <source xdef:value="xpl" />
+    <writer bean="bean-name" id="var-name" order="!int=0"
+            xdef:unique-attr="id" xdef:name="BatchWriterModel" xdef:ref="BatchListenersModel">
+        <source xdef:value="xpl"/>
     </writer>
 
 </batch>

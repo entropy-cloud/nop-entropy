@@ -57,7 +57,7 @@ Nop平台的后端服务使用NopGraphQL引擎实现。NopGraphQL引擎没有使
 
 ![](images/rpc-modules.png)
 
-Nop平台在GraphQL引擎的基础上建立了分布式RPC机制，参见[rpc-design.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/microservice/rpc-design.md)
+Nop平台在GraphQL引擎的基础上建立了分布式RPC机制，参见[rpc-design.md](../dev-guide/microservice/rpc-design.md)
 
 * nop-cluster-core提供了负载均衡、服务发现、Leader选举等集群相关的支持机制
 
@@ -107,7 +107,7 @@ Nop平台整体设计采用了可分可合的灵活组织形式。初始代码�
 
 ![](images/report-modules.png)
 
-NopReport是一个采用Excel作为可视化设计器的支持中国式报表的报表引擎，使用方法参见[report.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/user-guide/report.md)。
+NopReport是一个采用Excel作为可视化设计器的支持中国式报表的报表引擎，使用方法参见[report.md](../user-guide/report.md)。
 
 * nop-report-core实现了报表展开算法、报表表达式、报表函数等核心机制
 
@@ -115,7 +115,7 @@ NopReport是一个采用Excel作为可视化设计器的支持中国式报表的
 
 * nop-excel提供了ExcelWorkbook模型对象，利用workbook.xdef元模型，可以自动实现XML格式的DSL与ExcelWorkbook对象之间的双向转换。因此ExcelWorkbook作为领域模型是脱离Excel软件独立存在的。
 
-* nop-ooxml-docx提供了可以进行可视化编辑的Word模板机制，具体使用参见[word-temlate.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/report/word-template.md)
+* nop-ooxml-docx提供了可以进行可视化编辑的Word模板机制，具体使用参见[word-temlate.md](../dev-guide/report/word-template.md)
 
 ## 七. 自动化测试框架
 
@@ -143,7 +143,7 @@ Nop平台的自动化测试框架原则上是一种通用设计，不依赖于JU
 
 ![](images/cli-modules.png)
 
-nop-cli命令行工具聚合了一批可以独立使用的功能，具体参见[cli.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/cli.md)
+nop-cli命令行工具聚合了一批可以独立使用的功能，具体参见[cli.md](../dev-guide/cli.md)
 
 * gen指令需要用到nop-codegen模块来执行代码生成
 

@@ -25,8 +25,8 @@ import io.nop.dataset.IRowMapper;
 import io.nop.dataset.impl.DefaultFieldMapper;
 import io.nop.dataset.record.impl.RecordInputImpls;
 import io.nop.dataset.rowmapper.ColumnMapRowMapper;
-
 import jakarta.inject.Inject;
+
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -41,9 +41,16 @@ public class JdbcBatchLoader<T> implements IBatchLoader<T, IBatchChunkContext>, 
 
     private INamedSqlBuilder namedSqlBuilder;
 
+    private String sqlName;
+
+    @SuppressWarnings("unchecked")
     private IRowMapper<T> rowMapper = (IRowMapper<T>) ColumnMapRowMapper.CASE_INSENSITIVE;
 
     private SQL sql;
+
+    private long maxRows;
+
+    private int maxFieldsSize;
 
     private Connection connection;
 
@@ -82,11 +89,29 @@ public class JdbcBatchLoader<T> implements IBatchLoader<T, IBatchChunkContext>, 
     }
 
     public void setSqlName(String sqlName) {
-        setSqlGenerator(ctx -> namedSqlBuilder.buildSql(sqlName, ctx));
+        this.sqlName = sqlName;
+    }
+
+    public long getMaxRows() {
+        return maxRows;
+    }
+
+    public void setMaxRows(long maxRows) {
+        this.maxRows = maxRows;
+    }
+
+    public void setMaxFieldsSize(int maxFieldsSize) {
+        this.maxFieldsSize = maxFieldsSize;
     }
 
     @Override
     public void onTaskBegin(IBatchTaskContext context) {
+        if (sqlGenerator == null) {
+            if (sqlName != null)
+                setSqlGenerator(ctx -> namedSqlBuilder.buildSql(sqlName, ctx));
+        }
+        Guard.notNull(sqlGenerator, "sqlGenerator");
+
         this.sql = sqlGenerator.generateSql(context);
         this.dialect = DialectManager.instance().getDialectForDataSource(dataSource);
         try {
@@ -99,6 +124,17 @@ public class JdbcBatchLoader<T> implements IBatchLoader<T, IBatchChunkContext>, 
         try {
             ps = JdbcHelper.prepareStatement(dialect, connection, sql);
             JdbcHelper.setQueryTimeout(dialect, ps, sql, false);
+
+            if (maxRows > 0) {
+                if (maxRows < Integer.MAX_VALUE) {
+                    ps.setMaxRows((int) maxRows);
+                } else {
+                    ps.setLargeMaxRows(maxRows);
+                }
+            }
+
+            if (maxFieldsSize > 0)
+                ps.setMaxFieldSize(maxFieldsSize);
 
             ResultSet rs = ps.executeQuery();
             this.dataSet = new JdbcDataSet(dialect, rs);
