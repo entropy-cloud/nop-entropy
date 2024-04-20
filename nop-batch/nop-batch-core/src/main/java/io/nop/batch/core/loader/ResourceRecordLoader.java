@@ -147,7 +147,7 @@ public class ResourceRecordLoader<S, C> extends AbstractBatchResourceHandler
     @Override
     public synchronized void onTaskBegin(IBatchTaskContext context) {
         taskContext = context;
-        IResource resource = getResource();
+        IResource resource = getResource(context);
         input = recordIO.openInput(resource, encoding);
 
         long skipCount = getSkipCount(context);

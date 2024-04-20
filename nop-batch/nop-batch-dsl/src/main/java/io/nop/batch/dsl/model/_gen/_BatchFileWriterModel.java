@@ -2,19 +2,19 @@ package io.nop.batch.dsl.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
-import io.nop.batch.dsl.model.BatchFileReaderModel;
+import io.nop.batch.dsl.model.BatchFileWriterModel;
 import io.nop.commons.util.ClassHelper;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [44:10:0:0]/nop/schema/task/batch.xdef <p>
+ * generate from [79:10:0:0]/nop/schema/task/batch.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
-public abstract class _BatchFileReaderModel extends io.nop.core.resource.component.AbstractComponentModel {
+public abstract class _BatchFileWriterModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
      *  
@@ -29,13 +29,6 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
      * 
      */
     private java.util.Set<java.lang.String> _headers ;
-    
-    /**
-     *  
-     * xml name: maxCount
-     * 
-     */
-    private java.lang.Long _maxCount ;
     
     /**
      *  
@@ -92,25 +85,6 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
         checkAllowChange();
         
         this._headers = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: maxCount
-     *  
-     */
-    
-    public java.lang.Long getMaxCount(){
-      return _maxCount;
-    }
-
-    
-    public void setMaxCount(java.lang.Long value){
-        checkAllowChange();
-        
-        this._maxCount = value;
            
     }
 
@@ -189,31 +163,29 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
         
         out.putNotNull("encoding",this.getEncoding());
         out.putNotNull("headers",this.getHeaders());
-        out.putNotNull("maxCount",this.getMaxCount());
         out.putNotNull("pathExpr",this.getPathExpr());
         out.putNotNull("resourceIO",this.getResourceIO());
         out.putNotNull("resourceLoader",this.getResourceLoader());
     }
 
-    public BatchFileReaderModel cloneInstance(){
-        BatchFileReaderModel instance = newInstance();
+    public BatchFileWriterModel cloneInstance(){
+        BatchFileWriterModel instance = newInstance();
         this.copyTo(instance);
         return instance;
     }
 
-    protected void copyTo(BatchFileReaderModel instance){
+    protected void copyTo(BatchFileWriterModel instance){
         super.copyTo(instance);
         
         instance.setEncoding(this.getEncoding());
         instance.setHeaders(this.getHeaders());
-        instance.setMaxCount(this.getMaxCount());
         instance.setPathExpr(this.getPathExpr());
         instance.setResourceIO(this.getResourceIO());
         instance.setResourceLoader(this.getResourceLoader());
     }
 
-    protected BatchFileReaderModel newInstance(){
-        return (BatchFileReaderModel) ClassHelper.newInstance(getClass());
+    protected BatchFileWriterModel newInstance(){
+        return (BatchFileWriterModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

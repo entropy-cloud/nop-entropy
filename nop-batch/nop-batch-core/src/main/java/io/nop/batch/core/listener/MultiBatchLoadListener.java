@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 public class MultiBatchLoadListener<S, C> implements IBatchLoadListener<S, C> {
-    final static Logger LOG = LoggerFactory.getLogger(MultiBatchConsumerListener.class);
+    final static Logger LOG = LoggerFactory.getLogger(MultiBatchConsumeListener.class);
 
     private final List<IBatchLoadListener<S, C>> list;
 
@@ -34,10 +34,10 @@ public class MultiBatchLoadListener<S, C> implements IBatchLoadListener<S, C> {
     }
 
     @Override
-    public void onLoadEnd(Throwable exception, List<S> items, int batchSize, C context) {
+    public void onLoadEnd(Throwable exception, int batchSize, C context) {
         for (IBatchLoadListener<S, C> listener : list) {
             try {
-                listener.onLoadEnd(exception, items, batchSize, context);
+                listener.onLoadEnd(exception, batchSize, context);
             } catch (Exception e) {
                 LOG.error("nop.err.batch.handle-load-end-fail", e);
             }

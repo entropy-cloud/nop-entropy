@@ -40,7 +40,7 @@ public class SkipBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkContex
         } catch (BatchCancelException e) {
             throw e;
         } catch (Throwable e) {
-            if (skipPolicy.shouldSkip(e, context.getTaskContext().getSkipItemCount())) {
+            if (skipPolicy.shouldSkip(e, context.getTaskContext().getSkipItemCount(), context)) {
                 int count = context.getChunkItems().size() - context.getCompletedItemCount();
                 LOG.info("nop.batch.skip-error:skipCount={},totalSkipCount={}", count,
                         context.getTaskContext().getSkipItemCount(), e);

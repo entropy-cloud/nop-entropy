@@ -13,12 +13,12 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-public class MultiBatchConsumerListener<R, C> implements IBatchConsumeListener<R, C> {
-    final static Logger LOG = LoggerFactory.getLogger(MultiBatchConsumerListener.class);
+public class MultiBatchConsumeListener<R, C> implements IBatchConsumeListener<R, C> {
+    final static Logger LOG = LoggerFactory.getLogger(MultiBatchConsumeListener.class);
 
     private final List<IBatchConsumeListener<R, C>> list;
 
-    public MultiBatchConsumerListener(List<IBatchConsumeListener<R, C>> list) {
+    public MultiBatchConsumeListener(List<IBatchConsumeListener<R, C>> list) {
         this.list = list;
     }
 

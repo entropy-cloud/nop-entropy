@@ -12,17 +12,22 @@ import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchLoader;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.IBatchTaskListener;
+import io.nop.core.lang.sql.ISqlGenerator;
+import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.IDaoEntity;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dao.api.IQueryBuilder;
 import jakarta.inject.Inject;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class OrmQueryBatchLoader<S extends IDaoEntity> implements IBatchLoader<S, IBatchChunkContext>, IBatchTaskListener {
 
     private IQueryBuilder queryBuilder;
+
+    private ISqlGenerator sqlGenerator;
 
     private IDaoProvider daoProvider;
 
@@ -32,6 +37,18 @@ public class OrmQueryBatchLoader<S extends IDaoEntity> implements IBatchLoader<S
     private IEntityDao<S> dao;
 
     private List<String> batchLoadProps;
+
+    private String entityName;
+
+    private SQL sql;
+
+    public void setEntityName(String entityName) {
+        this.entityName = entityName;
+    }
+
+    public void setSqlGenerator(ISqlGenerator sqlGenerator) {
+        this.sqlGenerator = sqlGenerator;
+    }
 
     @Inject
     public void setDaoProvider(IDaoProvider daoProvider) {
@@ -52,20 +69,33 @@ public class OrmQueryBatchLoader<S extends IDaoEntity> implements IBatchLoader<S
 
     @Override
     public void onTaskBegin(IBatchTaskContext context) {
-        query = queryBuilder.buildQuery(context);
+        if (sqlGenerator != null)
+            sql = sqlGenerator.generateSql(context);
+
+        if (queryBuilder != null)
+            query = queryBuilder.buildQuery(context);
         lastEntity = null;
-        dao = daoProvider.dao(query.getSourceName());
+        String entityName = this.entityName;
+        if (query.getSourceName() != null)
+            entityName = query.getSourceName();
+        dao = daoProvider.dao(entityName);
     }
 
     @Override
     public void onTaskEnd(Throwable exception, IBatchTaskContext context) {
         query = null;
         lastEntity = null;
+        sql = null;
     }
 
     @Override
     public synchronized List<S> load(int batchSize, IBatchChunkContext context) {
-        List<S> list = dao.findNext(lastEntity, query.getFilter(), query.getOrderBy(), batchSize);
+        List<S> list;
+        if (query != null) {
+            list = dao.findNext(lastEntity, query.getFilter(), query.getOrderBy(), batchSize);
+        } else {
+            list = new ArrayList<>();
+        }
 
         if (list.isEmpty()) {
             return list;

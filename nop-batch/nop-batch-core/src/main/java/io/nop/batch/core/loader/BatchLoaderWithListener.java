@@ -35,7 +35,7 @@ public class BatchLoaderWithListener<S, C> implements IBatchLoader<S, C> {
             exception = e;
             throw NopException.adapt(e);
         } finally {
-            listener.onLoadEnd(exception, items, batchSize, context);
+            listener.onLoadEnd(exception, batchSize, context);
         }
     }
 }

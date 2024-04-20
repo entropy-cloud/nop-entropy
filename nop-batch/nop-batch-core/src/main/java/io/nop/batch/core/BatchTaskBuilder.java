@@ -21,7 +21,7 @@ import io.nop.batch.core.consumer.WitchHistoryBatchConsumer;
 import io.nop.batch.core.impl.BatchTask;
 import io.nop.batch.core.listener.MetricsRetryConsumeListener;
 import io.nop.batch.core.listener.MultiBatchChunkListener;
-import io.nop.batch.core.listener.MultiBatchConsumerListener;
+import io.nop.batch.core.listener.MultiBatchConsumeListener;
 import io.nop.batch.core.listener.MultiBatchLoadListener;
 import io.nop.batch.core.listener.MultiBatchProcessListener;
 import io.nop.batch.core.listener.MultiBatchTaskListener;
@@ -226,6 +226,7 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
             if (consumers.size() == 1) {
                 return consumer(CollectionHelper.first(consumers));
             }
+
             List<IBatchConsumer<Object, IBatchChunkContext>> list = new ArrayList(consumers);
             consumer(new MultiBatchConsumer<>(list));
         }
@@ -365,7 +366,7 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
             consumer = EmptyBatchConsumer.instance();
 
         if (!consumeListeners.isEmpty()) {
-            IBatchConsumeListener consumeListener = new MultiBatchConsumerListener(new ArrayList<>(this.consumeListeners));
+            IBatchConsumeListener consumeListener = new MultiBatchConsumeListener(new ArrayList<>(this.consumeListeners));
             consumer = new BatchConsumerWithListener(consumer, consumeListener);
         }
 

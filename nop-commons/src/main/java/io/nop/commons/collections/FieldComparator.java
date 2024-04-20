@@ -7,6 +7,8 @@
  */
 package io.nop.commons.collections;
 
+import io.nop.api.core.beans.query.OrderFieldBean;
+
 import java.util.Comparator;
 import java.util.function.BiFunction;
 
@@ -22,6 +24,10 @@ public class FieldComparator<T> implements Comparator<T> {
         this.desc = desc;
         this.nullsFirst = nullsFirst;
         this.propGetter = propGetter;
+    }
+
+    public static <T> FieldComparator<T> comparator(OrderFieldBean bean, BiFunction<T, String, Object> propGetter) {
+        return new FieldComparator<>(bean.getName(), bean.isDesc(), bean.getNullsFirst(), propGetter);
     }
 
     public String getField() {

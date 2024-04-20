@@ -16,6 +16,7 @@ import java.util.Map;
  * 一个批处理任务对应一个loader + processor + consumer的组合调用
  */
 public interface IBatchTaskContext extends IServiceContext {
+
     String getTaskName();
 
     String getTaskId();

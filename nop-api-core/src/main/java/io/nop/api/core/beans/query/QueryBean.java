@@ -14,16 +14,18 @@ import io.nop.api.core.annotations.graphql.GraphQLObject;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.beans.TreeBean;
+import io.nop.api.core.util.ICloneable;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @DataBean
 @GraphQLObject
-public class QueryBean implements Serializable {
+public class QueryBean implements Serializable, ICloneable {
     private static final long serialVersionUID = 6756041836462853393L;
 
     private String name;
@@ -52,6 +54,43 @@ public class QueryBean implements Serializable {
     private Integer timeout;
 
     private boolean disableLogicalDelete;
+
+    @Override
+    public QueryBean cloneInstance() {
+        QueryBean query = new QueryBean();
+        query.setName(name);
+        query.setOffset(offset);
+        query.setLimit(limit);
+        query.setCursor(cursor);
+        query.setFindPrev(findPrev);
+        if (fields != null) {
+            query.setFields(fields.stream().map(QueryFieldBean::cloneInstance).collect(Collectors.toList()));
+        }
+        query.setSourceName(sourceName);
+        if (dimFields != null)
+            query.setDimFields(new ArrayList<>(dimFields));
+
+        if (joins != null) {
+            query.setJoins(joins.stream().map(QuerySourceBean::cloneInstance).collect(Collectors.toList()));
+        }
+
+        if (leftJoinProps != null)
+            query.setLeftJoinProps(new ArrayList<>(leftJoinProps));
+
+        if (filter != null)
+            query.setFilter(filter.cloneInstance());
+
+        if (orderBy != null) {
+            query.setOrderBy(orderBy.stream().map(OrderFieldBean::cloneInstance).collect(Collectors.toList()));
+        }
+
+        if (groupBy != null)
+            query.setGroupBy(groupBy.stream().map(GroupFieldBean::cloneInstance).collect(Collectors.toList()));
+
+        query.setTimeout(timeout);
+        query.setDisableLogicalDelete(disableLogicalDelete);
+        return query;
+    }
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getName() {
@@ -95,12 +134,12 @@ public class QueryBean implements Serializable {
         this.limit = limit;
     }
 
-    public QueryBean offset(long offset){
+    public QueryBean offset(long offset) {
         setOffset(offset);
         return this;
     }
 
-    public QueryBean limit(int limit){
+    public QueryBean limit(int limit) {
         setLimit(limit);
         return this;
     }
@@ -173,7 +212,7 @@ public class QueryBean implements Serializable {
         this.timeout = timeout;
     }
 
-    public QueryBean timeout(Integer timeout){
+    public QueryBean timeout(Integer timeout) {
         setTimeout(timeout);
         return this;
     }

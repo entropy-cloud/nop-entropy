@@ -18,6 +18,13 @@ public abstract class _BatchReaderModel extends io.nop.batch.dsl.model.BatchList
     
     /**
      *  
+     * xml name: aggregator
+     * 
+     */
+    private java.lang.String _aggregator ;
+    
+    /**
+     *  
      * xml name: bean
      * 
      */
@@ -49,7 +56,26 @@ public abstract class _BatchReaderModel extends io.nop.batch.dsl.model.BatchList
      * xml name: source
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _source ;
+    private io.nop.core.lang.eval.IEvalFunction _source ;
+    
+    /**
+     * 
+     * xml name: aggregator
+     *  
+     */
+    
+    public java.lang.String getAggregator(){
+      return _aggregator;
+    }
+
+    
+    public void setAggregator(java.lang.String value){
+        checkAllowChange();
+        
+        this._aggregator = value;
+           
+    }
+
     
     /**
      * 
@@ -133,12 +159,12 @@ public abstract class _BatchReaderModel extends io.nop.batch.dsl.model.BatchList
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getSource(){
+    public io.nop.core.lang.eval.IEvalFunction getSource(){
       return _source;
     }
 
     
-    public void setSource(io.nop.core.lang.eval.IEvalAction value){
+    public void setSource(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._source = value;
@@ -167,6 +193,7 @@ public abstract class _BatchReaderModel extends io.nop.batch.dsl.model.BatchList
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("aggregator",this.getAggregator());
         out.putNotNull("bean",this.getBean());
         out.putNotNull("fileReader",this.getFileReader());
         out.putNotNull("jdbcReader",this.getJdbcReader());
@@ -183,6 +210,7 @@ public abstract class _BatchReaderModel extends io.nop.batch.dsl.model.BatchList
     protected void copyTo(BatchReaderModel instance){
         super.copyTo(instance);
         
+        instance.setAggregator(this.getAggregator());
         instance.setBean(this.getBean());
         instance.setFileReader(this.getFileReader());
         instance.setJdbcReader(this.getJdbcReader());

@@ -15,13 +15,14 @@ import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.Guard;
+import io.nop.api.core.util.ICloneable;
 
 import java.io.Serializable;
 
 @DataBean
 @GraphQLObject
 @SuppressWarnings("PMD.UselessParentheses")
-public class OrderFieldBean implements Serializable {
+public class OrderFieldBean implements Serializable, ICloneable {
     private static final long serialVersionUID = -6865693009305659956L;
     private String owner;
 
@@ -53,6 +54,16 @@ public class OrderFieldBean implements Serializable {
         ret.setName((String) tree.getAttr("name"));
         ret.setDesc(ConvertHelper.toPrimitiveBoolean(tree.getAttr("desc")));
         ret.setNullsFirst(ConvertHelper.toBoolean(tree.getAttr("nullsFirst")));
+        return ret;
+    }
+
+    @Override
+    public OrderFieldBean cloneInstance() {
+        OrderFieldBean ret = new OrderFieldBean();
+        ret.setOwner(owner);
+        ret.setName(name);
+        ret.setDesc(!desc);
+        ret.setNullsFirst(nullsFirst);
         return ret;
     }
 

@@ -117,6 +117,13 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: tagger
+     * 
+     */
+    private io.nop.batch.dsl.model.BatchTaggerModel _tagger ;
+    
+    /**
+     *  
      * xml name: transactionScope
      * 
      */
@@ -450,6 +457,25 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: tagger
+     *  
+     */
+    
+    public io.nop.batch.dsl.model.BatchTaggerModel getTagger(){
+      return _tagger;
+    }
+
+    
+    public void setTagger(io.nop.batch.dsl.model.BatchTaggerModel value){
+        checkAllowChange();
+        
+        this._tagger = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: transactionScope
      *  
      */
@@ -532,6 +558,8 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
             
            this._skipPolicy = io.nop.api.core.util.FreezeHelper.deepFreeze(this._skipPolicy);
             
+           this._tagger = io.nop.api.core.util.FreezeHelper.deepFreeze(this._tagger);
+            
            this._writers = io.nop.api.core.util.FreezeHelper.deepFreeze(this._writers);
             
         }
@@ -555,6 +583,7 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         out.putNotNull("singleMode",this.getSingleMode());
         out.putNotNull("singleSession",this.getSingleSession());
         out.putNotNull("skipPolicy",this.getSkipPolicy());
+        out.putNotNull("tagger",this.getTagger());
         out.putNotNull("transactionScope",this.getTransactionScope());
         out.putNotNull("writers",this.getWriters());
     }
@@ -582,6 +611,7 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         instance.setSingleMode(this.getSingleMode());
         instance.setSingleSession(this.getSingleSession());
         instance.setSkipPolicy(this.getSkipPolicy());
+        instance.setTagger(this.getTagger());
         instance.setTransactionScope(this.getTransactionScope());
         instance.setWriters(this.getWriters());
     }

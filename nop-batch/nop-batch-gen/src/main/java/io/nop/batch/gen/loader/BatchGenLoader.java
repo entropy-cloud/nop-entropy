@@ -43,7 +43,7 @@ public class BatchGenLoader<C> extends AbstractBatchResourceHandler
 
     @Override
     public synchronized void onTaskBegin(IBatchTaskContext context) {
-        genModel = new BatchGenModelParser().parseFromResource(getResource());
+        genModel = new BatchGenModelParser().parseFromResource(getResource(context));
         genState = new BatchGenState(genModel, totalCount);
         genContext = new BatchGenContextImpl();
     }

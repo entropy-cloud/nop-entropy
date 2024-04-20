@@ -11,6 +11,7 @@ import io.nop.api.core.beans.IntRangeBean;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.IBatchTaskMetrics;
+import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
 
 import java.util.Map;
@@ -26,6 +27,13 @@ public class BatchTaskContextImpl extends ServiceContextImpl implements IBatchTa
     private boolean recoverMode;
     private IBatchTaskMetrics metrics;
     private final AtomicLong skipItemCount = new AtomicLong();
+
+    public BatchTaskContextImpl() {
+    }
+
+    public BatchTaskContextImpl(IServiceContext svcCtx) {
+
+    }
 
     @Override
     public String getTaskName() {

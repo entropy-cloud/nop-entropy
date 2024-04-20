@@ -31,6 +31,7 @@ public class CodeGen {
 
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-task/nop-task-core"), "", false);
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-wf/nop-wf-core"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-batch/nop-batch-dsl"), "", false);
 
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-fsm"), "", false);
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-biz"), "", false);

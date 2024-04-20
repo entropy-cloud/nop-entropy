@@ -11,10 +11,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
 import io.nop.api.core.annotations.meta.PropMeta;
+import io.nop.api.core.util.ICloneable;
 
 @DataBean
 @GraphQLObject
-public class GroupFieldBean {
+public class GroupFieldBean implements ICloneable {
     private String owner;
     private String name;
 
@@ -22,6 +23,14 @@ public class GroupFieldBean {
         GroupFieldBean field = new GroupFieldBean();
         field.setName(name);
         return field;
+    }
+
+    @Override
+    public GroupFieldBean cloneInstance() {
+        GroupFieldBean ret = new GroupFieldBean();
+        ret.setOwner(owner);
+        ret.setName(name);
+        return ret;
     }
 
     @PropMeta(propId = 1)

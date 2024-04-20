@@ -7,12 +7,10 @@
  */
 package io.nop.batch.core;
 
-import java.util.List;
-
 public interface IBatchLoadListener<S, C> {
     default void onLoadBegin(int batchSize, C context) {
     }
 
-    default void onLoadEnd(Throwable ex, List<S> items, int batchSize, C context) {
+    default void onLoadEnd(Throwable ex, int batchSize, C context) {
     }
 }

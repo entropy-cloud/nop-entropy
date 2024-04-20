@@ -9,12 +9,19 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [70:6:0:0]/nop/schema/task/batch.xdef <p>
+ * generate from [76:6:0:0]/nop/schema/task/batch.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchListenersModel {
+    
+    /**
+     *  
+     * xml name: aggregator
+     * 
+     */
+    private java.lang.String _aggregator ;
     
     /**
      *  
@@ -25,10 +32,31 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
     
     /**
      *  
+     * xml name: file-writer
+     * 
+     */
+    private io.nop.batch.dsl.model.BatchFileWriterModel _fileWriter ;
+    
+    /**
+     *  
+     * xml name: forTag
+     * 
+     */
+    private java.lang.String _forTag ;
+    
+    /**
+     *  
      * xml name: id
      * 
      */
     private java.lang.String _id ;
+    
+    /**
+     *  
+     * xml name: metaProvider
+     * 
+     */
+    private java.lang.String _metaProvider ;
     
     /**
      *  
@@ -42,7 +70,26 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
      * xml name: source
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _source ;
+    private io.nop.core.lang.eval.IEvalFunction _source ;
+    
+    /**
+     * 
+     * xml name: aggregator
+     *  
+     */
+    
+    public java.lang.String getAggregator(){
+      return _aggregator;
+    }
+
+    
+    public void setAggregator(java.lang.String value){
+        checkAllowChange();
+        
+        this._aggregator = value;
+           
+    }
+
     
     /**
      * 
@@ -65,6 +112,44 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
     
     /**
      * 
+     * xml name: file-writer
+     *  
+     */
+    
+    public io.nop.batch.dsl.model.BatchFileWriterModel getFileWriter(){
+      return _fileWriter;
+    }
+
+    
+    public void setFileWriter(io.nop.batch.dsl.model.BatchFileWriterModel value){
+        checkAllowChange();
+        
+        this._fileWriter = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: forTag
+     *  
+     */
+    
+    public java.lang.String getForTag(){
+      return _forTag;
+    }
+
+    
+    public void setForTag(java.lang.String value){
+        checkAllowChange();
+        
+        this._forTag = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: id
      *  
      */
@@ -78,6 +163,25 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
         checkAllowChange();
         
         this._id = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: metaProvider
+     *  
+     */
+    
+    public java.lang.String getMetaProvider(){
+      return _metaProvider;
+    }
+
+    
+    public void setMetaProvider(java.lang.String value){
+        checkAllowChange();
+        
+        this._metaProvider = value;
            
     }
 
@@ -107,12 +211,12 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getSource(){
+    public io.nop.core.lang.eval.IEvalFunction getSource(){
       return _source;
     }
 
     
-    public void setSource(io.nop.core.lang.eval.IEvalAction value){
+    public void setSource(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._source = value;
@@ -128,6 +232,8 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._fileWriter = io.nop.api.core.util.FreezeHelper.deepFreeze(this._fileWriter);
+            
         }
     }
 
@@ -135,8 +241,12 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("aggregator",this.getAggregator());
         out.putNotNull("bean",this.getBean());
+        out.putNotNull("fileWriter",this.getFileWriter());
+        out.putNotNull("forTag",this.getForTag());
         out.putNotNull("id",this.getId());
+        out.putNotNull("metaProvider",this.getMetaProvider());
         out.putNotNull("order",this.getOrder());
         out.putNotNull("source",this.getSource());
     }
@@ -150,8 +260,12 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
     protected void copyTo(BatchWriterModel instance){
         super.copyTo(instance);
         
+        instance.setAggregator(this.getAggregator());
         instance.setBean(this.getBean());
+        instance.setFileWriter(this.getFileWriter());
+        instance.setForTag(this.getForTag());
         instance.setId(this.getId());
+        instance.setMetaProvider(this.getMetaProvider());
         instance.setOrder(this.getOrder());
         instance.setSource(this.getSource());
     }

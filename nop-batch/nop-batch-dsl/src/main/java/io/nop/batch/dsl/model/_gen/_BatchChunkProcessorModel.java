@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [66:6:0:0]/nop/schema/task/batch.xdef <p>
+ * generate from [68:6:0:0]/nop/schema/task/batch.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -28,7 +28,7 @@ public abstract class _BatchChunkProcessorModel extends io.nop.batch.dsl.model.B
      * xml name: source
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _source ;
+    private io.nop.core.lang.eval.IEvalFunction _source ;
     
     /**
      * 
@@ -55,12 +55,12 @@ public abstract class _BatchChunkProcessorModel extends io.nop.batch.dsl.model.B
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getSource(){
+    public io.nop.core.lang.eval.IEvalFunction getSource(){
       return _source;
     }
 
     
-    public void setSource(io.nop.core.lang.eval.IEvalAction value){
+    public void setSource(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._source = value;

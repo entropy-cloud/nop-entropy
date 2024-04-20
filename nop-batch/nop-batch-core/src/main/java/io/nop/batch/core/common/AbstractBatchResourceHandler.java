@@ -7,12 +7,18 @@
  */
 package io.nop.batch.core.common;
 
+import io.nop.api.core.convert.ConvertHelper;
+import io.nop.batch.core.IBatchTaskContext;
+import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceLoader;
 
 public class AbstractBatchResourceHandler extends AbstractBatchHandler {
     private IResourceLoader resourceLoader;
     private String resourcePath;
+
+    private IEvalAction pathExpr;
+    private IResource resource;
 
     public IResourceLoader getResourceLoader() {
         return resourceLoader;
@@ -30,7 +36,25 @@ public class AbstractBatchResourceHandler extends AbstractBatchHandler {
         this.resourcePath = resourcePath;
     }
 
-    public IResource getResource() {
+    public void setResource(IResource resource) {
+        this.resource = resource;
+    }
+
+    public void setPathExpr(IEvalAction pathExpr) {
+        this.pathExpr = pathExpr;
+    }
+
+    public IResource getResource(IBatchTaskContext context) {
+        if (resource != null)
+            return resource;
+
+        if (pathExpr != null) {
+            resourcePath = ConvertHelper.toString(pathExpr.invoke(context));
+        }
+
         return resourceLoader.getResource(resourcePath);
+    }
+
+    public void onTaskEnd(Throwable exception, IBatchTaskContext context) {
     }
 }

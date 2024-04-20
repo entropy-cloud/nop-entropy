@@ -26,4 +26,6 @@ public interface BatchConstants {
 
     String STATUS_SUCCESS = "SUCCESS";
     String STATUS_FAILURE = "FAILURE";
+
+    String VAR_EXCEPTION = "EXCEPTION";
 }

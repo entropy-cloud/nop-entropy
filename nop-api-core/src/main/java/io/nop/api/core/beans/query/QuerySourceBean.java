@@ -12,18 +12,32 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
 import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.beans.TreeBean;
+import io.nop.api.core.util.ICloneable;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @DataBean
 @GraphQLObject
-public class QuerySourceBean {
+public class QuerySourceBean implements ICloneable {
     private String sourceName;
 
     private String alias;
 
     private TreeBean filter;
     private List<String> dimFields;
+
+    @Override
+    public QuerySourceBean cloneInstance() {
+        QuerySourceBean bean = new QuerySourceBean();
+        bean.setSourceName(sourceName);
+        bean.setAlias(alias);
+        if (filter != null)
+            bean.setFilter(filter.cloneInstance());
+        if (dimFields != null)
+            bean.setDimFields(new ArrayList<>(dimFields));
+        return bean;
+    }
 
     @PropMeta(propId = 1)
     public String getSourceName() {

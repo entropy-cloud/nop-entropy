@@ -8,11 +8,12 @@
 package io.nop.dao.utils;
 
 import io.nop.api.core.annotations.txn.TransactionPropagation;
+import io.nop.api.core.util.Guard;
 import io.nop.commons.functional.IAsyncFunctionInvoker;
 import io.nop.commons.functional.IFunctionInvoker;
 import io.nop.dao.txn.ITransactionTemplate;
-
 import jakarta.inject.Inject;
+
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
@@ -20,6 +21,13 @@ public class TransactionalFunctionInvoker implements IFunctionInvoker, IAsyncFun
     private ITransactionTemplate transactionTemplate;
     private String txnGroup;
     private TransactionPropagation propagation = TransactionPropagation.REQUIRED;
+
+    public TransactionalFunctionInvoker() {
+    }
+
+    public TransactionalFunctionInvoker(ITransactionTemplate transactionTemplate) {
+        this.transactionTemplate = Guard.notNull(transactionTemplate, "transactionTemplate");
+    }
 
     @Inject
     public void setTransactionTemplate(ITransactionTemplate transactionTemplate) {

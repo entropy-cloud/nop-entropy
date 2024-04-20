@@ -7,11 +7,11 @@
  */
 package io.nop.batch.core;
 
-import java.util.function.Predicate;
+import java.util.function.BiPredicate;
 
 public class BatchSkipPolicy {
     private long maxSkipCount;
-    private Predicate<Throwable> skipExceptionFilter;
+    private BiPredicate<Throwable, IBatchChunkContext> skipExceptionFilter;
 
     public long getMaxSkipCount() {
         return maxSkipCount;
@@ -26,26 +26,26 @@ public class BatchSkipPolicy {
         return this;
     }
 
-    public BatchSkipPolicy skipExceptionFilter(Predicate<Throwable> filter) {
+    public BatchSkipPolicy skipExceptionFilter(BiPredicate<Throwable, IBatchChunkContext> filter) {
         this.skipExceptionFilter = filter;
         return this;
     }
 
-    public Predicate<Throwable> getSkipExceptionFilter() {
+    public BiPredicate<Throwable, IBatchChunkContext> getSkipExceptionFilter() {
         return skipExceptionFilter;
     }
 
-    public void setSkipExceptionFilter(Predicate<Throwable> skipExceptionFilter) {
+    public void setSkipExceptionFilter(BiPredicate<Throwable, IBatchChunkContext> skipExceptionFilter) {
         this.skipExceptionFilter = skipExceptionFilter;
     }
 
-    public boolean shouldSkip(Throwable exception, long skipCount) {
+    public boolean shouldSkip(Throwable exception, long skipCount, IBatchChunkContext context) {
         if (maxSkipCount > 0 && skipCount >= maxSkipCount) {
             return false;
         }
 
         if (this.skipExceptionFilter != null)
-            return skipExceptionFilter.test(exception);
+            return skipExceptionFilter.test(exception, context);
 
         return !(exception instanceof Error);
     }

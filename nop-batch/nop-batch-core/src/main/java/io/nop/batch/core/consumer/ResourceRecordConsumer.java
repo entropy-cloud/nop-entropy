@@ -83,7 +83,7 @@ public class ResourceRecordConsumer<R, C> extends AbstractBatchResourceHandler
 
     @Override
     public synchronized void onTaskBegin(IBatchTaskContext context) {
-        IResource resource = getResource();
+        IResource resource = getResource(context);
         output = recordIO.openOutput(resource, encoding);
         Map<String, Object> header = null;
         if (metaProvider != null) {
@@ -100,6 +100,8 @@ public class ResourceRecordConsumer<R, C> extends AbstractBatchResourceHandler
 
     @Override
     public synchronized void onTaskEnd(Throwable exception, IBatchTaskContext context) {
+        super.onTaskEnd(exception, context);
+
         try {
             if (aggregator != null && output != null) {
                 Map<String, Object> trailer = aggregator.complete(null, combinedValue);
@@ -132,7 +134,7 @@ public class ResourceRecordConsumer<R, C> extends AbstractBatchResourceHandler
         } catch (Exception e) {
             if (cancelTaskWhenWriteError)
                 throw new BatchCancelException(ERR_BATCH_WRITE_FILE_FAIL, e).param(ARG_RESOURCE_PATH,
-                        getResource().getPath());
+                        getResourcePath());
 
             throw NopException.adapt(e);
         }

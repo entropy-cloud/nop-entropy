@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [47:10:0:0]/nop/schema/task/batch.xdef <p>
+ * generate from [49:10:0:0]/nop/schema/task/batch.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -22,6 +22,13 @@ public abstract class _BatchOrmReaderModel extends io.nop.core.resource.componen
      * 
      */
     private java.util.List<java.lang.String> _batchLoadProps ;
+    
+    /**
+     *  
+     * xml name: entityName
+     * 
+     */
+    private java.lang.String _entityName ;
     
     /**
      *  
@@ -52,6 +59,25 @@ public abstract class _BatchOrmReaderModel extends io.nop.core.resource.componen
         checkAllowChange();
         
         this._batchLoadProps = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: entityName
+     *  
+     */
+    
+    public java.lang.String getEntityName(){
+      return _entityName;
+    }
+
+    
+    public void setEntityName(java.lang.String value){
+        checkAllowChange();
+        
+        this._entityName = value;
            
     }
 
@@ -112,6 +138,7 @@ public abstract class _BatchOrmReaderModel extends io.nop.core.resource.componen
         super.outputJson(out);
         
         out.putNotNull("batchLoadProps",this.getBatchLoadProps());
+        out.putNotNull("entityName",this.getEntityName());
         out.putNotNull("eql",this.getEql());
         out.putNotNull("query",this.getQuery());
     }
@@ -126,6 +153,7 @@ public abstract class _BatchOrmReaderModel extends io.nop.core.resource.componen
         super.copyTo(instance);
         
         instance.setBatchLoadProps(this.getBatchLoadProps());
+        instance.setEntityName(this.getEntityName());
         instance.setEql(this.getEql());
         instance.setQuery(this.getQuery());
     }

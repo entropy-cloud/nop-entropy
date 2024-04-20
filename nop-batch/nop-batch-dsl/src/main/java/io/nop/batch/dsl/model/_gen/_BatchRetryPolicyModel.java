@@ -21,7 +21,7 @@ public abstract class _BatchRetryPolicyModel extends io.nop.core.resource.compon
      * xml name: exceptionFilter
      * 
      */
-    private io.nop.core.lang.eval.IEvalPredicate _exceptionFilter ;
+    private io.nop.core.lang.eval.IEvalFunction _exceptionFilter ;
     
     /**
      *  
@@ -64,12 +64,12 @@ public abstract class _BatchRetryPolicyModel extends io.nop.core.resource.compon
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalPredicate getExceptionFilter(){
+    public io.nop.core.lang.eval.IEvalFunction getExceptionFilter(){
       return _exceptionFilter;
     }
 
     
-    public void setExceptionFilter(io.nop.core.lang.eval.IEvalPredicate value){
+    public void setExceptionFilter(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._exceptionFilter = value;

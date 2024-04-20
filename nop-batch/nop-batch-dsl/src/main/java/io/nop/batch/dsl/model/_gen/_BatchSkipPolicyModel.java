@@ -21,14 +21,14 @@ public abstract class _BatchSkipPolicyModel extends io.nop.core.resource.compone
      * xml name: exceptionFilter
      * 
      */
-    private io.nop.core.lang.eval.IEvalPredicate _exceptionFilter ;
+    private io.nop.core.lang.eval.IEvalFunction _exceptionFilter ;
     
     /**
      *  
      * xml name: maxSkipCount
      * 
      */
-    private java.lang.Integer _maxSkipCount ;
+    private java.lang.Long _maxSkipCount ;
     
     /**
      * 
@@ -36,12 +36,12 @@ public abstract class _BatchSkipPolicyModel extends io.nop.core.resource.compone
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalPredicate getExceptionFilter(){
+    public io.nop.core.lang.eval.IEvalFunction getExceptionFilter(){
       return _exceptionFilter;
     }
 
     
-    public void setExceptionFilter(io.nop.core.lang.eval.IEvalPredicate value){
+    public void setExceptionFilter(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._exceptionFilter = value;
@@ -55,12 +55,12 @@ public abstract class _BatchSkipPolicyModel extends io.nop.core.resource.compone
      *  
      */
     
-    public java.lang.Integer getMaxSkipCount(){
+    public java.lang.Long getMaxSkipCount(){
       return _maxSkipCount;
     }
 
     
-    public void setMaxSkipCount(java.lang.Integer value){
+    public void setMaxSkipCount(java.lang.Long value){
         checkAllowChange();
         
         this._maxSkipCount = value;

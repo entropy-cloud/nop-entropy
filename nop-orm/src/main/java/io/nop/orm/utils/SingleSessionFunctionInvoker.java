@@ -7,16 +7,24 @@
  */
 package io.nop.orm.utils;
 
+import io.nop.api.core.util.Guard;
 import io.nop.commons.functional.IAsyncFunctionInvoker;
 import io.nop.commons.functional.IFunctionInvoker;
 import io.nop.orm.IOrmTemplate;
-
 import jakarta.inject.Inject;
+
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 public class SingleSessionFunctionInvoker implements IAsyncFunctionInvoker, IFunctionInvoker {
     private IOrmTemplate ormTemplate;
+
+    public SingleSessionFunctionInvoker() {
+    }
+
+    public SingleSessionFunctionInvoker(IOrmTemplate ormTemplate) {
+        this.ormTemplate = Guard.notNull(ormTemplate, "ormTemplate");
+    }
 
     @Inject
     public void setOrmTemplate(IOrmTemplate ormTemplate) {

@@ -34,12 +34,16 @@ public class SplitBatchConsumer<R, T> implements IBatchConsumer<R, IBatchChunkCo
     private final IRecordSplitter<R, T, IBatchChunkContext> splitter;
     private final Function<String, IBatchConsumer<T, IBatchChunkContext>> consumerProvider;
 
+    private final boolean lazyInit;
+
     private final Map<String, IBatchConsumer<T, IBatchChunkContext>> activeConsumers = new HashMap<>();
 
     public SplitBatchConsumer(IRecordSplitter<R, T, IBatchChunkContext> splitter,
-                              Function<String, IBatchConsumer<T, IBatchChunkContext>> consumerProvider) {
+                              Function<String, IBatchConsumer<T, IBatchChunkContext>> consumerProvider,
+                              boolean lazyInit) {
         this.splitter = splitter;
         this.consumerProvider = consumerProvider;
+        this.lazyInit = lazyInit;
     }
 
     @Override
@@ -50,13 +54,15 @@ public class SplitBatchConsumer<R, T> implements IBatchConsumer<R, IBatchChunkCo
     @Override
     public synchronized void onTaskEnd(Throwable exception, IBatchTaskContext context) {
         Throwable e = null;
-        for (IBatchConsumer<T, IBatchChunkContext> consumer : activeConsumers.values()) {
-            if (consumer instanceof IBatchTaskListener) {
-                try {
-                    ((IBatchTaskListener) consumer).onTaskEnd(exception, context);
-                } catch (Exception err) {
-                    LOG.error("nop.err.batch.consumer-onTaskEnd-fail", err);
-                    e = err;
+        if (lazyInit) {
+            for (IBatchConsumer<T, IBatchChunkContext> consumer : activeConsumers.values()) {
+                if (consumer instanceof IBatchTaskListener) {
+                    try {
+                        ((IBatchTaskListener) consumer).onTaskEnd(exception, context);
+                    } catch (Exception err) {
+                        LOG.error("nop.err.batch.consumer-onTaskEnd-fail", err);
+                        e = err;
+                    }
                 }
             }
         }
@@ -86,7 +92,7 @@ public class SplitBatchConsumer<R, T> implements IBatchConsumer<R, IBatchChunkCo
 
         consumer = consumerProvider.apply(tag);
         if (consumer != null) {
-            if (consumer instanceof IBatchTaskListener) {
+            if (lazyInit && consumer instanceof IBatchTaskListener) {
                 ((IBatchTaskListener) consumer).onTaskBegin(context.getTaskContext());
             }
             activeConsumers.put(tag, consumer);

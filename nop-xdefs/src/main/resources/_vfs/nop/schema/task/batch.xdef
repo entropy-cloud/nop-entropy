@@ -16,11 +16,11 @@
 >
     <retryPolicy maxRetryCount="int" retryDelay="int" maxRetryDelay="int" xdef:name="BatchRetryPolicyModel"
                  exponentialDelay="boolean=true" jitterRatio="double=0.3">
-        <exceptionFilter xdef:value="xpl-predicate"/>
+        <exceptionFilter xdef:value="xpl-fn:(err)=>boolean"/>
     </retryPolicy>
 
-    <skipPolicy maxSkipCount="int" xdef:name="BatchSkipPolicyModel">
-        <exceptionFilter xdef:value="xpl-predicate"/>
+    <skipPolicy maxSkipCount="long" xdef:name="BatchSkipPolicyModel">
+        <exceptionFilter xdef:value="xpl-fn:(err)=>boolean"/>
     </skipPolicy>
 
     <inputSorter xdef:ref="/nop/schema/query/order-by.xdef"/>
@@ -39,12 +39,14 @@
         <onConsumeEnd xdef:value="xpl-fn:(err,items,ctx)=>void"/>
     </xdef:define>
 
-    <reader bean="bean-name" xdef:name="BatchReaderModel" xdef:ref="BatchListenersModel">
-        <file-reader pathExpr="expr" xdef:name="BatchFileReaderModel">
+    <reader bean="bean-name" xdef:name="BatchReaderModel" aggregator="bean-name"
+            xdef:ref="BatchListenersModel" xdef:mandatory="true">
+        <file-reader pathExpr="!expr" xdef:name="BatchFileReaderModel" encoding="string"
+                     resourceLoader="bean-name" resourceIO="bean-name" maxCount="long">
             <headers xdef:value="csv-set"/>
         </file-reader>
 
-        <orm-reader xdef:name="BatchOrmReaderModel" batchLoadProps="csv-list">
+        <orm-reader xdef:name="BatchOrmReaderModel" batchLoadProps="csv-list" entityName="class-name">
             <eql xdef:value="xpl-sql"/>
             <query xdef:ref="../query/query.xdef"/>
         </orm-reader>
@@ -54,22 +56,32 @@
             <query xdef:ref="../query/query.xdef"/>
         </jdbc-reader>
 
-        <source xdef:value="xpl"/>
+        <source xdef:value="xpl-fn:(batchSize,ctx)=>List"/>
     </reader>
 
     <processor bean="bean-name" id="var-name" order="!int=0"
                xdef:unique-attr="id" xdef:name="BatchProcessorModel" xdef:ref="BatchListenersModel">
         <filter xdef:value="xpl-predicate"/>
-        <source xdef:value="xpl"/>
+        <source xdef:value="xpl-fn:(item,consumer,ctx)=>void"/>
     </processor>
 
     <chunk-processor bean="bean-name" xdef:name="BatchChunkProcessorModel" xdef:ref="BatchListenersModel">
-        <source xdef:value="xpl"/>
+        <source xdef:value="xpl-fn:(ctx)=>void"/>
     </chunk-processor>
 
-    <writer bean="bean-name" id="var-name" order="!int=0"
-            xdef:unique-attr="id" xdef:name="BatchWriterModel" xdef:ref="BatchListenersModel">
-        <source xdef:value="xpl"/>
+    <tagger bean="bean-name" xdef:name="BatchTaggerModel">
+        <source xdef:value="xpl-fn:(item,ctx)=>Collection"/>
+    </tagger>
+
+    <writer bean="bean-name" id="var-name" order="!int=0" forTag="string"
+            xdef:unique-attr="id" xdef:name="BatchWriterModel" xdef:ref="BatchListenersModel"
+            aggregator="bean-name" metaProvider="bean-name">
+        <file-writer pathExpr="!expr" xdef:name="BatchFileWriterModel" encoding="string"
+                     resourceLoader="bean-name" resourceIO="bean-name">
+            <headers xdef:value="csv-set"/>
+        </file-writer>
+
+        <source xdef:value="xpl-fn:(items,ctx)=>void"/>
     </writer>
 
 </batch>
