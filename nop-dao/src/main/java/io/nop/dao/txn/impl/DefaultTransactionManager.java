@@ -184,7 +184,8 @@ public class DefaultTransactionManager implements ITransactionManager {
         return result;
     }
 
-    protected ITransactionFactory getTransactionFactory(String querySpace) {
+    @Override
+    public ITransactionFactory getTransactionFactory(String querySpace) {
         if (DaoHelper.isDefaultQuerySpace(querySpace))
             return defaultFactory;
         ITransactionFactory factory = transactionFactoryMap.get(querySpace);

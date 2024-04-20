@@ -9,6 +9,8 @@ package io.nop.dataset.record;
 
 import io.nop.dataset.record.impl.LimitRecordInput;
 import io.nop.dataset.record.impl.RecordInputImpls;
+import io.nop.dataset.record.impl.TransformRecordInput;
+import io.nop.dataset.record.support.BatchChunkIterator;
 import jakarta.annotation.Nonnull;
 
 import java.io.Closeable;
@@ -79,6 +81,14 @@ public interface IRecordInput<T> extends Closeable, Iterator<T>, Iterable<T> {
         return new LimitRecordInput<>(this, maxCount);
     }
 
+    default <R> IRecordInput<R> map(Function<T, R> transformer, IRecordResourceMeta meta) {
+        return new TransformRecordInput<>(this, transformer, meta);
+    }
+
+    default <R> IRecordInput<R> map(Function<T, R> transformer) {
+        return map(transformer, null);
+    }
+
     default @Nonnull List<T> readBatch(int maxCount) {
         return readBatchWithTransformer(maxCount, Function.identity());
     }
@@ -110,5 +120,9 @@ public interface IRecordInput<T> extends Closeable, Iterator<T>, Iterable<T> {
 
     default <R> void readBatchWithTransformer(int maxCount, Function<T, R> transformer, Consumer<R> ret) {
         RecordInputImpls.defaultReadBatch(this, maxCount, transformer, ret);
+    }
+
+    default Iterator<List<T>> chunkIterator(int chunkSize) {
+        return new BatchChunkIterator<>(this, chunkSize);
     }
 }

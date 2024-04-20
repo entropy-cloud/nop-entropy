@@ -44,4 +44,6 @@ public interface DaoConstants {
 
     Byte YES_VALUE = 1;
     Byte NO_VALUE = 0;
+
+    String BEAN_NOP_DATA_SOURCE = "nopDataSource";
 }

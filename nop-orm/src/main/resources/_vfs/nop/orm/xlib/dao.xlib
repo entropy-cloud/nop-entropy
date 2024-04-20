@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 
-<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:xpl="xpl" xmlns:thisLib="thisLib">
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:xpl="xpl"
+     xmlns:thisLib="thisLib">
     <tags>
         <_FindBase x:abstract="true">
             <attr name="sqlType" type="String" optional="true"/>
@@ -17,7 +18,7 @@
 
         <FindAll x:prototype="_FindBase">
             <source>
-                <thisLib:GenSQL generator="${slot_default}" xpl:return="sql" />
+                <thisLib:GenSQL generator="${slot_default}" xpl:return="sql"/>
                 <c:script><![CDATA[
                     const isSql = sqlType == 'sql';
                     const executor = isSql ? inject('nopJdbcTemplate') : inject('nopOrmTemplate');
@@ -33,7 +34,7 @@
             <attr name="limit" type="Long"/>
 
             <source>
-                <thisLib:GenSQL generator="${slot_default}" xpl:return="sql" />
+                <thisLib:GenSQL generator="${slot_default}" xpl:return="sql"/>
                 <c:script><![CDATA[
                     const isSql = sqlType == 'sql';
                     const executor = isSql ? inject('nopJdbcTemplate') : inject('nopOrmTemplate');
@@ -46,7 +47,7 @@
 
         <FindFirst x:prototype="_FindBase">
             <source>
-                <thisLib:GenSQL generator="${slot_default}" xpl:return="sql" />
+                <thisLib:GenSQL generator="${slot_default}" xpl:return="sql"/>
                 <c:script><![CDATA[
                     const isSql = sqlType == 'sql';
                     const executor = isSql ? inject('nopJdbcTemplate') : inject('nopOrmTemplate');
@@ -61,7 +62,7 @@
             <attr name="rowType" x:prototype-override="remove"/>
 
             <source>
-                <thisLib:GenSQL generator="${slot_default}" xpl:return="sql" />
+                <thisLib:GenSQL generator="${slot_default}" xpl:return="sql"/>
                 <c:script><![CDATA[
                     const isSql = sqlType == 'sql';
                     const executor = isSql ? inject('nopJdbcTemplate') : inject('nopOrmTemplate');
@@ -76,7 +77,7 @@
             <attr name="cacheKey" type="Object" implicit="true"/>
             <attr name="querySpace" type="String" implicit="true"/>
             <attr name="timeout" type="Integer" implicit="true"/>
-            <attr name="fetchSize" type="Integer" implicit="true" />
+            <attr name="fetchSize" type="Integer" implicit="true"/>
             <attr name="disableLogicalDelete" type="Boolean" implicit="true"/>
 
             <source>
@@ -102,7 +103,7 @@
             <slot name="default" outputMode="sql"/>
 
             <source>
-                <thisLib:GenSQL generator="${slot_default}" xpl:return="sql" />
+                <thisLib:GenSQL generator="${slot_default}" xpl:return="sql"/>
                 <c:script><![CDATA[
                     const isSql = sqlType == 'sql';
                     const executor = isSql ? inject('nopJdbcTemplate') : inject('nopOrmTemplate');

@@ -9,6 +9,8 @@ package io.nop.dataset;
 
 import io.nop.dataset.record.IRecordInput;
 
+import java.util.Map;
+
 /**
  * 对JDBC ResultSet的封装
  */
@@ -18,6 +20,10 @@ public interface IDataSet extends IRecordInput<IDataRow> {
     boolean isDetached();
 
     IDataSet detach();
+
+    default IRecordInput<Map<String, Object>> toMapInput() {
+        return map(IDataRow::toMap, getMeta());
+    }
 
     /**
      * 设置内部预取的数据条目数

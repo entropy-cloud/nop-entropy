@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
+    <tags>
+        <JdbcDataSet>
+            <attr name="queryTimeout" type="Integer" optional="true"/>
+            <attr name="fetchSize" type="Integer" optional="true"/>
+            <attr name="querySpace" type="String" optional="true"/>
+            <attr name="xptRt" type="io.nop.report.core.engine.IXptRuntime" implicit="true"/>
+
+            <slot name="source" outputMode="sql"/>
+
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.dao.jdbc.impl.JdbcDataSetHelper;
+
+                    const sql = slot_source().extend().queryTimeout(queryTimeout)
+                          .fetchSize(fetchSize).end();
+
+                    const dataSource = JdbcDataSetHelper.getDataSource(querySpace);
+                    const connection = dataSource.connection;
+                    xptRt.addWorkbookCleanup(()=> connection.close());
+                    const ds = JdbcDataSetHelper.newDataSet(connection, sql);
+                    xptRt.addWorkbookCleanup(()=> ds.close());
+                    return ds;
+                ]]></c:script>
+            </source>
+
+        </JdbcDataSet>
+    </tags>
+</lib>

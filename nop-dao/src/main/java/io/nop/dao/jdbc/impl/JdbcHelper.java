@@ -237,6 +237,9 @@ public class JdbcHelper {
      */
     public static int getQueryTimeout(SQL sql, boolean update, boolean checkCallExpireTime) {
         long timeout = sql.getTimeout();
+        if (timeout == Integer.MIN_VALUE)
+            return -1;
+
         if (timeout > 0) {
             int maxTimeout = getMaxTimeout(update);
             if (timeout > maxTimeout)
@@ -261,6 +264,7 @@ public class JdbcHelper {
         if (timeout > 0) {
             return (int) ((timeout + 999) / 1000);
         }
+
         return -1;
     }
 

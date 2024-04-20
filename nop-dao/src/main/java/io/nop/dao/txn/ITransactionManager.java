@@ -34,4 +34,6 @@ public interface ITransactionManager {
     boolean isQuerySpaceDefined(String querySpace);
 
     IDialect getDialectForQuerySpace(String querySpace);
+
+    ITransactionFactory getTransactionFactory(String querySpace);
 }
