@@ -183,14 +183,14 @@
          @columns 逗号分隔的列名（name）的列表
          -->
         <unique-key xdef:name="OrmUniqueKeyModel" name="!string" displayName="string" columns="!csv-list"
-                    constraint="string">
+                    constraint="string" tagSet="tag-set">
             <comment xdef:value="string"/>
         </unique-key>
     </unique-keys>
 
     <indexes xdef:body-type="list" xdef:key-attr="name">
         <index xdef:name="OrmIndexModel" name="!var-name" displayName="string" unique="boolean"
-               indexType="string" comment="string">
+               indexType="string" comment="string" tagSet="tag-set">
             <column xdef:unique-attr="name" xdef:name="OrmIndexColumnModel" name="!var-name" desc="boolean"
                     xdef:mandatory="true"/>
         </index>

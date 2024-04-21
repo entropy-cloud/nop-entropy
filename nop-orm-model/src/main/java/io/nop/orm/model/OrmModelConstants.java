@@ -56,6 +56,8 @@ public interface OrmModelConstants {
      */
     String TAG_PREFIX_REF = "ref-";
 
+    String TAG_GLOBAL = "global";
+
     String PROP_NAME_nopRevType = "nopRevType";
     String PROP_NAME_nopRevBeginVer = "nopRevBeginVer";
     String PROP_NAME_nopRevEndVer = "nopRevEndVer";

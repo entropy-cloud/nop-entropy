@@ -53,6 +53,13 @@ public abstract class _OrmIndexModel extends io.nop.core.resource.component.Abst
     
     /**
      *  
+     * xml name: tagSet
+     * 
+     */
+    private java.util.Set<java.lang.String> _tagSet ;
+    
+    /**
+     *  
      * xml name: unique
      * 
      */
@@ -181,6 +188,25 @@ public abstract class _OrmIndexModel extends io.nop.core.resource.component.Abst
     
     /**
      * 
+     * xml name: tagSet
+     *  
+     */
+    
+    public java.util.Set<java.lang.String> getTagSet(){
+      return _tagSet;
+    }
+
+    
+    public void setTagSet(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._tagSet = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: unique
      *  
      */
@@ -220,6 +246,7 @@ public abstract class _OrmIndexModel extends io.nop.core.resource.component.Abst
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("indexType",this.getIndexType());
         out.putNotNull("name",this.getName());
+        out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("unique",this.getUnique());
     }
 
@@ -237,6 +264,7 @@ public abstract class _OrmIndexModel extends io.nop.core.resource.component.Abst
         instance.setDisplayName(this.getDisplayName());
         instance.setIndexType(this.getIndexType());
         instance.setName(this.getName());
+        instance.setTagSet(this.getTagSet());
         instance.setUnique(this.getUnique());
     }
 

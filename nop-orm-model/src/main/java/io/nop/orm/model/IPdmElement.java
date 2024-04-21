@@ -9,10 +9,12 @@ package io.nop.orm.model;
 
 import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.commons.lang.ITagSetSupport;
+import io.nop.core.reflect.IPropertyGetter;
+import io.nop.core.reflect.hook.IPropGetMissingHook;
 
 import java.util.Set;
 
-public interface IPdmElement extends ITagSetSupport, ISourceLocationGetter {
+public interface IPdmElement extends ITagSetSupport, ISourceLocationGetter , IPropGetMissingHook {
 
     String getComment();
 

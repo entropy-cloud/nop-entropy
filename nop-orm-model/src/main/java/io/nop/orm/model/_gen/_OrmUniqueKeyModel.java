@@ -52,6 +52,13 @@ public abstract class _OrmUniqueKeyModel extends io.nop.core.resource.component.
     private java.lang.String _name ;
     
     /**
+     *  
+     * xml name: tagSet
+     * 
+     */
+    private java.util.Set<java.lang.String> _tagSet ;
+    
+    /**
      * 
      * xml name: columns
      *  逗号分隔的列名（name）的列表
@@ -146,6 +153,25 @@ public abstract class _OrmUniqueKeyModel extends io.nop.core.resource.component.
     }
 
     
+    /**
+     * 
+     * xml name: tagSet
+     *  
+     */
+    
+    public java.util.Set<java.lang.String> getTagSet(){
+      return _tagSet;
+    }
+
+    
+    public void setTagSet(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._tagSet = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -166,6 +192,7 @@ public abstract class _OrmUniqueKeyModel extends io.nop.core.resource.component.
         out.putNotNull("constraint",this.getConstraint());
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("name",this.getName());
+        out.putNotNull("tagSet",this.getTagSet());
     }
 
     public OrmUniqueKeyModel cloneInstance(){
@@ -182,6 +209,7 @@ public abstract class _OrmUniqueKeyModel extends io.nop.core.resource.component.
         instance.setConstraint(this.getConstraint());
         instance.setDisplayName(this.getDisplayName());
         instance.setName(this.getName());
+        instance.setTagSet(this.getTagSet());
     }
 
     protected OrmUniqueKeyModel newInstance(){

@@ -29,6 +29,39 @@ public class OrmUniqueKeyModel extends _OrmUniqueKeyModel {
         setColumns(cols);
     }
 
+    public boolean shouldAddExtTenantCol(IEntityModel entityModel) {
+        if (!entityModel.isUseTenant())
+            return false;
+
+        boolean global = entityModel.containsTag(OrmModelConstants.TAG_GLOBAL);
+        if (global)
+            return false;
+
+        IColumnModel tenantCol = entityModel.getTenantColumn();
+        if (columnModels.contains(tenantCol))
+            return false;
+
+        return true;
+    }
+
+    public List<OrmColumnModel> getColumnModelsWithTenant(IEntityModel entityModel) {
+        if (!entityModel.isUseTenant())
+            return getColumnModels();
+
+        boolean global = entityModel.containsTag(OrmModelConstants.TAG_GLOBAL);
+        if (global)
+            return getColumnModels();
+
+        IColumnModel tenantCol = entityModel.getTenantColumn();
+        if (columnModels.contains(tenantCol))
+            return columnModels;
+
+        List<OrmColumnModel> ret = new ArrayList<>();
+        ret.add((OrmColumnModel) tenantCol);
+        ret.addAll(columnModels);
+        return ret;
+    }
+
     public List<OrmColumnModel> getColumnModels() {
         return columnModels;
     }

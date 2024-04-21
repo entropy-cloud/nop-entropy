@@ -76,7 +76,7 @@
                 <c:for var="uniqueKey" items="${table.uniqueKeys}">
                     <c:if test="${uniqueKey.constraint}">
                         <c:script>
-                            let columns = uniqueKey.columnModels.map(col => dialect.escapeSQLName(col.code))
+                            let columns = uniqueKey.getColumnModelsWithTenant(table).map(col => dialect.escapeSQLName(col.code))
                         </c:script>
                         <c:unit><![CDATA[ constraint ${uniqueKey.constraint} unique (${
                         columns.join(',')}),
@@ -180,6 +180,16 @@
                         <c:unit>;&#10;&#10;</c:unit>
                     </c:if>
                 </c:for>
+
+                <c:for var="table" items="${tables}">
+                    <c:if test="${!table.tenantProp and xpl('thisLib:IsAllowTenant',table)}">
+                        <c:for var="uniqueKey" items="${table.uniqueKeys}">
+                            <thisLib:AddTenantIdToUniqueKey table="${table}" dialect="${dialect}"
+                                xpl:if="uniqueKey.constraint and uniqueKey.shouldAddExtTenantCol(table)"/>
+                        </c:for>
+                        <c:unit>;&#10;&#10;</c:unit>
+                    </c:if>
+                </c:for>
             </source>
         </AddTenantIdForTables>
 
@@ -209,6 +219,24 @@
                 table.compositePk ? table.idProp.columns.map(col=> dialect.escapeSQLName(col.code)).join(',') : dialect.escapeSQLName(table.idProp.code)})</c:unit>
             </source>
         </AddTenantIdToPrimaryKey>
+
+        <AddTenantIdToUniqueKey outputMode="text">
+            <attr name="uniqueKey" type="io.nop.orm.model.OrmUniqueKeyModel" />
+            <attr name="table" type="io.nop.orm.model.IEntityModel"/>
+            <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
+
+            <source>
+                <c:script>
+                    let columns = uniqueKey.getColumnModelsWithTenant(table).map(col => dialect.escapeSQLName(col.code))
+                </c:script>
+
+                <c:unit>alter table ${dialect.escapeSQLName(uniqueKey.constraint)} drop constraint ${uniqueKey.constraint}</c:unit>
+                <c:unit>;&#10;</c:unit>
+                <c:unit>alter table ${dialect.escapeSQLName(uniqueKey.constraint)} add constraint ${uniqueKey.constraint}
+                     unique (${columns.join(',')});&#10;
+                </c:unit>
+            </source>
+        </AddTenantIdToUniqueKey>
 
         <IsAllowTenant>
             <attr name="table" />
