@@ -64,30 +64,8 @@ alter table nop_auth_user_role add constraint PK_nop_auth_user_role primary key 
 alter table nop_auth_user_substitution drop constraint PK_nop_auth_user_substitution;
 alter table nop_auth_user_substitution add constraint PK_nop_auth_user_substitution primary key (NOP_TENANT_ID, SID);
 
-;
+alter table nop_auth_role drop constraint UK_NOP_AUTH_ROLE_NAME;
+alter table nop_auth_role add constraint UK_NOP_AUTH_ROLE_NAME
+                     unique (NOP_TENANT_ID,ROLE_NAME);
 
-;
-
-;
-
-;
-
-;
-
-;
-
-;
-
-;
-
-;
-
-;
-
-;
-
-;
-
-;
-
-
+                

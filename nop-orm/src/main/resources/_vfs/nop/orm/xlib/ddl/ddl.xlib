@@ -185,7 +185,7 @@
                     <c:if test="${!table.tenantProp and xpl('thisLib:IsAllowTenant',table)}">
                         <c:for var="uniqueKey" items="${table.uniqueKeys}">
                             <thisLib:AddTenantIdToUniqueKey uniqueKey="${uniqueKey}" table="${table}" dialect="${dialect}"
-                                xpl:if="uniqueKey.constraint and uniqueKey.containsTag('no-tenant')"/>
+                                xpl:if="uniqueKey.constraint and !uniqueKey.containsTag('no-tenant')"/>
                         </c:for>
                     </c:if>
                 </c:for>

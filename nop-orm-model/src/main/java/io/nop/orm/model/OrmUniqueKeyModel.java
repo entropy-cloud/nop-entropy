@@ -7,12 +7,13 @@
  */
 package io.nop.orm.model;
 
+import io.nop.commons.lang.ITagSetSupport;
 import io.nop.orm.model._gen._OrmUniqueKeyModel;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class OrmUniqueKeyModel extends _OrmUniqueKeyModel {
+public class OrmUniqueKeyModel extends _OrmUniqueKeyModel implements ITagSetSupport {
     private List<OrmColumnModel> columnModels;
 
     public OrmUniqueKeyModel() {
