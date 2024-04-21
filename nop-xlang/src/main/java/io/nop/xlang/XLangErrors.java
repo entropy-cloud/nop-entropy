@@ -161,6 +161,8 @@ public interface XLangErrors {
 
     String ARG_PATTERN = "pattern";
 
+    String ARG_CONFIG_VARS = "configVars";
+
     ErrorCode ERR_EXPR_PARSE_NOT_END_PROPERLY = define("nop.err.xlang.expr.not-end-properly", "解析失败，表达式没有正常结束");
 
     ErrorCode ERR_EXPR_UNSUPPORTED_OP = define("nop.err.xlang.expr.unsupported-op", "不支持的运算符:{op}", ARG_OP);
@@ -763,6 +765,9 @@ public interface XLangErrors {
 
     ErrorCode ERR_XDSL_MODEL_NO_NAME_ATTR =
             define("nop.err.xlang.xdsl.model-no-name-attr", "模型对象没有name属性");
+
+    ErrorCode ERR_XDSL_UNDEFINED_META_CFG_VAR =
+            define("nop.err.xlang.xdsl.undefined-meta-cfg-var", "没有定义配置变量：{configVars}", ARG_CONFIG_VARS);
 
     ErrorCode ERR_XDEF_DUPLICATE_LOCAL_REF = define("nop.err.xlang.xdef.duplicate-local-ref", "xdef:name引用名称不能重复",
             ARG_REF_NAME);

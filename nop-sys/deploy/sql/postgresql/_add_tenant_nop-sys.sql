@@ -59,28 +59,4 @@ alter table nop_sys_user_variable add constraint PK_nop_sys_user_variable primar
 alter table nop_sys_variable drop constraint PK_nop_sys_variable;
 alter table nop_sys_variable add constraint PK_nop_sys_variable primary key (NOP_TENANT_ID, VAR_NAME);
 
-;
-
-;
-
-;
-
-;
-
-;
-
-;
-
-;
-
-;
-
-;
-
-;
-
-;
-
-;
-
 

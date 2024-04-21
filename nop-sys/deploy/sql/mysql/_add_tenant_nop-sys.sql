@@ -59,28 +59,4 @@ alter table nop_sys_user_variable add primary key (NOP_TENANT_ID, USER_ID,VAR_NA
 alter table nop_sys_variable drop primary key;
 alter table nop_sys_variable add primary key (NOP_TENANT_ID, VAR_NAME);
 
-;
-
-;
-
-;
-
-;
-
-;
-
-;
-
-;
-
-;
-
-;
-
-;
-
-;
-
-;
-
 

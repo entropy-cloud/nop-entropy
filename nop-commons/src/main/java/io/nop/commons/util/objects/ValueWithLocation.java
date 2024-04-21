@@ -102,6 +102,14 @@ public class ValueWithLocation implements Serializable, ISourceLocationGetter, I
         return value;
     }
 
+    public boolean toPrimitiveBoolean() {
+        if (value == Undefined.undefined)
+            return false;
+        if (isCDataText())
+            return ConvertHelper.toPrimitiveBoolean(value.toString());
+        return ConvertHelper.toPrimitiveBoolean(value);
+    }
+
     public SourceLocation getLocation() {
         return loc;
     }

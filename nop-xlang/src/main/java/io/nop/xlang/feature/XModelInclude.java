@@ -8,6 +8,7 @@
 package io.nop.xlang.feature;
 
 import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.config.IConfigProvider;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
@@ -15,13 +16,13 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.resource.IResource;
 import io.nop.xlang.xdsl.XDslConstants;
-import io.nop.xlang.xdsl.XDslKeys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 对任意xml文件都支持的组合和裁剪操作，不需要XDefinition元模型支持。
@@ -45,17 +46,17 @@ public class XModelInclude {
 
     public XNode loadActiveNode(String path) {
         XNode node = XNodeParser.instance().parseFromVirtualPath(path);
-        // ResourceDepends.traceResource(resource);
-        if (!checkFeatureSwitch(node, new FeatureConditionEvaluator())) {
-            node.clearBody();
-            node.clearAttrs();
-        }
-        return node;
+        return processNode(node);
     }
 
     public XNode loadActiveNodeFromResource(IResource resource) {
         XNode node = XNodeParser.instance().keepComment(keepComment).parseFromResource(resource);
-        // ResourceDepends.traceResource(resource);
+        return processNode(node);
+    }
+
+    public XNode processNode(XNode node) {
+        tryProcessMetaCfg(node);
+
         if (!checkFeatureSwitch(node, new FeatureConditionEvaluator())) {
             node.clearBody();
             node.clearAttrs();
@@ -126,5 +127,43 @@ public class XModelInclude {
         }
 
         return true;
+    }
+
+    private void tryProcessMetaCfg(XNode node) {
+        if (isEnableMetaCfg(node)) {
+            processMetaCfg(node, AppConfig.getConfigProvider());
+        }
+    }
+
+    private boolean isEnableMetaCfg(XNode node) {
+        return node.removeAttr(XDslConstants.ATTR_FEATURE_ENABLE_META_CFG).toPrimitiveBoolean();
+    }
+
+    private void processMetaCfg(XNode node, IConfigProvider configProvider) {
+        for (Map.Entry<String, ValueWithLocation> entry : node.attrValueLocs().entrySet()) {
+            ValueWithLocation vl = entry.getValue();
+            if (vl.isStringValue()) {
+                String text = vl.asString();
+                Object processed = MetaCfgProcessor.processMetaCfg(configProvider, vl.getLocation(), text);
+                if (processed != text) {
+                    entry.setValue(ValueWithLocation.of(vl.getLocation(), processed));
+                }
+            }
+        }
+        ValueWithLocation content = node.content();
+        if (!content.isEmpty()) {
+            if (content.isStringValue()) {
+                String text = content.asString();
+                Object processed = MetaCfgProcessor.processMetaCfg(configProvider, content.getLocation(), text);
+                if (processed != text) {
+                    node.content(ValueWithLocation.of(content.getLocation(), processed));
+                }
+            }
+        }
+        if (node.hasChild()) {
+            for (XNode child : node.getChildren()) {
+                processMetaCfg(child, configProvider);
+            }
+        }
     }
 }

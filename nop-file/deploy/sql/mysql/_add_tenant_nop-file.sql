@@ -4,6 +4,4 @@
 alter table nop_file_record drop primary key;
 alter table nop_file_record add primary key (NOP_TENANT_ID, FILE_ID);
 
-;
-
 

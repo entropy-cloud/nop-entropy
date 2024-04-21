@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestFeatureConditionEvaluator {
     @Test
@@ -32,5 +33,14 @@ public class TestFeatureConditionEvaluator {
         assertEquals("child1", node.child(0).getTagName());
         assertEquals("child2", node.child(1).getTagName());
         assertEquals("child3", node.child(2).getTagName());
+    }
+
+    @Test
+    public void testFeatureEnableMetaCfg() {
+        String xml = "<root feature:enable-meta-cfg='true'><child fetchSize='@meta-cfg:my.fetch-size|10'/></root>";
+        XNode node = XNodeParser.instance().parseFromText(null, xml);
+        XModelInclude.instance().processNode(node);
+        xml = node.xml();
+        assertTrue(xml.contains("fetchSize=\"10\""));
     }
 }

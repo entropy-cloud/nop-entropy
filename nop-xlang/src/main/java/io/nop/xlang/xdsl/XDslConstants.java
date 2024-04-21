@@ -43,6 +43,12 @@ public interface XDslConstants {
     String ATTR_FEATURE_ON = "feature:on";
     String ATTR_FEATURE_OFF = "feature:off";
 
+    String ATTR_FEATURE_ENABLE_META_CFG = "feature:enable-meta-cfg";
+
+    String PREFIX_META_CFG = "@meta-cfg:";
+
+    String PREFIX_META_CFG_EXPR = "@{@meta-cfg:";
+
     String ATTR_PROP_ID = "propId";
     String ATTR_DEPENDS = "depends";
     String ATTR_STEREO_TYPES = "stereoTypes";
