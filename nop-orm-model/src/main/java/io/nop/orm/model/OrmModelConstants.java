@@ -58,6 +58,8 @@ public interface OrmModelConstants {
 
     String TAG_GLOBAL = "global";
 
+    String TAG_NO_TENANT = "no-tenant";
+
     String PROP_NAME_nopRevType = "nopRevType";
     String PROP_NAME_nopRevBeginVer = "nopRevBeginVer";
     String PROP_NAME_nopRevEndVer = "nopRevEndVer";

@@ -447,6 +447,10 @@
                             <schema stdDomain="string"/>
                         </field>
 
+                        <field name="tagSet" displayName="标签">
+                            <schema stdDomain="tag-set" />
+                        </field>
+
                     </fields>
                 </field>
 

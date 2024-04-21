@@ -33,7 +33,7 @@ public class OrmUniqueKeyModel extends _OrmUniqueKeyModel {
         if (!entityModel.isUseTenant())
             return false;
 
-        boolean global = entityModel.containsTag(OrmModelConstants.TAG_GLOBAL);
+        boolean global = entityModel.containsTag(OrmModelConstants.TAG_NO_TENANT);
         if (global)
             return false;
 
@@ -48,7 +48,7 @@ public class OrmUniqueKeyModel extends _OrmUniqueKeyModel {
         if (!entityModel.isUseTenant())
             return getColumnModels();
 
-        boolean global = entityModel.containsTag(OrmModelConstants.TAG_GLOBAL);
+        boolean global = entityModel.containsTag(OrmModelConstants.TAG_NO_TENANT);
         if (global)
             return getColumnModels();
 
