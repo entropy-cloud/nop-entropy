@@ -64,4 +64,30 @@ alter table nop_auth_user_role add primary key (NOP_TENANT_ID, USER_ID,ROLE_ID);
 alter table nop_auth_user_substitution drop primary key;
 alter table nop_auth_user_substitution add primary key (NOP_TENANT_ID, SID);
 
+;
+
+;
+
+;
+
+;
+
+;
+
+;
+
+;
+
+;
+
+;
+
+;
+
+;
+
+;
+
+;
+
 

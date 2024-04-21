@@ -29,21 +29,6 @@ public class OrmUniqueKeyModel extends _OrmUniqueKeyModel {
         setColumns(cols);
     }
 
-    public boolean shouldAddExtTenantCol(IEntityModel entityModel) {
-        if (!entityModel.isUseTenant())
-            return false;
-
-        boolean global = entityModel.containsTag(OrmModelConstants.TAG_NO_TENANT);
-        if (global)
-            return false;
-
-        IColumnModel tenantCol = entityModel.getTenantColumn();
-        if (columnModels.contains(tenantCol))
-            return false;
-
-        return true;
-    }
-
     public List<OrmColumnModel> getColumnModelsWithTenant(IEntityModel entityModel) {
         if (!entityModel.isUseTenant())
             return getColumnModels();

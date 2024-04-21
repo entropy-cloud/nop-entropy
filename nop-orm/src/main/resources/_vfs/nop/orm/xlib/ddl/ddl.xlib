@@ -185,7 +185,7 @@
                     <c:if test="${!table.tenantProp and xpl('thisLib:IsAllowTenant',table)}">
                         <c:for var="uniqueKey" items="${table.uniqueKeys}">
                             <thisLib:AddTenantIdToUniqueKey uniqueKey="${uniqueKey}" table="${table}" dialect="${dialect}"
-                                xpl:if="uniqueKey.constraint and uniqueKey.shouldAddExtTenantCol(table)"/>
+                                xpl:if="uniqueKey.constraint and uniqueKey.containsTag('no-tenant')"/>
                         </c:for>
                     </c:if>
                 </c:for>
@@ -226,13 +226,13 @@
 
             <source>
                 <c:script>
-                    let columns = uniqueKey.getColumnModelsWithTenant(table).map(col => dialect.escapeSQLName(col.code))
+                    let columns = uniqueKey.columnModels.map(col => dialect.escapeSQLName(col.code))
                 </c:script>
 
                 <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} drop constraint ${uniqueKey.constraint}</c:unit>
                 <c:unit>;&#10;</c:unit>
                 <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} add constraint ${uniqueKey.constraint}
-                     unique (${columns.join(',')});&#10;
+                     unique (NOP_TENANT_ID,${columns.join(',')});&#10;
                 </c:unit>
             </source>
         </AddTenantIdToUniqueKey>
