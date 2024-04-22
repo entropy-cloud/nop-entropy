@@ -8,6 +8,7 @@
 package io.nop.biz.crud;
 
 import io.nop.api.core.beans.FieldSelectionBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObjectManager;
 import io.nop.commons.type.StdDataType;
@@ -44,9 +45,14 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
+import static io.nop.biz.BizErrors.ERR_BIZ_REF_ENTITY_OWNER_NOT_MATCH;
 import static io.nop.biz.crud.BizSchemaHelper.getPropSchema;
+import static io.nop.orm.OrmErrors.ARG_ENTITY_ID;
+import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
+import static io.nop.orm.OrmErrors.ARG_OWNER;
 import static io.nop.orm.OrmErrors.ARG_PROP_CLASS;
 import static io.nop.orm.OrmErrors.ARG_PROP_NAME;
 import static io.nop.orm.OrmErrors.ERR_ORM_COPY_ENTITY_PROP_NOT_COLLECTION;
@@ -259,13 +265,11 @@ public class OrmEntityCopier {
                 } else {
                     if (chgType == null || chgType.contains(DaoConstants.CHANGE_TYPE_UPDATE)) {
                         IOrmEntity refEntity = (IOrmEntity) daoProvider.dao(propModel.getRefEntityName()).loadEntityById(id);
+                        checkRefEntity(refEntity, fromValue, target, propModel);
+
                         copyToEntity(fromValue, refEntity, field, objMeta, baseBizObjName,
                                 BizConstants.METHOD_UPDATE, scope);
 
-                        // 关联实体不存在，是否需要新建？
-                        if (refEntity.orm_state().isMissing()) {
-                            refEntity.orm_state(OrmEntityState.TRANSIENT);
-                        }
                         target.orm_propValueByName(propName, refEntity);
                     }
                 }
@@ -278,6 +282,9 @@ public class OrmEntityCopier {
                                   IEvalScope scope) {
         String propName = propModel.getName();
         IOrmEntitySet<IOrmEntity> refSet = target.orm_refEntitySet(propName);
+        // 强制加载关联实体
+        refSet.orm_forceLoad();
+
         String chgType = getRelationChangeTypes(refSet.orm_collectionName());
 
         if (chgType == null && map != null) {
@@ -307,6 +314,7 @@ public class OrmEntityCopier {
         Set<IOrmEntity> ret = new LinkedHashSet<>();
         IEntityDao<IOrmEntity> dao = daoProvider.dao(refEntityName);
 
+        IOrmEntity owner = refSet.orm_owner();
         String chgType = getRelationChangeTypes(refSet.orm_collectionName());
 
         for (Object item : c) {
@@ -349,15 +357,15 @@ public class OrmEntityCopier {
                                 continue;
                             action = BizConstants.METHOD_UPDATE;
                         }
+                        checkRefEntity(refEntity, item, null, null);
                         copyToEntity(item, refEntity, field, objMeta, baseBizObjName, action, scope);
-                        checkRefEntity(refEntity, item);
                         ret.add(refEntity);
                     }
                 } else {
                     if (chgType == null || chgType.contains(DaoConstants.CHANGE_TYPE_UPDATE)) {
                         IOrmEntity refEntity = dao.loadEntityById(id);
+                        checkRefEntity(refEntity, item, owner, refModel);
                         copyToEntity(item, refEntity, field, objMeta, baseBizObjName, BizConstants.METHOD_UPDATE, scope);
-                        checkRefEntity(refEntity, item);
                         ret.add(refEntity);
                     }
                 }
@@ -371,7 +379,10 @@ public class OrmEntityCopier {
         refSet.addAll(ret);
     }
 
-    private void checkRefEntity(IOrmEntity refEntity, Object bean) {
+    private void checkRefEntity(IOrmEntity refEntity, Object bean,
+                                IOrmEntity owner, IEntityRelationModel refModel) {
+        refEntity.orm_forceLoad();
+
         // 关联实体不存在，是否需要新建？
         if (refEntity.orm_state().isMissing()) {
             if (updateUseId || !StringHelper.isEmptyObject(BeanTool.getProperty(bean, OrmConstants.PROP_ID))) {
@@ -379,6 +390,18 @@ public class OrmEntityCopier {
                 throw new UnknownEntityException(refEntity.orm_entityName(), refEntity.orm_id());
             } else {
                 refEntity.orm_state(OrmEntityState.TRANSIENT);
+            }
+        } else if (owner != null) {
+            for (IEntityJoinConditionModel join : refModel.getJoin()) {
+                Object leftValue = OrmEntityHelper.getLeftValue(join, owner);
+                Object rightValue = OrmEntityHelper.getRightValue(join, refEntity);
+                leftValue = Objects.toString(leftValue, null);
+                rightValue = Objects.toString(rightValue, null);
+                if (!Objects.equals(leftValue, rightValue))
+                    throw new NopException(ERR_BIZ_REF_ENTITY_OWNER_NOT_MATCH)
+                            .param(ARG_ENTITY_ID, refEntity.get_id())
+                            .param(ARG_ENTITY_NAME, refEntity.orm_entityName())
+                            .param(ARG_OWNER, owner);
             }
         }
     }
