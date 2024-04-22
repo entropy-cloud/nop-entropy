@@ -224,6 +224,8 @@ public class OrmEntityCopier {
                     chgType = (String) map.get(DaoConstants.PROP_CHANGE_TYPE + '_' + propName);
                 }
 
+                assignRefProps(fromValue, target, propModel);
+
                 // 更新关联实体
                 Object id = getId(fromValue, propModel.getRefEntityModel());
                 if (StringHelper.isEmptyObject(id)) {
