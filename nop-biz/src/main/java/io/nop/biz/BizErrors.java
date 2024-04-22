@@ -99,9 +99,15 @@ public interface BizErrors {
     ErrorCode ERR_BIZ_UNKNOWN_PROP = define("nop.err.biz.unknown-prop", "对象[{bizObjName}]没有定义属性[{propName}]",
             ARG_BIZ_OBJ_NAME, ARG_PROP_NAME, ARG_DISPLAY_NAME);
 
+    ErrorCode ERR_BIZ_NOT_ALLOW_JOIN_PROP_IN_REF_ENTITY = define("nop.err.biz.not-allow-join-prop-in-ref-entity",
+            "对象[{bizObjName}]的关联属性[{propName}]中不允许包含主实体的关联字段", ARG_BIZ_OBJ_NAME, ARG_PROP_NAME);
+
     ErrorCode ERR_BIZ_UNKNOWN_RELATION = define("nop.err.biz.unknown-relation",
             "对象[{bizObjName}]的属性[{propName}]上标记的关联属性[{relation}]不存在",
             ARG_BIZ_OBJ_NAME, ARG_PROP_NAME, ARG_DISPLAY_NAME, ARG_RELATION);
+
+    ErrorCode ERR_BIZ_REF_ENTITY_OWNER_NOT_MATCH = define("nop.err.biz.ref-entity-owner-not-match",
+            "id为[{id}]的对象[{entityName}]不属于当前关联对象", ARG_ID, ARG_ENTITY_NAME);
 
     ErrorCode ERR_BIZ_MANDATORY_PROP_IS_EMPTY = define("nop.err.biz.mandatory-prop-is-empty", "属性[{propName}]的值为空",
             ARG_BIZ_OBJ_NAME, ARG_PROP_NAME, ARG_DISPLAY_NAME);

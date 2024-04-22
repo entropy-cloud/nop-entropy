@@ -324,6 +324,11 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
         }
     }
 
+    @Override
+    public void orm_forceLoad() {
+        checkLoaded();
+    }
+
     private IOrmEntityEnhancer requireEnhancer() {
         IOrmEntityEnhancer enhancer = owner.orm_enhancer();
         if (enhancer == null) {

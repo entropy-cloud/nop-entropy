@@ -303,4 +303,6 @@ public interface IOrmEntity extends IDaoEntity, IOrmObject, ICloneable, IOrmEnti
      * @return 返回当前实体
      */
     <T extends IOrmEntity> T orm_requireEntity();
+
+    void orm_forceLoad();
 }

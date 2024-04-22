@@ -100,4 +100,6 @@ public interface IOrmEntitySet<T extends IOrmEntity>
 
     @Internal
     void orm_endLoad();
+
+    void orm_forceLoad();
 }

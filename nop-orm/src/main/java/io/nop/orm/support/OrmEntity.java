@@ -703,4 +703,10 @@ public abstract class OrmEntity implements IOrmEntity {
             throw new UnknownEntityException(get_entityName(), get_id());
         return (T) this;
     }
+
+    @Override
+    public void orm_forceLoad() {
+        if (orm_proxy())
+            orm_enhancer().internalLoad(this);
+    }
 }
