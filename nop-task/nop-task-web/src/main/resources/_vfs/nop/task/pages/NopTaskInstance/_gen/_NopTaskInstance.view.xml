@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopTaskInstance" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="gql">
+
+    <objMeta>/nop/task/model/NopTaskInstance/NopTaskInstance.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--逻辑流名称-->
+                <col id="taskName" mandatory="true" sortable="true"/>
+
+                <!--逻辑流版本-->
+                <col id="taskVersion" mandatory="true" sortable="true"/>
+
+                <!--逻辑流参数-->
+                <col id="taskInputs" sortable="true"/>
+
+                <!--逻辑流分组-->
+                <col id="taskGroup" mandatory="true" sortable="true"/>
+
+                <!--状态-->
+                <col id="status" mandatory="true" sortable="true"/>
+
+                <!--启动时间-->
+                <col id="startTime" sortable="true"/>
+
+                <!--结束时间-->
+                <col id="endTime" sortable="true"/>
+
+                <!--完成时限-->
+                <col id="dueTime" sortable="true"/>
+
+                <!--业务唯一键-->
+                <col id="bizKey" sortable="true"/>
+
+                <!--业务对象名-->
+                <col id="bizObjName" sortable="true"/>
+
+                <!--业务对象ID-->
+                <col id="bizObjId" sortable="true"/>
+
+                <!--父流程名称-->
+                <col id="parentTaskName" sortable="true"/>
+
+                <!--父流程版本-->
+                <col id="parentTaskVersion" sortable="true"/>
+
+                <!--父流程ID-->
+                <col id="parentTaskId" sortable="true"/>
+
+                <!--父流程步骤ID-->
+                <col id="parentStepId" sortable="true"/>
+
+                <!--启动人ID-->
+                <col id="starterId" sortable="true"/>
+
+                <!--启动人-->
+                <col id="starterName" sortable="true"/>
+
+                <!--启动人单位ID-->
+                <col id="starterDeptId" sortable="true"/>
+
+                <!--管理者类型-->
+                <col id="managerType" sortable="true"/>
+
+                <!--管理者单位ID-->
+                <col id="managerDeptId" sortable="true"/>
+
+                <!--管理者-->
+                <col id="managerName" sortable="true"/>
+
+                <!--管理者ID-->
+                <col id="managerId" sortable="true"/>
+
+                <!--信号集合-->
+                <col id="signalText" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true"/>
+
+                <!--备注-->
+                <col id="remark" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-逻辑流实例" i18n-en:title="View TaskFlow Instance">
+            <layout>
+ taskName[逻辑流名称] taskVersion[逻辑流版本]
+ taskInputs[逻辑流参数] taskGroup[逻辑流分组]
+ status[状态] startTime[启动时间]
+ endTime[结束时间] dueTime[完成时限]
+ bizKey[业务唯一键] bizObjName[业务对象名]
+ bizObjId[业务对象ID] parentTaskName[父流程名称]
+ parentTaskVersion[父流程版本] parentTaskId[父流程ID]
+ parentStepId[父流程步骤ID] starterId[启动人ID]
+ starterName[启动人] starterDeptId[启动人单位ID]
+ managerType[管理者类型] managerDeptId[管理者单位ID]
+ managerName[管理者] managerId[管理者ID]
+ signalText[信号集合] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] 
+                remark[备注]
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-逻辑流实例" i18n-en:title="Add TaskFlow Instance" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-逻辑流实例" i18n-en:title="Edit TaskFlow Instance">
+            <layout>
+ taskName[逻辑流名称] taskVersion[逻辑流版本]
+ taskInputs[逻辑流参数] taskGroup[逻辑流分组]
+ status[状态] startTime[启动时间]
+ endTime[结束时间] dueTime[完成时限]
+ bizKey[业务唯一键] bizObjName[业务对象名]
+ bizObjId[业务对象ID] parentTaskName[父流程名称]
+ parentTaskVersion[父流程版本] parentTaskId[父流程ID]
+ parentStepId[父流程步骤ID] starterId[启动人ID]
+ starterName[启动人] starterDeptId[启动人单位ID]
+ managerType[管理者类型] managerDeptId[管理者单位ID]
+ managerName[管理者] managerId[管理者ID]
+ signalText[信号集合] 
+                remark[备注]
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
+            <layout/>
+        </form>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
+            <layout/>
+        </form>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-逻辑流实例"
+              i18n-en:title="Update TaskFlow Instance">
+            <layout/>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopTaskInstance__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopTaskInstance__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopTaskInstance__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" label="@i18n:common.delete">
+                        <api url="@mutation:NopTaskInstance__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table>
+                <api url="@query:NopTaskInstance__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopTaskInstance__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopTaskInstance__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopTaskInstance__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopTaskInstance__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

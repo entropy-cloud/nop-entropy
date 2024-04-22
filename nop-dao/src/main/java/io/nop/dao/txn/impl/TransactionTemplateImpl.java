@@ -10,6 +10,7 @@ package io.nop.dao.txn.impl;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.commons.util.IoHelper;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.txn.ITransaction;
 import io.nop.dao.txn.ITransactionManager;
@@ -85,6 +86,7 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
 
         boolean newlyOpen;
         boolean newlyCreated;
+        boolean groupNewlyCreated;
 
         String mainGroup;
         ITransaction groupTxn;
@@ -118,10 +120,10 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
         TxnState state = new TxnState();
         state.txnGroup = txnGroup;
         String mainGroup = getMainTxnGroup(txnGroup);
-        if (mainGroup != null) {
+        if (mainGroup != null && !mainGroup.equals(txnGroup)) {
             state.mainGroup = mainGroup;
             ITransaction groupTxn = transactionManager.getRegisteredTransaction(mainGroup);
-            ITransaction txn = null;
+            ITransaction txn;
             if (groupTxn != null) {
                 txn = groupTxn.getSubTransaction(txnGroup);
                 if (txn == null && allowCreate) {
@@ -131,6 +133,7 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
                     if (groupTxn.isTransactionOpened()) {
                         txn.open();
                     }
+                    // 这里事务的状态由主事务决定，所以不用标记newlyOpen
                     state.newlyCreated = true;
                 }
             } else {
@@ -223,7 +226,7 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
         switch (propagation) {
             case REQUIRED: {
                 state = getTxnState(txnGroup, true);
-                openTransaction(state);
+                openExistingTransaction(state);
                 break;
             }
             case SUPPORTS: {
@@ -239,7 +242,7 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
             case REQUIRES_NEW: {
                 state = getTxnState(txnGroup, false);
                 state = state.newState();
-                openTransaction(state);
+                createNewTransaction(state);
                 break;
             }
             case NOT_SUPPORTED: {
@@ -263,31 +266,50 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
         return state;
     }
 
-    private void openTransaction(TxnState state) {
-        if (state.mainGroup != null) {
-            if (state.groupTxn == null) {
-                state.groupTxn = transactionManager.newTransaction(state.mainGroup);
-                state.prevTxn = transactionManager.registerTransaction(state.groupTxn);
-                state.newlyCreated = true;
-            }
-            if (state.txn == null) {
-                state.txn = transactionManager.newTransaction(state.txnGroup);
-                state.groupTxn.addSubTransaction(state.txn);
-            }
+    private void openExistingTransaction(TxnState state) {
+        if (state.groupTxn != null) {
+            // 如果存在主事务，则事务的打开关闭完全交由主事务负责
             if (!state.groupTxn.isTransactionOpened()) {
                 state.groupTxn.open();
                 state.newlyOpen = true;
             }
+        } else if (!state.txn.isTransactionOpened()) {
+            state.txn.open();
+            state.newlyOpen = true;
+        }
+    }
+
+    private void createNewTransaction(TxnState state) {
+        if (state.mainGroup != null) {
+            ITransaction groupTxn = transactionManager.newTransaction(state.mainGroup);
+            ITransaction txn = null;
+            try {
+                txn = transactionManager.newTransaction(state.txnGroup);
+                groupTxn.addSubTransaction(txn);
+                groupTxn.open();
+            } catch (Exception e) {
+                groupTxn.close();
+                IoHelper.safeCloseObject(txn);
+                throw NopException.adapt(e);
+            }
+            transactionManager.registerTransaction(groupTxn);
+            state.groupTxn = groupTxn;
+            state.txn = txn;
+            state.groupNewlyCreated = true;
+            state.newlyCreated = true;
+            state.newlyOpen = true;
         } else {
-            if (state.txn == null) {
-                state.txn = transactionManager.newTransaction(state.txnGroup);
-                state.prevTxn = transactionManager.registerTransaction(state.txn);
-                state.newlyCreated = true;
+            ITransaction txn = transactionManager.newTransaction(state.txnGroup);
+            try {
+                txn.open();
+            } catch (Exception e) {
+                IoHelper.safeCloseObject(txn);
+                throw NopException.adapt(e);
             }
-            if (!state.txn.isTransactionOpened()) {
-                state.txn.open();
-                state.newlyOpen = true;
-            }
+            transactionManager.registerTransaction(txn);
+            state.txn = txn;
+            state.newlyCreated = true;
+            state.newlyOpen = true;
         }
     }
 
@@ -338,15 +360,14 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
     private void cleanupTransaction(TxnState state) {
         RuntimeException ex = null;
         // 新建的事务需要取消注册
-        if (state.newlyCreated) {
-            if (state.groupTxn != null) {
-                if (!transactionManager.unregisterTransaction(state.groupTxn)) {
-                    ex = new NopException(ERR_TXN_NOT_REGISTERED).param(ARG_TXN, state.groupTxn);
-                }
-            } else if (state.txn != null) {
-                if (!transactionManager.unregisterTransaction(state.txn)) {
-                    ex = new NopException(ERR_TXN_NOT_REGISTERED).param(ARG_TXN, state.groupTxn);
-                }
+        if (state.groupNewlyCreated) {
+            if (!transactionManager.unregisterTransaction(state.groupTxn)) {
+                ex = new NopException(ERR_TXN_NOT_REGISTERED).param(ARG_TXN, state.groupTxn);
+            }
+        } else if (state.newlyCreated && state.groupTxn == null) {
+            // 如果存在主事务，则实际txn是注册到groupTxn中，而不是注册为全局的事务，因此这里也就不需要取消注册
+            if (!transactionManager.unregisterTransaction(state.txn)) {
+                ex = new NopException(ERR_TXN_NOT_REGISTERED).param(ARG_TXN, state.groupTxn);
             }
         }
 
@@ -357,12 +378,13 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
 
         // 新打开的主事务需要关闭。如果是分支事务，则跟随主事务一起关闭
         // newlyCreated的事务即使没有open，回调函数中也有可能调用getConnection导致实际上创建了非事务性的连接
-        if (state.newlyOpen || state.newlyCreated) {
-            if (state.groupTxn != null) {
+        if (state.groupTxn != null) {
+            if (state.newlyOpen || state.groupNewlyCreated) {
                 state.groupTxn.close();
-            } else if (state.txn != null) {
-                state.txn.close();
             }
+        } else if (state.txn != null) {
+            if (state.newlyOpen || state.newlyCreated)
+                state.txn.close();
         }
 
         if (ex != null)

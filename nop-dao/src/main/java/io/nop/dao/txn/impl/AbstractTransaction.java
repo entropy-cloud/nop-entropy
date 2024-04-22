@@ -381,6 +381,7 @@ public abstract class AbstractTransaction implements ITransaction {
             throw newError(ERR_TXN_ALREADY_STARTED);
         invokeOpenListener();
         doOpen();
+        openSubTransactions();
         opened = true;
     }
 
@@ -427,6 +428,15 @@ public abstract class AbstractTransaction implements ITransaction {
             }
         }
     }
+
+    protected void openSubTransactions() {
+        if (subTransactions != null) {
+            for (ITransaction subTxn : subTransactions.values()) {
+                subTxn.open();
+            }
+        }
+    }
+
 
     protected abstract void doOpen();
 

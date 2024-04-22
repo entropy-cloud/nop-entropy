@@ -59,6 +59,14 @@
 
         <sheet name="XptSheetModel">
             <fields>
+                <field name="loopVarName" displayName="循环变量名">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="sheetVarName">
+                    <schema stdDomain="string"/>
+                </field>
+
                 <field name="testExpr" displayName="条件表达式">
                     <schema stdDomain="xpl-predicate"/>
                 </field>
@@ -71,7 +79,7 @@
                     <schema stdDomain="xpl"/>
                 </field>
 
-                <field name="sheetNameExpr" displayName="表单名称表达式">
+                <field name="sheetNameExpr" displayName="Sheet名称表达式">
                     <schema stdDomain="xpl"/>
                 </field>
 

@@ -46,7 +46,7 @@ public class CliGenFileCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"-t", "--template"}, description = "导出模板", required = true)
     String template;
 
-    @CommandLine.Parameters(description = "数据文件", index = "0")
+    @CommandLine.Parameters(description = "数据文件", index = "0",arity = "0..1")
     String file;
 
     @Override

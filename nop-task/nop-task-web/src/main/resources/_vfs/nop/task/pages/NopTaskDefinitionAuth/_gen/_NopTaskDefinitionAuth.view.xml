@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopTaskDefinitionAuth" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="gql">
+
+    <objMeta>/nop/task/model/NopTaskDefinitionAuth/NopTaskDefinitionAuth.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--工作流定义ID-->
+                <col id="taskDefId" mandatory="true" sortable="true"/>
+
+                <!--参与者类型-->
+                <col id="actorType" mandatory="true" sortable="true"/>
+
+                <!--参与者部门ID-->
+                <col id="actorDeptId" sortable="true"/>
+
+                <!--参与者名称-->
+                <col id="actorName" mandatory="true" sortable="true"/>
+
+                <!--允许编辑-->
+                <col id="allowEdit" mandatory="true" sortable="true"/>
+
+                <!--允许管理-->
+                <col id="allowManage" mandatory="true" sortable="true"/>
+
+                <!--允许启动-->
+                <col id="allowStart" mandatory="true" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true"/>
+
+                <!--备注-->
+                <col id="remark" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+        <grid id="sub-grid-edit" x:prototype="list" editMode="list-edit">
+            <cols>
+                <col id="taskDefId" x:abstract="true"/>
+                <col id="createdBy" x:abstract="true"/>
+                <col id="createTime" x:abstract="true"/>
+                <col id="updatedBy" x:abstract="true"/>
+                <col id="updateTime" x:abstract="true"/>
+            </cols>
+        </grid>
+        <grid id="sub-grid-view" x:prototype="list" editMode="list-view">
+            <cols>
+                <col id="taskDefId" x:abstract="true"/>
+            </cols>
+        </grid>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-逻辑流定义权限" i18n-en:title="View TaskFlow Definition Auth">
+            <layout>
+ taskDefId[工作流定义ID] actorType[参与者类型]
+ actorDeptId[参与者部门ID] actorName[参与者名称]
+ allowEdit[允许编辑] allowManage[允许管理]
+ allowStart[允许启动] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] 
+                remark[备注]
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-逻辑流定义权限" i18n-en:title="Add TaskFlow Definition Auth" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-逻辑流定义权限" i18n-en:title="Edit TaskFlow Definition Auth">
+            <layout>
+ taskDefId[工作流定义ID]
+ actorType[参与者类型]
+ actorDeptId[参与者部门ID]
+ actorName[参与者名称]
+ allowEdit[允许编辑]
+ allowManage[允许管理]
+ allowStart[允许启动]
+ remark[备注]
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
+            <layout/>
+        </form>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
+            <layout/>
+        </form>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-逻辑流定义权限"
+              i18n-en:title="Update TaskFlow Definition Auth">
+            <layout/>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopTaskDefinitionAuth__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopTaskDefinitionAuth__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopTaskDefinitionAuth__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" label="@i18n:common.delete">
+                        <api url="@mutation:NopTaskDefinitionAuth__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table>
+                <api url="@query:NopTaskDefinitionAuth__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopTaskDefinitionAuth__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopTaskDefinitionAuth__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopTaskDefinitionAuth__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopTaskDefinitionAuth__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

@@ -1,0 +1,12 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <input name="title"/>
+    <input name="products"/>
+
+    <steps>
+        <xpl name="step1" useParentScope="true">
+            <source>
+                return products.size() == 2 ? 0 : -1
+            </source>
+        </xpl>
+    </steps>
+</task>

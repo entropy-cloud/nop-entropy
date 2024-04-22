@@ -28,10 +28,6 @@ public abstract class TaskStepModel extends _TaskStepModel {
 
     public abstract String getType();
 
-    public boolean isUseParentScope() {
-        return false;
-    }
-
     public void addWaitStep(String waitStep) {
         Set<String> waitSteps = getWaitSteps();
         if (waitSteps == null || waitSteps.isEmpty()) {

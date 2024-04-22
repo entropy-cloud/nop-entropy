@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopTaskStepInstance" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="gql">
+
+    <objMeta>/nop/task/model/NopTaskStepInstance/NopTaskStepInstance.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--逻辑流实例ID-->
+                <col id="taskId" mandatory="true" sortable="true"/>
+
+                <!--步骤类型-->
+                <col id="stepType" mandatory="true" sortable="true"/>
+
+                <!--步骤名称-->
+                <col id="stepName" mandatory="true" sortable="true"/>
+
+                <!--步骤显示名称-->
+                <col id="displayName" mandatory="true" sortable="true"/>
+
+                <!--状态-->
+                <col id="status" mandatory="true" sortable="true"/>
+
+                <!--子流程名称-->
+                <col id="subTaskName" sortable="true"/>
+
+                <!--子流程版本-->
+                <col id="subTaskVersion" sortable="true"/>
+
+                <!--开始时间-->
+                <col id="startTime" sortable="true"/>
+
+                <!--结束时间-->
+                <col id="finishTime" sortable="true"/>
+
+                <!--到期时间-->
+                <col id="dueTime" sortable="true"/>
+
+                <!--错误码-->
+                <col id="errCode" sortable="true"/>
+
+                <!--错误消息-->
+                <col id="errMsg" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true" x:abstract="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true" x:abstract="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true" x:abstract="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true" x:abstract="true"/>
+
+                <!--备注-->
+                <col id="remark" sortable="true" x:abstract="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-逻辑流步骤实例" i18n-en:title="View TaskFlow Step Instance">
+            <layout>
+ taskId[逻辑流实例ID] stepType[步骤类型]
+ stepName[步骤名称] displayName[步骤显示名称]
+ status[状态] subTaskName[子流程名称]
+ subTaskVersion[子流程版本] startTime[开始时间]
+ finishTime[结束时间] dueTime[到期时间]
+ errCode[错误码] errMsg[错误消息]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-逻辑流步骤实例" i18n-en:title="Add TaskFlow Step Instance" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-逻辑流步骤实例" i18n-en:title="Edit TaskFlow Step Instance">
+            <layout>
+ taskId[逻辑流实例ID] stepType[步骤类型]
+ stepName[步骤名称] displayName[步骤显示名称]
+ status[状态] subTaskName[子流程名称]
+ subTaskVersion[子流程版本] startTime[开始时间]
+ finishTime[结束时间] dueTime[到期时间]
+ errCode[错误码] errMsg[错误消息]
+ remark[备注] 
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
+            <layout/>
+        </form>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
+            <layout/>
+        </form>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-逻辑流步骤实例"
+              i18n-en:title="Update TaskFlow Step Instance">
+            <layout/>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopTaskStepInstance__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopTaskStepInstance__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopTaskStepInstance__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" label="@i18n:common.delete">
+                        <api url="@mutation:NopTaskStepInstance__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table>
+                <api url="@query:NopTaskStepInstance__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopTaskStepInstance__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopTaskStepInstance__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopTaskStepInstance__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopTaskStepInstance__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

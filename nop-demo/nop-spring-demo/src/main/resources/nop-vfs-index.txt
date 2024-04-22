@@ -225,7 +225,9 @@
 /nop/autoconfig/nop-dao.beans
 /nop/autoconfig/nop-gateway.beans
 /nop/autoconfig/nop-http-client-jdk.beans
+/nop/autoconfig/nop-integration-zxing.beans
 /nop/autoconfig/nop-orm.beans
+/nop/autoconfig/nop-report-ext.beans
 /nop/autoconfig/nop-report.beans
 /nop/autoconfig/nop-web.beans
 /nop/biz/beans/biz-defaults.beans.xml
@@ -291,6 +293,7 @@
 /nop/graphql/default.graphql
 /nop/graphql/introspection.graphql
 /nop/http/beans/http-client-jdk.beans.xml
+/nop/integration/beans/zxing-defaults.beans.xml
 /nop/orm/beans/orm-defaults.beans.xml
 /nop/orm/imp/orm.imp.xml
 /nop/orm/imp/template.orm.xlsx
@@ -310,6 +313,7 @@
 /nop/report/_module
 /nop/report/beans/app-report-demo.beans.xml
 /nop/report/beans/report-defaults.beans.xml
+/nop/report/beans/report-ext.beans.xml
 /nop/report/demo/base/01-档案式报表.xpt.xlsx
 /nop/report/demo/base/02-段落明细表.xpt.xlsx
 /nop/report/demo/base/03-复杂多源报表.xpt.xlsx
@@ -320,9 +324,11 @@
 /nop/report/demo/base/08-动态展开列.xpt.xlsx
 /nop/report/demo/base/09-套打.xpt.xlsx
 /nop/report/demo/base/10-导出Excel公式.xpt.xlsx
+/nop/report/demo/base/11-打印条码和二维码.xpt.xlsx
 /nop/report/demo/pages/demo.page.yaml
 /nop/report/demo/performance/测试同比环比.xpt.xlsx
 /nop/report/imp/xpt.imp.xml
+/nop/report/xlib/xpt.xlib
 /nop/rpc/imp/api.imp.xml
 /nop/rpc/imp/template.api.xlsx
 /nop/schema/action-auth.xdef
@@ -332,6 +338,7 @@
 /nop/schema/biz/xbiz.xdef
 /nop/schema/conf.xdef
 /nop/schema/data-auth.xdef
+/nop/schema/datav/chart.xdef
 /nop/schema/designer/graph-designer.xdef
 /nop/schema/errors.xdef
 /nop/schema/excel/anchor.xdef
@@ -563,6 +570,7 @@
 /nop/templates/backend/{appName}-codegen/pom.xml.xgen
 /nop/templates/backend/{appName}-codegen/postcompile/gen-orm.xgen.xgen
 /nop/templates/backend/{appName}-codegen/src/test/java/{basePackagePath}/codegen/{moduleClassPrefix}CodeGen.java.xgen
+/nop/templates/cli/app.orm.xml.xgen
 /nop/templates/dyn-web/@init.xrun
 /nop/templates/dyn-web/{moduleId}/a-impl.xrun
 /nop/templates/dyn/@init.xrun

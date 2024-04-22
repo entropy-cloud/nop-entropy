@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
+      displayName="逻辑流定义权限" i18n-en:displayName="TaskFlow Definition Auth" xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>io.nop.task.dao.entity.NopTaskDefinitionAuth</entityName>
+
+    <primaryKey>sid</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="sid" displayName="主键" propId="1" i18n-en:displayName="SID" tagSet="seq" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="taskDefId" displayName="工作流定义ID" propId="2" i18n-en:displayName="Definition ID" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="taskDefinition">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="actorType" displayName="参与者类型" propId="3" i18n-en:displayName="Actor Type" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="10"/>
+        </prop>
+        <prop name="actorId" displayName="参与者ID" propId="4" i18n-en:displayName="Actor ID" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="actorDeptId" displayName="参与者部门ID" propId="5" i18n-en:displayName="Actor Dept ID" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="actorName" displayName="参与者名称" propId="6" i18n-en:displayName="Actor Name" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="allowEdit" displayName="允许编辑" propId="7" i18n-en:displayName="Allow Edit" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="allowManage" displayName="允许管理" propId="8" i18n-en:displayName="Allow Manage" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="allowStart" displayName="允许启动" propId="9" i18n-en:displayName="Allow Start" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="10" i18n-en:displayName="Version" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
+            <schema domain="version" type="java.lang.Integer"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" propId="11" i18n-en:displayName="Created By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" propId="12" i18n-en:displayName="Create Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" propId="13" i18n-en:displayName="Updated By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" propId="14" i18n-en:displayName="Update Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="remark" displayName="备注" propId="15" i18n-en:displayName="Remark" queryable="true" sortable="true"
+              insertable="true" updatable="true" ui:show="S">
+            <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="taskDefinition" displayName="逻辑流定义" i18n-en:displayName="TaskFlow Definition"
+              tagSet="pub,ref-pub,ref-grid,ref-cascade-delete,ref-insertable,ref-updatable" ext:kind="to-one"
+              internal="true" queryable="true" ext:joinLeftProp="taskDefId" ext:joinRightProp="taskDefId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopTaskDefinition"/>
+        </prop>
+        <prop name="taskDefinition.displayName" displayName="逻辑流定义" i18n-en:displayName="TaskFlow Definition"
+              internal="true" queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+    </props>
+</meta>

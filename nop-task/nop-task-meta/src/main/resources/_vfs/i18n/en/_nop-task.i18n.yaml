@@ -1,0 +1,109 @@
+entity:
+  label:
+    NopTaskDefinition: TaskFlow Definition
+    NopTaskDefinitionAuth: TaskFlow Definition Auth
+    NopTaskInstance: TaskFlow Instance
+    NopTaskStepInstance: TaskFlow Step Instance
+prop:
+  label:
+    NopTaskDefinition:
+      taskDefId: Definition ID
+      taskName: TaskFlow Name
+      taskVersion: TaskFlow Version
+      displayName: DisplayName
+      description: Description
+      modelText: Model Text
+      status: Status
+      status_label: null
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      definitionAuths: Definition Auths
+    NopTaskDefinitionAuth:
+      sid: SID
+      taskDefId: Definition ID
+      actorType: Actor Type
+      actorId: Actor ID
+      actorDeptId: Actor Dept ID
+      actorName: Actor Name
+      allowEdit: Allow Edit
+      allowManage: Allow Manage
+      allowStart: Allow Start
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      taskDefinition: TaskFlow Definition
+      taskDefinition.displayName: TaskFlow Definition
+    NopTaskInstance:
+      taskId: TaskFlow ID
+      taskName: TaskFlow Name
+      taskVersion: TaskFlow Version
+      taskInputs: Task Inputs
+      taskGroup: TaskFlow Group
+      status: Status
+      status_label: null
+      startTime: Start Time
+      endTime: End Time
+      dueTime: Due Time
+      bizKey: BizKey
+      bizObjName: BizObjName
+      bizObjId: BizObjId
+      parentTaskName: Parent Flow Name
+      parentTaskVersion: Parent Flow Version
+      parentTaskId: Parent Flow ID
+      parentStepId: Parent Step ID
+      starterId: Starter ID
+      starterName: Starter Name
+      starterDeptId: Starter Dept ID
+      managerType: Manager Type
+      managerDeptId: Manager Dept ID
+      managerName: Manager Name
+      managerId: Manager ID
+      priority: Priority
+      signalText: Signal Set
+      tagText: Tags
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      parentTaskInstance: Parent TaskFlow
+      steps: null
+    NopTaskStepInstance:
+      stepId: Step ID
+      taskId: TaskFlow ID
+      stepType: Step Type
+      stepName: Step Name
+      displayName: Display Name
+      status: Status
+      status_label: null
+      subTaskId: Sub Flow ID
+      subTaskName: Sub Flow Name
+      subTaskVersion: Sub Flow Version
+      startTime: Start Time
+      finishTime: Finish Time
+      dueTime: Due Time
+      nextRetryTime: Next Retry Time
+      retryCount: Retry Count
+      errCode: Error Code
+      errMsg: Error Message
+      priority: Priority
+      tagText: Tags
+      parentStepId: Parent Step ID
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      taskInstance: TaskFlow Instance
+      subTaskInstance: Sub TaskFlow Instance
+      parentStepInstance: Parent  Step
+      childSteps: Child Steps

@@ -1,0 +1,6 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:task-gen="task-gen" xmlns:xpl="xpl">
+    <x:post-extends>
+        <task-gen:TransformXptGenReport xpl:lib="/nop/task/xlib/task-gen.xlib"/>
+    </x:post-extends>
+</task>

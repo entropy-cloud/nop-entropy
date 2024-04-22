@@ -234,11 +234,11 @@ public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClas
     /**
      * ${rel.displayName}
      */
-    public ${rel.refEntityModel.name} ${rel.name.$methodGet()}(){
-       return (${rel.refEntityModel.name})internalGetRefEntity(PROP_NAME_${rel.name});
+    public ${rel.refEntityModel.className} ${rel.name.$methodGet()}(){
+       return (${rel.refEntityModel.className})internalGetRefEntity(PROP_NAME_${rel.name});
     }
 
-    public void ${rel.name.$methodSet()}(${rel.refEntityModel.name} refEntity){
+    public void ${rel.name.$methodSet()}(${rel.refEntityModel.className} refEntity){
    <c:choose>
         <when test="${rel.oneToOne and rel.reverseDepends}">
             internalSetReverseRefEntity(PROP_NAME_${rel.name}, refEntity, ()->{

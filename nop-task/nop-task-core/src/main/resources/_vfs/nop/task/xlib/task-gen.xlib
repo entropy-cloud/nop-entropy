@@ -1,0 +1,24 @@
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     xmlns:c="c">
+    <tags>
+        <TransformXptGenReport>
+            <attr name="_dsl_root" implicit="true"/>
+
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.task.utils.TaskGenHelper;
+
+                    const steps = _dsl_root.childByTag('steps');
+                    steps?.forEachNode(node=>{
+                        if(node.attrText('extType') == 'xpt:GenReport'){
+                           const child = node.childByTag('xpt:GenReport');
+                           child.setAttr('xpl:lib','/nop/report/xlib/xpt.xlib');
+                           child.setAttr('args','${{' + TaskGenHelper.getInputNames(node).join(',')+'}}');
+                           node.makeChild('source').appendChild(child.detach())
+                        }
+                    })
+                ]]></c:script>
+            </source>
+        </TransformXptGenReport>
+    </tags>
+</lib>

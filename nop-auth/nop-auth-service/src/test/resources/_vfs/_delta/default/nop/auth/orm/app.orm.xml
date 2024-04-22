@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm x:schema="/nop/schema/orm/orm.xdef" x:extends="super" xmlns:x="/nop/schema/xdsl.xdef"
+     xmlns:feature="feature"
+>
+
+    <entities>
+        <entity name="io.nop.auth.dao.entity.NopAuthGroup" shardProp="name" useShard="true"/>
+    </entities>
+</orm>

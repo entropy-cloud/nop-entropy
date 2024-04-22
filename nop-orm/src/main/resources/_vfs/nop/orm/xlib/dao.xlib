@@ -77,8 +77,8 @@
             <attr name="cacheKey" type="Object" implicit="true"/>
             <attr name="querySpace" type="String" implicit="true"/>
             <attr name="timeout" type="Integer" implicit="true"/>
-            <attr name="fetchSize" type="Integer" implicit="true"/>
             <attr name="disableLogicalDelete" type="Boolean" implicit="true"/>
+            <attr name="fetchSize" type="Integer" optional="true"/>
 
             <source>
                 <c:script><![CDATA[

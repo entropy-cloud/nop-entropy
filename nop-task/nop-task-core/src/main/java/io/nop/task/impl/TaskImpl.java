@@ -33,7 +33,6 @@ public class TaskImpl implements ITask {
         this.inputs = inputs;
         this.outputs = outputs;
         this.flagOperation = flagOperation;
-        Guard.checkArgument(taskVersion > 0, "taskVersion");
         this.taskName = Guard.notEmpty(taskName, "taskName");
         this.taskVersion = taskVersion;
         this.recordMetrics = recordMetrics;

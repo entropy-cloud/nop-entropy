@@ -8,6 +8,9 @@
 package io.nop.task;
 
 public interface TaskConstants {
+    String TAG_INPUT = "input";
+    String TAG_OUTPUT = "output";
+    String ATTR_NAME = "name";
     String MODEL_TYPE_TASK = "task";
 
     String FILE_TYPE_TASK = "task.xml";

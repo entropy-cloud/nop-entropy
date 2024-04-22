@@ -8,4 +8,6 @@
 
     <bean id="io.nop.auth.service.biz.DemoAuthBizModel" ioc:type="@bean:id" />
     <bean id="io.nop.auth.service.biz.TestService" ioc:type="@bean:id"/>
+
+    <bean id="nopShardSelector" class="io.nop.auth.service.mock.MockShardSelector" />
 </beans>

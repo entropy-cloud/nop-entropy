@@ -8,11 +8,11 @@
 package io.nop.cli;
 
 import io.nop.api.core.config.AppConfig;
+import io.nop.core.initialize.CoreInitialization;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 import picocli.CommandLine;
-
-import jakarta.inject.Inject;
 
 import static io.nop.codegen.CodeGenConfigs.CFG_CODEGEN_TRACE_ENABLED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,9 +36,9 @@ public class TestNopCli {
     }
 
     @Test
-    public void testGenOrmExcelForPdm(){
+    public void testGenOrmExcelForPdm() {
         String[] args = new String[]{"gen-orm-excel", "src/test/resources/io/nop/cli/test.pdm",
-                "-o", "target/gen/gen-from-pdm.orm.xlsx", };
+                "-o", "target/gen/gen-from-pdm.orm.xlsx",};
         NopCliApplication app = new NopCliApplication();
         app.setFactory(factory);
         int ret = app.run(args);
@@ -46,9 +46,31 @@ public class TestNopCli {
     }
 
     @Test
-    public void testGenOrmExcelForPdman(){
+    public void testGenOrmExcelForPdman() {
         String[] args = new String[]{"gen-orm-excel", "src/test/resources/io/nop/cli/test.pdma.json",
-                "-o", "target/gen/gen-from-pdman.orm.xlsx", };
+                "-o", "target/gen/gen-from-pdman.orm.xlsx",};
+        NopCliApplication app = new NopCliApplication();
+        app.setFactory(factory);
+        int ret = app.run(args);
+        assertEquals(0, ret);
+    }
+
+    @Test
+    public void testGenXpt() {
+        String[] args = new String[]{"gen-file", "src/test/resources/data/data.json5",
+                "-t", "/xpt/test.xpt.xlsx",
+                "-o", "target/gen/test.xpt.html"};
+        NopCliApplication app = new NopCliApplication();
+        app.setFactory(factory);
+        int ret = app.run(args);
+        assertEquals(0, ret);
+    }
+
+    @Test
+    public void testRunTask(){
+        CoreInitialization.destroy();
+        String[] args = new String[]{"run-task", "src/test/resources/task/test.task.xml",
+                "-if", "src/test/resources/data/data.json5"};
         NopCliApplication app = new NopCliApplication();
         app.setFactory(factory);
         int ret = app.run(args);

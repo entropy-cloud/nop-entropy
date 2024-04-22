@@ -1,0 +1,28 @@
+<task x:extends="/nop/task/lib/common.task.xml" x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:xpt="xpt" xmlns:xpl="xpl">
+    <input name="title"/>
+    <input name="products"/>
+
+    <steps>
+        <xpl name="step1" useParentScope="true">
+            <source>
+                <xpt:GenReport xpl:lib="/nop/report/xlib/xpt.xlib" args="${{entity:{title,products}}}"
+                               template="/xpt/test.xpt.xlsx" outputFile="target/gen/${today()}.html"/>
+            </source>
+        </xpl>
+
+        <xpl name="step2" useParentScope="true">
+            <output name="entity">
+                <source>
+                    return { title, products}
+                </source>
+            </output>
+        </xpl>
+
+        <xpl name="step3" extType="xpt:GenReport">
+            <input name="entity"/>
+
+            <xpt:GenReport template="/xpt/test.xpt.xlsx" outputFile="target/gen/${today()}-2.html"/>
+        </xpl>
+    </steps>
+</task>

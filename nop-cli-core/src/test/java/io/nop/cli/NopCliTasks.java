@@ -8,12 +8,12 @@
 package io.nop.cli;
 
 import io.nop.api.core.config.AppConfig;
+import io.nop.core.initialize.CoreInitialization;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import picocli.CommandLine;
-
-import jakarta.inject.Inject;
 
 import static io.nop.api.core.ApiConfigs.CFG_DEBUG;
 import static io.nop.codegen.CodeGenConfigs.CFG_CODEGEN_TRACE_ENABLED;
@@ -129,5 +129,22 @@ public class NopCliTasks {
         NopCliApplication app = new NopCliApplication();
         app.setFactory(factory);
         assertEquals(0, app.run(args));
+    }
+
+    @Test
+    public void testLargeDataSet() {
+        CoreInitialization.destroy();
+        System.setProperty("nop.datasource.driver-class-name", "com.mysql.cj.jdbc.Driver");
+        System.setProperty("nop.datasource.jdbc-url", "jdbc:mysql://127.0.0.1:3306/dev?useUnicode=true&characterEncoding=utf-8&serverTimezone=UTC");
+        System.setProperty("nop.datasource.username", "nop");
+        System.setProperty("nop.datasource.password", "nop-test");
+
+
+        String[] args = new String[]{"gen-file",
+                "-t", "/xpt/test-large-ds.xpt.xlsx","-o","target/gen/out.xlsx"};
+        NopCliApplication app = new NopCliApplication();
+        app.setFactory(factory);
+        int ret = app.run(args);
+        assertEquals(0, ret);
     }
 }

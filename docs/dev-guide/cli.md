@@ -53,7 +53,7 @@ java -jar nop-cli.jar gen -t=/nop/templates/orm model/app-mall.orm.xlsx
 如果只想使用NopORM，不需要生成前端代码，也不需要生成GraphQL服务，则可以使用orm-dao模板
 
 ```shell
-java -jar nop-cli.jar gen -t=/nop/templates/orm-dao -o=app-dao model/app-mall.orm.xlsx 
+java -jar nop-cli.jar gen -t=/nop/templates/orm-dao -o=app-dao model/app-mall.orm.xlsx
 ```
 
 ### 使用自己定制的生成模板
@@ -66,7 +66,8 @@ B站视频: [可逆计算原理和Nop平台介绍及答疑](https://www.bilibili
 java -Xbootclasspath/a:bsin-codegen-template/src/main/resources/ -jar nop-cli-2.0.0-BETA.1.jar  gen bsin-demo/model/bsin-demo.orm.xlsx -t=/bsin/templates/orm -o=bsin-demo
 ```
 
-通过-Xbootclasspath/a:bsin-codegen-template/src/main/resources/引入外部的jar包或者目录到classpath中，然后通过-t=/bsin/templates/orm来引用classpath下的模板文件，就可以生成代码
+通过-Xbootclasspath/a:
+bsin-codegen-template/src/main/resources/引入外部的jar包或者目录到classpath中，然后通过-t=/bsin/templates/orm来引用classpath下的模板文件，就可以生成代码
 
 ## 动态监听文件目录，发现修改后执行代码生成
 
@@ -81,11 +82,12 @@ java -jar nop-cli.jar watch app-meta -e=taks/gen-web.xrun
 在这个脚本文件中，我们可以通过GenWithDependsCache等Xpl模板标签来动态生成代码
 
 ```xml
+
 <c:unit xmlns:c="c" xmlns:run="run" xmlns:xpl="xpl">
-    <run:GenWithCache xpl:lib="/nop/codegen/xlib/run.xlib"
-                      srcDir="/meta/test" appName="Test"
-                      targetDir="./target/gen"
-                      tplDir="/nop/test/meta-web"/>
+  <run:GenWithCache xpl:lib="/nop/codegen/xlib/run.xlib"
+                    srcDir="/meta/test" appName="Test"
+                    targetDir="./target/gen"
+                    tplDir="/nop/test/meta-web"/>
 </c:unit>
 ```
 
@@ -101,11 +103,32 @@ java -jar nop-cli.jar extract test.orm.xlsx -o=my.orm.json
 
 extract指令会识别文件的后缀名，选择注册到系统中的解析器进行解析，得到Json对象后再导出为JSON文件。如果存在对应的xdef元模型定义，也可以选择导出为XML格式
 
+通过`-o`导出文件参数可以指定导出为xml或者json，比如 `-o=my.orm.xml`根据文件后缀名可以确定需要导出为xml格式。
+
 ## 根据JSON生成Excel文件
 
 ```
 java -jar nop-cli.jar gen-file my.orm.json -t=/nop/orm/imp/orm.imp.xml
 ```
 
-gen-file会根据`-t`参数指定的模板文件来导出Excel。模板文件可以如果是imp.xml，则使用导入模型关联的导出模板来导出。也可以是xpt.xlsx这种报表模板，
+`gen-file`会根据`-t`参数指定的模板文件来导出Excel。模板文件可以如果是imp.xml，则使用导入模型关联的导出模板来导出。也可以是xpt.xlsx这种报表模板，
 此时将按照报表模型实现导出。JSON文件解析得到的对象在报表导出时对应于名为entity的对象。
+
+## 执行报表文件并导出
+
+通过`gen-file`指令，给定`-t`为报表模板文件
+
+```
+java -jar nop-cli.jar gen-file data.json -t=/my/test.xpt.xlsx -o=target/test.xlsx
+```
+
+`gen-file`的第一个参数`data.json`会被解析为一个Map，然后传入报表模板作为参数`entity`。通过`-o`参数可以指定导出文件位置和导出类型
+
+## 执行逻辑编排任务
+
+```
+java -jar nop-cli.jar run-task my.task.xml -if=inputs.json
+```
+
+读取`inputs.json`文件作为task的输入参数，运行`my.task.xml`逻辑编排模型。
+

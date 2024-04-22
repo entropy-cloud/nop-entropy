@@ -26,6 +26,9 @@ public class CliRunTaskCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"-i", "--input"}, description = "输入参数")
     String input;
 
+    @CommandLine.Option(names = {"-if", "--input-file"}, description = "输入参数文件")
+    String inputFile;
+
 
     @SuppressWarnings("unchecked")
     @Override
@@ -39,6 +42,12 @@ public class CliRunTaskCommand implements Callable<Integer> {
             Map<String, Object> map = (Map<String, Object>) JsonTool.parseNonStrict(null, input);
             taskRt.getEvalScope().setLocalValues(map);
         }
+        if (inputFile != null) {
+            IResource inputResource = ResourceHelper.resolveRelativePathResource(inputFile);
+            Map<String, Object> map = (Map<String, Object>) JsonTool.parseBeanFromResource(inputResource);
+            taskRt.getEvalScope().setLocalValues(map);
+        }
+
         Object result = task.execute(taskRt).syncGetResult();
         if (result instanceof Integer)
             return (Integer) result;

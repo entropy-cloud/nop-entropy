@@ -403,4 +403,10 @@ public class GlobalFunctions {
             return (EvalFunctionalAdapter) fn;
         return new EvalFunctionalAdapter(null, fn, scope);
     }
+
+    @Description("建立新的Scope")
+    @EvalMethod
+    public static IEvalScope newChildScope(IEvalScope scope, Map<String, Object> args) {
+        return scope.newChildScope(args);
+    }
 }

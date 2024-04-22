@@ -7,6 +7,7 @@
  */
 package io.nop.boot;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.service.ShutdownHook;
 import io.nop.core.CoreConfigs;
 import io.nop.core.command.ApplicationArguments;
@@ -29,6 +30,7 @@ public class NopApplication {
     }
 
     public int run(String[] args, IntSupplier task) {
+        long beginTime = CoreMetrics.currentTimeMillis();
         StartupInfoLogger infoLogger = new StartupInfoLogger(getClass());
         infoLogger.logStarting(LOG);
 
@@ -58,6 +60,8 @@ public class NopApplication {
 
         int ret = task.getAsInt();
 
+        long endTime = CoreMetrics.currentTimeMillis();
+        LOG.info("nop.app.run:ret={},usedTime={}", ret, (endTime - beginTime));
         return ret;
     }
 

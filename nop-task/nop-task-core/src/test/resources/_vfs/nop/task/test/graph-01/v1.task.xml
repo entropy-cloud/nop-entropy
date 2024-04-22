@@ -1,42 +1,42 @@
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <steps>
-<graph name="test" enterSteps="enter1,enter2" exitSteps="exit">
-<input name="x">
-    <source>1</source>
-</input>
+        <graph name="test" enterSteps="enter1,enter2" exitSteps="exit">
+            <input name="x">
+                <source>1</source>
+            </input>
 
-<steps>
-    <xpl name="enter1" executor="myExecutor">
-        <input name="x"/>
-        <source>
-            return x + 1
-        </source>
-    </xpl>
+            <steps>
+                <xpl name="enter1" executor="myExecutor">
+                    <input name="x"/>
+                    <source>
+                        return x + 1
+                    </source>
+                </xpl>
 
-    <xpl name="enter2" executor="myExecutor">
-        <input name="x"/>
-        <source>
-            return x + 2
-        </source>
-    </xpl>
+                <xpl name="enter2" executor="myExecutor">
+                    <input name="x"/>
+                    <source>
+                        return x + 2
+                    </source>
+                </xpl>
 
-    <xpl name="process">
-        <input name="a">
-            <source>
-                STEP_RESULTS.enter1.outputs.RESULT
-            </source>
-        </input>
+                <xpl name="process">
+                    <input name="a">
+                        <source>
+                            STEP_RESULTS.enter1.outputs.RESULT
+                        </source>
+                    </input>
 
-        <input name="b">
-            <source>
-                STEP_RESULTS.enter2.outputs.RESULT
-            </source>
-        </input>
+                    <input name="b">
+                        <source>
+                            STEP_RESULTS.enter2.outputs.RESULT
+                        </source>
+                    </input>
 
-        <source>
-            return a + b
-        </source>
-    </xpl>
+                    <source>
+                        return a + b
+                    </source>
+                </xpl>
 
                 <xpl name="exit">
                     <input name="result">

@@ -1,0 +1,19 @@
+{
+  "sid": "",
+  "taskDefId": "",
+  "actorType": "",
+  "actorId": "",
+  "actorDeptId": "",
+  "actorName": "",
+  "allowEdit": false,
+  "allowManage": false,
+  "allowStart": false,
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "remark": "",
+  "taskDefinition": null,
+  "taskDefinition.displayName": ""
+}
