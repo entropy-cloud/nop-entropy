@@ -39,6 +39,7 @@ import io.nop.xlang.filter.BizExprHelper;
 import io.nop.xlang.filter.BizValidatorHelper;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.IObjPropMeta;
+import io.nop.xlang.xmeta.IObjSchema;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.SimpleSchemaValidator;
 import io.nop.xlang.xmeta.impl.ObjSelectionMeta;
@@ -210,7 +211,7 @@ public class ObjMetaBasedValidator {
                     value = _validate(propSchema.getBizObjName(), propSchema, subPropName, (Map<String, Object>) value, propSelection, filter, true, scope);
                 }
             } else {
-                validateValue(propMeta.getSchema(), subPropName, value, propMeta, scope);
+                validateValue(propMeta.getSchema(), subPropName, value, propMeta, schema, scope);
                 value = convertValue(propMeta, value, data, ret);
             }
             setIn(ret, schema, propMeta, value);
@@ -278,7 +279,8 @@ public class ObjMetaBasedValidator {
         return value;
     }
 
-    private void validateValue(ISchema schema, String subPropName, Object value, IObjPropMeta propMeta, IEvalScope scope) {
+    private void validateValue(ISchema schema, String subPropName, Object value, IObjPropMeta propMeta,
+                               IObjSchema objSchema, IEvalScope scope) {
         if (schema != null) {
             if (schema.isSimpleSchema()) {
                 SimpleSchemaValidator.INSTANCE.validate(schema, null, subPropName, value, scope, this.context,
@@ -304,7 +306,7 @@ public class ObjMetaBasedValidator {
             } else {
                 String relation = (String) propMeta.prop_get(BizConstants.EXT_RELATION);
                 if (relation != null) {
-                    IObjPropMeta relProp = objMeta.getProp(relation);
+                    IObjPropMeta relProp = objSchema.getProp(relation);
                     if (relProp == null)
                         throw newError(ERR_BIZ_UNKNOWN_PROP, propMeta)
                                 .param(ARG_PROP_NAME, relation);
