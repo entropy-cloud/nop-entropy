@@ -20,6 +20,7 @@ import io.nop.core.reflect.bean.IBeanModel;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.dao.exceptions.UnknownEntityException;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.OrmConstants;
@@ -59,6 +60,8 @@ public class OrmEntityCopier {
 
     private Map<String, String> relationChangeTypes;
 
+    private boolean updateUseId;
+
     /**
      * bizObjName是接口层面看到的业务对象名，IBizObjManager根据bizObjName装载对应业务对象。
      * 指定的关联对象名会对应找到相关的meta文件，而meta中可以提供一些扩展信息，例如setter等
@@ -72,6 +75,10 @@ public class OrmEntityCopier {
 
     public OrmEntityCopier(IDaoProvider daoProvider) {
         this(daoProvider, null);
+    }
+
+    public void setUpdateUseId(boolean updateUseId) {
+        this.updateUseId = updateUseId;
     }
 
     public OrmEntityCopier addRelationCopyOptions(String relationName, String chgType) {
@@ -334,12 +341,14 @@ public class OrmEntityCopier {
                             action = BizConstants.METHOD_UPDATE;
                         }
                         copyToEntity(item, refEntity, field, objMeta, baseBizObjName, action, scope);
+                        checkRefEntity(refEntity, item);
                         ret.add(refEntity);
                     }
                 } else {
                     if (chgType == null || chgType.contains(DaoConstants.CHANGE_TYPE_UPDATE)) {
                         IOrmEntity refEntity = dao.loadEntityById(id);
                         copyToEntity(item, refEntity, field, objMeta, baseBizObjName, BizConstants.METHOD_UPDATE, scope);
+                        checkRefEntity(refEntity, item);
                         ret.add(refEntity);
                     }
                 }
@@ -351,6 +360,18 @@ public class OrmEntityCopier {
             refSet.clear();
 
         refSet.addAll(ret);
+    }
+
+    private void checkRefEntity(IOrmEntity refEntity, Object bean) {
+        // 关联实体不存在，是否需要新建？
+        if (refEntity.orm_state().isMissing()) {
+            if (updateUseId || !StringHelper.isEmptyObject(BeanTool.getProperty(bean, OrmConstants.PROP_ID))) {
+                // 如果是按照id去获取实体
+                throw new UnknownEntityException(refEntity.orm_entityName(), refEntity.orm_id());
+            } else {
+                refEntity.orm_state(OrmEntityState.TRANSIENT);
+            }
+        }
     }
 
     private void assignRefProps(Object item, IOrmEntity owner, IEntityRelationModel refModel) {
@@ -365,7 +386,7 @@ public class OrmEntityCopier {
 
     Object getId(Object bean, IEntityModel entityModel) {
         Object id = BeanTool.instance().getProperty(bean, OrmConstants.PROP_ID);
-        if (!StringHelper.isEmptyObject(id))
+        if (updateUseId || !StringHelper.isEmptyObject(id))
             return id;
 
         if (entityModel.isCompositePk()) {
