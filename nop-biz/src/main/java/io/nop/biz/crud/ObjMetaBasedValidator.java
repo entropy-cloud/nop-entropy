@@ -200,7 +200,9 @@ public class ObjMetaBasedValidator {
                     List<Object> list = CollectionHelper.toList(value);
                     List<Object> converted = new ArrayList<>(list.size());
                     for (Object item : list) {
-                        item = _validate(propSchema.getBizObjName(), propSchema, subPropName, (Map<String, Object>) item, propSelection, filter, true, scope);
+                        Map<String, Object> itemMap = (Map<String, Object>) item;
+                        checkNoJoinProp(itemMap, propMeta, subPropName);
+                        item = _validate(propSchema.getBizObjName(), propSchema, subPropName, itemMap, propSelection, filter, true, scope);
                         converted.add(item);
                     }
                     value = converted;
@@ -208,7 +210,9 @@ public class ObjMetaBasedValidator {
             } else if (value instanceof Map) {
                 ISchema propSchema = getPropSchema(propMeta, false, bizObjectManager, bizObjName);
                 if (propSchema != null) {
-                    value = _validate(propSchema.getBizObjName(), propSchema, subPropName, (Map<String, Object>) value, propSelection, filter, true, scope);
+                    Map<String, Object> itemMap = (Map<String, Object>) value;
+                    checkNoJoinProp(itemMap, propMeta, subPropName);
+                    value = _validate(propSchema.getBizObjName(), propSchema, subPropName, itemMap, propSelection, filter, true, scope);
                 }
             } else {
                 validateValue(propMeta.getSchema(), subPropName, value, propMeta, schema, scope);
@@ -217,6 +221,19 @@ public class ObjMetaBasedValidator {
             setIn(ret, schema, propMeta, value);
         }
         return ret;
+    }
+
+    private void checkNoJoinProp(Map<String, Object> item, IObjPropMeta propMeta, String subPropName) {
+        String rightJoinProp = (String) propMeta.prop_get(BizConstants.EXT_JOIN_RIGHT_PROP);
+        if (rightJoinProp != null) {
+            // 暂时选择删除多余的关联字段，避免错误提交父实体字段，导致关联到其他实体
+            item.remove(rightJoinProp);
+//            if (item.containsKey(rightJoinProp))
+//                throw new NopException(ERR_BIZ_NOT_ALLOW_JOIN_PROP_IN_REF_ENTITY)
+//                        .source(propMeta)
+//                        .param(ARG_BIZ_OBJ_NAME, bizObjName)
+//                        .param(ARG_PROP_NAME, subPropName);
+        }
     }
 
     private void doCheckWriteAuth(String objTypeName, IObjPropMeta propMeta) {
@@ -309,6 +326,7 @@ public class ObjMetaBasedValidator {
                     IObjPropMeta relProp = objSchema.getProp(relation);
                     if (relProp == null)
                         throw newError(ERR_BIZ_UNKNOWN_PROP, propMeta)
+                                .param(ARG_BIZ_OBJ_NAME, objSchema.getBizObjName())
                                 .param(ARG_PROP_NAME, relation);
                     validateRefValue(relProp, value);
                 }
