@@ -25,10 +25,14 @@ import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.OrmConstants;
 import io.nop.orm.OrmEntityState;
 import io.nop.orm.exceptions.OrmException;
+import io.nop.orm.model.IColumnModel;
+import io.nop.orm.model.IEntityJoinConditionModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.model.utils.OrmModelHelper;
+import io.nop.orm.support.OrmCompositePk;
+import io.nop.orm.support.OrmEntityHelper;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.IObjSchema;
@@ -37,6 +41,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -220,7 +225,7 @@ public class OrmEntityCopier {
                 }
 
                 // 更新关联实体
-                Object id = BeanTool.instance().getProperty(fromValue, OrmConstants.PROP_ID);
+                Object id = getId(fromValue, propModel.getRefEntityModel());
                 if (StringHelper.isEmptyObject(id)) {
                     // 没有主键，需要新增对象
                     if (field != null && !field.hasField()) {
@@ -270,7 +275,7 @@ public class OrmEntityCopier {
                 if (chgType == null || chgType.contains(DaoConstants.CHANGE_TYPE_DELETE))
                     refSet.clear();
             } else {
-                syncEntitySet(c, refSet, propModel.getKeyProp(), field, propModel.getRefEntityName(), objMeta,
+                syncEntitySet(c, refSet, propModel.getKeyProp(), field, propModel.getRefEntityName(), propModel, objMeta,
                         baseBizObjName, scope);
             }
         } else {
@@ -280,7 +285,7 @@ public class OrmEntityCopier {
     }
 
     void syncEntitySet(Collection<?> c, IOrmEntitySet<IOrmEntity> refSet, String keyProp, FieldSelectionBean field,
-                       String refEntityName, IObjSchema objMeta, String baseBizObjName, IEvalScope scope) {
+                       String refEntityName, IEntityRelationModel refModel, IObjSchema objMeta, String baseBizObjName, IEvalScope scope) {
         Set<IOrmEntity> ret = new LinkedHashSet<>();
         IEntityDao<IOrmEntity> dao = daoProvider.dao(refEntityName);
 
@@ -295,8 +300,10 @@ public class OrmEntityCopier {
                 IOrmEntity refEntity = dao.loadEntityById(item);
                 ret.add(refEntity);
             } else {
+                assignRefProps(item, refSet.orm_owner(), refModel);
+
                 // 更新关联实体
-                Object id = BeanTool.instance().getProperty(item, OrmConstants.PROP_ID);
+                Object id = getId(item, refModel.getRefEntityModel());
                 if (StringHelper.isEmptyObject(id)) {
                     // 没有主键，需要新增对象
                     if (field != null && !field.hasField()) {
@@ -342,6 +349,34 @@ public class OrmEntityCopier {
             refSet.clear();
 
         refSet.addAll(ret);
+    }
+
+    private void assignRefProps(Object item, IOrmEntity owner, IEntityRelationModel refModel) {
+        for (IEntityJoinConditionModel join : refModel.getJoin()) {
+            String rightProp = join.getRightProp();
+            if (rightProp != null) {
+                Object leftValue = OrmEntityHelper.getLeftValue(join, owner);
+                BeanTool.instance().setProperty(item, rightProp, leftValue);
+            }
+        }
+    }
+
+    Object getId(Object bean, IEntityModel entityModel) {
+        Object id = BeanTool.instance().getProperty(bean, OrmConstants.PROP_ID);
+        if (!StringHelper.isEmptyObject(id))
+            return id;
+
+        if (entityModel.isCompositePk()) {
+            List<? extends IColumnModel> pkCols = entityModel.getPkColumns();
+            Object[] pkValues = new Object[pkCols.size()];
+            for (int i = 0, n = pkCols.size(); i < n; i++) {
+                pkValues[i] = BeanTool.instance().getProperty(bean, pkCols.get(i).getName());
+            }
+            return OrmCompositePk.buildNotNull(entityModel.getPkColumnNames(), pkValues);
+        } else {
+            String pkName = entityModel.getPkColumns().get(0).getName();
+            return BeanTool.instance().getProperty(bean, pkName);
+        }
     }
 
     String getRefField(FieldSelectionBean field, String keyProp) {
