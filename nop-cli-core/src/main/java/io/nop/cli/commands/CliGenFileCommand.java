@@ -46,13 +46,22 @@ public class CliGenFileCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"-t", "--template"}, description = "导出模板", required = true)
     String template;
 
-    @CommandLine.Parameters(description = "数据文件", index = "0",arity = "0..1")
+    @CommandLine.Parameters(description = "数据文件", index = "0", arity = "0..1")
     String file;
+
+    @CommandLine.Option(names = {"-i", "--input"}, description = "输入数据")
+    String input;
 
     @Override
     public Integer call() {
-        Map<String, Object> json = file == null ? new HashMap<>() :
-                JsonTool.parseBeanFromResource(resolveRelativePathResource(file), Map.class);
+        Map<String, Object> json = null;
+        if (file != null) {
+            json = JsonTool.parseBeanFromResource(resolveRelativePathResource(file), Map.class);
+        } else if (!StringHelper.isEmpty(input)) {
+            json = (Map<String, Object>) JsonTool.parseNonStrict(input);
+        } else {
+            json = new HashMap<>();
+        }
 
         File outputFile = this.outputFile;
         if (outputFile == null) {
