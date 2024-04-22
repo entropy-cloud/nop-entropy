@@ -121,6 +121,9 @@ public class OrmEntityCopier {
                     if (name.startsWith(DaoConstants.PROP_CHANGE_TYPE))
                         continue;
 
+                    if (name.equals(OrmConstants.PROP_ID))
+                        continue;
+
                     IObjPropMeta propMeta = getProp(objMeta, name);
                     if (propMeta != null) {
                         // 如果明确从前台提交参数，那么以提交的值为准。如果禁止前台提交，应该设置字段的insertable=false,updatable=false
@@ -133,6 +136,9 @@ public class OrmEntityCopier {
             } else {
                 beanModel.forEachSerializableProp(propModel -> {
                     String name = propModel.getName();
+                    if (name.equals(OrmConstants.PROP_ID))
+                        return;
+
                     IObjPropMeta propMeta = getProp(objMeta, name);
                     if (propMeta != null && propMeta.getAutoExpr() != null) {
                         ignoreAutoExprProps.add(propMeta.getName());
@@ -152,6 +158,9 @@ public class OrmEntityCopier {
                 if (map != null && !map.containsKey(from)) {
                     continue;
                 }
+
+                if (name.equals(OrmConstants.PROP_ID))
+                    continue;
 
                 IObjPropMeta propMeta = getProp(objMeta, from);
                 if (propMeta != null) {
