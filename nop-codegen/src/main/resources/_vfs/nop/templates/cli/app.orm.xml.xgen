@@ -1,0 +1,1 @@
+<c:include src="/nop/templates/orm/{appName}-dao/src/main/resources/_vfs/{moduleId}/orm/{deltaDir}/_app.orm.xml.xgen" />

@@ -59,8 +59,8 @@
         <source xdef:value="xpl-fn:(batchSize,ctx)=>List"/>
     </reader>
 
-    <processor bean="bean-name" id="var-name" order="!int=0"
-               xdef:unique-attr="id" xdef:name="BatchProcessorModel" xdef:ref="BatchListenersModel">
+    <processor bean="bean-name" name="var-name" order="!int=0"
+               xdef:unique-attr="name" xdef:name="BatchProcessorModel" xdef:ref="BatchListenersModel">
         <filter xdef:value="xpl-predicate"/>
         <source xdef:value="xpl-fn:(item,consumer,ctx)=>void"/>
     </processor>
@@ -73,8 +73,8 @@
         <source xdef:value="xpl-fn:(item,ctx)=>Collection"/>
     </tagger>
 
-    <writer bean="bean-name" id="var-name" order="!int=0" forTag="string"
-            xdef:unique-attr="id" xdef:name="BatchWriterModel" xdef:ref="BatchListenersModel"
+    <writer bean="bean-name" name="var-name" order="!int=0" forTag="string"
+            xdef:unique-attr="name" xdef:name="BatchWriterModel" xdef:ref="BatchListenersModel"
             aggregator="bean-name" metaProvider="bean-name">
         <file-writer pathExpr="!expr" xdef:name="BatchFileWriterModel" encoding="string"
                      resourceLoader="bean-name" resourceIO="bean-name">

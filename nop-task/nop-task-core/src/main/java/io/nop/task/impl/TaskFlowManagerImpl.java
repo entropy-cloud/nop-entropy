@@ -7,6 +7,7 @@ import io.nop.commons.concurrent.ratelimit.DefaultRateLimiter;
 import io.nop.commons.concurrent.ratelimit.IRateLimiter;
 import io.nop.commons.metrics.GlobalMeterRegistry;
 import io.nop.core.context.IServiceContext;
+import io.nop.core.resource.IResource;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.component.version.ResourceVersionHelper;
 import io.nop.task.ITask;
@@ -22,6 +23,7 @@ import io.nop.task.builder.TaskStepLibBuilder;
 import io.nop.task.metrics.TaskFlowMetricsImpl;
 import io.nop.task.model.TaskFlowModel;
 import io.nop.task.state.DefaultTaskStateStore;
+import io.nop.xlang.xdsl.DslModelParser;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 
@@ -96,6 +98,12 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
     public ITask getTask(String taskName, long taskVersion) {
         String path = ResourceVersionHelper.buildResolvePath(TaskConstants.MODEL_TYPE_TASK, taskName, taskVersion);
         TaskFlowModel taskFlowModel = (TaskFlowModel) ResourceComponentManager.instance().loadComponentModel(path);
+        return taskFlowModel.getTask(newTaskFlowBuilder());
+    }
+
+    @Override
+    public ITask loadTask(IResource resource) {
+        TaskFlowModel taskFlowModel = (TaskFlowModel) new DslModelParser().parseFromResource(resource);
         return taskFlowModel.getTask(newTaskFlowBuilder());
     }
 

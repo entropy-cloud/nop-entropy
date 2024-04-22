@@ -65,7 +65,11 @@ public class CliReverseDbCommand implements Callable<Integer> {
         if (outputFile == null)
             outputFile = new File("out.orm.xlsx");
 
-        GenOrmHelper.saveOrmToExcel(model, outputFile,dump);
+        if (outputFile.getName().endsWith(".xml")) {
+            GenOrmHelper.saveOrmXml(model, outputFile);
+        } else {
+            GenOrmHelper.saveOrmToExcel(model, outputFile, dump);
+        }
         return 0;
     }
 }

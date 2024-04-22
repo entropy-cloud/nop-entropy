@@ -7,9 +7,11 @@
  */
 package io.nop.cli.commands;
 
+import io.nop.commons.util.FileHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.core.resource.tpl.ITemplateOutput;
 import io.nop.excel.model.ExcelWorkbook;
@@ -21,13 +23,24 @@ import io.nop.report.core.engine.ReportEngine;
 import io.nop.report.core.engine.renderer.HtmlReportRendererFactory;
 import io.nop.report.core.engine.renderer.XlsxReportRendererFactory;
 import io.nop.xlang.api.XLang;
+import io.nop.xlang.api.XplModel;
 import io.nop.xlang.xdsl.DslModelHelper;
+import io.nop.xlang.xpl.impl.XplModelParser;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
 public class GenOrmHelper {
+
+    public static void saveOrmXml(OrmModel ormModel, File outputFile) {
+        IResource resource = VirtualFileSystem.instance().getResource("/nop/templates/cli/app.orm.xml.xgen");
+        XplModel xpl = new XplModelParser().parseFromResource(resource);
+        IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValue("ormModel", ormModel);
+        String text = xpl.generateText(scope);
+        FileHelper.writeText(outputFile, text, null);
+    }
 
     public static void saveOrmToExcel(OrmModel ormModel, File outputFile, boolean dump) {
         IEvalScope scope = XLang.newEvalScope();

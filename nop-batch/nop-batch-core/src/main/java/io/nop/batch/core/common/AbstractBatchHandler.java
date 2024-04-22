@@ -25,18 +25,18 @@ public class AbstractBatchHandler {
         this.name = name;
     }
 
-    public String getPersistVarName(String varName) {
+    public String getFullVarName(String varName) {
         if (this.name == null)
             return varName;
         return name + '.' + varName;
     }
 
     public Object getPersistVar(IBatchTaskContext context, String varName) {
-        return context.getPersistVar(getPersistVarName(varName));
+        return context.getPersistVar(getFullVarName(varName));
     }
 
     public void setPersistVar(IBatchTaskContext context, String varName, Object value) {
-        context.setPersistVar(getPersistVarName(varName), value);
+        context.setPersistVar(getFullVarName(varName), value);
     }
 
     public String getPersistString(IBatchTaskContext context, String varName) {

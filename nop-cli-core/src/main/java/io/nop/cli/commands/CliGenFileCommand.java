@@ -11,7 +11,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
-import io.nop.core.resource.VirtualFileSystem;
+import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.report.core.XptConstants;
@@ -31,6 +31,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
+import static io.nop.core.resource.ResourceHelper.resolveRelativePathResource;
+
 @CommandLine.Command(
         name = "gen-file",
         mixinStandardHelpOptions = true,
@@ -45,16 +47,16 @@ public class CliGenFileCommand implements Callable<Integer> {
     String template;
 
     @CommandLine.Parameters(description = "数据文件", index = "0")
-    File file;
+    String file;
 
     @Override
     public Integer call() {
         Map<String, Object> json = file == null ? new HashMap<>() :
-                JsonTool.parseBeanFromResource(new FileResource(file), Map.class);
+                JsonTool.parseBeanFromResource(resolveRelativePathResource(file), Map.class);
 
         File outputFile = this.outputFile;
         if (outputFile == null) {
-            String fileName = StringHelper.fileFullName(file.getName());
+            String fileName = file == null ? "out" : StringHelper.fileNameNoExt(file);
             outputFile = new File(fileName + ".xlsx");
         }
 
@@ -69,7 +71,7 @@ public class CliGenFileCommand implements Callable<Integer> {
             String renderType = StringHelper.fileExt(outputFile.getName());
             newReportEngine().getRendererForXptModel(xptModel, renderType).generateToFile(outputFile, scope);
         } else if (template.endsWith(".xpt.xlsx")) {
-            IResource tplResource = VirtualFileSystem.instance().getResource(template);
+            IResource tplResource = ResourceHelper.resolveRelativePathResource(template);
             ExcelWorkbook xptModel = new XptModelLoader().loadModelFromResource(tplResource);
             IEvalScope scope = XLang.newEvalScope();
             scope.setLocalValue(null, XptConstants.VAR_ENTITY, json);

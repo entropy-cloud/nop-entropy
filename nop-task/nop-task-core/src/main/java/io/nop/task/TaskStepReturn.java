@@ -132,6 +132,13 @@ public final class TaskStepReturn {
         return FutureHelper.syncGet(future).get();
     }
 
+    public Object syncGetResult() {
+        Map<String, Object> ret = syncGet();
+        if (ret == null)
+            return null;
+        return ret.get(TaskConstants.VAR_RESULT);
+    }
+
     public Map<String, Object> get() {
         if (future != null)
             throw new IllegalArgumentException("nop.err.step-result-is-async");

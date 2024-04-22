@@ -291,7 +291,7 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     public void setProcessors(java.util.List<io.nop.batch.dsl.model.BatchProcessorModel> value){
         checkAllowChange();
         
-        this._processors = KeyedList.fromList(value, io.nop.batch.dsl.model.BatchProcessorModel::getId);
+        this._processors = KeyedList.fromList(value, io.nop.batch.dsl.model.BatchProcessorModel::getName);
            
     }
 
@@ -308,7 +308,7 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         checkAllowChange();
         java.util.List<io.nop.batch.dsl.model.BatchProcessorModel> list = this.getProcessors();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.batch.dsl.model.BatchProcessorModel::getId);
+            list = new KeyedList<>(io.nop.batch.dsl.model.BatchProcessorModel::getName);
             setProcessors(list);
         }
         list.add(item);
@@ -507,7 +507,7 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     public void setWriters(java.util.List<io.nop.batch.dsl.model.BatchWriterModel> value){
         checkAllowChange();
         
-        this._writers = KeyedList.fromList(value, io.nop.batch.dsl.model.BatchWriterModel::getId);
+        this._writers = KeyedList.fromList(value, io.nop.batch.dsl.model.BatchWriterModel::getName);
            
     }
 
@@ -524,7 +524,7 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         checkAllowChange();
         java.util.List<io.nop.batch.dsl.model.BatchWriterModel> list = this.getWriters();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.batch.dsl.model.BatchWriterModel::getId);
+            list = new KeyedList<>(io.nop.batch.dsl.model.BatchWriterModel::getName);
             setWriters(list);
         }
         list.add(item);

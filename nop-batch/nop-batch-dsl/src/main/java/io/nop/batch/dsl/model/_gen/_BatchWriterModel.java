@@ -46,17 +46,17 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
     
     /**
      *  
-     * xml name: id
-     * 
-     */
-    private java.lang.String _id ;
-    
-    /**
-     *  
      * xml name: metaProvider
      * 
      */
     private java.lang.String _metaProvider ;
+    
+    /**
+     *  
+     * xml name: name
+     * 
+     */
+    private java.lang.String _name ;
     
     /**
      *  
@@ -150,25 +150,6 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
     
     /**
      * 
-     * xml name: id
-     *  
-     */
-    
-    public java.lang.String getId(){
-      return _id;
-    }
-
-    
-    public void setId(java.lang.String value){
-        checkAllowChange();
-        
-        this._id = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: metaProvider
      *  
      */
@@ -182,6 +163,25 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
         checkAllowChange();
         
         this._metaProvider = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: name
+     *  
+     */
+    
+    public java.lang.String getName(){
+      return _name;
+    }
+
+    
+    public void setName(java.lang.String value){
+        checkAllowChange();
+        
+        this._name = value;
            
     }
 
@@ -245,8 +245,8 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
         out.putNotNull("bean",this.getBean());
         out.putNotNull("fileWriter",this.getFileWriter());
         out.putNotNull("forTag",this.getForTag());
-        out.putNotNull("id",this.getId());
         out.putNotNull("metaProvider",this.getMetaProvider());
+        out.putNotNull("name",this.getName());
         out.putNotNull("order",this.getOrder());
         out.putNotNull("source",this.getSource());
     }
@@ -264,8 +264,8 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
         instance.setBean(this.getBean());
         instance.setFileWriter(this.getFileWriter());
         instance.setForTag(this.getForTag());
-        instance.setId(this.getId());
         instance.setMetaProvider(this.getMetaProvider());
+        instance.setName(this.getName());
         instance.setOrder(this.getOrder());
         instance.setSource(this.getSource());
     }

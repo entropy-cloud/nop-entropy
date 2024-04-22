@@ -28,4 +28,6 @@ public interface BatchConstants {
     String STATUS_FAILURE = "FAILURE";
 
     String VAR_EXCEPTION = "EXCEPTION";
+
+    String VAR_RESOURCE = "resource";
 }

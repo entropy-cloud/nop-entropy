@@ -32,10 +32,10 @@ public abstract class _BatchProcessorModel extends io.nop.batch.dsl.model.BatchL
     
     /**
      *  
-     * xml name: id
+     * xml name: name
      * 
      */
-    private java.lang.String _id ;
+    private java.lang.String _name ;
     
     /**
      *  
@@ -91,19 +91,19 @@ public abstract class _BatchProcessorModel extends io.nop.batch.dsl.model.BatchL
     
     /**
      * 
-     * xml name: id
+     * xml name: name
      *  
      */
     
-    public java.lang.String getId(){
-      return _id;
+    public java.lang.String getName(){
+      return _name;
     }
 
     
-    public void setId(java.lang.String value){
+    public void setName(java.lang.String value){
         checkAllowChange();
         
-        this._id = value;
+        this._name = value;
            
     }
 
@@ -163,7 +163,7 @@ public abstract class _BatchProcessorModel extends io.nop.batch.dsl.model.BatchL
         
         out.putNotNull("bean",this.getBean());
         out.putNotNull("filter",this.getFilter());
-        out.putNotNull("id",this.getId());
+        out.putNotNull("name",this.getName());
         out.putNotNull("order",this.getOrder());
         out.putNotNull("source",this.getSource());
     }
@@ -179,7 +179,7 @@ public abstract class _BatchProcessorModel extends io.nop.batch.dsl.model.BatchL
         
         instance.setBean(this.getBean());
         instance.setFilter(this.getFilter());
-        instance.setId(this.getId());
+        instance.setName(this.getName());
         instance.setOrder(this.getOrder());
         instance.setSource(this.getSource());
     }

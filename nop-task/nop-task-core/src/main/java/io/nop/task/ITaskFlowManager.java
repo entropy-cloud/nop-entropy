@@ -9,6 +9,7 @@ package io.nop.task;
 
 
 import io.nop.core.context.IServiceContext;
+import io.nop.core.resource.IResource;
 
 public interface ITaskFlowManager {
 
@@ -17,6 +18,8 @@ public interface ITaskFlowManager {
     ITaskRuntime getTaskRuntime(String taskInstanceId, IServiceContext svcCtx);
 
     ITask getTask(String taskName, long taskVersion);
+
+    ITask loadTask(IResource resource);
 
     ITaskStepLib getTaskStepLib(String libName, long libVersion);
 }

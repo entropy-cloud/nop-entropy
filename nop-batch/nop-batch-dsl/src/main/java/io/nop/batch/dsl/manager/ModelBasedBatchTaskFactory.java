@@ -263,6 +263,7 @@ public class ModelBasedBatchTaskFactory implements IBatchTaskFactory {
         IResourceLoader resourceLoader = loadResourceLoader(readerModel.getResourceLoader(), beanContainer);
 
         ResourceRecordLoader<Object, IEvalContext> loader = new ResourceRecordLoader<>();
+        loader.setName("reader");
         loader.setRecordIO(recordIO);
         loader.setResourceLoader(resourceLoader);
         if (readerModel.getMaxCount() != null)
@@ -354,6 +355,7 @@ public class ModelBasedBatchTaskFactory implements IBatchTaskFactory {
 
         if (writerModel.getFileWriter() != null) {
             ResourceRecordConsumer<Object, IBatchChunkContext> writer = newFileWriter(writerModel.getFileWriter(), beanContainer);
+            writer.setName(writerModel.getName());
             writer.setAggregator(aggregator);
             writer.setMetaProvider(metaProvider);
             return writer;

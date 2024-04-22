@@ -48,6 +48,7 @@ public class AbstractBatchResourceHandler extends AbstractBatchHandler {
         if (resource != null)
             return resource;
 
+        String resourcePath = this.resourcePath;
         if (pathExpr != null) {
             resourcePath = ConvertHelper.toString(pathExpr.invoke(context));
         }
