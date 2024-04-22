@@ -20,6 +20,7 @@ import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.auth.api.AuthApiErrors;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObjectManager;
+import io.nop.commons.functional.ITriPredicate;
 import io.nop.commons.functional.Lazy;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.CollectionHelper;
@@ -49,7 +50,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.BiPredicate;
 
 import static io.nop.auth.api.AuthApiErrors.ARG_FIELD_DISPLAY_NAME;
 import static io.nop.auth.api.AuthApiErrors.ARG_FIELD_NAME;
@@ -95,7 +95,7 @@ public class ObjMetaBasedValidator {
     }
 
     public Map<String, Object> validateAndConvert(Map<String, Object> data, FieldSelectionBean selection,
-                                                  BiPredicate<IObjPropMeta, FieldSelectionBean> filter) {
+                                                  ITriPredicate<IObjPropMeta, FieldSelectionBean, Boolean> filter) {
 
         if (data == null)
             data = new LinkedHashMap<>();
@@ -103,7 +103,7 @@ public class ObjMetaBasedValidator {
         IEvalScope scope = XLang.newEvalScope();
         scope.setLocalValue(null, BizConstants.VAR_ROOT, data);
 
-        Map<String, Object> map = _validate(bizObjName, objMeta.getRootSchema(), null, data, selection, filter, scope);
+        Map<String, Object> map = _validate(bizObjName, objMeta.getRootSchema(), null, data, selection, filter, false, scope);
         appendEqCondition(map);
         return map;
     }
@@ -129,8 +129,11 @@ public class ObjMetaBasedValidator {
         }
     }
 
-    private Map<String, Object> _validate(String bizObjName, ISchema schema, String propName, Map<String, Object> data, FieldSelectionBean selection,
-                                          BiPredicate<IObjPropMeta, FieldSelectionBean> filter, IEvalScope scope) {
+    private Map<String, Object> _validate(String bizObjName, ISchema schema, String propName,
+                                          Map<String, Object> data, FieldSelectionBean selection,
+                                          ITriPredicate<IObjPropMeta, FieldSelectionBean, Boolean> filter,
+                                          boolean subTable,
+                                          IEvalScope scope) {
         scope.setLocalValue(null, BizConstants.VAR_DATA, data);
         if (schema.isSimpleSchema() && schema.isMapType())
             return data;
@@ -158,7 +161,7 @@ public class ObjMetaBasedValidator {
                 throw new NopException(ERR_BIZ_UNKNOWN_PROP).source(objMeta).param(ARG_PROP_NAME, name)
                         .param(ARG_BIZ_OBJ_NAME, bizObjName);
 
-            if (!filter.test(propMeta, selection)) {
+            if (!filter.test(propMeta, selection, subTable)) {
                 continue;
             }
 
@@ -196,7 +199,7 @@ public class ObjMetaBasedValidator {
                     List<Object> list = CollectionHelper.toList(value);
                     List<Object> converted = new ArrayList<>(list.size());
                     for (Object item : list) {
-                        item = _validate(propSchema.getBizObjName(), propSchema, subPropName, (Map<String, Object>) item, propSelection, filter, scope);
+                        item = _validate(propSchema.getBizObjName(), propSchema, subPropName, (Map<String, Object>) item, propSelection, filter, true, scope);
                         converted.add(item);
                     }
                     value = converted;
@@ -204,8 +207,7 @@ public class ObjMetaBasedValidator {
             } else if (value instanceof Map) {
                 ISchema propSchema = getPropSchema(propMeta, false, bizObjectManager, bizObjName);
                 if (propSchema != null) {
-
-                    value = _validate(propSchema.getBizObjName(), propSchema, subPropName, (Map<String, Object>) value, propSelection, filter, scope);
+                    value = _validate(propSchema.getBizObjName(), propSchema, subPropName, (Map<String, Object>) value, propSelection, filter, true, scope);
                 }
             } else {
                 validateValue(propMeta.getSchema(), subPropName, value, propMeta, scope);
@@ -346,14 +348,16 @@ public class ObjMetaBasedValidator {
     }
 
     public Map<String, Object> validateForSave(Map<String, Object> data, FieldSelectionBean selection) {
-        Map<String, Object> ret = validateAndConvert(data, selection, (propMeta, sel) -> selection != null
+        Map<String, Object> ret = validateAndConvert(data, selection, (propMeta, sel, subTable) -> selection != null
                 ? selection.hasField(propMeta.getName()) : propMeta.isInsertable());
         return ret;
     }
 
     public Map<String, Object> validateForUpdate(Map<String, Object> data, FieldSelectionBean selection) {
+        // 主表更新时允许新增主表记录
         Map<String, Object> ret = validateAndConvert(data, selection,
-                (propMeta, sel) -> selection != null ? selection.hasField(propMeta.getName()) : propMeta.isUpdatable());
+                (propMeta, sel, subTable) -> selection != null ? selection.hasField(propMeta.getName()) :
+                        subTable ? propMeta.isUpdatable() || propMeta.isInsertable() : propMeta.isUpdatable());
         return ret;
     }
 
@@ -364,6 +368,6 @@ public class ObjMetaBasedValidator {
                     .param(ARG_SELECTION_ID, selectionId);
 
         return validateAndConvert(data, selectionMeta.getMapping(),
-                (propMeta, sel) -> sel.hasField(propMeta.getName()));
+                (propMeta, sel, subTable) -> sel.hasField(propMeta.getName()));
     }
 }
