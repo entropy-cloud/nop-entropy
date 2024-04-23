@@ -18,6 +18,10 @@ public interface TaskConstants {
 
     String FILE_TYPE_TASK_LIB = "task-lib.xml";
 
+    String ATTR_TASK_NAME = "task:name";
+
+    String ATTR_TASK_VERSION = "task:version";
+
     String MAIN_STEP_NAME = "@main";
 
     String DEFAULT_VALUE = "default";

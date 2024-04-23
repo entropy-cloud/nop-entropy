@@ -123,6 +123,10 @@ public interface ITaskRuntime extends IEvalContext {
 
     Set<String> getAttributeKeys();
 
+    default void setInput(String name, Object value) {
+        getEvalScope().setLocalValue(name, value);
+    }
+
     Object computeAttributeIfAbsent(String name, Function<String, Object> action);
 
     IScheduledExecutor getScheduledExecutor();

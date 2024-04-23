@@ -10,6 +10,7 @@ package io.nop.task;
 
 import io.nop.core.context.IServiceContext;
 import io.nop.core.resource.IResource;
+import io.nop.task.model.TaskFlowModel;
 
 public interface ITaskFlowManager {
 
@@ -22,4 +23,6 @@ public interface ITaskFlowManager {
     ITask loadTask(IResource resource);
 
     ITaskStepLib getTaskStepLib(String libName, long libVersion);
+
+    TaskFlowModel getTaskFlowModel(String taskName, long taskVersion);
 }

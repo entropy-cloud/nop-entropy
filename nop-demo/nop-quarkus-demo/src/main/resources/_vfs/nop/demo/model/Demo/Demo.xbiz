@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-     xmlns:biz="biz" xmlns:c="c" xmlns:xpl="xpl">
+     xmlns:biz="biz" xmlns:c="c" xmlns:xpl="xpl" xmlns:task="task" xmlns:biz-gen="biz-gen">
+
+    <x:post-extends>
+        <biz-gen:TaskFlowSupport xpl:lib="/nop/core/xlib/biz-gen.xlib"/>
+    </x:post-extends>
 
     <actions>
         <query name="testValidate2">
@@ -93,5 +97,7 @@
                 </c:script>
             </source>
         </query>
+
+        <mutation name="callTask" task:name="test/DemoTask"/>
     </actions>
 </biz>

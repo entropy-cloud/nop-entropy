@@ -8,6 +8,7 @@
 package io.nop.task.model;
 
 import io.nop.api.core.util.INeedInit;
+import io.nop.core.lang.xml.XNode;
 import io.nop.task.ITask;
 import io.nop.task.ITaskStepLib;
 import io.nop.task.TaskConstants;
@@ -63,5 +64,23 @@ public class TaskFlowModel extends _TaskFlowModel implements IGraphTaskStepModel
     @Override
     public String getType() {
         return TaskConstants.STEP_TYPE_TASK;
+    }
+
+    public XNode getOutputSchemaNode() {
+        XNode schema = XNode.make("schema");
+        XNode props = schema.makeChild("props");
+        if (getOutputs() != null) {
+            for (TaskOutputModel output : getOutputs()) {
+                XNode prop = XNode.make("prop");
+                prop.setAttr("name", output.getName());
+                prop.setAttr("displayName", output.getDisplayName());
+                prop.setAttr("type", output.getType());
+                XNode propSchema = output.getSchemaNode();
+                if (propSchema != null)
+                    prop.appendChild(propSchema);
+                props.appendChild(prop);
+            }
+        }
+        return schema;
     }
 }

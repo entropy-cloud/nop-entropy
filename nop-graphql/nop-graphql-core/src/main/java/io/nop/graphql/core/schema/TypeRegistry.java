@@ -106,18 +106,21 @@ public class TypeRegistry {
             GraphQLObjectDefinition objDef = (GraphQLObjectDefinition) def;
             return sourceToTypes.computeIfAbsent(objDef.getFieldsSource(), k -> {
                 def.setName("_GenObj_" + genIndex.incrementAndGet());
+                registerType(def);
                 return def;
             });
         } else if (def instanceof GraphQLUnionTypeDefinition) {
             GraphQLUnionTypeDefinition unionDef = (GraphQLUnionTypeDefinition) def;
             return sourceToTypes.computeIfAbsent(unionDef.getTypesSource(), k -> {
                 def.setName("_GenUnion_" + genIndex.incrementAndGet());
+                registerType(def);
                 return def;
             });
         } else if (def instanceof GraphQLInputDefinition) {
             GraphQLInputDefinition inputDef = (GraphQLInputDefinition) def;
             return sourceToTypes.computeIfAbsent(inputDef.getFieldsSource(), k -> {
                 def.setName("_GenInput_" + genIndex.incrementAndGet());
+                registerType(def);
                 return def;
             });
         } else {

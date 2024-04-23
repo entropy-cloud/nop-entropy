@@ -96,9 +96,15 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
 
     @Override
     public ITask getTask(String taskName, long taskVersion) {
+        TaskFlowModel taskFlowModel = getTaskFlowModel(taskName, taskVersion);
+        return taskFlowModel.getTask(newTaskFlowBuilder());
+    }
+
+    @Override
+    public TaskFlowModel getTaskFlowModel(String taskName, long taskVersion) {
         String path = ResourceVersionHelper.buildResolvePath(TaskConstants.MODEL_TYPE_TASK, taskName, taskVersion);
         TaskFlowModel taskFlowModel = (TaskFlowModel) ResourceComponentManager.instance().loadComponentModel(path);
-        return taskFlowModel.getTask(newTaskFlowBuilder());
+        return taskFlowModel;
     }
 
     @Override

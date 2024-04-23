@@ -1,0 +1,16 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <input name="a" type="Integer"/>
+    <input name="b" type="Integer"/>
+
+    <steps>
+        <xpl name="init" useParentScope="true">
+            <source>
+                return a + b
+            </source>
+        </xpl>
+    </steps>
+
+    <output name="sum" type="Integer">
+        <source>RESULT</source>
+    </output>
+</task>

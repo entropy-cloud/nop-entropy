@@ -2916,6 +2916,10 @@
     "fields": [],
     "methods": [
       {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
         "name": "forField",
         "parameterTypes": [
           "java.lang.String"
@@ -2952,6 +2956,10 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
       {
         "name": "forField",
         "parameterTypes": [
@@ -3086,6 +3094,10 @@
           "java.lang.String",
           "boolean"
         ]
+      },
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
       },
       {
         "name": "getCursor",
@@ -3389,6 +3401,10 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
       {
         "name": "getAlias",
         "parameterTypes": []
@@ -21114,6 +21130,12 @@
         ]
       },
       {
+        "name": "findChildren",
+        "parameterTypes": [
+          "java.util.function.Predicate"
+        ]
+      },
+      {
         "name": "firstChild",
         "parameterTypes": []
       },
@@ -29729,6 +29751,167 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.dao.initialize.DaoDialectInitializer",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getBackgroundValidationInterval",
+        "parameterTypes": []
+      },
+      {
+        "name": "getConnectionTimeout",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDriverClassName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getIdleTimeout",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInitialSize",
+        "parameterTypes": []
+      },
+      {
+        "name": "getJdbcUrl",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMaxLifetime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMaxSize",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMinSize",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPassword",
+        "parameterTypes": []
+      },
+      {
+        "name": "getProperties",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUsername",
+        "parameterTypes": []
+      },
+      {
+        "name": "getValidationQuerySql",
+        "parameterTypes": []
+      },
+      {
+        "name": "isMetricsEnabled",
+        "parameterTypes": []
+      },
+      {
+        "name": "setBackgroundValidationInterval",
+        "parameterTypes": [
+          "java.time.Duration"
+        ]
+      },
+      {
+        "name": "setConnectionTimeout",
+        "parameterTypes": [
+          "java.time.Duration"
+        ]
+      },
+      {
+        "name": "setDriverClassName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setIdleTimeout",
+        "parameterTypes": [
+          "java.time.Duration"
+        ]
+      },
+      {
+        "name": "setInitialSize",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setJdbcUrl",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setMaxLifetime",
+        "parameterTypes": [
+          "java.time.Duration"
+        ]
+      },
+      {
+        "name": "setMaxSize",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setMetricsEnabled",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setMinSize",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setPassword",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setProperties",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setUsername",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setValidationQuerySql",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.dao.jdbc.datasource.DataSourceConfig",
     "unsafeAllocated": false
   },
   {
@@ -44955,6 +45138,10 @@
         ]
       },
       {
+        "name": "orm_forceLoad",
+        "parameterTypes": []
+      },
+      {
         "name": "orm_fullyLoaded",
         "parameterTypes": []
       },
@@ -48026,6 +48213,12 @@
         "parameterTypes": []
       },
       {
+        "name": "getColumnModelsWithTenant",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityModel"
+        ]
+      },
+      {
         "name": "setColumnModels",
         "parameterTypes": [
           "java.util.List"
@@ -50290,6 +50483,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getTagSet",
+        "parameterTypes": []
+      },
+      {
         "name": "newInstance",
         "parameterTypes": []
       },
@@ -50327,6 +50524,12 @@
         "name": "setName",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTagSet",
+        "parameterTypes": [
+          "java.util.Set"
         ]
       }
     ],
@@ -51384,6 +51587,10 @@
         ]
       },
       {
+        "name": "orm_forceLoad",
+        "parameterTypes": []
+      },
+      {
         "name": "orm_fullyLoaded",
         "parameterTypes": []
       },
@@ -51889,6 +52096,12 @@
       {
         "name": "init",
         "parameterTypes": []
+      },
+      {
+        "name": "setConfig",
+        "parameterTypes": [
+          "io.nop.dao.jdbc.datasource.DataSourceConfig"
+        ]
       },
       {
         "name": "setConfig",
@@ -62412,6 +62625,1326 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getRateLimiter",
+        "parameterTypes": [
+          "io.nop.task.ITaskRuntime",
+          "java.lang.String",
+          "double",
+          "boolean"
+        ]
+      },
+      {
+        "name": "getScheduledExecutor",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTask",
+        "parameterTypes": [
+          "java.lang.String",
+          "long"
+        ]
+      },
+      {
+        "name": "getTaskFlowModel",
+        "parameterTypes": [
+          "java.lang.String",
+          "long"
+        ]
+      },
+      {
+        "name": "getTaskRuntime",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "getTaskStepLib",
+        "parameterTypes": [
+          "java.lang.String",
+          "long"
+        ]
+      },
+      {
+        "name": "loadTask",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "newTaskFlowBuilder",
+        "parameterTypes": []
+      },
+      {
+        "name": "newTaskRuntime",
+        "parameterTypes": [
+          "io.nop.task.ITask",
+          "boolean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "newTaskStepLibBuilder",
+        "parameterTypes": []
+      },
+      {
+        "name": "prepareTaskRuntime",
+        "parameterTypes": [
+          "io.nop.task.impl.TaskRuntimeImpl",
+          "io.nop.task.ITask"
+        ]
+      },
+      {
+        "name": "setNonPersistStateStore",
+        "parameterTypes": [
+          "io.nop.task.ITaskStateStore"
+        ]
+      },
+      {
+        "name": "setScheduledExecutor",
+        "parameterTypes": [
+          "io.nop.commons.concurrent.executor.IScheduledExecutor"
+        ]
+      },
+      {
+        "name": "setTaskStateStore",
+        "parameterTypes": [
+          "io.nop.task.ITaskStateStore"
+        ]
+      }
+    ],
+    "name": "io.nop.task.impl.TaskFlowManagerImpl",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getType",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.task.model.TaskExecutableModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOutputSchemaNode",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTask",
+        "parameterTypes": [
+          "io.nop.task.builder.ITaskFlowBuilder"
+        ]
+      },
+      {
+        "name": "getTaskStepLib",
+        "parameterTypes": [
+          "io.nop.task.builder.ITaskStepLibBuilder"
+        ]
+      },
+      {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
+        "name": "init",
+        "parameterTypes": []
+      },
+      {
+        "name": "setTask",
+        "parameterTypes": [
+          "io.nop.task.ITask"
+        ]
+      },
+      {
+        "name": "setTaskStepLib",
+        "parameterTypes": [
+          "io.nop.task.ITaskStepLib"
+        ]
+      }
+    ],
+    "name": "io.nop.task.model.TaskFlowModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getSchemaNode",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.task.model.TaskInputModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getSchemaNode",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.task.model.TaskOutputModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addWaitErrorStep",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "addWaitStep",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getFullStepType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getGraphqlOperationType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInputSchemaNode",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOutputsSchemaNode",
+        "parameterTypes": []
+      },
+      {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
+        "name": "normalize",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.task.model.TaskStepModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.task.model.TaskStepsModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getType",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.task.model.XplTaskStepModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addDecorator",
+        "parameterTypes": [
+          "io.nop.task.model.TaskDecoratorModel"
+        ]
+      },
+      {
+        "name": "addInput",
+        "parameterTypes": [
+          "io.nop.task.model.TaskInputModel"
+        ]
+      },
+      {
+        "name": "addOutput",
+        "parameterTypes": [
+          "io.nop.task.model.TaskOutputModel"
+        ]
+      },
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.task.model.TaskExecutableModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getCatch",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCatchInternalException",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDecorator",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getDecorators",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExecutor",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFinally",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFlags",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInput",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getInputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOnEnter",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOnReload",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOutput",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getOutputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPersisVars",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRateLimit",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRetry",
+        "parameterTypes": []
+      },
+      {
+        "name": "getReturnType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getThrottle",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTimeout",
+        "parameterTypes": []
+      },
+      {
+        "name": "getValidator",
+        "parameterTypes": []
+      },
+      {
+        "name": "getWhen",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasDecorator",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasDecorators",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasInput",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasInputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasOutput",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasOutputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_decorators",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_inputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_outputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setCatch",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setCatchInternalException",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setDecorators",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setExecutor",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFinally",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setFlags",
+        "parameterTypes": [
+          "io.nop.task.model.TaskFlagsModel"
+        ]
+      },
+      {
+        "name": "setInputs",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setOnEnter",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setOnReload",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setOutputs",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setPersisVars",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      },
+      {
+        "name": "setRateLimit",
+        "parameterTypes": [
+          "io.nop.task.model.TaskRateLimitModel"
+        ]
+      },
+      {
+        "name": "setRetry",
+        "parameterTypes": [
+          "io.nop.task.model.TaskRetryModel"
+        ]
+      },
+      {
+        "name": "setReturnType",
+        "parameterTypes": [
+          "io.nop.core.type.IGenericType"
+        ]
+      },
+      {
+        "name": "setThrottle",
+        "parameterTypes": [
+          "io.nop.task.model.TaskThrottleModel"
+        ]
+      },
+      {
+        "name": "setTimeout",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "setValidator",
+        "parameterTypes": [
+          "io.nop.core.model.validator.ValidatorModel"
+        ]
+      },
+      {
+        "name": "setWhen",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalPredicate"
+        ]
+      }
+    ],
+    "name": "io.nop.task.model._gen._TaskExecutableModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.task.model.TaskFlowModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getAuth",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEnterSteps",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExitSteps",
+        "parameterTypes": []
+      },
+      {
+        "name": "getVersion",
+        "parameterTypes": []
+      },
+      {
+        "name": "isDefaultSaveState",
+        "parameterTypes": []
+      },
+      {
+        "name": "isGraphMode",
+        "parameterTypes": []
+      },
+      {
+        "name": "isRestartable",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setAuth",
+        "parameterTypes": [
+          "io.nop.api.core.auth.ActionAuthMeta"
+        ]
+      },
+      {
+        "name": "setDefaultSaveState",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setEnterSteps",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      },
+      {
+        "name": "setExitSteps",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      },
+      {
+        "name": "setGraphMode",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setRestartable",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setVersion",
+        "parameterTypes": [
+          "long"
+        ]
+      }
+    ],
+    "name": "io.nop.task.model._gen._TaskFlowModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.task.model.TaskInputModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRole",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSchema",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSource",
+        "parameterTypes": []
+      },
+      {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
+        "name": "isFromTaskScope",
+        "parameterTypes": []
+      },
+      {
+        "name": "isMandatory",
+        "parameterTypes": []
+      },
+      {
+        "name": "isPersist",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFromTaskScope",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setMandatory",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setPersist",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setRole",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSchema",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.ISchema"
+        ]
+      },
+      {
+        "name": "setSource",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setType",
+        "parameterTypes": [
+          "io.nop.core.type.IGenericType"
+        ]
+      }
+    ],
+    "name": "io.nop.task.model._gen._TaskInputModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.task.model.TaskOutputModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExportAs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRoles",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSchema",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSource",
+        "parameterTypes": []
+      },
+      {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
+        "name": "isPersist",
+        "parameterTypes": []
+      },
+      {
+        "name": "isToTaskScope",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setExportAs",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setPersist",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setRoles",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      },
+      {
+        "name": "setSchema",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.ISchema"
+        ]
+      },
+      {
+        "name": "setSource",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setToTaskScope",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setType",
+        "parameterTypes": [
+          "io.nop.core.type.IGenericType"
+        ]
+      }
+    ],
+    "name": "io.nop.task.model._gen._TaskOutputModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.task.model.TaskStepModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getErrorName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExtType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getNext",
+        "parameterTypes": []
+      },
+      {
+        "name": "getNextOnError",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSaveState",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTagSet",
+        "parameterTypes": []
+      },
+      {
+        "name": "getWaitErrorSteps",
+        "parameterTypes": []
+      },
+      {
+        "name": "getWaitSteps",
+        "parameterTypes": []
+      },
+      {
+        "name": "isAllowStartIfComplete",
+        "parameterTypes": []
+      },
+      {
+        "name": "isConcurrent",
+        "parameterTypes": []
+      },
+      {
+        "name": "isIgnoreResult",
+        "parameterTypes": []
+      },
+      {
+        "name": "isInternal",
+        "parameterTypes": []
+      },
+      {
+        "name": "isRecordMetrics",
+        "parameterTypes": []
+      },
+      {
+        "name": "isRunOnContext",
+        "parameterTypes": []
+      },
+      {
+        "name": "isSync",
+        "parameterTypes": []
+      },
+      {
+        "name": "isUseParentScope",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setAllowStartIfComplete",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setConcurrent",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setErrorName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setExtType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setIgnoreResult",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setInternal",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setNext",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setNextOnError",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRecordMetrics",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setRunOnContext",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setSaveState",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setSync",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setTagSet",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      },
+      {
+        "name": "setUseParentScope",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setWaitErrorSteps",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      },
+      {
+        "name": "setWaitSteps",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      }
+    ],
+    "name": "io.nop.task.model._gen._TaskStepModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addStep",
+        "parameterTypes": [
+          "io.nop.task.model.TaskStepModel"
+        ]
+      },
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.task.model.TaskStepsModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getStep",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getSteps",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasStep",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasSteps",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_steps",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setSteps",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      }
+    ],
+    "name": "io.nop.task.model._gen._TaskStepsModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.task.model.XplTaskStepModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getSource",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setSource",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      }
+    ],
+    "name": "io.nop.task.model._gen._XplTaskStepModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "buildBizActionFromTaskModel",
+        "parameterTypes": [
+          "io.nop.core.lang.xml.XNode",
+          "io.nop.task.model.TaskFlowModel"
+        ]
+      },
+      {
+        "name": "getInputNames",
+        "parameterTypes": [
+          "io.nop.core.lang.xml.XNode"
+        ]
+      },
+      {
+        "name": "getOutputNames",
+        "parameterTypes": [
+          "io.nop.core.lang.xml.XNode"
+        ]
+      }
+    ],
+    "name": "io.nop.task.utils.TaskGenHelper",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowUnsafeAccess": false,
@@ -71210,6 +72743,13 @@
         "name": "masked",
         "parameterTypes": [
           "java.lang.Object"
+        ]
+      },
+      {
+        "name": "newChildScope",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.util.Map"
         ]
       },
       {

@@ -870,6 +870,10 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         return TreeVisitors.findChildren(this, child -> child.matchAttr(attrName, attrValue));
     }
 
+    public List<XNode> findChildren(Predicate<XNode> filter) {
+        return TreeVisitors.findChildren(this, filter);
+    }
+
     public int countChildByTag(String tagName) {
         if (children.isEmpty())
             return 0;
