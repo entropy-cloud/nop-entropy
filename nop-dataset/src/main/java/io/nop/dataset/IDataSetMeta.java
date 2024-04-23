@@ -21,7 +21,7 @@ public interface IDataSetMeta extends IRecordResourceMeta {
     /**
      * 列名是否大小写敏感
      */
-    boolean isCaseSensitive();
+    boolean isCaseInsensitive();
 
     /**
      * 得到列数。下标从0开始

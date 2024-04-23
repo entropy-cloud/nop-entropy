@@ -33,8 +33,8 @@ public class ProjectDataSetMeta implements IDataSetMeta {
     }
 
     @Override
-    public boolean isCaseSensitive() {
-        return source.isCaseSensitive();
+    public boolean isCaseInsensitive() {
+        return source.isCaseInsensitive();
     }
 
     @Override

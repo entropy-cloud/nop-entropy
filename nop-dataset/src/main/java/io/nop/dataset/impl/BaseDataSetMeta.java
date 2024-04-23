@@ -41,13 +41,13 @@ public class BaseDataSetMeta implements IDataSetMeta {
 
     private final List<String> headers;
 
-    private final boolean caseSensitive;
+    private final boolean caseInsensitive;
 
     public BaseDataSetMeta(@JsonProperty("fieldMetas") List<BaseDataFieldMeta> fieldMetas,
                            @JsonProperty("caseInsensitive") boolean caseInsensitive,
                            @JsonProperty("headerMeta") Map<String, Object> headerMeta,
                            @JsonProperty("trailerMeta") Map<String, Object> trailerMeta) {
-        this.caseSensitive = caseInsensitive;
+        this.caseInsensitive = caseInsensitive;
         this.nameToIndex = caseInsensitive ? CollectionHelper.newCaseInsensitiveMap(fieldMetas.size())
                 : CollectionHelper.newHashMap(fieldMetas.size());
         for (int i = 0, n = fieldMetas.size(); i < n; i++) {
@@ -72,7 +72,7 @@ public class BaseDataSetMeta implements IDataSetMeta {
 
     public BaseDataSetMeta(IDataSetMeta dataSetMeta) {
         this(BaseDataFieldMeta.fromColumnMetas(dataSetMeta.getFieldMetas()),
-                dataSetMeta.isCaseSensitive(), dataSetMeta.getHeaderMeta(), dataSetMeta.getTrailerMeta());
+                dataSetMeta.isCaseInsensitive(), dataSetMeta.getHeaderMeta(), dataSetMeta.getTrailerMeta());
     }
 
     public static BaseDataSetMeta fromColNames(String[] columnNames) {
@@ -93,7 +93,7 @@ public class BaseDataSetMeta implements IDataSetMeta {
         for (IDataFieldMeta column : meta.getFieldMetas()) {
             columns.add(BaseDataFieldMeta.fromColumnMeta(column));
         }
-        return new BaseDataSetMeta(columns, meta.isCaseSensitive(), meta.getHeaderMeta(), meta.getTrailerMeta());
+        return new BaseDataSetMeta(columns, meta.isCaseInsensitive(), meta.getHeaderMeta(), meta.getTrailerMeta());
     }
 
     @Override
@@ -105,12 +105,12 @@ public class BaseDataSetMeta implements IDataSetMeta {
                 newColumns.add(field);
             }
         });
-        return new BaseDataSetMeta(newColumns, caseSensitive, headerMeta, trailerMeta);
+        return new BaseDataSetMeta(newColumns, caseInsensitive, headerMeta, trailerMeta);
     }
 
     @Override
-    public boolean isCaseSensitive() {
-        return caseSensitive;
+    public boolean isCaseInsensitive() {
+        return caseInsensitive;
     }
 
     @Override

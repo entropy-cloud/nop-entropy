@@ -37,7 +37,10 @@ public interface IDataRow extends IDataParameters {
     IDataRow toDetachedDataRow();
 
     default Map<String, Object> toMap() {
-        Map<String, Object> map = CollectionHelper.newLinkedHashMap(getFieldCount());
+        boolean caseInsensitive = getMeta() != null && getMeta().isCaseInsensitive();
+        int count = getFieldCount();
+        Map<String, Object> map = caseInsensitive ? CollectionHelper.newCaseInsensitiveMap(count)
+                : CollectionHelper.newHashMap(count);
         for (int i = 0, n = getFieldCount(); i < n; i++) {
             map.put(getMeta().getFieldName(i), getObject(i));
         }
