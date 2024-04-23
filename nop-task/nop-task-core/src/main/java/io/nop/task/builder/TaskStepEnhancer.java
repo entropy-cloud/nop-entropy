@@ -7,6 +7,7 @@
  */
 package io.nop.task.builder;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.retry.IRetryPolicy;
@@ -138,8 +139,8 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
                     rateLimitModel.getMaxWait(), rateLimitModel.getKeyExpr());
         }
 
-        if (stepModel.getValidator() != null || stepModel.getOnReload() != null) {
-            step = new ValidatorTaskStepWrapper(step, buildValidator(stepModel.getValidator()), stepModel.getOnReload());
+        if (stepModel.getValidator() != null || stepModel.getOnReload() != null || stepModel.getOnEnter() != null) {
+            step = new ValidatorTaskStepWrapper(step, stepModel.getOnEnter(), buildValidator(stepModel.getValidator()), stepModel.getOnReload());
         }
 
         if (stepModel.isSync())
@@ -197,8 +198,7 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
         if (retryModel.getExceptionFilter() != null) {
             policy.setExceptionFilter((e, ctx) -> {
                 IEvalScope scope = ctx.getEvalScope();
-                scope.setLocalValue(TaskConstants.VAR_EXCEPTION, e);
-                return retryModel.getExceptionFilter().passConditions(ctx);
+                return ConvertHelper.toTruthy(retryModel.getExceptionFilter().call1(null, e, scope));
             });
         }
         return policy;

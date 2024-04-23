@@ -229,6 +229,19 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
     }
 
     @Override
+    public Class<?> getBeanClass(String name) {
+        BeanDefinition beanDef = enabledBeans.get(name);
+        if (beanDef == null) {
+            if (parentContainer != null) {
+                return parentContainer.getBeanClass(normalizeAlias(name));
+            }
+
+            throw new NopException(ApiErrors.ERR_IOC_UNKNOWN_BEAN_FOR_NAME).param(ARG_BEAN_NAME, name);
+        }
+        return beanDef.getBeanClass();
+    }
+
+    @Override
     public boolean containsBeanType(Class<?> clazz) {
         BeanTypeMapping mapping = BeanFinder.getBeansByType(beansByType, orderedBeans, clazz);
         boolean b = !mapping.isEmpty();

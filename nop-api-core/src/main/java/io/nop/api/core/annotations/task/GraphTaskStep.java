@@ -13,21 +13,11 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/**
- * 在长时任务的start方法上标注
- */
-@Target(ElementType.METHOD)
+@Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-public @interface TaskMethod {
+public @interface GraphTaskStep {
+    String[] enterSteps();
 
-    /**
-     * 用于获取长时任务的执行状态信息。status方法的参数为原始request对象，返回TaskStatusBean对象。
-     */
-    String statusMethod() default "";
-
-    /**
-     * 用于取消正在执行的长时任务。cancel方法的参数为原始request对象，返回TaskStatusBean对象
-     */
-    String cancelMethod();
+    String[] exitSteps();
 }

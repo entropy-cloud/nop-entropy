@@ -7,6 +7,7 @@
  */
 package io.nop.commons.util;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -109,5 +110,9 @@ public class TagsHelper {
         ret.addAll(tagsA);
         ret.addAll(tagsB);
         return ret;
+    }
+
+    public static Set<String> toSet(String[] tags) {
+        return new LinkedHashSet<>(Arrays.asList(tags));
     }
 }

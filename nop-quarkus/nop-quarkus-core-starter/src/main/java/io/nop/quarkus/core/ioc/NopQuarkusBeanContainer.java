@@ -150,6 +150,14 @@ public class NopQuarkusBeanContainer implements IBeanContainer {
         return StringHelper.camelCaseToHyphen(scope.getSimpleName());
     }
 
+    @Override
+    public Class<?> getBeanClass(String name) {
+        InjectableBean<?> bean = getQuarkusBean(name);
+        if (bean == null)
+            throw new NopException(ApiErrors.ERR_IOC_UNKNOWN_BEAN_FOR_NAME).param(ApiErrors.ARG_BEAN_NAME, name);
+        return bean.getBeanClass();
+    }
+
     private InjectableBean<?> getQuarkusBean(String name) {
         if (name.startsWith(QuarkusConstants.QUARKUS_ID_PREFIX))
             return Arc.container().bean(name.substring(QuarkusConstants.QUARKUS_ID_PREFIX.length()));

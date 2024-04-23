@@ -207,6 +207,11 @@ public class TestTaskFlowManager extends AbstractTaskTestCase {
         }
 
         @Override
+        public Class<?> getBeanClass(String name) {
+            return null;
+        }
+
+        @Override
         public String findAutowireCandidate(Class<?> beanType) {
             return null;
         }

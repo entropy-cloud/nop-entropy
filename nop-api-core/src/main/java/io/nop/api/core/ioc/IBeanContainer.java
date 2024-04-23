@@ -25,7 +25,8 @@ public interface IBeanContainer extends IBeanProvider {
 
     boolean isRunning();
 
-    @Nonnull Object getBean(String name);
+    @Nonnull
+    Object getBean(String name);
 
     boolean containsBeanType(Class<?> clazz);
 
@@ -39,6 +40,8 @@ public interface IBeanContainer extends IBeanProvider {
     Map<String, Object> getBeansWithAnnotation(Class<? extends Annotation> annClass);
 
     String getBeanScope(String name);
+
+    Class<?> getBeanClass(String name);
 
     String findAutowireCandidate(Class<?> beanType);
 

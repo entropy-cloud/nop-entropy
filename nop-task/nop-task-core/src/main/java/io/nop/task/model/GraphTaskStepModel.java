@@ -7,12 +7,23 @@
  */
 package io.nop.task.model;
 
+import io.nop.core.lang.xml.XNode;
 import io.nop.task.TaskConstants;
 import io.nop.task.model._gen._GraphTaskStepModel;
+import io.nop.xlang.xdsl.json.DslModelToXNodeTransformer;
+import io.nop.xlang.xmeta.IObjMeta;
+import io.nop.xlang.xmeta.IObjSchema;
+import io.nop.xlang.xmeta.SchemaLoader;
 
 public class GraphTaskStepModel extends _GraphTaskStepModel implements IGraphTaskStepModel {
     public GraphTaskStepModel() {
 
+    }
+
+    public XNode toNode() {
+        IObjMeta objMeta = SchemaLoader.loadXMeta(TaskConstants.XDEF_PATH_TASK);
+        IObjSchema graphStep = objMeta.getDefine(GraphTaskStepModel.class.getSimpleName());
+        return new DslModelToXNodeTransformer(objMeta).transformObj(graphStep, this);
     }
 
     @Override

@@ -81,6 +81,13 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: onEnter
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _onEnter ;
+    
+    /**
+     *  
      * xml name: onReload
      * 
      */
@@ -374,6 +381,25 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     
     /**
      * 
+     * xml name: onEnter
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getOnEnter(){
+      return _onEnter;
+    }
+
+    
+    public void setOnEnter(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._onEnter = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: onReload
      *  
      */
@@ -628,6 +654,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         out.putNotNull("finally",this.getFinally());
         out.putNotNull("flags",this.getFlags());
         out.putNotNull("inputs",this.getInputs());
+        out.putNotNull("onEnter",this.getOnEnter());
         out.putNotNull("onReload",this.getOnReload());
         out.putNotNull("outputs",this.getOutputs());
         out.putNotNull("persisVars",this.getPersisVars());
@@ -658,6 +685,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         instance.setFinally(this.getFinally());
         instance.setFlags(this.getFlags());
         instance.setInputs(this.getInputs());
+        instance.setOnEnter(this.getOnEnter());
         instance.setOnReload(this.getOnReload());
         instance.setOutputs(this.getOutputs());
         instance.setPersisVars(this.getPersisVars());

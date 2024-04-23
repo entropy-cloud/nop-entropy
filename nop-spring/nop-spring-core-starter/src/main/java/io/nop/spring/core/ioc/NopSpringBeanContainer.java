@@ -7,7 +7,9 @@
  */
 package io.nop.spring.core.ioc;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.IBeanContainer;
+import io.nop.commons.util.ClassHelper;
 import jakarta.annotation.Nonnull;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -65,6 +67,16 @@ public class NopSpringBeanContainer implements IBeanContainer {
     @Override
     public String getBeanScope(String name) {
         return context.getBeanFactory().getBeanDefinition(name).getScope();
+    }
+
+    @Override
+    public Class<?> getBeanClass(String name) {
+        String className = context.getBeanFactory().getBeanDefinition(name).getBeanClassName();
+        try {
+            return ClassHelper.safeLoadClass(className);
+        } catch (Exception e) {
+            throw NopException.adapt(e);
+        }
     }
 
     @Nonnull

@@ -8,6 +8,7 @@
 package io.nop.task;
 
 public interface TaskConstants {
+    String XDEF_PATH_TASK = "/nop/schema/task/task.xdef";
     String TAG_INPUT = "input";
     String TAG_OUTPUT = "output";
     String ATTR_NAME = "name";
