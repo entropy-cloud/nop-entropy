@@ -1,0 +1,13 @@
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd"
+>
+    <bean id="testCycleA" class="test.io.entropy.beans.MyCycleA">
+        <property name="propB" ref="testCycleB"/>
+    </bean>
+
+    <bean id="testCycleB" class="test.io.entropy.beans.MyCycleB">
+        <property name="propA" ref="testCycleA"/>
+    </bean>
+</beans>

@@ -16,7 +16,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import test.io.entropy.beans.MyBeanA;
+import test.io.entropy.beans.MyCycleA;
+import test.io.entropy.beans.MyCycleB;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestBeanContainerEx extends BaseTestCase {
@@ -31,8 +34,8 @@ public class TestBeanContainerEx extends BaseTestCase {
     }
 
     @BeforeEach
-    public void setUp(){
-        setTestConfig("my.prefix","test");
+    public void setUp() {
+        setTestConfig("my.prefix", "test");
     }
 
     @Test
@@ -63,12 +66,26 @@ public class TestBeanContainerEx extends BaseTestCase {
     }
 
     @Test
-    public void testInjectProtected(){
+    public void testInjectProtected() {
         IBeanContainer container = new AppBeanContainerLoader().loadFromResource("test",
                 attachmentResource("test_inject.beans.xml"));
         container.start();
         MyBeanA a = container.getBeanByType(MyBeanA.class);
         assertNotNull(a.getBeanD());
+        container.stop();
+    }
+
+    @Test
+    public void testCycleDepends() {
+        IBeanContainer container = new AppBeanContainerLoader().loadFromResource("test",
+                attachmentResource("test_cycle_depends.beans.xml"));
+        container.start();
+        MyCycleA a = container.getBeanByType(MyCycleA.class);
+        MyCycleB b = container.getBeanByType(MyCycleB.class);
+        assertNotNull(a.getPropB());
+        assertNotNull(b.getPropA());
+        assertEquals(a, b.getPropA());
+        assertEquals(b, a.getPropB());
         container.stop();
     }
 }

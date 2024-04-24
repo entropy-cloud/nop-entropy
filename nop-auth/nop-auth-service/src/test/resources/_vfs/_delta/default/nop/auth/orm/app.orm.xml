@@ -4,6 +4,6 @@
 >
 
     <entities>
-        <entity name="io.nop.auth.dao.entity.NopAuthGroup" shardProp="name" useShard="true"/>
+        <entity name="io.nop.auth.dao.entity.NopAuthGroup" shardProp="groupId" useShard="true"/>
     </entities>
 </orm>
