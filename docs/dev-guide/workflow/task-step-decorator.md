@@ -1,4 +1,21 @@
-# 事务装饰器
+# 步骤装饰器
+
+可以通过decorator引入装饰器，对任务步骤进行增强，实现类似AOP的效果。
+新增装饰器实现时，可以实现ITaskStepDecorator接口，然后在NopIoC中注册名为`nopTaskStepDecorator_{decoratorName}`的bean。
+
+例如`nop-task-ext`包中定义了如下decorator
+
+```xml
+<bean id="nopTaskStepDecorator_transaction" class="io.nop.task.ext.dao.TransactionTaskStepDecorator">
+     <ioc:condition>
+         <on-class>io.nop.dao.txn.ITransactionTemplate</on-class>
+     </ioc:condition>
+</bean>
+```
+
+这样我们就可以通过`<decorator name="transaction"/>`来使用这个装饰器。
+
+## 事务装饰器
 
 > 需要引入nop-task-ext模块
 

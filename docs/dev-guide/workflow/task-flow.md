@@ -4,6 +4,8 @@
 
 设计原理的介绍，参见[lowcode-task-flow.md](../../theory/lowcode-task-flow.md)
 
+使用NopTaskFlow来实现后台服务函数的原理说明，参见[task-flow-for-biz.md](task-flow-for-biz.md)
+
 ## 基本概念
 
 1. TaskFlow: 逻辑流模型，存放在task.xml模型文件中，另外也可以存放在task-lib.xml中作为可复用的步骤库
