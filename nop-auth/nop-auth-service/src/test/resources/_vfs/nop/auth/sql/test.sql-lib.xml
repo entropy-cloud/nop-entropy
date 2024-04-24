@@ -5,5 +5,16 @@
                 select u from NopAuthUser u where u.userName like ${'%' + name + '%'}
             </source>
         </eql>
+
+        <eql name="findParent" sqlMethod="findAll">
+            <batchLoadSelection>
+                parent { parent {parent}, children}
+            </batchLoadSelection>
+            <source>
+                select o.deptId, o.deptName, o.parentId, o.parent
+                from NopAuthDept o
+
+            </source>
+        </eql>
     </sqls>
 </sql-lib>

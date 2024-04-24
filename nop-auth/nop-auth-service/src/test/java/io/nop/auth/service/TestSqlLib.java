@@ -7,6 +7,7 @@ import io.nop.api.core.context.ContextProvider;
 import io.nop.auth.core.login.UserContextImpl;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.orm.IOrmTemplate;
 import io.nop.orm.sql_lib.SqlLibManager;
 import io.nop.xlang.api.XLang;
 import jakarta.inject.Inject;
@@ -18,6 +19,9 @@ public class TestSqlLib extends JunitBaseTestCase {
 
     @Inject
     SqlLibManager sqlLibManager;
+
+    @Inject
+    IOrmTemplate ormTemplate;
 
     @Test
     public void testSqlLib() {
@@ -32,6 +36,14 @@ public class TestSqlLib extends JunitBaseTestCase {
             scope.setLocalValue("name", "aaa");
             sqlLibManager.invoke("test.findFirstByName", null, scope);
             return null;
+        });
+    }
+
+    @Test
+    public void testFetchParent() {
+        IEvalScope scope = XLang.newEvalScope();
+        ormTemplate.runInSession(() -> {
+            sqlLibManager.invoke("test.findParent", null, scope);
         });
     }
 }

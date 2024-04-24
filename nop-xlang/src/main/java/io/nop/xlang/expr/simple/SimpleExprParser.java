@@ -438,7 +438,7 @@ public class SimpleExprParser extends AbstractExprParser<Expression> implements 
         return x;
     }
 
-    protected boolean isStringStart(TextScanner sc){
+    protected boolean isStringStart(TextScanner sc) {
         return sc.cur == '\'' || sc.cur == '"';
     }
 
@@ -535,6 +535,7 @@ public class SimpleExprParser extends AbstractExprParser<Expression> implements 
     protected Expression cpExpr(TextScanner sc) {
         sc.match("#{");
         Expression x = orExpr(sc);
+        x = macroExpr(x);
         sc.match('}');
         return x;
     }

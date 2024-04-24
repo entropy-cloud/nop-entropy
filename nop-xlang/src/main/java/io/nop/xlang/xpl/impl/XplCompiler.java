@@ -12,7 +12,6 @@ import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.objects.ValueWithLocation;
-import io.nop.core.lang.eval.EvalExprProvider;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
@@ -195,29 +194,31 @@ public class XplCompiler extends XLangExprParser implements IXplCompiler {
                 }
             }
 
-            IXplTagCompiler tagCompiler = getTagCompiler(node, tagName, ignoreTag, scope);
+            if (!shouldSkip(xplIf, skipIf)) {
+                IXplTagCompiler tagCompiler = getTagCompiler(node, tagName, ignoreTag, scope);
 
-            Expression expr = tagCompiler.parseTag(node, this, scope);
-            if (skipIf != null) {
-                // skiIf返回true时需要跳过当前节点，只编译body部分
-                Expression bodyExpr = parseTagBody(node, scope);
-                expr = simplifiedIfStatement(node.getLocation(), skipIf, bodyExpr, expr,false);
+                Expression expr = tagCompiler.parseTag(node, this, scope);
+                if (skipIf != null) {
+                    // skiIf返回true时需要跳过当前节点，只编译body部分
+                    Expression bodyExpr = parseTagBody(node, scope);
+                    expr = simplifiedIfStatement(node.getLocation(), skipIf, bodyExpr, expr, false);
+                }
+
+                // 对应执行顺序为 if(xplIf) returnVar = invert(expr)
+
+                if (invert) {
+                    expr = XLangASTBuilder.not(node.getLocation(), expr);
+                }
+
+                if (returnVar != null) {
+                    expr = XLangASTBuilder.varDecl(node.getLocation(), returnVar, expr);
+                }
+
+                if (xplIf != null) {
+                    expr = simplifiedIfStatement(node.getLocation(), xplIf, expr, null, false);
+                }
+                buf.add(expr);
             }
-
-            // 对应执行顺序为 if(xplIf) returnVar = invert(expr)
-
-            if (invert) {
-                expr = XLangASTBuilder.not(node.getLocation(), expr);
-            }
-
-            if (returnVar != null) {
-                expr = XLangASTBuilder.varDecl(node.getLocation(), returnVar, expr);
-            }
-
-            if (xplIf != null) {
-                expr = simplifiedIfStatement(node.getLocation(), xplIf, expr, null,false);
-            }
-            buf.add(expr);
         } finally {
             if (oldOutputMode != outputMode) {
                 scope.setOutputMode(oldOutputMode);
@@ -232,6 +233,15 @@ public class XplCompiler extends XLangExprParser implements IXplCompiler {
                 scope.setIgnoreTag(oldIgnoreTag);
             }
         }
+    }
+
+    private boolean shouldSkip(Expression xplIf, Expression skipIf) {
+        if (xplIf instanceof Literal)
+            return !((Literal) xplIf).toTruthy();
+        if (skipIf instanceof Literal) {
+            return ((Literal) skipIf).toTruthy();
+        }
+        return false;
     }
 
     private IXplTagCompiler getTagCompiler(XNode node, String tagName, boolean ignoreTag, IXLangCompileScope scope) {

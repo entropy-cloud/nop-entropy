@@ -24,6 +24,10 @@ public class Literal extends _Literal implements MetaValue {
         return node;
     }
 
+    public boolean toTruthy() {
+        return ConvertHelper.toTruthy(getValue());
+    }
+
     public static Literal booleanValue(SourceLocation loc, boolean b) {
         Literal ret = new Literal();
         ret.setLocation(loc);

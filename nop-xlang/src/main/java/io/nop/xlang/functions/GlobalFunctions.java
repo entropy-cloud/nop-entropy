@@ -22,6 +22,7 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.IComponentModel;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.text.RawText;
+import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.MaskedValue;
 import io.nop.commons.util.objects.OptionalValue;
@@ -408,5 +409,10 @@ public class GlobalFunctions {
     @EvalMethod
     public static IEvalScope newChildScope(IEvalScope scope, Map<String, Object> args) {
         return scope.newChildScope(args);
+    }
+
+    @Description("判断是否存在指定的Java类")
+    public static boolean hasClass(@Name("className") String className) {
+        return ClassHelper.getSafeClassLoader().hasClass(className);
     }
 }

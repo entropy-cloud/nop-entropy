@@ -64,7 +64,7 @@ public class TaskGenHelper {
                 "const taskRt = taskFlowManager.newTaskRuntime(task,"
                 + taskFlowModel.isDefaultSaveState() + ",svcCtx);\n"
                 + argNames.stream().map(argName->"taskRt.setInput('"+argName+"',"+argName+");").collect(Collectors.joining("\n"))+
-                "return task.executeAsync(taskRt,_selection?.sourceFields);\n";
+                "\nreturn task.executeAsync(taskRt,_selection?.sourceFields);\n";
         node.makeChild("source").setContentValue(source);
         return node;
     }
