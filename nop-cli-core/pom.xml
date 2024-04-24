@@ -72,6 +72,11 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-ooxml-docx</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-dbtool-core</artifactId>
         </dependency>
 

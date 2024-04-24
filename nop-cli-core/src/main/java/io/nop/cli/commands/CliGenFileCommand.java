@@ -14,6 +14,8 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.excel.model.ExcelWorkbook;
+import io.nop.ooxml.docx.WordTemplate;
+import io.nop.ooxml.docx.parse.WordTemplateParser;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.build.XptModelLoader;
 import io.nop.report.core.engine.IReportEngine;
@@ -66,7 +68,11 @@ public class CliGenFileCommand implements Callable<Integer> {
         File outputFile = this.outputFile;
         if (outputFile == null) {
             String fileName = file == null ? "out" : StringHelper.fileNameNoExt(file);
-            outputFile = new File(fileName + ".xlsx");
+            if (template.endsWith(".docx")) {
+                outputFile = new File(fileName + ".result.docx");
+            } else {
+                outputFile = new File(fileName + ".xlsx");
+            }
         }
 
         if (template.endsWith(".xdef")) {
@@ -80,6 +86,7 @@ public class CliGenFileCommand implements Callable<Integer> {
             String renderType = StringHelper.fileExt(outputFile.getName());
             newReportEngine().getRendererForXptModel(xptModel, renderType).generateToFile(outputFile, scope);
         } else if (template.endsWith(".xpt.xlsx")) {
+            // 报表模板
             IResource tplResource = ResourceHelper.resolveRelativePathResource(template);
             ExcelWorkbook xptModel = new XptModelLoader().loadModelFromResource(tplResource);
             IEvalScope scope = XLang.newEvalScope();
@@ -87,6 +94,13 @@ public class CliGenFileCommand implements Callable<Integer> {
 
             String renderType = StringHelper.fileExt(outputFile.getName());
             newReportEngine().getRendererForXptModel(xptModel, renderType).generateToFile(outputFile, scope);
+        } else if (template.endsWith(".docx")) {
+            // Word模板
+            IResource tplResource = ResourceHelper.resolveRelativePathResource(template);
+            WordTemplate tpl = new WordTemplateParser().parseFromResource(tplResource);
+            IEvalScope scope = XLang.newEvalScope();
+            scope.setLocalValue(null, XptConstants.VAR_ENTITY, json);
+            tpl.generateToFile(outputFile, scope);
         } else {
             throw new IllegalArgumentException("invalid template:" + template);
         }
