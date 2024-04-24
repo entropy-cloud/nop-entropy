@@ -79,7 +79,7 @@
                     <schema stdDomain="xpl"/>
                 </field>
 
-                <field name="sheetNameExpr" displayName="Sheet名称表达式">
+                <field name="sheetNameExpr" displayName="表单名称表达式">
                     <schema stdDomain="xpl"/>
                 </field>
 
