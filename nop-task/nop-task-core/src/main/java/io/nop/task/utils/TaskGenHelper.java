@@ -52,10 +52,16 @@ public class TaskGenHelper {
             argNames = buildActionArgs(node, taskFlowModel);
         }
 
+        boolean useResult = false;
         if (taskFlowModel.getOutputs() != null) {
             XNode retNode = node.makeChild("return");
             retNode.removeChildByTag("schema");
-            retNode.appendChild(taskFlowModel.getOutputSchemaNode());
+            if (taskFlowModel.getOutput(TaskConstants.VAR_RESULT) != null) {
+                useResult = true;
+                retNode.appendChild(taskFlowModel.getOutput(TaskConstants.VAR_RESULT).getSchemaNode());
+            } else {
+                retNode.appendChild(taskFlowModel.getOutputSchemaNode());
+            }
         }
 
         String source = "\nconst taskFlowManager = inject('nopTaskFlowManager');\n" +
@@ -63,10 +69,19 @@ public class TaskGenHelper {
                 "'," + taskFlowModel.getVersion() + ");\n" +
                 "const taskRt = taskFlowManager.newTaskRuntime(task,"
                 + taskFlowModel.isDefaultSaveState() + ",svcCtx);\n"
-                + argNames.stream().map(argName->"taskRt.setInput('"+argName+"',"+argName+");").collect(Collectors.joining("\n"))+
-                "\nreturn task.executeAsync(taskRt,_selection?.sourceFields);\n";
+                + argNames.stream().map(argName -> "taskRt.setInput('" + argName + "'," + argName + ");").collect(Collectors.joining("\n"))
+                + buildReturnCode(useResult);
         node.makeChild("source").setContentValue(source);
         return node;
+    }
+
+    // 如果task的输出定义中有名为RESULT的变量，则以它为返回值，否则以整个Outputs为返回值
+    private static String buildReturnCode(boolean useResult) {
+        if (useResult) {
+            return "\nreturn task.execute(taskRt).getResultValuePromise();\n";
+        } else {
+            return "\nreturn task.executeAsync(taskRt,_selection?.sourceFields);\n";
+        }
     }
 
     private static List<String> buildActionArgs(XNode node, TaskFlowModel taskFlowModel) {

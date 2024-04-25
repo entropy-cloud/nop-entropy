@@ -187,6 +187,14 @@ public final class TaskStepReturn {
         return FutureHelper.success(this);
     }
 
+    public CompletionStage<Object> getResultValuePromise() {
+        return getReturnPromise().thenApply(ret -> {
+            if (ret.getOutputs() == null || ret.getOutputs().isEmpty())
+                return null;
+            return ret.getOutput(TaskConstants.VAR_RESULT);
+        });
+    }
+
     public TaskStepReturn thenCompose(BiFunction<TaskStepReturn, Throwable, TaskStepReturn> fn) {
         if (!isAsync()) {
             return fn.apply(this, null);
