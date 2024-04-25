@@ -88,7 +88,7 @@ unreservedWord_:
     | VALUE | POSITION | ORDER
     | LEVEL | SESSION |COUNT |COALESCE|YEAR|MONTH
     | LOWER | UPPER | ZONE |WORK
-    | RECURSIVE
+    | RECURSIVE | CURRENT_USER | USER
     ;
 
 // variable

@@ -19,8 +19,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_ENTITY_NAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestEqlCompiler extends AbstractOrmTestCase {
 
@@ -181,5 +183,16 @@ public class TestEqlCompiler extends AbstractOrmTestCase {
         sql.dump();
 
         jdbc().findAll(sql);
+    }
+
+    @Test
+    public void testUserKeyword() {
+        String sqlText = "select o.user.name from NopAuthUser o";
+        try {
+            compile(sqlText);
+            fail();
+        } catch (NopException e) {
+            assertEquals(ERR_EQL_UNKNOWN_ENTITY_NAME.getErrorCode(), e.getErrorCode());
+        }
     }
 }
