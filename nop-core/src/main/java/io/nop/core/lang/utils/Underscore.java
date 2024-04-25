@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -729,7 +730,43 @@ public class Underscore {
     }
 
     @Deterministic
-    public static <T> IKeyedList<T> toKeyedList(Collection<T> c, String keyProp){
-        return KeyedList.fromList(CollectionHelper.toList(c),item-> getFieldValue(item,keyProp));
+    public static <T> IKeyedList<T> toKeyedList(Collection<T> c, String keyProp) {
+        return KeyedList.fromList(CollectionHelper.toList(c), item -> getFieldValue(item, keyProp));
+    }
+
+    /**
+     * 在内存中执行Hash join，将两个集合按照指定的属性进行关联，将右侧关联数据设置到左侧集合中
+     *
+     * @param refProp 如果传入Map，则认为是属性映射关系，key为左侧属性，value为右侧属性。如果传入Collection，则认为是左右侧相同的属性列表。
+     *                否则认为是String类型，它对应于将左侧对象整体设置到右侧对象的属性名
+     */
+    @Deterministic
+    public static <T> void leftjoinMerge(List<T> list, List<?> refList, String leftProp, String rightProp, Object refProp) {
+        Map<String, T> leftMap = new HashMap<>();
+        for (T item : list) {
+            String key = ConvertHelper.toString(getFieldValue(item, leftProp));
+            leftMap.put(key, item);
+        }
+
+        for (Object item : refList) {
+            String key = ConvertHelper.toString(getFieldValue(item, rightProp));
+            T left = leftMap.get(key);
+            if (left != null) {
+                if (refProp instanceof Map) {
+                    Map<String, String> map = (Map<String, String>) refProp;
+                    for (Map.Entry<String, String> entry : map.entrySet()) {
+                        Object rightValue = getFieldValue(item, entry.getValue());
+                        BeanTool.setComplexProperty(left, entry.getKey(), rightValue);
+                    }
+                } else if (refProp instanceof Collection) {
+                    for (String propName : (Collection<String>) refProp) {
+                        Object rightValue = getFieldValue(item, propName);
+                        BeanTool.setComplexProperty(left, propName, rightValue);
+                    }
+                } else {
+                    BeanTool.setComplexProperty(left, (String) refProp, item);
+                }
+            }
+        }
     }
 }

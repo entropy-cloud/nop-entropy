@@ -12,6 +12,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
 import io.nop.api.core.annotations.meta.PropMeta;
+import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICloneable;
 
 @DataBean
@@ -29,9 +30,53 @@ public class QueryFieldBean implements ICloneable {
     private boolean internal;
 
     public static QueryFieldBean forField(String name) {
+        Guard.notEmpty(name, "name");
         QueryFieldBean field = new QueryFieldBean();
         field.setName(name);
         return field;
+    }
+
+    public static QueryFieldBean mainField(String name) {
+        return forField(name);
+    }
+
+    public static QueryFieldBean subField(String owner, String name) {
+        Guard.notEmpty(owner, "owner");
+        Guard.notEmpty(name, "name");
+        QueryFieldBean field = new QueryFieldBean();
+        field.setOwner(owner);
+        field.setName(name);
+        return field;
+    }
+
+    public QueryFieldBean aggFunc(String aggFunc) {
+        setAggFunc(aggFunc);
+        return this;
+    }
+
+    public QueryFieldBean sum() {
+        setAggFunc("sum");
+        return this;
+    }
+
+    public QueryFieldBean count() {
+        setAggFunc("count");
+        return this;
+    }
+
+    public QueryFieldBean min() {
+        setAggFunc("min");
+        return this;
+    }
+
+    public QueryFieldBean max() {
+        setAggFunc("max");
+        return this;
+    }
+
+    public QueryFieldBean alias(String alias) {
+        setAlias(alias);
+        return this;
     }
 
     public QueryFieldBean cloneInstance() {

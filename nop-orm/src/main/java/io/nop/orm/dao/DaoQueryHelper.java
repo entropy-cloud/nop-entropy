@@ -128,10 +128,12 @@ public class DaoQueryHelper {
 
         for (QueryFieldBean field : query.getFields()) {
             if (StringHelper.isEmpty(field.getAggFunc())) {
-                sb.append("o.").append(field.getName());
+                appendField(sb, field.getOwner(), field.getName());
             } else {
                 checkFuncName(field.getAggFunc());
-                sb.append(field.getAggFunc()).append('(').append("o.").append(field.getName()).append(')');
+                sb.append(field.getAggFunc()).append('(');
+                appendField(sb, field.getOwner(), field.getName());
+                sb.append(')');
             }
             sb.append(',');
         }
@@ -140,11 +142,28 @@ public class DaoQueryHelper {
         checkEntityName(query.getSourceName());
         sb.from().append(query.getSourceName()).as("o");
 
+        if (query.getLeftJoinProps() != null) {
+            for (String propName : query.getLeftJoinProps()) {
+                Guard.checkArgument(StringHelper.isValidPropPath(propName));
+                sb.append(" left join o.").append(propName);
+            }
+        }
+
         appendWhere(sb, "o", query.getFilter());
         appendGroupBy(sb, "o", query.getGroupBy());
         appendOrderBy(sb, "o", query.getOrderBy());
 
         return sb;
+    }
+
+    private static void appendField(SQL.SqlBuilder sb, String ownerName, String name) {
+        if (ownerName == null)
+            ownerName = "o";
+        if (name.equals("o")) {
+            sb.append(ownerName);
+        } else {
+            sb.append(ownerName).append('.').append(name);
+        }
     }
 
     private static SQL.SqlBuilder newSQL(QueryBean query) {
@@ -179,7 +198,7 @@ public class DaoQueryHelper {
     }
 
     public static void appendFilter(SQL.SqlBuilder sb, String defaultOwner, ITreeBean filter) {
-        new FilterBeanToSQLTransformer(sb, true, defaultOwner).visit(filter, DisabledEvalScope.INSTANCE);
+        new FilterBeanToSQLTransformer(sb, true, defaultOwner).visitRoot(filter, DisabledEvalScope.INSTANCE);
     }
 
     public static void appendOrderBy(SQL.SqlBuilder sb, String defaultOwner, List<OrderFieldBean> orderBy) {

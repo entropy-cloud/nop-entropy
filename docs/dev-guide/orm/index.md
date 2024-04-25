@@ -27,7 +27,7 @@
 
 ## [DQL查询语言](dql.md)
 
-类似于润乾DQL查询语言的查询机制，可以简化BI系统的数据获取
+类似于润乾DQL查询语言的查询机制，可以简化BI系统的数据获取。在Java中的使用，参见[mdx-query.md](mdx-query.md)
 
 ## [字段掩码](field-masking.md)
 

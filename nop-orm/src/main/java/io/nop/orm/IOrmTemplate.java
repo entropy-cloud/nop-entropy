@@ -14,11 +14,13 @@ import io.nop.api.core.time.IEstimatedClock;
 import io.nop.commons.cache.ICache;
 import io.nop.dao.api.ISqlExecutor;
 import io.nop.dataset.IRowMapper;
+import io.nop.dataset.rowmapper.ColumnMapRowMapper;
 import io.nop.orm.model.IOrmModel;
-
 import jakarta.annotation.Nonnull;
+
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -184,6 +186,14 @@ public interface IOrmTemplate extends ISqlExecutor {
     <T> T findFirstByQuery(QueryBean query, IRowMapper<T> rowMapper);
 
     boolean existsByQuery(QueryBean query);
+
+    default List<Map<String, Object>> findListByQuery(QueryBean query) {
+        return findListByQuery(query, ColumnMapRowMapper.INSTANCE);
+    }
+
+    default Map<String, Object> findFirstByQuery(QueryBean query) {
+        return findFirstByQuery(query, ColumnMapRowMapper.INSTANCE);
+    }
 
     /**
      * 判断实体类是否已经被定义

@@ -448,6 +448,10 @@ public class BeanCopier implements IBeanCopier {
         }
         IBeanPropertyModel propModel = beanModel.getPropertyModel(propName);
         if (propModel != null) {
+            if(propModel.getType().isBooleanType()){
+                value = ConvertHelper.toBoolean(value);
+            }
+
             if (options.isOnlySerializableTarget() && !propModel.isSerializable()) {
                 if (beanModel.isAllowSetExtProperty()) {
                     beanModel.setExtProperty(bean, propName, value, options.getEvalScope());

@@ -100,10 +100,6 @@ public class OrderFieldBean implements Serializable, ICloneable {
         return !desc;
     }
 
-    public void setAsc(boolean asc) {
-        this.desc = !asc;
-    }
-
     @PropMeta(propId = 3)
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getOwner() {

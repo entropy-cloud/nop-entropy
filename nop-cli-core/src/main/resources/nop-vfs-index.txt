@@ -72,6 +72,7 @@
 /nop/graphql/base.graphql
 /nop/graphql/default.graphql
 /nop/graphql/introspection.graphql
+/nop/ooxml/xlib/docx-gen.xlib
 /nop/orm/beans/orm-defaults.beans.xml
 /nop/orm/imp/orm.imp.xml
 /nop/orm/imp/template.orm.xlsx

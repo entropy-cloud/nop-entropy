@@ -1,4 +1,4 @@
-<sql-lib x:schema="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<sql-lib x:schema="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
     <sqls>
         <eql name="findFirstByName" sqlMethod="findFirst" enableFilter="true">
             <source>
@@ -16,5 +16,24 @@
 
             </source>
         </eql>
+
+        <query name="queryGroupWithDeptCount" sqlMethod="findAll">
+            <source>
+                <sourceName>NopAuthGroup</sourceName>
+                <fields>
+                    <field name="groupId"/>
+                    <field name="name"/>
+                    <field owner="deptMappings" name="deptId" aggFunc="count" alias="deptCount"/>
+                </fields>
+                <filter>
+                    <c:if test="${someCondition}">
+                        <eq name="status" value="${status}"/>
+                    </c:if>
+                </filter>
+                <orderBy>
+                    <field name="name" desc="true"/>
+                </orderBy>
+            </source>
+        </query>
     </sqls>
 </sql-lib>

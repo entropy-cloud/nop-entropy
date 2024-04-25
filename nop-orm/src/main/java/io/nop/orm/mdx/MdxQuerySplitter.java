@@ -136,6 +136,7 @@ public class MdxQuerySplitter {
             mainFields = addDimFields(mainFields, dimFields);
         }
 
+        bean.setDimFields(dimFields);
         bean.setFields(mainFields);
         return bean;
     }

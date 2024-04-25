@@ -8,6 +8,8 @@
 package io.nop.core.reflect.bean;
 
 import io.nop.api.core.beans.ITreeBean;
+import io.nop.api.core.beans.TreeBean;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.type.IGenericType;
@@ -17,9 +19,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static io.nop.core.CoreErrors.ARG_BEAN;
 import static io.nop.core.CoreErrors.ARG_CLASS_NAME;
+import static io.nop.core.CoreErrors.ARG_PROP_NAME;
 import static io.nop.core.CoreErrors.ARG_TYPE_VALUE;
+import static io.nop.core.CoreErrors.ERR_BEAN_UNKNOWN_PROP;
 import static io.nop.core.CoreErrors.ERR_REFLECT_BEAN_NO_CLASS_FOR_TYPE;
+import static io.nop.core.CoreErrors.ERR_REFLECT_TREE_BEAN_NOT_SIMPLE_VALUE;
 
 public class TreeBeanBuilder {
     public static TreeBeanBuilder INSTANCE = new TreeBeanBuilder();
@@ -33,8 +39,22 @@ public class TreeBeanBuilder {
             return node;
         }
 
-        if (ITreeBean.class.isAssignableFrom(targetType.getRawClass())) {
+        if (TreeBean.class == targetType.getRawClass())
             return src.toTreeBean();
+
+        if (ITreeBean.class.isAssignableFrom(targetType.getRawClass())) {
+            return src;
+        }
+
+        if (targetType.getStdDataType().isSimpleType()) {
+            if (src.getChildCount() > 0 || src.getAttrCount() > 0) {
+                throw new NopException(ERR_REFLECT_TREE_BEAN_NOT_SIMPLE_VALUE)
+                        .param(ARG_BEAN, src);
+            }
+            if(targetType.isBooleanType()) {
+                return ConvertHelper.toBoolean(src.getContentValue());
+            }
+            return ConvertHelper.convertTo(targetType.getRawClass(), src.getContentValue(), NopException::new);
         }
 
         IBeanModel beanModel = getTargetBeanModel(src, targetType, options);
@@ -95,6 +115,10 @@ public class TreeBeanBuilder {
             }
             propModel.setPropertyValue(bean, value);
         } else {
+            if (!beanModel.isAllowSetExtProperty())
+                throw new NopException(ERR_BEAN_UNKNOWN_PROP)
+                        .param(ARG_CLASS_NAME, bean.getClass().getName())
+                        .param(ARG_PROP_NAME, propName);
             beanModel.setExtProperty(bean, propName, src.toJsonObject());
         }
     }

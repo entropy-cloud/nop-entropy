@@ -20,6 +20,11 @@ public interface ITreeBean extends ISourceLocationGetter, ISourceLocationSetter 
 
     Map<String, Object> getAttrs();
 
+    default int getAttrCount() {
+        Map<String, Object> attrs = getAttrs();
+        return attrs == null ? 0 : attrs.size();
+    }
+
     Object getAttr(String name);
 
     Object getContentValue();

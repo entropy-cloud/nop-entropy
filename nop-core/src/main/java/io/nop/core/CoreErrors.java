@@ -690,6 +690,8 @@ public interface CoreErrors {
     ErrorCode ERR_REFLECT_BEAN_NO_DEFAULT_CONSTRUCTOR = define("nop.err.core.reflect.bean-no-default-constructor",
             "类[{className}]没有缺省构造器", ARG_CLASS_NAME);
 
+    ErrorCode ERR_REFLECT_TREE_BEAN_NOT_SIMPLE_VALUE = define("nop.err.core.reflect.tree-bean-not-simple-value",
+            "TreeBean具有属性或者子节点，不是简单数据类型:{}", ARG_BEAN);
     ErrorCode ERR_REFLECT_BEAN_NOT_SUPPORT_GET_BY_INDEX = define("nop.err.core.reflect.not-support-get-by-index",
             "[{className}]不是数组或者列表类型，不支持按照下标获取", ARG_CLASS_NAME);
 

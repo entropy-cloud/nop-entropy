@@ -14,10 +14,12 @@ import io.nop.api.core.annotations.graphql.GraphQLObject;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.beans.TreeBean;
+import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICloneable;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
@@ -54,6 +56,14 @@ public class QueryBean implements Serializable, ICloneable {
     private Integer timeout;
 
     private boolean disableLogicalDelete;
+
+    public QueryBean() {
+    }
+
+    public QueryBean(String sourceName) {
+        Guard.notEmpty(sourceName, "sourceName");
+        setSourceName(sourceName);
+    }
 
     @Override
     public QueryBean cloneInstance() {
@@ -116,6 +126,30 @@ public class QueryBean implements Serializable, ICloneable {
 
     public void setFields(List<QueryFieldBean> fields) {
         this.fields = fields;
+    }
+
+    public QueryBean addField(QueryFieldBean field) {
+        if (fields == null) {
+            fields = new ArrayList<>();
+        }
+        fields.add(field);
+        return this;
+    }
+
+    public QueryBean addFields(Collection<QueryFieldBean> fields) {
+        if (this.fields == null)
+            this.fields = new ArrayList<>();
+        this.fields.addAll(fields);
+        return this;
+    }
+
+    public QueryBean fields(QueryFieldBean field, QueryFieldBean... fields) {
+        addField(field);
+
+        for (QueryFieldBean f : fields) {
+            addField(f);
+        }
+        return this;
     }
 
     public long getOffset() {

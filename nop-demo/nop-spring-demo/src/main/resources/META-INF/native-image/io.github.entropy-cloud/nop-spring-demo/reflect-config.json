@@ -3442,6 +3442,18 @@
     "fields": [],
     "methods": [
       {
+        "name": "addField",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryFieldBean"
+        ]
+      },
+      {
+        "name": "addFields",
+        "parameterTypes": [
+          "java.util.Collection"
+        ]
+      },
+      {
         "name": "addFilter",
         "parameterTypes": [
           "io.nop.api.core.beans.ITreeBean"
@@ -3493,6 +3505,13 @@
       {
         "name": "cloneInstance",
         "parameterTypes": []
+      },
+      {
+        "name": "fields",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryFieldBean",
+          "[Lio.nop.api.core.beans.query.QueryFieldBean;"
+        ]
       },
       {
         "name": "getCursor",
@@ -3718,11 +3737,27 @@
     "fields": [],
     "methods": [
       {
+        "name": "aggFunc",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "alias",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "cloneExceptOwner",
         "parameterTypes": []
       },
       {
         "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "count",
         "parameterTypes": []
       },
       {
@@ -3756,6 +3791,20 @@
         "parameterTypes": []
       },
       {
+        "name": "mainField",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "max",
+        "parameterTypes": []
+      },
+      {
+        "name": "min",
+        "parameterTypes": []
+      },
+      {
         "name": "setAggFunc",
         "parameterTypes": [
           "java.lang.String"
@@ -3784,6 +3833,17 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "subField",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "sum",
+        "parameterTypes": []
       }
     ],
     "name": "io.nop.api.core.beans.query.QueryFieldBean",
@@ -23042,6 +23102,12 @@
         ]
       },
       {
+        "name": "findChildren",
+        "parameterTypes": [
+          "java.util.function.Predicate"
+        ]
+      },
+      {
         "name": "firstChild",
         "parameterTypes": []
       },
@@ -36402,6 +36468,10 @@
         ]
       },
       {
+        "name": "orm_forceLoad",
+        "parameterTypes": []
+      },
+      {
         "name": "orm_fullyLoaded",
         "parameterTypes": []
       },
@@ -42290,6 +42360,10 @@
         ]
       },
       {
+        "name": "orm_forceLoad",
+        "parameterTypes": []
+      },
+      {
         "name": "orm_fullyLoaded",
         "parameterTypes": []
       },
@@ -48147,6 +48221,12 @@
         ]
       },
       {
+        "name": "hasClass",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "inject",
         "parameterTypes": [
           "io.nop.core.lang.eval.IEvalScope",
@@ -48171,6 +48251,13 @@
         "name": "masked",
         "parameterTypes": [
           "java.lang.Object"
+        ]
+      },
+      {
+        "name": "newChildScope",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.util.Map"
         ]
       },
       {

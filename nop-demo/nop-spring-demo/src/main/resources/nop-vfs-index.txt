@@ -328,6 +328,7 @@
 /nop/report/demo/pages/demo.page.yaml
 /nop/report/demo/performance/测试同比环比.xpt.xlsx
 /nop/report/imp/xpt.imp.xml
+/nop/report/xlib/xpt-rt.xlib
 /nop/report/xlib/xpt.xlib
 /nop/rpc/imp/api.imp.xml
 /nop/rpc/imp/template.api.xlsx

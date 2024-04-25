@@ -6266,6 +6266,16 @@
         ]
       },
       {
+        "name": "leftjoinMerge",
+        "parameterTypes": [
+          "java.util.List",
+          "java.util.List",
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "max",
         "parameterTypes": [
           "java.util.Collection"
@@ -7038,6 +7048,12 @@
       },
       {
         "name": "findChild",
+        "parameterTypes": [
+          "java.util.function.Predicate"
+        ]
+      },
+      {
+        "name": "findChildren",
         "parameterTypes": [
           "java.util.function.Predicate"
         ]
@@ -22907,6 +22923,13 @@
         ]
       },
       {
+        "name": "getTaskFlowModel",
+        "parameterTypes": [
+          "java.lang.String",
+          "long"
+        ]
+      },
+      {
         "name": "getTaskRuntime",
         "parameterTypes": [
           "java.lang.String",
@@ -22995,6 +23018,10 @@
     "methods": [
       {
         "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOutputSchemaNode",
         "parameterTypes": []
       },
       {
@@ -23210,6 +23237,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getOnEnter",
+        "parameterTypes": []
+      },
+      {
         "name": "getOnReload",
         "parameterTypes": []
       },
@@ -23359,6 +23390,12 @@
         "name": "setInputs",
         "parameterTypes": [
           "java.util.List"
+        ]
+      },
+      {
+        "name": "setOnEnter",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
         ]
       },
       {
@@ -24193,6 +24230,12 @@
         "name": "getByPropPath",
         "parameterTypes": [
           "io.nop.core.lang.eval.IEvalScope",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasClass",
+        "parameterTypes": [
           "java.lang.String"
         ]
       },
