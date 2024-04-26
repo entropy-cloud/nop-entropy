@@ -148,7 +148,7 @@ NopGraphQL引擎返回的对象信息完全由XMeta来定义。如果一个属�
   <prop name="parent">
     <schema bizObjName="NopAuthDepartment" />
   </prop>
-  
+
   <prop name="children">
      <schema>
         <item bizObjName="NopAuthDepartment" />
@@ -164,9 +164,11 @@ NopGraphQL引擎返回的对象信息完全由XMeta来定义。如果一个属�
 
 通过GraphQL的findPage当方法查询时，可以直接查询关联对象上的字段，但是要求在xmeta中设置允许queryable。这是从安全性角度考虑，避免客户端可以任意查询所有字段导致安全漏洞。
 
+如果未正确定义，控制台可能出现的错误信息：`desc=未定义的查询字段:parent.name`
+
 ```xml
-<prop name="parent.name" querable="true">
-    
+<prop name="parent.name" queryable="true">
+
 </prop>
 ```
 

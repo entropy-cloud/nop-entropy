@@ -10,7 +10,7 @@ DQL(Dimentinal Query Language)语言是润乾公司提出的一种面向OLAP的�
 
 ## QueryBean表达多表查询
 
-比如现在下面的表结构
+比如对于下面的表结构
 
 ```
   NopAuthGroup <--- NopAuthGroupDept ---> NopAuthDept
@@ -19,7 +19,8 @@ DQL(Dimentinal Query Language)语言是润乾公司提出的一种面向OLAP的�
 如果要查询`NopAuthGroup`表并同时返回每个分组关联的部门的总数，类似于下面的SQL语句
 
 ```sql
- select o.groupId, o.name, (select count(g.deptId) from NopAuthUserDept g where g.groupId= o.groupId) as deptCount
+ select o.groupId, o.name,
+     (select count(g.deptId) from NopAuthGroupDept g where g.groupId= o.groupId) as deptCount
  from NopAuthGroup o
 ```
 
@@ -28,22 +29,22 @@ DQL(Dimentinal Query Language)语言是润乾公司提出的一种面向OLAP的�
 ```javascript
 QueryBean query = new QueryBean();
 query.setSourceName(NopAuthGroup.class.getName());
-query.fields(mainField("groupId"), mainField("name"), subField("deptMappings", "deptId").count().alias("deptCount"));
+query.fields(mainField("groupId"), mainField("name"),
+    subField("deptMappings", "deptId").count().alias("deptCount"));
 query.addOrderField("name", true);
 
 List<Map<String, Object>> list = ormTemplate.findListByQuery(query);
 ```
 
 上面的代码中，`mainField`表示主表字段，`subField`
-表示子表字段，subField的第一个参数是关联的字段名，第二个参数是要查询的子表上的字段名，`count`表示统计子表的总数，`alias`
-表示别名。
+表示子表字段，subField的第一个参数是关联的字段名，第二个参数是要查询的子表上的字段名，`count`表示统计子表的总数，`alias`表示别名。
 
 实际的实现原理不是生成一个复杂SQL，而是在内存中分成多个查询，然后在内存中通过HashJoin来把数据整合为一个大宽表。
 
 ```sql
 select o.groupId, o.name from NopAuthGroup o;
 
-select g.groupId, count(g.deptId) as deptCount from NopAuthUserDept g group by g.groupId;
+select g.groupId, count(g.deptId) as deptCount from NopAuthGroupDept g group by g.groupId;
 ```
 
 这样的查询方式可以大大简化复杂的多表查询，提高开发效率。
@@ -103,7 +104,8 @@ query.setLimit(10);
  Underscore.leftjoinMerge(listA,listB, leftPropName, rightPropName, Arrays.asList(fldB1,fldB2));
 ```
 
-以上函数相当于
+以上函数调用相当于实现
+
 ```sql
 select listA.*, listB.fldB1,listB.fldB2
 from listA, listB
@@ -121,4 +123,4 @@ table.numberColumn("count").sum();
 
 NopORM查询得到的`IDataSet`数据集可以直接被转换为`tablesaw`的`Table`接口，然后就可以调用`select/pivot/summarize/count`等一系列操作函数。
 
-> NopORM内部讲所有的数据集合对象都统一封装为IDataSet接口，因此并不对外暴露ResultSet等泄露实现细节的接口。NopORM底层可以不运行在JDBC之上。
+> NopORM内部将所有的数据集合对象都统一封装为IDataSet接口，因此并不对外暴露ResultSet等泄露实现细节的接口。NopORM底层可以不运行在JDBC之上。
