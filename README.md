@@ -272,8 +272,8 @@ switch(贵公司很有钱吗()){
 
 ## 社区
 
-* 中文官网: [https://nop-platform.gitee.io/](https://nop-platform.gitee.io/)
-* 英文官网: [https://nop-platform.github.io/](https://nop-platform.github.io/)
+* 官网国际站: [https://nop-platform.github.io/](https://nop-platform.github.io/)
+* 官网中国站: [https://nop-platform.gitee.io/](https://nop-platform.gitee.io/)
 * 网友[Crazydan Studio](https://studio.crazydan.org/)建立的[Nop开发实践分享网站](https://nop.crazydan.io/)
 
 ## 作者微信和微信讨论群
