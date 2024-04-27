@@ -42,7 +42,8 @@ public class NopTestConfigProcessor {
             setTestConfig(DaoConfigs.CFG_DATASOURCE_DRIVER_CLASS_NAME, "org.h2.Driver");
             setTestConfig(DaoConfigs.CFG_DATASOURCE_USERNAME, "sa");
             setTestConfig(DaoConfigs.CFG_DATASOURCE_PASSWORD, "");
-            setTestConfig(DaoConfigs.CFG_DATASOURCE_JDBC_URL, "jdbc:h2:mem:" + StringHelper.generateUUID());
+            // Note：在 Linux 中 H2 默认是大写模式，在单元测试中直接配置启用大小写无关，以确保兼容性
+            setTestConfig(DaoConfigs.CFG_DATASOURCE_JDBC_URL, "jdbc:h2:mem:" + StringHelper.generateUUID() + ";CASE_INSENSITIVE_IDENTIFIERS=TRUE");
         }
 
         if(config.disableSnapshot()){
