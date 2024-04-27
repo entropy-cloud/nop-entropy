@@ -41,6 +41,7 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-autotest-junit</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
