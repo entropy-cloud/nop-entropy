@@ -12,7 +12,8 @@
     <artifactId>nop-report-demo</artifactId>
 
 	<properties>
-	    <maven.deploy.skip>true</maven.deploy.skip>
+        <!-- 其他模块可以引用nop-report-demo来作为演示 -->
+<!--	    <maven.deploy.skip>true</maven.deploy.skip>-->
 	</properties>
 
     <dependencies>
