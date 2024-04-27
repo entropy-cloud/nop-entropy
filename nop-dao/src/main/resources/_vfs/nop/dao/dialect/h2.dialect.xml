@@ -179,9 +179,14 @@
     </functions>
 
     <sqlDataTypes>
+        <!-- H2 数据类型列表: http://www.h2database.com/html/datatypes.html -->
         <sqlDataType name="CHAR" precision="1048576" stdSqlType="CHAR" allowExceedPrecision="true" />
+        <sqlDataType name="CHARACTER" precision="1048576" stdSqlType="CHAR" allowExceedPrecision="true" />
         <sqlDataType name="VARCHAR" precision="1048576" stdSqlType="VARCHAR" allowExceedPrecision="true"/>
+        <sqlDataType name="VARCHAR_IGNORECASE" precision="1048576" stdSqlType="VARCHAR" allowExceedPrecision="true"/>
+        <sqlDataType name="CHARACTER VARYING" precision="1048576" stdSqlType="VARCHAR" allowExceedPrecision="true"/>
         <sqlDataType name="CLOB" stdSqlType="VARCHAR" allowPrecision="false"/>
+        <sqlDataType name="CHARACTER LARGE OBJECT" stdSqlType="VARCHAR" allowPrecision="false"/>
         <sqlDataType name="INTEGER" stdSqlType="INTEGER" alias="INT"/>
         <sqlDataType name="TINYINT" stdSqlType="TINYINT"/>
         <sqlDataType name="SMALLINT" stdSqlType="SMALLINT"/>
