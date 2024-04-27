@@ -7,6 +7,7 @@
  */
 package io.nop.api.core.beans;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.api.core.util.ISourceLocationSetter;
 
@@ -20,6 +21,7 @@ public interface ITreeBean extends ISourceLocationGetter, ISourceLocationSetter 
 
     Map<String, Object> getAttrs();
 
+    @JsonIgnore
     default int getAttrCount() {
         Map<String, Object> attrs = getAttrs();
         return attrs == null ? 0 : attrs.size();
@@ -31,6 +33,7 @@ public interface ITreeBean extends ISourceLocationGetter, ISourceLocationSetter 
 
     List<? extends ITreeBean> getChildren();
 
+    @JsonIgnore
     default int getChildCount() {
         List<?> children = getChildren();
         return children == null ? 0 : children.size();
