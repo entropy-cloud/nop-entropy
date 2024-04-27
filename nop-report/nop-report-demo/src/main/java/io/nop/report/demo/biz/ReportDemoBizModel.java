@@ -129,7 +129,7 @@ public class ReportDemoBizModel {
         IResource resource = VirtualFileSystem.instance().getResource(path);
         if (!resource.exists())
             throw new NopException(ERR_XPT_UNKNOWN_REPORT_MODEL).param(ARG_REPORT_NAME, reportName);
-        WebContentBean content = new WebContentBean("application/octet-stream", resource.toFile(),
+        WebContentBean content = new WebContentBean("application/octet-stream", resource,
                 StringHelper.fileFullName(reportName));
         return content;
     }

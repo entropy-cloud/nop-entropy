@@ -166,9 +166,11 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         checkStarted();
         BeanDefinition bean = findBeanByType(requiredType);
         if (bean == null) {
-            if (parentContainer != null)
+            if (parentContainer != null) {
                 return parentContainer.tryGetBeanByType(requiredType);
-
+            } else {
+                return null;
+            }
         }
         return (T) getBean0(bean, false, false);
     }
