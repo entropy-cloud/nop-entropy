@@ -265,7 +265,7 @@
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
 
             <source>
-                <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} drop column ${dialect.escapeSQLName(col.code)}</c:unit>
+                <c:unit>alter table ${dialect.escapeSQLName(col.ownerEntityModel.tableName)} drop column ${dialect.escapeSQLName(col.code)}</c:unit>
             </source>
         </DropColumn>
 
@@ -275,7 +275,7 @@
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
 
             <source>
-                <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} modify column ${dialect.escapeSQLName(col.code)} </c:unit>
+                <c:unit>alter table ${dialect.escapeSQLName(col.ownerEntityModel.tableName)} modify column ${dialect.escapeSQLName(col.code)} </c:unit>
                 <thisLib:ColSqlType/>
                 <thisLib:ColNullDef allNullable="${false}"/>
                 <thisLib:DefaultValue allNullable="${false}"/>
