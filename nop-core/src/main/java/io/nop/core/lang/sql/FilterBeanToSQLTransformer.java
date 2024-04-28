@@ -121,9 +121,9 @@ public class FilterBeanToSQLTransformer extends FilterBeanVisitor<Void> {
         } else if (op.equals(FILTER_OP_LE)) {
             sb.owner(owner).le(name, value);
         } else if (op.equals(FILTER_OP_IN)) {
-            sb.owner(owner).in(name, value);
+            sb.in(owner, name, value);
         } else if (op.equals(FILTER_OP_NOT_IN)) {
-            sb.owner(owner).notIn(name, value);
+            sb.notIn(owner, name, value);
         } else if (op.equals(FILTER_OP_STARTS_WITH)) {
             sb.owner(owner).sql(name).sql(" like ").param(value + "%");
         } else if (op.equals(FILTER_OP_ENDS_WITH)) {

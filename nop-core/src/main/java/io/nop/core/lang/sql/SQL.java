@@ -514,47 +514,47 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
             return append(" in ").paramCollection(params);
         }
 
-        public SqlBuilder in(String name, Object value) {
+        public SqlBuilder in(String owner, String name, Object value) {
             if (value == null) {
-                return isNull(name);
+                return owner(owner).isNull(name);
             } else if (value instanceof String) {
                 Set<String> values = ConvertHelper.toCsvSet(value, NopException::new);
                 if (values.isEmpty()) {
                     return alwaysFalse();
                 } else {
-                    return append(name).in(values);
+                    return owner(owner).append(name).in(values);
                 }
             } else if (value instanceof Collection) {
                 Collection<?> c = (Collection<?>) value;
                 if (c.isEmpty()) {
                     return alwaysFalse();
                 } else {
-                    return append(name).in(c);
+                    return owner(owner).append(name).in(c);
                 }
             } else {
-                return append(name).append(" in ").paramEx(value);
+                return owner(owner).append(name).append(" in ").paramEx(value);
             }
         }
 
-        public SqlBuilder notIn(String name, Object value) {
+        public SqlBuilder notIn(String owner, String name, Object value) {
             if (value == null) {
-                return notNull(name);
+                return owner(owner).notNull(name);
             } else if (value instanceof String) {
                 Set<String> values = ConvertHelper.toCsvSet(value, NopException::new);
                 if (values.isEmpty()) {
                     return alwaysTrue();
                 } else {
-                    return append(name).not().in(values);
+                    return owner(owner).append(name).not().in(values);
                 }
             } else if (value instanceof Collection) {
                 Collection<?> c = (Collection<?>) value;
                 if (c.isEmpty()) {
                     return alwaysTrue();
                 } else {
-                    return append(name).not().in(c);
+                    return owner(owner).append(name).not().in(c);
                 }
             } else {
-                return append(name).append(" not in ").paramEx(value);
+                return owner(owner).append(name).append(" not in ").paramEx(value);
             }
         }
 
