@@ -20,7 +20,7 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
 
 * `<c:for>`
   循环语句。
-  `index`对应循环下标
+  `index`对应循环下标, `var`对应于循环过程中的变量名。
 
 ```xml
 <c:for items="${list}" var="item" index="index">

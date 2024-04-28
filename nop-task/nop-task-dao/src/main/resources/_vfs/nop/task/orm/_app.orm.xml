@@ -14,18 +14,18 @@
         <dict label="步骤状态" name="task/task-step-status" valueType="int" i18n-en:label="TaskFlow Step Status">
             <option code="CREATED" label="已创建" value="0"/>
             <option code="SUSPENDED" label="已暂停" value="10"/>
-            <option code="WAITING" label="等待中" value="20"/>
-            <option code="ACTIVATED" label="执行中" value="30"/>
-            <option code="EXECUTED" label="已执行" value="35"/>
-            <option code="COMPLETED" label="已完成" value="40"/>
-            <option code="EXPIRED" label="已超时" value="50"/>
-            <option code="FAILED" label="已失败" value="60"/>
-            <option code="KILLED" label="已中止" value="70"/>
+            <option code="WAITING" description="join步骤在等待上游步骤完成的过程中或者flow步骤在等待子流程完成的过程中处于此状态" label="等待中" value="20"/>
+            <option code="ACTIVATED" description="步骤处于激活状态，一般此时在界面上才显示操作按钮" label="执行中" value="30"/>
+            <option code="EXECUTED" description="步骤工作已经完成，等待执行步骤迁移" label="已执行" value="35"/>
+            <option code="COMPLETED" description="步骤正常结束" label="已完成" value="40"/>
+            <option code="EXPIRED" description="已超时" label="已超时" value="50"/>
+            <option code="FAILED" description="步骤异常结束" label="已失败" value="60"/>
+            <option code="KILLED" description="主动中止" label="已中止" value="70"/>
         </dict>
         <dict label="逻辑流" name="task/task-status" valueType="int" i18n-en:label="TaskFlow Status">
             <option code="CREATED" label="已创建" value="0"/>
             <option code="SUSPENDED" label="已暂停" value="10"/>
-            <option code="WAITING" label="等待中" value="20"/>
+            <option code="WAITING" description="等待调度" label="等待中" value="20"/>
             <option code="ACTIVATED" label="执行中" value="30"/>
             <option code="COMPLETED" label="已完成" value="40"/>
             <option code="EXPIRED" label="已超时" value="50"/>
@@ -35,8 +35,8 @@
         <dict label="逻辑流定义状态" name="task/task-def-status" valueType="int" i18n-en:label="TaskFlow Definition Status">
             <option code="UNPUBLISHED" label="未发布" value="0"/>
             <option code="PUBLISHED" label="已发布" value="1"/>
-            <option code="DEPRECATED" label="已过时" value="2"/>
-            <option code="ARCHIVED" label="已归档" value="3"/>
+            <option code="DEPRECATED" description="过时的流程不推荐使用" label="已过时" value="2"/>
+            <option code="ARCHIVED" description="已归档的流程不能新建实例" label="已归档" value="3"/>
         </dict>
     </dicts>
 

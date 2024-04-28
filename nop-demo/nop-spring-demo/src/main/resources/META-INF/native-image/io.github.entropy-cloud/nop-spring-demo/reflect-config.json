@@ -17614,6 +17614,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getTagSet",
+        "parameterTypes": []
+      },
+      {
         "name": "getWfName",
         "parameterTypes": []
       },
@@ -17709,6 +17713,12 @@
         "name": "setStateMachine",
         "parameterTypes": [
           "io.nop.fsm.model.StateMachineModel"
+        ]
+      },
+      {
+        "name": "setTagSet",
+        "parameterTypes": [
+          "java.util.Set"
         ]
       },
       {

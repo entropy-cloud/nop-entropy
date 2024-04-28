@@ -29,7 +29,6 @@ import io.nop.orm.eql.sql.AstToSqlGenerator;
 import io.nop.orm.eql.utils.EqlHelper;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IOrmDataType;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -111,7 +110,6 @@ public class EqlCompiler implements ISqlCompiler {
         return compiledSql;
     }
 
-    @NotNull
     private static BaseDataFieldMeta getBaseDataFieldMeta(ISqlExprMeta exprMeta, String fieldName) {
         IOrmDataType dataType = exprMeta.getOrmDataType();
         String sourceFieldName = null;
