@@ -261,6 +261,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
             prepareQuery.accept(query, context);
         }
 
+        query = resolveQuery(query);
+
         IEntityDao<T> dao = dao();
 
         PageBean<T> pageBean = new PageBean<>();
@@ -283,6 +285,13 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
             }
         }
         return pageBean;
+    }
+
+    protected QueryBean resolveQuery(QueryBean query) {
+        if (query.getFilter() != null) {
+
+        }
+        return query;
     }
 
     @BizAction

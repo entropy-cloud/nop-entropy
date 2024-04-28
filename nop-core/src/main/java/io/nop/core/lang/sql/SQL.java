@@ -414,6 +414,13 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         }
 
         public SqlBuilder param(Object value) {
+            if (value instanceof IMarkedString) {
+                return append('(').append((IMarkedString) value).append(')');
+            }
+            return param0(value);
+        }
+
+        public SqlBuilder param0(Object value) {
             int pos = length();
             append("?");
             Marker marker = newValueMarker(pos, value);
@@ -432,9 +439,7 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         }
 
         public SqlBuilder paramEx(Object value) {
-            if (value instanceof IMarkedString) {
-                return this.append((IMarkedString) value);
-            } else if (value instanceof Collection) {
+            if (value instanceof Collection) {
                 return this.paramCollection((Collection<?>) value);
             } else {
                 return param(value);

@@ -1,6 +1,7 @@
 label: 变量定义
 locale: zh-CN
 description: 数据权限配置中可以使用的变量，它们会被自动转换为对应的表达式
+static: true
 options:
   - label: 用户ID
     value: "@biz:userId"
