@@ -67,6 +67,13 @@ public abstract class _BizModel extends io.nop.core.resource.component.AbstractC
     
     /**
      *  
+     * xml name: tagSet
+     * 
+     */
+    private java.util.Set<java.lang.String> _tagSet ;
+    
+    /**
+     *  
      * xml name: wfName
      * BizModel可以选择关联一个工作流定义(Workflow)
      */
@@ -285,6 +292,25 @@ public abstract class _BizModel extends io.nop.core.resource.component.AbstractC
     
     /**
      * 
+     * xml name: tagSet
+     *  
+     */
+    
+    public java.util.Set<java.lang.String> getTagSet(){
+      return _tagSet;
+    }
+
+    
+    public void setTagSet(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._tagSet = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: wfName
      *  BizModel可以选择关联一个工作流定义(Workflow)
      */
@@ -332,6 +358,7 @@ public abstract class _BizModel extends io.nop.core.resource.component.AbstractC
         out.putNotNull("metaDir",this.getMetaDir());
         out.putNotNull("observes",this.getObserves());
         out.putNotNull("stateMachine",this.getStateMachine());
+        out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("wfName",this.getWfName());
     }
 
@@ -351,6 +378,7 @@ public abstract class _BizModel extends io.nop.core.resource.component.AbstractC
         instance.setMetaDir(this.getMetaDir());
         instance.setObserves(this.getObserves());
         instance.setStateMachine(this.getStateMachine());
+        instance.setTagSet(this.getTagSet());
         instance.setWfName(this.getWfName());
     }
 

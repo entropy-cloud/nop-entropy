@@ -22,6 +22,7 @@ import io.nop.fsm.execution.IStateMachine;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLOperationType;
+import io.nop.orm.model.OrmModelConstants;
 import io.nop.xlang.xmeta.IObjMeta;
 
 import java.util.ArrayList;
@@ -165,6 +166,10 @@ public class BizObjectImpl implements IBizObject, IMethodMissingHook {
 
     @Override
     public GraphQLFieldDefinition getOperationDefinition(GraphQLOperationType opType, String name) {
+        // 不对外暴露为GraphQL服务
+        if (bizModel != null && bizModel.containsTag(OrmModelConstants.TAG_NOT_PUB))
+            return null;
+
         GraphQLFieldDefinition operation = operations.get(name);
         if (operation == null)
             return null;
@@ -177,6 +182,10 @@ public class BizObjectImpl implements IBizObject, IMethodMissingHook {
 
     @Override
     public Collection<GraphQLFieldDefinition> getOperationDefinitions(GraphQLOperationType opType) {
+        // 不对外暴露为GraphQL服务
+        if (bizModel != null && bizModel.containsTag(OrmModelConstants.TAG_NOT_PUB))
+            return Collections.emptyList();
+
         List<GraphQLFieldDefinition> ret = new ArrayList<>();
         for (GraphQLFieldDefinition op : operations.values()) {
             if (op.getOperationType() == opType) {

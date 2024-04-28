@@ -37,6 +37,7 @@ import io.nop.graphql.core.reflection.ReflectionGraphQLTypeFactory;
 import io.nop.graphql.core.schema.TypeRegistry;
 import io.nop.graphql.core.schema.meta.ObjMetaToGraphQLDefinition;
 import io.nop.graphql.core.utils.GraphQLNameHelper;
+import io.nop.orm.model.OrmModelConstants;
 import io.nop.xlang.filter.BizExprHelper;
 import io.nop.xlang.xdsl.DslModelParser;
 import io.nop.xlang.xmeta.IObjMeta;
@@ -139,6 +140,11 @@ public class BizObjectBuilder {
 
         // 删除所有meta中没有定义的字段。如果存在meta，则所有GraphQL返回数据以meta为准。
         objDef.removeFieldsNotInMeta();
+
+        // 如果meta标记了not-pub，则直接清空类型字段定义，不对外暴露
+        if (bizObj.getObjMeta() != null && bizObj.getObjMeta().containsTag(OrmModelConstants.TAG_NOT_PUB)) {
+            objDef.setFields(new ArrayList<>(0));
+        }
 
         if (objDef.getFields() == null)
             objDef.setFields(new ArrayList<>(0));

@@ -4,7 +4,7 @@
         import io.nop.xlang.xmeta.SchemaLoader;
 
         let metaResources = VirtualFileSystem.instance().getAllResources("/"+moduleId+"/model",".xmeta");
-        metaResources = metaResources.filter(r=>!r.name.startsWith('_') and !SchemaLoader.loadXMeta(r.path).containsTag('no-web'));
+        metaResources = metaResources.filter(r=>!r.name.startsWith('_') and !SchemaLoader.loadXMeta(r.path).containsAnyTag(['no-web','not-pub']));
 
         assign("metaResources",metaResources);
 
