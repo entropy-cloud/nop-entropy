@@ -5,11 +5,13 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.dao.api;
+package io.nop.biz.crud;
 
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.biz.api.IBizObject;
 import io.nop.core.context.IServiceContext;
 
 public interface IQueryTransformer {
-    void transform(QueryBean filter, String authObjName, String action, IServiceContext context);
+    void transform(QueryBean filter, String authObjName, String action,
+                   IBizObject bizObj, IServiceContext context);
 }

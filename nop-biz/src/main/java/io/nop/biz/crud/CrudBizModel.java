@@ -41,7 +41,6 @@ import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
-import io.nop.dao.api.IQueryTransformer;
 import io.nop.dao.exceptions.UnknownEntityException;
 import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.dao.utils.DaoHelper;
@@ -338,7 +337,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         appendOrderByPk(query);
 
         if (queryTransformer != null)
-            queryTransformer.transform(query, authObjName, action, context);
+            queryTransformer.transform(query, authObjName, action, this.getThisObj(), context);
 
         BizExprHelper.resolveBizExpr(query.getFilter(), context);
         return query;
