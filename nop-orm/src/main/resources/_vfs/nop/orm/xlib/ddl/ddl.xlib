@@ -120,6 +120,15 @@
             </source>
         </ColCommentDef>
 
+        <!-- 输出修改字段所采用的 SQL 语法：有用 modify column，也有用 alter column -->
+        <ColModifyClause outputMode="text">
+            <attr name="col" implicit="true"/>
+            <attr name="dialect" implicit="true"/>
+            <source>
+                <c:unit><![CDATA[ modify column ]]></c:unit>
+            </source>
+        </ColModifyClause>
+
         <DefaultValue outputMode="text">
             <attr name="col" implicit="true"/>
             <attr name="dialect" implicit="true"/>
@@ -275,7 +284,9 @@
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
 
             <source>
-                <c:unit>alter table ${dialect.escapeSQLName(col.ownerEntityModel.tableName)} modify column ${dialect.escapeSQLName(col.code)} </c:unit>
+                <c:unit><![CDATA[alter table ${dialect.escapeSQLName(col.ownerEntityModel.tableName)} ]]></c:unit>
+                <thisLib:ColModifyClause/>
+                <c:unit><![CDATA[ ${dialect.escapeSQLName(col.code)} ]]></c:unit>
                 <thisLib:ColSqlType/>
                 <thisLib:ColNullDef allNullable="${false}"/>
                 <thisLib:DefaultValue allNullable="${false}"/>
@@ -293,5 +304,31 @@
                 <c:unit>alter table ${dialect.escapeSQLName(tableName)} rename column ${dialect.escapeSQLName(colName)} to ${dialect.escapeSQLName(newName)} </c:unit>
             </source>
         </RenameColumn>
+
+        <AddUniqueKey outputMode="text">
+            <attr name="uniqueKey" type="io.nop.orm.model.OrmUniqueKeyModel"/>
+            <attr name="table" type="io.nop.orm.model.IEntityModel"/>
+            <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
+
+            <source>
+                <c:script>
+                    let columns = uniqueKey.getColumnModelsWithTenant(table).map(col => dialect.escapeSQLName(col.code));
+                </c:script>
+                <c:unit><![CDATA[alter table ${dialect.escapeSQLName(table.tableName)} ]]></c:unit>
+                <c:unit><![CDATA[  add constraint ${uniqueKey.constraint} ]]></c:unit>
+                <c:unit><![CDATA[    unique (${columns.join(',')}) ]]></c:unit>
+            </source>
+        </AddUniqueKey>
+
+        <DropUniqueKey outputMode="text">
+            <attr name="uniqueKey" type="io.nop.orm.model.OrmUniqueKeyModel"/>
+            <attr name="table" type="io.nop.orm.model.IEntityModel"/>
+            <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
+
+            <source>
+                <c:unit><![CDATA[alter table ${dialect.escapeSQLName(table.tableName)} ]]></c:unit>
+                <c:unit><![CDATA[  drop constraint ${uniqueKey.constraint} ]]></c:unit>
+            </source>
+        </DropUniqueKey>
     </tags>
 </lib>

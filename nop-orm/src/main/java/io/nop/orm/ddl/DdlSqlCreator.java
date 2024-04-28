@@ -13,6 +13,7 @@ import io.nop.dao.dialect.DialectManager;
 import io.nop.dao.dialect.IDialect;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
+import io.nop.orm.model.OrmUniqueKeyModel;
 import io.nop.xlang.api.XLang;
 
 import java.util.Collection;
@@ -138,5 +139,21 @@ public class DdlSqlCreator {
         args.put("oldCol", oldCol);
         args.put("dialect", dialect);
         return XLang.getTagAction(dmlLibPath, "ModifyColumn").generateText(XLang.newEvalScope(args));
+    }
+
+    public String addUniqueKey(IEntityModel table, OrmUniqueKeyModel uniqueKey) {
+        Map<String, Object> args = new HashMap<>();
+        args.put("table", table);
+        args.put("uniqueKey", uniqueKey);
+        args.put("dialect", dialect);
+        return XLang.getTagAction(dmlLibPath, "AddUniqueKey").generateText(XLang.newEvalScope(args));
+    }
+
+    public String dropUniqueKey(IEntityModel table, OrmUniqueKeyModel uniqueKey) {
+        Map<String, Object> args = new HashMap<>();
+        args.put("table", table);
+        args.put("uniqueKey", uniqueKey);
+        args.put("dialect", dialect);
+        return XLang.getTagAction(dmlLibPath, "DropUniqueKey").generateText(XLang.newEvalScope(args));
     }
 }

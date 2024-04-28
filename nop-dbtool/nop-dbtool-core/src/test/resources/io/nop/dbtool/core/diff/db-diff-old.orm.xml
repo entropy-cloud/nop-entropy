@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm x:schema="/nop/schema/orm/orm.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef"
+     xmlns:orm-gen="orm-gen" xmlns:xpl="xpl">
+
+    <x:post-extends x:override="replace">
+        <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
+    </x:post-extends>
+
+    <entities>
+        <entity name="DevApp" className="DevApp" tableName="dev_app">
+            <columns>
+                <column name="id" code="ID" displayName="ID" mandatory="true" precision="32" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"/>
+                <column name="displayName" code="DISPLAY_NAME" displayName="显示名称" mandatory="true" precision="100"
+                        propId="7" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column name="code" code="CODE" displayName="编码" mandatory="true" precision="50" propId="8"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+                <column name="version" code="VERSION" displayName="版本号" mandatory="true" precision="50" propId="9"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+            </columns>
+            <!-- Note：外键约束还未实现 -->
+            <!--<relations>
+                <to-many cascadeDelete="true" name="dicts"
+                         refEntityName="DevAppDict" refPropName="app"
+                         tagSet="pub,cascade-delete">
+                    <join>
+                        <on leftProp="id" rightProp="appId"/>
+                    </join>
+                </to-many>
+            </relations>-->
+            <unique-keys>
+            </unique-keys>
+            <!-- Note：索引还未实现 -->
+            <!--<indexes>
+                <index name="IDX_DEV_APP_VERSION">
+                    <column name="displayName" desc="true"/>
+                </index>
+            </indexes>-->
+        </entity>
+        <entity name="DevAppDict" className="DevAppDict" tableName="dev_app_dict">
+            <columns>
+                <column name="id" code="ID" displayName="ID" mandatory="true" precision="32" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"/>
+                <column name="appId" code="APP_ID" displayName="所属应用" mandatory="true" precision="32" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+                <column name="displayName" code="DISPLAY_NAME" displayName="显示名称" mandatory="true" precision="100"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column name="name" code="NAME" displayName="名称" mandatory="true" precision="100" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="sort"/>
+                <column name="description" code="DESCRIPTION" displayName="说明" precision="100" propId="7"
+                        stdDataType="string" stdSqlType="JSON"/>
+            </columns>
+            <!-- Note：外键约束还未实现 -->
+            <!--<relations>
+                &lt;!&ndash; 差异：修改 &ndash;&gt;
+                <to-one name="app" refEntityName="DevApp"
+                        refPropName="dicts" tagSet="pub,ref-pub,ref-cascade-delete">
+                    <join>
+                        <on leftProp="appId" rightProp="code"/>
+                    </join>
+                </to-one>
+                &lt;!&ndash; 差异：删除 &ndash;&gt;
+                <to-one name="appOther" refEntityName="DevApp"
+                        refPropName="dicts" tagSet="pub">
+                    <join>
+                        <on leftProp="appId" rightProp="id"/>
+                    </join>
+                </to-one>
+            </relations>-->
+            <unique-keys>
+                <unique-key name="UK_DEV_APP_DICT_APPID_NAME" columns="name" constraint="UK_DEV_APP_DICT_APPID_NAME"/>
+                <unique-key name="UK_DEV_APP_DICT_APPID_DISPLAYNAME" columns="appId,displayName"
+                            constraint="UK_DEV_APP_DICT_APPID_DISPLAYNAME"/>
+            </unique-keys>
+            <!-- Note：索引还未实现 -->
+            <!--<indexes>
+                <index name="IDX_DEV_APP_DICT_DESCRIPTION">
+                    <column name="description" desc="true"/>
+                </index>
+            </indexes>-->
+        </entity>
+        <entity name="DevAppModule" tableName="dev_app_module">
+            <columns>
+                <column code="ID" displayName="ID" mandatory="true" name="id" precision="32" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"/>
+            </columns>
+        </entity>
+    </entities>
+</orm>

@@ -148,6 +148,8 @@ public class JdbcMetaDiscovery {
                 TableSchemaMeta schema = new TableSchemaMeta();
                 schema.setSchema(table_schem);
                 schema.setCatalog(table_catalog);
+
+                ret.add(schema);
             }
             meta.setSchemas(ret);
         }
@@ -474,6 +476,7 @@ public class JdbcMetaDiscovery {
                     String columnName = rs.getString("COLUMN_NAME");
                     String tableName = rs.getString("TABLE_NAME");
 
+                    indexName = uniqueConstraintByIndexName(indexName);
                     tableName = normalizeTableName(tableName);
                     columnName = normalizeColName(columnName);
 
@@ -483,6 +486,7 @@ public class JdbcMetaDiscovery {
 
                     OrmUniqueKeyModel idx = idxMap.computeIfAbsent(indexName, k -> new OrmUniqueKeyModel());
                     idx.setName(indexName);
+                    idx.setConstraint(indexName);
                     idx.addColumn(StringHelper.colCodeToPropName(columnName));
                 }
             }
@@ -491,6 +495,11 @@ public class JdbcMetaDiscovery {
                 if (isPrimary(indexModel, table))
                     continue;
                 table.addUniqueKey(indexModel);
+
+                indexModel.setColumnModels(indexModel.getColumns()
+                                                     .stream()
+                                                     .map(table::getColumn)
+                                                     .collect(Collectors.toList()));
             }
         }
     }
@@ -502,5 +511,18 @@ public class JdbcMetaDiscovery {
                 return false;
         }
         return true;
+    }
+
+    /** 根据索引名称得到唯一键约束名称 */
+    private String uniqueConstraintByIndexName(String indexName) {
+        // 目前已知通过 java.sql.DatabaseMetaData.getIndexInfo
+        // 获取的 H2 的唯一键的约束名（返回结果的 INDEX_NAME 列）会附加
+        // _INDEX_? 形式的后缀，问号处可能是数字，也可能是字母，这里将其去除以恢复原始约束名称。
+        // 注：没有通用接口可以通过 JDBC 获取到真实的约束名称
+        if ("h2".equals(this.dialect.getName())) {
+            indexName = indexName.replaceAll("_(INDEX|index)_.$", "");
+        }
+
+        return normalizeColName(indexName);
     }
 }

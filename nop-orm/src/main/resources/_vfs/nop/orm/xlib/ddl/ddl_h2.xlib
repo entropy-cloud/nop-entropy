@@ -1,5 +1,22 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<lib x:schema="/nop/schema/xlib.xdef" x:extends="ddl.xlib" xmlns:x="/nop/schema/xdsl.xdef">
+<lib x:schema="/nop/schema/xlib.xdef" x:extends="ddl.xlib"
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:thisLib="thisLib" xmlns:c="c">
 
+    <tags>
+        <!-- H2 字段定义语法: https://www.h2database.com/html/grammar.html#column_definition -->
+        <ColCommentDef>
+            <source>
+                <thisLib:ColumnComment col="${col}" xpl:return="colComment"/>
+                <c:if test="${colComment}"><![CDATA[ COMMENT ${dialect.getStringLiteral(colComment)} ]]></c:if>
+            </source>
+        </ColCommentDef>
+
+        <!-- H2 字段修改语法: https://www.h2database.com/html/commands.html#alter_table_alter_column -->
+        <ColModifyClause>
+            <source>
+                <c:unit><![CDATA[ alter column ]]></c:unit>
+            </source>
+        </ColModifyClause>
+    </tags>
 </lib>
