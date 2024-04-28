@@ -8,6 +8,6 @@
     <description xdef:value="string"/>
 
     <option xdef:unique-attr="value" xdef:bean-class="io.nop.api.core.beans.DictOptionBean"
-            label="!string" value="string" code="string" group="string"
+            label="!string" value="string" code="string" group="string" description="string"
             deprecated="!boolean=false" internal="!boolean=false" />
 </dict>
