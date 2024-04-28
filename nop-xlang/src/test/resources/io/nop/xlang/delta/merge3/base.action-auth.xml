@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
+
+    <site id="main" displayName="MAIN">
+        <resource id="test-orm-nop-task" displayName="测试nop-task" icon="ion:grid-outline" resourceType="TOPM"
+                  orderNo="10000" routePath="/test-orm-nop-task" component="layouts/default/index">
+            <children>
+                <resource id="NopTaskDefinition-main" displayName="逻辑流模型定义" orderNo="10001"
+                          i18n-en:displayName="TaskFlow Definition" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/task/pages/NopTaskDefinition/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopTaskDefinition:query" displayName="查询逻辑流模型定义" orderNo="10002"
+                                  resourceType="FNPT">
+                            <permissions>NopTaskDefinition:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopTaskDefinition:mutation" displayName="修改逻辑流模型定义" orderNo="10003"
+                                  resourceType="FNPT">
+                            <permissions>NopTaskDefinition:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+            </children>
+        </resource>
+    </site>
+</auth>

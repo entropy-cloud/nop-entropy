@@ -1,0 +1,5 @@
+<auth xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
+
+    <site id="main" displayName="MAIN">
+    </site>
+</auth>

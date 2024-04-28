@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
+      x:extends="base.action-auth.xml">
+
+    <site id="main" x:override="bounded-merge" />
+</auth>
