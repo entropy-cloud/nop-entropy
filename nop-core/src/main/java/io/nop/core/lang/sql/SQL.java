@@ -536,6 +536,28 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
             }
         }
 
+        public SqlBuilder notIn(String name, Object value) {
+            if (value == null) {
+                return notNull(name);
+            } else if (value instanceof String) {
+                Set<String> values = ConvertHelper.toCsvSet(value, NopException::new);
+                if (values.isEmpty()) {
+                    return alwaysTrue();
+                } else {
+                    return append(name).not().in(values);
+                }
+            } else if (value instanceof Collection) {
+                Collection<?> c = (Collection<?>) value;
+                if (c.isEmpty()) {
+                    return alwaysTrue();
+                } else {
+                    return append(name).not().in(c);
+                }
+            } else {
+                return append(name).append(" not in ").paramEx(value);
+            }
+        }
+
         public SqlBuilder as(String alias) {
             if (!StringHelper.isEmpty(alias))
                 return append(" as ").append(alias).append(' ');
