@@ -16287,6 +16287,12 @@
         ]
       },
       {
+        "name": "resolveQuery",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean"
+        ]
+      },
+      {
         "name": "save",
         "parameterTypes": [
           "java.util.Map",
@@ -16322,6 +16328,12 @@
         "name": "setEntityName",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setQueryTransformer",
+        "parameterTypes": [
+          "io.nop.biz.crud.IQueryTransformer"
         ]
       },
       {
