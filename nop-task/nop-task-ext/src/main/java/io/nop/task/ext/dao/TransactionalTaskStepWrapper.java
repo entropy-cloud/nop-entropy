@@ -6,7 +6,6 @@ import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepReturn;
 import io.nop.task.step.DelegateTaskStep;
-import org.jetbrains.annotations.NotNull;
 
 public class TransactionalTaskStepWrapper extends DelegateTaskStep {
     private final ITransactionTemplate transactionTemplate;
@@ -24,7 +23,6 @@ public class TransactionalTaskStepWrapper extends DelegateTaskStep {
         this.sync = sync;
     }
 
-    @NotNull
     @Override
     public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         if (sync) {
