@@ -186,11 +186,15 @@ public class DeltaMerger implements IDeltaMerger {
     private void overrideMerge(XNode xa, XNode xb, IXDefNode defNode, boolean forPrototype, boolean boundedMerge) {
         mergeAttrs(xa, xb);
         if (!xb.hasChild()) {
-            xa.clearBody();
             // 如果xb有内容，则直接覆盖xa的内容。
             if (xb.hasContent()) {
+                xa.clearBody();
                 xa.content(xb.content());
+            } else {
+                if (boundedMerge)
+                    xa.clearBody();
             }
+            // 如果没有子节点也没有content，则不需要额外处理
         } else {
             if (!xa.hasChild()) {
                 xa.clearBody();
