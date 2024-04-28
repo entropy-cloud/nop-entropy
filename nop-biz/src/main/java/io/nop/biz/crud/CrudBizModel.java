@@ -224,10 +224,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         if (query != null)
             query.setDisableLogicalDelete(false);
 
-        query = prepareFindPageQuery(query, authObjName, METHOD_FIND_COUNT, context);
-        if (prepareQuery != null) {
-            prepareQuery.accept(query, context);
-        }
+        query = prepareFindPageQuery(query, authObjName, METHOD_FIND_COUNT, prepareQuery, context);
 
         IEntityDao<T> dao = dao();
 
@@ -258,12 +255,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                                    @Name("authObjName") String authObjName,
                                    @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery, FieldSelectionBean selection,
                                    IServiceContext context) {
-        query = prepareFindPageQuery(query, authObjName, METHOD_FIND_PAGE, context);
-        if (prepareQuery != null) {
-            prepareQuery.accept(query, context);
-        }
-
-        query = resolveQuery(query);
+        query = prepareFindPageQuery(query, authObjName, METHOD_FIND_PAGE, prepareQuery, context);
 
         IEntityDao<T> dao = dao();
 
@@ -300,6 +292,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     protected QueryBean prepareFindPageQuery(@Name("query") QueryBean query,
                                              @Name("authObjName") String authObjName,
                                              @Name("action") String action,
+                                             @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
                                              IServiceContext context) {
         if (authObjName == null)
             authObjName = getBizObjName();
@@ -338,6 +331,9 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         }
 
         appendOrderByPk(query);
+
+        if(prepareQuery != null)
+            prepareQuery.accept(query,context);
 
         if (queryTransformer != null)
             queryTransformer.transform(query, authObjName, action, this.getThisObj(), context);
@@ -403,10 +399,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                           @Name("authObjName") String authObjName,
                           @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
                           FieldSelectionBean selection, IServiceContext context) {
-        query = prepareFindFirstQuery(query, authObjName, METHOD_FIND_FIRST, context);
-        if (prepareQuery != null) {
-            prepareQuery.accept(query, context);
-        }
+        query = prepareFindFirstQuery(query, authObjName, METHOD_FIND_FIRST, prepareQuery, context);
         T ret = dao().findFirstByQuery(query);
         return ret;
     }
@@ -415,8 +408,9 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     protected QueryBean prepareFindFirstQuery(@Name("query") QueryBean query,
                                               @Name("authObjName") String authObjName,
                                               @Name("action") String action,
+                                              @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
                                               IServiceContext context) {
-        query = prepareFindPageQuery(query, authObjName, action, context);
+        query = prepareFindPageQuery(query, authObjName, action, prepareQuery, context);
         query.setLimit(1);
         return query;
     }
@@ -1073,11 +1067,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         if (query.getLimit() <= 0)
             query.setLimit(CFG_GRAPHQL_MAX_PAGE_SIZE.get());
 
-        query = prepareFindPageQuery(query, authObjName, METHOD_FIND_LIST, context);
-        if (prepareQuery != null) {
-            prepareQuery.accept(query, context);
-        }
-
+        query = prepareFindPageQuery(query, authObjName, METHOD_FIND_LIST, prepareQuery, context);
         List<T> ret = dao().findPageByQuery(query);
         return ret;
     }
