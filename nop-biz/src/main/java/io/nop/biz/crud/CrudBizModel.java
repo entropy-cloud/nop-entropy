@@ -61,7 +61,9 @@ import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.impl.ObjKeyModel;
 import io.nop.xlang.xmeta.impl.ObjTreeModel;
+import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -139,7 +141,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         this.transactionTemplate = transactionTemplate;
     }
 
-    public void setQueryTransformer(IQueryTransformer queryTransformer) {
+    @Inject
+    public void setQueryTransformer(@Named("nopGlobalQueryTransformer") @Nullable IQueryTransformer queryTransformer) {
         this.queryTransformer = queryTransformer;
     }
 
