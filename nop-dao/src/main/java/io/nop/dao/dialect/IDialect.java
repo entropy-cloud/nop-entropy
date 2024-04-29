@@ -27,6 +27,7 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Set;
 
 public interface IDialect extends IComponentModel {
     String getName();
@@ -183,6 +184,8 @@ public interface IDialect extends IComponentModel {
     IDataParameterBinder getDataParameterBinder(StdDataType stdType, StdSqlType sqlType);
 
     ISQLFunction getFunction(String fnName);
+
+    Set<String> getFunctionNames();
 
     Object jdbcGet(ResultSet rs, int index);
 

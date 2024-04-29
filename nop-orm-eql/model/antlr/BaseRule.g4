@@ -88,7 +88,8 @@ unreservedWord_:
     | VALUE | POSITION | ORDER
     | LEVEL | SESSION |COUNT |COALESCE|YEAR|MONTH
     | LOWER | UPPER | ZONE |WORK
-    | RECURSIVE | CURRENT_USER | USER
+    | RECURSIVE | CURRENT_USER | USER | DATE | OCTET_LENGTH
+    | CURRENT_DATE | BIT_LENGTH
     ;
 
 // variable
@@ -276,7 +277,8 @@ sqlRegularFunction
     ;
 
 sqlIdentifier_func_
-    : sqlIdentifier_ | IF | CURRENT_TIMESTAMP | LOCALTIME | LOCALTIMESTAMP | INTERVAL
+    : sqlIdentifier_ | IF | CURRENT_TIMESTAMP | LOCALTIME | LOCALTIMESTAMP | INTERVAL | EXTRACT | NULLIF | TRIM
+    | SUBSTRING
     ;
 
 sqlDecorators_: e=sqlDecorator (COMMA_ e=sqlDecorator)*;

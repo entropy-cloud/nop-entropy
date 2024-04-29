@@ -10,6 +10,9 @@ package io.nop.orm.eql;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.JSON;
 import io.nop.core.lang.sql.SQL;
+import io.nop.dao.dialect.DialectManager;
+import io.nop.dao.dialect.IDialect;
+import io.nop.dao.dialect.function.ISQLFunction;
 import io.nop.orm.AbstractOrmTestCase;
 import io.nop.orm.eql.ast.SqlProgram;
 import io.nop.orm.eql.compile.ISqlCompileContext;
@@ -194,5 +197,38 @@ public class TestEqlCompiler extends AbstractOrmTestCase {
         } catch (NopException e) {
             assertEquals(ERR_EQL_UNKNOWN_ENTITY_NAME.getErrorCode(), e.getErrorCode());
         }
+    }
+
+    @Test
+    public void testFunctions() {
+        IDialect dialect = DialectManager.instance().getDialect("h2");
+        for (String funcName : dialect.getFunctionNames()) {
+            ISQLFunction func = dialect.getFunction(funcName);
+            String sqlText = dialect.getSelectFromDualSql(getFuncSql(func));
+            try {
+                compile(sqlText);
+            } catch (NopException e) {
+                e.addXplStack(sqlText);
+                throw e;
+            }
+        }
+    }
+
+    String getFuncSql(ISQLFunction func) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(func.getName());
+        sb.append('(');
+        for (int i = 0, n = func.getMinArgCount(); i < n; i++) {
+            if (i != 0) {
+                sb.append(',');
+            }
+            sb.append("NULL");
+        }
+        sb.append(')');
+
+        if (func.isOnlyForWindowExpr()) {
+            sb.append(" OVER (PARTITION BY 1 ORDER BY 1) \n");
+        }
+        return sb.toString();
     }
 }

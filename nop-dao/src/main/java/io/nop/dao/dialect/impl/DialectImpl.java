@@ -570,6 +570,11 @@ public class DialectImpl implements IDialect {
     }
 
     @Override
+    public Set<String> getFunctionNames() {
+        return functions.keySet();
+    }
+
+    @Override
     public Object jdbcGet(ResultSet rs, int index) {
         try {
             Object obj = rs.getObject(index + 1);
