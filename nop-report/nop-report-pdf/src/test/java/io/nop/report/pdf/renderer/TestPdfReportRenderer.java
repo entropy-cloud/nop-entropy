@@ -9,7 +9,7 @@ package io.nop.report.pdf.renderer;
 
 import com.lowagie.text.PageSize;
 import com.lowagie.text.pdf.PdfWriter;
-import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+//import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.resource.IResource;
@@ -51,34 +51,34 @@ public class TestPdfReportRenderer extends JunitBaseTestCase {
 
         IResource resource = getTargetResource("gen/test.pdf");
         OutputStream os = resource.getOutputStream();
-        try {
-            PdfRendererBuilder builder = new PdfRendererBuilder();
-            builder.withUri("javaOpenSource\\src\\main\\resources\\testOpenLeagueoflegends1.pdf");
-            builder.toStream(os);
-            builder.withW3cDocument(new W3CDom().fromJsoup(document), "/");
-            addFont(builder, "C:\\Windows\\Fonts");
-          //  builder.run();
-        } finally {
-            IoHelper.safeCloseObject(os);
-        }
+//        try {
+//            PdfRendererBuilder builder = new PdfRendererBuilder();
+//            builder.withUri("javaOpenSource\\src\\main\\resources\\testOpenLeagueoflegends1.pdf");
+//            builder.toStream(os);
+//            builder.withW3cDocument(new W3CDom().fromJsoup(document), "/");
+//            addFont(builder, "C:\\Windows\\Fonts");
+//          //  builder.run();
+//        } finally {
+//            IoHelper.safeCloseObject(os);
+//        }
     }
-
-    private static void addFont(PdfRendererBuilder builder, String dir) {
-        File f = new File(dir);
-        if (f.isDirectory()) {
-            File[] files = f.listFiles(new FilenameFilter() {
-                public boolean accept(File dir, String name) {
-                    String lower = name.toLowerCase();
-//                    lower.endsWith(".otf") ||  对otf库的字体支持有问题，暂时屏蔽
-                    return lower.endsWith(".ttf") || lower.endsWith(".ttc");
-                }
-            });
-            for (File subFile : files) {
-                String fontFamily = subFile.getName().substring(0, subFile.getName().lastIndexOf("."));
-                builder.useFont(subFile, fontFamily);
-            }
-        }
-    }
+//
+//    private static void addFont(PdfRendererBuilder builder, String dir) {
+//        File f = new File(dir);
+//        if (f.isDirectory()) {
+//            File[] files = f.listFiles(new FilenameFilter() {
+//                public boolean accept(File dir, String name) {
+//                    String lower = name.toLowerCase();
+////                    lower.endsWith(".otf") ||  对otf库的字体支持有问题，暂时屏蔽
+//                    return lower.endsWith(".ttf") || lower.endsWith(".ttc");
+//                }
+//            });
+//            for (File subFile : files) {
+//                String fontFamily = subFile.getName().substring(0, subFile.getName().lastIndexOf("."));
+//                builder.useFont(subFile, fontFamily);
+//            }
+//        }
+//    }
 
     @Test
     public void testPdfSimple() {
