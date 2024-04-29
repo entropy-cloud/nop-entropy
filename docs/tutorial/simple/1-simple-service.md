@@ -160,5 +160,5 @@ service Demo{
 
 设置了nop.debug=true的时候，Nop平台会以调试模式启动。此时可以访问如下链接来获取所有服务定义：
 
-1. /p/DevDoc\_\_graphql
-2. /p/DevDoc\_\_beans
+1. `/p/DevDoc__graphql`
+2. `/p/DevDoc__beans`

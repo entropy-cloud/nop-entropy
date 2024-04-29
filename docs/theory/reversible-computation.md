@@ -308,7 +308,7 @@ React组件的核心是render函数，它的设计参考了后端常见的模板
 
 ```javascript
 render(){
-   return new VNode("button", {onClick: this.action, 
+   return new VNode("button", {onClick: this.action,
           content: "Hello "+ this.props.name + ":" + this.state.count });
 }
 ```
@@ -350,4 +350,4 @@ $$
 - gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 - github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
 - 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
-- [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
+- [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV14u411T715/)

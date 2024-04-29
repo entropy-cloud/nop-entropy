@@ -19,3 +19,7 @@ Spring集成配置参见[spring.md](spring.md)
 ## Quarkus集成
 
 Quarkus集成配置参见[quarkus.md](quarkus.md)
+
+## Solon集成
+
+与国产微服务框架Solon的集成配置参见[nop-on-solon.md](integration/nop-on-solon.md)

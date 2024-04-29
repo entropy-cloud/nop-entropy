@@ -419,6 +419,9 @@ IContext主要是提供异步上下文，并包含一些最简单的全局信息
 
 一般情况下一个请求过来，会创建一个IContext，绑定到某个执行任务线程，然后GraphQL引擎创建IServiceContext，并引用了先前的IContext，带上了更多的信息。因此对于一个请求来讲，会有一个IServiceContext以及一个IContext。
 
+### 33. EQL查询语言不支持`cast(value as date)`这种语法怎么办
+可以直接用date(field)函数。具体有哪些函数，可以去看dialect.xml中函数的定义，还可以定制dialect.xml来增加函数定义。通过template函数可以将函数定义转换为特定的SQL语法。
+
 ## 部署问题
 
 ## 设计问题

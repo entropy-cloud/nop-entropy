@@ -15229,6 +15229,62 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": true,
+        "name": "daoProvider"
+      }
+    ],
+    "methods": [
+      {
+        "name": "getUserContextAsync",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getUserSessionId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "removeUserContextAsync",
+        "parameterTypes": [
+          "io.nop.auth.core.login.SessionInfo"
+        ]
+      },
+      {
+        "name": "saveUserContextAsync",
+        "parameterTypes": [
+          "io.nop.api.core.auth.IUserContext"
+        ]
+      }
+    ],
+    "name": "io.nop.auth.service.login.DaoUserContextCache",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.login.DaoUserContextCache__aop",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
         "name": "auditService"
       },
       {
@@ -16194,6 +16250,16 @@
         ]
       },
       {
+        "name": "prepareFindFirstQuery",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.function.BiConsumer",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "prepareFindPageQuery",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean",
@@ -16207,6 +16273,16 @@
           "io.nop.api.core.beans.query.QueryBean",
           "java.lang.String",
           "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "prepareFindPageQuery",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.function.BiConsumer",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -22396,6 +22472,16 @@
         "parameterTypes": [
           "java.util.List",
           "int"
+        ]
+      },
+      {
+        "name": "leftjoinMerge",
+        "parameterTypes": [
+          "java.util.List",
+          "java.util.List",
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Object"
         ]
       },
       {
@@ -30799,6 +30885,12 @@
         "parameterTypes": []
       },
       {
+        "name": "getDialectForQuerySpace",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "newTransaction",
         "parameterTypes": [
           "java.lang.String"
@@ -37705,6 +37797,45 @@
       }
     ],
     "name": "io.nop.orm.impl.OrmTemplateImpl",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      }
+    ],
+    "methods": [
+      {
+        "name": "init",
+        "parameterTypes": []
+      },
+      {
+        "name": "setJdbcTemplate",
+        "parameterTypes": [
+          "io.nop.dao.jdbc.IJdbcTemplate"
+        ]
+      },
+      {
+        "name": "setOrmSessionFactory",
+        "parameterTypes": [
+          "io.nop.orm.IOrmSessionFactory"
+        ]
+      },
+      {
+        "name": "splitByQuerySpace",
+        "parameterTypes": [
+          "java.util.Collection"
+        ]
+      }
+    ],
+    "name": "io.nop.orm.initialize.AddTenantColInitializer",
     "unsafeAllocated": false
   },
   {

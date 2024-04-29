@@ -63,7 +63,7 @@ class BankAccountEx extends BankAccount{
 以上配置表示保持原有的实体名不变，将实体所对应的Java实体类改成BankAccountExt。这样的话，如果我们此前编程中创建实体对象的时候都是使用如下方法
 
 ```javascript
- BankAccount account = dao.newEntity(); 
+ BankAccount account = dao.newEntity();
  或者
  BankAccount acount = ormTemplate.newEntity(BankAccount.class.getName());
 ```
@@ -83,10 +83,10 @@ BankAccount parentAccount = account.getParent(); // parent返回的是BankAccoun
   <entity name="bank.BankAccount" className="mybank.BankAccountEx"  >
     <columns>
        <column name="refAccountId" code="REF_ACCOUNT_ID" sqlType="VARCHAR" length="20" />
-       <column name="phone3" code="PHONE3" x:override="remove" />        
+       <column name="phone3" code="PHONE3" x:override="remove" />
     </columns>
   </entity>
-</orm>  
+</orm>
 ```
 
 根节点上的`x:extends="super"`表示继承基础产品中的ORM模型文件（如果不写，则表示新建一个模型，完全放弃此前的配置）。字段phone3上标记了`x:override="remove"`，它表示从基础模型中删除这个字段。
@@ -159,7 +159,7 @@ Scala的这个trait机制后来被Rust语言继承并发扬光大，成为这个
 <!-- /_delta/default/bank/orm/app.orm.xml -->
 <orm x:extends="super">
   ...
-</orm>  
+</orm>
 ```
 
 因为Delta定制并不会改变模型路径，所以所有根据模型路径和对象名建立的概念网络都不会因为定制而产生扭曲和移动，它保证了**定制是一种完全局域化的操作**。可以想见，如果是一般的面向对象继承，在不修改源码的情况下我们不可能在局部把硬编码的基类名替换成派生类的类名，这样就只能扩大重载范围，比如重载整个函数，替换整个页面等。很多情况下，我们都无法有效控制局部需求变化的影响范围，我们还为这种现象起了一个名字：抽象泄露。一旦抽象泄露，就可能出现影响范围不断扩大，最终甚至导致架构崩溃。
@@ -177,7 +177,7 @@ App = Delta x-extends Generator<DSL>
 * x-extends是一个词，它表示对面向对象的extends机制的一种扩展。有些人可能把它误认为x减去extends，结果导致非常困惑。
 
 * `Generator<DSL>`是一种类似泛型的写法，它表示Generator采用类似[C++模板元编程](https://zhuanlan.zhihu.com/p/137853957)的技术，在编译期将DSL作为数据对象进行加工转换，动态生成Delta所将要覆盖的基类。
-  
+
   > 一个复杂的结构化的类型声明如果进一步引入执行语义就会自动成为DSL（Domain Specific Language)，所以Generator相当于是一个模板宏函数，它接受一个类似类型定义的DSL，在编译期动态生成一个基类。
 
 Docker镜像的整体构造模式可以看作是
@@ -286,8 +286,8 @@ Delta差量的思想其实在数据处理领域并不罕见。比如说
   "/@name"： "MyEntity",
   "/@table": "MY_ENTITY",
   "/columns/column[@name='status']/@name": "status",
-  "/columns/column[@name='status']/@sqlType": "VARCHAR" 
-  "/columns/column[@name='status']/@length": 10 
+  "/columns/column[@name='status']/@sqlType": "VARCHAR"
+  "/columns/column[@name='status']/@length": 10
 }
 ```
 
@@ -330,10 +330,10 @@ Delta差量的思想其实在数据处理领域并不罕见。比如说
 首先，我们可以证明:如果一个向量的每个维度都满足结合律，则整个向量之间的运算也满足结合律。
 
 ```
-([A1, A2] ⊕ [B1,B2]) ⊕ [C1,C2] = [A1 ⊕  B1, A2 ⊕ B2] ⊕ [C1,C2] 
-                                = [(A1 ⊕ B1) ⊕ C1, (A2 ⊕ B2) ⊕ C2] 
+([A1, A2] ⊕ [B1,B2]) ⊕ [C1,C2] = [A1 ⊕  B1, A2 ⊕ B2] ⊕ [C1,C2]
+                                = [(A1 ⊕ B1) ⊕ C1, (A2 ⊕ B2) ⊕ C2]
                                 = [A1 ⊕ (B1 ⊕ C1), A2 ⊕ (B2 ⊕ C2)]
-                                = [A1, A2] ⊕ ([B1, B2] ⊕ [C1,C2])  
+                                = [A1, A2] ⊕ ([B1, B2] ⊕ [C1,C2])
 ```
 
 考虑到上一节中我们对于领域坐标系的定义，为了证明Delta合并满足结合律，**我们只需要证明在单个坐标处的合并运算满足结合律即可**。
@@ -349,7 +349,7 @@ Delta差量的思想其实在数据处理领域并不罕见。比如说
 另外一个稍微复杂一些的结合运算是类似AOP的运算，我们可以在基础结构的前面和后面追加一些内容。
 
 ```
- B = a super b,  C = c super d  
+ B = a super b,  C = c super d
 ```
 
 B通过super引用基础结构，然后在基础结构的前面增加a, 而在后面增加b
@@ -377,8 +377,8 @@ B通过super引用基础结构，然后在基础结构的前面增加a, 而在�
 在完全不考虑表A中具有什么字段的前提下，我们在逻辑空间中可以合并多个对表A进行操作的Delta，例如
 
 ```
-表A(增加字段A,修改字段B的类型为VARCHAR，删除字段C) + 表A(_,修改字段B的类型为INTEGER，_) = 
-    表A(增加字段A,修改字段B的类型为INTEGER，删除字段C)  
+表A(增加字段A,修改字段B的类型为VARCHAR，删除字段C) + 表A(_,修改字段B的类型为INTEGER，_) =
+    表A(增加字段A,修改字段B的类型为INTEGER，删除字段C)
 ```
 
 > 这种做法有些类似于函数式语言中的延迟处理。函数式语言中  range(0, Infinity).take(5).take(2)的第一步就无法执行，但实际上take(5)和take(2)可以无视这一点，先行复合在一起，然后再作用到range(0,Infinity)上得到有限的结果。
@@ -417,4 +417,4 @@ Nop平台中的Delta合并算法规定，所有的差量合并完毕之后，检
 - gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 - github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
 - 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
-- [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
+- [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV14u411T715/)

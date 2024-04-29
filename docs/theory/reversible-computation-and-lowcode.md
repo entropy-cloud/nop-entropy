@@ -210,4 +210,4 @@ LowCode并不等价于让不懂逻辑的人写代码（虽然很多产品试图�
 - gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 - github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
 - 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
-- [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
+- [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV14u411T715/)

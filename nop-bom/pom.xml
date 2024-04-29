@@ -372,12 +372,6 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
-                <artifactId>nop-report-spl</artifactId>
-                <version>${nop-entropy.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-file-core</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>

@@ -289,3 +289,10 @@ v1,v2,v3上需要增加3个单位箭头，而f1和f2的复合需要被定义为�
 2. 如果GPT能够准确的生成代码，那么它一定能够理解元模型和差量模型。元模型可以帮助AI在尽量少的信息输入情况下精确掌握模型约束条件。而差量模型使得增量式开发成为可能。
 
 3. 在训练的时候我们可以有意识的使用元模型和差量模型来训练，这样可以从少量的样本迅速衍生得到大量具有内在一致性的训练样本。差量化训练类似于数值空间的梯度下降学习。
+
+基于可逆计算理论设计的低代码平台NopPlatform已开源：
+
+- gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
+- github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
+- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV14u411T715/)
