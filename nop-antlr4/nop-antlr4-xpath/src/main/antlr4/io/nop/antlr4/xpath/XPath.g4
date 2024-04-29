@@ -1,3 +1,0 @@
-grammar XPath;
-
-import XPathBaseParser;
