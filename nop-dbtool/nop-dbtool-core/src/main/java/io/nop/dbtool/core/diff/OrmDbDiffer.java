@@ -114,27 +114,34 @@ public class OrmDbDiffer {
         }
 
         Map<DiffType, List<DiffDdl>> resultsMap = new HashMap<>();
-        entitiesDiff.getKeyedElementDiffs().forEach((entityName, entityDiff) -> {
-            DiffType diffType = entityDiff.getDiffType();
-            IEntityModel oldEntity = (IEntityModel) entityDiff.getOldValue();
-            IEntityModel newEntity = (IEntityModel) entityDiff.getNewValue();
 
-            List<DiffDdl> results = resultsMap.computeIfAbsent(diffType, k -> new ArrayList<>());
-            switch (diffType) {
-                // 对表的新增
-                case add: {
-                    String sql = ddlSqlCreator.createTable(newEntity);
-                    results.add(new DiffDdl(newEntity, diffType, sql));
-                    break;
-                }
-                // 对表的删除
-                case remove: {
-                    String sql = ddlSqlCreator.dropTable(oldEntity, true);
-                    results.add(new DiffDdl(oldEntity, diffType, sql));
-                    break;
-                }
-                // 对字段的增删改
-                case update: {
+        // Note：在对比的数据是集合时，若某一方为空或 null，则差异类别为 replace，即，用一方直接替换另一方
+        if (entitiesDiff.getDiffType() == DiffType.replace) {
+            if (entitiesDiff.getOldValue() != null) {
+                ((KeyedList<IEntityModel>) entitiesDiff.getOldValue()).forEach((oldEntity) -> {
+                    DiffDdl[] diffDdls = createEntityDiffDdls(DiffType.remove, oldEntity, null);
+                    addDiffDdlsToMap(resultsMap, diffDdls);
+                });
+            }
+
+            if (entitiesDiff.getNewValue() != null) {
+                ((KeyedList<IEntityModel>) entitiesDiff.getNewValue()).forEach((newEntity) -> {
+                    DiffDdl[] diffDdls = createEntityDiffDdls(DiffType.add, null, newEntity);
+                    addDiffDdlsToMap(resultsMap, diffDdls);
+                });
+            }
+        } else {
+            entitiesDiff.getKeyedElementDiffs().forEach((entityName, entityDiff) -> {
+                DiffType diffType = entityDiff.getDiffType();
+                IEntityModel oldEntity = (IEntityModel) entityDiff.getOldValue();
+                IEntityModel newEntity = (IEntityModel) entityDiff.getNewValue();
+
+                if (diffType != DiffType.update) {
+                    DiffDdl[] diffDdls = createEntityDiffDdls(diffType, oldEntity, newEntity);
+                    addDiffDdlsToMap(resultsMap, diffDdls);
+                } else {
+                    List<DiffDdl> results = resultsMap.computeIfAbsent(diffType, k -> new ArrayList<>());
+
                     IDiffValue uniqueKeysDiff = getPropDiff(entityDiff, "uniqueKeys");
                     Map<DiffType, List<DiffDdl>> uniqueKeysDiffDdl = createUniqueKeysDiffDdl(newEntity, uniqueKeysDiff);
 
@@ -149,11 +156,9 @@ public class OrmDbDiffer {
                     results.addAll(columnsDiffDdl.getOrDefault(DiffType.update, new ArrayList<>()));
                     // 最后添加唯一键
                     results.addAll(uniqueKeysDiffDdl.getOrDefault(DiffType.add, new ArrayList<>()));
-
-                    break;
                 }
-            }
-        });
+            });
+        }
 
         List<DiffDdl> results = new ArrayList<>();
         // 先新增表
@@ -176,6 +181,7 @@ public class OrmDbDiffer {
     private Map<DiffType, List<DiffDdl>> createColumnsDiffDdl(
             IEntityModel newEntityModel, IDiffValue columnsDiff
     ) {
+        // Note：不处理表字段未定义的情况，不允许表为空结构
         if (columnsDiff == null) {
             return new HashMap<>();
         }
@@ -244,6 +250,23 @@ public class OrmDbDiffer {
         for (DiffDdl diffDdl : diffDdls) {
             map.computeIfAbsent(diffDdl.type, k -> new ArrayList<>()).add(diffDdl);
         }
+    }
+
+    /** 注意，{@link DiffType#update} 需单独处理 */
+    private DiffDdl[] createEntityDiffDdls(DiffType diffType, IEntityModel oldEntity, IEntityModel newEntity) {
+        switch (diffType) {
+            // 对表的新增
+            case add: {
+                String sql = ddlSqlCreator.createTable(newEntity);
+                return new DiffDdl[] { new DiffDdl(newEntity, diffType, sql) };
+            }
+            // 对表的删除
+            case remove: {
+                String sql = ddlSqlCreator.dropTable(oldEntity, true);
+                return new DiffDdl[] { new DiffDdl(oldEntity, diffType, sql) };
+            }
+        }
+        return new DiffDdl[0];
     }
 
     private DiffDdl[] createColumnDiffDdls(
