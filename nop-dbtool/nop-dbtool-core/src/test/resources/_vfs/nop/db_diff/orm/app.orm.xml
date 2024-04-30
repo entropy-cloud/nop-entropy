@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm x:schema="/nop/schema/orm/orm.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef"
+     xmlns:orm-gen="orm-gen" xmlns:xpl="xpl">
+
+    <x:post-extends x:override="replace">
+        <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
+    </x:post-extends>
+
+    <entities>
+        <entity name="DevApp" className="io.nop.orm.support.DynamicOrmEntity" tableName="dev_app">
+            <columns>
+                <column name="id" code="ID" displayName="ID" mandatory="true" precision="32" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"/>
+                <column name="displayName" code="DISPLAY_NAME" displayName="显示名称" mandatory="true" precision="100"
+                        propId="7" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column name="code" code="CODE" displayName="编码" mandatory="true" precision="50" propId="8"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+                <column name="version" code="VERSION1" displayName="版本号" mandatory="true" precision="50" propId="9"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+            </columns>
+        </entity>
+        <entity name="DevAppDict" className="io.nop.orm.support.DynamicOrmEntity" tableName="dev_app_dict">
+            <columns>
+                <column name="id" code="ID" displayName="ID" mandatory="true" precision="32" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"/>
+                <column name="appId" code="APP_ID" displayName="所属应用" mandatory="true" precision="32" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+                <column name="displayName" code="DISPLAY_NAME" displayName="显示名称" mandatory="true" precision="100"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column name="name" code="NAME" displayName="名称" mandatory="true" precision="100" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="sort"/>
+                <column name="description" code="DESCRIPTION" displayName="说明" precision="100" propId="7"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+            </columns>
+            <unique-keys>
+                <unique-key name="UK_DEV_APP_DICT_APPID_NAME" columns="name" constraint="UK_DEV_APP_DICT_APPID_NAME"/>
+                <unique-key name="UK_DEV_APP_DICT_APPID_DISPLAYNAME" columns="appId,displayName"
+                            constraint="UK_DEV_APP_DICT_APPID_DISPLAYNAME"/>
+            </unique-keys>
+        </entity>
+        <entity name="DevAppModule" className="io.nop.orm.support.DynamicOrmEntity" tableName="dev_app_module">
+            <columns>
+                <column code="ID" displayName="ID" mandatory="true" name="id" precision="32" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"/>
+            </columns>
+        </entity>
+    </entities>
+</orm>

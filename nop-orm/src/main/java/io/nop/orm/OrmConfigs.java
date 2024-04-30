@@ -51,6 +51,11 @@ public interface OrmConfigs {
     IConfigReference<Boolean> CFG_INIT_DATABASE_SCHEMA = varRef(s_loc,"nop.orm.init-database-schema",
             Boolean.class, false);
 
+    /** 注意，数据库自动升级由 DataBaseUpgradeInitializer 提供实现，在工程内需引入依赖 io.github.entropy-cloud:nop-dbtool-core */
+    @Description("根据ORM模型与数据库的差异自动升级数据库。注意，自动升级有风险，请不要在生产环境开启，并注意备份数据")
+    IConfigReference<Boolean> CFG_DB_DIFFER_AUTO_UPGRADE_DATABASE = varRef(s_loc,"nop.orm.db-differ.auto-upgrade-database",
+            Boolean.class, false);
+
     @Description("启动的时候自动校验所有sql-lib中管理的SQL格式正确")
     IConfigReference<Boolean> CFG_CHECK_ALL_SQL_LIB_WHEN_INIT =
             varRef(s_loc,"nop.orm.check-all-sql-lib-when-init", Boolean.class, false);

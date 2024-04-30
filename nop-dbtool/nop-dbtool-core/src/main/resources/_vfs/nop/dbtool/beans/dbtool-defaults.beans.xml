@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd"
+       xmlns:ioc="ioc">
+
+    <!-- 通过 ioc:after 确保在 DataBaseSchemaInitializer 完成数据库初始化后再执行 -->
+    <bean id="io.nop.dbtool.core.initialize.DataBaseUpgradeInitializer" ioc:type="@bean:id"
+          ioc:after="nopOrmSessionFactory,io.nop.orm.initialize.DataBaseSchemaInitializer">
+        <ioc:condition>
+            <if-property name="nop.orm.db-differ.auto-upgrade-database"/>
+        </ioc:condition>
+    </bean>
+</beans>

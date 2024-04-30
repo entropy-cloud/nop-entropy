@@ -1,0 +1,13 @@
+nop:
+  core:
+    module:
+      # \u4EC5\u542F\u7528\u4E0E\u6D4B\u8BD5\u7528\u4F8B\u76F8\u5173\u7684\u6A21\u5757\uFF0C\u4EE5\u907F\u514D\u52A0\u8F7D\u5176\u4ED6\u6A21\u5757\u8D44\u6E90\uFF0C\u9020\u6210\u6D4B\u8BD5\u5E72\u6270
+      enabled-module-names: nop/db_diff
+  ioc:
+    app-beans-container:
+      # \u907F\u514D\u4F7F\u7528\u61D2\u52A0\u8F7D\u6A21\u5F0F\uFF0C\u786E\u4FDD\u6D4B\u8BD5\u7528\u4F8B\u5F00\u59CB\u524D\uFF0C\u76F8\u5173\u7684 bean \u5DF2\u5C31\u7EEA
+      start-mode: DEFAULT
+  orm:
+    init-database-schema: true
+    db-differ:
+      auto-upgrade-database: true
