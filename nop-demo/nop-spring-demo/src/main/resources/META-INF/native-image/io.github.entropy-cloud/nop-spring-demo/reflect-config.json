@@ -6863,6 +6863,232 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [
+      {
+        "name": "addRole",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "clearDirty",
+        "parameterTypes": []
+      },
+      {
+        "name": "dirty",
+        "parameterTypes": []
+      },
+      {
+        "name": "getAccessToken",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDeptId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDeptName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLastAccessTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLocale",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLoginType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getNickName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOpenId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPrimaryRole",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRefreshToken",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRoles",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSessionId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTenantId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTimeZone",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUserId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUserName",
+        "parameterTypes": []
+      },
+      {
+        "name": "isUserInAnyRole",
+        "parameterTypes": [
+          "java.util.Collection"
+        ]
+      },
+      {
+        "name": "isUserInRole",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "markDirty",
+        "parameterTypes": []
+      },
+      {
+        "name": "removeRole",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "serializeToJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setAccessToken",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setAttr",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setAttrs",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setDeptId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDeptName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setLastAccessTime",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "setLocale",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setLoginType",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setNickName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setOpenId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setPrimaryRole",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRefreshToken",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRoles",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      },
+      {
+        "name": "setSessionId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTenantId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTimeZone",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUserId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUserName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.auth.core.login.UserContextImpl",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [],
     "name": "io.nop.auth.core.model.ActionAuthModel",
     "unsafeAllocated": false
@@ -28241,6 +28467,10 @@
         ]
       },
       {
+        "name": "getFunctionNames",
+        "parameterTypes": []
+      },
+      {
         "name": "getGeometryTypeHandler",
         "parameterTypes": []
       },
@@ -28616,6 +28846,10 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "getFunctionNames",
+        "parameterTypes": []
       },
       {
         "name": "getGeometryTypeHandler",

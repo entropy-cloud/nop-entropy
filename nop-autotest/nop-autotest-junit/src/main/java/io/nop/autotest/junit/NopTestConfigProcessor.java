@@ -13,11 +13,10 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.autotest.core.util.TestClock;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.resource.ResourceHelper;
+import io.nop.config.source.IConfigSource;
+import io.nop.config.source.ResourceConfigSourceLoader;
 import io.nop.core.resource.impl.ClassPathResource;
 import io.nop.dao.DaoConfigs;
-
-import java.util.Properties;
 
 import static io.nop.autotest.core.AutoTestConfigs.CFG_AUTOTEST_DISABLE_SNAPSHOT;
 import static io.nop.core.unittest.BaseTestCase.setTestConfig;
@@ -35,7 +34,7 @@ import static io.nop.orm.OrmConfigs.CFG_INIT_DATABASE_SCHEMA;
 public class NopTestConfigProcessor {
 
     public void process(NopTestConfig config) {
-        if(config.useTestClock()){
+        if (config.useTestClock()) {
             CoreMetrics.registerClock(new TestClock());
         }
         if (config.localDb()) {
@@ -46,18 +45,19 @@ public class NopTestConfigProcessor {
             setTestConfig(DaoConfigs.CFG_DATASOURCE_JDBC_URL, "jdbc:h2:mem:" + StringHelper.generateUUID() + ";CASE_INSENSITIVE_IDENTIFIERS=TRUE");
         }
 
-        if(config.disableSnapshot()){
-            setTestConfig(CFG_AUTOTEST_DISABLE_SNAPSHOT,true);
+        if (config.disableSnapshot()) {
+            setTestConfig(CFG_AUTOTEST_DISABLE_SNAPSHOT, true);
         }
 
         setTestConfig(CFG_IOC_APP_BEANS_CONTAINER_START_MODE, config.beanContainerStartMode().name());
 
         if (!config.testConfigFile().isEmpty()) {
             ClassPathResource resource = new ClassPathResource(config.testConfigFile());
-            Properties props = ResourceHelper.readProperties(resource);
-            for (Object name : props.keySet()) {
-                setTestConfig((String) name, props.get(name));
-            }
+
+            IConfigSource configSource = new ResourceConfigSourceLoader(resource).loadConfigSource(null);
+            configSource.getConfigValues().forEach((name, vl) -> {
+                setTestConfig(name, vl.getValue());
+            });
         }
 
         setTestConfig(CFG_IOC_AUTO_CONFIG_ENABLED, config.enableAutoConfig());

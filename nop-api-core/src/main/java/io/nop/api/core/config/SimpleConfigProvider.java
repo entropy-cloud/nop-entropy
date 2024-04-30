@@ -11,6 +11,8 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.util.StaticValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.Set;
@@ -24,6 +26,7 @@ import static io.nop.api.core.ApiErrors.ERR_CONFIG_VAR_CONVERT_TO_TYPE_FAIL;
 
 @SuppressWarnings("PMD.TooManyStaticImports")
 public class SimpleConfigProvider implements IConfigProvider {
+    static final Logger LOG = LoggerFactory.getLogger(SimpleConfigProvider.class);
     private final Map<String, DefaultConfigReference<?>> refs = new ConcurrentHashMap<>();
 
     @Override
@@ -110,13 +113,14 @@ public class SimpleConfigProvider implements IConfigProvider {
     public <T> IConfigReference<T> getConfigReference(String varName, Class<T> clazz, T defaultValue, SourceLocation loc) {
         IConfigReference<?> ref = getConfigRef(loc, varName, clazz, defaultValue);
 
-        if (ref.getValueType() != clazz)
-            throw new NopException(ERR_CONFIG_VALUE_TYPE_NOT_ALLOW_CHANGE)
-                    .param(ARG_VAR, varName)
-                    .param(ARG_SRC_TYPE, ref.getValueType())
-                    .param(ARG_TARGET_TYPE, clazz);
+        if (ref.getValueType() == clazz)
+            return (IConfigReference<T>) ref;
 
-        return (IConfigReference<T>) ref;
+        if (clazz != String.class && clazz != Object.class && !clazz.isAssignableFrom(ref.getValueType())) {
+            LOG.warn("nop.config.var-type-not-unique:var={},type={},defType={}", varName, clazz, ref.getValueType());
+        }
+
+        return new CastTypeConfigReference<>(ref, clazz);
     }
 
     @Override

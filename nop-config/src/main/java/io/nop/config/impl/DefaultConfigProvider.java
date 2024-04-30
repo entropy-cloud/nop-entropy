@@ -8,6 +8,7 @@
 package io.nop.config.impl;
 
 import io.nop.api.core.ApiConfigs;
+import io.nop.api.core.config.CastTypeConfigReference;
 import io.nop.api.core.config.DefaultConfigReference;
 import io.nop.api.core.config.IConfigChangeListener;
 import io.nop.api.core.config.IConfigProvider;

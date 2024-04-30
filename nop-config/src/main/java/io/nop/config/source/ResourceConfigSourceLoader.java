@@ -31,7 +31,7 @@ public class ResourceConfigSourceLoader implements IConfigSourceLoader {
     }
 
     @Override
-    public IConfigSource loadConfigSource(IConfigSource currentConfig) {
+    public IConfigSource loadConfigSource(IConfigSource baseConfig) {
         if (!resource.exists())
             return new StaticConfigSource(resource.getPath(), Collections.emptyMap());
 

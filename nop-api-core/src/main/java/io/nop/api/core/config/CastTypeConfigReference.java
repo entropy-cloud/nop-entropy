@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.config.impl;
+package io.nop.api.core.config;
 
 import io.nop.api.core.config.IConfigReference;
 import io.nop.api.core.config.IConfigValue;
