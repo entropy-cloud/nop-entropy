@@ -94,8 +94,8 @@ public class ExportDbTool {
         if (config.isExportAllTables() || !StringHelper.isEmpty(config.getTableNamePrefix())) {
             String tableNamePattern = config.isExportAllTables() ? null : config.getTableNamePrefix() + "%";
 
-            DataBaseMeta meta = new JdbcMetaDiscovery().discover(config.buildDataSource(), config.getCatalog(),
-                    null, tableNamePattern);
+            DataBaseMeta meta = JdbcMetaDiscovery.forDataSource(config.buildDataSource())
+                                                 .discover(config.getCatalog(), null, tableNamePattern);
 
             for (OrmEntityModel table : meta.getTables().values()) {
                 String name = StringHelper.lowerCase(table.getTableName());
