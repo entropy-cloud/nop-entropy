@@ -106,6 +106,16 @@ public class ConvertHelper {
         return s_primitiveClasses.get(clazz);
     }
 
+    public static <T> T convertConfigTo(Class<T> targetType, Object value, Function<ErrorCode, NopException> errorFactory) {
+        if (value instanceof String) {
+            if (targetType == List.class || targetType == Collection.class)
+                return (T) ApiStringHelper.stripedSplit(value.toString(), ',');
+            if (targetType == Set.class)
+                return (T) new LinkedHashSet<>(ApiStringHelper.stripedSplit(value.toString(), ','));
+        }
+        return convertTo(targetType, value, errorFactory);
+    }
+
     public static <T> T convertTo(Class<T> clazz, Object o,
                                   Function<ErrorCode, NopException> errorFactory) {
         if (o == null) {
@@ -729,7 +739,7 @@ public class ConvertHelper {
         if (isEmpty(str))
             return null;
         Short value = stringToShort(str, errorFactory);
-        if(value == null)
+        if (value == null)
             return null;
         return value.byteValue();
     }

@@ -9,13 +9,7 @@ package io.nop.api.core.config;
 
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.util.ApiStringHelper;
 import io.nop.api.core.util.SourceLocation;
-
-import java.util.Collection;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
 
 import static io.nop.api.core.ApiErrors.ARG_TARGET_TYPE;
 import static io.nop.api.core.ApiErrors.ARG_VALUE;
@@ -58,13 +52,7 @@ public class CastTypeConfigReference<T> implements IConfigReference<T> {
 
     @SuppressWarnings("unchecked")
     private T convert(Object value) {
-        if (value instanceof String) {
-            if (targetType == List.class || targetType == Collection.class)
-                return (T) ApiStringHelper.stripedSplit(value.toString(), ',');
-            if (targetType == Set.class)
-                return (T) new LinkedHashSet<>(ApiStringHelper.stripedSplit(value.toString(), ','));
-        }
-        return ConvertHelper.convertTo(targetType, value, err -> this.newError(value));
+        return ConvertHelper.convertConfigTo(targetType, value, err -> this.newError(value));
     }
 
     private NopException newError(Object value) {
