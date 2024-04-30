@@ -68,8 +68,8 @@ public class CastTypeConfigReference<T> implements IConfigReference<T> {
     }
 
     private NopException newError(Object value) {
-        new NopException(ERR_CONFIG_VAR_CONVERT_TO_TYPE_FAIL)
-                .param(ARG_VAR, getName()).param(ARG_VALUE, value).param(ARG_TARGET_TYPE, targetType)
+        return new NopException(ERR_CONFIG_VAR_CONVERT_TO_TYPE_FAIL)
+                .param(ARG_VAR, getName()).param(ARG_VALUE, value).param(ARG_TARGET_TYPE, targetType);
     }
 
     @Override
