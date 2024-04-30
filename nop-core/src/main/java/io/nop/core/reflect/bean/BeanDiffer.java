@@ -141,6 +141,11 @@ public class BeanDiffer implements IBeanDiffer {
         Object srcProp = bm1.getProperty(src, propName, options.getScope());
         Object targetProp = bm2.getProperty(target, propName, options.getScope());
 
+        if (options.getPropValueConverter() != null) {
+            srcProp = options.getPropValueConverter().apply(src, propName, srcProp);
+            targetProp = options.getPropValueConverter().apply(target, propName, targetProp);
+        }
+
         IDiffValue diff = diffObject(srcProp, targetProp, subSelection, options);
         if (diff != null)
             propDiffs.put(propName, diff);
@@ -188,8 +193,8 @@ public class BeanDiffer implements IBeanDiffer {
                                 BeanDiffOptions options, IBeanCollectionAdapter adapter) {
         Map<String, IDiffValue> diffs = new LinkedHashMap<>();
 
-        Map<String, Object> srcMap = buildKeyMap(src, keyProp, adapter);
-        Map<String, Object> targetMap = buildKeyMap(target, keyProp, adapter);
+        Map<String, Object> srcMap = buildKeyMap(src, keyProp, options, adapter);
+        Map<String, Object> targetMap = buildKeyMap(target, keyProp, options, adapter);
         srcMap.forEach((name, value) -> {
             if (!targetMap.containsKey(name)) {
                 diffs.put(name, DiffValue.remove(value));
@@ -218,12 +223,17 @@ public class BeanDiffer implements IBeanDiffer {
         return ret;
     }
 
-    Map<String, Object> buildKeyMap(Object src, String keyProp, IBeanCollectionAdapter adapter) {
+    Map<String, Object> buildKeyMap(Object src, String keyProp,
+                                    BeanDiffOptions options, IBeanCollectionAdapter adapter) {
         Map<String, Object> map = new LinkedHashMap<>();
         Iterator<?> it = adapter.iterator(src);
         while (it.hasNext()) {
             Object item = it.next();
             String key = StringHelper.toString(BeanTool.getProperty(item, keyProp), null);
+            if (options.getPropValueConverter() != null) {
+                Object newKey = options.getPropValueConverter().apply(item, keyProp, key);
+                key = StringHelper.toString(newKey, null);
+            }
             map.put(key, item);
         }
         return map;
