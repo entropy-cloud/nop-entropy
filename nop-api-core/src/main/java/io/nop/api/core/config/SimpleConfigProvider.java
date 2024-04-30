@@ -48,10 +48,9 @@ public class SimpleConfigProvider implements IConfigProvider {
     }
 
     public <T> void updateConfigValue(IConfigReference<T> ref, T value) {
-        value = ConvertHelper.convertTo(ref.getValueType(), value,
-                err -> new NopException(err).param(ARG_VAR, ref.getName()));
-
         DefaultConfigReference<T> df = getConfigRef(null, ref.getName(), ref.getValueType(), ref.getDefaultValue());
+        value = ConvertHelper.convertConfigTo(df.getValueType(), value,
+                err -> new NopException(err).param(ARG_VAR, ref.getName()));
         df.updateValue(ref.getLocation(), StaticValue.valueOf(value));
     }
 

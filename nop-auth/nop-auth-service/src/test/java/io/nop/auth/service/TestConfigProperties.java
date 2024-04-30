@@ -20,6 +20,7 @@ public class TestConfigProperties extends JunitBaseTestCase {
     @Test
     public void testGetProperty() {
         assertTrue(CFG_TEST.get());
+        assertTrue(CFG_TEST_NAMES.get() instanceof Set);
         assertEquals("[a, b]", CFG_TEST_NAMES.get().toString());
     }
 }
