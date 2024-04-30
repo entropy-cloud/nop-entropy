@@ -7,6 +7,7 @@
         <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
     </x:post-extends>
 
+    <!-- 在未生成实体类的情况下需设置 className 为动态实体 io.nop.orm.support.DynamicOrmEntity 以避免 IOrmSessionFactory 创建失败 -->
     <entities>
         <entity name="DevApp" className="io.nop.orm.support.DynamicOrmEntity" tableName="dev_app">
             <columns>
