@@ -24,6 +24,18 @@ public class DdlSqlCreator {
     private final String dmlLibPath;
     private final IDialect dialect;
 
+    public static DdlSqlCreator forDialect(String dialectName) {
+        return new DdlSqlCreator(dialectName);
+    }
+
+    public static DdlSqlCreator forDialect(IDialect dialect) {
+        return new DdlSqlCreator(dialect);
+    }
+
+    public DdlSqlCreator(IDialect dialect) {
+        this(dialect.getName(), dialect);
+    }
+
     public DdlSqlCreator(String dialectName) {
         this.dmlLibPath = getDmlLibPath(dialectName);
         this.dialect = DialectManager.instance().getDialect(dialectName);
@@ -45,14 +57,6 @@ public class DdlSqlCreator {
                 return basePath;
         }
         return path;
-    }
-
-    public DdlSqlCreator(IDialect dialect) {
-        this(dialect.getName(), dialect);
-    }
-
-    public static DdlSqlCreator forDialect(String dialectName) {
-        return new DdlSqlCreator(dialectName);
     }
 
     public String createTable(IEntityModel table) {

@@ -11,13 +11,17 @@
     <entities>
         <entity name="DevApp" displayName="应用">
             <columns>
+                <!-- 差异：重命名 -->
+                <column name="version" code="VERSION"/>
                 <!-- 差异：新增 -->
                 <column name="description" code="DESCRIPTION" displayName="说明" precision="500" propId="12"
                         stdDataType="string" stdSqlType="VARCHAR"/>
             </columns>
             <unique-keys>
                 <!-- 差异：新增 -->
-                <unique-key name="UK_DEV_APP_CODE" columns="code" constraint="UK_DEV_APP_CODE"/>
+                <unique-key name="UK_DEV_APP_CODE" columns="code" constraint="uk_dev_app_code"/>
+                <!-- 未设置 constraint，则无作用 -->
+                <unique-key name="UK_DEV_APP_VERSION_CODE" columns="version,code"/>
             </unique-keys>
             <!-- Note：索引还未实现 -->
             <!--<indexes>
@@ -64,7 +68,7 @@
         <!-- 差异：删除 -->
         <entity name="DevAppModule" x:override="remove"/>
         <!-- 差异：新增 -->
-        <entity name="DevAppDomain" className="DevAppDomain" tableName="dev_app_domain">
+        <entity name="DevAppDomain" className="io.nop.orm.support.DynamicOrmEntity" tableName="dev_app_domain">
             <columns>
                 <column name="id" code="ID" displayName="ID" mandatory="true" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"/>
@@ -77,7 +81,7 @@
             </columns>
             <unique-keys>
                 <unique-key name="UK_DEV_APP_DOMAIN_APPID_NAME" columns="appId,name"
-                            constraint="UK_DEV_APP_DOMAIN_APPID_NAME"/>
+                            constraint="uk_dev_app_domain_appid_name"/>
             </unique-keys>
         </entity>
     </entities>

@@ -8,7 +8,7 @@
     </x:post-extends>
 
     <entities>
-        <entity name="DevApp" className="DevApp" tableName="dev_app">
+        <entity name="DevApp" className="io.nop.orm.support.DynamicOrmEntity" tableName="dev_app">
             <columns>
                 <column name="id" code="ID" displayName="ID" mandatory="true" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"/>
@@ -16,7 +16,7 @@
                         propId="7" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column name="code" code="CODE" displayName="编码" mandatory="true" precision="50" propId="8"
                         stdDataType="string" stdSqlType="VARCHAR"/>
-                <column name="version" code="VERSION" displayName="版本号" mandatory="true" precision="50" propId="9"
+                <column name="version" code="VERSION1" displayName="版本号" mandatory="true" precision="50" propId="9"
                         stdDataType="string" stdSqlType="VARCHAR"/>
             </columns>
             <!-- Note：外键约束还未实现 -->
@@ -38,7 +38,7 @@
                 </index>
             </indexes>-->
         </entity>
-        <entity name="DevAppDict" className="DevAppDict" tableName="dev_app_dict">
+        <entity name="DevAppDict" className="io.nop.orm.support.DynamicOrmEntity" tableName="dev_app_dict">
             <columns>
                 <column name="id" code="ID" displayName="ID" mandatory="true" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"/>
@@ -49,7 +49,7 @@
                 <column name="name" code="NAME" displayName="名称" mandatory="true" precision="100" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="sort"/>
                 <column name="description" code="DESCRIPTION" displayName="说明" precision="100" propId="7"
-                        stdDataType="string" stdSqlType="JSON"/>
+                        stdDataType="string" stdSqlType="VARCHAR"/>
             </columns>
             <!-- Note：外键约束还未实现 -->
             <!--<relations>
@@ -80,7 +80,7 @@
                 </index>
             </indexes>-->
         </entity>
-        <entity name="DevAppModule" tableName="dev_app_module">
+        <entity name="DevAppModule" className="io.nop.orm.support.DynamicOrmEntity" tableName="dev_app_module">
             <columns>
                 <column code="ID" displayName="ID" mandatory="true" name="id" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"/>
