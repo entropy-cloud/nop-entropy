@@ -1,34 +1,90 @@
 [
   {
-    "line": "CREATE TABLE dev_app_domain(\n  ID VARCHAR(32) NOT NULL  COMMENT 'ID' ,\n  APP_ID VARCHAR(32) NOT NULL  COMMENT '所属应用' ,\n  DISPLAY_NAME VARCHAR(100) NOT NULL  COMMENT '显示名称' ,\n  NAME VARCHAR(100) NOT NULL  COMMENT '编码' ,\n  constraint UK_DEV_APP_DOMAIN_APPID_NAME unique (APP_ID,NAME),\n  constraint PK_dev_app_domain primary key (ID)\n)",
+    "ddl": "CREATE TABLE dev_app_domain(\n  ID VARCHAR(32) NOT NULL  COMMENT 'ID' ,\n  APP_ID VARCHAR(32) NOT NULL  COMMENT '所属应用' ,\n  DISPLAY_NAME VARCHAR(100) NOT NULL  COMMENT '显示名称' ,\n  NAME VARCHAR(100) NOT NULL  COMMENT '编码' ,\n  constraint uk_dev_app_domain_appid_name unique (APP_ID,NAME),\n  constraint PK_dev_app_domain primary key (ID)\n)",
+    "querySpace": "default",
+    "target": null,
+    "targetTable": "dev_app_domain",
+    "targetType": "table",
     "type": "add"
   },
   {
-    "line": "alter table dev_app add column DESCRIPTION VARCHAR(500)   COMMENT '说明' ",
+    "ddl": "alter table dev_app add column VERSION VARCHAR(50) NOT NULL  COMMENT '版本号' ",
+    "querySpace": "default",
+    "target": "VERSION",
+    "targetTable": "dev_app",
+    "targetType": "column",
     "type": "add"
   },
   {
-    "line": "alter table dev_app_dict   drop constraint UK_DEV_APP_DICT_APPID_NAME ",
+    "ddl": "alter table dev_app add column DESCRIPTION VARCHAR(500)   COMMENT '说明' ",
+    "querySpace": "default",
+    "target": "DESCRIPTION",
+    "targetTable": "dev_app",
+    "targetType": "column",
+    "type": "add"
+  },
+  {
+    "ddl": "alter table dev_app drop column VERSION1",
+    "querySpace": "default",
+    "target": "VERSION1",
+    "targetTable": "dev_app",
+    "targetType": "column",
     "type": "remove"
   },
   {
-    "line": "alter table dev_app_dict   drop constraint UK_DEV_APP_DICT_APPID_DISPLAYNAME ",
+    "ddl": "alter table dev_app   add constraint uk_dev_app_code     unique (CODE) ",
+    "querySpace": "default",
+    "target": "uk_dev_app_code",
+    "targetTable": "dev_app",
+    "targetType": "uniqueKey",
+    "type": "add"
+  },
+  {
+    "ddl": "alter table dev_app_dict   drop constraint UK_DEV_APP_DICT_APPID_NAME ",
+    "querySpace": "default",
+    "target": "UK_DEV_APP_DICT_APPID_NAME",
+    "targetTable": "dev_app_dict",
+    "targetType": "uniqueKey",
     "type": "remove"
   },
   {
-    "line": "alter table dev_app_dict drop column DISPLAY_NAME",
+    "ddl": "alter table dev_app_dict   drop constraint UK_DEV_APP_DICT_APPID_DISPLAYNAME ",
+    "querySpace": "default",
+    "target": "UK_DEV_APP_DICT_APPID_DISPLAYNAME",
+    "targetTable": "dev_app_dict",
+    "targetType": "uniqueKey",
     "type": "remove"
   },
   {
-    "line": "alter table dev_app_dict  alter column  DESCRIPTION VARCHAR(500)   COMMENT '说明' ",
+    "ddl": "alter table dev_app_dict drop column DISPLAY_NAME",
+    "querySpace": "default",
+    "target": "DISPLAY_NAME",
+    "targetTable": "dev_app_dict",
+    "targetType": "column",
+    "type": "remove"
+  },
+  {
+    "ddl": "alter table dev_app_dict  alter column  DESCRIPTION VARCHAR(500)   COMMENT '说明' ",
+    "querySpace": "default",
+    "target": "DESCRIPTION",
+    "targetTable": "dev_app_dict",
+    "targetType": "column",
     "type": "update"
   },
   {
-    "line": "alter table dev_app_dict   add constraint UK_DEV_APP_DICT_APPID_NAME     unique (APP_ID,NAME) ",
+    "ddl": "alter table dev_app_dict   add constraint UK_DEV_APP_DICT_APPID_NAME     unique (APP_ID,NAME) ",
+    "querySpace": "default",
+    "target": "UK_DEV_APP_DICT_APPID_NAME",
+    "targetTable": "dev_app_dict",
+    "targetType": "uniqueKey",
     "type": "add"
   },
   {
-    "line": "drop table  if exists  dev_app_module",
+    "ddl": "drop table  if exists  dev_app_module",
+    "querySpace": "default",
+    "target": null,
+    "targetTable": "dev_app_module",
+    "targetType": "table",
     "type": "remove"
   }
 ]

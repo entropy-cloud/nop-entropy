@@ -2,7 +2,7 @@
 <orm x:schema="/nop/schema/orm/orm.xdef"
      xmlns:x="/nop/schema/xdsl.xdef"
      xmlns:orm-gen="orm-gen" xmlns:xpl="xpl"
-     x:extends="db-diff-old.orm.xml">
+     x:extends="app.orm.xml">
 
     <x:post-extends x:override="replace">
         <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
@@ -23,17 +23,6 @@
                 <!-- 未设置 constraint，则无作用 -->
                 <unique-key name="UK_DEV_APP_VERSION_CODE" columns="version,code"/>
             </unique-keys>
-            <!-- Note：索引还未实现 -->
-            <!--<indexes>
-                &lt;!&ndash; 差异：新增 &ndash;&gt;
-                <index name="IDX_DEV_APP_DISPLAYNAME" displayName="显示名称" comment="显示名称可索引">
-                    <column name="displayName" desc="true"/>
-                </index>
-                &lt;!&ndash; 差异：修改 &ndash;&gt;
-                <index name="IDX_DEV_APP_VERSION" displayName="版本号" comment="版本号可索引">
-                    <column name="version" desc="false"/>
-                </index>
-            </indexes>-->
         </entity>
         <entity name="DevAppDict" displayName="字典定义">
             <columns>
@@ -42,28 +31,12 @@
                 <!-- 差异：修改 -->
                 <column name="description" precision="500" stdSqlType="VARCHAR"/>
             </columns>
-            <!-- Note：外键约束还未实现 -->
-            <!--<relations>
-                &lt;!&ndash; 差异：修改 &ndash;&gt;
-                <to-one name="app">
-                    <join>
-                        <on leftProp="appId" rightProp="id"/>
-                    </join>
-                </to-one>
-                &lt;!&ndash; 差异：删除 &ndash;&gt;
-                <to-one name="appOther" x:override="remove"/>
-            </relations>-->
             <unique-keys>
                 <!-- 差异：修改 -->
                 <unique-key name="UK_DEV_APP_DICT_APPID_NAME" columns="appId,name"/>
                 <!-- 差异：删除 -->
                 <unique-key name="UK_DEV_APP_DICT_APPID_DISPLAYNAME" x:override="remove"/>
             </unique-keys>
-            <!-- Note：索引还未实现 -->
-            <!--<indexes>
-                &lt;!&ndash; 差异：删除 &ndash;&gt;
-                <index name="IDX_DEV_APP_DICT_DESCRIPTION" x:override="remove"/>
-            </indexes>-->
         </entity>
         <!-- 差异：删除 -->
         <entity name="DevAppModule" x:override="remove"/>

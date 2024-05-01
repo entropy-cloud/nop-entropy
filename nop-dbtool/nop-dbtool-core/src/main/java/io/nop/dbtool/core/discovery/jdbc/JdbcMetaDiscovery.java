@@ -44,9 +44,28 @@ import java.util.stream.Collectors;
 public class JdbcMetaDiscovery {
     static final Logger LOG = LoggerFactory.getLogger(JdbcMetaDiscovery.class);
 
-    private IDialect dialect;
+    private final IDialect dialect;
+    private final DataSource dataSource;
+    private final Connection connection;
+
     private String packageName = "app";
     private boolean commentAsDisplayName = true;
+
+    public static JdbcMetaDiscovery forDataSource(DataSource dataSource) {
+        return new JdbcMetaDiscovery(dataSource, null);
+    }
+
+    public static JdbcMetaDiscovery forConnection(Connection connection) {
+        return new JdbcMetaDiscovery(null, connection);
+    }
+
+    private JdbcMetaDiscovery(DataSource dataSource, Connection connection) {
+        this.dataSource = dataSource;
+        this.connection = connection;
+        this.dialect = dataSource != null
+                       ? DialectManager.instance().getDialectForDataSource(dataSource)
+                       : DialectManager.instance().getDialectForConnection(connection);
+    }
 
     public JdbcMetaDiscovery basePackageName(String packageName) {
         this.packageName = packageName;
@@ -58,12 +77,15 @@ public class JdbcMetaDiscovery {
         return this;
     }
 
-    public List<String> getCatalogs(DataSource dataSource) {
-        dialect = DialectManager.instance().getDialectForDataSource(dataSource);
+    public IDialect getDialect() {
+        return this.dialect;
+    }
 
+    public List<String> getCatalogs() {
         Connection conn = null;
         try {
-            conn = dataSource.getConnection();
+            conn = getConnection();
+
             DatabaseMetaData metaData = conn.getMetaData();
             ResultSet rs = metaData.getCatalogs();
             List<String> ret = new ArrayList<>();
@@ -75,18 +97,18 @@ public class JdbcMetaDiscovery {
         } catch (SQLException e) {
             throw dialect.getSQLExceptionTranslator().translate("sql-discovery", e);
         } finally {
-            IoHelper.safeCloseObject(conn);
+            closeConnection(conn);
         }
     }
 
-    public DataBaseMeta discover(DataSource dataSource,
-                                 String catalog, String schemaPattern,
-                                 String tablePattern) {
-        dialect = DialectManager.instance().getDialectForDataSource(dataSource);
-
+    /**
+     * @param catalog 数据库模式名，为 null 时，仅查询当前连接指定的库
+     */
+    public DataBaseMeta discover(String catalog, String schemaPattern, String tablePattern) {
         Connection conn = null;
         try {
-            conn = dataSource.getConnection();
+            conn = getConnection();
+
             DatabaseMetaData metaData = conn.getMetaData();
             DataBaseMeta meta = createMeta(metaData);
             initSchemas(meta, conn.getMetaData());
@@ -101,6 +123,18 @@ public class JdbcMetaDiscovery {
         } catch (SQLException e) {
             throw dialect.getSQLExceptionTranslator().translate("sql-discovery", e);
         } finally {
+            closeConnection(conn);
+        }
+    }
+
+    /** 优先通过 {@link #dataSource} 获取 {@link Connection} */
+    private Connection getConnection() throws SQLException {
+        return dataSource != null ? dataSource.getConnection() : connection;
+    }
+
+    /** 仅关闭由 {@link #dataSource} 获得的 {@link Connection} */
+    private void closeConnection(Connection conn) {
+        if (dataSource != null) {
             IoHelper.safeCloseObject(conn);
         }
     }
@@ -191,16 +225,12 @@ public class JdbcMetaDiscovery {
         discoverColumns(meta, metaData, catalog, schemaPattern, tablePattern);
     }
 
-    private String normalizeTableName(String tableName) {
-        if (dialect.getTableNameCase() == null)
-            return tableName;
-        return dialect.getTableNameCase().normalize(tableName);
+    public String normalizeTableName(String tableName) {
+        return DataBaseMeta.normalizeTableName(dialect, tableName);
     }
 
-    private String normalizeColName(String colName) {
-        if (dialect.getColumnNameCase() == null)
-            return colName;
-        return dialect.getColumnNameCase().normalize(colName);
+    public String normalizeColName(String colName) {
+        return DataBaseMeta.normalizeColName(dialect, colName);
     }
 
     private void discoverColumns(DataBaseMeta meta, DatabaseMetaData metaData, String catalog, String schemaPattern,

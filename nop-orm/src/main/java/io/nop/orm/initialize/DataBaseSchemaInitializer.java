@@ -59,7 +59,7 @@ public class DataBaseSchemaInitializer {
         }
     }
 
-    Map<String, List<IEntityModel>> splitByQuerySpace(Collection<IEntityModel> tables) {
+    public static Map<String, List<IEntityModel>> splitByQuerySpace(Collection<IEntityModel> tables) {
         Map<String, List<IEntityModel>> map = new TreeMap<>();
         for (IEntityModel entityModel : tables) {
             String querySpace = DaoHelper.normalizeQuerySpace(entityModel.getQuerySpace());

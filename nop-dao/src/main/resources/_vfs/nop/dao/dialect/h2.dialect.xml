@@ -194,6 +194,7 @@
         <sqlDataType name="DATE" stdSqlType="DATE"/>
         <sqlDataType name="DATETIME" stdSqlType="DATETIME"/>
         <sqlDataType name="TIMESTAMP" stdSqlType="TIMESTAMP"/>
+        <sqlDataType name="TIMESTAMP WITH TIME ZONE" stdSqlType="TIMESTAMP"/>
         <sqlDataType name="REAL" stdSqlType="REAL"/>
         <sqlDataType name="DOUBLE PRECISION" stdSqlType="DOUBLE"/>
         <sqlDataType name="NUMERIC" stdSqlType="DECIMAL"/>

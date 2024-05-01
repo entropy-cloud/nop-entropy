@@ -28,11 +28,11 @@ public class TestJdbcMetaDiscovery extends JunitBaseTestCase {
 
     @Test
     public void testDiscovery() {
-        JdbcMetaDiscovery discovery = new JdbcMetaDiscovery();
-        List<String> catalogs = discovery.getCatalogs(dataSource);
+        JdbcMetaDiscovery discovery = JdbcMetaDiscovery.forDataSource(dataSource);
+        List<String> catalogs = discovery.getCatalogs();
         System.out.println("catalogs="+catalogs);
 
-        DataBaseMeta meta = discovery.discover(dataSource, "datart", null, "%");
+        DataBaseMeta meta = discovery.discover("datart", null, "%");
 
         OrmModel model = meta.getOrmModel();
         DslModelHelper.dslModelToXNode(OrmConstants.XDSL_SCHEMA_ORM, model).dump();

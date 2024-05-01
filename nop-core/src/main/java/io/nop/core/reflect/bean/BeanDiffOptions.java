@@ -9,6 +9,7 @@ package io.nop.core.reflect.bean;
 
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.commons.functional.IEqualsChecker;
+import io.nop.commons.functional.ITriFunction;
 import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.ReflectionManager;
@@ -21,6 +22,8 @@ public class BeanDiffOptions {
     private boolean onlySerializable;
 
     private IEqualsChecker equalsChecker = IEqualsChecker.OBJECT_EQUALS;
+    /** 用于对比对对象的属性值做转换，以支持 ORM 模型差异对比时不同的表名、字段名等的大小写适配处理 */
+    private ITriFunction<Object, String, Object, Object> propValueConverter;
 
     public IEqualsChecker getEqualsChecker() {
         return equalsChecker;
@@ -28,6 +31,14 @@ public class BeanDiffOptions {
 
     public void setEqualsChecker(IEqualsChecker equalsChecker) {
         this.equalsChecker = equalsChecker;
+    }
+
+    public ITriFunction<Object, String, Object, Object> getPropValueConverter() {
+        return this.propValueConverter;
+    }
+
+    public void setPropValueConverter(ITriFunction<Object, String, Object, Object> propValueConverter) {
+        this.propValueConverter = propValueConverter;
     }
 
     public IBeanModelManager getBeanModelManager() {

@@ -83,7 +83,7 @@ public class ImportDbTool {
             DataSource ds = config.buildDataSource();
             this.dialect = DialectManager.instance().getDialectForDataSource(ds);
 
-            DataBaseMeta meta = new JdbcMetaDiscovery().discover(ds, config.getCatalog(), null, null);
+            DataBaseMeta meta = JdbcMetaDiscovery.forDataSource(ds).discover(config.getCatalog(), null, null);
 
             List<CompletableFuture<?>> futures = new ArrayList<>();
             for (ImportTableConfig tableConfig : getAllTables().values()) {
