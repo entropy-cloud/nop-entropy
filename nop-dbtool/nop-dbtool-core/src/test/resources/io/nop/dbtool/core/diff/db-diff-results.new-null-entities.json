@@ -1,0 +1,26 @@
+[
+  {
+    "ddl": "drop table  if exists  dev_app",
+    "querySpace": "default",
+    "target": null,
+    "targetTable": "dev_app",
+    "targetType": "table",
+    "type": "remove"
+  },
+  {
+    "ddl": "drop table  if exists  dev_app_dict",
+    "querySpace": "default",
+    "target": null,
+    "targetTable": "dev_app_dict",
+    "targetType": "table",
+    "type": "remove"
+  },
+  {
+    "ddl": "drop table  if exists  dev_app_module",
+    "querySpace": "default",
+    "target": null,
+    "targetTable": "dev_app_module",
+    "targetType": "table",
+    "type": "remove"
+  }
+]

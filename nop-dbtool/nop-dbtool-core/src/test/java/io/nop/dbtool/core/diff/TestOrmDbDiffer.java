@@ -7,6 +7,7 @@
  */
 package io.nop.dbtool.core.diff;
 
+import java.util.ArrayList;
 import java.util.List;
 import javax.sql.DataSource;
 
@@ -74,6 +75,32 @@ public class TestOrmDbDiffer extends JunitBaseTestCase {
 
         LOG.info("nop.test.orm.db-differ.ddl={}", JsonTool.stringify(diffDdlList, null, "  "));
         Assertions.assertTrue(diffDdlList.isEmpty());
+    }
+
+    @Test
+    public void test_genDiffDdl_by_Entities() {
+        OrmModel oldOrmModel = (OrmModel) DslModelHelper.loadDslModel(attachmentResource("db-diff-old.orm.xml"));
+        OrmModel newOrmModel = (OrmModel) DslModelHelper.loadDslModel(attachmentResource("db-diff-new.orm.xml"));
+
+        List<OrmDbDiffer.DiffDdl> diffDdlList = OrmDbDiffer.forDialect("h2")
+                                                           .genDiffDdl(oldOrmModel.getEntities(),
+                                                                       newOrmModel.getEntities());
+        String resultsJson = JsonTool.stringify(diffDdlList, null, "  ");
+
+        LOG.info("nop.test.orm.db-differ.by-entities.ddl={}", resultsJson);
+        Assertions.assertEquals(attachmentJsonText("db-diff-results.json"), resultsJson);
+
+        diffDdlList = OrmDbDiffer.forDialect("h2").genDiffDdl(null, newOrmModel.getEntities());
+        resultsJson = JsonTool.stringify(diffDdlList, null, "  ");
+
+        LOG.info("nop.test.orm.db-differ.by-entities.old-is-null.ddl={}", resultsJson);
+        Assertions.assertEquals(attachmentJsonText("db-diff-results.old-null-entities.json"), resultsJson);
+
+        diffDdlList = OrmDbDiffer.forDialect("h2").genDiffDdl(oldOrmModel.getEntities(), new ArrayList<>());
+        resultsJson = JsonTool.stringify(diffDdlList, null, "  ");
+
+        LOG.info("nop.test.orm.db-differ.by-entities.new-is-null.ddl={}", resultsJson);
+        Assertions.assertEquals(attachmentJsonText("db-diff-results.new-null-entities.json"), resultsJson);
     }
 
     private void initH2Db(IDialect dialect, OrmModel ormModel) {

@@ -90,7 +90,9 @@ public class OrmDbDiffer {
      * 在多数据源的场景下，可先根据 {@link IEntityModel#getQuerySpace()}
      * 收集相同库中的待比对 Entity，再依次对数据源进行升级等处理。
      */
-    public List<DiffDdl> genDiffDdl(List<IEntityModel> oldOrmModelEntities, List<IEntityModel> newOrmModelEntities) {
+    public List<DiffDdl> genDiffDdl(
+            List<? extends IEntityModel> oldOrmModelEntities, List<? extends IEntityModel> newOrmModelEntities
+    ) {
         OrmModel oldOrmModel = createOrmModelByEntities(oldOrmModelEntities);
         OrmModel newOrmModel = createOrmModelByEntities(newOrmModelEntities);
 
@@ -171,10 +173,12 @@ public class OrmDbDiffer {
         return results;
     }
 
-    private OrmModel createOrmModelByEntities(List<IEntityModel> entities) {
+    private OrmModel createOrmModelByEntities(List<? extends IEntityModel> entities) {
         OrmModel ormModel = new OrmModel();
-        entities.forEach((entity) -> ormModel.addEntity((OrmEntityModel) entity));
 
+        if (entities != null) {
+            entities.forEach((entity) -> ormModel.addEntity((OrmEntityModel) entity));
+        }
         return ormModel;
     }
 
