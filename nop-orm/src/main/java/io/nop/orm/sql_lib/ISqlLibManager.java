@@ -8,6 +8,7 @@
 package io.nop.orm.sql_lib;
 
 import io.nop.api.core.beans.LongRangeBean;
+import io.nop.api.core.beans.query.QueryBean;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.sql.SQL;
@@ -21,6 +22,8 @@ import java.util.Map;
 public interface ISqlLibManager extends INamedSqlBuilder {
 
     SqlItemModel getSqlItemModel(String sqlName);
+
+    QueryBean buildQueryBean(String sqlName, IEvalContext context);
 
     SQL buildSql(String sqlName, IEvalContext context);
 

@@ -332,8 +332,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
         appendOrderByPk(query);
 
-        if(prepareQuery != null)
-            prepareQuery.accept(query,context);
+        if (prepareQuery != null)
+            prepareQuery.accept(query, context);
 
         if (queryTransformer != null)
             queryTransformer.transform(query, authObjName, action, this.getThisObj(), context);
@@ -1006,6 +1006,40 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
         dao().updateEntity(entity);
         return entity;
+    }
+
+    @Description("根据查询条件获取一批实体数据，然后对每个实体更新指定属性。返回查询得到的实体个数")
+    @BizMutation
+    public int updateByQuery(@Name("query") QueryBean query, @Name("data") Map<String, Object> data, IServiceContext context) {
+
+        return doUpdateByQuery(query, data, this::defaultPrepareUpdate, context);
+    }
+
+    @BizAction
+    public int doUpdateByQuery(@Name("query") QueryBean query,
+                               @Name("data") Map<String, Object> data,
+                               @Name("prepareUpdate") BiConsumer<EntityData<T>, IServiceContext> prepareUpdate,
+                               IServiceContext context) {
+        if (data == null || data.isEmpty())
+            return 0;
+
+        List<T> list = findList(query, null, context);
+        if (list.isEmpty())
+            return 0;
+
+        doUpdateMulti(list, data, this::defaultPrepareUpdate, context);
+        return list.size();
+    }
+
+    @BizAction
+    public void doUpdateMulti(@Name("entityList") List<T> entityList, @Name("data") Map<String, Object> data,
+                              @Name("prepareUpdate") BiConsumer<EntityData<T>, IServiceContext> prepareUpdate,
+                              IServiceContext context) {
+        for (T entity : entityList) {
+            Map<String, Object> modified = new LinkedHashMap<>(data);
+            modified.put(OrmConstants.PROP_ID, entity.orm_idString());
+            doUpdate(data, null, prepareUpdate, context);
+        }
     }
 
     @Description("@i18n:biz.asDict|将实体记录作为字典项返回")

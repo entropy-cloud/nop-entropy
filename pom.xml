@@ -436,5 +436,6 @@
         <module>nop-css</module>
         <module>nop-search</module>
         <module>nop-markdown</module>
+        <module>nop-orm-data</module>
     </modules>
 </project>

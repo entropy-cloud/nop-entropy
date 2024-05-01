@@ -12,6 +12,7 @@ import io.nop.api.core.auth.ActionAuthMeta;
 import io.nop.api.core.auth.IActionAuthChecker;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.LongRangeBean;
+import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancellable;
 import io.nop.commons.util.ReflectionHelper;
@@ -33,12 +34,12 @@ import io.nop.orm.OrmErrors;
 import io.nop.orm.sql_lib.proxy.SqlLibInvoker;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.xdsl.DslModelParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.List;
@@ -99,6 +100,19 @@ public class SqlLibManager implements ISqlLibManager {
     public void checkAllLibValid() {
         List<IResource> resources = ModuleManager.instance().findModuleResources("/sql", OrmConstants.FILE_TYPE_SQL_LIB);
         resources.forEach(resource -> checkLibValid(resource.getStdPath()));
+    }
+
+    @Override
+    public QueryBean buildQueryBean(String sqlName, IEvalContext context) {
+        QuerySqlItemModel item = (QuerySqlItemModel) getSqlItemModel(sqlName);
+        IEvalScope scope = context.getEvalScope();
+        ValueWithLocation sqlLibVl = scope.recordValueLocation(OrmConstants.PARAM_SQL_LIB_MODEL);
+        try {
+            scope.setLocalValue(OrmConstants.PARAM_SQL_LIB_MODEL, item.getSqlLibModel());
+            return item.buildQueryBean(context);
+        } finally {
+            scope.restoreValueLocation(OrmConstants.PARAM_SQL_LIB_MODEL, sqlLibVl);
+        }
     }
 
     @Override
