@@ -55,9 +55,9 @@ public class CliReverseDbCommand implements Callable<Integer> {
         dataSource.setCatalog(catalog);
         dataSource.setDriverClassName(driverClassName);
 
-        JdbcMetaDiscovery discovery = new JdbcMetaDiscovery();
+        JdbcMetaDiscovery discovery = JdbcMetaDiscovery.forDataSource(dataSource);
         discovery.basePackageName("app");
-        DataBaseMeta meta = discovery.discover(dataSource, catalog, null, table == null ? "%" : table);
+        DataBaseMeta meta = discovery.discover(catalog, null, table == null ? "%" : table);
 
         OrmModel model = meta.getOrmModel();
 

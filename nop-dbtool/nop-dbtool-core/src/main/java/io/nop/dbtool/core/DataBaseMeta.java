@@ -8,6 +8,7 @@
 package io.nop.dbtool.core;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.dao.dialect.IDialect;
 import io.nop.orm.model.OrmEntityModel;
 import io.nop.orm.model.OrmModel;
 
@@ -128,5 +129,13 @@ public class DataBaseMeta {
 
     public OrmModel getOrmModel() {
         return ormModel;
+    }
+
+    public static String normalizeTableName(IDialect dialect, String tableName) {
+        return dialect.getTableNameCase() == null ? tableName : dialect.getTableNameCase().normalize(tableName);
+    }
+
+    public static String normalizeColName(IDialect dialect, String colName) {
+        return dialect.getColumnNameCase() == null ? colName : dialect.getColumnNameCase().normalize(colName);
     }
 }

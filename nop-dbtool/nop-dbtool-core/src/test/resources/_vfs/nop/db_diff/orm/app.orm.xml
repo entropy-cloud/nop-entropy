@@ -7,6 +7,7 @@
         <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
     </x:post-extends>
 
+    <!-- 在未生成实体类的情况下需设置 className 为动态实体 io.nop.orm.support.DynamicOrmEntity 以避免 IOrmSessionFactory 创建失败 -->
     <entities>
         <entity name="DevApp" className="io.nop.orm.support.DynamicOrmEntity" tableName="dev_app">
             <columns>
@@ -19,24 +20,6 @@
                 <column name="version" code="VERSION1" displayName="版本号" mandatory="true" precision="50" propId="9"
                         stdDataType="string" stdSqlType="VARCHAR"/>
             </columns>
-            <!-- Note：外键约束还未实现 -->
-            <!--<relations>
-                <to-many cascadeDelete="true" name="dicts"
-                         refEntityName="DevAppDict" refPropName="app"
-                         tagSet="pub,cascade-delete">
-                    <join>
-                        <on leftProp="id" rightProp="appId"/>
-                    </join>
-                </to-many>
-            </relations>-->
-            <unique-keys>
-            </unique-keys>
-            <!-- Note：索引还未实现 -->
-            <!--<indexes>
-                <index name="IDX_DEV_APP_VERSION">
-                    <column name="displayName" desc="true"/>
-                </index>
-            </indexes>-->
         </entity>
         <entity name="DevAppDict" className="io.nop.orm.support.DynamicOrmEntity" tableName="dev_app_dict">
             <columns>
@@ -51,34 +34,11 @@
                 <column name="description" code="DESCRIPTION" displayName="说明" precision="100" propId="7"
                         stdDataType="string" stdSqlType="VARCHAR"/>
             </columns>
-            <!-- Note：外键约束还未实现 -->
-            <!--<relations>
-                &lt;!&ndash; 差异：修改 &ndash;&gt;
-                <to-one name="app" refEntityName="DevApp"
-                        refPropName="dicts" tagSet="pub,ref-pub,ref-cascade-delete">
-                    <join>
-                        <on leftProp="appId" rightProp="code"/>
-                    </join>
-                </to-one>
-                &lt;!&ndash; 差异：删除 &ndash;&gt;
-                <to-one name="appOther" refEntityName="DevApp"
-                        refPropName="dicts" tagSet="pub">
-                    <join>
-                        <on leftProp="appId" rightProp="id"/>
-                    </join>
-                </to-one>
-            </relations>-->
             <unique-keys>
                 <unique-key name="UK_DEV_APP_DICT_APPID_NAME" columns="name" constraint="UK_DEV_APP_DICT_APPID_NAME"/>
                 <unique-key name="UK_DEV_APP_DICT_APPID_DISPLAYNAME" columns="appId,displayName"
                             constraint="UK_DEV_APP_DICT_APPID_DISPLAYNAME"/>
             </unique-keys>
-            <!-- Note：索引还未实现 -->
-            <!--<indexes>
-                <index name="IDX_DEV_APP_DICT_DESCRIPTION">
-                    <column name="description" desc="true"/>
-                </index>
-            </indexes>-->
         </entity>
         <entity name="DevAppModule" className="io.nop.orm.support.DynamicOrmEntity" tableName="dev_app_module">
             <columns>
