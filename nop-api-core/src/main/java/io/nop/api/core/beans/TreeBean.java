@@ -246,6 +246,9 @@ public class TreeBean extends ExtensibleBean implements ITreeBean, IComponentMod
      * @return 是否成功转换
      */
     public boolean transformChild(Predicate<TreeBean> filter, Function<TreeBean, ?> fn, boolean multiple) {
+        if(children == null)
+            return false;
+
         boolean bChange = false;
         for (int i = 0, n = children.size(); i < n; i++) {
             TreeBean child = children.get(i);
