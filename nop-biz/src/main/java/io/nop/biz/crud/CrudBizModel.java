@@ -1038,7 +1038,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         for (T entity : entityList) {
             Map<String, Object> modified = new LinkedHashMap<>(data);
             modified.put(OrmConstants.PROP_ID, entity.orm_idString());
-            doUpdate(data, null, prepareUpdate, context);
+            doUpdate(modified, null, prepareUpdate, context);
         }
     }
 
