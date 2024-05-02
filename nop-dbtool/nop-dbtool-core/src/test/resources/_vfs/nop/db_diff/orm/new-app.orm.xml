@@ -12,7 +12,10 @@
         <entity name="DevApp" displayName="应用">
             <columns>
                 <!-- 差异：重命名 -->
-                <column name="version" code="VERSION"/>
+                <column name="code" code="CODE"/>
+                <!-- 差异：设置默认值 -->
+                <column name="version" defaultValue="1.0.0"/>
+                <column name="createdAt" defaultValue="CURRENT_TIMESTAMP"/>
                 <!-- 差异：新增 -->
                 <column name="description" code="DESCRIPTION" displayName="说明" precision="500" propId="12"
                         stdDataType="string" stdSqlType="VARCHAR"/>

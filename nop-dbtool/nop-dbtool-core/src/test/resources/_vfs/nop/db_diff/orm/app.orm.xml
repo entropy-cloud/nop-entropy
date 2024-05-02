@@ -15,10 +15,12 @@
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"/>
                 <column name="displayName" code="DISPLAY_NAME" displayName="显示名称" mandatory="true" precision="100"
                         propId="7" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column name="code" code="CODE" displayName="编码" mandatory="true" precision="50" propId="8"
+                <column name="code" code="CODE1" displayName="编码" mandatory="true" precision="50" propId="8"
                         stdDataType="string" stdSqlType="VARCHAR"/>
-                <column name="version" code="VERSION1" displayName="版本号" mandatory="true" precision="50" propId="9"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                <column name="version" code="VERSION" displayName="版本号" mandatory="true" precision="50" propId="9"
+                        stdDataType="string" stdSqlType="VARCHAR" defaultValue="0.1.0"/>
+                <column name="createdAt" code="CREATED_AT" displayName="创建时间" mandatory="true"
+                        propId="3" stdDataType="timestamp" stdSqlType="TIMESTAMP"/>
             </columns>
         </entity>
         <entity name="DevAppDict" className="io.nop.orm.support.DynamicOrmEntity" tableName="dev_app_dict">
