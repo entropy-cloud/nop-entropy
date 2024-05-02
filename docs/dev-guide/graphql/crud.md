@@ -5,7 +5,7 @@ CrudBizModel提供了标准的增删改查操作，以NopAuthUser为例：
 ## 新增
 
 ```
-# REST 
+# REST
 POST /r/NopAuthUser__save?@selection=name,status
 
 {
@@ -26,7 +26,7 @@ mutation{
 ## 修改
 
 ```
-# REST 
+# REST
 POST /r/NopAuthUser__update?@selection=name,status
 
 {
@@ -50,7 +50,7 @@ mutation{
 如果提交的data中包含主键，则认为是修改，否则是新建。
 
 ```
-# REST 
+# REST
 POST /r/NopAuthUser__save_update?@selection=name,status
 
 {
@@ -72,7 +72,7 @@ mutation{
 ## 删除
 
 ```
-# REST 
+# REST
 POST /r/NopAuthUser__delete?@selection=name,status
 
 {
@@ -91,7 +91,7 @@ mutation{
 ## 批量删除
 
 ```
-# REST 
+# REST
 POST /r/NopAuthUser__bathDelete?@selection=name,status
 
 {
@@ -112,7 +112,7 @@ mutation{
 批量更新指定记录的指定字段
 
 ```
-# REST 
+# REST
 POST /r/NopAuthUser__batchUpdate
 
 {
@@ -133,7 +133,7 @@ mutation{
 一次请求包含增加、删除、修改等多个操作
 
 ```
-# REST 
+# REST
 POST /r/NopAuthUser__batchModify
 
 {
@@ -155,7 +155,7 @@ mutation{
 ## 单条读取
 
 ```
-# REST 
+# REST
 GET /r/NopAuthUser__get?id=xxx@selection=name,status
 
 # GraphQL
@@ -170,14 +170,14 @@ query{
 ## 分页读取
 
 ```
-# REST 
+# REST
 POST /r/NopAuthUser__findPage?@selection=total,items{name,status}
 
 {
   "query": {
      "offset": 2,
      "limit": 10,
-     
+
      "filter": {
      },
      "orderBy":[
@@ -202,12 +202,12 @@ query{
 ## 查询返回列表
 
 ```
-# REST 
+# REST
 POST /r/NopAuthUser__findList?@selection=name,status
 
 {
   "query": {
-     
+
      "filter": {
      },
      "orderBy":[
@@ -229,12 +229,12 @@ query{
 findFirst返回满足条件的第一条记录
 
 ```
-# REST 
+# REST
 POST /r/NopAuthUser__findFirst?@selection=name,status
 
 {
   "query": {
-     
+
      "filter": {
         "$type": "eq",
         "name": "status",
@@ -257,12 +257,12 @@ query{
 ## 查询返回列表的长度
 
 ```
-# REST 
+# REST
 POST /r/NopAuthUser__findCount
 
 {
   "query": {
-     
+
      "filter": {
      }
   }
@@ -408,3 +408,21 @@ POST /r/NopAuthUser__removeManyToManyRelations
 ```
 
 id参数指定当前实体，propName参数指定要操作的多对多关联集合属性的名称，relValues对应于多对多关联表中的关联属性值。
+
+## 根据条件查找到一批实体，更新它们的指定属性
+
+```
+POST /r/NopAuthUser__updateByQuery
+
+{
+  “query": {
+     "$type": "eq",
+     "name": "status",
+     "value": 10
+  },
+
+  "data": {
+     "fldA": "aaa"
+  }
+}
+```
