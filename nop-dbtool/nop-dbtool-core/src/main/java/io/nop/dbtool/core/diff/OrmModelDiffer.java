@@ -58,7 +58,7 @@ public class OrmModelDiffer {
 
         // >>>>>>>>> 唯一键
         FieldSelectionBean ukSelection = FieldSelectionBean.fromProp(
-                // Note: name 的变更不会影响 DDL 的生成，故而在构建 DDL 脚本时，需注意排除该变更属性
+                // Note: name 和 comment 的变更不会影响 DDL 的生成，故而在构建 DDL 脚本时，需注意排除这些变更的属性
                 "name", "columns", "constraint", "comment"
         );
         // Note：在数据中反向获取的模型中，只有约束名才是可获取的唯一标识

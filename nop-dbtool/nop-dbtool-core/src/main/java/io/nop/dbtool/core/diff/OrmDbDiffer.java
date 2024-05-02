@@ -277,8 +277,28 @@ public class OrmDbDiffer {
         if (diff.getOldValue() instanceof IColumnModel) {
             props.remove("name");
             props.remove("stdDataType");
+
+            if (!props.isEmpty() && diff.getDiffType() == DiffType.update) {
+                IColumnModel oldColumn = (IColumnModel) diff.getOldValue();
+                IColumnModel newColumn = (IColumnModel) diff.getNewValue();
+
+                // 在字段更新时，若新字段的备注属性 displayName 或 comment 不为空，
+                // 则按二者的优先级依次删除另一个存在的变更，确保仅高优先级的非空备注属性的变更有效
+                if (!StringHelper.isEmpty(newColumn.getDisplayName())) {
+                    props.remove("comment");
+                    if (newColumn.getDisplayName().equals(oldColumn.getComment())) {
+                        props.remove("displayName");
+                    }
+                } else if (!StringHelper.isEmpty(newColumn.getComment())) {
+                    props.remove("displayName");
+                    if (newColumn.getComment().equals(oldColumn.getDisplayName())) {
+                        props.remove("comment");
+                    }
+                }
+            }
         } else if (diff.getOldValue() instanceof OrmUniqueKeyModel) {
             props.remove("name");
+            props.remove("comment");
         }
 
         return props.isEmpty();
