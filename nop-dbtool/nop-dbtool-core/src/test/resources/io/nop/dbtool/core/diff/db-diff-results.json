@@ -8,9 +8,9 @@
     "type": "add"
   },
   {
-    "ddl": "alter table dev_app add column VERSION VARCHAR(50) NOT NULL  COMMENT '版本号' ",
+    "ddl": "alter table dev_app add column CODE VARCHAR(50) NOT NULL  COMMENT '编码' ",
     "querySpace": "default",
-    "target": "VERSION",
+    "target": "CODE",
     "targetTable": "dev_app",
     "targetType": "column",
     "type": "add"
@@ -24,12 +24,28 @@
     "type": "add"
   },
   {
-    "ddl": "alter table dev_app drop column VERSION1",
+    "ddl": "alter table dev_app drop column CODE1",
     "querySpace": "default",
-    "target": "VERSION1",
+    "target": "CODE1",
     "targetTable": "dev_app",
     "targetType": "column",
     "type": "remove"
+  },
+  {
+    "ddl": "alter table dev_app  alter column  CREATED_AT TIMESTAMP NOT NULL  default CURRENT_TIMESTAMP  COMMENT '创建时间' ",
+    "querySpace": "default",
+    "target": "CREATED_AT",
+    "targetTable": "dev_app",
+    "targetType": "column",
+    "type": "update"
+  },
+  {
+    "ddl": "alter table dev_app  alter column  VERSION VARCHAR(50) NOT NULL  default '1.0.0'  COMMENT '版本号' ",
+    "querySpace": "default",
+    "target": "VERSION",
+    "targetTable": "dev_app",
+    "targetType": "column",
+    "type": "update"
   },
   {
     "ddl": "alter table dev_app   add constraint uk_dev_app_code     unique (CODE) ",
