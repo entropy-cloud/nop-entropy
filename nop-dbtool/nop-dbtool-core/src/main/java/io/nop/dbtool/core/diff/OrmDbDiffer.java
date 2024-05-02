@@ -9,8 +9,10 @@ package io.nop.dbtool.core.diff;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import io.nop.api.core.annotations.data.DataBean;
@@ -194,6 +196,10 @@ public class OrmDbDiffer {
         Map<DiffType, List<DiffDdl>> resultsMap = new HashMap<>();
 
         columnsDiff.getKeyedElementDiffs().forEach((columnName, columnDiff) -> {
+            if (isUselessDiff(columnDiff)) {
+                return;
+            }
+
             DiffType diffType = columnDiff.getDiffType();
             IColumnModel oldColumn = (IColumnModel) columnDiff.getOldValue();
             IColumnModel newColumn = (IColumnModel) columnDiff.getNewValue();
@@ -232,6 +238,10 @@ public class OrmDbDiffer {
             }
         } else {
             uniqueKeysDiff.getKeyedElementDiffs().forEach((uniqueKeyName, uniqueKeyDiff) -> {
+                if (isUselessDiff(uniqueKeyDiff)) {
+                    return;
+                }
+
                 DiffType diffType = uniqueKeyDiff.getDiffType();
                 OrmUniqueKeyModel oldUniqueKey = (OrmUniqueKeyModel) uniqueKeyDiff.getOldValue();
                 OrmUniqueKeyModel newUniqueKey = (OrmUniqueKeyModel) uniqueKeyDiff.getNewValue();
@@ -254,6 +264,24 @@ public class OrmDbDiffer {
         for (DiffDdl diffDdl : diffDdls) {
             map.computeIfAbsent(diffDdl.type, k -> new ArrayList<>()).add(diffDdl);
         }
+    }
+
+    /** 检查差异结果是否无用：仅包含不影响 DDL 构造的变更属性 */
+    private boolean isUselessDiff(IDiffValue diff) {
+        Map<String, ? extends IDiffValue> propDiffs = diff.getPropDiffs();
+        if (propDiffs == null) {
+            return false;
+        }
+
+        Set<String> props = new HashSet<>(propDiffs.keySet());
+        if (diff.getOldValue() instanceof IColumnModel) {
+            props.remove("name");
+            props.remove("stdDataType");
+        } else if (diff.getOldValue() instanceof OrmUniqueKeyModel) {
+            props.remove("name");
+        }
+
+        return props.isEmpty();
     }
 
     /** 注意，{@link DiffType#update} 需单独处理 */

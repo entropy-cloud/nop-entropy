@@ -133,7 +133,24 @@
             <attr name="col" implicit="true"/>
             <attr name="dialect" implicit="true"/>
             <attr name="allNullable" implicit="true" />
-            <source></source>
+            <source>
+                <c:if test="${col.defaultValue != null}">
+                    <c:script><![CDATA[
+                        import io.nop.commons.type.StdSqlType;
+
+                        // 无法识别字符串类型的默认值与函数名相同的情况，故而，只能要求在定义时不要设置与函数名相同的默认值
+                        let isFunction = dialect.getFunction(col.defaultValue) != null;
+                    ]]></c:script>
+                    <c:choose>
+                        <when test="${isFunction}">
+                            <c:unit><![CDATA[ default ${col.defaultValue} ]]></c:unit>
+                        </when>
+                        <otherwise>
+                            <c:unit><![CDATA[ default ${dialect.getStringLiteral(col.defaultValue)} ]]></c:unit>
+                        </otherwise>
+                    </c:choose>
+                </c:if>
+            </source>
         </DefaultValue>
 
         <AddComment outputMode="text">

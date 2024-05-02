@@ -47,6 +47,7 @@ public class OrmModelDiffer {
 
         // <<<<<<<<<<<<< 字段
         FieldSelectionBean colSelection = FieldSelectionBean.fromProp(
+                // Note: name 和 stdDataType 的变更不会影响 DDL 的生成，故而在构建 DDL 脚本时，需注意排除这些变更的属性
                 "code", "name", "displayName", "stdSqlType", "stdDataType",
                 "precision", "scale", "defaultValue", "mandatory", "comment"
         );
@@ -57,6 +58,7 @@ public class OrmModelDiffer {
 
         // >>>>>>>>> 唯一键
         FieldSelectionBean ukSelection = FieldSelectionBean.fromProp(
+                // Note: name 的变更不会影响 DDL 的生成，故而在构建 DDL 脚本时，需注意排除该变更属性
                 "name", "columns", "constraint", "comment"
         );
         // Note：在数据中反向获取的模型中，只有约束名才是可获取的唯一标识
@@ -85,6 +87,18 @@ public class OrmModelDiffer {
         else if ((obj instanceof IColumnModel && "code".equals(prop)) //
                  || (obj instanceof OrmUniqueKeyModel && "constraint".equals(prop))) {
             return DataBaseMeta.normalizeColName(dialect, value.toString());
+        }
+        // 字段默认值：从数据库中得到的默认值可能是包含引号的转义后的值，故而，在此处对两边的默认值都进行转义再做比较
+        else if (obj instanceof IColumnModel && "defaultValue".equals(prop)) {
+            String val = value.toString();
+
+            // 无法识别字符串类型的默认值与函数名相同的情况，故而，只能要求在定义时不要设置与函数名相同的默认值
+            if (dialect.getFunction(val) == null) {
+                return val.startsWith("'") && val.endsWith("'") ? val : dialect.getValueLiteral(val);
+            } else {
+                // 对函数名按字段名进行处理
+                return DataBaseMeta.normalizeColName(dialect, val);
+            }
         }
         return value;
     }

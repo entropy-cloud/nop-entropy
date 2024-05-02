@@ -251,6 +251,7 @@ public class JdbcMetaDiscovery {
                 //String isAutoIncrement = columns.getString("IS_AUTOINCREMENT");
                 String remarks = columns.getString("REMARKS");
                 String generated = columns.getString("IS_GENERATEDCOLUMN");
+                String defaultValue = columns.getString("COLUMN_DEF");
                 int ordinal = columns.getInt("ORDINAL_POSITION");
 
                 columnName = normalizeColName(columnName);
@@ -258,6 +259,8 @@ public class JdbcMetaDiscovery {
                 OrmColumnModel col = new OrmColumnModel();
                 col.setCode(columnName);
                 col.setName(StringHelper.colCodeToPropName(columnName));
+                // Note：获取到的默认值可能是包含引号的转义值（若值为函数，则不会被转义），在使用时需注意
+                col.setDefaultValue(defaultValue);
 
                 SqlDataTypeModel dataType = dialect.getNativeType(typeName);
                 SQLDataType sqlDataType;
