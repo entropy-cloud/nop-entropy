@@ -24,7 +24,7 @@ public class ChunkSortBatchLoader<S, C> implements IBatchLoader<S, C> {
     @Override
     public List<S> load(int batchSize, C context) {
         List<S> list = loader.load(batchSize, context);
-        if (!list.isEmpty()) {
+        if (list != null && !list.isEmpty()) {
             list.sort(comparator);
         }
         return list;

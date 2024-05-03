@@ -3,13 +3,19 @@ package io.nop.orm.data.source;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.annotations.txn.Transactional;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.concurrent.IBlockingSource;
+import io.nop.core.reflect.bean.BeanTool;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.dao.api.IEntityDao;
 import io.nop.dao.api.IQueryBuilder;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.sql_lib.ISqlLibManager;
+import io.nop.xlang.api.XLang;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 
@@ -23,16 +29,21 @@ public class DaoEntityBlockingSource<T extends IOrmEntity> implements IBlockingS
     private IDaoProvider daoProvider;
     private String entityName;
     private IQueryBuilder queryBuilder;
-    private String nextCheckTimeField;
+
+    private String acquireHostField;
+    private String acquiredTimeField;
+    private String acquiredStatusField;
+    private int acquiredStatus;
 
     private long pollInterval;
+
 
     public void setQueryBuilder(IQueryBuilder queryBuilder) {
         this.queryBuilder = queryBuilder;
     }
 
     public void setQuery(QueryBean query) {
-        this.setQueryBuilder(ctx -> query);
+        this.setQueryBuilder(ctx -> query.cloneInstance());
     }
 
     public IDaoProvider getDaoProvider() {
@@ -123,6 +134,43 @@ public class DaoEntityBlockingSource<T extends IOrmEntity> implements IBlockingS
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
     public int drainTo(Collection<? super T> c, int maxElements, long minWait, long maxWait) throws InterruptedException {
-        return IBlockingSource.super.drainTo(c, maxElements, minWait, maxWait);
+        IEntityDao<T> dao = daoProvider.dao(entityName);
+        if (maxWait == 0) {
+            List<T> items = loadItems(dao, maxElements);
+            c.addAll(items);
+            return items.size();
+        }
+
+        FutureHelper.waitUntil(() -> {
+            List<T> items = loadItems(dao, maxElements);
+            if (items.isEmpty()) {
+                return false;
+            }
+            dao.flushSession();
+            c.addAll(items);
+            return true;
+        }, maxWait, minWait <= 0 ? pollInterval : Math.min(pollInterval, minWait));
+        return c.size();
+    }
+
+    private List<T> loadItems(IEntityDao<T> dao, int maxCount) {
+        QueryBean query = queryBuilder.buildQuery(XLang.newEvalScope());
+        query.setLimit(maxCount);
+        List<T> items = dao.findAllByQuery(query);
+
+        // 获取到实体之后立刻修改其中的状态字段，通过状态过滤可以避免重复获取
+        for (T item : items) {
+            if (acquireHostField != null) {
+                BeanTool.setProperty(item, acquireHostField, AppConfig.hostId());
+            }
+            if (acquiredTimeField != null) {
+                BeanTool.setProperty(item, acquiredTimeField, CoreMetrics.currentTimestamp());
+            }
+            if (acquiredStatusField != null) {
+                BeanTool.setProperty(item, acquiredStatusField, acquiredStatus);
+            }
+        }
+
+        return items;
     }
 }

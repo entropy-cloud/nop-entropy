@@ -487,17 +487,22 @@ public class FutureHelper {
     }
 
     public static boolean waitUntil(BooleanSupplier test, long timeout) {
+        return waitUntil(test, timeout, 100);
+    }
+
+    public static boolean waitUntil(BooleanSupplier test, long timeout, long sleepInterval) {
+        Guard.positiveLong(timeout, "timeout");
+
         long endTime = CoreMetrics.currentTimeMillis() + timeout;
         while (!test.getAsBoolean()) {
             try {
-                Thread.sleep(100);
+                Thread.sleep(sleepInterval);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return false;
             }
 
-            timeout = endTime - CoreMetrics.currentTimeMillis();
-            if (timeout <= 0)
+            if (CoreMetrics.currentTimeMillis() >= endTime)
                 return false;
         }
         return true;

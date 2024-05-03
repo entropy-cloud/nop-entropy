@@ -16337,9 +16337,27 @@
         ]
       },
       {
+        "name": "doUpdateByQuery",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.util.Map",
+          "java.util.function.BiConsumer",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "doUpdateEntity",
         "parameterTypes": [
           "io.nop.biz.crud.EntityData",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doUpdateMulti",
+        "parameterTypes": [
+          "java.util.List",
+          "java.util.Map",
+          "java.util.function.BiConsumer",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -16680,6 +16698,14 @@
       {
         "name": "update",
         "parameterTypes": [
+          "java.util.Map",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "updateByQuery",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
           "java.util.Map",
           "io.nop.core.context.IServiceContext"
         ]
@@ -19616,6 +19642,12 @@
       {
         "name": "isAllowScale",
         "parameterTypes": []
+      },
+      {
+        "name": "isCompatibleWith",
+        "parameterTypes": [
+          "io.nop.commons.type.StdSqlType"
+        ]
       },
       {
         "name": "valueOf",
@@ -41807,6 +41839,13 @@
       }
     ],
     "methods": [
+      {
+        "name": "buildQueryBean",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.core.context.IEvalContext"
+        ]
+      },
       {
         "name": "buildSql",
         "parameterTypes": [
