@@ -1,8 +1,59 @@
 entity:
   label:
+    NopJobDefinition: 作业定义
+    NopJobInstance: 任务实例
     NopJobPlan: 任务调度计划
 prop:
   label:
+    NopJobDefinition:
+      createTime: 创建时间
+      createdBy: 创建人
+      cronExpr: 定时表达式
+      description: 任务描述
+      displayName: 显示名
+      isFixedDelay: 是否固定延时
+      isUseDefaultCalendar: 使用系统内置日历
+      jobGroup: 任务组
+      jobInvoker: 任务执行函数
+      jobName: 任务名
+      jobParams: 任务参数
+      jobParamsComponent: null
+      maxExecutionCount: 最多执行次数
+      maxFailedCount: 最大允许失败次数
+      maxScheduleTime: 最大调度时间
+      minScheduleTime: 最近调度时间
+      misfireThreshold: 超时阈值
+      pauseCalendars: 暂停日历
+      remark: 备注
+      repeatInterval: 定时执行间隔
+      schedulerEpoch: 调度器世代
+      schedulerGroup: 调度器分组
+      schedulerId: 调度器ID
+      schedulerLoadTime: 调度器加载时间
+      sid: SID
+      status: 任务状态
+      status_label: 任务状态
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopJobInstance:
+      createTime: 创建时间
+      createdBy: 创建人
+      errCode: 错误码
+      errMsg: 错误消息
+      jobDefId: 任务定义ID
+      jobDefinition: 作业计划
+      jobDefinition.displayName: 作业计划
+      jobId: Job ID
+      jobParams: 任务参数
+      jobParamsComponent: null
+      nextScheduleTime: 下次调度时间
+      remark: 备注
+      status: 任务状态
+      status_label: 任务状态
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopJobPlan:
       createTime: 创建时间
       createdBy: 创建人
@@ -24,6 +75,10 @@ prop:
       pauseCalendars: 暂停日历
       remark: 备注
       repeatInterval: 定时执行间隔
+      schedulerCheckTime: 调度检查时间
+      schedulerEpoch: 调度器世代
+      schedulerGroup: 调度器分组
+      schedulerId: 调度器ID
       sid: SID
       status: 任务状态
       status_label: 任务状态

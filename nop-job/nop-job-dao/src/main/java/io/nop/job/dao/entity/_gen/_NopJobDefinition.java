@@ -10,15 +10,15 @@ import java.util.HashMap;
 import java.util.Arrays;
 import java.util.List;
 
-import io.nop.job.dao.entity.NopJobPlan;
+import io.nop.job.dao.entity.NopJobDefinition;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- *  任务调度计划: nop_job_plan
+ *  作业定义: nop_job_definition
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
-public class _NopJobPlan extends DynamicOrmEntity{
+public class _NopJobDefinition extends DynamicOrmEntity{
     
     /* SID: SID VARCHAR */
     public static final String PROP_NAME_sid = "sid";
@@ -92,32 +92,48 @@ public class _NopJobPlan extends DynamicOrmEntity{
     public static final String PROP_NAME_pauseCalendars = "pauseCalendars";
     public static final int PROP_ID_pauseCalendars = 18;
     
+    /* 调度器分组: SCHEDULER_GROUP VARCHAR */
+    public static final String PROP_NAME_schedulerGroup = "schedulerGroup";
+    public static final int PROP_ID_schedulerGroup = 19;
+    
+    /* 调度器ID: SCHEDULER_ID VARCHAR */
+    public static final String PROP_NAME_schedulerId = "schedulerId";
+    public static final int PROP_ID_schedulerId = 20;
+    
+    /* 调度器世代: SCHEDULER_EPOCH BIGINT */
+    public static final String PROP_NAME_schedulerEpoch = "schedulerEpoch";
+    public static final int PROP_ID_schedulerEpoch = 21;
+    
+    /* 调度器加载时间: SCHEDULER_LOAD_TIME TIMESTAMP */
+    public static final String PROP_NAME_schedulerLoadTime = "schedulerLoadTime";
+    public static final int PROP_ID_schedulerLoadTime = 22;
+    
     /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 19;
+    public static final int PROP_ID_version = 23;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 20;
+    public static final int PROP_ID_createdBy = 24;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 21;
+    public static final int PROP_ID_createTime = 25;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 22;
+    public static final int PROP_ID_updatedBy = 26;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 23;
+    public static final int PROP_ID_updateTime = 27;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 24;
+    public static final int PROP_ID_remark = 28;
     
 
-    private static int _PROP_ID_BOUND = 25;
+    private static int _PROP_ID_BOUND = 29;
 
     
     /* component:  */
@@ -127,7 +143,7 @@ public class _NopJobPlan extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
-    private static final String[] PROP_ID_TO_NAME = new String[25];
+    private static final String[] PROP_ID_TO_NAME = new String[29];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -184,6 +200,18 @@ public class _NopJobPlan extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_pauseCalendars] = PROP_NAME_pauseCalendars;
           PROP_NAME_TO_ID.put(PROP_NAME_pauseCalendars, PROP_ID_pauseCalendars);
+      
+          PROP_ID_TO_NAME[PROP_ID_schedulerGroup] = PROP_NAME_schedulerGroup;
+          PROP_NAME_TO_ID.put(PROP_NAME_schedulerGroup, PROP_ID_schedulerGroup);
+      
+          PROP_ID_TO_NAME[PROP_ID_schedulerId] = PROP_NAME_schedulerId;
+          PROP_NAME_TO_ID.put(PROP_NAME_schedulerId, PROP_ID_schedulerId);
+      
+          PROP_ID_TO_NAME[PROP_ID_schedulerEpoch] = PROP_NAME_schedulerEpoch;
+          PROP_NAME_TO_ID.put(PROP_NAME_schedulerEpoch, PROP_ID_schedulerEpoch);
+      
+          PROP_ID_TO_NAME[PROP_ID_schedulerLoadTime] = PROP_NAME_schedulerLoadTime;
+          PROP_NAME_TO_ID.put(PROP_NAME_schedulerLoadTime, PROP_ID_schedulerLoadTime);
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
@@ -260,6 +288,18 @@ public class _NopJobPlan extends DynamicOrmEntity{
     /* 暂停日历: PAUSE_CALENDARS */
     private java.lang.String _pauseCalendars;
     
+    /* 调度器分组: SCHEDULER_GROUP */
+    private java.lang.String _schedulerGroup;
+    
+    /* 调度器ID: SCHEDULER_ID */
+    private java.lang.String _schedulerId;
+    
+    /* 调度器世代: SCHEDULER_EPOCH */
+    private java.lang.Long _schedulerEpoch;
+    
+    /* 调度器加载时间: SCHEDULER_LOAD_TIME */
+    private java.sql.Timestamp _schedulerLoadTime;
+    
     /* 数据版本: VERSION */
     private java.lang.Long _version;
     
@@ -279,17 +319,17 @@ public class _NopJobPlan extends DynamicOrmEntity{
     private java.lang.String _remark;
     
 
-    public _NopJobPlan(){
+    public _NopJobDefinition(){
         // for debug
     }
 
-    protected NopJobPlan newInstance(){
-       return new NopJobPlan();
+    protected NopJobDefinition newInstance(){
+       return new NopJobDefinition();
     }
 
     @Override
-    public NopJobPlan cloneInstance() {
-        NopJobPlan entity = newInstance();
+    public NopJobDefinition cloneInstance() {
+        NopJobDefinition entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
             entity.onInitProp(propId);
         });
@@ -302,7 +342,7 @@ public class _NopJobPlan extends DynamicOrmEntity{
       IEntityModel entityModel = orm_entityModel();
       if(entityModel != null)
           return entityModel.getName();
-      return "io.nop.job.dao.entity.NopJobPlan";
+      return "io.nop.job.dao.entity.NopJobDefinition";
     }
 
     @Override
@@ -402,6 +442,18 @@ public class _NopJobPlan extends DynamicOrmEntity{
         
             case PROP_ID_pauseCalendars:
                return getPauseCalendars();
+        
+            case PROP_ID_schedulerGroup:
+               return getSchedulerGroup();
+        
+            case PROP_ID_schedulerId:
+               return getSchedulerId();
+        
+            case PROP_ID_schedulerEpoch:
+               return getSchedulerEpoch();
+        
+            case PROP_ID_schedulerLoadTime:
+               return getSchedulerLoadTime();
         
             case PROP_ID_version:
                return getVersion();
@@ -612,6 +664,46 @@ public class _NopJobPlan extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_schedulerGroup:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_schedulerGroup));
+               }
+               setSchedulerGroup(typedValue);
+               break;
+            }
+        
+            case PROP_ID_schedulerId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_schedulerId));
+               }
+               setSchedulerId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_schedulerEpoch:{
+               java.lang.Long typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toLong(value,
+                       err-> newTypeConversionError(PROP_NAME_schedulerEpoch));
+               }
+               setSchedulerEpoch(typedValue);
+               break;
+            }
+        
+            case PROP_ID_schedulerLoadTime:{
+               java.sql.Timestamp typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toTimestamp(value,
+                       err-> newTypeConversionError(PROP_NAME_schedulerLoadTime));
+               }
+               setSchedulerLoadTime(typedValue);
+               break;
+            }
+        
             case PROP_ID_version:{
                java.lang.Long typedValue = null;
                if(value != null){
@@ -803,6 +895,34 @@ public class _NopJobPlan extends DynamicOrmEntity{
             case PROP_ID_pauseCalendars:{
                onInitProp(propId);
                this._pauseCalendars = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_schedulerGroup:{
+               onInitProp(propId);
+               this._schedulerGroup = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_schedulerId:{
+               onInitProp(propId);
+               this._schedulerId = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_schedulerEpoch:{
+               onInitProp(propId);
+               this._schedulerEpoch = (java.lang.Long)value;
+               
+               break;
+            }
+        
+            case PROP_ID_schedulerLoadTime:{
+               onInitProp(propId);
+               this._schedulerLoadTime = (java.sql.Timestamp)value;
                
                break;
             }
@@ -1193,6 +1313,82 @@ public class _NopJobPlan extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_pauseCalendars,value)){
             this._pauseCalendars = value;
             internalClearRefs(PROP_ID_pauseCalendars);
+            
+        }
+    }
+    
+    /**
+     * 调度器分组: SCHEDULER_GROUP
+     */
+    public java.lang.String getSchedulerGroup(){
+         onPropGet(PROP_ID_schedulerGroup);
+         return _schedulerGroup;
+    }
+
+    /**
+     * 调度器分组: SCHEDULER_GROUP
+     */
+    public void setSchedulerGroup(java.lang.String value){
+        if(onPropSet(PROP_ID_schedulerGroup,value)){
+            this._schedulerGroup = value;
+            internalClearRefs(PROP_ID_schedulerGroup);
+            
+        }
+    }
+    
+    /**
+     * 调度器ID: SCHEDULER_ID
+     */
+    public java.lang.String getSchedulerId(){
+         onPropGet(PROP_ID_schedulerId);
+         return _schedulerId;
+    }
+
+    /**
+     * 调度器ID: SCHEDULER_ID
+     */
+    public void setSchedulerId(java.lang.String value){
+        if(onPropSet(PROP_ID_schedulerId,value)){
+            this._schedulerId = value;
+            internalClearRefs(PROP_ID_schedulerId);
+            
+        }
+    }
+    
+    /**
+     * 调度器世代: SCHEDULER_EPOCH
+     */
+    public java.lang.Long getSchedulerEpoch(){
+         onPropGet(PROP_ID_schedulerEpoch);
+         return _schedulerEpoch;
+    }
+
+    /**
+     * 调度器世代: SCHEDULER_EPOCH
+     */
+    public void setSchedulerEpoch(java.lang.Long value){
+        if(onPropSet(PROP_ID_schedulerEpoch,value)){
+            this._schedulerEpoch = value;
+            internalClearRefs(PROP_ID_schedulerEpoch);
+            
+        }
+    }
+    
+    /**
+     * 调度器加载时间: SCHEDULER_LOAD_TIME
+     */
+    public java.sql.Timestamp getSchedulerLoadTime(){
+         onPropGet(PROP_ID_schedulerLoadTime);
+         return _schedulerLoadTime;
+    }
+
+    /**
+     * 调度器加载时间: SCHEDULER_LOAD_TIME
+     */
+    public void setSchedulerLoadTime(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_schedulerLoadTime,value)){
+            this._schedulerLoadTime = value;
+            internalClearRefs(PROP_ID_schedulerLoadTime);
             
         }
     }

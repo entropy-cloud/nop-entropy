@@ -1,7 +1,12 @@
 
-    alter table nop_job_plan add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+    alter table nop_job_definition add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_job_plan drop constraint PK_nop_job_plan;
-alter table nop_job_plan add constraint PK_nop_job_plan primary key (NOP_TENANT_ID, SID);
+alter table nop_job_instance add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_job_definition drop constraint PK_nop_job_definition;
+alter table nop_job_definition add constraint PK_nop_job_definition primary key (NOP_TENANT_ID, SID);
+
+alter table nop_job_instance drop constraint PK_nop_job_instance;
+alter table nop_job_instance add constraint PK_nop_job_instance primary key (NOP_TENANT_ID, JOB_ID);
 
 

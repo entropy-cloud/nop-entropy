@@ -5,5 +5,7 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
-    <bean id="io.nop.job.service.entity.NopJobPlanBizModel" ioc:type="@bean:id" ioc:default="true"/>
+    <bean id="io.nop.job.service.entity.NopJobDefinitionBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="io.nop.job.service.entity.NopJobInstanceBizModel" ioc:type="@bean:id" ioc:default="true"/>
 </beans>

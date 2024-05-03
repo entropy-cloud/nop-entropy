@@ -21,7 +21,7 @@
   "schedulerGroup": "",
   "schedulerId": "",
   "schedulerEpoch": 0,
-  "schedulerCheckTime": "2000-01-01 14:00:00",
+  "schedulerLoadTime": "2000-01-01 14:00:00",
   "version": 0,
   "createdBy": "",
   "createTime": "2000-01-01 14:00:00",

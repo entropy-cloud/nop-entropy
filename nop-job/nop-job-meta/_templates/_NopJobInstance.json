@@ -1,0 +1,19 @@
+{
+  "jobId": "",
+  "jobDefId": "",
+  "jobParams": "",
+  "status": 0,
+  "status_label": "",
+  "nextScheduleTime": "2000-01-01 14:00:00",
+  "errCode": "",
+  "errMsg": "",
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "remark": "",
+  "jobDefinition": null,
+  "jobDefinition.displayName": "",
+  "jobParamsComponent": null
+}

@@ -10563,6 +10563,10 @@
         ]
       },
       {
+        "name": "getFunctionNames",
+        "parameterTypes": []
+      },
+      {
         "name": "getGeometryDataParameterBinder",
         "parameterTypes": []
       },
@@ -10942,6 +10946,10 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "getFunctionNames",
+        "parameterTypes": []
       },
       {
         "name": "getGeometryDataParameterBinder",
@@ -17261,6 +17269,13 @@
         ]
       },
       {
+        "name": "addUniqueKey",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityModel",
+          "io.nop.orm.model.OrmUniqueKeyModel"
+        ]
+      },
+      {
         "name": "createTable",
         "parameterTypes": [
           "io.nop.orm.model.IEntityModel"
@@ -17306,6 +17321,19 @@
         "parameterTypes": [
           "java.util.Collection",
           "boolean"
+        ]
+      },
+      {
+        "name": "dropUniqueKey",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityModel",
+          "io.nop.orm.model.OrmUniqueKeyModel"
+        ]
+      },
+      {
+        "name": "forDialect",
+        "parameterTypes": [
+          "io.nop.dao.dialect.IDialect"
         ]
       },
       {
@@ -21855,6 +21883,13 @@
       }
     ],
     "methods": [
+      {
+        "name": "buildQueryBean",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.core.context.IEvalContext"
+        ]
+      },
       {
         "name": "buildSql",
         "parameterTypes": [

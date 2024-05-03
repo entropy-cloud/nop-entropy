@@ -9,6 +9,25 @@
         <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
     </x:post-extends>
 
+    <dicts>
+        <dict label="作业实例状态" name="job/job-instance-status" valueType="int" i18n-en:label="Job Instance Status">
+            <option code="CREATED" label="已创建" value="0"/>
+            <option code="SUSPENDED" label="已暂停" value="10"/>
+            <option code="WAITING" description="等待调度" label="等待中" value="20"/>
+            <option code="ACTIVATED" label="执行中" value="30"/>
+            <option code="COMPLETED" label="已完成" value="40"/>
+            <option code="EXPIRED" label="已超时" value="50"/>
+            <option code="FAILED" label="已失败" value="60"/>
+            <option code="KILLED" label="已中止" value="70"/>
+        </dict>
+        <dict label="作业定义状态" name="job/job-def-status" valueType="int" i18n-en:label="Job Definition Status">
+            <option code="UNPUBLISHED" label="未发布" value="0"/>
+            <option code="PUBLISHED" label="已发布" value="1"/>
+            <option code="DEPRECATED" description="过时的作业不推荐使用" label="已过时" value="2"/>
+            <option code="ARCHIVED" description="已归档的流程不能新建实例" label="已归档" value="3"/>
+        </dict>
+    </dicts>
+
     <domains>
         <domain name="userName" precision="50" stdSqlType="VARCHAR"/>
         <domain name="image" precision="100" stdSqlType="VARCHAR"/>
@@ -30,10 +49,10 @@
     </domains>
 
     <entities>
-        <entity className="io.nop.job.dao.entity.NopJobPlan" createTimeProp="createTime" createrProp="createdBy"
-                displayName="任务调度计划" name="io.nop.job.dao.entity.NopJobPlan" registerShortName="true"
-                tableName="nop_job_plan" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Job Plan">
+        <entity className="io.nop.job.dao.entity.NopJobDefinition" createTimeProp="createTime" createrProp="createdBy"
+                displayName="作业定义" name="io.nop.job.dao.entity.NopJobDefinition" registerShortName="true"
+                tableName="nop_job_definition" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                i18n-en:displayName="Job Definition">
             <columns>
                 <column code="SID" displayName="SID" mandatory="true" name="sid" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
@@ -52,7 +71,7 @@
                 <column code="DESCRIPTION" displayName="任务描述" name="description" precision="4000" propId="7"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
                 <column code="STATUS" displayName="任务状态" mandatory="true" name="status" propId="8" stdDataType="int"
-                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="job/job-plan-status"/>
+                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="job/job-def-status"/>
                 <column code="CRON_EXPR" displayName="定时表达式" name="cronExpr" precision="100" propId="9"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Cron Expr"/>
                 <column code="REPEAT_INTERVAL" displayName="定时执行间隔" name="repeatInterval" propId="10" stdDataType="int"
@@ -77,21 +96,74 @@
                 <column code="PAUSE_CALENDARS" comment="会跳过日历范围内的时间" displayName="暂停日历" name="pauseCalendars"
                         precision="4000" propId="18" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Pause Calendars"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="19"
+                <column code="SCHEDULER_GROUP" displayName="调度器分组" mandatory="true" name="schedulerGroup" precision="50"
+                        propId="19" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Scheduler Group"/>
+                <column code="SCHEDULER_ID" displayName="调度器ID" mandatory="true" name="schedulerId" precision="32"
+                        propId="20" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Scheduler Id"/>
+                <column code="SCHEDULER_EPOCH" displayName="调度器世代" mandatory="true" name="schedulerEpoch" propId="21"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Scheduler Epoch"/>
+                <column code="SCHEDULER_LOAD_TIME" displayName="调度器加载时间" name="schedulerLoadTime" propId="22"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Scheduler Load Time"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="23"
                         stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="20" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="24" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="21" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                        propId="25" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="22" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="26" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="23" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="24"
+                        propId="27" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="28"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
+        </entity>
+        <entity className="io.nop.job.dao.entity.NopJobInstance" createTimeProp="createTime" createrProp="createdBy"
+                displayName="任务实例" name="io.nop.job.dao.entity.NopJobInstance" registerShortName="true"
+                tableName="nop_job_instance" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                i18n-en:displayName="Job Instance">
+            <columns>
+                <column code="JOB_ID" displayName="Job ID" mandatory="true" name="jobId" precision="32" primary="true"
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="Job Id"/>
+                <column code="JOB_DEF_ID" displayName="任务定义ID" mandatory="true" name="jobDefId" precision="32"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Job Definition Id"/>
+                <column code="JOB_PARAMS" displayName="任务参数" domain="json-4000" name="jobParams" precision="4000"
+                        propId="3" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Job Params"/>
+                <column code="STATUS" displayName="任务状态" mandatory="true" name="status" propId="4" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="job/job-instance-status"/>
+                <column code="NEXT_SCHEDULE_TIME" displayName="下次调度时间" name="nextScheduleTime" propId="5"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Next Schedule Time"/>
+                <column code="ERR_CODE" displayName="错误码" name="errCode" precision="200" propId="6" stdDataType="string"
+                        stdSqlType="VARCHAR" i18n-en:displayName="Error Code"/>
+                <column code="ERR_MSG" displayName="错误消息" name="errMsg" precision="500" propId="7" stdDataType="string"
+                        stdSqlType="VARCHAR" i18n-en:displayName="Error Message"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="8"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="13"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <relations>
+                <to-one displayName="作业计划" name="jobDefinition" refEntityName="io.nop.job.dao.entity.NopJobDefinition"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Job Definition">
+                    <join>
+                        <on leftProp="jobDefId" rightProp="sid"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+            </relations>
         </entity>
     </entities>
 </orm>

@@ -17,6 +17,7 @@
 /meta/test/_NopAuthUser2.xmeta
 /nop/aop/nop-api-core.annotations
 /nop/autoconfig/nop-dao.beans
+/nop/autoconfig/nop-dbtool.beans
 /nop/autoconfig/nop-orm.beans
 /nop/autoconfig/nop-report.beans
 /nop/autoconfig/nop-task-core.beans
@@ -70,6 +71,7 @@
 /nop/dao/dialect/selector/postgresql.selector.yaml
 /nop/dao/dialect/tdengine.dialect.xml
 /nop/dao/dialect/window-expr-support.dialect.xml
+/nop/dbtool/beans/dbtool-defaults.beans.xml
 /nop/excel/xlib/imp-gen.xlib
 /nop/graphql/base.graphql
 /nop/graphql/default.graphql
