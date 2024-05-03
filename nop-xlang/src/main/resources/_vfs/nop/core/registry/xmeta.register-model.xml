@@ -4,7 +4,7 @@
     <loaders>
         <xdsl-loader fileType="xmeta" schemaPath="/nop/schema/xmeta.xdef"/>
 
-        <loader fileType="xjava" class="io.nop.xlang.xmeta.xjava.JavaObjMetaParser"/>
+        <loader fileType="xjava" class="io.nop.xlang.xmeta.xjava.JavaObjMetaParser" optional="true"/>
 
     </loaders>
 

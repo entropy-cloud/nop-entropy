@@ -166,6 +166,8 @@ public class RegisterModelDiscovery {
             for (Object loader : loaders) {
                 String type = (String) BeanTool.getProperty(loader, "type");
                 String fileType = (String) BeanTool.getProperty(loader, "fileType");
+                boolean optional = ConvertHelper.toPrimitiveBoolean(BeanTool.getProperty(loader, "optional"),
+                        false, NopException::new);
 
                 if ("xdsl-loader".equals(type)) {
                     String schemaPath = (String) BeanTool.getProperty(loader, "schemaPath");
@@ -191,8 +193,7 @@ public class RegisterModelDiscovery {
                                 fileType, impPath);
                     }
                 } else {
-                    String className = (String) BeanTool.getProperty(loader, "className");
-                    config.loader(fileType, newLoader(className));
+                    initLoader(config, loader, fileType, optional);
                 }
             }
         }
@@ -200,13 +201,42 @@ public class RegisterModelDiscovery {
         List<Object> transformers = (List<Object>) BeanTool.getProperty(model, "transformers");
         if (transformers != null) {
             for (Object transformer : transformers) {
-                String target = (String) BeanTool.getProperty(transformer, "target");
-                String className = (String) BeanTool.getProperty(transformer, "className");
-                config.transformer(target, newTransformer(className));
+                initTransformer(config, transformer, name);
             }
         }
 
         return config;
+    }
+
+    private void initLoader(ComponentModelConfig config, Object loader, String fileType, boolean optional) {
+        String className = (String) BeanTool.getProperty(loader, "className");
+
+        try {
+            config.loader(fileType, newLoader(className));
+        } catch (NoClassDefFoundError | NopException e) {
+            if (!optional) {
+                throw NopException.adapt(e);
+            } else {
+                LOG.warn("nop.register-model.ignore-invalid-loader:fileType={},className={}", fileType, className, e);
+            }
+        }
+    }
+
+    private void initTransformer(ComponentModelConfig config, Object transformer, String modelType) {
+        String target = (String) BeanTool.getProperty(transformer, "target");
+        String className = (String) BeanTool.getProperty(transformer, "className");
+        boolean optional = ConvertHelper.toPrimitiveBoolean(BeanTool.getProperty(transformer, "optional"),
+                false, NopException::new);
+
+        try {
+            config.transformer(target, newTransformer(className));
+        } catch (NoClassDefFoundError | NopException e) {
+            if (!optional) {
+                throw NopException.adapt(e);
+            } else {
+                LOG.warn("nop.register-model.ignore-invalid-transformer:modelType={},className={}", modelType, className, e);
+            }
+        }
     }
 
     IResourceObjectLoader buildDefaultResolveLoader(Object resolveHandler) {
