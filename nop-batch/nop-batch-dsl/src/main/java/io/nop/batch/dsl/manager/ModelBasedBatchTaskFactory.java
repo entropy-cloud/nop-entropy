@@ -246,8 +246,9 @@ public class ModelBasedBatchTaskFactory implements IBatchTaskFactory {
         OrmQueryBatchLoader<IOrmEntity> loader = new OrmQueryBatchLoader<>();
         loader.setBatchLoadProps(batchLoadProps);
         loader.setDaoProvider(daoProvider);
-        loader.setQueryBuilder(ctx -> query);
-        loader.setSqlGenerator(readerModel.getEql());
+        if (query != null)
+            loader.setQuery(query);
+        //loader.setSqlGenerator(readerModel.getEql());
 
         return loader;
     }
