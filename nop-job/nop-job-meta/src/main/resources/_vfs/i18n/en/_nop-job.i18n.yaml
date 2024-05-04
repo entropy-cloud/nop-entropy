@@ -39,10 +39,15 @@ prop:
     NopJobInstance:
       jobId: Job Id
       jobDefId: Job Definition Id
+      jobName: Job Name
+      jobGroup: Job Group
       jobParams: Job Params
+      jobInvoker: Job Invoker
       status: Status
       status_label: null
-      nextScheduleTime: Next Schedule Time
+      scheduledExecTime: Scheduled Exec Time
+      execTime: Exec Time
+      onceTask: Once Task
       errCode: Error Code
       errMsg: Error Message
       version: Version

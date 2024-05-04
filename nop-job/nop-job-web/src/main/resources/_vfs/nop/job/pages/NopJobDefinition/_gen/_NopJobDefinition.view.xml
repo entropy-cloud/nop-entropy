@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopJobDefinition" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="gql">
+
+    <objMeta>/nop/job/model/NopJobDefinition/NopJobDefinition.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--SID-->
+                <col id="sid" mandatory="true" sortable="true"/>
+
+                <!--显示名-->
+                <col id="displayName" mandatory="true" sortable="true"/>
+
+                <!--任务名-->
+                <col id="jobName" mandatory="true" sortable="true"/>
+
+                <!--任务组-->
+                <col id="jobGroup" mandatory="true" sortable="true"/>
+
+                <!--任务参数-->
+                <col id="jobParams" sortable="true"/>
+
+                <!--任务执行函数-->
+                <col id="jobInvoker" mandatory="true" sortable="true"/>
+
+                <!--任务描述-->
+                <col id="description" sortable="true"/>
+
+                <!--任务状态-->
+                <col id="status" mandatory="true" sortable="true"/>
+
+                <!--定时表达式-->
+                <col id="cronExpr" sortable="true"/>
+
+                <!--定时执行间隔-->
+                <col id="repeatInterval" sortable="true"/>
+
+                <!--是否固定延时-->
+                <col id="isFixedDelay" sortable="true"/>
+
+                <!--最多执行次数-->
+                <col id="maxExecutionCount" sortable="true"/>
+
+                <!--最近调度时间-->
+                <col id="minScheduleTime" sortable="true"/>
+
+                <!--最大调度时间-->
+                <col id="maxScheduleTime" sortable="true"/>
+
+                <!--超时阈值-->
+                <col id="misfireThreshold" sortable="true"/>
+
+                <!--最大允许失败次数-->
+                <col id="maxFailedCount" sortable="true"/>
+
+                <!--使用系统内置日历-->
+                <col id="isUseDefaultCalendar" sortable="true"/>
+
+                <!--暂停日历-->
+                <col id="pauseCalendars" sortable="true"/>
+
+                <!--调度器分组-->
+                <col id="schedulerGroup" mandatory="true" sortable="true"/>
+
+                <!--调度器ID-->
+                <col id="schedulerId" mandatory="true" sortable="true"/>
+
+                <!--调度器世代-->
+                <col id="schedulerEpoch" mandatory="true" sortable="true"/>
+
+                <!--调度器加载时间-->
+                <col id="schedulerLoadTime" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true"/>
+
+                <!--备注-->
+                <col id="remark" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-作业定义" i18n-en:title="View Job Definition">
+            <layout>
+ sid[SID] displayName[显示名]
+ jobName[任务名] jobGroup[任务组]
+ jobParams[任务参数] jobInvoker[任务执行函数]
+ description[任务描述] status[任务状态]
+ cronExpr[定时表达式] repeatInterval[定时执行间隔]
+ isFixedDelay[是否固定延时] maxExecutionCount[最多执行次数]
+ minScheduleTime[最近调度时间] maxScheduleTime[最大调度时间]
+ misfireThreshold[超时阈值] maxFailedCount[最大允许失败次数]
+ isUseDefaultCalendar[使用系统内置日历] pauseCalendars[暂停日历]
+ schedulerGroup[调度器分组] schedulerId[调度器ID]
+ schedulerEpoch[调度器世代] schedulerLoadTime[调度器加载时间]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-作业定义" i18n-en:title="Add Job Definition" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-作业定义" i18n-en:title="Edit Job Definition">
+            <layout>
+ sid[SID] displayName[显示名]
+ jobName[任务名] jobGroup[任务组]
+ jobParams[任务参数] jobInvoker[任务执行函数]
+ description[任务描述] status[任务状态]
+ cronExpr[定时表达式] repeatInterval[定时执行间隔]
+ isFixedDelay[是否固定延时] maxExecutionCount[最多执行次数]
+ minScheduleTime[最近调度时间] maxScheduleTime[最大调度时间]
+ misfireThreshold[超时阈值] maxFailedCount[最大允许失败次数]
+ isUseDefaultCalendar[使用系统内置日历] pauseCalendars[暂停日历]
+ schedulerGroup[调度器分组] schedulerId[调度器ID]
+ schedulerEpoch[调度器世代] schedulerLoadTime[调度器加载时间]
+ remark[备注] 
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
+            <layout/>
+        </form>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
+            <layout/>
+        </form>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-作业定义" i18n-en:title="Update Job Definition">
+            <layout/>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopJobDefinition__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopJobDefinition__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopJobDefinition__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" label="@i18n:common.delete">
+                        <api url="@mutation:NopJobDefinition__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table>
+                <api url="@query:NopJobDefinition__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopJobDefinition__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopJobDefinition__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopJobDefinition__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopJobDefinition__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

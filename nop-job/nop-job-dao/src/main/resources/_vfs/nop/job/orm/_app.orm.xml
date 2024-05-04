@@ -127,32 +127,42 @@
             <columns>
                 <column code="JOB_ID" displayName="Job ID" mandatory="true" name="jobId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="Job Id"/>
-                <column code="JOB_DEF_ID" displayName="任务定义ID" mandatory="true" name="jobDefId" precision="32"
-                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Job Definition Id"/>
+                <column code="JOB_DEF_ID" displayName="任务定义ID" name="jobDefId" precision="32" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Job Definition Id" ui:show="X"/>
+                <column code="JOB_NAME" displayName="任务名" mandatory="true" name="jobName" precision="100" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Job Name"/>
+                <column code="JOB_GROUP" displayName="任务组" mandatory="true" name="jobGroup" precision="100" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Job Group"/>
                 <column code="JOB_PARAMS" displayName="任务参数" domain="json-4000" name="jobParams" precision="4000"
-                        propId="3" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        propId="5" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Job Params"/>
-                <column code="STATUS" displayName="任务状态" mandatory="true" name="status" propId="4" stdDataType="int"
+                <column code="JOB_INVOKER" displayName="任务执行函数" mandatory="true" name="jobInvoker" precision="200"
+                        propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Job Invoker"/>
+                <column code="STATUS" displayName="任务状态" mandatory="true" name="status" propId="7" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="job/job-instance-status"/>
-                <column code="NEXT_SCHEDULE_TIME" displayName="下次调度时间" name="nextScheduleTime" propId="5"
-                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Next Schedule Time"/>
-                <column code="ERR_CODE" displayName="错误码" name="errCode" precision="200" propId="6" stdDataType="string"
-                        stdSqlType="VARCHAR" i18n-en:displayName="Error Code"/>
-                <column code="ERR_MSG" displayName="错误消息" name="errMsg" precision="500" propId="7" stdDataType="string"
+                <column code="SCHEDULED_EXEC_TIME" displayName="调度执行时间" name="scheduledExecTime" propId="8"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Scheduled Exec Time"/>
+                <column code="EXEC_TIME" displayName="实际执行时间" name="execTime" propId="9" stdDataType="timestamp"
+                        stdSqlType="TIMESTAMP" i18n-en:displayName="Exec Time"/>
+                <column code="ONCE_TASK" defaultValue="0" displayName="是否只执行一次" domain="boolFlag" name="onceTask"
+                        propId="10" stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Once Task"/>
+                <column code="ERR_CODE" displayName="错误码" name="errCode" precision="200" propId="11"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Code"/>
+                <column code="ERR_MSG" displayName="错误消息" name="errMsg" precision="500" propId="12" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Error Message"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="8"
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="13"
                         stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="14" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                        propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="16" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="13"
+                        propId="17" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="18"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
             <relations>

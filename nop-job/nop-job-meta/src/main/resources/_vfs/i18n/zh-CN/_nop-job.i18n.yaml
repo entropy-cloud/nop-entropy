@@ -41,14 +41,19 @@ prop:
       createdBy: 创建人
       errCode: 错误码
       errMsg: 错误消息
+      execTime: 实际执行时间
       jobDefId: 任务定义ID
       jobDefinition: 作业计划
       jobDefinition.displayName: 作业计划
+      jobGroup: 任务组
       jobId: Job ID
+      jobInvoker: 任务执行函数
+      jobName: 任务名
       jobParams: 任务参数
       jobParamsComponent: null
-      nextScheduleTime: 下次调度时间
+      onceTask: 是否只执行一次
       remark: 备注
+      scheduledExecTime: 调度执行时间
       status: 任务状态
       status_label: 任务状态
       updateTime: 修改时间

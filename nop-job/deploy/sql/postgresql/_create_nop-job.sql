@@ -33,10 +33,15 @@ CREATE TABLE nop_job_definition(
 
 CREATE TABLE nop_job_instance(
   JOB_ID VARCHAR(32) NOT NULL ,
-  JOB_DEF_ID VARCHAR(32) NOT NULL ,
+  JOB_DEF_ID VARCHAR(32)  ,
+  JOB_NAME VARCHAR(100) NOT NULL ,
+  JOB_GROUP VARCHAR(100) NOT NULL ,
   JOB_PARAMS VARCHAR(4000)  ,
+  JOB_INVOKER VARCHAR(200) NOT NULL ,
   STATUS INT4 NOT NULL ,
-  NEXT_SCHEDULE_TIME TIMESTAMP  ,
+  SCHEDULED_EXEC_TIME TIMESTAMP  ,
+  EXEC_TIME TIMESTAMP  ,
+  ONCE_TASK INT4   default '0' ,
   ERR_CODE VARCHAR(200)  ,
   ERR_MSG VARCHAR(500)  ,
   VERSION INT8 NOT NULL ,
@@ -113,11 +118,21 @@ CREATE TABLE nop_job_instance(
                     
       COMMENT ON COLUMN nop_job_instance.JOB_DEF_ID IS '任务定义ID';
                     
+      COMMENT ON COLUMN nop_job_instance.JOB_NAME IS '任务名';
+                    
+      COMMENT ON COLUMN nop_job_instance.JOB_GROUP IS '任务组';
+                    
       COMMENT ON COLUMN nop_job_instance.JOB_PARAMS IS '任务参数';
+                    
+      COMMENT ON COLUMN nop_job_instance.JOB_INVOKER IS '任务执行函数';
                     
       COMMENT ON COLUMN nop_job_instance.STATUS IS '任务状态';
                     
-      COMMENT ON COLUMN nop_job_instance.NEXT_SCHEDULE_TIME IS '下次调度时间';
+      COMMENT ON COLUMN nop_job_instance.SCHEDULED_EXEC_TIME IS '调度执行时间';
+                    
+      COMMENT ON COLUMN nop_job_instance.EXEC_TIME IS '实际执行时间';
+                    
+      COMMENT ON COLUMN nop_job_instance.ONCE_TASK IS '是否只执行一次';
                     
       COMMENT ON COLUMN nop_job_instance.ERR_CODE IS '错误码';
                     

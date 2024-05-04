@@ -28,52 +28,72 @@ public class _NopJobInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_jobDefId = "jobDefId";
     public static final int PROP_ID_jobDefId = 2;
     
+    /* 任务名: JOB_NAME VARCHAR */
+    public static final String PROP_NAME_jobName = "jobName";
+    public static final int PROP_ID_jobName = 3;
+    
+    /* 任务组: JOB_GROUP VARCHAR */
+    public static final String PROP_NAME_jobGroup = "jobGroup";
+    public static final int PROP_ID_jobGroup = 4;
+    
     /* 任务参数: JOB_PARAMS VARCHAR */
     public static final String PROP_NAME_jobParams = "jobParams";
-    public static final int PROP_ID_jobParams = 3;
+    public static final int PROP_ID_jobParams = 5;
+    
+    /* 任务执行函数: JOB_INVOKER VARCHAR */
+    public static final String PROP_NAME_jobInvoker = "jobInvoker";
+    public static final int PROP_ID_jobInvoker = 6;
     
     /* 任务状态: STATUS INTEGER */
     public static final String PROP_NAME_status = "status";
-    public static final int PROP_ID_status = 4;
+    public static final int PROP_ID_status = 7;
     
-    /* 下次调度时间: NEXT_SCHEDULE_TIME TIMESTAMP */
-    public static final String PROP_NAME_nextScheduleTime = "nextScheduleTime";
-    public static final int PROP_ID_nextScheduleTime = 5;
+    /* 调度执行时间: SCHEDULED_EXEC_TIME TIMESTAMP */
+    public static final String PROP_NAME_scheduledExecTime = "scheduledExecTime";
+    public static final int PROP_ID_scheduledExecTime = 8;
+    
+    /* 实际执行时间: EXEC_TIME TIMESTAMP */
+    public static final String PROP_NAME_execTime = "execTime";
+    public static final int PROP_ID_execTime = 9;
+    
+    /* 是否只执行一次: ONCE_TASK TINYINT */
+    public static final String PROP_NAME_onceTask = "onceTask";
+    public static final int PROP_ID_onceTask = 10;
     
     /* 错误码: ERR_CODE VARCHAR */
     public static final String PROP_NAME_errCode = "errCode";
-    public static final int PROP_ID_errCode = 6;
+    public static final int PROP_ID_errCode = 11;
     
     /* 错误消息: ERR_MSG VARCHAR */
     public static final String PROP_NAME_errMsg = "errMsg";
-    public static final int PROP_ID_errMsg = 7;
+    public static final int PROP_ID_errMsg = 12;
     
     /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 8;
+    public static final int PROP_ID_version = 13;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 9;
+    public static final int PROP_ID_createdBy = 14;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 10;
+    public static final int PROP_ID_createTime = 15;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 11;
+    public static final int PROP_ID_updatedBy = 16;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 12;
+    public static final int PROP_ID_updateTime = 17;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 13;
+    public static final int PROP_ID_remark = 18;
     
 
-    private static int _PROP_ID_BOUND = 14;
+    private static int _PROP_ID_BOUND = 19;
 
     
     /* relation: 作业计划 */
@@ -86,7 +106,7 @@ public class _NopJobInstance extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_jobId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_jobId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[14];
+    private static final String[] PROP_ID_TO_NAME = new String[19];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -96,14 +116,29 @@ public class _NopJobInstance extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_jobDefId] = PROP_NAME_jobDefId;
           PROP_NAME_TO_ID.put(PROP_NAME_jobDefId, PROP_ID_jobDefId);
       
+          PROP_ID_TO_NAME[PROP_ID_jobName] = PROP_NAME_jobName;
+          PROP_NAME_TO_ID.put(PROP_NAME_jobName, PROP_ID_jobName);
+      
+          PROP_ID_TO_NAME[PROP_ID_jobGroup] = PROP_NAME_jobGroup;
+          PROP_NAME_TO_ID.put(PROP_NAME_jobGroup, PROP_ID_jobGroup);
+      
           PROP_ID_TO_NAME[PROP_ID_jobParams] = PROP_NAME_jobParams;
           PROP_NAME_TO_ID.put(PROP_NAME_jobParams, PROP_ID_jobParams);
+      
+          PROP_ID_TO_NAME[PROP_ID_jobInvoker] = PROP_NAME_jobInvoker;
+          PROP_NAME_TO_ID.put(PROP_NAME_jobInvoker, PROP_ID_jobInvoker);
       
           PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
           PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
       
-          PROP_ID_TO_NAME[PROP_ID_nextScheduleTime] = PROP_NAME_nextScheduleTime;
-          PROP_NAME_TO_ID.put(PROP_NAME_nextScheduleTime, PROP_ID_nextScheduleTime);
+          PROP_ID_TO_NAME[PROP_ID_scheduledExecTime] = PROP_NAME_scheduledExecTime;
+          PROP_NAME_TO_ID.put(PROP_NAME_scheduledExecTime, PROP_ID_scheduledExecTime);
+      
+          PROP_ID_TO_NAME[PROP_ID_execTime] = PROP_NAME_execTime;
+          PROP_NAME_TO_ID.put(PROP_NAME_execTime, PROP_ID_execTime);
+      
+          PROP_ID_TO_NAME[PROP_ID_onceTask] = PROP_NAME_onceTask;
+          PROP_NAME_TO_ID.put(PROP_NAME_onceTask, PROP_ID_onceTask);
       
           PROP_ID_TO_NAME[PROP_ID_errCode] = PROP_NAME_errCode;
           PROP_NAME_TO_ID.put(PROP_NAME_errCode, PROP_ID_errCode);
@@ -138,14 +173,29 @@ public class _NopJobInstance extends DynamicOrmEntity{
     /* 任务定义ID: JOB_DEF_ID */
     private java.lang.String _jobDefId;
     
+    /* 任务名: JOB_NAME */
+    private java.lang.String _jobName;
+    
+    /* 任务组: JOB_GROUP */
+    private java.lang.String _jobGroup;
+    
     /* 任务参数: JOB_PARAMS */
     private java.lang.String _jobParams;
+    
+    /* 任务执行函数: JOB_INVOKER */
+    private java.lang.String _jobInvoker;
     
     /* 任务状态: STATUS */
     private java.lang.Integer _status;
     
-    /* 下次调度时间: NEXT_SCHEDULE_TIME */
-    private java.sql.Timestamp _nextScheduleTime;
+    /* 调度执行时间: SCHEDULED_EXEC_TIME */
+    private java.sql.Timestamp _scheduledExecTime;
+    
+    /* 实际执行时间: EXEC_TIME */
+    private java.sql.Timestamp _execTime;
+    
+    /* 是否只执行一次: ONCE_TASK */
+    private java.lang.Byte _onceTask;
     
     /* 错误码: ERR_CODE */
     private java.lang.String _errCode;
@@ -248,14 +298,29 @@ public class _NopJobInstance extends DynamicOrmEntity{
             case PROP_ID_jobDefId:
                return getJobDefId();
         
+            case PROP_ID_jobName:
+               return getJobName();
+        
+            case PROP_ID_jobGroup:
+               return getJobGroup();
+        
             case PROP_ID_jobParams:
                return getJobParams();
+        
+            case PROP_ID_jobInvoker:
+               return getJobInvoker();
         
             case PROP_ID_status:
                return getStatus();
         
-            case PROP_ID_nextScheduleTime:
-               return getNextScheduleTime();
+            case PROP_ID_scheduledExecTime:
+               return getScheduledExecTime();
+        
+            case PROP_ID_execTime:
+               return getExecTime();
+        
+            case PROP_ID_onceTask:
+               return getOnceTask();
         
             case PROP_ID_errCode:
                return getErrCode();
@@ -312,6 +377,26 @@ public class _NopJobInstance extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_jobName:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_jobName));
+               }
+               setJobName(typedValue);
+               break;
+            }
+        
+            case PROP_ID_jobGroup:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_jobGroup));
+               }
+               setJobGroup(typedValue);
+               break;
+            }
+        
             case PROP_ID_jobParams:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -319,6 +404,16 @@ public class _NopJobInstance extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_jobParams));
                }
                setJobParams(typedValue);
+               break;
+            }
+        
+            case PROP_ID_jobInvoker:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_jobInvoker));
+               }
+               setJobInvoker(typedValue);
                break;
             }
         
@@ -332,13 +427,33 @@ public class _NopJobInstance extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_nextScheduleTime:{
+            case PROP_ID_scheduledExecTime:{
                java.sql.Timestamp typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toTimestamp(value,
-                       err-> newTypeConversionError(PROP_NAME_nextScheduleTime));
+                       err-> newTypeConversionError(PROP_NAME_scheduledExecTime));
                }
-               setNextScheduleTime(typedValue);
+               setScheduledExecTime(typedValue);
+               break;
+            }
+        
+            case PROP_ID_execTime:{
+               java.sql.Timestamp typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toTimestamp(value,
+                       err-> newTypeConversionError(PROP_NAME_execTime));
+               }
+               setExecTime(typedValue);
+               break;
+            }
+        
+            case PROP_ID_onceTask:{
+               java.lang.Byte typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toByte(value,
+                       err-> newTypeConversionError(PROP_NAME_onceTask));
+               }
+               setOnceTask(typedValue);
                break;
             }
         
@@ -445,9 +560,30 @@ public class _NopJobInstance extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_jobName:{
+               onInitProp(propId);
+               this._jobName = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_jobGroup:{
+               onInitProp(propId);
+               this._jobGroup = (java.lang.String)value;
+               
+               break;
+            }
+        
             case PROP_ID_jobParams:{
                onInitProp(propId);
                this._jobParams = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_jobInvoker:{
+               onInitProp(propId);
+               this._jobInvoker = (java.lang.String)value;
                
                break;
             }
@@ -459,9 +595,23 @@ public class _NopJobInstance extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_nextScheduleTime:{
+            case PROP_ID_scheduledExecTime:{
                onInitProp(propId);
-               this._nextScheduleTime = (java.sql.Timestamp)value;
+               this._scheduledExecTime = (java.sql.Timestamp)value;
+               
+               break;
+            }
+        
+            case PROP_ID_execTime:{
+               onInitProp(propId);
+               this._execTime = (java.sql.Timestamp)value;
+               
+               break;
+            }
+        
+            case PROP_ID_onceTask:{
+               onInitProp(propId);
+               this._onceTask = (java.lang.Byte)value;
                
                break;
             }
@@ -567,6 +717,44 @@ public class _NopJobInstance extends DynamicOrmEntity{
     }
     
     /**
+     * 任务名: JOB_NAME
+     */
+    public java.lang.String getJobName(){
+         onPropGet(PROP_ID_jobName);
+         return _jobName;
+    }
+
+    /**
+     * 任务名: JOB_NAME
+     */
+    public void setJobName(java.lang.String value){
+        if(onPropSet(PROP_ID_jobName,value)){
+            this._jobName = value;
+            internalClearRefs(PROP_ID_jobName);
+            
+        }
+    }
+    
+    /**
+     * 任务组: JOB_GROUP
+     */
+    public java.lang.String getJobGroup(){
+         onPropGet(PROP_ID_jobGroup);
+         return _jobGroup;
+    }
+
+    /**
+     * 任务组: JOB_GROUP
+     */
+    public void setJobGroup(java.lang.String value){
+        if(onPropSet(PROP_ID_jobGroup,value)){
+            this._jobGroup = value;
+            internalClearRefs(PROP_ID_jobGroup);
+            
+        }
+    }
+    
+    /**
      * 任务参数: JOB_PARAMS
      */
     public java.lang.String getJobParams(){
@@ -581,6 +769,25 @@ public class _NopJobInstance extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_jobParams,value)){
             this._jobParams = value;
             internalClearRefs(PROP_ID_jobParams);
+            
+        }
+    }
+    
+    /**
+     * 任务执行函数: JOB_INVOKER
+     */
+    public java.lang.String getJobInvoker(){
+         onPropGet(PROP_ID_jobInvoker);
+         return _jobInvoker;
+    }
+
+    /**
+     * 任务执行函数: JOB_INVOKER
+     */
+    public void setJobInvoker(java.lang.String value){
+        if(onPropSet(PROP_ID_jobInvoker,value)){
+            this._jobInvoker = value;
+            internalClearRefs(PROP_ID_jobInvoker);
             
         }
     }
@@ -605,20 +812,58 @@ public class _NopJobInstance extends DynamicOrmEntity{
     }
     
     /**
-     * 下次调度时间: NEXT_SCHEDULE_TIME
+     * 调度执行时间: SCHEDULED_EXEC_TIME
      */
-    public java.sql.Timestamp getNextScheduleTime(){
-         onPropGet(PROP_ID_nextScheduleTime);
-         return _nextScheduleTime;
+    public java.sql.Timestamp getScheduledExecTime(){
+         onPropGet(PROP_ID_scheduledExecTime);
+         return _scheduledExecTime;
     }
 
     /**
-     * 下次调度时间: NEXT_SCHEDULE_TIME
+     * 调度执行时间: SCHEDULED_EXEC_TIME
      */
-    public void setNextScheduleTime(java.sql.Timestamp value){
-        if(onPropSet(PROP_ID_nextScheduleTime,value)){
-            this._nextScheduleTime = value;
-            internalClearRefs(PROP_ID_nextScheduleTime);
+    public void setScheduledExecTime(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_scheduledExecTime,value)){
+            this._scheduledExecTime = value;
+            internalClearRefs(PROP_ID_scheduledExecTime);
+            
+        }
+    }
+    
+    /**
+     * 实际执行时间: EXEC_TIME
+     */
+    public java.sql.Timestamp getExecTime(){
+         onPropGet(PROP_ID_execTime);
+         return _execTime;
+    }
+
+    /**
+     * 实际执行时间: EXEC_TIME
+     */
+    public void setExecTime(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_execTime,value)){
+            this._execTime = value;
+            internalClearRefs(PROP_ID_execTime);
+            
+        }
+    }
+    
+    /**
+     * 是否只执行一次: ONCE_TASK
+     */
+    public java.lang.Byte getOnceTask(){
+         onPropGet(PROP_ID_onceTask);
+         return _onceTask;
+    }
+
+    /**
+     * 是否只执行一次: ONCE_TASK
+     */
+    public void setOnceTask(java.lang.Byte value){
+        if(onPropSet(PROP_ID_onceTask,value)){
+            this._onceTask = value;
+            internalClearRefs(PROP_ID_onceTask);
             
         }
     }
