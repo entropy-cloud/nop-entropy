@@ -210,4 +210,8 @@ public interface BizErrors {
 
     ErrorCode ERR_BIZ_TOO_MANY_LEFT_JOIN_PROPS_IN_QUERY =
             define("nop.err.biz.too-many-left-join-props-in-query", "查询对象中包含太多的左连接属性设置:{propNames}", ARG_PROP_NAMES);
+
+    ErrorCode ERR_BIZ_UNKNOWN_REF_ENTITY_WITH_PROP =
+            define("nop.err.biz.unknown-ref-entity", "引用对象[{bizObjName}]中不存在属性[{propName}]的值为[{propValue}]记录",
+                    ARG_BIZ_OBJ_NAME, ARG_PROP_NAME, ARG_PROP_VALUE);
 }
