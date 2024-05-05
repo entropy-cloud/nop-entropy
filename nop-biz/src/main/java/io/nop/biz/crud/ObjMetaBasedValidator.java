@@ -13,9 +13,7 @@ import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.FilterBeanConstants;
-import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.ITreeBean;
-import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.validate.IValidationErrorCollector;
@@ -60,7 +58,6 @@ import static io.nop.auth.api.AuthApiErrors.ARG_FIELD_NAME;
 import static io.nop.auth.api.AuthApiErrors.ARG_OBJ_TYPE_NAME;
 import static io.nop.auth.api.AuthApiErrors.ARG_PERMISSION;
 import static io.nop.auth.api.AuthApiErrors.ARG_ROLES;
-import static io.nop.biz.BizConstants.METHOD_FIND_FIRST;
 import static io.nop.biz.BizConstants.METHOD_GET;
 import static io.nop.biz.BizErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.biz.BizErrors.ARG_DICT;
@@ -353,10 +350,9 @@ public class ObjMetaBasedValidator {
                     // 确保对象可见
                     bizObj.invoke(METHOD_GET, request, null, context);
                 } else {
-                    QueryBean query = new QueryBean();
-                    query.addFilter(FilterBeans.eq(joinRightProp, value));
-                    request.put(BizConstants.ARG_QUERY, query);
-                    if (bizObj.invoke(METHOD_FIND_FIRST, request, null, context) == null)
+                    Object refEntity = BizObjHelper.loadByProp(bizObj, joinRightProp, value, context);
+
+                    if (refEntity == null)
                         throw new NopException(ERR_BIZ_UNKNOWN_REF_ENTITY_WITH_PROP)
                                 .param(ARG_BIZ_OBJ_NAME, bizObjName)
                                 .param(ARG_PROP_NAME, joinRightProp)
