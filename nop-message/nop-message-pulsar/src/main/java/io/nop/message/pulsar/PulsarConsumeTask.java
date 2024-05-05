@@ -8,7 +8,12 @@
 package io.nop.message.pulsar;
 
 import io.nop.api.core.beans.ApiMessage;
-import io.nop.api.core.message.*;
+import io.nop.api.core.message.ConsumeLater;
+import io.nop.api.core.message.IMessageConsumeContext;
+import io.nop.api.core.message.IMessageConsumer;
+import io.nop.api.core.message.MessageSendOptions;
+import io.nop.api.core.message.MessageSubscriptionConfig;
+import io.nop.api.core.message.TopicMessage;
 import io.nop.api.core.util.FutureHelper;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
@@ -97,6 +102,7 @@ public class PulsarConsumeTask {
             List<CompletionStage<?>> futures = new ArrayList<>(responses.size());
 
             for (Object response : responses) {
+                response = FutureHelper.getResult(response);
                 Message<Object> message = it.next();
                 if (response != null) {
                     if (response instanceof ConsumeLater) {

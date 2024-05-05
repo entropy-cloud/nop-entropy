@@ -14,4 +14,6 @@
     <bean id="testBeanA" class="test.io.entropy.beans.MyBeanA">
     </bean>
 
+    <bean id="testBaseBean" class="test.InvalidBean" abstract="true" />
+
 </beans>

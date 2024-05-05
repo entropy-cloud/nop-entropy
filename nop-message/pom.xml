@@ -21,6 +21,7 @@
         <module>nop-message-kafka</module>
         <module>nop-message-codec</module>
         <module>nop-message-debezium</module>
+        <module>nop-message-core</module>
     </modules>
 
     <dependencies>

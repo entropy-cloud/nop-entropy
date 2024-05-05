@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc">
+    <bean id="nopLocalMessageService" class="io.nop.message.core.local.LocalMessageService"/>
+
+    <bean id="nopReflectionMessageSubscriptionRegistrar"
+          class="io.nop.message.core.reflection.ReflectionMessageSubscriptionRegistrar" ioc:delay-method="register">
+        <property name="messageBeans">
+            <!-- 查找具有MessageSubscription注解的所有bean -->
+            <ioc:collect-beans by-annotation="io.nop.api.core.annotations.message.MessageSubscription"
+                               only-concrete-classes="true"/>
+        </property>
+    </bean>
+</beans>

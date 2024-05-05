@@ -277,9 +277,7 @@ public class FutureHelper {
 
     @SuppressWarnings({"cast"})
     public static Object getResult(Object result) {
-        if (result instanceof Future) {
-            return getFromFuture((Future<?>) result);
-        } else if (result instanceof CompletionStage) {
+        if (result instanceof CompletionStage) {
             return syncGet((CompletionStage<?>) result);
         }
         return result;

@@ -132,4 +132,6 @@ public interface BizConstants {
     String PARAM_IGNORE_UNKNOWN = "ignoreUnknown";
 
     String TEMP_BIZ_OBJ_ID = "__TEMP__";
+
+    String KEY_REF_ENTITY = "refEntity";
 }
