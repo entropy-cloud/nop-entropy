@@ -178,6 +178,11 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
 
     @Override
     public Expression parseTag(XNode node, IXplCompiler cp, IXLangCompileScope scope) {
+        if (tag.getTransform() != null) {
+            XNode ret = (XNode) tag.getTransform().call1(null, node.cloneInstance(), scope);
+            if (ret != null)
+                node = ret;
+        }
         checkUnknownArgs(node);
 
         CompiledTag compiledTag;
@@ -679,7 +684,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
         return compiledTag;
     }
 
-   public class LazyCompiledFunction implements IEvalFunction {
+    public class LazyCompiledFunction implements IEvalFunction {
         private final XLangCompileTool compileTool;
         private final CompiledTag compiledTag;
         private boolean compiled;
@@ -691,7 +696,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
             this.compiledTag = compiledTag;
         }
 
-        public IEvalFunction getCompiledFn(){
+        public IEvalFunction getCompiledFn() {
             compile();
             return compiledFn;
         }

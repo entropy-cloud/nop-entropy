@@ -303,6 +303,7 @@ public class XLangCompileTool {
             ParameterDeclaration param = new ParameterDeclaration();
             param.setType(XLangTypeHelper.buildTypeNode(types.get(i)));
             param.setName(XLangASTBuilder.identifier(null, names.get(i)));
+            params.add(param);
         }
         func.setParams(params);
         func.setReturnType(XLangTypeHelper.buildTypeNode(functionType.getFuncReturnType()));

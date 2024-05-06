@@ -2,6 +2,7 @@ package io.nop.message.core;
 
 import io.nop.api.core.annotations.message.MessageListener;
 import io.nop.api.core.annotations.message.MessageSubscription;
+import io.nop.api.core.util.Guard;
 
 import static io.nop.message.core.MessageCoreConstants.BEAN_LOCAL_MESSAGE_SERVICE;
 
@@ -14,7 +15,8 @@ public class MyMessageListener {
     }
 
     @MessageListener(topic = "test", messageServiceBean = BEAN_LOCAL_MESSAGE_SERVICE)
-    public void handleMessage(MyMessage bean) {
+    public void handleMessage(MyMessage message) {
+        Guard.notNull(message, "message");
         triggerCount++;
     }
 }

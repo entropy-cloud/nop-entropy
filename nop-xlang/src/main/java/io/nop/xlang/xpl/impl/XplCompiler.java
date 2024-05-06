@@ -11,6 +11,7 @@ import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.json.JsonTool;
@@ -302,10 +303,12 @@ public class XplCompiler extends XLangExprParser implements IXplCompiler {
             int pos = xplLib.indexOf('=');
             if (pos < 0) {
                 String ns = XplLibHelper.getNamespaceFromLibPath(xplLib);
+                xplLib = StringHelper.absolutePath(node.resourcePath(), xplLib);
                 loadLib(node.getLocation(), ns, xplLib, scope);
             } else {
                 String as = xplLib.substring(0, pos).trim();
-                loadLib(node.getLocation(), as, xplLib.substring(pos + 1).trim(), scope);
+                xplLib = StringHelper.absolutePath(node.resourcePath(), xplLib.substring(pos + 1));
+                loadLib(node.getLocation(), as, xplLib, scope);
             }
         }
     }

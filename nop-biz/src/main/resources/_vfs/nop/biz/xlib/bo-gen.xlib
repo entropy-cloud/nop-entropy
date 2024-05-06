@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef"  xmlns:c="c">
+    <tags>
+        <TransformBizObjTag>
+            <attr name="node" implicit="true" type="io.nop.core.lang.xml.XNode" />
+            <source>
+                <c:script><![CDATA[
+                    const bizObjName = node.attrText('bizObjName');
+                    if(bizObjName != null){
+                       $.checkArgument(bizObjName.$isValidSimpleVarName(),"bizObjName");
+                       node.setAttr(node.attrLoc('bizObjName'),'thisObj', "${inject('nopBizObjectManager').getBizObject('" +bizObjName+"')}");
+                    }
+                    const selection = node.attrText('selection');
+                    if(selection and !selection.contains('${')){
+                        node.setAttr(node.attrLoc('selection'),'selection', "${selection('"+selection+"')}");
+                    }
+                ]]></c:script>
+            </source>
+        </TransformBizObjTag>
+    </tags>
+</lib>

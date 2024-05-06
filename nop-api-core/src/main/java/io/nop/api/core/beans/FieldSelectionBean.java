@@ -145,7 +145,8 @@ public class FieldSelectionBean implements Serializable, IDeepCloneable, IFreeza
             this.args = freezeMap(args, true);
             this.directives = freezeMap(directives, true);
         }
-        freezeItems(fields.values(), cascade);
+        if (fields != null)
+            freezeItems(fields.values(), cascade);
     }
 
     @JsonInclude(Include.NON_EMPTY)

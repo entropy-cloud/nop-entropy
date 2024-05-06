@@ -158,6 +158,13 @@ public abstract class _XplTag extends io.nop.core.resource.component.AbstractCom
     private io.nop.xlang.xpl.xlib.XplTagReturn _tagReturn ;
     
     /**
+     *  
+     * xml name: transform
+     * 对调用标签进行编译期转化
+     */
+    private io.nop.core.lang.eval.IEvalFunction _transform ;
+    
+    /**
      *  转换器
      * xml name: transformer
      * 在实际进行编译之前先经过transformer转换
@@ -611,6 +618,25 @@ public abstract class _XplTag extends io.nop.core.resource.component.AbstractCom
 
     
     /**
+     * 
+     * xml name: transform
+     *  对调用标签进行编译期转化
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getTransform(){
+      return _transform;
+    }
+
+    
+    public void setTransform(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._transform = value;
+           
+    }
+
+    
+    /**
      * 转换器
      * xml name: transformer
      *  在实际进行编译之前先经过transformer转换
@@ -710,6 +736,7 @@ public abstract class _XplTag extends io.nop.core.resource.component.AbstractCom
         out.putNotNull("source",this.getSource());
         out.putNotNull("tagName",this.getTagName());
         out.putNotNull("tagReturn",this.getTagReturn());
+        out.putNotNull("transform",this.getTransform());
         out.putNotNull("transformer",this.getTransformer());
         out.putNotNull("unknownAttrsVar",this.getUnknownAttrsVar());
         out.putNotNull("validator",this.getValidator());
@@ -744,6 +771,7 @@ public abstract class _XplTag extends io.nop.core.resource.component.AbstractCom
         instance.setSource(this.getSource());
         instance.setTagName(this.getTagName());
         instance.setTagReturn(this.getTagReturn());
+        instance.setTransform(this.getTransform());
         instance.setTransformer(this.getTransformer());
         instance.setUnknownAttrsVar(this.getUnknownAttrsVar());
         instance.setValidator(this.getValidator());

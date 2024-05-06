@@ -19,6 +19,7 @@ import io.nop.orm.model.IOrmModel;
 import jakarta.annotation.Nonnull;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -238,6 +239,11 @@ public interface IOrmTemplate extends ISqlExecutor {
     void batchLoadProps(Collection<?> objects, Collection<String> propNames);
 
     void batchLoadSelection(Collection<?> objects, FieldSelectionBean fields);
+
+    default void batchLoadSelectionForEntity(IOrmEntity entity, FieldSelectionBean selection) {
+        if (entity != null && selection != null)
+            batchLoadSelection(Collections.singletonList(entity), selection);
+    }
 
     void forceLoad(IOrmEntity entity, FieldSelectionBean selection);
 

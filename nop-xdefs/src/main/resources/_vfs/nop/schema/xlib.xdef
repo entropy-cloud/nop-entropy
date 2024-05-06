@@ -50,6 +50,9 @@
 
             <example xdef:value="xml"/>
 
+            <!-- 对调用标签进行编译期转化 -->
+            <transform xdef:value="xpl-fn:(node)=>any"/>
+
             <!--
             @varName 对应于表达式中可以使用的变量名。一般情况下变量名与属性名相同，但是如果属性名中存在特殊字符，例如on:click或者v-model，
                 则将会转换为大小写混排的变量名，例如onClick和vModel。

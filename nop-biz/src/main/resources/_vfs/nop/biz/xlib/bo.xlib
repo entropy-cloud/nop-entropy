@@ -1,12 +1,29 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef"  xmlns:c="c" xmlns:bo-gen="bo-gen"
+     xmlns:xpl="xpl" xmlns:thisLib="thisLib">
     <tags>
+        <GetBizObject>
+            <attr name="bizObjName" mandatory="true" />
+            <source>
+                <c:script>
+                    const bizObjManager = inject('nopBizObjectManager');
+                    return bizObjManager.getBizObject(bizObjName)
+                </c:script>
+            </source>
+        </GetBizObject>
+
         <Get>
             <attr name="id"/>
             <attr name="ignoreUnknown" optional="true"/>
+            <attr name="selection" optional="true" type="io.nop.api.core.beans.FieldSelectionBean"/>
+            <attr name="bizObjName" optional="true" />
             <attr name="thisObj" implicit="true"/>
             <attr name="svcCtx" implicit="true"/>
+
+            <transform>
+                <bo-gen:TransformBizObjTag xpl:lib="bo-gen.xlib"/>
+            </transform>
 
             <description>
                 根据id获取实体，会自动验证数据权限
@@ -14,7 +31,10 @@
 
             <source>
                 <c:script>
-                    return thisObj.invoke('get',{id,ignoreUnknown},null,svcCtx);
+                    const ret = thisObj.invoke('get',{id,ignoreUnknown},null,svcCtx);
+                    if(ret and selection)
+                        inject('nopOrmTemplate').batchLoadSelectionForEntity(ret, selection);
+                    return ret;
                 </c:script>
             </source>
         </Get>
@@ -22,6 +42,8 @@
         <BatchGet>
             <attr name="ids"/>
             <attr name="ignoreUnknown" optional="true"/>
+            <attr name="selection" optional="true" type="io.nop.api.core.beans.FieldSelectionBean"/>
+            <attr name="bizObjName" optional="true" />
             <attr name="thisObj" implicit="true"/>
             <attr name="svcCtx" implicit="true"/>
 
@@ -29,9 +51,16 @@
                 根据id获取实体，会自动验证数据权限
             </description>
 
+            <transform>
+                <bo-gen:TransformBizObjTag xpl:lib="bo-gen.xlib"/>
+            </transform>
+
             <source>
                 <c:script>
-                    return thisObj.invoke('batchGet',{ids},null,svcCtx);
+                    const ret = thisObj.invoke('batchGet',{ids},null,svcCtx);
+                    if(ret and selection)
+                        inject('nopOrmTemplate').batchLoadSelection(ret, selection);
+                    return ret;
                 </c:script>
             </source>
         </BatchGet>
@@ -41,8 +70,10 @@
             <attr name="query" optional="true" type="io.nop.api.core.beans.query.QueryBean"/>
             <attr name="authObjName" optional="true" type="String" />
             <attr name="selection" optional="true" type="io.nop.api.core.beans.FieldSelectionBean"/>
+            <attr name="bizObjName" optional="true" />
             <attr name="thisObj" implicit="true" type="io.nop.biz.api.IBizObject"/>
             <attr name="svcCtx" implicit="true" type="io.nop.core.context.IServiceContext"/>
+
 
             <slot name="filter" outputMode="node">
                 <arg name="query"/>
@@ -60,24 +91,42 @@
                 <arg name="svcCtx"/>
             </slot>
 
+            <transform>
+                <bo-gen:TransformBizObjTag xpl:lib="bo-gen.xlib"/>
+            </transform>
 
             <source>
                 <thisLib:_DoFindByQuery query="${query}" authObjName="${authObjName}" action="doFindPage0" filter="${slot_filter}"
-                                        orderBy="${slot_orderBy}" prepareQuery="${slot_prepareQuery}"/>
+                                        orderBy="${slot_orderBy}" prepareQuery="${slot_prepareQuery}" xpl:return="ret"/>
+                <c:script><![CDATA[
+                    if(ret.items and selection)
+                        inject('nopOrmTemplate').batchLoadSelection(ret.items, selection);
+                    return ret;
+                ]]></c:script>
             </source>
         </DoFindPage>
 
         <DoFindFirst x:prototype="DoFindPage">
             <source>
                 <thisLib:_DoFindByQuery query="${query}" authObjName="${authObjName}" action="doFindFirst0" filter="${slot_filter}"
-                                        orderBy="${slot_orderBy}" prepareQuery="${slot_prepareQuery}"/>
+                                        orderBy="${slot_orderBy}" prepareQuery="${slot_prepareQuery}" xpl:return="ret"/>
+                <c:script><![CDATA[
+                    if(ret and selection)
+                        inject('nopOrmTemplate').batchLoadSelectionForEntity(ret, selection);
+                    return ret;
+                ]]></c:script>
             </source>
         </DoFindFirst>
 
         <DoFindList x:prototype="DoFindPage">
             <source>
                 <thisLib:_DoFindByQuery query="${query}" authObjName="${authObjName}" action="doFindList0" filter="${slot_filter}"
-                                        orderBy="${slot_orderBy}" prepareQuery="${slot_prepareQuery}"/>
+                                        orderBy="${slot_orderBy}" prepareQuery="${slot_prepareQuery}" xpl:return="ret"/>
+                <c:script><![CDATA[
+                    if(ret and selection)
+                        inject('nopOrmTemplate').batchLoadSelection(ret, selection);
+                    return ret;
+                ]]></c:script>
             </source>
         </DoFindList>
 
@@ -98,7 +147,7 @@
                     import io.nop.api.core.beans.query.QueryBean;
                     query = query || new QueryBean();
 
-                    return thisObj.invoke(action,{query,authObjName,prepareQuery:(qry,ctx)=>{
+                    const ret = thisObj.invoke(action,{query,authObjName,prepareQuery:(qry,ctx)=>{
                         if(filter){
                             query.addFilter(filter(query,svcCtx));
                         }
@@ -111,6 +160,7 @@
                             prepareQuery(query,svcCtx);
                         }
                     }},selection,svcCtx);
+                    return ret;
                 ]]></c:script>
             </source>
         </_DoFindByQuery>
@@ -118,6 +168,7 @@
         <DoSave>
             <attr name="data" type="Map"/>
             <attr name="inputSelection" optional="true" type="io.nop.api.core.beans.FieldSelectionBean"/>
+            <attr name="bizObjName" optional="true" />
             <attr name="thisObj" implicit="true" type="io.nop.biz.api.IBizObject"/>
             <attr name="svcCtx" implicit="true" type="io.nop.core.context.IServiceContext"/>
 
@@ -125,6 +176,10 @@
                 <arg name="entityData"/>
                 <arg name="svcCtx"/>
             </slot>
+
+            <transform>
+                <bo-gen:TransformBizObjTag xpl:lib="bo-gen.xlib"/>
+            </transform>
 
             <source>
                 <c:script>
@@ -136,6 +191,7 @@
         <DoUpdate>
             <attr name="data" type="Map"/>
             <attr name="inputSelection" optional="true" type="io.nop.api.core.beans.FieldSelectionBean"/>
+            <attr name="bizObjName" optional="true" />
             <attr name="thisObj" implicit="true" type="io.nop.biz.api.IBizObject"/>
             <attr name="svcCtx" implicit="true" type="io.nop.core.context.IServiceContext"/>
 
@@ -143,6 +199,10 @@
                 <arg name="entityData"/>
                 <arg name="svcCtx"/>
             </slot>
+
+            <transform>
+                <bo-gen:TransformBizObjTag xpl:lib="bo-gen.xlib"/>
+            </transform>
 
             <source>
                 <c:script>
@@ -153,6 +213,7 @@
 
         <DoDelete>
             <attr name="id" type="String"/>
+            <attr name="bizObjName" optional="true" />
             <attr name="thisObj" implicit="true" type="io.nop.biz.api.IBizObject"/>
             <attr name="svcCtx" implicit="true" type="io.nop.core.context.IServiceContext"/>
 
@@ -160,6 +221,10 @@
                 <arg name="entity"/>
                 <arg name="svcCtx"/>
             </slot>
+
+            <transform>
+                <bo-gen:TransformBizObjTag xpl:lib="bo-gen.xlib"/>
+            </transform>
 
             <source>
                 <c:script>
