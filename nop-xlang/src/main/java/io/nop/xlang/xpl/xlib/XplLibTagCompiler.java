@@ -179,7 +179,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
     @Override
     public Expression parseTag(XNode node, IXplCompiler cp, IXLangCompileScope scope) {
         if (tag.getTransform() != null) {
-            XNode ret = (XNode) tag.getTransform().call1(null, node.cloneInstance(), scope);
+            XNode ret = (XNode) tag.getTransform().call1(null, node, scope);
             if (ret != null)
                 node = ret;
         }
@@ -900,7 +900,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
 
     private XNode loadSource() {
         XNode sourceNode = tag.getSource();
-        return sourceNode;
+        return sourceNode.cloneInstance();
         // if (sourceNode != null) {
         // LOG.debug("nop.xpl.compile-embedded-tag-source:tag={},source={}", tag.getTagName(), sourceNode);
         // return sourceNode;
