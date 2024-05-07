@@ -22,7 +22,7 @@ public enum StdSqlType implements ISqlDataType {
     BOOLEAN(false, false, Types.BOOLEAN, StdDataType.BOOLEAN), TINYINT(false, false, Types.TINYINT, StdDataType.BYTE),
     SMALLINT(false, false, Types.SMALLINT, StdDataType.SHORT), INTEGER(false, false, Types.INTEGER, StdDataType.INT),
     BIGINT(false, false, Types.BIGINT, StdDataType.LONG), DECIMAL(true, true, Types.DECIMAL, StdDataType.DECIMAL),
-    FLOAT(false, false, Types.FLOAT, StdDataType.FLOAT), REAL(false, false, Types.REAL, StdDataType.FLOAT),
+    FLOAT(false, false, Types.FLOAT, StdDataType.DOUBLE), REAL(false, false, Types.REAL, StdDataType.FLOAT),
     DOUBLE(false, false, Types.DOUBLE, StdDataType.DOUBLE),
 
     NUMERIC(false, false, Types.NUMERIC, StdDataType.DECIMAL),

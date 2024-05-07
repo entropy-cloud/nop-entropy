@@ -206,12 +206,34 @@ public class DataParameterBinders {
     public static IDataParameterBinder FLOAT = new IDataParameterBinder() {
         @Override
         public StdDataType getStdDataType() {
-            return StdDataType.FLOAT;
+            return StdDataType.DOUBLE;
         }
 
         @Override
         public StdSqlType getStdSqlType() {
             return StdSqlType.FLOAT;
+        }
+
+        @Override
+        public Object getValue(IDataParameters params, int index) {
+            return params.getFloat(index);
+        }
+
+        @Override
+        public void setValue(IDataParameters params, int index, Object value) {
+            params.setFloat(index, (Float) value);
+        }
+    };
+
+    public static IDataParameterBinder REAL = new IDataParameterBinder() {
+        @Override
+        public StdDataType getStdDataType() {
+            return StdDataType.FLOAT;
+        }
+
+        @Override
+        public StdSqlType getStdSqlType() {
+            return StdSqlType.REAL;
         }
 
         @Override
@@ -431,6 +453,7 @@ public class DataParameterBinders {
         register(BOOLEAN);
         register(BYTE);
         register(SHORT);
+        register(REAL);
         register(FLOAT);
         register(DOUBLE);
         register(LONG);
