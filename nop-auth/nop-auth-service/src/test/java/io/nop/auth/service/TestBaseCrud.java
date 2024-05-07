@@ -10,10 +10,15 @@ package io.nop.auth.service;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
+import io.nop.api.core.beans.query.QueryBean;
+import io.nop.auth.dao.entity.NopAuthDept;
 import io.nop.auth.dao.entity.NopAuthGroup;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.core.lang.json.JsonTool;
+import io.nop.core.reflect.bean.BeanTool;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.IGraphQLExecutionContext;
@@ -21,6 +26,7 @@ import io.nop.graphql.core.engine.IGraphQLEngine;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -73,4 +79,23 @@ public class TestBaseCrud extends JunitBaseTestCase {
         assertEquals("bb", entity.getName());
     }
 
+    @Test
+    public void testFindTreeEntityPage() {
+        IEntityDao<NopAuthDept> dao = daoProvider.daoFor(NopAuthDept.class);
+        NopAuthDept entity = dao.newEntity();
+        entity.setDeptName("aa01");
+        dao.saveEntity(entity);
+
+        ApiRequest<Map<String, Object>> request = new ApiRequest<>();
+        QueryBean query = new QueryBean();
+        query.setLimit(10);
+        query.addFilter(FilterBeans.in("deptId", List.of(entity.get_id())));
+        request.setData(Map.of("query", query));
+        IGraphQLExecutionContext context = graphQLEngine.newRpcContext(null, "NopAuthDept__findTreeEntityPage", request);
+        ApiResponse<?> response = graphQLEngine.executeRpc(context);
+        assertTrue(response.isOk());
+        assertEquals(1L, BeanTool.getProperty(response.getData(), "total"));
+        assertEquals(1, ((List) BeanTool.getProperty(response.getData(), "items")).size());
+        System.out.println(JsonTool.serialize(response,true));
+    }
 }

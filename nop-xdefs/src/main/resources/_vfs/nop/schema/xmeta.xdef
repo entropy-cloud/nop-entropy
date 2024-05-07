@@ -42,7 +42,7 @@
     @rootLevelValue 根节点所对应的level字段的值
     -->
     <tree isLeafProp="string" parentProp="!string" childrenProp="string" rootParentValue="string"
-          levelProp="string" rootLevelValue="string" xdef:name="ObjTreeModel"/>
+          levelProp="string" rootLevelValue="string" sortProp="string" xdef:name="ObjTreeModel"/>
 
     <defines xdef:key-attr="name" xdef:body-type="list">
         <define name="!var-name" xdef:ref="schema/schema.xdef"/>

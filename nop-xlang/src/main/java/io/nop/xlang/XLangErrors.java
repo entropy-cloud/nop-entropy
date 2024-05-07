@@ -163,6 +163,8 @@ public interface XLangErrors {
 
     String ARG_CONFIG_VARS = "configVars";
 
+    String ARG_OBJ_NAME = "objName";
+
     ErrorCode ERR_EXPR_PARSE_NOT_END_PROPERLY = define("nop.err.xlang.expr.not-end-properly", "解析失败，表达式没有正常结束");
 
     ErrorCode ERR_EXPR_UNSUPPORTED_OP = define("nop.err.xlang.expr.unsupported-op", "不支持的运算符:{op}", ARG_OP);
@@ -987,4 +989,7 @@ public interface XLangErrors {
 
     ErrorCode ERR_BIZ_UNKNOWN_BIZ_VAR = define("nop.err.xlang.filter.unknown-biz-var",
             "未定义的前缀引导语法变量:{varName}", ARG_VAR_NAME);
+
+    ErrorCode ERR_BIZ_OBJ_PK_NOT_SIMPLE = define("nop.err.biz.obj-pk-not-simple",
+            "对象[{objName}]的主键不是简单类型", ARG_OBJ_NAME);
 }

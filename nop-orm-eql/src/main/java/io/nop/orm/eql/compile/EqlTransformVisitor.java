@@ -48,6 +48,7 @@ import io.nop.orm.eql.ast.SqlStringLiteral;
 import io.nop.orm.eql.ast.SqlSubqueryTableSource;
 import io.nop.orm.eql.ast.SqlTableName;
 import io.nop.orm.eql.ast.SqlTableSource;
+import io.nop.orm.eql.ast.SqlUnionSelect;
 import io.nop.orm.eql.ast.SqlUpdate;
 import io.nop.orm.eql.enums.SqlJoinType;
 import io.nop.orm.eql.enums.SqlOperator;
@@ -574,6 +575,11 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                     if (cte != null) {
                         tableName.setResolvedCte(cte);
                         tableName.setResolvedTableMeta(cte.getResolvedTableMeta());
+                        if(tableName.getResolvedTableMeta() == null){
+                            if(cte instanceof SqlUnionSelect){
+                                tableName.setResolvedTableMeta(((SqlUnionSelect) cte).getLeft().getResolvedTableMeta());
+                            }
+                        }
 
                         SqlSubqueryTableSource querySource = newCteSource(table, cte);
                         if (!dialect.isSupportWithAsClause()) {

@@ -26,18 +26,21 @@ import io.nop.orm.eql.ast.SqlAlias;
 import io.nop.orm.eql.ast.SqlBooleanLiteral;
 import io.nop.orm.eql.ast.SqlCastExpr;
 import io.nop.orm.eql.ast.SqlColumnName;
+import io.nop.orm.eql.ast.SqlCteStatement;
 import io.nop.orm.eql.ast.SqlDateTimeLiteral;
 import io.nop.orm.eql.ast.SqlExpr;
 import io.nop.orm.eql.ast.SqlExprProjection;
 import io.nop.orm.eql.ast.SqlJoinTableSource;
 import io.nop.orm.eql.ast.SqlLikeExpr;
 import io.nop.orm.eql.ast.SqlLimit;
+import io.nop.orm.eql.ast.SqlProjection;
 import io.nop.orm.eql.ast.SqlQuerySelect;
 import io.nop.orm.eql.ast.SqlRegularFunction;
 import io.nop.orm.eql.ast.SqlSingleTableSource;
 import io.nop.orm.eql.ast.SqlStringLiteral;
 import io.nop.orm.eql.ast.SqlTableName;
 import io.nop.orm.eql.ast.SqlTypeExpr;
+import io.nop.orm.eql.ast.SqlUnionSelect;
 import io.nop.orm.eql.compile.SqlPropJoin;
 import io.nop.orm.eql.enums.SqlCompareRange;
 import io.nop.orm.eql.enums.SqlOperator;
@@ -435,6 +438,43 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
             } else {
                 print(SqlCompareRange.ANY.name());
             }
+        }
+    }
+
+    @Override
+    protected void appendWithColumns(SqlCteStatement stm) {
+        if (stm.getRecursive() && stm.getStatement() instanceof SqlUnionSelect) {
+            SqlUnionSelect union = (SqlUnionSelect) stm.getStatement();
+            List<SqlProjection> projections = union.getLeft().getProjections();
+
+            // H2数据库要求必须有columns段
+            print('(');
+            int index = 0;
+            for (SqlProjection projection : projections) {
+                if (index == 0) {
+                    index++;
+                } else {
+                    print(',');
+                }
+
+                SqlExprProjection node = (SqlExprProjection) projection;
+                SqlExpr expr = node.getExpr();
+                ISqlExprMeta exprMeta = expr.getResolvedExprMeta();
+
+                SqlAlias alias = node.getAlias();
+                if (alias != null) {
+                    print(alias.getAlias());
+                } else {
+                    List<String> colNames = exprMeta.getColumnNames();
+                    for (int i = 0, n = exprMeta.getColumnCount(); i < n; i++) {
+                        if (i != 0) {
+                            print(',');
+                        }
+                        print(EqlHelper.getAlias(colNames.get(i), i, n));
+                    }
+                }
+            }
+            print(')');
         }
     }
 }

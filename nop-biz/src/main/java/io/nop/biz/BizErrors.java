@@ -214,4 +214,10 @@ public interface BizErrors {
     ErrorCode ERR_BIZ_UNKNOWN_REF_ENTITY_WITH_PROP =
             define("nop.err.biz.unknown-ref-entity", "引用对象[{bizObjName}]中不存在属性[{propName}]的值为[{propValue}]记录",
                     ARG_BIZ_OBJ_NAME, ARG_PROP_NAME, ARG_PROP_VALUE);
+
+    ErrorCode ERR_BIZ_NOT_SUPPORT_TREE_MODEL =
+            define("nop.err.biz.not-support-tree-model", "实体[{bizObjName}]没有定义Tree结构模型", ARG_ENTITY_NAME);
+
+    ErrorCode ERR_BIZ_TREE_ENTITY_NO_PARENT_PROP =
+            define("nop.err.biz.tree-entity-no-parent-prop", "树形结构对象[{bizObjName}]没有定义parentProp属性", ARG_BIZ_OBJ_NAME);
 }

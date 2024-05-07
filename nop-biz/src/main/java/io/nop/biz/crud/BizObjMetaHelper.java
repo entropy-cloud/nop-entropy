@@ -87,6 +87,15 @@ public class BizObjMetaHelper {
                     .param(ARG_BIZ_OBJ_NAME, objMeta.getBizObjName())
                     .param(ARG_PROP_NAMES, leftJoinProps);
     }
+
+    public static IObjPropMeta getRelationMeta(IObjSchema objMeta, IObjPropMeta propMeta) {
+        String relation = (String) propMeta.prop_get(BizConstants.EXT_RELATION);
+        if (relation != null) {
+            return objMeta.requireProp(relation);
+        }
+        return propMeta;
+    }
+
 //
 //    public static ITreeBean getFilter(IObjMeta objMeta, IServiceContext context) {
 //        if (objMeta.getFilter() == null)

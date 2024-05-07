@@ -9,6 +9,7 @@ package io.nop.xlang.xmeta;
 
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.lang.ITagSetSupport;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.hook.IExtensibleObject;
@@ -20,6 +21,9 @@ import io.nop.xlang.xmeta.impl.ObjTreeModel;
 import java.util.List;
 import java.util.Set;
 
+import static io.nop.xlang.XLangErrors.ARG_OBJ_NAME;
+import static io.nop.xlang.XLangErrors.ERR_BIZ_OBJ_PK_NOT_SIMPLE;
+
 public interface IObjMeta extends IXDslModel, IObjSchema, ITagSetSupport, IExtensibleObject {
     String getVersion();
 
@@ -30,6 +34,16 @@ public interface IObjMeta extends IXDslModel, IObjSchema, ITagSetSupport, IExten
     List<OrderFieldBean> getOrderBy();
 
     Set<String> getPrimaryKey();
+
+    default String getPkProp() {
+        Set<String> pk = getPrimaryKey();
+        if (pk == null || pk.isEmpty())
+            return null;
+        if (pk.size() == 1)
+            return pk.iterator().next();
+        throw new NopException(ERR_BIZ_OBJ_PK_NOT_SIMPLE)
+                .param(ARG_OBJ_NAME, getName());
+    }
 
     default IObjPropMeta getIdProp() {
         Set<String> pk = getPrimaryKey();

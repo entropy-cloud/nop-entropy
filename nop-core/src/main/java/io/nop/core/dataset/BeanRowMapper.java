@@ -20,7 +20,7 @@ import java.util.Map;
 /**
  * @author canonical_entropy@163.com
  */
-public class BeanRowMapper implements IRowMapper<Object> {
+public class BeanRowMapper<T> implements IRowMapper<T> {
     private final IBeanModel beanModel;
     private final boolean camelCase;
 
@@ -29,12 +29,16 @@ public class BeanRowMapper implements IRowMapper<Object> {
         this.camelCase = camelCase;
     }
 
-    public static BeanRowMapper of(Class<?> beanClass, boolean camelCase) {
-        return new BeanRowMapper(ReflectionManager.instance().getBeanModelForClass(beanClass), camelCase);
+    public static <T> BeanRowMapper<T> of(Class<T> beanClass, boolean camelCase) {
+        return new BeanRowMapper<T>(ReflectionManager.instance().getBeanModelForClass(beanClass), camelCase);
+    }
+
+    public static <T> BeanRowMapper<T> of(Class<T> beanClass) {
+        return of(beanClass, false);
     }
 
     @Override
-    public Object mapRow(IDataRow row, long rowNumber, IFieldMapper colMapper) {
+    public T mapRow(IDataRow row, long rowNumber, IFieldMapper colMapper) {
         int columnCount = row.getFieldCount();
         Object bean = beanModel.newInstance();
         for (int i = 0; i < columnCount; i++) {
@@ -49,7 +53,7 @@ public class BeanRowMapper implements IRowMapper<Object> {
                 BeanTool.setComplexProperty(bean, key, value);
             }
         }
-        return bean;
+        return (T) bean;
     }
 
     public static Object newBean(IBeanModel beanModel, Map<String, Object> data, boolean camelCase) {

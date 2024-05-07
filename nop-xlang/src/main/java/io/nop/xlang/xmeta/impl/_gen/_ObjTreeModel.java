@@ -59,6 +59,13 @@ public abstract class _ObjTreeModel extends io.nop.core.resource.component.Abstr
     private java.lang.String _rootParentValue ;
     
     /**
+     *  
+     * xml name: sortProp
+     * 
+     */
+    private java.lang.String _sortProp ;
+    
+    /**
      * 
      * xml name: childrenProp
      *  对应于父对象中对应于子对象的集合属性，例如children
@@ -172,6 +179,25 @@ public abstract class _ObjTreeModel extends io.nop.core.resource.component.Abstr
     }
 
     
+    /**
+     * 
+     * xml name: sortProp
+     *  
+     */
+    
+    public java.lang.String getSortProp(){
+      return _sortProp;
+    }
+
+    
+    public void setSortProp(java.lang.String value){
+        checkAllowChange();
+        
+        this._sortProp = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -193,6 +219,7 @@ public abstract class _ObjTreeModel extends io.nop.core.resource.component.Abstr
         out.putNotNull("parentProp",this.getParentProp());
         out.putNotNull("rootLevelValue",this.getRootLevelValue());
         out.putNotNull("rootParentValue",this.getRootParentValue());
+        out.putNotNull("sortProp",this.getSortProp());
     }
 
     public ObjTreeModel cloneInstance(){
@@ -210,6 +237,7 @@ public abstract class _ObjTreeModel extends io.nop.core.resource.component.Abstr
         instance.setParentProp(this.getParentProp());
         instance.setRootLevelValue(this.getRootLevelValue());
         instance.setRootParentValue(this.getRootParentValue());
+        instance.setSortProp(this.getSortProp());
     }
 
     protected ObjTreeModel newInstance(){

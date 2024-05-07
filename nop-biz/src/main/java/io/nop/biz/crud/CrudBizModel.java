@@ -26,6 +26,7 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.beans.std.StdTreeEntity;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
@@ -37,7 +38,9 @@ import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.action.IServiceAction;
+import io.nop.core.dataset.BeanRowMapper;
 import io.nop.core.lang.eval.DisabledEvalScope;
+import io.nop.core.lang.sql.SQL;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -89,6 +92,7 @@ import static io.nop.biz.BizConstants.METHOD_FIND_COUNT;
 import static io.nop.biz.BizConstants.METHOD_FIND_FIRST;
 import static io.nop.biz.BizConstants.METHOD_FIND_LIST;
 import static io.nop.biz.BizConstants.METHOD_FIND_PAGE;
+import static io.nop.biz.BizConstants.METHOD_FIND_TREE_PAGE;
 import static io.nop.biz.BizConstants.METHOD_TRY_DELETE;
 import static io.nop.biz.BizConstants.METHOD_TRY_SAVE;
 import static io.nop.biz.BizConstants.METHOD_TRY_UPDATE;
@@ -1282,5 +1286,76 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                                                          @Name("rightValues") Collection<?> relValues) {
         ManyToManyTool<R> tool = manyToMany(relationEntityName, leftProp, rightProp);
         tool.updateRelations(fixedProps, filter, deleteUnknown, rightProp, relValues);
+    }
+
+    @BizQuery
+    @Description("分页查询树状结构")
+    public PageBean<StdTreeEntity> findTreeEntityPage(@Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context) {
+        return doFindTreeEntityPage(query, getBizObjName(), null, selection, context);
+    }
+
+    @BizAction
+    public PageBean<StdTreeEntity> doFindTreeEntityPage(@Name("query") QueryBean query,
+                                                  @Name("authObjName") String authObjName,
+                                                  @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
+                                                  FieldSelectionBean selection,
+                                                  IServiceContext context
+    ) {
+        if (query == null)
+            query = new QueryBean();
+
+        query = prepareFindPageQuery(query, authObjName, METHOD_FIND_TREE_PAGE, prepareQuery, context);
+
+        PageBean<StdTreeEntity> pageBean = new PageBean<>();
+        pageBean.setLimit(query.getLimit());
+        pageBean.setOffset(query.getOffset());
+        pageBean.setTotal(-1L);
+
+        if (selection != null && selection.hasField(GraphQLConstants.FIELD_TOTAL)) {
+            long total = countTreeEntity(query);
+            pageBean.setTotal(total);
+        }
+
+        if (selection == null || selection.hasField(GraphQLConstants.FIELD_ITEMS)) {
+            List<StdTreeEntity> ret = getTreeEntityList(query);
+            pageBean.setItems(ret);
+        }
+        return pageBean;
+    }
+
+    protected long countTreeEntity(QueryBean query) {
+        IObjMeta objMeta = getThisObj().requireObjMeta();
+        SQL sql = TreeEntityHelper.buildTreeEntityCountSql(objMeta, query.getFilter()).end();
+        return orm().findLong(sql, 0L);
+    }
+
+    protected List<StdTreeEntity> getTreeEntityList(QueryBean query) {
+        IObjMeta objMeta = getThisObj().requireObjMeta();
+        SQL sql = TreeEntityHelper.buildTreeEntitySql(objMeta, query.getFilter()).end();
+        return orm().findPage(sql, query.getOffset(), query.getLimit(), BeanRowMapper.of(StdTreeEntity.class));
+    }
+
+    @BizQuery
+    @Description("查询树状结构")
+    public List<StdTreeEntity> findTreeEntityList(@Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context) {
+        return doFindTreeEntityList(query, getBizObjName(), null, selection, context);
+    }
+
+    @BizAction
+    public List<StdTreeEntity> doFindTreeEntityList(@Name("query") QueryBean query,
+                                                    @Name("authObjName") String authObjName,
+                                                    @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
+                                                    FieldSelectionBean selection,
+                                                    IServiceContext context
+    ) {
+        if (query == null)
+            query = new QueryBean();
+
+        if (query.getLimit() <= 0)
+            query.setLimit(CFG_GRAPHQL_MAX_PAGE_SIZE.get());
+
+        query = prepareFindPageQuery(query, authObjName, METHOD_FIND_TREE_PAGE, prepareQuery, context);
+
+        return getTreeEntityList(query);
     }
 }

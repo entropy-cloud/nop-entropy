@@ -396,6 +396,7 @@ public class AstToEqlGenerator extends EqlASTVisitor {
                     print(" recursive ");
                 }
                 print(stm.getName());
+                appendWithColumns(stm);
                 print(" as (");
                 incIndent();
                 println();
@@ -406,6 +407,10 @@ public class AstToEqlGenerator extends EqlASTVisitor {
             }
         }
         visit(node.getSelect());
+    }
+
+    protected void appendWithColumns(SqlCteStatement stm){
+
     }
 
     protected void printSelect(SqlQuerySelect node) {

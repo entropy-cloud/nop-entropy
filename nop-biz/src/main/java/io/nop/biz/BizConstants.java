@@ -57,6 +57,10 @@ public interface BizConstants {
     String METHOD_FIND_LIST = "findList";
 
     String METHOD_FIND_COUNT = "findCount";
+
+    String METHOD_FIND_TREE_PAGE = "findTreePage";
+
+    String METHOD_FIND_TREE_LIST = "findTreeList";
     String METHOD_GET = "get";
     String METHOD_SAVE = "save";
     String METHOD_UPDATE = "update";
