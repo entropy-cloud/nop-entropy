@@ -36,6 +36,10 @@ public interface IOrmSessionEntityCache {
 
     void markDirty(String entityName);
 
+    default void markExtDirty(String entityName) {
+        markDirty(entityName);
+    }
+
     void clearDirty(String entityName);
 
     void clearDirty();

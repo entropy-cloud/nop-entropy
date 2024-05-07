@@ -1124,6 +1124,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     @Override
     public void internalMarkExtDirty(IOrmEntity entity) {
         markDirty();
+        this.cache.markExtDirty(entity.get_entityName());
     }
 
     @Override

@@ -220,8 +220,21 @@ public class CascadeFlusher {
         if (state.isMissing() || state.isDeleted())
             return;
 
+        IEntityModel entityModel = entity.orm_entityModel();
+
         // 对于proxy的情况，不需要处理
         if (state.isProxy()) {
+            if (entity.orm_extDirty()) {
+                // 如果实体被标记为extDirty，则需要检查to-many关联集合。关联集合发生变动时会标记实体为extDirty
+                for (IEntityRelationModel propModel : entityModel.getRelations()) {
+                    if (propModel.isToManyRelation()) {
+                        IOrmEntitySet coll = entity.orm_refEntitySet(propModel.getName());
+                        if (coll != null) {
+                            cascadeCollection(coll, false);
+                        }
+                    }
+                }
+            }
             return;
         }
 
@@ -230,7 +243,7 @@ public class CascadeFlusher {
             session.internalSave(entity);
         }
 
-        IEntityModel entityModel = entity.orm_entityModel();
+
         flushComponent(entity, entityModel);
 
         boolean deleting = state.isDeleting();
@@ -239,9 +252,11 @@ public class CascadeFlusher {
             boolean deleteProp = deleting && propModel.isCascadeDelete();
 
             if (propModel.isToManyRelation()) {
-                IOrmEntitySet coll = entity.orm_refEntitySet(propModel.getName());
-                if (coll != null) {
-                    cascadeCollection(coll, deleteProp);
+                if (entity.orm_extDirty()) {
+                    IOrmEntitySet coll = entity.orm_refEntitySet(propModel.getName());
+                    if (coll != null) {
+                        cascadeCollection(coll, deleteProp);
+                    }
                 }
             } else if (entity.orm_refLoaded(propModel.getName())) {
                 IOrmEntity refEntity = entity.orm_refEntity(propModel.getName());
