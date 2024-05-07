@@ -201,6 +201,38 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
   </c:choose>
 ```
 
+### 编译期转换
+自定义标签支持transform配置，可以在编译期对标签节点进行转换。例如`bo.xlib`中
+
+```xml
+<Get>
+  <attr name="id"/>
+  <attr name="ignoreUnknown" optional="true"/>
+  <attr name="selection" optional="true" type="io.nop.api.core.beans.FieldSelectionBean"/>
+  <attr name="bizObjName" optional="true" />
+  <attr name="thisObj" implicit="true"/>
+  <attr name="svcCtx" implicit="true"/>
+
+  <transform>
+    <bo-gen:TransformBizObjTag xpl:lib="bo-gen.xlib"/>
+  </transform>
+  ...
+</Get>
+```
+
+`<bo-gen:TransformBizObjTag>`标签在编译期执行，它会识别bizObjName属性并自动生成thisObj属性的表达式。例如对于如下标签调用
+
+```xml
+<bo:Get bizObjName="NopAuthUser" selection="items{roleMappings}" id="3" />
+```
+
+它经过transform段进行处理之后，将被自动转换为如下标签节点进行编译
+
+```xml
+<bo:Get thisObj="${inject('nopBizObjectManager').getBizObject('NopAuthUser')}" selection="${selection('items{roleMappings}')}" />
+```
+
+
 ## 动态属性
 
 * 如果属性值返回`null`, 则该属性在输出时会被自动忽略。
