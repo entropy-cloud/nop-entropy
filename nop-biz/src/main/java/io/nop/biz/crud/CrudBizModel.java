@@ -505,23 +505,28 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
         Map<String, Object> validated = validator.validateForSave(data, inputSelection);
 
+        T entity = recoverLogicalDeleted(data, objMeta);
+        boolean recover = true;
+        if (entity == null) {
+            recover = false;
+            entity = dao().newEntity();
+        }
+
+        EntityData entityData = new EntityData<>(data, validated, entity, objMeta);
+        entityData.setRecoverDeleted(recover);
+        return entityData;
+    }
+
+    protected T recoverLogicalDeleted(Map<String, Object> data, IObjMeta objMeta) {
         IEntityDao<T> dao = dao();
         T entity = null;
-        boolean recover = false;
         if (dao.isUseLogicalDelete()) {
             entity = findLogicalDeleted(data, dao, objMeta);
             if (entity != null) {
                 dao.resetToDefaultValues(entity);
-                recover = true;
             }
         }
-
-        if (entity == null) {
-            entity = dao.newEntity();
-        }
-        EntityData entityData = new EntityData<>(data, validated, entity, objMeta);
-        entityData.setRecoverDeleted(recover);
-        return entityData;
+        return entity;
     }
 
     protected T findLogicalDeleted(Map<String, Object> data, IEntityDao<T> dao, IObjMeta objMeta) {
