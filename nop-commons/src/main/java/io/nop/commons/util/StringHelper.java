@@ -4484,4 +4484,13 @@ public class StringHelper extends ApiStringHelper {
         }
         return true;
     }
+
+    @Deterministic
+    public static String safeXmlComment(String comment) {
+        if (isEmpty(comment))
+            return comment;
+
+        comment = StringHelper.replace(comment, "--", "- - ");
+        return comment;
+    }
 }

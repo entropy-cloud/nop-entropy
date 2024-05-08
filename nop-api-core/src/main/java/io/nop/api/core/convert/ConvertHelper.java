@@ -894,6 +894,12 @@ public class ConvertHelper {
         if (isEmpty(str))
             return null;
 
+        // 仅包含日期部分
+        if(str.length() == 10){
+            LocalDate date = stringToLocalDate(str,errorFactory);
+            return date.atStartOfDay();
+        }
+
         try {
             if (str.endsWith("Z")) {
                 return LocalDateTime.parse(str, INSTANT_FORMAT);

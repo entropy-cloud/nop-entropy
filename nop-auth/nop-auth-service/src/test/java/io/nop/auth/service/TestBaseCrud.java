@@ -98,4 +98,16 @@ public class TestBaseCrud extends JunitBaseTestCase {
         assertEquals(1, ((List) BeanTool.getProperty(response.getData(), "items")).size());
         System.out.println(JsonTool.serialize(response,true));
     }
+
+    @Test
+    public void testDate(){
+        ApiRequest<Map<String, Object>> request = new ApiRequest<>();
+        QueryBean query = new QueryBean();
+        query.setLimit(10);
+        query.addFilter(FilterBeans.ge("createTime", "2002-01-03"));
+        request.setData(Map.of("query", query));
+        IGraphQLExecutionContext context = graphQLEngine.newRpcContext(null, "NopAuthSite__findPage", request);
+        ApiResponse<?> response = graphQLEngine.executeRpc(context);
+        assertTrue(response.isOk());
+    }
 }

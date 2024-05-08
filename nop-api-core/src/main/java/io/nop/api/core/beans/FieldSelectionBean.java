@@ -315,6 +315,28 @@ public class FieldSelectionBean implements Serializable, IDeepCloneable, IFreeza
         return fields != null && fields.containsKey(name);
     }
 
+    public boolean hasSourceField(String name) {
+        return getSourceField(name) != null;
+    }
+
+    public FieldSelectionBean getSourceField(String name) {
+        if (fields == null)
+            return null;
+
+        FieldSelectionBean field = fields.get(name);
+        if (field != null)
+            return field;
+
+        // 有可能为字段指定别名
+        for (FieldSelectionBean f : fields.values()) {
+            if (f.getName() == null)
+                continue;
+            if (name.equals(f.getName()))
+                return f;
+        }
+        return null;
+    }
+
     public FieldSelectionBean getField(String name) {
         if (fields == null)
             return null;

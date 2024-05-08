@@ -1917,6 +1917,12 @@
         "parameterTypes": []
       },
       {
+        "name": "getSourceField",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getSourceFields",
         "parameterTypes": []
       },
@@ -1926,6 +1932,12 @@
       },
       {
         "name": "hasField",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasSourceField",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -3902,6 +3914,67 @@
       }
     ],
     "name": "io.nop.api.core.beans.query.QuerySourceBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getJoinId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLevel",
+        "parameterTypes": []
+      },
+      {
+        "name": "getParentId",
+        "parameterTypes": []
+      },
+      {
+        "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setJoinId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setLevel",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setParentId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.beans.std.StdTreeEntity",
     "unsafeAllocated": false
   },
   {
@@ -16141,6 +16214,12 @@
         ]
       },
       {
+        "name": "countTreeEntity",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean"
+        ]
+      },
+      {
         "name": "dao",
         "parameterTypes": []
       },
@@ -16303,6 +16382,26 @@
         ]
       },
       {
+        "name": "doFindTreeEntityList",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
+          "java.util.function.BiConsumer",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doFindTreeEntityPage",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
+          "java.util.function.BiConsumer",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "doSave",
         "parameterTypes": [
           "java.util.Map",
@@ -16416,6 +16515,22 @@
         ]
       },
       {
+        "name": "findTreeEntityList",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "findTreeEntityPage",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "get",
         "parameterTypes": [
           "java.lang.String",
@@ -16454,6 +16569,12 @@
       {
         "name": "getThisObj",
         "parameterTypes": []
+      },
+      {
+        "name": "getTreeEntityList",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean"
+        ]
       },
       {
         "name": "invokeAction",
@@ -16535,6 +16656,13 @@
         "parameterTypes": [
           "java.lang.String",
           "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "recoverLogicalDeleted",
+        "parameterTypes": [
+          "java.util.Map",
+          "io.nop.xlang.xmeta.IObjMeta"
         ]
       },
       {
@@ -51203,6 +51331,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getSortProp",
+        "parameterTypes": []
+      },
+      {
         "name": "newInstance",
         "parameterTypes": []
       },
@@ -51244,6 +51376,12 @@
       },
       {
         "name": "setRootParentValue",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSortProp",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -52192,6 +52330,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getTransform",
+        "parameterTypes": []
+      },
+      {
         "name": "getTransformer",
         "parameterTypes": []
       },
@@ -52383,6 +52525,12 @@
         "name": "setTagReturn",
         "parameterTypes": [
           "io.nop.xlang.xpl.xlib.XplTagReturn"
+        ]
+      },
+      {
+        "name": "setTransform",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalFunction"
         ]
       },
       {

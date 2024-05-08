@@ -268,13 +268,13 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         pageBean.setOffset(query.getOffset());
         pageBean.setTotal(-1L);
 
-        if (selection != null && selection.hasField(GraphQLConstants.FIELD_TOTAL)) {
+        if (selection != null && selection.hasSourceField(GraphQLConstants.FIELD_TOTAL)) {
             long total = dao.countByQuery(query);
             pageBean.setTotal(total);
         }
 
-        if (selection == null || selection.hasField(GraphQLConstants.FIELD_ITEMS)
-                || selection.hasField(GraphQLConstants.FIELD_NEXT_CURSOR)) {
+        if (selection == null || selection.hasSourceField(GraphQLConstants.FIELD_ITEMS)
+                || selection.hasSourceField(GraphQLConstants.FIELD_NEXT_CURSOR)) {
             if (!StringHelper.isEmpty(query.getCursor())) {
                 dao.findPageAndReturnCursor(query, pageBean);
             } else {
@@ -1316,12 +1316,12 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         pageBean.setOffset(query.getOffset());
         pageBean.setTotal(-1L);
 
-        if (selection != null && selection.hasField(GraphQLConstants.FIELD_TOTAL)) {
+        if (selection != null && selection.hasSourceField(GraphQLConstants.FIELD_TOTAL)) {
             long total = countTreeEntity(query);
             pageBean.setTotal(total);
         }
 
-        if (selection == null || selection.hasField(GraphQLConstants.FIELD_ITEMS)) {
+        if (selection == null || selection.hasSourceField(GraphQLConstants.FIELD_ITEMS)) {
             List<StdTreeEntity> ret = getTreeEntityList(query);
             pageBean.setItems(ret);
         }

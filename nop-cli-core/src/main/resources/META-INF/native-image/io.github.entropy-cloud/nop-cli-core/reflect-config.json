@@ -5391,6 +5391,12 @@
         ]
       },
       {
+        "name": "safeXmlComment",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "sha256Hash",
         "parameterTypes": [
           "java.lang.String",
@@ -26092,6 +26098,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getTransform",
+        "parameterTypes": []
+      },
+      {
         "name": "getTransformer",
         "parameterTypes": []
       },
@@ -26283,6 +26293,12 @@
         "name": "setTagReturn",
         "parameterTypes": [
           "io.nop.xlang.xpl.xlib.XplTagReturn"
+        ]
+      },
+      {
+        "name": "setTransform",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalFunction"
         ]
       },
       {

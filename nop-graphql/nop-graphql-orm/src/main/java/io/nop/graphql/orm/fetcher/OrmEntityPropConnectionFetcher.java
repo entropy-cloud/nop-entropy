@@ -128,16 +128,16 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
             return entityDao.findFirstByQuery(query);
         } else {
             GraphQLConnection<Object> conn = new GraphQLConnection<>();
-            if (selection.hasField(GraphQLConstants.FIELD_TOTAL)) {
+            if (selection.hasSourceField(GraphQLConstants.FIELD_TOTAL)) {
                 conn.setTotal(entityDao.countByQuery(query));
             }
-            if (selection.hasField(GraphQLConstants.FIELD_PAGE_INFO)
-                    || selection.hasField(GraphQLConstants.FIELD_ITEMS)
-                    || selection.hasField(GraphQLConstants.FIELD_EDGES)) {
+            if (selection.hasSourceField(GraphQLConstants.FIELD_PAGE_INFO)
+                    || selection.hasSourceField(GraphQLConstants.FIELD_ITEMS)
+                    || selection.hasSourceField(GraphQLConstants.FIELD_EDGES)) {
                 fetchItems(conn, query, input);
             }
 
-            if (selection.hasField(GraphQLConstants.FIELD_EDGES)) {
+            if (selection.hasSourceField(GraphQLConstants.FIELD_EDGES)) {
                 List<Object> items = conn.getItems();
                 if (items != null) {
                     List<GraphQLEdgeBean> edges = new ArrayList<>(items.size());

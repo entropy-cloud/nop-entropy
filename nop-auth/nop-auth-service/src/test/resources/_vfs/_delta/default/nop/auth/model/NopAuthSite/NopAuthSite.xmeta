@@ -5,5 +5,7 @@
             <auth roles="manager,hr" for="read"/>
             <auth roles="hr" for="write"/>
         </prop>
+
+        <prop name="createTime" allowFilterOp="eq,in,ge" />
     </props>
 </meta>

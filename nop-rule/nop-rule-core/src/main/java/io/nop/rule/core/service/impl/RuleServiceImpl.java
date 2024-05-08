@@ -63,7 +63,7 @@ public class RuleServiceImpl implements RuleServiceSpi {
         ruleRt.setInputs(request.getInputs());
         ruleRt.setRuleName(request.getRuleName());
         ruleRt.setRuleVersion(request.getRuleVersion());
-        if (selection != null && selection.hasField(RuleConstants.FIELD_LOG_MESSAGES)) {
+        if (selection != null && selection.hasSourceField(RuleConstants.FIELD_LOG_MESSAGES)) {
             ruleRt.setCollectLogMessage(true);
         }
 
