@@ -7,18 +7,23 @@
  */
 package io.nop.orm.eql.param;
 
+import io.nop.commons.type.StdDataType;
+
 import java.util.List;
 
 public class SimpleParamBuilder implements ISqlParamBuilder {
+    private final StdDataType stdDataType;
     private final int paramIndex;
 
-    public SimpleParamBuilder(int paramIndex) {
+    public SimpleParamBuilder(StdDataType stdDataType, int paramIndex) {
+        this.stdDataType = stdDataType;
         this.paramIndex = paramIndex;
     }
 
     @Override
     public void buildParams(List<Object> input, List<Object> params) {
         Object value = input.get(paramIndex);
+        value = stdDataType.convert(value);
         params.add(value);
     }
 }

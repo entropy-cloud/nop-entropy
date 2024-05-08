@@ -30,6 +30,7 @@ public class TypedValueMarker extends Markers.ValueMarker {
 
     @Override
     protected Markers.ValueMarker newValueMarker(int begin, int end, Object value) {
+        value = binder.getStdDataType().convert(value);
         return new TypedValueMarker(begin, value, binder, isMasked());
     }
 }

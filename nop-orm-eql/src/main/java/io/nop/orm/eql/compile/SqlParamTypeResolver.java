@@ -89,10 +89,10 @@ public class SqlParamTypeResolver extends EqlASTVisitor {
         if (dataType.getKind() == OrmDataTypeKind.COMPONENT || dataType.getKind() == OrmDataTypeKind.TO_ONE_RELATION) {
             params.add(new EntityPropParamBuilder(node.getParamIndex(), resolvedMeta));
         } else if (dataType.getKind() == OrmDataTypeKind.COLUMN || dataType.getKind() == OrmDataTypeKind.EXPR) {
-            params.add(new SimpleParamBuilder(node.getParamIndex()));
+            params.add(new SimpleParamBuilder(dataType.getStdDataType(), node.getParamIndex()));
         } else {
             // 这里暂时简化处理，不进行类型判断
-            params.add(new SimpleParamBuilder(node.getParamIndex()));
+            params.add(new SimpleParamBuilder(dataType.getStdDataType(), node.getParamIndex()));
         }
     }
 }
