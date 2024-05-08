@@ -220,11 +220,12 @@ public class CascadeFlusher {
         if (state.isMissing() || state.isDeleted())
             return;
 
-        IEntityModel entityModel = entity.orm_entityModel();
+
 
         // 对于proxy的情况，不需要处理
         if (state.isProxy()) {
             if (entity.orm_extDirty()) {
+                IEntityModel entityModel = entity.orm_entityModel();
                 // 如果实体被标记为extDirty，则需要检查to-many关联集合。关联集合发生变动时会标记实体为extDirty
                 for (IEntityRelationModel propModel : entityModel.getRelations()) {
                     if (propModel.isToManyRelation()) {
@@ -243,7 +244,7 @@ public class CascadeFlusher {
             session.internalSave(entity);
         }
 
-
+        IEntityModel entityModel = entity.orm_entityModel();
         flushComponent(entity, entityModel);
 
         boolean deleting = state.isDeleting();
