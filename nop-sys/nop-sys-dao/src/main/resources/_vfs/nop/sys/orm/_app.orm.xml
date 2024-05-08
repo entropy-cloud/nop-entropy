@@ -166,10 +166,10 @@
                 tableName="nop_sys_i18n" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
                 i18n-en:displayName="I18n Message">
             <columns>
-                <column code="I18N_KEY" displayName="字符串Key" mandatory="true" name="i18nKey" precision="300"
+                <column code="I18N_KEY" displayName="字符串Key" mandatory="true" name="i18nKey" precision="200"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="I18n Key"/>
-                <column code="I18N_LOCALE" displayName="语言" mandatory="true" name="i18nLocale" precision="50"
+                <column code="I18N_LOCALE" displayName="语言" mandatory="true" name="i18nLocale" precision="20"
                         primary="true" propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Locale"
                         ext:dict="core/enabled-locale"/>
                 <column code="VALUE" displayName="值" mandatory="true" name="value" precision="300" propId="3"
