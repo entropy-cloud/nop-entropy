@@ -1,6 +1,6 @@
 [[English]](README.en.md)   [[Tutorial]](./docs/tutorial/tutorial_en.md)  [[开发示例]](./docs/tutorial/tutorial.md) [[介绍和答疑视频]](https://www.bilibili.com/video/BV1u84y1w7kX/)
 
-# Nop Entropy
+# Nop Platform 2.0
 
 [![](https://img.shields.io/github/stars/entropy-cloud/nop-entropy)](https://github.com/entropy-cloud/nop-entropy/stargazers)
 [![](https://gitee.com/canonical-entropy/nop-entropy/badge/star.svg?theme=white)](https://gitee.com/canonical-entropy/nop-entropy/stargazers)
