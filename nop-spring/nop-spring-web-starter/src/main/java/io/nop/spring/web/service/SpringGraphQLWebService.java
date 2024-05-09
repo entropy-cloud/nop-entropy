@@ -7,17 +7,9 @@
  */
 package io.nop.spring.web.service;
 
-import io.nop.api.core.ApiConstants;
-import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.WebContentBean;
-import io.nop.api.core.beans.graphql.GraphQLResponseBean;
-import io.nop.api.core.convert.ConvertHelper;
-import io.nop.api.core.json.JSON;
-import io.nop.commons.util.StringHelper;
-import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
-import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.web.GraphQLWebService;
@@ -29,7 +21,6 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,7 +34,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.io.File;
 import java.io.InputStream;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
@@ -94,20 +85,17 @@ public class SpringGraphQLWebService extends GraphQLWebService {
 
     @PostMapping(path = "/graphql", produces = MediaType.APPLICATION_JSON_VALUE)
     public CompletionStage<ResponseEntity<Object>> graphqlSpring(@RequestBody String body) {
-        return runGraphQL(body, this::transformGraphQLResponse);
+        return runGraphQL(body, this::transformSpringResponse);
     }
 
-    protected ResponseEntity<Object> transformGraphQLResponse(GraphQLResponseBean response, IGraphQLExecutionContext context) {
-        HttpHeaders headers = new HttpHeaders();
-        if (context != null && context.getResponseHeaders() != null) {
-            context.getResponseHeaders().forEach((name, value) -> {
-                List<String> list = Arrays.asList(String.valueOf(value));
-                headers.put(name, list);
-            });
-        }
-        Object body = JsonTool.serialize(response, false);
-        ResponseEntity<Object> res = new ResponseEntity<>(body, headers, HttpStatus.OK);
-        return res;
+    protected ResponseEntity<Object> transformSpringResponse(Map<String, Object> headers, Object body, int status) {
+        HttpHeaders httpHeaders = new HttpHeaders();
+        headers.forEach((name, value) -> {
+            List<String> list = Collections.singletonList(String.valueOf(value));
+            httpHeaders.put(name, list);
+        });
+
+        return new ResponseEntity<>(body, httpHeaders, status);
     }
 
     @PostMapping(path = "/r/{operationName}", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -116,7 +104,7 @@ public class SpringGraphQLWebService extends GraphQLWebService {
                                                               @RequestBody(required = false) String body) {
         return runRest(null, operationName, () -> {
             return buildRequest(body, selection, true);
-        }, this::transformRestResponse);
+        }, this::transformSpringResponse);
     }
 
     @GetMapping(path = "/r/{operationName}", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -125,125 +113,40 @@ public class SpringGraphQLWebService extends GraphQLWebService {
                                                                    @RequestParam(value = SYS_PARAM_ARGS, required = false) String args) {
         return runRest(GraphQLOperationType.query, operationName, () -> {
             return buildRequest(args, selection, true);
-        }, this::transformRestResponse);
+        }, this::transformSpringResponse);
     }
-
-    protected ResponseEntity<Object> transformRestResponse(ApiResponse<?> response, IGraphQLExecutionContext context) {
-        HttpHeaders headers = new HttpHeaders();
-        if (response.getHeaders() != null) {
-            response.getHeaders().forEach((name, value) -> {
-                List<String> list = Arrays.asList(String.valueOf(value));
-                headers.put(name, list);
-            });
-        }
-        String str = JSON.stringify(response.cloneInstance(false));
-        int status = response.getHttpStatus();
-        if (status == 0)
-            status = 200;
-
-        ResponseEntity<Object> res = new ResponseEntity<>(str, headers, status);
-        return res;
-    }
-
 
     @GetMapping("/p/{query:.+}")
     public CompletionStage<ResponseEntity<Object>> pageQuerySpring(@PathVariable("query") String query,
                                                                    @RequestParam(value = SYS_PARAM_SELECTION, required = false) String selection,
                                                                    @RequestParam(value = SYS_PARAM_ARGS, required = false) String args) {
-        return doPageQuery(GraphQLOperationType.query, query, selection, args);
+        return doPageQuery(GraphQLOperationType.query, query, selection, args, this::buildSpringPageResponse);
     }
 
     @PostMapping("/p/{query:.+}")
     public CompletionStage<ResponseEntity<Object>> pageQuerySpringForPost(@PathVariable("query") String query,
                                                                           @RequestParam(value = SYS_PARAM_SELECTION, required = false) String selection,
                                                                           @RequestBody(required = false) String body) {
-        return doPageQuery(null, query, selection, body);
+        return doPageQuery(null, query, selection, body, this::buildSpringPageResponse);
     }
 
-    protected CompletionStage<ResponseEntity<Object>> doPageQuery(GraphQLOperationType operationType,
-                                                                  String query, String selection, String args) {
-        int pos = query.indexOf('/');
-        String operationName = query;
-        String path = pos > 0 ? query.substring(pos) : null;
-        if (pos > 0) {
-            operationName = query.substring(0, pos);
-        }
+    protected ResponseEntity<Object> buildSpringPageResponse(
+            ApiResponse<?> response, IGraphQLExecutionContext context
+    ) {
+        WebContentBean contentBean = buildWebContent(response);
 
-        return runRest(operationType, operationName, () -> {
-            ApiRequest<Map<String, Object>> req = buildRequest(args, selection, true);
-            if (path != null) {
-                req.getData().put(GraphQLConstants.PARAM_PATH, path);
-            }
-            return req;
-        }, this::buildSpringPageResponse);
-    }
-
-    protected ResponseEntity<Object> buildSpringPageResponse(ApiResponse<?> res, IGraphQLExecutionContext context) {
-
-        int status = res.getHttpStatus();
-        if (status == 0)
-            status = 200;
-
-        HttpHeaders headers = new HttpHeaders();
-
-        Object body;
-        Object data = res.getData();
-        if (data instanceof String) {
-            headers.set(ApiConstants.HEADER_CONTENT_TYPE, WebContentBean.CONTENT_TYPE_TEXT);
-            LOG.debug("nop.graphql.response:{}", data);
-            body = data;
-        } else if (data instanceof WebContentBean) {
-            WebContentBean contentBean = (WebContentBean) data;
-            body = buildContent(headers, contentBean.getContentType(), contentBean.getContent(), contentBean.getFileName());
-        } else if (data instanceof Map) {
-            Map<String, Object> map = (Map<String, Object>) data;
-            if (map.containsKey("contentType") && map.containsKey("content") && map.size() >= 2) {
-                String contentType = ConvertHelper.toString(map.get("contentType"));
-                body = buildContent(headers, contentType, map.get("content"), (String) map.get("fileName"));
-            } else {
-                body = buildJson(headers, res);
-            }
-        } else {
-            body = buildJson(headers, res);
-        }
-        return new ResponseEntity<>(body, headers, HttpStatus.valueOf(status));
-    }
-
-    private Object buildContent(HttpHeaders headers, String contentType, Object content, String fileName) {
-        headers.set(ApiConstants.HEADER_CONTENT_TYPE, contentType);
-        if (!StringHelper.isEmpty(fileName)) {
-            String encoded = StringHelper.encodeURL(fileName);
-            headers.set("Content-Disposition", "attachment; filename=" + encoded);
-        }
-
-        if (content instanceof String) {
-            LOG.debug("nop.graphql.response:{}", content);
-            return content;
-        } else if (content instanceof byte[]) {
-            return new ByteArrayResource((byte[]) content);
-        } else if (content instanceof InputStream || content instanceof File || content instanceof IResource) {
-            if (content instanceof InputStream) {
-                return new InputStreamResource((InputStream) content, fileName);
+        return consumeWebContent(response, contentBean, (headers, content, status) -> {
+            if (content instanceof byte[]) {
+                content = new ByteArrayResource((byte[]) content);
+            } else if (content instanceof InputStream) {
+                content = new InputStreamResource((InputStream) content, contentBean.getFileName());
             } else if (content instanceof IResource) {
-                return new SpringResource((IResource) content);
+                content = new SpringResource((IResource) content);
+            } else if (content instanceof File) {
+                content = new FileSystemResource((File) content);
             }
-            return new FileSystemResource((File) content);
-        } else {
-            String str = JSON.stringify(content);
-            LOG.debug("nop.graphql.response:{}", str);
-            return str;
-        }
-    }
 
-    private Object buildJson(HttpHeaders headers, ApiResponse<?> res) {
-        headers.set(ApiConstants.HEADER_CONTENT_TYPE, WebContentBean.CONTENT_TYPE_JSON);
-        String str;
-        if (res.isOk()) {
-            str = JSON.stringify(res.getData());
-        } else {
-            str = JSON.stringify(res.cloneInstance(false));
-        }
-        LOG.debug("nop.graphql.response:{}", str);
-        return str;
+            return transformSpringResponse(headers, content, status);
+        });
     }
 }

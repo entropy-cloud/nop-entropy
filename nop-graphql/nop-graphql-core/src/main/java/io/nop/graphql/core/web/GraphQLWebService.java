@@ -8,6 +8,7 @@
 package io.nop.graphql.core.web;
 
 import io.nop.api.core.ApiConstants;
+import io.nop.api.core.beans.ApiMessage;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.WebContentBean;
@@ -18,9 +19,12 @@ import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.json.JSON;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.commons.functional.ITriFunction;
 import io.nop.commons.functional.Lazy;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.context.IServiceContext;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.model.selection.FieldSelectionBeanParser;
 import io.nop.core.resource.IResource;
 import io.nop.graphql.core.GraphQLConstants;
@@ -44,6 +48,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -73,8 +78,8 @@ public class GraphQLWebService {
         return runGraphQL(body, this::buildJaxrsGraphQLResponse);
     }
 
-    protected <T> CompletionStage<T> runGraphQL(String body, BiFunction<GraphQLResponseBean,
-            IGraphQLExecutionContext, T> responseBuilder) {
+    protected <T> CompletionStage<T> runGraphQL(String body,
+                                                BiFunction<GraphQLResponseBean, IGraphQLExecutionContext, T> responseBuilder) {
         IGraphQLEngine engine = BeanContainer.instance().getBeanByType(IGraphQLEngine.class);
         long beginTime = CoreMetrics.currentTimeMillis();
 
@@ -119,6 +124,32 @@ public class GraphQLWebService {
         }
     }
 
+    /**
+     * 在 {@link #runGraphQL(String, BiFunction)}
+     * 的基础上对响应状态和响应体数据进行统一转换，在处理 GraphQL 风格请求时，仅需要在回调函数
+     * `responseBuilder` 中根据 header、body、status 处理响应即可，无需关注对 header、body 等的转换。
+     * <p/>
+     * 默认响应体数据的构造逻辑为：<per>
+     * String body = JsonTool.serialize(response, false);
+     * </per>
+     *
+     * @param responseBuilder
+     *         响应处理函数，其有以下入参：<ul>
+     *         <li>headers: 响应头 Map 集合，来自于 {@link IServiceContext#getResponseHeaders()}。不为 `null`；</li>
+     *         <li>body: 响应体数据；</li>
+     *         <li>status: 响应状态，始终为 `200`；</li>
+     *         </ul>
+     */
+    protected <T> CompletionStage<T> runGraphQL(String body,
+                                                ITriFunction<Map<String, Object>, String, Integer, T> responseBuilder) {
+        return runGraphQL(body, (response, gqlContext) -> {
+            String json = JsonTool.serialize(response, false);
+            Map<String, Object> headers = gqlContext != null ? gqlContext.getResponseHeaders() : null;
+
+            return responseBuilder.apply(headers != null ? new HashMap<>(headers) : new HashMap<>(), json, 200);
+        });
+    }
+
     protected void logRpcResult(long beginTime, ApiResponse<?> result, Throwable exception, IGraphQLExecutionContext context) {
         graphQLLogger.runIfPresent(logger -> {
             logger.onRpcExecute(context, beginTime, result, exception);
@@ -136,16 +167,10 @@ public class GraphQLWebService {
     }
 
     protected Response buildJaxrsGraphQLResponse(GraphQLResponseBean res, IGraphQLExecutionContext context) {
-        Response.ResponseBuilder builder = Response.status(200);
-        String str = JSON.stringify(res);
-        LOG.debug("nop.graphql.response:{}", str);
+        String body = JSON.stringify(res);
+        LOG.debug("nop.graphql.response:{}", body);
 
-        builder.entity(str);
-
-        if (context != null && context.getResponseHeaders() != null) {
-            context.getResponseHeaders().forEach(builder::header);
-        }
-        return builder.build();
+        return JaxrsHelper.buildJaxrsResponse(context != null ? context.getResponseHeaders() : null, body, 200);
     }
 
     @POST
@@ -205,6 +230,39 @@ public class GraphQLWebService {
                 logRpcResult(beginTime, null, e, context);
             }
         }
+    }
+
+    /**
+     * 在 {@link #runRest(GraphQLOperationType, String, Supplier, BiFunction)}
+     * 的基础上对响应状态和响应体数据进行统一转换，在处理 Rest 风格请求时，仅需要在回调函数
+     * `responseBuilder` 中根据 header、body、status 处理响应即可，无需关注对 header、body 等的转换。
+     * <p/>
+     * 默认响应体数据的构造逻辑为：<per>
+     * String body = JSON.stringify(response.cloneInstance(false));
+     * </per>
+     *
+     * @param responseBuilder
+     *         响应的处理函数，其有以下入参：<ul>
+     *         <li>headers: 响应头 Map 集合，来自于 {@link ApiMessage#getHeaders()}。不为 `null`；</li>
+     *         <li>body: 响应体数据；</li>
+     *         <li>status: 响应状态，来自于 {@link ApiResponse#getHttpStatus()}，在原值为 `0` 时，该入参实际传入 `200`；</li>
+     *         </ul>
+     */
+    protected <T> CompletionStage<T> runRest(GraphQLOperationType expectedOpType, String operationName,
+                                             Supplier<ApiRequest<?>> requestBuilder,
+                                             ITriFunction<Map<String, Object>, String, Integer, T> responseBuilder
+    ) {
+        return runRest(expectedOpType, operationName, requestBuilder, (response, gqlContext) -> {
+            int status = response.getHttpStatus();
+            if (status == 0) {
+                status = 200;
+            }
+
+            String body = JSON.stringify(response.cloneInstance(false));
+            Map<String, Object> headers = response.getHeaders();
+
+            return responseBuilder.apply(headers != null ? new HashMap<>(headers) : new HashMap<>(), body, status);
+        });
     }
 
     @GET
@@ -275,20 +333,28 @@ public class GraphQLWebService {
     public CompletionStage<Response> pageQueryGet(@PathParam("query") String query,
                                                   @QueryParam(SYS_PARAM_SELECTION) String selection,
                                                   @QueryParam(SYS_PARAM_ARGS) String args) {
-        return doPageQueryJaxrs(GraphQLOperationType.query, query, selection, args);
+        return doPageQuery(GraphQLOperationType.query, query, selection, args, this::buildJaxrsPageResponse);
     }
 
     @POST
     @Path("/p/{query: [a-zA-Z].*}")
     public CompletionStage<Response> pageQuery(@PathParam("query") String query,
                                                @QueryParam(SYS_PARAM_SELECTION) String selection, String body) {
-        return doPageQueryJaxrs(null, query, selection, body);
+        return doPageQuery(null, query, selection, body, this::buildJaxrsPageResponse);
     }
 
-    protected CompletionStage<Response> doPageQueryJaxrs(GraphQLOperationType operationType,
-                                                         String query,
-                                                         String selection,
-                                                         String body) {
+    /**
+     * 统一的分页查询处理和响应转换函数
+     * <p/>
+     * 该函数对请求数据进行统一解析，并在完成分页处理后，向回调函数
+     * `responseBuilder` 提供响应对象 {@link ApiResponse}
+     * 和 GraphQL 上下文 {@link IGraphQLExecutionContext}，
+     * 可以在该回调函数中调用 {@link #consumeWebContent(ApiResponse, WebContentBean, ITriFunction)}，
+     * 并根据 {@link WebContentBean#getContent() 响应内容} 的类型做响应处理。
+     */
+    protected <T> CompletionStage<T> doPageQuery(GraphQLOperationType operationType,
+                                                String query, String selection, String args,
+                                                BiFunction<ApiResponse<?>, IGraphQLExecutionContext, T> responseBuilder) {
         int pos = query.indexOf('/');
         String operationName = query;
         String path = pos > 0 ? query.substring(pos) : null;
@@ -297,89 +363,126 @@ public class GraphQLWebService {
         }
 
         return runRest(operationType, operationName, () -> {
-            ApiRequest<Map<String, Object>> req = buildRequest(body, selection, true);
+            ApiRequest<Map<String, Object>> req = buildRequest(args, selection, true);
+
             if (path != null) {
                 req.getData().put(GraphQLConstants.PARAM_PATH, path);
             }
             return req;
-        }, this::buildJaxrsPageResponse);
+        }, responseBuilder);
     }
 
-    protected Response buildJaxrsPageResponse(ApiResponse<?> res, IGraphQLExecutionContext context) {
+    protected Response buildJaxrsPageResponse(ApiResponse<?> response, IGraphQLExecutionContext context) {
+        WebContentBean contentBean = buildWebContent(response);
 
-        int status = res.getHttpStatus();
-        if (status == 0)
-            status = 200;
+        return consumeWebContent(response, contentBean, (headers, content, status) -> {
+            if (content instanceof IResource) {
+                IResource resource = (IResource) content;
 
-        Response.ResponseBuilder builder = Response.status(status);
-        if (res.getHeaders() != null) {
-            res.getHeaders().forEach(builder::header);
-        }
-
-        Object data = res.getData();
-        if (data instanceof String) {
-            builder.header(ApiConstants.HEADER_CONTENT_TYPE, WebContentBean.CONTENT_TYPE_TEXT);
-            LOG.debug("nop.graphql.response:{}", data);
-            builder.entity(data);
-        } else if (data instanceof WebContentBean) {
-            WebContentBean contentBean = (WebContentBean) data;
-            buildContent(builder, contentBean.getContentType(), contentBean.getContent(), contentBean.getFileName());
-        } else if (data instanceof Map) {
-            Map<String, Object> map = (Map<String, Object>) data;
-            if (map.containsKey("contentType") && map.containsKey("content") && map.size() >= 2) {
-                String contentType = ConvertHelper.toString(map.get("contentType"));
-                buildContent(builder, contentType, map.get("content"), (String) map.get("fileName"));
-            } else {
-                buildJson(builder, res);
+                if (resource.toFile() == null) {
+                    content = (StreamingOutput) resource::writeToStream;
+                }
             }
-        } else {
-            buildJson(builder, res);
-        }
-        return builder.build();
+
+            return JaxrsHelper.buildJaxrsResponse(headers, content, status);
+        });
     }
 
-    protected void buildContent(Response.ResponseBuilder builder, String contentType, Object content, String fileName) {
-        builder.header(ApiConstants.HEADER_CONTENT_TYPE, contentType);
-        builder.header("Access-Control-Expose-Headers", "content-disposition");
+    /**
+     * 统一构造响应状态和响应头，并调用回调函数 `contentConsumer` 完成对响应的处理
+     * <p/>
+     * 具体使用方式见 {@link #buildJaxrsPageResponse(ApiResponse, IGraphQLExecutionContext)}
+     *
+     * @param contentBean
+     *         通过 {@link #buildWebContent(ApiResponse)} 构造
+     * @param contentConsumer
+     *         对 {@link WebContentBean#getContent()} 的处理函数，其有如下参数：<ul>
+     *         <li>headers: 响应头 Map 集合，来自于 {@link ApiMessage#getHeaders()}，并已根据
+     *         `contentBean.getContentType()` 和 `contentBean.getFileName()`
+     *         设置 {@link ApiConstants#HEADER_CONTENT_TYPE} 等响应头。不为 `null`；</li>
+     *         <li>content: 响应体数据，来自于 `contentBean.getContent()`；</li>
+     *         <li>status: 响应状态，来自于 {@link ApiResponse#getHttpStatus()}，在原值为 `0` 时，该入参实际传入 `200`；</li>
+     *         </ul>
+     */
+    protected <T> T consumeWebContent(ApiResponse<?> response, WebContentBean contentBean,
+                                      ITriFunction<Map<String, Object>, Object, Integer, T> contentConsumer) {
+        int status = response.getHttpStatus();
+        if (status == 0) {
+            status = 200;
+        }
+
+        Map<String, Object> headers = response.getHeaders() != null
+                                      ? new HashMap<>(response.getHeaders())
+                                      : new HashMap<>();
+
+        String contentType = contentBean.getContentType();
+        String fileName = contentBean.getFileName();
+
+        headers.put(ApiConstants.HEADER_CONTENT_TYPE, contentType);
+
         if (!StringHelper.isEmpty(fileName)) {
             String encoded = StringHelper.encodeURL(fileName);
-            builder.header("content-disposition", "attachment; filename=" + encoded);
+
+            headers.put("content-disposition", "attachment; filename=" + encoded);
+            headers.put("Access-Control-Expose-Headers", "content-disposition");
         }
-        if (content instanceof String) {
-            LOG.debug("nop.graphql.response:{}", content);
-            builder.entity(content);
-        } else if (content instanceof InputStream || content instanceof File || content instanceof byte[]) {
-            builder.entity(content);
-//            if(content instanceof File){
-//                builder.header(HttpHeaders.CONTENT_LENGTH,((File) content).length());
-//            }
-        } else if (content instanceof IResource) {
-            buildResourceContent(builder, (IResource) content);
-        } else {
-            String str = JSON.stringify(content);
-            LOG.debug("nop.graphql.response:{}", str);
-            builder.entity(str);
-        }
+
+        return contentConsumer.apply(headers, contentBean.getContent(), status);
     }
 
-    protected void buildResourceContent(Response.ResponseBuilder builder, IResource content) {
-        File file = content.toFile();
-        if (file != null) {
-            builder.entity(content);
+    /**
+     * 根据 {@link ApiResponse#getData()} 的实际类型构造 {@link WebContentBean}
+     * <p/>
+     * 构造过程中将会对响应数据做 JSON 序列化等转换处理，并同时确定响应头 `Content-Type` 的值
+     */
+    protected WebContentBean buildWebContent(ApiResponse<?> response) {
+        WebContentBean contentBean;
+
+        Object data = response.getData();
+        if (data instanceof String) {
+            contentBean = new WebContentBean(WebContentBean.CONTENT_TYPE_TEXT, data);
+        } else if (data instanceof WebContentBean) {
+            contentBean = (WebContentBean) data;
+        } else if (data instanceof Map) {
+            Map<String, Object> map = (Map<String, Object>) data;
+
+            if (map.containsKey("contentType") && map.containsKey("content") && map.size() >= 2) {
+                String contentType = ConvertHelper.toString(map.get("contentType"));
+                Object content = map.get("content");
+                String fileName = (String) map.get("fileName");
+
+                if (!(content instanceof String //
+                      || content instanceof InputStream //
+                      || content instanceof File //
+                      || content instanceof byte[] //
+                      || content instanceof IResource) //
+                ) {
+                    content = JSON.stringify(content);
+                }
+
+                contentBean = new WebContentBean(contentType, content, fileName);
+            } else {
+                contentBean = buildWebJsonContent(response);
+            }
         } else {
-            builder.entity((StreamingOutput) content::writeToStream);
+            contentBean = buildWebJsonContent(response);
         }
+
+        if (contentBean != null && contentBean.getContent() instanceof String) {
+            LOG.debug("nop.graphql.response:{}", contentBean.getContent());
+        }
+
+        return contentBean;
     }
 
-    private void buildJson(Response.ResponseBuilder builder, ApiResponse<?> res) {
-        builder.header(ApiConstants.HEADER_CONTENT_TYPE, WebContentBean.CONTENT_TYPE_JSON + ";charset=UTF-8");
-        String str;
-        if (res.isOk()) {
-            str = JSON.stringify(res.getData());
+    protected WebContentBean buildWebJsonContent(ApiResponse<?> response) {
+        String content;
+        if (response.isOk()) {
+            content = JSON.stringify(response.getData());
         } else {
-            str = JSON.stringify(res.cloneInstance(false));
+            content = JSON.stringify(response.cloneInstance(false));
         }
-        LOG.debug("nop.graphql.response:{}", str);
-        builder.entity(str);
+
+        return new WebContentBean(WebContentBean.CONTENT_TYPE_JSON + ";charset=UTF-8", content);
     }
 }
