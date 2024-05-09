@@ -11,7 +11,7 @@
             <attr name="includeComments" type="boolean" optional="true"/>
             <source>
                 <c:for var="table" items="${tables}">
-                    <c:if test="${!table.tableView}">
+                    <c:if test="${!table.tableView and !table.containsTag('not-gen')}">
                         <thisLib:CreateTable table="${table}" dialect="${dialect}" allNullable="${allNullable}"/>
                         <c:unit>;&#10;&#10;</c:unit>
                     </c:if>
@@ -19,7 +19,7 @@
 
                 <c:if test="${includeComments}">
                     <c:for var="table" items="${tables}">
-                        <c:if test="${!table.tableView}">
+                        <c:if test="${!table.tableView and !table.containsTag('not-gen')}">
                             <thisLib:AddComment table="${table}" dialect="${dialect}"/>
                         </c:if>
                     </c:for>
@@ -33,7 +33,7 @@
             <attr name="ifExists" type="Boolean" optional="true"/>
             <source>
                 <c:for var="table" items="${tables}">
-                    <c:script>if(table.tableView) continue;</c:script>
+                    <c:script>if(table.tableView or table.containsTag('not-gen')) continue;</c:script>
                     <thisLib:DropTable table="${table}" dialect="${dialect}" ifExists="${ifExists}"/>
                     <c:unit>;&#10;</c:unit>
                 </c:for>
@@ -62,7 +62,11 @@
  ]]></c:unit>
                 </c:for>
                 <thisLib:TableUniqueConstraints/>
-                <c:unit><![CDATA[ constraint PK_${table.tableName} primary key (${
+                <c:script>
+                  const useTenantPk = table.useTenant and table.getColumnByCode('NOP_TENANT_ID',true) != null and !table.globalUniqueId
+                  const tenantPk = useTenantPk ? 'NOP_TENANT_ID,' : ''
+                </c:script>
+                <c:unit><![CDATA[ constraint PK_${table.tableName} primary key (${tenantPk}${
                 table.compositePk ? table.idProp.columns.map(col=>dialect.escapeSQLName(col.code)).join(',') : dialect.escapeSQLName(table.idProp.code)})
 ]]></c:unit>
                 <c:unit>)</c:unit>
@@ -193,6 +197,10 @@
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
 
             <source>
+               <c:script>
+                  tables = tables.filter(table=> !table.tableView and !table.containsTag('not-gen'))
+               </c:script>
+
                 <c:for var="table" items="${tables}">
                     <c:if test="${!table.tenantProp and xpl('thisLib:IsAllowTenant',table)}">
                         <thisLib:AddTenantIdForTable table="${table}" dialect="${dialect}"/>
