@@ -3555,7 +3555,12 @@ public class StringHelper extends ApiStringHelper {
 
     @Deterministic
     public static String getNamespace(String str) {
-        return StringHelper.firstPart(str, ':');
+        if (str == null)
+            return null;
+        int pos = str.indexOf(':');
+        if (pos < 0)
+            return null;
+        return str.substring(0, pos);
     }
 
     public static void forEachTemplateVar(String message, Consumer<String> action) {
