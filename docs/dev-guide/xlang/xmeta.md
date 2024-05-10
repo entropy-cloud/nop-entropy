@@ -45,10 +45,12 @@ Nop平台的代码生成器会自动根据ORM模型为每个实体生成一个�
     <!--
     树形结构
     @parentProp 对应于parentId等指向父节点的字段
+    @rootParentValue 根节点字段查找的初始值，例如: __null 表示查找根节点为 null 的，0 则表示查找根节点为 0 的
     @childrenProp 对应于父对象中对应于子对象的集合属性，例如children
-    @levelProp 树形结构的级别树形，例如level=1表示一级节点，2表示二级节点等。如果为空，则使用parentId=__null来过滤得到根节点
+    @levelProp 树形结构的级别树形，例如level=1表示一级节点，2表示二级节点等。
     @rootLevelValue 根节点所对应的level字段的值
     -->
+    <!-- 确定 parentId 根节点属性值需要按以下顺序：levelProp-> parentProp 进行判断，如果没有配置则使用parentId=__null来过滤得到根节点 -->
     <tree isLeafProp="string" parentProp="!string" childrenProp="string"
           levelProp="string" rootLevelValue="string" xdef:name="ObjTreeModel"/>
 </meta>
