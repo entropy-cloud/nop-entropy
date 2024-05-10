@@ -41,6 +41,7 @@ import io.nop.core.context.action.IServiceAction;
 import io.nop.core.dataset.BeanRowMapper;
 import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.core.lang.sql.SQL;
+import io.nop.core.reflect.bean.BeanTool;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -56,8 +57,10 @@ import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.IOrmTemplate;
 import io.nop.orm.OrmConstants;
 import io.nop.orm.dao.IOrmEntityDao;
+import io.nop.orm.model.IEntityJoinConditionModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityRelationModel;
+import io.nop.orm.support.OrmEntityHelper;
 import io.nop.orm.utils.OrmQueryHelper;
 import io.nop.xlang.filter.BizExprHelper;
 import io.nop.xlang.filter.BizFilterEvaluator;
@@ -89,6 +92,7 @@ import static io.nop.auth.api.AuthApiErrors.ERR_AUTH_NO_DATA_AUTH;
 import static io.nop.auth.api.AuthApiErrors.ERR_AUTH_NO_DATA_AUTH_AFTER_UPDATE;
 import static io.nop.biz.BizConfigs.CFG_BIZ_QUERY_MAX_LEFT_JOIN_PROP_COUNT;
 import static io.nop.biz.BizConstants.ACTION_ARG_ENTITY;
+import static io.nop.biz.BizConstants.ACTION_doFindFirstByQueryDirectly;
 import static io.nop.biz.BizConstants.BIZ_OBJ_NAME_THIS_OBJ;
 import static io.nop.biz.BizConstants.METHOD_FIND_COUNT;
 import static io.nop.biz.BizConstants.METHOD_FIND_FIRST;
@@ -109,7 +113,6 @@ import static io.nop.biz.BizErrors.ARG_OBJ_LABEL;
 import static io.nop.biz.BizErrors.ARG_PARAM_NAME;
 import static io.nop.biz.BizErrors.ARG_PROP_NAME;
 import static io.nop.biz.BizErrors.ARG_PROP_NAMES;
-import static io.nop.biz.BizErrors.ARG_REF_ENTITY;
 import static io.nop.biz.BizErrors.ARG_REF_ENTITY_NAME;
 import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_SAVE;
 import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_UPDATE;
@@ -414,6 +417,11 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     }
 
     @BizAction
+    public T doFindFirstByQueryDirectly(@Name("query") QueryBean query, IServiceContext context) {
+        return dao().findFirstByQuery(query);
+    }
+
+    @BizAction
     protected QueryBean prepareFindFirstQuery(@Name("query") QueryBean query,
                                               @Name("authObjName") String authObjName,
                                               @Name("action") String action,
@@ -681,6 +689,17 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         IBizObject bizObj = getThisObj();
         IObjMeta objMeta = bizObj.requireObjMeta();
 
+        T entity = doGetEntity(id, ignoreUnknown, context);
+
+        checkDataAuth(action, entity, context);
+        checkMetaFilter(entity, objMeta, context);
+        return entity;
+    }
+
+    @BizAction
+    protected T doGetEntity(@Name("id") String id, boolean ignoreUnknown, IServiceContext context) {
+        IBizObject bizObj = getThisObj();
+
         // 上传文件时可能使用临时对象占位
         if (BizConstants.TEMP_BIZ_OBJ_ID.equals(id))
             return null;
@@ -692,9 +711,6 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                 return null;
             throw new UnknownEntityException(dao.getEntityName(), id);
         }
-
-        checkDataAuth(action, entity, context);
-        checkMetaFilter(entity, objMeta, context);
         return entity;
     }
 
@@ -820,22 +836,70 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         IEntityModel entityModel = entity.orm_entityModel();
         if (refNamesToCheck != null) {
             for (String refName : refNamesToCheck) {
-                IEntityRelationModel relModel = entityModel.getRelation(refName, false);
-                if (relModel.isToOneRelation() && !relModel.isReverseDepends())
-                    continue;
-
-                IEntityDao<IOrmEntity> refDao = daoProvider.dao(relModel.getRefEntityName());
-                IOrmEntity example = refDao.newEntity();
-                IOrmEntity refEntity = refDao.findFirstByExample(example);
+                IOrmEntity refEntity = getRefEntity(entityModel, entity, refName, context);
                 if (refEntity != null)
                     throw new NopException(ERR_BIZ_NOT_ALLOW_DELETE_ENTITY_WHEN_REF_EXISTS)
                             .param(ARG_BIZ_OBJ_NAME, getBizObjName())
                             .param(ARG_ID, entity.orm_idString())
                             .param(ARG_PROP_NAME, refName)
-                            .param(ARG_REF_ENTITY_NAME, refEntity.orm_entityName())
-                            .param(ARG_REF_ENTITY, refEntity);
+                            .param(ARG_REF_ENTITY_NAME, refEntity.orm_entityName());
+
             }
         }
+    }
+
+    protected IOrmEntity getRefEntity(IEntityModel entityModel, T entity, String refName, IServiceContext context) {
+        IEntityRelationModel relModel = entityModel.getRelation(refName, true);
+        if (relModel == null) {
+            // 实体模型上不存在这个关联
+            IObjPropMeta propMeta = getThisObj().requireObjMeta().requireProp(refName);
+            String leftProp = (String) propMeta.prop_get(BizConstants.EXT_JOIN_LEFT_PROP);
+            String rightProp = (String) propMeta.prop_get(BizConstants.EXT_JOIN_RIGHT_PROP);
+
+            Object refValue = BeanTool.getProperty(entity, leftProp);
+            if (StringHelper.isEmptyObject(refValue))
+                return null;
+
+            String refBizObjName = propMeta.getBizObjName();
+            if (refBizObjName == null)
+                refBizObjName = propMeta.getItemBizObjName();
+
+            IBizObject refBizObj = bizObjectManager.getBizObject(refBizObjName);
+            Map<String, Object> request = new HashMap<>();
+            QueryBean query = new QueryBean();
+            query.addFilter(FilterBeans.eq(rightProp, refValue));
+            return (IOrmEntity) refBizObj.invoke(ACTION_doFindFirstByQueryDirectly, request, null, context);
+        }
+
+        if (relModel.isToOneRelation() && !relModel.isReverseDepends())
+            return null;
+
+        if (relModel.isToOneRelation()) {
+            IOrmEntity refEntity = entity.orm_refEntity(refName);
+            if (refEntity == null)
+                return null;
+            if (!refEntity.orm_proxy())
+                return refEntity;
+        } else {
+            IOrmEntitySet<?> refSet = entity.orm_refEntitySet(refName);
+            if (!refSet.orm_proxy()) {
+                return refSet.get__first();
+            }
+        }
+
+        // 尚未通过关联加载，则直接查找
+        IEntityDao<IOrmEntity> refDao = daoProvider.dao(relModel.getRefEntityName());
+        IOrmEntity example = refDao.newEntity();
+        for (IEntityJoinConditionModel joinModel : relModel.getJoin()) {
+            Object leftValue = OrmEntityHelper.getLeftValue(joinModel, entity);
+            if (StringHelper.isEmptyObject(leftValue))
+                return null;
+            if (joinModel.getRightPropModel() == null)
+                continue;
+            
+            OrmEntityHelper.setPropValue(joinModel.getRightPropModel(), example, leftValue);
+        }
+        return refDao.findFirstByExample(example);
     }
 
     @BizAction

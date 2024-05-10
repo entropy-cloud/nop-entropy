@@ -5,7 +5,7 @@
       version="string" defaultExtends="v-path"
       parseForHtml="boolean" parseKeepComment="boolean" biz:allowLeftJoinProps="csv-set"
       parserClass="class-name" checkNs="csv-set" propNs="csv-set"
-
+      biz:refsNeedToCheckWhenDelete="csv-set"
       x:schema="/nop/schema/xdef.xdef"
       xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:biz="biz"
 >

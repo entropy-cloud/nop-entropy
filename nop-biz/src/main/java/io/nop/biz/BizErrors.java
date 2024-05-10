@@ -67,6 +67,10 @@ public interface BizErrors {
 
     String ARG_PROP_NAMES = "propNames";
 
+    String ARG_REF_ENTITY_NAME = "refEntityName";
+
+    String ARG_REF_ENTITY = "refEntity";
+
     ErrorCode ERR_BIZ_INVALID_BIZ_OBJ_NAME = define("nop.err.biz.invalid-biz-obj-name", "非法的bizObjName: {bizObjName}",
             ARG_BIZ_OBJ_NAME);
 
@@ -220,4 +224,8 @@ public interface BizErrors {
 
     ErrorCode ERR_BIZ_TREE_ENTITY_NO_PARENT_PROP =
             define("nop.err.biz.tree-entity-no-parent-prop", "树形结构对象[{bizObjName}]没有定义parentProp属性", ARG_BIZ_OBJ_NAME);
+
+    ErrorCode ERR_BIZ_NOT_ALLOW_DELETE_ENTITY_WHEN_REF_EXISTS =
+            define("nop.err.biz.not-allow-delete-entity-when-ref-exists", "不允许删除id为[{id}]的实体[{bizObjName}]，因为它被[{refEntityName}]中的实体所引用"，
+                    ARG_ID, ARG_BIZ_OBJ_NAME, ARG_REF_ENTITY_NAME);
 }

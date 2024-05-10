@@ -71,6 +71,8 @@ public interface BizConstants {
     String METHOD_TRY_UPDATE = "tryUpdate";
     String METHOD_TRY_DELETE = "tryDelete";
 
+    String ACTION_doFindFirstByQueryDirectly = "doFindFirstByQueryDirectly";
+
     String METHOD_AS_DICT = "asDict";
 
     String VAR_DATA = "data";
@@ -138,4 +140,6 @@ public interface BizConstants {
     String TEMP_BIZ_OBJ_ID = "__TEMP__";
 
     String KEY_REF_ENTITY = "refEntity";
+
+    String REFS_NEED_TO_CHECK_WHEN_DELETE = "biz:refsNeedToCheckWhenDelete";
 }
