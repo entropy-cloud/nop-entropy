@@ -56,6 +56,8 @@ import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.IOrmTemplate;
 import io.nop.orm.OrmConstants;
 import io.nop.orm.dao.IOrmEntityDao;
+import io.nop.orm.model.IEntityModel;
+import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.utils.OrmQueryHelper;
 import io.nop.xlang.filter.BizExprHelper;
 import io.nop.xlang.filter.BizFilterEvaluator;
@@ -107,12 +109,15 @@ import static io.nop.biz.BizErrors.ARG_OBJ_LABEL;
 import static io.nop.biz.BizErrors.ARG_PARAM_NAME;
 import static io.nop.biz.BizErrors.ARG_PROP_NAME;
 import static io.nop.biz.BizErrors.ARG_PROP_NAMES;
+import static io.nop.biz.BizErrors.ARG_REF_ENTITY;
+import static io.nop.biz.BizErrors.ARG_REF_ENTITY_NAME;
 import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_SAVE;
 import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_UPDATE;
 import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_ALREADY_EXISTS;
 import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_NOT_MATCH_FILTER_CONDITION;
 import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_NOT_SUPPORT_LOGICAL_DELETE;
 import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_WITH_SAME_KEY_ALREADY_EXISTS;
+import static io.nop.biz.BizErrors.ERR_BIZ_NOT_ALLOW_DELETE_ENTITY_WHEN_REF_EXISTS;
 import static io.nop.biz.BizErrors.ERR_BIZ_NOT_ALLOW_DELETE_PARENT_WHEN_CHILDREN_IS_NOT_EMPTY;
 import static io.nop.biz.BizErrors.ERR_BIZ_NO_BIZ_MODEL_ANNOTATION;
 import static io.nop.biz.BizErrors.ERR_BIZ_NO_MANDATORY_PARAM;
@@ -776,11 +781,19 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @BizMutation
     @BizMakerChecker(tryMethod = METHOD_TRY_DELETE)
     public boolean delete(@Name("id") @Description("@i18n:biz.id|对象的主键标识") String id, IServiceContext context) {
-        return doDelete(id, this::defaultPrepareDelete, context);
+        return doDelete(id, this.getDefaultRefNamesToCheckExists(), this::defaultPrepareDelete, context);
+    }
+
+    protected Set<String> getDefaultRefNamesToCheckExists() {
+        IObjMeta objMeta = getThisObj().getObjMeta();
+        if (objMeta == null)
+            return null;
+        return ConvertHelper.toCsvSet(objMeta.prop_get(BizConstants.REFS_NEED_TO_CHECK_WHEN_DELETE));
     }
 
     @BizAction
     protected boolean doDelete(@Name("id") @Description("@i18n:biz.id|对象的主键标识") String id,
+                               @Name("checkRefExist") Set<String> refNamesToCheck,
                                @Name("prepareDelete") BiConsumer<T, IServiceContext> prepareDelete, IServiceContext context) {
         checkMandatoryParam("delete", "id", id);
 
@@ -791,6 +804,9 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         checkMetaFilter(entity, getThisObj().getObjMeta(), context);
         checkDataAuth(BizConstants.METHOD_DELETE, entity, context);
 
+        if (refNamesToCheck != null)
+            checkEntityRefsNotExists(entity, refNamesToCheck);
+
         if (prepareDelete != null) {
             prepareDelete.accept(entity, context);
         }
@@ -800,7 +816,35 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     }
 
     @BizAction
+    protected void checkEntityRefsNotExists(@Name("entity") T entity, @Name("refNamesToCheck") Set<String> refNamesToCheck) {
+        IEntityModel entityModel = entity.orm_entityModel();
+        if (refNamesToCheck != null) {
+            for (String refName : refNamesToCheck) {
+                IEntityRelationModel relModel = entityModel.getRelation(refName, false);
+                if (relModel.isToOneRelation() && !relModel.isReverseDepends())
+                    continue;
+
+                IEntityDao<IOrmEntity> refDao = daoProvider.dao(relModel.getRefEntityName());
+                IOrmEntity example = refDao.newEntity();
+                IOrmEntity refEntity = refDao.findFirstByExample(example);
+                if (refEntity != null)
+                    throw new NopException(ERR_BIZ_NOT_ALLOW_DELETE_ENTITY_WHEN_REF_EXISTS)
+                            .param(ARG_BIZ_OBJ_NAME, getBizObjName())
+                            .param(ARG_ID, entity.orm_idString())
+                            .param(ARG_PROP_NAME, refName)
+                            .param(ARG_REF_ENTITY_NAME, refEntity.orm_entityName())
+                            .param(ARG_REF_ENTITY, refEntity);
+            }
+        }
+    }
+
+    @BizAction
     protected void defaultPrepareDelete(@Name("entity") T entity, IServiceContext context) {
+        checkChildrenNotExistsWhenDelete(entity, context);
+    }
+
+    @BizAction
+    protected void checkChildrenNotExistsWhenDelete(@Name("entity") T entity, IServiceContext context) {
         IObjMeta objMeta = getThisObj().getObjMeta();
         if (objMeta != null) {
             ObjTreeModel tree = objMeta.getTree();
@@ -842,46 +886,51 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
         for (CascadePropMeta prop : getCascadeProps()) {
             if (prop.isCascadeDelete()) {
-                Object value = BizObjHelper.getProp(entity, prop.getPropMeta(), context);
-                if (value == null)
-                    continue;
-
-                IBizObject refBizObj = bizObjectManager.getBizObject(prop.getRefBizObjName());
-
-                if (value instanceof IOrmEntity) {
-                    IOrmEntity refEntity = (IOrmEntity) value;
-                    // 已经标记为被删除或者不存在的记录不需要再进行进一步的处理
-                    if (refEntity.orm_state().isGone()) {
-                        LOG.info("nop.orm.delete-skip-entity-already-gone:entity={}", refEntity);
-                        continue;
-                    }
-
-                    loadQueue.enqueue(refEntity);
-                    loadQueue.afterFlush(() -> {
-                        Map<String, Object> req = new HashMap<>();
-                        req.put(GraphQLConstants.ARG_ID, refEntity.orm_idString());
-                        refBizObj.invoke(BizConstants.METHOD_DELETE, req, null, context);
-                    });
-                } else if (value instanceof IOrmEntitySet) {
-                    Collection<IOrmEntity> c = (Collection<IOrmEntity>) value;
-                    loadQueue.enqueueMany(c);
-                    loadQueue.afterFlush(() -> {
-                        for (IOrmEntity refEntity : c) {
-                            if (refEntity.orm_state().isGone())
-                                continue;
-
-                            Map<String, Object> req = new HashMap<>();
-                            req.put(GraphQLConstants.ARG_ID, refEntity.orm_idString());
-                            refBizObj.invoke(BizConstants.METHOD_DELETE, req, null, context);
-                        }
-                    });
-                }
+                queueCascadeDelete(entity, prop.getPropMeta(), prop.getRefBizObjName(), context);
             }
         }
 
         // 如果不为空，则表示由外部调用者负责flush
         if (empty)
             loadQueue.flush();
+    }
+
+    protected void queueCascadeDelete(T entity, IObjPropMeta propMeta, String refBizObjName, IServiceContext context) {
+        Object value = BizObjHelper.getProp(entity, propMeta, context);
+        if (value == null)
+            return;
+
+        IOrmBatchLoadQueue loadQueue = orm().requireSession().getBatchLoadQueue();
+        IBizObject refBizObj = bizObjectManager.getBizObject(refBizObjName);
+
+        if (value instanceof IOrmEntity) {
+            IOrmEntity refEntity = (IOrmEntity) value;
+            // 已经标记为被删除或者不存在的记录不需要再进行进一步的处理
+            if (refEntity.orm_state().isGone()) {
+                LOG.info("nop.orm.delete-skip-entity-already-gone:entity={}", refEntity);
+                return;
+            }
+
+            loadQueue.enqueue(refEntity);
+            loadQueue.afterFlush(() -> {
+                Map<String, Object> req = new HashMap<>();
+                req.put(GraphQLConstants.ARG_ID, refEntity.orm_idString());
+                refBizObj.invoke(BizConstants.METHOD_DELETE, req, null, context);
+            });
+        } else if (value instanceof IOrmEntitySet) {
+            Collection<IOrmEntity> c = (Collection<IOrmEntity>) value;
+            loadQueue.enqueueMany(c);
+            loadQueue.afterFlush(() -> {
+                for (IOrmEntity refEntity : c) {
+                    if (refEntity.orm_state().isGone())
+                        continue;
+
+                    Map<String, Object> req = new HashMap<>();
+                    req.put(GraphQLConstants.ARG_ID, refEntity.orm_idString());
+                    refBizObj.invoke(BizConstants.METHOD_DELETE, req, null, context);
+                }
+            });
+        }
     }
 
     protected List<CascadePropMeta> getCascadeProps() {
@@ -895,7 +944,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     public void tryDelete(@Name("id") String id, IServiceContext context) {
         checkMandatoryParam("tryDelete", "id", id);
 
-        this.requireEntity(id, BizConstants.METHOD_DELETE, context);
+        T entity = this.requireEntity(id, BizConstants.METHOD_DELETE, context);
+        checkEntityRefsNotExists(entity, getDefaultRefNamesToCheckExists());
     }
 
     @Description("@i18n:biz.batchUpdate|批量修改")
@@ -1048,6 +1098,37 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
             Map<String, Object> modified = new LinkedHashMap<>(data);
             modified.put(OrmConstants.PROP_ID, entity.orm_idString());
             doUpdate(modified, null, prepareUpdate, context);
+        }
+    }
+
+
+    @Description("根据查询条件获取一批实体数据，然后删除这些实体")
+    @BizMutation
+    public int deleteByQuery(@Name("query") QueryBean query, IServiceContext context) {
+
+        return doDeleteByQuery(query, getDefaultRefNamesToCheckExists(), this::defaultPrepareDelete, context);
+    }
+
+    @BizAction
+    public int doDeleteByQuery(@Name("query") QueryBean query,
+                               @Name("refNamesToCheck") Set<String> refNamesToCheck,
+                               @Name("prepareDelete") BiConsumer<T, IServiceContext> prepareDelete,
+                               IServiceContext context) {
+        List<T> list = findList(query, null, context);
+        if (list.isEmpty())
+            return 0;
+
+        doDeleteMulti(list, refNamesToCheck, this::defaultPrepareDelete, context);
+        return list.size();
+    }
+
+    @BizAction
+    public void doDeleteMulti(@Name("entityList") List<T> entityList,
+                              @Name("refNamesToCheck") Set<String> refNamesToCheck,
+                              @Name("prepareDelete") BiConsumer<T, IServiceContext> prepareDelete,
+                              IServiceContext context) {
+        for (T entity : entityList) {
+            doDelete(entity.orm_idString(), refNamesToCheck, prepareDelete, context);
         }
     }
 
@@ -1301,10 +1382,10 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
     @BizAction
     public PageBean<StdTreeEntity> doFindTreeEntityPage(@Name("query") QueryBean query,
-                                                  @Name("authObjName") String authObjName,
-                                                  @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
-                                                  FieldSelectionBean selection,
-                                                  IServiceContext context
+                                                        @Name("authObjName") String authObjName,
+                                                        @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
+                                                        FieldSelectionBean selection,
+                                                        IServiceContext context
     ) {
         if (query == null)
             query = new QueryBean();
