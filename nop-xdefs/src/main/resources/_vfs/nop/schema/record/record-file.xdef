@@ -24,35 +24,48 @@
     <param name="!string" type="!generic-type" mandatory="!boolean=false" stdDomain="xml-name"
            xdef:unique-attr="name" xdef:name="RecordParamMeta"/>
 
-    <xdef:define xdef:name="RecordObjectMeta">
+    <!--
+    每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
+    -->
+    <xdef:define xdef:name="RecordObjectMeta" type="generic-type">
         <param name="!string" xdef:ref="RecordParamMeta" xdef:unique-attr="name"/>
-
-        <!--
-        每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
-        -->
-        <recordType xdef:value="generic-type"/>
 
         <field name="!prop-name" xdef:ref="record-field.xdef" xdef:unique-attr="name"/>
 
-        <computed-field name="!prop-name" type="!generic-type" xdef:name="RecordComputedFieldMeta" xdef:unique-attr="name">
+        <computed-field name="!prop-name" type="!generic-type" xdef:name="RecordComputedFieldMeta"
+                        xdef:unique-attr="name">
             <source xdef:value="xpl"/>
         </computed-field>
     </xdef:define>
 
     <header xdef:ref="RecordObjectMeta"/>
 
+    <!--
+    定长文件的header和footer采用文本模板模式更加直观
+    -->
+    <headerTemplate xdef:value="string"/>
+
+    <trailerTemplate xdef:value="string"/>
+
     <body xdef:name="RecordFileBodyMeta" repeat="enum:io.nop.record.model.FieldRepeatKind" xdef:ref="RecordObjectMeta">
 
         <!--
-        返回字段的循环次数
+        返回body行的循环次数
         -->
         <repeatExpr xdef:value="xpl"/>
 
         <!--
-        返回字段循环的终止条件
+        返回body行循环的终止条件
         -->
         <repeatUntil xdef:value="xpl"/>
     </body>
+
+    <subGroup keyFields="csv-set" xdef:name="RecordSubGroupMeta">
+        <fields xdef:body-type="list" xdef:key-attr="name">
+            <field name="!prop-name" aggFunc="var-name" xdef:name="RecordAggregateFieldMeta"
+                            xdef:ref="record-simple-field.xdef" />
+        </fields>
+    </subGroup>
 
     <trailer xdef:ref="RecordObjectMeta"/>
 

@@ -9,8 +9,8 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [44:6:0:0]/nop/schema/record/record-file.xdef <p>
- * 
+ * generate from [50:6:0:0]/nop/schema/record/record-file.xdef <p>
+ * 每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
@@ -26,14 +26,14 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
     /**
      *  
      * xml name: repeatExpr
-     * 返回字段的循环次数
+     * 返回body行的循环次数
      */
     private io.nop.core.lang.eval.IEvalAction _repeatExpr ;
     
     /**
      *  
      * xml name: repeatUntil
-     * 返回字段循环的终止条件
+     * 返回body行循环的终止条件
      */
     private io.nop.core.lang.eval.IEvalAction _repeatUntil ;
     
@@ -59,7 +59,7 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
     /**
      * 
      * xml name: repeatExpr
-     *  返回字段的循环次数
+     *  返回body行的循环次数
      */
     
     public io.nop.core.lang.eval.IEvalAction getRepeatExpr(){
@@ -78,7 +78,7 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
     /**
      * 
      * xml name: repeatUntil
-     *  返回字段循环的终止条件
+     *  返回body行循环的终止条件
      */
     
     public io.nop.core.lang.eval.IEvalAction getRepeatUntil(){

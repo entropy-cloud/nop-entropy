@@ -327,5 +327,3 @@ Nop平台在逻辑的全局组织结构层面广泛采用类似Docker镜像切�
 * [通过NopTaskFlow逻辑编排实现后台服务函数](../workflow/task-flow-for-biz.md)
 
 * [XDSL：通用的领域特定语言设计](https://zhuanlan.zhihu.com/p/612512300)
-
-

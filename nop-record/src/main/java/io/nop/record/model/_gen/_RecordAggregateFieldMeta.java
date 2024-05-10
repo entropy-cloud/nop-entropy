@@ -2,42 +2,42 @@ package io.nop.record.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
-import io.nop.record.model.RecordTypeMeta;
+import io.nop.record.model.RecordAggregateFieldMeta;
 import io.nop.commons.util.ClassHelper;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [73:10:0:0]/nop/schema/record/record-file.xdef <p>
- * 每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
+ * generate from [65:14:0:0]/nop/schema/record/record-file.xdef <p>
+ * 定长记录的定义
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
-public abstract class _RecordTypeMeta extends io.nop.record.model.RecordObjectMeta {
+public abstract class _RecordAggregateFieldMeta extends io.nop.record.model.RecordSimpleFieldMeta {
     
     /**
      *  
-     * xml name: name
+     * xml name: aggFunc
      * 
      */
-    private java.lang.String _name ;
+    private java.lang.String _aggFunc ;
     
     /**
      * 
-     * xml name: name
+     * xml name: aggFunc
      *  
      */
     
-    public java.lang.String getName(){
-      return _name;
+    public java.lang.String getAggFunc(){
+      return _aggFunc;
     }
 
     
-    public void setName(java.lang.String value){
+    public void setAggFunc(java.lang.String value){
         checkAllowChange();
         
-        this._name = value;
+        this._aggFunc = value;
            
     }
 
@@ -57,23 +57,23 @@ public abstract class _RecordTypeMeta extends io.nop.record.model.RecordObjectMe
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("name",this.getName());
+        out.putNotNull("aggFunc",this.getAggFunc());
     }
 
-    public RecordTypeMeta cloneInstance(){
-        RecordTypeMeta instance = newInstance();
+    public RecordAggregateFieldMeta cloneInstance(){
+        RecordAggregateFieldMeta instance = newInstance();
         this.copyTo(instance);
         return instance;
     }
 
-    protected void copyTo(RecordTypeMeta instance){
+    protected void copyTo(RecordAggregateFieldMeta instance){
         super.copyTo(instance);
         
-        instance.setName(this.getName());
+        instance.setAggFunc(this.getAggFunc());
     }
 
-    protected RecordTypeMeta newInstance(){
-        return (RecordTypeMeta) ClassHelper.newInstance(getClass());
+    protected RecordAggregateFieldMeta newInstance(){
+        return (RecordAggregateFieldMeta) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

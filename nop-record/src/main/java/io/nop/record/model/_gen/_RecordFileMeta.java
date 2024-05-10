@@ -33,7 +33,7 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
     /**
      *  
      * xml name: body
-     * 
+     * 每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
      */
     private io.nop.record.model.RecordFileBodyMeta _body ;
     
@@ -75,9 +75,16 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
     /**
      *  
      * xml name: header
-     * 
+     * 每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
      */
     private io.nop.record.model.RecordObjectMeta _header ;
+    
+    /**
+     *  
+     * xml name: headerTemplate
+     * 定长文件的header和footer采用文本模板模式更加直观
+     */
+    private java.lang.String _headerTemplate ;
     
     /**
      *  
@@ -88,10 +95,24 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
     
     /**
      *  
-     * xml name: trailer
+     * xml name: subGroup
      * 
      */
+    private io.nop.record.model.RecordSubGroupMeta _subGroup ;
+    
+    /**
+     *  
+     * xml name: trailer
+     * 每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
+     */
     private io.nop.record.model.RecordObjectMeta _trailer ;
+    
+    /**
+     *  
+     * xml name: trailerTemplate
+     * 
+     */
+    private java.lang.String _trailerTemplate ;
     
     /**
      *  
@@ -141,7 +162,7 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
     /**
      * 
      * xml name: body
-     *  
+     *  每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
      */
     
     public io.nop.record.model.RecordFileBodyMeta getBody(){
@@ -281,7 +302,7 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
     /**
      * 
      * xml name: header
-     *  
+     *  每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
      */
     
     public io.nop.record.model.RecordObjectMeta getHeader(){
@@ -293,6 +314,25 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._header = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: headerTemplate
+     *  定长文件的header和footer采用文本模板模式更加直观
+     */
+    
+    public java.lang.String getHeaderTemplate(){
+      return _headerTemplate;
+    }
+
+    
+    public void setHeaderTemplate(java.lang.String value){
+        checkAllowChange();
+        
+        this._headerTemplate = value;
            
     }
 
@@ -344,8 +384,27 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
     
     /**
      * 
-     * xml name: trailer
+     * xml name: subGroup
      *  
+     */
+    
+    public io.nop.record.model.RecordSubGroupMeta getSubGroup(){
+      return _subGroup;
+    }
+
+    
+    public void setSubGroup(io.nop.record.model.RecordSubGroupMeta value){
+        checkAllowChange();
+        
+        this._subGroup = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: trailer
+     *  每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
      */
     
     public io.nop.record.model.RecordObjectMeta getTrailer(){
@@ -357,6 +416,25 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._trailer = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: trailerTemplate
+     *  
+     */
+    
+    public java.lang.String getTrailerTemplate(){
+      return _trailerTemplate;
+    }
+
+    
+    public void setTrailerTemplate(java.lang.String value){
+        checkAllowChange();
+        
+        this._trailerTemplate = value;
            
     }
 
@@ -422,6 +500,8 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
             
            this._params = io.nop.api.core.util.FreezeHelper.deepFreeze(this._params);
             
+           this._subGroup = io.nop.api.core.util.FreezeHelper.deepFreeze(this._subGroup);
+            
            this._trailer = io.nop.api.core.util.FreezeHelper.deepFreeze(this._trailer);
             
            this._types = io.nop.api.core.util.FreezeHelper.deepFreeze(this._types);
@@ -442,8 +522,11 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
         out.putNotNull("endian",this.getEndian());
         out.putNotNull("enums",this.getEnums());
         out.putNotNull("header",this.getHeader());
+        out.putNotNull("headerTemplate",this.getHeaderTemplate());
         out.putNotNull("params",this.getParams());
+        out.putNotNull("subGroup",this.getSubGroup());
         out.putNotNull("trailer",this.getTrailer());
+        out.putNotNull("trailerTemplate",this.getTrailerTemplate());
         out.putNotNull("types",this.getTypes());
     }
 
@@ -465,8 +548,11 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
         instance.setEndian(this.getEndian());
         instance.setEnums(this.getEnums());
         instance.setHeader(this.getHeader());
+        instance.setHeaderTemplate(this.getHeaderTemplate());
         instance.setParams(this.getParams());
+        instance.setSubGroup(this.getSubGroup());
         instance.setTrailer(this.getTrailer());
+        instance.setTrailerTemplate(this.getTrailerTemplate());
         instance.setTypes(this.getTypes());
     }
 

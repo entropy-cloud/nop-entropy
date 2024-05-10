@@ -9,8 +9,8 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [27:6:0:0]/nop/schema/record/record-file.xdef <p>
- * 
+ * generate from [30:6:0:0]/nop/schema/record/record-file.xdef <p>
+ * 每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
@@ -39,10 +39,10 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      *  
-     * xml name: recordType
-     * 每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
+     * xml name: type
+     * 
      */
-    private io.nop.core.type.IGenericType _recordType ;
+    private io.nop.core.type.IGenericType _type ;
     
     /**
      * 
@@ -181,19 +181,19 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      * 
-     * xml name: recordType
-     *  每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
+     * xml name: type
+     *  
      */
     
-    public io.nop.core.type.IGenericType getRecordType(){
-      return _recordType;
+    public io.nop.core.type.IGenericType getType(){
+      return _type;
     }
 
     
-    public void setRecordType(io.nop.core.type.IGenericType value){
+    public void setType(io.nop.core.type.IGenericType value){
         checkAllowChange();
         
-        this._recordType = value;
+        this._type = value;
            
     }
 
@@ -222,7 +222,7 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         out.putNotNull("computedFields",this.getComputedFields());
         out.putNotNull("fields",this.getFields());
         out.putNotNull("params",this.getParams());
-        out.putNotNull("recordType",this.getRecordType());
+        out.putNotNull("type",this.getType());
     }
 
     public RecordObjectMeta cloneInstance(){
@@ -237,7 +237,7 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         instance.setComputedFields(this.getComputedFields());
         instance.setFields(this.getFields());
         instance.setParams(this.getParams());
-        instance.setRecordType(this.getRecordType());
+        instance.setType(this.getType());
     }
 
     protected RecordObjectMeta newInstance(){

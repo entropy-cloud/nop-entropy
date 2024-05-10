@@ -4,54 +4,12 @@
 定长记录的定义
 
 @name 对应解析得到的属性名
-@label 字段的显示名称。抛出用户可读的异常消息时可能会用到
-@type 引用已有的字段定义
-@lazy 是否延迟解析。如果延迟解析，则只是记录当前offset和length
-@trim 解析得到值之后是否自动执行trim操作，去除padding字符。如果没有指定padding，则去除空格
-@virtual 虚拟字段，不解析到java bean中
-@offset 在行内的偏移量。从该位置处开始解析
-@absoluteOffset 是否绝对偏移。如果是，则offset是相对于父字段的起始位置来定位，否则是相对于前一个字段来定位
-@length 缺省长度。如果padding不为空，则会补全到该长度
-@padding 用于padding的字符
-@leftPad  如果padding不为空且length大于0，则缺省在右侧增加pad。如果配置了leftPad=true，则在左侧增加pad。p
-@includeTerminator 解析结果是否包含terminator
 -->
 <field x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        xmlns:xdef="/nop/schema/xdef.xdef"
-       name="!prop-name" label="string" type="!string"
-       length="!int=0"
-       encoder="string" encoding="string" lazy="!boolean=false"
-       padding="encoded-bytes" leftPad="!boolean=false" trim="!boolean=false"
-       virtual="!boolean=false" wrapper="!boolean=false"
-       offset="!int=0" absoluteOffset="!boolean=false"
-       mandatory="!boolean=false"
-       endian="enum:io.nop.commons.bytes.EndianKind"
-       tillEnd="!boolean=false"
+       name="!prop-name"
        xdef:name="RecordFieldMeta" xdef:bean-package="io.nop.record.model"
-       stdDomain="string" enum="string"
-       minLength="int" maxLength="int"
-       pattern="regex" min="double" max="double"
-       excludeMin="boolean" excludeMax="boolean"
-       repeat="enum:io.nop.record.model.FieldRepeatKind"
-       includeTerminator="!boolean=false" eosError="!boolean=true"
 >
-    <doc xdef:value="string"/>
-
-    <!--
-    读取到terminator判断字段结束
-    -->
-    <terminator xdef:value="encoded-bytes"/>
-
-    <!--
-    动态确定字段长度。在表达式中_parent指向父结构，_root指向根结构。其他变量指向兄弟字段
-    -->
-    <lengthExpr xdef:value="xpl"/>
-
-    <!--
-    当表达式返回false时，此字段将被跳过，不会被处理
-    -->
-    <ifExpr xdef:value="xpl-predicate"/>
-
     <!--
     返回字段的循环次数
     -->
@@ -62,10 +20,6 @@
     -->
     <repeatUntil xdef:value="xpl"/>
 
-    <!--
-    如果非空，则表示字段为固定内容。当输出字段到数据文件中时直接使用该内容输出
-    -->
-    <content xdef:value="encoded-bytes"/>
 
     <!--
     动态确定字段类型
@@ -83,5 +37,9 @@
 
         <default xdef:value="string"/>
     </switch>
+
+    <fields xdef:body-type="list" xdef:key-attr="name">
+        <field name="!prop-name" xdef:ref="RecordFieldMeta"/>
+    </fields>
 
 </field>

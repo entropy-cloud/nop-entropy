@@ -1,4 +1,5 @@
 <c:script>
-codeGenerator.renderModel('/nop/schema/record/record-file.xdef','/nop/templates/xdsl', '/',$scope);
-codeGenerator.renderModel('/nop/schema/record/record-field.xdef','/nop/templates/xdsl', '/',$scope);
+    codeGenerator.renderModel('/nop/schema/record/record-file.xdef','/nop/templates/xdsl', '/',$scope);
+    codeGenerator.renderModel('/nop/schema/record/record-field.xdef','/nop/templates/xdsl', '/',$scope);
+    codeGenerator.renderModel('/nop/schema/record/record-simple-field.xdef','/nop/templates/xdsl', '/',$scope);
 </c:script>
