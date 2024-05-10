@@ -1,6 +1,7 @@
 package io.nop.biz.crud;
 
 import io.nop.api.core.beans.ITreeBean;
+import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.BizConstants;
@@ -50,7 +51,7 @@ public class TreeEntityHelper {
             entityName = objMeta.getName();
 
         String pkProp = objMeta.getPkProp();
-        ;
+
         String dispProp = objMeta.getDisplayProp();
         if (dispProp == null)
             dispProp = pkProp;
@@ -79,25 +80,30 @@ public class TreeEntityHelper {
         sb.where();
         if (filter != null) {
             DaoQueryHelper.appendFilter(sb, "b", filter);
-            sb.and();
         }
         if (levelProp != null && rootLevelValue != null) {
             sb.append("\n ").owner("b").append(levelProp).append("=").param(ConvertHelper.toInt(rootLevelValue));
         } else {
-            sb.append("\n ").owner("b").append(parentProp);
-            if (StringHelper.isEmpty(rootParentValue)) {
-                sb.append(" is null");
-            } else {
-                sb.append(" = ").param(rootParentValue);
+            // 如果 parentProp 属性在 filter 中存在，以传入的属性为准
+            boolean hasParentProp = filter != null && ((TreeBean) filter).childWithAttr("name", parentProp) == null;
+            if (hasParentProp) {
+                if (filter != null)
+                    sb.and();
+                sb.append("\n ").owner("b").append(parentProp);
+                if (StringHelper.isEmpty(rootParentValue)) {
+                    sb.append(" is null");
+                } else {
+                    sb.append(" = ").param(rootParentValue);
+                }
             }
         }
         sb.append("\n union all\n");
         appendTreeSql(sb, "o", entityName, pkProp, dispProp, parentProp, levelProp, sortProp, rightJoinProp);
-        sb.append(" inner join tree_page p on o.").append(leftJoinProp).append(" = p.joinId\n");
-        if (filter != null) {
-            sb.where();
-            DaoQueryHelper.appendFilter(sb, "o", filter);
-        }
+        sb.append(" inner join tree_page p on o.").append(leftJoinProp).append(" = p.joinId ");
+//        if (filter != null) {
+//            sb.where();
+//            DaoQueryHelper.appendFilter(sb, "o", filter);
+//        }
         sb.append(')');
     }
 
