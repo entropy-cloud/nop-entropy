@@ -7,7 +7,7 @@
 -->
 <field x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        xmlns:xdef="/nop/schema/xdef.xdef"
-       name="!prop-name"
+       name="!prop-name" xdef:ref="record-simple-field.xdef"
        xdef:name="RecordFieldMeta" xdef:bean-package="io.nop.record.model"
 >
     <!--

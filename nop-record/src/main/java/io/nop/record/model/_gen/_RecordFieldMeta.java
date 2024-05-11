@@ -14,7 +14,7 @@ import io.nop.commons.util.ClassHelper;
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
-public abstract class _RecordFieldMeta extends io.nop.core.resource.component.AbstractComponentModel {
+public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleFieldMeta {
     
     /**
      *  
@@ -22,13 +22,6 @@ public abstract class _RecordFieldMeta extends io.nop.core.resource.component.Ab
      * 
      */
     private KeyedList<io.nop.record.model.RecordFieldMeta> _fields = KeyedList.emptyList();
-    
-    /**
-     *  
-     * xml name: name
-     * 对应解析得到的属性名
-     */
-    private java.lang.String _name ;
     
     /**
      *  
@@ -95,25 +88,6 @@ public abstract class _RecordFieldMeta extends io.nop.core.resource.component.Ab
     public boolean hasFields(){
         return !this._fields.isEmpty();
     }
-    
-    /**
-     * 
-     * xml name: name
-     *  对应解析得到的属性名
-     */
-    
-    public java.lang.String getName(){
-      return _name;
-    }
-
-    
-    public void setName(java.lang.String value){
-        checkAllowChange();
-        
-        this._name = value;
-           
-    }
-
     
     /**
      * 
@@ -192,7 +166,6 @@ public abstract class _RecordFieldMeta extends io.nop.core.resource.component.Ab
         super.outputJson(out);
         
         out.putNotNull("fields",this.getFields());
-        out.putNotNull("name",this.getName());
         out.putNotNull("repeatExpr",this.getRepeatExpr());
         out.putNotNull("repeatUntil",this.getRepeatUntil());
         out.putNotNull("switch",this.getSwitch());
@@ -208,7 +181,6 @@ public abstract class _RecordFieldMeta extends io.nop.core.resource.component.Ab
         super.copyTo(instance);
         
         instance.setFields(this.getFields());
-        instance.setName(this.getName());
         instance.setRepeatExpr(this.getRepeatExpr());
         instance.setRepeatUntil(this.getRepeatUntil());
         instance.setSwitch(this.getSwitch());
