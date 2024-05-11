@@ -697,9 +697,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     }
 
     @BizAction
-    protected T doGetEntity(@Name("id") String id, boolean ignoreUnknown, IServiceContext context) {
-        IBizObject bizObj = getThisObj();
-
+    protected T doGetEntity(@Name("id") String id, @Name("ignoreUnknown") boolean ignoreUnknown, IServiceContext context) {
         // 上传文件时可能使用临时对象占位
         if (BizConstants.TEMP_BIZ_OBJ_ID.equals(id))
             return null;
