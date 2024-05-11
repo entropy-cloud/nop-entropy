@@ -226,6 +226,6 @@ public interface BizErrors {
             define("nop.err.biz.tree-entity-no-parent-prop", "树形结构对象[{bizObjName}]没有定义parentProp属性", ARG_BIZ_OBJ_NAME);
 
     ErrorCode ERR_BIZ_NOT_ALLOW_DELETE_ENTITY_WHEN_REF_EXISTS =
-            define("nop.err.biz.not-allow-delete-entity-when-ref-exists", "不允许删除id为[{id}]的实体[{bizObjName}]，因为它被[{refEntityName}]中的实体所引用"，
+            define("nop.err.biz.not-allow-delete-entity-when-ref-exists", "不允许删除id为[{id}]的实体[{bizObjName}]，因为它被[{refEntityName}]中的实体所引用",
                     ARG_ID, ARG_BIZ_OBJ_NAME, ARG_REF_ENTITY_NAME);
 }
