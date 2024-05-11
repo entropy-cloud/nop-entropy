@@ -821,7 +821,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         checkDataAuth(BizConstants.METHOD_DELETE, entity, context);
 
         if (refNamesToCheck != null)
-            checkEntityRefsNotExists(entity, refNamesToCheck);
+            checkEntityRefsNotExists(entity, refNamesToCheck,context);
 
         if (prepareDelete != null) {
             prepareDelete.accept(entity, context);
@@ -832,7 +832,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     }
 
     @BizAction
-    protected void checkEntityRefsNotExists(@Name("entity") T entity, @Name("refNamesToCheck") Set<String> refNamesToCheck) {
+    protected void checkEntityRefsNotExists(@Name("entity") T entity, @Name("refNamesToCheck") Set<String> refNamesToCheck,IServiceContext context) {
         IEntityModel entityModel = entity.orm_entityModel();
         if (refNamesToCheck != null) {
             for (String refName : refNamesToCheck) {
@@ -896,7 +896,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                 return null;
             if (joinModel.getRightPropModel() == null)
                 continue;
-            
+
             OrmEntityHelper.setPropValue(joinModel.getRightPropModel(), example, leftValue);
         }
         return refDao.findFirstByExample(example);
@@ -1009,7 +1009,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         checkMandatoryParam("tryDelete", "id", id);
 
         T entity = this.requireEntity(id, BizConstants.METHOD_DELETE, context);
-        checkEntityRefsNotExists(entity, getDefaultRefNamesToCheckExists());
+        checkEntityRefsNotExists(entity, getDefaultRefNamesToCheckExists(),context);
     }
 
     @Description("@i18n:biz.batchUpdate|批量修改")
