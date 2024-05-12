@@ -134,7 +134,7 @@
                             <c:script>
                                 const colCodeMap = _.indexBy(entity.fields,"defKey");
                             </c:script>
-                            <entity name="${tablePackages[entity.id]}.${entity.defKey.$camelCase(true)}"
+                            <entity name="${tablePackages[entity.id] || 'app'}.${entity.defKey.$camelCase(true)}"
                                     versionProp="${colCodeMap[versionCol] ? versionCol.$camelCase(false):null}"
                                     useTenant="${colCodeMap[tenantCol] ? true: null}"
                                     tenantProp="${colCodeMap[tenantCol] ? tenantCol.$camelCase(false) : null}"
@@ -164,7 +164,7 @@
 
                         <c:for var="entity" items="${json.views}">
                             <c:if test="${entity.fields.some(fld=>fld.primaryKey)}">
-                                <entity name="${tablePackages[entity.id]}.${entity.defKey.$camelCase(true)}"
+                                <entity name="${tablePackages[entity.id] || 'app'}.${entity.defKey.$camelCase(true)}"
                                         readonly="true"
                                         tableView="true"
                                         tableName="${entity.defKey.toLowerCase()}" displayName="${entity.defName}">
@@ -189,13 +189,13 @@
                         -->
                         <column name="${field.defKey.$camelCase(false).$beanPropName()}" displayName="${field.defName}"
                                 code="${field.defKey}" propId="${idx+1}"
-                                stdSqlType="${domains[field.domain].stdSqlType ?? field.type}"
-                                stdDataType="${domains[field.domain].stdSqlType.stdDataType}"
-                                precision="${field.len || domains[field.domain].len || null}"
-                                scale="${field.scale || domains[field.domain].scale || null}"
+                                stdSqlType="${domains[field.domain]?.stdSqlType ?? field.type}"
+                                stdDataType="${domains[field.domain]?.stdSqlType?.stdDataType}"
+                                precision="${field.len || domains[field.domain]?.len || null}"
+                                scale="${field.scale || domains[field.domain]?.scale || null}"
                                 primary="${field.primaryKey || null}"
                                 mandatory="${field.notNull || null}"
-                                useSeq="${field.autoIncrement || null}" defaultValue="${field.defaultValue || null}"
+                                tagSet="${field.autoIncrement? 'seq': null}" defaultValue="${field.defaultValue || null}"
                                 uiHint="${field.uiHint || null}" comment="${field.comment || null}"
                         />
                     </c:for>
