@@ -150,7 +150,7 @@ public class ErrorMessageManager implements IErrorMessageManager {
             return varResolver.resolveVar(locale, name, value, params);
 
         String str = StringHelper.safeToString(value);
-        if (ApiConstants.PARAM_ENTITY_NAME.equals(name)) {
+        if (ApiConstants.PARAM_ENTITY_NAME.equals(name) || ApiConstants.PARAM_REF_ENTITY_NAME.equals(name)) {
             str = getEntityDisplayName(locale, str);
         } else if (ApiConstants.PARAM_FIELD_NAME.equals(name) || ApiConstants.PARAM_PROP_NAME.equals(name)) {
             str = getFieldDisplayName(locale, str, params);

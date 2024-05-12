@@ -98,7 +98,7 @@ public interface OrmEqlErrors {
             "关联关系的右侧如果不是实体对象，则必须是左侧对象的关联属性，例如UserInfo u left join u.dept", ARG_LEFT_SOURCE, ARG_RIGHT_SOURCE);
 
     ErrorCode ERR_EQL_PROP_PATH_NOT_VALID_TO_ONE_REFERENCE = define("nop.err.eql.prop-path-not-valid-to-one-reference",
-            "关联属性表达式[{propPath}]不是[{entityName}]对象的多对一关联属性", ARG_PROP_PATH, ARG_ENTITY_NAME);
+            "关联属性表达式[{propName}]不是[{entityName}]对象的多对一关联属性", ARG_PROP_NAME, ARG_ENTITY_NAME);
 
     ErrorCode ERR_EQL_INVALID_SQL_TYPE = define("nop.err.eql.invalid-sql-type",
             "未定义的SQL数据类型[{sqlType}]。只允许StdSqlType中定义的常量:{allowedNames}", ARG_SQL_TYPE, ARG_ALLOWED_NAMES);

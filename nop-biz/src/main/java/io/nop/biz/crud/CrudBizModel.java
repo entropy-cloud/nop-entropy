@@ -113,7 +113,7 @@ import static io.nop.biz.BizErrors.ARG_OBJ_LABEL;
 import static io.nop.biz.BizErrors.ARG_PARAM_NAME;
 import static io.nop.biz.BizErrors.ARG_PROP_NAME;
 import static io.nop.biz.BizErrors.ARG_PROP_NAMES;
-import static io.nop.biz.BizErrors.ARG_REF_ENTITY_NAME;
+import static io.nop.biz.BizErrors.ARG_REF_DISPLAY_NAME;
 import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_SAVE;
 import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_UPDATE;
 import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_ALREADY_EXISTS;
@@ -696,8 +696,9 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         return entity;
     }
 
-    @BizAction
-    protected T doGetEntity(@Name("id") String id, @Name("ignoreUnknown") boolean ignoreUnknown, IServiceContext context) {
+    protected T doGetEntity(@Name("id") String id,
+                            @Name("ignoreUnknown") boolean ignoreUnknown,
+                            IServiceContext context) {
         // 上传文件时可能使用临时对象占位
         if (BizConstants.TEMP_BIZ_OBJ_ID.equals(id))
             return null;
@@ -837,10 +838,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                 IOrmEntity refEntity = getRefEntity(entityModel, entity, refName, context);
                 if (refEntity != null)
                     throw new NopException(ERR_BIZ_NOT_ALLOW_DELETE_ENTITY_WHEN_REF_EXISTS)
-                            .param(ARG_BIZ_OBJ_NAME, getBizObjName())
-                            .param(ARG_ID, entity.orm_idString())
-                            .param(ARG_PROP_NAME, refName)
-                            .param(ARG_REF_ENTITY_NAME, refEntity.orm_entityName());
+                            .param(ARG_REF_DISPLAY_NAME, refEntity.orm_entityModel().getDisplayName());
 
             }
         }

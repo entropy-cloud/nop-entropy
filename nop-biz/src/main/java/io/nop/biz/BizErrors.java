@@ -28,6 +28,8 @@ public interface BizErrors {
 
     String ARG_DISPLAY_NAME = "displayName";
 
+    String ARG_REF_DISPLAY_NAME = "refDisplayName";
+
     String ARG_RELATION = "relation";
 
     String ARG_EN_NAME = "enName";

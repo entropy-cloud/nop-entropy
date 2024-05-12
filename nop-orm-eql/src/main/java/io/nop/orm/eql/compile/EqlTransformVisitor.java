@@ -575,8 +575,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                     if (cte != null) {
                         tableName.setResolvedCte(cte);
                         tableName.setResolvedTableMeta(cte.getResolvedTableMeta());
-                        if(tableName.getResolvedTableMeta() == null){
-                            if(cte instanceof SqlUnionSelect){
+                        if (tableName.getResolvedTableMeta() == null) {
+                            if (cte instanceof SqlUnionSelect) {
                                 tableName.setResolvedTableMeta(((SqlUnionSelect) cte).getLeft().getResolvedTableMeta());
                             }
                         }
@@ -668,6 +668,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                 IOrmDataType dataType = fieldExpr.getOrmDataType();
                 if (!dataType.getKind().isRelation())
                     throw new NopException(ERR_EQL_PROP_PATH_NOT_VALID_TO_ONE_REFERENCE).source(source)
+                            .param(ARG_PROP_PATH, propPath)
                             .param(ARG_PROP_NAME, propPath.getName()).param(ARG_ENTITY_NAME, tableMeta.getEntityName());
 
                 IEntityRelationModel ref = (IEntityRelationModel) dataType;
@@ -676,10 +677,12 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                 } else {
                     if (ref.getKeyProp() == null)
                         throw new NopException(ERR_EQL_PROP_PATH_NOT_VALID_TO_ONE_REFERENCE).source(source)
+                                .param(ARG_PROP_PATH, propPath)
                                 .param(ARG_PROP_NAME, propPath.getName()).param(ARG_ENTITY_NAME, tableMeta.getEntityName());
 
                     if (propPath.getNext() == null)
                         throw new NopException(ERR_EQL_PROP_PATH_NOT_VALID_TO_ONE_REFERENCE).source(source)
+                                .param(ARG_PROP_PATH, propPath)
                                 .param(ARG_PROP_NAME, propPath.getName()).param(ARG_ENTITY_NAME, tableMeta.getEntityName());
 
                     String propJoinName = propPath.getName() + '.' + propPath.getNext().getName();
@@ -710,6 +713,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             return resolvePropPath(source, aliasPath);
         } else {
             throw new NopException(ERR_EQL_PROP_PATH_NOT_VALID_TO_ONE_REFERENCE).source(source)
+                    .param(ARG_PROP_NAME, aliasName)
                     .param(ARG_PROP_PATH, aliasName).param(ARG_ENTITY_NAME, tableMeta.getEntityName());
         }
     }
