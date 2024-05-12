@@ -15,15 +15,11 @@ import static io.nop.api.core.util.IOrdered.NORMAL_PRIORITY;
 public interface BizConstants {
     String XDEF_BIZ = "/nop/schema/biz/xbiz.xdef";
 
-    String FILTER_PREFIX = "filter_";
+    String FILTER_PREFIX = GraphQLConstants.FILTER_PREFIX;
     String V_PREFIX = "v_";
 
     String ARG_QUERY = "query";
     String PROP_FILTER = "filter";
-
-    String SPECIAL_VALUE_EMPTY = "__empty";
-
-    String SPECIAL_VALUE_NULL = "__null";
 
     String BEAN_nopQueryBeanArgsNormalizer = "nopQueryBeanArgsNormalizer";
 

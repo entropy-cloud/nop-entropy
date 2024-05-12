@@ -20,3 +20,36 @@ Nop平台中使用的REST链接很少，只有以下几种
 
 {bizObjName}\_\_{bizMethod}会调用到后台BizModel对象的方法上。例如`NopAuthUser__resetUserPassword`
 会调用到 NopAuthUserBizModel对象的resetUserPassword方法。
+
+## REST参数的规范化
+
+前端可以通过`_subArgs.{propName}.filter_xxx`这种形式给子表查询函数传递参数。例如
+
+```
+/r/NopAuthUser__findPage?@selection=userRoleMappingsConnection{items}&_subArgs.userRoleMappingsConnection.filter_status=3
+```
+
+```graphql
+query{
+   NopAuthUser__findPage{
+      userRoleMappingsConnection(query: $subQuery){
+        items
+      }
+   }
+}
+
+{
+  subQuery: {
+    filter: [
+       {
+          "$type":"eq",
+          "name": "status",
+          "value": 3
+       }
+    ]
+  }
+}
+```
+
+* `_subArgs.`是一个特殊约定的参数前缀
+* `filter_{xxx}`是Nop平台内部约定的QueryBean扁平化的构造方案

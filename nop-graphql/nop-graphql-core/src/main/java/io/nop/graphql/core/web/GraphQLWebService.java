@@ -31,6 +31,7 @@ import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.IGraphQLLogger;
 import io.nop.graphql.core.ast.GraphQLOperationType;
+import io.nop.graphql.core.utils.GraphQLArgsHelper;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.rpc.api.ContextBinder;
 import jakarta.ws.rs.GET;
@@ -133,12 +134,11 @@ public class GraphQLWebService {
      * String body = JsonTool.serialize(response, false);
      * </per>
      *
-     * @param responseBuilder
-     *         响应处理函数，其有以下入参：<ul>
-     *         <li>headers: 响应头 Map 集合，来自于 {@link IServiceContext#getResponseHeaders()}。不为 `null`；</li>
-     *         <li>body: 响应体数据；</li>
-     *         <li>status: 响应状态，始终为 `200`；</li>
-     *         </ul>
+     * @param responseBuilder 响应处理函数，其有以下入参：<ul>
+     *                        <li>headers: 响应头 Map 集合，来自于 {@link IServiceContext#getResponseHeaders()}。不为 `null`；</li>
+     *                        <li>body: 响应体数据；</li>
+     *                        <li>status: 响应状态，始终为 `200`；</li>
+     *                        </ul>
      */
     protected <T> CompletionStage<T> runGraphQL(String body,
                                                 ITriFunction<Map<String, Object>, String, Integer, T> responseBuilder) {
@@ -241,12 +241,11 @@ public class GraphQLWebService {
      * String body = JSON.stringify(response.cloneInstance(false));
      * </per>
      *
-     * @param responseBuilder
-     *         响应的处理函数，其有以下入参：<ul>
-     *         <li>headers: 响应头 Map 集合，来自于 {@link ApiMessage#getHeaders()}。不为 `null`；</li>
-     *         <li>body: 响应体数据；</li>
-     *         <li>status: 响应状态，来自于 {@link ApiResponse#getHttpStatus()}，在原值为 `0` 时，该入参实际传入 `200`；</li>
-     *         </ul>
+     * @param responseBuilder 响应的处理函数，其有以下入参：<ul>
+     *                        <li>headers: 响应头 Map 集合，来自于 {@link ApiMessage#getHeaders()}。不为 `null`；</li>
+     *                        <li>body: 响应体数据；</li>
+     *                        <li>status: 响应状态，来自于 {@link ApiResponse#getHttpStatus()}，在原值为 `0` 时，该入参实际传入 `200`；</li>
+     *                        </ul>
      */
     protected <T> CompletionStage<T> runRest(GraphQLOperationType expectedOpType, String operationName,
                                              Supplier<ApiRequest<?>> requestBuilder,
@@ -320,11 +319,12 @@ public class GraphQLWebService {
         }
 
         request.setHeaders(getHeaders());
-
-        request.setData(map);
         if (!StringHelper.isEmpty(selection)) {
             request.setSelection(new FieldSelectionBeanParser().parseFromText(null, selection));
         }
+
+        GraphQLArgsHelper.normalizeSubArgs(request.getSelection(), map);
+        request.setData(map);
         return request;
     }
 
@@ -353,8 +353,8 @@ public class GraphQLWebService {
      * 并根据 {@link WebContentBean#getContent() 响应内容} 的类型做响应处理。
      */
     protected <T> CompletionStage<T> doPageQuery(GraphQLOperationType operationType,
-                                                String query, String selection, String args,
-                                                BiFunction<ApiResponse<?>, IGraphQLExecutionContext, T> responseBuilder) {
+                                                 String query, String selection, String args,
+                                                 BiFunction<ApiResponse<?>, IGraphQLExecutionContext, T> responseBuilder) {
         int pos = query.indexOf('/');
         String operationName = query;
         String path = pos > 0 ? query.substring(pos) : null;
@@ -393,16 +393,14 @@ public class GraphQLWebService {
      * <p/>
      * 具体使用方式见 {@link #buildJaxrsPageResponse(ApiResponse, IGraphQLExecutionContext)}
      *
-     * @param contentBean
-     *         通过 {@link #buildWebContent(ApiResponse)} 构造
-     * @param contentConsumer
-     *         对 {@link WebContentBean#getContent()} 的处理函数，其有如下参数：<ul>
-     *         <li>headers: 响应头 Map 集合，来自于 {@link ApiMessage#getHeaders()}，并已根据
-     *         `contentBean.getContentType()` 和 `contentBean.getFileName()`
-     *         设置 {@link ApiConstants#HEADER_CONTENT_TYPE} 等响应头。不为 `null`；</li>
-     *         <li>content: 响应体数据，来自于 `contentBean.getContent()`；</li>
-     *         <li>status: 响应状态，来自于 {@link ApiResponse#getHttpStatus()}，在原值为 `0` 时，该入参实际传入 `200`；</li>
-     *         </ul>
+     * @param contentBean     通过 {@link #buildWebContent(ApiResponse)} 构造
+     * @param contentConsumer 对 {@link WebContentBean#getContent()} 的处理函数，其有如下参数：<ul>
+     *                        <li>headers: 响应头 Map 集合，来自于 {@link ApiMessage#getHeaders()}，并已根据
+     *                        `contentBean.getContentType()` 和 `contentBean.getFileName()`
+     *                        设置 {@link ApiConstants#HEADER_CONTENT_TYPE} 等响应头。不为 `null`；</li>
+     *                        <li>content: 响应体数据，来自于 `contentBean.getContent()`；</li>
+     *                        <li>status: 响应状态，来自于 {@link ApiResponse#getHttpStatus()}，在原值为 `0` 时，该入参实际传入 `200`；</li>
+     *                        </ul>
      */
     protected <T> T consumeWebContent(ApiResponse<?> response, WebContentBean contentBean,
                                       ITriFunction<Map<String, Object>, Object, Integer, T> contentConsumer) {
@@ -412,8 +410,8 @@ public class GraphQLWebService {
         }
 
         Map<String, Object> headers = response.getHeaders() != null
-                                      ? new HashMap<>(response.getHeaders())
-                                      : new HashMap<>();
+                ? new HashMap<>(response.getHeaders())
+                : new HashMap<>();
 
         String contentType = contentBean.getContentType();
         String fileName = contentBean.getFileName();
@@ -452,10 +450,10 @@ public class GraphQLWebService {
                 String fileName = (String) map.get("fileName");
 
                 if (!(content instanceof String //
-                      || content instanceof InputStream //
-                      || content instanceof File //
-                      || content instanceof byte[] //
-                      || content instanceof IResource) //
+                        || content instanceof InputStream //
+                        || content instanceof File //
+                        || content instanceof byte[] //
+                        || content instanceof IResource) //
                 ) {
                     content = JSON.stringify(content);
                 }

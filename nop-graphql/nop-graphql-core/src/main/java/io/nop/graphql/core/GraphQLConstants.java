@@ -125,4 +125,19 @@ public interface GraphQLConstants {
 
     String VAR_ENTITY = "entity";
     String VAR_VALUE = "value";
+
+
+    String SUB_PARAMS_PREFIX = "_subArgs.";
+    String FILTER_PREFIX = "filter_";
+
+    String QUERY_ORDER_BY_KEY = "query_orderBy";
+
+    String PROP_ORDER_BY = "orderBy";
+    String PROP_FILTER = "filter";
+
+    String V_PREFIX = "v_";
+
+    String SPECIAL_VALUE_EMPTY = "__empty";
+
+    String SPECIAL_VALUE_NULL = "__null";
 }

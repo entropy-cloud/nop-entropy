@@ -98,14 +98,6 @@ public class StringHelper extends ApiStringHelper {
         static final int s_maxPadLen = CFG_UTILS_STRING_MAX_PAD_LEN.get();
     }
 
-    static int _indexOf(char[] chars, char c) {
-        for (int i = 0, n = chars.length; i < n; i++) {
-            if (chars[i] == c)
-                return i;
-        }
-        return -1;
-    }
-
     public static String safeToString(Object value) {
         if (value == null)
             return "null";
@@ -127,46 +119,6 @@ public class StringHelper extends ApiStringHelper {
         if (ENCODING_UTF8.equals(encoding))
             return CHARSET_UTF8;
         return Charset.forName(encoding);
-    }
-
-    /**
-     * 通用的escape函数，将指定的特殊字符映射到对应的字符串。escapeXml/escapeJson/escapeSql等都采用这个函数实现
-     *
-     * @param str       待编码的字符串
-     * @param fromChars 需要转义的字符列表
-     * @param toStrs    转义后的字符串列表，它和fromChars一一对应
-     * @return 转义后的字符串
-     */
-    @Deterministic
-    public static String escape(CharSequence str, char[] fromChars, String[] toStrs) {
-        if (str == null || str.length() == 0 || fromChars == null || fromChars.length == 0)
-            return str == null ? null : str.toString();
-
-        if (toStrs == null || fromChars.length != toStrs.length)
-            throw new IllegalArgumentException("escape fromChars and toChars length not match");
-
-        int sz = str.length();
-        StringBuilder buf = null;
-        for (int i = 0; i < sz; i++) {
-            char ch = str.charAt(i);
-
-            int idx = _indexOf(fromChars, ch);
-            if (idx < 0) {
-                if (buf != null) {
-                    buf.append(ch);
-                }
-            } else {
-                if (buf == null) {
-                    buf = new StringBuilder(2 * sz);
-                    if (i > 0)
-                        buf.append(str.subSequence(0, i));
-                }
-                buf.append(toStrs[idx]);
-            }
-        }
-        if (buf == null)
-            return str.toString();
-        return buf.toString();
     }
 
     public static final char[] HTML_ESCAPE_CHARS = new char[]{'<', '>', '&', 160, '"', '\'', '\r', '\n'};
@@ -428,18 +380,6 @@ public class StringHelper extends ApiStringHelper {
     public static String escapeJavadoc(String str) {
         return str.replace("/*", "/ *").replace("*/", "* /").replace("\\u002a/", "\\u002a /")
                 .replace("*\\u002f", "* \\u002f").replace("\\u002a\\u002f", "\\u002a \\u002f");
-    }
-
-    public static final char[] JAVA_ESCAPE_CHARS = new char[]{'\b', '\r', '\n', '\t', '\f', '"', '\'', '\\'};
-    public static final String[] JAVA_ESCAPE_STRS = new String[]{"\\b", "\\r", "\\n", "\\t", "\\f", "\\\"", "\\'",
-            "\\\\"};
-
-    /**
-     * java语言规范中定义的字符串转义
-     */
-    @Deterministic
-    public static String escapeJava(String str) {
-        return escape(str, JAVA_ESCAPE_CHARS, JAVA_ESCAPE_STRS);
     }
 
     @Deterministic
@@ -2070,13 +2010,6 @@ public class StringHelper extends ApiStringHelper {
     @Deterministic
     public static String escapeYaml(String text) {
         return YamlHelper.escapeYaml(text);
-    }
-
-    @Deterministic
-    public static String quote(String text) {
-        if (text == null)
-            return null;
-        return "\"" + escapeJava(text) + '"';
     }
 
     @Deterministic

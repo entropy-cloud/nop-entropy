@@ -7,6 +7,7 @@
  */
 package io.nop.api.core.beans;
 
+import io.nop.api.core.util.ApiStringHelper;
 import io.nop.api.core.util.Symbol;
 
 import java.util.List;
@@ -118,8 +119,29 @@ class FieldSelectionPrinter {
                 _encodeValue(sb, list.get(i));
             }
             sb.append(']');
-        } else {
+        } else if (value instanceof String) {
+            sb.append(ApiStringHelper.quote(value.toString()));
+        } else if (value instanceof Map) {
+            Map<String, Object> map = (Map<String, Object>) value;
+            sb.append("{");
+            int i = 0;
+            for (Map.Entry<String, ?> entry : map.entrySet()) {
+                if (i > 0)
+                    sb.append(',');
+                String name = entry.getKey();
+                if (name.startsWith("$")) {
+                    name = ApiStringHelper.quote(name);
+                }
+                Object subValue = entry.getValue();
+                sb.append(name).append(':');
+                _encodeValue(sb, subValue);
+                i++;
+            }
+            sb.append("}");
+        } else if (value instanceof Number || value instanceof Boolean) {
             sb.append(value);
+        } else {
+            sb.append(ApiStringHelper.quote(value.toString()));
         }
     }
 }
