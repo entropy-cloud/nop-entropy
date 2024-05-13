@@ -164,7 +164,7 @@
 
                         <c:for var="entity" items="${json.views}">
                             <c:if test="${entity.fields.some(fld=>fld.primaryKey)}">
-                                <entity name="${tablePackages[entity.id] || 'app'}.${entity.defKey.$camelCase(true)}"
+                                <entity name="${tablePackages[entity.id]}.${entity.defKey.$camelCase(true)}"
                                         readonly="true"
                                         tableView="true"
                                         tableName="${entity.defKey.toLowerCase()}" displayName="${entity.defName}">
