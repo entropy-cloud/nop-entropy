@@ -157,6 +157,7 @@ CREATE TABLE nop_auth_resource(
   DEPENDS VARCHAR(1000)  ,
   IS_LEAF INT4 NOT NULL  default '0' ,
   STATUS INT4 NOT NULL  default '1' ,
+  AUTH_CASCADE_UP INT4   default '0' ,
   Meta_CONFIG VARCHAR(1000)  ,
   PROPS_CONFIG VARCHAR(1000)  ,
   DEL_FLAG INT4 NOT NULL  default '0' ,
@@ -581,6 +582,8 @@ CREATE TABLE nop_auth_group_user(
       COMMENT ON COLUMN nop_auth_resource.IS_LEAF IS '是否叶子节点';
                     
       COMMENT ON COLUMN nop_auth_resource.STATUS IS '状态';
+                    
+      COMMENT ON COLUMN nop_auth_resource.AUTH_CASCADE_UP IS '自动更新父节点的权限';
                     
       COMMENT ON COLUMN nop_auth_resource.Meta_CONFIG IS '扩展配置';
                     

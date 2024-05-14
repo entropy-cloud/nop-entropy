@@ -10,7 +10,9 @@
 
     <bean id="io.nop.auth.service.biz.SiteMapApiBizModel" ioc:type="@bean:id"/>
 
-    <bean id="nopSiteMapProvider" class="io.nop.auth.service.sitemap.SiteMapProviderImpl"/>
+    <bean id="nopSiteMapProvider" class="io.nop.auth.service.sitemap.SiteMapProviderImpl">
+        <property name="enableActionAuth" value="@cfg:nop.auth.enable-action-auth|false" />
+    </bean>
 
     <bean id="nopActionAuthChecker" class="io.nop.auth.service.auth.DefaultActionAuthChecker" ioc:default="true"/>
 

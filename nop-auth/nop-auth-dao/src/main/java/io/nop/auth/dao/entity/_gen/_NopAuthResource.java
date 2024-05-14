@@ -92,44 +92,48 @@ public class _NopAuthResource extends DynamicOrmEntity{
     public static final String PROP_NAME_status = "status";
     public static final int PROP_ID_status = 18;
     
+    /* 自动更新父节点的权限: AUTH_CASCADE_UP TINYINT */
+    public static final String PROP_NAME_authCascadeUp = "authCascadeUp";
+    public static final int PROP_ID_authCascadeUp = 19;
+    
     /* 扩展配置: Meta_CONFIG VARCHAR */
     public static final String PROP_NAME_metaConfig = "metaConfig";
-    public static final int PROP_ID_metaConfig = 19;
+    public static final int PROP_ID_metaConfig = 20;
     
     /* 组件属性: PROPS_CONFIG VARCHAR */
     public static final String PROP_NAME_propsConfig = "propsConfig";
-    public static final int PROP_ID_propsConfig = 20;
+    public static final int PROP_ID_propsConfig = 21;
     
     /* 删除标识: DEL_FLAG TINYINT */
     public static final String PROP_NAME_delFlag = "delFlag";
-    public static final int PROP_ID_delFlag = 21;
+    public static final int PROP_ID_delFlag = 22;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 22;
+    public static final int PROP_ID_version = 23;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 23;
+    public static final int PROP_ID_createdBy = 24;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 24;
+    public static final int PROP_ID_createTime = 25;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 25;
+    public static final int PROP_ID_updatedBy = 26;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 26;
+    public static final int PROP_ID_updateTime = 27;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 27;
+    public static final int PROP_ID_remark = 28;
     
 
-    private static int _PROP_ID_BOUND = 28;
+    private static int _PROP_ID_BOUND = 29;
 
     
     /* relation: 父资源 */
@@ -154,7 +158,7 @@ public class _NopAuthResource extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_resourceId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_resourceId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[28];
+    private static final String[] PROP_ID_TO_NAME = new String[29];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -211,6 +215,9 @@ public class _NopAuthResource extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
           PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
+      
+          PROP_ID_TO_NAME[PROP_ID_authCascadeUp] = PROP_NAME_authCascadeUp;
+          PROP_NAME_TO_ID.put(PROP_NAME_authCascadeUp, PROP_ID_authCascadeUp);
       
           PROP_ID_TO_NAME[PROP_ID_metaConfig] = PROP_NAME_metaConfig;
           PROP_NAME_TO_ID.put(PROP_NAME_metaConfig, PROP_ID_metaConfig);
@@ -295,6 +302,9 @@ public class _NopAuthResource extends DynamicOrmEntity{
     
     /* 状态: STATUS */
     private java.lang.Integer _status;
+    
+    /* 自动更新父节点的权限: AUTH_CASCADE_UP */
+    private java.lang.Byte _authCascadeUp;
     
     /* 扩展配置: Meta_CONFIG */
     private java.lang.String _metaConfig;
@@ -447,6 +457,9 @@ public class _NopAuthResource extends DynamicOrmEntity{
         
             case PROP_ID_status:
                return getStatus();
+        
+            case PROP_ID_authCascadeUp:
+               return getAuthCascadeUp();
         
             case PROP_ID_metaConfig:
                return getMetaConfig();
@@ -663,6 +676,16 @@ public class _NopAuthResource extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_status));
                }
                setStatus(typedValue);
+               break;
+            }
+        
+            case PROP_ID_authCascadeUp:{
+               java.lang.Byte typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toByte(value,
+                       err-> newTypeConversionError(PROP_NAME_authCascadeUp));
+               }
+               setAuthCascadeUp(typedValue);
                break;
             }
         
@@ -887,6 +910,13 @@ public class _NopAuthResource extends DynamicOrmEntity{
             case PROP_ID_status:{
                onInitProp(propId);
                this._status = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_authCascadeUp:{
+               onInitProp(propId);
+               this._authCascadeUp = (java.lang.Byte)value;
                
                break;
             }
@@ -1298,6 +1328,25 @@ public class _NopAuthResource extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_status,value)){
             this._status = value;
             internalClearRefs(PROP_ID_status);
+            
+        }
+    }
+    
+    /**
+     * 自动更新父节点的权限: AUTH_CASCADE_UP
+     */
+    public java.lang.Byte getAuthCascadeUp(){
+         onPropGet(PROP_ID_authCascadeUp);
+         return _authCascadeUp;
+    }
+
+    /**
+     * 自动更新父节点的权限: AUTH_CASCADE_UP
+     */
+    public void setAuthCascadeUp(java.lang.Byte value){
+        if(onPropSet(PROP_ID_authCascadeUp,value)){
+            this._authCascadeUp = value;
+            internalClearRefs(PROP_ID_authCascadeUp);
             
         }
     }

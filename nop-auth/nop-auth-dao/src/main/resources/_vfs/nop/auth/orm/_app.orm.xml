@@ -483,30 +483,33 @@
                 <column code="STATUS" defaultValue="1" displayName="状态" mandatory="true" name="status" propId="18"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Status"
                         ext:dict="core/active-status"/>
+                <column code="AUTH_CASCADE_UP" defaultValue="0" displayName="自动更新父节点的权限" domain="boolFlag"
+                        name="authCascadeUp" precision="1" propId="19" stdDataType="byte" stdSqlType="TINYINT"
+                        i18n-en:displayName="Auth Cascade Up"/>
                 <column code="Meta_CONFIG" displayName="扩展配置" domain="json-1000" name="metaConfig" precision="1000"
-                        propId="19" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        propId="20" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Meta" ui:show="L"/>
                 <column code="PROPS_CONFIG" displayName="组件属性" domain="json-1000" name="propsConfig" precision="1000"
-                        propId="20" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        propId="21" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Props" ui:show="L"/>
                 <column code="DEL_FLAG" defaultValue="0" displayName="删除标识" domain="boolFlag" mandatory="true"
-                        name="delFlag" propId="21" stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Deleted"
+                        name="delFlag" propId="22" stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Deleted"
                         ui:show="X"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="22"
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="23"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="23" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="24" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By" ui:show="L"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="24" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
+                        propId="25" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
                         ui:show="L"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="25" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="26" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By" ui:show="L"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="26" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"
+                        propId="27" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"
                         ui:show="L"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="27"
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="28"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <comment>菜单和操作按钮以及后台的功能点统一抽象为资源对象。</comment>

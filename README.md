@@ -36,6 +36,7 @@ Engine）、任务调度引擎(Job Scheduler)、批处理引擎（Batch Prcessin
 后续规划包括工作流引擎（Workflow Engine）、商业智能（BI）、流处理引擎等业务开发常用部分。
 
 > Nop Platform 2.0的代码是由Entropy Platform 1.0重构而来
+> 最近增加了对国产框架solon的集成，参见[nop-solon](https://gitee.com/canonical-entropy/nop-extensions/tree/master/nop-solon),打包后的jar包大小相比与Spring和Quarkus要降低10多M。
 
 开发进度：
 

@@ -61,6 +61,9 @@
                 <!--状态-->
                 <col id="status" mandatory="true" sortable="true"/>
 
+                <!--自动更新父节点的权限-->
+                <col id="authCascadeUp" sortable="true"/>
+
                 <!--扩展配置-->
                 <col id="metaConfig" sortable="true" x:abstract="true"/>
 
@@ -100,11 +103,11 @@
  target[链接目标] hidden[是否隐藏]
  keepAlive[隐藏时保持状态] permissions[权限标识]
  noAuth[不检查权限] depends[依赖资源]
- status[状态] metaConfig[扩展配置]
- propsConfig[组件属性] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] 
-                remark[备注]
+ status[状态] authCascadeUp[自动更新父节点的权限]
+ metaConfig[扩展配置] propsConfig[组件属性]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-菜单资源" i18n-en:title="Add Menu Resource" x:prototype="edit"/>
@@ -118,9 +121,9 @@
  target[链接目标] hidden[是否隐藏]
  keepAlive[隐藏时保持状态] permissions[权限标识]
  noAuth[不检查权限] depends[依赖资源]
- status[状态] metaConfig[扩展配置]
- propsConfig[组件属性] 
-                remark[备注]
+ status[状态] authCascadeUp[自动更新父节点的权限]
+ metaConfig[扩展配置] propsConfig[组件属性]
+ remark[备注] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">

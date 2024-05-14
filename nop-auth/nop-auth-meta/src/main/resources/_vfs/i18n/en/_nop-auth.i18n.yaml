@@ -167,6 +167,7 @@ prop:
       isLeaf: Is Leaf
       status: Status
       status_label: null
+      authCascadeUp: Auth Cascade Up
       metaConfig: Meta
       propsConfig: Props
       delFlag: Deleted

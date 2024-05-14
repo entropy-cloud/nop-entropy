@@ -146,6 +146,7 @@ prop:
       updatedBy: 修改人
       version: 数据版本
     NopAuthResource:
+      authCascadeUp: 自动更新父节点的权限
       children: 子资源
       component: 组件名
       createTime: 创建时间

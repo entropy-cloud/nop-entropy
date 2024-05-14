@@ -247,6 +247,9 @@ public class SiteCacheDataBuilder {
         if (!StringHelper.isEmpty(resource.getPropsConfig())) {
             entry.setProps((Map<String, Object>) JsonTool.parseNonStrict(resource.getPropsConfig()));
         }
+        if (resource.getAuthCascadeUp() != null && StringHelper.isYes(resource.getAuthCascadeUp())) {
+            entry.setAuthCascadeUp(true);
+        }
         entry.setDepends(ConvertHelper.toCsvSet(resource.getDepends()));
         entry.setPermissions(ConvertHelper.toCsvSet(resource.getPermissions()));
         entry.setStatus(resource.getStatus());
