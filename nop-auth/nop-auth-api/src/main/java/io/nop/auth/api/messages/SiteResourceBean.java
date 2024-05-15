@@ -23,6 +23,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static io.nop.auth.api.AuthApiConstants.RESOURCE_TYPE_SUB_MENU;
+import static io.nop.auth.api.AuthApiConstants.RESOURCE_TYPE_TOP_MENU;
+
 @DataBean
 public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationSetter, Comparable<SiteResourceBean> {
     private SourceLocation location;
@@ -328,10 +331,16 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
     @SuppressWarnings("PMD.CollapsibleIfStatements")
     void fixStatus() {
         if (getStatus() == AuthApiConstants.RESOURCE_STATUS_ACTIVE) {
-            if (children != null && !children.stream().allMatch(SiteResourceBean::isActive)) {
+            if (children != null && children.stream().allMatch(res -> !res.isActive() && res.isMenu())) {
                 setStatus(AuthApiConstants.RESOURCE_STATUS_DISABLED);
             }
         }
+    }
+
+    @JsonIgnore
+    public boolean isMenu() {
+        String type = getResourceType();
+        return RESOURCE_TYPE_TOP_MENU.equals(type) || RESOURCE_TYPE_SUB_MENU.equals(type);
     }
 
     @PropMeta(propId = 19)
