@@ -7,11 +7,12 @@
  */
 package io.nop.biz.impl;
 
-import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.OrderedComparator;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObject;
+import io.nop.biz.api.IBizObjectManager;
+import io.nop.biz.crud.BizObjectQueryProcessorAdapter;
 import io.nop.biz.decorator.IActionDecoratorCollector;
 import io.nop.biz.makerchecker.IMakerCheckerProvider;
 import io.nop.biz.model.BizActionModel;
@@ -25,10 +26,10 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.fsm.execution.StateMachine;
 import io.nop.fsm.model.StateMachineModel;
-import io.nop.graphql.core.IDataFetchingEnvironment;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLOperationType;
+import io.nop.graphql.core.biz.IBizObjectQueryProcessor;
 import io.nop.graphql.core.biz.IGraphQLBizInitializer;
 import io.nop.graphql.core.fetcher.ServiceActionFetcher;
 import io.nop.graphql.core.reflection.GraphQLBizModel;
@@ -38,7 +39,6 @@ import io.nop.graphql.core.schema.TypeRegistry;
 import io.nop.graphql.core.schema.meta.ObjMetaToGraphQLDefinition;
 import io.nop.graphql.core.utils.GraphQLNameHelper;
 import io.nop.orm.model.OrmModelConstants;
-import io.nop.xlang.filter.BizExprHelper;
 import io.nop.xlang.xdsl.DslModelParser;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.SchemaLoader;
@@ -74,11 +74,14 @@ public class BizObjectBuilder {
     private final List<IGraphQLBizInitializer> bizInitializers;
     private final IMakerCheckerProvider makerCheckerProvider;
 
-    public BizObjectBuilder(GraphQLBizModels bizModels,
+    private final IBizObjectManager bizObjectManager;
+
+    public BizObjectBuilder(IBizObjectManager bizObjectManager, GraphQLBizModels bizModels,
                             Map<String, GraphQLBizModel> dynBizModels, TypeRegistry typeRegistry,
                             List<IActionDecoratorCollector> collectors,
                             List<IGraphQLBizInitializer> bizInitializers,
                             IMakerCheckerProvider makerCheckerProvider) {
+        this.bizObjectManager = bizObjectManager;
         this.bizModels = bizModels;
         this.dynBizModels = dynBizModels;
         this.typeRegistry = typeRegistry;
@@ -151,7 +154,7 @@ public class BizObjectBuilder {
 
         if (bizInitializers != null) {
             for (IGraphQLBizInitializer initializer : bizInitializers) {
-                initializer.initialize(bizObj, this::resolveBizExpr, typeRegistry);
+                initializer.initialize(bizObj, this::buildQueryProcessor, typeRegistry);
             }
         }
 
@@ -189,8 +192,8 @@ public class BizObjectBuilder {
         }
     }
 
-    private void resolveBizExpr(QueryBean query, IDataFetchingEnvironment env) {
-        BizExprHelper.resolveBizExpr(query.getFilter(), env.getExecutionContext());
+    private <T> IBizObjectQueryProcessor<T> buildQueryProcessor(String bizObjName) {
+        return new BizObjectQueryProcessorAdapter<>(bizObjectManager, bizObjName);
     }
 
     BizObjectImpl loadBizObjFromModel(String bizObjName) {

@@ -147,7 +147,8 @@ public class GraphQLArgsHelper {
             return true;
 
         for (String name : args.keySet()) {
-            if (!name.equals(GraphQLConstants.ARG_QUERY) && !name.startsWith(GraphQLConstants.V_PREFIX))
+            if (!name.equals(GraphQLConstants.ARG_QUERY)
+                    && !name.startsWith(GraphQLConstants.V_PREFIX))
                 return false;
         }
         return true;

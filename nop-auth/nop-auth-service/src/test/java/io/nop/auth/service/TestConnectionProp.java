@@ -8,6 +8,8 @@
 package io.nop.auth.service;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
+import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.auth.dao.entity.NopAuthResource;
@@ -15,10 +17,12 @@ import io.nop.auth.dao.entity.NopAuthSite;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.engine.IGraphQLEngine;
+import io.nop.graphql.core.utils.GraphQLArgsHelper;
 import io.nop.orm.IOrmTemplate;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
-import jakarta.inject.Inject;
+import java.util.Map;
 
 
 public class TestConnectionProp extends JunitAutoTestCase {
@@ -29,9 +33,8 @@ public class TestConnectionProp extends JunitAutoTestCase {
     @Inject
     IGraphQLEngine graphQLEngine;
 
-    @EnableSnapshot
-    @Test
-    public void testConnection() {
+
+    private void prepareData() {
         ormTemplate.runInSession(() -> {
             NopAuthSite site = (NopAuthSite) ormTemplate.newEntity(NopAuthSite.class.getName());
             site.setSiteId("test");
@@ -63,8 +66,15 @@ public class TestConnectionProp extends JunitAutoTestCase {
             ormTemplate.save(site2);
         });
 
+    }
+
+    @EnableSnapshot
+    @Test
+    public void testConnection() {
+        prepareData();
         run("request.yaml", "response.json5");
         run("request2.yaml", "response2.json5");
+        run("request3.yaml", "response3.json5");
     }
 
     private void run(String requestFileName, String responseFileName) {
@@ -75,4 +85,18 @@ public class TestConnectionProp extends JunitAutoTestCase {
 
         output(responseFileName, result);
     }
+
+    @EnableSnapshot
+    @Test
+    public void testRestFilter() {
+        prepareData();
+        ApiRequest<Map<String, Object>> request = request("request.yaml", Map.class);
+        GraphQLArgsHelper.normalizeSubArgs(request.getSelection(), request.getData());
+
+        IGraphQLExecutionContext context = graphQLEngine.newRpcContext(null, "NopAuthSite__get", request);
+        ApiResponse<?> result = graphQLEngine.executeRpc(context);
+
+        output("response.yaml", result);
+    }
+
 }

@@ -34,17 +34,7 @@ public class GraphQLConnection<T> {
         this.total = total;
     }
 
-    @LazyLoad
     @PropMeta(propId = 2)
-    public List<GraphQLEdgeBean> getEdges() {
-        return edges;
-    }
-
-    public void setEdges(List<GraphQLEdgeBean> edges) {
-        this.edges = edges;
-    }
-
-    @PropMeta(propId = 3)
     public List<T> getItems() {
         return items;
     }
@@ -53,6 +43,17 @@ public class GraphQLConnection<T> {
         this.items = items;
     }
 
+    @LazyLoad
+    @PropMeta(propId = 3)
+    public List<GraphQLEdgeBean> getEdges() {
+        return edges;
+    }
+
+    public void setEdges(List<GraphQLEdgeBean> edges) {
+        this.edges = edges;
+    }
+
+    @LazyLoad
     @PropMeta(propId = 4)
     public GraphQLPageInfo getPageInfo() {
         return pageInfo;

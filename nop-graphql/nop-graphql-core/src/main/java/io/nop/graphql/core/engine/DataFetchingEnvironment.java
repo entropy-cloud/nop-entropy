@@ -49,8 +49,10 @@ public class DataFetchingEnvironment implements IDataFetchingEnvironment {
      * 如果是异步执行，则当前env被异步任务占用，必须新建一个env来使用。否则可以复用当前的env
      */
     public DataFetchingEnvironment prepare() {
-        if (!async)
+        if (!async) {
+            setOpRequest(null);
             return this;
+        }
 
         return copy();
     }
@@ -58,8 +60,6 @@ public class DataFetchingEnvironment implements IDataFetchingEnvironment {
     public DataFetchingEnvironment copy() {
         DataFetchingEnvironment env = new DataFetchingEnvironment();
         env.setRoot(root);
-        env.setSelection(selection);
-        env.setSelectionBean(selectionBean);
         env.setExecutionContext(context);
         // env.setDepth(getDepth());
         return env;

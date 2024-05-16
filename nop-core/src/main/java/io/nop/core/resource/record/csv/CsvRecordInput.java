@@ -119,6 +119,8 @@ public class CsvRecordInput<T> implements IRecordInput<T> {
                     continue;
                 }
             }
+            if(record.size() <= i)
+                continue;
             String value = record.get(i);
             if (trimValue) {
                 value = StringHelper.strip(value);

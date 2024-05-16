@@ -8,6 +8,7 @@
 package io.nop.graphql.orm.fetcher;
 
 import io.nop.api.core.beans.FieldSelectionBean;
+import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.graphql.GraphQLConnection;
 import io.nop.api.core.beans.graphql.GraphQLConnectionInput;
@@ -18,15 +19,15 @@ import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.Guard;
-import io.nop.auth.api.utils.AuthHelper;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.reflect.bean.BeanTool;
-import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IDataFetcher;
 import io.nop.graphql.core.IDataFetchingEnvironment;
+import io.nop.graphql.core.biz.GraphQLQueryMethod;
+import io.nop.graphql.core.biz.IBizObjectQueryProcessor;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.OrmConstants;
 import io.nop.orm.utils.OrmQueryHelper;
@@ -35,27 +36,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAX_PAGE_SIZE;
 
 public class OrmEntityPropConnectionFetcher implements IDataFetcher {
-    private final IEntityDao entityDao;
-    private final String bizObjName;
-    private final String fetchAction;
+    private final IBizObjectQueryProcessor<?> queryProcessor;
+    private final String authObjName;
     private final int maxFetchSize;
-    private final boolean findFirst;
+    private final GraphQLQueryMethod queryMethod;
     private final TreeBean filter;
     private final List<OrderFieldBean> orderBy;
-    private final BiConsumer<QueryBean, IDataFetchingEnvironment> queryProcessor;
 
-    public OrmEntityPropConnectionFetcher(IEntityDao entityDao, String bizObjName, String fetchAction, int maxFetchSize,
-                                          boolean findFirst, TreeBean filter, List<OrderFieldBean> orderBy,
-                                          BiConsumer<QueryBean, IDataFetchingEnvironment> queryProcessor) {
-        this.entityDao = entityDao;
-        this.bizObjName = bizObjName;
-        this.fetchAction = fetchAction;
+    public OrmEntityPropConnectionFetcher(IBizObjectQueryProcessor<?> queryProcessor, String authObjName, int maxFetchSize,
+                                          GraphQLQueryMethod queryMethod, TreeBean filter, List<OrderFieldBean> orderBy) {
+        this.authObjName = authObjName;
         this.maxFetchSize = maxFetchSize;
-        this.findFirst = findFirst;
+        this.queryMethod = queryMethod;
         this.filter = Guard.notNull(filter, "filter");
         this.orderBy = orderBy;
         this.queryProcessor = queryProcessor;
@@ -69,8 +66,9 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
         FieldSelectionBean selection = env.getSelectionBean();
 
         GraphQLConnectionInput input = BeanTool.castBeanToType(env.getArgs(), GraphQLConnectionInput.class);
-        QueryBean query = new QueryBean();
-        AuthHelper.appendFilter(context.getDataAuthChecker(), query, bizObjName, fetchAction, context);
+        QueryBean query = input.getQuery();
+        if (query == null)
+            query = new QueryBean();
 
         query.setOffset(input.getOffset());
         query.setLimit(input.getLimit());
@@ -87,7 +85,7 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
             query.setCursor(input.getBefore());
         }
 
-        if (!findFirst) {
+        if (queryMethod != GraphQLQueryMethod.findFirst) {
             if (maxFetchSize > 0) {
                 if (query.getLimit() > maxFetchSize) {
                     query.setLimit(maxFetchSize);
@@ -108,34 +106,27 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
             query.addOrderBy(input.getOrderBy());
         }
 
-        TreeBean filter = this.filter.cloneInstance().toTreeBean();
-        resolveRef(filter, source);
-        query.addFilter(filter);
+        BiConsumer<QueryBean, IServiceContext> prepareQuery = buildPrepareQuery(source, input);
 
-        if (orderBy != null) {
-            query.addOrderBy(orderBy);
-        }
-
-        OrmQueryHelper.appendOrderByPk(query, entityDao.getPkColumnNames(), false);
-        if (input.getLast() > 0) {
-            query.setOrderBy(OrmQueryHelper.reverseOrderBy(query.getOrderBy()));
-        }
-
-        processQuery(query, env);
-
-        if (findFirst) {
+        if (queryMethod == GraphQLQueryMethod.findFirst) {
             // 可以利用connection的支持只查出满足条件的唯一一条数据
-            return entityDao.findFirstByQuery(query);
+            return queryProcessor.doFindFirst0(query, authObjName, prepareQuery, selection, context);
+        } else if (queryMethod == GraphQLQueryMethod.findCount) {
+            return queryProcessor.doFindCount0(query, authObjName, prepareQuery, context);
+        } else if (queryMethod == GraphQLQueryMethod.findList) {
+            return queryProcessor.doFindList0(query, authObjName, prepareQuery, selection, context);
+        } else if (queryMethod == GraphQLQueryMethod.findPage) {
+            return queryProcessor.doFindPage0(query, authObjName, prepareQuery, selection, context);
         } else {
             GraphQLConnection<Object> conn = new GraphQLConnection<>();
-            if (selection.hasSourceField(GraphQLConstants.FIELD_TOTAL)) {
-                conn.setTotal(entityDao.countByQuery(query));
-            }
-            if (selection.hasSourceField(GraphQLConstants.FIELD_PAGE_INFO)
-                    || selection.hasSourceField(GraphQLConstants.FIELD_ITEMS)
-                    || selection.hasSourceField(GraphQLConstants.FIELD_EDGES)) {
-                fetchItems(conn, query, input);
-            }
+
+            fetchItems(conn, query, input, queryBean -> {
+                PageBean<Object> pageBean = (PageBean<Object>) queryProcessor.doFindPage0(queryBean,
+                        authObjName, prepareQuery, selection, context);
+                conn.setTotal(pageBean.getTotal());
+                conn.setItems(pageBean.getItems());
+                return pageBean.getItems();
+            });
 
             if (selection.hasSourceField(GraphQLConstants.FIELD_EDGES)) {
                 List<Object> items = conn.getItems();
@@ -156,59 +147,83 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
         }
     }
 
-    private void fetchItems(GraphQLConnection<Object> conn, QueryBean query, GraphQLConnectionInput input) {
-        if (input.getLast() > 0) {
-            query.setLimit(input.getLast() + 1);
-            List<Object> data = entityDao.findPageByQuery(query);
-            GraphQLPageInfo pageInfo = new GraphQLPageInfo();
-            pageInfo.setHasNextPage(!StringHelper.isEmpty(input.getBefore()));
-            if (data.size() > input.getLast()) {
-                data = data.subList(0, input.getLast());
-                data = CollectionHelper.reverseList(data);
-                pageInfo.setHasPreviousPage(true);
-            } else {
-                data = CollectionHelper.reverseList(data);
-                pageInfo.setHasPreviousPage(false);
+    BiConsumer<QueryBean, IServiceContext> buildPrepareQuery(Object source, GraphQLConnectionInput input) {
+        return (query, ctx) -> {
+            TreeBean filter = this.filter.cloneInstance().toTreeBean();
+            resolveRef(filter, source);
+            query.addFilter(filter);
+
+            if (orderBy != null) {
+                query.addOrderBy(orderBy);
             }
 
-            if (!data.isEmpty()) {
-                pageInfo.setStartCursor(getCursor(data.get(0)));
-                pageInfo.setEndCursor(getCursor(data.get(data.size() - 1)));
+            if (input.getLast() > 0) {
+                query.setOrderBy(OrmQueryHelper.reverseOrderBy(query.getOrderBy()));
+            }
+        };
+    }
+
+    private void fetchItems(GraphQLConnection<Object> conn, QueryBean query, GraphQLConnectionInput input,
+                            Function<QueryBean, List<Object>> fetcher) {
+        if (input.getLast() > 0) {
+            query.setLimit(input.getLast() + 1);
+            List<Object> data = fetcher.apply(query);
+            if (data != null) {
+                GraphQLPageInfo pageInfo = new GraphQLPageInfo();
+                pageInfo.setHasNextPage(!StringHelper.isEmpty(input.getBefore()));
+                if (data.size() > input.getLast()) {
+                    data = data.subList(0, input.getLast());
+                    data = CollectionHelper.reverseList(data);
+                    pageInfo.setHasPreviousPage(true);
+                } else {
+                    data = CollectionHelper.reverseList(data);
+                    pageInfo.setHasPreviousPage(false);
+                }
+
+                if (!data.isEmpty()) {
+                    pageInfo.setStartCursor(getCursor(data.get(0)));
+                    pageInfo.setEndCursor(getCursor(data.get(data.size() - 1)));
+                }
+                conn.setPageInfo(pageInfo);
             }
             conn.setItems(data);
         } else if (input.getFirst() > 0) {
             query.setLimit(input.getFirst() + 1);
-            List<Object> data = entityDao.findPageByQuery(query);
-            GraphQLPageInfo pageInfo = new GraphQLPageInfo();
-            pageInfo.setHasPreviousPage(!StringHelper.isEmpty(input.getAfter()));
-            if (data.size() > input.getFirst()) {
-                data = data.subList(0, input.getFirst());
-                pageInfo.setHasNextPage(true);
-            } else {
-                pageInfo.setHasNextPage(false);
-            }
+            List<Object> data = fetcher.apply(query);
+            if (data != null) {
+                GraphQLPageInfo pageInfo = new GraphQLPageInfo();
+                pageInfo.setHasPreviousPage(!StringHelper.isEmpty(input.getAfter()));
+                if (data.size() > input.getFirst()) {
+                    data = data.subList(0, input.getFirst());
+                    pageInfo.setHasNextPage(true);
+                } else {
+                    pageInfo.setHasNextPage(false);
+                }
 
-            if (!data.isEmpty()) {
-                pageInfo.setStartCursor(getCursor(data.get(0)));
-                pageInfo.setEndCursor(getCursor(data.get(data.size() - 1)));
+                if (!data.isEmpty()) {
+                    pageInfo.setStartCursor(getCursor(data.get(0)));
+                    pageInfo.setEndCursor(getCursor(data.get(data.size() - 1)));
+                }
+                conn.setPageInfo(pageInfo);
             }
-            conn.setPageInfo(pageInfo);
             conn.setItems(data);
         } else {
-            List<Object> data = entityDao.findPageByQuery(query);
-            GraphQLPageInfo pageInfo = new GraphQLPageInfo();
-            pageInfo.setHasPreviousPage(query.getOffset() > 0);
-            if (data.size() < input.getLimit()) {
-                pageInfo.setHasNextPage(false);
-            } else {
-                pageInfo.setHasNextPage(true);
-            }
+            List<Object> data = fetcher.apply(query);
+            if (data != null) {
+                GraphQLPageInfo pageInfo = new GraphQLPageInfo();
+                pageInfo.setHasPreviousPage(query.getOffset() > 0);
+                if (data.size() < input.getLimit()) {
+                    pageInfo.setHasNextPage(false);
+                } else {
+                    pageInfo.setHasNextPage(true);
+                }
 
-            if (!data.isEmpty()) {
-                pageInfo.setStartCursor(getCursor(data.get(0)));
-                pageInfo.setEndCursor(getCursor(data.get(data.size() - 1)));
+                if (!data.isEmpty()) {
+                    pageInfo.setStartCursor(getCursor(data.get(0)));
+                    pageInfo.setEndCursor(getCursor(data.get(data.size() - 1)));
+                }
+                conn.setPageInfo(pageInfo);
             }
-            conn.setPageInfo(pageInfo);
             conn.setItems(data);
         }
     }
@@ -217,11 +232,6 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
         if (obj instanceof IOrmEntity)
             return ((IOrmEntity) obj).orm_idString();
         return ConvertHelper.toString(BeanTool.getProperty(obj, OrmConstants.PROP_ID));
-    }
-
-    protected void processQuery(QueryBean query, IDataFetchingEnvironment env) {
-        if (queryProcessor != null)
-            queryProcessor.accept(query, env);
     }
 
     void resolveRef(TreeBean filter, Object source) {

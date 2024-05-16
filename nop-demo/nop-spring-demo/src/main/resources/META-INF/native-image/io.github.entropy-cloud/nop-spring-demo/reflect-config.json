@@ -923,6 +923,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PARAM_REF_ENTITY_NAME"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_TARGET_HOST"
       },
       {
@@ -949,6 +954,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "TREE_BEAN_PROP_TYPE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "XML_PROP_TYPE"
       },
       {
         "allowUnsafeAccess": false,
@@ -2908,6 +2918,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getQuery",
+        "parameterTypes": []
+      },
+      {
         "name": "setAfter",
         "parameterTypes": [
           "java.lang.String"
@@ -2953,6 +2967,12 @@
         "name": "setOrderBy",
         "parameterTypes": [
           "java.util.List"
+        ]
+      },
+      {
+        "name": "setQuery",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean"
         ]
       }
     ],
@@ -5901,6 +5921,10 @@
       },
       {
         "name": "isKeepAlive",
+        "parameterTypes": []
+      },
+      {
+        "name": "isMenu",
         "parameterTypes": []
       },
       {
@@ -10431,6 +10455,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_authCascadeUp"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_component"
       },
       {
@@ -10562,6 +10591,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_ID_version"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_authCascadeUp"
       },
       {
         "allowUnsafeAccess": false,
@@ -10732,6 +10766,10 @@
     "methods": [
       {
         "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "getAuthCascadeUp",
         "parameterTypes": []
       },
       {
@@ -10930,6 +10968,12 @@
         "parameterTypes": [
           "int",
           "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setAuthCascadeUp",
+        "parameterTypes": [
+          "java.lang.Byte"
         ]
       },
       {
@@ -16004,6 +16048,14 @@
         "name": "initialize",
         "parameterTypes": [
           "io.nop.graphql.core.biz.IGraphQLBizObject",
+          "io.nop.graphql.core.biz.IBizObjectQueryProcessorBuilder",
+          "io.nop.graphql.core.schema.TypeRegistry"
+        ]
+      },
+      {
+        "name": "initialize",
+        "parameterTypes": [
+          "io.nop.graphql.core.biz.IGraphQLBizObject",
           "java.util.function.BiConsumer",
           "io.nop.graphql.core.schema.TypeRegistry"
         ]
@@ -16155,6 +16207,13 @@
         ]
       },
       {
+        "name": "checkChildrenNotExistsWhenDelete",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "checkDataAuth",
         "parameterTypes": [
           "java.lang.String",
@@ -16181,6 +16240,14 @@
         "parameterTypes": [
           "io.nop.orm.IOrmEntity",
           "io.nop.xlang.xmeta.IObjMeta",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "checkEntityRefsNotExists",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "java.util.Set",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -16269,6 +16336,13 @@
         ]
       },
       {
+        "name": "deleteByQuery",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "deleteReferences",
         "parameterTypes": [
           "io.nop.orm.IOrmEntity",
@@ -16295,6 +16369,24 @@
         "name": "doDelete",
         "parameterTypes": [
           "java.lang.String",
+          "java.util.Set",
+          "java.util.function.BiConsumer",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doDelete",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.util.function.BiConsumer",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doDeleteByQuery",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.util.Set",
           "java.util.function.BiConsumer",
           "io.nop.core.context.IServiceContext"
         ]
@@ -16303,6 +16395,15 @@
         "name": "doDeleteEntity",
         "parameterTypes": [
           "io.nop.orm.IOrmEntity",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doDeleteMulti",
+        "parameterTypes": [
+          "java.util.List",
+          "java.util.Set",
+          "java.util.function.BiConsumer",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -16340,6 +16441,13 @@
           "java.lang.String",
           "java.util.function.BiConsumer",
           "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doFindFirstByQueryDirectly",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -16398,6 +16506,14 @@
           "java.lang.String",
           "java.util.function.BiConsumer",
           "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doGetEntity",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -16547,6 +16663,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getDefaultRefNamesToCheckExists",
+        "parameterTypes": []
+      },
+      {
         "name": "getEntity",
         "parameterTypes": [
           "java.lang.String",
@@ -16564,6 +16684,15 @@
         "parameterTypes": [
           "java.util.Map",
           "io.nop.dao.api.IEntityDao"
+        ]
+      },
+      {
+        "name": "getRefEntity",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityModel",
+          "io.nop.orm.IOrmEntity",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
         ]
       },
       {
@@ -16648,6 +16777,15 @@
           "java.lang.String",
           "java.lang.String",
           "java.util.function.BiConsumer",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "queueCascadeDelete",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "io.nop.xlang.xmeta.IObjPropMeta",
+          "java.lang.String",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -33357,6 +33495,103 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "findConnection"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "findCount"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "findFirst"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "findList"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "findPage"
+      }
+    ],
+    "methods": [
+      {
+        "name": "valueOf",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "values",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.graphql.core.biz.GraphQLQueryMethod",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "doFindCount0",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
+          "java.util.function.BiConsumer",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doFindFirst0",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
+          "java.util.function.BiConsumer",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doFindList0",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
+          "java.util.function.BiConsumer",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doFindPage0",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
+          "java.util.function.BiConsumer",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      }
+    ],
+    "name": "io.nop.graphql.core.biz.IBizObjectQueryProcessor",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [
       {
@@ -33781,6 +34016,14 @@
           "io.nop.graphql.core.ast.GraphQLObjectDefinition",
           "java.lang.String",
           "java.util.function.BiConsumer"
+        ]
+      },
+      {
+        "name": "initialize",
+        "parameterTypes": [
+          "io.nop.graphql.core.biz.IGraphQLBizObject",
+          "io.nop.graphql.core.biz.IBizObjectQueryProcessorBuilder",
+          "io.nop.graphql.core.schema.TypeRegistry"
         ]
       },
       {

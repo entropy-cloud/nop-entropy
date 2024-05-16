@@ -75,12 +75,9 @@
 
                             <prop name="${name}"/>
 
-                            <prop name="${name}Connection" displayName="${prop.getAttr('displayName')}"
-                                  internal="true" graphql:connectionProp="${name}"
-                                  graphql:type="GraphQLConnection_${prop.childByTag('schema').childAttr('item','bizObjName')}">
-                                <graphql:inputType xpl:ignoreTag="true">
-                                    io.nop.api.core.beans.graphql.GraphQLConnectionInput
-                                </graphql:inputType>
+                            <prop name="${name}Connection" displayName="${prop.getAttr('displayName')}" lazy="true"
+                                  internal="true" graphql:connectionProp="${name}" graphql:queryMethod="findConnection">
+                                <schema bizObjName="${prop.childByTag('schema').childAttr('item','bizObjName')}" />
                             </prop>
                         </c:for>
                     </props>

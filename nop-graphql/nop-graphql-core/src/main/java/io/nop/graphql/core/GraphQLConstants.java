@@ -27,11 +27,13 @@ public interface GraphQLConstants {
 
     String ATTR_GRAPHQL_CONNECTION_PROP = "graphql:connectionProp";
 
-    String ATTR_GRAPHQL_FIND_FIRST = "graphql:findFirst";
+    String ATTR_GRAPHQL_QUERY_METHOD = "graphql:queryMethod";
 
     String ATTR_GRAPHQL_TYPE = "graphql:type";
 
     String ATTR_GRAPHQL_INPUT_TYPE = "graphql:inputType";
+
+    String ATTR_GRAPHQL_AUTH_OBJ_NAME = "graphql:authObjName";
 
     String TAG_GRAPHQL_FILTER = "graphql:filter";
     String TAG_GRAPHQL_ORDER_BY = "graphql:orderBy";

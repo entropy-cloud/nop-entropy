@@ -87,6 +87,10 @@ public final class ApiRequest<T> extends ApiMessage {
         this.selection = selection;
     }
 
+    public boolean hasSelection() {
+        return selection != null && selection.hasField();
+    }
+
     public T getData() {
         return data;
     }

@@ -64,18 +64,6 @@
                 <!--暂停日历-->
                 <col id="pauseCalendars" sortable="true"/>
 
-                <!--调度器分组-->
-                <col id="schedulerGroup" mandatory="true" sortable="true"/>
-
-                <!--调度器ID-->
-                <col id="schedulerId" mandatory="true" sortable="true"/>
-
-                <!--调度器世代-->
-                <col id="schedulerEpoch" mandatory="true" sortable="true"/>
-
-                <!--调度检查时间-->
-                <col id="schedulerCheckTime" sortable="true"/>
-
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>
 
@@ -107,8 +95,6 @@
  minScheduleTime[最近调度时间] maxScheduleTime[最大调度时间]
  misfireThreshold[超时阈值] maxFailedCount[最大允许失败次数]
  isUseDefaultCalendar[使用系统内置日历] pauseCalendars[暂停日历]
- schedulerGroup[调度器分组] schedulerId[调度器ID]
- schedulerEpoch[调度器世代] schedulerCheckTime[调度检查时间]
  createdBy[创建人] createTime[创建时间]
  updatedBy[修改人] updateTime[修改时间]
  remark[备注] 
@@ -126,8 +112,6 @@
  minScheduleTime[最近调度时间] maxScheduleTime[最大调度时间]
  misfireThreshold[超时阈值] maxFailedCount[最大允许失败次数]
  isUseDefaultCalendar[使用系统内置日历] pauseCalendars[暂停日历]
- schedulerGroup[调度器分组] schedulerId[调度器ID]
- schedulerEpoch[调度器世代] schedulerCheckTime[调度检查时间]
  remark[备注] 
 </layout>
         </form>

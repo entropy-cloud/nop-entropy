@@ -316,5 +316,7 @@ public interface GraphQLErrors {
                     "对象[{objType}]的字段[{fieldName}]的propId[{propId}]与已存在的propId冲突",
                     ARG_OBJ_TYPE, ARG_FIELD_NAME, ARG_PROP_ID);
 
-
+    ErrorCode ERR_BIZ_PROP_NO_BIZ_OBJ_NAME_ATTR =
+            define("nop.err.biz.prop-no-biz-obj-name-attr", "对象[{bizObjName}]的属性[{propName}]没有配置bizObjName参数，无法定位它关联的业务对象",
+                    ARG_BIZ_OBJ_NAME, ARG_PROP_NAME);
 }

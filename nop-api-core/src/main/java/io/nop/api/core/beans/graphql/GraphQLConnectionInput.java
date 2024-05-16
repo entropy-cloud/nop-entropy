@@ -12,6 +12,7 @@ import io.nop.api.core.annotations.graphql.GraphQLInput;
 import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
+import io.nop.api.core.beans.query.QueryBean;
 
 import java.util.List;
 
@@ -38,7 +39,18 @@ public class GraphQLConnectionInput {
     private TreeBean filter;
     private List<OrderFieldBean> orderBy;
 
-    @PropMeta(propId = 1)
+    private QueryBean query;
+
+    @PropMeta(propId=1)
+    public QueryBean getQuery() {
+        return query;
+    }
+
+    public void setQuery(QueryBean query) {
+        this.query = query;
+    }
+
+    @PropMeta(propId = 2)
     public int getFirst() {
         return first;
     }
@@ -47,7 +59,7 @@ public class GraphQLConnectionInput {
         this.first = first;
     }
 
-    @PropMeta(propId = 2)
+    @PropMeta(propId = 3)
     public int getLast() {
         return last;
     }
@@ -56,7 +68,7 @@ public class GraphQLConnectionInput {
         this.last = last;
     }
 
-    @PropMeta(propId = 3)
+    @PropMeta(propId = 4)
     public String getAfter() {
         return after;
     }
@@ -65,7 +77,7 @@ public class GraphQLConnectionInput {
         this.after = after;
     }
 
-    @PropMeta(propId = 4)
+    @PropMeta(propId = 5)
     public String getBefore() {
         return before;
     }
@@ -74,7 +86,7 @@ public class GraphQLConnectionInput {
         this.before = before;
     }
 
-    @PropMeta(propId = 5)
+    @PropMeta(propId = 6)
     public long getOffset() {
         return offset;
     }
@@ -83,7 +95,7 @@ public class GraphQLConnectionInput {
         this.offset = offset;
     }
 
-    @PropMeta(propId = 6)
+    @PropMeta(propId = 7)
     public int getLimit() {
         return limit;
     }
@@ -92,7 +104,7 @@ public class GraphQLConnectionInput {
         this.limit = limit;
     }
 
-    @PropMeta(propId = 7)
+    @PropMeta(propId = 8)
     public TreeBean getFilter() {
         return filter;
     }
@@ -101,7 +113,7 @@ public class GraphQLConnectionInput {
         this.filter = filter;
     }
 
-    @PropMeta(propId = 8)
+    @PropMeta(propId = 9)
     public List<OrderFieldBean> getOrderBy() {
         return orderBy;
     }

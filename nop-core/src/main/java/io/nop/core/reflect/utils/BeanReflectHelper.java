@@ -16,6 +16,11 @@ import static io.nop.core.CoreErrors.ERR_REFLECT_INVALID_VALUE_TEXT_FOR_BEAN;
 public class BeanReflectHelper {
     public static <T> T getValueByFactoryMethod(Class<T> clazz, Object bean, String propName) {
         Object value = BeanTool.getProperty(bean, propName);
+        return castValueByFactoryMethod(clazz, value);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> T castValueByFactoryMethod(Class<T> clazz, Object value) {
         if (StringHelper.isEmptyObject(value))
             return null;
 

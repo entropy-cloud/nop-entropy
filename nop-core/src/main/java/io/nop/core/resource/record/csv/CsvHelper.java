@@ -19,9 +19,14 @@ import java.util.List;
 import java.util.Map;
 
 public class CsvHelper {
-    public static <T> List<T> readCsv(IResource resource, Type type, CSVFormat format) {
+
+    public static <T> List<T> readCsv(IResource resource, Type type, CSVFormat format){
+        return readCsv(resource, type, format, null);
+    }
+
+    public static <T> List<T> readCsv(IResource resource, Type type, CSVFormat format, String encoding) {
         IGenericType rowType = type == null ? null : ReflectionManager.instance().buildGenericType(type);
-        CsvRecordInput<T> input = new CsvRecordInput<>(resource, null,
+        CsvRecordInput<T> input = new CsvRecordInput<>(resource, encoding,
                 format, rowType, null, true, true);
         try {
             return input.readAll();

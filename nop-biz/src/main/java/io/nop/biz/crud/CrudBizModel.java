@@ -51,6 +51,7 @@ import io.nop.dao.utils.DaoHelper;
 import io.nop.fsm.execution.IStateMachine;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IBizModelImpl;
+import io.nop.graphql.core.biz.IBizObjectQueryProcessor;
 import io.nop.orm.IOrmBatchLoadQueue;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
@@ -102,6 +103,8 @@ import static io.nop.biz.BizConstants.METHOD_FIND_TREE_PAGE;
 import static io.nop.biz.BizConstants.METHOD_TRY_DELETE;
 import static io.nop.biz.BizConstants.METHOD_TRY_SAVE;
 import static io.nop.biz.BizConstants.METHOD_TRY_UPDATE;
+import static io.nop.biz.BizConstants.PARAM_QUERY;
+import static io.nop.biz.BizConstants.PARAM_SELECTION;
 import static io.nop.biz.BizConstants.TAG_DICT;
 import static io.nop.biz.BizErrors.ARG_ACTION_NAME;
 import static io.nop.biz.BizErrors.ARG_CLASS_NAME;
@@ -130,7 +133,7 @@ import static io.nop.biz.BizErrors.ERR_BIZ_TOO_MANY_LEFT_JOIN_PROPS_IN_QUERY;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAX_PAGE_SIZE;
 
 @Locale("zh-CN")
-public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImpl {
+public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImpl, IBizObjectQueryProcessor<T> {
     static final Logger LOG = LoggerFactory.getLogger(CrudBizModel.class);
 
     private IDaoProvider daoProvider;
@@ -230,6 +233,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         return doFindCount0(query, getBizObjName(), this::defaultPrepareQuery, context);
     }
 
+    @BizAction
+    @Override
     public long doFindCount0(@Optional @Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
                              @Name("authObjName") String authObjName, @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
                              IServiceContext context) {
@@ -263,6 +268,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     }
 
     @BizAction
+    @Override
     public PageBean<T> doFindPage0(@Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
                                    @Name("authObjName") String authObjName,
                                    @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery, FieldSelectionBean selection,
@@ -282,6 +288,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         }
 
         if (selection == null || selection.hasSourceField(GraphQLConstants.FIELD_ITEMS)
+                || selection.hasSourceField(GraphQLConstants.FIELD_PAGE_INFO)
+                || selection.hasSourceField(GraphQLConstants.FIELD_EDGES)
                 || selection.hasSourceField(GraphQLConstants.FIELD_NEXT_CURSOR)) {
             if (!StringHelper.isEmpty(query.getCursor())) {
                 dao.findPageAndReturnCursor(query, pageBean);
@@ -317,7 +325,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
             query = new QueryBean();
 
         if (query.getName() == null) {
-            query.setName(getBizObjName() + '.' + action);
+            query.setName(authObjName + '.' + action);
         }
 
         IObjMeta objMeta = getThisObj().getObjMeta();
@@ -392,8 +400,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @BizQuery
     @BizArgsNormalizer(BizConstants.BEAN_nopQueryBeanArgsNormalizer)
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
-    public T findFirst(@Optional @Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
-                       @Name("selection") FieldSelectionBean selection, IServiceContext context) {
+    public T findFirst(@Optional @Name(PARAM_QUERY) @Description("@i18n:biz.query|查询条件") QueryBean query,
+                       @Name(PARAM_SELECTION) FieldSelectionBean selection, IServiceContext context) {
         if (query != null)
             query.setDisableLogicalDelete(false);
         return doFindFirst(query, this::defaultPrepareQuery, selection, context);
@@ -407,6 +415,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     }
 
     @BizAction
+    @Override
     public T doFindFirst0(@Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
                           @Name("authObjName") String authObjName,
                           @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
@@ -803,7 +812,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         IObjMeta objMeta = getThisObj().getObjMeta();
         if (objMeta == null)
             return null;
-        return ConvertHelper.toCsvSet(objMeta.prop_get(BizConstants.REFS_NEED_TO_CHECK_WHEN_DELETE));
+        return ConvertHelper.toCsvSet(objMeta.prop_get(BizConstants.ATTR_REFS_NEED_TO_CHECK_WHEN_DELETE));
     }
 
     @BizAction
@@ -820,7 +829,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         checkDataAuth(BizConstants.METHOD_DELETE, entity, context);
 
         if (refNamesToCheck != null)
-            checkEntityRefsNotExists(entity, refNamesToCheck,context);
+            checkEntityRefsNotExists(entity, refNamesToCheck, context);
 
         if (prepareDelete != null) {
             prepareDelete.accept(entity, context);
@@ -831,7 +840,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     }
 
     @BizAction
-    protected void checkEntityRefsNotExists(@Name("entity") T entity, @Name("refNamesToCheck") Set<String> refNamesToCheck,IServiceContext context) {
+    protected void checkEntityRefsNotExists(@Name("entity") T entity, @Name("refNamesToCheck") Set<String> refNamesToCheck, IServiceContext context) {
         IEntityModel entityModel = entity.orm_entityModel();
         if (refNamesToCheck != null) {
             for (String refName : refNamesToCheck) {
@@ -1005,7 +1014,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         checkMandatoryParam("tryDelete", "id", id);
 
         T entity = this.requireEntity(id, BizConstants.METHOD_DELETE, context);
-        checkEntityRefsNotExists(entity, getDefaultRefNamesToCheckExists(),context);
+        checkEntityRefsNotExists(entity, getDefaultRefNamesToCheckExists(), context);
     }
 
     @Description("@i18n:biz.batchUpdate|批量修改")
@@ -1240,6 +1249,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     }
 
     @BizAction
+    @Override
     public List<T> doFindList0(@Name("query") QueryBean query,
                                @Name("authObjName") String authObjName,
                                @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,

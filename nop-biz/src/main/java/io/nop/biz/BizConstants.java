@@ -137,5 +137,23 @@ public interface BizConstants {
 
     String KEY_REF_ENTITY = "refEntity";
 
-    String REFS_NEED_TO_CHECK_WHEN_DELETE = "biz:refsNeedToCheckWhenDelete";
+    String ATTR_REFS_NEED_TO_CHECK_WHEN_DELETE = "biz:refsNeedToCheckWhenDelete";
+
+    String ATTR_BIZ_AUTH_OBJ_NAME = "biz:authObjName";
+
+    String PARAM_QUERY = "query";
+    String PARAM_SELECTION = "selection";
+
+    String PARAM_SVC_CTX = "svcCtx";
+
+    String PARAM_AUTH_OBJ_NAME = "authObjName";
+
+    String PARAM_PREPARE_QUERY = "prepareQuery";
+
+    String METHOD_DO_FIND_COUNT0 = "doFindCount0";
+    String METHOD_DO_FIND_PAGE0 = "doFindPage0";
+
+    String METHOD_DO_FIND_LIST0 = "doFindList0";
+
+    String METHOD_DO_FIND_FIRST0 = "doFindFirst0";
 }

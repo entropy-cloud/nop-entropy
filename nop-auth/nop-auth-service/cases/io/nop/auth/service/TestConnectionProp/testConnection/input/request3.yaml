@@ -1,0 +1,19 @@
+query: >
+  query test($id:String, $filter:Map){
+    NopAuthSite__get(id:$id){
+      id
+      resourcesConnection(limit:10, offset:0, filter:$filter){
+         items {
+           resourceId
+           resourceType
+         },
+         total
+      }
+    }
+  }
+variables:
+  id: "test2"
+  filter:
+    "$type": eq
+    name: status
+    value: 1

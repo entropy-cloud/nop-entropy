@@ -7,6 +7,7 @@
  */
 package io.nop.graphql.core.schema.meta;
 
+import io.nop.api.core.beans.graphql.GraphQLConnectionInput;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.type.StdDataType;
@@ -27,6 +28,7 @@ import io.nop.graphql.core.parse.GraphQLDocumentParser;
 import io.nop.graphql.core.reflection.ReflectionGraphQLTypeFactory;
 import io.nop.graphql.core.schema.GraphQLScalarType;
 import io.nop.graphql.core.schema.TypeRegistry;
+import io.nop.graphql.core.utils.GraphQLObjMetaHelper;
 import io.nop.graphql.core.utils.GraphQLTypeHelper;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.IObjPropMeta;
@@ -95,15 +97,18 @@ public class ObjMetaToGraphQLDefinition {
 
         String inputType = ConvertHelper.toString(propMeta.prop_get(GraphQLConstants.ATTR_GRAPHQL_INPUT_TYPE));
         if (!StringHelper.isEmpty(inputType)) {
-            IClassModel classModel = ReflectionManager.instance().loadClassModel(inputType);
-            IGenericType type = ReflectionManager.instance().buildRawType(classModel.getRawClass());
-            List<GraphQLArgumentDefinition> args = ReflectionGraphQLTypeFactory.INSTANCE
-                    .getArgsFromInputType(type, typeRegistry, new HashMap<>());
+            List<GraphQLArgumentDefinition> args = getArgsFromInputType(inputType, typeRegistry);
             field.setArguments(args);
         } else {
             List<GraphQLArgumentDefinition> args = toArgs(thisObjName, propMeta, typeRegistry);
-            if (args != null)
+            if (args != null) {
                 field.setArguments(args);
+            } else {
+                // 具有graphql:queryMethod时缺省参数类型为 GraphQLConnectionInput
+                if (!StringHelper.isEmptyObject(propMeta.prop_get(GraphQLConstants.ATTR_GRAPHQL_QUERY_METHOD))) {
+                    field.setArguments(getArgsFromInputType(GraphQLConnectionInput.class.getName(), typeRegistry));
+                }
+            }
         }
         field.setPropMeta(propMeta);
 
@@ -111,6 +116,14 @@ public class ObjMetaToGraphQLDefinition {
             field.setFetcher(new PropGetterFetcher(propMeta.getGetter()));
         }
         return field;
+    }
+
+    List<GraphQLArgumentDefinition> getArgsFromInputType(String inputType, TypeRegistry typeRegistry) {
+        IClassModel classModel = ReflectionManager.instance().loadClassModel(inputType);
+        IGenericType type = ReflectionManager.instance().buildRawType(classModel.getRawClass());
+        List<GraphQLArgumentDefinition> args = ReflectionGraphQLTypeFactory.INSTANCE
+                .getArgsFromInputType(type, typeRegistry, new HashMap<>());
+        return args;
     }
 
     private List<GraphQLArgumentDefinition> toArgs(String thisObjName, IObjPropMeta propMeta, TypeRegistry registry) {
@@ -145,7 +158,7 @@ public class ObjMetaToGraphQLDefinition {
 
     public GraphQLType toGraphQLType(String thisObjName, IObjPropMeta propMeta, boolean mandatory,
                                      TypeRegistry typeRegistry) {
-        String graphqlType = (String) propMeta.prop_get(GraphQLConstants.ATTR_GRAPHQL_TYPE);
+        String graphqlType = GraphQLObjMetaHelper.getPropGraphQLType(thisObjName, propMeta);
         if (!StringHelper.isEmpty(graphqlType)) {
             GraphQLType type = new GraphQLDocumentParser().parseType(propMeta.getLocation(), graphqlType);
             GraphQLType processedType = typeRegistry.processSpecialType(type);

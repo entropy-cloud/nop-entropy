@@ -126,6 +126,7 @@
 /nop/schema/query/query.xdef
 /nop/schema/record/record-field.xdef
 /nop/schema/record/record-file.xdef
+/nop/schema/record/record-simple-field.xdef
 /nop/schema/register-model.xdef
 /nop/schema/registry.xdef
 /nop/schema/rule.xdef

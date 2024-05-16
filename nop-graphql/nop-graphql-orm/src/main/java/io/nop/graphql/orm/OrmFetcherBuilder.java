@@ -10,20 +10,20 @@ package io.nop.graphql.orm;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
-import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.dao.api.IDaoProvider;
-import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IDataFetcher;
-import io.nop.graphql.core.IDataFetchingEnvironment;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
+import io.nop.graphql.core.biz.GraphQLQueryMethod;
+import io.nop.graphql.core.biz.IBizObjectQueryProcessor;
+import io.nop.graphql.core.biz.IBizObjectQueryProcessorBuilder;
 import io.nop.graphql.core.fetcher.BeanPropertyFetcher;
 import io.nop.graphql.core.schema.GraphQLScalarType;
-import io.nop.graphql.core.utils.GraphQLNameHelper;
+import io.nop.graphql.core.utils.GraphQLObjMetaHelper;
 import io.nop.graphql.core.utils.GraphQLTypeHelper;
 import io.nop.graphql.orm.fetcher.OrmDependsPropFetcher;
 import io.nop.graphql.orm.fetcher.OrmEntityColumnFetcher;
@@ -44,11 +44,13 @@ import io.nop.xlang.xmeta.IObjPropMeta;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.function.BiConsumer;
 
+import static io.nop.graphql.core.GraphQLErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_FIELD_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_PROP_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_FIELD_NOT_SCALAR;
+import static io.nop.graphql.orm.GraphQLOrmErrors.ERR_BIZ_CONNECTION_PROP_NOT_RELATION;
 
 /**
  * 为ORM模型中定义的属性生成fetcher
@@ -56,7 +58,7 @@ import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_FIELD_NOT_SCALAR;
 public class OrmFetcherBuilder {
     private final IOrmTemplate ormTemplate;
     private final IDaoProvider daoProvider;
-    private final BiConsumer<QueryBean, IDataFetchingEnvironment> queryProcessor;
+    private final IBizObjectQueryProcessorBuilder queryProcessorBuilder;
 
     /**
      * 为减少创建fetcher，对于propId<=300的实体列，可以使用共享的fetcher
@@ -64,10 +66,10 @@ public class OrmFetcherBuilder {
     private final OrmEntityColumnFetcher[] cachedColumnFetchers = new OrmEntityColumnFetcher[300];
 
     public OrmFetcherBuilder(IOrmTemplate ormTemplate, IDaoProvider daoProvider,
-                             BiConsumer<QueryBean, IDataFetchingEnvironment> queryProcessor) {
+                             IBizObjectQueryProcessorBuilder queryProcessorBuilder) {
         this.ormTemplate = ormTemplate;
         this.daoProvider = daoProvider;
-        this.queryProcessor = queryProcessor;
+        this.queryProcessorBuilder = queryProcessorBuilder;
         for (int i = 1, n = cachedColumnFetchers.length; i < n; i++) {
             cachedColumnFetchers[i] = new OrmEntityColumnFetcher(ormTemplate, i);
         }
@@ -125,35 +127,32 @@ public class OrmFetcherBuilder {
     }
 
     IDataFetcher getConnectionFetcher(IEntityModel entityModel, String objType, IObjPropMeta propMeta) {
+        GraphQLQueryMethod queryMethod = GraphQLObjMetaHelper.getGraphQLQueryMethod(propMeta);
         String connectionProp = (String) propMeta.prop_get(GraphQLConstants.ATTR_GRAPHQL_CONNECTION_PROP);
-        if (StringHelper.isEmpty(connectionProp))
+        if (StringHelper.isEmpty(connectionProp) && queryMethod == null)
             return null;
 
-        IEntityPropModel propModel = entityModel.getProp(connectionProp, false);
-        if (!propModel.isToManyRelation()) {
-            return null;
+        IEntityPropModel propModel = null;
+
+        if (connectionProp != null) {
+            propModel = entityModel.getProp(connectionProp, false);
+            if (!propModel.isRelationModel()) {
+                throw new NopException(ERR_BIZ_CONNECTION_PROP_NOT_RELATION).source(propMeta)
+                        .param(ARG_BIZ_OBJ_NAME, objType).param(ARG_PROP_NAME, connectionProp);
+            }
         }
-        return buildConnectionFetcher(objType, (IEntityRelationModel) propModel, propMeta);
+        return buildConnectionFetcher(objType, queryMethod, (IEntityRelationModel) propModel, propMeta);
     }
 
-    IDataFetcher buildConnectionFetcher(String objType, IEntityRelationModel propModel, IObjPropMeta propMeta) {
-        IEntityDao dao = daoProvider.dao(propModel.getRefEntityName());
+    IDataFetcher buildConnectionFetcher(String objType, GraphQLQueryMethod queryMethod,
+                                        IEntityRelationModel propModel, IObjPropMeta propMeta) {
         int maxFetchSize = ConvertHelper.toPrimitiveInt(propMeta.prop_get(GraphQLConstants.ATTR_GRAPHQL_MAX_FETCH_SIZE),
                 -1, NopException::new);
 
-        String graphqlType = (String) propModel.prop_get(GraphQLConstants.ATTR_GRAPHQL_TYPE);
-        String bizObjName = null;
-        if (!StringHelper.isEmpty(graphqlType)) {
-            if (graphqlType.startsWith(GraphQLConstants.GRAPHQL_CONNECTION_PREFIX)) {
-                throw new IllegalArgumentException("nop.err.graphql.invalid-graphql-connection-type");
-            }
-            bizObjName = graphqlType.substring(GraphQLConstants.GRAPHQL_CONNECTION_PREFIX.length());
-        }
-
-        if (bizObjName == null) {
-            bizObjName = StringHelper.simpleClassName(propModel.getRefEntityName());
-        }
-        String fetchAction = GraphQLNameHelper.getFetchAction(objType, propMeta.getName());
+        String bizObjName = GraphQLObjMetaHelper.getPropBizObjName(objType, propMeta, true);
+        String authObjName = GraphQLObjMetaHelper.getPropAuthObjName(objType, propMeta);
+        if (StringHelper.isEmpty(authObjName))
+            authObjName = bizObjName;
 
         TreeBean filter = ExtPropsGetter.getTreeBean(propMeta, GraphQLConstants.TAG_GRAPHQL_FILTER);
         TreeBean relFilter = buildRelationFilter(propModel);
@@ -165,13 +164,14 @@ public class OrmFetcherBuilder {
 
         List<OrderFieldBean> orderBy = ExtPropsGetter.getOrderBy(propMeta, GraphQLConstants.TAG_GRAPHQL_ORDER_BY);
 
-        boolean findFirst = isFindFirst(propMeta);
-
-        return new OrmEntityPropConnectionFetcher(dao, bizObjName, fetchAction, maxFetchSize, findFirst, filter,
-                orderBy, queryProcessor);
+        IBizObjectQueryProcessor<?> queryProcessor = queryProcessorBuilder.buildQueryProcessor(bizObjName);
+        return new OrmEntityPropConnectionFetcher(queryProcessor, authObjName, maxFetchSize,
+                queryMethod, filter, orderBy);
     }
 
     private TreeBean buildRelationFilter(IEntityRelationModel propModel) {
+        if (propModel == null)
+            return null;
         List<TreeBean> filters = new ArrayList<>(propModel.getJoin().size());
         for (IEntityJoinConditionModel join : propModel.getJoin()) {
             if (join.getRightPropModel() != null) {
@@ -183,10 +183,6 @@ public class OrmFetcherBuilder {
             }
         }
         return FilterBeans.and(filters);
-    }
-
-    boolean isFindFirst(IObjPropMeta propMeta) {
-        return ConvertHelper.toPrimitiveBoolean(propMeta.prop_get(GraphQLConstants.ATTR_GRAPHQL_FIND_FIRST));
     }
 
     IDataFetcher buildPropFetcher(Set<String> dependsOn, String propName) {

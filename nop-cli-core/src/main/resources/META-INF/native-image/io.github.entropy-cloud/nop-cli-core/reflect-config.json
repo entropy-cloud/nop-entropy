@@ -918,6 +918,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PARAM_REF_ENTITY_NAME"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_TARGET_HOST"
       },
       {
@@ -944,6 +949,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "TREE_BEAN_PROP_TYPE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "XML_PROP_TYPE"
       },
       {
         "allowUnsafeAccess": false,
@@ -1618,9 +1628,26 @@
         "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "INVALID_DATE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "JAVA_ESCAPE_CHARS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "JAVA_ESCAPE_STRS"
       }
     ],
     "methods": [
+      {
+        "name": "_indexOf",
+        "parameterTypes": [
+          "[C",
+          "char"
+        ]
+      },
       {
         "name": "appendQuery",
         "parameterTypes": [
@@ -1659,6 +1686,20 @@
         "name": "encodeURL",
         "parameterTypes": [
           "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "escape",
+        "parameterTypes": [
+          "java.lang.CharSequence",
+          "[C",
+          "[Ljava.lang.String;"
+        ]
+      },
+      {
+        "name": "escapeJava",
+        "parameterTypes": [
           "java.lang.String"
         ]
       },
@@ -1773,6 +1814,12 @@
           "java.lang.String",
           "char",
           "char"
+        ]
+      },
+      {
+        "name": "quote",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {

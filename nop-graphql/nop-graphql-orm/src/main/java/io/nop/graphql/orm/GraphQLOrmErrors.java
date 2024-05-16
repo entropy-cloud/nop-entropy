@@ -7,6 +7,13 @@
  */
 package io.nop.graphql.orm;
 
+import io.nop.api.core.exceptions.ErrorCode;
+
 public interface GraphQLOrmErrors {
+    String ARG_PROP_NAME = "propName";
+
+    ErrorCode ERR_BIZ_CONNECTION_PROP_NOT_RELATION =
+            ErrorCode.define("nop.err.biz.connection-prop-not-relation",
+                    "属性[propName]不是关联属性", ARG_PROP_NAME);
 
 }

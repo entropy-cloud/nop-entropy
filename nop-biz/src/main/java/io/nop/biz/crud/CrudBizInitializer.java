@@ -7,7 +7,6 @@
  */
 package io.nop.biz.crud;
 
-import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObjectManager;
@@ -15,7 +14,7 @@ import io.nop.biz.decorator.IActionDecoratorCollector;
 import io.nop.biz.impl.BizObjectBuildHelper;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.txn.ITransactionTemplate;
-import io.nop.graphql.core.IDataFetchingEnvironment;
+import io.nop.graphql.core.biz.IBizObjectQueryProcessorBuilder;
 import io.nop.graphql.core.biz.IGraphQLBizInitializer;
 import io.nop.graphql.core.biz.IGraphQLBizObject;
 import io.nop.graphql.core.reflection.GraphQLBizModel;
@@ -25,7 +24,6 @@ import jakarta.inject.Inject;
 
 import java.util.List;
 import java.util.Set;
-import java.util.function.BiConsumer;
 
 public class CrudBizInitializer implements IGraphQLBizInitializer {
 
@@ -72,7 +70,7 @@ public class CrudBizInitializer implements IGraphQLBizInitializer {
 
     @Override
     public void initialize(IGraphQLBizObject bizObj,
-                           BiConsumer<QueryBean, IDataFetchingEnvironment> queryProcessor,
+                           IBizObjectQueryProcessorBuilder queryProcessorBuilder,
                            TypeRegistry typeRegistry) {
         Set<String> base = ConvertHelper.toCsvSet(bizObj.getExtAttribute(BizConstants.GRAPHQL_BASE_NAME));
         if (base != null && base.contains(BizConstants.BASE_CRUD)) {
