@@ -10,7 +10,7 @@
         xdef:name="ObjSchemaImpl" xdef:bean-package="io.nop.xlang.xmeta.impl"
         interface="boolean" extendsType="generic-type" implementsTypes="generic-type-list"
         minProperties="int" maxProperties="int" supportExtends="boolean"
-        uniqueProp="string" xdef:check-ns="graphql,ui,biz"
+        uniqueProp="string" xdef:check-ns="graphql,ui,biz,orm"
 
         x:schema="/nop/schema/xdef.xdef" xmlns:ui="ui" xmlns:graphql="graphql" xmlns:biz="biz" xmlns:orm="orm"
         xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
@@ -34,6 +34,11 @@
         @readable 是否可以作为返回值返回。readable=false一般是作为输入数据使用，只允许提交，而不允许查看
         @ui:maxUploadSize 文件上传时最大允许的文件大小，可以是20M这种写法
         @ui:maskPattern 如果设置了maskPattern，则在元编程阶段自动生成transformOut，输出到前台的时候会自动进行掩码转换
+        @graphql:queryMethod 允许findCount/findFirst/findList/findPage/findConnection等值。这个参数不为空时表示输入类型为GraphQLConnectionInput,
+           支持对子表进行查询,findPage/findConnection用于区分返回结果的类型。通过graphql:filter可以指定额外的过滤条件，
+           或者通过graphql:connectionProp来指定ORM层面的关联对象属性。
+        @graphql:authObjName 指定了graphql:queryMethod之后，实际执行查询时会应用数据权限，一般情况下数据权限由被查询的bizObjName来确定。
+           如果明确指定了graphql:authObjName，则使用它所对应的数据权限配置。
         -->
         <prop xdef:name="ObjPropMetaImpl"
               name="!prop-path" displayName="string" type="generic-type"
@@ -49,10 +54,12 @@
               ui:control="xml-name" ui:show="string" ui:labelProp="prop-path" ui:filterOp="xml-name"
               ui:maxUploadSize="long-size" ui:supportFileLink="boolean" ui:uploadAccept="string" ui:queryMandatory="boolean"
               ui:editGrid="string" ui:viewGrid="string" ui:maskPattern="string"
+              orm:manyToManyRefProp="string"
               xml:mapper="string" graphql:mapper="string" biz:codeRule="string"
               graphql:type="string" graphql:jsonComponentProp="string" graphql:dictValueProp="prop-path"
-              graphql:joinLeftProps="word-set" graphql:joinRightProps="word-set" orm:manyToManyRefProp="string"
-              graphql:connectionProp="prop-name" graphql:findFirst="boolean" graphql:maxFetchSize="int"
+              graphql:joinLeftProps="word-set" graphql:joinRightProps="word-set"
+              graphql:connectionProp="prop-name"  graphql:maxFetchSize="int"
+              graphql:queryMethod="string" graphql:authObjName="string"
         >
             <description xdef:value="string"/>
 
@@ -64,6 +71,8 @@
 
             <graphql:selection xdef:value="field-selection"/>
 
+            <graphql:inputType xdef:value="class-name"/>
+
             <!--
             配置字段级别的权限约束
 
@@ -74,7 +83,6 @@
             <auth for="!xml-name" xdef:unique-attr="for" xdef:name="ObjPropAuthModel"
                   roles="csv-set" permissions="multi-csv-set" publicAccess="!boolean=false"/>
 
-            <graphql:inputType xdef:value="class-name"/>
 
             <!--
             对应graphql的argument

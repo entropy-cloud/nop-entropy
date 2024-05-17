@@ -33,8 +33,8 @@
         excludeMin="boolean" excludeMax="boolean"
         minLength="int" maxLength="int" multipleOf="int"
 
-        x:schema="/nop/schema/xdef.xdef" xmlns:biz="biz" xdef:check-ns="graphql,ui,biz"
-        xmlns:graphql="graphql" xmlns:ui="ui"
+        x:schema="/nop/schema/xdef.xdef" xmlns:biz="biz" xdef:check-ns="graphql,ui,biz,orm"
+        xmlns:graphql="graphql" xmlns:ui="ui" xmlns:orm="orm"
         xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
 >
 
@@ -72,14 +72,24 @@
               ui:control="xml-name" ui:show="string" ui:labelProp="prop-path" ui:filterOp="xml-name"
               ui:maxUploadSize="long-size" ui:supportFileLink="boolean" ui:uploadAccept="string"
               ui:editGrid="string" ui:viewGrid="string" ui:maskPattern="string"
+              orm:manyToManyRefProp="string"
               xml:mapper="string" graphql:mapper="string" biz:codeRule="string"
               graphql:type="string" graphql:jsonComponentProp="string" graphql:dictValueProp="prop-path"
               graphql:joinLeftProps="word-set" graphql:joinRightProps="word-set"
               graphql:connectionProp="prop-name" graphql:maxFetchSize="int"
+              graphql:queryMethod="string" graphql:authObjName="string"
         >
             <description xdef:value="string"/>
 
             <schema xdef:ref="ISchema"/>
+
+            <graphql:filter xdef:value="filter-bean"/>
+
+            <graphql:orderBy xdef:ref="/nop/schema/query/order-by.xdef"/>
+
+            <graphql:selection xdef:value="field-selection"/>
+
+            <graphql:inputType xdef:value="class-name"/>
 
             <auth xdef:ref="auth.xdef"/>
 

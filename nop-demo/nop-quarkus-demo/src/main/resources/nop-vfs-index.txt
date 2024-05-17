@@ -270,6 +270,8 @@
 /nop/autoconfig/nop-task-core.beans
 /nop/autoconfig/nop-web.beans
 /nop/biz/beans/biz-defaults.beans.xml
+/nop/biz/defaults/service-base.beans.xml
+/nop/biz/xlib/bo-gen.xlib
 /nop/biz/xlib/bo.xlib
 /nop/codegen/xlib/gen.xlib
 /nop/codegen/xlib/meta-gen.xlib
@@ -295,8 +297,10 @@
 /nop/core/registry/xpl.register-model.xml
 /nop/core/registry/xpt.register-model.xml
 /nop/core/registry/xtask.register-model.xml
+/nop/core/xlib/bean-gen.xlib
 /nop/core/xlib/biz!check.xlib
 /nop/core/xlib/biz!filter.xlib
+/nop/core/xlib/biz!value.xlib
 /nop/core/xlib/biz-gen.xlib
 /nop/core/xlib/biz.xlib
 /nop/core/xlib/file.xlib
@@ -678,6 +682,7 @@
 /nop/schema/query/query.xdef
 /nop/schema/record/record-field.xdef
 /nop/schema/record/record-file.xdef
+/nop/schema/record/record-simple-field.xdef
 /nop/schema/register-model.xdef
 /nop/schema/registry.xdef
 /nop/schema/rule.xdef
