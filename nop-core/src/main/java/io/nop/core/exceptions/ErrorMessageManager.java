@@ -150,7 +150,8 @@ public class ErrorMessageManager implements IErrorMessageManager {
             return varResolver.resolveVar(locale, name, value, params);
 
         String str = StringHelper.safeToString(value);
-        if (ApiConstants.PARAM_ENTITY_NAME.equals(name) || ApiConstants.PARAM_REF_ENTITY_NAME.equals(name)) {
+        if (ApiConstants.PARAM_ENTITY_NAME.equals(name) || ApiConstants.PARAM_REF_ENTITY_NAME.equals(name)
+                || ApiConstants.PARAM_BIZ_OBJ_NAME.equals(name) || ApiConstants.PARAM_REF_BIZ_OBJ_NAME.equals(name)) {
             str = getEntityDisplayName(locale, str);
         } else if (ApiConstants.PARAM_FIELD_NAME.equals(name) || ApiConstants.PARAM_PROP_NAME.equals(name)) {
             str = getFieldDisplayName(locale, str, params);
@@ -201,7 +202,10 @@ public class ErrorMessageManager implements IErrorMessageManager {
     }
 
     protected String getFieldDisplayName(String locale, String fieldName, Map<String, ?> params) {
-        String entityName = (String) params.get(ApiConstants.PARAM_ENTITY_NAME);
+        String entityName = (String) params.get(ApiConstants.PARAM_BIZ_OBJ_NAME);
+        if (entityName == null)
+            entityName = (String) params.get(ApiConstants.PARAM_ENTITY_NAME);
+
         String fullFieldName = fieldName;
         boolean useFullName = false;
         if (!StringHelper.isEmpty(entityName)) {
@@ -213,8 +217,17 @@ public class ErrorMessageManager implements IErrorMessageManager {
         if (displayName == null && useFullName) {
             int pos = entityName.lastIndexOf('.');
             if (pos > 0) {
-                fullFieldName = entityName.substring(pos + 1) + '.' + fieldName;
+                entityName = entityName.substring(pos + 1);
+                fullFieldName = entityName + '.' + fieldName;
                 displayName = I18nMessageManager.instance().getMessage(locale, "prop.label." + fullFieldName, null);
+            }
+
+            if (displayName == null) {
+                if (entityName.indexOf('_') > 0) {
+                    // 例如 NopAuthResource_main取到第一部分对应于 NopAuthResource
+                    fullFieldName = StringHelper.firstPart(entityName, '_') + '.' + fieldName;
+                    displayName = I18nMessageManager.instance().getMessage(locale, "prop.label." + fullFieldName, null);
+                }
             }
         }
         if (displayName != null) {

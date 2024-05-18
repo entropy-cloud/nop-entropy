@@ -217,8 +217,11 @@ public interface ApiConstants extends FilterBeanConstants {
 
     String PARAM_ENTITY_NAME = "entityName";
     String PARAM_FIELD_NAME = "fieldName";
+    String PARAM_BIZ_OBJ_NAME = "bizObjName";
 
     String PARAM_REF_ENTITY_NAME = "refEntityName";
+
+    String PARAM_REF_BIZ_OBJ_NAME = "refBizObjName";
 
     String PARAM_PROP_NAME = "propName";
 

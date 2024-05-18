@@ -195,9 +195,8 @@ public interface BizErrors {
     ErrorCode ERR_BIZ_OBJ_NO_TREE_PARENT_PROP = define("nop.err.biz.obj-no-tree-parent-prop",
             "对象[{bizObjName}]没有标记为parent的属性，不能执行树形结构相关的方法", ARG_BIZ_OBJ_NAME);
 
-    ErrorCode ERR_BIZ_NOT_ALLOW_DELETE_PARENT_WHEN_CHILDREN_IS_NOT_EMPTY = define(
-            "nop.err.biz.not-allow-delete-parent-when-children-is-not-empty",
-            "类型为[{bizObjName}]的对象[{objLabel}]的子节点不为空，不允许删除", ARG_BIZ_OBJ_NAME, ARG_OBJ_LABEL);
+    ErrorCode ERR_BIZ_NOT_ALLOW_DELETE_PARENT_WHEN_CHILDREN_IS_NOT_EMPTY = define("nop.err.biz.not-allow-delete-parent-when-children-is-not-empty",
+            "当前[{entityName}]存在子节点，不允许删除", ARG_ENTITY_NAME);
 
     ErrorCode ERR_BIZ_INVALID_META_PATH =
             define("nop.err.biz.invalid-meta-path", "meta文件的后缀名必须是xmeta:{metaPath}",
@@ -228,8 +227,7 @@ public interface BizErrors {
             define("nop.err.biz.tree-entity-no-parent-prop", "树形结构对象[{bizObjName}]没有定义parentProp属性", ARG_BIZ_OBJ_NAME);
 
     ErrorCode ERR_BIZ_NOT_ALLOW_DELETE_ENTITY_WHEN_REF_EXISTS =
-            define("nop.err.biz.not-allow-delete-entity-when-ref-exists", "不允许删除id为[{id}]的实体[{bizObjName}]，因为它被[{refEntityName}]中的实体所引用",
-                    ARG_ID, ARG_BIZ_OBJ_NAME, ARG_REF_ENTITY_NAME);
+            define("nop.err.biz.not-allow-delete-entity-when-ref-exists", "此数据已被[{refEntityName}]中所引用，不允许删除", ARG_REF_ENTITY_NAME);
 
 
 }

@@ -112,11 +112,10 @@ import static io.nop.biz.BizErrors.ARG_DISPLAY_NAME;
 import static io.nop.biz.BizErrors.ARG_ENTITY_NAME;
 import static io.nop.biz.BizErrors.ARG_ID;
 import static io.nop.biz.BizErrors.ARG_KEY;
-import static io.nop.biz.BizErrors.ARG_OBJ_LABEL;
 import static io.nop.biz.BizErrors.ARG_PARAM_NAME;
 import static io.nop.biz.BizErrors.ARG_PROP_NAME;
 import static io.nop.biz.BizErrors.ARG_PROP_NAMES;
-import static io.nop.biz.BizErrors.ARG_REF_DISPLAY_NAME;
+import static io.nop.biz.BizErrors.ARG_REF_ENTITY_NAME;
 import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_SAVE;
 import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_UPDATE;
 import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_ALREADY_EXISTS;
@@ -847,7 +846,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                 IOrmEntity refEntity = getRefEntity(entityModel, entity, refName, context);
                 if (refEntity != null)
                     throw new NopException(ERR_BIZ_NOT_ALLOW_DELETE_ENTITY_WHEN_REF_EXISTS)
-                            .param(ARG_REF_DISPLAY_NAME, refEntity.orm_entityModel().getDisplayName());
+                            .param(ARG_REF_ENTITY_NAME, refEntity.orm_entityModel().getName());
 
             }
         }
@@ -924,13 +923,9 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                     if (prop != null && !prop.containsTag(BizConstants.TAG_CASCADE_DELETE)) {
                         Collection<?> children = (Collection<?>) entity.orm_propValueByName(prop.getName());
                         if (children != null && !children.isEmpty()) {
-                            String dispProp = objMeta.getDisplayProp();
-                            if (dispProp == null) {
-                                dispProp = OrmConstants.PROP_ID;
-                            }
                             throw new NopException(ERR_BIZ_NOT_ALLOW_DELETE_PARENT_WHEN_CHILDREN_IS_NOT_EMPTY)
-                                    .param(ARG_BIZ_OBJ_NAME, getBizObjName()).param(ARG_ID, entity.orm_idString())
-                                    .param(ARG_OBJ_LABEL, entity.orm_propValueByName(dispProp));
+                                    .param(ARG_BIZ_OBJ_NAME, getBizObjName())
+                                    .param(ARG_ID, entity.orm_idString());
                         }
                     }
                 }
