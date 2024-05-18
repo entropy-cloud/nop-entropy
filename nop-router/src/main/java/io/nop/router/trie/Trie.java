@@ -52,6 +52,9 @@ public class Trie<V> {
     }
 
     public MatchResult<V> match(List<String> path) {
+        if(path.isEmpty())
+            return null;
+
         lock.readLock().lock();
         try {
             return _match(rootNode, path, 0, null);

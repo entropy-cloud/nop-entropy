@@ -33,4 +33,15 @@
         </dependency>
 
     </dependencies>
+
+
+    <!-- 用到quarkus编译期处理（比如bean定义）的模块必须引入jandex插件，为类文件建立索引-->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.jboss.jandex</groupId>
+                <artifactId>jandex-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>
