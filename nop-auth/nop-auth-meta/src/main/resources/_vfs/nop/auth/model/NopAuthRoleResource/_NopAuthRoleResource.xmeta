@@ -32,8 +32,8 @@
             <schema type="java.lang.String" precision="100"/>
         </prop>
         <prop name="delFlag" displayName="删除标识" propId="4" i18n-en:displayName="Deleted" queryable="true"
-              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X" defaultValue="0">
-            <schema domain="boolFlag" type="java.lang.Byte"/>
+              sortable="true" insertable="false" updatable="true" internal="true" ui:show="X">
+            <schema stdDomain="boolFlag" domain="delFlag" type="java.lang.Byte"/>
         </prop>
         <prop name="version" displayName="数据版本" propId="5" i18n-en:displayName="Version" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">

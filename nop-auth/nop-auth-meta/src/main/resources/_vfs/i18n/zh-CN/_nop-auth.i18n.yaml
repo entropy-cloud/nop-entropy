@@ -8,11 +8,13 @@ entity:
     NopAuthOpLog: 操作日志
     NopAuthPosition: 岗位
     NopAuthResource: 菜单资源
+    NopAuthResource_main: 菜单资源
     NopAuthRole: 角色
     NopAuthRoleDataAuth: 角色数据权限
     NopAuthRoleResource: 角色可访问资源
     NopAuthSession: 会话日志
     NopAuthSite: 子站点
+    NopAuthSite_main: 菜单资源
     NopAuthTenant: 租户
     NopAuthUser: 用户
     NopAuthUserRole: 用户角色
@@ -188,6 +190,49 @@ prop:
       updatedBy: 修改人
       url: 链接
       version: 数据版本
+    NopAuthResource_main:
+      authCascadeUp: 自动更新父节点的权限
+      children: 子资源
+      component: 组件名
+      createTime: 创建时间
+      createdBy: 创建人
+      delFlag: 删除标识
+      depends: 依赖资源
+      displayName: 显示名称
+      hidden: 是否隐藏
+      icon: 图标
+      isLeaf: 是否叶子节点
+      keepAlive: 隐藏时保持状态
+      metaConfig: 扩展配置
+      metaConfigComponent: null
+      noAuth: 不检查权限
+      orderNo: 排序
+      parent: 父资源
+      parent.displayName: 父资源
+      parentId: 父资源ID
+      permissions: 权限标识
+      propsConfig: 组件属性
+      propsConfigComponent: null
+      relatedRoleIdList: 角色列表
+      relatedRoleList: 角色列表
+      relatedRoleList_label: 角色列表
+      remark: 备注
+      resourceId: 资源ID
+      resourceType: 资源类型
+      resourceType_label: 资源类型
+      roleMappings: 角色映射
+      routePath: 前端路由
+      site: 子系统
+      site.displayName: 子系统
+      siteId: 站点ID
+      siteId_label: 站点ID
+      status: 状态
+      status_label: 状态
+      target: 链接目标
+      updateTime: 修改时间
+      updatedBy: 修改人
+      url: 链接
+      version: 数据版本
     NopAuthRole:
       childRoleIds: 子角色
       createTime: 创建时间
@@ -280,6 +325,49 @@ prop:
       siteId: 站点ID
       status: 状态
       status_label: 状态
+      updateTime: 修改时间
+      updatedBy: 修改人
+      url: 链接
+      version: 数据版本
+    NopAuthSite_main:
+      authCascadeUp: 自动更新父节点的权限
+      children: 子资源
+      component: 组件名
+      createTime: 创建时间
+      createdBy: 创建人
+      delFlag: 删除标识
+      depends: 依赖资源
+      displayName: 显示名称
+      hidden: 是否隐藏
+      icon: 图标
+      isLeaf: 是否叶子节点
+      keepAlive: 隐藏时保持状态
+      metaConfig: 扩展配置
+      metaConfigComponent: null
+      noAuth: 不检查权限
+      orderNo: 排序
+      parent: 父资源
+      parent.displayName: 父资源
+      parentId: 父资源ID
+      permissions: 权限标识
+      propsConfig: 组件属性
+      propsConfigComponent: null
+      relatedRoleIdList: 角色列表
+      relatedRoleList: 角色列表
+      relatedRoleList_label: 角色列表
+      remark: 备注
+      resourceId: 资源ID
+      resourceType: 资源类型
+      resourceType_label: 资源类型
+      roleMappings: 角色映射
+      routePath: 前端路由
+      site: 子系统
+      site.displayName: 子系统
+      siteId: 站点ID
+      siteId_label: 站点ID
+      status: 状态
+      status_label: 状态
+      target: 链接目标
       updateTime: 修改时间
       updatedBy: 修改人
       url: 链接

@@ -113,6 +113,9 @@
 /nop/auth/model/NopAuthPosition/_NopAuthPosition.xmeta
 /nop/auth/model/NopAuthResource/NopAuthResource.xbiz
 /nop/auth/model/NopAuthResource/NopAuthResource.xmeta
+/nop/auth/model/NopAuthResource/NopAuthResource_main.xbiz
+/nop/auth/model/NopAuthResource/NopAuthResource_main.xmeta
+/nop/auth/model/NopAuthResource/NopAuthSite_main.xmeta
 /nop/auth/model/NopAuthResource/_NopAuthResource.xbiz
 /nop/auth/model/NopAuthResource/_NopAuthResource.xmeta
 /nop/auth/model/NopAuthRole/NopAuthRole.xbiz
@@ -197,7 +200,10 @@
 /nop/auth/pages/NopAuthResource/NopAuthResource.lib.js
 /nop/auth/pages/NopAuthResource/NopAuthResource.lib.xjs
 /nop/auth/pages/NopAuthResource/NopAuthResource.view.xml
+/nop/auth/pages/NopAuthResource/NopAuthResource_main.lib.xjs
+/nop/auth/pages/NopAuthResource/NopAuthResource_main.view.xml
 /nop/auth/pages/NopAuthResource/_gen/_NopAuthResource.view.xml
+/nop/auth/pages/NopAuthResource/_gen/_NopAuthResource_main.view.xml
 /nop/auth/pages/NopAuthResource/main.page.yaml
 /nop/auth/pages/NopAuthResource/picker.page.yaml
 /nop/auth/pages/NopAuthRole/NopAuthRole.lib.js
@@ -223,7 +229,10 @@
 /nop/auth/pages/NopAuthSite/NopAuthSite.lib.js
 /nop/auth/pages/NopAuthSite/NopAuthSite.lib.xjs
 /nop/auth/pages/NopAuthSite/NopAuthSite.view.xml
+/nop/auth/pages/NopAuthSite/NopAuthSite_main.lib.xjs
+/nop/auth/pages/NopAuthSite/NopAuthSite_main.view.xml
 /nop/auth/pages/NopAuthSite/_gen/_NopAuthSite.view.xml
+/nop/auth/pages/NopAuthSite/_gen/_NopAuthSite_main.view.xml
 /nop/auth/pages/NopAuthSite/main.page.yaml
 /nop/auth/pages/NopAuthSite/picker.page.yaml
 /nop/auth/pages/NopAuthTenant/NopAuthTenant.lib.js

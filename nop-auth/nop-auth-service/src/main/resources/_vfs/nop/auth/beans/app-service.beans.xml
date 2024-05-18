@@ -27,5 +27,9 @@
         <property name="bizObjName" value="NopAuthUser_tenant"/>
     </bean>
 
+    <bean id="NopAuthResourceBizModel_main" class="io.nop.auth.service.entity.NopAuthResourceBizModel">
+        <property name="bizObjName" value="NopAuthResource_main"/>
+    </bean>
+
     <import resource="auth-service.beans.xml"/>
 </beans>
