@@ -22,6 +22,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.net.HttpCookie;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
@@ -57,6 +58,18 @@ public class ServletHttpServerContext implements IHttpServerContext {
     @Override
     public String getQueryParam(String name) {
         return request.getParameter(name);
+    }
+
+    @Override
+    public Map<String, String> getQueryParams() {
+        Map<String, String> ret = new LinkedHashMap<>();
+        Enumeration<String> it = request.getParameterNames();
+        while (it.hasMoreElements()) {
+            String name = it.nextElement();
+            String value = getQueryParam(name);
+            ret.put(name, value);
+        }
+        return ret;
     }
 
     @Override

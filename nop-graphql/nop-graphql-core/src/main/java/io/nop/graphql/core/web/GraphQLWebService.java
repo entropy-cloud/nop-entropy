@@ -61,7 +61,7 @@ import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAKER_CHECKER_ENABL
 import static io.nop.graphql.core.GraphQLConstants.SYS_PARAM_ARGS;
 import static io.nop.graphql.core.GraphQLConstants.SYS_PARAM_SELECTION;
 
-public class GraphQLWebService {
+public abstract class GraphQLWebService {
     static final Logger LOG = LoggerFactory.getLogger(GraphQLWebService.class);
 
     protected final Lazy<IGraphQLLogger> graphQLLogger = Lazy.of(() -> {
@@ -70,13 +70,6 @@ public class GraphQLWebService {
 
     public GraphQLWebService() {
 
-    }
-
-    @POST
-    @Path("/graphql")
-    @Produces(MediaType.APPLICATION_JSON + ";charset=UTF-8")
-    public CompletionStage<Response> graphql(String body) {
-        return runGraphQL(body, this::buildJaxrsGraphQLResponse);
     }
 
     protected <T> CompletionStage<T> runGraphQL(String body,
@@ -173,17 +166,6 @@ public class GraphQLWebService {
         return JaxrsHelper.buildJaxrsResponse(context != null ? context.getResponseHeaders() : null, body, 200);
     }
 
-    @POST
-    @Path("/r/{operationName}")
-    @Produces(MediaType.APPLICATION_JSON + ";charset=UTF-8")
-    public CompletionStage<Response> rest(@PathParam("operationName") String operationName,
-                                          @QueryParam(SYS_PARAM_SELECTION) String selection, String body) {
-        return runRest(null, operationName, () -> {
-            return buildRequest(body, selection, true);
-        }, this::buildJaxrsRestResponse);
-    }
-
-
     protected <T> CompletionStage<T> runRest(GraphQLOperationType expectedOpType, String operationName,
                                              Supplier<ApiRequest<?>> requestBuilder,
                                              BiFunction<ApiResponse<?>, IGraphQLExecutionContext, T> responseBuilder
@@ -264,16 +246,6 @@ public class GraphQLWebService {
         });
     }
 
-    @GET
-    @Path("/r/{operationName}")
-    @Produces(MediaType.APPLICATION_JSON + ";charset=UTF-8")
-    public CompletionStage<Response> restQuery(@PathParam("operationName") String operationName,
-                                               @QueryParam(SYS_PARAM_SELECTION) String selection, @QueryParam(SYS_PARAM_ARGS) String args) {
-        return runRest(GraphQLOperationType.query, operationName, () -> {
-            return buildRequest(args, selection, true);
-        }, this::buildJaxrsRestResponse);
-    }
-
     protected Response buildJaxrsRestResponse(ApiResponse<?> res, IGraphQLExecutionContext context) {
         Response response = JaxrsHelper.buildJaxrsResponse(res);
         LOG.debug("nop.graphql.response:{}", response.getEntity());
@@ -326,21 +298,6 @@ public class GraphQLWebService {
         GraphQLArgsHelper.normalizeSubArgs(request.getSelection(), map);
         request.setData(map);
         return request;
-    }
-
-    @GET
-    @Path("/p/{query: [a-zA-Z].*}")
-    public CompletionStage<Response> pageQueryGet(@PathParam("query") String query,
-                                                  @QueryParam(SYS_PARAM_SELECTION) String selection,
-                                                  @QueryParam(SYS_PARAM_ARGS) String args) {
-        return doPageQuery(GraphQLOperationType.query, query, selection, args, this::buildJaxrsPageResponse);
-    }
-
-    @POST
-    @Path("/p/{query: [a-zA-Z].*}")
-    public CompletionStage<Response> pageQuery(@PathParam("query") String query,
-                                               @QueryParam(SYS_PARAM_SELECTION) String selection, String body) {
-        return doPageQuery(null, query, selection, body, this::buildJaxrsPageResponse);
     }
 
     /**

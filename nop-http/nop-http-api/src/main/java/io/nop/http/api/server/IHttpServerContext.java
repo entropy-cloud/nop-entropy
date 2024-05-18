@@ -43,6 +43,8 @@ public interface IHttpServerContext {
 
     String getQueryParam(String name);
 
+    Map<String, String> getQueryParams();
+
     Map<String, Object> getRequestHeaders();
 
     Object getRequestHeader(String headerName);
@@ -58,7 +60,7 @@ public interface IHttpServerContext {
         return value;
     }
 
-    default void resumeRequest(){
+    default void resumeRequest() {
 
     }
 

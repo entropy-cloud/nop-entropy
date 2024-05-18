@@ -11,4 +11,7 @@ public interface QuarkusWebConstants {
     int PRIORITY_APP_FILTER = 5;
     int PRIORITY_CONTENT_ENCODING_FILTER = 10;
     int PRIORITY_SYS_FILTER = 20;
+
+    String KEY_NOP_HTTP_SERVER_CONTEXT = "nopHttpServerContext";
+
 }

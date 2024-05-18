@@ -23,6 +23,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static io.nop.quarkus.web.QuarkusWebConstants.KEY_NOP_HTTP_SERVER_CONTEXT;
+
 @ApplicationScoped
 public class HttpServerFilterRegistrar {
 
@@ -58,7 +60,7 @@ public class HttpServerFilterRegistrar {
     }
 
     public void setupAppFilter(@Observes Filters filters) {
-        registerFilter(filters, false);
+        //registerFilter(filters, false);
     }
 
     void registerFilter(Filters filters, boolean sys) {
@@ -72,7 +74,11 @@ public class HttpServerFilterRegistrar {
             if (serverFilters.isEmpty()) {
                 rc.next();
             } else {
-                VertxHttpServerContext ctx = new VertxHttpServerContext(rc);
+                VertxHttpServerContext ctx = rc.get(KEY_NOP_HTTP_SERVER_CONTEXT);
+                if (ctx == null) {
+                    ctx = new VertxHttpServerContext(rc);
+                    rc.put(KEY_NOP_HTTP_SERVER_CONTEXT, ctx);
+                }
                 HttpServerHelper.runWithFilters(serverFilters, ctx, ctx::proceedAsync);
             }
         }, sys ? sysFilterOrder : appFilterOrder);

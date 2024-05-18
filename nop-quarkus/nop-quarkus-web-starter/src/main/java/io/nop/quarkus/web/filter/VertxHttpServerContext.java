@@ -22,6 +22,7 @@ import io.vertx.ext.web.RoutingContext;
 
 import java.net.HttpCookie;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -61,6 +62,15 @@ public class VertxHttpServerContext implements IHttpServerContext {
     public String getQueryParam(String name) {
         List<String> list = routingContext.queryParam(name);
         return list.isEmpty() ? null : list.get(0);
+    }
+
+    @Override
+    public Map<String, String> getQueryParams() {
+        Map<String, String> ret = new LinkedHashMap<>();
+        routingContext.queryParams().forEach((name, value) -> {
+            ret.put(name, value);
+        });
+        return ret;
     }
 
     @Override

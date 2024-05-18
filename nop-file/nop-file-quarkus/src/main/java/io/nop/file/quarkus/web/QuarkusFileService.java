@@ -14,13 +14,27 @@ import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
-import io.nop.core.resource.IResource;
-import io.nop.file.core.*;
+import io.nop.file.core.AbstractGraphQLFileService;
+import io.nop.file.core.DownloadRequestBean;
+import io.nop.file.core.FileConstants;
+import io.nop.file.core.MediaTypeHelper;
+import io.nop.file.core.UploadRequestBean;
 import io.nop.graphql.core.web.JaxrsHelper;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.ext.web.RoutingContext;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.*;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
 import org.jboss.resteasy.plugins.providers.multipart.InputPart;
 import org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput;
 
@@ -30,50 +44,55 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
+import static io.nop.quarkus.web.utils.QuarkusExecutorHelper.withRoutingContext;
+
 @Path("")
 @ApplicationScoped
 public class QuarkusFileService extends AbstractGraphQLFileService {
     @Path(FileConstants.PATH_UPLOAD)
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA + ";charset=UTF-8")
-    public CompletionStage<Response> uploadFileAsync(MultipartFormDataInput input,
+    public CompletionStage<Response> uploadFileAsync(@Context RoutingContext routingContext,
+                                                     MultipartFormDataInput input,
                                                      @Context HttpServerRequest request) {
-        Map<String, List<InputPart>> uploadForm = input.getFormDataMap();
-        List<InputPart> inputParts = uploadForm.get("file");
-        String bizObjName = request.getParam(FileConstants.PARAM_BIZ_OBJ_NAME);
-        String fieldName = request.getParam(FileConstants.PARAM_FIELD_NAME);
+        return withRoutingContext(routingContext, () -> {
+            Map<String, List<InputPart>> uploadForm = input.getFormDataMap();
+            List<InputPart> inputParts = uploadForm.get("file");
+            String bizObjName = request.getParam(FileConstants.PARAM_BIZ_OBJ_NAME);
+            String fieldName = request.getParam(FileConstants.PARAM_FIELD_NAME);
 
-        String locale = ContextProvider.currentLocale();
-        CompletionStage<ApiResponse<?>> res = null;
-        try {
-            for (InputPart inputPart : inputParts) {
+            String locale = ContextProvider.currentLocale();
+            CompletionStage<ApiResponse<?>> res = null;
+            try {
+                for (InputPart inputPart : inputParts) {
 
-                MultivaluedMap<String, String> headers = inputPart.getHeaders();
-                String contentType = headers.getFirst(HttpHeaders.CONTENT_TYPE);
+                    MultivaluedMap<String, String> headers = inputPart.getHeaders();
+                    String contentType = headers.getFirst(HttpHeaders.CONTENT_TYPE);
 
-                // 获取文件名
-                String fileName = getFileName(headers);
-                if (StringHelper.isEmpty(fileName))
-                    continue;
+                    // 获取文件名
+                    String fileName = getFileName(headers);
+                    if (StringHelper.isEmpty(fileName))
+                        continue;
 
-                // 修复文件名乱码
-                fileName = fixFileName(fileName);
-                // 处理上传文件
-                InputStream inputStream = inputPart.getBody(InputStream.class, null);
+                    // 修复文件名乱码
+                    fileName = fixFileName(fileName);
+                    // 处理上传文件
+                    InputStream inputStream = inputPart.getBody(InputStream.class, null);
 
-                String mimeType = MediaTypeHelper.getMimeType(contentType, StringHelper.fileExt(fileName));
-                UploadRequestBean fileInput = new UploadRequestBean(inputStream, fileName, -1, mimeType);
-                fileInput.setBizObjName(bizObjName);
-                fileInput.setFieldName(fieldName);
+                    String mimeType = MediaTypeHelper.getMimeType(contentType, StringHelper.fileExt(fileName));
+                    UploadRequestBean fileInput = new UploadRequestBean(inputStream, fileName, -1, mimeType);
+                    fileInput.setBizObjName(bizObjName);
+                    fileInput.setFieldName(fieldName);
 
-                res = uploadAsync(buildRequest(request, fileInput));
+                    res = uploadAsync(buildRequest(request, fileInput));
+                    return res.thenApply(JaxrsHelper::buildJaxrsResponse);
+                }
+                throw new IllegalArgumentException("No Upload File");
+            } catch (Exception e) {
+                res = FutureHelper.success(ErrorMessageManager.instance().buildResponse(locale, e));
                 return res.thenApply(JaxrsHelper::buildJaxrsResponse);
             }
-            throw new IllegalArgumentException("No Upload File");
-        } catch (Exception e) {
-            res = FutureHelper.success(ErrorMessageManager.instance().buildResponse(locale, e));
-            return res.thenApply(JaxrsHelper::buildJaxrsResponse);
-        }
+        });
     }
 
     /**
@@ -121,19 +140,22 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
 
     @Path(FileConstants.PATH_DOWNLOAD + "/{fileId}")
     @GET
-    public CompletionStage<Response> download(@PathParam("fileId") String fileId,
+    public CompletionStage<Response> download(@Context RoutingContext routingContext,
+                                              @PathParam("fileId") String fileId,
                                               @DefaultValue("") @QueryParam("contentType") String contentType,
                                               @Context HttpServerRequest req) {
-        DownloadRequestBean request = new DownloadRequestBean();
-        request.setFileId(fileId);
-        request.setContentType(contentType);
+        return withRoutingContext(routingContext, () -> {
+            DownloadRequestBean request = new DownloadRequestBean();
+            request.setFileId(fileId);
+            request.setContentType(contentType);
 
-        return downloadAsync(buildRequest(req, request)).thenApply(res -> {
-            if (!res.isOk()) {
-                return JaxrsHelper.buildJaxrsResponse(res);
-            }
-            WebContentBean content = res.getData();
-            return QuarkusFileHelper.buildFileResponse( content.getContent(), content.getContentType(), content.getFileName());
+            return downloadAsync(buildRequest(req, request)).thenApply(res -> {
+                if (!res.isOk()) {
+                    return JaxrsHelper.buildJaxrsResponse(res);
+                }
+                WebContentBean content = res.getData();
+                return QuarkusFileHelper.buildFileResponse(content.getContent(), content.getContentType(), content.getFileName());
+            });
         });
     }
 }
