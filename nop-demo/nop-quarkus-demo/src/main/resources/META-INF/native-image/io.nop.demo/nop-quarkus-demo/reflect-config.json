@@ -42979,8 +42979,25 @@
       {
         "name": "download",
         "parameterTypes": [
+          "io.vertx.ext.web.RoutingContext",
           "java.lang.String",
           "java.lang.String",
+          "io.vertx.core.http.HttpServerRequest"
+        ]
+      },
+      {
+        "name": "download",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "io.vertx.core.http.HttpServerRequest"
+        ]
+      },
+      {
+        "name": "uploadFileAsync",
+        "parameterTypes": [
+          "io.vertx.ext.web.RoutingContext",
+          "org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput",
           "io.vertx.core.http.HttpServerRequest"
         ]
       },
