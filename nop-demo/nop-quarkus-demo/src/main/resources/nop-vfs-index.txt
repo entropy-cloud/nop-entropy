@@ -19,6 +19,7 @@
 /dict/core/simple-data-type.dict.yaml
 /dict/core/std-data-type.dict.yaml
 /dict/core/std-domain.dict.yaml
+/dict/core/std-query-method.dict.yaml
 /dict/core/std-sql-type.dict.yaml
 /dict/dyn/app-status.dict.yaml
 /dict/dyn/entity-store-type.dict.yaml

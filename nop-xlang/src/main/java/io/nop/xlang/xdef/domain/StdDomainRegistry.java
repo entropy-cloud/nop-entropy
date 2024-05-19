@@ -153,6 +153,7 @@ public class StdDomainRegistry {
         registerStdDomainHandler(new SimpleStdDomainHandlers.XdefAttrType());
 
         registerStdDomainHandler(new EnumStdDomainHandler());
+        registerStdDomainHandler(new DictStdDomainHandler());
 
         registerStdDomainHandler(new XJsonDomainHandler());
 

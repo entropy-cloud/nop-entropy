@@ -126,7 +126,7 @@ public interface XDefConstants {
     String STD_DOMAIN_FLAGS_EXPR = "flags-expr";
 
     String STD_DOMAIN_ENUM = "enum";
-    // String STD_DOMAIN_DICT = "dict";
+    String STD_DOMAIN_DICT = "dict";
 
     String STD_DOMAIN_REGEX = "regex";
 

@@ -4,7 +4,7 @@
 
     <tags>
         <!--
-        在_app.orm.xml的<x:gen-extends>段中会调用这个标签函数，从而为实体增加相应扩展支持
+        在_app.orm.xml的<x:post-extends>段中会调用这个标签函数，从而为实体增加相应扩展支持
         -->
         <DefaultPostExtends outputMode="xml">
             <attr name="_dsl_root" implicit="true"/>
@@ -298,10 +298,13 @@
             -->
             <attr name="_dsl_root" implicit="true"/>
 
+            <description>
+                明确标注了标注no-tenant标签的表不会启用tenant过滤，例如租户表和用户表缺省情况下标注了no-tenant。
+            </description>
+
             <source>
                 <c:script><![CDATA[
                 for(let entityNode of _dsl_root.childByTag('entities').children){
-                    // 租户表和用户表缺省情况下不启用tenant过滤，否则不太好维护
                     if(xpl('thisLib:NotAutoTenant',entityNode))
                        continue;
 

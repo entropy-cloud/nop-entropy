@@ -7,6 +7,7 @@
  */
 package io.nop.api.core.beans;
 
+import io.nop.api.core.ApiConstants;
 import io.nop.api.core.util.ApiStringHelper;
 
 import java.time.LocalDate;
@@ -209,7 +210,7 @@ public class FilterBeans {
             TreeBean filter = filters[i];
             if (filter == null)
                 continue;
-            if (filter.getTagName().equals(FILTER_OP_AND)) {
+            if (filter.getTagName().equals(FILTER_OP_AND) || DUMMY_TAG_NAME.equals(filter.getTagName())) {
                 if (filter.getChildren() != null) {
                     for (TreeBean child : filter.getChildren()) {
                         ret.addChild(child);
@@ -277,6 +278,9 @@ public class FilterBeans {
             return null;
         TreeBean tree = filter.toTreeBean();
         if (tree.getTagName().equals(DUMMY_TAG_NAME) || tree.getTagName().equals(FILTER_TAG_NAME)) {
+            if(filter.getChildCount() == 0)
+                return null;
+
             if (tree == filter)
                 tree = tree.cloneInstance();
             tree.setTagName(FILTER_OP_AND);

@@ -191,6 +191,8 @@ public class QueryBean implements Serializable, ICloneable {
             return this;
 
         TreeBean tree = FilterBeans.normalizeFilterBean(filter);
+        if (tree == null)
+            return null;
 
         if (this.filter == null) {
             this.filter = tree;

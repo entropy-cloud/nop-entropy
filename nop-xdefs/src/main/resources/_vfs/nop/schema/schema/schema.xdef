@@ -77,7 +77,7 @@
               graphql:type="string" graphql:jsonComponentProp="string" graphql:dictValueProp="prop-path"
               graphql:joinLeftProps="word-set" graphql:joinRightProps="word-set"
               graphql:connectionProp="prop-name" graphql:maxFetchSize="int"
-              graphql:queryMethod="string" graphql:authObjName="string"
+              graphql:queryMethod="dict:core/std-query-method" graphql:authObjName="string"
         >
             <description xdef:value="string"/>
 

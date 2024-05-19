@@ -33,6 +33,7 @@ public interface XLangErrors {
 
     String ARG_ATTR_NAME = "attrName";
     String ARG_ALLOWED_NAMES = "allowedNames";
+    String ARG_ALLOWED_VALUES = "allowedValues";
 
     String ARG_VALUE = "value";
     String ARG_NAMES = "names";
@@ -833,7 +834,7 @@ public interface XLangErrors {
             "nop.err.xlang.xdef.illegal-class-name-for-enum-domain", "[className]不是合法的java类名", ARG_CLASS_NAME);
 
     ErrorCode ERR_XDEF_INVALID_ENUM_VALUE_FOR_PROP = define("nop.err.xlang.xdef.invalid-enum-value",
-            "属性[{propName}]的值[{value}]不是合法的[{dictName}]枚举值", ARG_PROP_NAME, ARG_VALUE, ARG_DICT_NAME);
+            "属性[{propName}]的值[{value}]不是合法的[{dictName}]枚举值", ARG_PROP_NAME, ARG_VALUE, ARG_DICT_NAME, ARG_ALLOWED_VALUES);
 
     ErrorCode ERR_XDEF_STD_DOMAIN_NOT_SUPPORT_OPTIONS = define("nop.err.xlang.xdef.std-domain-not-support-options",
             "[{stdDomain}]不支持扩展选项", ARG_STD_DOMAIN);

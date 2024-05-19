@@ -24,7 +24,7 @@ import static io.nop.biz.BizConstants.PARAM_PREPARE_QUERY;
 import static io.nop.biz.BizConstants.PARAM_QUERY;
 
 /**
- * BizObject可能相互引用，所以这里只保存bizObjName，使用加持加载机制。另外每次都按照bizObjName加载也可以实现动态更新，每当对象模型发生变化的时候，
+ * BizObject可能相互引用，所以这里只保存bizObjName，使用延迟加载机制。另外每次都按照bizObjName加载也可以实现动态更新，每当对象模型发生变化的时候，
  * 都自动更新加载对象。
  */
 @SuppressWarnings("unchecked")

@@ -11,6 +11,7 @@ import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.validate.IValidationErrorCollector;
+import io.nop.commons.type.StdDataType;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.xlang.api.XLangCompileTool;
@@ -19,6 +20,7 @@ import io.nop.xlang.xdef.IStdDomainOptions;
 import io.nop.xlang.xdef.XDefConstants;
 
 import static io.nop.xlang.XLangErrors.ARG_ALLOWED_NAMES;
+import static io.nop.xlang.XLangErrors.ARG_ALLOWED_VALUES;
 import static io.nop.xlang.XLangErrors.ARG_DICT_NAME;
 import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
 import static io.nop.xlang.XLangErrors.ARG_VALUE;
@@ -28,7 +30,7 @@ public class DictStdDomainHandler implements IStdDomainHandler {
 
     @Override
     public String getName() {
-        return XDefConstants.STD_DOMAIN_ENUM;
+        return XDefConstants.STD_DOMAIN_DICT;
     }
 
     @Override
@@ -38,7 +40,16 @@ public class DictStdDomainHandler implements IStdDomainHandler {
 
     @Override
     public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
-        return PredefinedGenericTypes.STRING_TYPE;
+        DictDomainOptions opts = (DictDomainOptions) options;
+        DictBean dict = opts.loadDictBean(null);
+        if (dict.getValueType() == null)
+            return PredefinedGenericTypes.STRING_TYPE;
+
+        StdDataType dataType = StdDataType.fromStdName(dict.getValueType());
+        if (dataType == null)
+            return PredefinedGenericTypes.STRING_TYPE;
+        Class<?> clazz = mandatory ? dataType.getMandatoryJavaClass() : dataType.getJavaClass();
+        return PredefinedGenericTypes.getPredefinedTypeForJavaType(clazz);
     }
 
     @Override
@@ -52,7 +63,7 @@ public class DictStdDomainHandler implements IStdDomainHandler {
         if (dict.getOptionByValue(text) == null)
             throw new NopException(ERR_XDEF_INVALID_ENUM_VALUE_FOR_PROP).loc(loc).param(ARG_PROP_NAME, propName)
                     .when(dict.getOptionCount() < 50, e -> {
-                        e.param(ARG_ALLOWED_NAMES, dict.getLabels());
+                        e.param(ARG_ALLOWED_VALUES, dict.getValues());
                     }).param(ARG_VALUE, text).param(ARG_DICT_NAME, opts.getDictName());
 
         return text;

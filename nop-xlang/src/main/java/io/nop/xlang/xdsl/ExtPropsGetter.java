@@ -37,6 +37,10 @@ public class ExtPropsGetter {
         if (value == null)
             return null;
 
+        if(value instanceof List){
+            return (List<OrderFieldBean>) value;
+        }
+
         Map<String, Object> map = (Map<String, Object>) value;
         Object body = map.get(ApiConstants.TREE_BEAN_PROP_BODY);
         if (!(body instanceof List))

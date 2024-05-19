@@ -170,3 +170,15 @@ mvnw install -Dnative -DskipTests -Dquarkus.native.container-build=true
     </dependency>
 </dependencies>
 ```
+
+## 问题诊断
+
+### 1. quarkus定义的bean找不到
+quarkus的Bean定义如果被封装到库模块中，则此模块必须配置`jandex-maven-plugin`
+
+### 2. 前端访问服务返回400，BadRequest
+url中不允许包含特殊字符，必须要进行UTF8编码。例如 `http://localhost:8080/r/NopAuthUser__findPage?@selection=items{id}` 会报错，
+必须采用如下编码
+```
+http://localhost:8080/r/NopAuthSite__findPage?%40selection=items%7Bid%7D
+```

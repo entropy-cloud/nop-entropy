@@ -1,0 +1,14 @@
+label: 查询方法
+locale: zh-CN
+description: CRUD服务所支持的标准查询方法
+options:
+  - value: findCount
+    label: 返回符合条件的条目总数，返回类型为Long
+  - value: findFirst
+    label: 返回符合条件的第一条记录，返回类型为对象类型
+  - value: findList
+    label: 返回符合条件的所有记录，返回类型为对象列表
+  - value: findPage
+    label: 返回符合条件的分页查询记录，返回类型为PageBean
+  - value: findConnection
+    label: 返回符合条件的分页查询记录，返回类型为GraphQLConnection

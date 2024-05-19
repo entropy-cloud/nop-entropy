@@ -10,6 +10,7 @@ package io.nop.xlang.xdef.domain;
 import io.nop.api.core.beans.DictBean;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.dict.DictProvider;
+import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.xlang.xdef.IStdDomainOptions;
 
 public class DictDomainOptions implements IStdDomainOptions {
@@ -32,6 +33,8 @@ public class DictDomainOptions implements IStdDomainOptions {
     public DictBean loadDictBean(IEvalContext context) {
         if (dictBean == null) {
             DictBean dict = DictProvider.instance().getDict(null, dictName, null, context);
+            if (context == null || context == DisabledEvalScope.INSTANCE)
+                dictBean = dict;
             if (dict != null && dict.isStatic()) {
                 dictBean = dict;
             }
