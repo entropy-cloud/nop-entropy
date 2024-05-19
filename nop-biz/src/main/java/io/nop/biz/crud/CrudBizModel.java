@@ -87,6 +87,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static io.nop.auth.api.AuthApiErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.auth.api.AuthApiErrors.ERR_AUTH_NO_DATA_AUTH;
@@ -778,7 +779,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @Description("@i18n:biz.batchGet|根据主键批量获取对象")
     @BizQuery
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
-    public List<T> batchGet(@Name("ids") Set<String> ids, IServiceContext context) {
+    public List<T> batchGet(@Name("ids") Collection<String> ids, IServiceContext context) {
         if (CollectionHelper.isEmpty(ids))
             return Collections.emptyList();
 
@@ -1509,5 +1510,61 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         query = prepareFindPageQuery(query, authObjName, METHOD_FIND_TREE_PAGE, prepareQuery, context);
 
         return getTreeEntityList(query);
+    }
+
+    @BizQuery
+    @Description("查询树状结构")
+    public List<T> findListForTree(@Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context) {
+        return doFindListForTree(query, getBizObjName(), null, selection, context);
+    }
+
+    @BizAction
+    public List<T> doFindListForTree(@Name("query") QueryBean query,
+                                     @Name("authObjName") String authObjName,
+                                     @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
+                                     FieldSelectionBean selection,
+                                     IServiceContext context) {
+        List<StdTreeEntity> list = doFindTreeEntityList(query, authObjName, prepareQuery, selection, context);
+        return getEntityListByTreeEntity(list, context);
+    }
+
+    protected List<T> getEntityListByTreeEntity(List<StdTreeEntity> list, IServiceContext context) {
+        List<String> idList = list.stream().map(StdTreeEntity::getId).collect(Collectors.toList());
+        return batchGet(idList, context);
+    }
+
+    @BizQuery
+    @Description("分页查询树状结构")
+    public PageBean<T> findPageForTree(@Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context) {
+        return doFindPageForTree(query, getBizObjName(), null, selection, context);
+    }
+
+    @BizAction
+    public PageBean<T> doFindPageForTree(@Name("query") QueryBean query,
+                                         @Name("authObjName") String authObjName,
+                                         @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
+                                         FieldSelectionBean selection,
+                                         IServiceContext context
+    ) {
+        if (query == null)
+            query = new QueryBean();
+
+        query = prepareFindPageQuery(query, authObjName, METHOD_FIND_TREE_PAGE, prepareQuery, context);
+
+        PageBean<T> pageBean = new PageBean<>();
+        pageBean.setLimit(query.getLimit());
+        pageBean.setOffset(query.getOffset());
+        pageBean.setTotal(-1L);
+
+        if (selection != null && selection.hasSourceField(GraphQLConstants.FIELD_TOTAL)) {
+            long total = countTreeEntity(query);
+            pageBean.setTotal(total);
+        }
+
+        if (selection == null || selection.hasSourceField(GraphQLConstants.FIELD_ITEMS)) {
+            List<StdTreeEntity> ret = getTreeEntityList(query);
+            pageBean.setItems(getEntityListByTreeEntity(ret, context));
+        }
+        return pageBean;
     }
 }
