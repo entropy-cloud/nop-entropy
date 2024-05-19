@@ -14,9 +14,5 @@
             </graphql:orderBy>
         </prop>
 
-        <prop name="resourcesConnection" displayName="资源列表" lazy="true"
-              graphql:queryMethod="findConnection" graphql:connectionProp="resources">
-            <schema bizObjName="NopAuthResource"/>
-        </prop>
     </props>
 </meta>
