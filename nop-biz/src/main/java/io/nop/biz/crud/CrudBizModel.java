@@ -270,7 +270,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @Override
     public PageBean<T> doFindPage0(@Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
                                    @Name("authObjName") String authObjName,
-                                   @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery, FieldSelectionBean selection,
+                                   @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
+                                   FieldSelectionBean selection,
                                    IServiceContext context) {
         query = prepareFindPageQuery(query, authObjName, METHOD_FIND_PAGE, prepareQuery, context);
 

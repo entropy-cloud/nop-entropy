@@ -233,5 +233,20 @@
             </source>
         </DoDelete>
 
+        <DoFindTreeEntityPage x:prototype="DoFindPage">
+            <source>
+                <thisLib:_DoFindByQuery query="${query}" authObjName="${authObjName}" action="doFindTreeEntityPage" filter="${slot_filter}"
+                  orderBy="${slot_orderBy}" prepareQuery="${slot_prepareQuery}" xpl:return="ret"/>
+                <c:script> ret </c:script>
+            </source>
+        </DoFindTreeEntityPage>
+
+        <DoFindTreeEntityList x:prototype="DoFindPage">
+            <source>
+                <thisLib:_DoFindByQuery query="${query}" authObjName="${authObjName}" action="doFindTreeEntityList" filter="${slot_filter}"
+                  orderBy="${slot_orderBy}" prepareQuery="${slot_prepareQuery}" xpl:return="ret"/>
+                <c:script> ret </c:script>
+            </source>
+        </DoFindTreeEntityList>
     </tags>
 </lib>

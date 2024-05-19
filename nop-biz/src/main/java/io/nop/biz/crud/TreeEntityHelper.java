@@ -86,7 +86,7 @@ public class TreeEntityHelper {
         } else {
             // 如果 parentProp 属性在 filter 中存在，以传入的属性为准
             boolean hasParentProp = filter != null && ((TreeBean) filter).childWithAttr("name", parentProp) == null;
-            if (hasParentProp) {
+            if (filter == null || hasParentProp) {
                 if (filter != null)
                     sb.and();
                 sb.append("\n ").owner("b").append(parentProp);
