@@ -161,6 +161,12 @@ public class TreeBean extends ExtensibleBean implements ITreeBean, IComponentMod
         return null;
     }
 
+    public TreeBean nodeWithAttr(String attrName, Object attrValue) {
+        if (Objects.equals(attrValue, getAttr(attrName)))
+            return this;
+        return childWithAttr(attrName, attrValue);
+    }
+
     public TreeBean childWithAttr(String attrName, Object attrValue) {
         if (children == null)
             return null;
@@ -246,7 +252,7 @@ public class TreeBean extends ExtensibleBean implements ITreeBean, IComponentMod
      * @return 是否成功转换
      */
     public boolean transformChild(Predicate<TreeBean> filter, Function<TreeBean, ?> fn, boolean multiple) {
-        if(children == null)
+        if (children == null)
             return false;
 
         boolean bChange = false;
