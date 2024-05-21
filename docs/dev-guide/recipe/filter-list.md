@@ -29,7 +29,7 @@
 
 具体数据权限配置参见 [auth.md](../auth/auth.md)
 
-### 2. 在前台拼接过滤条件
+## 2. 在前台拼接过滤条件
 
 XView模型中定义的grid可以配置filter条件，使用该grid生成的表格查询数据时会自动携带过滤条件。
 
@@ -47,7 +47,7 @@ XView模型中定义的grid可以配置filter条件，使用该grid生成的表�
 
 **注意在grid中配置的条件是作为前端的查询条件传播到后台的**
 
-### 3. 后台XMeta对象配置过滤条件
+## 3. 后台XMeta对象配置过滤条件
 
 xmeta配置文件中可以配置filter过滤条件。如果在meta中配置，则新增、修改的时候也会按照这里的过滤条件自动设置。例如
 
@@ -81,7 +81,7 @@ query{
 
 在meta中增加的过滤条件是在后台拼接的，前台看不见。而且它会影响到新建和修改操作，**新建和修改会按照过滤条件中的值进行设置**，确保实体满足filer要求
 
-### 4. 在后台BizModel中增加新的方法
+## 4. 在后台BizModel中增加新的方法
 
 ```
 class MyEntityBizModel extends CrudBizModel<MyEntity>{
@@ -120,7 +120,7 @@ class MyEntityBizModel extends CrudBizModel<MyEntity>{
 </form>
 ```
 
-### 5. 采用子查询进行过滤
+## 5. 采用子查询进行过滤
 
 ```xml
 <filter>
@@ -152,7 +152,7 @@ query.addFilter(FilterBeans.assertOp("sql",sql));
 
 SQL.begin()会返回一个SqlBuilder对象，它提供了很多帮助函数用于简化SQL语句的拼接。
 
-### 6. 在XBiz模型文件中配置过滤条件
+## 6. 在XBiz模型文件中配置过滤条件
 
 ```xml
 <query name="active_findPage" x:prototype="findPage">
@@ -199,7 +199,7 @@ SQL.begin()会返回一个SqlBuilder对象，它提供了很多帮助函数用�
 </query>
 ```
 
-### 7. 为子表属性增加过滤条件
+## 7. 为子表属性增加过滤条件
 
 在xmeta中可以为子表属性配置`graphql:queryMethod`，它的值对应于GraphqlQLQueryMethod枚举类，包含findCount/findFirst/findList/findPage/findConnection等值。
 其中findPage表示分页查询返回PageBean对象，而findConnection表示分页查询，返回GraphQLConnection对象。
@@ -231,3 +231,24 @@ SQL.begin()会返回一个SqlBuilder对象，它提供了很多帮助函数用�
 ```xml
 <prop name="resourcesConnection" graphql:queryMethod="findConnection" graphql:connectionProp="resources" />
 ```
+
+## 8. 根据子表属性过滤主表记录
+
+QueryBean提供了transformFilter函数，可以对前台提交的查询条件进行结构变换，例如将myCustomFilter字段的条件转换为子查询条件等。
+
+在XMeta中可以通过prop节点的`graphql:transFilter`子节点配置来定义转换逻辑。
+
+```xml
+  <prop name="myCustomFilter" queryable="true">
+      <graphql:transFilter>
+          <filter:sql>
+              exists(select o2 from NopAuthResource o2 where o2.siteId= o.id
+               and o2.status >= ${filter.getAttr('value')})
+          </filter:sql>
+      </graphql:transFilter>
+  </prop>
+```
+
+* 设置了`queryable=true`的属性可以在前端传递的查询条件中使用。不需要字段是实体的属性。
+* `graphql:transFilter`是一个函数，上下文中存在filter对象，它对应于name为指定属性名的一个TreeBean对象。
+* `<filter:sql>`是`filter.xlib`中定义的一个标签，它可以将一个动态生成的SQL语句包装为`$type=sql`的TreeBean对象，用于数据库查询条件。

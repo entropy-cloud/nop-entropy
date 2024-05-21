@@ -99,4 +99,10 @@ public class TestConnectionProp extends JunitAutoTestCase {
         output("response.yaml", result);
     }
 
+    @EnableSnapshot
+    @Test
+    public void testTransFilter() {
+        prepareData();
+        run("request.yaml", "response.yaml");
+    }
 }

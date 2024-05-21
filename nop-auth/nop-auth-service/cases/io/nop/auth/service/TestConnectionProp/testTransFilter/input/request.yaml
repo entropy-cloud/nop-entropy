@@ -1,0 +1,15 @@
+query: >
+  query test($query:Map){
+    NopAuthSite__findPage(query:$query){
+      total
+      items{
+         id
+      }
+    }
+  }
+variables:
+  query:
+    filter:
+      "$type": eq
+      name: myCustomFilter
+      value: 1

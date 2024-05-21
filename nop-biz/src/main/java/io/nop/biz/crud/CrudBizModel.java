@@ -356,6 +356,9 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         if (prepareQuery != null)
             prepareQuery.accept(query, context);
 
+        if (query.getFilter() != null)
+            BizQueryHelper.transformFilter(query, objMeta, context);
+
         if (queryTransformer != null)
             queryTransformer.transform(query, authObjName, action, this.getThisObj(), context);
 

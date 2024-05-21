@@ -1,4 +1,5 @@
-<meta x:extends="super" x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:graphql="graphql">
+<meta x:extends="super" x:schema="/nop/schema/xmeta.xdef"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:graphql="graphql" xmlns:filter="filter">
 
     <props>
         <prop name="extConfig">
@@ -23,6 +24,15 @@
         <prop name="resourcesConnection" displayName="资源列表"
               graphql:queryMethod="findPage" graphql:connectionProp="resources">
             <schema bizObjName="NopAuthResource" />
+        </prop>
+
+        <prop name="myCustomFilter" queryable="true">
+            <graphql:transFilter>
+                <filter:sql>
+                    exists(select o2 from NopAuthResource o2 where o2.siteId= o.id
+                     and o2.status >= ${filter.getAttr('value')})
+                </filter:sql>
+            </graphql:transFilter>
         </prop>
     </props>
 </meta>

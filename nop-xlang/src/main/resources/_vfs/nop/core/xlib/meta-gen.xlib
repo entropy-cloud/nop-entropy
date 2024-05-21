@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <lib x:schema="/nop/schema/xlib.xdef"
-     xmlns:x="/nop/schema/xdsl.xdef">
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdsl="xdsl" xmlns:xpl="xpl" xmlns:c="c">
 
     <tags>
         <DefaultMetaGenExtends outputMode="node">
             <attr name="_dsl_root" implicit="true"/>
             <source>
-
+                <meta>
+                    <xdsl:config xpl:ignoreTag="true">
+                        <c:import from="/nop/core/xlib/filter.xlib" />
+                    </xdsl:config>
+                </meta>
             </source>
         </DefaultMetaGenExtends>
 

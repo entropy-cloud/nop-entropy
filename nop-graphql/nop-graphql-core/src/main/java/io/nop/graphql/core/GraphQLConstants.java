@@ -38,6 +38,8 @@ public interface GraphQLConstants {
     String TAG_GRAPHQL_FILTER = "graphql:filter";
     String TAG_GRAPHQL_ORDER_BY = "graphql:orderBy";
 
+    String TAG_GRAPHQL_TRANS_FILTER = "graphql:transFilter";
+
     String PROP_TAG_CONNECTION = "connection";
 
     String POSTFIX_CONNECTION = "Connection";

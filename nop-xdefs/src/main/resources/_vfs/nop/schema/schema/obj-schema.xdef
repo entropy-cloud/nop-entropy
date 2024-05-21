@@ -73,6 +73,8 @@
 
             <graphql:inputType xdef:value="class-name"/>
 
+            <graphql:transFilter xdef:value="xpl-fn:(filter,query,forEntity)=>any" />
+
             <!--
             配置字段级别的权限约束
 

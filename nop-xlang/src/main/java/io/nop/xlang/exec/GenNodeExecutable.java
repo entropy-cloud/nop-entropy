@@ -12,11 +12,14 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
+import io.nop.core.lang.eval.DisabledEvalOutput;
 import io.nop.core.lang.eval.EvalRuntime;
+import io.nop.core.lang.eval.IEvalOutput;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.core.lang.xml.IXNodeHandler;
+import io.nop.core.lang.xml.handler.CollectXNodeHandler;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -82,7 +85,19 @@ public class GenNodeExecutable extends AbstractExecutable {
 
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
-        IXNodeHandler out = (IXNodeHandler) rt.getOut();
+        IEvalOutput output = rt.getOut();
+        if (output == DisabledEvalOutput.INSTANCE) {
+            CollectXNodeHandler out = new CollectXNodeHandler();
+            executeWithHandler(out, executor, rt);
+            return out.endDoc();
+        } else {
+            IXNodeHandler out = (IXNodeHandler) rt.getOut();
+            executeWithHandler(out, executor, rt);
+            return null;
+        }
+    }
+
+    void executeWithHandler(IXNodeHandler out, IExpressionExecutor executor, EvalRuntime rt) {
         SourceLocation loc = getLocation();
         Map<String, ValueWithLocation> attrs = buildAttrs(executor, rt);
 
@@ -94,7 +109,6 @@ public class GenNodeExecutable extends AbstractExecutable {
             executor.execute(bodyExpr, rt);
             out.endNode(tagName);
         }
-        return null;
     }
 
     String buildTagName(IExpressionExecutor executor, EvalRuntime rt) {

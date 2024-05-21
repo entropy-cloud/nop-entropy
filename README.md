@@ -16,7 +16,7 @@ Nop Platform 2.0 is a new generation of low-code platform based on the theory of
 Nop Platform 2.0是基于可逆计算原理从零开始构建的新一代低代码(lowcode)
 平台，它致力于克服低代码平台无法摆脱穷举法的困境，从理论层面超越组件技术，有效的解决粗粒度软件复用的问题。
 
-- nop-entropy是Nop平台的后端部分。它采用Java语言实现，不依赖第三方框架，可以和Quarkus或者Spring框架集成在一起使用。
+- nop-entropy是Nop平台的后端部分。它采用Java语言实现，不依赖第三方框架，可以和Quarkus、Spring或者Solon框架集成在一起使用。
 
 - nop-entropy支持GraalVM技术，可以借助于[Quarkus](https://quarkus.io/)
   或者[SpringNative](https://docs.spring.io/spring-native/docs/current/reference/htmlsingle/)

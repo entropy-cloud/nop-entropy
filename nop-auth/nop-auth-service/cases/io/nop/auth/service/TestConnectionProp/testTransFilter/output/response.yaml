@@ -1,0 +1,15 @@
+{
+  "data": {
+    "NopAuthSite__findPage": {
+      "total": 2,
+      "items": [
+        {
+          "id": "test"
+        },
+        {
+          "id": "test2"
+        }
+      ]
+    }
+  }
+}

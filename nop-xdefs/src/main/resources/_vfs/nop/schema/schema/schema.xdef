@@ -91,6 +91,8 @@
 
             <graphql:inputType xdef:value="class-name"/>
 
+            <graphql:transFilter xdef:value="xpl-fn:(filter,query,forEntity)=>any" />
+
             <auth xdef:ref="auth.xdef"/>
 
             <!--

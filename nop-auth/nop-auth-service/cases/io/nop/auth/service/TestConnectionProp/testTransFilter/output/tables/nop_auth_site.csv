@@ -1,0 +1,3 @@
+_chgType,SITE_ID,DISPLAY_NAME,ORDER_NO,URL,STATUS,EXT_CONFIG,CONFIG_VERSION,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME,REMARK
+A,test,Test,2,,0,,,0,autotest-ref,*,autotest-ref,*,
+A,test2,Test2,3,,0,,,0,autotest-ref,*,autotest-ref,*,

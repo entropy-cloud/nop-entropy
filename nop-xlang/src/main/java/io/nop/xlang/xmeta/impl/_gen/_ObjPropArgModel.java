@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [90:14:0:0]/nop/schema/schema/obj-schema.xdef <p>
+ * generate from [92:14:0:0]/nop/schema/schema/obj-schema.xdef <p>
  * 对应graphql的argument
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

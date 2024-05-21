@@ -283,13 +283,13 @@ public class TreeBean extends ExtensibleBean implements ITreeBean, IComponentMod
                     i--;
                     n--;
                     for (Object elm : c) {
-                        TreeBean sub = (TreeBean) elm;
+                        TreeBean sub = ((ITreeBean) elm).toTreeBean();
                         children.add(i, sub);
                         i++;
                         n++;
                     }
                 } else {
-                    TreeBean sub = (TreeBean) o;
+                    TreeBean sub = ((ITreeBean) o).toTreeBean();
                     children.set(i, sub);
                 }
                 if (!multiple)
