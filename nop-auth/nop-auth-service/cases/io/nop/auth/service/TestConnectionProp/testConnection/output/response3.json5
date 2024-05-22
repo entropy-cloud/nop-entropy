@@ -1,0 +1,16 @@
+{
+  "data": {
+    "NopAuthSite__get": {
+      "id": "test2",
+      "resourcesConnection": {
+        "items": [
+          {
+            "resourceId": "test2",
+            "resourceType": "TOPM"
+          }
+        ],
+        "total": 1
+      }
+    }
+  }
+}

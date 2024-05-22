@@ -903,6 +903,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PARAM_BIZ_OBJ_NAME"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PARAM_ENTITY_NAME"
       },
       {
@@ -914,6 +919,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PARAM_PROP_NAME"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PARAM_REF_BIZ_OBJ_NAME"
       },
       {
         "allowUnsafeAccess": false,

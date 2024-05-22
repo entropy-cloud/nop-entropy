@@ -1,0 +1,12 @@
+{
+  "data": {
+    "id": "test",
+    "displayName": "Test",
+    "resources": [
+      {
+        "id": "test1"
+      }
+    ]
+  },
+  "status": 0
+}

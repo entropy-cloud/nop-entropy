@@ -10,9 +10,11 @@ package io.nop.graphql.core.engine;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.graphql.core.GraphQLConstants;
+import io.nop.graphql.core.ast.GraphQLArgument;
 import io.nop.graphql.core.ast.GraphQLDirective;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldSelection;
+import io.nop.graphql.core.ast.GraphQLLiteral;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLSelectionSet;
 import io.nop.graphql.core.ast.GraphQLType;
@@ -85,7 +87,7 @@ public class RpcSelectionSetBuilder {
                             .param(ARG_FIELD_NAME, fieldName);
 
                 GraphQLFieldSelection field = buildField(objDef, fieldDef, subSelection, level);
-                if(field != null) {
+                if (field != null) {
                     field.setAlias(alias);
                     selectionSet.addFieldSelection(field);
                 }
@@ -114,6 +116,7 @@ public class RpcSelectionSetBuilder {
         field.setFieldDefinition(fieldDef);
 
         buildDirectives(field, selectionBean);
+        buildArgs(field, selectionBean);
 
         String typeName = fieldDef.getType().getNamedTypeName();
         if (typeName != null) {
@@ -160,6 +163,21 @@ public class RpcSelectionSetBuilder {
                 });
             }
             field.addDirective(directive);
+        }
+    }
+
+    void buildArgs(GraphQLFieldSelection field, FieldSelectionBean selection) {
+        if (selection == null || selection.getArgs() == null)
+            return;
+
+        for (Map.Entry<String, Object> entry : selection.getArgs().entrySet()) {
+            String name = entry.getKey();
+            Object value = entry.getValue();
+
+            GraphQLArgument arg = new GraphQLArgument();
+            arg.setName(name);
+            arg.setValue(GraphQLLiteral.valueOf(null, value));
+            field.addArg(arg);
         }
     }
 

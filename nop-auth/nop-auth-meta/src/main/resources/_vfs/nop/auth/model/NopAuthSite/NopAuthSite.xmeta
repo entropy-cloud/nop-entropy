@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopAuthSite.xmeta"
-      xmlns:graphql="graphql">
+      xmlns:graphql="graphql" xmlns:ui="ui">
     <props>
-        <prop name="resourcesList" displayName="资源列表" graphql:queryMethod="findList" lazy="true">
+        <prop name="resourcesList" displayName="资源列表" graphql:queryMethod="findList" lazy="true" ui:show="X">
             <schema bizObjName="NopAuthResource"/>
 
             <graphql:filter>

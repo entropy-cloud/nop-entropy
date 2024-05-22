@@ -908,6 +908,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PARAM_BIZ_OBJ_NAME"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PARAM_ENTITY_NAME"
       },
       {
@@ -919,6 +924,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PARAM_PROP_NAME"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PARAM_REF_BIZ_OBJ_NAME"
       },
       {
         "allowUnsafeAccess": false,
@@ -16163,6 +16173,13 @@
       {
         "name": "batchGet",
         "parameterTypes": [
+          "java.util.Collection",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "batchGet",
+        "parameterTypes": [
           "java.util.Set",
           "io.nop.core.context.IServiceContext"
         ]
@@ -16471,6 +16488,16 @@
         ]
       },
       {
+        "name": "doFindListForTree",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
+          "java.util.function.BiConsumer",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "doFindPage",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean",
@@ -16481,6 +16508,16 @@
       },
       {
         "name": "doFindPage0",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
+          "java.util.function.BiConsumer",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doFindPageForTree",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean",
           "java.lang.String",
@@ -16607,6 +16644,14 @@
         ]
       },
       {
+        "name": "findListForTree",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "findLogicalDeleted",
         "parameterTypes": [
           "java.util.Map",
@@ -16616,6 +16661,14 @@
       },
       {
         "name": "findPage",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "findPageForTree",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean",
           "io.nop.api.core.beans.FieldSelectionBean",
@@ -16672,6 +16725,13 @@
           "java.lang.String",
           "java.lang.String",
           "boolean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "getEntityListByTreeEntity",
+        "parameterTypes": [
+          "java.util.List",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -33681,6 +33741,13 @@
           "java.lang.Object",
           "java.lang.Throwable",
           "io.nop.graphql.core.IGraphQLExecutionContext"
+        ]
+      },
+      {
+        "name": "buildSelectionBean",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.api.core.beans.FieldSelectionBean"
         ]
       },
       {

@@ -79,6 +79,10 @@ prop:
       maxFailedCount: Max Failed Count
       isUseDefaultCalendar: Is Use Default Calendar
       pauseCalendars: Pause Calendars
+      schedulerGroup: Scheduler Group
+      schedulerId: Scheduler Id
+      schedulerEpoch: Scheduler Epoch
+      schedulerCheckTime: Scheduler Check Time
       version: Version
       createdBy: Created By
       createTime: Create Time

@@ -372,6 +372,7 @@ prop:
       resources: Resources
       resourcesConnection: null
       extConfigComponent: null
+      resourcesList: null
     NopAuthTenant:
       tenantId: Tenant ID
       name: Name

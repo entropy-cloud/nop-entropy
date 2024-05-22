@@ -80,6 +80,10 @@ prop:
       pauseCalendars: 暂停日历
       remark: 备注
       repeatInterval: 定时执行间隔
+      schedulerCheckTime: 调度检查时间
+      schedulerEpoch: 调度器世代
+      schedulerGroup: 调度器分组
+      schedulerId: 调度器ID
       sid: SID
       status: 任务状态
       status_label: 任务状态
