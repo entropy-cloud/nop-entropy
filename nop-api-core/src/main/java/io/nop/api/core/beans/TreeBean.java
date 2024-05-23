@@ -354,7 +354,7 @@ public class TreeBean extends ExtensibleBean implements ITreeBean, IComponentMod
 
         List<TreeBean> ret = new ArrayList<>(children.size());
         for (TreeBean child : children) {
-            ret.add(child.toTreeBean());
+            ret.add(child.cloneInstance());
         }
         return ret;
     }
