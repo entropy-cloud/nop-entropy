@@ -171,7 +171,7 @@ public class _NopWfStatusHistory extends DynamicOrmEntity{
     public NopWfStatusHistory cloneInstance() {
         NopWfStatusHistory entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

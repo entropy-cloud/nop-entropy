@@ -111,6 +111,7 @@ prop:
       moduleId: 模块ID
       propMetas: null
       querySpace: 查询空间
+      relationMetasForEntity1: null
       remark: 备注
       status: 状态
       status_label: 状态

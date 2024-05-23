@@ -304,7 +304,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     public NopBatchTask cloneInstance() {
         NopBatchTask entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

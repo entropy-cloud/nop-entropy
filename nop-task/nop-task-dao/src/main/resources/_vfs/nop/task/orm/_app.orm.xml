@@ -150,7 +150,7 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>
-                <to-one displayName="逻辑流定义" name="taskDefinition"
+                <to-one displayName="逻辑流定义" name="taskDefinition" refDisplayName="逻辑流定义权限"
                         refEntityName="io.nop.task.dao.entity.NopTaskDefinition" refPropName="definitionAuths"
                         tagSet="pub,ref-pub,ref-grid,ref-cascade-delete,ref-insertable,ref-updatable"
                         i18n-en:displayName="TaskFlow Definition" ref-i18n-en:displayName="Definition Auths">
@@ -330,7 +330,7 @@
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-one displayName="父步骤实例" name="parentStepInstance"
+                <to-one displayName="父步骤实例" name="parentStepInstance" refDisplayName="子步骤集合"
                         refEntityName="io.nop.task.dao.entity.NopTaskStepInstance" refPropName="childSteps"
                         tagSet="pub,ref-pub" i18n-en:displayName="Parent  Step" ref-i18n-en:displayName="Child Steps">
                     <join>

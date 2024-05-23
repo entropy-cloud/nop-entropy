@@ -198,7 +198,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     public NopFileRecord cloneInstance() {
         NopFileRecord entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

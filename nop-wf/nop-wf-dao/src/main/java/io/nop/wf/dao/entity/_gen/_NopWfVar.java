@@ -181,7 +181,7 @@ public class _NopWfVar extends AbstractOrmKeyValueTable{
     public NopWfVar cloneInstance() {
         NopWfVar entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

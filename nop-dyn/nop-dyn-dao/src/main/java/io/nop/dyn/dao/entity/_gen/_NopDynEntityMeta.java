@@ -98,6 +98,9 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /* relation:  */
     public static final String PROP_NAME_propMetas = "propMetas";
     
+    /* relation:  */
+    public static final String PROP_NAME_relationMetasForEntity1 = "relationMetasForEntity1";
+    
     /* relation: 函数定义 */
     public static final String PROP_NAME_functionMetas = "functionMetas";
     
@@ -230,7 +233,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     public NopDynEntityMeta cloneInstance() {
         NopDynEntityMeta entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }
@@ -1008,6 +1011,16 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
      */
     public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynPropMeta> getPropMetas(){
        return _propMetas;
+    }
+       
+    private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynEntityRelationMeta> _relationMetasForEntity1 = new OrmEntitySet<>(this, PROP_NAME_relationMetasForEntity1,
+        io.nop.dyn.dao.entity.NopDynEntityRelationMeta.PROP_NAME_entityMeta1, null,io.nop.dyn.dao.entity.NopDynEntityRelationMeta.class);
+
+    /**
+     * 。 refPropName: entityMeta1, keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynEntityRelationMeta> getRelationMetasForEntity1(){
+       return _relationMetasForEntity1;
     }
        
     private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynFunctionMeta> _functionMetas = new OrmEntitySet<>(this, PROP_NAME_functionMetas,

@@ -437,5 +437,6 @@
         <module>nop-search</module>
         <module>nop-markdown</module>
         <module>nop-orm-data</module>
+        <module>nop-rpa</module>
     </modules>
 </project>

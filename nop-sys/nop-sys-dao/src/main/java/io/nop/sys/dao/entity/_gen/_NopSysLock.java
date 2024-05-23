@@ -128,7 +128,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     public NopSysLock cloneInstance() {
         NopSysLock entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

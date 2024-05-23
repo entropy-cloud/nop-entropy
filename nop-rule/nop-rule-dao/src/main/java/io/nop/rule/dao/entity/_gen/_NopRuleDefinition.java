@@ -207,7 +207,7 @@ public class _NopRuleDefinition extends DynamicOrmEntity{
     public NopRuleDefinition cloneInstance() {
         NopRuleDefinition entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

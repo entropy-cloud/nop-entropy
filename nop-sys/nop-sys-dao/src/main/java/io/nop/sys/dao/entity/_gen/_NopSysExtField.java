@@ -198,7 +198,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     public NopSysExtField cloneInstance() {
         NopSysExtField entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

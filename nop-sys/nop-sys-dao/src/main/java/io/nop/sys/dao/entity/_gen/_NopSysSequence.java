@@ -198,7 +198,7 @@ public class _NopSysSequence extends DynamicOrmEntity{
     public NopSysSequence cloneInstance() {
         NopSysSequence entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

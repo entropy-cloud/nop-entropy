@@ -106,6 +106,13 @@
                 <item bizObjName="NopDynPropMeta"/>
             </schema>
         </prop>
+        <prop name="relationMetasForEntity1" tagSet="pub,cascade-delete" ext:kind="to-many" internal="true"
+              ext:joinLeftProp="entityMetaId" ext:joinRightProp="entity1MetaId" insertable="false" updatable="false"
+              lazy="true">
+            <schema>
+                <item bizObjName="NopDynEntityRelationMeta"/>
+            </schema>
+        </prop>
         <prop name="functionMetas" displayName="函数定义" i18n-en:displayName="Function Metas" tagSet="pub,cascade-delete"
               ext:kind="to-many" internal="true" ext:joinLeftProp="entityMetaId" ext:joinRightProp="entityMetaId"
               ext:joinRightDisplayProp="name" insertable="false" updatable="false" lazy="true">

@@ -164,7 +164,7 @@ public class _NopAuthRole extends DynamicOrmEntity{
     public NopAuthRole cloneInstance() {
         NopAuthRole entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

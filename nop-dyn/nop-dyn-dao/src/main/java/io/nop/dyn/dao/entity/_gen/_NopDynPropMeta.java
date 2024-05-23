@@ -357,7 +357,7 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
     public NopDynPropMeta cloneInstance() {
         NopDynPropMeta entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

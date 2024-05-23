@@ -201,7 +201,7 @@ public class _NopTaskDefinitionAuth extends DynamicOrmEntity{
     public NopTaskDefinitionAuth cloneInstance() {
         NopTaskDefinitionAuth entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

@@ -138,7 +138,7 @@ public class _NopReportDatasetAuth extends DynamicOrmEntity{
     public NopReportDatasetAuth cloneInstance() {
         NopReportDatasetAuth entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

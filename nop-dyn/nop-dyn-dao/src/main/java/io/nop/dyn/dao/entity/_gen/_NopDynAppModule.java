@@ -124,7 +124,7 @@ public class _NopDynAppModule extends DynamicOrmEntity{
     public NopDynAppModule cloneInstance() {
         NopDynAppModule entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

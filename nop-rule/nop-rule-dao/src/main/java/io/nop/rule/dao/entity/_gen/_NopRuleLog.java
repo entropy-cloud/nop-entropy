@@ -111,7 +111,7 @@ public class _NopRuleLog extends DynamicOrmEntity{
     public NopRuleLog cloneInstance() {
         NopRuleLog entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

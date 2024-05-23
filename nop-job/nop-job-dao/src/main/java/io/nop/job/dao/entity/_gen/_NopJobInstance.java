@@ -234,7 +234,7 @@ public class _NopJobInstance extends DynamicOrmEntity{
     public NopJobInstance cloneInstance() {
         NopJobInstance entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

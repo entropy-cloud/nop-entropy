@@ -201,7 +201,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     public NopTccRecord cloneInstance() {
         NopTccRecord entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

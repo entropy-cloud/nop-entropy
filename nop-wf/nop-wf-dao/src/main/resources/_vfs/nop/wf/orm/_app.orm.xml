@@ -159,8 +159,8 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>
-                <to-one displayName="工作流定义" name="wfDefinition" refEntityName="io.nop.wf.dao.entity.NopWfDefinition"
-                        refPropName="definitionAuths"
+                <to-one displayName="工作流定义" name="wfDefinition" refDisplayName="工作流定义权限"
+                        refEntityName="io.nop.wf.dao.entity.NopWfDefinition" refPropName="definitionAuths"
                         tagSet="pub,ref-pub,ref-grid,ref-cascade-delete,ref-insertable,ref-updatable"
                         i18n-en:displayName="Workflow Definition" ref-i18n-en:displayName="Definition Auths">
                     <join>

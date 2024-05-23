@@ -78,7 +78,7 @@ public class _NopOauthAuthorizationConsent extends DynamicOrmEntity{
     public NopOauthAuthorizationConsent cloneInstance() {
         NopOauthAuthorizationConsent entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

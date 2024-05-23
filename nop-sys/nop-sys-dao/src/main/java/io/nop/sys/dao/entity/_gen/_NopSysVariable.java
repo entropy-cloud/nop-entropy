@@ -148,7 +148,7 @@ public class _NopSysVariable extends DynamicOrmEntity{
     public NopSysVariable cloneInstance() {
         NopSysVariable entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

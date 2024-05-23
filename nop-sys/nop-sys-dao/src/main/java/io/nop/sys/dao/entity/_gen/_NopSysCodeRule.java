@@ -168,7 +168,7 @@ public class _NopSysCodeRule extends DynamicOrmEntity{
     public NopSysCodeRule cloneInstance() {
         NopSysCodeRule entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

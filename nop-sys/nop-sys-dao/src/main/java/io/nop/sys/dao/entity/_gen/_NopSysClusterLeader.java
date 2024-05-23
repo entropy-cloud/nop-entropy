@@ -118,7 +118,7 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
     public NopSysClusterLeader cloneInstance() {
         NopSysClusterLeader entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

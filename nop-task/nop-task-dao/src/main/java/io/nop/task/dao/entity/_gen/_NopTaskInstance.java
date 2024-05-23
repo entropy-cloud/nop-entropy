@@ -374,7 +374,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     public NopTaskInstance cloneInstance() {
         NopTaskInstance entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

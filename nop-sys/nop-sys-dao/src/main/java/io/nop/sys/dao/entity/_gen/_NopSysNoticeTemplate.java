@@ -161,7 +161,7 @@ public class _NopSysNoticeTemplate extends DynamicOrmEntity{
     public NopSysNoticeTemplate cloneInstance() {
         NopSysNoticeTemplate entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

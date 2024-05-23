@@ -151,7 +151,7 @@ public class _NopRuleRole extends DynamicOrmEntity{
     public NopRuleRole cloneInstance() {
         NopRuleRole entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

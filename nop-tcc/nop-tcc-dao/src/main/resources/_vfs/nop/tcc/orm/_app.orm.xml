@@ -139,8 +139,9 @@
                         propId="28" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
             </columns>
             <relations>
-                <to-one displayName="事务记录" name="tccRecord" refEntityName="io.nop.tcc.dao.entity.NopTccRecord"
-                        refPropName="branchRecords" tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable"
+                <to-one displayName="事务记录" name="tccRecord" refDisplayName="分支事务记录"
+                        refEntityName="io.nop.tcc.dao.entity.NopTccRecord" refPropName="branchRecords"
+                        tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable"
                         i18n-en:displayName="TCC Record" ref-i18n-en:displayName="TCC Branch Records">
                     <join>
                         <on leftProp="txnId" rightProp="txnId"/>

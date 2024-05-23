@@ -138,8 +138,9 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>
-                <to-one displayName="父节点" name="parent" refEntityName="io.nop.rule.dao.entity.NopRuleNode"
-                        refPropName="children" tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable"
+                <to-one displayName="父节点" name="parent" refDisplayName="子节点"
+                        refEntityName="io.nop.rule.dao.entity.NopRuleNode" refPropName="children"
+                        tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable"
                         i18n-en:displayName="Parent Node" ref-i18n-en:displayName="Children">
                     <join>
                         <on leftProp="parentId" rightProp="sid"/>
@@ -150,7 +151,7 @@
                         </sort>
                     </ref-set>
                 </to-one>
-                <to-one displayName="规则定义" name="ruleDefinition"
+                <to-one displayName="规则定义" name="ruleDefinition" refDisplayName="规则节点"
                         refEntityName="io.nop.rule.dao.entity.NopRuleDefinition" refPropName="ruleNodes"
                         tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable"
                         i18n-en:displayName="Rule Definition" ref-i18n-en:displayName="Rule Nodes">
@@ -202,7 +203,7 @@
             </columns>
             <comment>具有指定规则访问权限的角色列表</comment>
             <relations>
-                <to-one displayName="规则定义" name="ruleDefinition"
+                <to-one displayName="规则定义" name="ruleDefinition" refDisplayName="规则角色"
                         refEntityName="io.nop.rule.dao.entity.NopRuleDefinition" refPropName="ruleRoles"
                         tagSet="pub,ref-pub,ref-grid,ref-cascade-delete,ref-insertable,ref-updatable"
                         i18n-en:displayName="Rule Definition" ref-i18n-en:displayName="Rule Roles">

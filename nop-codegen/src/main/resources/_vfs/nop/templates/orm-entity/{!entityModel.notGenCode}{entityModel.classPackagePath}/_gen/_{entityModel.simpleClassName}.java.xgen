@@ -83,7 +83,7 @@ public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClas
     public ${entityModel.simpleClassName} cloneInstance() {
         ${entityModel.simpleClassName} entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

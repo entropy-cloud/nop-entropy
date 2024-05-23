@@ -278,7 +278,7 @@ public class _NopSysMakerCheckerRecord extends DynamicOrmEntity{
     public NopSysMakerCheckerRecord cloneInstance() {
         NopSysMakerCheckerRecord entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

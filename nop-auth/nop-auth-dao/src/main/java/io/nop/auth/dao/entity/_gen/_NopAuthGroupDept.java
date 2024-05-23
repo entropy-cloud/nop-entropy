@@ -144,7 +144,7 @@ public class _NopAuthGroupDept extends DynamicOrmEntity{
     public NopAuthGroupDept cloneInstance() {
         NopAuthGroupDept entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

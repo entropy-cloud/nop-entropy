@@ -158,7 +158,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     public NopReportDefinition cloneInstance() {
         NopReportDefinition entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

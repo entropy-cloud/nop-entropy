@@ -119,6 +119,7 @@ prop:
       module: Module
       module.displayName: Module
       propMetas: null
+      relationMetasForEntity1: null
       functionMetas: Function Metas
       extConfigComponent: null
     NopDynEntityRelation:

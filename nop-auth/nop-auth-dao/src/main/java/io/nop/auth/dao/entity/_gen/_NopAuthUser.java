@@ -432,7 +432,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     public NopAuthUser cloneInstance() {
         NopAuthUser entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

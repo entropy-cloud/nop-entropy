@@ -181,7 +181,7 @@ public class _NopWfDefinition extends DynamicOrmEntity{
     public NopWfDefinition cloneInstance() {
         NopWfDefinition entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

@@ -186,9 +186,9 @@
                         ui:show="R"/>
             </columns>
             <relations>
-                <to-one displayName="基础模块" name="baseModule" refEntityName="io.nop.dyn.dao.entity.NopDynModule"
-                        refPropName="derivedModules" tagSet="pub,ref-pub" i18n-en:displayName="Base Module"
-                        ref-i18n-en:displayName="Derived Modules">
+                <to-one displayName="基础模块" name="baseModule" refDisplayName="派生模块"
+                        refEntityName="io.nop.dyn.dao.entity.NopDynModule" refPropName="derivedModules"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Base Module" ref-i18n-en:displayName="Derived Modules">
                     <join>
                         <on leftProp="baseModuleId" rightProp="moduleId"/>
                     </join>
@@ -304,8 +304,9 @@
             </columns>
             <comment>json格式保存的表单定义</comment>
             <relations>
-                <to-one displayName="所属模块" name="module" refEntityName="io.nop.dyn.dao.entity.NopDynModule"
-                        refPropName="pages" tagSet="pub,ref-pub,ref-cascade-delete" i18n-en:displayName="Module"
+                <to-one displayName="所属模块" name="module" refDisplayName="模块页面"
+                        refEntityName="io.nop.dyn.dao.entity.NopDynModule" refPropName="pages"
+                        tagSet="pub,ref-pub,ref-cascade-delete" i18n-en:displayName="Module"
                         ref-i18n-en:displayName="Module Pages">
                     <join>
                         <on leftProp="moduleId" rightProp="moduleId"/>
@@ -361,8 +362,9 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>
-                <to-one displayName="所属模块" name="module" refEntityName="io.nop.dyn.dao.entity.NopDynModule"
-                        refPropName="entityMetas" tagSet="pub,ref-pub,ref-cascade-delete" i18n-en:displayName="Module"
+                <to-one displayName="所属模块" name="module" refDisplayName="模块实体定义"
+                        refEntityName="io.nop.dyn.dao.entity.NopDynModule" refPropName="entityMetas"
+                        tagSet="pub,ref-pub,ref-cascade-delete" i18n-en:displayName="Module"
                         ref-i18n-en:displayName="Entity Metas">
                     <join>
                         <on leftProp="moduleId" rightProp="moduleId"/>
@@ -377,6 +379,13 @@
                     <sort>
                         <field name="propId"/>
                     </sort>
+                </to-many>
+                <to-many cascadeDelete="true" name="relationMetasForEntity1"
+                         refEntityName="io.nop.dyn.dao.entity.NopDynEntityRelationMeta" refPropName="entityMeta1"
+                         tagSet="pub,cascade-delete">
+                    <join>
+                        <on leftProp="entityMetaId" rightProp="entity1MetaId"/>
+                    </join>
                 </to-many>
                 <to-many cascadeDelete="true" displayName="函数定义" name="functionMetas"
                          refEntityName="io.nop.dyn.dao.entity.NopDynFunctionMeta" refPropName="entityMeta"
@@ -535,7 +544,8 @@
             </columns>
             <relations>
                 <to-one displayName="关联实体1元数据" name="entityMeta1" refEntityName="io.nop.dyn.dao.entity.NopDynEntityMeta"
-                        tagSet="pub,ref-pub,ref-cascade-delete" i18n-en:displayName="Entity1 Meta">
+                        refPropName="relationMetasForEntity1" tagSet="pub,ref-pub,ref-cascade-delete"
+                        i18n-en:displayName="Entity1 Meta">
                     <join>
                         <on leftProp="entity1MetaId" rightProp="entityMetaId"/>
                     </join>
@@ -598,8 +608,9 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>
-                <to-one displayName="所属模块" name="entityMeta" refEntityName="io.nop.dyn.dao.entity.NopDynEntityMeta"
-                        refPropName="functionMetas" tagSet="pub,ref-pub,ref-cascade-delete" i18n-en:displayName="Module"
+                <to-one displayName="所属模块" name="entityMeta" refDisplayName="函数定义"
+                        refEntityName="io.nop.dyn.dao.entity.NopDynEntityMeta" refPropName="functionMetas"
+                        tagSet="pub,ref-pub,ref-cascade-delete" i18n-en:displayName="Module"
                         ref-i18n-en:displayName="Function Metas">
                     <join>
                         <on leftProp="entityMetaId" rightProp="entityMetaId"/>
@@ -728,9 +739,9 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>
-                <to-one displayName="父对象" name="nopParent" refEntityName="io.nop.dyn.dao.entity.NopDynEntity"
-                        refPropName="nopChildren" tagSet="pub,ref-pub" i18n-en:displayName="Parent"
-                        ref-i18n-en:displayName="Children">
+                <to-one displayName="父对象" name="nopParent" refDisplayName="子对象"
+                        refEntityName="io.nop.dyn.dao.entity.NopDynEntity" refPropName="nopChildren"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Parent" ref-i18n-en:displayName="Children">
                     <join>
                         <on leftProp="nopParentId" rightProp="sid"/>
                     </join>

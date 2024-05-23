@@ -138,7 +138,7 @@ public class _NopSysI18n extends DynamicOrmEntity{
     public NopSysI18n cloneInstance() {
         NopSysI18n entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }

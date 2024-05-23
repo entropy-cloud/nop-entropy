@@ -168,7 +168,7 @@ public class _NopDynEntityRelation extends DynamicOrmEntity{
     public NopDynEntityRelation cloneInstance() {
         NopDynEntityRelation entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
-            entity.onInitProp(propId);
+            entity.orm_propValue(propId,value);
         });
         return entity;
     }
