@@ -60,6 +60,8 @@ public interface OrmModelConstants {
 
     String TAG_NO_TENANT = "no-tenant";
 
+    String TAG_MANY_TO_MANY = "many-to-many";
+
     String PROP_NAME_nopRevType = "nopRevType";
     String PROP_NAME_nopRevBeginVer = "nopRevBeginVer";
     String PROP_NAME_nopRevEndVer = "nopRevEndVer";
@@ -103,8 +105,22 @@ public interface OrmModelConstants {
 
     String EXT_MAVEN_ARTIFACT_ID = "ext:mavenArtifactId";
 
+    String EXT_JOIN_LEFT_PROP = "ext:joinLeftProp";
+    String EXT_JOIN_RIGHT_PROP = "ext:joinRightProp";
+
     String EXT_UI_CONTROL = "ui:control";
     String EXT_UI_SHOW = "ui:show";
+
+    String ORM_MANY_TO_MANY_REF_PROP = "orm:manyToManyRefProp";
+
+    String ORM_MANY_TO_MANY_PROP_NAME1 = "orm:manyToManyPropName1";
+
+    String ORM_MANY_TO_MANY_PROP_NAME2 = "orm:manyToManyPropName2";
+
+    String ORM_MANY_TO_MANY_DISPLAY_NAME1 = "orm:manyToManyDisplayName1";
+
+    String ORM_MANY_TO_MANY_DISPLAY_NAME2 = "orm:manyToManyDisplayName2";
+
 
     String VAR_ENTITY = "entity";
 

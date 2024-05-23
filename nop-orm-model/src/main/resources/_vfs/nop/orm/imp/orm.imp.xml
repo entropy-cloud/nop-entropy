@@ -357,7 +357,7 @@
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="ref-displayName" displayName="关联中文名">
+                        <field name="refDisplayName" displayName="关联中文名">
                             <schema stdDomain="string"/>
                         </field>
 
@@ -366,6 +366,22 @@
                         </field>
 
                         <field name="comment" displayName="备注">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="orm:manyToManyPropName1" displayName="多对多属性名1">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="orm:manyToManyPropName2" displayName="多对多属性名2">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="orm:manyToManyDisplayName1" displayName="多对多属性显示名1">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="orm:manyToManyDisplayName2" displayName="多对多属性显示名2">
                             <schema stdDomain="string"/>
                         </field>
 
@@ -448,7 +464,7 @@
                         </field>
 
                         <field name="tagSet" displayName="标签">
-                            <schema stdDomain="tag-set" />
+                            <schema stdDomain="tag-set"/>
                         </field>
 
                     </fields>
@@ -477,11 +493,11 @@
                         </field>
 
                         <field name="tagSet" displayName="标签">
-                            <schema stdDomain="tag-set" />
+                            <schema stdDomain="tag-set"/>
                         </field>
 
                         <field name="notGenCode" displayName="不生成代码">
-                            <schema stdDomain="boolean" />
+                            <schema stdDomain="boolean"/>
                         </field>
 
                     </fields>
@@ -506,19 +522,19 @@
                         </field>
 
                         <field name="tagSet" displayName="标签">
-                            <schema stdDomain="tag-set" />
+                            <schema stdDomain="tag-set"/>
                         </field>
 
                         <field name="notGenCode" displayName="不生成代码">
-                            <schema stdDomain="boolean" />
+                            <schema stdDomain="boolean"/>
                         </field>
 
                         <field name="getter" displayName="读函数">
-                            <schema stdDomain="xpl" />
+                            <schema stdDomain="xpl"/>
                         </field>
 
                         <field name="setter" displayName="写函数">
-                            <schema stdDomain="xpl" />
+                            <schema stdDomain="xpl"/>
                         </field>
 
                         <field name="args" displayName="参数" list="true">

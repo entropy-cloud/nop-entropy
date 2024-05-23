@@ -37,6 +37,10 @@ public class OrmModelToDynEntityMeta {
         });
 
         ormModel.getEntityModels().forEach(entityModel -> {
+            // many-to-many的中间表不转换为实体表
+            if (entityModel.containsTag(OrmModelConstants.TAG_MANY_TO_MANY))
+                return;
+
             NopDynEntityMeta entityMeta = entityMetas.get(entityModel.getName());
             if (entityMeta == null) {
                 entityMeta = new NopDynEntityMeta();

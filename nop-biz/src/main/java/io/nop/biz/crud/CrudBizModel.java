@@ -61,6 +61,7 @@ import io.nop.orm.dao.IOrmEntityDao;
 import io.nop.orm.model.IEntityJoinConditionModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityRelationModel;
+import io.nop.orm.model.utils.ManyToManyPropMeta;
 import io.nop.orm.support.OrmEntityHelper;
 import io.nop.orm.utils.OrmQueryHelper;
 import io.nop.xlang.filter.BizExprHelper;
@@ -1296,7 +1297,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         T entity = get(id, false, context);
 
         ManyToManyPropMeta propMeta = requireManyToManyPropMeta(propName);
-        ManyToManyTool<?> tool = this.manyToMany(propMeta.getRelatedEntityName(), propMeta.getJoinRightProp(), propMeta.getJoinRefProp());
+        ManyToManyTool<?> tool = this.manyToMany(propMeta.getRelatedEntityName(), propMeta.getJoinRightProp(), propMeta.getManyToManyRefProp());
         Object leftValue = entity.orm_propValueByName(propMeta.getJoinLeftProp());
         tool.addRelations(leftValue, relValues);
     }
@@ -1307,7 +1308,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                                           @Name("relValues") Collection<String> relValues, IServiceContext context) {
         T entity = get(id, false, context);
         ManyToManyPropMeta propMeta = requireManyToManyPropMeta(propName);
-        ManyToManyTool<?> tool = this.manyToMany(propMeta.getRelatedEntityName(), propMeta.getJoinRightProp(), propMeta.getJoinRefProp());
+        ManyToManyTool<?> tool = this.manyToMany(propMeta.getRelatedEntityName(), propMeta.getJoinRightProp(), propMeta.getManyToManyRefProp());
         Object leftValue = entity.orm_propValueByName(propMeta.getJoinLeftProp());
         tool.removeRelations(leftValue, relValues);
     }
@@ -1318,7 +1319,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                                           @Name("relValues") Collection<String> relValues, IServiceContext context) {
         T entity = get(id, false, context);
         ManyToManyPropMeta propMeta = requireManyToManyPropMeta(propName);
-        ManyToManyTool<?> tool = this.manyToMany(propMeta.getRelatedEntityName(), propMeta.getJoinRightProp(), propMeta.getJoinRefProp());
+        ManyToManyTool<?> tool = this.manyToMany(propMeta.getRelatedEntityName(), propMeta.getJoinRightProp(), propMeta.getManyToManyRefProp());
         Object leftValue = entity.orm_propValueByName(propMeta.getJoinLeftProp());
         tool.updateRelations(leftValue, relValues);
     }
@@ -1330,9 +1331,10 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                     .param(ARG_BIZ_OBJ_NAME, getBizObjName())
                     .param(ARG_PROP_NAME, propName);
 
-        String joinLeftProp = (String) propMeta.prop_get(BizConstants.EXT_JOIN_LEFT_PROP);
-        String joinRightProp = (String) propMeta.prop_get(BizConstants.EXT_JOIN_RIGHT_PROP);
-        String joinRefProp = (String) propMeta.prop_get(BizConstants.ORM_MANY_TO_MANY_REF_PROP);
+        ManyToManyPropMeta manyToManyPropMeta = new ManyToManyPropMeta(propMeta);
+        String joinLeftProp = manyToManyPropMeta.getJoinLeftProp();
+        String joinRightProp = manyToManyPropMeta.getJoinRightProp();
+        String joinRefProp = manyToManyPropMeta.getManyToManyRefProp();
 
         String relatedEntityName = null;
         ISchema itemSchema = propMeta.getItemSchema();
@@ -1346,7 +1348,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                     .param(ARG_BIZ_OBJ_NAME, getBizObjName())
                     .param(ARG_PROP_NAME, propName);
 
-        return new ManyToManyPropMeta(propMeta, relatedEntityName, joinLeftProp, joinRightProp, joinRefProp);
+        return manyToManyPropMeta;
     }
 
     protected IObjPropMeta requirePropMeta(String propName) {

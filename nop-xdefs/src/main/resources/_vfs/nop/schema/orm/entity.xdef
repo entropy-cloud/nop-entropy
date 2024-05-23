@@ -43,7 +43,7 @@
         xdef:default-extends="/nop/core/defaults/default.entity.xml"
         xdef:name="OrmEntityModel" xdef:bean-package="io.nop.orm.model"
         x:schema="/nop/schema/xdef.xdef" xdef:check-ns="ui,biz"
-        xmlns:ui="ui" xmlns:biz="biz"
+        xmlns:ui="ui" xmlns:biz="biz" xmlns:orm="orm"
         xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
 >
     <!-- 当实体实际对应数据库视图时，这里为视图的定义SQL语句 -->
@@ -120,6 +120,8 @@
                  refEntityName="!class-name" refPropName="prop-name" refDisplayName="string"
                  queryable="!boolean=true" maxBatchLoadSize="int"
                  ui:control="string"
+                 orm:manyToManyPropName1="string"  orm:manyToManyPropName2="string"
+                 orm:manyToManyDisplayName1="string"  orm:manyToManyDisplayName2="string"
                  tagSet="tag-set" embedded="!boolean=false" notGenCode="!boolean=false"
                  cascadeDelete="!boolean=false" autoCascadeDelete="!boolean=false" xdef:bean-tag-prop="type"
     >
