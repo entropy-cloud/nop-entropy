@@ -144,7 +144,10 @@ public class _NopSysDict extends DynamicOrmEntity{
     }
 
     protected NopSysDict newInstance(){
-       return new NopSysDict();
+        NopSysDict entity = new NopSysDict();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

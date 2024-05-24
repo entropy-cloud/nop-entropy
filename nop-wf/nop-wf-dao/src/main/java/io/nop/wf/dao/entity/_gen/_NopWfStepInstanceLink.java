@@ -110,7 +110,10 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     }
 
     protected NopWfStepInstanceLink newInstance(){
-       return new NopWfStepInstanceLink();
+        NopWfStepInstanceLink entity = new NopWfStepInstanceLink();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

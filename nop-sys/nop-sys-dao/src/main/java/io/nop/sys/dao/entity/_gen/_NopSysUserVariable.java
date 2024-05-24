@@ -151,7 +151,10 @@ public class _NopSysUserVariable extends DynamicOrmEntity{
     }
 
     protected NopSysUserVariable newInstance(){
-       return new NopSysUserVariable();
+        NopSysUserVariable entity = new NopSysUserVariable();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

@@ -207,7 +207,10 @@ public class _NopWfAction extends DynamicOrmEntity{
     }
 
     protected NopWfAction newInstance(){
-       return new NopWfAction();
+        NopWfAction entity = new NopWfAction();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

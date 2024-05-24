@@ -191,7 +191,10 @@ public class _NopFileRecord extends DynamicOrmEntity{
     }
 
     protected NopFileRecord newInstance(){
-       return new NopFileRecord();
+        NopFileRecord entity = new NopFileRecord();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

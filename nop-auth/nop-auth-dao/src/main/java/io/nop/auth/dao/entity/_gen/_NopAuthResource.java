@@ -339,7 +339,10 @@ public class _NopAuthResource extends DynamicOrmEntity{
     }
 
     protected NopAuthResource newInstance(){
-       return new NopAuthResource();
+        NopAuthResource entity = new NopAuthResource();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

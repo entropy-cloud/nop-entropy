@@ -161,7 +161,10 @@ public class _NopDynEntityRelation extends DynamicOrmEntity{
     }
 
     protected NopDynEntityRelation newInstance(){
-       return new NopDynEntityRelation();
+        NopDynEntityRelation entity = new NopDynEntityRelation();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

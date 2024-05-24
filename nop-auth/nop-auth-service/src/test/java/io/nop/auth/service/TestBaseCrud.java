@@ -23,6 +23,8 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.engine.IGraphQLEngine;
+import io.nop.orm.model.IColumnModel;
+import io.nop.orm.model.IEntityModel;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -96,11 +98,11 @@ public class TestBaseCrud extends JunitBaseTestCase {
         assertTrue(response.isOk());
         assertEquals(1L, BeanTool.getProperty(response.getData(), "total"));
         assertEquals(1, ((List) BeanTool.getProperty(response.getData(), "items")).size());
-        System.out.println(JsonTool.serialize(response,true));
+        System.out.println(JsonTool.serialize(response, true));
     }
 
     @Test
-    public void testDate(){
+    public void testDate() {
         ApiRequest<Map<String, Object>> request = new ApiRequest<>();
         QueryBean query = new QueryBean();
         query.setLimit(10);
@@ -109,5 +111,19 @@ public class TestBaseCrud extends JunitBaseTestCase {
         IGraphQLExecutionContext context = graphQLEngine.newRpcContext(null, "NopAuthSite__findPage", request);
         ApiResponse<?> response = graphQLEngine.executeRpc(context);
         assertTrue(response.isOk());
+    }
+
+    @Test
+    public void testCloneInstance() {
+        IEntityDao<NopAuthDept> dao = daoProvider.daoFor(NopAuthDept.class);
+        NopAuthDept dept = dao.newEntity();
+        IEntityModel model = dept.orm_entityModel();
+        for (IColumnModel col : model.getColumns()) {
+            dept.orm_propValue(col.getPropId(), null);
+        }
+        dept.setDeptName("a");
+        dept.setRemark("55");
+        NopAuthDept copy = dept.cloneInstance();
+        assertEquals("a", copy.getDeptName());
     }
 }

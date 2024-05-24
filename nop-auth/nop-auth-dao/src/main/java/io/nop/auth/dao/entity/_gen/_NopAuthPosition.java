@@ -131,7 +131,10 @@ public class _NopAuthPosition extends DynamicOrmEntity{
     }
 
     protected NopAuthPosition newInstance(){
-       return new NopAuthPosition();
+        NopAuthPosition entity = new NopAuthPosition();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

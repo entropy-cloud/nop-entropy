@@ -127,7 +127,10 @@ public class _NopAuthGroupUser extends DynamicOrmEntity{
     }
 
     protected NopAuthGroupUser newInstance(){
-       return new NopAuthGroupUser();
+        NopAuthGroupUser entity = new NopAuthGroupUser();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

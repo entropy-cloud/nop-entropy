@@ -174,7 +174,10 @@ public class _NopWfDefinition extends DynamicOrmEntity{
     }
 
     protected NopWfDefinition newInstance(){
-       return new NopWfDefinition();
+        NopWfDefinition entity = new NopWfDefinition();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

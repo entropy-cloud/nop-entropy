@@ -271,7 +271,10 @@ public class _NopSysMakerCheckerRecord extends DynamicOrmEntity{
     }
 
     protected NopSysMakerCheckerRecord newInstance(){
-       return new NopSysMakerCheckerRecord();
+        NopSysMakerCheckerRecord entity = new NopSysMakerCheckerRecord();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

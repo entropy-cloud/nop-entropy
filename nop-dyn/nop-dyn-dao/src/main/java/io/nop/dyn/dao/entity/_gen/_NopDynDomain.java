@@ -171,7 +171,10 @@ public class _NopDynDomain extends DynamicOrmEntity{
     }
 
     protected NopDynDomain newInstance(){
-       return new NopDynDomain();
+        NopDynDomain entity = new NopDynDomain();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

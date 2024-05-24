@@ -237,7 +237,10 @@ public class _NopWfWork extends DynamicOrmEntity{
     }
 
     protected NopWfWork newInstance(){
-       return new NopWfWork();
+        NopWfWork entity = new NopWfWork();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

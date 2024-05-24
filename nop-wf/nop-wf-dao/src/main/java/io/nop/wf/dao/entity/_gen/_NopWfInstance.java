@@ -449,7 +449,10 @@ public class _NopWfInstance extends DynamicOrmEntity{
     }
 
     protected NopWfInstance newInstance(){
-       return new NopWfInstance();
+        NopWfInstance entity = new NopWfInstance();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

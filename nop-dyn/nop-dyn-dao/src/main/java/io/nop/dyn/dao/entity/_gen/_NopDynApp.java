@@ -134,7 +134,10 @@ public class _NopDynApp extends DynamicOrmEntity{
     }
 
     protected NopDynApp newInstance(){
-       return new NopDynApp();
+        NopDynApp entity = new NopDynApp();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

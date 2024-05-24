@@ -167,7 +167,10 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     }
 
     protected NopAuthUserSubstitution newInstance(){
-       return new NopAuthUserSubstitution();
+        NopAuthUserSubstitution entity = new NopAuthUserSubstitution();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

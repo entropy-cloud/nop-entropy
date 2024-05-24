@@ -144,7 +144,10 @@ public class _NopRuleRole extends DynamicOrmEntity{
     }
 
     protected NopRuleRole newInstance(){
-       return new NopRuleRole();
+        NopRuleRole entity = new NopRuleRole();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

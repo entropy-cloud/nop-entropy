@@ -191,7 +191,10 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     }
 
     protected NopSysExtField newInstance(){
-       return new NopSysExtField();
+        NopSysExtField entity = new NopSysExtField();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

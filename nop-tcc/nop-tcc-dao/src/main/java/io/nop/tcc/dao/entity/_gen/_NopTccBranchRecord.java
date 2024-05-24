@@ -324,7 +324,10 @@ public class _NopTccBranchRecord extends DynamicOrmEntity{
     }
 
     protected NopTccBranchRecord newInstance(){
-       return new NopTccBranchRecord();
+        NopTccBranchRecord entity = new NopTccBranchRecord();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

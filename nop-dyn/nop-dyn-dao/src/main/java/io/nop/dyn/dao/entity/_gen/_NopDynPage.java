@@ -177,7 +177,10 @@ public class _NopDynPage extends DynamicOrmEntity{
     }
 
     protected NopDynPage newInstance(){
-       return new NopDynPage();
+        NopDynPage entity = new NopDynPage();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

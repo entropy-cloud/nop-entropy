@@ -71,7 +71,10 @@ public class _NopOauthAuthorizationConsent extends DynamicOrmEntity{
     }
 
     protected NopOauthAuthorizationConsent newInstance(){
-       return new NopOauthAuthorizationConsent();
+        NopOauthAuthorizationConsent entity = new NopOauthAuthorizationConsent();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

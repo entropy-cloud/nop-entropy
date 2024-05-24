@@ -174,7 +174,10 @@ public class _NopBatchTaskState extends DynamicOrmEntity{
     }
 
     protected NopBatchTaskState newInstance(){
-       return new NopBatchTaskState();
+        NopBatchTaskState entity = new NopBatchTaskState();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

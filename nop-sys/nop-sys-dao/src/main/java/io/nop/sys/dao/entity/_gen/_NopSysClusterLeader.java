@@ -111,7 +111,10 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
     }
 
     protected NopSysClusterLeader newInstance(){
-       return new NopSysClusterLeader();
+        NopSysClusterLeader entity = new NopSysClusterLeader();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

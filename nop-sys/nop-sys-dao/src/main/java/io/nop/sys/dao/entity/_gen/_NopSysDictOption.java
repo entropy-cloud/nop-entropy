@@ -194,7 +194,10 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     }
 
     protected NopSysDictOption newInstance(){
-       return new NopSysDictOption();
+        NopSysDictOption entity = new NopSysDictOption();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

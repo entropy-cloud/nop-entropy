@@ -194,7 +194,10 @@ public class _NopTccRecord extends DynamicOrmEntity{
     }
 
     protected NopTccRecord newInstance(){
-       return new NopTccRecord();
+        NopTccRecord entity = new NopTccRecord();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

@@ -186,7 +186,10 @@ public class _NopDynModule extends DynamicOrmEntity{
     }
 
     protected NopDynModule newInstance(){
-       return new NopDynModule();
+        NopDynModule entity = new NopDynModule();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

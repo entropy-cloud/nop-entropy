@@ -191,7 +191,10 @@ public class _NopBatchFile extends DynamicOrmEntity{
     }
 
     protected NopBatchFile newInstance(){
-       return new NopBatchFile();
+        NopBatchFile entity = new NopBatchFile();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

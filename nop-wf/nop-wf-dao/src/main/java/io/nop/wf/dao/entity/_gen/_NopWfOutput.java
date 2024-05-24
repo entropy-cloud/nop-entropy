@@ -174,7 +174,10 @@ public class _NopWfOutput extends AbstractOrmKeyValueTable{
     }
 
     protected NopWfOutput newInstance(){
-       return new NopWfOutput();
+        NopWfOutput entity = new NopWfOutput();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

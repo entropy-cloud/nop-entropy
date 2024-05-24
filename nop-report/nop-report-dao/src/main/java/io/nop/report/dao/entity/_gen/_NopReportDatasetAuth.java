@@ -131,7 +131,10 @@ public class _NopReportDatasetAuth extends DynamicOrmEntity{
     }
 
     protected NopReportDatasetAuth newInstance(){
-       return new NopReportDatasetAuth();
+        NopReportDatasetAuth entity = new NopReportDatasetAuth();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

@@ -244,7 +244,10 @@ public class _NopAuthSession extends DynamicOrmEntity{
     }
 
     protected NopAuthSession newInstance(){
-       return new NopAuthSession();
+        NopAuthSession entity = new NopAuthSession();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

@@ -174,7 +174,10 @@ public class _NopTaskDefinition extends DynamicOrmEntity{
     }
 
     protected NopTaskDefinition newInstance(){
-       return new NopTaskDefinition();
+        NopTaskDefinition entity = new NopTaskDefinition();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

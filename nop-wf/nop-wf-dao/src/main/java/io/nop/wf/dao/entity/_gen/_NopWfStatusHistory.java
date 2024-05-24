@@ -164,7 +164,10 @@ public class _NopWfStatusHistory extends DynamicOrmEntity{
     }
 
     protected NopWfStatusHistory newInstance(){
-       return new NopWfStatusHistory();
+        NopWfStatusHistory entity = new NopWfStatusHistory();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

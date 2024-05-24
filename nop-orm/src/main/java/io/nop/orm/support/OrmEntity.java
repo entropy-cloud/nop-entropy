@@ -528,8 +528,9 @@ public abstract class OrmEntity implements IOrmEntity {
     }
 
     protected void checkPropIdRange(int propId) {
-        if (propId >= orm_propIdBound() || propId <= 0)
-            throw newError(ERR_ORM_INVALID_PROP_ID).param(ARG_PROP_ID_BOUND, orm_propIdBound()).param(ARG_PROP_ID,
+        int bound = orm_propIdBound();
+        if (propId >= bound || propId <= 0)
+            throw newError(ERR_ORM_INVALID_PROP_ID).param(ARG_PROP_ID_BOUND, bound).param(ARG_PROP_ID,
                     propId);
     }
 

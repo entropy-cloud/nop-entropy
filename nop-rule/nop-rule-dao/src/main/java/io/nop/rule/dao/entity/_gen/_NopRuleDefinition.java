@@ -200,7 +200,10 @@ public class _NopRuleDefinition extends DynamicOrmEntity{
     }
 
     protected NopRuleDefinition newInstance(){
-       return new NopRuleDefinition();
+        NopRuleDefinition entity = new NopRuleDefinition();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

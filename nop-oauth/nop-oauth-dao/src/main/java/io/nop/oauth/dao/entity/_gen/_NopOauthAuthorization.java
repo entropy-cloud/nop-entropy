@@ -371,7 +371,10 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     }
 
     protected NopOauthAuthorization newInstance(){
-       return new NopOauthAuthorization();
+        NopOauthAuthorization entity = new NopOauthAuthorization();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

@@ -171,7 +171,10 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     }
 
     protected NopOauthRegisteredClient newInstance(){
-       return new NopOauthRegisteredClient();
+        NopOauthRegisteredClient entity = new NopOauthRegisteredClient();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

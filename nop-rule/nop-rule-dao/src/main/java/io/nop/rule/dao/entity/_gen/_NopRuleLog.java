@@ -104,7 +104,10 @@ public class _NopRuleLog extends DynamicOrmEntity{
     }
 
     protected NopRuleLog newInstance(){
-       return new NopRuleLog();
+        NopRuleLog entity = new NopRuleLog();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

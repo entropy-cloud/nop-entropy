@@ -201,7 +201,10 @@ public class _NopReportResultFile extends DynamicOrmEntity{
     }
 
     protected NopReportResultFile newInstance(){
-       return new NopReportResultFile();
+        NopReportResultFile entity = new NopReportResultFile();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

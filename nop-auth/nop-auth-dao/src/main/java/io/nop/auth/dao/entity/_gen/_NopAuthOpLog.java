@@ -177,7 +177,10 @@ public class _NopAuthOpLog extends DynamicOrmEntity{
     }
 
     protected NopAuthOpLog newInstance(){
-       return new NopAuthOpLog();
+        NopAuthOpLog entity = new NopAuthOpLog();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

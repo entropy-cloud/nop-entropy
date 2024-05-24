@@ -227,7 +227,10 @@ public class _NopJobInstance extends DynamicOrmEntity{
     }
 
     protected NopJobInstance newInstance(){
-       return new NopJobInstance();
+        NopJobInstance entity = new NopJobInstance();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

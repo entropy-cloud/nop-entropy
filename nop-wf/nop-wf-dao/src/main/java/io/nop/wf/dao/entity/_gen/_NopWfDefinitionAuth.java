@@ -194,7 +194,10 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     }
 
     protected NopWfDefinitionAuth newInstance(){
-       return new NopWfDefinitionAuth();
+        NopWfDefinitionAuth entity = new NopWfDefinitionAuth();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

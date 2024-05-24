@@ -303,7 +303,10 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
     }
 
     protected NopTaskStepInstance newInstance(){
-       return new NopTaskStepInstance();
+        NopTaskStepInstance entity = new NopTaskStepInstance();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

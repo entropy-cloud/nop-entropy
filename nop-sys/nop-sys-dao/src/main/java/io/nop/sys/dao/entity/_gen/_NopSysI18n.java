@@ -131,7 +131,10 @@ public class _NopSysI18n extends DynamicOrmEntity{
     }
 
     protected NopSysI18n newInstance(){
-       return new NopSysI18n();
+        NopSysI18n entity = new NopSysI18n();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

@@ -154,7 +154,10 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     }
 
     protected NopBatchRecordResult newInstance(){
-       return new NopBatchRecordResult();
+        NopBatchRecordResult entity = new NopBatchRecordResult();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

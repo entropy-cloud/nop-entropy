@@ -194,7 +194,10 @@ public class _NopTaskDefinitionAuth extends DynamicOrmEntity{
     }
 
     protected NopTaskDefinitionAuth newInstance(){
-       return new NopTaskDefinitionAuth();
+        NopTaskDefinitionAuth entity = new NopTaskDefinitionAuth();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

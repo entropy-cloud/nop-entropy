@@ -161,7 +161,10 @@ public class _NopSysCodeRule extends DynamicOrmEntity{
     }
 
     protected NopSysCodeRule newInstance(){
-       return new NopSysCodeRule();
+        NopSysCodeRule entity = new NopSysCodeRule();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

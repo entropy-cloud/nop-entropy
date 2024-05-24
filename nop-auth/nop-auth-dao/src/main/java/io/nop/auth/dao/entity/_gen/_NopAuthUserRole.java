@@ -127,7 +127,10 @@ public class _NopAuthUserRole extends DynamicOrmEntity{
     }
 
     protected NopAuthUserRole newInstance(){
-       return new NopAuthUserRole();
+        NopAuthUserRole entity = new NopAuthUserRole();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

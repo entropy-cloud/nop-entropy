@@ -140,7 +140,10 @@ public class _NopWfLog extends DynamicOrmEntity{
     }
 
     protected NopWfLog newInstance(){
-       return new NopWfLog();
+        NopWfLog entity = new NopWfLog();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

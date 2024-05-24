@@ -161,7 +161,10 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     }
 
     protected NopAuthTenant newInstance(){
-       return new NopAuthTenant();
+        NopAuthTenant entity = new NopAuthTenant();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

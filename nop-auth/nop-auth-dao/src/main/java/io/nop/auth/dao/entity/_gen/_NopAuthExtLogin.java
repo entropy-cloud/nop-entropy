@@ -194,7 +194,10 @@ public class _NopAuthExtLogin extends DynamicOrmEntity{
     }
 
     protected NopAuthExtLogin newInstance(){
-       return new NopAuthExtLogin();
+        NopAuthExtLogin entity = new NopAuthExtLogin();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

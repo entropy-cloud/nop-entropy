@@ -154,7 +154,10 @@ public class _NopSysNoticeTemplate extends DynamicOrmEntity{
     }
 
     protected NopSysNoticeTemplate newInstance(){
-       return new NopSysNoticeTemplate();
+        NopSysNoticeTemplate entity = new NopSysNoticeTemplate();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

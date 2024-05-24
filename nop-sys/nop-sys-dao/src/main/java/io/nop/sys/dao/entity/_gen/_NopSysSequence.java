@@ -191,7 +191,10 @@ public class _NopSysSequence extends DynamicOrmEntity{
     }
 
     protected NopSysSequence newInstance(){
-       return new NopSysSequence();
+        NopSysSequence entity = new NopSysSequence();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

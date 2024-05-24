@@ -177,7 +177,10 @@ public class _NopAuthSite extends DynamicOrmEntity{
     }
 
     protected NopAuthSite newInstance(){
-       return new NopAuthSite();
+        NopAuthSite entity = new NopAuthSite();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

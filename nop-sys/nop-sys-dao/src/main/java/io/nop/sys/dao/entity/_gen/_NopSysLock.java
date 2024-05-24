@@ -121,7 +121,10 @@ public class _NopSysLock extends DynamicOrmEntity{
     }
 
     protected NopSysLock newInstance(){
-       return new NopSysLock();
+        NopSysLock entity = new NopSysLock();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

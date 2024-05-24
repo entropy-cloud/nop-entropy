@@ -367,7 +367,10 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     }
 
     protected NopTaskInstance newInstance(){
-       return new NopTaskInstance();
+        NopTaskInstance entity = new NopTaskInstance();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override

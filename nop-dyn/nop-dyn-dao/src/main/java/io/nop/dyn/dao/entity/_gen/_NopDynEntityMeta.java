@@ -226,7 +226,10 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     }
 
     protected NopDynEntityMeta newInstance(){
-       return new NopDynEntityMeta();
+        NopDynEntityMeta entity = new NopDynEntityMeta();
+        entity.orm_attach(orm_enhancer());
+        entity.orm_entityModel(orm_entityModel());
+        return entity;
     }
 
     @Override
