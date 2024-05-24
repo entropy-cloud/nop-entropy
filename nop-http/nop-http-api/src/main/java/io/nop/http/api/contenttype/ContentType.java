@@ -362,7 +362,7 @@ public final class ContentType implements Serializable {
         pos = s.lastIndexOf(';');
         int pos2 = s.indexOf("charset=", pos);
         if (pos2 > 0) {
-            String charset = s.substring(pos + 1 + "charset=".length());
+            String charset = s.substring(pos2 + "charset=".length());
             return ContentType.create(mimeType, charset);
         }
         return ContentType.create(mimeType);
