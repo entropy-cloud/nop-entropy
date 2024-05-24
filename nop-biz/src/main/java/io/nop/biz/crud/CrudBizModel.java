@@ -58,6 +58,7 @@ import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.IOrmTemplate;
 import io.nop.orm.OrmConstants;
 import io.nop.orm.dao.IOrmEntityDao;
+import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityJoinConditionModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityRelationModel;
@@ -1384,6 +1385,11 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                     BizConstants.METHOD_SAVE, context.getEvalScope());
         } else {
             newEntity = (T) entity.cloneInstance();
+            // 序列号主键被设置为空
+            for (IColumnModel col : entity.orm_entityModel().getPkColumns()) {
+                if (col.containsTag(OrmConstants.TAG_SEQ) || col.containsTag(OrmConstants.TAG_SEQ_DEFAULT))
+                    newEntity.orm_propValue(col.getPropId(), null);
+            }
         }
 
         new OrmEntityCopier(daoProvider, bizObjectManager).copyToEntity(entityData.getValidatedData(),
