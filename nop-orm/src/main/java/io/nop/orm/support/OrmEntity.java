@@ -539,6 +539,9 @@ public abstract class OrmEntity implements IOrmEntity {
             forcePropLoaded(propId);
         }
         boolean changed = markPropDirty(propId, value);
+        if (changed && orm_isPrimary(propId)) {
+            clearId();
+        }
         onInitProp(propId);
         return changed;
     }
@@ -604,6 +607,10 @@ public abstract class OrmEntity implements IOrmEntity {
         id = new OrmCompositePk(propNames, idValues);
         internalNotifyPkWatcher();
         return id;
+    }
+
+    protected void clearId() {
+        this.id = null;
     }
 
     /**

@@ -52,6 +52,10 @@ public class TestEntityDao extends AbstractOrmTestCase {
         assertNull(dao.getEntityById("2"));
 
         assertEquals("C", dao.getEntityById(3).getShortName());
+
+        entity = dao.getEntityById("3");
+        entity.setCollegeId(null);
+        assertNull(entity.orm_id());
     }
 
     /**
