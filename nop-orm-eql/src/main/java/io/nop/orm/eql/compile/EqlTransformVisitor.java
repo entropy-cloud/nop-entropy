@@ -82,6 +82,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_RETURNING_FOR_UPDATE;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_ALIAS;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_ARG_COUNT;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_ARG_INDEX;
@@ -91,6 +92,7 @@ import static io.nop.orm.eql.OrmEqlErrors.ARG_DIALECT;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_ENTITY_NAME;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_EXPECTED;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_EXPECTED_COUNT;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_FEATURE;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_FIELD_NAME;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_FUNC_NAME;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_LEFT_SOURCE;
@@ -104,6 +106,7 @@ import static io.nop.orm.eql.OrmEqlErrors.ARG_TABLE;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_TABLE_SOURCE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DECORATOR_ARG_COUNT_IS_NOT_EXPECTED;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DECORATOR_ARG_TYPE_IS_NOT_EXPECTED;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FIELD_NOT_IN_SUBQUERY;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FUNC_ONLY_ALLOW_IN_WINDOW_EXPR;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FUNC_TOO_FEW_ARGS;
@@ -117,6 +120,7 @@ import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_OWNER_NOT_REF_TO_ENTITY;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_PROP_PATH_JOIN_NOT_ALLOW_CONDITION;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_PROP_PATH_NOT_VALID_TO_ONE_REFERENCE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_QUERY_NO_FROM_CLAUSE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_RETURNING_NO_PROJECTIONS;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_SELECT_NO_PROJECTIONS;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_TABLE_SOURCE_NOT_RESOLVED;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_ALIAS;
@@ -1076,18 +1080,18 @@ public class EqlTransformVisitor extends EqlASTVisitor {
     List<SqlProjection> getSourceSelectItems(SqlTableSource source) {
         if (source instanceof SqlSingleTableSource) {
             SqlSingleTableSource table = (SqlSingleTableSource) source;
-            return buildSelectItems(table, table.getSourceSelect() == null);
+            return buildSelectItems(table, table.getSourceSelect() == null, true);
         } else if (source instanceof SqlSubqueryTableSource) {
             SqlSubqueryTableSource query = (SqlSubqueryTableSource) source;
             resolveSelectFields(query.getQuery());
 
-            return buildSelectItems(source, false);
+            return buildSelectItems(source, false, true);
         } else {
             throw new IllegalStateException("nop.err.invalid-source:" + source);
         }
     }
 
-    List<SqlProjection> buildSelectItems(SqlTableSource source, boolean onlyColumn) {
+    List<SqlProjection> buildSelectItems(SqlTableSource source, boolean onlyColumn, boolean useAlias) {
         ISqlSelectionMeta tableMeta = source.getResolvedTableMeta();
         Map<String, ISqlExprMeta> fieldMetas = tableMeta.getFieldExprMetas();
         List<SqlProjection> ret = new ArrayList<>(fieldMetas.size());
@@ -1101,7 +1105,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             SqlColumnName col = newColNameWithType(source, entry.getKey(), exprMeta);
 
             proj.setExpr(col);
-            proj.setAlias(newColumnAlias());
+            if (useAlias)
+                proj.setAlias(newColumnAlias());
             ret.add(proj);
         }
         return ret;
@@ -1122,9 +1127,16 @@ public class EqlTransformVisitor extends EqlASTVisitor {
     @Override
     public void visitSqlExprProjection(SqlExprProjection node) {
         if (node.getAlias() == null) {
-            node.setAlias(newColumnAlias());
+            // update returning语句不需要设置alias
+            if (!isSqlUpdate(node.getASTParent())) {
+                node.setAlias(newColumnAlias());
+            }
         }
         visit(node.getExpr());
+    }
+
+    private boolean isSqlUpdate(EqlASTNode node) {
+        return node.getASTKind() == EqlASTKind.SqlUpdate;
     }
 
     @Override
@@ -1346,23 +1358,44 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         currentScope = new SqlTableScope(node, currentScope);
         ISqlTableMeta tableMeta = resolveEntity(table);
 
-        SqlSingleTableSource source = newSingleTableSource(table, node.getAlias().getAlias());
+        SqlSingleTableSource source = newSingleTableSource(table, node.getAlias());
         node.setResolvedTableSource(source);
 
         writeEntityModel = tableMeta.getEntityName();
 
         this.visitChildren(node.getAssignments());
         this.visitChild(node.getWhere());
+
+        // 分析所有的projection，并且确保每一列都有一个别名
+        if (node.getReturnProjections() == null || node.getReturnProjections().isEmpty()) {
+            // select *
+            if (!node.getReturnAll())
+                throw new NopException(ERR_EQL_RETURNING_NO_PROJECTIONS).source(node);
+
+            List<SqlProjection> items = buildSelectItems(source, true, false);
+            node.setReturnProjections(items);
+        }
+
+        if (node.getReturnProjections() != null && !node.getReturnProjections().isEmpty()) {
+            if (!dialect.isSupportReturningForUpdate()) {
+                throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE)
+                        .param(ARG_DIALECT, dialect.getName())
+                        .param(ARG_FEATURE, FEATURE_SUPPORT_RETURNING_FOR_UPDATE);
+            }
+        }
+        visitChildren(node.getReturnProjections());
         currentScope = currentScope.getParent();
     }
 
-    private SqlSingleTableSource newSingleTableSource(SqlTableName table, String alias) {
+    private SqlSingleTableSource newSingleTableSource(SqlTableName table, SqlAlias alias) {
         SqlSingleTableSource source = new SqlSingleTableSource();
         source.setLocation(table.getLocation());
         source.setTableName(table.deepClone());
         source.getTableName().setResolvedTableMeta(table.getResolvedTableMeta());
-        if (alias != null)
-            currentScope.addTable(alias, source);
+        if (alias != null && alias.getAlias() != null) {
+            source.setAlias(alias.deepClone());
+            currentScope.addTable(alias.getAlias(), source);
+        }
         return source;
     }
 
@@ -1376,7 +1409,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         ISqlTableMeta tableMeta = resolveEntity(table);
         writeEntityModel = tableMeta.getEntityName();
 
-        SqlSingleTableSource source = newSingleTableSource(table, node.getAlias().getAlias());
+        SqlSingleTableSource source = newSingleTableSource(table, node.getAlias());
         node.setResolvedTableSource(source);
 
         this.visitChild(node.getWhere());

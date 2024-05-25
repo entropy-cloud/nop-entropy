@@ -200,6 +200,14 @@ public class TestEqlCompiler extends AbstractOrmTestCase {
     }
 
     @Test
+    public void testUpdateReturning() {
+        String sqlText = "update SimsClass o set o.collegeId = 1 returning *";
+
+        SQL sql = compile(sqlText);
+        sql.dump();
+    }
+
+    @Test
     public void testFunctions() {
         IDialect dialect = DialectManager.instance().getDialect("h2");
         for (String funcName : dialect.getFunctionNames()) {

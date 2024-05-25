@@ -564,6 +564,6 @@ OVER
 PARTITION: P A R T I T I O N;
 
 
-RETURING
+RETURNING
     : R E T U R N I N G
     ;

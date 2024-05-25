@@ -63,6 +63,8 @@ public interface OrmEqlErrors {
 
     String ARG_SQL = "sql";
 
+    String ARG_FEATURE = "feature";
+
     ErrorCode ERR_ORM_NULL_BINDER_FOR_COLUMN = define("nop.err.orm.null-binder-for-column",
             "对象[{entityName}]的列[{colName}]的类型为[{sqlType}],没有找到对应的数据绑定接口",
             ARG_ENTITY_NAME, ARG_COL_NAME, ARG_SQL_TYPE, ARG_DATA_TYPE);
@@ -104,6 +106,8 @@ public interface OrmEqlErrors {
             "未定义的SQL数据类型[{sqlType}]。只允许StdSqlType中定义的常量:{allowedNames}", ARG_SQL_TYPE, ARG_ALLOWED_NAMES);
 
     ErrorCode ERR_EQL_SELECT_NO_PROJECTIONS = define("nop.err.eql.select-no-projections", "select语句没有指定选择字段列表");
+
+    ErrorCode ERR_EQL_RETURNING_NO_PROJECTIONS = define("nop.err.eql.returning-no-projections", "returning语句没有指定选择字段列表");
 
     ErrorCode ERR_EQL_FIELD_NOT_IN_SUBQUERY = define("nop.err.eql.field-not-in-subquery",
             "查询语句的返回结果中没有包含字段:{fieldName}", ARG_FIELD_NAME);
@@ -173,4 +177,8 @@ public interface OrmEqlErrors {
 
     ErrorCode ERR_EQL_FIELD_NOT_PROP =
             define("nop.err.eql.field-not-prop", "字段不是实体上的属性:{fieldName}", ARG_FIELD_NAME);
+
+    ErrorCode ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE =
+            define("nop.err.eql.dialect-not-support-feature", "数据库方言[{dialect}]不支持特性[{feature}]",
+                    ARG_DIALECT, ARG_FEATURE);
 }

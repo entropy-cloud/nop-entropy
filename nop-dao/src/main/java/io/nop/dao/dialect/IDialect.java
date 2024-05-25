@@ -92,6 +92,8 @@ public interface IDialect extends IComponentModel {
 
     boolean isSupportSomeSubQuery();
 
+    boolean isSupportReturningForUpdate();
+
     /**
      * h2数据库的Date类型读取存在问题。1899以前的日期按照Date读取会少一天，例如1899-02-03会变成1899-02-02。所以需要改成按照字符串格式读取
      */

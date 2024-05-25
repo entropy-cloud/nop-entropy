@@ -132,7 +132,8 @@
         </errorCode>
     </errorCodes>
 
-    <features supportSequence="false" />
+    <!-- mysql 8.0.14 和mariadb都支持returning语句 -->
+    <features supportSequence="false" supportReturningForUpdate="true"/>
 
     <sqls escapeSlash="true">
 

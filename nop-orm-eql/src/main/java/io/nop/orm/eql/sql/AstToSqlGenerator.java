@@ -138,6 +138,8 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
         SqlAlias alias = node.getAlias();
 
         String owner = expr.getResolvedOwner();
+        if (owner != null && owner.equals(ownerShouldBeIgnored))
+            owner = null;
 
         List<String> colNames = exprMeta.getColumnNames();
         if (colNames == null) {
@@ -304,6 +306,8 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
 
         ISqlExprMeta exprMeta = node.getResolvedExprMeta();
         String owner = node.getResolvedOwner();
+        if (owner != null && owner.equals(ownerShouldBeIgnored))
+            owner = null;
 
         List<String> colNames = exprMeta.getColumnNames();
         if (colNames == null) {

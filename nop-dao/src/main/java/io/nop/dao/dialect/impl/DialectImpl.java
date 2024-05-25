@@ -300,6 +300,10 @@ public class DialectImpl implements IDialect {
         return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportSomeSubQuery());
     }
 
+    @Override
+    public boolean isSupportReturningForUpdate() {
+        return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportReturningForUpdate());
+    }
 
     @Override
     public boolean isUseGetStringForDate() {

@@ -101,7 +101,7 @@
 
     </errorCodes>
 
-    <features supportSequence="true"/>
+    <features supportSequence="true" supportOutputForUpdate="true"/>
 
     <sqls escapeSlash="false">
         <createSequence>

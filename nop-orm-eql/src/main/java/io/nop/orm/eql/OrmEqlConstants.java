@@ -21,4 +21,6 @@ public interface OrmEqlConstants {
     String FUNC_COUNT = "count";
 
     String MARKER_TENANT_ID = "tenantId";
+
+    String FEATURE_SUPPORT_RETURNING_FOR_UPDATE = "supportReturningForUpdate";
 }

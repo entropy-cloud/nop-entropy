@@ -14,7 +14,7 @@
     <!--    <paginationHandler>io.nop.dao.dialect.pagination.OffsetFetchPaginationHandler</paginationHandler>-->
 
     <features supportSequence="true" supportNullsFirst="true" useGetStringForDate="true"
-              supportILike="true" supportExecuteLargeUpdate="true"/>
+              supportILike="true" supportExecuteLargeUpdate="true"  supportReturningForUpdate="true"/>
 
     <reservedKeywords>
         ALL , AND , ANY , ARRAY , AS ,

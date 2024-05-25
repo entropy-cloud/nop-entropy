@@ -85,6 +85,8 @@ public class AstToEqlGenerator extends EqlASTVisitor {
     private int indentLevel;
     private boolean pretty = true;
 
+    protected String ownerShouldBeIgnored;
+
     public AstToEqlGenerator(SQL.SqlBuilder sb) {
         this.sb = sb;
     }
@@ -282,7 +284,7 @@ public class AstToEqlGenerator extends EqlASTVisitor {
 
     @Override
     public void visitSqlColumnName(SqlColumnName node) {
-        if (node.getOwner() != null) {
+        if (node.getOwner() != null && !node.getOwner().getFullName().equals(ownerShouldBeIgnored)) {
             visitSqlQualifiedName(node.getOwner());
             print('.');
         }
@@ -323,6 +325,9 @@ public class AstToEqlGenerator extends EqlASTVisitor {
 
     @Override
     public void visitSqlUpdate(SqlUpdate node) {
+        if (node.getAlias() != null)
+            this.ownerShouldBeIgnored = node.getAlias().getAlias();
+
         printUpdateKeyword();
         beginBlock();
         visitSqlTableName(node.getTableName());
@@ -332,6 +337,13 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         printList(node.getAssignments(), ",");
         endBlock();
         printWhere(node.getWhere());
+
+        if (node.getReturnProjections() != null && !node.getReturnProjections().isEmpty()) {
+            print(" returning ");
+            printList(node.getReturnProjections(), ",");
+        } else if (node.getReturnAll()) {
+            print(" returning *");
+        }
     }
 
     protected void printUpdateKeyword() {
@@ -352,6 +364,9 @@ public class AstToEqlGenerator extends EqlASTVisitor {
 
     @Override
     public void visitSqlDelete(SqlDelete node) {
+        if (node.getAlias() != null)
+            this.ownerShouldBeIgnored = node.getAlias().getAlias();
+
         print("delete\nfrom");
         beginBlock();
         visitSqlTableName(node.getTableName());
@@ -388,7 +403,7 @@ public class AstToEqlGenerator extends EqlASTVisitor {
                 if (i != 0) {
                     println();
                     print(',');
-                }else{
+                } else {
                     print("with ");
                 }
                 SqlCteStatement stm = withCtes.get(i);
@@ -409,7 +424,7 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         visit(node.getSelect());
     }
 
-    protected void appendWithColumns(SqlCteStatement stm){
+    protected void appendWithColumns(SqlCteStatement stm) {
 
     }
 
