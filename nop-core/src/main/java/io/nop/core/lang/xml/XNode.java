@@ -2204,20 +2204,24 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
     public boolean transformChild(Predicate<XNode> filter, Function<XNode, ?> fn, boolean multiple) {
         this.checkNotReadOnly();
 
+        if (children == null)
+            return false;
+
         boolean bChange = false;
         for (int i = 0, n = children.size(); i < n; i++) {
             XNode child = children.get(i);
             if (filter == null || filter.test(child)) {
                 Object o = fn.apply(child);
-                if (o == this) {
-                    if (!multiple)
-                        break;
+                if (o == child) {
+                    if (child.transformChild(filter, fn, multiple)) {
+                        if (!multiple)
+                            break;
+                        bChange = true;
+                    }
                     continue;
                 }
 
                 if (Boolean.TRUE.equals(o)) {
-                    if (child.transformChild(filter, fn, multiple))
-                        bChange = true;
                     continue;
                 }
 
@@ -2232,20 +2236,23 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
                     i--;
                     n--;
                     for (Object elm : c) {
-                        XNode sub = (XNode) elm;
+                        XNode sub = XNode.fromTreeBean((ITreeBean) elm);
                         children.add(i, sub);
                         i++;
                         n++;
                     }
                 } else {
-                    XNode sub = (XNode) o;
+                    XNode sub = XNode.fromTreeBean((ITreeBean) o);
                     children.set(i, sub);
                 }
                 if (!multiple)
                     break;
             } else {
-                if (child.transformChild(filter, fn, multiple))
+                if (child.transformChild(filter, fn, multiple)) {
+                    if (!multiple)
+                        break;
                     bChange = true;
+                }
             }
         }
         return bChange;
@@ -2312,6 +2319,9 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
     }
 
     public static XNode fromTreeBean(ITreeBean bean) {
+        if (bean instanceof XNode)
+            return (XNode) bean;
+
         XNode node = make(bean.getTagName());
         node.assignTreeBean(bean);
         return node;

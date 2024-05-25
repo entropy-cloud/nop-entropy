@@ -7,7 +7,10 @@
  */
 package io.nop.core.lang.xml;
 
+import io.nop.api.core.beans.TreeBean;
+import io.nop.api.core.json.JSON;
 import io.nop.commons.text.CDataText;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.model.tree.TreeVisitors;
 import org.junit.jupiter.api.Test;
@@ -17,6 +20,9 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import static io.nop.api.core.beans.FilterBeans.and;
+import static io.nop.api.core.beans.FilterBeans.eq;
+import static io.nop.api.core.beans.FilterBeans.gt;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -283,5 +289,22 @@ public class TestXNode {
         String str = "<div>&#24207;&#21495;</div>";
         XNode node = XNodeParser.instance().parseFromText(null, str);
         node.dump();
+    }
+
+    @Test
+    public void testTransformChild() {
+        TreeBean bean = and(and(eq("test", 1), gt("status", 2)));
+
+        XNode node = XNode.fromTreeBean(bean);
+        node.transformChild(null, child -> {
+            if (!"test".equals(child.getAttr("name"))) {
+                return child;
+            }
+            return null;
+        }, true);
+
+        Object json = node.toJsonObject();
+        System.out.println(JsonTool.stringify(json));
+        assertEquals("{\"$type\":\"and\",\"$body\":[{\"$type\":\"gt\",\"name\":\"status\",\"value\":2}]}", JsonTool.stringify(json));
     }
 }

@@ -249,6 +249,13 @@ public class TreeBean extends ExtensibleBean implements ITreeBean, IComponentMod
      *
      * @param filter 节点的查找条件
      * @param fn     转换函数
+     *               <ul>
+     *               <li>1. 如果返回当前节点，则递归处理子节点。</li>
+     *               <li>2. 如果返回true，则跳过该子节点的处理。</li>
+     *               <li>3. 如果返回false或者null，则删除该子节点。</li>
+     *               <li>4. 如果返回集合节点，则删除该子节点，然后在原位置插入多个子节点</li>
+     *               <li>5. 替换当前子节点</li>
+     *                </ul>
      * @return 是否成功转换
      */
     public boolean transformChild(Predicate<TreeBean> filter, Function<TreeBean, ?> fn, boolean multiple) {
@@ -260,15 +267,16 @@ public class TreeBean extends ExtensibleBean implements ITreeBean, IComponentMod
             TreeBean child = children.get(i);
             if (filter == null || filter.test(child)) {
                 Object o = fn.apply(child);
-                if (o == this) {
-                    if (!multiple)
-                        break;
+                if (o == child) {
+                    if (child.transformChild(filter, fn, multiple)) {
+                        if (!multiple)
+                            break;
+                        bChange = true;
+                    }
                     continue;
                 }
 
                 if (Boolean.TRUE.equals(o)) {
-                    if (child.transformChild(filter, fn, multiple))
-                        bChange = true;
                     continue;
                 }
 
@@ -295,8 +303,11 @@ public class TreeBean extends ExtensibleBean implements ITreeBean, IComponentMod
                 if (!multiple)
                     break;
             } else {
-                if (child.transformChild(filter, fn, multiple))
+                if (child.transformChild(filter, fn, multiple)) {
+                    if (!multiple)
+                        break;
                     bChange = true;
+                }
             }
         }
         return bChange;
