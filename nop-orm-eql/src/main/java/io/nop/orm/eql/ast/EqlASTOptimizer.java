@@ -410,6 +410,17 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                         
                     }
                 
+                    if(node.getReturnProjections() != null){
+                    
+                            java.util.List<io.nop.orm.eql.ast.SqlProjection> returnProjectionsOpt = optimizeList(node.getReturnProjections(),true, context);
+                            if(returnProjectionsOpt != node.getReturnProjections()){
+                                incChangeCount();
+                                if(shouldClone(ret,node))  { clearParent(returnProjectionsOpt); ret = node.deepClone();}
+                                ret.setReturnProjections(returnProjectionsOpt);
+                            }
+                        
+                    }
+                
 		return ret;
 	}
     

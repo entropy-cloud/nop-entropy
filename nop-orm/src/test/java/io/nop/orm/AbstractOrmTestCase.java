@@ -61,6 +61,7 @@ public class AbstractOrmTestCase extends AbstractJdbcTestCase {
         daoProvider = new OrmDaoProvider(ormTemplate);
 
         sqlLibManager.setOrmTemplate(orm());
+        sqlLibManager.setDaoProvider(daoProvider);
 
         IContext context = ContextProvider.instance().getOrCreateContext();
         context.setTenantId("123");

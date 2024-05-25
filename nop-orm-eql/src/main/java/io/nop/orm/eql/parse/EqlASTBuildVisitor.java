@@ -57,6 +57,11 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
         return isToken(token, EqlParser.ASTERISK_);
     }
 
+    @Override
+    public boolean SqlUpdate_returnAll(Token token) {
+        return isToken(token, EqlParser.ASTERISK_);
+    }
+
     /**
      * rules: SqlBetweenExpr
      */

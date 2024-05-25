@@ -35,6 +35,8 @@
     @supportDeleteTableAlias delete语句是否允许表别名。例如 delete my_table a where ...
     @supportNullsFirst 对于不支持的数据库，可以通过
         order by if(isnull(field),0,1), field来模拟
+    @supportReturningForUpdate Update语句增加returning子句支持
+    @supportOutputForUpdate Update语句支持output子句
     -->
     <features xdef:name="DialectFeatures" xdef:mandatory="true"
               supportExecuteLargeUpdate="boolean" supportLargeMaxRows="boolean"
@@ -47,6 +49,7 @@
               supportDeleteFromJoin="boolean" supportILike="boolean"
               supportNullsFirst="boolean" useGetStringForDate="boolean"
               supportFullJoin="boolean" supportRightJoin="boolean" supportSomeSubQuery="boolean"
+              supportReturningForUpdate="boolean" supportOutputForUpdate="boolean"
     />
 
     <!--

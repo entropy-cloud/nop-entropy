@@ -9,6 +9,7 @@ package io.nop.orm.support;
 
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.json.IJsonString;
+import io.nop.api.core.util.Guard;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.reflect.hook.IPropGetMissingHook;
 import io.nop.orm.IOrmCompositePk;
@@ -188,10 +189,12 @@ public final class OrmCompositePk implements IOrmCompositePk, Serializable, IJso
                                 .param(ARG_PROP_NAME, propName).param(ARG_VALUE, part));
             }
         }
-        return new OrmCompositePk(entityModel.getPkColumnNames(),propValues);
+        return new OrmCompositePk(entityModel.getPkColumnNames(), propValues);
     }
 
     public static OrmCompositePk build(IEntityModel entityModel, Object[] propValues) {
+        Guard.checkEquals(entityModel.getPkColumnNames().size(), propValues.length, "pk col count mismatch");
+
         List<? extends IColumnModel> cols = entityModel.getPkColumns();
         for (int i = 0, n = cols.size(); i < n; i++) {
             IColumnModel col = cols.get(i);

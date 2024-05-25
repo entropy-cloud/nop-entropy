@@ -301,6 +301,7 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
                     this.visitChild(node.getAlias());
                     this.visitChildren(node.getAssignments());         
                     this.visitChild(node.getWhere());
+                    this.visitChildren(node.getReturnProjections());         
             }
         
             public void visitSqlAlias(SqlAlias node){

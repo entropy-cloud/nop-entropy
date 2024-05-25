@@ -19,6 +19,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestOrmSqlLib extends AbstractOrmTestCase {
 
@@ -46,5 +48,17 @@ public class TestOrmSqlLib extends AbstractOrmTestCase {
     public void testFragment() {
         SQL sql = sqlLibManager.buildSql("test2.generateWithFragment", XLang.newEvalScope());
         assertEquals("select a, b, c from MyTable o", sql.getText().trim());
+    }
+
+    @Test
+    public void testOrmEntityRowMapper() {
+        orm().runInSession(() -> {
+            SimsClass entity = (SimsClass) sqlLibManager.invoke("test2.testOrmEntityRowMapper", null, XLang.newEvalScope());
+            assertNotNull(entity);
+            assertTrue(!entity.orm_proxy());
+            assertTrue(entity.getSimsCollege().orm_proxy());
+            assertEquals(3, entity.orm_initedValues().size());
+            assertEquals("CollegeA", entity.getSimsCollege().getCollegeName());
+        });
     }
 }

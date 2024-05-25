@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [39:6:0:0]/nop/schema/orm/dialect.xdef <p>
+ * generate from [41:6:0:0]/nop/schema/orm/dialect.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -82,10 +82,24 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: supportOutputForUpdate
+     * Update语句支持output子句
+     */
+    private java.lang.Boolean _supportOutputForUpdate ;
+    
+    /**
+     *  
      * xml name: supportQueryTimeout
      * 
      */
     private java.lang.Boolean _supportQueryTimeout ;
+    
+    /**
+     *  
+     * xml name: supportReturningForUpdate
+     * Update语句增加returning子句支持
+     */
+    private java.lang.Boolean _supportReturningForUpdate ;
     
     /**
      *  
@@ -338,6 +352,25 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
     
     /**
      * 
+     * xml name: supportOutputForUpdate
+     *  Update语句支持output子句
+     */
+    
+    public java.lang.Boolean getSupportOutputForUpdate(){
+      return _supportOutputForUpdate;
+    }
+
+    
+    public void setSupportOutputForUpdate(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._supportOutputForUpdate = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: supportQueryTimeout
      *  
      */
@@ -351,6 +384,25 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
         checkAllowChange();
         
         this._supportQueryTimeout = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: supportReturningForUpdate
+     *  Update语句增加returning子句支持
+     */
+    
+    public java.lang.Boolean getSupportReturningForUpdate(){
+      return _supportReturningForUpdate;
+    }
+
+    
+    public void setSupportReturningForUpdate(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._supportReturningForUpdate = value;
            
     }
 
@@ -588,7 +640,9 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
         out.putNotNull("supportILike",this.getSupportILike());
         out.putNotNull("supportLargeMaxRows",this.getSupportLargeMaxRows());
         out.putNotNull("supportNullsFirst",this.getSupportNullsFirst());
+        out.putNotNull("supportOutputForUpdate",this.getSupportOutputForUpdate());
         out.putNotNull("supportQueryTimeout",this.getSupportQueryTimeout());
+        out.putNotNull("supportReturningForUpdate",this.getSupportReturningForUpdate());
         out.putNotNull("supportRightJoin",this.getSupportRightJoin());
         out.putNotNull("supportRowValueConstructor",this.getSupportRowValueConstructor());
         out.putNotNull("supportSavePoint",this.getSupportSavePoint());
@@ -620,7 +674,9 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
         instance.setSupportILike(this.getSupportILike());
         instance.setSupportLargeMaxRows(this.getSupportLargeMaxRows());
         instance.setSupportNullsFirst(this.getSupportNullsFirst());
+        instance.setSupportOutputForUpdate(this.getSupportOutputForUpdate());
         instance.setSupportQueryTimeout(this.getSupportQueryTimeout());
+        instance.setSupportReturningForUpdate(this.getSupportReturningForUpdate());
         instance.setSupportRightJoin(this.getSupportRightJoin());
         instance.setSupportRowValueConstructor(this.getSupportRowValueConstructor());
         instance.setSupportSavePoint(this.getSupportSavePoint());

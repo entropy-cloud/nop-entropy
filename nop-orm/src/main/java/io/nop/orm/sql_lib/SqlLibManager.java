@@ -26,6 +26,7 @@ import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ResourceComponentManager;
+import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.ISqlExecutor;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.orm.IOrmTemplate;
@@ -62,6 +63,8 @@ public class SqlLibManager implements ISqlLibManager {
 
     private ICancellable cancellable;
 
+    private IDaoProvider daoProvider;
+
     @Inject
     public void setJdbcTemplate(IJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
@@ -70,6 +73,11 @@ public class SqlLibManager implements ISqlLibManager {
     @Inject
     public void setOrmTemplate(IOrmTemplate ormTemplate) {
         this.ormTemplate = ormTemplate;
+    }
+
+    @Inject
+    public void setDaoProvider(IDaoProvider daoProvider) {
+        this.daoProvider = daoProvider;
     }
 
     @PostConstruct
@@ -131,12 +139,16 @@ public class SqlLibManager implements ISqlLibManager {
     @Override
     public Object invoke(String sqlName, LongRangeBean range, IEvalContext context) {
         SqlItemModel item = getSqlItemModel(sqlName);
+        return doInvoke(item, range, context);
+    }
+
+    Object doInvoke(SqlItemModel item, LongRangeBean range, IEvalContext context) {
         checkAuth(item, context);
         IEvalScope scope = context.getEvalScope();
         ValueWithLocation sqlLibVl = scope.recordValueLocation(OrmConstants.PARAM_SQL_LIB_MODEL);
         try {
             scope.setLocalValue(OrmConstants.PARAM_SQL_LIB_MODEL, item.getSqlLibModel());
-            return item.invoke(getExecutor(item.getType()), range, context);
+            return item.invoke(daoProvider, getExecutor(item.getType()), range, context);
         } finally {
             scope.restoreValueLocation(OrmConstants.PARAM_SQL_LIB_MODEL, sqlLibVl);
         }
@@ -177,11 +189,7 @@ public class SqlLibManager implements ISqlLibManager {
 
     public Object invoke(String sqlLibPath, String sqlItemName, LongRangeBean range, IEvalContext context) {
         SqlItemModel item = getSqlItemModel(sqlLibPath, sqlItemName);
-        checkAuth(item, context);
-
-        IEvalScope scope = context.getEvalScope();
-        scope.setLocalValue(OrmConstants.PARAM_SQL_LIB_MODEL, item.getSqlLibModel());
-        return item.invoke(getExecutor(item.getType()), range, context);
+        return doInvoke(item, range, context);
     }
 
     @Override

@@ -140,7 +140,7 @@ public interface OrmErrors {
     String ARG_ROLES = "roles";
 
     ErrorCode ERR_ORM_SESSION_NOT_RUN_ON_CONTEXT =
-            define("nop.err.orm.session-not-run-on-context","ORM会话只能在单线程上访问，不支持并发访问");
+            define("nop.err.orm.session-not-run-on-context", "ORM会话只能在单线程上访问，不支持并发访问");
     ErrorCode ERR_ORM_SESSION_CLOSED = define("nop.err.orm.session-closed", "session已关闭");
 
     ErrorCode ERR_ORM_READONLY_NOT_ALLOW_UPDATE = define("nop.err.orm.read-only-session-not-allow-update",
@@ -390,4 +390,7 @@ public interface OrmErrors {
     ErrorCode ERR_ORM_DUPLICATE_SHORT_ENTITY_NAME =
             define("nop.err.orm.duplicate-short-entity-name", "实体名[{entityName}]和实体名[{otherEntityName}]的短名字重复",
                     ARG_ENTITY_NAME, ARG_OTHER_ENTITY_NAME);
+
+    ErrorCode ERR_ORM_ENTITY_PROP_IS_DIRTY_WHEN_REFRESH =
+            define("nop.err.orm.entity-prop-is-dirty", "实体[{entityName}]的属性[{propName}]已经被修改，不允许重新加载");
 }

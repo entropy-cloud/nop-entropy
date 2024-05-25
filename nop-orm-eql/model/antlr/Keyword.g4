@@ -562,3 +562,8 @@ OVER
     : O V E R;
 
 PARTITION: P A R T I T I O N;
+
+
+RETURING
+    : R E T U R N I N G
+    ;

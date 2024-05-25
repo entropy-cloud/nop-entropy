@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [20:6:0:0]/nop/schema/orm/sql-lib.xdef <p>
+ * generate from [21:6:0:0]/nop/schema/orm/sql-lib.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -106,6 +106,13 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
      * 
      */
     private java.lang.String _name ;
+    
+    /**
+     *  
+     * xml name: ormEntityRefreshBehavior
+     * 当SQL语句返回实体数据，并且使用rowType来构建实体对象时所使用的更新策略
+     */
+    private io.nop.orm.sql_lib.OrmEntityRefreshBehavior _ormEntityRefreshBehavior ;
     
     /**
      *  
@@ -450,6 +457,25 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
     
     /**
      * 
+     * xml name: ormEntityRefreshBehavior
+     *  当SQL语句返回实体数据，并且使用rowType来构建实体对象时所使用的更新策略
+     */
+    
+    public io.nop.orm.sql_lib.OrmEntityRefreshBehavior getOrmEntityRefreshBehavior(){
+      return _ormEntityRefreshBehavior;
+    }
+
+    
+    public void setOrmEntityRefreshBehavior(io.nop.orm.sql_lib.OrmEntityRefreshBehavior value){
+        checkAllowChange();
+        
+        this._ormEntityRefreshBehavior = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: querySpace
      *  指定查询空间，一般一个querySpace对应一个数据库。
      */
@@ -596,6 +622,7 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
         out.putNotNull("fetchSize",this.getFetchSize());
         out.putNotNull("fields",this.getFields());
         out.putNotNull("name",this.getName());
+        out.putNotNull("ormEntityRefreshBehavior",this.getOrmEntityRefreshBehavior());
         out.putNotNull("querySpace",this.getQuerySpace());
         out.putNotNull("rowType",this.getRowType());
         out.putNotNull("sqlMethod",this.getSqlMethod());
@@ -626,6 +653,7 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
         instance.setFetchSize(this.getFetchSize());
         instance.setFields(this.getFields());
         instance.setName(this.getName());
+        instance.setOrmEntityRefreshBehavior(this.getOrmEntityRefreshBehavior());
         instance.setQuerySpace(this.getQuerySpace());
         instance.setRowType(this.getRowType());
         instance.setSqlMethod(this.getSqlMethod());

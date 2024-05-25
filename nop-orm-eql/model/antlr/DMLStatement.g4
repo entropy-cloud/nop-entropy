@@ -26,7 +26,10 @@ sqlInsert
     ;
 
 sqlUpdate
-    : decorators=sqlDecorators_? UPDATE tableName=sqlTableName (AS? alias=sqlAlias?) (<br> assignments=sqlAssignments_) (<br> where=sqlWhere)?
+    : decorators=sqlDecorators_? UPDATE tableName=sqlTableName (AS? alias=sqlAlias?)
+    (<br> assignments=sqlAssignments_)
+    (<br> where=sqlWhere)?
+    RETURNING (returnAll=ASTERISK_ | returnProjections=sqlProjections_)
     ;
 
 sqlAssignments_

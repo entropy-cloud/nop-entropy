@@ -97,6 +97,10 @@ class EqlAST {
         List<SqlAssignment> assignments;
 
         SqlWhere where;
+
+        boolean returnAll;
+
+        List<SqlProjection> returnProjections;
     }
 
     class SqlAlias {

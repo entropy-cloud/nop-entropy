@@ -22,7 +22,16 @@
 
         <sql name="generateWithFragment">
             <source>
-                select <sql:fragment id="colList" /> from MyTable o
+                select
+                <sql:fragment id="colList"/>
+                from MyTable o
+            </source>
+        </sql>
+
+        <sql name="testOrmEntityRowMapper" rowType="io.nop.app.SimsClass" sqlMethod="findFirst" colNameCamelCase="true">
+            <source>
+                select o.class_id, o.class_name, o.college_id
+                from sims_class o
             </source>
         </sql>
     </sqls>

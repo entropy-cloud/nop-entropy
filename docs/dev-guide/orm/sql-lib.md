@@ -1,3 +1,5 @@
+# 统一的SQL管理
+
 当我们需要构造比较复杂的SQL或者EQL语句的时候，通过一个外部模型文件对它们进行管理无疑是有着重要价值的。MyBatis提供了这样一种把SQL语句模型化的机制，但是仍然有很多人倾向于在Java代码中通过QueryDsl这样的方案来动态拼接SQL。这实际上是在说明
 **MyBatis的功能实现比较单薄，没有能够充分发挥模型化的优势**。
 
@@ -17,7 +19,7 @@
 
 sql-lib提供了如下特性
 
-# 1  统一管理SQL/EQL/DQL
+## 1  统一管理SQL/EQL/DQL
 
 在sql-lib文件中存在三种节点，sql/eql/query分别对应于SQL语句，EQL语句和上一节介绍的润乾DQL查询模型，对它们可以采取统一的方式进行管理。
 
@@ -51,16 +53,15 @@ sql-lib提供了如下特性
 
 <sql-lib>
     <x:gen-extends>
-        <app:GenDefaultSqls
-        ... />
+        <app:GenDefaultSql />
     </x:gen-extends>
 
     <sqls>
         <!-- 在这里可以对自动生成SQL进行定制 -->
-        <eql name=”yyy“>...
-    </eql>
-</sqls>
-        </sql-lib>
+        <eql name="yyy">...
+        </eql>
+    </sqls>
+</sql-lib>
 ```
 
 ## 2. XPL模板的组件抽象能力
@@ -107,7 +108,7 @@ Xpl模板语言不仅内置了`<c:for>`,`<c:if>`等图灵完备语言所需的�
 </sql>
 ```
 
-### 3. 宏(Macro)标签的元编程能力
+## 3. 宏(Macro)标签的元编程能力
 
 MyBatis拼接动态SQL的方式很笨拙，因此一些类MyBatis的框架会在SQL模板层面提供一些特殊设计的简化语法。例如有些框架引入了隐式条件判断机制
 
@@ -152,7 +153,7 @@ where id = :id
 
 ```xml
 
-<c:script>
+<c:script><![CDATA[
     function f(x,y){
     return x + y;
     }
@@ -162,7 +163,7 @@ where id = :id
     from obj
     where f(x,y) > 2 and sin(x) > cos(y)
     `
-</c:script>
+]]></c:script>
 ```
 
 XScript的模板表达式会自动识别宏函数，并在编译期自动执行。因此我们可以定义一个宏函数linq，它将模板字符串在编译期解析为SQL语法树，然后再变换为普通的JavaScript
@@ -170,7 +171,7 @@ AST，从而相当于是在面向对象的XScript语法（类似TypeScript的脚
 
 > 以上仅为概念示例，目前Nop平台仅提供了xpath/jpath/xpl等宏函数，并没有提供内置的linq宏函数。
 
-### 4. 模板语言的SQL输出模式
+## 4. 模板语言的SQL输出模式
 
 模板语言相对于普通程序语言而言，它的设计偏置是将输出（Output）这一副作用作为第一类（first
 class）的概念。当我们没有做任何特殊修饰的时候，就表示对外输出，而如果我们要表示执行其他逻辑，则需要用表达式、标签等形式明确的隔离出来。Xpl模板语言作为一种Generic的模板语言，它对输出这一概念进行了强化，增加了多模式输出的设计。
@@ -205,14 +206,14 @@ SQL = Text + Params
 
 通过sql = SQL.begin().sql("o.id = ? ", name).end() 这种形式可以构造带参数的SQL语句对象。Xpl模板的sql输出模式会自动识别SQL对象，并自动对文本和参数集合分别进行处理。
 
-### 5. 自动验证
+## 5. 自动验证
 
 外部文件中管理SQL模板存在一个缺点：它无法依赖类型系统进行校验，只能期待运行时测试来检查SQL语法是否正确。如果数据模型发生变化，则可能无法立刻发现哪些SQL语句受到影响。
 对于这个问题，其实存在一些比较简单的解决方案。毕竟，SQL语句既然已经作为结构化的模型被管理起来了，我们能够对它们进行操作的手段就变得异常丰富起来。
 NopOrm内置了一个类似Contract Based
 Programming的机制：每个EQL语句的模型都支持一个validate-input配置，我们可以在其中准备一些测试数据，然后ORM引擎在加载sql-lib的时候会自动运行validate-input得到测试数据，并以测试数据为基础执行SQL模板来生成EQL语句，然后交由EQL解析器来分析它的合法性，从而实现以一种准静态分析的方式检查ORM模型与EQL语句的一致性。
 
-### 6. 调试支持
+## 6. 调试支持
 
 与MyBatis内置的自制简易模板语言不同，NopOrm使用Xpl模板语言来生成SQL语句，因此可以很自然的可以利用XLang语言调试器来调试。Nop平台提供了IDEA开发插件，支持DSL语法提示和断点调试功能。它会自动读取sql-lib.xdef元模型定义文件，根据元模型自动校验sql-lib文件的语法正确性，并提供语法提示功能，支持在source段增加断点，进行单步调试等。
 
@@ -232,11 +233,11 @@ x = a.f().$(prefix) 实际对应于
 x = DebugHelper.v(location,prefix, "a.f()",a.f())
 ```
 
-### 7. 根据Dialect生成对应的SQL语句
+## 7. 根据Dialect生成对应的SQL语句
 
 利用标签库可以引入各种自定义的扩展逻辑。比如根据不同的数据库方言生成不同的SQL语句。
 
-```xml
+```
 select
 <sql:when-dialect name="h2">
     ...
@@ -244,7 +245,7 @@ select
         from my_entity
 ```
 
-### 8. Mapper接口
+## 8. Mapper接口
 
 只要在Excel数据模型中为实体增加mapper标签，代码生成的时候就会自动生成类似MyBatis的强类型的Mapper接口，通过它可以调用SqlLibManager所管理的SQL模型文件。例如[LitemallGoodsMapper.java](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/app-mall-dao/src/main/java/app/mall/dao/mapper/LitemallGoodsMapper.java)。
 
@@ -258,6 +259,24 @@ public interface LitemallGoodsMapper {
 ```
 
 通过SqlLibMapper注解可以指定当前接口所关联的SQL模型文件。
+
+## 9. 使用native sql加载实体对象
+一般情况下我们使用`<eql>`节点来加载实体数据。但是如果设置rowType为实体类型，则也可以使用`<sql>`节点来加载实体数据
+
+```xml
+  <sql name="testOrmEntityRowMapper" rowType="io.nop.app.SimsClass" sqlMethod="findFirst"
+       colNameCamelCase="true" >
+      <source>
+          select o.class_id, o.class_name, o.college_id
+          from sims_class o
+      </source>
+  </sql>
+```
+
+* 设置了colNameCamelCase会自动将`class_id`这样的返回字段名转换为`classId`这样的实体属性名
+* 如果SQL语句返回的结果中没有包含主键字段，则会新建实体对象，否则会根据id加载当前OrmSession中的实体，并更新实体上的属性。
+* 如果执行SQL之前对应的实体数据已经加载到内存中，且已经被修改，则执行SQL会抛出异常`nop.err.orm.entity-prop-is-dirty`。如果没有被修改，则会更新实体属性。
+* 可以通过ormEntityRefreshBehavior来改变上面的行为。errorWhenDirty是缺省行为。useFirst将保留第一次加载的实体数据，忽略当前SQL查询得到的数据。useLast则使用最后一次查询得到的数据。
 
 ## 与MyBatis的对比
 

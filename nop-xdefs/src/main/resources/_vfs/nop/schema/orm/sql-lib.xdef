@@ -16,11 +16,13 @@
           @dict:static sql语句返回字典项时使用。static表示为字典项为静态内容可以缓存起来，下次不用再次获取
           @dict:valueType 字段项的值类型
           @dict:normalized 字典项的显示文本是否已经经过规范化处理。
+          @ormEntityRefreshBehavior 当SQL语句返回实体数据，并且使用rowType来构建实体对象时所使用的更新策略
         -->
     <xdef:define xdef:name="SqlItemModel" name="!var-name" displayName="string"
                  rowType="generic-type" sqlMethod="enum:io.nop.orm.sql_lib.SqlMethod"
                  cacheName="string" cacheKeyExpr="expr"
                  querySpace="string=default" fetchSize="int" timeout="int" disableLogicalDelete="!boolean=false"
+                 ormEntityRefreshBehavior="enum:io.nop.orm.sql_lib.OrmEntityRefreshBehavior=errorWhenDirty"
                  xdef:bean-tag-prop="type"
                  dict:static="boolean" dict:valueType="std-data-type" dict:normalized="boolean"
     >

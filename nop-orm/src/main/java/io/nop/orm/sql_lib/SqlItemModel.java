@@ -21,6 +21,7 @@ import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.reflect.bean.IBeanModel;
 import io.nop.dao.DaoConstants;
+import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.ISqlExecutor;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dataset.IFieldMapper;
@@ -29,8 +30,11 @@ import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.dataset.impl.BinderFieldMapper;
 import io.nop.dataset.rowmapper.ColRowMapper;
 import io.nop.dataset.rowmapper.SmartRowMapper;
+import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmTemplate;
 import io.nop.orm.OrmConstants;
+import io.nop.orm.dao.IOrmEntityDao;
+import io.nop.orm.dataset.OrmEntityRowMapper;
 import io.nop.orm.sql_lib._gen._SqlItemModel;
 
 import java.io.Serializable;
@@ -93,7 +97,7 @@ public abstract class SqlItemModel extends _SqlItemModel {
         throw new UnsupportedOperationException();
     }
 
-    public Object invoke(ISqlExecutor executor, LongRangeBean range, IEvalContext context) {
+    public Object invoke(IDaoProvider daoProvider, ISqlExecutor executor, LongRangeBean range, IEvalContext context) {
 
         IEvalScope scope = context.getEvalScope();
         IDialect dialect = executor.getDialectForQuerySpace(getQuerySpace());
@@ -119,17 +123,19 @@ public abstract class SqlItemModel extends _SqlItemModel {
             case execute:
                 return executor.executeMultiSql(sql);
             case findAll:
-                return processResult(executor.findAll(sql, buildRowMapper(executor, sql.getQuerySpace(), scope)), executor);
+                return processResult(executor.findAll(sql,
+                        buildRowMapper(daoProvider, executor, sql.getQuerySpace(), scope)), executor);
             case findPage: {
                 long offset = range == null ? 0 : range.getOffset();
                 int limit = range == null ? 10 : (int) range.getLimit();
                 List<Object> data = executor.findPage(sql, offset, limit,
-                        buildRowMapper(executor, sql.getQuerySpace(), scope));
+                        buildRowMapper(daoProvider, executor, sql.getQuerySpace(), scope));
                 data = processResult(data, executor);
                 return buildResult(data, scope);
             }
             case findFirst: {
-                Object data = executor.findFirst(sql, buildRowMapper(executor, sql.getQuerySpace(), scope));
+                Object data = executor.findFirst(sql,
+                        buildRowMapper(daoProvider, executor, sql.getQuerySpace(), scope));
                 data = processSingleResult(data, executor);
                 return buildResult(data, scope);
             }
@@ -178,7 +184,7 @@ public abstract class SqlItemModel extends _SqlItemModel {
             ((IOrmTemplate) executor).batchLoadSelection(Collections.singleton(data), getBatchLoadSelection());
         }
 
-        if (getRowType() != null) {
+        if (getRowType() != null && !getRowType().isInstance(data)) {
             if (data instanceof Map) {
                 IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(getRowType().getRawClass());
                 return BeanRowMapper.newBean(beanModel, (Map<String, Object>) data, false);
@@ -189,7 +195,12 @@ public abstract class SqlItemModel extends _SqlItemModel {
         return data;
     }
 
-    protected IRowMapper buildRowMapper(ISqlExecutor executor, String querySpace, IEvalScope scope) {
+    protected IRowMapper buildRowMapper(IDaoProvider daoProvider, ISqlExecutor executor, String querySpace, IEvalScope scope) {
+        if (getRowType() != null && getRowType().isAssignableTo(IOrmEntity.class)) {
+            // 行为实体对象
+            IOrmEntityDao<IOrmEntity> entityDao = (IOrmEntityDao) daoProvider.dao(getRowType().getClassName());
+            return new OrmEntityRowMapper<>(entityDao, isColNameCamelCase(), getOrmEntityRefreshBehavior());
+        }
         SmartRowMapper rowMapper;
         if (DaoConstants.SQL_TYPE_SQL.equals(getType())) {
             rowMapper = isColNameCamelCase() ? SmartRowMapper.CASE_INSENSITIVE : SmartRowMapper.CAMEL_CASE;

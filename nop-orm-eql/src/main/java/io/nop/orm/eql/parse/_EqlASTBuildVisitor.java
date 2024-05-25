@@ -1316,6 +1316,15 @@ public java.util.List<io.nop.orm.eql.ast.SqlStatement> buildSqlStatements_(SqlSt
             if(ctx.where != null){
                ret.setWhere((visitSqlWhere(ctx.where)));
             }
+            if(ctx.returnAll != null){
+               ret.setReturnAll((SqlUpdate_returnAll(ctx.returnAll)));
+            }
+            if(ctx.returnProjections != null){
+               ret.setReturnProjections((buildSqlProjections_(ctx.returnProjections)));
+            }else{
+               ret.setReturnProjections(Collections.emptyList());
+            }
+            
             ret.normalize();
             ret.validate();
           return ret;
@@ -1462,6 +1471,11 @@ public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(Tabl
    * rules: sqlSubqueryTableSource
    */
   public abstract boolean SqlSubqueryTableSource_lateral(org.antlr.v4.runtime.Token token);
+
+  /**
+   * rules: sqlUpdate
+   */
+  public abstract boolean SqlUpdate_returnAll(org.antlr.v4.runtime.Token token);
 
   /**
    * rules: sqlTypeExpr
