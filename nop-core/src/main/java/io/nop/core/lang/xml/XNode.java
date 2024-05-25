@@ -1688,6 +1688,23 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         return node.getAttr(attrName);
     }
 
+    public XNode nodeWithAttr(String attrName, Object attrValue) {
+        if (Objects.equals(attrValue, getAttr(attrName)))
+            return this;
+        return childWithAttr(attrName, attrValue);
+    }
+
+    public XNode childWithAttr(String attrName, Object attrValue) {
+        if (children == null || children.isEmpty())
+            return null;
+        for (XNode child : children) {
+            Object value = child.getAttr(attrName);
+            if (Objects.equals(value, attrValue))
+                return child;
+        }
+        return null;
+    }
+
     public TreeVisitResult visit(ITreeVisitor<XNode> visitor) {
         return TreeVisitors.visitTree(TreeVisitors.childrenStructureAdapter(), this, visitor);
     }

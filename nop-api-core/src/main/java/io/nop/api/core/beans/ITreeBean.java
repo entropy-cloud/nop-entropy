@@ -44,4 +44,23 @@ public interface ITreeBean extends ISourceLocationGetter, ISourceLocationSetter 
     ITreeBean cloneInstance();
 
     Object toJsonObject();
+
+    ITreeBean childWithAttr(String attrName, Object attrValue);
+
+    ITreeBean nodeWithAttr(String attrName, Object attrValue);
+
+    default Object cascadeGetAttr(String attrName) {
+        Object value = getAttr(attrName);
+        if (value != null)
+            return value;
+        List<? extends ITreeBean> children = getChildren();
+        if (children == null)
+            return null;
+        for (ITreeBean child : children) {
+            value = child.cascadeGetAttr(attrName);
+            if (value != null)
+                return value;
+        }
+        return null;
+    }
 }
