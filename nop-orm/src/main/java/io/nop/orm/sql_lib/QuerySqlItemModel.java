@@ -59,7 +59,7 @@ public class QuerySqlItemModel extends _QuerySqlItemModel {
             switch (method) {
                 case findAll: {
                     List<Object> data = processResult(orm.findListByQuery(query,
-                            buildRowMapper(daoProvider, executor, getQuerySpace(), scope)), executor);
+                            buildRowMapper(daoProvider, executor, getQuerySpace(), scope)), executor, daoProvider);
                     return buildResult(data, scope);
                 }
                 case findPage: {
@@ -69,13 +69,13 @@ public class QuerySqlItemModel extends _QuerySqlItemModel {
                     query.setLimit(limit);
                     List<Object> data = orm.findListByQuery(query,
                             buildRowMapper(daoProvider, executor, getQuerySpace(), scope));
-                    data = processResult(data, executor);
+                    data = processResult(data, executor, daoProvider);
                     return buildResult(data, scope);
                 }
                 case findFirst: {
                     Object data = orm.findFirstByQuery(query,
                             buildRowMapper(daoProvider, executor, getQuerySpace(), scope));
-                    data = processSingleResult(data, executor);
+                    data = processSingleResult(data, executor, daoProvider);
                     return buildResult(data, scope);
                 }
                 case exists:

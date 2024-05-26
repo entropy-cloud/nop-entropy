@@ -7,8 +7,10 @@
  */
 package io.nop.orm.sql_lib;
 
+import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.LongRangeBean;
 import io.nop.app.SimsClass;
+import io.nop.core.dict.DictProvider;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.sql.SQL;
 import io.nop.orm.AbstractOrmTestCase;
@@ -19,6 +21,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -47,7 +50,9 @@ public class TestOrmSqlLib extends AbstractOrmTestCase {
     @Test
     public void testFragment() {
         SQL sql = sqlLibManager.buildSql("test2.generateWithFragment", XLang.newEvalScope());
-        assertEquals("select a, b, c from MyTable o", sql.getText().trim());
+        assertEquals("select\n" +
+                "                a, b, c\n" +
+                "                from MyTable o", normalizeCRLF(sql.getText().trim()));
     }
 
     @Test
@@ -60,5 +65,14 @@ public class TestOrmSqlLib extends AbstractOrmTestCase {
             assertEquals(3, entity.orm_initedValues().size());
             assertEquals("CollegeA", entity.getSimsCollege().getCollegeName());
         });
+    }
+
+    @Test
+    public void testDict() {
+        IEvalScope scope = XLang.newEvalScope();
+        DictBean dict = DictProvider.instance().getDict(null, "sql/test.demo_dict", null, scope);
+        assertNotNull(dict);
+        assertFalse(dict.getOptions().isEmpty());
+        assertNotNull(dict.getOptions().get(0).getValue());
     }
 }

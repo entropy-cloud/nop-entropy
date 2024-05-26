@@ -18,7 +18,9 @@ import io.nop.core.unittest.BaseTestCase;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.jdbc.impl.JdbcFactory;
 import io.nop.dao.txn.ITransactionTemplate;
+import io.nop.orm.dao.OrmDaoProvider;
 import io.nop.orm.sql_lib.SqlLibManager;
+import io.nop.orm.sql_lib.dict.SqlLibDictLoader;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -32,6 +34,8 @@ public abstract class AbstractJdbcTestCase extends BaseTestCase {
     protected SqlLibManager sqlLibManager;
     protected IOrmTemplate ormTemplate;
     protected ITransactionTemplate transactionTemplate;
+
+    private SqlLibDictLoader dictLoader;
 
     @BeforeAll
     public static void init() {
@@ -50,6 +54,9 @@ public abstract class AbstractJdbcTestCase extends BaseTestCase {
         ormTemplate = createOrmTemplate();
         sqlLibManager = createSqlLibManager();
         sqlLibManager.init();
+        dictLoader = new SqlLibDictLoader();
+        dictLoader.setSqlLibManager(sqlLibManager);
+        dictLoader.init();
         executeSqlFile("/init.sql");
     }
 
@@ -63,6 +70,9 @@ public abstract class AbstractJdbcTestCase extends BaseTestCase {
 
     @AfterEach
     public void tearDown() {
+        if(dictLoader != null)
+            dictLoader.destroy();
+
         if (sqlLibManager != null)
             sqlLibManager.destroy();
 
@@ -93,6 +103,8 @@ public abstract class AbstractJdbcTestCase extends BaseTestCase {
         SqlLibManager sqlLibManager = new SqlLibManager();
         sqlLibManager.setJdbcTemplate(jdbcTemplate);
         sqlLibManager.setOrmTemplate(ormTemplate);
+        if (ormTemplate != null)
+            sqlLibManager.setDaoProvider(new OrmDaoProvider(ormTemplate));
         return sqlLibManager;
     }
 

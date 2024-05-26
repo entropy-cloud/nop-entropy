@@ -106,6 +106,6 @@ public class SqlLibDictLoader implements IDictLoader {
     void checkDictSql(String sqlName) {
         if (!sqlName.endsWith(OrmConstants.SQL_DICT_POSTFIX))
             throw new IllegalArgumentException(
-                    "nop.sql.invalid-sql-name:sqlName must ends with '-sql',sqlName=" + sqlName);
+                    "nop.sql.invalid-sql-name:sqlName must ends with '_dict',sqlName=" + sqlName);
     }
 }

@@ -17,6 +17,8 @@ public interface IDaoProvider {
 
     String normalizeEntityName(String entityName);
 
+    boolean hasDao(String entityName);
+
     <T extends IDaoEntity> IEntityDao<T> dao(String entityName);
 
     default <T extends IDaoEntity> IEntityDao<T> daoFor(Class<T> entityClass) {

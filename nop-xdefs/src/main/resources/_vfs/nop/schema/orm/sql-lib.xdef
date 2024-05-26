@@ -19,7 +19,7 @@
           @ormEntityRefreshBehavior 当SQL语句返回实体数据，并且使用rowType来构建实体对象时所使用的更新策略
         -->
     <xdef:define xdef:name="SqlItemModel" name="!var-name" displayName="string"
-                 rowType="generic-type" sqlMethod="enum:io.nop.orm.sql_lib.SqlMethod"
+                 rowType="class-name" sqlMethod="enum:io.nop.orm.sql_lib.SqlMethod"
                  cacheName="string" cacheKeyExpr="expr"
                  querySpace="string=default" fetchSize="int" timeout="int" disableLogicalDelete="!boolean=false"
                  ormEntityRefreshBehavior="enum:io.nop.orm.sql_lib.OrmEntityRefreshBehavior=errorWhenDirty"

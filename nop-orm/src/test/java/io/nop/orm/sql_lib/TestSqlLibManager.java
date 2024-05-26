@@ -7,6 +7,8 @@
  */
 package io.nop.orm.sql_lib;
 
+import io.nop.api.core.beans.DictBean;
+import io.nop.core.dict.DictProvider;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.orm.AbstractJdbcTestCase;
@@ -19,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSqlLibManager extends AbstractJdbcTestCase {
@@ -77,4 +80,5 @@ public class TestSqlLibManager extends AbstractJdbcTestCase {
         assertEquals("x", map.get("A'B"));
         assertEquals("y", map.get(" U`v"));
     }
+
 }

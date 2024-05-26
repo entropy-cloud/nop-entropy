@@ -280,14 +280,14 @@ public interface LitemallGoodsMapper {
 
 ## 与MyBatis的对比
 
-|MyBatis|Nop平台|
-|---|---|
-|通过XML配置动态SQL|通过统一的Delta定制实现配置修正|
-|通过Mapper接口封装SQL的执行|Nop平台使用统一的@Name注解定义参数名，通过IEvalContext来传递上下文对象|
-|通过标签函数生成动态SQL|Nop平台中通过Xpl标签库引入自定义标签|
-|通过表达式生成SQL参数|表达式使用通用的表达式引擎，利用Xpl模板语言的SQL输出模式将输出的表达式结果转换为SQL参数|
-|支持事务、结果数据缓存等|利用Dao层的JdbcTemplate，自动支持事务和结果缓存|
-|管理SQL语句|同时管理EQL、SQL、DQL等各类查询语言|
+| MyBatis         |Nop平台|
+|-----------------|---|
+| 通过XML配置动态SQL    |通过统一的Delta定制实现配置修正|
+| 通过Mapper接口封装SQL的执行 |Nop平台使用统一的@Name注解定义参数名，通过IEvalContext来传递上下文对象|
+| 通过固定的几个标签函数生成动态SQL |Nop平台中通过Xpl标签库引入自定义标签|
+| 通过表达式生成SQL参数    |表达式使用通用的表达式引擎，利用Xpl模板语言的SQL输出模式将输出的表达式结果转换为SQL参数|
+| 支持事务、结果数据缓存等    |利用Dao层的JdbcTemplate，自动支持事务和结果缓存|
+| 管理SQL语句         |同时管理EQL、SQL、DQL等各类查询语言|
 
 利用Nop平台的内置机制，还可以自动支持如下功能：
 

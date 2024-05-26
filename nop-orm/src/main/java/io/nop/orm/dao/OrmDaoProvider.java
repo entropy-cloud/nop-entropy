@@ -7,6 +7,7 @@
  */
 package io.nop.orm.dao;
 
+import io.nop.api.core.util.Guard;
 import io.nop.dao.api.DaoProvider;
 import io.nop.dao.api.IDaoEntity;
 import io.nop.dao.api.IDaoProvider;
@@ -26,7 +27,7 @@ public class OrmDaoProvider implements IDaoProvider {
 
     @Inject
     public OrmDaoProvider(IOrmTemplate ormTemplate) {
-        this.ormTemplate = ormTemplate;
+        this.ormTemplate = Guard.notNull(ormTemplate,"ormTemplate");
     }
 
     public void clearCache() {
@@ -51,6 +52,12 @@ public class OrmDaoProvider implements IDaoProvider {
             dao = daoMap.computeIfAbsent(fullName, name -> new OrmEntityDao<>(this, ormTemplate, fullName));
         }
         return (IEntityDao<T>) dao;
+    }
+
+    @Override
+    public boolean hasDao(String entityName) {
+        String fullName = normalizeEntityName(entityName);
+        return ormTemplate.getOrmModel().getEntityModel(entityName) != null;
     }
 
     @Override

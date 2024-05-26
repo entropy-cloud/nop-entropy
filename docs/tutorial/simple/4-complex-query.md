@@ -107,7 +107,7 @@ Nop平台中服务函数的返回值并不会被直接序列化为JSON返回到�
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopAuthSite.xmeta"
       xmlns:graphql="graphql">
     <props>
-        <prop name="resourcesList" displayName="资源列表" 
+        <prop name="resourcesList" displayName="资源列表"
             graphql:queryMethod="findList" lazy="true">
             <schema bizObjName="NopAuthResource"/>
 
@@ -133,8 +133,8 @@ Nop平台中服务函数的返回值并不会被直接序列化为JSON返回到�
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopAuthSite.xmeta"
       xmlns:graphql="graphql">
     <props>
-        <prop name="resourcesList" displayName="资源列表" 
-           graphql:queryMethod="findList" lazy="true" 
+        <prop name="resourcesList" displayName="资源列表"
+           graphql:queryMethod="findList" lazy="true"
            graphql:connectionProp="resources">
             <schema bizObjName="NopAuthResource"/>
             <graphql:orderBy>
@@ -175,8 +175,8 @@ variables:
      "$body": [
         { "$type": "eq", "status", 1},
         { "$type": "eq", "status", 2}
-     ]  
-  }   
+     ]
+  }
 ```
 
 通过GraphQL提供的别名机制，我们可以利用同一个子表属性来返回不同的查询结果
@@ -194,4 +194,37 @@ query($filter1:Map, $filter2: Map){
         }
     }
 }
+```
+
+## 四. 根据子表属性过滤主表记录
+
+可以在XMeta中增加一个自定义字段，然后通过`graphql:transFilter`将自定义字段条件翻译为子表查询条件所对应的SQL语句。
+具体实现原理是利用QueryBean提供的transformFilter函数，对前台提交的查询条件进行结构变换，
+
+例如对于`/r/NopAuthSite__findPage?filter__myCustomFilter=main`这种自定义查询条件，
+我们在XMeta中通过prop节点的`graphql:transFilter`子节点配置来定义转换逻辑。
+
+```xml
+  <prop name="myCustomFilter" queryable="true">
+      <graphql:transFilter>
+          <filter:sql>
+              exists(select o2 from NopAuthResource o2 where o2.siteId= o.id
+               and o2.status >= ${filter.getAttr('value')})
+          </filter:sql>
+      </graphql:transFilter>
+  </prop>
+```
+
+* 设置了`queryable=true`的属性可以在前端传递的查询条件中使用。不需要字段是实体的属性。
+* `graphql:transFilter`是一个函数，上下文中存在filter对象，它对应于name为指定属性名的一个TreeBean对象。
+* `<filter:sql>`是`filter.xlib`中定义的一个标签，它可以将一个动态生成的SQL语句包装为`$type=sql`的TreeBean对象，用于数据库查询条件。
+
+实际翻译得到的EQL语句为
+
+```sql
+select o
+from NopAuthSite o
+where
+  exists(select o2 from NopAuthResource o2 where o2.siteId= o.id
+   and o2.status >= 'main' })
 ```

@@ -16,7 +16,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
-@SqlLibMapper
+@SqlLibMapper("/nop/test/sql/test.sql-lib.xml")
 public interface MyMapper {
     MyEntity select(@Name("id") String id);
 

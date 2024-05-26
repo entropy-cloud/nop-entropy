@@ -124,19 +124,19 @@ public abstract class SqlItemModel extends _SqlItemModel {
                 return executor.executeMultiSql(sql);
             case findAll:
                 return processResult(executor.findAll(sql,
-                        buildRowMapper(daoProvider, executor, sql.getQuerySpace(), scope)), executor);
+                        buildRowMapper(daoProvider, executor, sql.getQuerySpace(), scope)), executor, daoProvider);
             case findPage: {
                 long offset = range == null ? 0 : range.getOffset();
                 int limit = range == null ? 10 : (int) range.getLimit();
                 List<Object> data = executor.findPage(sql, offset, limit,
                         buildRowMapper(daoProvider, executor, sql.getQuerySpace(), scope));
-                data = processResult(data, executor);
+                data = processResult(data, executor, daoProvider);
                 return buildResult(data, scope);
             }
             case findFirst: {
                 Object data = executor.findFirst(sql,
                         buildRowMapper(daoProvider, executor, sql.getQuerySpace(), scope));
-                data = processSingleResult(data, executor);
+                data = processSingleResult(data, executor, daoProvider);
                 return buildResult(data, scope);
             }
             case exists:
@@ -154,7 +154,7 @@ public abstract class SqlItemModel extends _SqlItemModel {
         return result;
     }
 
-    protected List<Object> processResult(List<Object> data, ISqlExecutor executor) {
+    protected List<Object> processResult(List<Object> data, ISqlExecutor executor, IDaoProvider daoProvider) {
         if (data.isEmpty())
             return data;
 
@@ -162,13 +162,13 @@ public abstract class SqlItemModel extends _SqlItemModel {
             ((IOrmTemplate) executor).batchLoadSelection(data, getBatchLoadSelection());
         }
 
-        if (getRowType() != null) {
-            IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(getRowType().getRawClass());
+        if (getRowType() != null && !hasDao(daoProvider)) {
+            IBeanModel beanModel = ReflectionManager.instance().loadBeanModel(getRowType());
             data = data.stream().map(item -> {
                 if (item instanceof Map) {
                     return BeanRowMapper.newBean(beanModel, (Map<String, Object>) item, false);
                 } else {
-                    return BeanTool.buildBean(item, getRowType());
+                    return BeanTool.buildBean(item, beanModel.getType());
                 }
             }).collect(Collectors.toList());
         }
@@ -176,7 +176,13 @@ public abstract class SqlItemModel extends _SqlItemModel {
         return data;
     }
 
-    protected Object processSingleResult(Object data, ISqlExecutor executor) {
+    protected boolean hasDao(IDaoProvider daoProvider) {
+        if (getRowType() == null || daoProvider == null)
+            return false;
+        return daoProvider.hasDao(getRowType());
+    }
+
+    protected Object processSingleResult(Object data, ISqlExecutor executor, IDaoProvider daoProvider) {
         if (data == null)
             return null;
 
@@ -184,21 +190,22 @@ public abstract class SqlItemModel extends _SqlItemModel {
             ((IOrmTemplate) executor).batchLoadSelection(Collections.singleton(data), getBatchLoadSelection());
         }
 
-        if (getRowType() != null && !getRowType().isInstance(data)) {
+        if (getRowType() != null && !hasDao(daoProvider)) {
+            IBeanModel beanModel = ReflectionManager.instance().loadBeanModel(getRowType());
+
             if (data instanceof Map) {
-                IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(getRowType().getRawClass());
                 return BeanRowMapper.newBean(beanModel, (Map<String, Object>) data, false);
             } else {
-                return BeanTool.buildBean(data, getRowType());
+                return BeanTool.buildBean(data, beanModel.getRawClass());
             }
         }
         return data;
     }
 
     protected IRowMapper buildRowMapper(IDaoProvider daoProvider, ISqlExecutor executor, String querySpace, IEvalScope scope) {
-        if (getRowType() != null && getRowType().isAssignableTo(IOrmEntity.class)) {
+        if (getRowType() != null && hasDao(daoProvider)) {
             // 行为实体对象
-            IOrmEntityDao<IOrmEntity> entityDao = (IOrmEntityDao) daoProvider.dao(getRowType().getClassName());
+            IOrmEntityDao<IOrmEntity> entityDao = (IOrmEntityDao) daoProvider.dao(getRowType());
             return new OrmEntityRowMapper<>(entityDao, isColNameCamelCase(), getOrmEntityRefreshBehavior());
         }
         SmartRowMapper rowMapper;

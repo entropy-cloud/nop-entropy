@@ -79,5 +79,12 @@
                 <sourceName>io.nop.app.SimsCollege</sourceName>
             </source>
         </query>
+
+        <eql name="demo_dict">
+            <source>
+                select o.collegeId as value, o.collegeName as label
+                from SimsCollege o
+            </source>
+        </eql>
     </sqls>
 </sql-lib>

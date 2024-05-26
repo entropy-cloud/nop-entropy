@@ -126,7 +126,7 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
      * xml name: rowType
      * 可以指定返回结果对应的包装类名称。会按照字段别名映射到对象的属性上，
      */
-    private io.nop.core.type.IGenericType _rowType ;
+    private java.lang.String _rowType ;
     
     /**
      *  
@@ -499,12 +499,12 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
      *  可以指定返回结果对应的包装类名称。会按照字段别名映射到对象的属性上，
      */
     
-    public io.nop.core.type.IGenericType getRowType(){
+    public java.lang.String getRowType(){
       return _rowType;
     }
 
     
-    public void setRowType(io.nop.core.type.IGenericType value){
+    public void setRowType(java.lang.String value){
         checkAllowChange();
         
         this._rowType = value;
