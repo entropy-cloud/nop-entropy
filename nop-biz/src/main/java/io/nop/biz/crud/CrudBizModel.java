@@ -1055,10 +1055,15 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @Description("@i18n:biz.batchModify|批量增删改")
     @BizMutation
     public void batchModify(@Name("data") List<Map<String, Object>> data,
-                            @Optional @Name("delIds") @Description("@i18n:biz.delIds|待删除的实体主键列表") Set<String> delIds, IServiceContext context) {
+                            @Name("common") Map<String, Object> common,
+                            @Optional @Name("delIds") @Description("@i18n:biz.delIds|待删除的实体主键列表") Set<String> delIds,
+                            IServiceContext context) {
         if (data != null) {
             List<Object> idList = new ArrayList<>();
             for (Map<String, Object> item : data) {
+                if(common != null){
+                    item.putAll(common);
+                }
                 Object id = item.get(OrmConstants.PROP_ID);
                 if (!StringHelper.isEmptyObject(id)) {
                     idList.add(id);
