@@ -416,7 +416,6 @@
         <module>nop-orm-geo</module>
         <module>nop-gateway</module>
         <module>nop-vertx</module>
-        <module>nop-orm-tdengine</module>
         <module>nop-router</module>
         <module>nop-biz-batch</module>
         <module>nop-web-page</module>
@@ -438,5 +437,6 @@
         <module>nop-markdown</module>
         <module>nop-orm-data</module>
         <module>nop-rpa</module>
+        <module>nop-orm-drivers</module>
     </modules>
 </project>
