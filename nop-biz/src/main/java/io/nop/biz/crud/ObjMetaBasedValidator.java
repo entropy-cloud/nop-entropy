@@ -154,7 +154,7 @@ public class ObjMetaBasedValidator {
                 continue;
             }
 
-            if (DaoConstants.PROP_CHANGE_TYPE.startsWith(name)) {
+            if (name.startsWith(DaoConstants.PROP_CHANGE_TYPE)) {
                 ret.put(name, value);
                 continue;
             }

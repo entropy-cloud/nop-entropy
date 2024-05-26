@@ -1,6 +1,8 @@
 # Nop入门：动态SQL管理
 
-Nop平台提供了类似MyBatis的动态SQL管理能力，但是它比MyBatis更加强大、简单。
+Nop平台提供了类似MyBatis的动态SQL管理能力，但是功能特性远比MyBatis丰富、强大。同时它的实现反而更加简单，在NopORM的基础上实现SqlLibManager只需要300多行的代码。
+
+讲解视频： https://www.bilibili.com/video/BV1Xi421S7oG/
 
 ## 一. 使用说明
 
@@ -15,11 +17,12 @@ Nop平台提供了类似MyBatis的动态SQL管理能力，但是它比MyBatis更
         select o from DemoEntity o where o.name like ${'%' + name + '%'}
       </source>
     </eql>
+    《
   </sqls>
 </sql-lib>
 ```
 
-* 如果没有指定sqlMethod，则会根据SQL语句和是否传入range参数来自动推定。sqlMethod的可选值有findFirst/findPage/findList/execute等
+* 如果没有指定sqlMethod，则会根据SQL语句和是否传入range参数来自动推定。sqlMethod的可选值有findFirst/findPage/findAll/execute等
 * 通过`${expr}`形式引入的表达式会被自动替换为SQL参数，并不是直接作为字符串拼接在一起。如果表达式返回的是集合对象，还会自动展开成一组参数。
 
 ### 1.2 增加一个Mapper类
@@ -95,7 +98,7 @@ Nop平台中所有的模型文件统一使用虚拟文件系统进行管理，�
 ### 2.4 二次抽象能力
 
 Nop平台的模型文件加载时支持元编程处理，并且生成SQL语句时使用的XPL模板语言也支持自定义标签支持机制。这使得我们可以轻松发现SQL构造中的通用模式，并提供自定义的抽象。
-比如说我们发现一个SQL片段经常出现，可以用自定义标签库将它抽象为一个函数，而使用Java注解，一般我们只能使用框架内置的抽象，没有进一步简化配置的可能型。
+比如说我们发现一个SQL片段经常出现，可以用自定义标签库将它抽象为一个函数，而使用Java注解，一般我们只能使用框架内置的抽象，没有进一步简化配置的可能性。
 
 ### 2.5 基于元模型生成IDE提示和可视化设计器
 
@@ -126,6 +129,7 @@ MyBatis的一个根本性设计问题在于它只提供了少数内置的标签�
         <sql:when-dialect name="h2">
           and a = 1
         </sql:when-dialect>
+        <sql:filter>and o.classId in (:ids)</sql:filter>
         <c:if test="${product.main}">
           <c:script>
             import app.MyHelper;
@@ -174,7 +178,7 @@ Nop平台通过QueryBean抽象实现了类似于DQL的这种组合查询能力
       <source>
         <fields>
           <field name="orderNo"/>
-          <field name="customer.name"/>
+          <field name="customer"/>
           <field owner="orderDetails" name="price" aggFunc="sum"/>
         </fields>
         <sourceName>Order</sourceName>
@@ -185,6 +189,17 @@ Nop平台通过QueryBean抽象实现了类似于DQL的这种组合查询能力
 ```
 
 可以在前端提供一个可视化设计器直接设计query对象。
+
+在Java代码中
+
+```java
+QueryBean query = new QueryBean();
+query.addFeld(mainField("orderNo"), mainField("customer"),
+   subField("orderDetials","price").sum());
+query.setSourceName("Order");
+```
+
+
 
 ## 四. 更多MyBatis和JPA不具备的高级功能
 
@@ -201,6 +216,8 @@ Nop平台通过QueryBean抽象实现了类似于DQL的这种组合查询能力
   <source>
     select o
     from SimsClass o
+    where 1=1
+    <sql:filter>and o.classId in (:ids)</sql:filter>
   </source>
 </eql>
 ```

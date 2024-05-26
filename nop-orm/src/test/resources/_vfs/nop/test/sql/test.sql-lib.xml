@@ -1,6 +1,6 @@
 <sql-lib x:schema="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:sql="sql" xmlns:c="c">
     <sqls>
-        <sql name="select" sqlMethod="findFirst" rowType="io.nop.orm.entity.MyEntity" >
+        <sql name="select" sqlMethod="findFirst" rowType="io.nop.orm.entity.MyEntity">
             <fields>
                 <field index="0" stdSqlType="DATE"/>
             </fields>
