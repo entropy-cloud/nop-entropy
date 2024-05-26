@@ -6,10 +6,14 @@
     - text: 入门教程
       uri: tutorial/tutorial.md
       children:
-        - text: 极简服务层开发
+        - text: 1. 极简服务层开发
           uri: tutorial/simple/1-simple-service.md
-        - text: 极简数据访问层开发
+        - text: 2. 极简数据访问层开发
           uri: tutorial/simple/2-simple-dao.md
+        - text: 4. 复杂查询
+          uri: tutorial/simple/4-complex-query.md
+        - text: 5. 动态SQL管理
+          uri: tutorial/simple/5-dynamic-sql.md
     - text: 与其他平台的对比
       uri: compare/index.md
 - text: 用户指南
