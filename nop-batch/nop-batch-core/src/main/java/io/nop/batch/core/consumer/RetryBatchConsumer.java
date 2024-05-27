@@ -8,8 +8,10 @@
 package io.nop.batch.core.consumer;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchConsumer;
+import io.nop.batch.core.IBatchRecordSnapshotBuilder;
 import io.nop.batch.core.IBatchRetryConsumeListener;
 import io.nop.batch.core.exceptions.BatchCancelException;
 import io.nop.commons.concurrent.thread.ThreadHelper;
@@ -32,18 +34,24 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkConte
     private final boolean retryOneByOne;
     private final boolean singleMode;
     private final IBatchRetryConsumeListener<R, IBatchChunkContext> listener;
+    private final IBatchRecordSnapshotBuilder<R> snapshotBuilder;
 
     public RetryBatchConsumer(IBatchConsumer<R, IBatchChunkContext> consumer, IRetryPolicy<IBatchChunkContext> retryPolicy,
-                              boolean retryOneByOne, boolean singleMode, IBatchRetryConsumeListener<R, IBatchChunkContext> listener) {
-        this.consumer = consumer;
+                              boolean retryOneByOne, boolean singleMode,
+                              IBatchRetryConsumeListener<R, IBatchChunkContext> listener,
+                              IBatchRecordSnapshotBuilder<R> snapshotBuilder) {
+        this.consumer = Guard.notNull(consumer, "consumer");
         this.retryPolicy = retryPolicy;
         this.retryOneByOne = retryOneByOne;
         this.singleMode = singleMode;
         this.listener = listener;
+        this.snapshotBuilder = snapshotBuilder;
     }
 
     @Override
     public void consume(List<R> items, IBatchChunkContext context) {
+        IBatchRecordSnapshotBuilder.ISnapshot<R> snapshot =
+                snapshotBuilder == null ? null : snapshotBuilder.buildSnapshot(items);
         try {
             if (singleMode) {
                 consumeSingle(items, context);
@@ -65,7 +73,7 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkConte
                 items.removeAll(context.getCompletedItems());
             }
 
-            retryConsume(e, items, context);
+            retryConsume(e, items, snapshot, context);
         }
     }
 
@@ -79,7 +87,8 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkConte
         }
     }
 
-    void retryConsume(Throwable exception, List<R> items, IBatchChunkContext context) {
+    void retryConsume(Throwable exception, List<R> items, IBatchRecordSnapshotBuilder.ISnapshot<R> snapshot,
+                      IBatchChunkContext context) {
         int retryCount = 0;
         Throwable fatalError = null;
 
@@ -95,7 +104,8 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkConte
             }
 
             try {
-                RetryOnceResult result = retryConsumeOnce(retryCount, items, context);
+                List<R> restoredItems = restoreItems(snapshot, items);
+                RetryOnceResult result = retryConsumeOnce(retryCount, restoredItems, context);
                 if (result == null) {
                     // 返回null表示全部items被成功处理
                     fatalError = null;
@@ -123,6 +133,12 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkConte
 
         if (fatalError != null)
             throw NopException.adapt(fatalError);
+    }
+
+    List<R> restoreItems(IBatchRecordSnapshotBuilder.ISnapshot<R> snapshot, List<R> items) {
+        if (snapshot == null)
+            return items;
+        return snapshot.restore(items);
     }
 
     class RetryOnceResult {

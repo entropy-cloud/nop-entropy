@@ -1,0 +1,28 @@
+package io.nop.batch.orm.support;
+
+import io.nop.batch.core.IBatchRecordSnapshotBuilder;
+import io.nop.dao.api.IDaoEntity;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class OrmBatchRecordSnapshotBuilder implements IBatchRecordSnapshotBuilder<IDaoEntity> {
+    @Override
+    public ISnapshot<IDaoEntity> buildSnapshot(List<IDaoEntity> items) {
+        Map<IDaoEntity, Map<String, Object>> map = new HashMap();
+        for (IDaoEntity item : items) {
+            map.put(item, item.orm_initedValues());
+        }
+        return list -> {
+            List<IDaoEntity> ret = new ArrayList<>(list.size());
+            for (IDaoEntity item : list) {
+                Map<String, Object> values = map.get(item);
+                values.forEach(item::orm_propValueByName);
+                item.orm_clearDirty();
+            }
+            return ret;
+        };
+    }
+}

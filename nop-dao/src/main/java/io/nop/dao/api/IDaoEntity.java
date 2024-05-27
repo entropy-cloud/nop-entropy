@@ -7,17 +7,20 @@
  */
 package io.nop.dao.api;
 
+import io.nop.api.core.util.ICloneable;
 import io.nop.api.core.util.IWithIdentifier;
 
 import java.util.Map;
 
-public interface IDaoEntity extends IWithIdentifier {
+public interface IDaoEntity extends IWithIdentifier, ICloneable {
     /**
      * 实体名称
      *
      * @return
      */
     String orm_entityName();
+
+    IDaoEntity cloneInstance();
 
     /**
      * 实体的主键，如果是复合主键，则返回类型为IOrmCompositePK
@@ -31,4 +34,6 @@ public interface IDaoEntity extends IWithIdentifier {
     Object orm_propValueByName(String name);
 
     void orm_propValueByName(String name, Object value);
+
+    void orm_clearDirty();
 }

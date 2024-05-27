@@ -93,6 +93,8 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
 
     private Comparator inputComparator;
 
+    private IBatchRecordSnapshotBuilder snapshotBuilder;
+
     /**
      * 每秒最多处理多少条记录
      */
@@ -253,6 +255,12 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
         return this;
     }
 
+    @PropertySetter
+    public BatchTaskBuilder batchRecordSnapshotBuilder(IBatchRecordSnapshotBuilder<?> builder) {
+        this.snapshotBuilder = builder;
+        return this;
+    }
+
     public BatchTaskBuilder addListener(Object listener) {
         if (listener instanceof MultiBatchConsumer) {
             List<?> consumers = ((MultiBatchConsumer<?, ?>) listener).getConsumers();
@@ -402,7 +410,7 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
         // 一般情况下事务scope为process或者consume，因此retry是在事务之外执行
         if (retryPolicy != null) {
             consumer = new RetryBatchConsumer<>(consumer, retryPolicy, retryOneByOne, singleMode,
-                    new MetricsRetryConsumeListener());
+                    new MetricsRetryConsumeListener(), snapshotBuilder);
         }
 
         // retry失败后，如果错误记录数在一定范围之内，则可以忽略异常继续处理。
