@@ -1055,7 +1055,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @Description("@i18n:biz.batchModify|批量增删改")
     @BizMutation
     public void batchModify(@Name("data") List<Map<String, Object>> data,
-                            @Name("common") Map<String, Object> common,
+                            @Optional @Name("common") Map<String, Object> common,
                             @Optional @Name("delIds") @Description("@i18n:biz.delIds|待删除的实体主键列表") Set<String> delIds,
                             IServiceContext context) {
         if (data != null) {
