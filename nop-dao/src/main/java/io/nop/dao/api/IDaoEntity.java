@@ -31,6 +31,8 @@ public interface IDaoEntity extends IWithIdentifier, ICloneable {
 
     Map<String, Object> orm_initedValues();
 
+    void orm_restoreValues(Map<String,Object> values);
+
     Object orm_propValueByName(String name);
 
     void orm_propValueByName(String name, Object value);

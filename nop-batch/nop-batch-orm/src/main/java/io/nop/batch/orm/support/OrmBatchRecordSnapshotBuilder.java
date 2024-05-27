@@ -19,8 +19,7 @@ public class OrmBatchRecordSnapshotBuilder implements IBatchRecordSnapshotBuilde
             List<IDaoEntity> ret = new ArrayList<>(list.size());
             for (IDaoEntity item : list) {
                 Map<String, Object> values = map.get(item);
-                values.forEach(item::orm_propValueByName);
-                item.orm_clearDirty();
+                item.orm_restoreValues(values);
             }
             return ret;
         };

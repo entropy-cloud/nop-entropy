@@ -346,6 +346,17 @@ public abstract class OrmEntity implements IOrmEntity {
     }
 
     @Override
+    public void orm_restoreValues(Map<String, Object> values) {
+        if (initedProps != null)
+            initedProps.clear();
+        values.forEach((name, value) -> {
+            int propId = orm_propId(name);
+            orm_internalSet(propId, value);
+        });
+        orm_clearDirty();
+    }
+
+    @Override
     public boolean orm_propLoaded(int propId) {
         if (fullyLoaded)
             return true;

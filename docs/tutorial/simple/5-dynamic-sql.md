@@ -39,7 +39,7 @@ public interface DemoMapper {
 ### 1.3 在beans.xml注册Mapper Bean
 
 ```xml
-<bean id="io.nop.demo.biz.DemoMapper" 
+<bean id="io.nop.demo.biz.DemoMapper"
       class="io.nop.orm.sql_lib.proxy.SqlLibProxyFactoryBean"
       ioc:type="@bean:id" ioc:bean-method="build">
   <property name="mapperClass" value="@bean:type"/>
@@ -148,7 +148,7 @@ MyBatis的一个根本性设计问题在于它只提供了少数内置的标签�
 
 ## 三. 面向OLAP的主子表查询
 
-润乾公司开源了一个[前端BI系统](http://www.raqsoft.com.cn/r/os-bi)，它在技术层面提出了一个别致的DQL(Dimentinal Query
+润乾公司开源了一个[前端BI系统](http://www.raqsoft.com.cn/r/os-bi)，它在技术层面提出了一个别致的DQL(Dimentional Query
 Language)语言。具体介绍可以参考乾学院的文章
 
 [告别宽表，用 DQL 成就新一代 BI - 乾学院](http://c.raqsoft.com.cn/article/1653901344139?p=1&m=0)
@@ -194,7 +194,7 @@ Nop平台通过QueryBean抽象实现了类似于DQL的这种组合查询能力
 
 ```java
 QueryBean query = new QueryBean();
-query.addFeld(mainField("orderNo"), mainField("customer"),
+query.fields(mainField("orderNo"), mainField("customer"),
    subField("orderDetials","price").sum());
 query.setSourceName("Order");
 ```
