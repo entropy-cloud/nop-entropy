@@ -97,6 +97,20 @@
                 <item bizObjName="NopDynAppModule"/>
             </schema>
         </prop>
+        <prop name="sqls" displayName="SQL语句" i18n-en:displayName="SQL Definitions" tagSet="pub,cascade-delete"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="moduleId" ext:joinRightProp="moduleId"
+              ext:joinRightDisplayProp="name" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopDynSql"/>
+            </schema>
+        </prop>
+        <prop name="files" displayName="模块文件" i18n-en:displayName="Module Files" tagSet="pub,cascade-delete"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="moduleId" ext:joinRightProp="moduleId"
+              ext:joinRightDisplayProp="fileName" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopDynFile"/>
+            </schema>
+        </prop>
         <prop name="pages" displayName="模块页面" i18n-en:displayName="Module Pages" tagSet="pub,cascade-delete"
               ext:kind="to-many" internal="true" ext:joinLeftProp="moduleId" ext:joinRightProp="moduleId"
               ext:joinRightDisplayProp="pageName" insertable="false" updatable="false" lazy="true">

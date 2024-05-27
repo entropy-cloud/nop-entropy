@@ -7,11 +7,13 @@ entity:
     NopDynEntityMeta: Entity Meta
     NopDynEntityRelation: Entity Relation
     NopDynEntityRelationMeta: Entity Relation Meta
+    NopDynFile: Module File
     NopDynFunctionMeta: Function Meta
     NopDynModule: Module Definition
     NopDynModuleDep: Module Dependency
     NopDynPage: Page Definition
     NopDynPropMeta: Property Meta
+    NopDynSql: Module SQL
 prop:
   label:
     NopDynApp:
@@ -159,6 +161,23 @@ prop:
       entityMeta2: Entity2 Meta
       entityMeta2.entityName: Entity2 Meta
       extConfigComponent: null
+    NopDynFile:
+      fileId: File ID
+      moduleId: Module ID
+      fileName: File Name
+      filePath: File Path
+      fileType: File Type
+      fileLength: File Length
+      status: Status
+      status_label: null
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      module: Module
+      module.displayName: Module
     NopDynFunctionMeta:
       funcMetaId: Function Meta ID
       entityMetaId: Entity Meta ID
@@ -203,6 +222,8 @@ prop:
       baseModule.displayName: Base Module
       derivedModules: Derived Modules
       appMappings: null
+      sqls: SQL Definitions
+      files: Module Files
       pages: Module Pages
       entityMetas: Entity Metas
       relatedAppList: App List
@@ -278,3 +299,38 @@ prop:
       entityMeta.entityName: Module
       domain: Domain
       extConfigComponent: null
+    NopDynSql:
+      sqlId: SQL ID
+      moduleId: Module ID
+      name: Name
+      displayName: Display Name
+      sqlMethod: Sql Method
+      sqlMethod_label: null
+      rowType: Row Type
+      description: Description
+      cacheName: Cache Name
+      cacheKeyExpr: Cache Key Expr
+      batchLoadSelection: Batch Load Selection
+      sqlKind: Kind
+      sqlKind_label: null
+      querySpace: Query Space
+      source: Source
+      fetchSize: Fetch Size
+      timeout: Timeout
+      disableLogicalDelete: Disable Logical Delete
+      enableFilter: Enable Filter
+      refreshBehavior: Refresh Behavior
+      refreshBehavior_label: null
+      colNameCamelCase: ColName CamlCase
+      args: Args
+      status: Status
+      status_label: null
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      module: Module
+      module.displayName: Module
+      argsComponent: null

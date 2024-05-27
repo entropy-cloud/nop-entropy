@@ -120,6 +120,54 @@ CREATE TABLE nop_dyn_app_module(
   constraint PK_nop_dyn_app_module primary key (APP_ID,MODULE_ID)
 );
 
+CREATE TABLE nop_dyn_sql(
+  SQL_ID VARCHAR(32) NOT NULL ,
+  MODULE_ID VARCHAR(32) NOT NULL ,
+  NAME VARCHAR(100) NOT NULL  default 'pages' ,
+  DISPLAY_NAME VARCHAR(200)  ,
+  SQL_METHOD VARCHAR(10)  ,
+  ROW_TYPE VARCHAR(100)  ,
+  DESCRIPTION VARCHAR(2000)  ,
+  CACHE_NAME VARCHAR(100)  ,
+  CACHE_KEY_EXPR VARCHAR(200)  ,
+  BATCH_LOAD_SELECTION VARCHAR(200)  ,
+  SQL_KIND VARCHAR(10)  ,
+  QUERY_SPACE VARCHAR(100)  ,
+  SOURCE TEXT  ,
+  FETCH_SIZE INT4  ,
+  TIMEOUT INT4  ,
+  DISABLE_LOGICAL_DELETE INT4   default '0' ,
+  ENABLE_FILTER INT4   default '0' ,
+  REFRESH_BEHAVIOR VARCHAR(10)  ,
+  COL_NAME_CAMEL_CASE INT4   default '0' ,
+  ARGS VARCHAR(4000)  ,
+  STATUS INT4 NOT NULL ,
+  VERSION INT4 NOT NULL ,
+  CREATED_BY VARCHAR(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR(200)  ,
+  constraint PK_nop_dyn_sql primary key (SQL_ID)
+);
+
+CREATE TABLE nop_dyn_file(
+  FILE_ID VARCHAR(32) NOT NULL ,
+  MODULE_ID VARCHAR(32) NOT NULL ,
+  FILE_NAME VARCHAR(200) NOT NULL ,
+  FILE_PATH VARCHAR(800) NOT NULL  default 'pages' ,
+  FILE_TYPE VARCHAR(50) NOT NULL ,
+  FILE_LENGTH INT4 NOT NULL ,
+  STATUS INT4 NOT NULL ,
+  VERSION INT4 NOT NULL ,
+  CREATED_BY VARCHAR(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR(200)  ,
+  constraint PK_nop_dyn_file primary key (FILE_ID)
+);
+
 CREATE TABLE nop_dyn_page(
   PAGE_ID VARCHAR(32) NOT NULL ,
   MODULE_ID VARCHAR(32) NOT NULL ,
@@ -435,6 +483,90 @@ CREATE TABLE nop_dyn_function_meta(
       COMMENT ON COLUMN nop_dyn_app_module.UPDATED_BY IS '修改人';
                     
       COMMENT ON COLUMN nop_dyn_app_module.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON TABLE nop_dyn_sql IS 'SQL定义';
+                
+      COMMENT ON COLUMN nop_dyn_sql.SQL_ID IS 'SQL ID';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.MODULE_ID IS '模块ID';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.NAME IS 'SQL名称';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.DISPLAY_NAME IS '显示名称';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.SQL_METHOD IS 'SQL方法';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.ROW_TYPE IS '行类型';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.DESCRIPTION IS '描述';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.CACHE_NAME IS '缓存名称';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.CACHE_KEY_EXPR IS '缓存键表达式';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.BATCH_LOAD_SELECTION IS '批量加载选择集';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.SQL_KIND IS '类型';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.QUERY_SPACE IS '查询空间';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.SOURCE IS 'SQL文本';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.FETCH_SIZE IS '读取块大小';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.TIMEOUT IS '超时时间';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.DISABLE_LOGICAL_DELETE IS '禁用逻辑删除';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.ENABLE_FILTER IS '启用数据权限';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.REFRESH_BEHAVIOR IS '实体刷新规则';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.COL_NAME_CAMEL_CASE IS '列名需要转换为驼峰';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.ARGS IS '参数列表';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.STATUS IS '状态';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_dyn_sql.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_dyn_file IS '模块文件';
+                
+      COMMENT ON COLUMN nop_dyn_file.FILE_ID IS '文件ID';
+                    
+      COMMENT ON COLUMN nop_dyn_file.MODULE_ID IS '模块ID';
+                    
+      COMMENT ON COLUMN nop_dyn_file.FILE_NAME IS '文件名称';
+                    
+      COMMENT ON COLUMN nop_dyn_file.FILE_PATH IS '文件路径';
+                    
+      COMMENT ON COLUMN nop_dyn_file.FILE_TYPE IS '文件类型';
+                    
+      COMMENT ON COLUMN nop_dyn_file.FILE_LENGTH IS '文件大小';
+                    
+      COMMENT ON COLUMN nop_dyn_file.STATUS IS '状态';
+                    
+      COMMENT ON COLUMN nop_dyn_file.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_dyn_file.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_dyn_file.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_dyn_file.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_dyn_file.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_dyn_file.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_dyn_page IS '页面定义';
                 

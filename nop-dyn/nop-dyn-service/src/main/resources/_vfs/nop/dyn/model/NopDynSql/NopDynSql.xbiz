@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopDynSql.xbiz">
+
+    <actions/>
+</biz>

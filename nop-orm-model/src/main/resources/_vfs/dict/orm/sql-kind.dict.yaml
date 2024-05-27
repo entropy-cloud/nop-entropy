@@ -1,0 +1,11 @@
+label: SQL类型
+locale: zh-CN
+description: sql-lib中管理的SQL语句的类型
+static: true
+options:
+  - label: EQL查询
+    value: eql
+  - label: 原生SQL
+    value: sql
+  - label: DQL查询
+    value: query

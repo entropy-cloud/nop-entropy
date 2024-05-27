@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopDynSql" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="gql">
+
+    <objMeta>/nop/dyn/model/NopDynSql/NopDynSql.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--模块ID-->
+                <col id="moduleId" mandatory="true" sortable="true"/>
+
+                <!--SQL名称-->
+                <col id="name" mandatory="true" sortable="true"/>
+
+                <!--显示名称-->
+                <col id="displayName" sortable="true"/>
+
+                <!--SQL方法-->
+                <col id="sqlMethod" sortable="true"/>
+
+                <!--行类型-->
+                <col id="rowType" sortable="true"/>
+
+                <!--描述-->
+                <col id="description" sortable="true"/>
+
+                <!--缓存名称-->
+                <col id="cacheName" sortable="true"/>
+
+                <!--缓存键表达式-->
+                <col id="cacheKeyExpr" sortable="true"/>
+
+                <!--批量加载选择集-->
+                <col id="batchLoadSelection" sortable="true"/>
+
+                <!--类型-->
+                <col id="sqlKind" sortable="true"/>
+
+                <!--查询空间-->
+                <col id="querySpace" sortable="true"/>
+
+                <!--SQL文本-->
+                <col id="source" sortable="true"/>
+
+                <!--读取块大小-->
+                <col id="fetchSize" sortable="true"/>
+
+                <!--超时时间-->
+                <col id="timeout" sortable="true"/>
+
+                <!--禁用逻辑删除-->
+                <col id="disableLogicalDelete" sortable="true"/>
+
+                <!--启用数据权限-->
+                <col id="enableFilter" sortable="true"/>
+
+                <!--实体刷新规则-->
+                <col id="refreshBehavior" sortable="true"/>
+
+                <!--列名需要转换为驼峰-->
+                <col id="colNameCamelCase" sortable="true"/>
+
+                <!--参数列表-->
+                <col id="args" sortable="true"/>
+
+                <!--状态-->
+                <col id="status" mandatory="true" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true"/>
+
+                <!--备注-->
+                <col id="remark" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-SQL定义" i18n-en:title="View Module SQL">
+            <layout>
+ moduleId[模块ID] name[SQL名称]
+ displayName[显示名称] sqlMethod[SQL方法]
+ rowType[行类型] description[描述]
+ cacheName[缓存名称] cacheKeyExpr[缓存键表达式]
+ batchLoadSelection[批量加载选择集] sqlKind[类型]
+ querySpace[查询空间] source[SQL文本]
+ fetchSize[读取块大小] timeout[超时时间]
+ disableLogicalDelete[禁用逻辑删除] enableFilter[启用数据权限]
+ refreshBehavior[实体刷新规则] colNameCamelCase[列名需要转换为驼峰]
+ args[参数列表] status[状态]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-SQL定义" i18n-en:title="Add Module SQL" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-SQL定义" i18n-en:title="Edit Module SQL">
+            <layout>
+ moduleId[模块ID] name[SQL名称]
+ displayName[显示名称] sqlMethod[SQL方法]
+ rowType[行类型] description[描述]
+ cacheName[缓存名称] cacheKeyExpr[缓存键表达式]
+ batchLoadSelection[批量加载选择集] sqlKind[类型]
+ querySpace[查询空间] source[SQL文本]
+ fetchSize[读取块大小] timeout[超时时间]
+ disableLogicalDelete[禁用逻辑删除] enableFilter[启用数据权限]
+ refreshBehavior[实体刷新规则] colNameCamelCase[列名需要转换为驼峰]
+ args[参数列表] status[状态]
+ remark[备注] 
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
+            <layout/>
+        </form>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
+            <layout/>
+        </form>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-SQL定义" i18n-en:title="Update Module SQL">
+            <layout/>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopDynSql__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopDynSql__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopDynSql__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" label="@i18n:common.delete">
+                        <api url="@mutation:NopDynSql__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table>
+                <api url="@query:NopDynSql__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopDynSql__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopDynSql__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopDynSql__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopDynSql__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

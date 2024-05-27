@@ -7,11 +7,13 @@ entity:
     NopDynEntityMeta: 实体元数据
     NopDynEntityRelation: 实体关联
     NopDynEntityRelationMeta: 实体关联元数据
+    NopDynFile: 模块文件
     NopDynFunctionMeta: 实体函数定义
     NopDynModule: 模块定义
     NopDynModuleDep: 模块依赖
     NopDynPage: 页面定义
     NopDynPropMeta: 属性元数据
+    NopDynSql: SQL定义
 prop:
   label:
     NopDynApp:
@@ -159,6 +161,23 @@ prop:
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
+    NopDynFile:
+      createTime: 创建时间
+      createdBy: 创建人
+      fileId: 文件ID
+      fileLength: 文件大小
+      fileName: 文件名称
+      filePath: 文件路径
+      fileType: 文件类型
+      module: 所属模块
+      module.displayName: 所属模块
+      moduleId: 模块ID
+      remark: 备注
+      status: 状态
+      status_label: 状态
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopDynFunctionMeta:
       args: 参数定义
       createTime: 创建时间
@@ -194,6 +213,7 @@ prop:
       derivedModules: 派生模块
       displayName: 显示名
       entityMetas: 模块实体定义
+      files: 模块文件
       importFile: 导入文件
       mavenGroupId: Maven组名
       moduleId: 模块ID
@@ -203,6 +223,7 @@ prop:
       relatedAppIdList: 所属应用列表
       relatedAppList: 所属应用列表
       relatedAppList_label: 所属应用列表
+      sqls: SQL语句
       status: 状态
       status_label: 状态
       updateTime: 修改时间
@@ -275,6 +296,41 @@ prop:
       tagsText: 标签
       uiControl: 显示控件
       uiShow: 显示控制
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopDynSql:
+      args: 参数列表
+      argsComponent: null
+      batchLoadSelection: 批量加载选择集
+      cacheKeyExpr: 缓存键表达式
+      cacheName: 缓存名称
+      colNameCamelCase: 列名需要转换为驼峰
+      createTime: 创建时间
+      createdBy: 创建人
+      description: 描述
+      disableLogicalDelete: 禁用逻辑删除
+      displayName: 显示名称
+      enableFilter: 启用数据权限
+      fetchSize: 读取块大小
+      module: 所属模块
+      module.displayName: 所属模块
+      moduleId: 模块ID
+      name: SQL名称
+      querySpace: 查询空间
+      refreshBehavior: 实体刷新规则
+      refreshBehavior_label: 实体刷新规则
+      remark: 备注
+      rowType: 行类型
+      source: SQL文本
+      sqlId: SQL ID
+      sqlKind: 类型
+      sqlKind_label: 类型
+      sqlMethod: SQL方法
+      sqlMethod_label: SQL方法
+      status: 状态
+      status_label: 状态
+      timeout: 超时时间
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

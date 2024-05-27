@@ -10,121 +10,100 @@ import java.util.HashMap;
 import java.util.Arrays;
 import java.util.List;
 
-import io.nop.dyn.dao.entity.NopDynModule;
+import io.nop.dyn.dao.entity.NopDynFile;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- *  模块定义: nop_dyn_module
+ *  模块文件: nop_dyn_file
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
-public class _NopDynModule extends DynamicOrmEntity{
+public class _NopDynFile extends DynamicOrmEntity{
+    
+    /* 文件ID: FILE_ID VARCHAR */
+    public static final String PROP_NAME_fileId = "fileId";
+    public static final int PROP_ID_fileId = 1;
     
     /* 模块ID: MODULE_ID VARCHAR */
     public static final String PROP_NAME_moduleId = "moduleId";
-    public static final int PROP_ID_moduleId = 1;
+    public static final int PROP_ID_moduleId = 2;
     
-    /* 模块名: MODULE_NAME VARCHAR */
-    public static final String PROP_NAME_moduleName = "moduleName";
-    public static final int PROP_ID_moduleName = 2;
+    /* 文件名称: FILE_NAME VARCHAR */
+    public static final String PROP_NAME_fileName = "fileName";
+    public static final int PROP_ID_fileName = 3;
     
-    /* 模块版本: MODULE_VERSION INTEGER */
-    public static final String PROP_NAME_moduleVersion = "moduleVersion";
-    public static final int PROP_ID_moduleVersion = 3;
+    /* 文件路径: FILE_PATH VARCHAR */
+    public static final String PROP_NAME_filePath = "filePath";
+    public static final int PROP_ID_filePath = 4;
     
-    /* 显示名: DISPLAY_NAME VARCHAR */
-    public static final String PROP_NAME_displayName = "displayName";
-    public static final int PROP_ID_displayName = 4;
+    /* 文件类型: FILE_TYPE VARCHAR */
+    public static final String PROP_NAME_fileType = "fileType";
+    public static final int PROP_ID_fileType = 5;
     
-    /* 基础模块ID: BASE_MODULE_ID VARCHAR */
-    public static final String PROP_NAME_baseModuleId = "baseModuleId";
-    public static final int PROP_ID_baseModuleId = 5;
-    
-    /* Java包名: BASE_PACKAGE_NAME VARCHAR */
-    public static final String PROP_NAME_basePackageName = "basePackageName";
-    public static final int PROP_ID_basePackageName = 6;
-    
-    /* Maven组名: MAVEN_GROUP_ID VARCHAR */
-    public static final String PROP_NAME_mavenGroupId = "mavenGroupId";
-    public static final int PROP_ID_mavenGroupId = 7;
+    /* 文件大小: FILE_LENGTH INTEGER */
+    public static final String PROP_NAME_fileLength = "fileLength";
+    public static final int PROP_ID_fileLength = 6;
     
     /* 状态: STATUS INTEGER */
     public static final String PROP_NAME_status = "status";
-    public static final int PROP_ID_status = 8;
+    public static final int PROP_ID_status = 7;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 9;
+    public static final int PROP_ID_version = 10;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 10;
+    public static final int PROP_ID_createdBy = 11;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 11;
+    public static final int PROP_ID_createTime = 12;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 12;
+    public static final int PROP_ID_updatedBy = 13;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 13;
+    public static final int PROP_ID_updateTime = 14;
+    
+    /* 备注: REMARK VARCHAR */
+    public static final String PROP_NAME_remark = "remark";
+    public static final int PROP_ID_remark = 15;
     
 
-    private static int _PROP_ID_BOUND = 14;
+    private static int _PROP_ID_BOUND = 16;
 
     
-    /* relation: 基础模块 */
-    public static final String PROP_NAME_baseModule = "baseModule";
-    
-    /* relation: 派生模块 */
-    public static final String PROP_NAME_derivedModules = "derivedModules";
-    
-    /* relation:  */
-    public static final String PROP_NAME_appMappings = "appMappings";
-    
-    /* relation: SQL语句 */
-    public static final String PROP_NAME_sqls = "sqls";
-    
-    /* relation: 模块文件 */
-    public static final String PROP_NAME_files = "files";
-    
-    /* relation: 模块页面 */
-    public static final String PROP_NAME_pages = "pages";
-    
-    /* relation: 模块实体定义 */
-    public static final String PROP_NAME_entityMetas = "entityMetas";
+    /* relation: 所属模块 */
+    public static final String PROP_NAME_module = "module";
     
 
-    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_moduleId);
-    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_moduleId};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_fileId);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_fileId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[14];
+    private static final String[] PROP_ID_TO_NAME = new String[16];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
+      
+          PROP_ID_TO_NAME[PROP_ID_fileId] = PROP_NAME_fileId;
+          PROP_NAME_TO_ID.put(PROP_NAME_fileId, PROP_ID_fileId);
       
           PROP_ID_TO_NAME[PROP_ID_moduleId] = PROP_NAME_moduleId;
           PROP_NAME_TO_ID.put(PROP_NAME_moduleId, PROP_ID_moduleId);
       
-          PROP_ID_TO_NAME[PROP_ID_moduleName] = PROP_NAME_moduleName;
-          PROP_NAME_TO_ID.put(PROP_NAME_moduleName, PROP_ID_moduleName);
+          PROP_ID_TO_NAME[PROP_ID_fileName] = PROP_NAME_fileName;
+          PROP_NAME_TO_ID.put(PROP_NAME_fileName, PROP_ID_fileName);
       
-          PROP_ID_TO_NAME[PROP_ID_moduleVersion] = PROP_NAME_moduleVersion;
-          PROP_NAME_TO_ID.put(PROP_NAME_moduleVersion, PROP_ID_moduleVersion);
+          PROP_ID_TO_NAME[PROP_ID_filePath] = PROP_NAME_filePath;
+          PROP_NAME_TO_ID.put(PROP_NAME_filePath, PROP_ID_filePath);
       
-          PROP_ID_TO_NAME[PROP_ID_displayName] = PROP_NAME_displayName;
-          PROP_NAME_TO_ID.put(PROP_NAME_displayName, PROP_ID_displayName);
+          PROP_ID_TO_NAME[PROP_ID_fileType] = PROP_NAME_fileType;
+          PROP_NAME_TO_ID.put(PROP_NAME_fileType, PROP_ID_fileType);
       
-          PROP_ID_TO_NAME[PROP_ID_baseModuleId] = PROP_NAME_baseModuleId;
-          PROP_NAME_TO_ID.put(PROP_NAME_baseModuleId, PROP_ID_baseModuleId);
-      
-          PROP_ID_TO_NAME[PROP_ID_basePackageName] = PROP_NAME_basePackageName;
-          PROP_NAME_TO_ID.put(PROP_NAME_basePackageName, PROP_ID_basePackageName);
-      
-          PROP_ID_TO_NAME[PROP_ID_mavenGroupId] = PROP_NAME_mavenGroupId;
-          PROP_NAME_TO_ID.put(PROP_NAME_mavenGroupId, PROP_ID_mavenGroupId);
+          PROP_ID_TO_NAME[PROP_ID_fileLength] = PROP_NAME_fileLength;
+          PROP_NAME_TO_ID.put(PROP_NAME_fileLength, PROP_ID_fileLength);
       
           PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
           PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
@@ -144,29 +123,29 @@ public class _NopDynModule extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_updateTime] = PROP_NAME_updateTime;
           PROP_NAME_TO_ID.put(PROP_NAME_updateTime, PROP_ID_updateTime);
       
+          PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
+          PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
+      
     }
 
+    
+    /* 文件ID: FILE_ID */
+    private java.lang.String _fileId;
     
     /* 模块ID: MODULE_ID */
     private java.lang.String _moduleId;
     
-    /* 模块名: MODULE_NAME */
-    private java.lang.String _moduleName;
+    /* 文件名称: FILE_NAME */
+    private java.lang.String _fileName;
     
-    /* 模块版本: MODULE_VERSION */
-    private java.lang.Integer _moduleVersion;
+    /* 文件路径: FILE_PATH */
+    private java.lang.String _filePath;
     
-    /* 显示名: DISPLAY_NAME */
-    private java.lang.String _displayName;
+    /* 文件类型: FILE_TYPE */
+    private java.lang.String _fileType;
     
-    /* 基础模块ID: BASE_MODULE_ID */
-    private java.lang.String _baseModuleId;
-    
-    /* Java包名: BASE_PACKAGE_NAME */
-    private java.lang.String _basePackageName;
-    
-    /* Maven组名: MAVEN_GROUP_ID */
-    private java.lang.String _mavenGroupId;
+    /* 文件大小: FILE_LENGTH */
+    private java.lang.Integer _fileLength;
     
     /* 状态: STATUS */
     private java.lang.Integer _status;
@@ -186,21 +165,24 @@ public class _NopDynModule extends DynamicOrmEntity{
     /* 修改时间: UPDATE_TIME */
     private java.sql.Timestamp _updateTime;
     
+    /* 备注: REMARK */
+    private java.lang.String _remark;
+    
 
-    public _NopDynModule(){
+    public _NopDynFile(){
         // for debug
     }
 
-    protected NopDynModule newInstance(){
-        NopDynModule entity = new NopDynModule();
+    protected NopDynFile newInstance(){
+        NopDynFile entity = new NopDynFile();
         entity.orm_attach(orm_enhancer());
         entity.orm_entityModel(orm_entityModel());
         return entity;
     }
 
     @Override
-    public NopDynModule cloneInstance() {
-        NopDynModule entity = newInstance();
+    public NopDynFile cloneInstance() {
+        NopDynFile entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
             entity.orm_propValue(propId,value);
         });
@@ -213,7 +195,7 @@ public class _NopDynModule extends DynamicOrmEntity{
       IEntityModel entityModel = orm_entityModel();
       if(entityModel != null)
           return entityModel.getName();
-      return "io.nop.dyn.dao.entity.NopDynModule";
+      return "io.nop.dyn.dao.entity.NopDynFile";
     }
 
     @Override
@@ -227,14 +209,14 @@ public class _NopDynModule extends DynamicOrmEntity{
     @Override
     public Object orm_id() {
     
-        return buildSimpleId(PROP_ID_moduleId);
+        return buildSimpleId(PROP_ID_fileId);
      
     }
 
     @Override
     public boolean orm_isPrimary(int propId) {
         
-            return propId == PROP_ID_moduleId;
+            return propId == PROP_ID_fileId;
           
     }
 
@@ -260,26 +242,23 @@ public class _NopDynModule extends DynamicOrmEntity{
     public Object orm_propValue(int propId) {
         switch(propId){
         
+            case PROP_ID_fileId:
+               return getFileId();
+        
             case PROP_ID_moduleId:
                return getModuleId();
         
-            case PROP_ID_moduleName:
-               return getModuleName();
+            case PROP_ID_fileName:
+               return getFileName();
         
-            case PROP_ID_moduleVersion:
-               return getModuleVersion();
+            case PROP_ID_filePath:
+               return getFilePath();
         
-            case PROP_ID_displayName:
-               return getDisplayName();
+            case PROP_ID_fileType:
+               return getFileType();
         
-            case PROP_ID_baseModuleId:
-               return getBaseModuleId();
-        
-            case PROP_ID_basePackageName:
-               return getBasePackageName();
-        
-            case PROP_ID_mavenGroupId:
-               return getMavenGroupId();
+            case PROP_ID_fileLength:
+               return getFileLength();
         
             case PROP_ID_status:
                return getStatus();
@@ -299,6 +278,9 @@ public class _NopDynModule extends DynamicOrmEntity{
             case PROP_ID_updateTime:
                return getUpdateTime();
         
+            case PROP_ID_remark:
+               return getRemark();
+        
            default:
               return super.orm_propValue(propId);
         }
@@ -310,6 +292,16 @@ public class _NopDynModule extends DynamicOrmEntity{
     public void orm_propValue(int propId, Object value){
         switch(propId){
         
+            case PROP_ID_fileId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_fileId));
+               }
+               setFileId(typedValue);
+               break;
+            }
+        
             case PROP_ID_moduleId:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -320,63 +312,43 @@ public class _NopDynModule extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_moduleName:{
+            case PROP_ID_fileName:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_moduleName));
+                       err-> newTypeConversionError(PROP_NAME_fileName));
                }
-               setModuleName(typedValue);
+               setFileName(typedValue);
                break;
             }
         
-            case PROP_ID_moduleVersion:{
+            case PROP_ID_filePath:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_filePath));
+               }
+               setFilePath(typedValue);
+               break;
+            }
+        
+            case PROP_ID_fileType:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_fileType));
+               }
+               setFileType(typedValue);
+               break;
+            }
+        
+            case PROP_ID_fileLength:{
                java.lang.Integer typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_moduleVersion));
+                       err-> newTypeConversionError(PROP_NAME_fileLength));
                }
-               setModuleVersion(typedValue);
-               break;
-            }
-        
-            case PROP_ID_displayName:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_displayName));
-               }
-               setDisplayName(typedValue);
-               break;
-            }
-        
-            case PROP_ID_baseModuleId:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_baseModuleId));
-               }
-               setBaseModuleId(typedValue);
-               break;
-            }
-        
-            case PROP_ID_basePackageName:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_basePackageName));
-               }
-               setBasePackageName(typedValue);
-               break;
-            }
-        
-            case PROP_ID_mavenGroupId:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_mavenGroupId));
-               }
-               setMavenGroupId(typedValue);
+               setFileLength(typedValue);
                break;
             }
         
@@ -440,6 +412,16 @@ public class _NopDynModule extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_remark:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_remark));
+               }
+               setRemark(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -449,51 +431,44 @@ public class _NopDynModule extends DynamicOrmEntity{
     public void orm_internalSet(int propId, Object value) {
         switch(propId){
         
-            case PROP_ID_moduleId:{
+            case PROP_ID_fileId:{
                onInitProp(propId);
-               this._moduleId = (java.lang.String)value;
+               this._fileId = (java.lang.String)value;
                orm_id(); // 如果是设置主键字段，则触发watcher
                break;
             }
         
-            case PROP_ID_moduleName:{
+            case PROP_ID_moduleId:{
                onInitProp(propId);
-               this._moduleName = (java.lang.String)value;
+               this._moduleId = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_moduleVersion:{
+            case PROP_ID_fileName:{
                onInitProp(propId);
-               this._moduleVersion = (java.lang.Integer)value;
+               this._fileName = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_displayName:{
+            case PROP_ID_filePath:{
                onInitProp(propId);
-               this._displayName = (java.lang.String)value;
+               this._filePath = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_baseModuleId:{
+            case PROP_ID_fileType:{
                onInitProp(propId);
-               this._baseModuleId = (java.lang.String)value;
+               this._fileType = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_basePackageName:{
+            case PROP_ID_fileLength:{
                onInitProp(propId);
-               this._basePackageName = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_mavenGroupId:{
-               onInitProp(propId);
-               this._mavenGroupId = (java.lang.String)value;
+               this._fileLength = (java.lang.Integer)value;
                
                break;
             }
@@ -540,11 +515,37 @@ public class _NopDynModule extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_remark:{
+               onInitProp(propId);
+               this._remark = (java.lang.String)value;
+               
+               break;
+            }
+        
            default:
               super.orm_internalSet(propId,value);
         }
     }
 
+    
+    /**
+     * 文件ID: FILE_ID
+     */
+    public java.lang.String getFileId(){
+         onPropGet(PROP_ID_fileId);
+         return _fileId;
+    }
+
+    /**
+     * 文件ID: FILE_ID
+     */
+    public void setFileId(java.lang.String value){
+        if(onPropSet(PROP_ID_fileId,value)){
+            this._fileId = value;
+            internalClearRefs(PROP_ID_fileId);
+            orm_id();
+        }
+    }
     
     /**
      * 模块ID: MODULE_ID
@@ -561,120 +562,82 @@ public class _NopDynModule extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_moduleId,value)){
             this._moduleId = value;
             internalClearRefs(PROP_ID_moduleId);
-            orm_id();
-        }
-    }
-    
-    /**
-     * 模块名: MODULE_NAME
-     */
-    public java.lang.String getModuleName(){
-         onPropGet(PROP_ID_moduleName);
-         return _moduleName;
-    }
-
-    /**
-     * 模块名: MODULE_NAME
-     */
-    public void setModuleName(java.lang.String value){
-        if(onPropSet(PROP_ID_moduleName,value)){
-            this._moduleName = value;
-            internalClearRefs(PROP_ID_moduleName);
             
         }
     }
     
     /**
-     * 模块版本: MODULE_VERSION
+     * 文件名称: FILE_NAME
      */
-    public java.lang.Integer getModuleVersion(){
-         onPropGet(PROP_ID_moduleVersion);
-         return _moduleVersion;
+    public java.lang.String getFileName(){
+         onPropGet(PROP_ID_fileName);
+         return _fileName;
     }
 
     /**
-     * 模块版本: MODULE_VERSION
+     * 文件名称: FILE_NAME
      */
-    public void setModuleVersion(java.lang.Integer value){
-        if(onPropSet(PROP_ID_moduleVersion,value)){
-            this._moduleVersion = value;
-            internalClearRefs(PROP_ID_moduleVersion);
+    public void setFileName(java.lang.String value){
+        if(onPropSet(PROP_ID_fileName,value)){
+            this._fileName = value;
+            internalClearRefs(PROP_ID_fileName);
             
         }
     }
     
     /**
-     * 显示名: DISPLAY_NAME
+     * 文件路径: FILE_PATH
      */
-    public java.lang.String getDisplayName(){
-         onPropGet(PROP_ID_displayName);
-         return _displayName;
+    public java.lang.String getFilePath(){
+         onPropGet(PROP_ID_filePath);
+         return _filePath;
     }
 
     /**
-     * 显示名: DISPLAY_NAME
+     * 文件路径: FILE_PATH
      */
-    public void setDisplayName(java.lang.String value){
-        if(onPropSet(PROP_ID_displayName,value)){
-            this._displayName = value;
-            internalClearRefs(PROP_ID_displayName);
+    public void setFilePath(java.lang.String value){
+        if(onPropSet(PROP_ID_filePath,value)){
+            this._filePath = value;
+            internalClearRefs(PROP_ID_filePath);
             
         }
     }
     
     /**
-     * 基础模块ID: BASE_MODULE_ID
+     * 文件类型: FILE_TYPE
      */
-    public java.lang.String getBaseModuleId(){
-         onPropGet(PROP_ID_baseModuleId);
-         return _baseModuleId;
+    public java.lang.String getFileType(){
+         onPropGet(PROP_ID_fileType);
+         return _fileType;
     }
 
     /**
-     * 基础模块ID: BASE_MODULE_ID
+     * 文件类型: FILE_TYPE
      */
-    public void setBaseModuleId(java.lang.String value){
-        if(onPropSet(PROP_ID_baseModuleId,value)){
-            this._baseModuleId = value;
-            internalClearRefs(PROP_ID_baseModuleId);
+    public void setFileType(java.lang.String value){
+        if(onPropSet(PROP_ID_fileType,value)){
+            this._fileType = value;
+            internalClearRefs(PROP_ID_fileType);
             
         }
     }
     
     /**
-     * Java包名: BASE_PACKAGE_NAME
+     * 文件大小: FILE_LENGTH
      */
-    public java.lang.String getBasePackageName(){
-         onPropGet(PROP_ID_basePackageName);
-         return _basePackageName;
+    public java.lang.Integer getFileLength(){
+         onPropGet(PROP_ID_fileLength);
+         return _fileLength;
     }
 
     /**
-     * Java包名: BASE_PACKAGE_NAME
+     * 文件大小: FILE_LENGTH
      */
-    public void setBasePackageName(java.lang.String value){
-        if(onPropSet(PROP_ID_basePackageName,value)){
-            this._basePackageName = value;
-            internalClearRefs(PROP_ID_basePackageName);
-            
-        }
-    }
-    
-    /**
-     * Maven组名: MAVEN_GROUP_ID
-     */
-    public java.lang.String getMavenGroupId(){
-         onPropGet(PROP_ID_mavenGroupId);
-         return _mavenGroupId;
-    }
-
-    /**
-     * Maven组名: MAVEN_GROUP_ID
-     */
-    public void setMavenGroupId(java.lang.String value){
-        if(onPropSet(PROP_ID_mavenGroupId,value)){
-            this._mavenGroupId = value;
-            internalClearRefs(PROP_ID_mavenGroupId);
+    public void setFileLength(java.lang.Integer value){
+        if(onPropSet(PROP_ID_fileLength,value)){
+            this._fileLength = value;
+            internalClearRefs(PROP_ID_fileLength);
             
         }
     }
@@ -794,103 +757,46 @@ public class _NopDynModule extends DynamicOrmEntity{
     }
     
     /**
-     * 基础模块
+     * 备注: REMARK
      */
-    public io.nop.dyn.dao.entity.NopDynModule getBaseModule(){
-       return (io.nop.dyn.dao.entity.NopDynModule)internalGetRefEntity(PROP_NAME_baseModule);
+    public java.lang.String getRemark(){
+         onPropGet(PROP_ID_remark);
+         return _remark;
     }
 
-    public void setBaseModule(io.nop.dyn.dao.entity.NopDynModule refEntity){
+    /**
+     * 备注: REMARK
+     */
+    public void setRemark(java.lang.String value){
+        if(onPropSet(PROP_ID_remark,value)){
+            this._remark = value;
+            internalClearRefs(PROP_ID_remark);
+            
+        }
+    }
+    
+    /**
+     * 所属模块
+     */
+    public io.nop.dyn.dao.entity.NopDynModule getModule(){
+       return (io.nop.dyn.dao.entity.NopDynModule)internalGetRefEntity(PROP_NAME_module);
+    }
+
+    public void setModule(io.nop.dyn.dao.entity.NopDynModule refEntity){
    
            if(refEntity == null){
            
-                   this.setBaseModuleId(null);
+                   this.setModuleId(null);
                
            }else{
-           internalSetRefEntity(PROP_NAME_baseModule, refEntity,()->{
+           internalSetRefEntity(PROP_NAME_module, refEntity,()->{
            
-                           this.setBaseModuleId(refEntity.getModuleId());
+                           this.setModuleId(refEntity.getModuleId());
                        
            });
            }
        
     }
        
-    private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynModule> _derivedModules = new OrmEntitySet<>(this, PROP_NAME_derivedModules,
-        io.nop.dyn.dao.entity.NopDynModule.PROP_NAME_baseModule, null,io.nop.dyn.dao.entity.NopDynModule.class);
-
-    /**
-     * 派生模块。 refPropName: baseModule, keyProp: {rel.keyProp}
-     */
-    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynModule> getDerivedModules(){
-       return _derivedModules;
-    }
-       
-    private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynAppModule> _appMappings = new OrmEntitySet<>(this, PROP_NAME_appMappings,
-        io.nop.dyn.dao.entity.NopDynAppModule.PROP_NAME_module, null,io.nop.dyn.dao.entity.NopDynAppModule.class);
-
-    /**
-     * 。 refPropName: module, keyProp: {rel.keyProp}
-     */
-    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynAppModule> getAppMappings(){
-       return _appMappings;
-    }
-       
-    private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynSql> _sqls = new OrmEntitySet<>(this, PROP_NAME_sqls,
-        io.nop.dyn.dao.entity.NopDynSql.PROP_NAME_module, null,io.nop.dyn.dao.entity.NopDynSql.class);
-
-    /**
-     * SQL语句。 refPropName: module, keyProp: {rel.keyProp}
-     */
-    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynSql> getSqls(){
-       return _sqls;
-    }
-       
-    private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynFile> _files = new OrmEntitySet<>(this, PROP_NAME_files,
-        io.nop.dyn.dao.entity.NopDynFile.PROP_NAME_module, null,io.nop.dyn.dao.entity.NopDynFile.class);
-
-    /**
-     * 模块文件。 refPropName: module, keyProp: {rel.keyProp}
-     */
-    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynFile> getFiles(){
-       return _files;
-    }
-       
-    private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynPage> _pages = new OrmEntitySet<>(this, PROP_NAME_pages,
-        io.nop.dyn.dao.entity.NopDynPage.PROP_NAME_module, null,io.nop.dyn.dao.entity.NopDynPage.class);
-
-    /**
-     * 模块页面。 refPropName: module, keyProp: {rel.keyProp}
-     */
-    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynPage> getPages(){
-       return _pages;
-    }
-       
-    private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynEntityMeta> _entityMetas = new OrmEntitySet<>(this, PROP_NAME_entityMetas,
-        io.nop.dyn.dao.entity.NopDynEntityMeta.PROP_NAME_module, null,io.nop.dyn.dao.entity.NopDynEntityMeta.class);
-
-    /**
-     * 模块实体定义。 refPropName: module, keyProp: {rel.keyProp}
-     */
-    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynEntityMeta> getEntityMetas(){
-       return _entityMetas;
-    }
-       
-        public List<io.nop.dyn.dao.entity.NopDynApp> getRelatedAppList(){
-            return (List<io.nop.dyn.dao.entity.NopDynApp>)io.nop.orm.support.OrmEntityHelper.getRefProps(getAppMappings(),io.nop.dyn.dao.entity.NopDynAppModule.PROP_NAME_app);
-        }
-    
-        public String getRelatedAppList_label(){
-        return io.nop.core.lang.utils.Underscore.pluckThenJoin(getRelatedAppList(),io.nop.dyn.dao.entity.NopDynApp.PROP_NAME_displayName);
-        }
-    
-        public List<java.lang.String> getRelatedAppIdList(){
-        return (List<java.lang.String>)io.nop.orm.support.OrmEntityHelper.getRefProps(getAppMappings(),io.nop.dyn.dao.entity.NopDynAppModule.PROP_NAME_appId);
-        }
-
-        public void setRelatedAppIdList(List<java.lang.String> value){
-        io.nop.orm.support.OrmEntityHelper.setRefProps(getAppMappings(),io.nop.dyn.dao.entity.NopDynAppModule.PROP_NAME_appId,value);
-        }
-    
 }
 // resume CPD analysis - CPD-ON
