@@ -250,7 +250,7 @@
         </DoFindTreeEntityList>
 
 
-        <_DoUpdateBy>
+        <_DoByQuery>
             <attr name="query" type="io.nop.api.core.beans.query.QueryBean"/>
             <attr name="data" mandatory="true" x:abstract="true" />
             <attr name="authObjName" optional="true" type="String" />
@@ -277,9 +277,9 @@
             <transform>
                 <bo-gen:TransformBizObjTag xpl:lib="bo-gen.xlib"/>
             </transform>
-        </_DoUpdateBy>
+        </_DoByQuery>
 
-        <DoUpdateByQuery x:prototype="_DoUpdateBy">
+        <DoUpdateByQuery x:prototype="_DoByQuery">
             <attr name="data" mandatory="true" />
 
             <slot name="prepareUpdate" outputMode="none">
@@ -313,7 +313,7 @@
             </source>
         </DoUpdateByQuery>
 
-        <DoDeleteByQuery x:prototype="_DoUpdateBy">
+        <DoDeleteByQuery x:prototype="_DoByQuery">
             <attr name="refNamesToCheck" stdDomain="csv-set" optional="true"/>
 
             <slot name="prepareDelete" outputMode="none">
