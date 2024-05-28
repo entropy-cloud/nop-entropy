@@ -342,4 +342,23 @@ public class TestEntityDao extends AbstractOrmTestCase {
         IEntityModel entityModel = dao.newEntity().orm_entityModel();
         assertEquals(90, entityModel.getColumns().get(0).getPrecision());
     }
+
+    @Test
+    public void testFlush() {
+        orm().runInSession(() -> {
+            IEntityDao<SimsCollege> dao = daoProvider().daoFor(SimsCollege.class);
+
+            SimsCollege entity = new SimsCollege();
+            entity.setId("900");
+            entity.setCollegeName("test");
+            dao.saveEntity(entity);
+            dao.flushSession();
+
+            entity.setShortName("my");
+            dao.flushSession();
+        });
+
+        SimsCollege entity = daoProvider().daoFor(SimsCollege.class).getEntityById("900");
+        assertEquals("my",entity.getShortName());
+    }
 }

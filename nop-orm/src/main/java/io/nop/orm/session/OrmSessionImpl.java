@@ -552,6 +552,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
             return;
 
         markDirty();
+        cache.markDirty(entity.orm_entityName());
         // if (flusher != null)
         // flusher.addChangeDuringFlush(entity);
     }
