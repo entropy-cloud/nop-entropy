@@ -13,6 +13,7 @@ import io.nop.api.core.annotations.core.NoReflection;
 import io.nop.api.core.annotations.core.StaticFactoryMethod;
 import io.nop.api.core.annotations.data.ImmutableBean;
 import io.nop.api.core.exceptions.NopEvalException;
+import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.reflect.IClassModel;
@@ -586,7 +587,7 @@ public class ClassModelBuilder extends MethodModelBuilder {
 
         // super ClassModel中已经包含针对基类的扩展函数
         Class<?> superClass = this.clazz.getSuperclass();
-        while (superClass != null) {
+        while (superClass != null && superClass != Object.class) {
             extension = reflectionManager.getClassExtension(superClass);
             if (extension != null) {
                 addExtension(extension);
@@ -594,7 +595,7 @@ public class ClassModelBuilder extends MethodModelBuilder {
             superClass = superClass.getSuperclass();
         }
 
-        Class<?>[] interfaces = clazz.getInterfaces();
+        Set<Class<?>> interfaces = ClassHelper.getAllInterfacesForClassAsSet(this.clazz);
         for (Class<?> inf : interfaces) {
             extension = reflectionManager.getClassExtension(inf);
             if (extension != null) {

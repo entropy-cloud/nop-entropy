@@ -17,10 +17,10 @@
 package io.nop.commons.util;
 
 import io.nop.api.core.annotations.core.Name;
+import jakarta.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.Nullable;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Executable;
@@ -109,6 +109,7 @@ public class ReflectionHelper {
         return arg.getName();
     }
 
+    @SuppressWarnings("unchecked")
     public static Method getFunctionalMethod(Class clazz) {
         if (!clazz.isInterface() || !clazz.isAnnotationPresent(FunctionalInterface.class))
             return null;

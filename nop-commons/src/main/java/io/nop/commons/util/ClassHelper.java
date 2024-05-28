@@ -481,15 +481,15 @@ public class ClassHelper {
     }
 
     /**
-     * Return all interfaces that the given instance implements as an array, including ones implemented by superclasses.
-     *
-     * @param instance the instance to analyze for interfaces
-     * @return all interfaces that the given instance implements as an array
-     */
-    public static Class<?>[] getAllInterfaces(Object instance) {
-        Guard.notNull(instance, "Instance must not be null");
-        return getAllInterfacesForClass(instance.getClass());
-    }
+//     * Return all interfaces that the given instance implements as an array, including ones implemented by superclasses.
+//     *
+//     * @param instance the instance to analyze for interfaces
+//     * @return all interfaces that the given instance implements as an array
+//     */
+//    public static Class<?>[] getAllInterfaces(Object instance) {
+//        Guard.notNull(instance, "Instance must not be null");
+//        return getAllInterfacesForClass(instance.getClass());
+//    }
 
     /**
      * Return all interfaces that the given class implements as an array, including ones implemented by superclasses.
@@ -524,10 +524,10 @@ public class ClassHelper {
      * @param instance the instance to analyze for interfaces
      * @return all interfaces that the given instance implements as a Set
      */
-    public static Set<Class<?>> getAllInterfacesAsSet(Object instance) {
-        Guard.notNull(instance, "Instance must not be null");
-        return getAllInterfacesForClassAsSet(instance.getClass());
-    }
+//    public static Set<Class<?>> getAllInterfacesAsSet(Object instance) {
+//        Guard.notNull(instance, "Instance must not be null");
+//        return getAllInterfacesForClassAsSet(instance.getClass());
+//    }
 
     /**
      * Return all interfaces that the given class implements as a Set, including ones implemented by superclasses.
@@ -551,20 +551,27 @@ public class ClassHelper {
      *                    declared interfaces)
      * @return all interfaces that the given object implements as a Set
      */
-    public static Set<Class<?>> getAllInterfacesForClassAsSet(Class<?> clazz, ClassLoader classLoader) {
+    public static void collectAllInterfacesForClass(Set<Class<?>> ret, Class<?> clazz, ClassLoader classLoader) {
         Guard.notNull(clazz, "Class must not be null");
-        if (clazz.isInterface() && isVisible(clazz, classLoader)) {
-            return Collections.<Class<?>>singleton(clazz);
-        }
-        Set<Class<?>> interfaces = new LinkedHashSet<Class<?>>();
-        while (clazz != null) {
+
+        if (clazz.isInterface() && !ret.add(clazz))
+            return;
+
+        while (clazz != null && clazz != Object.class) {
             Class<?>[] ifcs = clazz.getInterfaces();
             for (Class<?> ifc : ifcs) {
-                interfaces.addAll(getAllInterfacesForClassAsSet(ifc, classLoader));
+                if (!isVisible(ifc, classLoader))
+                    continue;
+                collectAllInterfacesForClass(ret, ifc, classLoader);
             }
             clazz = clazz.getSuperclass();
         }
-        return interfaces;
+    }
+
+    public static Set<Class<?>> getAllInterfacesForClassAsSet(Class<?> clazz, ClassLoader classLoader) {
+        Set<Class<?>> ret = new LinkedHashSet<>();
+        collectAllInterfacesForClass(ret, clazz, classLoader);
+        return ret;
     }
 
     /**

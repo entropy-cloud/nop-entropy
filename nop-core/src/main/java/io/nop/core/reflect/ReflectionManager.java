@@ -62,6 +62,7 @@ import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -87,6 +88,7 @@ public class ReflectionManager implements IBeanModelManager, IGenericTypeBuilder
     static {
         _instance.registerHelperMethods(List.class, ListFunctions.class, null);
         _instance.registerHelperMethods(Set.class, SetFunctions.class, null);
+        _instance.registerHelperMethods(Collection.class, SetFunctions.class, null);
         _instance.registerHelperMethods(String.class, StringHelper.class, "$");
         _instance.registerHelperMethods(LocalDate.class, DateHelper.class, "$");
         _instance.registerBeanModelEnhancer(new StringBeanModelEnhancer());
