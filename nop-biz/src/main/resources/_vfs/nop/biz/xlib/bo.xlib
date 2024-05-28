@@ -248,5 +248,103 @@
                 <c:script> ret </c:script>
             </source>
         </DoFindTreeEntityList>
+
+
+        <_DoUpdateBy>
+            <attr name="query" type="io.nop.api.core.beans.query.QueryBean"/>
+            <attr name="data" mandatory="true" x:abstract="true" />
+            <attr name="authObjName" optional="true" type="String" />
+            <attr name="bizObjName" optional="true" />
+            <attr name="thisObj" implicit="true" type="io.nop.biz.api.IBizObject"/>
+            <attr name="svcCtx" implicit="true" type="io.nop.core.context.IServiceContext"/>
+
+            <slot name="filter" outputMode="node">
+                <arg name="query"/>
+                <arg name="svcCtx"/>
+
+                <description>
+                    过滤条件，一般符合filter-bean格式要求，元模型为filter.xdef
+                </description>
+            </slot>
+
+            <slot name="orderBy" outputMode="node"/>
+
+            <slot name="prepareQuery" outputMode="none">
+                <arg name="query"/>
+                <arg name="svcCtx"/>
+            </slot>
+
+            <transform>
+                <bo-gen:TransformBizObjTag xpl:lib="bo-gen.xlib"/>
+            </transform>
+        </_DoUpdateBy>
+
+        <DoUpdateByQuery x:prototype="_DoUpdateBy">
+            <attr name="data" mandatory="true" />
+
+            <slot name="prepareUpdate" outputMode="none">
+                <arg name="entityData"/>
+                <arg name="svcCtx"/>
+            </slot>
+
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.api.core.beans.query.QueryBean;
+                    query = query || new QueryBean();
+
+                    const ret = thisObj.invoke('doUpdateByQuery',{query,authObjName,data, prepareQuery:(qry,ctx)=>{
+                        if(filter){
+                            query.addFilter(filter(query,svcCtx));
+                        }
+
+                        if(orderBy){
+                            query.addOrderByNode(orderBy(svcCtx));
+                        }
+
+                        if(prepareQuery != null){
+                            prepareQuery(query,svcCtx);
+                        }
+                    }},(entityData,ctx)=>{
+                       if(prepareUpdate)
+                          prepareUpdate(entityData,svcCtx);
+                    },svcCtx);
+                    return ret;
+                ]]></c:script>
+            </source>
+        </DoUpdateByQuery>
+
+        <DoDeleteByQuery x:prototype="_DoUpdateBy">
+            <attr name="refNamesToCheck" stdDomain="csv-set" optional="true"/>
+
+            <slot name="prepareDelete" outputMode="none">
+                <arg name="entity"/>
+                <arg name="svcCtx"/>
+            </slot>
+
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.api.core.beans.query.QueryBean;
+                    query = query || new QueryBean();
+
+                    const ret = thisObj.invoke('doDeleteByQuery',{query,authObjName,refNamesToCheck, prepareQuery:(qry,ctx)=>{
+                        if(filter){
+                            query.addFilter(filter(query,svcCtx));
+                        }
+
+                        if(orderBy){
+                            query.addOrderByNode(orderBy(svcCtx));
+                        }
+
+                        if(prepareQuery != null){
+                            prepareQuery(query,svcCtx);
+                        }
+                    }},(entity,ctx)=>{
+                       if(prepareDelete)
+                          prepareDelete(entity,svcCtx);
+                    },svcCtx);
+                    return ret;
+                ]]></c:script>
+            </source>
+        </DoDeleteByQuery>
     </tags>
 </lib>

@@ -1061,7 +1061,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         if (data != null) {
             List<Object> idList = new ArrayList<>();
             for (Map<String, Object> item : data) {
-                if(common != null){
+                if (common != null) {
                     item.putAll(common);
                 }
                 Object id = item.get(OrmConstants.PROP_ID);
@@ -1146,28 +1146,32 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @Description("根据查询条件获取一批实体数据，然后对每个实体更新指定属性。返回查询得到的实体个数")
     @BizMutation
     public int updateByQuery(@Name("query") QueryBean query, @Name("data") Map<String, Object> data, IServiceContext context) {
-
-        return doUpdateByQuery(query, data, this::defaultPrepareUpdate, context);
+        if (query != null)
+            query.setDisableLogicalDelete(false);
+        return doUpdateByQuery(query, getBizObjName(), data, null, this::defaultPrepareUpdate, context);
     }
 
     @BizAction
     public int doUpdateByQuery(@Name("query") QueryBean query,
+                               @Name("authObjName") String authObjName,
                                @Name("data") Map<String, Object> data,
+                               @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
                                @Name("prepareUpdate") BiConsumer<EntityData<T>, IServiceContext> prepareUpdate,
                                IServiceContext context) {
         if (data == null || data.isEmpty())
             return 0;
 
-        List<T> list = findList(query, null, context);
+        List<T> list = doFindList0(query, authObjName, prepareQuery, null, context);
         if (list.isEmpty())
             return 0;
 
-        doUpdateMulti(list, data, this::defaultPrepareUpdate, context);
+        doUpdateMulti(list, data, prepareUpdate, context);
         return list.size();
     }
 
     @BizAction
-    public void doUpdateMulti(@Name("entityList") List<T> entityList, @Name("data") Map<String, Object> data,
+    public void doUpdateMulti(@Name("entityList") List<T> entityList,
+                              @Name("data") Map<String, Object> data,
                               @Name("prepareUpdate") BiConsumer<EntityData<T>, IServiceContext> prepareUpdate,
                               IServiceContext context) {
         for (T entity : entityList) {
@@ -1181,20 +1185,25 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @Description("根据查询条件获取一批实体数据，然后删除这些实体")
     @BizMutation
     public int deleteByQuery(@Name("query") QueryBean query, IServiceContext context) {
+        if (query != null)
+            query.setDisableLogicalDelete(false);
 
-        return doDeleteByQuery(query, getDefaultRefNamesToCheckExists(), this::defaultPrepareDelete, context);
+        return doDeleteByQuery(query, getBizObjName(), getDefaultRefNamesToCheckExists(),
+                null, this::defaultPrepareDelete, context);
     }
 
     @BizAction
     public int doDeleteByQuery(@Name("query") QueryBean query,
+                               @Name("authObjName") String authObjName,
                                @Name("refNamesToCheck") Set<String> refNamesToCheck,
+                               @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
                                @Name("prepareDelete") BiConsumer<T, IServiceContext> prepareDelete,
                                IServiceContext context) {
-        List<T> list = findList(query, null, context);
+        List<T> list = doFindList0(query, authObjName, prepareQuery, null, context);
         if (list.isEmpty())
             return 0;
 
-        doDeleteMulti(list, refNamesToCheck, this::defaultPrepareDelete, context);
+        doDeleteMulti(list, refNamesToCheck, prepareDelete, context);
         return list.size();
     }
 
