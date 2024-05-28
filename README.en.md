@@ -1,174 +1,261 @@
-[[中文]](README.md)   [[Tutorial]](./docs/tutorial/tutorial_en.md)  [[开发示例]](./docs/tutorial/tutorial.md) [[介绍和答疑视频]](https://www.bilibili.com/video/BV1u84y1w7kX/)
+[[中文]](README.md) [[Tutorial]](./docs/tutorial/tutorial_en.md) [[开发示例]](./docs/tutorial/tutorial.md) [[Introduction and Q & A Video]](https://www.bilibili.com/video/BV1u84y1w7kX/)
 
-# Nop Entropy
+# Nop Platform 2.0
 
 [![](https://img.shields.io/github/stars/entropy-cloud/nop-entropy)](https://github.com/entropy-cloud/nop-entropy/stargazers)
 [![](https://gitee.com/canonical-entropy/nop-entropy/badge/star.svg?theme=white)](https://gitee.com/canonical-entropy/nop-entropy/stargazers)
 
 ## Introduction
 
+[Reversible Computing: A Theory of Next Generation Software Construction](https://zhuanlan.zhihu.com/p/64004026)
+
+**Nop is nOt Programming (non-programming) **
+
 Nop Platform 2.0 is a new generation of low-code platform based on the theory of reversible computation. It is committed to overcoming the dilemma that low-code platform can not get rid of the exhaustive method, transcending the component technology from the theoretical level, and effectively solving the problem of coarse-grained software reuse.
 
-- NOP-entropy is the back-end part of the Nop platform. It is implemented in the Java language, does not rely on third-party frameworks, and can be integrated with Quarkus or Spring frameworks.
+The Nop Platform 2.0 is a new generation of low code (lowcode) built from scratch based on the principle of reversible computing.
+Platform, it is committed to overcome the low-code platform can not get rid of the plight of the exhaustive method, from the theoretical level beyond the component technology, effectively solve the problem of coarse-grained software reuse. 
 
-- Nop-entropy supports GraalVM technology and can be compiled into native executable programs with the help of [Quarkus](https://quarkus.io/) or [ SpringNative ](https://docs.spring.io/spring-native/docs/current/reference/htmlsingle/) frameworks. The generated executable does not need to install JDK when running, and its startup speed is increased by tens of times.
+-nop-entropy is the back-end part of the Nop platform. It is implemented in Java language, does not rely on third-party frameworks, and can be integrated with Quarkus, Spring or Solon frameworks. 
 
-- ** Nop-entropy is designed to be an easy-to-use domain language workbench (Domain Language Workbench). **。 By adding a simple metadata definition, you can automatically get the corresponding parser, validator, IDE plug-in, debugging tools, and automatically add general language features such as module decomposition, delta customization, and metaprogramming to the DSL domain language. In this regard, it is similar to Jetbrains [MPS Product](https://www.jetbrains.com/mps/), but its design principles and technical implementation path are essentially different from MPS.
-- Nop-entropy adopts cloud native design, with built-in distributed transaction and multi-tenant support. It can run on a single machine or as a distributed cluster. It can provide online API services, and can also automatically package online services for a single business object into batch tasks for batch files. Corresponding model support is provided for most business application scenarios, and the main functions can be completed with only a small amount of configuration, which greatly reduces the demand for manual coding.
+-nop-entropy support for GraalVM technology, with the help of [Quarkus](https://quarkus.io/)
+  or [SpringNative](https://docs.spring.io/spring-native/docs/current/reference/htmlsingle/)
+  The framework is compiled into a native executable program, no JDK installation is required at runtime, and the startup speed is increased by dozens of times. 
 
-- Nop-entropy can be used as ** Low-code platform for incremental development ** during the development period to automatically generate various codes and related documents, and can be used as ** Supporting Technologies for End-User-Oriented No Code Platform ** during the operation period to allow customers to adjust the functions of business modules online and iterate products in a WYSIWYG way.
+-**nop-entropy is designed to be a simple and easy-to-use domain language workbench (Domain Language Workbench)**
+  . By adding simple metadata definitions, you can automatically get the corresponding parsers, validators, IDE plug-ins, debugging tools, etc., and automatically add module decomposition, differential customization, meta-programming and other common language features for DSL domain languages. At this point, it is similar to Jetbrains company's [MPS product](https://www.jetbrains.com/mps/)
+  It's just that its design principles and technical implementation paths are essentially different from MPS. 
 
-At present, the open source part mainly includes the implementation of XLang language, as well as ORM, IoC, Config, GraphQL Engine, ReportEngine, JobEngine, BatchEngine and other basic frameworks. Subsequent planning includes common business development parts such as RuleEngine, WorkflowEngine and BI.
+-The nop-entropy adopts a cloud-native design with built-in distributed transaction and multi-tenant support. It can run on a stand-alone machine or as a distributed cluster. It can provide online API services or automatically package online services for a single business object as batch tasks for batch files. For most business application scenarios, the corresponding model support is provided, and the main functions can be completed with a small amount of configuration, greatly reducing the need for manual coding. 
 
-** WARNING: The code of Nop Platform 2.0 is refactored from Entropy Platform 1.0. At present, the refactoring work has not been completely completed, and it has not been used in the actual project. **
+-The nop-entropy can be used as a low-code platform supporting incremental development during the development period, automatically generating various codes and related documents, and can be used as a low-code platform during the runtime period *
+  * Support technology for end-user codeless platform **, allowing customers to adjust business module functions online and iterate products in a WYSIWYG manner. 
+
+At present, the open source part mainly includes the implementation of XLang language, as well as ORM, dependency injection container (IoC), distributed configuration (Config), GraphQLEngine, report engine (Report.
+Engine), task scheduling engine (Job Scheduler), batch Prcessing engine (Batch Engine), rule engine (Rule Engine) and other basic frameworks, 
+Follow-up planning includes workflow engine (Workflow Engine), business intelligence (BI), flow processing engine and other common parts of business development. 
+
+> The code of Nop Platform 2.0 is refactored by Entropy Platform 1.0
+> recently, the integration of the domestic framework solon has been increased. see [nop-solon](https://gitee.com/canonical-entropy/nop-extensions/tree/master/nop-solon). the size of the packaged jar package is more than 10 m lower than that of Spring and Quarkus. 
+
+Development Progress:
+
+| Module | Description | Progress |
+| ----------------- | -------------------------- | ------ |
+| nop-api-support | Support classes for API interface | Completed |
+| nop-codegen | Data-Driven Code Generator | Completed |
+| nop-antlr | Model-driven retrofit of Antlr | Completed |
+| nop-core | Virtual File System, Reflection Mechanism, XML/JSON Parsing | Completed |
+| nop-ioc | Declarative IoC Container | Completed |
+| nop-config | Dynamic Configuration Center | Completed |
+| nop-xlang | XLang Scripting and Template Languages | Completed |
+| nop-dao | JDBC Access, Transaction, Database Dialects | Done |
+| nop-orm | Next Generation ORM Engine | Completed |
+| nop-graphql | GraphQL Engine | Completed |
+| nop-rpc | Distributed RPC call | Completed |
+| nop-ooxml | Parsing and generation of Office files, replacing POI. Word Report Template | Completed |
+| nop-report | Chinese Reporting Engine | Completed |
+| nop-rule | Rules Engine | Completed |
+| nop-autotest | Model-Driven Test Automation Framework | Completed |
+| nop-idea-plugin | IDEA development plug-in, supporting syntax prompt, file jump, breakpoint debugging | Basically available |
+| nop-cli | Encapsulates code generators, file listening, and more as command-line tools | Basic |
+| nop-cluster | Distributed cluster support | 50% |
+| nop-tcc | Distributed Transactions | 50% |
+| nop-dyn | Design forms, data models, and service functions online | Basic |
+| nop-workflow | Workflow Engine | 65% |
+| nop-task | Logical Flow Orchestration | 50% |
+| nop-job | Distributed Task Scheduling | 40% |
+| nop-batch | Batch Engine | 70% |
+| nop-message | Kafka/Pulsar Message Queue Encapsulation | 10% |
+| nop-dbtool | Database Import and Export, Data Structure Comparison, Synchronization Tool | 30% |
+| nop-nosql | Redis Package | 0% |
+| nop-stream | Simplified stream processing, which can be integrated with Flink | 0% |
+| nop-netty | TCP/IP Service Processing Framework | 0% |
+| nop-datav | BI Data Analysis | 0% |
+| nop-gpt | Integration with AI Big Model for AIGC | 2% |
+| nop-js | GraalVM Js engine encapsulation to run JS in Java | 50% |
+| nop-integration | External service packages such as mail, SMS, and file services | 30% |
+| nop-auth | User Rights Management | Completed |
+| nop-sys | System Configuration Management | Completed |
 
 ## Source code address
 
-- gitee: [https://gitee.com/canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
-- github: [https://github.com/entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
+-gitee: [https://gitee.com/canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
+-github: [https://github.com/entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
 
 ## Design principle
 
-[Reversible Computation: Next Generation Software Construction Theory] (https://zhuanlan.zhihu.com/p/64004026)
+[Reversible Computing: A Theory of Next Generation Software Construction](https://zhuanlan.zhihu.com/p/64004026)
 
-[NOP: Next Generation Software Production Paradigm](https://zhuanlan.zhihu.com/p/66548896)
+[NOP: The Next Generation Software Production Paradigm](https://zhuanlan.zhihu.com/p/66548896)
 
-[Technical Realization of Reversible Computation](https://zhuanlan.zhihu.com/p/163852896)
+[What kind of ORM engine do low-code platforms need? ](https://zhuanlan.zhihu.com/p/543252423)
 
-[Reversible Computation and Delta Oriented Programming] (https://zhuanlan.zhihu.com/p/377740576)
+[Analysis of Reversible Calculation Theory Written to Programmers](docs/theory/reversible-computation-for-programmers.md)
 
-[Low Code Platform Design from the Perspective of Tensor Product](https://zhuanlan.zhihu.com/p/531474176)
+[Addendum to Reversible Calculation Theory Discrimination for Programmers](docs/theory/reversible-computation-for-programmers2.md)
 
-[What ORM engine is needed for low-code platforms?] (https://zhuanlan.zhihu.com/p/543252423)
+## Quick start
 
-## A quick start
+[Development Example](./docs/tutorial/tutorial.md)
 
-[Development Example] (docs/tutorial/tutorial.md)
+[Introduction and Q & A Video](https://www.bilibili.com/video/BV1u84y1w7kX/)
 
-## Software architecture
+[Development Documentation Guide](./docs/index.md)
 
-Nop-entropy does not use the Spring framework, and all modules are developed from scratch in a model-driven manner (much of the code for the framework itself is also generated from the model and can be customized in a declarative manner). In principle, nop-entropy can run on top of any microservices framework that supports the REST services standard. At present, we mainly support the integration of Quarkus framework and Spring framework.
+[Integration with Ruoyi Framework](https://gitee.com/canonical-entropy/nop-for-ruoyi)
 
-[Quarkus](https://quarkus.io/)  is a new generation of cloud-native microservices framework open sourced by Redhat, and its development experience and maturity for GraalVM Native compilation are significantly better than Spring framework. With the help of the Quarkus framework, we can either compile the application as a single uber jar (run through the java-jar command), or compile the program as an exe executable program, which does not need to install JDK when running, and the startup speed is increased by tens of times. Currently, the development and debugging of nop-entropy is mainly based on the Quarkus framework, so there may be some minor problems with the support of the Spring framework.
+[More video](https://space.bilibili.com/3493261219990250)
 
-The nop-entropy project currently consists of the following modules:
+## Software Architecture
 
-1. nop-api-support: support class for the API interface
-2. nop-commons: Commonly used helper classes and helper functions
-3. nop-core: Virtual file systems, reflection systems, basic tree, graph, table models, data-driven code generator frameworks, XML and JSON parsers
-4. nop-xlang: XPL template language, scripting language like Type Script, generic Tree path access language like XPath, generic Tree transformation language like XSLT, XDefinition metamodel definition language, XDelta delta merge operation.
-5. nop-config: configuration management
-6. nop-ioc: dependency injection container
-7. nop-dao: SQL management, transactions, JDBC access, database dialects
-8. nop-orm: An ORM engine supporting the EQL Object Query Language
-9. nop-ooxml: parsing and generation of Excel and Word template files
-10. nop-graphql: GraphQL parser and execution engine
-11. nop-biz: Business flow engine, which is combined with nop-graphql to provide GraphQL and REST services
-12. nop-ui: view layer model
-13. nop-js: The encapsulation of graalvm-js, which is used to perform JS packaging work on the Java side, getting rid of the dependence on front-end packaging tools such as Vite/Webpack.
-14. nop-web: Dynamically execute the Js packaging work and dynamically generate the JSON page file required by the front end
-15. nop-report: report engine
-16. nop-wf: workflow engine
-17. nop-rule: rule engine
-18. nop-batch: batch engine
-19. nop-job: distributed task scheduling engine
-20. nop-tcc: Distributed Transaction Engine
-21. nop-cluster: distributed cluster support
-22. nop-auth: user authority management
-23. nop-sys: System Configuration Management
-24. nop-cli: Encapsulates the code generator as a command-line tool
-25. nop-autotest: automated testing framework
-26. nop-demo: integrated demo for quarkus and spring frameworks
-27. nop-idea-plugin: IDEA plugin, which supports syntax prompt, link jump, breakpoint debugging, etc. For custom DSL
+nop-entropy the Spring framework is not used, all modules are developed from scratch in a model-driven manner (much of the code in the framework itself is also model-generated and can be customized and adjusted declaratively). In principle, nop-entropy can run on top of any microservices framework that supports the REST service standard. At present, we mainly support the integration of Quarkus framework and Spring framework. 
 
-The front-end code for the Nop platform In [ nop-chaos project ](https://gitee.com/canonical-entropy/nop-chaos), the packaging result of nop-chaos is wrapped as the following Java module.
+[Quarkus](https://quarkus.io/) is a new generation of cloud-native microservice framework open source by Redhat. Its development experience and GraalVM
+Native compilation is significantly more mature than the Spring framework. With the help of Quarkus framework, we can compile the application into a single uber jar (through java
+-jar instruction to run), you can also compile the program into an exe executable program, you don't need to install JDK at runtime, and the startup speed is increased by dozens of times. At present, the development and debugging of nop-entropy is mainly based on the Quarkus framework, so there may be some minor problems with the support of Spring framework. 
 
-1. nop-web-site: the packaging result of the front-end main page frame
-2. nop-web-amis-editor: The packaging result of the AMIS visual editor used by the front end. In general business development, we will only write JSON and a few JS files, and there is no need to recompile the nop-chaos project.
+Front-end code for the Nop platform In the [nop-chaos project](https://gitee.com/canonical-entropy/nop-chaos), the nop-chaos packaged result is packaged as the following Java module. 
 
-## Installation tutorial
+1. nop-web-site: The packaging result of the front-end main page framework.
+2. nop-web-amis-editor: The packaging results of the AMIS visual editor used by the front end.
+   In general business development, we only write JSON and a few JS files, and do not need to recompile nop-chaos project. 
 
-Environment preparation: JDK 11 +, Maven 3.6 +, Git
+## Installation Tutorial 
 
+Environment preparation: JDK 17 +, Maven 3.9.3 +, Git
 
-```shell
+```Shell
 git clone https://gitee.com/canonical-entropy/nop-entropy.git
 cd nop-entropy
-mvn -T 2C clean install -DskipTests -Dquarkus.package.type=uber-jar
+mvn clean install -DskipTests -Dquarkus.package.type=uber-jar
 ```
 
-Caution:
+Note: **JDK17 or above is required to compile and run. JDK8 is not supported**. **When running in PowerShell, you need to wrap the parameters in quotation marks * *
 
-The quarkus.package.type parameter is a parameter recognized by the quarkus framework, and specifying it as uber-jar will package projects such as nop-quarkus-demo into a single jar containing all the dependent classes. It can be run directly by means of Java -jar XXX-runner. jar.
+According to feedback, some JDK versions will report errors when compiling, such as jdk:17.0.9-graal will report errors IndexOutOfBound exceptions, so if there is a problem with compiling, you can try the OpenJDK first. 
 
-* nop-idea-plugin:  an IDEA plug-in project that must be compiled with Gradle.
+```
+mvn clean install "-DskipTests" "-Dquarkus.package.type=uber-jar"
+```
 
+The quarkus.package.type parameter is a parameter recognized by the quarkus framework. Specifying it as a uber-jar will package items such as nop-quarkus-demo into a single jar package containing all dependent classes. You can do it through Java.
+-Jar XXX-runner.jar way to run directly. 
+
+## PowerShell garbled code problem solved
+
+You can set the encoding of the PowerShell to UTF8
+
+```
+$OutputEncoding = [Console]::OutputEncoding = [Text.Encoding]::UTF8
+```
+
+you have upgraded to quarkus3.0, and running nop-auth-app and other modules with an earlier version of maven may fail. We recommend upgrading to Maven.
+Version 3.9.3, or use the mvnw command in the nop-entropy directory, it will automatically download and use maven 3.9.3. 
+
+* nop-idea-plugin
+  nop-idea-plugin is a plug-in project for IDEA and must be compiled using Gradle. 
 
 ```
 cd nop-idea-plugin
 gradlew buildPlugin
 ```
 
-The compiled plug-ins are stored in the build/distributions directory. See [Installation and Usage of Nop Idea Plugin](docs/dev-guide/ide/idea.md).
+> The idea packaging plug-in currently in use does not support a higher version of gradle. gradlew will automatically download the required gradle version, currently using 7.5.1
+> if you want to speed up the gradle download speed, you can change it to gradle-wrapper.properties
+> distributionUrl=https://mirrors.cloud.tencent.com/gradle/gradle-7.5.1-bin.zip
+
+The compiled plug-ins are stored in the build/distributions directory. See [Plug-in Installation and Use](docs/dev-guide/ide/idea.md). 
 
 ## Instructions for use
 
-* The platform has a built-in demo program, which can be started and run directly using the H2 memory database.
+* Platform built a demo program, using H2 memory database, you can directly start running
 
-
-```shell
+```Shell
 cd nop-demo/nop-quarkus-demo/target
 java -Dquarkus.profile=dev -jar nop-quarkus-demo-2.0.0-SNAPSHOT-runner.jar
 ```
 
-> If you do not specify profile = dev, it starts in prod mode. The database connection in the application. Yaml needs to be configured in the prod mode, and the MySQL database of the local machine is used by default
+> If you do not specify profile = dev, it will start in prod mode. In the prod mode, you need to configure the database connection in the application.yaml. By default, the local MySQL database is used.
 
-* Access the link,
+* Access link [http:// localhost:8080](http:// localhost:8080), * * User name: nop, Password: 123 * *
 
-* In IDEA, you can debug and run the QuarksDemoMain class in the nop-quarks-demo project. The quarkus framework provides the following debugging tools during development,
+* In IDEA, you can debug and run QuarksDemoMain classes in nop-quarks-demo projects. 
+  The quarkus framework provides the following debugging tools during development, 
 
->  http://localhost:8080/q/dev
->  http://localhost:8080/q/graphql-ui
+> http://localhost:8080/q/dev
+> http://localhost:8080/q/graphql-ui
 
-You can view the definitions and parameters of all the back-end service functions in the graphql-ui tool.
+In the graphql-ui tool, you can view the definitions and parameters of all backend service functions. 
 
 * For a complete development example, see [tutorial](docs/tutorial/tutorial.md)
 
-## Framework integration
+## Framework Integration
 
-nop-entroy doesn't depend on the spring or quarkus frameworks, nor does it depend on a specific database, so it's easy to integrate and use in third-party applications.
+nop-entropy does not rely on Spring or quarkus frameworks, nor does it depend on a specific database, so it is easy to integrate and use in third-party applications. 
 
-> The functionality of the core engine does not depend on the database and can run in a pure memory mode. All storage-related code has been stripped into separate Dao modules, such as nop-auth-dao, nop-sys-dao, and so on.
+> The functionality of the core engine does not depend on the database and can be run in pure memory. All storage-related code has been stripped into separate dao modules, such as nop-auth-dao,nop-sys-dao, etc. 
 
-1. Use as an incremental code generation tool: when Maven is packaged, it can read the Excel model file, apply the specified template directory, and generate the code in an incremental way. See [codegen.md](docs/dev-guide/codegen.md)
+1. Use as an incremental code generation tool: maven can read Excel model files when packaging, apply the specified template directory, and generate code in an incremental manner. See [codegen.md](docs/dev-guide/codegen.md)
 
-2. Provide reversible computation support for existing configuration files and domain model files in XML/JSON/YAML formats: add dynamic decomposition, merging and productization customization mechanisms for model files, which are completely transparent to the application layer. For the engine layer, only a custom model file loader needs to be written. See [ delta-loader.md ](docs/dev-guide/delta-loader.md)
+2. Provide reversible computing support for existing XML/JSON/YAML format configuration files and domain model files: add dynamic decomposition, merging, and product customization mechanisms for model files, which are completely transparent to the application layer, and only need to write a custom model file loader for the engine layer. See [delta-loader.md](docs/dev-guide/delta-loader.md)
 
-3. Support for developing domain specific languages (DSLs): You only need to define the xdef metamodel file to get IDE support for syntax hinting, link jumping, breakpoint debugging, and more. Visual designer customization support will be provided later. See [ idea-plugin.md ](docs/user-guide/idea/idea-plugin.md)
+3. Provide support for development domain-specific languages (DSL): You only need to define xdef metamodel files to obtain IDE support such as syntax prompts, link jumps, breakpoint debugging, etc. Visual designer customization support will be provided later. See [idea-plugin.md](docs/user-guide/idea/idea-plugin.md)
 
-4. Used as a model-driven GraphQL engine: automatically generate GraphQL services according to the Excel model, and support the addition, deletion, modification, and query of complex primary-sub tables. See [graphql.md](docs/dev-guide/graphql/graphql-java.md)
+4. Use as a model-driven GraphQL engine: Automatically generate GraphQL services based on Excel models and support the addition, deletion, modification and query of complex main tables. See [graphql.md](docs/dev-guide/graphql/graphql-java.md)
 
-5. Use as a report engine: You only need to add a small amount of annotations in the Word or Excel file to run as a report template to dynamically generate complex Chinese-style reports. See [report.md](docs/user-guide/report.md)
+5. Use as a report engine: only need to add a small number of labels to Word or Excel files to run as a report template and dynamically generate complex Chinese-style reports. See [report.md](docs/user-guide/report.md)
 
-6. Used as a workflow engine: Combined with the timing scheduling engine, it supports the approval workflow of manual operation, and also supports the distributed DAG task flow similar to airflow. See [ workflow.md ](docs/user-guide/workflow.md)
+6. Use as a workflow engine: combined with a timing scheduling engine, it supports manual approval workflows and distributed DAG task flows similar to airflow. See [workflow.md](docs/user-guide/workflow.md)
 
-7. Used as a batch processing engine: similar to the Spring Batch + XXL Job framework, providing support for distributed batch processing tasks. Configuration files allow you to specify how to parse and generate text or binary data files without having to write parsing and generation code. See [batch.md](docs/user-guide/batch.md)
+7. Use as a batch engine: Similar to the SpringBatch + XXLJob framework, it provides distributed batch task support. You can specify how to parse and generate text or binary data files through configuration files without writing parsing and generation code. See [batch.md](docs/user-guide/batch.md)
 
-8. Use as a rule engine: Implement complex business rule judgments through configuration. See [rule.md](docs/user-guide/rule.md)
+8. Use as a rule engine: realize complex business rule judgment through configuration. See [rule.md](docs/user-guide/rule.md)
 
-9. As a data-driven automated testing framework: through the recording, playback mechanism to achieve automated testing. Automatically record the output data when running for the first time, and then automatically compare it with the recorded data snapshot when running, so as to reduce the amount of code that needs to be written manually. See [ autotest.md ](docs/dev-guide/autotest.md)
+9. Use as a data-driven automated testing framework: Automated testing through recording and playback mechanisms. The output data is automatically recorded during the first run, and then automatically compared with the recorded data snapshot during the run, reducing the amount of code that needs to be written manually. See [autotest.md](docs/dev-guide/autotest.md)
 
-## Open source license
+## Sample page
 
-The front-end of Nop platform adopts MIT license, and the back-end adopts AGPL3.0 open source license. However, small and medium-sized enterprises can use the code of this project under the conditions similar to Apache 2.0 license (free commercial use, modification of the code does not require open source, but the original copyright information in the source code must be retained). To facilitate third-party integration, the nop-api-support/nop-commons/nop-core packages use the Apache 2.0 license.
+1. Interface Framework
+   ![](./docs/demo/framework.jpg)
 
-* The algorithm for determining whether a SME is a SME is as follows:
+2. Use Excel to define the data model.
+   ![](./docs/tutorial/excel-model.png)
 
+3. Use Excel to define the API model for external release
+   ![](./docs/dev-guide/microservice/api-model.png)
+
+4. Integrate Baidu's front-end low-code framework AMIS
+   ![](./docs/tutorial/amis-editor-view.png)
+
+5. Integrated GraphQL debugging tools
+   ![](./docs/tutorial/graphql-ui.png)
+
+6. Provide IDEA plug-in to support breakpoint debugging of custom DSL
+   ![](./docs/tutorial/xlang-debugger.png)
+
+7. Use Excel as a report designer to support complex Chinese reports.
+   ![](./docs/user-guide/report/block-report-result.png)
+   ![](./docs/user-guide/report/cross-table-report-result.png)
+
+8. Use the Word template to export Word reports.
+   ![](./docs/dev-guide/report/word-template/word-report.png)
+
+9. Use Excel to design decision tables and decision matrices.
+   ![](./docs/dev-guide/rule/decision-tree.png)
+   ![](./docs/dev-guide/rule/decision-matrix.png)
+
+## Open Source Protocol
+
+The front-end of the Nop platform uses the MIT protocol, and the back-end uses the AGPL3.0 open source protocol as a whole. However, small and medium-sized enterprises in China can use the code of this project under conditions similar to the Apache2.0 agreement (it can be used for free commercial use, and the modification of the code does not need to be open source, but the original copyright information in the source code should be retained). In order to facilitate third-party integration, the 3 packages of nop-api-support/nop-commons/nop-core use Apache
+2.0 agreement. 
+
+* The algorithm for judging whether a small or medium-sized enterprise is as follows:
 
 ```javascript
-switch(贵公司很有钱吗()){
-  case "有的是钱":{
-    console.log("都这么有钱了，还需要整天琢磨别人的知识产权是否免费吗？");
+Switch (Is your company rich ()){
+  case "plenty of money":{
+    console.log("With so much money, do you still need to wonder all day long whether other people's intellectual property rights are free?");
     return false;
   default:
     return true;
@@ -176,10 +263,26 @@ switch(贵公司很有钱吗()){
 }
 ```
 
-## Technical support
+## Technical Support
 
-Problems or BUGs encountered in use can be found in [ Gitee Mention Issues ](https://gitee.com/canonical-entropy/nop-chaos/issues)
+Problems or bugs encountered in use can be mentioned on [Gitee](https://gitee.com/canonical-entropy/nop-entropy/issues)
 
-## Wechat group
+## Acknowledgements
+
+* Thanks to the ORM test case contributed by netizen [xyplayman](https://gitee.com/xyplayman), the original project address is https://gitee.com/xyplayman/nop-orm-demo
+
+## Community
+
+* official website international station: [https://nop-platform.github.io/](https://nop-platform.github.io/)
+* official website China Station: [https://nop-platform.gitee.io/](https://nop-platform.gitee.io/)
+* [Nop Development Practice Sharing Website](https://studio.crazydan.org/) Established by Netizen [Crazydan Studio](https://nop.crazydan.io/)
+
+## Author WeChat and WeChat Discussion Group
 
 ![](wechat-group.png)
+
+Please note when adding WeChat: Join Nop Platform Group
+
+## WeChat Public Number
+
+![](wechat-public-account.jpg)
