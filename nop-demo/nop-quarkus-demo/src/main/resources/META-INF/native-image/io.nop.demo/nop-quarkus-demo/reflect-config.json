@@ -15226,6 +15226,15 @@
         "name": "batchModify",
         "parameterTypes": [
           "java.util.List",
+          "java.util.Map",
+          "java.util.Set",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "batchModify",
+        "parameterTypes": [
+          "java.util.List",
           "java.util.Set",
           "io.nop.core.context.IServiceContext"
         ]
@@ -19990,6 +19999,13 @@
         ]
       },
       {
+        "name": "childWithAttr",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "childrenByAttr",
         "parameterTypes": [
           "java.lang.String",
@@ -20590,6 +20606,13 @@
       {
         "name": "nextSibling",
         "parameterTypes": []
+      },
+      {
+        "name": "nodeWithAttr",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
       },
       {
         "name": "normalizeContent",
@@ -25427,7 +25450,15 @@
     "fields": [],
     "methods": [
       {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
         "name": "get_id",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_clearDirty",
         "parameterTypes": []
       },
       {
@@ -25449,6 +25480,12 @@
         "parameterTypes": [
           "java.lang.String",
           "java.lang.Object"
+        ]
+      },
+      {
+        "name": "orm_restoreValues",
+        "parameterTypes": [
+          "java.util.Map"
         ]
       }
     ],
@@ -25868,6 +25905,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isSupportReturningForUpdate",
+        "parameterTypes": []
+      },
+      {
         "name": "isSupportRowValueConstructor",
         "parameterTypes": []
       },
@@ -26251,6 +26292,10 @@
       },
       {
         "name": "isSupportQueryTimeout",
+        "parameterTypes": []
+      },
+      {
+        "name": "isSupportReturningForUpdate",
         "parameterTypes": []
       },
       {
@@ -26851,7 +26896,15 @@
         "parameterTypes": []
       },
       {
+        "name": "getSupportOutputForUpdate",
+        "parameterTypes": []
+      },
+      {
         "name": "getSupportQueryTimeout",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSupportReturningForUpdate",
         "parameterTypes": []
       },
       {
@@ -26963,7 +27016,19 @@
         ]
       },
       {
+        "name": "setSupportOutputForUpdate",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
         "name": "setSupportQueryTimeout",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setSupportReturningForUpdate",
         "parameterTypes": [
           "java.lang.Boolean"
         ]
@@ -29388,6 +29453,16 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.dyn.dao.entity.NopDynFile",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "getFuncMetaNode",
@@ -29465,6 +29540,16 @@
       }
     ],
     "name": "io.nop.dyn.dao.entity.NopDynPropMeta",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dyn.dao.entity.NopDynSql",
     "unsafeAllocated": false
   },
   {
@@ -31284,6 +31369,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_relationMetasForEntity1"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_remark"
       },
       {
@@ -31377,6 +31467,10 @@
       },
       {
         "name": "getQuerySpace",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelationMetasForEntity1",
         "parameterTypes": []
       },
       {
@@ -32405,6 +32499,361 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_fileId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_fileLength"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_fileName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_filePath"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_fileType"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_moduleId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_remark"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_status"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_updateTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_updatedBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_version"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_createTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_createdBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_fileId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_fileLength"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_fileName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_filePath"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_fileType"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_module"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_moduleId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_remark"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_status"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_updateTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_updatedBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_version"
+      }
+    ],
+    "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCreateTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCreatedBy",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFileId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFileLength",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFileName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFilePath",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFileType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getModule",
+        "parameterTypes": []
+      },
+      {
+        "name": "getModuleId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRemark",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStatus",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUpdateTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUpdatedBy",
+        "parameterTypes": []
+      },
+      {
+        "name": "getVersion",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_entityName",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_id",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_internalSet",
+        "parameterTypes": [
+          "int",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "orm_isPrimary",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "orm_propId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "orm_propIdBound",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_propName",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "orm_propValue",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "orm_propValue",
+        "parameterTypes": [
+          "int",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setCreateTime",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "setCreatedBy",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFileId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFileLength",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setFileName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFilePath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFileType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setModule",
+        "parameterTypes": [
+          "io.nop.dyn.dao.entity.NopDynModule"
+        ]
+      },
+      {
+        "name": "setModuleId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRemark",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setStatus",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setUpdateTime",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "setUpdatedBy",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setVersion",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      }
+    ],
+    "name": "io.nop.dyn.dao.entity._gen._NopDynFile",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PK_PROP_IDS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PK_PROP_NAMES"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_createTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_createdBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_displayName"
       },
       {
@@ -32949,6 +33398,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_files"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_mavenGroupId"
       },
       {
@@ -32970,6 +33424,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_NAME_pages"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_sqls"
       },
       {
         "allowUnsafeAccess": false,
@@ -33034,6 +33493,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getFiles",
+        "parameterTypes": []
+      },
+      {
         "name": "getMavenGroupId",
         "parameterTypes": []
       },
@@ -33063,6 +33526,10 @@
       },
       {
         "name": "getRelatedAppList_label",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSqls",
         "parameterTypes": []
       },
       {
@@ -34570,6 +35037,650 @@
     "fields": [
       {
         "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PK_PROP_IDS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PK_PROP_NAMES"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_args"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_batchLoadSelection"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_cacheKeyExpr"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_cacheName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_colNameCamelCase"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_createTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_createdBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_description"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_disableLogicalDelete"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_displayName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_enableFilter"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_fetchSize"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_moduleId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_name"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_querySpace"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_refreshBehavior"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_remark"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_rowType"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_source"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_sqlId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_sqlKind"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_sqlMethod"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_status"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_timeout"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_updateTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_updatedBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_version"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_args"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_argsComponent"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_batchLoadSelection"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_cacheKeyExpr"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_cacheName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_colNameCamelCase"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_createTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_createdBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_description"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_disableLogicalDelete"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_displayName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_enableFilter"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_fetchSize"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_module"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_moduleId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_name"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_querySpace"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_refreshBehavior"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_remark"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_rowType"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_source"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_sqlId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_sqlKind"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_sqlMethod"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_status"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_timeout"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_updateTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_updatedBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_version"
+      }
+    ],
+    "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "getArgs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getArgsComponent",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBatchLoadSelection",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCacheKeyExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCacheName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColNameCamelCase",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCreateTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCreatedBy",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDisableLogicalDelete",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEnableFilter",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFetchSize",
+        "parameterTypes": []
+      },
+      {
+        "name": "getModule",
+        "parameterTypes": []
+      },
+      {
+        "name": "getModuleId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getQuerySpace",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRefreshBehavior",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRemark",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRowType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSource",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSqlId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSqlKind",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSqlMethod",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStatus",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTimeout",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUpdateTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUpdatedBy",
+        "parameterTypes": []
+      },
+      {
+        "name": "getVersion",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_entityName",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_id",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_internalSet",
+        "parameterTypes": [
+          "int",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "orm_isPrimary",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "orm_propId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "orm_propIdBound",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_propName",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "orm_propValue",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "orm_propValue",
+        "parameterTypes": [
+          "int",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setArgs",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setBatchLoadSelection",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setCacheKeyExpr",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setCacheName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setColNameCamelCase",
+        "parameterTypes": [
+          "java.lang.Byte"
+        ]
+      },
+      {
+        "name": "setCreateTime",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "setCreatedBy",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDisableLogicalDelete",
+        "parameterTypes": [
+          "java.lang.Byte"
+        ]
+      },
+      {
+        "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setEnableFilter",
+        "parameterTypes": [
+          "java.lang.Byte"
+        ]
+      },
+      {
+        "name": "setFetchSize",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setModule",
+        "parameterTypes": [
+          "io.nop.dyn.dao.entity.NopDynModule"
+        ]
+      },
+      {
+        "name": "setModuleId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setQuerySpace",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRefreshBehavior",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRemark",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRowType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSource",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSqlId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSqlKind",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSqlMethod",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setStatus",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setTimeout",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setUpdateTime",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "setUpdatedBy",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setVersion",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      }
+    ],
+    "name": "io.nop.dyn.dao.entity._gen._NopDynSql",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "bizObjectManager"
       },
@@ -34768,6 +35879,16 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dyn.service.entity.NopDynFileBizModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowUnsafeAccess": false,
@@ -34901,6 +36022,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.dyn.service.entity.NopDynPropMetaBizModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dyn.service.entity.NopDynSqlBizModel",
     "unsafeAllocated": false
   },
   {
@@ -40619,6 +41750,12 @@
         "parameterTypes": []
       },
       {
+        "name": "hasDao",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "normalizeEntityName",
         "parameterTypes": [
           "java.lang.String"
@@ -45199,6 +46336,43 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "errorWhenDirty"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "useFirst"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "useLast"
+      }
+    ],
+    "methods": [
+      {
+        "name": "valueOf",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "values",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.orm.sql_lib.OrmEntityRefreshBehavior",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "LOG"
       }
     ],
@@ -45256,6 +46430,14 @@
         "parameterTypes": []
       },
       {
+        "name": "doInvoke",
+        "parameterTypes": [
+          "io.nop.orm.sql_lib.SqlItemModel",
+          "io.nop.api.core.beans.LongRangeBean",
+          "io.nop.core.context.IEvalContext"
+        ]
+      },
+      {
         "name": "getSqlItemModel",
         "parameterTypes": [
           "java.lang.String"
@@ -45290,6 +46472,12 @@
         ]
       },
       {
+        "name": "setDaoProvider",
+        "parameterTypes": [
+          "io.nop.dao.api.IDaoProvider"
+        ]
+      },
+      {
         "name": "setJdbcTemplate",
         "parameterTypes": [
           "io.nop.dao.jdbc.IJdbcTemplate"
@@ -45303,6 +46491,53 @@
       }
     ],
     "name": "io.nop.orm.sql_lib.SqlLibManager",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "execute"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "exists"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "findAll"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "findFirst"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "findPage"
+      }
+    ],
+    "methods": [
+      {
+        "name": "valueOf",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "values",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.orm.sql_lib.SqlMethod",
     "unsafeAllocated": false
   },
   {
@@ -45997,6 +47232,10 @@
         "parameterTypes": []
       },
       {
+        "name": "clearId",
+        "parameterTypes": []
+      },
+      {
         "name": "defaultGetProp",
         "parameterTypes": [
           "java.lang.String"
@@ -46343,6 +47582,12 @@
       {
         "name": "orm_reset",
         "parameterTypes": []
+      },
+      {
+        "name": "orm_restoreValues",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
       },
       {
         "name": "orm_state",
@@ -72529,6 +73774,14 @@
       {
         "name": "indexOf",
         "parameterTypes": [
+          "int",
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "indexOf",
+        "parameterTypes": [
           "java.lang.String"
         ]
       },
@@ -72536,6 +73789,14 @@
         "name": "indexOf",
         "parameterTypes": [
           "java.lang.String",
+          "int"
+        ]
+      },
+      {
+        "name": "indexOf",
+        "parameterTypes": [
+          "java.lang.String",
+          "int",
           "int"
         ]
       },
@@ -72679,6 +73940,13 @@
       },
       {
         "name": "split",
+        "parameterTypes": [
+          "java.lang.String",
+          "int"
+        ]
+      },
+      {
+        "name": "splitWithDelimiters",
         "parameterTypes": [
           "java.lang.String",
           "int"
@@ -73289,6 +74557,18 @@
         ]
       },
       {
+        "name": "addFirst",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "addLast",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "clear",
         "parameterTypes": []
       },
@@ -73325,6 +74605,14 @@
         "parameterTypes": [
           "int"
         ]
+      },
+      {
+        "name": "getFirst",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLast",
+        "parameterTypes": []
       },
       {
         "name": "hashCode",
@@ -73379,10 +74667,18 @@
         ]
       },
       {
+        "name": "removeFirst",
+        "parameterTypes": []
+      },
+      {
         "name": "removeIf",
         "parameterTypes": [
           "java.util.function.Predicate"
         ]
+      },
+      {
+        "name": "removeLast",
+        "parameterTypes": []
       },
       {
         "name": "replaceAll",
@@ -73629,6 +74925,12 @@
         ]
       },
       {
+        "name": "newHashMap",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
         "name": "put",
         "parameterTypes": [
           "java.lang.Object",
@@ -73730,6 +75032,12 @@
         "parameterTypes": []
       },
       {
+        "name": "newHashSet",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
         "name": "remove",
         "parameterTypes": [
           "java.lang.Object"
@@ -73802,10 +75110,46 @@
         "parameterTypes": []
       },
       {
+        "name": "newLinkedHashMap",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "putFirst",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "putLast",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "replaceAll",
         "parameterTypes": [
           "java.util.function.BiFunction"
         ]
+      },
+      {
+        "name": "reversed",
+        "parameterTypes": []
+      },
+      {
+        "name": "sequencedEntrySet",
+        "parameterTypes": []
+      },
+      {
+        "name": "sequencedKeySet",
+        "parameterTypes": []
+      },
+      {
+        "name": "sequencedValues",
+        "parameterTypes": []
       },
       {
         "name": "values",
@@ -73822,6 +75166,44 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "addFirst",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "addLast",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "getFirst",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLast",
+        "parameterTypes": []
+      },
+      {
+        "name": "newLinkedHashSet",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "removeFirst",
+        "parameterTypes": []
+      },
+      {
+        "name": "removeLast",
+        "parameterTypes": []
+      },
+      {
+        "name": "reversed",
+        "parameterTypes": []
+      },
       {
         "name": "spliterator",
         "parameterTypes": []
@@ -74375,6 +75757,21 @@
     "fields": [],
     "methods": [],
     "name": "java.util.RandomAccess",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "reversed",
+        "parameterTypes": []
+      }
+    ],
+    "name": "java.util.SequencedCollection",
     "unsafeAllocated": false
   },
   {

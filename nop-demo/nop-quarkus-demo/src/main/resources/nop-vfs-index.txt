@@ -26,6 +26,7 @@
 /dict/dyn/function-type.dict.yaml
 /dict/dyn/module-status.dict.yaml
 /dict/dyn/page-schema-type.dict.yaml
+/dict/orm/sql-kind.dict.yaml
 /dict/rpt/data-display-mode.dict.yaml
 /dict/rule/rule-type.dict.yaml
 /dict/web/page-schema-type.dict.yaml
@@ -114,9 +115,7 @@
 /nop/auth/model/NopAuthPosition/_NopAuthPosition.xmeta
 /nop/auth/model/NopAuthResource/NopAuthResource.xbiz
 /nop/auth/model/NopAuthResource/NopAuthResource.xmeta
-/nop/auth/model/NopAuthResource/NopAuthResource_main.xbiz
 /nop/auth/model/NopAuthResource/NopAuthResource_main.xmeta
-/nop/auth/model/NopAuthResource/NopAuthSite_main.xmeta
 /nop/auth/model/NopAuthResource/_NopAuthResource.xbiz
 /nop/auth/model/NopAuthResource/_NopAuthResource.xmeta
 /nop/auth/model/NopAuthRole/NopAuthRole.xbiz
@@ -326,6 +325,7 @@
 /nop/dao/dialect/mariadb.dialect.xml
 /nop/dao/dialect/mssql.dialect.xml
 /nop/dao/dialect/mysql.dialect.xml
+/nop/dao/dialect/mysql5.7.dialect.xml
 /nop/dao/dialect/oracle.dialect.xml
 /nop/dao/dialect/postgis.dialect.xml
 /nop/dao/dialect/postgresql.dialect.xml
@@ -406,6 +406,10 @@
 /nop/dyn/model/NopDynEntityRelationMeta/NopDynEntityRelationMeta.xmeta
 /nop/dyn/model/NopDynEntityRelationMeta/_NopDynEntityRelationMeta.xbiz
 /nop/dyn/model/NopDynEntityRelationMeta/_NopDynEntityRelationMeta.xmeta
+/nop/dyn/model/NopDynFile/NopDynFile.xbiz
+/nop/dyn/model/NopDynFile/NopDynFile.xmeta
+/nop/dyn/model/NopDynFile/_NopDynFile.xbiz
+/nop/dyn/model/NopDynFile/_NopDynFile.xmeta
 /nop/dyn/model/NopDynFunctionMeta/NopDynFunctionMeta.xbiz
 /nop/dyn/model/NopDynFunctionMeta/NopDynFunctionMeta.xmeta
 /nop/dyn/model/NopDynFunctionMeta/_NopDynFunctionMeta.xbiz
@@ -426,6 +430,10 @@
 /nop/dyn/model/NopDynPropMeta/NopDynPropMeta.xmeta
 /nop/dyn/model/NopDynPropMeta/_NopDynPropMeta.xbiz
 /nop/dyn/model/NopDynPropMeta/_NopDynPropMeta.xmeta
+/nop/dyn/model/NopDynSql/NopDynSql.xbiz
+/nop/dyn/model/NopDynSql/NopDynSql.xmeta
+/nop/dyn/model/NopDynSql/_NopDynSql.xbiz
+/nop/dyn/model/NopDynSql/_NopDynSql.xmeta
 /nop/dyn/orm/_app.orm.xml
 /nop/dyn/orm/app.orm.xml
 /nop/dyn/pages/NopDynApp/NopDynApp.lib.xjs
@@ -465,6 +473,11 @@
 /nop/dyn/pages/NopDynEntityRelationMeta/_gen/_NopDynEntityRelationMeta.view.xml
 /nop/dyn/pages/NopDynEntityRelationMeta/main.page.yaml
 /nop/dyn/pages/NopDynEntityRelationMeta/picker.page.yaml
+/nop/dyn/pages/NopDynFile/NopDynFile.lib.xjs
+/nop/dyn/pages/NopDynFile/NopDynFile.view.xml
+/nop/dyn/pages/NopDynFile/_gen/_NopDynFile.view.xml
+/nop/dyn/pages/NopDynFile/main.page.yaml
+/nop/dyn/pages/NopDynFile/picker.page.yaml
 /nop/dyn/pages/NopDynFunctionMeta/NopDynFunctionMeta.lib.xjs
 /nop/dyn/pages/NopDynFunctionMeta/NopDynFunctionMeta.view.xml
 /nop/dyn/pages/NopDynFunctionMeta/_gen/_NopDynFunctionMeta.view.xml
@@ -489,6 +502,11 @@
 /nop/dyn/pages/NopDynPropMeta/main.page.yaml
 /nop/dyn/pages/NopDynPropMeta/picker.page.yaml
 /nop/dyn/pages/NopDynPropMeta/ref-entityMeta.page.yaml
+/nop/dyn/pages/NopDynSql/NopDynSql.lib.xjs
+/nop/dyn/pages/NopDynSql/NopDynSql.view.xml
+/nop/dyn/pages/NopDynSql/_gen/_NopDynSql.view.xml
+/nop/dyn/pages/NopDynSql/main.page.yaml
+/nop/dyn/pages/NopDynSql/picker.page.yaml
 /nop/excel/xlib/imp-gen.xlib
 /nop/file/_module
 /nop/file/beans/_dao.beans.xml
