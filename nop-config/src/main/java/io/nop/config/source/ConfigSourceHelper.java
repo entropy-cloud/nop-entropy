@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.Objects;
 
 import static io.nop.config.ConfigErrors.ARG_CONFIG_NAME;
-import static io.nop.config.ConfigErrors.ERR_CONFIG_VALUE_NOT_ALLOW_LIST;
 
 public class ConfigSourceHelper {
     static final Logger LOG = LoggerFactory.getLogger(ConfigSourceHelper.class);
@@ -56,8 +55,11 @@ public class ConfigSourceHelper {
                 name = prefix + '.' + name;
             }
 
-            if (value instanceof Collection)
-                throw new NopException(ERR_CONFIG_VALUE_NOT_ALLOW_LIST).loc(valueLoc).param(ARG_CONFIG_NAME, name);
+            if (value instanceof Collection) {
+                ValueWithLocation vl = ValueWithLocation.of(valueLoc, value);
+                ret.put(name, vl);
+                continue;
+            }
 
             if (value instanceof Map) {
                 buildConfigValues(loc, name, (Map<?, ?>) value, ret);
