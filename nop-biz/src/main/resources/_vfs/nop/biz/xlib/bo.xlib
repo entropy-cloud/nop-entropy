@@ -250,7 +250,7 @@
         </DoFindTreeEntityList>
 
 
-        <_DoByQuery>
+        <_DoByQuery x:abstract="true">
             <attr name="query" type="io.nop.api.core.beans.query.QueryBean"/>
             <attr name="data" mandatory="true" x:abstract="true" />
             <attr name="authObjName" optional="true" type="String" />
