@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:bo="bo" xmlns:c="c">
+
+    <actions>
+        <query name="myMethod" >
+            <arg name="msg" type="String" mandatory="false" />
+            <return type="String" />
+
+            <source>
+                return "hello:" + msg;
+            </source>
+        </query>
+    </actions>
+</biz>
