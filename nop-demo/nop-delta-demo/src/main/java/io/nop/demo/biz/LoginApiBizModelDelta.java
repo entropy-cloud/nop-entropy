@@ -8,7 +8,6 @@ import io.nop.api.core.annotations.biz.RequestBean;
 import io.nop.api.core.annotations.core.LazyLoad;
 import io.nop.api.core.annotations.directive.Auth;
 import io.nop.auth.api.messages.LoginResult;
-import io.nop.auth.core.login.ILoginService;
 import io.nop.auth.service.biz.LoginApiBizModel;
 import io.nop.core.context.IServiceContext;
 import jakarta.annotation.Priority;
@@ -49,7 +48,7 @@ public class LoginApiBizModelDelta {
     @Auth(publicAccess = true)
     @Priority(NORMAL_PRIORITY - 100)
     public CompletionStage<LoginResult> loginAsync(@RequestBean LoginRequestEx request, IServiceContext context) {
-        request.setAttr("a","123");
+        request.setAttr("a", "123");
         return loginApiBizModel.loginAsync(request, context);
     }
 

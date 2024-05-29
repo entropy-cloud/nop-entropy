@@ -90,7 +90,7 @@ quarkus:
       "io.nop":
         level: INFO
       "io.nop.api.core.context":
-        level: TRACE
+        level: INFO
       "io.nop.http.api.server":
-        level: TRACE
+        level: INFO
 

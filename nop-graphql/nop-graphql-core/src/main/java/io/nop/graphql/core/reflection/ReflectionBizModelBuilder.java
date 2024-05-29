@@ -19,6 +19,7 @@ import io.nop.api.core.annotations.biz.ContextRoot;
 import io.nop.api.core.annotations.biz.ContextSource;
 import io.nop.api.core.annotations.biz.RequestBean;
 import io.nop.api.core.annotations.core.Description;
+import io.nop.api.core.annotations.core.LazyLoad;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.directive.Auth;
 import io.nop.api.core.annotations.graphql.GraphQLReturn;
@@ -368,6 +369,8 @@ public class ReflectionBizModelBuilder {
 
         IDataFetcher fetcher = buildFetcher(bean, loc, name, func);
         def.setFetcher(fetcher);
+        if(func.isAnnotationPresent(LazyLoad.class))
+            def.setLazy(true);
 
         return def;
     }
