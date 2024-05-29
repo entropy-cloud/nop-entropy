@@ -25,6 +25,13 @@ public abstract class _BizLoaderModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: autoCreateField
+     * 
+     */
+    private boolean _autoCreateField  = false;
+    
+    /**
+     *  
      * xml name: cache
      * 是否缓存action调用结果
      */
@@ -102,6 +109,25 @@ public abstract class _BizLoaderModel extends io.nop.core.resource.component.Abs
     public boolean hasArgs(){
         return !this._args.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: autoCreateField
+     *  
+     */
+    
+    public boolean isAutoCreateField(){
+      return _autoCreateField;
+    }
+
+    
+    public void setAutoCreateField(boolean value){
+        checkAllowChange();
+        
+        this._autoCreateField = value;
+           
+    }
+
     
     /**
      * 
@@ -220,6 +246,7 @@ public abstract class _BizLoaderModel extends io.nop.core.resource.component.Abs
         super.outputJson(out);
         
         out.putNotNull("args",this.getArgs());
+        out.putNotNull("autoCreateField",this.isAutoCreateField());
         out.putNotNull("cache",this.getCache());
         out.putNotNull("disabled",this.isDisabled());
         out.putNotNull("name",this.getName());
@@ -237,6 +264,7 @@ public abstract class _BizLoaderModel extends io.nop.core.resource.component.Abs
         super.copyTo(instance);
         
         instance.setArgs(this.getArgs());
+        instance.setAutoCreateField(this.isAutoCreateField());
         instance.setCache(this.getCache());
         instance.setDisabled(this.isDisabled());
         instance.setName(this.getName());

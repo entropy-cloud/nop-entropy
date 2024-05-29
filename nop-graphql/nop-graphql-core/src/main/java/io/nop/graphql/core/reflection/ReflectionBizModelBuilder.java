@@ -165,6 +165,7 @@ public class ReflectionBizModelBuilder {
                 }
                 field.setType(ReflectionGraphQLTypeFactory.INSTANCE.buildGraphQLType(returnType, bizObjName,
                         getReturnBizObjName(func), registry, false));
+                field.setAutoCreate(bizLoader.autoCreateField());
 
                 GraphQLObjectDefinition loaderType = getLoaderForType(bizLoader, registry);
                 if (loaderType != null) {

@@ -26,6 +26,8 @@ import java.util.stream.Collectors;
 public class GraphQLFieldDefinition extends _GraphQLFieldDefinition implements IGraphQLFieldDefinition {
     private IDataFetcher fetcher;
 
+    private boolean autoCreate;
+
     /**
      * 如果graphql的对象定义是从IObjMeta转换得到，则这里可以保存原始的propMeta，从而获得更多的扩展配置。
      * 如果把所有propMeta上的信息都转换为GraphQL的directive定义，则会产生很多重复性工作。
@@ -68,7 +70,19 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition implements I
         field.setBeanPropMeta(beanPropMeta);
         field.setPropId(propId);
         field.setJavaType(javaType);
+        field.setFunctionModel(functionModel);
+        field.setSourceClassModel(sourceClassModel);
+        field.setArgsNormalizer(argsNormalizer);
+        field.setAuth(auth);
         return field;
+    }
+
+    public boolean isAutoCreate() {
+        return autoCreate;
+    }
+
+    public void setAutoCreate(boolean autoCreate) {
+        this.autoCreate = autoCreate;
     }
 
     public IGenericType getJavaType() {

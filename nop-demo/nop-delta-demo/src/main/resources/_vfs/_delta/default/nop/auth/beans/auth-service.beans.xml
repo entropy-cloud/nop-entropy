@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc"
+       x:extends="super">
+
+<!--    <bean id="io.nop.auth.service.biz.LoginApiBizModel" class="io.nop.auth.service.biz.LoginApiBizModelEx" />-->
+
+    <bean id="io.nop.demo.biz.LoginApiBizModelDelta" ioc:type="@bean:id" />
+</beans>

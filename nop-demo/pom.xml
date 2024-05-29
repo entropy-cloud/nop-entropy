@@ -31,6 +31,7 @@
         <module>nop-spring-demo-no-orm</module>
         <module>nop-spring-security-demo</module>
         <module>nop-orm-demo</module>
+        <module>nop-delta-demo</module>
     </modules>
 
 </project>

@@ -26,6 +26,11 @@ public @interface BizLoader {
     String value() default "";
 
     /**
+     * 自动给GraphQL类型增加loader对应的字段。缺省情况下只是对已有字段增加loader逻辑，不会自动增加字段本身
+     */
+    boolean autoCreateField() default false;
+
+    /**
      * 缺省情况下BizLoader是应用于当前的BizModel对象。如果直接指定forType
      * 则表示它是应用于指定的GraphQLObjectType类型
      */

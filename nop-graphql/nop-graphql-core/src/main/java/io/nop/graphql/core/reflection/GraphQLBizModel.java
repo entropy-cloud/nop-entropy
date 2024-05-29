@@ -197,13 +197,13 @@ public class GraphQLBizModel {
     int comparePriority(GraphQLFieldDefinition old, GraphQLFieldDefinition field) {
         if (old == null)
             return 1;
-        return comparePriority(field.getFunctionModel(), old.getFunctionModel());
+        return comparePriority(old.getFunctionModel(), field.getFunctionModel());
     }
 
     int comparePriority(BeanMethodAction old, BeanMethodAction field) {
         if (old == null)
             return 1;
-        return comparePriority(field.getFunctionModel(), old.getFunctionModel());
+        return comparePriority(old.getFunctionModel(), field.getFunctionModel());
     }
 
     int comparePriority(IFunctionModel old, IFunctionModel fn) {

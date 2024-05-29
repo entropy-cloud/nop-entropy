@@ -168,10 +168,15 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
 
         GraphQLFieldDefinition old = fieldsMap.get(field.getName());
         if (old == null) {
-            // 如果objMeta存在，则所有字段必须都在meta中定义
-            if (objMeta == null || field.getOperationType() != null || objMeta.hasProp(field.getName())) {
+            if (field.isAutoCreate()) {
                 fieldsMap.put(field.getName(), field);
                 this.fields.add(field);
+            } else {
+                // 如果objMeta存在，则所有字段必须都在meta中定义
+                if (objMeta == null || field.getOperationType() != null || objMeta.hasProp(field.getName())) {
+                    fieldsMap.put(field.getName(), field);
+                    this.fields.add(field);
+                }
             }
         } else {
             if (replace) {

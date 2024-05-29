@@ -117,6 +117,7 @@ public class BizModelToGraphQLDefinition {
 
         IDataFetcher fetcher = buildFetcher(loaderModel, typeRegistry);
         field.setFetcher(fetcher);
+        field.setAutoCreate(loaderModel.isAutoCreateField());
         return field;
     }
 

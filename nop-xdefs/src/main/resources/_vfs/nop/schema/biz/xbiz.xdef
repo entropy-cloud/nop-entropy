@@ -80,7 +80,7 @@
     </actions>
 
     <loaders xdef:body-type="list" xdef:key-attr="name">
-        <loader name="!string" xdef:name="BizLoaderModel" disabled="!boolean=false">
+        <loader name="!string" xdef:name="BizLoaderModel" disabled="!boolean=false" autoCreateField="!boolean=false">
             <!--
               是否缓存action调用结果
              -->
