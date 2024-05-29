@@ -2,7 +2,9 @@
 
 在开发一个产品化的业务系统时，经常会出现需要扩展基础产品中的已有服务的情况。比如说，扩展系统内置的Login服务，为LoginRequest增加更多的请求参数，或者扩展返回的LoginResult对象，增加更多的返回信息。作为一个产品化的系统，我们肯定不希望修改已有的代码，但是目前流行的开源框架如Spring、Quarkus等并没有内置的扩展机制可以在不修改原有服务函数代码的情况下改变已有服务的接口，因此在支持复杂业务产品的二次开发时困难重重。
 
-Nop平台基于可逆计算理论实现了所谓的Delta定制机制，在数据模型、业务逻辑、服务接口等多种层面都可以进行深度定制，并且定制代码可以独立管理和存放。本文以扩展Login服务为例简要说明Nop平台服务层的具体扩展方案，更详细的介绍参见[如何在不修改基础产品源码的情况下实现定制化开发](https://zhuanlan.zhihu.com/p/628770810)。
+Nop平台基于可逆计算理论实现了所谓的Delta定制机制，在数据模型、业务逻辑、服务接口等多种层面都可以进行深度定制，并且定制代码可以独立管理和存放。本文以扩展Login服务为例简要说明Nop平台服务层的具体扩展方案，更详细的介绍参见[如何在不修改基础产品源码的情况下实现定制化开发](https://zhuanlan.zhihu.com/p/628770810)。示例代码参见[nop-delta-demo](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-demo/nop-delta-demo)
+
+讲解视频：https://www.bilibili.com/video/BV1Gz421a7eU/
 
 ## 一. 扩展返回结果对象
 
@@ -49,6 +51,7 @@ public class LoginApiBizModelDelta {
 **注意，这里的特殊之处在于我们完全没有修改LoginApiBizModel类，也没有重载login函数本身，仅仅通过增加一个Loader函数，即可在服务层扩展返回结果的结构。**
 
 ### 注册服务扩展
+
 Nop平台并不使用类扫描机制，因此所有的对象都需要在`beans.xml`文件中注册了之后才会起作用。如果LoginApiBizModelDelta没有从已有的LoginApiBizModel继承，则原则上任意找一个`app-*.beans.xml`文件，在其中注册bean即可。如果我们需要替换系统中已有的bean定义，则需要在delta目录下增加对应的`beans.xml`注册文件，通过`x:extends="super"`继承已有配置，然后保持bean的id，覆盖bean的class属性。
 
 ```xml
@@ -63,8 +66,8 @@ Nop平台并不使用类扫描机制，因此所有的对象都需要在`beans.x
 </beans>
 ```
 
-
 ## 二. 扩展输入请求对象
+
 如果我们要改变服务函数的输入参数，则必须要重新编写一个新的服务函数并且禁用旧的服务函数。在Nop平台中，对外暴露的服务函数名不允许重名。如果多个函数具有同样的名称，则会根据 `@Priority`注解选择优先级更高的实现（值越小优先级越高）。如果多个同名函数优先级一样，则会抛出异常。
 
 ```java
@@ -89,9 +92,11 @@ public class LoginApiBizModelDelta {
 * 在Nop平台中，多个具有同样bizObjName的BizModel对象会被堆叠在一起，按照优先级合并它们的所有函数，对外暴露为一个完整的业务对象。这个过程也可以看作是DDD中聚合根对象的一种构造过程。
 
 ## 三. 通过XBiz模型实现扩展
+
 Nop平台支持从高代码（ProCode）到低代码(LowCode)再到无代码(NoCode)开发模式的平滑过渡，因此除了在Java中实现BizModel对象之外，Nop平台还提供了通过配置实现服务函数的能力。在XBiz模型文件中，我们可以增加action定义，它的优先级最高，会覆盖Java中的同名的服务函数。XBiz模型文件整体是XML格式，并且满足`xbiz.xdef`这个元模型的规范要求，如果给XBiz模型文件配备一个可视化设计器，就可以实现无代码开发。
 
 Nop平台中每一个业务对象都对应有一个xbiz模型文件。
+
 ```xml
 <!-- /_delta/default/nop/auth/model/LoginApi/LoginApi.xbiz -->
 <biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef"
@@ -114,6 +119,7 @@ Nop平台中每一个业务对象都对应有一个xbiz模型文件。
 * 通过`/r/LoginApi__myMethod?msg=aaa`来调用LoginApi的myMethod函数
 
 ## 四. Header作为扩展信道
+
 Nop在所有细节处都采用`data + ext_data`配对设计，确保在任何局部都可以加入扩展信息。在服务层面，所有的请求消息和响应消息都包含额外的headers集合。在服务函数中，可以通过IServiceContext读写header数据。
 
 ```java
