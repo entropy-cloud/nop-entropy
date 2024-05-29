@@ -1077,6 +1077,41 @@ public class TextScanner {
         return buf.toString();
     }
 
+    public String nextJsonString() {
+        char quote = (char) this.cur;
+        MutableString buf = useBuf();
+
+        SourceLocation loc = location();
+        do {
+            int c = read0();
+            if (c < 0)
+                throw newError(ERR_SCAN_STRING_NOT_END).param(ARG_START_LOC, loc);
+            col++;
+            pos++;
+            if (c == '\r' || c == '\n') {
+                throw newError(ERR_SCAN_STRING_NOT_END).param(ARG_START_LOC, loc);
+            }
+
+            if (c == '\\') {
+                next();
+                if(cur == '/'){
+                    buf.append('/');
+                }else {
+                    buf.append(unescape());
+                }
+                continue;
+            }
+            if (c == quote) {
+                next();
+                break;
+            }
+            buf.append((char) c);
+        } while (true);
+
+        return buf.toString();
+    }
+
+
     public MutableString nextUntil(char c, boolean allowEnd) {
         return nextUntil(sc -> sc.cur == c, allowEnd, String.valueOf(c));
     }

@@ -110,4 +110,12 @@ public class TestJsonTool {
 
         assertEquals(3, JsonTool.serializeToJson(3));
     }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testEscape(){
+        String json = "{\"url\":\"http:\\/\\/www.baidu.com\",\"a\":\"\\n\\t\\r1\\f\"}";
+        Map<String,Object> map = (Map<String, Object>) JsonTool.parse(json);
+        assertEquals("http://www.baidu.com", map.get("url"));
+    }
 }

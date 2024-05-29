@@ -287,7 +287,7 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
     String string(TextScanner sc) {
         if (strictMode && sc.cur != '\"')
             throw sc.newError(ERR_JSON_STRICT_MODEL_STRING_NOT_DOUBLE_QUOTED);
-        String str = sc.nextJavaString();
+        String str = sc.nextJsonString();
         skipBlankAndComment(sc);
         return str;
     }
