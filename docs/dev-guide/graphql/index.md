@@ -23,3 +23,7 @@
 ## 对子表进行分页
 
 实现类似Relay框架的Connection机制，参见[connection.md](connection.md)
+
+## 使用Fragment简化查询
+
+参见[fragments.md](fragments.md)

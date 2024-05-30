@@ -13,7 +13,7 @@ extend type Query{
     Department__batchGet(ids:[String!]): [Department]
     Department__findPage(query:QueryBeanInput): PageBean_Department
     ...
-} 
+}
 extend type Mutation{
     Department__save(data: DepartmentInput): Department
     Department__delete(id:String!): Boolean
@@ -95,7 +95,7 @@ Method)模式提供了通用的CRUD实现：CrudBizModel。具体使用方法是
 CrudBizModel采用的是元数据驱动的实现方式，它会读取xmeta配置文件中的内容，内置实现了数据验证、自动初始化、级联删除、逻辑删除、数据权限等多种常见需求，所以一般情况下只需要调整xmeta和xbiz配置文件，并不需要编写定制逻辑。
 
 1. 数据验证：类似于GraphQL的输出选择，NopGraphQL可以对输入字段进行选择性验证和转换，这体现了**输入和输出的对偶性**。
-   
+
    ```javascript
    validatedData = new ObjMetaBasedValidator(bizObjManager,bizObjName,objMeta,context,checkWriteAuth)
                        .validateForSave(input,inputSelection)
@@ -107,7 +107,7 @@ CrudBizModel采用的是元数据驱动的实现方式，它会读取xmeta配置
 
 4. 级联删除：标记为cascade-delete的子表数据会随着主表数据的删除一并删除，而且会执行子表对应的BizObject业务对象上的定义的删除逻辑。
 
-5. 
+5.
 
 逻辑删除：如果启用delFlag逻辑删除标记字段，则底层的ORM引擎会自动将删除调用转换为修改delFlag的操作，并且对所有查询都自动应用delFlag=0的过滤条件，除非明确在SQL对象上设置disableLogicalDelete属性。
 
@@ -135,11 +135,11 @@ OrmEntity findFirst(@Name("query") QueryBean query);
 QueryBean类似于Hibernate中的Criteria查询对象，支持复杂的and/or嵌套查询条件以及排序条件。QueryBean可以由前台直接构造，在送到dao中真正执行之前它会经历如下处理过程：
 
 1. 验证查询条件中只包含`queryable=true`的字段，且查询算符在每个字段的allowFilterOp集合中，缺省只允许按照相等条件进行查询。例如配置用户名支持模糊查询
-   
+
    ```xml
    <!-- 支持按照相等或者模糊匹配的方式进行查询，缺省前端生成的控件为模糊查询 -->
-   <prop name="userName" allowFilterOp="eq,contains" queryable="true" 
-             xui:defaultFilterOp="contains"/>  
+   <prop name="userName" allowFilterOp="eq,contains" queryable="true"
+             xui:defaultFilterOp="contains"/>
    ```
 
 2. 追加数据权限过滤条件，例如过滤只能查看管理单位是本单位的数据。
@@ -296,7 +296,7 @@ public NopAuthUserAdminBizModel extends CrudBizModel<NopAuthUser>{
 
 > 面向对象技术创造了一个特殊的名---this指针，它是一种约定了的固化了的局部名称。使用this指针使得我们区分了领域(domain)
 > 的内外。在domain外对象可以有各种称谓，而domain内我们直接通过this直接指代当前对象。
-> 
+>
 > 代码本身只是一种形式表达，它的具体含义需要一个诠释的过程才能确定。基于对象指针的调用形式直接导向了诠释的多样化：只要注入不同的this指针，就可以提供不同的诠释。
 
 在前台的实现中，我们使用了类似的策略：前台脚本根据方法名的后缀自动判断方法签名，例如所有以`_findPage`为后缀的方法它的缺省签名都是
@@ -478,7 +478,7 @@ NopAuthDept_findList{
 }
 ```
 
-`@TreeChild(max=5)`表示按照本层的结构最多嵌套5层。
+`@TreeChildren(max=5)`表示按照本层的结构最多嵌套5层。
 
 ## 文件上传下载
 
@@ -545,7 +545,7 @@ public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
         return role.getUserMappings().stream().map(NopAuthUserRole::getUser)
                 .sorted(comparing(NopAuthUser::getUserName)).collect(Collectors.toList());
     }
-}    
+}
 ```
 
 如果写到xbiz文件中，就对应如下方式

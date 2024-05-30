@@ -17,6 +17,9 @@ directive @SkipOn(field:String!, value: String) on FIELD
 "只有当字段field的值等于指定值时，才继续处理本分支"
 directive @IncludeOn(field: String!,value:String) on FIELD
 
+"当没有访问权限时自动跳过本字段"
+directive @SkipWhenNoAuth on FIELD
+
 "字段返回的值将根据掩码模板设置屏蔽其中的内容，例如账号信息等避免泄露完整账号信息"
 directive @Mask(pattern:String!) on FIELD_DEFINITION
 
