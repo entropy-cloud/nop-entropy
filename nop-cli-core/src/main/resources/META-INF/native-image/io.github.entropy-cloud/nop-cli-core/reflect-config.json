@@ -6898,6 +6898,13 @@
         ]
       },
       {
+        "name": "childWithAttr",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "childrenByAttr",
         "parameterTypes": [
           "java.lang.String",
@@ -7442,6 +7449,14 @@
         ]
       },
       {
+        "name": "makeChildWithAttr",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "makeDocNode",
         "parameterTypes": [
           "java.lang.String"
@@ -7498,6 +7513,13 @@
       {
         "name": "nextSibling",
         "parameterTypes": []
+      },
+      {
+        "name": "nodeWithAttr",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
       },
       {
         "name": "normalizeContent",
@@ -10754,6 +10776,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isSupportReturningForUpdate",
+        "parameterTypes": []
+      },
+      {
         "name": "isSupportRowValueConstructor",
         "parameterTypes": []
       },
@@ -11156,6 +11182,10 @@
       },
       {
         "name": "isSupportQueryTimeout",
+        "parameterTypes": []
+      },
+      {
+        "name": "isSupportReturningForUpdate",
         "parameterTypes": []
       },
       {
@@ -11802,7 +11832,15 @@
         "parameterTypes": []
       },
       {
+        "name": "getSupportOutputForUpdate",
+        "parameterTypes": []
+      },
+      {
         "name": "getSupportQueryTimeout",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSupportReturningForUpdate",
         "parameterTypes": []
       },
       {
@@ -11914,7 +11952,19 @@
         ]
       },
       {
+        "name": "setSupportOutputForUpdate",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
         "name": "setSupportQueryTimeout",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setSupportReturningForUpdate",
         "parameterTypes": [
           "java.lang.Boolean"
         ]
@@ -17286,6 +17336,12 @@
         "parameterTypes": []
       },
       {
+        "name": "hasDao",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "normalizeEntityName",
         "parameterTypes": [
           "java.lang.String"
@@ -21999,6 +22055,14 @@
         "parameterTypes": []
       },
       {
+        "name": "doInvoke",
+        "parameterTypes": [
+          "io.nop.orm.sql_lib.SqlItemModel",
+          "io.nop.api.core.beans.LongRangeBean",
+          "io.nop.core.context.IEvalContext"
+        ]
+      },
+      {
         "name": "getSqlItemModel",
         "parameterTypes": [
           "java.lang.String"
@@ -22030,6 +22094,12 @@
           "java.lang.String",
           "io.nop.api.core.beans.LongRangeBean",
           "io.nop.core.context.IEvalContext"
+        ]
+      },
+      {
+        "name": "setDaoProvider",
+        "parameterTypes": [
+          "io.nop.dao.api.IDaoProvider"
         ]
       },
       {

@@ -51,4 +51,14 @@ public class TestFieldSelectionParser {
         base.merge(selection);
         assertEquals("a,u,b,children @TreeChildren(max:5),d", base.toString(false));
     }
+
+    @Test
+    public void testFragment() {
+        String text = "...F_test, a,b ";
+        FieldSelectionBean selection = new FieldSelectionBeanParser().parseFromText(null, text);
+
+        String formatted = selection.toString(false);
+        System.out.println(formatted);
+        assertEquals("...F_test,a,b", formatted);
+    }
 }

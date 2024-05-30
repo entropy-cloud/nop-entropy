@@ -59,6 +59,13 @@ public class FieldSelectionBeanParser {
 
     private void selection(TextScanner sc, Map<String, FieldSelectionBean> ret) {
         FieldSelectionBean sel = new FieldSelectionBean();
+        if (sc.cur == '.') {
+            sc.match("...");
+            String name = sc.nextJavaVar();
+            sc.skipBlank();
+            ret.put("..." + name, FieldSelectionBean.DEFAULT_SELECTION);
+            return;
+        }
 
         String alias = null;
         String name = sc.nextJavaVar();

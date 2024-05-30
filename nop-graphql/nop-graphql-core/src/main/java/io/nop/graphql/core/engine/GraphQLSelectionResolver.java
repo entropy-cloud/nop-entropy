@@ -7,6 +7,7 @@
  */
 package io.nop.graphql.core.engine;
 
+import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.graphql.core.GraphQLConstants;
@@ -209,6 +210,21 @@ public class GraphQLSelectionResolver {
 
     private void resolveFragmentSelection(GraphQLDocument doc, GraphQLObjectDefinition objDef,
                                           GraphQLFragmentSelection fragmentSelection, int level) {
+        String name = fragmentSelection.getFragmentName();
+        if (name.startsWith(GraphQLConstants.FRAGMENT_SELECTION_PREFIX)) {
+            // 预定义的fragment selection, 从engine获取
+            FieldSelectionBean selection = engine.getSchemaLoader().getFragmentDefinition(objDef.getName(), name);
+            GraphQLFragment fragment = new GraphQLFragment();
+            GraphQLSelectionSet selectionSet = new GraphQLSelectionSet();
+            selectionSet.setObjectDefinition(objDef);
+            fragment.setSelectionSet(selectionSet);
+            fragment.setName(name);
+            fragmentSelection.setResolvedFragment(fragment);
+            new RpcSelectionSetBuilder(null, this.engine.getSchemaLoader(), maxDepth)
+                    .addNonLazyFields(fragment.getSelectionSet(), objDef, level, selection);
+            return;
+        }
+
         GraphQLFragment fragment = doc == null ? null : doc.getFragment(fragmentSelection.getFragmentName());
         if (fragment == null)
             throw new NopException(ERR_GRAPHQL_UNKNOWN_FRAGMENT).param(ARG_AST_NODE, fragmentSelection);

@@ -1142,6 +1142,17 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         return node;
     }
 
+    public XNode makeChildWithAttr(String tagName, String attrName, Object attrValue) {
+        XNode node = childWithAttr(attrName, attrValue);
+        if (node != null)
+            return node;
+
+        node = XNode.make(tagName);
+        node.setAttr(attrName, attrValue);
+        appendChild(node);
+        return node;
+    }
+
     public XNode addChild(String tagName) {
         XNode node = XNode.make(tagName);
         appendChild(node);

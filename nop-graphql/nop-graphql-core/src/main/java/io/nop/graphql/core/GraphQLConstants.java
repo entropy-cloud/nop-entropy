@@ -144,4 +144,8 @@ public interface GraphQLConstants {
     String SPECIAL_VALUE_EMPTY = "__empty";
 
     String SPECIAL_VALUE_NULL = "__null";
+
+    String FRAGMENT_SELECTION_PREFIX = "F_";
+
+    String FRAGMENT_DEFAULTS = "F_defaults";
 }

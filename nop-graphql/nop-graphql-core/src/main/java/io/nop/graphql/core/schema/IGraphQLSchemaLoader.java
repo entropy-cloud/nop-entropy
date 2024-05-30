@@ -7,6 +7,8 @@
  */
 package io.nop.graphql.core.schema;
 
+import io.nop.api.core.beans.FieldSelectionBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.graphql.core.ast.GraphQLDocument;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
@@ -19,6 +21,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static io.nop.graphql.core.GraphQLErrors.ARG_BIZ_OBJ_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_FRAGMENT_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_FRAGMENT_SELECTION;
+
 /**
  * 用于加载builtin schema之外的biz模型定义
  */
@@ -28,6 +34,17 @@ public interface IGraphQLSchemaLoader {
     GraphQLObjectDefinition getObjectTypeDefinition(String objName);
 
     GraphQLTypeDefinition getTypeDefinition(String typeName);
+
+    FieldSelectionBean getFragmentDefinition(String objName, String fragmentName);
+
+    default FieldSelectionBean requireFragmentDefinition(String objName, String fragmentName) {
+        FieldSelectionBean fragment = getFragmentDefinition(objName, fragmentName);
+        if (fragment == null)
+            throw new NopException(ERR_GRAPHQL_UNKNOWN_FRAGMENT_SELECTION)
+                    .param(ARG_BIZ_OBJ_NAME, objName)
+                    .param(ARG_FRAGMENT_NAME, fragmentName);
+        return fragment;
+    }
 
     /**
      * 根据类型得到类型名称，然后再调用getTypeDefinition返回类型定义

@@ -9,6 +9,7 @@ package io.nop.biz.impl;
 
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.ErrorBean;
+import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancellable;
@@ -58,12 +59,16 @@ import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_EAGER_INIT_BIZ_OBJE
 import static io.nop.graphql.core.GraphQLConstants.GRAPHQL_CONNECTION_PREFIX;
 import static io.nop.graphql.core.GraphQLConstants.OBJ_ACTION_SEPARATOR;
 import static io.nop.graphql.core.GraphQLConstants.PAGE_BEAN_PREFIX;
+import static io.nop.graphql.core.GraphQLErrors.ARG_BIZ_OBJ_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_FRAGMENT_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ARG_TYPE_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_INVALID_FRAGMENT_SELECTION_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_NOT_OBJ_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNDEFINED_OBJECT;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_BUILTIN_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_FRAGMENT_SELECTION;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_OBJ_TYPE;
 
 public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader {
@@ -235,6 +240,18 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
     @Override
     public GraphQLObjectDefinition getObjectTypeDefinition(String objName) {
         return (GraphQLObjectDefinition) getTypeDefinition(objName);
+    }
+
+    @Override
+    public FieldSelectionBean getFragmentDefinition(String objName, String fragmentName) {
+        if (!fragmentName.startsWith(GraphQLConstants.FRAGMENT_SELECTION_PREFIX))
+            throw new NopException(ERR_GRAPHQL_INVALID_FRAGMENT_SELECTION_NAME)
+                    .param(ARG_BIZ_OBJ_NAME, objName)
+                    .param(ARG_FRAGMENT_NAME, fragmentName);
+
+        GraphQLObjectDefinition objType = getObjectTypeDefinition(objName);
+        FieldSelectionBean selection = objType.getSelection(fragmentName);
+        return selection;
     }
 
     @Override

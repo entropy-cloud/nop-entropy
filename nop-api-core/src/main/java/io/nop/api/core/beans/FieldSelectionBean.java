@@ -372,6 +372,11 @@ public class FieldSelectionBean implements Serializable, IDeepCloneable, IFreeza
      */
     public FieldSelectionBean addCompositeField(String field, boolean hasNext) {
         checkNotFrozen(this);
+        // fragment
+        if (field.startsWith("...")) {
+            return makeSubField(field, hasNext);
+        }
+
         int pos = field.indexOf('.');
         if (pos < 0) {
             return makeSubField(field, hasNext);

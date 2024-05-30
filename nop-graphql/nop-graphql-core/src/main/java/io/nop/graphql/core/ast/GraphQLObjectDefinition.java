@@ -7,6 +7,7 @@
  */
 package io.nop.graphql.core.ast;
 
+import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.INeedInit;
 import io.nop.commons.util.CollectionHelper;
@@ -14,6 +15,7 @@ import io.nop.graphql.core.ast._gen._GraphQLObjectDefinition;
 import io.nop.graphql.core.fetcher.BeanPropertyFetcher;
 import io.nop.graphql.core.schema.utils.GraphQLSourcePrinter;
 import io.nop.xlang.xmeta.IObjMeta;
+import io.nop.xlang.xmeta.impl.ObjSelectionMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,6 +93,10 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
         if (objMeta != null) {
             List<GraphQLFieldDefinition> removed = null;
             for (GraphQLFieldDefinition field : getFields()) {
+                // 如果强制要求自动创建，则可以突破meta限制
+                if (field.isAutoCreate())
+                    continue;
+
                 if (!objMeta.hasProp(field.getName())) {
                     if (fieldsMap != null) {
                         fieldsMap.remove(field.getName());
@@ -112,6 +118,15 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
     public void setFields(List<GraphQLFieldDefinition> value) {
         super.setFields(value);
         fieldsMap = null;
+    }
+
+    public FieldSelectionBean getSelection(String fragmentName) {
+        if (objMeta != null) {
+            ObjSelectionMeta selectionMeta = objMeta.getSelection(fragmentName);
+            if (selectionMeta != null && selectionMeta.getMapping() != null)
+                return selectionMeta.getMapping();
+        }
+        return null;
     }
 
     public Set<String> getFieldNames() {

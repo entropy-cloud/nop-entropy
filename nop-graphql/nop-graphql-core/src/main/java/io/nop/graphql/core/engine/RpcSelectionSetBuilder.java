@@ -28,12 +28,15 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
+import static io.nop.graphql.core.GraphQLErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_FIELD_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_FRAGMENT_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ARG_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_NOT_OBJ_TYPE_FOR_FIELD;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNDEFINED_FIELD;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_FRAGMENT_SELECTION;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_OBJ_TYPE;
 
 public class RpcSelectionSetBuilder {
@@ -74,39 +77,78 @@ public class RpcSelectionSetBuilder {
     void addNonLazyFields(GraphQLSelectionSet selectionSet, GraphQLObjectDefinition objDef, int level,
                           FieldSelectionBean selectionBean) {
         if (selectionBean != null && !selectionBean.getFields().isEmpty()) {
-            for (Map.Entry<String, FieldSelectionBean> entry : selectionBean.getFields().entrySet()) {
-                String alias = entry.getKey();
-                FieldSelectionBean subSelection = entry.getValue();
-                String fieldName = subSelection.getName();
-                if (fieldName == null) {
-                    fieldName = alias;
-                }
-                GraphQLFieldDefinition fieldDef = objDef.getField(fieldName);
-                if (fieldDef == null)
-                    throw new NopException(ERR_GRAPHQL_UNDEFINED_FIELD).param(ARG_OBJ_NAME, objDef.getName())
-                            .param(ARG_FIELD_NAME, fieldName);
-
-                GraphQLFieldSelection field = buildField(objDef, fieldDef, subSelection, level);
-                if (field != null) {
-                    field.setAlias(alias);
-                    selectionSet.addFieldSelection(field);
-                }
-            }
+            addFieldsForSelection(selectionSet, objDef, level, selectionBean);
         } else {
             // 标记了TreeChildren则由GraphQL引擎负责展开
             if (selectionBean != null && selectionBean.getDirective(GraphQLConstants.DIRECTIVE_TREE_CHILDREN) != null)
                 return;
 
-            for (GraphQLFieldDefinition fieldDef : objDef.getFields()) {
-                if (isLazy(fieldDef)) {
-                    continue;
-                }
+            FieldSelectionBean defaultSelection = this.schemaLoader.getFragmentDefinition(objDef.getName(),
+                    GraphQLConstants.FRAGMENT_DEFAULTS);
+            if (defaultSelection != null) {
+                addFieldsForSelection(selectionSet, objDef, level, defaultSelection);
+                return;
+            }
 
-                GraphQLFieldSelection field = buildField(objDef, fieldDef, null, level);
-                if (field != null)
-                    selectionSet.addFieldSelection(field);
+            addDefaultFieldsForObjType(selectionSet, objDef, level);
+        }
+    }
+
+    void addFieldsForSelection(GraphQLSelectionSet selectionSet, GraphQLObjectDefinition objDef, int level,
+                               FieldSelectionBean selectionBean) {
+        for (Map.Entry<String, FieldSelectionBean> entry : selectionBean.getFields().entrySet()) {
+            String alias = entry.getKey();
+            if (alias.startsWith("...")) {
+                // fragment,
+                String fragmentName = alias.substring("...".length());
+                addFragment(selectionSet, objDef, fragmentName, level);
+                continue;
+            }
+            FieldSelectionBean subSelection = entry.getValue();
+            String fieldName = subSelection.getName();
+            if (fieldName == null) {
+                fieldName = alias;
+            }
+            GraphQLFieldDefinition fieldDef = objDef.getField(fieldName);
+            if (fieldDef == null)
+                throw new NopException(ERR_GRAPHQL_UNDEFINED_FIELD).param(ARG_OBJ_NAME, objDef.getName())
+                        .param(ARG_FIELD_NAME, fieldName);
+
+            GraphQLFieldSelection field = buildField(objDef, fieldDef, subSelection, level);
+            if (field != null) {
+                field.setAlias(alias);
+                selectionSet.addFieldSelection(field);
             }
         }
+    }
+
+    void addDefaultFieldsForObjType(GraphQLSelectionSet selectionSet, GraphQLObjectDefinition objType, int level) {
+        for (GraphQLFieldDefinition fieldDef : objType.getFields()) {
+            if (isLazy(fieldDef)) {
+                continue;
+            }
+
+            GraphQLFieldSelection field = buildField(objType, fieldDef, null, level);
+            if (field != null)
+                selectionSet.addFieldSelection(field);
+        }
+    }
+
+    private void addFragment(GraphQLSelectionSet selectionSet, GraphQLObjectDefinition objType, String fragmentName, int level) {
+        FieldSelectionBean fragment = this.schemaLoader.getFragmentDefinition(objType.getName(), fragmentName);
+        if (fragment == null) {
+            if (GraphQLConstants.FRAGMENT_DEFAULTS.equals(fragmentName)) {
+                addDefaultFieldsForObjType(selectionSet, objType, level);
+                return;
+            }
+
+            throw new NopException(ERR_GRAPHQL_UNKNOWN_FRAGMENT_SELECTION)
+                    .param(ARG_BIZ_OBJ_NAME, objType)
+                    .param(ARG_FRAGMENT_NAME, fragmentName);
+        }
+
+        selectionSet.makeSelections();
+        addNonLazyFields(selectionSet, objType, level, fragment);
     }
 
     GraphQLFieldSelection buildField(GraphQLObjectDefinition objDef, GraphQLFieldDefinition fieldDef,

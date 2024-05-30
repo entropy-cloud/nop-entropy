@@ -20,6 +20,7 @@
 /dict/core/std-domain.dict.yaml
 /dict/core/std-query-method.dict.yaml
 /dict/core/std-sql-type.dict.yaml
+/dict/orm/sql-kind.dict.yaml
 /dict/rpt/data-display-mode.dict.yaml
 /dict/web/page-schema-type.dict.yaml
 /i18n/en/_nop-auth-web.i18n.yaml
@@ -79,9 +80,7 @@
 /nop/auth/model/NopAuthPosition/_NopAuthPosition.xmeta
 /nop/auth/model/NopAuthResource/NopAuthResource.xbiz
 /nop/auth/model/NopAuthResource/NopAuthResource.xmeta
-/nop/auth/model/NopAuthResource/NopAuthResource_main.xbiz
 /nop/auth/model/NopAuthResource/NopAuthResource_main.xmeta
-/nop/auth/model/NopAuthResource/NopAuthSite_main.xmeta
 /nop/auth/model/NopAuthResource/_NopAuthResource.xbiz
 /nop/auth/model/NopAuthResource/_NopAuthResource.xmeta
 /nop/auth/model/NopAuthRole/NopAuthRole.xbiz
@@ -281,6 +280,7 @@
 /nop/dao/dialect/mariadb.dialect.xml
 /nop/dao/dialect/mssql.dialect.xml
 /nop/dao/dialect/mysql.dialect.xml
+/nop/dao/dialect/mysql5.7.dialect.xml
 /nop/dao/dialect/oracle.dialect.xml
 /nop/dao/dialect/postgis.dialect.xml
 /nop/dao/dialect/postgresql.dialect.xml

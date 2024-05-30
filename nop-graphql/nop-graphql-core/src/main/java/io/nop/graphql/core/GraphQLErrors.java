@@ -319,4 +319,10 @@ public interface GraphQLErrors {
     ErrorCode ERR_BIZ_PROP_NO_BIZ_OBJ_NAME_ATTR =
             define("nop.err.biz.prop-no-biz-obj-name-attr", "对象[{bizObjName}]的属性[{propName}]没有配置bizObjName参数，无法定位它关联的业务对象",
                     ARG_BIZ_OBJ_NAME, ARG_PROP_NAME);
+
+    ErrorCode ERR_GRAPHQL_INVALID_FRAGMENT_SELECTION_NAME =
+            define("nop.err.graphql.invalid-fragment-selection-name", "GraphQL片段选择器名称不合法:{fragmentName}", ARG_FRAGMENT_NAME);
+
+    ErrorCode ERR_GRAPHQL_UNKNOWN_FRAGMENT_SELECTION =
+            define("nop.err.graphql.unknown-fragment-selection", "对象元数据中没有定义名称为[{fragmentName}]的片段选择器", ARG_FRAGMENT_NAME);
 }

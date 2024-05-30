@@ -7,12 +7,14 @@
  */
 package io.nop.graphql.core.engine;
 
+import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.ClassPathResource;
 import io.nop.graphql.core.ast.GraphQLDefinition;
 import io.nop.graphql.core.ast.GraphQLDocument;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
+import io.nop.graphql.core.ast.GraphQLFragment;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.ast.GraphQLType;
@@ -95,6 +97,11 @@ public class MockGraphQLSchemaLoader implements IGraphQLSchemaLoader {
     @Override
     public GraphQLTypeDefinition getTypeDefinition(String objName) {
         return getObjectTypeDefinition(objName);
+    }
+
+    @Override
+    public FieldSelectionBean getFragmentDefinition(String objName, String fragmentName) {
+        return null;
     }
 
     @Override

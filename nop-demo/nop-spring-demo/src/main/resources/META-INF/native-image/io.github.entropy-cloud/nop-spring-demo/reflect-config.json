@@ -16188,6 +16188,15 @@
         "name": "batchModify",
         "parameterTypes": [
           "java.util.List",
+          "java.util.Map",
+          "java.util.Set",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "batchModify",
+        "parameterTypes": [
+          "java.util.List",
           "java.util.Set",
           "io.nop.core.context.IServiceContext"
         ]
@@ -16403,6 +16412,17 @@
         "name": "doDeleteByQuery",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
+          "java.util.Set",
+          "java.util.function.BiConsumer",
+          "java.util.function.BiConsumer",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doDeleteByQuery",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
           "java.util.Set",
           "java.util.function.BiConsumer",
           "io.nop.core.context.IServiceContext"
@@ -16585,6 +16605,17 @@
           "java.util.Map",
           "java.util.function.BiConsumer",
           "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doUpdateByQuery",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
+          "java.util.Map",
+          "java.util.function.BiConsumer",
+          "java.util.function.BiConsumer",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -17588,6 +17619,13 @@
       {
         "name": "getBizOperationDefinitions",
         "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getFragmentDefinition",
+        "parameterTypes": [
+          "java.lang.String",
           "java.lang.String"
         ]
       },
@@ -23576,6 +23614,13 @@
         ]
       },
       {
+        "name": "childWithAttr",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "childrenByAttr",
         "parameterTypes": [
           "java.lang.String",
@@ -24120,6 +24165,14 @@
         ]
       },
       {
+        "name": "makeChildWithAttr",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "makeDocNode",
         "parameterTypes": [
           "java.lang.String"
@@ -24176,6 +24229,13 @@
       {
         "name": "nextSibling",
         "parameterTypes": []
+      },
+      {
+        "name": "nodeWithAttr",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
       },
       {
         "name": "normalizeContent",
@@ -28494,7 +28554,15 @@
     "fields": [],
     "methods": [
       {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
         "name": "get_id",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_clearDirty",
         "parameterTypes": []
       },
       {
@@ -28516,6 +28584,12 @@
         "parameterTypes": [
           "java.lang.String",
           "java.lang.Object"
+        ]
+      },
+      {
+        "name": "orm_restoreValues",
+        "parameterTypes": [
+          "java.util.Map"
         ]
       }
     ],
@@ -28949,6 +29023,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isSupportReturningForUpdate",
+        "parameterTypes": []
+      },
+      {
         "name": "isSupportRowValueConstructor",
         "parameterTypes": []
       },
@@ -29347,6 +29425,10 @@
       },
       {
         "name": "isSupportQueryTimeout",
+        "parameterTypes": []
+      },
+      {
+        "name": "isSupportReturningForUpdate",
         "parameterTypes": []
       },
       {
@@ -29955,7 +30037,15 @@
         "parameterTypes": []
       },
       {
+        "name": "getSupportOutputForUpdate",
+        "parameterTypes": []
+      },
+      {
         "name": "getSupportQueryTimeout",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSupportReturningForUpdate",
         "parameterTypes": []
       },
       {
@@ -30067,7 +30157,19 @@
         ]
       },
       {
+        "name": "setSupportOutputForUpdate",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
         "name": "setSupportQueryTimeout",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setSupportReturningForUpdate",
         "parameterTypes": [
           "java.lang.Boolean"
         ]
@@ -37718,6 +37820,12 @@
         "parameterTypes": []
       },
       {
+        "name": "hasDao",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "normalizeEntityName",
         "parameterTypes": [
           "java.lang.String"
@@ -42330,6 +42438,14 @@
         "parameterTypes": []
       },
       {
+        "name": "doInvoke",
+        "parameterTypes": [
+          "io.nop.orm.sql_lib.SqlItemModel",
+          "io.nop.api.core.beans.LongRangeBean",
+          "io.nop.core.context.IEvalContext"
+        ]
+      },
+      {
         "name": "getSqlItemModel",
         "parameterTypes": [
           "java.lang.String"
@@ -42361,6 +42477,12 @@
           "java.lang.String",
           "io.nop.api.core.beans.LongRangeBean",
           "io.nop.core.context.IEvalContext"
+        ]
+      },
+      {
+        "name": "setDaoProvider",
+        "parameterTypes": [
+          "io.nop.dao.api.IDaoProvider"
         ]
       },
       {
@@ -42997,6 +43119,10 @@
         "parameterTypes": []
       },
       {
+        "name": "clearId",
+        "parameterTypes": []
+      },
+      {
         "name": "defaultGetProp",
         "parameterTypes": [
           "java.lang.String"
@@ -43349,6 +43475,12 @@
       {
         "name": "orm_reset",
         "parameterTypes": []
+      },
+      {
+        "name": "orm_restoreValues",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
       },
       {
         "name": "orm_state",
@@ -50041,6 +50173,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.xlang.xmeta.impl.ObjSelectionMeta",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.xlang.xmeta.impl.ObjTreeModel",
     "unsafeAllocated": false
   },
@@ -51591,6 +51733,73 @@
       }
     ],
     "name": "io.nop.xlang.xmeta.impl._gen._ObjSchemaImpl",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.impl.ObjSelectionMeta"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMapping",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setMapping",
+        "parameterTypes": [
+          "io.nop.api.core.beans.FieldSelectionBean"
+        ]
+      }
+    ],
+    "name": "io.nop.xlang.xmeta.impl._gen._ObjSelectionMeta",
     "unsafeAllocated": false
   },
   {
