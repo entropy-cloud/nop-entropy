@@ -120,7 +120,6 @@ import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_OWNER_NOT_REF_TO_ENTITY;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_PROP_PATH_JOIN_NOT_ALLOW_CONDITION;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_PROP_PATH_NOT_VALID_TO_ONE_REFERENCE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_QUERY_NO_FROM_CLAUSE;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_RETURNING_NO_PROJECTIONS;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_SELECT_NO_PROJECTIONS;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_TABLE_SOURCE_NOT_RESOLVED;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_ALIAS;
@@ -1369,14 +1368,11 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         // 分析所有的projection，并且确保每一列都有一个别名
         if (node.getReturnProjections() == null || node.getReturnProjections().isEmpty()) {
             // select *
-            if (!node.getReturnAll())
-                throw new NopException(ERR_EQL_RETURNING_NO_PROJECTIONS).source(node);
-
-            List<SqlProjection> items = buildSelectItems(source, true, false);
-            node.setReturnProjections(items);
-        }
-
-        if (node.getReturnProjections() != null && !node.getReturnProjections().isEmpty()) {
+            if (node.getReturnAll()) {
+                List<SqlProjection> items = buildSelectItems(source, true, false);
+                node.setReturnProjections(items);
+            }// ELSE 没有Returning语句
+        } else {
             if (!dialect.isSupportReturningForUpdate()) {
                 throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE)
                         .param(ARG_DIALECT, dialect.getName())
