@@ -80,9 +80,7 @@
 /nop/auth/model/NopAuthPosition/_NopAuthPosition.xmeta
 /nop/auth/model/NopAuthResource/NopAuthResource.xbiz
 /nop/auth/model/NopAuthResource/NopAuthResource.xmeta
-/nop/auth/model/NopAuthResource/NopAuthResource_main.xbiz
 /nop/auth/model/NopAuthResource/NopAuthResource_main.xmeta
-/nop/auth/model/NopAuthResource/NopAuthSite_main.xmeta
 /nop/auth/model/NopAuthResource/_NopAuthResource.xbiz
 /nop/auth/model/NopAuthResource/_NopAuthResource.xmeta
 /nop/auth/model/NopAuthRole/NopAuthRole.xbiz

@@ -33,19 +33,6 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopJobPlan-main" displayName="任务调度计划" orderNo="10007" i18n-en:displayName="Job Plan"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
-                          url="/nop/job/pages/NopJobPlan/main.page.yaml">
-                    <children>
-                        <resource id="FNPT:NopJobPlan:query" displayName="查询任务调度计划" orderNo="10008" resourceType="FNPT">
-                            <permissions>NopJobPlan:query</permissions>
-                        </resource>
-                        <resource id="FNPT:NopJobPlan:mutation" displayName="修改任务调度计划" orderNo="10009"
-                                  resourceType="FNPT">
-                            <permissions>NopJobPlan:mutation</permissions>
-                        </resource>
-                    </children>
-                </resource>
             </children>
         </resource>
     </site>

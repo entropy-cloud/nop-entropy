@@ -178,7 +178,7 @@ public class ByteBufRecordBinaryInput implements IRecordBinaryInput {
             throw new IllegalArgumentException("Java ByteBuffer can't be seeked past Integer.MAX_VALUE");
         }
         bb.readerIndex((int) newPos);
-        asRoBuffer().duplicate()
+        asRoBuffer().duplicate();
     }
 
     @Override
