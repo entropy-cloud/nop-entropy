@@ -27,11 +27,27 @@ import static io.nop.api.core.ApiErrors.ERR_CONFIG_VAR_CONVERT_TO_TYPE_FAIL;
 @SuppressWarnings("PMD.TooManyStaticImports")
 public class SimpleConfigProvider implements IConfigProvider {
     static final Logger LOG = LoggerFactory.getLogger(SimpleConfigProvider.class);
-    private final Map<String, DefaultConfigReference<?>> refs = new ConcurrentHashMap<>();
+    private final Map<String, DefaultConfigReference<?>> refs;
+
+    private final Map<String, StaticValue<?>> staticValues;
+
+    public SimpleConfigProvider(Map<String, DefaultConfigReference<?>> refs, Map<String, StaticValue<?>> staticValues) {
+        this.refs = refs;
+        this.staticValues = staticValues;
+    }
+
+    public SimpleConfigProvider() {
+        this(new ConcurrentHashMap<>(), new ConcurrentHashMap<>());
+    }
 
     @Override
     public Map<String, DefaultConfigReference<?>> getConfigReferences() {
         return refs;
+    }
+
+    @Override
+    public Map<String, StaticValue<?>> getStaticConfigValues() {
+        return staticValues;
     }
 
     public <T> void addConfig(SourceLocation location, String name, Class<T> clazz, T value) {
@@ -39,10 +55,35 @@ public class SimpleConfigProvider implements IConfigProvider {
     }
 
     @Override
+    public <T> IConfigReference<T> getStaticConfigReference(String varName, Class<T> clazz, T defaultValue, SourceLocation loc) {
+        IConfigReference<T> ref = getConfigReference(varName, clazz, defaultValue, loc);
+        if (!staticValues.containsKey(varName)) {
+            String prop = System.getProperty(varName);
+            T value = convertValue(varName, clazz, prop);
+            staticValues.put(varName, StaticValue.valueOf(value));
+        }
+        return ref;
+    }
+
+    @Override
+    public void reset() {
+        refs.keySet().retainAll(staticValues.keySet());
+        for (DefaultConfigReference<?> ref : refs.values()) {
+            IConfigValue value = staticValues.get(ref.getName());
+            if (value != null) {
+                Object v = convertValue(ref.getName(), ref.getValueType(), value.get());
+                value = StaticValue.valueOf(v);
+                ref.setProvider(value);
+                LOG.debug("nop.config.reset-value:name={},value={},type={}", ref.getName(), v, ref.getValueType());
+            }
+        }
+    }
+
+    @Override
     public void assignConfigValue(String name, Object value) {
         Class<?> valueClass = value == null ? Object.class : value.getClass();
         DefaultConfigReference df = getConfigRef(null, name, valueClass, null);
-        value = ConvertHelper.convertTo(df.getValueType(), value, err -> new NopException(err)
+        value = ConvertHelper.convertConfigTo(df.getValueType(), value, err -> new NopException(err)
                 .param(ARG_VAR, name));
         df.updateValue(null, StaticValue.valueOf(value));
     }

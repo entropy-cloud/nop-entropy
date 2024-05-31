@@ -9,7 +9,6 @@ package io.nop.core.unittest;
 
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.config.IConfigReference;
-import io.nop.api.core.context.BaseContext;
 import io.nop.api.core.context.BaseContextProvider;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.SourceLocation;
@@ -73,6 +72,7 @@ public class BaseTestCase {
     public static void beginTest() {
         resetAll();
         g_testRunning = true;
+        BaseContextProvider.clear();
     }
 
     public static void endTest() {
@@ -93,13 +93,12 @@ public class BaseTestCase {
     }
 
     public static void setTestConfig(String name, Object value) {
-        IConfigReference<Object> var = AppConfig.varRef(s_loc, name, (Class) value.getClass(), null);
-        setTestConfig(var, value);
+        g_testConfigs.put(name, value);
+        AppConfig.getConfigProvider().assignConfigValue(name, value);
     }
 
     public static <T> void setTestConfig(IConfigReference<T> var, T value) {
-        g_testConfigs.put(var.getName(), value);
-        AppConfig.getConfigProvider().updateConfigValue(var, value);
+        setTestConfig(var.getName(), value);
     }
 
     public static void addLazyAction(Runnable action) {

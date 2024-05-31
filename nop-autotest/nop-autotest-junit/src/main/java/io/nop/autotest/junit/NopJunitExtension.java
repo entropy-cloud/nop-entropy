@@ -10,6 +10,8 @@ package io.nop.autotest.junit;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.autotest.NopTestProperties;
 import io.nop.api.core.annotations.autotest.NopTestProperty;
+import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.config.SimpleConfigProvider;
 import io.nop.api.core.ioc.BeanContainerStartMode;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.core.initialize.CoreInitialization;
@@ -25,6 +27,9 @@ public class NopJunitExtension implements BeforeAllCallback, AfterAllCallback {
 
     @Override
     public void beforeAll(ExtensionContext context) {
+        // 其他单元测试有可能改变了配置项，这里重置为静态缺省值
+        AppConfig.getConfigProvider().reset();
+
         BaseTestCase.beginTest();
         processTestConfig(context);
         CoreInitialization.initialize();

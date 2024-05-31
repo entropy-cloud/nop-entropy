@@ -128,11 +128,11 @@ public class OrmEntityModelInitializer {
             this.globalUniqueId = this.pkColumns.contains(colsByPropId[tenantPropId]);
         }
 
-        for (IEntityPropModel prop : props.values()) {
+        for (IEntityPropModel prop : entityModel.getColumns()) {
             String underscoreName = StringHelper.camelCaseToUnderscore(prop.getName(), true).intern();
             this.propsByUnderscoreName.put(underscoreName.toUpperCase(Locale.ROOT), prop);
-
-            if (this.propsByUnderscoreName.put(underscoreName, prop) != null) {
+            IEntityPropModel oldProp = this.propsByUnderscoreName.put(underscoreName, prop);
+            if (oldProp != null && oldProp != prop) {
                 LOG.info("nop.orm.underscore-name-conflicted:propName={},entityName={}", underscoreName, entityModel.getName());
             }
         }

@@ -188,6 +188,7 @@ public class GraphQLEngine implements IGraphQLEngine {
         // 装载系统内置的schema定义
         this.builtinSchema = new BuiltinSchemaLoader(schemaLoader, CFG_GRAPHQL_SCHEMA_INTROSPECTION_ENABLED.get())
                 .load();
+        LOG.info("graphql-builtin-types:types={},introspection={}", builtinSchema.getTypes().keySet(), CFG_GRAPHQL_SCHEMA_INTROSPECTION_ENABLED.get());
     }
 
     private GraphQLDocument parseOperationFromText(String text) {
@@ -223,7 +224,7 @@ public class GraphQLEngine implements IGraphQLEngine {
     }
 
     void resolveSelections(GraphQLDocument doc, int maxDepth) {
-        new GraphQLSelectionResolver(this, maxDepth).resolveSelection(doc);
+        new GraphQLSelectionResolver(this, builtinSchema, maxDepth).resolveSelection(doc);
 
         doc.setResolved(true);
     }
@@ -262,7 +263,7 @@ public class GraphQLEngine implements IGraphQLEngine {
     @Override
     public void resolveSelection(String objName, GraphQLSelectionSet selectionSet,
                                  Map<String, GraphQLVariableDefinition> vars) {
-        new GraphQLSelectionResolver(this, CFG_GRAPHQL_QUERY_MAX_DEPTH.get()).resolveSelections(null, objName,
+        new GraphQLSelectionResolver(this, builtinSchema, CFG_GRAPHQL_QUERY_MAX_DEPTH.get()).resolveSelections(null, objName,
                 selectionSet, vars, 0);
     }
 

@@ -446,7 +446,7 @@ public class BeanDefinition implements IBeanDefinition {
     public Object newObject(IBeanScope scope, IBeanContainerImplementor container) {
         try {
             Object bean = newInstance(scope, container);
-            LOG.debug("ioc.new-object:{}", this);
+            //LOG.debug("ioc.new-object:{}", this);
 
             ProducedBeanInstance producedBeanInstance = null;
             if (beanMethod != null) {

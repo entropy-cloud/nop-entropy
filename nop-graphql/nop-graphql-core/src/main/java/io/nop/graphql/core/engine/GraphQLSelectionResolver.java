@@ -35,6 +35,7 @@ import io.nop.graphql.core.ast.GraphQLVariable;
 import io.nop.graphql.core.ast.GraphQLVariableDefinition;
 import io.nop.graphql.core.fetcher.FixedValueFetcher;
 import io.nop.graphql.core.schema.GraphQLScalarType;
+import io.nop.graphql.core.schema.GraphQLSchema;
 import io.nop.graphql.core.utils.GraphQLTypeHelper;
 
 import java.util.Collections;
@@ -83,11 +84,13 @@ import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNSUPPORTED_AST;
  */
 public class GraphQLSelectionResolver {
     private final IGraphQLEngine engine;
+    private final GraphQLSchema builtinSchema;
     private final int maxDepth;
     private boolean hasTreeChildren;
 
-    public GraphQLSelectionResolver(IGraphQLEngine engine, int maxDepth) {
+    public GraphQLSelectionResolver(IGraphQLEngine engine, GraphQLSchema builtinSchema, int maxDepth) {
         this.engine = engine;
+        this.builtinSchema = builtinSchema;
         this.maxDepth = maxDepth;
     }
 
@@ -220,7 +223,7 @@ public class GraphQLSelectionResolver {
             fragment.setSelectionSet(selectionSet);
             fragment.setName(name);
             fragmentSelection.setResolvedFragment(fragment);
-            new RpcSelectionSetBuilder(null, this.engine.getSchemaLoader(), maxDepth)
+            new RpcSelectionSetBuilder(builtinSchema, this.engine.getSchemaLoader(), maxDepth)
                     .addNonLazyFields(fragment.getSelectionSet(), objDef, level, selection);
             return;
         }

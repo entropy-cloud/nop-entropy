@@ -348,6 +348,7 @@
 
     <modules>
         <module>nop-dependencies</module>
+        <module>nop-bom</module>
         <module>build-tools</module>
         <module>nop-api-core</module>
         <module>nop-commons</module>
@@ -400,7 +401,6 @@
         <module>nop-match</module>
         <module>nop-web-site</module>
         <module>nop-web-amis-editor</module>
-        <module>nop-bom</module>
         <module>nop-report</module>
         <module>nop-integration</module>
         <module>nop-record</module>

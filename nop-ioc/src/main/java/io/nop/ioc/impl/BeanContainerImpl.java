@@ -489,6 +489,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
 
     @Override
     public void injectTo(Object bean) {
+        LOG.debug("nop.inject-props-to-bean:{}",bean);
         checkStarted();
         Class<?> beanClass = bean.getClass();
         BeanDefinition beanDef = new BeanDefinitionBuilder(classLoader, getClassIntrospection(), this)

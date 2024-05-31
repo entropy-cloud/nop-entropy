@@ -86,7 +86,7 @@ public class AutoTestCase extends BaseTestCase {
     private boolean sqlInit;
     private boolean saveOutput;
 
-    public String getTestMethod(){
+    public String getTestMethod() {
         return null;
     }
 
@@ -114,16 +114,16 @@ public class AutoTestCase extends BaseTestCase {
         return caseData;
     }
 
-    protected void beginTestCase(){
-        LOG.info("nop.autotest.begin-test-case:method={},case={}",getTestMethod(),getClass().getName());
+    protected void beginTestCase() {
+        LOG.info("nop.autotest.begin-test-case:method={},case={}", getTestMethod(), getClass().getName());
     }
+
     public void initCaseDataDir(File caseDataDir) {
         caseData = new AutoTestCaseData(caseDataDir, valueResolverRegistry);
         caseData.getInputDir().mkdirs();
         caseData.getOutputDir().mkdirs();
         try {
-            boolean b = new File(caseDataDir, "autotest.yaml").createNewFile();
-            LOG.debug("nop.autotest.init-file:{}",b);
+            new File(caseDataDir, "autotest.yaml").createNewFile();
         } catch (Exception e) {
             throw NopException.adapt(e);
         }
@@ -142,7 +142,6 @@ public class AutoTestCase extends BaseTestCase {
     }
 
     public void initDao() {
-        AutoTestVars.clear();
         daoProvider = initDaoProvider();
         jdbcTemplate = initJdbcTemplate();
         sessionFactory = initSessionFactory();
@@ -196,8 +195,10 @@ public class AutoTestCase extends BaseTestCase {
         if (!BeanContainer.isInitialized())
             return;
 
+        // 每个单元测试函数都要使用单独的数据库和bean环境，所以需要重新初始化IoC容器
         clearLazyActions();
         IBeanContainer container = BeanContainer.instance();
+        LOG.info("nop.auto-test.init-beans");
         container.restart();
 
         if (!container.supportInjectTo())
@@ -224,16 +225,16 @@ public class AutoTestCase extends BaseTestCase {
                 } else if (checkOutput) {
                     LOG.info("\n============ autotest run snapshot check =========================");
 
-                    new AutoTestCaseResultChecker(getTestMethod(),variant, caseData, daoProvider, jdbcTemplate, matchConfig).check();
+                    new AutoTestCaseResultChecker(getTestMethod(), variant, caseData, daoProvider, jdbcTemplate, matchConfig).check();
                 }
             }
         } finally {
             AutoTestVars.clear();
         }
-        LOG.info("nop.autotest.completed:method={},case={},success={}",getTestMethod(), this.getClass().getName(),success);
+        LOG.info("nop.autotest.completed:method={},case={},success={}", getTestMethod(), this.getClass().getName(), success);
     }
 
-    protected void throwSnapshotFinishedError(){
+    protected void throwSnapshotFinishedError() {
         throw new NopException(ERR_AUTOTEST_SNAPSHOT_FINISHED);
     }
 
@@ -302,7 +303,7 @@ public class AutoTestCase extends BaseTestCase {
             try {
                 Object json = caseData.readOutputJson(fileName, variant);
                 value = AutoTestDataHelper.toJsonObject(result);
-                AutoTestMatchChecker.checkMatch(getTestMethod(),matchConfig, json, value, scope);
+                AutoTestMatchChecker.checkMatch(getTestMethod(), matchConfig, json, value, scope);
             } catch (Exception e) {
                 LOG.error("nop.autotest.output-check-fail:fileName={},result={}", fileName,
                         JsonTool.serialize(value, true));

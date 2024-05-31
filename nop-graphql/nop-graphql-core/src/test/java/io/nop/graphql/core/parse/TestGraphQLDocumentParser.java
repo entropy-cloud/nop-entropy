@@ -70,7 +70,7 @@ public class TestGraphQLDocumentParser extends BaseTestCase {
         engine.setBuiltinSchema(schema);
 
         GraphQLDocument doc = new GraphQLDocumentParser().parseFromResource(resource);
-        new GraphQLSelectionResolver(engine, 10).resolveSelection(doc);
+        new GraphQLSelectionResolver(engine, null,10).resolveSelection(doc);
         GraphQLOperation op = doc.getOperation();
         assertFalse(op.isExceedDepth(10));
 

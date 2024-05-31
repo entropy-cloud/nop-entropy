@@ -9,6 +9,7 @@ package io.nop.auth.service;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.autotest.NopTestProperty;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.autotest.junit.JunitAutoTestCase;
@@ -20,13 +21,10 @@ import org.junit.jupiter.api.Test;
 import jakarta.inject.Inject;
 
 @NopTestConfig(localDb = true)
+@NopTestProperty(name="nop.graphql.schema-introspection.enabled",value="true")
 public class TestIntrospectionQuery extends JunitAutoTestCase {
     @Inject
     IGraphQLEngine engine;
-
-    public TestIntrospectionQuery() {
-        setTestConfig(GraphQLConfigs.CFG_GRAPHQL_SCHEMA_INTROSPECTION_ENABLED, true);
-    }
 
     @Test
     @EnableSnapshot

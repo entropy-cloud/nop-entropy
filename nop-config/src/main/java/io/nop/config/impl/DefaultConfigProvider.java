@@ -52,6 +52,8 @@ public class DefaultConfigProvider implements IConfigProvider {
     private final IConfigValueEnhancer configValueEnhancer;
     private final Map<String, DefaultConfigReference<?>> usedRefs;
 
+    private final Map<String, StaticValue<?>> staticValues;
+
     private IConfigSource configSource;
     private volatile Map<String, IConfigReference<?>> configRefs; //NOSONAR
     private volatile Map<String, ValueWithLocation> configValues; //NOSONAR
@@ -60,21 +62,41 @@ public class DefaultConfigProvider implements IConfigProvider {
     private final ChangeSubscriptions subscriptions = new ChangeSubscriptions();
 
     public DefaultConfigProvider(IConfigSource configSource, IConfigValueEnhancer configValueEnhancer,
-                                 Map<String, DefaultConfigReference<?>> refs) {
+                                 Map<String, DefaultConfigReference<?>> refs, Map<String, StaticValue<?>> staticValues) {
         this.configSource = configSource;
         this.configValueEnhancer = configValueEnhancer;
         this.usedRefs = refs;
         this.configRefs = (Map) refs;
         this.configValues = configSource.getConfigValues();
+        this.staticValues = staticValues;
     }
 
     public DefaultConfigProvider(IConfigSource configSource, IConfigValueEnhancer configValueEnhancer) {
-        this(configSource, configValueEnhancer, new ConcurrentHashMap<>());
+        this(configSource, configValueEnhancer, new ConcurrentHashMap<>(), new ConcurrentHashMap<>());
     }
 
     @Override
     public Map<String, DefaultConfigReference<?>> getConfigReferences() {
         return usedRefs;
+    }
+
+    @Override
+    public Map<String, StaticValue<?>> getStaticConfigValues() {
+        return staticValues;
+    }
+
+    @Override
+    public void reset() {
+        usedRefs.keySet().retainAll(staticValues.keySet());
+        for (DefaultConfigReference<?> ref : usedRefs.values()) {
+            IConfigValue value = staticValues.get(ref.getName());
+            if (value != null) {
+                Object v = convertValue(ref.getName(), ref.getValueType(), value.get());
+                value = StaticValue.valueOf(v);
+                ref.setProvider(value);
+                LOG.debug("nop.config.reset-value:name={},value={},type={}", ref.getName(), v, ref.getValueType());
+            }
+        }
     }
 
     public void loadConfigModel() {
@@ -225,6 +247,17 @@ public class DefaultConfigProvider implements IConfigProvider {
             }
         }
         return defaultValue;
+    }
+
+    @Override
+    public <T> IConfigReference<T> getStaticConfigReference(String varName, Class<T> clazz, T defaultValue, SourceLocation loc) {
+        IConfigReference<T> ref = getConfigReference(varName, clazz, defaultValue, loc);
+        if (!staticValues.containsKey(varName)) {
+            String prop = System.getProperty(varName);
+            T value = convertValue(varName, clazz, prop);
+            staticValues.put(varName, StaticValue.valueOf(value));
+        }
+        return ref;
     }
 
     @Override

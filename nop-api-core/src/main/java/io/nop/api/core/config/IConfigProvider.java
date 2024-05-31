@@ -8,6 +8,7 @@
 package io.nop.api.core.config;
 
 import io.nop.api.core.util.SourceLocation;
+import io.nop.api.core.util.StaticValue;
 
 import java.util.Map;
 
@@ -17,8 +18,13 @@ import java.util.Map;
 public interface IConfigProvider {
     Map<String, DefaultConfigReference<?>> getConfigReferences();
 
+    Map<String, StaticValue<?>> getStaticConfigValues();
+
     <T> IConfigReference<T> getConfigReference(String varName, Class<T> clazz, T defaultValue, SourceLocation loc);
 
+    <T> IConfigReference<T> getStaticConfigReference(String varName, Class<T> clazz, T defaultValue, SourceLocation loc);
+
+    void reset();
 
     <T> void updateConfigValue(IConfigReference<T> ref, T value);
 

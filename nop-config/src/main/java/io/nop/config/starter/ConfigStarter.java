@@ -10,6 +10,7 @@ package io.nop.config.starter;
 import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.config.IConfigExecutor;
+import io.nop.api.core.config.IConfigProvider;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.LogLevel;
@@ -399,8 +400,9 @@ public class ConfigStarter extends LifeCycleSupport {
     protected void initConfigProvider(IConfigSource configSource) {
         // 通过getConfigReferences保留已经创建的ConfigReference对象
         IConfigValueEnhancer valueEnhancer = newValueEnhancer(configSource);
+        IConfigProvider defaultProvider = AppConfig.getConfigProvider();
         this.configProvider = new DefaultConfigProvider(configSource, valueEnhancer,
-                AppConfig.getConfigProvider().getConfigReferences());
+                defaultProvider.getConfigReferences(), defaultProvider.getStaticConfigValues());
         AppConfig.registerConfigProvider(configProvider);
     }
 

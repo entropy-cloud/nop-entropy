@@ -42,4 +42,6 @@
         <field name="!prop-name" xdef:ref="RecordFieldMeta"/>
     </fields>
 
+    <pattern xdef:value="string" />
+
 </field>

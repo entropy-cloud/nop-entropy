@@ -9,7 +9,6 @@ entity:
     NopAuthPosition: Position
     NopAuthResource: Menu Resource
     NopAuthResource_main: Menu Resource
-    NopAuthSite_main: Menu Resource
     NopAuthRole: Role
     NopAuthRoleDataAuth: Role Data Auth
     NopAuthRoleResource: Role Resource
@@ -191,49 +190,6 @@ prop:
       relatedRoleIdList: Role List
       relatedRoleList_label: Role List
     NopAuthResource_main:
-      resourceId: Resource ID
-      siteId: Site Id
-      siteId_label: null
-      displayName: Display Name
-      orderNo: Order NO
-      resourceType: Resource Type
-      resourceType_label: null
-      parentId: Parent Resource
-      icon: Icon
-      routePath: Route Path
-      url: URL
-      component: Component
-      target: Link Target
-      hidden: Hidden
-      keepAlive: Keep Alive
-      permissions: Permissions
-      noAuth: No Auth
-      depends: Depends
-      isLeaf: Is Leaf
-      status: Status
-      status_label: null
-      authCascadeUp: Auth Cascade Up
-      metaConfig: Meta
-      propsConfig: Props
-      delFlag: Deleted
-      version: Version
-      createdBy: Created By
-      createTime: Create Time
-      updatedBy: Updated By
-      updateTime: Update Time
-      remark: Remark
-      parent: Parent
-      parent.displayName: Parent
-      site: Site
-      site.displayName: Site
-      children: Children
-      roleMappings: Roles
-      metaConfigComponent: null
-      propsConfigComponent: null
-      relatedRoleList: Role List
-      relatedRoleIdList: Role List
-      relatedRoleList_label: Role List
-    NopAuthSite_main:
       resourceId: Resource ID
       siteId: Site Id
       siteId_label: null

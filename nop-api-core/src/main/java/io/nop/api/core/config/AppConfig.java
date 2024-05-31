@@ -78,7 +78,7 @@ public class AppConfig {
     }
 
     public static <T> IConfigReference<T> varRef(SourceLocation loc, String name, Class<T> valueType, T defaultValue) {
-        return s_provider.getConfigReference(name, valueType, defaultValue, loc);
+        return s_provider.getStaticConfigReference(name, valueType, defaultValue, loc);
     }
 
     public static <T> IConfigReference<T> withOverride(SourceLocation loc, IConfigReference<T> defaultRef, String name) {

@@ -23,4 +23,22 @@ public class TestConfigProperties extends JunitBaseTestCase {
         assertTrue(CFG_TEST_NAMES.get() instanceof Set);
         assertEquals("[a, b]", CFG_TEST_NAMES.get().toString());
     }
+
+    @Test
+    public void testReset() {
+        IConfigReference<String> v1 = AppConfig.varRef(null, "test.a1.b", String.class, "true");
+        IConfigReference<Boolean> v2 = AppConfig.varRef(null, "test.a1.b", Boolean.class, true);
+        assertEquals("true", v1.get());
+        assertTrue(v2.get());
+
+        AppConfig.getConfigProvider().assignConfigValue("test.a1.b", false);
+
+        assertEquals("false", v1.get());
+        assertTrue(!v2.get());
+
+        AppConfig.getConfigProvider().reset();
+
+        assertEquals("true", v1.get());
+        assertTrue(v2.get());
+    }
 }

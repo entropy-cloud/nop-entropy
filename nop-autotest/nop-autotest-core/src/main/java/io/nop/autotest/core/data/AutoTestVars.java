@@ -31,9 +31,9 @@ import static io.nop.core.CoreConstants.BINDER_VAR_PREFIX;
 public class AutoTestVars {
     static final Logger LOG = LoggerFactory.getLogger(AutoTestVars.class);
 
-    static final ThreadLocal<VarsMap> t_vars = new ThreadLocal<>();
-    static boolean useGlobalVars = true;
-    static VarsMap g_vars = new VarsMap();
+    private static final ThreadLocal<VarsMap> t_vars = new ThreadLocal<>();
+    private static boolean useGlobalVars = true;
+    private static final VarsMap g_vars = new VarsMap();
 
     public static class VarsMap {
         Map<String, Object> vars = new HashMap<>();
@@ -56,7 +56,7 @@ public class AutoTestVars {
             }
             vars.put(name, value);
 
-            LOG.info("nop.autotest.vars.setVar:name={},value={}",name,value);
+            LOG.info("nop.autotest.vars.setVar:name={},value={}", name, value);
         }
 
         public synchronized void addVar(String name, Object value) {
@@ -78,7 +78,7 @@ public class AutoTestVars {
                 }
             }
 
-            LOG.info("nop.autotest.vars.addVar:name={},value={}",name,value);
+            LOG.info("nop.autotest.vars.addVar:name={},value={}", name, value);
         }
 
         public synchronized String getNameByValue(Object value) {
