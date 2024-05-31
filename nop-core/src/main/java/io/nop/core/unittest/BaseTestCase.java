@@ -9,6 +9,8 @@ package io.nop.core.unittest;
 
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.config.IConfigReference;
+import io.nop.api.core.context.BaseContext;
+import io.nop.api.core.context.BaseContextProvider;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.bytes.ByteString;
@@ -75,6 +77,7 @@ public class BaseTestCase {
 
     public static void endTest() {
         resetAll();
+        BaseContextProvider.clear();
     }
 
     public static Map<String, Object> getTestConfigs() {
