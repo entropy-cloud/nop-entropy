@@ -36,7 +36,7 @@ public class SubRecordTextInput implements IRecordTextInput {
             return 0;
 
         int n = input.available();
-        if (n < 0) {
+        if (n <= 0) {
             return n;
         }
 

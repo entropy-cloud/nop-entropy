@@ -266,7 +266,7 @@ public interface IRecordBinaryInput extends Closeable {
      *
      * @return all remaining bytes in a stream as byte array
      */
-    byte[] readBytesFull();
+    byte[] readAvailableBytes();
 
     byte[] readBytesTerm(byte term, boolean includeTerm, boolean consumeTerm, boolean eosError);
 
@@ -315,6 +315,8 @@ public interface IRecordBinaryInput extends Closeable {
     IRecordBinaryInput subInput(long maxLength);
 
     IRecordBinaryInput detach();
+
+    IRecordBinaryInput duplicate();
 
     boolean isDetached();
 }

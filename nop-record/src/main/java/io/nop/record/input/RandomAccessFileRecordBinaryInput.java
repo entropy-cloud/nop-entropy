@@ -354,7 +354,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
     private static final int DEFAULT_BUFFER_SIZE = 4 * 1024;
 
     @Override
-    public byte[] readBytesFull() {
+    public byte[] readAvailableBytes() {
         byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -453,6 +453,11 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
 
     @Override
     public IRecordBinaryInput detach() {
+        return subInput(size());
+    }
+
+    @Override
+    public IRecordBinaryInput duplicate() {
         return subInput(size());
     }
 

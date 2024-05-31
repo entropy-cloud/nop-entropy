@@ -23,6 +23,8 @@
 
 package io.nop.record.input;
 
+import io.nop.record.netty.ByteBufRecordBinaryInput;
+
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -343,7 +345,7 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
      * @return all remaining bytes in a stream as byte array
      */
     @Override
-    public byte[] readBytesFull() {
+    public byte[] readAvailableBytes() {
         byte[] buf = new byte[bb.remaining()];
         bb.get(buf);
         return buf;
@@ -413,7 +415,10 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
     public IRecordBinaryInput detach() {
         return new ByteBufferRecordBinaryInput(bb.duplicate());
     }
-
+    @Override
+    public IRecordBinaryInput duplicate() {
+        return new ByteBufferRecordBinaryInput(bb.duplicate());
+    }
     @Override
     public boolean isDetached() {
         return true;

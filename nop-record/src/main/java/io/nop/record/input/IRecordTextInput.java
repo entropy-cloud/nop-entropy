@@ -14,6 +14,15 @@ public interface IRecordTextInput {
 
     String read(int len);
 
+    default String readAvailableText() {
+        int len = available();
+        if (len < 0)
+            return null;
+        if (len == 0)
+            return "";
+        return read(len);
+    }
+
     int readChar();
 
     String readLine(int maxLength);

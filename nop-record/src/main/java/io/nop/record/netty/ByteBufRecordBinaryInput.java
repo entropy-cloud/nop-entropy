@@ -26,6 +26,7 @@ package io.nop.record.netty;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.util.ReferenceCountUtil;
+import io.nop.record.input.ByteBufferRecordBinaryInput;
 import io.nop.record.input.IRecordBinaryInput;
 
 import java.io.ByteArrayOutputStream;
@@ -177,6 +178,7 @@ public class ByteBufRecordBinaryInput implements IRecordBinaryInput {
             throw new IllegalArgumentException("Java ByteBuffer can't be seeked past Integer.MAX_VALUE");
         }
         bb.readerIndex((int) newPos);
+        asRoBuffer().duplicate()
     }
 
     @Override
@@ -349,7 +351,7 @@ public class ByteBufRecordBinaryInput implements IRecordBinaryInput {
      * @return all remaining bytes in a stream as byte array
      */
     @Override
-    public byte[] readBytesFull() {
+    public byte[] readAvailableBytes() {
         return readBytes(bb.readableBytes());
     }
 
@@ -422,6 +424,11 @@ public class ByteBufRecordBinaryInput implements IRecordBinaryInput {
 
     @Override
     public IRecordBinaryInput detach() {
+        return new ByteBufRecordBinaryInput(bb.duplicate());
+    }
+
+    @Override
+    public IRecordBinaryInput duplicate() {
         return new ByteBufRecordBinaryInput(bb.duplicate());
     }
 
