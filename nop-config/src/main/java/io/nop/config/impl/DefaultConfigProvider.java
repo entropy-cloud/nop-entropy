@@ -94,7 +94,8 @@ public class DefaultConfigProvider implements IConfigProvider {
                 Object v = convertValue(ref.getName(), ref.getValueType(), value.get());
                 value = StaticValue.valueOf(v);
                 ref.setProvider(value);
-                LOG.debug("nop.config.reset-value:name={},value={},type={}", ref.getName(), v, ref.getValueType());
+                LOG.debug("nop.config.reset-value:name={},value={},defaultValue={},type={}",
+                        ref.getName(), v, ref.getDefaultValue(), ref.getValueType());
             }
         }
     }
