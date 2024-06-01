@@ -12,16 +12,17 @@ import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.autotest.NopTestProperty;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
+import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.ioc.BeanContainer;
 import io.nop.autotest.junit.JunitAutoTestCase;
-import io.nop.graphql.core.GraphQLConfigs;
+import io.nop.core.initialize.CoreInitialization;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.engine.IGraphQLEngine;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
-import jakarta.inject.Inject;
-
 @NopTestConfig(localDb = true)
-@NopTestProperty(name="nop.graphql.schema-introspection.enabled",value="true")
+@NopTestProperty(name = "nop.graphql.schema-introspection.enabled", value = "true")
 public class TestIntrospectionQuery extends JunitAutoTestCase {
     @Inject
     IGraphQLEngine engine;
@@ -33,5 +34,16 @@ public class TestIntrospectionQuery extends JunitAutoTestCase {
         IGraphQLExecutionContext context = engine.newGraphQLContext(request);
         GraphQLResponseBean response = engine.executeGraphQL(context);
         output("response.json5", response);
+    }
+
+    @EnableSnapshot
+    @Test
+    public void testConfigReset() {
+        setTestConfig("nop.graphql.schema-introspection.enabled", true);
+        setTestConfig("nop.graphql.schema-introspection.enabled", false);
+        AppConfig.getConfigProvider().reset();
+        CoreInitialization.destroy();
+        CoreInitialization.initialize();
+        BeanContainer.instance().restart();
     }
 }

@@ -96,6 +96,8 @@ public class DefaultConfigProvider implements IConfigProvider {
                 ref.setProvider(value);
                 LOG.debug("nop.config.reset-value:name={},value={},defaultValue={},type={}",
                         ref.getName(), v, ref.getDefaultValue(), ref.getValueType());
+            } else {
+                ref.updateValue(null, StaticValue.nullValue());
             }
         }
     }
@@ -141,14 +143,8 @@ public class DefaultConfigProvider implements IConfigProvider {
     }
 
     private void updateRefs(Map<String, IConfigReference<?>> refs) {
-        boolean testRunning = BaseTestCase.isTestRunning();
-        Map<String, Object> testConfigs = BaseTestCase.getTestConfigs();
-
         for (Map.Entry<String, IConfigReference<?>> entry : refs.entrySet()) {
             String name = entry.getKey();
-            // 如果强行设置了测试配置，则以测试配置为准
-            if (testRunning && testConfigs.containsKey(name))
-                continue;
 
             DefaultConfigReference used = usedRefs.get(name);
             if (used != null) {
@@ -166,6 +162,25 @@ public class DefaultConfigProvider implements IConfigProvider {
                     }
                 }
             }
+        }
+
+        boolean testRunning = BaseTestCase.isTestRunning();
+        // 如果强行设置了测试配置，则以测试配置为准
+        if(testRunning) {
+            Map<String, Object> testConfigs = BaseTestCase.getTestConfigs();
+            testConfigs.forEach((name, value) -> {
+                if (value == null)
+                    return;
+                Class clazz = value.getClass();
+                DefaultConfigReference<StaticValue<?>> ref = getConfigRef(null, name, clazz, value);
+                try {
+                    value = convertValue(ref.getName(), ref.getValueType(), value);
+                    StaticValue staticValue = StaticValue.valueOf(value);
+                    ref.updateValue(ref.getLocation(), staticValue);
+                } catch (Exception e) {
+                    LOG.error("nop.config.update-var-value-fail", e);
+                }
+            });
         }
     }
 
