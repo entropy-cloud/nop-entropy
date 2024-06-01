@@ -122,15 +122,12 @@ public class ConvertHelper {
             return (T) getDefault(clazz);
         }
 
-        if (clazz == o.getClass())
+        if (clazz.isInstance(o))
             return (T) o;
 
         ITypeConverter fn = SysConverterRegistry.instance().getConverterByType(clazz);
         if (fn != null)
             return (T) fn.convert(o, errorFactory);
-
-        if (clazz.isAssignableFrom(o.getClass()))
-            return (T) o;
 
         return handleError(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL, null, clazz, o, errorFactory);
     }
@@ -895,8 +892,8 @@ public class ConvertHelper {
             return null;
 
         // 仅包含日期部分
-        if(str.length() == 10){
-            LocalDate date = stringToLocalDate(str,errorFactory);
+        if (str.length() == 10) {
+            LocalDate date = stringToLocalDate(str, errorFactory);
             return date.atStartOfDay();
         }
 

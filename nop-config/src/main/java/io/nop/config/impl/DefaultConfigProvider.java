@@ -8,15 +8,13 @@
 package io.nop.config.impl;
 
 import io.nop.api.core.ApiConfigs;
-import io.nop.api.core.config.CastTypeConfigReference;
+import io.nop.api.core.config.AbstractConfigProvider;
 import io.nop.api.core.config.DefaultConfigReference;
 import io.nop.api.core.config.IConfigChangeListener;
-import io.nop.api.core.config.IConfigProvider;
 import io.nop.api.core.config.IConfigReference;
 import io.nop.api.core.config.IConfigValue;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.util.StaticValue;
 import io.nop.commons.util.StringHelper;
@@ -34,28 +32,22 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static io.nop.api.core.ApiErrors.ARG_VAR;
-import static io.nop.api.core.ApiErrors.ERR_CONFIG_VAR_CONVERT_TO_TYPE_FAIL;
 import static io.nop.config.ConfigErrors.ARG_CONFIG_NAME;
 import static io.nop.config.ConfigErrors.ARG_DEFINE_TYPE;
 import static io.nop.config.ConfigErrors.ARG_VALUE_TYPE;
 import static io.nop.config.ConfigErrors.ERR_CONFIG_VALUE_TYPE_NOT_SAME_AS_DEFINED;
 
 @SuppressWarnings({"unchecked", "rawtypes", "CastCanBeRemovedNarrowingVariableType"})
-public class DefaultConfigProvider implements IConfigProvider {
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultConfigProvider.class);
+public class DefaultConfigProvider extends AbstractConfigProvider {
+    static final Logger LOG = LoggerFactory.getLogger(DefaultConfigProvider.class);
 
     private final IConfigValueEnhancer configValueEnhancer;
-    private final Map<String, DefaultConfigReference<?>> usedRefs;
-
-    private final Map<String, StaticValue<?>> staticValues;
 
     private IConfigSource configSource;
-    private volatile Map<String, IConfigReference<?>> configRefs; //NOSONAR
+    private volatile Map<String, DefaultConfigReference<?>> configRefs; //NOSONAR
     private volatile Map<String, ValueWithLocation> configValues; //NOSONAR
     private ConfigModel configModel;
 
@@ -63,12 +55,11 @@ public class DefaultConfigProvider implements IConfigProvider {
 
     public DefaultConfigProvider(IConfigSource configSource, IConfigValueEnhancer configValueEnhancer,
                                  Map<String, DefaultConfigReference<?>> refs, Map<String, StaticValue<?>> staticValues) {
+        super(refs, staticValues);
         this.configSource = configSource;
         this.configValueEnhancer = configValueEnhancer;
-        this.usedRefs = refs;
         this.configRefs = (Map) refs;
         this.configValues = configSource.getConfigValues();
-        this.staticValues = staticValues;
     }
 
     public DefaultConfigProvider(IConfigSource configSource, IConfigValueEnhancer configValueEnhancer) {
@@ -76,30 +67,12 @@ public class DefaultConfigProvider implements IConfigProvider {
     }
 
     @Override
-    public Map<String, DefaultConfigReference<?>> getConfigReferences() {
-        return usedRefs;
-    }
-
-    @Override
-    public Map<String, StaticValue<?>> getStaticConfigValues() {
-        return staticValues;
-    }
-
-    @Override
-    public void reset() {
-        usedRefs.keySet().retainAll(staticValues.keySet());
-        for (DefaultConfigReference<?> ref : usedRefs.values()) {
-            IConfigValue value = staticValues.get(ref.getName());
-            if (value != null) {
-                Object v = convertValue(ref.getName(), ref.getValueType(), value.get());
-                value = StaticValue.valueOf(v);
-                ref.setProvider(value);
-                LOG.debug("nop.config.reset-value:name={},value={},defaultValue={},type={}",
-                        ref.getName(), v, ref.getDefaultValue(), ref.getValueType());
-            } else {
-                ref.updateValue(null, StaticValue.nullValue());
-            }
+    protected DefaultConfigReference<?> getConfigRef(String varName) {
+        DefaultConfigReference<?> ref = usedRefs.get(varName);
+        if (ref == null) {
+            ref = configRefs.get(varName);
         }
+        return ref;
     }
 
     public void loadConfigModel() {
@@ -142,8 +115,8 @@ public class DefaultConfigProvider implements IConfigProvider {
         traceConfigVars();
     }
 
-    private void updateRefs(Map<String, IConfigReference<?>> refs) {
-        for (Map.Entry<String, IConfigReference<?>> entry : refs.entrySet()) {
+    private void updateRefs(Map<String, DefaultConfigReference<?>> refs) {
+        for (Map.Entry<String, DefaultConfigReference<?>> entry : refs.entrySet()) {
             String name = entry.getKey();
 
             DefaultConfigReference used = usedRefs.get(name);
@@ -166,16 +139,15 @@ public class DefaultConfigProvider implements IConfigProvider {
 
         boolean testRunning = BaseTestCase.isTestRunning();
         // 如果强行设置了测试配置，则以测试配置为准
-        if(testRunning) {
+        if (testRunning) {
             Map<String, Object> testConfigs = BaseTestCase.getTestConfigs();
             testConfigs.forEach((name, value) -> {
                 if (value == null)
                     return;
                 Class clazz = value.getClass();
-                DefaultConfigReference<StaticValue<?>> ref = getConfigRef(null, name, clazz, value);
+                DefaultConfigReference<StaticValue<?>> ref = makeConfigRef(null, name, clazz);
                 try {
-                    value = convertValue(ref.getName(), ref.getValueType(), value);
-                    StaticValue staticValue = StaticValue.valueOf(value);
+                    StaticValue staticValue = StaticValue.build(ref.getName(), ref.getValueType(), value);
                     ref.updateValue(ref.getLocation(), staticValue);
                 } catch (Exception e) {
                     LOG.error("nop.config.update-var-value-fail", e);
@@ -221,75 +193,15 @@ public class DefaultConfigProvider implements IConfigProvider {
     }
 
     @Override
-    public void assignConfigValue(String name, Object value) {
-        Class<?> valueClass = value == null ? Object.class : value.getClass();
-        DefaultConfigReference df = getConfigRef(null, name, valueClass, null);
-        value = ConvertHelper.convertConfigTo(df.getValueType(), value, err -> new NopException(err).param(ARG_VAR, name));
-        df.updateValue(null, StaticValue.valueOf(value));
-    }
-
-    @Override
-    public <T> void updateConfigValue(IConfigReference<T> ref, T value) {
-        value = ConvertHelper.convertConfigTo(ref.getValueType(), value,
-                err -> new NopException(err).param(ARG_VAR, ref.getName()));
-
-        DefaultConfigReference<T> df = getConfigRef(null, ref.getName(), ref.getValueType(), ref.getDefaultValue());
-        df.updateValue(ref.getLocation(), StaticValue.valueOf(value));
-    }
-
-    <T> DefaultConfigReference<T> getConfigRef(SourceLocation loc, String varName, Class<T> clazz, T defaultValue) {
+    protected <T> DefaultConfigReference<T> makeConfigRef(SourceLocation loc, String varName, Class<T> clazz) {
         return (DefaultConfigReference<T>) usedRefs.computeIfAbsent(varName, key -> {
             IConfigReference<?> defined = configRefs.get(varName);
             if (defined == null) {
-                return createRef(loc, varName, clazz, defaultValue);
+                return createRef(loc, varName, clazz);
             } else {
                 return buildFromDefined(varName, defined);
             }
         });
-    }
-
-    @Override
-    public <T> T getConfigValue(String varName, T defaultValue) {
-        IConfigReference<?> ref = usedRefs.get(varName);
-        if (ref == null) {
-            ref = configRefs.get(varName);
-        }
-        if (ref != null) {
-            Object o = ref.get();
-            if (o != null) {
-                if (defaultValue != null)
-                    o = convertValue(varName, defaultValue.getClass(), o);
-                return (T) o;
-            }
-        }
-        return defaultValue;
-    }
-
-    @Override
-    public <T> IConfigReference<T> getStaticConfigReference(String varName, Class<T> clazz, T defaultValue, SourceLocation loc) {
-        IConfigReference<T> ref = getConfigReference(varName, clazz, defaultValue, loc);
-        if (!staticValues.containsKey(varName)) {
-            String prop = System.getProperty(varName);
-            T value = convertValue(varName, clazz, prop);
-            staticValues.put(varName, StaticValue.valueOf(value));
-        }
-        return ref;
-    }
-
-    @Override
-    public <T> IConfigReference<T> getConfigReference(String varName, Class<T> clazz, T defaultValue, SourceLocation loc) {
-        Guard.notNull(clazz, "target class is null");
-
-        IConfigReference<?> ref = getConfigRef(loc, varName, clazz, defaultValue);
-
-        if (ref.getValueType() == clazz)
-            return (IConfigReference<T>) ref;
-
-        if (clazz != String.class && clazz != Object.class && !clazz.isAssignableFrom(ref.getValueType())) {
-            LOG.warn("nop.config.var-type-not-unique:var={},type={},defType={}", varName, clazz, ref.getValueType());
-        }
-
-        return new CastTypeConfigReference<>(ref, clazz);
     }
 
     private DefaultConfigReference<?> buildFromDefined(String varName, IConfigReference<?> ref) {
@@ -305,25 +217,16 @@ public class DefaultConfigProvider implements IConfigProvider {
                 castType(ref, valueType));
     }
 
-    private <T> DefaultConfigReference<T> createRef(SourceLocation loc, String varName, Class<T> clazz, T defaultValue) {
+    private <T> DefaultConfigReference<T> createRef(SourceLocation loc, String varName, Class<T> clazz) {
         ConfigVarModel varModel = configModel == null ? null : configModel.getVar(varName);
+        T defaultValue = null;
         if (varModel != null) {
             clazz = (Class<T>) varModel.getValueType();
             defaultValue = (T) varModel.getDefaultValue();
         }
         DefaultConfigReference<T> valueRef = new DefaultConfigReference<>(loc, varName, clazz, defaultValue,
-                StaticValue.valueOf(defaultValue));
+                StaticValue.nullValue());
         return valueRef;
-    }
-
-    private <T> T convertValue(String varName, Class<T> clazz, Object value) {
-        if (clazz == Set.class)
-            return (T) ConvertHelper.toCsvSet(value,
-                    err -> new NopException(ERR_CONFIG_VAR_CONVERT_TO_TYPE_FAIL).param(ARG_VAR, varName));
-
-        T ret = ConvertHelper.convertTo(clazz, value,
-                err -> new NopException(ERR_CONFIG_VAR_CONVERT_TO_TYPE_FAIL).param(ARG_VAR, varName));
-        return ret;
     }
 
     @Override
@@ -368,7 +271,7 @@ public class DefaultConfigProvider implements IConfigProvider {
             changed.put(name, entry.getValue().getValue());
         }
 
-        Map<String, IConfigReference<?>> refs = buildConfigRefs(vars);
+        Map<String, DefaultConfigReference<?>> refs = buildConfigRefs(vars);
         this.configRefs = refs;
 
         // 更新配置值到当前正在使用ConfigReference对象
@@ -376,7 +279,7 @@ public class DefaultConfigProvider implements IConfigProvider {
         subscriptions.trigger(this, changed);
     }
 
-    private void applyChangeToUsed(Map<String, Object> changed, Map<String, IConfigReference<?>> refs) {
+    private void applyChangeToUsed(Map<String, Object> changed, Map<String, DefaultConfigReference<?>> refs) {
 
         for (Map.Entry<String, Object> entry : changed.entrySet()) {
             String name = entry.getKey();
@@ -402,7 +305,7 @@ public class DefaultConfigProvider implements IConfigProvider {
 
         IConfigValue<?> provider = ref.getProvider();
         if (provider instanceof StaticValue)
-            return StaticValue.valueOf(convertValue(ref.getName(), targetValueType, provider.get()));
+            return ((StaticValue) provider).cast(ref.getName(), targetValueType);
 
         return new IConfigValue<T>() {
             @Override
@@ -412,15 +315,15 @@ public class DefaultConfigProvider implements IConfigProvider {
 
             @Override
             public T get() {
-                return convertValue(ref.getName(), targetValueType, provider.get());
+                return StaticValue.castValue(ref.getName(), targetValueType, provider.get());
             }
         };
     }
 
-    Map<String, IConfigReference<?>> buildConfigRefs(Map<String, ValueWithLocation> vars) {
+    Map<String, DefaultConfigReference<?>> buildConfigRefs(Map<String, ValueWithLocation> vars) {
         ConfigModel model = this.configModel;
 
-        Map<String, IConfigReference<?>> ret = new HashMap<>();
+        Map<String, DefaultConfigReference<?>> ret = new HashMap<>();
 
         for (Map.Entry<String, ValueWithLocation> entry : vars.entrySet()) {
             String name = entry.getKey();

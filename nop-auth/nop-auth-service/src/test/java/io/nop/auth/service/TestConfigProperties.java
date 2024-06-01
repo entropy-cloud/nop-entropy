@@ -8,7 +8,10 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Set;
 
+import static io.nop.core.CoreConfigs.CFG_INCLUDE_CURRENT_PROJECT_RESOURCES;
+import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_SCHEMA_INTROSPECTION_ENABLED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @NopTestConfig(localDb = true, testConfigFile = "classpath:my.properties")
@@ -25,7 +28,16 @@ public class TestConfigProperties extends JunitBaseTestCase {
     }
 
     @Test
+    public void testUpdateConfig() {
+        AppConfig.getConfigProvider().updateConfigValue(CFG_INCLUDE_CURRENT_PROJECT_RESOURCES, false);
+        assertFalse(CFG_INCLUDE_CURRENT_PROJECT_RESOURCES.get());
+    }
+
+    @Test
     public void testReset() {
+        CFG_GRAPHQL_SCHEMA_INTROSPECTION_ENABLED.get();
+        setTestConfig(CFG_GRAPHQL_SCHEMA_INTROSPECTION_ENABLED.getName(), "true");
+
         IConfigReference<String> v1 = AppConfig.varRef(null, "test.a1.b", String.class, "true");
         IConfigReference<Boolean> v2 = AppConfig.varRef(null, "test.a1.b", Boolean.class, true);
         assertEquals("true", v1.get());
@@ -35,10 +47,12 @@ public class TestConfigProperties extends JunitBaseTestCase {
 
         assertEquals("false", v1.get());
         assertTrue(!v2.get());
-//
+
 //        AppConfig.getConfigProvider().reset();
 //
 //        assertEquals("true", v1.get());
 //        assertTrue(v2.get());
+//
+//        assertTrue(!CFG_GRAPHQL_SCHEMA_INTROSPECTION_ENABLED.get());
     }
 }

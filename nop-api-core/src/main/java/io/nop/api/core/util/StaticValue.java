@@ -8,10 +8,15 @@
 package io.nop.api.core.util;
 
 import io.nop.api.core.config.IConfigValue;
+import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.exceptions.NopException;
 
 import java.util.Objects;
 
-public class StaticValue<T> implements IConfigValue<T> {
+import static io.nop.api.core.ApiErrors.ARG_VAR;
+import static io.nop.api.core.ApiErrors.ERR_CONFIG_VAR_CONVERT_TO_TYPE_FAIL;
+
+public final class StaticValue<T> implements IConfigValue<T> {
     private static final StaticValue NULL = new StaticValue(null);
 
     private final T value;
@@ -30,6 +35,22 @@ public class StaticValue<T> implements IConfigValue<T> {
         return new StaticValue<>(value);
     }
 
+    public static <T> StaticValue<T> build(String varName, Class<T> targetType, Object value) {
+        return valueOf(castValue(varName, targetType, value));
+    }
+
+    public <R> StaticValue<R> cast(String varName, Class<R> targetType) {
+        if (value == null || targetType.isInstance(value))
+            return (StaticValue<R>) this;
+        return build(varName, targetType, value);
+    }
+
+    public static <R> R castValue(String varName, Class<R> targetType, Object value) {
+        return ConvertHelper.convertConfigTo(targetType, value,
+                err -> new NopException(ERR_CONFIG_VAR_CONVERT_TO_TYPE_FAIL)
+                        .param(ARG_VAR, varName));
+    }
+
     public int hashCode() {
         return value == null ? 0 : value.hashCode();
     }
@@ -38,10 +59,10 @@ public class StaticValue<T> implements IConfigValue<T> {
         if (o == this)
             return true;
 
-        if (!(o instanceof StaticValue))
+        if (!(o instanceof StaticValue<?>))
             return false;
 
-        StaticValue other = (StaticValue) o;
+        StaticValue<?> other = (StaticValue<?>) o;
         return Objects.equals(value, other.value);
     }
 

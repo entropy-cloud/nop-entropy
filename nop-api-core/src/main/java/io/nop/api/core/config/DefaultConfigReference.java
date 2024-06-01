@@ -24,8 +24,12 @@ public final class DefaultConfigReference<T> extends AbstractConfigReference<T> 
         this.provider = StaticValue.valueOf(defaultValue);
     }
 
+    public static <T> DefaultConfigReference<T> makeDefault(IConfigReference<T> ref, T defaultValue) {
+        return new DefaultConfigReference<>(ref.getLocation(), ref.getName(), ref.getValueType(), defaultValue, ref);
+    }
 
-    public void setProvider(IConfigValue<T> provider) {
+
+    private void setProvider(IConfigValue<T> provider) {
         this.provider = Guard.notNull(provider, "provider");
     }
 
