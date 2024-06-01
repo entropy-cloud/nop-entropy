@@ -8,6 +8,7 @@
 package io.nop.orm.persister;
 
 import io.nop.api.core.beans.FieldSelectionBean;
+import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.collections.IntArray;
@@ -72,6 +73,10 @@ public class CollectionPersisterImpl implements ICollectionPersister {
                                IOrmSessionImplementor session) {
         if (env.getDaoListener() != null)
             env.getDaoListener().onRead(collectionModel.getRefEntityModel());
+
+        if (collectionModel.getRefEntityModel().isUseTenant()) {
+            collection.orm_tenantId(ContextProvider.currentTenantId());
+        }
 
         if (useGlobalCache && loadFromGlobalCache(collection, session))
             return;

@@ -301,7 +301,10 @@ public class DynamicOrmEntity extends OrmEntity implements IPropSetMissingHook, 
         if (ref == null)
             return null;
 
-        refProps.put(propName, ref);
+        // 仅当两个实体处于同一个租户时才能够缓存。否则切换租户访问时关联对象不正确
+        if (OrmEntityHelper.isSameTenant(this, ref))
+            refProps.put(propName, ref);
+
         return ref;
     }
 

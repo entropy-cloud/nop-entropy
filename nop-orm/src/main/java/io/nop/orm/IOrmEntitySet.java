@@ -102,4 +102,6 @@ public interface IOrmEntitySet<T extends IOrmEntity>
     void orm_endLoad();
 
     void orm_forceLoad();
+
+    void orm_tenantId(String tenantId);
 }

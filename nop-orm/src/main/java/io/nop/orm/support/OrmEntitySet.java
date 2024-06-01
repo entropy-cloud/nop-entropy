@@ -7,6 +7,7 @@
  */
 package io.nop.orm.support;
 
+import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
@@ -71,6 +72,8 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
 
     private final String refEntityName;
 
+    private String tenantId;
+
     private Map<String, T> keyToEntityMap;
 
     /**
@@ -121,6 +124,10 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
         }
         sb.append(']');
         return sb.toString();
+    }
+
+    public String orm_keyProp() {
+        return keyProp;
     }
 
     @Override
@@ -265,7 +272,17 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
         }
     }
 
-//    @Override
+    @Override
+    public void orm_tenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
+
+    @Override
+    public String orm_tenantId() {
+        return tenantId;
+    }
+
+    //    @Override
 //    public void orm_onFlush() {
 //        IOrmEntityEnhancer enhancer = orm_enhancer();
 //        Guard.notNull(enhancer, "enhancer");
@@ -321,6 +338,20 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
     private void checkLoaded() {
         if (orm_proxy()) {
             requireEnhancer().internalLoadCollection(this);
+        } else {
+            if (tenantId != null) {
+                if (tenantId.equals(owner.orm_tenantId())) {
+                    return;
+                }
+
+                if (!tenantId.equals(ContextProvider.currentTenantId())) {
+                    if (dirty)
+                        throw new IllegalStateException("nop.orm.dirty-entity-set-not-allow-change-tenant:" + this);
+                    // 如果tenantId不匹配，则重新加载
+                    orm_unload();
+                    requireEnhancer().internalLoadCollection(this);
+                }
+            }
         }
     }
 
@@ -555,6 +586,7 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
         if (proxy)
             return;
 
+        this.tenantId = null;
         this.proxy = true;
         this.entities.clear();
         this.orm_clearDirty();

@@ -367,4 +367,24 @@ public class OrmEntityHelper {
             }
         }
     }
+
+    public static boolean isSameTenant(IOrmEntity entityA, IOrmEntity entityB) {
+        IEntityModel entityModelA = entityA.orm_entityModel();
+        IEntityModel entityModelB = entityB.orm_entityModel();
+        boolean useTenant = entityModelA.isUseTenant();
+        // 一方使用租户，另一方不使用租户时必然不匹配
+        if (useTenant != entityModelB.isUseTenant())
+            return false;
+
+        // 如果都不使用租户，则匹配
+        if (!useTenant)
+            return true;
+
+        Object tenantIdA = entityA.orm_propValue(entityModelA.getTenantPropId());
+        Object tenantIdB = entityB.orm_propValue(entityModelB.getTenantPropId());
+        if (tenantIdA == null || !tenantIdA.equals(tenantIdB))
+            return false;
+
+        return true;
+    }
 }

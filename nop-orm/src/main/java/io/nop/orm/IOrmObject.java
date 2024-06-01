@@ -43,4 +43,6 @@ public interface IOrmObject {
 
     @Internal
     IOrmEntityEnhancer orm_enhancer();
+
+    String orm_tenantId();
 }
