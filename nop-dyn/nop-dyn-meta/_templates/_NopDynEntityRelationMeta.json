@@ -3,6 +3,8 @@
   "entity1MetaId": "",
   "entity2MetaId": "",
   "relationName": "",
+  "relationType": "",
+  "relationType_label": "",
   "entity1PropName": "",
   "entity1DisplayName": "",
   "entity2PropName": "",

@@ -13,4 +13,6 @@ public interface NopDynDaoConstants extends _NopDynDaoConstants {
     String PROP_IMPORT_FILE = "importFile";
 
     String EXT_ORM_REF_TABLE = "orm:ref-table";
+
+    String DEFAULT_BASE_PACKAGE_NAME = "app.dyn";
 }

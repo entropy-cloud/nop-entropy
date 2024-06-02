@@ -37787,6 +37787,10 @@
       {
         "name": "orm_reset",
         "parameterTypes": []
+      },
+      {
+        "name": "orm_tenantId",
+        "parameterTypes": []
       }
     ],
     "name": "io.nop.orm.IOrmObject",

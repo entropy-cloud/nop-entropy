@@ -19,6 +19,8 @@ import io.nop.dyn.dao.NopDynDaoConstants;
 import io.nop.dyn.dao.entity.NopDynDomain;
 import io.nop.dyn.dao.entity.NopDynEntity;
 import io.nop.dyn.dao.entity.NopDynEntityMeta;
+import io.nop.dyn.dao.entity.NopDynEntityRelation;
+import io.nop.dyn.dao.entity.NopDynEntityRelationMeta;
 import io.nop.dyn.dao.entity.NopDynModule;
 import io.nop.dyn.dao.entity.NopDynPropMeta;
 import io.nop.orm.dao.IOrmEntityDao;
@@ -36,6 +38,7 @@ import io.nop.orm.model.OrmModelConstants;
 import io.nop.orm.model.OrmReferenceModel;
 import io.nop.orm.model.OrmToManyReferenceModel;
 import io.nop.orm.model.OrmToOneReferenceModel;
+import io.nop.orm.support.DynamicOrmEntity;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,6 +57,7 @@ import static io.nop.dyn.dao.NopDynDaoErrors.ERR_DYN_VIRTUAL_ENTITY_PROP_MAPPING
 
 public class DynEntityMetaToOrmModel {
     private final IEntityModel dynEntityModel;
+    private final IEntityModel dynRelationModel;
     private final boolean forceRealTable;
 
     static final List<String> STD_PROPS = Arrays.asList(NopDynEntity.PROP_NAME_version,
@@ -62,6 +66,7 @@ public class DynEntityMetaToOrmModel {
 
     public DynEntityMetaToOrmModel(boolean forceRealTable) {
         this.dynEntityModel = ((IOrmEntityDao<?>) DaoProvider.instance().daoFor(NopDynEntity.class)).getEntityModel();
+        this.dynRelationModel = ((IOrmEntityDao<?>) DaoProvider.instance().daoFor(NopDynEntityRelation.class)).getEntityModel();
         this.forceRealTable = forceRealTable;
     }
 
@@ -79,7 +84,11 @@ public class DynEntityMetaToOrmModel {
 
         model.prop_set(OrmModelConstants.EXT_MAVEN_ARTIFACT_ID, module.getModuleName());
 
-        model.setEntities(toOrmEntityModels(module.getEntityMetas()));
+        String basePackageName = module.getBasePackageName();
+        if (basePackageName == null)
+            basePackageName = NopDynDaoConstants.DEFAULT_BASE_PACKAGE_NAME;
+
+        model.setEntities(toOrmEntityModels(module.getEntityMetas(), basePackageName));
 
         addExternalExtTable(model);
         model.init();
@@ -99,11 +108,14 @@ public class DynEntityMetaToOrmModel {
         model.addEntity(external);
     }
 
-    List<OrmEntityModel> toOrmEntityModels(Collection<NopDynEntityMeta> entityMetas) {
+    List<OrmEntityModel> toOrmEntityModels(Collection<NopDynEntityMeta> entityMetas, String basePackageName) {
         // 如果不是外部表，也没有属性，则不需要生成对应的实体定义
-        return entityMetas.stream().filter(entityMeta -> {
+        List<OrmEntityModel> ret = entityMetas.stream().filter(entityMeta -> {
             return entityMeta.isHasProp() || Boolean.TRUE.equals(entityMeta.getIsExternal());
         }).map(this::toOrmEntityModel).collect(Collectors.toList());
+
+        addRelationTables(ret, entityMetas, basePackageName);
+        return ret;
     }
 
     OrmEntityModel toOrmEntityModel(NopDynEntityMeta entityMeta) {
@@ -120,7 +132,7 @@ public class DynEntityMetaToOrmModel {
         OrmColumnModel idCol = forceAddCol(ret, dynEntityModel.getColumn(NopDynEntity.PROP_NAME_sid, false));
         idCol.prop_set(OrmModelConstants.EXT_UI_SHOW, "X");
 
-        if (!forceRealTable && entityMeta.getStoreType() == NopDynDaoConstants.ENTITY_STORE_TYPE_VIRTUAL) {
+        if (isVirtualTable(entityMeta)) {
             buildVirtualEntityModel(ret, entityMeta);
             // 动态表的propId使用的是NopDynEntity实体已经定义的propId，不可能重复
             addStdColumns(ret);
@@ -131,6 +143,10 @@ public class DynEntityMetaToOrmModel {
         }
 
         return ret;
+    }
+
+    boolean isVirtualTable(NopDynEntityMeta entityMeta) {
+        return !forceRealTable && entityMeta.getStoreType() == NopDynDaoConstants.ENTITY_STORE_TYPE_VIRTUAL;
     }
 
     protected void normalizePropIds(OrmEntityModel entityModel) {
@@ -421,5 +437,78 @@ public class DynEntityMetaToOrmModel {
         StdSqlType sqlType = StdSqlType.fromStdName(sqlTypeName);
         if (sqlType == null) throw new NopException(ERR_DYN_UNKNOWN_STD_SQL_TYPE).param(ARG_STD_SQL_TYPE, sqlTypeName);
         return sqlType;
+    }
+
+    protected void addRelationTables(List<OrmEntityModel> ret, Collection<NopDynEntityMeta> entityMetas,
+                                     String basePackageName) {
+        entityMetas.forEach(entityMeta -> {
+            boolean virtualTable = isVirtualTable(entityMeta);
+            entityMeta.getRelationMetasForEntity1().forEach(rel -> {
+                OrmEntityModel relTable = new OrmEntityModel();
+                relTable.setComment(rel.getRemark());
+                forceAddCol(relTable, dynRelationModel.getColumn(NopDynEntityRelation.PROP_NAME_sid, false));
+                if (virtualTable) {
+                    buildVirtualRelationTable(rel, basePackageName);
+                } else {
+                    buildRealRelationTable(rel, basePackageName);
+                }
+                relTable.setName(StringHelper.fullClassName(rel.getRelationName(), basePackageName));
+                if (relTable.getTableName() == null) {
+                    relTable.setTableName(StringHelper.camelCaseToUnderscore(relTable.getShortName(), true));
+                }
+                forceAddCol(relTable, dynRelationModel.getColumn(NopDynEntityRelation.PROP_NAME_entityId1, false));
+                forceAddCol(relTable, dynRelationModel.getColumn(NopDynEntityRelation.PROP_NAME_entityId2, false));
+                addStdColumns(relTable);
+                addJoinRelation(relTable, rel);
+                relTable.setTagSet(TagsHelper.parse(rel.getTagsText(), ','));
+                relTable.addTag(OrmModelConstants.TAG_MANY_TO_MANY);
+                ret.add(relTable);
+            });
+        });
+    }
+
+
+    private OrmEntityModel buildVirtualRelationTable(NopDynEntityRelationMeta rel, String basePackageName) {
+        OrmEntityModel relTable = new OrmEntityModel();
+        relTable.setClassName(NopDynEntityRelation.class.getName());
+        relTable.setTableName(dynRelationModel.getTableName());
+
+        String entityName1 = StringHelper.fullClassName(rel.getEntityMeta1().getEntityName(), basePackageName);
+        String entityName2 = StringHelper.fullClassName(rel.getEntityMeta2().getEntityName(), basePackageName);
+
+        List<OrmEntityFilterModel> filters = new ArrayList<>();
+        filters.add(OrmEntityFilterModel.of(NopDynEntityRelation.PROP_NAME_entityName1, entityName1));
+        filters.add(OrmEntityFilterModel.of(NopDynEntityRelation.PROP_NAME_entityName2, entityName2));
+        return relTable;
+    }
+
+
+    private OrmEntityModel buildRealRelationTable(NopDynEntityRelationMeta rel, String basePackageName) {
+        OrmEntityModel relTable = new OrmEntityModel();
+        relTable.setClassName(DynamicOrmEntity.class.getName());
+        return relTable;
+    }
+
+    private void addJoinRelation(OrmEntityModel relTable, NopDynEntityRelationMeta rel) {
+        OrmReferenceModel ref1 = toRelationRefModel(NopDynEntityRelation.PROP_NAME_entityId1,
+                rel.getEntity1PropName(), rel.getEntity1DisplayName());
+        OrmReferenceModel ref2 = toRelationRefModel(NopDynEntityRelation.PROP_NAME_entityId2,
+                rel.getEntity2PropName(), rel.getEntity2DisplayName());
+        relTable.addRelation(ref1);
+        relTable.addRelation(ref2);
+    }
+
+    protected OrmReferenceModel toRelationRefModel(String propName, String refPropName, String refDisplayName) {
+        OrmToOneReferenceModel ret = new OrmToOneReferenceModel();
+        ret.setName(refPropName);
+        ret.setDisplayName(refDisplayName);
+
+        List<OrmJoinOnModel> join = new ArrayList<>(1);
+        OrmJoinOnModel joinOn = new OrmJoinOnModel();
+        joinOn.setLeftProp(propName);
+        joinOn.setRightProp(OrmModelConstants.PROP_ID);
+        join.add(joinOn);
+        ret.setJoin(join);
+        return ret;
     }
 }

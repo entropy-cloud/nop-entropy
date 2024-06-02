@@ -154,6 +154,8 @@ prop:
       extConfigComponent: null
       relMetaId: 关联定义ID
       relationName: 关联名
+      relationType: 关联类型
+      relationType_label: 关联类型
       remark: 备注
       status: 状态
       tableName: 中间表表名

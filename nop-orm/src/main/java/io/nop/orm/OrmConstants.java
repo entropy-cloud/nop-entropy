@@ -133,6 +133,8 @@ public interface OrmConstants {
     String EXT_PROP_DICT_VALUE_TYPE = "dict:valueType";
     String EXT_PROP_DICT_NORMALIZED = "dict:normalized";
 
+    String EXT_ORM_RELATION_TYPE = "orm:relationType";
+
     String SQL_ARG_LOCALE = "locale";
 
     String USER_NAME_SYS = "sys";

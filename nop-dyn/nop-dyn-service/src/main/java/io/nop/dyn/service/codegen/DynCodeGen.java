@@ -202,7 +202,7 @@ public class DynCodeGen {
     void batchLoadModule(NopDynModule module) {
         IEntityDao<NopDynModule> dao = daoProvider.daoFor(NopDynModule.class);
         dao.batchLoadProps(Collections.singletonList(module),
-                Arrays.asList("entityMetas.propMetas.domain", "entityMetas.functionMetas"));
+                Arrays.asList("entityMetas.propMetas.domain", "entityMetas.functionMetas", "entityMetas.relationMetasForEntity1"));
     }
 
     void batchLoadApp(NopDynApp app) {

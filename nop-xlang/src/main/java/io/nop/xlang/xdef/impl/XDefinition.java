@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -71,7 +70,7 @@ public class XDefinition extends _XDefinition implements IXDefinition {
 
         IResource resource = VirtualFileSystem.instance().getResource(defaultExtends);
         if (!resource.exists()) {
-            LOG.debug("nop.xdef.ignore-unknown-default-extends:path={}", defaultExtends);
+            LOG.trace("nop.xdef.ignore-unknown-default-extends:path={}", defaultExtends);
             return null;
         }
 
@@ -79,7 +78,7 @@ public class XDefinition extends _XDefinition implements IXDefinition {
             this.defaultsDsl = new ResourceCacheEntry<>(defaultExtends);
         }
 
-        return this.defaultsDsl.getObject(true,path -> {
+        return this.defaultsDsl.getObject(true, path -> {
             return XModelInclude.instance().loadActiveNodeFromResource(resource);
         });
     }

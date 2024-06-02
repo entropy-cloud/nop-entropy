@@ -36,64 +36,68 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
     public static final String PROP_NAME_relationName = "relationName";
     public static final int PROP_ID_relationName = 4;
     
+    /* 关联类型: RELATION_TYPE VARCHAR */
+    public static final String PROP_NAME_relationType = "relationType";
+    public static final int PROP_ID_relationType = 5;
+    
     /* 实体1上属性名: ENTITY1_PROP_NAME VARCHAR */
     public static final String PROP_NAME_entity1PropName = "entity1PropName";
-    public static final int PROP_ID_entity1PropName = 5;
+    public static final int PROP_ID_entity1PropName = 6;
     
     /* 实体1上属性显示名: ENTITY1_DISPLAY_NAME VARCHAR */
     public static final String PROP_NAME_entity1DisplayName = "entity1DisplayName";
-    public static final int PROP_ID_entity1DisplayName = 6;
+    public static final int PROP_ID_entity1DisplayName = 7;
     
     /* 实体2上属性名: ENTITY2_PROP_NAME VARCHAR */
     public static final String PROP_NAME_entity2PropName = "entity2PropName";
-    public static final int PROP_ID_entity2PropName = 7;
+    public static final int PROP_ID_entity2PropName = 8;
     
     /* 实体2上属性显示名: ENTITY2_DISPLAY_NAME VARCHAR */
     public static final String PROP_NAME_entity2DisplayName = "entity2DisplayName";
-    public static final int PROP_ID_entity2DisplayName = 8;
+    public static final int PROP_ID_entity2DisplayName = 9;
     
     /* 中间表表名: TABLE_NAME VARCHAR */
     public static final String PROP_NAME_tableName = "tableName";
-    public static final int PROP_ID_tableName = 9;
+    public static final int PROP_ID_tableName = 10;
     
     /* 标签: TAGS_TEXT VARCHAR */
     public static final String PROP_NAME_tagsText = "tagsText";
-    public static final int PROP_ID_tagsText = 10;
+    public static final int PROP_ID_tagsText = 11;
     
     /* 状态: STATUS INTEGER */
     public static final String PROP_NAME_status = "status";
-    public static final int PROP_ID_status = 11;
+    public static final int PROP_ID_status = 12;
     
     /* 扩展配置: EXT_CONFIG VARCHAR */
     public static final String PROP_NAME_extConfig = "extConfig";
-    public static final int PROP_ID_extConfig = 12;
+    public static final int PROP_ID_extConfig = 13;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 13;
+    public static final int PROP_ID_version = 14;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 14;
+    public static final int PROP_ID_createdBy = 15;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 15;
+    public static final int PROP_ID_createTime = 16;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 16;
+    public static final int PROP_ID_updatedBy = 17;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 17;
+    public static final int PROP_ID_updateTime = 18;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 18;
+    public static final int PROP_ID_remark = 19;
     
 
-    private static int _PROP_ID_BOUND = 19;
+    private static int _PROP_ID_BOUND = 20;
 
     
     /* relation: 关联实体1元数据 */
@@ -109,7 +113,7 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_relMetaId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_relMetaId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[19];
+    private static final String[] PROP_ID_TO_NAME = new String[20];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -124,6 +128,9 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_relationName] = PROP_NAME_relationName;
           PROP_NAME_TO_ID.put(PROP_NAME_relationName, PROP_ID_relationName);
+      
+          PROP_ID_TO_NAME[PROP_ID_relationType] = PROP_NAME_relationType;
+          PROP_NAME_TO_ID.put(PROP_NAME_relationType, PROP_ID_relationType);
       
           PROP_ID_TO_NAME[PROP_ID_entity1PropName] = PROP_NAME_entity1PropName;
           PROP_NAME_TO_ID.put(PROP_NAME_entity1PropName, PROP_ID_entity1PropName);
@@ -181,6 +188,9 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
     
     /* 关联名: RELATION_NAME */
     private java.lang.String _relationName;
+    
+    /* 关联类型: RELATION_TYPE */
+    private java.lang.String _relationType;
     
     /* 实体1上属性名: ENTITY1_PROP_NAME */
     private java.lang.String _entity1PropName;
@@ -310,6 +320,9 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
             case PROP_ID_relationName:
                return getRelationName();
         
+            case PROP_ID_relationType:
+               return getRelationType();
+        
             case PROP_ID_entity1PropName:
                return getEntity1PropName();
         
@@ -400,6 +413,16 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_relationName));
                }
                setRelationName(typedValue);
+               break;
+            }
+        
+            case PROP_ID_relationType:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_relationType));
+               }
+               setRelationType(typedValue);
                break;
             }
         
@@ -580,6 +603,13 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_relationType:{
+               onInitProp(propId);
+               this._relationType = (java.lang.String)value;
+               
+               break;
+            }
+        
             case PROP_ID_entity1PropName:{
                onInitProp(propId);
                this._entity1PropName = (java.lang.String)value;
@@ -756,6 +786,25 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_relationName,value)){
             this._relationName = value;
             internalClearRefs(PROP_ID_relationName);
+            
+        }
+    }
+    
+    /**
+     * 关联类型: RELATION_TYPE
+     */
+    public java.lang.String getRelationType(){
+         onPropGet(PROP_ID_relationType);
+         return _relationType;
+    }
+
+    /**
+     * 关联类型: RELATION_TYPE
+     */
+    public void setRelationType(java.lang.String value){
+        if(onPropSet(PROP_ID_relationType,value)){
+            this._relationType = value;
+            internalClearRefs(PROP_ID_relationType);
             
         }
     }

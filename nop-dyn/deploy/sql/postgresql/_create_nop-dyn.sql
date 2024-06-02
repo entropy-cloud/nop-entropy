@@ -245,6 +245,7 @@ CREATE TABLE nop_dyn_entity_relation_meta(
   ENTITY1_META_ID VARCHAR(32) NOT NULL ,
   ENTITY2_META_ID VARCHAR(32) NOT NULL ,
   RELATION_NAME VARCHAR(100) NOT NULL ,
+  RELATION_TYPE VARCHAR(10) NOT NULL ,
   ENTITY1_PROP_NAME VARCHAR(100) NOT NULL ,
   ENTITY1_DISPLAY_NAME VARCHAR(100) NOT NULL ,
   ENTITY2_PROP_NAME VARCHAR(100)  ,
@@ -703,6 +704,8 @@ CREATE TABLE nop_dyn_function_meta(
       COMMENT ON COLUMN nop_dyn_entity_relation_meta.ENTITY2_META_ID IS '实体2元数据';
                     
       COMMENT ON COLUMN nop_dyn_entity_relation_meta.RELATION_NAME IS '关联名';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.RELATION_TYPE IS '关联类型';
                     
       COMMENT ON COLUMN nop_dyn_entity_relation_meta.ENTITY1_PROP_NAME IS '实体1上属性名';
                     

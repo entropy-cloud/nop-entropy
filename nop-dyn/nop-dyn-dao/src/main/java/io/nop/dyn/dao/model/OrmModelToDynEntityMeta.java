@@ -9,8 +9,10 @@ package io.nop.dyn.dao.model;
 
 import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
+import io.nop.commons.util.TagsHelper;
 import io.nop.dyn.dao.NopDynDaoConstants;
 import io.nop.dyn.dao.entity.NopDynEntityMeta;
+import io.nop.dyn.dao.entity.NopDynEntityRelationMeta;
 import io.nop.dyn.dao.entity.NopDynModule;
 import io.nop.dyn.dao.entity.NopDynPropMeta;
 import io.nop.orm.model.IColumnModel;
@@ -19,12 +21,19 @@ import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IOrmModel;
 import io.nop.orm.model.OrmModelConstants;
+import io.nop.orm.support.OrmManyToManyMappingMeta;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 public class OrmModelToDynEntityMeta {
+    static final Logger LOG = LoggerFactory.getLogger(OrmModelToDynEntityMeta.class);
+
     public void transformModule(IOrmModel ormModel, NopDynModule dynModule) {
         dynModule.setBasePackageName((String) ormModel.prop_get(OrmModelConstants.EXT_BASE_PACKAGE_NAME));
         dynModule.setMavenGroupId((String) ormModel.prop_get(OrmModelConstants.EXT_MAVEN_GROUP_ID));
@@ -36,10 +45,13 @@ public class OrmModelToDynEntityMeta {
             entityMetas.put(entityMeta.getEntityName(), entityMeta);
         });
 
+        List<OrmManyToManyMappingMeta> mappingTables = new ArrayList<>();
         ormModel.getEntityModels().forEach(entityModel -> {
             // many-to-many的中间表不转换为实体表
-            if (entityModel.containsTag(OrmModelConstants.TAG_MANY_TO_MANY))
+            if (entityModel.containsTag(OrmModelConstants.TAG_MANY_TO_MANY)) {
+                mappingTables.add(new OrmManyToManyMappingMeta(entityModel));
                 return;
+            }
 
             NopDynEntityMeta entityMeta = entityMetas.get(entityModel.getName());
             if (entityMeta == null) {
@@ -51,6 +63,37 @@ public class OrmModelToDynEntityMeta {
             }
             transformEntityMeta(entityModel, entityMeta);
         });
+
+        for (OrmManyToManyMappingMeta mappingMeta : mappingTables) {
+            if (mappingMeta.getRefProp2() == null) {
+                LOG.warn("nop.dyn.ignore-invalid-many-to-many-mapping-table:{}", mappingMeta.getMappingTable());
+                continue;
+            }
+            NopDynEntityMeta entityMeta1 = getEntityMeta(entityMetas, mappingMeta.getRefEntityName1());
+            if (entityMeta1 == null)
+                continue;
+
+            NopDynEntityMeta entityMeta2 = getEntityMeta(entityMetas, mappingMeta.getRefEntityName2());
+            if (entityMeta2 == null)
+                continue;
+            NopDynEntityRelationMeta relMeta = new NopDynEntityRelationMeta();
+            relMeta.setEntityMeta1(entityMeta1);
+            relMeta.setEntityMeta2(entityMeta2);
+            relMeta.setRelationName(mappingMeta.getMappingEntityName());
+            relMeta.setTableName(mappingMeta.getMappingTableName());
+            relMeta.setTagsText(TagsHelper.toString(mappingMeta.getMappingTable().getTagSet()));
+            relMeta.setRemark(mappingMeta.getMappingTable().getComment());
+            relMeta.setRelationType(StringHelper.toString(mappingMeta.getRelationType(), null));
+            entityMeta1.getRelationMetasForEntity1().add(relMeta);
+        }
+    }
+
+    private NopDynEntityMeta getEntityMeta(Map<String, NopDynEntityMeta> entityMetas, String entityName) {
+        NopDynEntityMeta entityMeta = entityMetas.get(entityName);
+        if (entityMeta == null) {
+            entityMeta = entityMetas.get(StringHelper.simpleClassName(entityName));
+        }
+        return entityMeta;
     }
 
     private void removeNotExistingMetas(IOrmModel ormModel, NopDynModule dynModule) {
@@ -133,8 +176,8 @@ public class OrmModelToDynEntityMeta {
         propMeta.setStdDomainName(col.getStdDomain());
         propMeta.setIsMandatory(col.isMandatory());
         propMeta.setRemark(col.getComment());
-        propMeta.setUiShow((String) col.prop_get(OrmModelConstants.EXT_UI_CONTROL));
-        propMeta.setUiControl((String) col.prop_get(OrmModelConstants.EXT_UI_SHOW));
+        propMeta.setUiControl((String) col.prop_get(OrmModelConstants.EXT_UI_CONTROL));
+        propMeta.setUiShow((String) col.prop_get(OrmModelConstants.EXT_UI_SHOW));
         propMeta.setStatus(1);
 
         // 只有AI生成的模型会使用这个属性，假定实体名已经正确设置

@@ -14,6 +14,7 @@ import io.nop.commons.collections.IntArray;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.commons.util.TagsHelper;
 import io.nop.commons.util.objects.PropPath;
 import io.nop.orm.model._gen._OrmEntityModel;
 import io.nop.orm.model.init.OrmEntityModelInitializer;
@@ -22,7 +23,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.nop.orm.model.OrmModelErrors.*;
+import static io.nop.orm.model.OrmModelErrors.ARG_COL_CODE;
+import static io.nop.orm.model.OrmModelErrors.ARG_COL_NAME;
+import static io.nop.orm.model.OrmModelErrors.ARG_ENTITY_NAME;
+import static io.nop.orm.model.OrmModelErrors.ARG_PROP_ID;
+import static io.nop.orm.model.OrmModelErrors.ARG_PROP_NAME;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_COLUMN;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_COLUMN_CODE;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_COLUMN_PROP_ID;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_PROP;
 
 public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INeedInit {
     private ImmutableIntArray eagerLoadProps;
@@ -216,6 +225,10 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
         if (prop == null)
             throw new NopException(ERR_ORM_UNKNOWN_PROP).param(ARG_ENTITY_NAME, getName()).param(ARG_PROP_NAME, name);
         return prop;
+    }
+
+    public void addTag(String tag) {
+        setTagSet(TagsHelper.add(getTagSet(), tag));
     }
 
     @Override

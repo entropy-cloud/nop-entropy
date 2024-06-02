@@ -142,6 +142,8 @@ prop:
       entity1MetaId: Entity1 Meta ID
       entity2MetaId: Entity2 Meta ID
       relationName: Relation Name
+      relationType: Relation Type
+      relationType_label: null
       entity1PropName: Entity1 Prop Name
       entity1DisplayName: Entity1 Display Name
       entity2PropName: Entity2 Prop Name

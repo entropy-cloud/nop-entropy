@@ -19,6 +19,9 @@
                 <!--关联名-->
                 <col id="relationName" mandatory="true" sortable="true"/>
 
+                <!--关联类型-->
+                <col id="relationType" mandatory="true" sortable="true"/>
+
                 <!--实体1上属性名-->
                 <col id="entity1PropName" mandatory="true" sortable="true"/>
 
@@ -66,26 +69,26 @@
         <form id="view" editMode="view" title="查看-实体关联元数据" i18n-en:title="View Entity Relation Meta">
             <layout>
  entity1MetaId[实体1元数据] entity2MetaId[实体2元数据]
- relationName[关联名] entity1PropName[实体1上属性名]
- entity1DisplayName[实体1上属性显示名] entity2PropName[实体2上属性名]
- entity2DisplayName[实体2上属性显示名] tableName[中间表表名]
- tagsText[标签] status[状态]
- extConfig[扩展配置] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] 
-                remark[备注]
+ relationName[关联名] relationType[关联类型]
+ entity1PropName[实体1上属性名] entity1DisplayName[实体1上属性显示名]
+ entity2PropName[实体2上属性名] entity2DisplayName[实体2上属性显示名]
+ tableName[中间表表名] tagsText[标签]
+ status[状态] extConfig[扩展配置]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-实体关联元数据" i18n-en:title="Add Entity Relation Meta" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-实体关联元数据" i18n-en:title="Edit Entity Relation Meta">
             <layout>
  entity1MetaId[实体1元数据] entity2MetaId[实体2元数据]
- relationName[关联名] entity1PropName[实体1上属性名]
- entity1DisplayName[实体1上属性显示名] entity2PropName[实体2上属性名]
- entity2DisplayName[实体2上属性显示名] tableName[中间表表名]
- tagsText[标签] status[状态]
- extConfig[扩展配置] 
-                remark[备注]
+ relationName[关联名] relationType[关联类型]
+ entity1PropName[实体1上属性名] entity1DisplayName[实体1上属性显示名]
+ entity2PropName[实体2上属性名] entity2DisplayName[实体2上属性显示名]
+ tableName[中间表表名] tagsText[标签]
+ status[状态] extConfig[扩展配置]
+ remark[备注] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
