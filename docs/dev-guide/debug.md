@@ -2,13 +2,15 @@
 
 ## debug模式
 
-设置nop.debug=true会开启debug模式，此时才会注册DevDoc等用于调试的后台服务。
+**设置nop.debug=true会开启debug模式，此时才会注册DevDoc等用于调试的后台服务，才会输出`_dump`文件。**
+
+缺省配置文件是`application.yaml`，如果要启用`application-dev.yaml`这样的特殊环境配置文件，必须在bootstrap.yaml或者application.yaml中配置对应的`nop.profile`
 
 ## 错误定位
 
 后台抛出异常时一般会统一使用NopException异常类，它具有SourceLocation属性，会提示错误发生时对应的XLang程序源码位置。NopException类上还报错了XLang执行堆栈，打印异常消息时会输出Xpl堆栈信息。例如
 
-```java
+```
 io.nop.api.core.exceptions.NopException: NopException[seq=4,status=-1,errorCode=nop.err.xui.ref-view-not-exists,params={viewPath=/app/mall/LitemallGoods/attributes.page.yaml},desc=view配置不存在：/app/mall/LitemallGoods/attributes.page.yaml]@_loc=[114:22:0:0]/app/mall/pages/LitemallGoods/LitemallGoods.view.xml
   @@getFormSelection(formModel,objMeta)@[7:30:0:0]/nop/web/xlib/web/page_simple.xpl
   @@</_delta/default/nop/web/xlib/web.xlib#GenPage>("/app/mall/pages/LitemallGoods/LitemallGoods.view.xml","add",null)@[1:17:0:0]/app/mall/pages/LitemallGoods/add.page.yaml
@@ -18,13 +20,13 @@ io.nop.api.core.exceptions.NopException: NopException[seq=4,status=-1,errorCode=
 以上异常表示
 
 1. add.page.yaml调用了web.xlib中的GenPage标签
-2. GenPage标签调用了page\_simple.xpl
-3. page\_simple.xpl在第7行调用了getFormSelection函数
-4. 在函数内部访问到LitemallGoods.view.xml模型文件，发现它的第114行的配置不正确。
+2. GenPage标签调用了`page_simple.xpl`
+3. `page_simple.xpl`在第7行调用了getFormSelection函数
+4. 在函数内部访问到`LitemallGoods.view.xml`模型文件，发现它的第114行的配置不正确。
 
 ## 日志信息
 
-1. 配置项信息
+### 1. 配置项信息
    如果设置了nop.debug=true，则系统启动的时候会打印所有配置参数的值以及所在的配置文件（因为可能存在多个配置文件，而且高优先级的文件会覆盖低优先级的文件）
 
 ```
@@ -32,14 +34,14 @@ io.nop.api.core.exceptions.NopException: NopException[seq=4,status=-1,errorCode=
 quarkus.log.level=INFO
 ```
 
-2. 模型文件解析
+### 2. 模型文件解析
    所有模型文件解析时都会打印日志，并且会打印解析花费时间
 
 ```
 2023-07-11 21:13:16,152 INFO  [io.nop.cor.res.com.par.AbstractResourceParser] (Quarkus Main Thread) nop.core.component.finish-parse-resource:usedTime=10,path=/nop/schema/beans.xdef,parser=class io.nop.core.lang.xml.parse.XNodeParser
 ```
 
-3. 动态装配的bean
+### 3. 动态装配的bean
    将io.nop.ioc的调试级别设置为debug，则系统启动的时候会打印出条件bean的执行情况。
 
 ```
@@ -58,18 +60,18 @@ disabled-bean:id=nopLoginService
     check-if-property-fail:nop.auth.sso.enabled=null
 ```
 
-在\_dump目录下，/nop/main/beans/merged-app.beans.xml中输出了所有最终被激活的bean以及它们所对应的配置文件源码位置。
+在`_dump`目录下，`/nop/main/beans/merged-app.beans.xml`中输出了所有最终被激活的bean以及它们所对应的配置文件源码位置。
 
-4. 数据库访问
+### 4. 数据库访问
    所有的数据库访问SQL都会记录在日志中，并且显示SQL执行时间
 
 ```
-2023-07-11 21:14:39,637 INFO  [io.nop.dao.jdb.imp.JdbcTemplateImpl] (Quarkus Main Thread) nop.jdbc.run:usedTime=1,querySpace=default,range=0,1,name=jdbc:null,sql=select o.SEQ_NAME as c1 
-from nop_sys_sequence as o 
- where o.DEL_FLAG =  0 
+2023-07-11 21:14:39,637 INFO  [io.nop.dao.jdb.imp.JdbcTemplateImpl] (Quarkus Main Thread) nop.jdbc.run:usedTime=1,querySpace=default,range=0,1,name=jdbc:null,sql=select o.SEQ_NAME as c1
+from nop_sys_sequence as o
+ where o.DEL_FLAG =  0
 ```
 
-5. 成功初始化
+### 5. 成功初始化
    Nop平台成功初始化之后会打印出初始化总共执行的时间，并且会打印banner
 
 ```
@@ -78,17 +80,17 @@ from nop_sys_sequence as o
 
 ## 日志打印
 
-1. XScript脚本中内置了logInfo/logDebug等函数
+### 1. XScript脚本中内置了logInfo/logDebug等函数
 
-```java
+```javascript
  logInfo("nop.err.invalid-name:name={}",name);
 ```
 
 第一个参数必须是静态字符串，不允许"sss"+yyy这种形式，从而也避免了log注入攻击。
 
-2. 任意对象调用$函数都会导致打印调试语句
+### 2. 任意对象调用$函数都会导致打印调试语句
 
-```java
+```javascript
 b = a.f().$("test")
 ```
 
@@ -103,7 +105,7 @@ test为自定义前缀信息。 a.f()为待查看的表达式源码, `=> 1`表�
 
 > 可以在DebugHelper中加条件断点来调试Java源码
 
-3. 在xpl模板语言中
+### 3. 在xpl模板语言中
 
 ```
 <c:log info="${data}" />
@@ -116,15 +118,15 @@ Nop平台大量使用了元编程来动态生成代码，为了有效跟踪代�
 
 如果结果文件是由多个delta文件合并得来，则在结果文件中我们会看到每个来源节点/属性的源码位置信息。
 
-在XDSL模型的根节点上，我们也可以增加x:dump="true"属性，它会把更细节的合并算法执行过程打印到日志中。
+在XDSL模型的根节点上，我们也可以增加`x:dump="true"`属性，它会把更细节的合并算法执行过程打印到日志中。
 
 ## XLang调试器
 
-Nop平台的nop-idea-plugin模块提供了IDEA开发插件，其中包含了针对XScript脚本语言的调试器，可以为所有XDSL领域语言增加断点调试功能。具体参见文档 [idea-plugin.md](../user-guide/idea/idea-plugin.md)
+Nop平台的`nop-idea-plugin`模块提供了IDEA开发插件，其中包含了针对XScript脚本语言的调试器，可以为所有XDSL领域语言增加断点调试功能。具体参见文档 [idea-plugin.md](../user-guide/idea/idea-plugin.md)
 
 ## GraphQL调试工具
 
-Quarkus框架内置了graphql-ui调试工具。以调试模式启动应用之后，通过链接/q/graphql-ui可以访问到调试页面。
+Quarkus框架内置了`graphql-ui`调试工具。以调试模式启动应用之后，通过链接`/q/graphql-ui`可以访问到调试页面。
 在此页面上可以查看所有后台GraphQL端点和类型的定义，并且输入代码时会自动提示候选文本。
 
 ![](../tutorial/graphql-ui.png)

@@ -4,7 +4,7 @@
 
 * 配置变量为全小写字母，以`.`和`-`为分隔符，与Spring的约定不同，NopConfig实际上不支持大小写混排的命名方式
 * 如果通过环境变量来传递配置变量，则`.`被替换为`_`，而`-`被替换为`__`，而`_`被替换为`___`
-  。例如nop.auth.sso.server-url变成NOP\_AUTH\_SSO\_SERVER\_\_URL。（这种约定与Spring并不一致，但它保证了环境变量和配置变量的双向无歧义映射）
+  。例如nop.auth.sso.server-url变成`NOP_AUTH_SSO_SERVER__URL`。（这种约定与Spring并不一致，但它保证了环境变量和配置变量的双向无歧义映射）
 * 一般在模块的XXXConfigs常量类中定义本模块中明确使用到的配置变量。
 
 ## 配置加载顺序
@@ -12,8 +12,8 @@
 先加载的配置优先级更高，会被优先使用。
 
 1. classpath:bootstrap.yaml 应用的启动配置，其中的所有变量都是固定值，不会被动态覆盖
-2. 配置中心的{nop.application.name}-{nop.config.profile}.yaml
-3. 配置中心的{nop.application.name}.yaml
+2. 配置中心的`{nop.application.name}-{nop.profile}.yaml`
+3. 配置中心的`{nop.application.name}.yaml`
 4. nop.config.key-config-source.paths参数指定k8s SecretMap映射文件，定时扫描检测是否已更新
 5. nop.config.props-config-source.paths参数指定k8s ConfigMap映射文件，定时扫描检测是否已更新
 6. 如果配置了nop.config.jdbc.jdbc-url等参数，则会从数据库配置表中加载配置，定时扫描检测是否已更新
@@ -30,7 +30,7 @@
 类中
 
 * **在bootstrap.yaml中可以配置nop.profile=dev来启用application-dev.yaml配置，类似于spring中的profile概念。**
-  也可以通过java property或者env机制类配置profile，例如-Dnop.profile=dev或者 NOP\_PROFILE=dev
+  也可以通过java property或者env机制类配置profile，例如-Dnop.profile=dev或者配置环境变量`NOP_PROFILE=dev`
 * 优先加载yaml后缀的配置文件，如果找不到，会尝试加载后缀名为yml的同名文件。也就是说，如果同时存在`application.yaml`和`application.yml`，则会优先使用前者
 
 ## 自动更新
