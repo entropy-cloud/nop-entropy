@@ -8,6 +8,7 @@
 package io.nop.ooxml.docx;
 
 import io.nop.core.context.IEvalContext;
+import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.resource.tpl.ITextTemplateOutput;
 import io.nop.ooxml.common.OfficeConstants;
@@ -17,6 +18,7 @@ import io.nop.ooxml.common.output.AbstractOfficeTemplate;
 import io.nop.ooxml.docx.model.WordOfficePackage;
 
 import java.io.File;
+import java.util.Map;
 
 /*
 <w:document mc:Ignorable="w14 wp14">
@@ -39,13 +41,21 @@ import java.io.File;
 public class WordTemplate extends AbstractOfficeTemplate {
 
     private final WordOfficePackage pkg;
-    private final ITextTemplateOutput output;
+    private final IEvalAction beforeGen;
+    private final Map<String, ITextTemplateOutput> outputs;
+    private final IEvalAction afterGen;
     private final XplGenConfig genConfig;
 
-    public WordTemplate(WordOfficePackage pkg, ITextTemplateOutput output, XplGenConfig genConfig) {
+    public WordTemplate(WordOfficePackage pkg,
+                        IEvalAction beforeGen,
+                        Map<String, ITextTemplateOutput> outputs,
+                        IEvalAction afterGen,
+                        XplGenConfig genConfig) {
         this.pkg = pkg;
-        this.output = output;
+        this.outputs = outputs;
         this.genConfig = genConfig;
+        this.beforeGen = beforeGen;
+        this.afterGen = afterGen;
 
         // 将模板中所有内容都读入到内存中，从而不再持有外部zip文件的引用，可以被安全的缓存并重复使用。
         pkg.loadInMemory();
@@ -57,7 +67,17 @@ public class WordTemplate extends AbstractOfficeTemplate {
         OfficePackage copy = pkg.copy();
         scope.setLocalValue(null, OfficeConstants.VAR_OFC_PKG, copy);
         scope.setLocalValue(null, OfficeConstants.VAR_XPL_GEN_CONFIG, genConfig);
-        output.generateToFile(new File(tempDir, DocxConstants.PATH_WORD_DOCUMENT), context);
+
+        if (beforeGen != null)
+            beforeGen.invoke(context);
+
+        outputs.forEach((path, output) -> {
+            output.generateToFile(new File(tempDir, path), context);
+        });
+
+        if (afterGen != null)
+            afterGen.invoke(context);
+
         copy.generateToDir(tempDir, scope);
     }
 }

@@ -181,6 +181,25 @@ public class TestWordTemplate extends BaseTestCase {
         assertEquals(attachmentXml("result-test-el.doc.xml").xml(), doc.xml());
     }
 
+    @Test
+    public void testHeaderFooter() {
+        IResource resource = classpathResource("docx/test-header-footer.docx");
+        Object entity = classpathBean("docx/mei_template.json", Map.class);
+
+        IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValue(null, "entity", entity);
+
+        File file = getTargetFile("/gen/result-header-footer.docx");
+        WordTemplate tpl = new WordTemplateParser().parseFromResource(resource);
+        tpl.generateToFile(file, scope);
+
+        OfficePackage pkg = new OfficePackage();
+        pkg.loadFromFile(file);
+        XNode doc = pkg.getFile("word/header3.xml").buildXml(XLang.newEvalScope());
+        doc.dump();
+        assertEquals(attachmentXml("result-test-header-footer.header3.xml").xml(), doc.xml());
+    }
+
     //
     // public static void main(String[] args) {
     // ZipFileWatcher.main(new

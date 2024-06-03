@@ -9,14 +9,14 @@ package io.nop.ooxml.docx.parse;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.IoHelper;
-import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.tree.ITreeVisitor;
 import io.nop.core.model.tree.TreeVisitResult;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.tpl.ITextTemplateOutput;
 import io.nop.excel.model.ExcelTable;
-import io.nop.ooxml.common.OfficePackage;
+import io.nop.ooxml.common.IOfficePackagePart;
 import io.nop.ooxml.common.gen.XplGenConfig;
 import io.nop.ooxml.common.model.OfficeRelsPart;
 import io.nop.ooxml.docx.DocxConstants;
@@ -25,12 +25,18 @@ import io.nop.ooxml.docx.model.WordDrawing;
 import io.nop.ooxml.docx.model.WordHyperlink;
 import io.nop.ooxml.docx.model.WordHyperlinkTransformer;
 import io.nop.ooxml.docx.model.WordOfficePackage;
+import io.nop.xlang.api.XLangCompileTool;
+import io.nop.xlang.ast.XLangOutputMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import static io.nop.ooxml.docx.DocxConstants.HEADER_XPL_GEN_CONFIG;
@@ -51,29 +57,79 @@ public class WordTemplateParser {
         try {
             pkg.loadFromFile(resource.toFile());
 
-            OfficeRelsPart rels = pkg.getRels(DocxConstants.PATH_WORD_RELS);
             XNode doc = pkg.getFile(DocxConstants.PATH_WORD_DOCUMENT).buildXml(null);
             XplGenConfig config = getGenConfig(doc);
             config.addImportLib(DocxConstants.LIB_DOCX_GEN);
 
             doc = config.checkDump(doc, "before-normalize");
 
-            replaceHyperLinkExprs(doc);
-            List<WordHyperlink> links = collectLinks(rels, doc);
+            XLangCompileTool cp = config.newCompileTool();
 
-            normalizeExprs(doc, links);
-            normalizeLinks(links);
+            IEvalAction beforeGen = config.compileBeforeGen(cp);
 
-            processDrawings(pkg, doc);
-
-            ITextTemplateOutput output = config.compile(doc);
             pkg.removeFile(DocxConstants.PATH_WORD_DOCUMENT);
+            ITextTemplateOutput output = compile(pkg, config, cp, doc, DocxConstants.PATH_WORD_DOCUMENT);
 
-            return new WordTemplate(pkg, output, config);
+            Map<String, ITextTemplateOutput> outputs = compileOutputs(pkg, (path, xml) -> {
+                return compile(pkg, config, cp, xml, path);
+            });
+
+            outputs.put(DocxConstants.PATH_WORD_DOCUMENT, output);
+
+            IEvalAction afterGen = config.compileBeforeGen(cp);
+
+            return new WordTemplate(pkg, beforeGen, outputs, afterGen, config);
         } catch (Exception e) {
             IoHelper.safeClose(pkg);
             throw NopException.adapt(e);
         }
+    }
+
+    private ITextTemplateOutput compile(WordOfficePackage pkg, XplGenConfig config,
+                                        XLangCompileTool cp, XNode doc, String path) {
+        OfficeRelsPart rels = pkg.getRelsForPartPath(path);
+        replaceHyperLinkExprs(doc);
+        List<WordHyperlink> links = collectLinks(rels, doc);
+
+        normalizeExprs(doc, links);
+        normalizeLinks(links);
+
+        processDrawings(pkg, doc);
+
+        boolean dumpToFile = path.equals(DocxConstants.PATH_WORD_DOCUMENT);
+        if (config.isDump() && !dumpToFile) {
+            doc.dump();
+        }
+        return config.compile(cp, doc, XLangOutputMode.xml, dumpToFile);
+    }
+
+    private Map<String, ITextTemplateOutput> compileOutputs(WordOfficePackage pkg,
+                                                            BiFunction<String, XNode, ITextTemplateOutput> compile) {
+        Map<String, ITextTemplateOutput> outputs = new TreeMap<>();
+
+        Iterator<IOfficePackagePart> it = pkg.getFiles().iterator();
+        while (it.hasNext()) {
+            IOfficePackagePart part = it.next();
+            String path = part.getPath();
+            if (path.endsWith(".xml") && mayContainsExpr(path)) {
+                String text = part.loadText();
+                if (text.contains("${")) {
+                    XNode node = part.loadXml();
+
+                    ITextTemplateOutput output = compile.apply(path, node);
+                    if (output != null) {
+                        outputs.put(path, output);
+                        it.remove();
+                    }
+                }
+            }
+        }
+        return outputs;
+    }
+
+    private boolean mayContainsExpr(String path) {
+        return path.startsWith(DocxConstants.PATH_PREFIX_HEADER)
+                || path.startsWith(DocxConstants.PATH_PREFIX_FOOTER);
     }
 
     void replaceHyperLinkExprs(XNode doc) {
@@ -103,14 +159,7 @@ public class WordTemplateParser {
                 if (linkNodes.contains(node)) {
                     return TreeVisitResult.SKIP_CHILD;
                 } else if (node.getTagName().equals("w:t")) {
-                    if (node.hasContent()) {
-                        String text = node.contentText();
-                        // 没有闭合的表达式
-                        if (text.contains("${") && text.indexOf('}') < 0) {
-                            text = StringHelper.replace(text, "$", "${'$'}");
-                            node.content(node.content().getLocation(), text);
-                        }
-                    }
+                    node.normalizeExprInContent();
                 }
                 return TreeVisitResult.CONTINUE;
             }
@@ -250,7 +299,7 @@ public class WordTemplateParser {
         }
     }
 
-    void processDrawings(OfficePackage pkg, XNode doc) {
+    void processDrawings(WordOfficePackage pkg, XNode doc) {
         doc.forEachNode(node -> {
             if (node.getTagName().equals("w:drawing")) {
                 new WordDrawing(node, pkg).prepare();

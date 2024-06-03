@@ -143,7 +143,7 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         OfficeRelsPart relPart = pkg.makeRelsForPart(sheetPart);
         relPart.addRelationship(drawingRelId, XSSFRelation.DRAWINGS.getRelation(), "../drawings/drawing" + (drawingIndex + 1) + ".xml", null);
 
-        OfficeRelsPart drawingRelPart = pkg.makeRelsForPart(drawingPath);
+        OfficeRelsPart drawingRelPart = pkg.makeRelsForPartPath(drawingPath);
         for (ExcelImage image : sheet.getImages()) {
             if (image.getData() == null)
                 continue;

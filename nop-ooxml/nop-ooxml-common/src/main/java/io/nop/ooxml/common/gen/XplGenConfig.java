@@ -10,6 +10,7 @@ package io.nop.ooxml.common.gen;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
+import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.table.ITableView;
 import io.nop.core.resource.component.AbstractComponentModel;
@@ -112,13 +113,33 @@ public class XplGenConfig extends AbstractComponentModel {
         return new XplGenConfigParser().parseFromTable(table);
     }
 
-    public ITextTemplateOutput compile(XNode doc) {
-        return compile(doc, XLangOutputMode.xml);
-    }
-
-    public ITextTemplateOutput compile(XNode doc, XLangOutputMode outputMode) {
+    public XLangCompileTool newCompileTool() {
         XLangCompileTool cp = XLang.newCompileTool();
         cp.allowUnregisteredScopeVar(true);
+        if (importLibs != null) {
+            for (String lib : importLibs) {
+                String namespace = XplLibHelper.getNamespaceFromLibPath(lib);
+                cp.loadLib(null, namespace, lib);
+            }
+        }
+        return cp;
+    }
+
+    public IEvalAction compileBeforeGen(XLangCompileTool tool) {
+        if (beforeGen != null) {
+            return tool.compileTag(beforeGen.cloneInstance(), XLangOutputMode.none);
+        }
+        return null;
+    }
+
+    public IEvalAction compileAfterGen(XLangCompileTool tool) {
+        if (afterGen != null) {
+            return tool.compileTag(afterGen.cloneInstance(), XLangOutputMode.none);
+        }
+        return null;
+    }
+
+    public ITextTemplateOutput compile(XLangCompileTool cp, XNode doc, XLangOutputMode outputMode, boolean dump) {
         // 收集word模板内置的名字空间，避免它们被解释为xpl标签。引入的标签库的名字空间也应该需要回避这些namespace。
         Set<String> ns = collectNs(doc);
         cp.getScope().disableNs(ns);
@@ -131,31 +152,24 @@ public class XplGenConfig extends AbstractComponentModel {
                 if (ns.contains(namespace))
                     throw new NopException(ERR_OOXML_LIB_NAMESPACE_CONFLICT_WITH_INTERNAL_NAMESPACE)
                             .param(ARG_NS, namespace).param(ARG_NS_LIST, ns).param(ARG_NODE, doc);
-                XNode libNode = XNode.make("c:import");
-                libNode.setAttr("from", lib);
-                root.appendChild(libNode);
             }
         }
 
         XNode child = root.makeChild("c:out");
         child.setAttr("escape", "none");
         child.content("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-        if (beforeGen != null) {
-            root.appendChild(beforeGen.cloneInstance());
-        }
         root.appendChild(doc);
-        if (afterGen != null) {
-            root.appendChild(afterGen.cloneInstance());
-        }
 
-        root = checkDump(root, "compile:===========================================");
+        if (dump) {
+            root = checkDump(root, "compile:===========================================");
+        }
 
         ITextTemplateOutput output = cp.compileTag(root, outputMode);
 
         return output;
     }
 
-    Set<String> collectNs(XNode node) {
+    public static Set<String> collectNs(XNode node) {
         Set<String> ret = new HashSet<>();
         node.forEachNode(child -> {
             child.forEachAttr((name, value) -> {

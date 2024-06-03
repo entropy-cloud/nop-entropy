@@ -25,6 +25,9 @@ public interface DocxConstants extends OfficeConstants {
     String PATH_WORD_RELS = "word/_rels/document.xml.rels";
     String PATH_WORD_DOCUMENT = "word/document.xml";
 
+    String PATH_PREFIX_HEADER = "word/header";
+    String PATH_PREFIX_FOOTER = "word/footer";
+
     String SRC_NAME = "src";
 
     String EXPR_IMG_ID = "${_imgId}";

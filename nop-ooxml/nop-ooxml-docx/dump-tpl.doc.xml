@@ -1,11 +1,6 @@
 <c:unit>
-    <c:import from="/nop/test/orm-docx.xlib"/>
-    <c:import from="/nop/ooxml/xlib/docx-gen.xlib"/>
     <c:out escape="none">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
 </c:out>
-    <c:unit xpl:outputMode="none">
-        <c:script>logInfo("test")</c:script>
-    </c:unit>
     <w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
                 xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex"
                 xmlns:cx1="http://schemas.microsoft.com/office/drawing/2015/9/8/chartex"

@@ -368,6 +368,21 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         return !content.isNull();
     }
 
+    public void normalizeExprInContent() {
+        if (hasContent()) {
+            String text = contentText();
+            // 没有闭合的表达式
+            if (text.contains("${") && text.indexOf('}') < 0) {
+                text = StringHelper.replace(text, "$", "${'$'}");
+                content(content().getLocation(), text);
+            }
+        }
+    }
+
+    public void normalizeExpr() {
+        forEachNode(child-> child.normalizeExprInContent());
+    }
+
     public Object getContentValue() {
         return content.getValue();
     }
