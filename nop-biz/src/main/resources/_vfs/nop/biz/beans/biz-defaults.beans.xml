@@ -90,4 +90,6 @@
     </bean>
 
     <bean id="nopQueryBeanArgsNormalizer" class="io.nop.biz.crud.QueryBeanArgsNormalizer"/>
+
+    <bean id="nopFilterArgsNormalizer" class="io.nop.biz.crud.FilterArgsNormalizer"/>
 </beans>

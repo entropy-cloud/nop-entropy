@@ -23,6 +23,8 @@ public interface BizConstants {
 
     String BEAN_nopQueryBeanArgsNormalizer = "nopQueryBeanArgsNormalizer";
 
+    String BEAN_nopFilterArgsNormalizer = "nopFilterArgsNormalizer";
+
     String FILE_POSTFIX_XMETA = ".xmeta";
 
     String XLIB_NS_BIZ = "biz";

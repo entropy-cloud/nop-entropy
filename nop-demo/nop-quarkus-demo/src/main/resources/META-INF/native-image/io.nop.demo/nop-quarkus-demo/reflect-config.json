@@ -14440,6 +14440,15 @@
           "java.lang.String",
           "java.util.Collection"
         ]
+      },
+      {
+        "name": "updateRoleResources",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.Collection",
+          "io.nop.api.core.beans.TreeBean"
+        ]
       }
     ],
     "name": "io.nop.auth.service.entity.NopAuthRoleBizModel",
@@ -15169,6 +15178,16 @@
           "java.lang.String",
           "java.lang.String",
           "java.util.Collection",
+          "io.nop.api.core.beans.TreeBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "addManyToManyRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.Collection",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -15180,6 +15199,17 @@
           "java.lang.String",
           "java.lang.Object",
           "java.util.Collection"
+        ]
+      },
+      {
+        "name": "addRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Object",
+          "java.util.Collection",
+          "io.nop.api.core.beans.TreeBean"
         ]
       },
       {
@@ -15427,6 +15457,17 @@
         "name": "doDeleteByQuery",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
+          "java.util.Set",
+          "java.util.function.BiConsumer",
+          "java.util.function.BiConsumer",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doDeleteByQuery",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
           "java.util.Set",
           "java.util.function.BiConsumer",
           "io.nop.core.context.IServiceContext"
@@ -15590,6 +15631,17 @@
         "parameterTypes": [
           "java.util.Map",
           "io.nop.api.core.beans.FieldSelectionBean",
+          "java.util.function.BiConsumer",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doUpdateByQuery",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
+          "java.util.Map",
+          "java.util.function.BiConsumer",
           "java.util.function.BiConsumer",
           "io.nop.core.context.IServiceContext"
         ]
@@ -15834,6 +15886,16 @@
           "java.lang.String",
           "java.lang.String",
           "java.util.Collection",
+          "io.nop.api.core.beans.TreeBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "removeManyToManyRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.Collection",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -15855,6 +15917,17 @@
           "java.lang.String",
           "java.lang.Object",
           "java.util.Collection"
+        ]
+      },
+      {
+        "name": "removeRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Object",
+          "java.util.Collection",
+          "io.nop.api.core.beans.TreeBean"
         ]
       },
       {
@@ -15981,6 +16054,16 @@
           "java.lang.String",
           "java.lang.String",
           "java.util.Collection",
+          "io.nop.api.core.beans.TreeBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "updateManyToManyRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.Collection",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -15991,6 +16074,29 @@
           "java.lang.String",
           "java.lang.String",
           "java.lang.Object",
+          "java.util.Collection"
+        ]
+      },
+      {
+        "name": "updateRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Object",
+          "java.util.Collection",
+          "io.nop.api.core.beans.TreeBean"
+        ]
+      },
+      {
+        "name": "updateRelationsEx",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.Map",
+          "io.nop.api.core.beans.TreeBean",
+          "boolean",
+          "java.lang.String",
           "java.util.Collection"
         ]
       },
@@ -16008,6 +16114,24 @@
       }
     ],
     "name": "io.nop.biz.crud.CrudBizModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "normalize",
+        "parameterTypes": [
+          "java.util.Map",
+          "io.nop.graphql.core.IGraphQLExecutionContext"
+        ]
+      }
+    ],
+    "name": "io.nop.biz.crud.FilterArgsNormalizer",
     "unsafeAllocated": false
   },
   {
@@ -16499,6 +16623,13 @@
       {
         "name": "getBizOperationDefinitions",
         "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getFragmentDefinition",
+        "parameterTypes": [
+          "java.lang.String",
           "java.lang.String"
         ]
       },
@@ -20550,6 +20681,14 @@
         ]
       },
       {
+        "name": "makeChildWithAttr",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "makeDocNode",
         "parameterTypes": [
           "java.lang.String"
@@ -20616,6 +20755,14 @@
       },
       {
         "name": "normalizeContent",
+        "parameterTypes": []
+      },
+      {
+        "name": "normalizeExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "normalizeExprInContent",
         "parameterTypes": []
       },
       {
@@ -29235,6 +29382,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "DEFAULT_BASE_PACKAGE_NAME"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "EXT_ORM_REF_TABLE"
       },
       {
@@ -32065,6 +32217,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_relationType"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_remark"
       },
       {
@@ -32170,6 +32327,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_relationType"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_remark"
       },
       {
@@ -32262,6 +32424,10 @@
       },
       {
         "name": "getRelationName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelationType",
         "parameterTypes": []
       },
       {
@@ -32420,6 +32586,12 @@
       },
       {
         "name": "setRelationName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRelationType",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -41543,6 +41715,10 @@
       {
         "name": "orm_reset",
         "parameterTypes": []
+      },
+      {
+        "name": "orm_tenantId",
+        "parameterTypes": []
       }
     ],
     "name": "io.nop.orm.IOrmObject",
@@ -43510,6 +43686,12 @@
         ]
       },
       {
+        "name": "addTag",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getAliasPropPath",
         "parameterTypes": [
           "java.lang.String"
@@ -43963,6 +44145,48 @@
       }
     ],
     "name": "io.nop.orm.model.OrmReferenceModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "m2m"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "m2o"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "o2m"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "o2o"
+      }
+    ],
+    "methods": [
+      {
+        "name": "valueOf",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "values",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.orm.model.OrmRelationType",
     "unsafeAllocated": false
   },
   {

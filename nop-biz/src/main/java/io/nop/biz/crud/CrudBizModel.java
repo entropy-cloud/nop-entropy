@@ -24,6 +24,7 @@ import io.nop.api.core.beans.DictOptionBean;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.PageBean;
+import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.beans.std.StdTreeEntity;
@@ -88,7 +89,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static io.nop.auth.api.AuthApiErrors.ARG_BIZ_OBJ_NAME;
@@ -1306,37 +1306,45 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
 
     @Description("@i18n:biz.addManyToMany|新增多对多关联")
+    @BizArgsNormalizer(BizConstants.BEAN_nopFilterArgsNormalizer)
     @BizMutation
     public void addManyToManyRelations(@Name("id") String id, @Name("propName") String propName,
-                                       @Name("relValues") Collection<String> relValues, IServiceContext context) {
+                                       @Name("relValues") Collection<String> relValues,
+                                       @Optional @Name("filter") TreeBean filter,
+                                       IServiceContext context) {
         T entity = get(id, false, context);
 
         ManyToManyPropMeta propMeta = requireManyToManyPropMeta(propName);
         ManyToManyTool<?> tool = this.manyToMany(propMeta.getRelatedEntityName(), propMeta.getJoinRightProp(), propMeta.getManyToManyRefProp());
         Object leftValue = entity.orm_propValueByName(propMeta.getJoinLeftProp());
-        tool.addRelations(leftValue, relValues);
+        tool.addRelations(leftValue, relValues, filter);
     }
 
     @Description("@i18n:biz.removeManyToMany|删除多对多关联")
+    @BizArgsNormalizer(BizConstants.BEAN_nopFilterArgsNormalizer)
     @BizMutation
     public void removeManyToManyRelations(@Name("id") String id, @Name("propName") String propName,
-                                          @Name("relValues") Collection<String> relValues, IServiceContext context) {
+                                          @Name("relValues") Collection<String> relValues,
+                                          @Optional @Name("filter") TreeBean filter,
+                                          IServiceContext context) {
         T entity = get(id, false, context);
         ManyToManyPropMeta propMeta = requireManyToManyPropMeta(propName);
         ManyToManyTool<?> tool = this.manyToMany(propMeta.getRelatedEntityName(), propMeta.getJoinRightProp(), propMeta.getManyToManyRefProp());
         Object leftValue = entity.orm_propValueByName(propMeta.getJoinLeftProp());
-        tool.removeRelations(leftValue, relValues);
+        tool.removeRelations(leftValue, relValues, filter);
     }
 
     @Description("@i18n:biz.updateManyToMany|更新多对多关联")
+    @BizArgsNormalizer(BizConstants.BEAN_nopFilterArgsNormalizer)
     @BizMutation
     public void updateManyToManyRelations(@Name("id") String id, @Name("propName") String propName,
-                                          @Name("relValues") Collection<String> relValues, IServiceContext context) {
+                                          @Name("relValues") Collection<String> relValues,
+                                          @Optional @Name("filter") TreeBean filter, IServiceContext context) {
         T entity = get(id, false, context);
         ManyToManyPropMeta propMeta = requireManyToManyPropMeta(propName);
         ManyToManyTool<?> tool = this.manyToMany(propMeta.getRelatedEntityName(), propMeta.getJoinRightProp(), propMeta.getManyToManyRefProp());
         Object leftValue = entity.orm_propValueByName(propMeta.getJoinLeftProp());
-        tool.updateRelations(leftValue, relValues);
+        tool.updateRelations(leftValue, relValues, filter);
     }
 
     protected ManyToManyPropMeta requireManyToManyPropMeta(String propName) {
@@ -1432,8 +1440,9 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                                                        @Name("leftProp") String leftProp,
                                                        @Name("rightProp") String rightProp,
                                                        @Name("leftValue") Object leftValue,
-                                                       @Name("rightValues") Collection<?> rightValues) {
-        manyToMany(relationEntityName, leftProp, rightProp).removeRelations(leftValue, rightValues);
+                                                       @Name("rightValues") Collection<?> rightValues,
+                                                       @Name("filter") TreeBean filter) {
+        manyToMany(relationEntityName, leftProp, rightProp).removeRelations(leftValue, rightValues, filter);
     }
 
     @BizAction
@@ -1441,8 +1450,9 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                                                     @Name("leftProp") String leftProp,
                                                     @Name("rightProp") String rightProp,
                                                     @Name("leftValue") Object leftValue,
-                                                    @Name("rightValues") Collection<?> rightValues) {
-        manyToMany(relationEntityName, leftProp, rightProp).addRelations(leftValue, rightValues);
+                                                    @Name("rightValues") Collection<?> rightValues,
+                                                    @Name("filter") TreeBean filter) {
+        manyToMany(relationEntityName, leftProp, rightProp).addRelations(leftValue, rightValues, filter);
     }
 
     @BizAction
@@ -1450,15 +1460,16 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                                                        @Name("leftProp") String leftProp,
                                                        @Name("rightProp") String rightProp,
                                                        @Name("leftValue") Object leftValue,
-                                                       @Name("rightValues") Collection<?> rightValues) {
-        manyToMany(relationEntityName, leftProp, rightProp).updateRelations(leftValue, rightValues);
+                                                       @Name("rightValues") Collection<?> rightValues,
+                                                       @Name("filter") TreeBean filter) {
+        manyToMany(relationEntityName, leftProp, rightProp).updateRelations(leftValue, rightValues, filter);
     }
 
     @BizAction
     public <R extends IOrmEntity> void updateRelationsEx(@Name("relationEntityName") String relationEntityName,
                                                          @Name("leftProp") String leftProp,
                                                          @Name("fixedProps") Map<String, Object> fixedProps,
-                                                         @Name("filter") Predicate<R> filter,
+                                                         @Name("filter") TreeBean filter,
                                                          @Name("deleteUnknown") boolean deleteUnknown,
                                                          @Name("rightProp") String rightProp,
                                                          @Name("rightValues") Collection<?> relValues) {

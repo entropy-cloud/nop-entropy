@@ -13,7 +13,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.ContextSource;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.graphql.GraphQLReturn;
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.core.AuthCoreConstants;
 import io.nop.auth.dao.entity.NopAuthRole;
@@ -76,7 +79,7 @@ public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
                                 @Name("userIds") Collection<String> userIds) {
         removeRelations(NopAuthUserRole.class.getName(),
                 "roleId", "userId",
-                roleId, userIds);
+                roleId, userIds, null);
     }
 
     @BizMutation
@@ -88,7 +91,7 @@ public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
             }
         }
         addRelations(NopAuthUserRole.class.getName(), "roleId", "userId",
-                roleId, userIds);
+                roleId, userIds, null);
     }
 
     @BizAction
@@ -109,16 +112,16 @@ public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
     @BizMutation
     public void updateRoleResources(@Name("roleId") String roleId,
                                     @Name("siteId") String siteId,
-                                    @Name("resourceIds") Collection<String> resourceIds) {
+                                    @Name("resourceIds") Collection<String> resourceIds,
+                                    @Optional @Name("filter") TreeBean filter) {
         if (StringHelper.isEmpty(siteId))
             siteId = NopAuthConstants.SITE_ID_MAIN;
 
         Map<String, Object> fixedProps = new HashMap<>();
         fixedProps.put("roleId", roleId);
 
-        String fixedSiteId = siteId;
-        super.updateRelationsEx(NopAuthRoleResource.class.getName(), "roleId", fixedProps,
-                (NopAuthRoleResource relation) -> relation.getResource().getSiteId().equals(fixedSiteId),
+        filter = FilterBeans.and(filter, FilterBeans.eq("resource.siteId", siteId));
+        super.updateRelationsEx(NopAuthRoleResource.class.getName(), "roleId", fixedProps, filter,
                 true, "resourceId", resourceIds);
     }
 }

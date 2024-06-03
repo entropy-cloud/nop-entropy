@@ -41,9 +41,9 @@ public class GraphQLArgsHelper {
 
         if (!subArgs.isEmpty()) {
             subArgs.forEach((name, argMap) -> {
-                if(name.endsWith(GraphQLConstants.POSTFIX_CONNECTION)){
+                if (name.endsWith(GraphQLConstants.POSTFIX_CONNECTION)) {
                     argMap = normalizeConnectionArgs(argMap);
-                }else {
+                } else {
                     argMap = normalizeQueryArgs(argMap);
                 }
                 selectionBean.makeSubField(name, true).setArgs(argMap);
@@ -96,6 +96,37 @@ public class GraphQLArgsHelper {
         }
 
         ret.put(GraphQLConstants.ARG_QUERY, query);
+        return ret;
+    }
+
+    public static Map<String, Object> normalizeFilterArgs(Map<String, Object> args) {
+        if (args == null || args.isEmpty() || args.containsKey(GraphQLConstants.ARG_FILTER))
+            return args;
+
+        Map<String, Object> ret = new LinkedHashMap<>();
+
+        List<Map<String, Object>> filters = new ArrayList<>();
+
+        for (Map.Entry<String, Object> entry : args.entrySet()) {
+            String name = entry.getKey();
+            if (name.startsWith("_"))
+                continue;
+
+            if (name.startsWith(GraphQLConstants.FILTER_PREFIX)) {
+                Map<String, Object> filter = GraphQLArgsHelper.getFilterMap(name, entry.getValue());
+                filters.add(filter);
+            } else {
+                ret.put(name, entry.getValue());
+            }
+        }
+
+        if (!filters.isEmpty()) {
+            Map<String, Object> filter = new LinkedHashMap<>();
+            filter.put(CoreConstants.XML_PROP_TYPE, FilterBeanConstants.FILTER_OP_AND);
+            filter.put(CoreConstants.XML_PROP_BODY, filters);
+            ret.put(GraphQLConstants.PROP_FILTER, filter);
+        }
+
         return ret;
     }
 

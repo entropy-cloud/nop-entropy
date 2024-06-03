@@ -63,6 +63,8 @@ public interface GraphQLConstants {
     String ARG_IDS = "ids";
     String ARG_QUERY = "query";
 
+    String ARG_FILTER = "filter";
+
     String PROP_ID = "id";
 
     /**
