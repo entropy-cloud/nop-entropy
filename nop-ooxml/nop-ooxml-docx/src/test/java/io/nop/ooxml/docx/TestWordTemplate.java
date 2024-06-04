@@ -200,6 +200,19 @@ public class TestWordTemplate extends BaseTestCase {
         assertEquals(attachmentXml("result-test-header-footer.header3.xml").xml(), doc.xml());
     }
 
+    @Test
+    public void testBackground() {
+        IResource resource = classpathResource("docx/test-background.docx");
+        Object entity = classpathBean("docx/project-data.json", Map.class);
+
+        IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValue(null, "entity", entity);
+
+        File file = getTargetFile("/gen/result-background.docx");
+        WordTemplate tpl = new WordTemplateParser().parseFromResource(resource);
+        tpl.generateToFile(file, scope);
+    }
+
     //
     // public static void main(String[] args) {
     // ZipFileWatcher.main(new

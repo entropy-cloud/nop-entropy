@@ -372,7 +372,8 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         if (hasContent()) {
             String text = contentText();
             // 没有闭合的表达式
-            if (text.contains("${") && text.indexOf('}') < 0) {
+            int pos = text.indexOf("${");
+            if (pos >=0 && text.indexOf('}', pos) < 0) {
                 text = StringHelper.replace(text, "$", "${'$'}");
                 content(content().getLocation(), text);
             }

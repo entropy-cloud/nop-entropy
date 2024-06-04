@@ -24,12 +24,17 @@ public class WordHyperlinkTransformer {
             return;
 
         XNode textNode = null;
+        XNode wtNode = null;
         for (int i = index + 1; i < endIndex; i++) {
             XNode child = parent.child(i);
             XNode tNode = child.childByTag("w:t");
             if (tNode != null) {
-                textNode = child;
-                break;
+                if(textNode == null) {
+                    textNode = child;
+                    wtNode = tNode;
+                }else{
+                    wtNode.appendContent(tNode.content().getLocation(), tNode.contentText());
+                }
             }
         }
 

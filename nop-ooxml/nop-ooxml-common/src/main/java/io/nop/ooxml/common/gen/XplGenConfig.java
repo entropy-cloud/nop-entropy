@@ -174,8 +174,8 @@ public class XplGenConfig extends AbstractComponentModel {
         node.forEachNode(child -> {
             child.forEachAttr((name, value) -> {
                 if (name.startsWith(CoreConstants.NS_XMLNS_PREFIX)) {
-                    if (value.toString().startsWith("http://")) {
-                        String ns = name.substring(CoreConstants.NS_XMLNS_PREFIX.length());
+                    String ns = name.substring(CoreConstants.NS_XMLNS_PREFIX.length());
+                    if (!value.toString().equals(ns)) {
                         ret.add(ns);
                     }
                 }

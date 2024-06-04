@@ -1,0 +1,25 @@
+
+
+                                       
+  ${entity.year} [HYPERLINK: xpl:]年${entity.month} [HYPERLINK: xpl:]月份
+
+                   ${entity.year}年${entity.month}月31日
+             
+${entity.year} [HYPERLINK: xpl:]年${entity.month} [HYPERLINK: xpl:]月份，公司在研科研项目${entity.projectNo} [HYPERLINK: xpl:]项，其中重点项目${entity.zhongDianNo} [HYPERLINK: xpl:]个  
+XplGenConfig
+
+dump
+true
+dumpFile
+Aaaaa.doc.xml
+importLibs
+
+beforeGen
+<c:script>
+  logDebug("test")
+</c:script>
+afterGen
+
+
+
+
