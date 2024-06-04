@@ -268,7 +268,7 @@
                 <column code="DISPLAY_NAME" displayName="步骤显示名称" mandatory="true" name="displayName" precision="200"
                         propId="5" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Display Name"/>
                 <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="6" stdDataType="int"
-                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="wf/wf-step-status"/>
+                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="task/task-step-status"/>
                 <column code="SUB_TASK_ID" displayName="子流程ID" name="subTaskId" precision="32" propId="8"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Sub Flow ID" ui:show="X"/>
                 <column code="SUB_TASK_NAME" displayName="子流程名称" name="subTaskName" precision="200" propId="9"

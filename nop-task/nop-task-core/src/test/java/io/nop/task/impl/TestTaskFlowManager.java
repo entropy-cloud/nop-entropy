@@ -114,7 +114,6 @@ public class TestTaskFlowManager extends AbstractTaskTestCase {
         });
     }
 
-
     public static class MyHandler {
 
         public int myMethod(int x) {

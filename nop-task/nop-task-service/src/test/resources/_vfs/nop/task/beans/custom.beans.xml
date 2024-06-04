@@ -1,0 +1,4 @@
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <bean id="myDemoHandler" class="io.nop.task.test.MyDemoHandler" />
+</beans>

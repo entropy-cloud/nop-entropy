@@ -40,7 +40,7 @@
         </prop>
         <prop name="status" displayName="状态" propId="6" i18n-en:displayName="Status" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.Integer" dict="wf/wf-step-status"/>
+            <schema type="java.lang.Integer" dict="task/task-step-status"/>
         </prop>
         <prop name="subTaskId" displayName="子流程ID" propId="8" i18n-en:displayName="Sub Flow ID" queryable="true"
               sortable="true" insertable="true" updatable="true" internal="true" ui:show="X"
