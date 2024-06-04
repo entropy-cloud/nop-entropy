@@ -35,4 +35,15 @@ public class TestReportEngine extends JunitBaseTestCase {
         scope.setLocalValues(data);
         output.generateToFile(getTargetFile("test-scope.html"), scope);
     }
+
+    @Test
+    public void testValidateAfterExpand() {
+        String reportPath = "/report/validate-after-expand.xpt.xlsx";
+        ITextTemplateOutput output = reportEngine.getHtmlRenderer(reportPath);
+
+        IEvalScope scope = XLang.newEvalScope();
+        Map<String, Object> data = classpathBean("_vfs/report/data.json5", Map.class);
+        scope.setLocalValues(data);
+        output.generateToFile(getTargetFile("test-validate-after-expand.html"), scope);
+    }
 }

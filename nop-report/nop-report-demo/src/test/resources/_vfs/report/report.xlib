@@ -1,0 +1,16 @@
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
+    <tags>
+        <Validate>
+            <attr name="xptRt" implicit="true" />
+            <slot name="default" slotType="node" />
+
+            <source>
+                <c:script>
+                    import io.nop.report.demo.TableValidateHelper;
+
+                    TableValidateHelper.validateSheet(xptRt.sheet, slot_default.text());
+                </c:script>
+            </source>
+        </Validate>
+    </tags>
+</lib>
