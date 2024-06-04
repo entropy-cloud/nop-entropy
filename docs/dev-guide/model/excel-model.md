@@ -160,6 +160,9 @@ Nop平台内置的表名都具有前缀`nop_`。
 假设数据库列名为 `S_USER_NAME`，它对应的Java Get方法为 `String#getSUserName()`，按照JavaBean规范，除去`get`前缀后，如果连续两个字母都是大写字母，则对应Java属性名也保持首字母大写，
 因此Java属性名为`SUserName`，而不是`sUserName`。
 
+### 关联集合的排序条件
+通过【排序条件】配置可以指定关联集合的排序条件，它对应于`refSet.sort`配置。例如配置nop-rule.orm.xlsx中NopAuth【排序条件】为 orderNo asc
+
 ## 外部表
 
 有时需要引入其他模块中的实体，这时要写实体的全名，同时插入一个占位用的Sheet，在其中只定义主键即可，同时在表上增加`not-gen`标签。
