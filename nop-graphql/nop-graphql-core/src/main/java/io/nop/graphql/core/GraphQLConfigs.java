@@ -67,4 +67,8 @@ public interface GraphQLConfigs {
     @Description("GraphQL解析结果是否需要检查动态更新")
     IConfigReference<Boolean> CFG_GRAPHQL_PARSE_CACHE_CHECK_CHANGED = varRef(s_loc, "nop.graphql.parse-cache-check-changed",
             Boolean.class, true);
+
+    @Description("单次请求最多允许多少个Directive")
+    IConfigReference<Integer> CFG_GRAPHQL_MAX_DIRECTIVE_PER_REQUEST = varRef(s_loc, "nop.graphql.max-directive-per-request",
+            Integer.class, 20);
 }

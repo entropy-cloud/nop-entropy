@@ -8,6 +8,7 @@
 package io.nop.graphql.core.ast;
 
 import io.nop.api.core.util.INeedInit;
+import io.nop.commons.mutable.MutableInt;
 import io.nop.graphql.core.ast._gen._GraphQLDocument;
 import io.nop.graphql.core.schema.utils.GraphQLSourcePrinter;
 
@@ -30,6 +31,17 @@ public class GraphQLDocument extends _GraphQLDocument implements INeedInit {
 
     public String toSource() {
         return new GraphQLSourcePrinter().print(this);
+    }
+
+    public int getAllDirectiveCount() {
+        MutableInt count = new MutableInt();
+        new GraphQLASTVisitor() {
+            @Override
+            public void visitGraphQLDirective(GraphQLDirective node) {
+                count.incrementAndGet();
+            }
+        }.visit(this);
+        return count.get();
     }
 
     public void init() {

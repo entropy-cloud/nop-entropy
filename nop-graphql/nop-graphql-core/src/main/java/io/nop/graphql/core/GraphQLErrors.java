@@ -19,6 +19,8 @@ public interface GraphQLErrors {
 
     String ARG_MAX_COUNT = "maxCount";
 
+    String ARG_COUNT = "count";
+
     String ARG_LOCATION = "location";
 
     String ARG_LOADER_NAME = "loaderName";
@@ -325,4 +327,7 @@ public interface GraphQLErrors {
 
     ErrorCode ERR_GRAPHQL_UNKNOWN_FRAGMENT_SELECTION =
             define("nop.err.graphql.unknown-fragment-selection", "对象元数据中没有定义名称为[{fragmentName}]的片段选择器", ARG_FRAGMENT_NAME);
+
+    ErrorCode ERR_GRAPHQL_EXCEED_MAX_DIRECTIVE_PER_REQUEST =
+            define("nop.err.graphql.exceed-max-directive-per-request", "当前请求的Directive个数超出限制，最多允许{maxCount}个", ARG_MAX_COUNT);
 }

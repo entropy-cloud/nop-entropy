@@ -119,6 +119,16 @@ public class FieldSelectionBean implements Serializable, IDeepCloneable, IFreeza
         return new FieldSelectionBean();
     }
 
+    public int getAllDirectiveCount() {
+        int count = directives == null ? 0 : directives.size();
+        if (fields != null) {
+            for (FieldSelectionBean field : fields.values()) {
+                count += field.getAllDirectiveCount();
+            }
+        }
+        return count;
+    }
+
     /**
      * 是否简单字段，没有除字段名之外的配置信息
      */

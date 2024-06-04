@@ -60,17 +60,21 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
 
 import static io.nop.commons.cache.CacheConfig.newConfig;
+import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAX_DIRECTIVE_PER_REQUEST;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_PARSE_CACHE_CHECK_CHANGED;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_QUERY_MAX_DEPTH;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_QUERY_MAX_OPERATION_COUNT;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_SCHEMA_INTROSPECTION_ENABLED;
 import static io.nop.graphql.core.GraphQLErrors.ARG_ALLOWED_NAMES;
 import static io.nop.graphql.core.GraphQLErrors.ARG_ARG_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_COUNT;
 import static io.nop.graphql.core.GraphQLErrors.ARG_EXPECTED_OPERATION_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ARG_MAX_COUNT;
 import static io.nop.graphql.core.GraphQLErrors.ARG_OPERATION_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_OPERATION_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ARG_TYPE_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_DOC_OPERATION_SIZE_NOT_ONE;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_EXCEED_MAX_DIRECTIVE_PER_REQUEST;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_INTROSPECTION_NOT_ENABLED;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_QUERY_EXCEED_MAX_OPERATION_COUNT;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_QUERY_NO_OPERATION;
@@ -321,6 +325,7 @@ public class GraphQLEngine implements IGraphQLEngine {
         if (!doc.isResolved()) {
             resolveSelections(doc, CFG_GRAPHQL_QUERY_MAX_DEPTH.get());
         }
+        validateDocument(doc);
 
         Map<String, Object> vars = request.getVariables();
         GraphQLOperation op = (GraphQLOperation) doc.getDefinitions().get(0);
@@ -337,6 +342,15 @@ public class GraphQLEngine implements IGraphQLEngine {
         context.setFieldSelection(selectionBean);
     }
 
+    private void validateDocument(GraphQLDocument doc) {
+        int maxCount = CFG_GRAPHQL_MAX_DIRECTIVE_PER_REQUEST.get();
+        int count = doc.getAllDirectiveCount();
+        if (count > maxCount)
+            throw new NopException(ERR_GRAPHQL_EXCEED_MAX_DIRECTIVE_PER_REQUEST)
+                    .param(ARG_MAX_COUNT, maxCount)
+                    .param(ARG_COUNT, count);
+    }
+
     public void initRpcContext(IGraphQLExecutionContext context, GraphQLOperationType expectedOpType,
                                String operationName, ApiRequest<?> request) {
 
@@ -348,6 +362,10 @@ public class GraphQLEngine implements IGraphQLEngine {
         if (expectedOpType != null && opType != expectedOpType) {
             throw new NopException(ERR_GRAPHQL_UNEXPECTED_OPERATION_TYPE).param(ARG_OPERATION_NAME, operationName)
                     .param(ARG_OPERATION_TYPE, opType).param(ARG_EXPECTED_OPERATION_TYPE, expectedOpType);
+        }
+
+        if (request.getSelection() != null) {
+            validateSelection(request.getSelection());
         }
 
         context.setRequestHeaders(request.getHeaders());
@@ -384,6 +402,16 @@ public class GraphQLEngine implements IGraphQLEngine {
         FieldSelectionBean fieldSelection = buildSelectionBean(operationName, op.getSelectionSet(), Collections.emptyMap());
 
         context.setFieldSelection(fieldSelection);
+    }
+
+    private void validateSelection(FieldSelectionBean selection) {
+        int count = selection.getAllDirectiveCount();
+        int maxCount = CFG_GRAPHQL_QUERY_MAX_OPERATION_COUNT.get();
+        if (count > maxCount) {
+            throw new NopException(ERR_GRAPHQL_EXCEED_MAX_DIRECTIVE_PER_REQUEST)
+                    .param(ARG_MAX_COUNT, maxCount)
+                    .param(ARG_COUNT, count);
+        }
     }
 
     FieldSelectionBean buildSelectionBean(String operationName, FieldSelectionBean selectionBean) {
