@@ -1,11 +1,23 @@
 <view x:schema="/nop/schema/xui/xview.xdef" bizObjName="${metaInfo.objName}"
-xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="gql">
+xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c"
+      xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
     <c:script>
       let objMeta = metaInfo.objMeta;
     </c:script>
 
     <objMeta>${objMeta.resourcePath()}</objMeta>
     <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <c:print>
+        <x:gen-extends>
+            <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+        </x:gen-extends>
+
+        <x:post-extends>
+            <view-gen:DefaultViewPostExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+        </x:post-extends>
+    </c:print>
+
 
     <c:import from="/nop/codegen/xlib/web-gen.xlib" />
 

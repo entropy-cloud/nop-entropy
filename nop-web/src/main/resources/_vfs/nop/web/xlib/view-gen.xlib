@@ -3,6 +3,20 @@
 <lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
     <tags>
 
+        <DefaultViewGenExtends outputMode="node">
+            <attr name="_dsl_root" implicit="true"/>
+            <source>
+            </source>
+        </DefaultViewGenExtends>
+
+        <DefaultViewPostExtends outputMode="node">
+            <attr name="_dsl_root" implicit="true"/>
+
+            <source>
+
+            </source>
+        </DefaultViewPostExtends>
+
         <GenViewFromMeta outputMode="node">
             <attr name="path" stdDomain="v-path"/>
 

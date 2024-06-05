@@ -1293,6 +1293,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getAllDirectiveCount",
+        "parameterTypes": []
+      },
+      {
         "name": "getArg",
         "parameterTypes": [
           "java.lang.String"
@@ -2506,6 +2510,43 @@
     "fields": [],
     "methods": [
       {
+        "name": "addLocation",
+        "parameterTypes": [
+          "io.nop.api.core.beans.graphql.GraphQLSourceLocation"
+        ]
+      },
+      {
+        "name": "getLocations",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMessage",
+        "parameterTypes": []
+      },
+      {
+        "name": "setLocations",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setMessage",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.beans.graphql.GraphQLErrorBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "getId",
         "parameterTypes": []
       },
@@ -2747,6 +2788,37 @@
       }
     ],
     "name": "io.nop.api.core.beans.graphql.GraphQLResponseBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getColumn",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLine",
+        "parameterTypes": []
+      },
+      {
+        "name": "setColumn",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setLine",
+        "parameterTypes": [
+          "int"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.beans.graphql.GraphQLSourceLocation",
     "unsafeAllocated": false
   },
   {
@@ -10702,6 +10774,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_roleIds"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_sid"
       },
       {
@@ -10718,6 +10795,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_ID_version"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_whenConfig"
       },
       {
         "allowUnsafeAccess": false,
@@ -10772,6 +10854,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_roleIds"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_sid"
       },
       {
@@ -10788,6 +10875,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_NAME_version"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_whenConfig"
       }
     ],
     "methods": [
@@ -10836,6 +10928,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getRoleIds",
+        "parameterTypes": []
+      },
+      {
         "name": "getSid",
         "parameterTypes": []
       },
@@ -10849,6 +10945,10 @@
       },
       {
         "name": "getVersion",
+        "parameterTypes": []
+      },
+      {
+        "name": "getWhenConfig",
         "parameterTypes": []
       },
       {
@@ -10966,6 +11066,12 @@
         ]
       },
       {
+        "name": "setRoleIds",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setSid",
         "parameterTypes": [
           "java.lang.String"
@@ -10987,6 +11093,12 @@
         "name": "setVersion",
         "parameterTypes": [
           "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setWhenConfig",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       }
     ],
@@ -14135,6 +14247,12 @@
     "fields": [],
     "methods": [
       {
+        "name": "buildWhen",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthRoleDataAuth"
+        ]
+      },
+      {
         "name": "clearCache",
         "parameterTypes": []
       },
@@ -14159,6 +14277,15 @@
         "name": "loadDataAuthModel",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "newEvalScope",
+        "parameterTypes": [
+          "io.nop.auth.core.model.ObjDataAuthModel",
+          "java.lang.String",
+          "java.lang.Object",
+          "io.nop.api.core.auth.ISecurityContext"
         ]
       },
       {

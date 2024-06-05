@@ -333,3 +333,5 @@ authObjName对应不同的业务场景，一个业务场景下会存在多个操
 * 通过数据库的NopAuthRoleDataAuth实体可以在线配置数据权限
 * 在线配置时为避免出现安全性问题，filter段只能使用`biz!filter.xlib`，名字空间是biz。whenConfig配置只能使用`biz!when.xlib`标签库中定义的标签。
 * whenConfig可以直接配置标签名，比如 `biz:WhenAdmin`或者`<biz:WhenXX type='1' />`
+
+**注意: 数据权限是作用于业务场景的，因此它会对get和findXX函数都起作用，get调用时会执行check配置。如果没有明确指定check，则会自动将filter翻译为在内存中执行的check。 因此，如果filter中使用SQL子查询则会出现翻译失败报错的情况。**

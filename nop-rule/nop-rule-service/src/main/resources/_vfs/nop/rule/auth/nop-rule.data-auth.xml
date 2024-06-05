@@ -4,10 +4,10 @@
     <objs>
         <obj name="NopRuleDefinition">
             <role-auths>
-                <role-auth roleId="admin" priority="50" >
+                <role-auth id="admin" roleIds="admin" priority="50" >
                 </role-auth>
 
-                <role-auth roleId="user">
+                <role-auth id="default" roleIds="user">
 
                     <check>
                         userContext.isUserInAnyRole(entity.roleIds)

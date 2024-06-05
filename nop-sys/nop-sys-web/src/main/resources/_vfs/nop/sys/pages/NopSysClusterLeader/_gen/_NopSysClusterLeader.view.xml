@@ -1,10 +1,18 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopSysClusterLeader" xmlns:i18n-en="i18n-en"
-      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="gql">
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c" xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
 
     <objMeta>/nop/sys/model/NopSysClusterLeader/NopSysClusterLeader.xmeta</objMeta>
 
     <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <x:gen-extends>
+        <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <view-gen:DefaultViewPostExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:post-extends>
 
     <grids>
         <grid id="list" x:abstract="true">

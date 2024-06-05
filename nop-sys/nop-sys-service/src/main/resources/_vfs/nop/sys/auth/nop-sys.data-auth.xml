@@ -4,7 +4,7 @@
     <objs>
         <obj name="NopSysUserVariable">
             <role-auths>
-                <role-auth roleId="user">
+                <role-auth id="default" roleIds="user">
                     <filter>
                         <eq name="userId" value="@biz:userId"/>
                     </filter>

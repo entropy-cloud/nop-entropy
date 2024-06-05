@@ -310,6 +310,7 @@
 /nop/core/xlib/biz!check.xlib
 /nop/core/xlib/biz!filter.xlib
 /nop/core/xlib/biz!value.xlib
+/nop/core/xlib/biz!when.xlib
 /nop/core/xlib/biz-gen.xlib
 /nop/core/xlib/biz.xlib
 /nop/core/xlib/file.xlib

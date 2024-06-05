@@ -4,10 +4,10 @@
     <objs>
         <obj name="NopAuthUser">
             <role-auths>
-                <role-auth roleId="nop-admin">
+                <role-auth id="admin" roleIds="nop-admin">
                 </role-auth>
 
-                <role-auth roleId="user">
+                <role-auth id="default" roleIds="user">
                     <filter>
                         <eq name="tenantId" value="${$context.tenantId}"/>
                     </filter>
