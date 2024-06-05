@@ -31,6 +31,8 @@ public interface NopAuthErrors {
     String ARG_VAR_NAME = "varName";
     String ARG_ATTR_NAME = "attrName";
 
+    String ARG_WHEN_CONFIG = "whenConfig";
+
     ErrorCode ERR_AUTH_INVALID_LOGIN_REQUEST = define(API_STATUS_BAD_REQUEST, "nop.err.auth.invalid-login-request",
             "登录请求参数不合法");
 
@@ -56,4 +58,7 @@ public interface NopAuthErrors {
 
     ErrorCode ERR_AUTH_ONLY_ADMIN_CAN_ASSIGN_INTERNAL_ROLE = define("nop.err.auth.only-admin-can-assign-internal-role",
             "只有系统管理员可以为用户指定内部角色: {roleId}", ARG_ROLE_ID, ARG_USER_ID);
+
+    ErrorCode ERR_AUTH_INVALID_AUTH_WHEN_CONFIG = define("nop.err.auth.invalid-auth-when-config",
+            "权限条件配置只支持auth-when名字空间中的标签，不支持其他动态脚本", ARG_WHEN_CONFIG);
 }

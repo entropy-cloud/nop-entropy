@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [19:18:0:0]/nop/schema/data-auth.xdef <p>
+ * generate from [25:18:0:0]/nop/schema/data-auth.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -38,6 +38,13 @@ public abstract class _RoleDataAuthModel extends io.nop.core.resource.component.
     private io.nop.core.lang.xml.IXNodeGenerator _filter ;
     
     /**
+     *  
+     * xml name: id
+     * 
+     */
+    private java.lang.String _id ;
+    
+    /**
      *  权限规则优先级
      * xml name: priority
      * 如果一个用户存在多个角色，则按照优先级高的权限约束规则执行。
@@ -47,10 +54,17 @@ public abstract class _RoleDataAuthModel extends io.nop.core.resource.component.
     
     /**
      *  角色id
-     * xml name: roleId
-     * 
+     * xml name: roleIds
+     * 哪些角色会应用这个权限条目
      */
-    private java.lang.String _roleId ;
+    private java.util.Set<java.lang.String> _roleIds ;
+    
+    /**
+     *  
+     * xml name: when
+     * 动态判断是否应用该权限条目
+     */
+    private io.nop.core.lang.eval.IEvalPredicate _when ;
     
     /**
      * 
@@ -110,6 +124,25 @@ public abstract class _RoleDataAuthModel extends io.nop.core.resource.component.
 
     
     /**
+     * 
+     * xml name: id
+     *  
+     */
+    
+    public java.lang.String getId(){
+      return _id;
+    }
+
+    
+    public void setId(java.lang.String value){
+        checkAllowChange();
+        
+        this._id = value;
+           
+    }
+
+    
+    /**
      * 权限规则优先级
      * xml name: priority
      *  如果一个用户存在多个角色，则按照优先级高的权限约束规则执行。
@@ -131,19 +164,38 @@ public abstract class _RoleDataAuthModel extends io.nop.core.resource.component.
     
     /**
      * 角色id
-     * xml name: roleId
-     *  
+     * xml name: roleIds
+     *  哪些角色会应用这个权限条目
      */
     
-    public java.lang.String getRoleId(){
-      return _roleId;
+    public java.util.Set<java.lang.String> getRoleIds(){
+      return _roleIds;
     }
 
     
-    public void setRoleId(java.lang.String value){
+    public void setRoleIds(java.util.Set<java.lang.String> value){
         checkAllowChange();
         
-        this._roleId = value;
+        this._roleIds = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: when
+     *  动态判断是否应用该权限条目
+     */
+    
+    public io.nop.core.lang.eval.IEvalPredicate getWhen(){
+      return _when;
+    }
+
+    
+    public void setWhen(io.nop.core.lang.eval.IEvalPredicate value){
+        checkAllowChange();
+        
+        this._when = value;
            
     }
 
@@ -166,8 +218,10 @@ public abstract class _RoleDataAuthModel extends io.nop.core.resource.component.
         out.putNotNull("check",this.getCheck());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("filter",this.getFilter());
+        out.putNotNull("id",this.getId());
         out.putNotNull("priority",this.getPriority());
-        out.putNotNull("roleId",this.getRoleId());
+        out.putNotNull("roleIds",this.getRoleIds());
+        out.putNotNull("when",this.getWhen());
     }
 
     public RoleDataAuthModel cloneInstance(){
@@ -182,8 +236,10 @@ public abstract class _RoleDataAuthModel extends io.nop.core.resource.component.
         instance.setCheck(this.getCheck());
         instance.setDescription(this.getDescription());
         instance.setFilter(this.getFilter());
+        instance.setId(this.getId());
         instance.setPriority(this.getPriority());
-        instance.setRoleId(this.getRoleId());
+        instance.setRoleIds(this.getRoleIds());
+        instance.setWhen(this.getWhen());
     }
 
     protected RoleDataAuthModel newInstance(){

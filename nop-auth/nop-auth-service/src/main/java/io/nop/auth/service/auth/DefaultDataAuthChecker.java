@@ -10,16 +10,19 @@ package io.nop.auth.service.auth;
 import io.nop.api.core.auth.IDataAuthChecker;
 import io.nop.api.core.auth.ISecurityContext;
 import io.nop.api.core.beans.ITreeBean;
-import io.nop.api.core.beans.TreeBean;
+import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.core.AuthCoreConstants;
 import io.nop.auth.core.model.DataAuthModel;
 import io.nop.auth.core.model.ObjDataAuthModel;
 import io.nop.auth.core.model.RoleDataAuthModel;
 import io.nop.auth.dao.entity.NopAuthRoleDataAuth;
-import io.nop.xlang.filter.BizFilterEvaluator;
 import io.nop.biz.crud.BizFilterNodeGenerator;
-import io.nop.core.context.IServiceContext;
+import io.nop.commons.util.StringHelper;
+import io.nop.core.CoreConstants;
 import io.nop.core.lang.eval.IEvalPredicate;
+import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.utils.XNodeHelper;
 import io.nop.core.lang.xml.IXNodeGenerator;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
@@ -27,14 +30,22 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.cache.ResourceCacheEntry;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.xlang.api.XLang;
 import io.nop.xlang.xdsl.DslModelParser;
-
 import jakarta.inject.Inject;
-import java.util.List;
 
+import java.util.List;
+import java.util.Set;
+
+import static io.nop.auth.api.AuthApiErrors.ARG_BIZ_OBJ_NAME;
+import static io.nop.auth.api.AuthApiErrors.ARG_ID;
+import static io.nop.auth.api.AuthApiErrors.ARG_USER_NAME;
+import static io.nop.auth.api.AuthApiErrors.ERR_AUTH_NO_DATA_AUTH;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_DATA_AUTH_CACHE_CHECK_CHANGED;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_DATA_AUTH_CONFIG_PATH;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_USE_DATA_AUTH_TABLE;
+import static io.nop.auth.service.NopAuthErrors.ARG_WHEN_CONFIG;
+import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_INVALID_AUTH_WHEN_CONFIG;
 
 public class DefaultDataAuthChecker implements IDataAuthChecker {
 
@@ -64,6 +75,7 @@ public class DefaultDataAuthChecker implements IDataAuthChecker {
             mergeRoleAuth(authModel, roleAuths);
         }
 
+        authModel.initCheckerFromFilter();
         authModel.sort();
         return authModel;
     }
@@ -79,42 +91,100 @@ public class DefaultDataAuthChecker implements IDataAuthChecker {
                 authModel.addObj(objAuth);
             }
 
-            IEvalPredicate checker = ctx -> new BizFilterEvaluator(IServiceContext.fromEvalContext(ctx)).testForEntity(filter.toTreeBean(), ctx.getEvalScope().getValue(AuthCoreConstants.VAR_ENTITY));
             IXNodeGenerator filterBuilder = new BizFilterNodeGenerator(filter);
 
-            RoleDataAuthModel roleAuth = objAuth.getRoleAuth(auth.getRoleId());
-            if (roleAuth == null) {
-                roleAuth = new RoleDataAuthModel();
-                roleAuth.setRoleId(auth.getRoleId());
-                objAuth.addRoleAuth(roleAuth);
-            }
+            RoleDataAuthModel roleAuth = new RoleDataAuthModel();
+            roleAuth.setId(auth.getSid());
+            roleAuth.setRoleIds(ConvertHelper.toCsvSet(auth.getRoleIds()));
             roleAuth.setPriority(auth.getPriority());
-            roleAuth.mergeChecker(checker);
-            roleAuth.mergeFilter(filterBuilder);
+            roleAuth.setFilter(filterBuilder);
+            roleAuth.setWhen(buildWhen(auth));
+            objAuth.addRoleAuth(roleAuth);
         }
+    }
+
+    protected IEvalPredicate buildWhen(NopAuthRoleDataAuth auth) {
+        if (StringHelper.isEmpty(auth.getWhenConfig()))
+            return null;
+
+        String whenConfig = auth.getWhenConfig();
+        XNode node;
+        if (!whenConfig.contains("<")) {
+            // 认为是标签名
+            if (!StringHelper.startsWithNamespace(whenConfig, AuthCoreConstants.NS_BIZ)
+                    || !StringHelper.isValidXmlName(whenConfig)) {
+                throw new NopException(ERR_AUTH_INVALID_AUTH_WHEN_CONFIG)
+                        .param(ARG_ID, auth.get_id())
+                        .param(ARG_WHEN_CONFIG, whenConfig);
+            }
+            node = XNode.make(whenConfig);
+        } else {
+            node = XNodeParser.instance().parseFromText(null, whenConfig);
+            XNodeHelper.checkSafeXpl(node, AuthCoreConstants.NS_BIZ, false);
+        }
+        return XLang.newCompileTool().allowUnregisteredScopeVar(true)
+                .loadLib(null, AuthCoreConstants.NS_BIZ, AuthCoreConstants.LIB_PATH_BIZ_WHEN)
+                .compileTag(node);
     }
 
     public void clearCache() {
         modelCache.clear();
     }
 
-    private ObjDataAuthModel getObjAuth(String bizObj) {
-        return modelCache.getObject(CFG_AUTH_DATA_AUTH_CACHE_CHECK_CHANGED.get(), this::loadDataAuthModel).getObj(bizObj);
+    private DataAuthModel getAuthModel() {
+        return modelCache.getObject(CFG_AUTH_DATA_AUTH_CACHE_CHECK_CHANGED.get(), this::loadDataAuthModel);
+    }
+
+    protected IEvalScope newEvalScope(ObjDataAuthModel objAuth, String action, Object entity, ISecurityContext context) {
+        IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValue(AuthCoreConstants.VAR_AUTH_OBJ_NAME, objAuth.getName());
+        scope.setLocalValue(AuthCoreConstants.VAR_ACTION, action);
+        scope.setLocalValue(AuthCoreConstants.VAR_OBJ_AUTH_MODEL, objAuth);
+        if (entity != null) {
+            scope.setLocalValue(AuthCoreConstants.VAR_ENTITY, entity);
+        }
+        scope.setLocalValue(AuthCoreConstants.VAR_USER_CONTEXT, context.getUserContext());
+        scope.setLocalValue(CoreConstants.VAR_SVC_CTX, context);
+        return scope;
     }
 
     @Override
     public boolean isPermitted(String bizObj, String action, Object entity, ISecurityContext context) {
-        ObjDataAuthModel objAuth = getObjAuth(bizObj);
+        DataAuthModel authModel = getAuthModel();
+        ObjDataAuthModel objAuth = authModel.getObj(bizObj);
         if (objAuth == null)
             return true;
-        return objAuth.isPermitted(action, entity, context);
+        IEvalScope scope = newEvalScope(objAuth, action, entity, context);
+        Set<String> roleIds = authModel.decideDynamicRoles(objAuth, scope);
+        RoleDataAuthModel roleAuth = objAuth.getRoleAuth(scope, roleIds, context);
+        // 缺省总是假定没有权限
+        if (roleAuth == null)
+            return false;
+
+        if (roleAuth.getCheck() != null) {
+            return roleAuth.getCheck().passConditions(scope);
+        }
+        return true;
     }
 
     @Override
     public ITreeBean getFilter(String bizObj, String action, ISecurityContext context) {
-        ObjDataAuthModel objAuth = getObjAuth(bizObj);
+        DataAuthModel authModel = getAuthModel();
+        ObjDataAuthModel objAuth = authModel.getObj(bizObj);
         if (objAuth == null)
             return null;
-        return getObjAuth(bizObj).getFilter(action, context);
+        IEvalScope scope = newEvalScope(objAuth, action, null, context);
+        Set<String> roleIds = authModel.decideDynamicRoles(objAuth, scope);
+        RoleDataAuthModel roleAuth = objAuth.getRoleAuth(scope, roleIds, context);
+        if (roleAuth == null)
+            throw new NopException(ERR_AUTH_NO_DATA_AUTH)
+                    .source(objAuth).param(ARG_BIZ_OBJ_NAME, bizObj)
+                    .param(ARG_USER_NAME, context.getUserContext().getUserName());
+
+        XNode filter = roleAuth.generateFilter(scope);
+        if (filter == null || !filter.hasChild())
+            return null;
+
+        return filter;
     }
 }

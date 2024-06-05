@@ -263,13 +263,12 @@ prop:
       filterConfig: 业务过滤条件
       priority: 优先级
       remark: 备注
-      role: 角色
-      role.roleName: 角色
-      roleId: 角色ID
+      roleIds: 角色ID
       sid: 主键
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
+      whenConfig: 权限应用条件
     NopAuthRoleResource:
       createTime: 创建时间
       createdBy: 创建人

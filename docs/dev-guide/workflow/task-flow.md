@@ -138,3 +138,20 @@ RESULT = function(RESULT){
 ## 步骤装饰器
 
 通过步骤装饰器可以引入transaction、ormSession等依赖更多的类AOP支持，参见[task-step-decorator.md](task-step-decorator.md)
+
+## output变量重命名
+通过以下方式可以改变输出变量的名称
+
+### 1. 使用exportAs变量会改变返回到父scope中的变量名
+
+```xml
+<output name="RESULT" exportAs="value" />
+```
+### 2. 执行表达式生成新的返回变量
+
+```xml
+ <output name="value">
+  <source>RESULT</source>
+ </output>
+```
+根据当前环境中的值执行某个source表达式动态计算得到一个返回值

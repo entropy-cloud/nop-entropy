@@ -192,10 +192,10 @@ if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
     <objs>
         <obj name="NopSysUserVariable">
             <role-auths>
-                <role-auth roleId="manager">
+                <role-auth id="manager" roleIds="manager">
                 </role-auth>
 
-                <role-auth roleId="user">
+                <role-auth id="default" roleIds="user">
                     <filter>
                         <eq name="userId" value="@biz:userId"/>
                     </filter>
@@ -207,6 +207,8 @@ if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
 ```
 
 * 针对不同的角色可以设置不同的数据权限规则。一个用户只会匹配优先级最高的一条规则（如果规则优先级相同，则按照顺序检查用户是否具有指定角色）
+* 数据权限不仅仅在查询的时候起作用，在get调用的时候也会检查对应数据权限，此时会调用`role-auth`配置中的check段，如果没有配置check，则自动根据filter来编译为IEvalPredicate接口。
+对于使用了复杂过滤条件的情况，会报错无法支持对应操作等异常，此时必须定义check。
 
 在`filter`段中可以编写权限过滤条件，其中`value`部分可以使用`@biz:`为前缀的表达式变量，例如`@biz:userId`、`@biz:deptId`等。
 全部可用的变量在[biz-var.dict.yaml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/resources/_vfs/dict/core/biz-var.dict.yaml)
@@ -221,20 +223,20 @@ if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
 经常出现一种情况是同样的业务对象在不同的业务场景中过滤条件不同，比如说每个人都可以查询自己的数据，而admin可以查询所有人的数据，但是他仍然需要一个查询自己数据的页面。
 这本质上是同一个业务对象分裂为两个业务场景，一个是查询owner的数据，一个是查询全部数据。对于这种应用可以有三种解决方案：
 
-1. 对象拆分
-   直接新建一个新的业务对象，比如MyObject\_self，然后它会自动使用缺省的xmeta模型和xbiz配置。
+#### 1. 对象拆分
+   直接新建一个新的业务对象，比如`MyObject_self`，然后它会自动使用缺省的xmeta模型和xbiz配置。
 
 ```
 <bean id="MyObject_self" class="xxx.MyObjectBizModel" />
 ```
 
-如果增加MyObject\_self.xmeta，则MyObject\_self会使用这个meta配置，否则会使用缺省的MyObject.xmeta。对于xbiz配置，同样是这样处理。
+如果增加`MyObject_self.xmeta`，则`MyObject_self`会使用这个meta配置，否则会使用缺省的MyObject.xmeta。对于xbiz配置，同样是这样处理。
 
 > 这种缺省模型的识别逻辑在BizObjectBuilder.java类中实现。
 
 对象拆分后，数据权限那里就可以配置使用不同的权限过滤条件。同时通过meta上的filter也可以直接限定过滤条件。
 
-2. 如果不拆分对象，也可以在查询方法中增加过滤条件
+#### 2. 如果不拆分对象，也可以在查询方法中增加过滤条件
 
 ```xml
  <query name="active_findPage" x:prototype="findPage">
@@ -260,7 +262,7 @@ public PageBean<MyObject> findPage_self(@Name("query")QueryBean query, FieldSele
 }
 ```
 
-3. 通过authObjName实现数据权限配置切换
+#### 3. 通过authObjName实现数据权限配置切换
    上面的第二种方法会导致data-auth.xml的配置总是应用到当前对象上。如果是不同的业务场景需要启用不同的权限配置，可以使用authObjName参数来区分。
 
 CrudBizModel的doFindPage0/doFindList0/doFindFirst0等方法可以通过authObjName参数指定不同于当前对象名的权限对象名，从而启用不同的数据权限配置。
@@ -293,4 +295,41 @@ CrudBizModel的doFindPage0/doFindList0/doFindFirst0等方法可以通过authObjN
     }
 ```
 
-内置的findList使用doFindList函数实现，而doFindList实际是使用doFindList0，然后传入authObjName为当前业务对象名。
+内置的findList使用doFindList函数实现，而doFindList实际是使用doFindList0，然后传入authObjName为当前业务对象名。传入不同的authObjName就可以启用不同的数据权限过滤条件。
+
+
+#### 4. 动态角色
+
+有时系统会存在动态赋权的情况。比如一个人设置了将某个表中部分记录开放给指定的人员等。一般这种特殊权限相关的内容都是明确的业务使用场景，可以在xbiz中通过动态生成filter来实现。
+但是有时这种情况很多或者规则比较一致，不想在每个对象中去编写，那么也可以在数据权限层面统一处理。
+
+`data-auth.xml`配置中支持`role-decider`配置，它可以动态确定当前用户所对应的角色集合，从而选择不同的过滤条件。
+
+```xml
+<data-auth>
+  <role-decider>
+     // 根据authObjName, userContext, svcCtx 等动态确定角色。返回角色id的集合，或者逗号分隔的角色id。
+  </role-decider>
+</data-auth>
+```
+
+* `role-decider`返回的角色id集合会直接覆盖IUserContext上的角色设置
+* 可以将一些动态决策结果缓存到userContext或者svcCtx上，避免返回查询数据库等。userContext的缓存是用户session级别，而svcCtx的缓存是request级别。
+
+数据权限配置提供了两个动态性，
+1. authObjName，自己根据业务动态确定
+2. dynamicRoles 不同的用户对于不同的业务对象可以有不同的角色集合，通过role-decider来动态计算得到。
+
+authObjName对应不同的业务场景，一个业务场景下会存在多个操作。最简单的，get和findPage/findList都要收到data-auth的限制，一个业务场景下的限制条件是一样的。data-auth的filter会被编译为内存中的Predicate，在get的时候也会应用
+
+1. 本身如果是业务方法层面的权限过滤条件应该在xbiz里配置。
+2. 如果是横切于多个业务方法，就是业务场景层面，这时才会进入data-auth，然后用authObjName来选择业务场景。
+3. 通过role-decider可以动态选择在指定业务场景中的角色。
+4. 在具体的role-auth配置中，执行when条件判断，只有when检查通过，才会选择该权限条目执行。
+5. 在filter和check段中可以利用xpl模板语言的抽象能力来处理指定场景、指定角色下的更多的权限动态过滤需求
+
+以上几种情况应该覆盖了所有应用场景
+
+* 通过数据库的NopAuthRoleDataAuth实体可以在线配置数据权限
+* 在线配置时为避免出现安全性问题，filter段只能使用`biz!filter.xlib`，名字空间是biz。whenConfig配置只能使用`biz!when.xlib`标签库中定义的标签。
+* whenConfig可以直接配置标签名，比如 `biz:WhenAdmin`或者`<biz:WhenXX type='1' />`

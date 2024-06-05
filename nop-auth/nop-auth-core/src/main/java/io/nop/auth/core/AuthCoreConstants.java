@@ -31,5 +31,12 @@ public interface AuthCoreConstants {
     String VAR_USER_CONTEXT = "userContext";
     String VAR_FILTER = "filter";
 
+    String VAR_OBJ_AUTH_MODEL = "objAuthModel";
+    String VAR_AUTH_OBJ_NAME = "authObjName";
+
     String USER_ID_SYS = "sys";
+
+    String NS_BIZ = "auth-when";
+
+    String LIB_PATH_BIZ_WHEN = "/nop/core/xlib/biz!when.xlib";
 }

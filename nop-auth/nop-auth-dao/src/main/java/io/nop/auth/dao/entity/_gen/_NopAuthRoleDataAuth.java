@@ -24,9 +24,9 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     public static final String PROP_NAME_sid = "sid";
     public static final int PROP_ID_sid = 1;
     
-    /* 角色ID: ROLE_ID VARCHAR */
-    public static final String PROP_NAME_roleId = "roleId";
-    public static final int PROP_ID_roleId = 2;
+    /* 角色ID: ROLE_IDS VARCHAR */
+    public static final String PROP_NAME_roleIds = "roleIds";
+    public static final int PROP_ID_roleIds = 2;
     
     /* 业务对象名: BIZ_OBJ VARCHAR */
     public static final String PROP_NAME_bizObj = "bizObj";
@@ -40,58 +40,59 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     public static final String PROP_NAME_filterConfig = "filterConfig";
     public static final int PROP_ID_filterConfig = 5;
     
+    /* 权限应用条件: WHEN_CONFIG VARCHAR */
+    public static final String PROP_NAME_whenConfig = "whenConfig";
+    public static final int PROP_ID_whenConfig = 6;
+    
     /* 描述: DESCRIPTION VARCHAR */
     public static final String PROP_NAME_description = "description";
-    public static final int PROP_ID_description = 6;
+    public static final int PROP_ID_description = 7;
     
     /* 删除标识: DEL_FLAG TINYINT */
     public static final String PROP_NAME_delFlag = "delFlag";
-    public static final int PROP_ID_delFlag = 7;
+    public static final int PROP_ID_delFlag = 8;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 8;
+    public static final int PROP_ID_version = 9;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 9;
+    public static final int PROP_ID_createdBy = 10;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 10;
+    public static final int PROP_ID_createTime = 11;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 11;
+    public static final int PROP_ID_updatedBy = 12;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 12;
+    public static final int PROP_ID_updateTime = 13;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 13;
+    public static final int PROP_ID_remark = 14;
     
 
-    private static int _PROP_ID_BOUND = 14;
+    private static int _PROP_ID_BOUND = 15;
 
-    
-    /* relation: 角色 */
-    public static final String PROP_NAME_role = "role";
     
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
-    private static final String[] PROP_ID_TO_NAME = new String[14];
+    private static final String[] PROP_ID_TO_NAME = new String[15];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
           PROP_ID_TO_NAME[PROP_ID_sid] = PROP_NAME_sid;
           PROP_NAME_TO_ID.put(PROP_NAME_sid, PROP_ID_sid);
       
-          PROP_ID_TO_NAME[PROP_ID_roleId] = PROP_NAME_roleId;
-          PROP_NAME_TO_ID.put(PROP_NAME_roleId, PROP_ID_roleId);
+          PROP_ID_TO_NAME[PROP_ID_roleIds] = PROP_NAME_roleIds;
+          PROP_NAME_TO_ID.put(PROP_NAME_roleIds, PROP_ID_roleIds);
       
           PROP_ID_TO_NAME[PROP_ID_bizObj] = PROP_NAME_bizObj;
           PROP_NAME_TO_ID.put(PROP_NAME_bizObj, PROP_ID_bizObj);
@@ -101,6 +102,9 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_filterConfig] = PROP_NAME_filterConfig;
           PROP_NAME_TO_ID.put(PROP_NAME_filterConfig, PROP_ID_filterConfig);
+      
+          PROP_ID_TO_NAME[PROP_ID_whenConfig] = PROP_NAME_whenConfig;
+          PROP_NAME_TO_ID.put(PROP_NAME_whenConfig, PROP_ID_whenConfig);
       
           PROP_ID_TO_NAME[PROP_ID_description] = PROP_NAME_description;
           PROP_NAME_TO_ID.put(PROP_NAME_description, PROP_ID_description);
@@ -132,8 +136,8 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /* 主键: SID */
     private java.lang.String _sid;
     
-    /* 角色ID: ROLE_ID */
-    private java.lang.String _roleId;
+    /* 角色ID: ROLE_IDS */
+    private java.lang.String _roleIds;
     
     /* 业务对象名: BIZ_OBJ */
     private java.lang.String _bizObj;
@@ -143,6 +147,9 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     
     /* 业务过滤条件: FILTER_CONFIG */
     private java.lang.String _filterConfig;
+    
+    /* 权限应用条件: WHEN_CONFIG */
+    private java.lang.String _whenConfig;
     
     /* 描述: DESCRIPTION */
     private java.lang.String _description;
@@ -245,8 +252,8 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
             case PROP_ID_sid:
                return getSid();
         
-            case PROP_ID_roleId:
-               return getRoleId();
+            case PROP_ID_roleIds:
+               return getRoleIds();
         
             case PROP_ID_bizObj:
                return getBizObj();
@@ -256,6 +263,9 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
         
             case PROP_ID_filterConfig:
                return getFilterConfig();
+        
+            case PROP_ID_whenConfig:
+               return getWhenConfig();
         
             case PROP_ID_description:
                return getDescription();
@@ -302,13 +312,13 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_roleId:{
+            case PROP_ID_roleIds:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_roleId));
+                       err-> newTypeConversionError(PROP_NAME_roleIds));
                }
-               setRoleId(typedValue);
+               setRoleIds(typedValue);
                break;
             }
         
@@ -339,6 +349,16 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_filterConfig));
                }
                setFilterConfig(typedValue);
+               break;
+            }
+        
+            case PROP_ID_whenConfig:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_whenConfig));
+               }
+               setWhenConfig(typedValue);
                break;
             }
         
@@ -438,9 +458,9 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_roleId:{
+            case PROP_ID_roleIds:{
                onInitProp(propId);
-               this._roleId = (java.lang.String)value;
+               this._roleIds = (java.lang.String)value;
                
                break;
             }
@@ -462,6 +482,13 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
             case PROP_ID_filterConfig:{
                onInitProp(propId);
                this._filterConfig = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_whenConfig:{
+               onInitProp(propId);
+               this._whenConfig = (java.lang.String)value;
                
                break;
             }
@@ -548,20 +575,20 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     }
     
     /**
-     * 角色ID: ROLE_ID
+     * 角色ID: ROLE_IDS
      */
-    public java.lang.String getRoleId(){
-         onPropGet(PROP_ID_roleId);
-         return _roleId;
+    public java.lang.String getRoleIds(){
+         onPropGet(PROP_ID_roleIds);
+         return _roleIds;
     }
 
     /**
-     * 角色ID: ROLE_ID
+     * 角色ID: ROLE_IDS
      */
-    public void setRoleId(java.lang.String value){
-        if(onPropSet(PROP_ID_roleId,value)){
-            this._roleId = value;
-            internalClearRefs(PROP_ID_roleId);
+    public void setRoleIds(java.lang.String value){
+        if(onPropSet(PROP_ID_roleIds,value)){
+            this._roleIds = value;
+            internalClearRefs(PROP_ID_roleIds);
             
         }
     }
@@ -619,6 +646,25 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_filterConfig,value)){
             this._filterConfig = value;
             internalClearRefs(PROP_ID_filterConfig);
+            
+        }
+    }
+    
+    /**
+     * 权限应用条件: WHEN_CONFIG
+     */
+    public java.lang.String getWhenConfig(){
+         onPropGet(PROP_ID_whenConfig);
+         return _whenConfig;
+    }
+
+    /**
+     * 权限应用条件: WHEN_CONFIG
+     */
+    public void setWhenConfig(java.lang.String value){
+        if(onPropSet(PROP_ID_whenConfig,value)){
+            this._whenConfig = value;
+            internalClearRefs(PROP_ID_whenConfig);
             
         }
     }
@@ -775,28 +821,5 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
         }
     }
     
-    /**
-     * 角色
-     */
-    public io.nop.auth.dao.entity.NopAuthRole getRole(){
-       return (io.nop.auth.dao.entity.NopAuthRole)internalGetRefEntity(PROP_NAME_role);
-    }
-
-    public void setRole(io.nop.auth.dao.entity.NopAuthRole refEntity){
-   
-           if(refEntity == null){
-           
-                   this.setRoleId(null);
-               
-           }else{
-           internalSetRefEntity(PROP_NAME_role, refEntity,()->{
-           
-                           this.setRoleId(refEntity.getRoleId());
-                       
-           });
-           }
-       
-    }
-       
 }
 // resume CPD analysis - CPD-ON

@@ -6,18 +6,28 @@
 <data-auth xdef:bean-package="io.nop.auth.core.model" xdef:name="DataAuthModel" x:schema="/nop/schema/xdef.xdef"
            xmlns:x="/nop/schema/xdsl.xdef">
 
+    <!-- 动态确定角色 -->
+    <role-decider xdef:value="xpl"/>
+
     <objs xdef:body-type="list" xdef:key-attr="name">
 
         <obj name="!var-name" displayName="string" xdef:name="ObjDataAuthModel">
 
-            <role-auths xdef:body-type="list" xdef:key-attr="roleId" xdef:order-attr="priority">
+            <!-- 动态确定角色，如果返回结果非空，则它将取代IUserContext上的角色设置 -->
+            <role-decider xdef:value="xpl"/>
+
+            <role-auths xdef:body-type="list" xdef:key-attr="id" xdef:order-attr="priority">
                 <!--
-                @roleId [角色id]
+                @roleIds [角色id] 哪些角色会应用这个权限条目
                 @priority [权限规则优先级] 如果一个用户存在多个角色，则按照优先级高的权限约束规则执行。
                     如果多个规则具有相同优先级，则只执行第一条匹配的过滤规则
                 -->
-                <role-auth roleId="!string" priority="!int=100" xdef:name="RoleDataAuthModel">
-                    <description xdef:value="string" />
+                <role-auth id="!string" roleIds="!csv-set" priority="!int=100"
+                           xdef:name="RoleDataAuthModel">
+                    <description xdef:value="string"/>
+
+                    <!-- 动态判断是否应用该权限条目 -->
+                    <when xdef:value="xpl-predicate"/>
 
                     <!--
                     检查单个实体是否满足数据权限要求

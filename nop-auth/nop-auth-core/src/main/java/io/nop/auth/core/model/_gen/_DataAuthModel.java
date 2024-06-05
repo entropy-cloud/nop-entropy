@@ -24,6 +24,13 @@ public abstract class _DataAuthModel extends io.nop.core.resource.component.Abst
     private KeyedList<io.nop.auth.core.model.ObjDataAuthModel> _objs = KeyedList.emptyList();
     
     /**
+     *  
+     * xml name: role-decider
+     * 动态确定角色
+     */
+    private io.nop.core.lang.eval.IEvalAction _roleDecider ;
+    
+    /**
      * 
      * xml name: objs
      *  
@@ -68,6 +75,25 @@ public abstract class _DataAuthModel extends io.nop.core.resource.component.Abst
         return !this._objs.isEmpty();
     }
     
+    /**
+     * 
+     * xml name: role-decider
+     *  动态确定角色
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getRoleDecider(){
+      return _roleDecider;
+    }
+
+    
+    public void setRoleDecider(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._roleDecider = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -86,6 +112,7 @@ public abstract class _DataAuthModel extends io.nop.core.resource.component.Abst
         super.outputJson(out);
         
         out.putNotNull("objs",this.getObjs());
+        out.putNotNull("roleDecider",this.getRoleDecider());
     }
 
     public DataAuthModel cloneInstance(){
@@ -98,6 +125,7 @@ public abstract class _DataAuthModel extends io.nop.core.resource.component.Abst
         super.copyTo(instance);
         
         instance.setObjs(this.getObjs());
+        instance.setRoleDecider(this.getRoleDecider());
     }
 
     protected DataAuthModel newInstance(){

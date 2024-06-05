@@ -256,10 +256,11 @@ prop:
       roleResourceIds: null
     NopAuthRoleDataAuth:
       sid: SID
-      roleId: ROLE_ID
+      roleIds: ROLE_IDS
       bizObj: Biz Object
       priority: Priority
       filterConfig: Filter Config
+      whenConfig: When Config
       description: Description
       delFlag: Deleted
       version: Version
@@ -268,8 +269,6 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
-      role: Role
-      role.roleName: Role
     NopAuthRoleResource:
       sid: SID
       roleId: ROLE_ID

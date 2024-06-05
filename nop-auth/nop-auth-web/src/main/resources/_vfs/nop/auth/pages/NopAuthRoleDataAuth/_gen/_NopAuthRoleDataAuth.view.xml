@@ -11,7 +11,7 @@
             <cols>
 
                 <!--角色ID-->
-                <col id="roleId" mandatory="true" sortable="true"/>
+                <col id="roleIds" mandatory="true" sortable="true"/>
 
                 <!--业务对象名-->
                 <col id="bizObj" sortable="true"/>
@@ -21,6 +21,9 @@
 
                 <!--业务过滤条件-->
                 <col id="filterConfig" mandatory="true" sortable="true"/>
+
+                <!--权限应用条件-->
+                <col id="whenConfig" sortable="true"/>
 
                 <!--描述-->
                 <col id="description" sortable="true"/>
@@ -47,22 +50,23 @@
     <forms>
         <form id="view" editMode="view" title="查看-角色数据权限" i18n-en:title="View Role Data Auth">
             <layout>
- roleId[角色ID] bizObj[业务对象名]
+ roleIds[角色ID] bizObj[业务对象名]
  priority[优先级] filterConfig[业务过滤条件]
- description[描述] 
-                createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] 
-                remark[备注]
+ whenConfig[权限应用条件] 
+                description[描述]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-角色数据权限" i18n-en:title="Add Role Data Auth" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-角色数据权限" i18n-en:title="Edit Role Data Auth">
             <layout>
- roleId[角色ID]
+ roleIds[角色ID]
  bizObj[业务对象名]
  priority[优先级]
  filterConfig[业务过滤条件]
+ whenConfig[权限应用条件]
  description[描述]
  remark[备注]
 </layout>

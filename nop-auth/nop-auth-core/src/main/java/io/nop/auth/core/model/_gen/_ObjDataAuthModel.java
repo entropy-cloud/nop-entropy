@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [11:10:0:0]/nop/schema/data-auth.xdef <p>
+ * generate from [14:10:0:0]/nop/schema/data-auth.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -36,6 +36,13 @@ public abstract class _ObjDataAuthModel extends io.nop.core.resource.component.A
      * 
      */
     private KeyedList<io.nop.auth.core.model.RoleDataAuthModel> _roleAuths = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: role-decider
+     * 动态确定角色，如果返回结果非空，则它将取代IUserContext上的角色设置
+     */
+    private io.nop.core.lang.eval.IEvalAction _roleDecider ;
     
     /**
      * 
@@ -89,7 +96,7 @@ public abstract class _ObjDataAuthModel extends io.nop.core.resource.component.A
     public void setRoleAuths(java.util.List<io.nop.auth.core.model.RoleDataAuthModel> value){
         checkAllowChange();
         
-        this._roleAuths = KeyedList.fromList(value, io.nop.auth.core.model.RoleDataAuthModel::getRoleId);
+        this._roleAuths = KeyedList.fromList(value, io.nop.auth.core.model.RoleDataAuthModel::getId);
            
     }
 
@@ -106,7 +113,7 @@ public abstract class _ObjDataAuthModel extends io.nop.core.resource.component.A
         checkAllowChange();
         java.util.List<io.nop.auth.core.model.RoleDataAuthModel> list = this.getRoleAuths();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.auth.core.model.RoleDataAuthModel::getRoleId);
+            list = new KeyedList<>(io.nop.auth.core.model.RoleDataAuthModel::getId);
             setRoleAuths(list);
         }
         list.add(item);
@@ -119,6 +126,25 @@ public abstract class _ObjDataAuthModel extends io.nop.core.resource.component.A
     public boolean hasRoleAuths(){
         return !this._roleAuths.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: role-decider
+     *  动态确定角色，如果返回结果非空，则它将取代IUserContext上的角色设置
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getRoleDecider(){
+      return _roleDecider;
+    }
+
+    
+    public void setRoleDecider(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._roleDecider = value;
+           
+    }
+
     
 
     @Override
@@ -140,6 +166,7 @@ public abstract class _ObjDataAuthModel extends io.nop.core.resource.component.A
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("name",this.getName());
         out.putNotNull("roleAuths",this.getRoleAuths());
+        out.putNotNull("roleDecider",this.getRoleDecider());
     }
 
     public ObjDataAuthModel cloneInstance(){
@@ -154,6 +181,7 @@ public abstract class _ObjDataAuthModel extends io.nop.core.resource.component.A
         instance.setDisplayName(this.getDisplayName());
         instance.setName(this.getName());
         instance.setRoleAuths(this.getRoleAuths());
+        instance.setRoleDecider(this.getRoleDecider());
     }
 
     protected ObjDataAuthModel newInstance(){

@@ -1,9 +1,10 @@
 {
   "sid": "",
-  "roleId": "",
+  "roleIds": "",
   "bizObj": "",
   "priority": 0,
   "filterConfig": "",
+  "whenConfig": "",
   "description": "",
   "delFlag": 0,
   "version": 0,
@@ -11,7 +12,5 @@
   "createTime": "2000-01-01 14:00:00",
   "updatedBy": "",
   "updateTime": "2000-01-01 14:00:00",
-  "remark": "",
-  "role": null,
-  "role.roleName": ""
+  "remark": ""
 }

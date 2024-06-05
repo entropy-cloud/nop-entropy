@@ -7,9 +7,13 @@
  */
 package io.nop.auth.core.model;
 
+import io.nop.api.core.beans.FilterBeanConstants;
+import io.nop.auth.core.AuthCoreConstants;
 import io.nop.auth.core.model._gen._RoleDataAuthModel;
 import io.nop.core.lang.eval.IEvalPredicate;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.IXNodeGenerator;
+import io.nop.core.lang.xml.XNode;
 
 public class RoleDataAuthModel extends _RoleDataAuthModel implements Comparable<RoleDataAuthModel> {
     public RoleDataAuthModel() {
@@ -41,5 +45,21 @@ public class RoleDataAuthModel extends _RoleDataAuthModel implements Comparable<
         } else {
             setFilter(getFilter().both(filter));
         }
+    }
+
+    public XNode generateFilter(IEvalScope scope) {
+        XNode filter = XNode.make(FilterBeanConstants.FILTER_OP_AND);
+        if (getFilter() != null) {
+            scope.setLocalValue(AuthCoreConstants.VAR_FILTER, filter);
+            XNode node = getFilter().generateNode(scope);
+            if (node != null) {
+                if (node.isDummyNode()) {
+                    filter.appendChildren(node.detachChildren());
+                } else {
+                    filter.appendChild(node);
+                }
+            }
+        }
+        return filter;
     }
 }
