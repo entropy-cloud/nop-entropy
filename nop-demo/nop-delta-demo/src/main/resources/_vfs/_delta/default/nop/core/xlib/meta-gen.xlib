@@ -1,0 +1,31 @@
+<lib x:extends="super" x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     xmlns:xdsl="xdsl" xmlns:xpl="xpl" xmlns:c="c" xmlns:thisLib="thisLib">
+
+    <tags>
+        <DefaultMetaGenExtends outputMode="node">
+            <attr name="_dsl_root" implicit="true"/>
+            <source>
+                <meta>
+                    <xdsl:config xpl:ignoreTag="true">
+                        <c:import from="/nop/core/xlib/filter.xlib"/>
+                    </xdsl:config>
+                </meta>
+                <thisLib:DisablePropSortable/>
+            </source>
+        </DefaultMetaGenExtends>
+
+        <DisablePropSortable outputMode="node">
+            <attr name="_dsl_root" implicit="true"/>
+            <source>
+                <c:script><![CDATA[
+                    _dsl_root.childByTag("props").forEachChild(prop => {
+                        prop.setAttr('sortable',false);
+                        logInfo("prop sortable2 {},{}", prop.getAttr('name'), prop.getAttr('sortable'));
+                    })
+                ]]>
+                </c:script>
+            </source>
+        </DisablePropSortable>
+    </tags>
+
+</lib>
