@@ -75,6 +75,34 @@ public class ExpandedCellSet implements Iterable<Object>, IValueWrapper, ISource
         return merger.getMergedRanges();
     }
 
+    public int getRowCount() {
+        ExpandedCell first = getFirstCell();
+        if (first == null)
+            return 0;
+        ExpandedCell last = getLastCell();
+        return last.getRowIndex() - first.getRowIndex() + 1;
+    }
+
+    public int getColCount() {
+        ExpandedCell first = getFirstCell();
+        if (first == null)
+            return 0;
+        ExpandedCell last = getLastCell();
+        return last.getColIndex() - first.getColIndex() + 1;
+    }
+
+    public ExpandedCell getFirstCell() {
+        if (cells.isEmpty())
+            return null;
+        return cells.get(0);
+    }
+
+    public ExpandedCell getLastCell() {
+        if (cells.isEmpty())
+            return null;
+        return cells.get(cells.size() - 1);
+    }
+
     public ExpandedCell get(int index) {
         if (index < 0) {
             index = cells.size() + index;
@@ -122,6 +150,10 @@ public class ExpandedCellSet implements Iterable<Object>, IValueWrapper, ISource
             return null;
         ExpandedCell cell = getCell();
         return cell.getValue();
+    }
+
+    public ExpandedCellSet realCells() {
+        return filter(cell -> !cell.isProxyCell());
     }
 
     @Nonnull

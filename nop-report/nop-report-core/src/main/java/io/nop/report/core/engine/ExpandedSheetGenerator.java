@@ -101,10 +101,12 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
                                 runXpl(sheetModel.getBeforeExpand(), xptRt);
                             }
 
-                            generateSheet(sheet, xptRt, consumer, sheetNames);
+                            ExpandedSheet expandedSheet = generateSheet(sheet, xptRt,sheetNames);
 
                             if (sheetModel != null)
                                 runXpl(sheetModel.getAfterExpand(), xptRt);
+
+                            consumer.accept(expandedSheet);
                         } finally {
                             xptRt.runSheetCleanup();
                         }
@@ -114,7 +116,7 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
         }
     }
 
-    private void generateSheet(ExcelSheet sheet, IXptRuntime xptRt, Consumer<IExcelSheet> consumer,
+    private ExpandedSheet generateSheet(ExcelSheet sheet, IXptRuntime xptRt,
                                Map<String, Integer> sheetNames) {
         XptSheetModel sheetModel = sheet.getModel();
         Guard.notNull(sheetModel, "sheetModel");
@@ -151,7 +153,7 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
 
         initExportFormula(expandedSheet, xptRt);
 
-        consumer.accept(expandedSheet);
+        return expandedSheet;
     }
 
     private void collectImages(ExpandedSheet sheet) {

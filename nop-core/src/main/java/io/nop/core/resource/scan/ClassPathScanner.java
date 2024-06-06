@@ -155,7 +155,7 @@ public class ClassPathScanner {
 
         try {
             if (logger.isTraceEnabled()) {
-                logger.trace("Looking for matching resources in jar file [" + jarFileUrl + "]");
+                logger.trace("Looking for matching resources in jar file [" + jarFileUrl + "],path="+path);
             }
 
             for (Enumeration<JarEntry> entries = jarFile.entries(); entries.hasMoreElements(); ) {//NOSONAR

@@ -78,17 +78,29 @@ public class ExpandedCell implements ICellView {
     /**
      * 缓存与单元格有关的动态计算的值
      */
-    private Map<String, Object> computedValues;
+    private Map<String, Object> extValues;
 
     public String toString() {
         return "ExpandedCell[name=" + getName() + ",expandIndex=" + getExpandIndex() + ",text=" + getText() + "]";
     }
 
     public Object getComputed(String key, Function<ExpandedCell, Object> fn) {
-        if (computedValues == null) {
-            computedValues = new HashMap<>();
+        if (extValues == null) {
+            extValues = new HashMap<>();
         }
-        return computedValues.computeIfAbsent(key, k -> fn.apply(this));
+        return extValues.computeIfAbsent(key, k -> fn.apply(this));
+    }
+
+    public Object getExtValue(String key) {
+        if (extValues == null)
+            return null;
+        return extValues.get(key);
+    }
+
+    public void setExtValue(String name, Object value) {
+        if (extValues == null)
+            extValues = new HashMap<>();
+        extValues.put(name, value);
     }
 
     public ExcelImage getImage() {

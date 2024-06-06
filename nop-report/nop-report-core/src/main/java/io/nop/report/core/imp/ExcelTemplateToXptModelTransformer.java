@@ -159,6 +159,12 @@ public class ExcelTemplateToXptModelTransformer {
                 xptModel.setBeforeExpand(action);
             }
 
+            XNode afterExpandNode = XNode.fromValue(sheetModel.prop_get(XptConstants.EXT_PROP_XPT_AFTER_EXPAND));
+            if (afterExpandNode != null) {
+                IEvalAction action = compileTool.compileTagBodyWithSource(afterExpandNode, XLangOutputMode.none);
+                xptModel.setAfterExpand(action);
+            }
+
             if (sheetModel.isMultiple()) {
                 if (sheetModel.isMultipleAsMap()) {
                     String loopVarName = sheetModel.getFieldName() + "__item";

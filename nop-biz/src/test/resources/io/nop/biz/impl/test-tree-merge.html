@@ -1,0 +1,327 @@
+<div id="xpt-report">
+<style>
+#xpt-report .xpt-table{
+   border-collapse:collapse;border-spacing:0;table-layout:fixed;
+}
+#xpt-report .xpt-row{ line-height:normal}}
+#xpt-report .xpt-cell-num{ text-align:right; }
+#xpt-report .xpt-cell{
+   word-wrap:break-word;word-break:break-all;padding:2px;box-sizing:border-box;
+}
+#xpt-report .xpt-s-0{
+font-family:等线;
+font-size:11pt;
+color:#000000;
+border:none;}
+#xpt-report .xpt-s-1{
+font-family:微软雅黑;
+font-size:11pt;
+color:#000000;
+background-color:#FFFFFF;
+border-top:2px solid rgba(0,0,0,1.0);
+border-bottom:1px dotted rgba(0,0,0,1.0);
+border-left:1px dotted rgba(0,0,0,1.0);
+border-right:1px dotted rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-2{
+font-family:微软雅黑;
+font-size:11pt;
+color:#000000;
+background-color:#FFFFFF;
+border:1px dotted rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-3{
+vertical-align:middle;
+text-align:left;
+font-family:微软雅黑;
+font-size:11pt;
+color:#000000;
+background-color:#FFFFFF;
+border-top:1px dotted rgba(0,0,0,1.0);
+border-bottom:1px dotted rgba(0,0,0,1.0);
+border-left:1px dotted rgba(0,0,0,1.0);
+border-right:none;}
+#xpt-report .xpt-s-4{
+font-family:微软雅黑;
+font-size:11pt;
+color:#000000;
+background-color:#FFFFFF;
+border-top:1px dotted rgba(0,0,0,1.0);
+border-bottom:1px dotted rgba(0,0,0,1.0);
+border-left:1px dotted rgba(0,0,0,1.0);
+border-right:2px solid rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-5{
+font-family:微软雅黑;
+font-weight:bold;
+font-size:11pt;
+color:#000000;
+background-color:#FFFFFF;
+border-top:1px dotted rgba(0,0,0,1.0);
+border-bottom:1px dotted rgba(0,0,0,1.0);
+border-left:2px solid rgba(0,0,0,1.0);
+border-right:1px dotted rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-6{
+font-family:微软雅黑;
+font-size:11pt;
+color:#000000;
+border:none;}
+#xpt-report .xpt-s-7{
+font-family:微软雅黑;
+font-weight:bold;
+font-size:11pt;
+color:#000000;
+border:1px dashed rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-8{
+font-family:微软雅黑;
+font-size:11pt;
+color:#000000;
+border-top:1px dashed black;
+border-bottom:1px dashed black;
+border-left:none;border-right:none;}
+#xpt-report .xpt-s-9{
+font-family:微软雅黑;
+font-size:11pt;
+color:#000000;
+border-top:1px dashed black;
+border-bottom:1px dashed black;
+border-left:none;border-right:1px dashed black;
+}
+#xpt-report .xpt-s-10{
+vertical-align:middle;
+text-align:center;
+font-family:微软雅黑;
+font-weight:bold;
+font-size:11pt;
+color:#000000;
+background-color:#FFFFFF;
+border-top:none;border-bottom:1px solid rgba(0,0,0,1.0);
+border-left:1px solid rgba(0,0,0,1.0);
+border-right:1px solid rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-11{
+font-family:等线;
+font-size:11pt;
+color:#000000;
+border-top:2px solid rgba(0,0,0,1.0);
+border-bottom:none;border-left:2px solid rgba(0,0,0,1.0);
+border-right:2px solid rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-12{
+font-family:微软雅黑;
+font-weight:bold;
+font-size:11pt;
+color:#000000;
+background-color:#FFFFFF;
+border-top:2px solid rgba(0,0,0,1.0);
+border-bottom:1px dotted rgba(0,0,0,1.0);
+border-left:2px solid rgba(0,0,0,1.0);
+border-right:1px dotted rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-13{
+font-family:等线;
+font-size:11pt;
+color:#000000;
+border-top:none;border-bottom:none;border-left:2px solid rgba(0,0,0,1.0);
+border-right:2px solid rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-14{
+text-align:center;
+font-family:微软雅黑;
+font-size:11pt;
+color:#000000;
+border-top:1px dashed black;
+border-bottom:1px dashed black;
+border-left:none;border-right:1px dashed black;
+}
+#xpt-report .xpt-s-15{
+font-family:微软雅黑;
+font-size:11pt;
+color:#000000;
+border-top:1px dashed black;
+border-bottom:1px dashed black;
+border-left:none;border-right:none;}
+#xpt-report .xpt-s-16{
+text-align:center;
+font-family:等线;
+font-size:11pt;
+color:#000000;
+border:none;}
+#xpt-report .xpt-s-17{
+font-family:等线;
+font-size:11pt;
+color:#000000;
+background-color:#9CC2E5;
+border:none;}
+#xpt-report .xpt-s-18{
+font-family:等线;
+font-size:11pt;
+color:#FFFFFF;
+background-color:rgba(255,0,0,1.0);
+border:none;}
+#xpt-report .xpt-s-19{
+font-family:等线;
+font-size:11pt;
+color:#000000;
+border:1px solid rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-20{
+vertical-align:middle;
+text-align:center;
+font-family:等线;
+font-size:11pt;
+color:#000000;
+background-color:#9CC2E5;
+border:2px solid rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-21{
+vertical-align:middle;
+text-align:center;
+font-family:等线;
+font-size:11pt;
+color:#000000;
+background-color:#9CC2E5;
+border-top:2px solid rgba(0,0,0,1.0);
+border-bottom:2px solid rgba(0,0,0,1.0);
+border-left:none;border-right:none;}
+#xpt-report .xpt-s-22{
+vertical-align:middle;
+text-align:center;
+font-family:等线;
+font-size:11pt;
+color:#000000;
+background-color:#9CC2E5;
+border-top:2px solid rgba(0,0,0,1.0);
+border-bottom:2px solid rgba(0,0,0,1.0);
+border-left:none;border-right:2px solid rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-23{
+text-align:center;
+font-family:微软雅黑;
+font-size:11pt;
+color:#000000;
+border-top:1px dashed black;
+border-bottom:2px solid rgba(0,0,0,1.0);
+border-left:none;border-right:1px dashed black;
+}
+#xpt-report .xpt-s-24{
+text-align:center;
+font-family:微软雅黑;
+font-size:11pt;
+color:#000000;
+border-top:1px dashed black;
+border-bottom:2px solid rgba(0,0,0,1.0);
+border-left:none;border-right:1px dashed black;
+}
+#xpt-report .xpt-s-25{
+vertical-align:middle;
+text-align:center;
+font-family:等线;
+font-size:11pt;
+color:#000000;
+border:1px solid rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-26{
+vertical-align:middle;
+text-align:center;
+font-family:等线;
+font-size:11pt;
+color:#000000;
+border-top:1px solid rgba(0,0,0,1.0);
+border-bottom:1px solid rgba(0,0,0,1.0);
+border-left:none;border-right:1px solid rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-27{
+text-align:center;
+font-family:等线;
+font-size:11pt;
+color:#000000;
+background-color:#C5DEB5;
+border:none;}
+#xpt-report .xpt-s-28{
+vertical-align:middle;
+text-align:left;
+font-family:微软雅黑;
+font-size:11pt;
+color:#000000;
+background-color:#FFFFFF;
+border-top:2px solid rgba(0,0,0,1.0);
+border-bottom:1px dotted rgba(0,0,0,1.0);
+border-left:1px dotted rgba(0,0,0,1.0);
+border-right:none;}
+#xpt-report .xpt-s-29{
+font-family:微软雅黑;
+font-size:11pt;
+color:#000000;
+background-color:#FFFFFF;
+border-top:2px solid rgba(0,0,0,1.0);
+border-bottom:1px dotted rgba(0,0,0,1.0);
+border-left:1px dotted rgba(0,0,0,1.0);
+border-right:2px solid rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-red{
+font-family:等线;
+font-size:11pt;
+color:#FFFFFF;
+background-color:rgba(255,0,0,1.0);
+border:none;}
+</style>
+<div id="xpt-report-sheet-1">
+<table  class="xpt-table">
+<colgroup><col  style="width:117.0pt" /><col  style="width:88.81640625pt" /><col  style="width:111.033203125pt" /><col  style="width:77.44140625pt" /><col  style="width:108.31640625pt" /><col  style="width:86.658203125pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /></colgroup>
+<thead>
+</thead>
+<tbody>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell xpt-s-7">项目名称</td><td  class="xpt-cell xpt-s-8">AAAAAA</td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell"></td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell xpt-s-7">项目号</td><td  class="xpt-cell xpt-s-8">A0001</td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell"></td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell xpt-s-7">批次号</td><td  class="xpt-cell xpt-s-8">B0001</td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell"></td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell xpt-s-7">日期</td><td  class="xpt-cell xpt-s-15">202301</td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-14"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell"></td></tr>
+<tr  class="xpt-row" style="height:17.0pt"><td  class="xpt-cell xpt-s-23" colspan="7"></td><td  class="xpt-cell"></td></tr>
+<tr  class="xpt-row" style="height:14.5pt"><td  class="xpt-cell xpt-s-20" colspan="8">项目指标</td></tr>
+<tr  class="xpt-row" style="height:17.0pt"><td  class="xpt-cell">序号</td><td  class="xpt-cell xpt-s-10">L0指标</td><td  class="xpt-cell xpt-s-10">L1指标</td><td  class="xpt-cell xpt-s-10">L2指标</td><td  class="xpt-cell xpt-s-10">L3指标</td><td  class="xpt-cell xpt-s-10">单位</td><td  class="xpt-cell xpt-s-10">2001指标</td><td  class="xpt-cell xpt-s-red">2002指标</td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-11">1</td><td  class="xpt-cell xpt-s-12">A1</td><td  class="xpt-cell xpt-s-1"></td><td  class="xpt-cell xpt-s-1"></td><td  class="xpt-cell xpt-s-1"></td><td  class="xpt-cell xpt-s-28">RMB</td><td  class="xpt-cell-num xpt-cell xpt-s-29">100.000</td><td  class="xpt-cell-num xpt-cell xpt-s-29">200.000</td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-11">2</td><td  class="xpt-cell xpt-s-red" rowspan="18">A2</td><td  class="xpt-cell xpt-s-1"></td><td  class="xpt-cell xpt-s-1"></td><td  class="xpt-cell xpt-s-1"></td><td  class="xpt-cell xpt-s-28">RMB</td><td  class="xpt-cell-num xpt-cell xpt-s-29">100.000</td><td  class="xpt-cell-num xpt-cell xpt-s-29">200.000</td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-11">3</td><td  class="xpt-cell xpt-s-1" rowspan="9">A2</td><td  class="xpt-cell xpt-s-1"></td><td  class="xpt-cell xpt-s-1"></td><td  class="xpt-cell xpt-s-28">RMB</td><td  class="xpt-cell-num xpt-cell xpt-s-29">100.000</td><td  class="xpt-cell-num xpt-cell xpt-s-29">200.000</td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-11">4</td><td  class="xpt-cell xpt-s-1" rowspan="4">A2-1-1</td><td  class="xpt-cell xpt-s-1"></td><td  class="xpt-cell xpt-s-28">RMB</td><td  class="xpt-cell-num xpt-cell xpt-s-29">100.000</td><td  class="xpt-cell-num xpt-cell xpt-s-29">200.000</td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-11">5</td><td  class="xpt-cell xpt-s-1">A2-1-1-1</td><td  class="xpt-cell xpt-s-28">RMB</td><td  class="xpt-cell-num xpt-cell xpt-s-29">100.000</td><td  class="xpt-cell-num xpt-cell xpt-s-29">200.000</td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-11">6</td><td  class="xpt-cell xpt-s-1">A2-1-1-2</td><td  class="xpt-cell xpt-s-28">RMB</td><td  class="xpt-cell-num xpt-cell xpt-s-29">100.000</td><td  class="xpt-cell-num xpt-cell xpt-s-29">200.000</td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-11">7</td><td  class="xpt-cell xpt-s-1">A2-1-1-3</td><td  class="xpt-cell xpt-s-28">RMB</td><td  class="xpt-cell-num xpt-cell xpt-s-29">100.000</td><td  class="xpt-cell-num xpt-cell xpt-s-29">200.000</td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-11">8</td><td  class="xpt-cell xpt-s-1" rowspan="3">A2-1-2</td><td  class="xpt-cell xpt-s-1"></td><td  class="xpt-cell xpt-s-28">RMB</td><td  class="xpt-cell-num xpt-cell xpt-s-29">100.000</td><td  class="xpt-cell-num xpt-cell xpt-s-29">200.000</td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-11">9</td><td  class="xpt-cell xpt-s-1">A2-1-2-1</td><td  class="xpt-cell xpt-s-28">RMB</td><td  class="xpt-cell-num xpt-cell xpt-s-29">100.000</td><td  class="xpt-cell-num xpt-cell xpt-s-29">200.000</td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-11">10</td><td  class="xpt-cell xpt-s-1">A2-1-2-2</td><td  class="xpt-cell xpt-s-28">RMB</td><td  class="xpt-cell-num xpt-cell xpt-s-29">100.000</td><td  class="xpt-cell-num xpt-cell xpt-s-29">200.000</td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-11">11</td><td  class="xpt-cell xpt-s-1">A2-1-3</td><td  class="xpt-cell xpt-s-1"></td><td  class="xpt-cell xpt-s-28">RMB</td><td  class="xpt-cell-num xpt-cell xpt-s-29">100.000</td><td  class="xpt-cell-num xpt-cell xpt-s-29">200.000</td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-11">12</td><td  class="xpt-cell xpt-s-1" rowspan="6">A2</td><td  class="xpt-cell xpt-s-1"></td><td  class="xpt-cell xpt-s-1"></td><td  class="xpt-cell xpt-s-28">RMB</td><td  class="xpt-cell-num xpt-cell xpt-s-29">100.000</td><td  class="xpt-cell-num xpt-cell xpt-s-29">200.000</td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-11">13</td><td  class="xpt-cell xpt-s-1" rowspan="4">A2-2-1</td><td  class="xpt-cell xpt-s-1"></td><td  class="xpt-cell xpt-s-28">RMB</td><td  class="xpt-cell-num xpt-cell xpt-s-29">100.000</td><td  class="xpt-cell-num xpt-cell xpt-s-29">200.000</td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-11">14</td><td  class="xpt-cell xpt-s-1">A2-2-1-1</td><td  class="xpt-cell xpt-s-28">RMB</td><td  class="xpt-cell-num xpt-cell xpt-s-29">100.000</td><td  class="xpt-cell-num xpt-cell xpt-s-29">200.000</td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-11">15</td><td  class="xpt-cell xpt-s-1">A2-2-1-2</td><td  class="xpt-cell xpt-s-28">RMB</td><td  class="xpt-cell-num xpt-cell xpt-s-29">100.000</td><td  class="xpt-cell-num xpt-cell xpt-s-29">200.000</td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-11">16</td><td  class="xpt-cell xpt-s-1">A2-2-1-3</td><td  class="xpt-cell xpt-s-28">RMB</td><td  class="xpt-cell-num xpt-cell xpt-s-29">100.000</td><td  class="xpt-cell-num xpt-cell xpt-s-29">200.000</td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-11">17</td><td  class="xpt-cell xpt-s-1">A2-2-2</td><td  class="xpt-cell xpt-s-1"></td><td  class="xpt-cell xpt-s-28">RMB</td><td  class="xpt-cell-num xpt-cell xpt-s-29">100.000</td><td  class="xpt-cell-num xpt-cell xpt-s-29">200.000</td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-11">18</td><td  class="xpt-cell xpt-s-1">A2-3</td><td  class="xpt-cell xpt-s-1"></td><td  class="xpt-cell xpt-s-1"></td><td  class="xpt-cell xpt-s-28">RMB</td><td  class="xpt-cell-num xpt-cell xpt-s-29">100.000</td><td  class="xpt-cell-num xpt-cell xpt-s-29">200.000</td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-11">19</td><td  class="xpt-cell xpt-s-1">A2</td><td  class="xpt-cell xpt-s-1"></td><td  class="xpt-cell xpt-s-1"></td><td  class="xpt-cell xpt-s-28">RMB</td><td  class="xpt-cell-num xpt-cell xpt-s-29">100.000</td><td  class="xpt-cell-num xpt-cell xpt-s-29">200.000</td></tr>
+</tbody>
+<tfoot></tfoot>
+</table>
+</div>
+<div id="xpt-report-sheet-2">
+<table  class="xpt-table">
+<colgroup><col  style="width:55.25pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /></colgroup>
+<thead>
+</thead>
+<tbody>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell xpt-s-7">项目名称</td><td  class="xpt-cell xpt-s-8">BBBBB</td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell xpt-s-7">项目号</td><td  class="xpt-cell xpt-s-8">B0001</td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell xpt-s-7">批次号</td><td  class="xpt-cell xpt-s-8">BB0001</td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell xpt-s-7">日期</td><td  class="xpt-cell xpt-s-15">202302</td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-14"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td></tr>
+<tr  class="xpt-row" style="height:14.0pt"><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td></tr>
+<tr  class="xpt-row" style="height:14.0pt"><td  class="xpt-cell xpt-s-25" colspan="2">开发范围</td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td></tr>
+<tr  class="xpt-row" style="height:14.0pt"><td  class="xpt-cell xpt-s-19">范围1</td><td  class="xpt-cell xpt-s-19">A001</td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td></tr>
+<tr  class="xpt-row" style="height:14.0pt"><td  class="xpt-cell xpt-s-19">范围2</td><td  class="xpt-cell xpt-s-19">A002</td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td></tr>
+<tr  class="xpt-row" style="height:14.0pt"><td  class="xpt-cell xpt-s-19">范围3</td><td  class="xpt-cell xpt-s-19">A003</td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td></tr>
+<tr  class="xpt-row" style="height:14.0pt"><td  class="xpt-cell xpt-s-19">范围4</td><td  class="xpt-cell xpt-s-19">A004</td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td></tr>
+</tbody>
+<tfoot></tfoot>
+</table>
+</div>
+</div>
