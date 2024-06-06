@@ -13,9 +13,9 @@
 
     <artifactId>nop-auth-codegen</artifactId>
 
-	<properties>
-	    <maven.deploy.skip>true</maven.deploy.skip>
-	</properties>
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
 
     <dependencies>
         <!-- 解析orm.xlsx模型文件需要依赖 -->
@@ -34,6 +34,17 @@
             <artifactId>nop-xlang-debugger</artifactId>
         </dependency>
 
+        <!-- mvn install的时候使用了slf4j1.7版本，无法使用平台内置的logback，这里引入Log4j2用于mvn install的时候打印日志。
+              注意还需要增加log4j2.xml配置文件
+         -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
