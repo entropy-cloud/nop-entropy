@@ -36,6 +36,7 @@ import io.nop.auth.dao.entity.NopAuthDept;
 import io.nop.auth.dao.entity.NopAuthRole;
 import io.nop.auth.dao.entity.NopAuthTenant;
 import io.nop.auth.dao.entity.NopAuthUser;
+import io.nop.auth.service.NopAuthConstants;
 import io.nop.commons.util.DateHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.i18n.I18nMessageManager;
@@ -259,9 +260,18 @@ public class LoginServiceImpl extends AbstractLoginService {
         Set<String> roleIds = new TreeSet<>();
         for (NopAuthRole role : roles) {
             roleIds.add(role.getRoleId());
+            // 自动加入关联的子角色。
             if (!StringHelper.isEmpty(role.getChildRoleIds()))
                 roleIds.addAll(ConvertHelper.toCsvSet(role.getChildRoleIds()));
         }
+
+        // 用户总是具有user角色。这里检查一下是否为所有user都自动分配了关联角色
+        NopAuthRole userRole = daoProvider.daoFor(NopAuthRole.class).getEntityById(NopAuthConstants.ROLE_USER);
+        if (userRole != null) {
+            if (!StringHelper.isEmpty(userRole.getChildRoleIds()))
+                roleIds.addAll(ConvertHelper.toCsvSet(userRole.getChildRoleIds()));
+        }
+
         context.setRoles(roleIds);
         if (request.getPrimaryRoleId() != null && roleIds.contains(request.getPrimaryRoleId())) {
             context.setPrimaryRole(request.getPrimaryRoleId());
