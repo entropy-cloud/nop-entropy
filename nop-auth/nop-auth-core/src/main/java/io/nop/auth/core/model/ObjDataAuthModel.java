@@ -9,6 +9,7 @@ package io.nop.auth.core.model;
 
 import io.nop.api.core.auth.ISecurityContext;
 import io.nop.api.core.auth.IUserContext;
+import io.nop.auth.core.AuthCoreConstants;
 import io.nop.auth.core.model._gen._ObjDataAuthModel;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.eval.IEvalScope;
@@ -38,8 +39,12 @@ public class ObjDataAuthModel extends _ObjDataAuthModel {
     }
 
     private boolean isUserInRole(Set<String> roleIds, IUserContext userContext, Set<String> authRoleIds) {
-        if (roleIds != null)
+        if (roleIds != null) {
+            // 总是假定具有user角色
+            if (authRoleIds.contains(AuthCoreConstants.ROLE_USER))
+                return true;
             return CollectionHelper.containsAny(roleIds, authRoleIds);
+        }
         return userContext.isUserInAnyRole(authRoleIds);
     }
 }

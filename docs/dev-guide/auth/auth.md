@@ -21,6 +21,15 @@
 4. 登录验证在`AuthHttpServerFilter`类中通过`ILoginService`接口调用实现。
 5. `ILoginService`接口负责登入登出和`token`校验相关的所有逻辑。平台内置了`LoginServiceImpl`和`OAuthLoginServiceImpl`两个实现。
 
+## 用户角色
+
+* 所有登录用户都自动具有user角色，不需要专门去分配这个角色
+* 角色上有isPrimary属性，一个用户只会有一个primary角色，可以起到类似岗位的作用
+* 角色具有关联的子角色集合，只要给用户分配了某个角色，那么就会自动给它也同时分配所有关联的子角色。相当于是提供一种角色分组机制，可以简化配置
+* 缺省情况下不检查admin角色的操作权限，可以通过开关控制（`nop.auth.skip-check-for-admin`）重新启用检查
+
+利用关联子角色这一概念，可以实现某种动态分配权限的效果。例如，为user角色指定某个角色accessDeptData，然后为accessDeptData指定数据权限、操作权限等，则所有用户都自动具有相关功能
+
 ## 操作权限
 
 ### 操作权限配置
