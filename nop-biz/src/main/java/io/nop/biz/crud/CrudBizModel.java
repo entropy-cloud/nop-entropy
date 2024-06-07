@@ -473,10 +473,10 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                 entityData.getEntity(), null, entityData.getObjMeta(), getBizObjName(),
                 BizConstants.METHOD_SAVE, context.getEvalScope());
 
-        checkDataAuth(BizConstants.METHOD_SAVE, entityData.getEntity(), context);
-
         if (prepareSave != null)
             prepareSave.accept(entityData, context);
+
+        checkDataAuth(BizConstants.METHOD_SAVE, entityData.getEntity(), context);
 
         doSaveEntity(entityData, context);
 
