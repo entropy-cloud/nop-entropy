@@ -51,7 +51,7 @@
                 <cache-evict cacheName="string" cacheKeyExpr="expr" xdef:name="BizCacheEvictModel"/>
             </cache-evicts>
 
-            <args-normalizer xdef:value="xpl-fn:(args:Map,svcCtx:io.nop.core.context.IServiceContext)=>Map" />
+            <args-normalizer xdef:value="xpl-fn:(args:Map,svcCtx:io.nop.core.context.IServiceContext)=>Map"/>
 
             <arg xdef:name="BizActionArgModel" name="!var-name" mandatory="!boolean=false"
                  displayName="string" xdef:unique-attr="name" type="generic-type" graphql:type="string"
@@ -93,6 +93,13 @@
             <source xdef:value="xpl"/>
         </loader>
     </loaders>
+
+    <interceptors xdef:body-type="list" xdef:key-attr="name">
+        <interceptor name="!string" xdef:name="BizInterceptorModel" order="!int=100"
+                     forAnnotations="class-name-set" forMethods="word-set">
+            <source xdef:value="xpl"/>
+        </interceptor>
+    </interceptors>
 
     <state-machine xdef:ref="state-machine.xdef"/>
 

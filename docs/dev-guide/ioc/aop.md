@@ -1,8 +1,20 @@
 # 编译期代码生成
 
-Nop平台的AOP机制依赖于编译期代码生成，并不是在运行期动态生成字节码。
+Nop平台的AOP机制依赖于编译期代码生成，并不是在运行期动态生成字节码。因此它要求需要预先声明哪些类会参与AOP机制，在编译时自动识别使用了这些注解的bean，然后为它们生成AOP代理类。
 
 注意：**必须先生成AOP包装类，然后NopIoC中的aop配置才能起作用**
+
+## 注册支持AOP机制的Annotation
+在虚拟文件系统的`/nop/aop/`目录下增加一个后缀名为annotations的文件，在其中列举所有参与AOP处理的注解类。例如nop-api-core项目中的`/_vfs/nop/aop/nop-api-core.annotations`。
+
+```
+io.nop.api.core.annotations.cache.Cache
+io.nop.api.core.annotations.cache.CacheEvicts
+io.nop.api.core.annotations.orm.SingleSession
+io.nop.api.core.annotations.txn.TccMethod
+io.nop.api.core.annotations.txn.TccTransactional
+io.nop.api.core.annotations.txn.Transactional
+```
 
 ## AOP包装类生成器
 

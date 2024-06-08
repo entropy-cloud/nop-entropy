@@ -4,10 +4,12 @@
        xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans
-        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc" xmlns:feature="feature">
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc">
 
     <bean id="io.nop.demo.biz.DemoBizModel" ioc:default="true" ioc:type="@bean:id">
     </bean>
 
-
+    <bean id="sendEmailInterceptor" class="io.nop.demo.interceptors.SendEmailInterceptor">
+        <ioc:pointcut annotations="io.nop.demo.annotations.SendEmail"/>
+    </bean>
 </beans>

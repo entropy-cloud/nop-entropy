@@ -9,9 +9,11 @@ package io.nop.demo.biz;
 
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizQuery;
+import io.nop.api.core.annotations.biz.RequestBean;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.util.LogLevel;
 import io.nop.core.context.IServiceContext;
+import io.nop.demo.annotations.SendEmail;
 import io.nop.demo.domain.Material;
 import io.nop.demo.domain.ProcessCard;
 import io.nop.demo.domain.ProductionOrder;
@@ -68,5 +70,11 @@ public class DemoBizModel {
         material.setMaterialId("2");
         vars.put("firstMaterial", material);
         return vars;
+    }
+
+    @BizQuery
+    @SendEmail
+    public void testMethod1(@RequestBean MyRequest request) {
+        System.out.println("doSomething");
     }
 }

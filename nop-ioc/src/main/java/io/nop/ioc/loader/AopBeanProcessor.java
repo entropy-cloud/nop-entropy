@@ -11,6 +11,7 @@ import io.nop.api.core.annotations.aop.AopProxy;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.IBeanContainer;
 import io.nop.commons.lang.IClassLoader;
+import io.nop.commons.util.ArrayHelper;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.reflect.IClassModel;
@@ -38,6 +39,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -284,7 +286,7 @@ public class AopBeanProcessor {
                 pointcutAnns.addAll(annClasses);
             }
 
-            if (!isUsedAnnotation(aopClass, pointcutAnns)) {
+            if (!filterUsedAnnotation(aopClass, pointcutAnns)) {
                 bean.setIntercepted(false);
                 beanModel.setIocAop(false);
                 continue;
@@ -355,16 +357,19 @@ public class AopBeanProcessor {
     /**
      * 判断AopClass是否识别指定的注解
      */
-    boolean isUsedAnnotation(Class<?> aopClass, Collection<?> annotations) {
+    boolean filterUsedAnnotation(Class<?> aopClass, Collection<Class<?>> annotations) {
         AopProxy proxy = aopClass.getAnnotation(AopProxy.class);
         if (proxy == null)
             return false;
-        for (Class<?> clazz : proxy.value()) {
-            if (annotations.contains(clazz)) {
-                return true;
+        Class<?>[] usedClasses = proxy.value();
+        Iterator<Class<?>> it = annotations.iterator();
+        while (it.hasNext()) {
+            Class<?> clazz = it.next();
+            if (ArrayHelper.indexOf(usedClasses, clazz) < 0) {
+                it.remove();
             }
         }
-        return false;
+        return !annotations.isEmpty();
     }
 
     // JaninoClassLoader makeAopClassLoader() {

@@ -29272,6 +29272,16 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.demo.annotations.SendEmail",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "changeLogLevel",
@@ -29292,6 +29302,12 @@
         ]
       },
       {
+        "name": "testMethod1",
+        "parameterTypes": [
+          "io.nop.demo.biz.MyRequest"
+        ]
+      },
+      {
         "name": "testValidate",
         "parameterTypes": [
           "java.lang.String",
@@ -29301,6 +29317,54 @@
       }
     ],
     "name": "io.nop.demo.biz.DemoBizModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.demo.biz.DemoBizModel__aop",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getMessage",
+        "parameterTypes": []
+      },
+      {
+        "name": "setMessage",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.demo.biz.MyRequest",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "invoke",
+        "parameterTypes": [
+          "io.nop.core.reflect.aop.IMethodInvocation"
+        ]
+      }
+    ],
+    "name": "io.nop.demo.interceptors.SendEmailInterceptor",
     "unsafeAllocated": false
   },
   {

@@ -15,10 +15,10 @@ _vfs/
       /{deltaDir}   这里是delta层的名称，缺省会加载default层
         这里的文件会覆盖标准路径的同名文件
    /dict
-      {dictName}.dict.yaml  字典文件不会被自动加载，但是通过dictName加载指定字典文件     
+      {dictName}.dict.yaml  字典文件不会被自动加载，但是通过dictName加载指定字典文件
    /i18n
       /{locale}
-        {moduleName}.i18n.yaml I18nManager初始化的时候会自动加载所有i18n文件     
+        {moduleName}.i18n.yaml I18nManager初始化的时候会自动加载所有i18n文件
    /nop
      /aop
         {xxx}.annotations Nop的AOP代码生成器生成包装类时会读取所有的annotations文件，并为每个标注了指定注解的类生成AOP包装类
@@ -36,7 +36,7 @@ _vfs/
      /main
         /auth
             /app.action-auth.xml 全局的操作权限和菜单定义文件，在其中通过x:extends来引用其他权限文件
-            /app.data-auth.xml 全局的数据权限定义文件，在其中通过x:extends来引用其他数据权限文件       
+            /app.data-auth.xml 全局的数据权限定义文件，在其中通过x:extends来引用其他数据权限文件
    /{moduleId}  Nop模块的moduleId必须是nop/auth这种两级目录结构
         _module  每个Nop模块下都有一个_module文件来标记它是模块。
         /beans
@@ -44,13 +44,14 @@ _vfs/
         /model
            /{bizObjName}
               {bizObjName}.xbiz 所有的服务对象原则上都是要在beans.xml中注册，然后再通过对象名查找到对应的xbiz和xmeta文件
-              {bizObjName}.xmeta  NopDynEntity对象采用了简化注册流程，直接向BizObjectManager注册，没有在beans.xml中定义服务对象 
+              {bizObjName}.xmeta  NopDynEntity对象采用了简化注册流程，直接向BizObjectManager注册，没有在beans.xml中定义服务对象
         /orm
            app.orm.xml NopOrm引擎初始化的时候会加载所有模块的orm目录下的app.orm.xml模型文件
+           app.orm-interceptor.xml   NopOrm引擎内部拦截器的注册文件，类似于注册数据库层面的触发器，它在单个实体的增删改查操作时触发。
         /pages
            /{bizObjName}
               {pageId}.page.yaml   可以配置页面文件在系统初始化的情况下加载，它引用的view模型因此被连带加载
-              {bizObjName}.view.xml  View模型不会被自动加载，但是一般会放置在这个位置                    
+              {bizObjName}.view.xml  View模型不会被自动加载，但是一般会放置在这个位置
 ```
 
 ## 模型文件自动加载顺序

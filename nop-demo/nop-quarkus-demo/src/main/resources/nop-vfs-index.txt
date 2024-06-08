@@ -74,6 +74,7 @@
 /i18n/zh-CN/nop-web.i18n.yaml
 /i18n/zh-CN/nop-wf.i18n.yaml
 /nop/aop/nop-api-core.annotations
+/nop/aop/nop-quarkus-demo.annotations
 /nop/auth/_module
 /nop/auth/auth/_nop-auth.action-auth.xml
 /nop/auth/auth/nop-auth.action-auth.xml
