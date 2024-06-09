@@ -2,11 +2,11 @@
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
-# ¶¨ÒåÒªºÏ²¢µÄÄ¿Â¼Â·¾¶
+# å®šä¹‰è¦åˆå¹¶çš„ç›®å½•è·¯å¾„
 source_dir="."
-# ¶¨ÒåÊä³öÎÄ¼şµÄÂ·¾¶
+# å®šä¹‰è¾“å‡ºæ–‡ä»¶çš„è·¯å¾„
 output_file="merged.md"
-# ¶¨Òå·Ö¸ôĞĞµÄÄÚÈİ
+# å®šä¹‰åˆ†éš”è¡Œçš„å†…å®¹
 separator="   "
 
 cat << EOF > "$output_file"
@@ -16,19 +16,19 @@ CJKmainfont: KaiTi
 
 EOF
 
-# µİ¹é±éÀúÄ¿Â¼²¢ºÏ²¢MarkdownÎÄ¼ş
+# é€’å½’éå†ç›®å½•å¹¶åˆå¹¶Markdownæ–‡ä»¶
 function merge_markdowns() {
-    # ´ò¿ªÊä³öÎÄ¼ş
+    # æ‰“å¼€è¾“å‡ºæ–‡ä»¶
 
-    # ±éÀúÄ¿Â¼
+    # éå†ç›®å½•
     for file in $(find "$source_dir" -type f -name "*.md"); do
-        # ¶ÁÈ¡MarkdownÎÄ¼şÄÚÈİ²¢Ìí¼Óµ½Êä³öÎÄ¼ş
+        # è¯»å–Markdownæ–‡ä»¶å†…å®¹å¹¶æ·»åŠ åˆ°è¾“å‡ºæ–‡ä»¶
         cat "$file" >> "$output_file"
-        # Ìí¼Ó·Ö¸ôĞĞ
+        # æ·»åŠ åˆ†éš”è¡Œ
         echo "$separator" >> "$output_file"
     done
 }
-# µ÷ÓÃº¯ÊıÖ´ĞĞºÏ²¢²Ù×÷
+# è°ƒç”¨å‡½æ•°æ‰§è¡Œåˆå¹¶æ“ä½œ
 merge_markdowns
 
 #iconv -f gbk -t utf-8 merged.md > merged-utf8.md
