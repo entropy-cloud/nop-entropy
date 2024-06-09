@@ -8,6 +8,10 @@
                 targetDir="${targetResource.path.$filePath() + '/' + moduleName + '-api'}"
       xpl:lib="/nop/codegen/xlib/gen.xlib" inheritCodeGenLoop="true" />
 
+    <gen:Render template="/nop/templates/orm/{!!useCoreModule}{appName}-core"
+                targetDir="${targetResource.path.$filePath() + '/' + moduleName + '-core'}"
+      xpl:lib="/nop/codegen/xlib/gen.xlib" inheritCodeGenLoop="true" xpl:if="useCoreModule"/>
+
     <gen:Render template="/nop/templates/orm/{appName}-dao"
                 targetDir="${targetResource.path.$filePath() + '/' + moduleName + '-dao'}"
       xpl:lib="/nop/codegen/xlib/gen.xlib" inheritCodeGenLoop="true" />
