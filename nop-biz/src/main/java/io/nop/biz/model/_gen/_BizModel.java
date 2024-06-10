@@ -39,6 +39,13 @@ public abstract class _BizModel extends io.nop.core.resource.component.AbstractC
     
     /**
      *  
+     * xml name: interceptors
+     * 
+     */
+    private KeyedList<io.nop.biz.model.BizInterceptorModel> _interceptors = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: loaders
      * 
      */
@@ -161,6 +168,51 @@ public abstract class _BizModel extends io.nop.core.resource.component.AbstractC
            
     }
 
+    
+    /**
+     * 
+     * xml name: interceptors
+     *  
+     */
+    
+    public java.util.List<io.nop.biz.model.BizInterceptorModel> getInterceptors(){
+      return _interceptors;
+    }
+
+    
+    public void setInterceptors(java.util.List<io.nop.biz.model.BizInterceptorModel> value){
+        checkAllowChange();
+        
+        this._interceptors = KeyedList.fromList(value, io.nop.biz.model.BizInterceptorModel::getName);
+           
+    }
+
+    
+    public io.nop.biz.model.BizInterceptorModel getInterceptor(String name){
+        return this._interceptors.getByKey(name);
+    }
+
+    public boolean hasInterceptor(String name){
+        return this._interceptors.containsKey(name);
+    }
+
+    public void addInterceptor(io.nop.biz.model.BizInterceptorModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.biz.model.BizInterceptorModel> list = this.getInterceptors();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.biz.model.BizInterceptorModel::getName);
+            setInterceptors(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_interceptors(){
+        return this._interceptors.keySet();
+    }
+
+    public boolean hasInterceptors(){
+        return !this._interceptors.isEmpty();
+    }
     
     /**
      * 
@@ -338,6 +390,8 @@ public abstract class _BizModel extends io.nop.core.resource.component.AbstractC
         
            this._actions = io.nop.api.core.util.FreezeHelper.deepFreeze(this._actions);
             
+           this._interceptors = io.nop.api.core.util.FreezeHelper.deepFreeze(this._interceptors);
+            
            this._loaders = io.nop.api.core.util.FreezeHelper.deepFreeze(this._loaders);
             
            this._observes = io.nop.api.core.util.FreezeHelper.deepFreeze(this._observes);
@@ -354,6 +408,7 @@ public abstract class _BizModel extends io.nop.core.resource.component.AbstractC
         out.putNotNull("actions",this.getActions());
         out.putNotNull("disabledActions",this.getDisabledActions());
         out.putNotNull("inheritActions",this.getInheritActions());
+        out.putNotNull("interceptors",this.getInterceptors());
         out.putNotNull("loaders",this.getLoaders());
         out.putNotNull("metaDir",this.getMetaDir());
         out.putNotNull("observes",this.getObserves());
@@ -374,6 +429,7 @@ public abstract class _BizModel extends io.nop.core.resource.component.AbstractC
         instance.setActions(this.getActions());
         instance.setDisabledActions(this.getDisabledActions());
         instance.setInheritActions(this.getInheritActions());
+        instance.setInterceptors(this.getInterceptors());
         instance.setLoaders(this.getLoaders());
         instance.setMetaDir(this.getMetaDir());
         instance.setObserves(this.getObserves());
