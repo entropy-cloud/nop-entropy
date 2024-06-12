@@ -111,4 +111,7 @@ public interface FilterBeanConstants {
 
     String DUMMY_TAG_NAME = "_";
     String FILTER_TAG_NAME = "filter";
+
+    String BETWEEN_PREFIX = "between";
+    String BETWEEN_POSTFIX = "Between";
 }

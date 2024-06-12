@@ -6,6 +6,7 @@ import io.nop.api.core.beans.graphql.GraphQLConnectionInput;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.core.CoreConstants;
 import io.nop.core.model.query.OrderBySqlParser;
 import io.nop.core.reflect.ReflectionManager;
@@ -201,7 +202,17 @@ public class GraphQLArgsHelper {
         Map<String, Object> filter = new LinkedHashMap<>();
         filter.put(CoreConstants.XML_PROP_TYPE, op);
         filter.put(CoreConstants.ATTR_NAME, filterName);
-        filter.put(CoreConstants.ATTR_VALUE, value);
+        if (op.startsWith(FilterBeanConstants.BETWEEN_PREFIX) || op.endsWith(FilterBeanConstants.BETWEEN_POSTFIX)) {
+            List<String> values = ConvertHelper.toCsvList(value, NopException::new);
+            if (values != null && !values.isEmpty()) {
+                filter.put(FilterBeanConstants.FILTER_ATTR_MIN, values.get(0));
+                if (values.size() > 1) {
+                    filter.put(FilterBeanConstants.FILTER_ATTR_MAX, values.get(1));
+                }
+            }
+        } else {
+            filter.put(CoreConstants.ATTR_VALUE, value);
+        }
         return filter;
     }
 
