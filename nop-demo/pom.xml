@@ -33,6 +33,7 @@
         <module>nop-orm-demo</module>
         <module>nop-delta-demo</module>
         <module>nop-delta-lib</module>
+        <module>nop-jdk17-demo</module>
     </modules>
 
 </project>
