@@ -13,6 +13,8 @@ import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IDataFetcher;
 import io.nop.graphql.core.IDataFetchingEnvironment;
 
+import java.util.Map;
+
 public class PropGetterFetcher implements IDataFetcher {
     private final IEvalAction getter;
 
@@ -24,6 +26,9 @@ public class PropGetterFetcher implements IDataFetcher {
     public Object get(IDataFetchingEnvironment env) {
         IEvalScope scope = env.getEvalScope().newChildScope();
         scope.setLocalValue(null, GraphQLConstants.VAR_ENTITY, env.getSource());
+        Map<String, Object> args = (Map<String, Object>) env.getArgs();
+        if (args != null)
+            scope.setLocalValues(args);
         return getter.invoke(scope);
     }
 }
