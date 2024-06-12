@@ -25,6 +25,10 @@ public class OrmJoinOnModel extends _OrmJoinOnModel implements IEntityJoinCondit
 
     public void setLeftPropModel(IEntityPropModel leftPropModel) {
         this.leftPropModel = leftPropModel;
+        // 规范化属性名为属性模型上的名称。例如id可能定义的属性名是sid
+        if (leftPropModel != null) {
+            this.setLeftProp(leftPropModel.getName());
+        }
     }
 
     @Override
@@ -34,6 +38,9 @@ public class OrmJoinOnModel extends _OrmJoinOnModel implements IEntityJoinCondit
 
     public void setRightPropModel(IEntityPropModel rightPropModel) {
         this.rightPropModel = rightPropModel;
+        if (rightPropModel != null) {
+            this.setRightProp(rightPropModel.getName());
+        }
     }
 
     @Override
