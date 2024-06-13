@@ -55,14 +55,21 @@ public class SpringHttpServerFilterConfiguration {
         }).collect(Collectors.toList());
     }
 
+    private FilterRegistrationBean<Filter> sysFilter;
+    private FilterRegistrationBean<Filter> appFilter;
+
     @Bean
     public FilterRegistrationBean<Filter> registerSysFilter() {
-        return createFilter(true, sysFilterOrder);
+        if (sysFilter == null)
+            sysFilter = createFilter(true, sysFilterOrder);
+        return sysFilter;
     }
 
     @Bean
     public FilterRegistrationBean<Filter> registerAppFilter() {
-        return createFilter(false, appFilterOrder);
+        if (appFilter == null)
+            appFilter = createFilter(false, appFilterOrder);
+        return appFilter;
     }
 
     FilterRegistrationBean<Filter> createFilter(boolean sys, int filterOrder) {

@@ -40,43 +40,43 @@ Engine）、任务调度引擎(Job Scheduler)、批处理引擎（Batch Prcessin
 
 开发进度：
 
-| 模块              | 说明                       | 进度   |
-|-----------------|--------------------------|------|
-| nop-api-support | API接口的支持类                | 已完成  |
-| nop-codegen     | 数据驱动的代码生成器               | 已完成  |
-| nop-antlr       | Antlr的模型驱动改造             | 已完成  |
-| nop-core        | 虚拟文件系统、反射机制、XML/JSON解析   | 已完成  |
-| nop-ioc         | 声明式IoC容器                 | 已完成  |
-| nop-config      | 动态配置中心                   | 已完成  |
-| nop-xlang       | XLang脚本语言和模板语言           | 已完成  |
-| nop-dao         | JDBC访问、事务、数据库方言          | 已完成  |
-| nop-orm         | 下一代ORM引擎                 | 已完成  |
-| nop-graphql     | GraphQL引擎                | 已完成  |
-| nop-rpc         | 分布式RPC调用                 | 已完成  |
+| 模块              | 说明                            | 进度   |
+|-----------------|-------------------------------|------|
+| nop-api-support | API接口的支持类                     | 已完成  |
+| nop-codegen     | 数据驱动的代码生成器                    | 已完成  |
+| nop-antlr       | Antlr的模型驱动改造                  | 已完成  |
+| nop-core        | 虚拟文件系统、反射机制、XML/JSON解析        | 已完成  |
+| nop-ioc         | 声明式IoC容器                      | 已完成  |
+| nop-config      | 动态配置中心                        | 已完成  |
+| nop-xlang       | XLang脚本语言和模板语言                | 已完成  |
+| nop-dao         | JDBC访问、事务、数据库方言               | 已完成  |
+| nop-orm         | 下一代ORM引擎                      | 已完成  |
+| nop-graphql     | 下一代GraphQL引擎                  | 已完成  |
+| nop-rpc         | 分布式RPC调用                      | 已完成  |
 | nop-ooxml       | Office文件的解析和生成，取代POI。Word报表模板 | 已完成  |
-| nop-report      | 中国式报表引擎                  | 已完成  |
-| nop-rule        | 规则引擎                     | 已完成  |
-| nop-autotest    | 模型驱动的自动化测试框架             | 已完成  |
-| nop-idea-plugin | IDEA开发插件，支持语法提示、文件跳转、断点调试 | 基本可用 |
-| nop-cli         | 将代码生成器、文件监听等功能封装为命令行工具   | 基本可用 |
-| nop-cluster     | 分布式集群支持                  | 50%  |
-| nop-tcc         | 分布式事务                    | 50%  |
-| nop-dyn         | 在线设计表单和数据模型、服务函数         | 基本可用 |
-| nop-workflow    | 工作流引擎                    | 65%  |
-| nop-task        | 逻辑流编排                    | 50%  |
-| nop-job         | 分布式任务调度                  | 40%  |
-| nop-batch       | 批处理引擎                    | 70%  |
-| nop-message     | Kafka/Pulsar消息队列封装       | 10%  |
-| nop-dbtool      | 数据库导入导出、数据结构比较、同步工具      | 30%  |
-| nop-nosql       | Redis封装                  | 0%   |
-| nop-stream      | 简化的流处理，可以集成Flink         | 0%   |
-| nop-netty       | TCP/IP服务处理框架             | 0%   |
-| nop-datav       | BI数据分析                   | 0%   |
-| nop-gpt         | 与AI大模型集成，实现AIGC          | 2%   |
-| nop-js          | GraalVM Js引擎封装，在Java中运行JS | 50%  |
-| nop-integration | 邮件、短信、文件服务等外部服务封装        | 30%  |
-| nop-auth        | 用户权限管理                   | 已完成  |
-| nop-sys         | 系统配置管理                   | 已完成  |
+| nop-report      | 中国式报表引擎                       | 已完成  |
+| nop-rule        | 规则引擎                          | 已完成  |
+| nop-autotest    | 模型驱动的自动化测试框架                  | 已完成  |
+| nop-idea-plugin | IDEA开发插件，支持语法提示、文件跳转、断点调试     | 基本可用 |
+| nop-cli         | 将代码生成器、文件监听等功能封装为命令行工具        | 基本可用 |
+| nop-cluster     | 分布式集群支持                       | 50%  |
+| nop-tcc         | 分布式事务                         | 50%  |
+| nop-dyn         | 在线设计表单和数据模型、服务函数              | 基本可用 |
+| nop-workflow    | 下一代工作流引擎                      | 65%  |
+| nop-task        | 下一代逻辑流编排                      | 50%  |
+| nop-job         | 分布式任务调度                       | 40%  |
+| nop-batch       | 下一代批处理引擎                      | 70%  |
+| nop-message     | Kafka/Pulsar消息队列封装            | 10%  |
+| nop-dbtool      | 数据库导入导出、数据结构比较、同步工具           | 30%  |
+| nop-nosql       | Redis封装                       | 0%   |
+| nop-stream      | 简化的流处理，可以集成Flink              | 0%   |
+| nop-netty       | TCP/IP服务处理框架                  | 0%   |
+| nop-datav       | BI数据分析                        | 0%   |
+| nop-gpt         | 与AI大模型集成，实现AIGC               | 2%   |
+| nop-js          | GraalVM Js引擎封装，在Java中运行JS     | 50%  |
+| nop-integration | 邮件、短信、文件服务等外部服务封装             | 30%  |
+| nop-auth        | 用户权限管理                        | 已完成  |
+| nop-sys         | 系统配置管理                        | 已完成  |
 
 ## 源码地址
 

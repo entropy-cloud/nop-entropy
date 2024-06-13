@@ -60,7 +60,7 @@ public class HttpServerFilterRegistrar {
     }
 
     public void setupAppFilter(@Observes Filters filters) {
-        //registerFilter(filters, false);
+        registerFilter(filters, false);
     }
 
     void registerFilter(Filters filters, boolean sys) {

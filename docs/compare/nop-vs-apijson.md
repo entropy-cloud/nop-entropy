@@ -11,7 +11,7 @@ Nop平台内置了基于可逆计算原理从零开始设计的下一代GraphQL�
 在Nop平台中，REST请求由NopGraphQL引擎来负责执行。NopGraphQL同时支持GraphQL协议、gRPC协议、REST协议等多种访问协议，可以使用多种方式来调用同一个后台服务函数。
 对于REST请求方式，NopGraphQL支持两种访问连接模式： `/r/{bizObjName}__{bizAction}`和`/p/{bizObjName}__{bizAction}`。
 
-其中`/r/`请求会发现`ApiResponse<T>`结构，它包含headers, data, stats, code, msg等属性。 如果status为0，则表示成功。如果失败，则通过code来返回错误码，通过msg来返回异常消息。
+其中`/r/`请求会返回`ApiResponse<T>`结构，它包含headers, data, stats, code, msg等属性。 如果status为0，则表示成功。如果失败，则通过code来返回错误码，通过msg来返回异常消息。
 
 ```java
 class ApiResponse<T>{
@@ -499,7 +499,7 @@ Nop返回结果：
 * 除了CRUD操作之外，NopGraphQL还支持没有任何数据库表支持的业务实体对象及其方法。
 
 * GraphQL协议内置支持一次性调用多个后台服务函数。比如
-  
+
   ```graphql
   query{
       Entity1__findPage{
@@ -1053,6 +1053,6 @@ Nop平台并不是专为数据库访问而设计的，CrudBizModel模型仅仅�
 
 ## 总结
 
-1. Nop平台可以通过配置实现APIJSON所提供的各项功能
-2. Nop平台在安全性方面控制更加严格，可以同时支持小型快速原型的开发和严谨的大型项目的持久演化
+1. Nop平台可以通过配置实现APIJSON所提供的各项功能,且使用标准的GraphQL协议，无需太多特殊约定
+2. Nop平台在安全性方面控制更加严格，支持严格的操作权限、字段权限和数据权限控制，可以同时支持小型快速原型的开发和严谨的大型项目的持久演化
 3. Nop平台提供了业内独一无二的可扩展性，参见[Nop平台为什么是一个独一无二的开源软件开发平台 ](https://mp.weixin.qq.com/s/vCPpnE-VMF7GW7yCOGWKxw)
