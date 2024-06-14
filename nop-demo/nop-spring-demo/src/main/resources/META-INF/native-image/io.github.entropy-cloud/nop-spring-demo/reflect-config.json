@@ -1888,6 +1888,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getAllDirectiveCount",
+        "parameterTypes": []
+      },
+      {
         "name": "getArg",
         "parameterTypes": [
           "java.lang.String"
@@ -2088,6 +2092,16 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "BETWEEN_POSTFIX"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "BETWEEN_PREFIX"
+      },
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
@@ -11588,6 +11602,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_roleIds"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_sid"
       },
       {
@@ -11604,6 +11623,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_ID_version"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_whenConfig"
       },
       {
         "allowUnsafeAccess": false,
@@ -11658,6 +11682,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_roleIds"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_sid"
       },
       {
@@ -11674,6 +11703,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_NAME_version"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_whenConfig"
       }
     ],
     "methods": [
@@ -11722,6 +11756,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getRoleIds",
+        "parameterTypes": []
+      },
+      {
         "name": "getSid",
         "parameterTypes": []
       },
@@ -11735,6 +11773,10 @@
       },
       {
         "name": "getVersion",
+        "parameterTypes": []
+      },
+      {
+        "name": "getWhenConfig",
         "parameterTypes": []
       },
       {
@@ -11852,6 +11894,12 @@
         ]
       },
       {
+        "name": "setRoleIds",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setSid",
         "parameterTypes": [
           "java.lang.String"
@@ -11873,6 +11921,12 @@
         "name": "setVersion",
         "parameterTypes": [
           "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setWhenConfig",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       }
     ],
@@ -15047,6 +15101,12 @@
     "fields": [],
     "methods": [
       {
+        "name": "buildWhen",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthRoleDataAuth"
+        ]
+      },
+      {
         "name": "clearCache",
         "parameterTypes": []
       },
@@ -15071,6 +15131,15 @@
         "name": "loadDataAuthModel",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "newEvalScope",
+        "parameterTypes": [
+          "io.nop.auth.core.model.ObjDataAuthModel",
+          "java.lang.String",
+          "java.lang.Object",
+          "io.nop.api.core.auth.ISecurityContext"
         ]
       },
       {
@@ -15358,6 +15427,15 @@
           "java.lang.String",
           "java.lang.String",
           "java.util.Collection"
+        ]
+      },
+      {
+        "name": "updateRoleResources",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.Collection",
+          "io.nop.api.core.beans.TreeBean"
         ]
       }
     ],
@@ -16121,6 +16199,16 @@
           "java.lang.String",
           "java.lang.String",
           "java.util.Collection",
+          "io.nop.api.core.beans.TreeBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "addManyToManyRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.Collection",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -16142,6 +16230,17 @@
           "java.lang.String",
           "java.lang.Object",
           "java.util.Collection"
+        ]
+      },
+      {
+        "name": "addRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Object",
+          "java.util.Collection",
+          "io.nop.api.core.beans.TreeBean"
         ]
       },
       {
@@ -16900,6 +16999,16 @@
           "java.lang.String",
           "java.lang.String",
           "java.util.Collection",
+          "io.nop.api.core.beans.TreeBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "removeManyToManyRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.Collection",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -16941,6 +17050,17 @@
           "java.lang.String",
           "java.lang.Object",
           "java.util.Collection"
+        ]
+      },
+      {
+        "name": "removeRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Object",
+          "java.util.Collection",
+          "io.nop.api.core.beans.TreeBean"
         ]
       },
       {
@@ -17073,6 +17193,16 @@
           "java.lang.String",
           "java.lang.String",
           "java.util.Collection",
+          "io.nop.api.core.beans.TreeBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "updateManyToManyRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.Collection",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -17108,6 +17238,29 @@
         ]
       },
       {
+        "name": "updateRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Object",
+          "java.util.Collection",
+          "io.nop.api.core.beans.TreeBean"
+        ]
+      },
+      {
+        "name": "updateRelationsEx",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.Map",
+          "io.nop.api.core.beans.TreeBean",
+          "boolean",
+          "java.lang.String",
+          "java.util.Collection"
+        ]
+      },
+      {
         "name": "updateRelationsEx",
         "parameterTypes": [
           "java.lang.String",
@@ -17121,6 +17274,24 @@
       }
     ],
     "name": "io.nop.biz.crud.CrudBizModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "normalize",
+        "parameterTypes": [
+          "java.util.Map",
+          "io.nop.graphql.core.IGraphQLExecutionContext"
+        ]
+      }
+    ],
+    "name": "io.nop.biz.crud.FilterArgsNormalizer",
     "unsafeAllocated": false
   },
   {
@@ -18244,6 +18415,12 @@
         ]
       },
       {
+        "name": "addInterceptor",
+        "parameterTypes": [
+          "io.nop.biz.model.BizInterceptorModel"
+        ]
+      },
+      {
         "name": "addLoader",
         "parameterTypes": [
           "io.nop.biz.model.BizLoaderModel"
@@ -18287,6 +18464,16 @@
       },
       {
         "name": "getInheritActions",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInterceptor",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getInterceptors",
         "parameterTypes": []
       },
       {
@@ -18336,6 +18523,16 @@
         "parameterTypes": []
       },
       {
+        "name": "hasInterceptor",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasInterceptors",
+        "parameterTypes": []
+      },
+      {
         "name": "hasLoader",
         "parameterTypes": [
           "java.lang.String"
@@ -18357,6 +18554,10 @@
       },
       {
         "name": "keySet_actions",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_interceptors",
         "parameterTypes": []
       },
       {
@@ -18393,6 +18594,12 @@
         "name": "setInheritActions",
         "parameterTypes": [
           "java.util.Set"
+        ]
+      },
+      {
+        "name": "setInterceptors",
+        "parameterTypes": [
+          "java.util.List"
         ]
       },
       {
@@ -24239,6 +24446,14 @@
       },
       {
         "name": "normalizeContent",
+        "parameterTypes": []
+      },
+      {
+        "name": "normalizeExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "normalizeExprInContent",
         "parameterTypes": []
       },
       {
@@ -39612,6 +39827,12 @@
         "name": "addProp",
         "parameterTypes": [
           "io.nop.orm.model.IEntityPropModel"
+        ]
+      },
+      {
+        "name": "addTag",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {

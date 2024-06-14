@@ -5,16 +5,19 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.demo.spring;
+package io.nop.demo.spring.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class DemoController {
-    @GetMapping("/demo")
-    public String demo(@RequestParam("message") String message) {
+
+    @GetMapping("/hello")
+    @PreAuthorize("hasPermission('Biz','Demo:hello')")
+    public String hello(@RequestParam("message") String message) {
         return "Hi," + message;
     }
 }

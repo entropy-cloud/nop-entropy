@@ -1,0 +1,16 @@
+logging:
+  level:
+    ROOT: DEBUG
+    "jdk": INFO
+
+nop:
+  debug: true
+
+  auth:
+    enable-data-auth: true
+    enable-action-auth: true
+    http-server-filter:
+      enabled: false
+
+  orm:
+    init-database-schema: true

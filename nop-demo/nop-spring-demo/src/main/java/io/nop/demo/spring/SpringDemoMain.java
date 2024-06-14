@@ -10,7 +10,7 @@ package io.nop.demo.spring;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication(scanBasePackages = {"io.nop.demo.spring","io.nop.spring"})
+@SpringBootApplication
 public class SpringDemoMain {
 
     public static void main(String[] args) {

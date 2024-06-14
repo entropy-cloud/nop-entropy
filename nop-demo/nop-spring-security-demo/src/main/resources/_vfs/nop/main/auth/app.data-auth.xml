@@ -1,0 +1,7 @@
+<data-auth x:schema="/nop/schema/data-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+           xmlns:auth-gen="auth-gen" xmlns:xpl="xpl">
+    <x:gen-extends>
+        <!-- 自动收集各个模块下定义的数据权限 -->
+        <auth-gen:GenFromModules xpl:lib="/nop/auth/xlib/auth-gen.xlib"/>
+    </x:gen-extends>
+</data-auth>
