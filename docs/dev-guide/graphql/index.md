@@ -27,3 +27,6 @@
 ## 使用Fragment简化查询
 
 参见[fragments.md](fragments.md)
+
+## 关于GraphQL的答疑
+参见[qa-about-graphql.md](qa-about-graphql.md)
