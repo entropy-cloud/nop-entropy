@@ -7,6 +7,7 @@
  */
 package io.nop.api.core.util;
 
+import io.nop.api.core.ApiConstants;
 import io.nop.api.core.annotations.lang.Deterministic;
 import io.nop.api.core.exceptions.NopException;
 
@@ -531,4 +532,32 @@ public class ApiStringHelper {
             return null;
         return "\"" + escapeJava(text) + '"';
     }
+
+    public static String getStdPath(String path) {
+        Guard.notNull(path, "resourcePath is null");
+
+        // 有名字空间的路径不存在定制问题
+        int pos = path.indexOf(':');
+        if (pos > 0)
+            return path;
+
+        if (path.startsWith(ApiConstants.TENANT_PATH_PREFIX)) {
+            // 路径格式为/_tenant/{tenantId}{stdPath}
+            pos = path.indexOf('/', ApiConstants.TENANT_PATH_PREFIX.length());
+            if (pos < 0)
+                return "/";
+            path = path.substring(pos);
+        }
+
+        if (path.startsWith(ApiConstants.DELTA_PATH_PREFIX)) {
+            // 路径格式为profile_prefix/{name}{stdPath}
+            pos = path.indexOf('/', ApiConstants.DELTA_PATH_PREFIX.length());
+            if (pos < 0)
+                return "/";
+            return path.substring(pos);
+        } else {
+            return path;
+        }
+    }
+
 }

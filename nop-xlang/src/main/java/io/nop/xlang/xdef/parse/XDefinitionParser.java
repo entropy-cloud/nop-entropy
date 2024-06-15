@@ -40,6 +40,7 @@ import io.nop.xlang.xdsl.XDslParseHelper;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -555,7 +556,7 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
         if (!node.hasAttr())
             return Collections.emptyMap();
 
-        Map<String, XDefAttribute> attrs = new HashMap<>();
+        Map<String, XDefAttribute> attrs = new LinkedHashMap<>();
         node.forEachAttr((name, v) -> {
             if (StringHelper.startsWithNamespace(name, keys.NS))
                 return;

@@ -17,4 +17,12 @@ public interface ISourceLocationGetter {
         SourceLocation loc = getLocation();
         return loc == null ? null : loc.getPath();
     }
+
+    default String resourceStdPath() {
+        String path = resourcePath();
+        if (path == null)
+            return null;
+
+        return ApiStringHelper.getStdPath(path);
+    }
 }

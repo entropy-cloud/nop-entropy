@@ -36,6 +36,8 @@ public interface XDefConstants {
 
     String STD_DOMAIN_V_PATH = "v-path";
     String STD_DOMAIN_V_PATH_LIST = "v-path-list";
+    String STD_DOMAIN_NAME_OR_V_PATH = "name-or-v-path";
+
     String STD_DOMAIN_CSV_SET = "csv-set";
 
     String STD_DOMAIN_MULTI_CSV_SET = "multi-csv-set";

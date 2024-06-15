@@ -162,7 +162,7 @@
                 <item bizObjName="NopDynEntity"/>
             </schema>
         </prop>
-        <prop name="extFields" ext:kind="to-many" internal="true" ext:joinLeftProp="id" ext:joinRightProp="entityId"
+        <prop name="extFields" ext:kind="to-many" internal="true" ext:joinLeftProp="sid" ext:joinRightProp="entityId"
               lazy="true" published="false">
             <schema>
                 <item bizObjName="NopDynEntityExt"/>

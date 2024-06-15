@@ -260,4 +260,7 @@ public interface ApiConstants extends FilterBeanConstants {
     String AUTH_FOR_ALL = "all";
 
     String XML_PROP_TYPE = "$type";
+
+    String DELTA_PATH_PREFIX = "/_delta/";
+    String TENANT_PATH_PREFIX = "/_tenant/";
 }

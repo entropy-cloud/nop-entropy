@@ -44,6 +44,8 @@ public class StdDomainRegistry {
         registerStdDomainHandler(new SimpleStdDomainHandlers.VPathType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.XDefRefType());
 
+        registerStdDomainHandler(new SimpleStdDomainHandlers.NameOrVPathType());
+
         registerStdDomainHandler(new SimpleStdDomainHandlers.NopModuleIdType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.NopModuleNameType());
 

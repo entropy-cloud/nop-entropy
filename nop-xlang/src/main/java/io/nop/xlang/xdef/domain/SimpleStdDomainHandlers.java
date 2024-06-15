@@ -96,6 +96,25 @@ public class SimpleStdDomainHandlers {
         }
     }
 
+    public static class NameOrVPathType extends VPathType {
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_NAME_OR_V_PATH;
+        }
+
+        @Override
+        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+                                XLangCompileTool cp) {
+            String text = value.toString();
+            if (StringHelper.isEmpty(text))
+                return text;
+            // name
+            if (text.indexOf('.') < 0)
+                return text;
+
+            return super.parseProp(options, loc, propName, value, cp);
+        }
+    }
+
     public static class XDefRefType extends StringStdDomainHandler {
         public String getName() {
             return XDefConstants.STD_DOMAIN_XDEF_REF;

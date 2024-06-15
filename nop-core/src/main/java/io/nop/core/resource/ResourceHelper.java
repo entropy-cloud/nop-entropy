@@ -11,7 +11,7 @@ import io.nop.api.core.ApiConstants;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.convert.IByteArrayView;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.util.Guard;
+import io.nop.api.core.util.ApiStringHelper;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.util.progress.IProgressListener;
 import io.nop.api.core.util.progress.IStepProgressListener;
@@ -334,30 +334,7 @@ public class ResourceHelper {
     }
 
     public static String getStdPath(String path) {
-        Guard.notNull(path, "resourcePath is null");
-
-        // 有名字空间的路径不存在定制问题
-        int pos = path.indexOf(':');
-        if (pos > 0)
-            return path;
-
-        if (path.startsWith(ResourceConstants.TENANT_PATH_PREFIX)) {
-            // 路径格式为/_tenant/{tenantId}{stdPath}
-            pos = path.indexOf('/', ResourceConstants.TENANT_PATH_PREFIX.length());
-            if (pos < 0)
-                return "/";
-            path = path.substring(pos);
-        }
-
-        if (path.startsWith(ResourceConstants.DELTA_PATH_PREFIX)) {
-            // 路径格式为profile_prefix/{name}{stdPath}
-            pos = path.indexOf('/', ResourceConstants.DELTA_PATH_PREFIX.length());
-            if (pos < 0)
-                return "/";
-            return path.substring(pos);
-        } else {
-            return path;
-        }
+        return ApiStringHelper.getStdPath(path);
     }
 
     public static String getDeltaLayerId(String path) {
