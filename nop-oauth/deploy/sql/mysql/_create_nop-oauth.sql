@@ -1,6 +1,6 @@
 
 CREATE TABLE nop_oauth_authorization(
-  ID VARCHAR(100) NOT NULL    COMMENT 'Id',
+  SID VARCHAR(100) NOT NULL    COMMENT 'Id',
   REGISTERED_CLIENT_ID VARCHAR(100) NOT NULL    COMMENT '客户端ID',
   PRINCIPAL_NAME VARCHAR(200) NOT NULL    COMMENT '客户端名称',
   AUTHORIZATION_GRANT_TYPE VARCHAR(100) NOT NULL    COMMENT '授权类型',
@@ -33,7 +33,7 @@ CREATE TABLE nop_oauth_authorization(
   DEVICE_CODE_ISSUED_AT TIMESTAMP NULL    COMMENT 'DeviceCode发放时间',
   DEVICE_CODE_EXPIRES_AT TIMESTAMP NULL    COMMENT 'DeviceCode过期时间',
   DEVICE_CODE_METADATA TEXT NULL    COMMENT 'DeviceCode元数据',
-  constraint PK_nop_oauth_authorization primary key (ID)
+  constraint PK_nop_oauth_authorization primary key (SID)
 );
 
 CREATE TABLE nop_oauth_authorization_consent(
@@ -44,7 +44,7 @@ CREATE TABLE nop_oauth_authorization_consent(
 );
 
 CREATE TABLE nop_oauth_registered_client(
-  ID VARCHAR(100) NOT NULL    COMMENT 'Id',
+  SID VARCHAR(100) NOT NULL    COMMENT 'Id',
   CLIENT_ID VARCHAR(100) NOT NULL    COMMENT '客户端ID',
   CLIENT_ID_ISSUED_AT TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '客户端ID发放时间',
   CLIENT_SECRET VARCHAR(200) NULL    COMMENT '客户端密码',
@@ -57,7 +57,7 @@ CREATE TABLE nop_oauth_registered_client(
   SCOPES VARCHAR(1000) NOT NULL    COMMENT '授权范围',
   CLIENT_SETTINGS VARCHAR(2000) NOT NULL    COMMENT '客户端设置',
   TOKEN_SETTINGS VARCHAR(2000) NOT NULL    COMMENT 'Token设置',
-  constraint PK_nop_oauth_registered_client primary key (ID)
+  constraint PK_nop_oauth_registered_client primary key (SID)
 );
 
 

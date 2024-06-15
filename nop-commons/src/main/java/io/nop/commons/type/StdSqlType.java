@@ -142,12 +142,16 @@ public enum StdSqlType implements ISqlDataType {
     private static final Map<String, StdSqlType> stdNameMap = new HashMap<>();
     private static final Map<Integer, StdSqlType> jdbcTypeMap = new HashMap<>();
 
+    private static final Map<StdDataType, StdSqlType> stdTypeMap = new HashMap<>();
+
     static {
         for (StdSqlType type : StdSqlType.values()) {
             stdNameMap.put(type.getName(), type);
 
             if (!jdbcTypeMap.containsKey(type.getJdbcType()))
                 jdbcTypeMap.put(type.getJdbcType(), type);
+
+            stdTypeMap.put(type.getStdDataType(), type);
         }
 
         jdbcTypeMap.put(Types.CLOB, VARCHAR);
@@ -179,5 +183,9 @@ public enum StdSqlType implements ISqlDataType {
     @StaticFactoryMethod
     public static StdSqlType fromStdName(String stdName) {
         return stdNameMap.get(stdName);
+    }
+
+    public static StdSqlType fromStdDataTYpe(StdDataType dataType) {
+        return stdTypeMap.get(dataType);
     }
 }

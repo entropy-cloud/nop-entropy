@@ -1,6 +1,6 @@
 
 CREATE TABLE nop_oauth_authorization(
-  ID VARCHAR(100) NOT NULL ,
+  SID VARCHAR(100) NOT NULL ,
   REGISTERED_CLIENT_ID VARCHAR(100) NOT NULL ,
   PRINCIPAL_NAME VARCHAR(200) NOT NULL ,
   AUTHORIZATION_GRANT_TYPE VARCHAR(100) NOT NULL ,
@@ -33,7 +33,7 @@ CREATE TABLE nop_oauth_authorization(
   DEVICE_CODE_ISSUED_AT TIMESTAMP  ,
   DEVICE_CODE_EXPIRES_AT TIMESTAMP  ,
   DEVICE_CODE_METADATA TEXT  ,
-  constraint PK_nop_oauth_authorization primary key (ID)
+  constraint PK_nop_oauth_authorization primary key (SID)
 );
 
 CREATE TABLE nop_oauth_authorization_consent(
@@ -44,7 +44,7 @@ CREATE TABLE nop_oauth_authorization_consent(
 );
 
 CREATE TABLE nop_oauth_registered_client(
-  ID VARCHAR(100) NOT NULL ,
+  SID VARCHAR(100) NOT NULL ,
   CLIENT_ID VARCHAR(100) NOT NULL ,
   CLIENT_ID_ISSUED_AT TIMESTAMP NOT NULL ,
   CLIENT_SECRET VARCHAR(200)  ,
@@ -57,13 +57,13 @@ CREATE TABLE nop_oauth_registered_client(
   SCOPES VARCHAR(1000) NOT NULL ,
   CLIENT_SETTINGS VARCHAR(2000) NOT NULL ,
   TOKEN_SETTINGS VARCHAR(2000) NOT NULL ,
-  constraint PK_nop_oauth_registered_client primary key (ID)
+  constraint PK_nop_oauth_registered_client primary key (SID)
 );
 
 
       COMMENT ON TABLE nop_oauth_authorization IS 'Oauth认证记录';
                 
-      COMMENT ON COLUMN nop_oauth_authorization.ID IS 'Id';
+      COMMENT ON COLUMN nop_oauth_authorization.SID IS 'Id';
                     
       COMMENT ON COLUMN nop_oauth_authorization.REGISTERED_CLIENT_ID IS '客户端ID';
                     
@@ -139,7 +139,7 @@ CREATE TABLE nop_oauth_registered_client(
                     
       COMMENT ON TABLE nop_oauth_registered_client IS 'Oauth注册客户端';
                 
-      COMMENT ON COLUMN nop_oauth_registered_client.ID IS 'Id';
+      COMMENT ON COLUMN nop_oauth_registered_client.SID IS 'Id';
                     
       COMMENT ON COLUMN nop_oauth_registered_client.CLIENT_ID IS '客户端ID';
                     

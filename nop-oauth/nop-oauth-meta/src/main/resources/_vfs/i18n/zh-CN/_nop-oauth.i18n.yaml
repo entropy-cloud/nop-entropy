@@ -23,7 +23,6 @@ prop:
       deviceCodeIssuedAt: DeviceCode发放时间
       deviceCodeMetadata: DeviceCode元数据
       deviceCodeValue: DeviceCode值
-      id: Id
       oidcIdTokenExpiresAt: OidcIdToken过期时间
       oidcIdTokenIssuedAt: OidcIdToken发放时间
       oidcIdTokenMetadata: OidcIdToken元数据
@@ -34,6 +33,7 @@ prop:
       refreshTokenMetadata: RefreshToken元数据
       refreshTokenValue: RefreshToken值
       registeredClientId: 客户端ID
+      sid: Id
       state: 状态码
       userCodeExpiresAt: UserCode过期时间
       userCodeIssuedAt: UserCode发放时间
@@ -52,8 +52,8 @@ prop:
       clientSecret: 客户端密码
       clientSecretExpiresAt: 客户端密码过期时间
       clientSettings: 客户端设置
-      id: Id
       postLogoutRedirectUris: Logout重定向URI
       redirectUris: 重定向URI
       scopes: 授权范围
+      sid: Id
       tokenSettings: Token设置

@@ -5,7 +5,7 @@
 
     <entityName>io.nop.oauth.dao.entity.NopOauthAuthorization</entityName>
 
-    <primaryKey>id</primaryKey>
+    <primaryKey>sid</primaryKey>
 
     <x:gen-extends>
         <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
@@ -18,136 +18,153 @@
     <keys/>
 
     <props>
-        <prop name="id" displayName="Id" propId="1" tagSet="seq" mandatory="true" queryable="true" sortable="true"
-              insertable="true" updatable="false">
+        <prop name="sid" displayName="Id" propId="1" i18n-en:displayName="sid" tagSet="seq" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="registeredClientId" displayName="客户端ID" propId="2" mandatory="true" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="registeredClientId" displayName="客户端ID" propId="2" i18n-en:displayName="Registered Client Id"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="principalName" displayName="客户端名称" propId="3" mandatory="true" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="principalName" displayName="客户端名称" propId="3" i18n-en:displayName="Principle Name" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="authorizationGrantType" displayName="授权类型" propId="4" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="authorizationGrantType" displayName="授权类型" propId="4" i18n-en:displayName="Authorization Grant Type"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="authorizedScopes" displayName="授权范围" propId="5" queryable="true" sortable="true" insertable="true"
-              updatable="true">
+        <prop name="authorizedScopes" displayName="授权范围" propId="5" i18n-en:displayName="Authorization Scope"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="attributes" displayName="扩展属性" propId="6" queryable="true" sortable="true" insertable="true"
-              updatable="true">
+        <prop name="attributes" displayName="扩展属性" propId="6" i18n-en:displayName="Attributes" queryable="true"
+              sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="65535"/>
         </prop>
-        <prop name="state" displayName="状态码" propId="7" queryable="true" sortable="true" insertable="true"
-              updatable="true">
+        <prop name="state" displayName="状态码" propId="7" i18n-en:displayName="State" queryable="true" sortable="true"
+              insertable="true" updatable="true">
             <schema type="java.lang.String" precision="500"/>
         </prop>
-        <prop name="authorizationCodeValue" displayName="AuthorizationCode值" propId="8" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="authorizationCodeValue" displayName="AuthorizationCode值" propId="8"
+              i18n-en:displayName="Authorization Code Value" queryable="true" sortable="true" insertable="true"
+              updatable="true">
             <schema type="java.lang.String" precision="65535"/>
         </prop>
-        <prop name="authorizationCodeIssuedAt" displayName="AuthorizationCode发放时间" propId="9" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="authorizationCodeIssuedAt" displayName="AuthorizationCode发放时间" propId="9"
+              i18n-en:displayName="Authorization Code Issued At" queryable="true" sortable="true" insertable="true"
+              updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="authorizationCodeExpiresAt" displayName="AuthorizationCode过期使劲按" propId="10" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="authorizationCodeExpiresAt" displayName="AuthorizationCode过期使劲按" propId="10"
+              i18n-en:displayName="Authorization Code Expires At" queryable="true" sortable="true" insertable="true"
+              updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="authorizationCodeMetadata" displayName="AuthorizationCode元数据" propId="11" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="authorizationCodeMetadata" displayName="AuthorizationCode元数据" propId="11"
+              i18n-en:displayName="Authorization Code Meta" queryable="true" sortable="true" insertable="true"
+              updatable="true">
             <schema type="java.lang.String" precision="65535"/>
         </prop>
-        <prop name="accessTokenValue" displayName="AccessToken" propId="12" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="accessTokenValue" displayName="AccessToken" propId="12" i18n-en:displayName="Access Token Value"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="65535"/>
         </prop>
-        <prop name="accessTokenIssuedAt" displayName="AccessToken发放时间" propId="13" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="accessTokenIssuedAt" displayName="AccessToken发放时间" propId="13"
+              i18n-en:displayName="Access Token Issued At" queryable="true" sortable="true" insertable="true"
+              updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="accessTokenExpiresAt" displayName="AccessToken过期时间" propId="14" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="accessTokenExpiresAt" displayName="AccessToken过期时间" propId="14"
+              i18n-en:displayName="Access Token Expires At" queryable="true" sortable="true" insertable="true"
+              updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="accessTokenMetadata" displayName="AccessToken元数据" propId="15" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="accessTokenMetadata" displayName="AccessToken元数据" propId="15"
+              i18n-en:displayName="Access Token Meta Data" queryable="true" sortable="true" insertable="true"
+              updatable="true">
             <schema type="java.lang.String" precision="65535"/>
         </prop>
-        <prop name="accessTokenType" displayName="AccessToken类型" propId="16" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="accessTokenType" displayName="AccessToken类型" propId="16" i18n-en:displayName="Access Token Type"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="accessTokenScopes" displayName="AccessToken权限范围" propId="17" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="accessTokenScopes" displayName="AccessToken权限范围" propId="17"
+              i18n-en:displayName="Access Token Scope" queryable="true" sortable="true" insertable="true"
+              updatable="true">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="oidcIdTokenValue" displayName="OidcIdToken值" propId="18" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="oidcIdTokenValue" displayName="OidcIdToken值" propId="18" i18n-en:displayName="OIDC ID Token Value"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="65535"/>
         </prop>
-        <prop name="oidcIdTokenIssuedAt" displayName="OidcIdToken发放时间" propId="19" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="oidcIdTokenIssuedAt" displayName="OidcIdToken发放时间" propId="19"
+              i18n-en:displayName="OIDC ID Token Issued At" queryable="true" sortable="true" insertable="true"
+              updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="oidcIdTokenExpiresAt" displayName="OidcIdToken过期时间" propId="20" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="oidcIdTokenExpiresAt" displayName="OidcIdToken过期时间" propId="20"
+              i18n-en:displayName="OIDC ID Token Expires At" queryable="true" sortable="true" insertable="true"
+              updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="oidcIdTokenMetadata" displayName="OidcIdToken元数据" propId="21" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="oidcIdTokenMetadata" displayName="OidcIdToken元数据" propId="21"
+              i18n-en:displayName="OIDC ID Token Meta Data" queryable="true" sortable="true" insertable="true"
+              updatable="true">
             <schema type="java.lang.String" precision="65535"/>
         </prop>
-        <prop name="refreshTokenValue" displayName="RefreshToken值" propId="22" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="refreshTokenValue" displayName="RefreshToken值" propId="22" i18n-en:displayName="Refresh Token Value"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="65535"/>
         </prop>
-        <prop name="refreshTokenIssuedAt" displayName="RefreshToken发放时间" propId="23" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="refreshTokenIssuedAt" displayName="RefreshToken发放时间" propId="23"
+              i18n-en:displayName="Refresh Token Issued At" queryable="true" sortable="true" insertable="true"
+              updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="refreshTokenExpiresAt" displayName="RefreshToken过期时间" propId="24" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="refreshTokenExpiresAt" displayName="RefreshToken过期时间" propId="24"
+              i18n-en:displayName="Refresh Token Expires At" queryable="true" sortable="true" insertable="true"
+              updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="refreshTokenMetadata" displayName="RefreshToken元数据" propId="25" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="refreshTokenMetadata" displayName="RefreshToken元数据" propId="25"
+              i18n-en:displayName="Refresh Token Meta Data" queryable="true" sortable="true" insertable="true"
+              updatable="true">
             <schema type="java.lang.String" precision="65535"/>
         </prop>
-        <prop name="userCodeValue" displayName="UserCode值" propId="26" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="userCodeValue" displayName="UserCode值" propId="26" i18n-en:displayName="User Code Value"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="65535"/>
         </prop>
-        <prop name="userCodeIssuedAt" displayName="UserCode发放时间" propId="27" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="userCodeIssuedAt" displayName="UserCode发放时间" propId="27" i18n-en:displayName="User Code Issued At"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="userCodeExpiresAt" displayName="UserCode过期时间" propId="28" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="userCodeExpiresAt" displayName="UserCode过期时间" propId="28" i18n-en:displayName="User Code Expires At"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="userCodeMetadata" displayName="UserCode元数据" propId="29" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="userCodeMetadata" displayName="UserCode元数据" propId="29" i18n-en:displayName="User Code Meta Data"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="65535"/>
         </prop>
-        <prop name="deviceCodeValue" displayName="DeviceCode值" propId="30" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="deviceCodeValue" displayName="DeviceCode值" propId="30" i18n-en:displayName="Device Code Value"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="65535"/>
         </prop>
-        <prop name="deviceCodeIssuedAt" displayName="DeviceCode发放时间" propId="31" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="deviceCodeIssuedAt" displayName="DeviceCode发放时间" propId="31"
+              i18n-en:displayName="Device Code Issued At" queryable="true" sortable="true" insertable="true"
+              updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="deviceCodeExpiresAt" displayName="DeviceCode过期时间" propId="32" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="deviceCodeExpiresAt" displayName="DeviceCode过期时间" propId="32"
+              i18n-en:displayName="Device Code Expires At" queryable="true" sortable="true" insertable="true"
+              updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="deviceCodeMetadata" displayName="DeviceCode元数据" propId="33" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="deviceCodeMetadata" displayName="DeviceCode元数据" propId="33"
+              i18n-en:displayName="Device Code Meta Data" queryable="true" sortable="true" insertable="true"
+              updatable="true">
             <schema type="java.lang.String" precision="65535"/>
         </prop>
     </props>

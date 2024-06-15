@@ -5,7 +5,7 @@
 
     <entityName>io.nop.oauth.dao.entity.NopOauthRegisteredClient</entityName>
 
-    <primaryKey>id</primaryKey>
+    <primaryKey>sid</primaryKey>
 
     <x:gen-extends>
         <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
@@ -18,56 +18,60 @@
     <keys/>
 
     <props>
-        <prop name="id" displayName="Id" propId="1" tagSet="seq" mandatory="true" queryable="true" sortable="true"
-              insertable="true" updatable="false">
+        <prop name="sid" displayName="Id" propId="1" i18n-en:displayName="sid" tagSet="seq" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="clientId" displayName="客户端ID" propId="2" mandatory="true" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="clientId" displayName="客户端ID" propId="2" i18n-en:displayName="Client Id" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="clientIdIssuedAt" displayName="客户端ID发放时间" propId="3" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="clientIdIssuedAt" displayName="客户端ID发放时间" propId="3" i18n-en:displayName="Client Id Issued At"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="clientSecret" displayName="客户端密码" propId="4" queryable="true" sortable="true" insertable="true"
-              updatable="true">
+        <prop name="clientSecret" displayName="客户端密码" propId="4" i18n-en:displayName="Client Secret" queryable="true"
+              sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="clientSecretExpiresAt" displayName="客户端密码过期时间" propId="5" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="clientSecretExpiresAt" displayName="客户端密码过期时间" propId="5"
+              i18n-en:displayName="Client Secret Expires At" queryable="true" sortable="true" insertable="true"
+              updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="clientName" displayName="客户端名称" propId="6" mandatory="true" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="clientName" displayName="客户端名称" propId="6" i18n-en:displayName="Client Name" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="clientAuthenticationMethods" displayName="客户端授权方法" propId="7" mandatory="true" queryable="true"
+        <prop name="clientAuthenticationMethods" displayName="客户端授权方法" propId="7"
+              i18n-en:displayName="Client Authentication Method" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="authorizationGrantTypes" displayName="客户端认证类型" propId="8"
+              i18n-en:displayName="Authorization Grant Types" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="redirectUris" displayName="重定向URI" propId="9" i18n-en:displayName="Redirect Uris" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="authorizationGrantTypes" displayName="客户端认证类型" propId="8" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="1000"/>
-        </prop>
-        <prop name="redirectUris" displayName="重定向URI" propId="9" queryable="true" sortable="true" insertable="true"
+        <prop name="postLogoutRedirectUris" displayName="Logout重定向URI" propId="10"
+              i18n-en:displayName="Post Logout Redirect Uris" queryable="true" sortable="true" insertable="true"
               updatable="true">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="postLogoutRedirectUris" displayName="Logout重定向URI" propId="10" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="scopes" displayName="授权范围" propId="11" i18n-en:displayName="Scopes" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="scopes" displayName="授权范围" propId="11" mandatory="true" queryable="true" sortable="true"
-              insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="1000"/>
-        </prop>
-        <prop name="clientSettings" displayName="客户端设置" propId="12" mandatory="true" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="clientSettings" displayName="客户端设置" propId="12" i18n-en:displayName="Client Settings"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="2000"/>
         </prop>
-        <prop name="tokenSettings" displayName="Token设置" propId="13" mandatory="true" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="tokenSettings" displayName="Token设置" propId="13" i18n-en:displayName="Token Settings"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="2000"/>
         </prop>
     </props>

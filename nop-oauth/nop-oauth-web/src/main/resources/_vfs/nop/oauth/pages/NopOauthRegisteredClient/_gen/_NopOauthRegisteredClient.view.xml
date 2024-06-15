@@ -19,7 +19,7 @@
             <cols>
 
                 <!--Id-->
-                <col id="id" mandatory="true" sortable="true"/>
+                <col id="sid" mandatory="true" sortable="true"/>
 
                 <!--客户端ID-->
                 <col id="clientId" mandatory="true" sortable="true"/>
@@ -64,7 +64,7 @@
     <forms>
         <form id="view" editMode="view" title="查看-Oauth注册客户端" i18n-en:title="View ">
             <layout>
- id[Id] clientId[客户端ID]
+ sid[Id] clientId[客户端ID]
  clientIdIssuedAt[客户端ID发放时间] clientSecret[客户端密码]
  clientSecretExpiresAt[客户端密码过期时间] clientName[客户端名称]
  clientAuthenticationMethods[客户端授权方法] authorizationGrantTypes[客户端认证类型]
@@ -76,7 +76,7 @@
         <form id="add" editMode="add" title="新增-Oauth注册客户端" i18n-en:title="Add " x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-Oauth注册客户端" i18n-en:title="Edit ">
             <layout>
- id[Id] clientId[客户端ID]
+ sid[Id] clientId[客户端ID]
  clientIdIssuedAt[客户端ID发放时间] clientSecret[客户端密码]
  clientSecretExpiresAt[客户端密码过期时间] clientName[客户端名称]
  clientAuthenticationMethods[客户端授权方法] authorizationGrantTypes[客户端认证类型]

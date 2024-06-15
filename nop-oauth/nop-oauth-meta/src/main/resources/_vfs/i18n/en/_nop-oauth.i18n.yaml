@@ -6,54 +6,54 @@ entity:
 prop:
   label:
     NopOauthAuthorization:
-      id: null
-      registeredClientId: null
-      principalName: null
-      authorizationGrantType: null
-      authorizedScopes: null
-      attributes: null
-      state: null
-      authorizationCodeValue: null
-      authorizationCodeIssuedAt: null
-      authorizationCodeExpiresAt: null
-      authorizationCodeMetadata: null
-      accessTokenValue: null
-      accessTokenIssuedAt: null
-      accessTokenExpiresAt: null
-      accessTokenMetadata: null
-      accessTokenType: null
-      accessTokenScopes: null
-      oidcIdTokenValue: null
-      oidcIdTokenIssuedAt: null
-      oidcIdTokenExpiresAt: null
-      oidcIdTokenMetadata: null
-      refreshTokenValue: null
-      refreshTokenIssuedAt: null
-      refreshTokenExpiresAt: null
-      refreshTokenMetadata: null
-      userCodeValue: null
-      userCodeIssuedAt: null
-      userCodeExpiresAt: null
-      userCodeMetadata: null
-      deviceCodeValue: null
-      deviceCodeIssuedAt: null
-      deviceCodeExpiresAt: null
-      deviceCodeMetadata: null
+      sid: sid
+      registeredClientId: Registered Client Id
+      principalName: Principle Name
+      authorizationGrantType: Authorization Grant Type
+      authorizedScopes: Authorization Scope
+      attributes: Attributes
+      state: State
+      authorizationCodeValue: Authorization Code Value
+      authorizationCodeIssuedAt: Authorization Code Issued At
+      authorizationCodeExpiresAt: Authorization Code Expires At
+      authorizationCodeMetadata: Authorization Code Meta
+      accessTokenValue: Access Token Value
+      accessTokenIssuedAt: Access Token Issued At
+      accessTokenExpiresAt: Access Token Expires At
+      accessTokenMetadata: Access Token Meta Data
+      accessTokenType: Access Token Type
+      accessTokenScopes: Access Token Scope
+      oidcIdTokenValue: OIDC ID Token Value
+      oidcIdTokenIssuedAt: OIDC ID Token Issued At
+      oidcIdTokenExpiresAt: OIDC ID Token Expires At
+      oidcIdTokenMetadata: OIDC ID Token Meta Data
+      refreshTokenValue: Refresh Token Value
+      refreshTokenIssuedAt: Refresh Token Issued At
+      refreshTokenExpiresAt: Refresh Token Expires At
+      refreshTokenMetadata: Refresh Token Meta Data
+      userCodeValue: User Code Value
+      userCodeIssuedAt: User Code Issued At
+      userCodeExpiresAt: User Code Expires At
+      userCodeMetadata: User Code Meta Data
+      deviceCodeValue: Device Code Value
+      deviceCodeIssuedAt: Device Code Issued At
+      deviceCodeExpiresAt: Device Code Expires At
+      deviceCodeMetadata: Device Code Meta Data
     NopOauthAuthorizationConsent:
-      registeredClientId: null
-      principalName: null
-      authorities: null
+      registeredClientId: Registered Client Id
+      principalName: Principal Name
+      authorities: Authorities
     NopOauthRegisteredClient:
-      id: null
-      clientId: null
-      clientIdIssuedAt: null
-      clientSecret: null
-      clientSecretExpiresAt: null
-      clientName: null
-      clientAuthenticationMethods: null
-      authorizationGrantTypes: null
-      redirectUris: null
-      postLogoutRedirectUris: null
-      scopes: null
-      clientSettings: null
-      tokenSettings: null
+      sid: sid
+      clientId: Client Id
+      clientIdIssuedAt: Client Id Issued At
+      clientSecret: Client Secret
+      clientSecretExpiresAt: Client Secret Expires At
+      clientName: Client Name
+      clientAuthenticationMethods: Client Authentication Method
+      authorizationGrantTypes: Authorization Grant Types
+      redirectUris: Redirect Uris
+      postLogoutRedirectUris: Post Logout Redirect Uris
+      scopes: Scopes
+      clientSettings: Client Settings
+      tokenSettings: Token Settings

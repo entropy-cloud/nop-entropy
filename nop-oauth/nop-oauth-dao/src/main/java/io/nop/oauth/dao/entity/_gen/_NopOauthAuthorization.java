@@ -20,9 +20,9 @@ import io.nop.oauth.dao.entity.NopOauthAuthorization;
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopOauthAuthorization extends DynamicOrmEntity{
     
-    /* Id: ID VARCHAR */
-    public static final String PROP_NAME_id = "id";
-    public static final int PROP_ID_id = 1;
+    /* Id: SID VARCHAR */
+    public static final String PROP_NAME_sid = "sid";
+    public static final int PROP_ID_sid = 1;
     
     /* 客户端ID: REGISTERED_CLIENT_ID VARCHAR */
     public static final String PROP_NAME_registeredClientId = "registeredClientId";
@@ -157,15 +157,15 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
 
     
 
-    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_id);
-    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_id};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
     private static final String[] PROP_ID_TO_NAME = new String[34];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
-          PROP_ID_TO_NAME[PROP_ID_id] = PROP_NAME_id;
-          PROP_NAME_TO_ID.put(PROP_NAME_id, PROP_ID_id);
+          PROP_ID_TO_NAME[PROP_ID_sid] = PROP_NAME_sid;
+          PROP_NAME_TO_ID.put(PROP_NAME_sid, PROP_ID_sid);
       
           PROP_ID_TO_NAME[PROP_ID_registeredClientId] = PROP_NAME_registeredClientId;
           PROP_NAME_TO_ID.put(PROP_NAME_registeredClientId, PROP_ID_registeredClientId);
@@ -266,8 +266,8 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     }
 
     
-    /* Id: ID */
-    private java.lang.String _id;
+    /* Id: SID */
+    private java.lang.String _sid;
     
     /* 客户端ID: REGISTERED_CLIENT_ID */
     private java.lang.String _registeredClientId;
@@ -406,14 +406,14 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     @Override
     public Object orm_id() {
     
-        return buildSimpleId(PROP_ID_id);
+        return buildSimpleId(PROP_ID_sid);
      
     }
 
     @Override
     public boolean orm_isPrimary(int propId) {
         
-            return propId == PROP_ID_id;
+            return propId == PROP_ID_sid;
           
     }
 
@@ -439,8 +439,8 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     public Object orm_propValue(int propId) {
         switch(propId){
         
-            case PROP_ID_id:
-               return getId();
+            case PROP_ID_sid:
+               return getSid();
         
             case PROP_ID_registeredClientId:
                return getRegisteredClientId();
@@ -549,13 +549,13 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     public void orm_propValue(int propId, Object value){
         switch(propId){
         
-            case PROP_ID_id:{
+            case PROP_ID_sid:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_id));
+                       err-> newTypeConversionError(PROP_NAME_sid));
                }
-               setId(typedValue);
+               setSid(typedValue);
                break;
             }
         
@@ -888,9 +888,9 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     public void orm_internalSet(int propId, Object value) {
         switch(propId){
         
-            case PROP_ID_id:{
+            case PROP_ID_sid:{
                onInitProp(propId);
-               this._id = (java.lang.String)value;
+               this._sid = (java.lang.String)value;
                orm_id(); // 如果是设置主键字段，则触发watcher
                break;
             }
@@ -1126,20 +1126,20 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
 
     
     /**
-     * Id: ID
+     * Id: SID
      */
-    public java.lang.String getId(){
-         onPropGet(PROP_ID_id);
-         return _id;
+    public java.lang.String getSid(){
+         onPropGet(PROP_ID_sid);
+         return _sid;
     }
 
     /**
-     * Id: ID
+     * Id: SID
      */
-    public void setId(java.lang.String value){
-        if(onPropSet(PROP_ID_id,value)){
-            this._id = value;
-            internalClearRefs(PROP_ID_id);
+    public void setSid(java.lang.String value){
+        if(onPropSet(PROP_ID_sid,value)){
+            this._sid = value;
+            internalClearRefs(PROP_ID_sid);
             orm_id();
         }
     }

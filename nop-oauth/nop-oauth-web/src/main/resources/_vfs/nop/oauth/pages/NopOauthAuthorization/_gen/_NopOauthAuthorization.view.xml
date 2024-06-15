@@ -19,7 +19,7 @@
             <cols>
 
                 <!--Id-->
-                <col id="id" mandatory="true" sortable="true"/>
+                <col id="sid" mandatory="true" sortable="true"/>
 
                 <!--客户端ID-->
                 <col id="registeredClientId" mandatory="true" sortable="true"/>
@@ -124,7 +124,7 @@
     <forms>
         <form id="view" editMode="view" title="查看-Oauth认证记录" i18n-en:title="View ">
             <layout>
- id[Id] registeredClientId[客户端ID]
+ sid[Id] registeredClientId[客户端ID]
  principalName[客户端名称] authorizationGrantType[授权类型]
  authorizedScopes[授权范围] attributes[扩展属性]
  state[状态码] authorizationCodeValue[AuthorizationCode值]
@@ -146,7 +146,7 @@
         <form id="add" editMode="add" title="新增-Oauth认证记录" i18n-en:title="Add " x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-Oauth认证记录" i18n-en:title="Edit ">
             <layout>
- id[Id] registeredClientId[客户端ID]
+ sid[Id] registeredClientId[客户端ID]
  principalName[客户端名称] authorizationGrantType[授权类型]
  authorizedScopes[授权范围] attributes[扩展属性]
  state[状态码] authorizationCodeValue[AuthorizationCode值]
