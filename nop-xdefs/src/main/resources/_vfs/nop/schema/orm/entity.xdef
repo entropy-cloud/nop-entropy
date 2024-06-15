@@ -2,13 +2,18 @@
 
 <!--
  @name [实体名] 实体的名称，一般情况下与类名相同
+ @displayName [显示名]
  @className [实体类名] 生成的实体类的类名
  @tableName [表名]
- @readonly [是否视图]
+ @readonly [是否只读]
+ @tableView [是否视图]
  @persistDriver [持久化存储机制] 缺省为jdbc，使用关系数据库存储
  @useShard [是否启用分库分表]
  @useWorkflow [是否启用工作流支持]
  @tagSet [自定义标签列表]
+ @querySpace [查询空间]
+ @shardProp [分区属性]
+ @useGlobalCache [是否启用全局缓存]
  @useRevision [是否启用数据修订支持] 启用数据修订要求实体上具有nopRevType/nopRevBeginVer/nopRevEndVer等字段，
      当实体数据发生修改时不会直接修改原记录，而是会修改原记录的nopRevEndVer字段，并插入一条新的记录。
  @registerShortName [是否注册短名称] 一般情况下会自动注册实体类的短名称，从而使得eql语句中可以使用短类名，简化sql编写。
@@ -16,6 +21,7 @@
  @tenantProp [租户id列] 租户id所对应的column的name。如果useTenant为true，tenantProp的缺省值为nopTenant。tenant字段一般不在主键集合中
  @useLogicalDelete [是否启用逻辑删除] 如果启用逻辑删除，则delete动作将设置deleteFlag属性为1，而不是发出delete语句。查询的时候并不会自动按照
    deleteFlag过滤，选择权交给调用者。
+ @deleteFlagProp [逻辑删除属性]
  @deleteVersionProp [逻辑删除版本列] 逻辑删除时，为了保持唯一键索引的有效性，需要将deleteVersion设置为当前时间，而正常情况下则设置为0。
  @notGenCode [是否生成代码] 如果设置为true，则代码生成时将跳过本实体对象，不为它生成实体类。当我们引用其他模块的实体类时应该设置此属性，
  从而避免在本模块中生成其他模块的实体类。
@@ -24,7 +30,17 @@
       kvTable为true要求实体对象必须实现IOrmKeyValueTable接口
  @checkVersionWhenLazyLoad [是否在延迟加载后检查乐观锁版本] 延迟加载属性之后检查数据的乐观锁版本是否发生变化。
    如果发生变化，则抛出异常。因为乐观锁版本发生变化表示实体上的属性来自于两个版本的修改，从而破坏了数据一致性。
- @dimensionalType fact/dimension数仓分类
+ @dimensionalType [数仓维度分类]
+ @dbCatalog [数据库目录]
+ @dbSchema [数据库模式]
+ @dbPkName [数据库主键名]
+ @creatorProp [创建者属性]
+ @createTimeProp [创建时间属性]
+ @updaterProp [更新者属性]
+ @updateTimeProp [更新时间属性]
+ @labelProp [标签属性]
+ @stateProp [状态属性]
+ @entityModeEnabled [是否启用实体模式]
  -->
 <entity name="!class-name" className="class-name" displayName="string" tableName="!string"
         readonly="!boolean=false" tableView="!boolean=false" kvTable="!boolean=false" querySpace="string=default"
@@ -46,9 +62,10 @@
         xmlns:ui="ui" xmlns:biz="biz" xmlns:orm="orm"
         xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
 >
-    <!-- 当实体实际对应数据库视图时，这里为视图的定义SQL语句 -->
+    <!-- [SQL文本] 当实体实际对应数据库视图时，这里为视图的定义SQL语句 -->
     <sqlText xdef:value="string"/>
 
+    <!-- [注释] -->
     <comment xdef:value="string"/>
 
     <filters xdef:body-type="list" xdef:key-attr="name">
@@ -120,8 +137,8 @@
                  refEntityName="!class-name" refPropName="prop-name" refDisplayName="string"
                  queryable="!boolean=true" maxBatchLoadSize="int"
                  ui:control="string"
-                 orm:manyToManyPropName1="string"  orm:manyToManyPropName2="string"
-                 orm:manyToManyDisplayName1="string"  orm:manyToManyDisplayName2="string"
+                 orm:manyToManyPropName1="string" orm:manyToManyPropName2="string"
+                 orm:manyToManyDisplayName1="string" orm:manyToManyDisplayName2="string"
                  tagSet="tag-set" embedded="!boolean=false" notGenCode="!boolean=false"
                  cascadeDelete="!boolean=false" autoCascadeDelete="!boolean=false" xdef:bean-tag-prop="type"
     >
@@ -191,8 +208,16 @@
     </unique-keys>
 
     <indexes xdef:body-type="list" xdef:key-attr="name">
+        <!-- 索引
+         @unique [是否唯一索引]
+         @indexType [索引类型]
+         @columns [列名列表]
+         -->
         <index xdef:name="OrmIndexModel" name="!var-name" displayName="string" unique="boolean"
                indexType="string" comment="string" tagSet="tag-set">
+            <!--
+            @desc [是否降序]
+            -->
             <column xdef:unique-attr="name" xdef:name="OrmIndexColumnModel" name="!var-name" desc="boolean"
                     xdef:mandatory="true"/>
         </index>

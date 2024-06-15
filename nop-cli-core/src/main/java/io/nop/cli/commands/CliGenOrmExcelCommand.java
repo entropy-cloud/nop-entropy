@@ -13,10 +13,13 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.orm.model.OrmModel;
+import io.nop.orm.model.schema.SchemaToOrmModel;
 import io.nop.orm.pdm.PdmModelParser;
 import io.nop.xlang.api.AbstractEvalAction;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.xdsl.DslModelParser;
+import io.nop.xlang.xmeta.IObjMeta;
+import io.nop.xlang.xmeta.SchemaLoader;
 import picocli.CommandLine;
 
 import java.io.File;
@@ -66,6 +69,12 @@ public class CliGenOrmExcelCommand implements Callable<Integer> {
             node.setAttr("x:schema", "/nop/schema/orm/orm.xdef");
             node.setAttr("xmlns:x", "/nop/schema/xdsl.xdef");
             model = (OrmModel) new DslModelParser().parseFromNode(node);
+        } else if (file.getName().endsWith(".xmeta") || file.getName().endsWith(".xdef")) {
+            IObjMeta objMeta = SchemaLoader.parseXMetaFromResource(new FileResource(file));
+            if (objMeta == null)
+                throw new IllegalArgumentException("null meta");
+            type = "meta";
+            model = new SchemaToOrmModel().transform(objMeta.getDefines());
         } else {
             System.err.println("只支持pdm或者pmda.json模型文件");
             return -1;

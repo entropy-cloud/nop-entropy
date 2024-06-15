@@ -12,6 +12,12 @@ public interface OrmModelConstants {
 
     String ORM_IMPL_PATH = "/nop/orm/imp/orm.imp.xml";
 
+    String DEFAULT_ORM_MODEL_PATH = "/nop/orm/defaults/default.orm.xml";
+
+    String DSL_DEFAULT_ORM_MODEL_PATH = "/nop/orm/defaults/dsl-default.orm.xml";
+
+    String ENTITY_NAME_NOP_DEFAULT_COLS = "NopDefaultCols";
+
     String DEFAULT_QUERY_SPACE = "default";
 
     String PROP_ID = "id";
@@ -125,4 +131,8 @@ public interface OrmModelConstants {
     String VAR_ENTITY = "entity";
 
     String VAR_VALUE = "value";
+
+    String PROP_NAME_sid = "sid";
+
+    String EXT_I18N_EN_DISPLAY_NAME = "i18n-en:displayName";
 }

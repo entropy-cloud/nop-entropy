@@ -141,10 +141,20 @@ public class NopCliTasks {
 
 
         String[] args = new String[]{"gen-file",
-                "-t", "/xpt/test-large-ds.xpt.xlsx","-o","target/gen/out.xlsx"};
+                "-t", "/xpt/test-large-ds.xpt.xlsx", "-o", "target/gen/out.xlsx"};
         NopCliApplication app = new NopCliApplication();
         app.setFactory(factory);
         int ret = app.run(args);
         assertEquals(0, ret);
+    }
+
+    @Test
+    public void testGenOrmFromXDef() {
+        String[] args = new String[]{"gen-orm-excel", "../nop-xdefs/src/main/resources/_vfs/nop/schema/orm/entity.xdef",
+                "-o", "target/gen-from-xdef.orm.xlsx"
+        };
+        NopCliApplication app = new NopCliApplication();
+        app.setFactory(factory);
+        assertEquals(0, app.run(args));
     }
 }
