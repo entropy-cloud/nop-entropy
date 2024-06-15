@@ -1,0 +1,30 @@
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+  xmlns="http://www.springframework.org/schema/beans" x:dump="true"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+  <bean id="nopDataSource_default" class="com.zaxxer.hikari.HikariDataSource">
+    <constructor-arg index="0">
+      <bean class="com.zaxxer.hikari.HikariConfig">
+        <property name="driverClassName" value="com.mysql.cj.jdbc.Driver"/>
+        <property name="jdbcUrl" value="/mlc_dev?useUnicode=true&amp;characterEncoding=utf8&amp;zeroDateTimeBehavior=convertToNull&amp;useSSL=true&amp;serverTimezone=GMT%2B8&amp;nullCatalogMeansCurrent=true"/>
+        <property name="username" value=""/>
+        <property name="password" value=""/>
+        <property name="maximumPoolSize" value="8"/>
+      </bean>
+    </constructor-arg>
+  </bean>
+
+  <bean id="nopDataSource_meta" class="com.zaxxer.hikari.HikariDataSource">
+    <constructor-arg index="0">
+      <bean class="com.zaxxer.hikari.HikariConfig">
+        <property name="driverClassName" value="com.mysql.cj.jdbc.Driver"/>
+        <property name="jdbcUrl" value="/mlc_meta?useUnicode=true&amp;characterEncoding=utf8&amp;zeroDateTimeBehavior=convertToNull&amp;useSSL=true&amp;serverTimezone=GMT%2B8&amp;nullCatalogMeansCurrent=true"/>
+        <property name="username" value=""/>
+        <property name="password" value=""/>
+        <property name="maximumPoolSize" value="8"/>
+      </bean>
+    </constructor-arg>
+  </bean>
+</beans>

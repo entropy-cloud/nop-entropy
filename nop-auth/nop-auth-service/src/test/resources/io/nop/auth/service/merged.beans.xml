@@ -1,0 +1,43 @@
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc" xmlns:ext="ext"
+       xmlns:util="util">
+
+    <bean class="com.zaxxer.hikari.HikariConfig" ioc:aop="false" id="$GEN$com.zaxxer.hikari.HikariConfig$1">
+        <property name="driverClassName" value="com.mysql.cj.jdbc.Driver"/>
+        <property name="jdbcUrl"
+                  value="/mlc_meta?useUnicode=true&amp;characterEncoding=utf8&amp;zeroDateTimeBehavior=convertToNull&amp;useSSL=true&amp;serverTimezone=GMT%2B8&amp;nullCatalogMeansCurrent=true"/>
+        <property name="maximumPoolSize" value="8"/>
+        <property name="password">
+            <null/>
+        </property>
+        <property name="username">
+            <null/>
+        </property>
+    </bean>
+
+    <bean class="com.zaxxer.hikari.HikariConfig" ioc:aop="false" id="$GEN$com.zaxxer.hikari.HikariConfig$2">
+        <property name="driverClassName" value="com.mysql.cj.jdbc.Driver"/>
+        <property name="jdbcUrl"
+                  value="/mlc_dev?useUnicode=true&amp;characterEncoding=utf8&amp;zeroDateTimeBehavior=convertToNull&amp;useSSL=true&amp;serverTimezone=GMT%2B8&amp;nullCatalogMeansCurrent=true"/>
+        <property name="maximumPoolSize" value="8"/>
+        <property name="password">
+            <null/>
+        </property>
+        <property name="username">
+            <null/>
+        </property>
+    </bean>
+
+    <bean class="com.zaxxer.hikari.HikariDataSource" id="nopDataSource_meta" ioc:aop="false" destroy-method="close">
+        <constructor-arg index="0">
+            <ref bean="$GEN$com.zaxxer.hikari.HikariConfig$1"
+                 ext:resolved-loc="[21:8:0:0]file:/C:/can/nop/nop-entropy/nop-auth/nop-auth-service/target/test-classes/io/nop/auth/service/test-dataSources.beans.xml"/>
+        </constructor-arg>
+    </bean>
+
+    <bean class="com.zaxxer.hikari.HikariDataSource" id="nopDataSource_default" ioc:aop="false" destroy-method="close">
+        <constructor-arg index="0">
+            <ref bean="$GEN$com.zaxxer.hikari.HikariConfig$2"
+                 ext:resolved-loc="[9:8:0:0]file:/C:/can/nop/nop-entropy/nop-auth/nop-auth-service/target/test-classes/io/nop/auth/service/test-dataSources.beans.xml"/>
+        </constructor-arg>
+    </bean>
+</beans>

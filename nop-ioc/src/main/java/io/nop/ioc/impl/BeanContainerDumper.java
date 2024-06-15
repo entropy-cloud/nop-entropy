@@ -81,6 +81,9 @@ public class BeanContainerDumper {
         XNode node = new BeanTransformer(objMeta).transformObj(objSchema, beanModel);
         node.removeAttr("parent");
         node.removeAttr("ioc:config-prefix");
+        node.removeChildrenByTag("constructor-arg");
+        node.removeChildrenByTag("property");
+
         node.setTagName("bean");
         node.setAttr("id", bean.getId());
 

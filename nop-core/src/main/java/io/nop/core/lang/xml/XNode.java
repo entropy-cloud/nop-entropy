@@ -373,7 +373,7 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
             String text = contentText();
             // 没有闭合的表达式
             int pos = text.indexOf("${");
-            if (pos >=0 && text.indexOf('}', pos) < 0) {
+            if (pos >= 0 && text.indexOf('}', pos) < 0) {
                 text = StringHelper.replace(text, "$", "${'$'}");
                 content(content().getLocation(), text);
             }
@@ -381,7 +381,7 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
     }
 
     public void normalizeExpr() {
-        forEachNode(child-> child.normalizeExprInContent());
+        forEachNode(child -> child.normalizeExprInContent());
     }
 
     public Object getContentValue() {
@@ -1332,6 +1332,13 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
             return null;
         removeChild(child);
         return child;
+    }
+
+    public void removeChildrenByTag(String tagName) {
+        if (children.isEmpty())
+            return;
+
+        children.removeIf(node -> node.getTagName().equals(tagName));
     }
 
     public boolean removeChild(XNode child) {
