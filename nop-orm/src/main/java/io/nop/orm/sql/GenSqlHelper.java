@@ -325,6 +325,7 @@ public class GenSqlHelper {
 
         SQL.SqlBuilder sb = SQL.begin();
         sb.name("load_collection:" + collectionModel.getCollectionName());
+        sb.querySpace(collectionModel.getRefEntityModel().getQuerySpace());
 
         sb.select();
         genSelectFields(sb, dialect, null, entityModel, propIds);
@@ -373,6 +374,8 @@ public class GenSqlHelper {
 
         SQL.SqlBuilder sb = SQL.begin();
         sb.name("batch_load_collection:" + collectionModel.getCollectionName());
+        sb.querySpace(entityModel.getQuerySpace());
+
         sb.select();
         genSelectFields(sb, dialect, null, entityModel, propIds);
         sb.from();
@@ -691,6 +694,8 @@ public class GenSqlHelper {
                                                    IDataParameterBinder[] binders, IOrmEntity example) {
         SQL.SqlBuilder sb = SQL.begin();
         sb.name("countByExample:" + entityModel.getName());
+        sb.querySpace(entityModel.getQuerySpace());
+
         sb.select().append(" count(1) ").from();
         table(sb, dialect, entityModel, null);
         sb.where().alwaysTrue();
@@ -702,6 +707,8 @@ public class GenSqlHelper {
                                                     IDataParameterBinder[] binders, String owner, IOrmEntity example) {
         SQL.SqlBuilder sb = SQL.begin();
         sb.name("deleteByExample:" + entityModel.getName());
+        sb.querySpace(entityModel.getQuerySpace());
+
         sb.deleteFrom();
         table(sb, dialect, entityModel, null);
         sb.where().alwaysTrue();
@@ -713,6 +720,8 @@ public class GenSqlHelper {
                                                   IDataParameterBinder[] binders, IOrmEntity example, List<OrderFieldBean> orderBy) {
         SQL.SqlBuilder sb = SQL.begin();
         sb.name("findByExample:" + entityModel.getName());
+        sb.querySpace(entityModel.getQuerySpace());
+
         sb.select();
         genSelectFields(sb, dialect, "o", entityModel, entityModel.getEagerLoadProps());
         sb.from();
@@ -728,6 +737,8 @@ public class GenSqlHelper {
                                                     IDataParameterBinder[] binders, IOrmEntity example, IOrmEntity updated) {
         SQL.SqlBuilder sb = SQL.begin();
         sb.name("updateByExample:" + entityModel.getName());
+        sb.querySpace(entityModel.getQuerySpace());
+
         sb.append(dialect.getUpdateKeyword());
         table(sb, dialect, entityModel, "o");
         sb.append('\n');

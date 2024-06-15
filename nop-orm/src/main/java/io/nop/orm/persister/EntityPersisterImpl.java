@@ -454,7 +454,7 @@ public class EntityPersisterImpl implements IEntityPersister {
                 session.persisterPostSave(entity);
             }
         });
-        session.getBatchActionQueue(shard == null ? null : shard.getQuerySpace()).enqueueSave(action);
+        session.getBatchActionQueue(getQuerySpace(shard)).enqueueSave(action);
     }
 
     protected void queueUpdate(IOrmEntity entity, final IOrmSessionImplementor session) {
@@ -475,7 +475,7 @@ public class EntityPersisterImpl implements IEntityPersister {
             }
         });
 
-        session.getBatchActionQueue(shard == null ? null : shard.getQuerySpace()).enqueueUpdate(action);
+        session.getBatchActionQueue(getQuerySpace(shard)).enqueueUpdate(action);
     }
 
     protected void queueDelete(IOrmEntity entity, IOrmSessionImplementor session) {
@@ -488,7 +488,7 @@ public class EntityPersisterImpl implements IEntityPersister {
                 session.persisterPostDelete(entity);
             }
         });
-        session.getBatchActionQueue(shard == null ? null : shard.getQuerySpace()).enqueueDelete(action);
+        session.getBatchActionQueue(getQuerySpace(shard)).enqueueDelete(action);
     }
 
     protected void checkUpdateResult(int count, IOrmEntity entity) {
@@ -530,7 +530,7 @@ public class EntityPersisterImpl implements IEntityPersister {
         if (!useGlobalCache)
             return;
 
-        String querySpace = shard == null ? null : shard.getQuerySpace();
+        String querySpace = getQuerySpace(shard);
 
         if (env.txn().isTransactionOpened(querySpace)) {
             this.env.txn().addTransactionListener(querySpace, new ITransactionListener() {
@@ -542,6 +542,10 @@ public class EntityPersisterImpl implements IEntityPersister {
         } else {
             globalCache.removeAsync(entity.orm_idString());
         }
+    }
+
+    protected String getQuerySpace(ShardSelection shard){
+        return shard == null ? entityModel.getQuerySpace() : shard.getQuerySpace();
     }
 
     /**
