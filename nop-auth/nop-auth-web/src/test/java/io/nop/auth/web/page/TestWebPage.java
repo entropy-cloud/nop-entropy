@@ -66,4 +66,14 @@ public class TestWebPage extends JunitBaseTestCase {
         String text = JsonTool.serialize(page, true);
         assertFalse(text.contains("session.null"));
     }
+
+    @Test
+    public void testExtAttributes() {
+        String path = "/nop/auth/pages/NopAuthRole/main.page.yaml";
+        Map<String, Object> page = pageProvider.getPageSource(path);
+        System.out.println(JSON.serialize(page, true));
+
+        String text = JsonTool.serialize(page, true);
+        assertTrue(text.contains("xui:permissions"));
+    }
 }

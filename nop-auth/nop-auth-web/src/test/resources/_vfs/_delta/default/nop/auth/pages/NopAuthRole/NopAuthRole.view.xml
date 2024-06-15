@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:extends="super" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xui="xui">
+
+    <pages>
+        <crud name="main">
+            <listActions>
+                <action id="batch-delete-button" xui:permissions="NopAuthRole:delete">
+                </action>
+            </listActions>
+        </crud>
+    </pages>
+</view>
