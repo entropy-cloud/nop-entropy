@@ -346,5 +346,37 @@
                 ]]></c:script>
             </source>
         </DoDeleteByQuery>
+
+        <DoFindListByMdxQuery>
+            <slot name="query" outputMode="node" slotType="renderer" />
+            <source>
+                <thisLib:_DoFindByMdxQuery queryBuilder="${slot_query}" method="findListByQuery" />
+            </source>
+        </DoFindListByMdxQuery>
+
+        <DoFindFirstByMdxQuery>
+            <slot name="query" outputMode="node" slotType="renderer" />
+            <source>
+                <thisLib:_DoFindByMdxQuery queryBuilder="${slot_query}" method="findFirstByQuery" />
+            </source>
+        </DoFindFirstByMdxQuery>
+
+        <_DoFindByMdxQuery>
+            <attr name="method" type="String" />
+            <attr name="queryBuilder" />
+
+            <source>
+                <c:script>
+                    import io.nop.core.model.query.QueryBeanHelper;
+
+                    const queryNode = queryBuilder();
+                    const query = QueryBeanHelper.buildQueryBeanFromTreeBean(queryNode);
+                    const ormTemplate = inject('nopOrmTemplate');
+                    if(method == 'findListByQuery')
+                       return ormTemplate.findListByQuery(query);
+                    return ormTemplate.findFirstByQuery(query);
+                </c:script>
+            </source>
+        </_DoFindByMdxQuery>
     </tags>
 </lib>

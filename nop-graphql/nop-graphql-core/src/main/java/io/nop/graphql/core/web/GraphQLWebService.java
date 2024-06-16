@@ -11,6 +11,7 @@ import io.nop.api.core.ApiConstants;
 import io.nop.api.core.beans.ApiMessage;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.WebContentBean;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
@@ -31,16 +32,9 @@ import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.IGraphQLLogger;
 import io.nop.graphql.core.ast.GraphQLOperationType;
-import io.nop.graphql.core.utils.GraphQLArgsHelper;
 import io.nop.graphql.core.engine.IGraphQLEngine;
+import io.nop.graphql.core.utils.GraphQLArgsHelper;
 import io.nop.rpc.api.ContextBinder;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
 import org.slf4j.Logger;
@@ -58,8 +52,6 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAKER_CHECKER_ENABLED;
-import static io.nop.graphql.core.GraphQLConstants.SYS_PARAM_ARGS;
-import static io.nop.graphql.core.GraphQLConstants.SYS_PARAM_SELECTION;
 
 public abstract class GraphQLWebService {
     static final Logger LOG = LoggerFactory.getLogger(GraphQLWebService.class);
@@ -292,12 +284,16 @@ public abstract class GraphQLWebService {
 
         request.setHeaders(getHeaders());
         if (!StringHelper.isEmpty(selection)) {
-            request.setSelection(new FieldSelectionBeanParser().parseFromText(null, selection));
+            request.setSelection(parseSelection(selection));
         }
 
         GraphQLArgsHelper.normalizeSubArgs(request.getSelection(), map);
         request.setData(map);
         return request;
+    }
+
+    protected FieldSelectionBean parseSelection(String selection) {
+        return new FieldSelectionBeanParser().parseFromText(null, selection);
     }
 
     /**

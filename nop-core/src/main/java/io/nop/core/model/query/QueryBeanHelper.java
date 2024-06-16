@@ -9,15 +9,22 @@ package io.nop.core.model.query;
 
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
+import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.util.IVariableScope;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.reflect.bean.BeanTool;
 
 import java.util.List;
 import java.util.function.Predicate;
 
 public class QueryBeanHelper {
+
+    public static QueryBean buildQueryBeanFromTreeBean(ITreeBean node) {
+        return BeanTool.buildBeanFromTreeBean(node, QueryBean.class);
+    }
+
     public static <T> Predicate<Object> toPredicate(ITreeBean filter, IEvalScope scope) {
         if (filter == null)
             return null;
