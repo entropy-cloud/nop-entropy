@@ -104,12 +104,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 90,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "collegeId",
@@ -121,10 +121,10 @@
           "precision": 32,
           "primary": true,
           "mandatory": true,
-          "lazy": false,
           "insertable": true,
-          "notGenCode": false,
-          "updatable": true
+          "updatable": true,
+          "lazy": false,
+          "notGenCode": false
         },
         {
           "name": "shortName",
@@ -134,12 +134,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 90,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "intro",
@@ -149,12 +149,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 900,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "professionNumber",
@@ -163,12 +163,12 @@
           "propId": 5,
           "stdSqlType": "INTEGER",
           "stdDataType": "int",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "studentNumber",
@@ -177,12 +177,12 @@
           "propId": 6,
           "stdSqlType": "INTEGER",
           "stdDataType": "int",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "president",
@@ -192,12 +192,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 90,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "tenantId",
@@ -207,12 +207,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "revision",
@@ -221,12 +221,12 @@
           "propId": 9,
           "stdSqlType": "INTEGER",
           "stdDataType": "int",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "createdBy",
@@ -236,12 +236,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "createdTime",
@@ -250,12 +250,12 @@
           "propId": 11,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "updatedBy",
@@ -265,12 +265,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "updatedTime",
@@ -279,12 +279,12 @@
           "propId": 13,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         }
       ],
       "relations": [],
@@ -327,10 +327,10 @@
           "precision": 32,
           "primary": true,
           "mandatory": true,
-          "lazy": false,
           "insertable": true,
-          "notGenCode": false,
-          "updatable": true
+          "updatable": true,
+          "lazy": false,
+          "notGenCode": false
         },
         {
           "name": "majorName",
@@ -340,12 +340,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 90,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "shortName",
@@ -355,12 +355,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 90,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "estabDate",
@@ -369,12 +369,12 @@
           "propId": 4,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "intro",
@@ -384,12 +384,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 900,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "tuitionFee",
@@ -400,12 +400,12 @@
           "stdDataType": "decimal",
           "precision": 24,
           "scale": 8,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "tenantId",
@@ -415,12 +415,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "revision",
@@ -429,12 +429,12 @@
           "propId": 8,
           "stdSqlType": "INTEGER",
           "stdDataType": "int",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "createdBy",
@@ -444,12 +444,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "createdTime",
@@ -458,12 +458,12 @@
           "propId": 10,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "updatedBy",
@@ -473,12 +473,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "updatedTime",
@@ -487,12 +487,12 @@
           "propId": 12,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         }
       ],
       "relations": [],
@@ -527,12 +527,12 @@
           "stdDataType": "string",
           "precision": 90,
           "comment": "班级的名称",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "engName",
@@ -542,12 +542,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 90,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "studentName",
@@ -557,12 +557,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 90,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "studentId",
@@ -574,10 +574,10 @@
           "precision": 32,
           "primary": true,
           "mandatory": true,
-          "lazy": false,
           "insertable": true,
-          "notGenCode": false,
-          "updatable": true
+          "updatable": true,
+          "lazy": false,
+          "notGenCode": false
         },
         {
           "name": "classId",
@@ -589,10 +589,10 @@
           "precision": 32,
           "primary": true,
           "mandatory": true,
-          "lazy": false,
           "insertable": true,
-          "notGenCode": false,
-          "updatable": true
+          "updatable": true,
+          "lazy": false,
+          "notGenCode": false
         },
         {
           "name": "collegeId",
@@ -603,11 +603,11 @@
           "stdDataType": "string",
           "precision": 32,
           "mandatory": true,
-          "lazy": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false
         },
         {
           "name": "adviser",
@@ -617,12 +617,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 90,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "idCardNo",
@@ -632,12 +632,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 60,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "mobilePhone",
@@ -647,12 +647,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 60,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "gender",
@@ -663,12 +663,12 @@
           "stdDataType": "string",
           "precision": 32,
           "defaultValue": "'M'",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "marital",
@@ -679,12 +679,12 @@
           "stdDataType": "string",
           "precision": 32,
           "defaultValue": "'UNMARRIED'",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "political",
@@ -694,12 +694,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "birth",
@@ -708,12 +708,12 @@
           "propId": 13,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         }
       ]
     },
@@ -753,11 +753,11 @@
           "stdDataType": "string",
           "precision": 32,
           "lazy": true,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "majorId",
@@ -767,12 +767,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "classId",
@@ -784,10 +784,10 @@
           "precision": 32,
           "primary": true,
           "mandatory": true,
-          "lazy": false,
           "insertable": true,
-          "notGenCode": false,
-          "updatable": true
+          "updatable": true,
+          "lazy": false,
+          "notGenCode": false
         },
         {
           "name": "className",
@@ -797,12 +797,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 90,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "studentNumber",
@@ -811,12 +811,12 @@
           "propId": 5,
           "stdSqlType": "INTEGER",
           "stdDataType": "int",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "adviser",
@@ -826,12 +826,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 90,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "estabDate",
@@ -840,12 +840,12 @@
           "propId": 7,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "yearNumber",
@@ -854,12 +854,12 @@
           "propId": 8,
           "stdSqlType": "INTEGER",
           "stdDataType": "int",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "tenantId",
@@ -869,12 +869,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "revision",
@@ -883,12 +883,12 @@
           "propId": 10,
           "stdSqlType": "INTEGER",
           "stdDataType": "int",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "createdBy",
@@ -898,12 +898,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "createdTime",
@@ -912,12 +912,12 @@
           "propId": 12,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "updatedBy",
@@ -927,12 +927,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "updatedTime",
@@ -941,12 +941,12 @@
           "propId": 14,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         }
       ],
       "aliases": [
@@ -1016,11 +1016,11 @@
           "stdDataType": "string",
           "precision": 32,
           "mandatory": true,
-          "lazy": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false
         },
         {
           "name": "classId",
@@ -1031,11 +1031,11 @@
           "stdDataType": "string",
           "precision": 32,
           "mandatory": true,
-          "lazy": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false
         },
         {
           "name": "studentId",
@@ -1047,10 +1047,10 @@
           "precision": 32,
           "primary": true,
           "mandatory": true,
-          "lazy": false,
           "insertable": true,
-          "notGenCode": false,
-          "updatable": true
+          "updatable": true,
+          "lazy": false,
+          "notGenCode": false
         },
         {
           "name": "studentName",
@@ -1060,12 +1060,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 90,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "engName",
@@ -1075,12 +1075,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 90,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "idCardNo",
@@ -1090,12 +1090,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 60,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "mobilePhone",
@@ -1105,12 +1105,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 60,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "gender",
@@ -1121,12 +1121,12 @@
           "stdDataType": "string",
           "precision": 32,
           "defaultValue": "'M'",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "monthlySalary",
@@ -1137,12 +1137,12 @@
           "stdDataType": "decimal",
           "precision": 24,
           "scale": 6,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "birth",
@@ -1151,12 +1151,12 @@
           "propId": 10,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "avatar",
@@ -1165,12 +1165,12 @@
           "propId": 11,
           "stdSqlType": "INTEGER",
           "stdDataType": "int",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "height",
@@ -1179,12 +1179,12 @@
           "propId": 12,
           "stdSqlType": "INTEGER",
           "stdDataType": "int",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "weight",
@@ -1193,12 +1193,12 @@
           "propId": 13,
           "stdSqlType": "INTEGER",
           "stdDataType": "int",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "nation",
@@ -1209,12 +1209,12 @@
           "stdDataType": "string",
           "precision": 32,
           "defaultValue": "'01'",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "political",
@@ -1224,12 +1224,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "marital",
@@ -1240,12 +1240,12 @@
           "stdDataType": "string",
           "precision": 32,
           "defaultValue": "'UNMARRIED'",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "domicilePlaceProvince",
@@ -1255,12 +1255,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 60,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "domicilePlaceCity",
@@ -1270,12 +1270,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 60,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "domicilePlaceAddress",
@@ -1285,12 +1285,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 60,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "hobby",
@@ -1300,12 +1300,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 60,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "intro",
@@ -1315,12 +1315,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 900,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "presentAddress",
@@ -1330,12 +1330,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 60,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "email",
@@ -1345,12 +1345,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 60,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "entryDate",
@@ -1359,12 +1359,12 @@
           "propId": 24,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "status",
@@ -1375,12 +1375,12 @@
           "stdDataType": "string",
           "precision": 32,
           "defaultValue": "'Normal'",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "tenantId",
@@ -1390,12 +1390,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "revision",
@@ -1404,12 +1404,12 @@
           "propId": 27,
           "stdSqlType": "INTEGER",
           "stdDataType": "int",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "createdBy",
@@ -1419,12 +1419,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "createdTime",
@@ -1433,12 +1433,12 @@
           "propId": 29,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "updatedBy",
@@ -1448,12 +1448,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "updatedTime",
@@ -1462,12 +1462,12 @@
           "propId": 31,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         }
       ],
       "relations": [],
@@ -1534,11 +1534,11 @@
           "stdDataType": "string",
           "precision": 32,
           "mandatory": true,
-          "lazy": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false
         },
         {
           "name": "teacherId",
@@ -1550,10 +1550,10 @@
           "precision": 32,
           "primary": true,
           "mandatory": true,
-          "lazy": false,
           "insertable": true,
-          "notGenCode": false,
-          "updatable": true
+          "updatable": true,
+          "lazy": false,
+          "notGenCode": false
         },
         {
           "name": "teacherName",
@@ -1563,12 +1563,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 90,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "gender",
@@ -1579,12 +1579,12 @@
           "stdDataType": "string",
           "precision": 32,
           "defaultValue": "'M'",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "birth",
@@ -1593,12 +1593,12 @@
           "propId": 5,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "graduateInstitution",
@@ -1608,12 +1608,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 90,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "practiceYears",
@@ -1622,12 +1622,12 @@
           "propId": 7,
           "stdSqlType": "INTEGER",
           "stdDataType": "int",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "political",
@@ -1637,12 +1637,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "marital",
@@ -1653,12 +1653,12 @@
           "stdDataType": "string",
           "precision": 32,
           "defaultValue": "'UNMARRIED'",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "avatar",
@@ -1668,12 +1668,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 60,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "intro",
@@ -1683,12 +1683,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 900,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "tenantId",
@@ -1698,12 +1698,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "revision",
@@ -1712,12 +1712,12 @@
           "propId": 13,
           "stdSqlType": "INTEGER",
           "stdDataType": "int",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "createdBy",
@@ -1727,12 +1727,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "createdTime",
@@ -1741,12 +1741,12 @@
           "propId": 15,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "updatedBy",
@@ -1756,12 +1756,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "updatedTime",
@@ -1770,12 +1770,12 @@
           "propId": 17,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         }
       ],
       "relations": [],
@@ -1818,10 +1818,10 @@
           "precision": 32,
           "primary": true,
           "mandatory": true,
-          "lazy": false,
           "insertable": true,
-          "notGenCode": false,
-          "updatable": true
+          "updatable": true,
+          "lazy": false,
+          "notGenCode": false
         },
         {
           "name": "lessonName",
@@ -1831,12 +1831,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 90,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "intro",
@@ -1846,12 +1846,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 900,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "hours",
@@ -1860,12 +1860,12 @@
           "propId": 4,
           "stdSqlType": "INTEGER",
           "stdDataType": "int",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "score",
@@ -1874,12 +1874,12 @@
           "propId": 5,
           "stdSqlType": "INTEGER",
           "stdDataType": "int",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "tenantId",
@@ -1889,12 +1889,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "revision",
@@ -1903,12 +1903,12 @@
           "propId": 7,
           "stdSqlType": "INTEGER",
           "stdDataType": "int",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "createdBy",
@@ -1918,12 +1918,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "createdTime",
@@ -1932,12 +1932,12 @@
           "propId": 9,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "updatedBy",
@@ -1947,12 +1947,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "updatedTime",
@@ -1961,12 +1961,12 @@
           "propId": 11,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         }
       ],
       "relations": [],
@@ -2009,10 +2009,10 @@
           "precision": 32,
           "primary": true,
           "mandatory": true,
-          "lazy": false,
           "insertable": true,
-          "notGenCode": false,
-          "updatable": true
+          "updatable": true,
+          "lazy": false,
+          "notGenCode": false
         },
         {
           "name": "classId",
@@ -2022,12 +2022,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "lessonId",
@@ -2037,12 +2037,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "teacherId",
@@ -2052,12 +2052,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "tenantId",
@@ -2067,12 +2067,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "revision",
@@ -2081,12 +2081,12 @@
           "propId": 6,
           "stdSqlType": "INTEGER",
           "stdDataType": "int",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "createdBy",
@@ -2096,12 +2096,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "createdTime",
@@ -2110,12 +2110,12 @@
           "propId": 8,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "updatedBy",
@@ -2125,12 +2125,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "updatedTime",
@@ -2139,12 +2139,12 @@
           "propId": 10,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         }
       ],
       "relations": [],
@@ -2188,10 +2188,10 @@
           "primary": true,
           "mandatory": true,
           "comment": "考试记录的ID",
-          "lazy": false,
           "insertable": true,
-          "notGenCode": false,
-          "updatable": true
+          "updatable": true,
+          "lazy": false,
+          "notGenCode": false
         },
         {
           "name": "studentId",
@@ -2201,12 +2201,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "lessonId",
@@ -2216,12 +2216,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "examDate",
@@ -2230,12 +2230,12 @@
           "propId": 4,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "examName",
@@ -2245,12 +2245,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 90,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "examScore",
@@ -2261,12 +2261,12 @@
           "stdDataType": "decimal",
           "precision": 24,
           "scale": 8,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "tenantId",
@@ -2276,12 +2276,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "revision",
@@ -2290,12 +2290,12 @@
           "propId": 8,
           "stdSqlType": "INTEGER",
           "stdDataType": "int",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "createdBy",
@@ -2305,12 +2305,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "createdTime",
@@ -2319,12 +2319,12 @@
           "propId": 10,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "updatedBy",
@@ -2334,12 +2334,12 @@
           "stdSqlType": "VARCHAR",
           "stdDataType": "string",
           "precision": 32,
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         },
         {
           "name": "updatedTime",
@@ -2348,12 +2348,12 @@
           "propId": 12,
           "stdSqlType": "DATETIME",
           "stdDataType": "datetime",
-          "lazy": false,
-          "mandatory": false,
           "insertable": true,
-          "notGenCode": false,
           "updatable": true,
-          "primary": false
+          "primary": false,
+          "lazy": false,
+          "notGenCode": false,
+          "mandatory": false
         }
       ],
       "relations": [],

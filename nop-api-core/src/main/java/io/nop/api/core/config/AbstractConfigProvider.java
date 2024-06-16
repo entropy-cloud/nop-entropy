@@ -78,7 +78,7 @@ public abstract class AbstractConfigProvider implements IConfigProvider {
             return defaultValue;
 
         if (defaultValue != null) {
-            value = StaticValue.castValue(varName, defaultValue.getClass(), defaultValue);
+            value = StaticValue.castValue(varName, defaultValue.getClass(), value);
         }
         return (T) value;
     }
