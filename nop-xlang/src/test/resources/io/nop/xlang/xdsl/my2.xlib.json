@@ -3,30 +3,30 @@
   "tags": {
     "Add": {
       "tagName": "Add",
+      "dump": false,
+      "deprecated": false,
       "macro": false,
       "internal": false,
-      "deprecated": false,
-      "conditionTag": false,
-      "dump": false,
       "ignoreUnknownAttrs": false,
+      "conditionTag": false,
       "attrs": [
         {
           "name": "a",
           "mandatory": true,
           "implicit": false,
+          "optional": false,
           "internal": false,
-          "deprecated": false,
           "runtime": false,
-          "optional": false
+          "deprecated": false
         },
         {
           "name": "b",
           "implicit": true,
-          "internal": false,
-          "deprecated": false,
-          "runtime": false,
+          "mandatory": false,
           "optional": false,
-          "mandatory": false
+          "internal": false,
+          "runtime": false,
+          "deprecated": false
         }
       ],
       "source": "<_>\n    <c:script>\n                    a + b\n                </c:script>\n</_>"
@@ -34,21 +34,21 @@
     "Nested": {
       "tagName": "Nested",
       "outputMode": "text",
+      "dump": false,
+      "deprecated": false,
       "macro": false,
       "internal": false,
-      "deprecated": false,
-      "conditionTag": false,
-      "dump": false,
       "ignoreUnknownAttrs": false,
+      "conditionTag": false,
       "attrs": [
         {
           "name": "parent",
+          "mandatory": false,
           "implicit": false,
-          "internal": false,
-          "deprecated": false,
-          "runtime": false,
           "optional": false,
-          "mandatory": false
+          "internal": false,
+          "runtime": false,
+          "deprecated": false
         }
       ],
       "source": "<_>\n    <c:unit>${parent.name},</c:unit>\n    <c:for var=\"child\" items=\"${parent.children}\">\n        <thisLib:Nested parent=\"${child}\"/>\n    </c:for>\n</_>"

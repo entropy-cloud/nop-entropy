@@ -18,11 +18,8 @@
                                         <prop name="$type" xmlPos="tag">
                                             <schema stdDomain="string"/>
                                         </prop>
-                                        <prop name="excludeMax">
-                                            <schema stdDomain="boolean"/>
-                                        </prop>
-                                        <prop name="excludeMin">
-                                            <schema stdDomain="boolean"/>
+                                        <prop name="name" mandatory="true">
+                                            <schema stdDomain="string"/>
                                         </prop>
                                         <prop name="min">
                                             <schema stdDomain="time"/>
@@ -30,8 +27,11 @@
                                         <prop name="max">
                                             <schema stdDomain="time"/>
                                         </prop>
-                                        <prop name="name" mandatory="true">
-                                            <schema stdDomain="string"/>
+                                        <prop name="excludeMin">
+                                            <schema stdDomain="boolean"/>
+                                        </prop>
+                                        <prop name="excludeMax">
+                                            <schema stdDomain="boolean"/>
                                         </prop>
                                     </props>
                                 </schema>

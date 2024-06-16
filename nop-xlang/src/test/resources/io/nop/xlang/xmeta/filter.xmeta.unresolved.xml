@@ -13,11 +13,8 @@
                                 <schema ref="/test/test-filter.xdef#SimpleFilterNode" typeValue="timeBetween">
                                     <description>时间在指定范围之内</description>
                                     <props>
-                                        <prop name="excludeMax">
-                                            <schema stdDomain="boolean"/>
-                                        </prop>
-                                        <prop name="excludeMin">
-                                            <schema stdDomain="boolean"/>
+                                        <prop name="name" mandatory="true">
+                                            <schema stdDomain="string"/>
                                         </prop>
                                         <prop name="min">
                                             <schema stdDomain="time"/>
@@ -25,8 +22,11 @@
                                         <prop name="max">
                                             <schema stdDomain="time"/>
                                         </prop>
-                                        <prop name="name" mandatory="true">
-                                            <schema stdDomain="string"/>
+                                        <prop name="excludeMin">
+                                            <schema stdDomain="boolean"/>
+                                        </prop>
+                                        <prop name="excludeMax">
+                                            <schema stdDomain="boolean"/>
                                         </prop>
                                         <prop name="$type" xmlPos="tag">
                                             <schema stdDomain="string"/>

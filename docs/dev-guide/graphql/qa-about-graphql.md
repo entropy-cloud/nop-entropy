@@ -144,7 +144,7 @@ query{
 
 ## 四. 利用Fragment语法简化字段选择
 
-GraphQL内置了所谓的Fragment概念，它本质上时一种可重用的字段集，可以在多个查询中被引用。我们可以给每个类型都定义一个`F_defaults`片段，它包含所有缺省返回字段（在Nop平台中对应于非lazy加载的字段）。
+GraphQL内置了所谓的Fragment概念，它本质上是一种可重用的字段集，可以在多个查询中被引用。我们可以给每个类型都定义一个`F_defaults`片段，它包含所有缺省返回字段（在Nop平台中对应于非lazy加载的字段）。
 
 ```graphql
 fragment F_defaults on Book {

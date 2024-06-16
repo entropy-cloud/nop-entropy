@@ -29,3 +29,4 @@
   a.b.c = a join b + b join c
 ```
 
+Resolver(A) = Resolver(B) + Resolver(C)。如果是Tree结构分析，则对应于GraphQL
