@@ -349,6 +349,8 @@
 
         <DoFindListByMdxQuery>
             <slot name="query" outputMode="node" slotType="renderer" />
+            <attr name="rowType" optional="true"/>
+
             <source>
                 <thisLib:_DoFindByMdxQuery queryBuilder="${slot_query}" method="findListByQuery" />
             </source>
@@ -356,6 +358,8 @@
 
         <DoFindFirstByMdxQuery>
             <slot name="query" outputMode="node" slotType="renderer" />
+            <attr name="rowType" optional="true"/>
+
             <source>
                 <thisLib:_DoFindByMdxQuery queryBuilder="${slot_query}" method="findFirstByQuery" />
             </source>
@@ -364,6 +368,7 @@
         <_DoFindByMdxQuery>
             <attr name="method" type="String" />
             <attr name="queryBuilder" />
+            <attr name="rowType" implicit="true"/>
 
             <source>
                 <c:script>
@@ -372,9 +377,10 @@
                     const queryNode = queryBuilder();
                     const query = QueryBeanHelper.buildQueryBeanFromTreeBean(queryNode);
                     const ormTemplate = inject('nopOrmTemplate');
+                    const mapper = ormTemplate.getRowMapper(rowType,false);
                     if(method == 'findListByQuery')
-                       return ormTemplate.findListByQuery(query);
-                    return ormTemplate.findFirstByQuery(query);
+                       return ormTemplate.findListByQuery(query,mapper);
+                    return ormTemplate.findFirstByQuery(query, mapper);
                 </c:script>
             </source>
         </_DoFindByMdxQuery>

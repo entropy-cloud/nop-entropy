@@ -19,6 +19,6 @@ public class TestBeanLoader extends JunitBaseTestCase {
 
         node = new AppBeanContainerLoader().loadFromResource("test", resource).toConfigNode();
         node.dump();
-        assertEquals(attachmentXmlText("merged.beans.xml"), node.xml());
+        assertEquals(normalizeCRLF(attachmentXmlText("merged.beans.xml")), node.xml());
     }
 }
