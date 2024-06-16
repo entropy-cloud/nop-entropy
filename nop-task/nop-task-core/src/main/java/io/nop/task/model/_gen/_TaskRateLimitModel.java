@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [100:10:0:0]/nop/schema/task/task.xdef <p>
+ * generate from /nop/schema/task/task.xdef <p>
  * 限制对同一个key的调用速率不能超过指定值
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

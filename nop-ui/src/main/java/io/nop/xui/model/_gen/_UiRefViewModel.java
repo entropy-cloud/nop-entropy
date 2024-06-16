@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [39:6:0:0]/nop/schema/xui/disp.xdef <p>
+ * generate from /nop/schema/xui/disp.xdef <p>
  * 对于对象属性或者对象列表属性，使用xview文件中定义的page去显示
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [51:10:0:0]/nop/schema/beans.xdef <p>
+ * generate from /nop/schema/beans.xdef <p>
  * 按照类型或者注解收集所有符合条件的bean，返回bean的集合
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

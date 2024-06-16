@@ -9,8 +9,8 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [194:10:0:0]/nop/schema/orm/entity.xdef <p>
- * 
+ * generate from /nop/schema/orm/entity.xdef <p>
+ * 索引
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
@@ -38,7 +38,7 @@ public abstract class _OrmIndexModel extends io.nop.core.resource.component.Abst
     private java.lang.String _displayName ;
     
     /**
-     *  
+     *  索引类型
      * xml name: indexType
      * 
      */
@@ -59,7 +59,7 @@ public abstract class _OrmIndexModel extends io.nop.core.resource.component.Abst
     private java.util.Set<java.lang.String> _tagSet ;
     
     /**
-     *  
+     *  是否唯一索引
      * xml name: unique
      * 
      */
@@ -149,7 +149,7 @@ public abstract class _OrmIndexModel extends io.nop.core.resource.component.Abst
 
     
     /**
-     * 
+     * 索引类型
      * xml name: indexType
      *  
      */
@@ -206,7 +206,7 @@ public abstract class _OrmIndexModel extends io.nop.core.resource.component.Abst
 
     
     /**
-     * 
+     * 是否唯一索引
      * xml name: unique
      *  
      */

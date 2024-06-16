@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [23:10:0:0]/nop/schema/beans.xdef <p>
+ * generate from /nop/schema/beans.xdef <p>
  * ref local机制在spring4.0被废除
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

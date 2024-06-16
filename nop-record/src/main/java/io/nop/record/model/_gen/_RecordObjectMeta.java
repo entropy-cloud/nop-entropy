@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [30:6:0:0]/nop/schema/record/record-file.xdef <p>
+ * generate from /nop/schema/record/record-file.xdef <p>
  * 每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [151:18:0:0]/nop/schema/wf/wf.xdef <p>
+ * generate from /nop/schema/wf/wf.xdef <p>
  * 迁移到空步骤。结束本步骤，但是没有创建新的步骤实例
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

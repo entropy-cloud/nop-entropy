@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [101:10:0:0]/nop/schema/orm/entity.xdef <p>
+ * generate from /nop/schema/orm/entity.xdef <p>
  * 根据当前字段值计算得到的属性。在java对象上可以通过get/set方法来实现getter/setter，也可以通过这里的脚本配置来实现。
  * compute的结果不会被自动缓存，每次访问都会重新计算。
  */

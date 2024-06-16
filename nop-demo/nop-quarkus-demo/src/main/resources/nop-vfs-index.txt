@@ -525,6 +525,8 @@
 /nop/integration/beans/zxing-defaults.beans.xml
 /nop/main/app.gateway.xml
 /nop/orm/beans/orm-defaults.beans.xml
+/nop/orm/defaults/default.orm.xml
+/nop/orm/defaults/dsl-default.orm.xml
 /nop/orm/imp/orm.imp.xml
 /nop/orm/imp/template.orm.xlsx
 /nop/orm/xlib/dao.xlib

@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [175:10:0:0]/nop/schema/orm/entity.xdef <p>
+ * generate from /nop/schema/orm/entity.xdef <p>
  * 多个字段可能构成一个component对象。component对象如果实现了IOrmComponent接口，则其结果可以被缓存。它的内部实现会自动实现与实体属性的同步
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

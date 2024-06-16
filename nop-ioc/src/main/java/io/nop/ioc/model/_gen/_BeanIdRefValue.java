@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [29:10:0:0]/nop/schema/beans.xdef <p>
+ * generate from /nop/schema/beans.xdef <p>
  * idref会验证值为container中存在的bean名称。它的功能与value类似，但是增加了校验功能。
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

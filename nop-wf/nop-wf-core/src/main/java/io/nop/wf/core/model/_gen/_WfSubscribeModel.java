@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [91:10:0:0]/nop/schema/wf/wf.xdef <p>
+ * generate from /nop/schema/wf/wf.xdef <p>
  * 监听全局EventBus上的event。当执行BizModel的action时会触发event, 此时from=bizObjName,event=actionId
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

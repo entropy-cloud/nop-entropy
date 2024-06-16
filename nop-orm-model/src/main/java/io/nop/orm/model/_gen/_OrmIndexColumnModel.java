@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [196:14:0:0]/nop/schema/orm/entity.xdef <p>
+ * generate from /nop/schema/orm/entity.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -17,7 +17,7 @@ import io.nop.commons.util.ClassHelper;
 public abstract class _OrmIndexColumnModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
-     *  
+     *  是否降序
      * xml name: desc
      * 
      */
@@ -31,7 +31,7 @@ public abstract class _OrmIndexColumnModel extends io.nop.core.resource.componen
     private java.lang.String _name ;
     
     /**
-     * 
+     * 是否降序
      * xml name: desc
      *  
      */

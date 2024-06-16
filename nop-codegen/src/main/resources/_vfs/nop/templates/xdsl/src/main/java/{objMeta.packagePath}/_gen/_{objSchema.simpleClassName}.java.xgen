@@ -30,7 +30,7 @@ function build_defaults(prop){
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from ${objSchema.location} &lt;p>
+ * generate from ${objSchema.resourcePath()} &lt;p>
  * ${objSchema.description?.$replace('*/','* /')?.$replace("\n","\n * ")}
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [29:2:0:0]/nop/schema/orm/entity.xdef <p>
+ * generate from /nop/schema/orm/entity.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -46,7 +46,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
     private KeyedList<io.nop.orm.model.OrmColumnModel> _columns = KeyedList.emptyList();
     
     /**
-     *  
+     *  注释
      * xml name: comment
      * 
      */
@@ -67,7 +67,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
     private KeyedList<io.nop.orm.model.OrmComputePropModel> _computes = KeyedList.emptyList();
     
     /**
-     *  
+     *  创建时间属性
      * xml name: createTimeProp
      * 
      */
@@ -81,28 +81,28 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
     private java.lang.String _createrProp ;
     
     /**
-     *  
+     *  数据库目录
      * xml name: dbCatalog
      * 
      */
     private java.lang.String _dbCatalog ;
     
     /**
-     *  
+     *  数据库主键名
      * xml name: dbPkName
      * 
      */
     private java.lang.String _dbPkName ;
     
     /**
-     *  
+     *  数据库模式
      * xml name: dbSchema
      * 
      */
     private java.lang.String _dbSchema ;
     
     /**
-     *  
+     *  逻辑删除属性
      * xml name: deleteFlagProp
      * 
      */
@@ -116,21 +116,21 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
     private java.lang.String _deleteVersionProp ;
     
     /**
-     *  
+     *  数仓维度分类
      * xml name: dimensionalType
-     * fact/dimension数仓分类
+     * 
      */
     private java.lang.String _dimensionalType ;
     
     /**
-     *  
+     *  显示名
      * xml name: displayName
      * 
      */
     private java.lang.String _displayName ;
     
     /**
-     *  
+     *  是否启用实体模式
      * xml name: entityModeEnabled
      * 
      */
@@ -159,7 +159,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
     private boolean _kvTable  = false;
     
     /**
-     *  
+     *  标签属性
      * xml name: labelProp
      * 
      */
@@ -195,14 +195,14 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
     private java.lang.String _persistDriver  = "jdbc";
     
     /**
-     *  
+     *  查询空间
      * xml name: querySpace
      * 
      */
     private java.lang.String _querySpace  = "default";
     
     /**
-     *  是否视图
+     *  是否只读
      * xml name: readonly
      * 
      */
@@ -223,21 +223,21 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
     private KeyedList<io.nop.orm.model.OrmReferenceModel> _relations = KeyedList.emptyList();
     
     /**
-     *  
+     *  分区属性
      * xml name: shardProp
      * 
      */
     private java.lang.String _shardProp ;
     
     /**
-     *  
+     *  SQL文本
      * xml name: sqlText
      * 当实体实际对应数据库视图时，这里为视图的定义SQL语句
      */
     private java.lang.String _sqlText ;
     
     /**
-     *  
+     *  状态属性
      * xml name: stateProp
      * 
      */
@@ -251,7 +251,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
     private java.lang.String _tableName ;
     
     /**
-     *  
+     *  是否视图
      * xml name: tableView
      * 
      */
@@ -279,21 +279,21 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
     private KeyedList<io.nop.orm.model.OrmUniqueKeyModel> _uniqueKeys = KeyedList.emptyList();
     
     /**
-     *  
+     *  更新时间属性
      * xml name: updateTimeProp
      * 
      */
     private java.lang.String _updateTimeProp ;
     
     /**
-     *  
+     *  更新者属性
      * xml name: updaterProp
      * 
      */
     private java.lang.String _updaterProp ;
     
     /**
-     *  
+     *  是否启用全局缓存
      * xml name: useGlobalCache
      * 
      */
@@ -473,7 +473,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
     }
     
     /**
-     * 
+     * 注释
      * xml name: comment
      *  
      */
@@ -582,7 +582,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
     }
     
     /**
-     * 
+     * 创建时间属性
      * xml name: createTimeProp
      *  
      */
@@ -620,7 +620,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
 
     
     /**
-     * 
+     * 数据库目录
      * xml name: dbCatalog
      *  
      */
@@ -639,7 +639,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
 
     
     /**
-     * 
+     * 数据库主键名
      * xml name: dbPkName
      *  
      */
@@ -658,7 +658,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
 
     
     /**
-     * 
+     * 数据库模式
      * xml name: dbSchema
      *  
      */
@@ -677,7 +677,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
 
     
     /**
-     * 
+     * 逻辑删除属性
      * xml name: deleteFlagProp
      *  
      */
@@ -715,9 +715,9 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
 
     
     /**
-     * 
+     * 数仓维度分类
      * xml name: dimensionalType
-     *  fact/dimension数仓分类
+     *  
      */
     
     public java.lang.String getDimensionalType(){
@@ -734,7 +734,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
 
     
     /**
-     * 
+     * 显示名
      * xml name: displayName
      *  
      */
@@ -753,7 +753,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
 
     
     /**
-     * 
+     * 是否启用实体模式
      * xml name: entityModeEnabled
      *  
      */
@@ -882,7 +882,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
 
     
     /**
-     * 
+     * 标签属性
      * xml name: labelProp
      *  
      */
@@ -978,7 +978,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
 
     
     /**
-     * 
+     * 查询空间
      * xml name: querySpace
      *  
      */
@@ -997,7 +997,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
 
     
     /**
-     * 是否视图
+     * 是否只读
      * xml name: readonly
      *  
      */
@@ -1080,7 +1080,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
     }
     
     /**
-     * 
+     * 分区属性
      * xml name: shardProp
      *  
      */
@@ -1099,7 +1099,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
 
     
     /**
-     * 
+     * SQL文本
      * xml name: sqlText
      *  当实体实际对应数据库视图时，这里为视图的定义SQL语句
      */
@@ -1118,7 +1118,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
 
     
     /**
-     * 
+     * 状态属性
      * xml name: stateProp
      *  
      */
@@ -1156,7 +1156,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
 
     
     /**
-     * 
+     * 是否视图
      * xml name: tableView
      *  
      */
@@ -1258,7 +1258,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
     }
     
     /**
-     * 
+     * 更新时间属性
      * xml name: updateTimeProp
      *  
      */
@@ -1277,7 +1277,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
 
     
     /**
-     * 
+     * 更新者属性
      * xml name: updaterProp
      *  
      */
@@ -1296,7 +1296,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
 
     
     /**
-     * 
+     * 是否启用全局缓存
      * xml name: useGlobalCache
      *  
      */

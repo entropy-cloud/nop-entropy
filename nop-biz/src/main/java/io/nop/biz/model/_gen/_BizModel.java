@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [9:2:0:0]/nop/schema/biz/xbiz.xdef <p>
+ * generate from /nop/schema/biz/xbiz.xdef <p>
  * 每个业务模型(bizModel)必须关联一个对象模型(objMeta)。BizModel作为后端模型，只返回json, 不允许输出文本， 不包含具体界面实现
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

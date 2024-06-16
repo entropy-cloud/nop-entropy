@@ -46,6 +46,7 @@
 /nop/core/xlib/biz!check.xlib
 /nop/core/xlib/biz!filter.xlib
 /nop/core/xlib/biz!value.xlib
+/nop/core/xlib/biz!when.xlib
 /nop/core/xlib/biz-gen.xlib
 /nop/core/xlib/biz.xlib
 /nop/core/xlib/file.xlib
@@ -81,6 +82,8 @@
 /nop/graphql/introspection.graphql
 /nop/ooxml/xlib/docx-gen.xlib
 /nop/orm/beans/orm-defaults.beans.xml
+/nop/orm/defaults/default.orm.xml
+/nop/orm/defaults/dsl-default.orm.xml
 /nop/orm/imp/orm.imp.xml
 /nop/orm/imp/template.orm.xlsx
 /nop/orm/xlib/dao.xlib

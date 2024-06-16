@@ -633,6 +633,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "DELTA_PATH_PREFIX"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "DIRECTIVE_PROP_META"
       },
       {
@@ -944,6 +949,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "TEMP_HEADER_PREFIX"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "TENANT_PATH_PREFIX"
       },
       {
         "allowUnsafeAccess": false,
@@ -1311,6 +1321,16 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "BETWEEN_POSTFIX"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "BETWEEN_PREFIX"
+      },
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
@@ -1709,6 +1729,12 @@
       },
       {
         "name": "escapeJava",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getStdPath",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -3122,6 +3148,12 @@
         "name": "fromJdbcType",
         "parameterTypes": [
           "int"
+        ]
+      },
+      {
+        "name": "fromStdDataTYpe",
+        "parameterTypes": [
+          "io.nop.commons.type.StdDataType"
         ]
       },
       {
@@ -7526,6 +7558,14 @@
         "parameterTypes": []
       },
       {
+        "name": "normalizeExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "normalizeExprInContent",
+        "parameterTypes": []
+      },
+      {
         "name": "normalizeScriptContent",
         "parameterTypes": []
       },
@@ -7701,6 +7741,12 @@
       },
       {
         "name": "removeChildByTag",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "removeChildrenByTag",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -18910,6 +18956,12 @@
         ]
       },
       {
+        "name": "addTag",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "containsTenantIdInPk",
         "parameterTypes": []
       },
@@ -22690,6 +22742,12 @@
         "parameterTypes": []
       },
       {
+        "name": "getExtValue",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getFormattedValue",
         "parameterTypes": []
       },
@@ -22944,6 +23002,13 @@
       {
         "name": "setExpandValue",
         "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setExtValue",
+        "parameterTypes": [
+          "java.lang.String",
           "java.lang.Object"
         ]
       },

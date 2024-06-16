@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [43:14:0:0]/nop/schema/api.xdef <p>
+ * generate from /nop/schema/api.xdef <p>
  * 服务方法。接收ApiRequest<T>类型的请求，返回ApiResponse<R>类型的响应
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

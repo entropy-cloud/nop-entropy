@@ -633,6 +633,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "DELTA_PATH_PREFIX"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "DIRECTIVE_PROP_META"
       },
       {
@@ -949,6 +954,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "TEMP_HEADER_PREFIX"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "TENANT_PATH_PREFIX"
       },
       {
         "allowUnsafeAccess": false,
@@ -20185,6 +20195,12 @@
         ]
       },
       {
+        "name": "fromStdDataTYpe",
+        "parameterTypes": [
+          "io.nop.commons.type.StdDataType"
+        ]
+      },
+      {
         "name": "fromStdName",
         "parameterTypes": [
           "java.lang.String"
@@ -24632,6 +24648,12 @@
       },
       {
         "name": "removeChildByTag",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "removeChildrenByTag",
         "parameterTypes": [
           "java.lang.String"
         ]

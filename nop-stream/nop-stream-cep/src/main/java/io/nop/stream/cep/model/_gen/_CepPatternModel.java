@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [10:2:0:0]/nop/schema/stream/pattern.xdef <p>
+ * generate from /nop/schema/stream/pattern.xdef <p>
  * 1. 所有模式序列必须以.begin()开始；
  * 2. 模式序列不能以.notFollowedBy()结束；
  * 3. “not”类型的模式不能被optional所修饰；

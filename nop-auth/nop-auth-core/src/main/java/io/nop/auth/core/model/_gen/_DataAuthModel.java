@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [6:2:0:0]/nop/schema/data-auth.xdef <p>
+ * generate from /nop/schema/data-auth.xdef <p>
  * 用于描述系统内置的数据权限规则
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

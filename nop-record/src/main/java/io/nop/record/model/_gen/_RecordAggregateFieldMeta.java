@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [65:14:0:0]/nop/schema/record/record-file.xdef <p>
+ * generate from /nop/schema/record/record-file.xdef <p>
  * 定长记录的定义
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

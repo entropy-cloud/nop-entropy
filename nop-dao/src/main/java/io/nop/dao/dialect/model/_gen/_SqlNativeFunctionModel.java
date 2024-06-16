@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [132:10:0:0]/nop/schema/orm/dialect.xdef <p>
+ * generate from /nop/schema/orm/dialect.xdef <p>
  * sql数据库内部支持的原生函数。
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

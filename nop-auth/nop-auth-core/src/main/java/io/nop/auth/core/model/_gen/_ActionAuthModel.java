@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [7:2:0:0]/nop/schema/action-auth.xdef <p>
+ * generate from /nop/schema/action-auth.xdef <p>
  * 用于描述用户对页面以及页面上的操作的权限范围。页面和按钮被统一抽象为Resource概念。用户具有角色，角色可以访问指定资源，
  * 具体的资源通过action与系统内部的程序逻辑关联起来。
  */
