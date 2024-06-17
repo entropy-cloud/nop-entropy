@@ -13,6 +13,7 @@ import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.beans.query.QueryFieldBean;
 import io.nop.api.core.beans.query.QuerySourceBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.collections.MutableIntArray;
 import io.nop.commons.util.StringHelper;
 import io.nop.orm.dao.DaoQueryHelper;
 import io.nop.orm.model.IEntityJoinConditionModel;
@@ -43,9 +44,10 @@ public class MdxQuerySplitter {
     static final Logger LOG = LoggerFactory.getLogger(MdxQuerySplitter.class);
 
     private List<QueryFieldBean> mainFields = new ArrayList<>();
+
     private Map<String, List<QueryFieldBean>> subFieldsMap = new HashMap<>();
 
-    private QueryBean mainQuery;
+    private MdxQueryBean mainQuery;
 
     private Map<String, String> sourceNames = new HashMap<>();
 
@@ -53,11 +55,11 @@ public class MdxQuerySplitter {
         return sourceNames;
     }
 
-    public List<QueryBean> split(QueryBean query, IEntityModel entityModel) {
+    public List<MdxQueryBean> split(QueryBean query, IEntityModel entityModel) {
         if (query.getSourceName() == null)
             query.setSourceName(entityModel.getName());
 
-        List<QueryBean> ret = new ArrayList<>();
+        List<MdxQueryBean> ret = new ArrayList<>();
         splitFields(query);
         mainQuery = getMainQuery(query, entityModel);
         ret.add(mainQuery);
@@ -70,7 +72,7 @@ public class MdxQuerySplitter {
         if (query.getJoins() != null) {
             // 自定义关联子表，通过dimFields对齐来实现join
             for (QuerySourceBean source : query.getJoins()) {
-                QueryBean subQuery = getSubQuery(source);
+                MdxQueryBean subQuery = getSubQuery(source);
                 if (subQuery != null) {
                     ret.add(subQuery);
 
@@ -85,7 +87,7 @@ public class MdxQuerySplitter {
         if (!subFieldsMap.isEmpty()) {
             // 具有owner的字段，但是没有对应的source配置，则查找一对多属性，尝试从关联关系配置中查找到关联对象
             for (Map.Entry<String, List<QueryFieldBean>> entry : subFieldsMap.entrySet()) {
-                QueryBean subQuery = getSubQuery(entry.getKey(), entry.getValue(), entityModel);
+                MdxQueryBean subQuery = getSubQuery(entry.getKey(), entry.getValue(), entityModel);
                 ret.add(subQuery);
             }
         }
@@ -100,8 +102,8 @@ public class MdxQuerySplitter {
         return safeGetSize(dimFields) == safeGetSize(subDimFields);
     }
 
-    private QueryBean getMainQuery(QueryBean query, IEntityModel entityModel) {
-        QueryBean bean = new QueryBean();
+    private MdxQueryBean getMainQuery(QueryBean query, IEntityModel entityModel) {
+        MdxQueryBean bean = new MdxQueryBean();
         bean.setSourceName(query.getSourceName());
         bean.setFilter(query.getFilter());
         bean.setCursor(query.getCursor());
@@ -131,38 +133,47 @@ public class MdxQuerySplitter {
             }
         }
 
+        MutableIntArray dimFieldIndexes = new MutableIntArray();
         if (!isEmpty(dimFields)) {
-            // 确保dimFields排在字段列表的最前面
-            mainFields = addDimFields(mainFields, dimFields);
+            // 将dimFields加入到mainFields中
+            mainFields = addDimFields(mainFields, dimFields, dimFieldIndexes);
         }
 
         bean.setDimFields(dimFields);
+        bean.setDimFieldIndexes(dimFieldIndexes);
         bean.setFields(mainFields);
         return bean;
     }
 
     /**
-     * 重排fields, 确保dimFields排在最前面
+     * 将dimFields加入到fields列表张
      */
-    private List<QueryFieldBean> addDimFields(List<QueryFieldBean> fields, List<String> dimFields) {
+    private List<QueryFieldBean> addDimFields(List<QueryFieldBean> fields, List<String> dimFields,
+                                              MutableIntArray dimFieldIndexes) {
         List<QueryFieldBean> ret = new ArrayList<>(fields.size() + dimFields.size());
+        ret.addAll(fields);
         for (String dimField : dimFields) {
-            QueryFieldBean field = new QueryFieldBean();
-            field.setName(dimField);
-            field.setInternal(true);
-            ret.add(field);
-        }
-        for (QueryFieldBean field : fields) {
-            if (field.getAggFunc() == null) {
-                int index = dimFields.indexOf(field.getName());
-                if (index >= 0) {
-                    ret.get(index).setInternal(field.isInternal());
-                } else {
-                    ret.add(field);
-                }
+            int index = findField(fields, dimField);
+            if (index < 0) {
+                QueryFieldBean field = new QueryFieldBean();
+                field.setName(dimField);
+                field.setInternal(true);
+                dimFieldIndexes.add(ret.size());
+                ret.add(field);
+            } else {
+                dimFieldIndexes.add(index);
             }
         }
         return ret;
+    }
+
+    private int findField(List<QueryFieldBean> fields, String name) {
+        for (int i = 0, n = fields.size(); i < n; i++) {
+            QueryFieldBean field = fields.get(i);
+            if (field.getName().equals(name))
+                return i;
+        }
+        return -1;
     }
 
     private void splitFields(QueryBean query) {
@@ -195,10 +206,10 @@ public class MdxQuerySplitter {
         return ret;
     }
 
-    private QueryBean getSubQuery(QuerySourceBean source) {
+    private MdxQueryBean getSubQuery(QuerySourceBean source) {
         List<QueryFieldBean> fields = subFieldsMap.remove(source.getAlias());
         if (fields != null) {
-            QueryBean query = new QueryBean();
+            MdxQueryBean query = new MdxQueryBean();
             query.setFilter(source.getFilter());
             query.setDimFields(source.getDimFields());
             fields = fields.stream().map(QueryFieldBean::cloneExceptOwner).collect(Collectors.toList());
@@ -206,7 +217,9 @@ public class MdxQuerySplitter {
             if (isEmpty(dimFields)) {
                 dimFields = getNonAggFields(fields);
             }
-            query.setFields(addDimFields(fields, dimFields));
+            MutableIntArray dimFieldIndexes = new MutableIntArray();
+            query.setFields(addDimFields(fields, dimFields, dimFieldIndexes));
+            query.setDimFieldIndexes(dimFieldIndexes);
             query.setSourceName(source.getSourceName());
 
             sourceNames.put(source.getAlias(), source.getSourceName());
@@ -223,25 +236,22 @@ public class MdxQuerySplitter {
         return null;
     }
 
-    private QueryBean getSubQuery(String alias, List<QueryFieldBean> fields, IEntityModel entityModel) {
+    private MdxQueryBean getSubQuery(String alias, List<QueryFieldBean> fields, IEntityModel entityModel) {
         IEntityRelationModel rel = entityModel.getRelation(alias, false);
-        QueryBean query = new QueryBean();
+        MdxQueryBean query = new MdxQueryBean();
         query.setSourceName(rel.getRefEntityName());
 
         sourceNames.put(alias, query.getSourceName());
 
         List<String> dimFields = new ArrayList<>();
-        List<Integer> dimIdx = new ArrayList<>();
 
         // 先增加关联列
         for (IEntityJoinConditionModel join : rel.getJoin()) {
             if (join.getLeftProp() != null) {
                 int idx = mainQuery.getDimFields().indexOf(join.getLeftProp());
+                // 如果字段不在关联字段范围之内，则认为这个字段会被汇总掉
                 if (idx < 0)
-                    throw new NopException(ERR_ORM_QUERY_DIM_FIELDS_MISMATCH)
-                            .param(ARG_SOURCE_NAME, mainQuery.getSourceName())
-                            .param(ARG_SUB_SOURCE_NAME, query.getSourceName());
-                dimIdx.add(idx);
+                    continue;
                 if (join.getRightProp() != null) {
                     dimFields.add(join.getRightProp());
                 } else {
@@ -253,7 +263,7 @@ public class MdxQuerySplitter {
             }
         }
 
-        dimFields = reorder(dimFields, dimIdx);
+        // dimFields = reorder(dimFields, dimIdx);
         query.setDimFields(dimFields);
 
         if (!dimFieldsMatch(mainQuery, query))
@@ -261,35 +271,30 @@ public class MdxQuerySplitter {
                     .param(ARG_SUB_SOURCE_NAME, query.getSourceName());
 
         List<QueryFieldBean> subFields = new ArrayList<>();
-        for (String dimField : dimFields) {
-            QueryFieldBean field = QueryFieldBean.forField(dimField);
-            field.setInternal(true);
-            subFields.add(field);
-        }
-
         for (QueryFieldBean field : fields) {
             subFields.add(field.cloneExceptOwner());
         }
-        query.setFields(subFields);
 
-        // 一对多关联按照主表字段进行汇总
-        if (rel.isToManyRelation()) {
-            for (String dimField : dimFields) {
-                query.addGroupField(dimField);
+        MutableIntArray dimIdx = new MutableIntArray();
+        for (String dimField : dimFields) {
+            int index = findField(fields, dimField);
+            if (index < 0) {
+                QueryFieldBean field = QueryFieldBean.forField(dimField);
+                field.setInternal(true);
+                dimIdx.add(subFields.size());
+                subFields.add(field);
+            } else {
+                dimIdx.add(index);
             }
         }
 
-        return query;
-    }
+        query.setFields(subFields);
+        query.setDimFieldIndexes(dimIdx);
 
-    List<String> reorder(List<String> fields, List<Integer> idxList) {
-        if (idxList.size() <= 1)
-            return fields;
-
-        List<String> ret = new ArrayList<>(fields.size());
-        for (int idx : idxList) {
-            ret.add(fields.get(idx));
+        for (String field : getNonAggFields(query.getFields())) {
+            query.addGroupField(field);
         }
-        return ret;
+
+        return query;
     }
 }

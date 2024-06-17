@@ -14,6 +14,7 @@ import io.nop.api.core.beans.query.QueryFieldBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.collections.IntArray;
 import io.nop.commons.type.StdDataType;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dataset.IDataRow;
@@ -59,7 +60,7 @@ public class MdxQueryExecutor {
         IEntityModel entityModel = ormTemplate.getOrmModel().requireEntityModel(query.getSourceName());
 
         MdxQuerySplitter splitter = new MdxQuerySplitter();
-        List<QueryBean> queries = splitter.split(query, entityModel);
+        List<MdxQueryBean> queries = splitter.split(query, entityModel);
 
         QueryBean mainQuery = queries.get(0);
         SQL sql = DaoQueryHelper.queryToSelectFieldsSql(mainQuery, entityModel.getDeleteFlagProp()).timeout(timeout)
@@ -76,7 +77,7 @@ public class MdxQueryExecutor {
                 sourceName = query.getSourceName();
 
             BaseDataFieldMeta fieldMeta = new BaseDataFieldMeta(field.getLabel(), field.getName(), sourceName,
-                    StdDataType.ANY,false);
+                    StdDataType.ANY, false);
             fieldMetas.add(fieldMeta);
         }
         return new BaseDataSetMeta(fieldMetas);
@@ -90,7 +91,7 @@ public class MdxQueryExecutor {
         IEntityModel entityModel = ormTemplate.getOrmModel().requireEntityModel(query.getSourceName());
 
         MdxQuerySplitter splitter = new MdxQuerySplitter();
-        List<QueryBean> queries = splitter.split(query, entityModel);
+        List<MdxQueryBean> queries = splitter.split(query, entityModel);
 
         QueryBean mainQuery = queries.get(0);
         Map<Object, Map<String, Object>> dimIndex = new HashMap<>();
@@ -133,16 +134,16 @@ public class MdxQueryExecutor {
         return records;
     }
 
-    private IRowMapper<Map<String, Object>> mainMapper(List<QueryBean> queries,
+    private IRowMapper<Map<String, Object>> mainMapper(List<MdxQueryBean> queries,
                                                        Map<Object, Map<String, Object>> dimIndex) {
-        QueryBean mainQuery = queries.get(0);
+        MdxQueryBean mainQuery = queries.get(0);
         return (row, rowNumber, colMapper) -> {
             Object[] values = row.getFieldValues();
             Map<String, Object> map = new HashMap<>();
 
             if (queries.size() > 1) {
                 // 按照dimFields建立索引。dimFields总对应于结果集的最前面几列
-                Object dimValue = buildDimValue(values, mainQuery.getDimFields().size());
+                Object dimValue = buildDimValue(values, mainQuery.getDimFieldIndexes());
                 dimIndex.put(dimValue, map);
             }
 
@@ -157,7 +158,7 @@ public class MdxQueryExecutor {
         };
     }
 
-    private void addSubQueryResult(Map<Object, Map<String, Object>> dimIndex, QueryBean query, boolean pageQuery,
+    private void addSubQueryResult(Map<Object, Map<String, Object>> dimIndex, MdxQueryBean query, boolean pageQuery,
                                    int timeout) {
         if (pageQuery) {
             if (query.getDimFields().size() == 1) {
@@ -183,7 +184,7 @@ public class MdxQueryExecutor {
 
         IRowMapper<Void> rowMapper = (row, rowNumber, colMapper) -> {
             Object[] values = row.getFieldValues();
-            Object dimValue = buildDimValue(values, query.getDimFields().size());
+            Object dimValue = buildDimValue(values, query.getDimFieldIndexes());
             Map<String, Object> main = dimIndex.get(dimValue);
             if (main != null) {
                 for (int i = 0, n = query.getFields().size(); i < n; i++) {
@@ -203,13 +204,14 @@ public class MdxQueryExecutor {
     }
 
     // 为了避免不同表中关联字段的数据类型不同导致不匹配，强制把关联字段值转换为字符串
-    Object buildDimValue(Object[] values, int dimSize) {
+    Object buildDimValue(Object[] values, IntArray dimIndexes) {
+        int dimSize = dimIndexes.size();
         if (dimSize == 1)
-            return ConvertHelper.toString(values[0], "");
+            return ConvertHelper.toString(values[dimIndexes.get(0)], "");
 
         List<Object> ret = new ArrayList<>(dimSize);
         for (int i = 0; i < dimSize; i++) {
-            ret.add(ConvertHelper.toString(values[i], ""));
+            ret.add(ConvertHelper.toString(values[dimIndexes.get(i)], ""));
         }
         return ret;
     }

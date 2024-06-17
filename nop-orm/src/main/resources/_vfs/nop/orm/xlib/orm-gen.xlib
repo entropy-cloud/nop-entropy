@@ -17,6 +17,28 @@
             </source>
         </DefaultPostExtends>
 
+        <ForceUseIdSupport outputMode="none">
+            <attr name="_dsl_root" implicit="true" />
+            <source>
+                <c:script><![CDATA[
+                    _dsl_root.childByTag('entities').forEachChild(entityNode=>{
+                      const idCol = entityNode.childByTag('columns').childByAttr('name','id_');
+                      if(idCol != null)
+                         idCol.setAttr('name','id');
+                      entityNode.childByTag('relations')?.forEachChild(relNode=>{
+                        relNode.childByTag('join')?.forEachChild(joinNode=>{
+                           if(joinNode.getAttr('leftProp') == 'id_'){
+                              joinNode.setAttr('leftProp','id');
+                           }else if(joinNode.getAttr('rightProp') == 'id_'){
+                              joinNode.setAttr('rightProp','id');
+                           }
+                        });
+                      });
+                    });
+                ]]></c:script>
+            </source>
+        </ForceUseIdSupport>
+
         <JsonComponentSupport outputMode="node">
             <!--
              _dsl_root为元编程阶段可访问的配置文件根节点

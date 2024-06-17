@@ -95,6 +95,13 @@ public class QueryFieldBean implements ICloneable {
     }
 
     @JsonIgnore
+    public String getAliasOrName() {
+        if (alias != null)
+            return alias;
+        return name;
+    }
+
+    @JsonIgnore
     public String getLabel() {
         if (alias != null)
             return alias;

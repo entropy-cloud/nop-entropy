@@ -95,4 +95,20 @@ public class TestMdxQuery extends JunitBaseTestCase {
         assertEquals(1L, list.get(0).get("deptCount"));
         assertNull(list.get(1).get("deptCount"));
     }
+
+    @Test
+    public void testAggMainField(){
+        prepareData();
+        assertTrue(ormTemplate.findAll(SQL.begin().sql("select o from NopAuthGroup o").end()).size() > 0);
+        QueryBean query = new QueryBean();
+        query.setSourceName(NopAuthGroup.class.getName());
+        query.fields(mainField("groupId"), mainField("name").count(), subField("deptMappings", "deptId").count().alias("deptCount"));
+        query.addOrderField("name", true);
+
+        List<Map<String, Object>> list = ormTemplate.findListByQuery(query);
+        System.out.println(list);
+        assertEquals(2, list.size());
+        assertEquals(1L, list.get(0).get("deptCount"));
+        assertNull(list.get(1).get("deptCount"));
+    }
 }
