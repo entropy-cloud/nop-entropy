@@ -36,7 +36,7 @@ public interface ExcelConstants {
     /**
      * By default, Microsoft Office Excel 2007 uses the Calibry font in font size 11
      */
-    short DEFAULT_FONT_SIZE = 11;
+    float DEFAULT_FONT_SIZE = 11f;
 
     String DEFAULT_FONT_COLOR = "0x0";
 

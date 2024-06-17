@@ -55,7 +55,7 @@ public class FontManager {
 
     public Font getFont(ExcelFont font) {
         boolean embedded = !systemFonts.contains(font.getFontName());
-        float fontSize = font.getFontSize() == null ? 14 : font.getFontSize();
+        float fontSize = font.getFontSize() == null ? 14f : font.getFontSize();
         int fontStyle = Font.NORMAL;
         if (font.isBold()) {
             fontStyle |= Font.BOLD;

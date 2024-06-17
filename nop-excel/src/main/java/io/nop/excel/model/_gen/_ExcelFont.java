@@ -58,7 +58,7 @@ public abstract class _ExcelFont extends io.nop.core.resource.component.Abstract
      * 24 = 12pt
      * 1pt = 20 twips, 1twips=1/1440英寸
      */
-    private java.lang.Short _fontSize ;
+    private java.lang.Float _fontSize ;
     
     /**
      *  
@@ -191,12 +191,12 @@ public abstract class _ExcelFont extends io.nop.core.resource.component.Abstract
      * 1pt = 20 twips, 1twips=1/1440英寸
      */
     
-    public java.lang.Short getFontSize(){
+    public java.lang.Float getFontSize(){
       return _fontSize;
     }
 
     
-    public void setFontSize(java.lang.Short value){
+    public void setFontSize(java.lang.Float value){
         checkAllowChange();
         
         this._fontSize = value;

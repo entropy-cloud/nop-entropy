@@ -103,7 +103,7 @@ public class StylesPartParser {
         }
         Object val = node.childAttr("sz", "val");
         if (val != null) {
-            ret.setFontSize(ConvertHelper.toFloat(val).shortValue());
+            ret.setFontSize(ConvertHelper.toFloat(val));
         }
 
         Object charset = node.childAttr("charset", "val");

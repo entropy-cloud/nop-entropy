@@ -8,23 +8,25 @@
 package io.nop.excel.model;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.excel.ExcelConstants;
 import io.nop.excel.model.constants.ExcelFontFamily;
+import io.nop.excel.model.constants.ExcelModelConstants;
 
 @DataBean
 public class ExcelFontKey {
     private final String fontName;
-    private final int fontSize;
+    private final float fontSize;
     private final String fontFamily;
 
-    public ExcelFontKey(String fontName, Short fontSize, String fontFamily) {
+    public ExcelFontKey(String fontName, Float fontSize, String fontFamily) {
         this.fontName = fontName;
-        this.fontSize = fontSize == null ? 11 : fontSize;
+        this.fontSize = fontSize == null ? ExcelConstants.DEFAULT_FONT_SIZE : fontSize;
         this.fontFamily = fontFamily == null ? ExcelFontFamily.SWISS.name() : fontFamily;
     }
 
     public int hashCode() {
         int h = fontName.hashCode();
-        h = h * 31 + fontSize;
+        h = h * 31 + (int)(fontSize);
         h = h * 31 + fontFamily.length();
         return h;
     }
@@ -46,7 +48,7 @@ public class ExcelFontKey {
         return fontName;
     }
 
-    public int getFontSize() {
+    public float getFontSize() {
         return fontSize;
     }
 

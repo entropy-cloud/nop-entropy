@@ -30,6 +30,16 @@ public class ExcelFont extends _ExcelFont {
         return font;
     }
 
+    public String getFontSizeString() {
+        Float size = getFontSize();
+        if (size == null)
+            return null;
+        String str = size.toString();
+        if (str.endsWith(".0"))
+            return str.substring(0, str.length() - 2);
+        return str;
+    }
+
     public void toCssStyle(StringBuilder sb) {
         if (this.getFontName() != null) {
             // fontName对应css中的fontFamily
@@ -43,7 +53,7 @@ public class ExcelFont extends _ExcelFont {
             sb.append("font-style:italic;\n");
         }
         if (this.getFontSize() != null && this.getFontSize() > 0) {
-            sb.append("font-size:").append(this.getFontSize()).append("pt;\n");
+            sb.append("font-size:").append(this.getFontSizeString()).append("pt;\n");
         }
 
         if (this.getFontColor() != null) {

@@ -306,7 +306,7 @@ public class StylesPart implements IOfficePackagePart {
         }
 
         if (font.getFontSize() != null) {
-            node.addChild("sz").setAttr("val", font.getFontSize());
+            node.addChild("sz").setAttr("val", font.getFontSizeString());
         }
 
         if (font.getCharSet() != null) {

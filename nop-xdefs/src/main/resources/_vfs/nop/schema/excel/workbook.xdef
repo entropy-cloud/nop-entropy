@@ -28,7 +28,7 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
                     24 = 12pt
                     1pt = 20 twips, 1twips=1/1440英寸
             -->
-            <font xdef:name="ExcelFont" fontSize="short" charSet="int"
+            <font xdef:name="ExcelFont" fontSize="float" charSet="int"
                   fontName="string" fontFamily="string" fontColor="string"
                   italic="!boolean=false" bold="!boolean=false" strikeout="!boolean=false"
                   underlineStyle="enum:io.nop.excel.model.constants.ExcelFontUnderline"
