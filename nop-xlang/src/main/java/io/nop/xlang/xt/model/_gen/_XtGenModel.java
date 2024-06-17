@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [67:10:0:0]/nop/schema/xt.xdef <p>
+ * generate from /nop/schema/xt.xdef <p>
  * 执行代码来输出转换结果
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

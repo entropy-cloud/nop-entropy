@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [9:2:0:0]/nop/schema/schema/obj-schema.xdef <p>
+ * generate from /nop/schema/schema/obj-schema.xdef <p>
  * schema节点的基类
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

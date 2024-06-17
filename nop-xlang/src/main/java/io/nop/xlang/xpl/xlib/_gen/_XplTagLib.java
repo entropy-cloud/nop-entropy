@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [11:2:0:0]/nop/schema/xlib.xdef <p>
+ * generate from /nop/schema/xlib.xdef <p>
  * 一个标签库可以看作一个服务实例。一个java服务接口可以自动转换为标签库，而标签库也可以自动生成java接口。
  * 可以通过x:post-extends段实现对标签（函数）的aop加工。
  */

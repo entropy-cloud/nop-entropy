@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [83:14:0:0]/nop/schema/xlib.xdef <p>
+ * generate from /nop/schema/xlib.xdef <p>
  * 在普通标签上标记xpl:slot，表示将slot和该节点合并，然后再调用render
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

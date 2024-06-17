@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [21:2:0:0]/nop/schema/xdef.xdef <p>
+ * generate from /nop/schema/xdef.xdef <p>
  * xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即使用xdef来定义xdef本身。
  * 本文件定义了一般的xdef元模型定义文件中允许使用的xdef属性和标签的具体位置和格式。
  */

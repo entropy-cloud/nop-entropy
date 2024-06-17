@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [25:10:0:0]/nop/schema/xmeta.xdef <p>
+ * generate from /nop/schema/xmeta.xdef <p>
  * 除主键之外的其他唯一键
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
