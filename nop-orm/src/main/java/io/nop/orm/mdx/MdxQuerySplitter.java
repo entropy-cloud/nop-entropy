@@ -263,7 +263,12 @@ public class MdxQuerySplitter {
             }
         }
 
-        // dimFields = reorder(dimFields, dimIdx);
+        for (String dimField : mainQuery.getDimFields()) {
+            if (!dimFields.contains(dimField)) {
+                dimFields.add(rel.getRefPropName() + "." + dimField);
+            }
+        }
+
         query.setDimFields(dimFields);
 
         if (!dimFieldsMatch(mainQuery, query))
