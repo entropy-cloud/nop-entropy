@@ -59,6 +59,9 @@
                     <schema stdDomain="boolean"/>
                 </field>
 
+                <field name="ext:allowIdAsColName" displayName="allowIdAsColName">
+                    <schema stdDomain="boolean"/>
+                </field>
             </fields>
         </sheet>
 
@@ -160,6 +163,9 @@
                     record.columns.forEach(col=>{
                         if(col.tagSet?.contains('not-gen') || col.tagSet?.contains('del'))
                            col.notGenCode = true;
+
+                        if(col.name == 'id_' and col.primary and rootRecord['ext:allowIdAsColName'])
+                          col.name = 'id'
 
                         const domain = col.domain;
                         if(!domain) return;

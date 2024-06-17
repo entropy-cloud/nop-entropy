@@ -22,6 +22,7 @@
 * `platformVersion`：Nop平台的版本号
 * `dialect`：生成对应数据库的建表语句，可以是逗号分隔的多个名称，例如 `mysql,oracle,postgresql`
 * `deltaDir`：仅在差量化数据模型中使用，用于指定生成到哪个delta定制目录下
+* `allowIdAsColName`: 允许列名为id。缺省情况下id保留为主键使用，凡是以id为列名的，对应在java中的属性名都会被自动重命名为id_。如果设置了这个选项，则保留为id。但是需要注意，在Nop平台中id是固定暴露给主键使用的。
 
 ## 数据域
 
