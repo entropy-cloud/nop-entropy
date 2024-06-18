@@ -7,6 +7,7 @@
  */
 package io.nop.commons.util;
 
+import io.nop.api.core.convert.ConvertHelper;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
@@ -69,5 +70,15 @@ public class TestDateHelper {
         String str = new Timestamp(ts).toString();
         System.out.println(str);
         assertEquals("2002-04-01 00:00:00.0", str);
+    }
+
+    @Test
+    public void testToString() {
+        LocalDateTime dateTime = LocalDateTime.now();
+        System.out.println(dateTime);
+
+        String str = ConvertHelper.toString(dateTime);
+        System.out.println(str);
+        assertEquals(str, DateHelper.formatDateTime(dateTime, "yyyy-MM-dd HH:mm:ss"));
     }
 }

@@ -12,6 +12,8 @@ import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.json.JSON;
+import io.nop.commons.util.DateHelper;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.IBeanModel;
 import io.nop.core.type.PredefinedGenericTypes;
@@ -19,6 +21,7 @@ import io.nop.core.type.utils.GenericTypeHelper;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -104,7 +107,7 @@ public class TestJsonTool {
     }
 
     @Test
-    public void testTimestamp(){
+    public void testTimestamp() {
         String str = JsonTool.stringify(new Timestamp(System.currentTimeMillis()));
         System.out.println(str);
 
@@ -113,9 +116,17 @@ public class TestJsonTool {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testEscape(){
+    public void testEscape() {
         String json = "{\"url\":\"http:\\/\\/www.baidu.com\",\"a\":\"\\n\\t\\r1\\f\"}";
-        Map<String,Object> map = (Map<String, Object>) JsonTool.parse(json);
+        Map<String, Object> map = (Map<String, Object>) JsonTool.parse(json);
         assertEquals("http://www.baidu.com", map.get("url"));
+    }
+
+    @Test
+    public void testLocalDateTime() {
+        LocalDateTime dateTime = LocalDateTime.now();
+        String str = JsonTool.serialize(dateTime, true);
+        System.out.println(str);
+        assertEquals(StringHelper.quote(DateHelper.formatDateTime(dateTime, "yyyy-MM-dd HH:mm:ss")),str);
     }
 }

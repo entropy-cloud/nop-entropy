@@ -237,6 +237,9 @@ public class ConvertHelper {
             return defaultValue;
         if (o instanceof MonthDay)
             return monthDayToString((MonthDay) o);
+        if (o instanceof LocalDateTime) {
+            return localDateTimeToString((LocalDateTime) o);
+        }
         return o.toString();
     }
 
@@ -908,6 +911,26 @@ public class ConvertHelper {
         } catch (Exception e) {
             return handleError(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL, e, LocalDateTime.class, str, errorFactory);
         }
+    }
+
+    public static String localDateTimeToString(LocalDateTime value) {
+        if (value == null)
+            return null;
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(value.getYear()).append('-');
+        sb.append(leftPad2(value.getMonthValue())).append('-');
+        sb.append(leftPad2(value.getDayOfMonth())).append(' ');
+        sb.append(leftPad2(value.getHour())).append(':');
+        sb.append(leftPad2(value.getMinute())).append(':');
+        sb.append(leftPad2(value.getSecond()));
+        return sb.toString();
+    }
+
+    private static String leftPad2(int c) {
+        if (c <= 9)
+            return "0" + c;
+        return Integer.toString(c);
     }
 
     public static Long localDateTimeToMillis(LocalDateTime value) {

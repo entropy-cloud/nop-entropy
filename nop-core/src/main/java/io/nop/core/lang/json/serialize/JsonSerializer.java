@@ -8,6 +8,7 @@
 package io.nop.core.lang.json.serialize;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.IJsonString;
 import io.nop.api.core.util.ISourceLocationGetter;
@@ -147,8 +148,8 @@ public class JsonSerializer implements IJsonSerializer {
         }
 
         IBeanModel beanModel = beanModelManager.getBeanModelForClass(clazz);
-        if(beanModel.getStdDataType().isSimpleType()){
-            out.value(loc, o.toString());
+        if (beanModel.getStdDataType().isSimpleType()) {
+            out.value(loc, ConvertHelper.toString(o));
             return;
         }
 
