@@ -109,3 +109,22 @@ Schema是在控件库基础上进行组织，采用JSON格式表达。
 Schema实际渲染的时候可能需要插入额外的中间节点，用于适配低代码框架和Nop上下文
 
 `xui:import`导入的函数不需要初始化，但是store则需要构建，需要额外处理。
+
+useStore(path)和useContext(StoreType)本质上是一回事
+
+```
+Editor(data)
+
+Editor = GenericEditor<Components,Store>
+
+Components = Loader(componentLib)
+Store = Loader(storeLib)
+
+storeLib = Generator<EditorModel>
+componentLib = Generator<EditorModel>
+
+eventHandler = store.method
+
+data = useStore(state=> selector(state))
+
+```

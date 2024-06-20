@@ -138,6 +138,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "DELTA_PATH_PREFIX"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "DIRECTIVE_PROP_META"
       },
       {
@@ -449,6 +454,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "TEMP_HEADER_PREFIX"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "TENANT_PATH_PREFIX"
       },
       {
         "allowUnsafeAccess": false,
@@ -1497,6 +1507,16 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "BETWEEN_POSTFIX"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "BETWEEN_PREFIX"
+      },
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
@@ -3284,6 +3304,10 @@
       },
       {
         "name": "getAlias",
+        "parameterTypes": []
+      },
+      {
+        "name": "getAliasOrName",
         "parameterTypes": []
       },
       {
@@ -17357,6 +17381,12 @@
         ]
       },
       {
+        "name": "addInterceptor",
+        "parameterTypes": [
+          "io.nop.biz.model.BizInterceptorModel"
+        ]
+      },
+      {
         "name": "addLoader",
         "parameterTypes": [
           "io.nop.biz.model.BizLoaderModel"
@@ -17400,6 +17430,16 @@
       },
       {
         "name": "getInheritActions",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInterceptor",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getInterceptors",
         "parameterTypes": []
       },
       {
@@ -17449,6 +17489,16 @@
         "parameterTypes": []
       },
       {
+        "name": "hasInterceptor",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasInterceptors",
+        "parameterTypes": []
+      },
+      {
         "name": "hasLoader",
         "parameterTypes": [
           "java.lang.String"
@@ -17470,6 +17520,10 @@
       },
       {
         "name": "keySet_actions",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_interceptors",
         "parameterTypes": []
       },
       {
@@ -17506,6 +17560,12 @@
         "name": "setInheritActions",
         "parameterTypes": [
           "java.util.Set"
+        ]
+      },
+      {
+        "name": "setInterceptors",
+        "parameterTypes": [
+          "java.util.List"
         ]
       },
       {
@@ -18316,6 +18376,96 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "start",
+        "parameterTypes": []
+      },
+      {
+        "name": "stop",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.commons.service.ILifeCycle",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "beginStop",
+        "parameterTypes": []
+      },
+      {
+        "name": "checkIsActive",
+        "parameterTypes": []
+      },
+      {
+        "name": "doStart",
+        "parameterTypes": []
+      },
+      {
+        "name": "doStop",
+        "parameterTypes": []
+      },
+      {
+        "name": "getId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStatus",
+        "parameterTypes": []
+      },
+      {
+        "name": "isActive",
+        "parameterTypes": []
+      },
+      {
+        "name": "isAllowRestart",
+        "parameterTypes": []
+      },
+      {
+        "name": "isStopping",
+        "parameterTypes": []
+      },
+      {
+        "name": "setAllowRestart",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "start",
+        "parameterTypes": []
+      },
+      {
+        "name": "stop",
+        "parameterTypes": []
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.commons.service.LifeCycleSupport",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowUnsafeAccess": false,
@@ -18807,6 +18957,12 @@
         "name": "fromJdbcType",
         "parameterTypes": [
           "int"
+        ]
+      },
+      {
+        "name": "fromStdDataTYpe",
+        "parameterTypes": [
+          "io.nop.commons.type.StdDataType"
         ]
       },
       {
@@ -19485,6 +19641,57 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "NULL_ACTION"
+      }
+    ],
+    "methods": [
+      {
+        "name": "invoke",
+        "parameterTypes": [
+          "io.nop.core.context.IEvalContext"
+        ]
+      }
+    ],
+    "name": "io.nop.core.lang.eval.IEvalAction",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "ALWAYS_FALSE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "ALWAYS_TRUE"
+      }
+    ],
+    "methods": [
+      {
+        "name": "passConditions",
+        "parameterTypes": [
+          "io.nop.core.context.IEvalContext"
+        ]
+      }
+    ],
+    "name": "io.nop.core.lang.eval.IEvalPredicate",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [
       {
@@ -19631,6 +19838,23 @@
       }
     ],
     "name": "io.nop.core.lang.json.JObject",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "generateSql",
+        "parameterTypes": [
+          "io.nop.core.context.IEvalContext"
+        ]
+      }
+    ],
+    "name": "io.nop.core.lang.sql.ISqlGenerator",
     "unsafeAllocated": false
   },
   {
@@ -19967,6 +20191,23 @@
       }
     ],
     "name": "io.nop.core.lang.utils.Underscore",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "generateNode",
+        "parameterTypes": [
+          "io.nop.core.context.IEvalContext"
+        ]
+      }
+    ],
+    "name": "io.nop.core.lang.xml.IXNodeGenerator",
     "unsafeAllocated": false
   },
   {
@@ -21054,6 +21295,12 @@
       },
       {
         "name": "removeChildByTag",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "removeChildrenByTag",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -25419,6 +25666,42 @@
       }
     ],
     "name": "io.nop.core.resource.store.DefaultVirtualFileSystem",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "generateToStream",
+        "parameterTypes": [
+          "java.io.OutputStream",
+          "io.nop.core.context.IEvalContext"
+        ]
+      }
+    ],
+    "name": "io.nop.core.resource.tpl.ITemplateOutput",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "generateToWriter",
+        "parameterTypes": [
+          "java.io.Writer",
+          "io.nop.core.context.IEvalContext"
+        ]
+      }
+    ],
+    "name": "io.nop.core.resource.tpl.ITextTemplateOutput",
     "unsafeAllocated": false
   },
   {
@@ -41331,6 +41614,58 @@
       }
     ],
     "name": "io.nop.ioc.support.UtilFactoryBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "doStart",
+        "parameterTypes": []
+      },
+      {
+        "name": "doStop",
+        "parameterTypes": []
+      },
+      {
+        "name": "invokeAsync",
+        "parameterTypes": [
+          "java.lang.String",
+          "[Ljava.lang.Object;"
+        ]
+      },
+      {
+        "name": "refreshConfig",
+        "parameterTypes": []
+      },
+      {
+        "name": "reinitWorkers",
+        "parameterTypes": []
+      },
+      {
+        "name": "setInitScriptPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setJsLibLoader",
+        "parameterTypes": [
+          "io.nop.core.resource.IResourceTextLoader"
+        ]
+      },
+      {
+        "name": "setWorkerCount",
+        "parameterTypes": [
+          "int"
+        ]
+      }
+    ],
+    "name": "io.nop.js.engine.JavaScriptService",
     "unsafeAllocated": false
   },
   {
@@ -58320,6 +58655,23 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [
+      {
+        "name": "vueTemplateToReact",
+        "parameterTypes": [
+          "io.nop.core.lang.xml.XNode"
+        ]
+      }
+    ],
+    "name": "io.nop.web.page.vue.VueTemplateHelper",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [],
     "name": "io.nop.wf.api.beans.WfActionRequestBean",
     "unsafeAllocated": false
@@ -65980,6 +66332,93 @@
     "fields": [],
     "methods": [
       {
+        "name": "doInvoke",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.EvalRuntime"
+        ]
+      },
+      {
+        "name": "generateNode",
+        "parameterTypes": [
+          "io.nop.core.context.IEvalContext"
+        ]
+      },
+      {
+        "name": "generateSql",
+        "parameterTypes": [
+          "io.nop.core.context.IEvalContext"
+        ]
+      },
+      {
+        "name": "generateToWriter",
+        "parameterTypes": [
+          "java.io.Writer",
+          "io.nop.core.context.IEvalContext"
+        ]
+      },
+      {
+        "name": "generateXjson",
+        "parameterTypes": [
+          "io.nop.core.context.IEvalContext"
+        ]
+      },
+      {
+        "name": "passConditions",
+        "parameterTypes": [
+          "io.nop.core.context.IEvalContext"
+        ]
+      }
+    ],
+    "name": "io.nop.xlang.api.AbstractEvalAction",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "doInvoke",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.EvalRuntime"
+        ]
+      },
+      {
+        "name": "getExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLocation",
+        "parameterTypes": []
+      },
+      {
+        "name": "invoke",
+        "parameterTypes": [
+          "io.nop.core.context.IEvalContext"
+        ]
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
+      },
+      {
+        "name": "toXplModel",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.xlang.api.ExprEvalAction",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "getReturnTypeInfo",
         "parameterTypes": []
       },
@@ -70914,6 +71353,730 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.xui.graph_designer.GraphDesignerModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xui.graph_designer.GraphDesignerNodeModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addComponent",
+        "parameterTypes": [
+          "io.nop.xui.model.UiSimpleComponentModel"
+        ]
+      },
+      {
+        "name": "addEdge",
+        "parameterTypes": [
+          "io.nop.xui.graph_designer.GraphDesignerEdgeModel"
+        ]
+      },
+      {
+        "name": "addForm",
+        "parameterTypes": [
+          "io.nop.xui.model.UiFormModel"
+        ]
+      },
+      {
+        "name": "addImport",
+        "parameterTypes": [
+          "io.nop.xui.model.UiImportModel"
+        ]
+      },
+      {
+        "name": "addNode",
+        "parameterTypes": [
+          "io.nop.xui.graph_designer.GraphDesignerNodeModel"
+        ]
+      },
+      {
+        "name": "addStyleComponent",
+        "parameterTypes": [
+          "io.nop.xui.model.UiStyleComponentModel"
+        ]
+      },
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.xui.graph_designer.GraphDesignerModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getCodeGenLib",
+        "parameterTypes": []
+      },
+      {
+        "name": "getComponent",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getComponents",
+        "parameterTypes": []
+      },
+      {
+        "name": "getControlBar",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEdge",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getEdges",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEditorType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getForm",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getForms",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFramework",
+        "parameterTypes": []
+      },
+      {
+        "name": "getImport",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getImports",
+        "parameterTypes": []
+      },
+      {
+        "name": "getNode",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getNodes",
+        "parameterTypes": []
+      },
+      {
+        "name": "getScript",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStyle",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStyleComponent",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getStyleComponents",
+        "parameterTypes": []
+      },
+      {
+        "name": "getZoom",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasComponent",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasComponents",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasEdge",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasEdges",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasForm",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasForms",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasImport",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasImports",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasNode",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasNodes",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasStyleComponent",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasStyleComponents",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_components",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_edges",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_forms",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_imports",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_nodes",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_styleComponents",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setCodeGenLib",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setComponents",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setControlBar",
+        "parameterTypes": [
+          "io.nop.core.lang.xml.XNode"
+        ]
+      },
+      {
+        "name": "setControlBar",
+        "parameterTypes": [
+          "io.nop.core.resource.tpl.ITextTemplateOutput"
+        ]
+      },
+      {
+        "name": "setEdges",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setEditorType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setForms",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setFramework",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setImports",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setNodes",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setScript",
+        "parameterTypes": [
+          "io.nop.core.resource.tpl.ITextTemplateOutput"
+        ]
+      },
+      {
+        "name": "setScript",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setStyle",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setStyleComponents",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setZoom",
+        "parameterTypes": [
+          "io.nop.xui.graph_designer.GraphDesignerZoomModel"
+        ]
+      }
+    ],
+    "name": "io.nop.xui.graph_designer._gen._GraphDesignerModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addAnchor",
+        "parameterTypes": [
+          "io.nop.xui.graph_designer.GraphDesignerAnchorModel"
+        ]
+      },
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.xui.graph_designer.GraphDesignerNodeModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getAbstract",
+        "parameterTypes": []
+      },
+      {
+        "name": "getAddable",
+        "parameterTypes": []
+      },
+      {
+        "name": "getAllowChildren",
+        "parameterTypes": []
+      },
+      {
+        "name": "getAllowParents",
+        "parameterTypes": []
+      },
+      {
+        "name": "getAnchor",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getAnchors",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBase",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDeletable",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDraggable",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFixedAspectRatio",
+        "parameterTypes": []
+      },
+      {
+        "name": "getHeight",
+        "parameterTypes": []
+      },
+      {
+        "name": "getIcon",
+        "parameterTypes": []
+      },
+      {
+        "name": "getKind",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLabel",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLayout",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMaxHeight",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMaxOccurs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMaxWidth",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMinHeight",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMinOccurs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMinWidth",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPropsForm",
+        "parameterTypes": []
+      },
+      {
+        "name": "getResizable",
+        "parameterTypes": []
+      },
+      {
+        "name": "getShape",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStyle",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTagSet",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTemplate",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTextDraggable",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTextPosition",
+        "parameterTypes": []
+      },
+      {
+        "name": "getWidth",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasAnchor",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasAnchors",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_anchors",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setAbstract",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setAddable",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setAllowChildren",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      },
+      {
+        "name": "setAllowParents",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      },
+      {
+        "name": "setAnchors",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setBase",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDeletable",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setDraggable",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setFixedAspectRatio",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setHeight",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setIcon",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setKind",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setLabel",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setLayout",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setMaxHeight",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setMaxOccurs",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setMaxWidth",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setMinHeight",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setMinOccurs",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setMinWidth",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setPropsForm",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setResizable",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setShape",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setStyle",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTagSet",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      },
+      {
+        "name": "setTemplate",
+        "parameterTypes": [
+          "io.nop.core.lang.xml.XNode"
+        ]
+      },
+      {
+        "name": "setTemplate",
+        "parameterTypes": [
+          "io.nop.core.resource.tpl.ITextTemplateOutput"
+        ]
+      },
+      {
+        "name": "setTextDraggable",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setTextPosition",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setWidth",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      }
+    ],
+    "name": "io.nop.xui.graph_designer._gen._GraphDesignerNodeModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.xui.model.UiActionModel",
     "unsafeAllocated": false
   },
@@ -71045,6 +72208,16 @@
       }
     ],
     "name": "io.nop.xui.model.UiGridModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xui.model.UiImportModel",
     "unsafeAllocated": false
   },
   {
@@ -73526,6 +74699,73 @@
       }
     ],
     "name": "io.nop.xui.model._gen._UiGridModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.xui.model.UiImportModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getAs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFrom",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setAs",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFrom",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.xui.model._gen._UiImportModel",
     "unsafeAllocated": false
   },
   {

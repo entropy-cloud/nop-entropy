@@ -29,7 +29,7 @@ public class SystemJsProviderBizModel {
     @Inject
     DynamicWebFileProvider jsProvider;
 
-    @InjectValue("@cfg:nop.web.page-provider.edit-enabled|true")
+    @InjectValue("@cfg:nop.web.js-provider.edit-enabled|true")
     boolean editEnabled;
 
     @BizQuery

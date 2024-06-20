@@ -126,7 +126,7 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
      * xml name: template
      * 
      */
-    private io.nop.core.resource.tpl.ITextTemplateOutput _template ;
+    private io.nop.core.lang.xml.XNode _template ;
     
     /**
      *  
@@ -433,12 +433,12 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
      *  
      */
     
-    public io.nop.core.resource.tpl.ITextTemplateOutput getTemplate(){
+    public io.nop.core.lang.xml.XNode getTemplate(){
       return _template;
     }
 
     
-    public void setTemplate(io.nop.core.resource.tpl.ITextTemplateOutput value){
+    public void setTemplate(io.nop.core.lang.xml.XNode value){
         checkAllowChange();
         
         this._template = value;

@@ -1,4 +1,4 @@
 <import x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-        as="!var-name" name="var-name" from="!v-path"
+        as="!var-name" name="var-name" from="!string"
         xdef:bean-package="io.nop.xui.model"
         xdef:name="UiImportModel" xmlns:xdef="/nop/schema/xdef.xdef"/>

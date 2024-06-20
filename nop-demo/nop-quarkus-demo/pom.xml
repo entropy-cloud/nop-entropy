@@ -66,13 +66,13 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-js</artifactId>
-            <scope>test</scope>
+<!--            <scope>test</scope>-->
         </dependency>
 
         <dependency>
             <groupId>org.graalvm.js</groupId>
             <artifactId>js</artifactId>
-            <scope>test</scope>
+<!--            <scope>test</scope>-->
         </dependency>
 
         <dependency>

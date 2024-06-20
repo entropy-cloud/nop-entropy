@@ -16,8 +16,10 @@ import io.nop.xlang.xdef.domain.GenericTypeDomainOptions;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 
 import java.io.Serializable;
+import java.util.List;
 import java.util.Objects;
 
+import static io.nop.xlang.xdef.XDefConstants.XDEF_TYPE_ATTR_PREFIX;
 import static io.nop.xlang.xdef.XDefConstants.XDEF_TYPE_PREFIX_CP_EXPR;
 import static io.nop.xlang.xdef.XDefConstants.XDEF_TYPE_PREFIX_DEPRECATED;
 import static io.nop.xlang.xdef.XDefConstants.XDEF_TYPE_PREFIX_INTERNAL;
@@ -32,6 +34,7 @@ public class XDefTypeDecl implements Serializable, IJsonString {
     private final String stdDomain;
     private final String domain;
     private final IStdDomainOptions options;
+    private final List<String> defaultAttrNames;
     private final Object defaultValue;
     private final boolean supportBody;
     /**
@@ -40,7 +43,8 @@ public class XDefTypeDecl implements Serializable, IJsonString {
     private final boolean fullXmlNode;
 
     public XDefTypeDecl(boolean deprecated, boolean internal, boolean mandatory, boolean allowCpExpr, String stdDomain,
-                        String domain, IStdDomainOptions options, Object defaultValue, boolean supportBody, boolean fullXmlNode) {
+                        String domain, IStdDomainOptions options, List<String> defaultAttrNames,
+                        Object defaultValue, boolean supportBody, boolean fullXmlNode) {
         this.deprecated = deprecated;
         this.mandatory = mandatory;
         this.internal = internal;
@@ -48,6 +52,7 @@ public class XDefTypeDecl implements Serializable, IJsonString {
         this.stdDomain = stdDomain;
         this.domain = domain;
         this.options = options;
+        this.defaultAttrNames = defaultAttrNames;
         this.defaultValue = defaultValue;
         this.supportBody = supportBody;
         this.fullXmlNode = fullXmlNode;
@@ -84,6 +89,11 @@ public class XDefTypeDecl implements Serializable, IJsonString {
         if (options != null)
             sb.append(XDEF_TYPE_PREFIX_OPTIONS).append(options);
 
+        if (defaultAttrNames != null) {
+            sb.append('=').append(XDEF_TYPE_ATTR_PREFIX);
+            sb.append(StringHelper.join(defaultAttrNames, ","));
+        }
+
         if (defaultValue != null) {
             sb.append('=').append(getDefaultValueAsString());
         }
@@ -98,6 +108,10 @@ public class XDefTypeDecl implements Serializable, IJsonString {
             return JsonTool.instance().stringify(defaultValue);
 
         return StringHelper.quoteIfNecessary(defaultValue.toString());
+    }
+
+    public List<String> getDefaultAttrNames() {
+        return defaultAttrNames;
     }
 
     public boolean isFullXmlNode() {

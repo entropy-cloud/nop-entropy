@@ -23,10 +23,12 @@
             </template>
         </node>
 
-        <node name="end" icon="end-node" label="Finish" kind="end">
+        <node name="EndNode" icon="end-node" label="Finish" kind="end">
             <template>
-                <div class="end-node-circle"/>
-                <div class="end-node-text">{{t('finish')}}</div>
+                <EndNodeContainer>
+                    <div class="end-node-circle"/>
+                    <div class="end-node-text">@i18n:graph-designer.end-node</div>
+                </EndNodeContainer>
             </template>
         </node>
 
@@ -51,7 +53,7 @@
             <template>
                 <ConditionNodeTitle v:node="node" v:parent="parent" v:index="index" v:editable="editable"/>
                 <NodeContent className="content">
-                    <ContentPlaceholder v:text="t('pleaseSetCondition')"/>
+                    <ContentPlaceholder v:text="t('pleaseSetCondition')" />
                 </NodeContent>
             </template>
         </node>

@@ -17,10 +17,10 @@
         <style-component name="!var-name" xdef:ref="../xui/style-component.xdef"/>
     </style-components>
 
-    <control-bar xdef:value="xpl-xml"/>
+    <control-bar xdef:value="xml"/>
 
     <imports xdef:body-type="list" xdef:key-attr="as">
-        <import as="!var-name" xdef:ref="../xui/import.xdef"/>
+        <import as="!var-name=@attr:name" xdef:ref="../xui/import.xdef"/>
     </imports>
 
     <components xdef:body-type="list" xdef:key-attr="name">
@@ -36,7 +36,7 @@
         -->
         <node name="!token-name" icon="string" label="!string" abstract="boolean" tagSet="csv-set" propsForm="string"
               base="token-name" shape="string" minWidth="int" maxWidth="int" minHeight="int" maxHeight="int"
-              width="int" height="int" fixedAspectRatio="boolean" kind="!string"
+              width="int" height="int" fixedAspectRatio="boolean" kind="string"
               draggable="boolean" resizable="boolean"
               deletable="boolean" addable="boolean=true"
               textPosition="string" textDraggable="boolean"
@@ -46,7 +46,7 @@
         >
             <style xdef:value="string"/>
 
-            <template xdef:value="xpl-xml"/>
+            <template xdef:value="xml"/>
 
             <anchors xdef:body-type="list" xdef:key-attr="name">
                 <anchor name="!string" position="string" tagSet="csv-set" xdef:name="GraphDesignerAnchorModel"/>
@@ -63,7 +63,7 @@
               deletable="boolean" addable="boolean=true" minOccurs="int" maxOccurs="int"
               allowSources="csv-set" allowTargets="csv-set" type="string">
             <style xdef:value="string"/>
-            <template xdef:value="xpl-xml"/>
+            <template xdef:value="xml"/>
         </edge>
     </edges>
 
@@ -71,5 +71,5 @@
         <form id="!string" xdef:ref="../xui/form.xdef"/>
     </forms>
 
-    <script xdef:value="xpl-text"/>
+    <script xdef:value="string"/>
 </designer>

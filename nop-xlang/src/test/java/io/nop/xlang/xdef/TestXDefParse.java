@@ -13,6 +13,7 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.xlang.xdef.parse.XDefinitionParser;
 import io.nop.xlang.xdsl.DslModelHelper;
+import io.nop.xlang.xdsl.GenericDslParser;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.SchemaLoader;
 import org.junit.jupiter.api.AfterAll;
@@ -68,5 +69,10 @@ public class TestXDefParse {
         IXDefNode defNode = def.getXdefDefine("BeanListValue");
         IXDefNode valueNode = defNode.getChild("value");
         assertTrue(valueNode != null);
+    }
+
+    @Test
+    public void testDefaultAttrNames() {
+        new GenericDslParser().parseFromResource(VirtualFileSystem.instance().getResource("/test/test.graph-designer.xml"));
     }
 }

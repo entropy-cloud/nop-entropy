@@ -132,7 +132,11 @@ public class VueNodeToReact {
             return "className";
         if (name.equals("for"))
             return "htmlFor";
-        return StringHelper.camelCase(name, '-', false);
+        if(name.indexOf('-') > 0) {
+            return StringHelper.camelCase(name, '-', false);
+        }else{
+            return name;
+        }
     }
 
     protected String getElementName(VueNode node) {

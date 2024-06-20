@@ -35,7 +35,7 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
      * xml name: control-bar
      * 
      */
-    private io.nop.core.resource.tpl.ITextTemplateOutput _controlBar ;
+    private io.nop.core.lang.xml.XNode _controlBar ;
     
     /**
      *  
@@ -84,7 +84,7 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
      * xml name: script
      * 
      */
-    private io.nop.core.resource.tpl.ITextTemplateOutput _script ;
+    private java.lang.String _script ;
     
     /**
      *  
@@ -177,12 +177,12 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
      *  
      */
     
-    public io.nop.core.resource.tpl.ITextTemplateOutput getControlBar(){
+    public io.nop.core.lang.xml.XNode getControlBar(){
       return _controlBar;
     }
 
     
-    public void setControlBar(io.nop.core.resource.tpl.ITextTemplateOutput value){
+    public void setControlBar(io.nop.core.lang.xml.XNode value){
         checkAllowChange();
         
         this._controlBar = value;
@@ -414,12 +414,12 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
      *  
      */
     
-    public io.nop.core.resource.tpl.ITextTemplateOutput getScript(){
+    public java.lang.String getScript(){
       return _script;
     }
 
     
-    public void setScript(io.nop.core.resource.tpl.ITextTemplateOutput value){
+    public void setScript(java.lang.String value){
         checkAllowChange();
         
         this._script = value;

@@ -111,7 +111,7 @@ public class ObjMetaToXDef implements IComponentTransformer<IObjMeta, XDefinitio
 
     private XDefNode simpleSchemaToNode(ISimpleSchema schema) {
         XDefTypeDecl type = new XDefTypeDecl(false, false, false, false, schema.getStdDomain(), schema.getDomain(),
-                null, null, false, false);
+                null, null, null, false, false);
         XDefNode node = new XDefNode();
         node.setTagName(keys.UNIT);
         node.setXdefValue(type);
@@ -202,7 +202,7 @@ public class ObjMetaToXDef implements IComponentTransformer<IObjMeta, XDefinitio
     private XDefTypeDecl propToDefType(IObjPropMeta prop) {
         ISchema schema = prop.getSchema();
         return new XDefTypeDecl(prop.isDeprecated(), prop.isInternal(), prop.isMandatory(), false,
-                schema.getStdDomain(), schema.getDomain(), null, prop.getDefaultValue(), false, false);
+                schema.getStdDomain(), schema.getDomain(), null, null, prop.getDefaultValue(), false, false);
     }
 
     private XDefAttribute propToAttr(IObjPropMeta prop) {

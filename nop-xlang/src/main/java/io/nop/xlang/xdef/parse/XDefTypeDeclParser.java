@@ -11,11 +11,15 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.commons.type.StdDataType;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.IStdDomainOptions;
+import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
+
+import java.util.List;
 
 import static io.nop.xlang.XLangErrors.ARG_DEF_TYPE;
 import static io.nop.xlang.XLangErrors.ARG_STD_DOMAIN;
@@ -52,6 +56,7 @@ public class XDefTypeDeclParser {
         String stdDomain = intern(sc.nextXmlNamespace());
         String domain = null;
         IStdDomainOptions options = null;
+        List<String> defaultAttrNames = null;
         Object defaultValue = null;
 
         if (sc.tryConsume('[')) {
@@ -64,25 +69,33 @@ public class XDefTypeDeclParser {
             throw new NopException(ERR_XDEF_UNKNOWN_STD_DOMAIN).loc(loc).param(ARG_STD_DOMAIN, stdDomain);
 
         if (sc.tryConsume(XDEF_TYPE_PREFIX_OPTIONS)) {
-            String opts = sc.nextUntil(s-> s.cur == '=' && sc.peek() != '>', true,"=").trim().toString();
+            String opts = sc.nextUntil(s -> s.cur == '=' && sc.peek() != '>', true, "=").trim().toString();
             options = domainHandler.parseOptions(loc, opts);
             sc.skipBlank();
         }
 
         if (sc.tryConsume('=')) {
-            String value = sc.nextUntilEnd().trim().toString();
-            if (!value.isEmpty()) {
-                StdDataType dataType = domainHandler.getGenericType(mandatory, options).getStdDataType();
-                try {
-                    defaultValue = JsonTool.parseSimpleJsonValue(value, dataType);
-                } catch (NopException e) {
-                    e.loc(loc).param(ARG_STD_DOMAIN, stdDomain).param(ARG_DEF_TYPE, text);
-                    throw e;
+            if (sc.tryConsume(XDefConstants.XDEF_TYPE_ATTR_PREFIX)) {
+                String value = sc.nextUntilEnd().trim().toString();
+                if (!value.isEmpty()) {
+                    defaultAttrNames = StringHelper.stripedSplit(value, ',');
+                }
+            } else {
+                String value = sc.nextUntilEnd().trim().toString();
+                if (!value.isEmpty()) {
+                    StdDataType dataType = domainHandler.getGenericType(mandatory, options).getStdDataType();
+                    try {
+                        defaultValue = JsonTool.parseSimpleJsonValue(value, dataType);
+                    } catch (NopException e) {
+                        e.loc(loc).param(ARG_STD_DOMAIN, stdDomain).param(ARG_DEF_TYPE, text);
+                        throw e;
+                    }
                 }
             }
         }
         sc.checkEnd();
-        return new XDefTypeDecl(deprecated, internal, mandatory, allowCpExpr, stdDomain, domain, options, defaultValue,
+        return new XDefTypeDecl(deprecated, internal, mandatory, allowCpExpr, stdDomain, domain, options,
+                defaultAttrNames, defaultValue,
                 domainHandler.supportXmlChild(), domainHandler.isFullXmlNode());
     }
 

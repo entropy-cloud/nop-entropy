@@ -523,6 +523,7 @@
 /nop/graphql/introspection.graphql
 /nop/http/beans/http-client-jdk.beans.xml
 /nop/integration/beans/zxing-defaults.beans.xml
+/nop/js/libs/nop-server-tool.mjs
 /nop/main/app.gateway.xml
 /nop/orm/beans/orm-defaults.beans.xml
 /nop/orm/defaults/default.orm.xml
@@ -1063,6 +1064,8 @@
 /nop/wf/beans/wf-core.beans.xml
 /nop/wf/beans/wf-dao.beans.xml
 /nop/wf/designer/dingflow.graph-designer.xml
+/nop/wf/designer/dingflow.lib.js
+/nop/wf/designer/dingflow.lib.xjs
 /nop/wf/designer/oa-flow.graph-designer.xml
 /nop/wf/model/NopWfAction/NopWfAction.xbiz
 /nop/wf/model/NopWfAction/NopWfAction.xmeta
@@ -1203,6 +1206,8 @@
 /nop/wf/pages/WorkflowService/startWorkflow.page.yaml
 /nop/wf/pages/WorkflowService/suspendWorkflow.page.yaml
 /nop/wf/xlib/beeflow.xlib
+/nop/wf/xlib/dingflow-gen.xlib
+/nop/wf/xlib/dingflow-gen/impl_GenComponents.xpl
 /nop/wf/xlib/oa.xlib
 /nop/wf/xlib/wf-actor.xlib
 /nop/wf/xlib/wf-gen.xlib

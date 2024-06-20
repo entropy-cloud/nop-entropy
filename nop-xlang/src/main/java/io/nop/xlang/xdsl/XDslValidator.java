@@ -8,6 +8,7 @@
 package io.nop.xlang.xdsl;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.utils.XNodeAttrComparator;
@@ -20,7 +21,6 @@ import io.nop.xlang.xdef.XDefBodyType;
 import io.nop.xlang.xdef.XDefOverride;
 import io.nop.xlang.xdef.XDefTypeDecl;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -257,11 +257,38 @@ public class XDslValidator {
             if (attr.getType().isMandatory() && attr.getType().getDefaultValue() == null) {
                 String name = attr.getName();
                 ValueWithLocation vl = node.attrValueLoc(name);
-                if (vl.isEmpty())
+                if (vl.isEmpty()) {
+                    if (attr.getType().getDefaultAttrNames() != null) {
+                        if (addDefaultAttrValue(node, name, attr.getType().getDefaultAttrNames()))
+                            continue;
+                    }
                     throw new NopException(ERR_XDSL_ATTR_VALUE_IS_EMPTY).param(ARG_NODE, node)
                             .param(ARG_TAG_NAME, node.getTagName()).param(ARG_ATTR_NAME, name);
+                }
             }
         }
+    }
+
+    private boolean addDefaultAttrValue(XNode node, String name, List<String> defaultAttrNames) {
+        StringBuilder sb = new StringBuilder();
+        boolean hasValue = false;
+        SourceLocation loc = null;
+        for (int i = 0, n = defaultAttrNames.size(); i < n; i++) {
+            if (i != 0)
+                sb.append('|');
+            String attrName = defaultAttrNames.get(i);
+            Object value = node.getAttr(attrName);
+            if (value != null) {
+                loc = node.attrLoc(attrName);
+                sb.append(value);
+                hasValue = true;
+            }
+        }
+        String defaultValue = sb.toString();
+        if (hasValue) {
+            node.setAttr(name, ValueWithLocation.of(loc, defaultValue));
+        }
+        return hasValue;
     }
 
     private boolean isIgnorableAttr(String name) {

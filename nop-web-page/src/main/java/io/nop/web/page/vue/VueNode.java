@@ -62,8 +62,11 @@ public class VueNode implements IVueNode, ISourceLocationGetter {
      * 如果首字母大写或者包含-，则认为是组件
      */
     public String getComponentName() {
-        if (isComponent())
+        if (isComponent()) {
+            if(type.indexOf('-') < 0)
+                return type;
             return StringHelper.camelCase(type, '-', true);
+        }
         return null;
     }
 
