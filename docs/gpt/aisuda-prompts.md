@@ -1,49 +1,49 @@
-�������ֳ����ɱ��������ֶεȶ�����֣�����few-shot��ʾ��ʽ
+将问题拆分成生成表、生成字段等多个部分，采用few-shot提示方式
 
 ```
-���룺����һ�� ��̳ ϵͳ��Ҫ��Щ���ݿ���� 
-������û���/user�����ӱ�/post�������/category��֪ͨ��/notificatoin�������/group
+输入：开发一个 论坛 系统需要哪些数据库表？ 
+输出：用户表/user、帖子表/post、分类表/category、通知表/notificatoin、分组表/group
 
-���룺����һ�� ���� ϵͳ��Ҫ��Щ���ݿ���� 
-��������±�/article�������/category����ǩ��/tag�����۱�/commont���û���/user
+输入：开发一个 博客 系统需要哪些数据库表？ 
+输出：文章表/article、分类表/category、标签表/tag、评论表/commont、用户表/user
 
-���룺����һ�� IT���� ϵͳ��Ҫ��Щ���ݿ���� 
-������ʲ���/asset�����ű�/department���û���/user�������/catetory��λ�ñ�/location����˾��/company
+输入：开发一个 IT管理 系统需要哪些数据库表？ 
+输出：资产表/asset、部门表/department、用户表/user、分类表/catetory、位置表/location、公司表/company
 
-���룺����һ�� {system} ϵͳ��Ҫ��Щ���ݿ���� 
-�����
+输入：开发一个 {system} 系统需要哪些数据库表？ 
+输出：
 ```
 
 
 ```
-���ݿ����������¼��֣�int��text��datetime��decimal��float
+数据库类型有以下几种：int、text、datetime、decimal、float
 
-���룺����һ�� ���� ϵͳ�� ���±� ��Ҫ��Щ���ݿ��ֶμ����ͣ�
-�����id/int��title/text��content/text��publish_date/datetime��tag_id/int
+输入：开发一个 博客 系统的 文章表 需要哪些数据库字段及类型？
+输出：id/int、title/text、content/text、publish_date/datetime、tag_id/int
 
-���룺����һ�� ��ѧ ϵͳ�� ѧ���� ��Ҫ��Щ���ݿ��ֶμ����ͣ�
-�����id/int��name/text��age/int��gender/text��class_id/int
+输入：开发一个 教学 系统的 学生表 需要哪些数据库字段及类型？
+输出：id/int、name/text、age/int、gender/text、class_id/int
 
-���룺����һ�� {system} �� {table} ��Ҫ��Щ���ݿ��ֶμ����ͣ�
-�����
+输入：开发一个 {system} 的 {table} 需要哪些数据库字段及类型？
+输出：
 ```
 
 Chain of Thought
-��ʾ�ʵ�ʾ���а���һ�����������
+提示词的示例中包含一步步解题过程
 Self-Consistency
-�� Chain of Thought ���������ɶ���𰸣��������Ӷ���
+在 Chain of Thought 基础上生成多个答案，少数服从多数
 Tree of Thoughts
-ÿ�����ɶ�������ÿ�������ȡ������õ�ǰ������һ�����ɣ����� Beam Search
+每次生成多个结果，每个结果，取其中最好的前几个进一步生成，类似 Beam Search
 Least-to-Most
-��һ�������ô�ģ�ͽ������ֳ������⣬��To solve xxx, we need to first solve: ��
-�ڶ������ֱ��ô�ģ��ȥ�����Щ�����⣬��������Ľ�������ʾ���У����ʼ������
+第一步，先让大模型将问题拆分成子问题，「To solve xxx, we need to first solve: 」
+第二步，分别让大模型去解决这些子问题，将子问题的解答放入提示词中，问最开始的问题
 Generated Knowledge Prompting
-��ģ�������ɹ�����������֪ʶ�㣬��ȥ�ش�����
+让模型先生成关于这个问题的知识点，再去回答问题
 Automatic Prompt Engineer
-��ģ�����ɺ�����������Ƶ����⣬Ȼ��������Щ�����ĸ����ã���ȥ��ģ�ͣ��൱���ô�ģ���Ȱ�æ�Ż�һ����ʾ��
+让模型生成和这个问题类似的问题，然后评估这些问题哪个更好，再去问模型，相当于让大模型先帮忙优化一下提示词
 
 
-Framerͨ�� TypeScript ������ָ�� GPT �ķ��ظ�ʽ���ֶ�Ҫ��
+Framer通过 TypeScript 定义来指导 GPT 的返回格式及字段要求
 
 ```
 /** Image keys that are available for use. */
@@ -67,8 +67,8 @@ sections: Section[]
 ```
 
 
-��Ԥѵ���׶���������Ŀ��ֱ���һ���ı�ȥ�����һ�� token ��ȥ����һ�� token�����������ǡ�Once upon a time�������Ŀ���ǡ�upon a time in����������ָ��΢���������ǽ�ָ���������������������ǽ�ָ��ָĳ�һ������ֵ���ڼ��� loss ��ʱ������
-�����ڷ��򴫲���ʱ���ֻ�д𰸲�����㡣
+在预训练阶段输入和输出目标分别是一段文本去掉最后一个 token 和去掉第一个 token，比如输入是「Once upon a time」，输出目标是「upon a time in」，而对于指令微调，输入是将指令和期望答案连起来，输出是将指令部分改成一个特殊值，在计算 loss 的时候屏蔽
+这样在反向传播的时候就只有答案参与计算。
 
 ```
 def preprocess(
