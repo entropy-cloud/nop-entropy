@@ -32,6 +32,7 @@ public class ResourceDependencySet {
     private long lastModified;
 
     protected final Map<String, Long> depends = new HashMap<>();
+    private final Map<String, ResourceDependencySet> depSets = new HashMap<>();
 
     public ResourceDependencySet(IResourceReference resource) {
         this.resource = resource;
@@ -82,7 +83,13 @@ public class ResourceDependencySet {
     }
 
     public void addDependency(ResourceDependencySet resource) {
-        depends.put(resource.getResourcePath(), resource.getVersion());
+        String path = resource.getResourcePath();
+        depends.put(path, resource.getVersion());
+        depSets.put(path, resource);
+    }
+
+    public ResourceDependencySet getDependsSet(String path) {
+        return depSets.get(path);
     }
 
     public void addDepends(Map<String, Long> depends) {

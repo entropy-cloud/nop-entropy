@@ -117,6 +117,14 @@ public class ResourceDependsManager {
                 dependencyMap.put(deps.getResourcePath(), deps);
             }
         }
+        for (Map.Entry<String, Long> entry : deps.getDepends().entrySet()) {
+            ResourceDependencySet subDeps = dependencyMap.get(entry.getKey());
+            if (subDeps == null) {
+                subDeps = deps.getDependsSet(entry.getKey());
+                if (subDeps != null)
+                    dependencyMap.put(entry.getKey(), subDeps);
+            }
+        }
     }
 
     public void addDependency(String resourcePath, IResourceChangeChecker checker) {
@@ -168,8 +176,10 @@ public class ResourceDependsManager {
         if (depends != null) {
             for (Map.Entry<String, Long> entry : depends.entrySet()) {
                 String depResourcePath = entry.getKey();
-                if (isDependencyChanged(depResourcePath, entry.getValue(), checkedResourcePaths, defaultDependsLoader, checker))
+                if (isDependencyChanged(depResourcePath, entry.getValue(), checkedResourcePaths, defaultDependsLoader, checker)) {
+                    LOG.debug("nop.resource.depends-changed:path={}", depResourcePath);
                     return true;
+                }
             }
         }
         return false;
