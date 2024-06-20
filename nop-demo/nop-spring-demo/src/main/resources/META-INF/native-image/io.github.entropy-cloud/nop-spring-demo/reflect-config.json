@@ -3841,6 +3841,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getAliasOrName",
+        "parameterTypes": []
+      },
+      {
         "name": "getLabel",
         "parameterTypes": []
       },

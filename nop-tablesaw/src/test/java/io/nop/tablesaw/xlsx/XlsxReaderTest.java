@@ -282,7 +282,7 @@ public class XlsxReaderTest {
         assertEquals(table.column("booleancol").asList(), Lists.newArrayList("true", "false", "false"));
         assertEquals(
                 table.column("datecol").asList(),
-                Lists.newArrayList("2019-02-22T20:54:09", "2020-03-23T21:55:10", "2020-03-23T21:55:10"));
+                Lists.newArrayList("2019-02-22 20:54:09", "2020-03-23 21:55:10", "2020-03-23 21:55:10"));
         assertEquals(
                 table.column("formulacol").asList(), Lists.newArrayList("135.34", "137.35", "138.35"));
         assertEquals(table.column("empty").asList(), Lists.newArrayList("", "", ""));
