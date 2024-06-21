@@ -78,7 +78,7 @@ public class DslModelHelper {
     }
 
     public static Object dslNodeToJson(IXDefNode defNode, XNode node) {
-        return new DslXNodeToJsonTransformer(true, null, null).transformToObject(defNode, node);
+        return new DslXNodeToJsonTransformer(true, null, null).transformToObject(defNode, node,null);
     }
 
     public static String getXdefPath(Object model, String defaultXdefPath) {

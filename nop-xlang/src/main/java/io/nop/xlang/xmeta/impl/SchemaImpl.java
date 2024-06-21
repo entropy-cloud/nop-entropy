@@ -20,6 +20,7 @@ import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.ISchemaNode;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +50,13 @@ public class SchemaImpl extends SchemaNodeImpl implements ISchema, IKeyedElement
                 node.appendChild(oneOfN);
             }
         }
+
+        public UnionSchemaData cloneInstance() {
+            UnionSchemaData ret = new UnionSchemaData();
+            ret.subTypeProp = subTypeProp;
+            ret.oneOf = oneOf == null ? null : new ArrayList<>(oneOf);
+            return ret;
+        }
     }
 
     private static class MapSchemaData {
@@ -61,6 +69,12 @@ public class SchemaImpl extends SchemaNodeImpl implements ISchema, IKeyedElement
                 node.appendChild(item);
             }
         }
+
+        public MapSchemaData cloneInstance() {
+            MapSchemaData ret = new MapSchemaData();
+            ret.valueSchema = valueSchema;
+            return ret;
+        }
     }
 
     private static class ListSchemaData {
@@ -70,6 +84,16 @@ public class SchemaImpl extends SchemaNodeImpl implements ISchema, IKeyedElement
         String orderProp;
         ISchema itemSchema;
         // String childName;
+
+        public ListSchemaData cloneInstance() {
+            ListSchemaData ret = new ListSchemaData();
+            ret.minItems = minItems;
+            ret.maxItems = maxItems;
+            ret.keyProp = keyProp;
+            ret.orderProp = orderProp;
+            ret.itemSchema = itemSchema;
+            return ret;
+        }
 
         void appendTo(XNode node, Map<ISchemaNode, XNode> nodeRefs) {
             if (minItems != null) {
@@ -122,6 +146,23 @@ public class SchemaImpl extends SchemaNodeImpl implements ISchema, IKeyedElement
 
         Boolean supportExtends;
         String uniqueProp;
+
+        public ObjSchemaData cloneInstance() {
+            ObjSchemaData ret = new ObjSchemaData();
+            ret._abstract = _abstract;
+            ret._interface = _interface;
+            ret.typeValue = typeValue;
+            ret.extendsType = extendsType;
+            ret.implementedTypes = implementedTypes.isEmpty() ? implementedTypes : new ArrayList<>(implementedTypes);
+            ret.minProperties = minProperties;
+            ret.maxProperties = maxProperties;
+            ret.props = props.cloneInstance();
+            ret.unknownAttrSchema = unknownAttrSchema;
+            ret.unknownTagSchema = unknownTagSchema;
+            ret.supportExtends = supportExtends;
+            ret.uniqueProp = uniqueProp;
+            return ret;
+        }
 
         void appendTo(XNode node, Map<ISchemaNode, XNode> nodeRefs) {
             if (_abstract != null && _abstract) {
@@ -190,6 +231,23 @@ public class SchemaImpl extends SchemaNodeImpl implements ISchema, IKeyedElement
         Integer minLength;
         Integer maxLength;
         Integer multipleOf;
+
+        public SimpleSchemaData cloneInstance() {
+            SimpleSchemaData ret = new SimpleSchemaData();
+            ret.dict = dict;
+            ret.precision = precision;
+            ret.scale = scale;
+            ret.pattern = pattern;
+            ret.regex = regex;
+            ret.min = min;
+            ret.max = max;
+            ret.excludeMin = excludeMin;
+            ret.excludeMax = excludeMax;
+            ret.minLength = minLength;
+            ret.maxLength = maxLength;
+            ret.multipleOf = multipleOf;
+            return ret;
+        }
 
         void appendTo(XNode node) {
             if (dict != null)
@@ -278,6 +336,22 @@ public class SchemaImpl extends SchemaNodeImpl implements ISchema, IKeyedElement
     // checkAllowChange();
     // this.defName = defName;
     // }
+
+    protected SchemaImpl newInstance() {
+        return new SchemaImpl();
+    }
+
+    public SchemaImpl cloneInstance() {
+        SchemaImpl ret = newInstance();
+        copyTo(ret);
+        ret.listSchema = listSchema == null ? null : listSchema.cloneInstance();
+        ret.simpleSchema = simpleSchema == null ? null : simpleSchema.cloneInstance();
+        ret.objSchema = objSchema == null ? null : objSchema.cloneInstance();
+        ret.unionSchema = unionSchema == null ? null : unionSchema.cloneInstance();
+        ret.mapSchema = mapSchema == null ? null : mapSchema.cloneInstance();
+        ret.explicitDefine = explicitDefine;
+        return ret;
+    }
 
     public String key() {
         return getName();
@@ -641,6 +715,17 @@ public class SchemaImpl extends SchemaNodeImpl implements ISchema, IKeyedElement
         if (props == null && objSchema == null)
             return;
         makeObjSchemaData().props = KeyedList.fromList(props, ObjPropMetaImpl::getName);
+    }
+
+    public void addProp(ObjPropMetaImpl prop) {
+        checkAllowChange();
+        ObjSchemaData data = makeObjSchemaData();
+        if (data.props.isEmpty()) {
+            KeyedList<ObjPropMetaImpl> props = new KeyedList<>(ObjPropMetaImpl::getName);
+            data.props = props;
+        } else {
+            data.props.add(prop);
+        }
     }
 
     @Override

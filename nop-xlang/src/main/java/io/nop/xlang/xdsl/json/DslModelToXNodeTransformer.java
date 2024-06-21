@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -61,6 +62,8 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
 
     private final IObjMeta objMeta;
 
+    private final Map<Object, XNode> objCache = new IdentityHashMap<>();
+
     public DslModelToXNodeTransformer(IObjMeta objMeta) {
         this.objMeta = objMeta;
     }
@@ -86,6 +89,8 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
         String tagName = CoreConstants.DUMMY_TAG_NAME;
         XNode node = XNode.make(tagName);
         node.setLocation(getLocation(map));
+
+        objCache.put(map, node);
 
         IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(map.getClass());
         beanModel.forEachReadWriteProp(propModel -> {
@@ -354,6 +359,8 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
     }
 
     private void addObject(XNode node, String xmlName, ISchema schema, Object value) {
+        if (objCache.get(value) != null)
+            return;
         XNode child = transformObj(schema, value);
         if (child.isDummyNode()) {
             child.setTagName(xmlName);

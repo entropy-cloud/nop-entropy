@@ -85,7 +85,7 @@ public class StringHelper extends ApiStringHelper {
      * Default encoding for unknown byte encodings of native files (at least it's better than to rely on a platform
      * dependent encoding for legacy stuff ...)
      */
-    public static final Charset CHARSET_1252 = Charset.forName("CP1252");
+    // public static final Charset CHARSET_1252 = Charset.forName("CP1252");
 
     public static final byte[] EMPTY_BYTES = new byte[0];
     public static final String[] EMPTY_STRINGS = new String[0];

@@ -41,10 +41,10 @@ public class DslBeanModelParser extends DslXNodeToJsonTransformer {
     // }
 
     @Override
-    public Object parseObject(IXDefNode defNode, XNode node) {
+    public Object parseObject(IXDefNode defNode, XNode node, String subTypeProp) {
         String objName = defNode.getXdefBeanClass();
         if (objName == null) {
-            return super.parseObject(defNode, node);
+            return super.parseObject(defNode, node, subTypeProp);
         }
 
         // 有可能只是接口

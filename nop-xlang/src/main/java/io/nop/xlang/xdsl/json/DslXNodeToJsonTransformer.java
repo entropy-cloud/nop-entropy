@@ -69,14 +69,18 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
 
     @Override
     public Object transformToObject(XNode node) {
-        return transformToObject(rootDefNode, node);
+        return transformToObject(rootDefNode, node, null);
     }
 
     public Object transformToObject(IXDefNode defNode, XNode node) {
+        return transformToObject(defNode, node, null);
+    }
+
+    public Object transformToObject(IXDefNode defNode, XNode node, String subTypeProp) {
         if (defNode.isSimple()) {
             return parseBody(defNode, node);
         } else {
-            return parseObject(defNode, node);
+            return parseObject(defNode, node, subTypeProp);
         }
     }
 
@@ -152,7 +156,7 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
             for (XNode child : node.getChildren()) {
                 IXDefNode childDef = defNode.getChild(child.getTagName());
                 if (childDef != null) {
-                    Object obj = parseObject(childDef, child);
+                    Object obj = parseObject(childDef, child, defNode.getXdefBeanSubTypeProp());
                     list.add(obj);
                 } else {
                     if (ignoreUnknown)
@@ -174,7 +178,7 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
         for (XNode child : node.getChildren()) {
             IXDefNode childDef = defNode.getChild(child.getTagName());
             if (childDef != null) {
-                return transformToObject(childDef, child);
+                return transformToObject(childDef, child, defNode.getXdefBeanSubTypeProp());
             }
         }
         return null;
@@ -199,13 +203,20 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
         return parseObject(rootDefNode, node);
     }
 
-    public Object parseObject(IXDefNode defNode, XNode node) {
+    public final Object parseObject(IXDefNode defNode, XNode node) {
+        return parseObject(defNode, node, null);
+    }
+
+    public Object parseObject(IXDefNode defNode, XNode node, String subTypeProp) {
         String objName = defNode.getXdefBeanClass();
         if (objName == null) {
             objName = defNode.getTagName();
         }
         DynamicObject obj = new DynamicObject(objName, defNode.getXdefUniqueAttr());
         obj.setLocation(node.getLocation());
+        if (subTypeProp != null) {
+            obj.addProp(subTypeProp, node.getTagName());
+        }
 
         String tagProp = defNode.getXdefBeanTagProp();
         if (tagProp != null) {

@@ -21,17 +21,41 @@ import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.core.type.utils.GenericTypeHelper;
 import io.nop.xlang.XLangConstants;
-import io.nop.xlang.xdef.*;
+import io.nop.xlang.xdef.IStdDomainHandler;
+import io.nop.xlang.xdef.IXDefAttribute;
+import io.nop.xlang.xdef.IXDefComment;
+import io.nop.xlang.xdef.IXDefNode;
+import io.nop.xlang.xdef.IXDefProp;
+import io.nop.xlang.xdef.IXDefinition;
+import io.nop.xlang.xdef.XDefBodyType;
+import io.nop.xlang.xdef.XDefOverride;
+import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import io.nop.xlang.xdsl.XDslConstants;
 import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.ISchemaNode;
-import io.nop.xlang.xmeta.impl.*;
+import io.nop.xlang.xmeta.impl.IObjSchemaImpl;
+import io.nop.xlang.xmeta.impl.ObjMetaImpl;
+import io.nop.xlang.xmeta.impl.ObjMetaRefResolver;
+import io.nop.xlang.xmeta.impl.ObjPropMetaImpl;
+import io.nop.xlang.xmeta.impl.SchemaImpl;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
 
-import static io.nop.xlang.XLangErrors.*;
+import static io.nop.xlang.XLangErrors.ARG_NODE;
+import static io.nop.xlang.XLangErrors.ARG_STD_DOMAIN;
+import static io.nop.xlang.XLangErrors.ERR_XDEF_KEYED_LIST_MUST_ASSIGN_BEAN_BODY_TYPE_EXPLICITLY;
+import static io.nop.xlang.XLangErrors.ERR_XDEF_LIST_NO_CHILD;
+import static io.nop.xlang.XLangErrors.ERR_XDEF_MAP_NO_CHILD;
+import static io.nop.xlang.XLangErrors.ERR_XDEF_UNKNOWN_STD_DOMAIN;
+import static io.nop.xlang.XLangErrors.ERR_XMETA_SCHEMEA_DEFINE_NO_NAME_ATTR;
+import static io.nop.xlang.XLangErrors.ERR_XMETA_UNION_SCHEMA_NO_SUB_TYPE_PROP;
 
 /**
  * 将{@link IXDefinition}转换为{@link ObjMetaImpl}结构
@@ -195,6 +219,7 @@ public class XDefToObjMeta {
             prop.setMandatory(true);
             prop.setXmlPos(XNodeValuePosition.comment);
             SchemaImpl schema = new SchemaImpl();
+            schema.setLocation(node.getLocation());
             genId(schema);
             schema.setRefResolved(true);
             schema.setType(ReflectionManager.instance().buildGenericType(XDefComment.class));
@@ -204,9 +229,11 @@ public class XDefToObjMeta {
 
         if (node.getXdefBeanTagProp() != null) {
             ObjPropMetaImpl prop = new ObjPropMetaImpl();
+            prop.setLocation(node.getLocation());
             prop.setName(node.getXdefBeanTagProp());
             prop.setXmlPos(XNodeValuePosition.tag);
             SchemaImpl schema = new SchemaImpl();
+            schema.setLocation(node.getLocation());
             genId(schema);
             schema.setRefResolved(true);
             schema.setType(PredefinedGenericTypes.STRING_TYPE);
@@ -550,9 +577,17 @@ public class XDefToObjMeta {
     }
 
     private ISchema toUnionSchema(SchemaImpl schema, IXDefNode node, boolean forItem) {
+        String subTypeProp = node.getXdefBeanSubTypeProp();
+        if (subTypeProp == null)
+            subTypeProp = getBeanTagProp(node);
+
+        if (subTypeProp == null) {
+            throw new NopException(ERR_XMETA_UNION_SCHEMA_NO_SUB_TYPE_PROP).param(ARG_NODE, node);
+        }
+
         List<ISchema> subs = new ArrayList<>();
         node.getChildren().values().forEach(child -> {
-            ISchema subSchema = toUnionItem(child);
+            ISchema subSchema = toUnionItem(child, node.getXdefBeanSubTypeProp());
             subs.add(subSchema);
         });
 
@@ -562,18 +597,10 @@ public class XDefToObjMeta {
         }
 
         if (node.getXdefUnknownTag() != null)
-            subs.add(toUnionItem(node.getXdefUnknownTag()));
+            subs.add(toUnionItem(node.getXdefUnknownTag(), node.getXdefBeanSubTypeProp()));
 
         if (node.getXdefValue() != null) {
             subs.add(toSimpleSchema(node.getLocation(), node.getXdefValue()));
-        }
-
-        String subTypeProp = node.getXdefBeanSubTypeProp();
-        if (subTypeProp == null)
-            subTypeProp = getBeanTagProp(node);
-
-        if (subTypeProp == null) {
-            throw new NopException(ERR_XMETA_UNION_SCHEMA_NO_SUB_TYPE_PROP).param(ARG_NODE, node);
         }
 
         schema.setSubTypeProp(subTypeProp);
@@ -581,9 +608,25 @@ public class XDefToObjMeta {
         return schema;
     }
 
-    private ISchema toUnionItem(IXDefNode node) {
+    private ISchema toUnionItem(IXDefNode node, String subTypeProp) {
         ISchema schema = toSchema(node);
         schema.setTypeValue(node.getTagName());
+
+        if (subTypeProp != null && schema.getProp(subTypeProp) == null) {
+            ObjPropMetaImpl prop = new ObjPropMetaImpl();
+            prop.setLocation(node.getLocation());
+            prop.setInternal(true);
+            prop.setName(subTypeProp);
+            prop.setXmlPos(XNodeValuePosition.tag);
+            SchemaImpl typeSchema = new SchemaImpl();
+            typeSchema.setLocation(node.getLocation());
+            //  genId(typeSchema);
+            typeSchema.setRefResolved(true);
+            typeSchema.setType(PredefinedGenericTypes.STRING_TYPE);
+            typeSchema.setStdDomain(StdDataType.STRING.getName());
+            prop.setSchema(typeSchema);
+            ((SchemaImpl) schema).addProp(prop);
+        }
         return schema;
     }
 

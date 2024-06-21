@@ -73,6 +73,13 @@ public class KeyedList<T> extends AbstractList<T> implements IKeyedList<T>, IFre
         return ret;
     }
 
+    public KeyedList<T> cloneInstance() {
+        KeyedList<T> ret = new KeyedList<>(list.size(), keyFn);
+        ret.list.addAll(list);
+        ret.map.putAll(map);
+        return ret;
+    }
+
     public String toString() {
         return list.toString();
     }

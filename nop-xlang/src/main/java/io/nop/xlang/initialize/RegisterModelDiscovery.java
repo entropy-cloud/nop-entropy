@@ -19,6 +19,7 @@ import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
 import io.nop.core.lang.eval.DisabledEvalScope;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.IFunctionModel;
@@ -172,18 +173,11 @@ public class RegisterModelDiscovery {
                 if ("xdsl-loader".equals(type)) {
                     String schemaPath = (String) BeanTool.getProperty(loader, "schemaPath");
                     config.setXdefPath(schemaPath);
-                    String resolveInDirParam = resolveInDir;
-                    config.loader(fileType, new IResourceObjectLoader<IComponentModel>() {
-                        @Override
-                        public IComponentModel loadObjectFromPath(String path) {
-                            return new DslModelParser(schemaPath).resolveInDir(resolveInDirParam).parseFromVirtualPath(path);
-                        }
-
-                        @Override
-                        public IComponentModel parseFromResource(IResource resource) {
-                            return new DslModelParser(schemaPath).resolveInDir(resolveInDirParam).parseFromResource(resource);
-                        }
-                    });
+                    if (JsonTool.isJsonOrYaml(fileType)) {
+                        config.loader(fileType, new DslJsonResourceLoader(schemaPath, resolveInDir));
+                    } else {
+                        config.loader(fileType, new DslXmlResourceLoader(schemaPath, resolveInDir));
+                    }
                 } else if ("xlsx-loader".equals(type)) {
                     String impPath = (String) BeanTool.getProperty(loader, "impPath");
                     if (DslModelHelper.supportExcelModelLoader()) {
