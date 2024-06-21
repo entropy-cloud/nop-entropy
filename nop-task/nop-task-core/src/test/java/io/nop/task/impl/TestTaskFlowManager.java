@@ -4,9 +4,15 @@ import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.ioc.IBeanContainer;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
+import io.nop.core.lang.json.JsonTool;
+import io.nop.core.lang.xml.XNode;
+import io.nop.core.model.object.DynamicObject;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepReturn;
 import io.nop.task.step.AbstractTaskStep;
+import io.nop.xlang.xdsl.DslModelHelper;
 import jakarta.annotation.Nonnull;
 import org.junit.jupiter.api.Test;
 
@@ -113,6 +119,23 @@ public class TestTaskFlowManager extends AbstractTaskTestCase {
             runTask("test/run-on-context-01");
         });
     }
+
+    @Test
+    public void testJsonFormat() {
+        IResource resource = VirtualFileSystem.instance().getResource("/nop/task/test/sequential-01/v1.task.xml");
+        DynamicObject bean = DslModelHelper.loadDslModelAsJson(resource, true);
+        System.out.println(JsonTool.serializeToYaml(bean));
+
+        XNode node = DslModelHelper.dslModelToXNode("/nop/schema/task/task.xdef", bean);
+        node.dump();
+        assertEquals(attachmentXml("test-json.task.xml").xml(), node.xml());
+    }
+
+    @Test
+    public void testJsonFormat01() {
+        runTask("test/json-format-01");
+    }
+
 
     public static class MyHandler {
 

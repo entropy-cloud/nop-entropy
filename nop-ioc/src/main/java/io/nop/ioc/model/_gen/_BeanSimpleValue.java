@@ -21,6 +21,13 @@ public abstract class _BeanSimpleValue extends io.nop.core.resource.component.Ab
      * xml name: 
      * 
      */
+    private java.lang.String _beanValueType ;
+    
+    /**
+     *  
+     * xml name: 
+     * 
+     */
     private java.lang.String _body ;
     
     /**
@@ -29,6 +36,25 @@ public abstract class _BeanSimpleValue extends io.nop.core.resource.component.Ab
      * 
      */
     private java.lang.String _type ;
+    
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getBeanValueType(){
+      return _beanValueType;
+    }
+
+    
+    public void setBeanValueType(java.lang.String value){
+        checkAllowChange();
+        
+        this._beanValueType = value;
+           
+    }
+
     
     /**
      * 
@@ -83,6 +109,7 @@ public abstract class _BeanSimpleValue extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("beanValueType",this.getBeanValueType());
         out.putNotNull("body",this.getBody());
         out.putNotNull("type",this.getType());
     }
@@ -96,6 +123,7 @@ public abstract class _BeanSimpleValue extends io.nop.core.resource.component.Ab
     protected void copyTo(BeanSimpleValue instance){
         super.copyTo(instance);
         
+        instance.setBeanValueType(this.getBeanValueType());
         instance.setBody(this.getBody());
         instance.setType(this.getType());
     }

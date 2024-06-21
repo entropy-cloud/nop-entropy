@@ -18,6 +18,13 @@ public abstract class _BeanIocInjectValue extends io.nop.core.resource.component
     
     /**
      *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _beanValueType ;
+    
+    /**
+     *  
      * xml name: ioc:ignore-depends
      * 
      */
@@ -36,6 +43,25 @@ public abstract class _BeanIocInjectValue extends io.nop.core.resource.component
      * 
      */
     private io.nop.core.type.IGenericType _type ;
+    
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getBeanValueType(){
+      return _beanValueType;
+    }
+
+    
+    public void setBeanValueType(java.lang.String value){
+        checkAllowChange();
+        
+        this._beanValueType = value;
+           
+    }
+
     
     /**
      * 
@@ -109,6 +135,7 @@ public abstract class _BeanIocInjectValue extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("beanValueType",this.getBeanValueType());
         out.putNotNull("iocIgnoreDepends",this.isIocIgnoreDepends());
         out.putNotNull("iocOptional",this.isIocOptional());
         out.putNotNull("type",this.getType());
@@ -123,6 +150,7 @@ public abstract class _BeanIocInjectValue extends io.nop.core.resource.component
     protected void copyTo(BeanIocInjectValue instance){
         super.copyTo(instance);
         
+        instance.setBeanValueType(this.getBeanValueType());
         instance.setIocIgnoreDepends(this.isIocIgnoreDepends());
         instance.setIocOptional(this.isIocOptional());
         instance.setType(this.getType());

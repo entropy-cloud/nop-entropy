@@ -18,6 +18,13 @@ public abstract class _BeanXplValue extends io.nop.core.resource.component.Abstr
     
     /**
      *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _beanValueType ;
+    
+    /**
+     *  
      * xml name: outputMode
      * 
      */
@@ -29,6 +36,25 @@ public abstract class _BeanXplValue extends io.nop.core.resource.component.Abstr
      * 
      */
     private io.nop.xlang.api.EvalCode _source ;
+    
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getBeanValueType(){
+      return _beanValueType;
+    }
+
+    
+    public void setBeanValueType(java.lang.String value){
+        checkAllowChange();
+        
+        this._beanValueType = value;
+           
+    }
+
     
     /**
      * 
@@ -83,6 +109,7 @@ public abstract class _BeanXplValue extends io.nop.core.resource.component.Abstr
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("beanValueType",this.getBeanValueType());
         out.putNotNull("outputMode",this.getOutputMode());
         out.putNotNull("source",this.getSource());
     }
@@ -96,6 +123,7 @@ public abstract class _BeanXplValue extends io.nop.core.resource.component.Abstr
     protected void copyTo(BeanXplValue instance){
         super.copyTo(instance);
         
+        instance.setBeanValueType(this.getBeanValueType());
         instance.setOutputMode(this.getOutputMode());
         instance.setSource(this.getSource());
     }

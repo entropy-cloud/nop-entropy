@@ -18,10 +18,36 @@ public abstract class _BeanConstantValue extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _beanValueType ;
+    
+    /**
+     *  
      * xml name: static-field
      * 
      */
     private java.lang.String _staticField ;
+    
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getBeanValueType(){
+      return _beanValueType;
+    }
+
+    
+    public void setBeanValueType(java.lang.String value){
+        checkAllowChange();
+        
+        this._beanValueType = value;
+           
+    }
+
     
     /**
      * 
@@ -57,6 +83,7 @@ public abstract class _BeanConstantValue extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("beanValueType",this.getBeanValueType());
         out.putNotNull("staticField",this.getStaticField());
     }
 
@@ -69,6 +96,7 @@ public abstract class _BeanConstantValue extends io.nop.core.resource.component.
     protected void copyTo(BeanConstantValue instance){
         super.copyTo(instance);
         
+        instance.setBeanValueType(this.getBeanValueType());
         instance.setStaticField(this.getStaticField());
     }
 

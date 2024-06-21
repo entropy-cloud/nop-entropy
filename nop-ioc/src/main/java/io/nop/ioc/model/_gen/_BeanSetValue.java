@@ -18,10 +18,36 @@ public abstract class _BeanSetValue extends io.nop.ioc.model.BeanCollectionValue
     
     /**
      *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _beanValueType ;
+    
+    /**
+     *  
      * xml name: set-class
      * 
      */
     private java.lang.String _setClass ;
+    
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getBeanValueType(){
+      return _beanValueType;
+    }
+
+    
+    public void setBeanValueType(java.lang.String value){
+        checkAllowChange();
+        
+        this._beanValueType = value;
+           
+    }
+
     
     /**
      * 
@@ -57,6 +83,7 @@ public abstract class _BeanSetValue extends io.nop.ioc.model.BeanCollectionValue
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("beanValueType",this.getBeanValueType());
         out.putNotNull("setClass",this.getSetClass());
     }
 
@@ -69,6 +96,7 @@ public abstract class _BeanSetValue extends io.nop.ioc.model.BeanCollectionValue
     protected void copyTo(BeanSetValue instance){
         super.copyTo(instance);
         
+        instance.setBeanValueType(this.getBeanValueType());
         instance.setSetClass(this.getSetClass());
     }
 

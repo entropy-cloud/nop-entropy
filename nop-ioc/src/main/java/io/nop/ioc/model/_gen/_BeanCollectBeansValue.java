@@ -25,6 +25,13 @@ public abstract class _BeanCollectBeansValue extends io.nop.core.resource.compon
     
     /**
      *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _beanValueType ;
+    
+    /**
+     *  
      * xml name: by-annotation
      * 
      */
@@ -94,6 +101,25 @@ public abstract class _BeanCollectBeansValue extends io.nop.core.resource.compon
         checkAllowChange();
         
         this._asMap = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getBeanValueType(){
+      return _beanValueType;
+    }
+
+    
+    public void setBeanValueType(java.lang.String value){
+        checkAllowChange();
+        
+        this._beanValueType = value;
            
     }
 
@@ -266,6 +292,7 @@ public abstract class _BeanCollectBeansValue extends io.nop.core.resource.compon
         super.outputJson(out);
         
         out.putNotNull("asMap",this.isAsMap());
+        out.putNotNull("beanValueType",this.getBeanValueType());
         out.putNotNull("byAnnotation",this.getByAnnotation());
         out.putNotNull("byType",this.getByType());
         out.putNotNull("excludeTag",this.getExcludeTag());
@@ -286,6 +313,7 @@ public abstract class _BeanCollectBeansValue extends io.nop.core.resource.compon
         super.copyTo(instance);
         
         instance.setAsMap(this.isAsMap());
+        instance.setBeanValueType(this.getBeanValueType());
         instance.setByAnnotation(this.getByAnnotation());
         instance.setByType(this.getByType());
         instance.setExcludeTag(this.getExcludeTag());

@@ -1,0 +1,22 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <sequential name="test">
+            <steps>
+                <xpl name="step1">
+                    <source>
+                        return "OK1";
+                    </source>
+                </xpl>
+
+                <xpl name="step2">
+                    <input name="result">
+                        <source>RESULT</source>
+                    </input>
+                    <source>
+                        return result == "OK1" ? "OK" : "FAIL";
+                    </source>
+                </xpl>
+            </steps>
+        </sequential>
+    </steps>
+</task>

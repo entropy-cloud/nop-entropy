@@ -25,6 +25,13 @@ public abstract class _BeanIdRefValue extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _beanValueType ;
+    
+    /**
+     *  
      * xml name: ioc:ignore-depends
      * 
      */
@@ -52,6 +59,25 @@ public abstract class _BeanIdRefValue extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._bean = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getBeanValueType(){
+      return _beanValueType;
+    }
+
+    
+    public void setBeanValueType(java.lang.String value){
+        checkAllowChange();
+        
+        this._beanValueType = value;
            
     }
 
@@ -110,6 +136,7 @@ public abstract class _BeanIdRefValue extends io.nop.core.resource.component.Abs
         super.outputJson(out);
         
         out.putNotNull("bean",this.getBean());
+        out.putNotNull("beanValueType",this.getBeanValueType());
         out.putNotNull("iocIgnoreDepends",this.isIocIgnoreDepends());
         out.putNotNull("iocOptional",this.isIocOptional());
     }
@@ -124,6 +151,7 @@ public abstract class _BeanIdRefValue extends io.nop.core.resource.component.Abs
         super.copyTo(instance);
         
         instance.setBean(this.getBean());
+        instance.setBeanValueType(this.getBeanValueType());
         instance.setIocIgnoreDepends(this.isIocIgnoreDepends());
         instance.setIocOptional(this.isIocOptional());
     }

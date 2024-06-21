@@ -1,10 +1,14 @@
 <model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        name="task">
 
-    <resolve-handler resolveInDir="/nop/task" />
+    <resolve-handler resolveInDir="/nop/task"/>
 
     <loaders>
         <xdsl-loader fileType="task-lib.xml" schemaPath="/nop/schema/task/task.xdef"/>
         <xdsl-loader fileType="task.xml" schemaPath="/nop/schema/task/task.xdef"/>
+        <xdsl-loader fileType="task-lib.yaml" schemaPath="/nop/schema/task/task.xdef"/>
+        <xdsl-loader fileType="task.yaml" schemaPath="/nop/schema/task/task.xdef"/>
+        <xdsl-loader fileType="task-lib.json5" schemaPath="/nop/schema/task/task.xdef"/>
+        <xdsl-loader fileType="task.json5" schemaPath="/nop/schema/task/task.xdef"/>
     </loaders>
 </model>

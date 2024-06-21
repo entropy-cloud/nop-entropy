@@ -7,6 +7,7 @@
  */
 package io.nop.task.model;
 
+import io.nop.core.lang.json.IJsonHandler;
 import io.nop.core.lang.xml.XNode;
 import io.nop.task.TaskConstants;
 import io.nop.task.model._gen._TaskStepModel;
@@ -59,6 +60,11 @@ public abstract class TaskStepModel extends _TaskStepModel {
 
     public XNode getOutputsSchemaNode() {
         return TaskFlowModelHelper.getOutputsSchemaNode(this);
+    }
+
+    @Override
+    protected void outputJson(IJsonHandler out) {
+        super.outputJson(out);
     }
 
     public void normalize() {

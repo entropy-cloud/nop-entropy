@@ -18,10 +18,36 @@ public abstract class _BeanListValue extends io.nop.ioc.model.BeanCollectionValu
     
     /**
      *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _beanValueType ;
+    
+    /**
+     *  
      * xml name: list-class
      * 
      */
     private java.lang.String _listClass ;
+    
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getBeanValueType(){
+      return _beanValueType;
+    }
+
+    
+    public void setBeanValueType(java.lang.String value){
+        checkAllowChange();
+        
+        this._beanValueType = value;
+           
+    }
+
     
     /**
      * 
@@ -57,6 +83,7 @@ public abstract class _BeanListValue extends io.nop.ioc.model.BeanCollectionValu
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("beanValueType",this.getBeanValueType());
         out.putNotNull("listClass",this.getListClass());
     }
 
@@ -69,6 +96,7 @@ public abstract class _BeanListValue extends io.nop.ioc.model.BeanCollectionValu
     protected void copyTo(BeanListValue instance){
         super.copyTo(instance);
         
+        instance.setBeanValueType(this.getBeanValueType());
         instance.setListClass(this.getListClass());
     }
 

@@ -1,0 +1,59 @@
+xmlns:x: /nop/schema/xdsl.xdef
+internal: false
+restartable: true
+concurrent: false
+useParentScope: false
+timeout: 0
+defaultSaveState: false
+graphMode: false
+allowStartIfComplete: false
+ignoreResult: false
+recordMetrics: true
+sync: false
+version: 0
+runOnContext: false
+steps:
+    - type: sequential
+      name: test
+      internal: false
+      concurrent: false
+      useParentScope: false
+      timeout: 0
+      allowStartIfComplete: false
+      ignoreResult: false
+      recordMetrics: false
+      sync: false
+      runOnContext: false
+      steps:
+          - type: xpl
+            name: step1
+            internal: false
+            concurrent: false
+            useParentScope: false
+            timeout: 0
+            allowStartIfComplete: false
+            ignoreResult: false
+            recordMetrics: false
+            sync: false
+            runOnContext: false
+            source: >
+                return "OK1";
+          - type: xpl
+            name: step2
+            internal: false
+            concurrent: false
+            useParentScope: false
+            timeout: 0
+            allowStartIfComplete: false
+            ignoreResult: false
+            recordMetrics: false
+            sync: false
+            runOnContext: false
+            inputs:
+                - name: result
+                  mandatory: false
+                  persist: true
+                  fromTaskScope: false
+                  source: RESULT
+            source: >
+                return result == "OK1" ? "OK" : "FAIL";
