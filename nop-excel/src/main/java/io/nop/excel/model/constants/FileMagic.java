@@ -154,7 +154,8 @@ public enum FileMagic {
         this.magic = new byte[magic.length][];
         int i = 0;
         for (String s : magic) {
-            this.magic[i++] = s.getBytes(StringHelper.CHARSET_1252);
+            //Guard.checkArgument(ByteHelper.equals(s.getBytes(StringHelper.CHARSET_1252), s.getBytes(StringHelper.CHARSET_UTF8)));
+            this.magic[i++] = s.getBytes(StringHelper.CHARSET_UTF8);
         }
     }
 
@@ -248,4 +249,5 @@ public enum FileMagic {
         // so we use a BufferedInputStream instead now
         return new BufferedInputStream(stream);
     }
+
 }
