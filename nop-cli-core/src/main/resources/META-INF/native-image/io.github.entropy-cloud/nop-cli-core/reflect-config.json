@@ -2618,6 +2618,10 @@
         "parameterTypes": []
       },
       {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
         "name": "contains",
         "parameterTypes": [
           "java.lang.Object"
@@ -15598,6 +15602,10 @@
         ]
       },
       {
+        "name": "getBeanValueType",
+        "parameterTypes": []
+      },
+      {
         "name": "getByAnnotation",
         "parameterTypes": []
       },
@@ -15647,6 +15655,12 @@
         "name": "setAsMap",
         "parameterTypes": [
           "boolean"
+        ]
+      },
+      {
+        "name": "setBeanValueType",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -23350,6 +23364,12 @@
       {
         "name": "normalize",
         "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
       }
     ],
     "name": "io.nop.task.model.TaskStepModel",
@@ -24247,6 +24267,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
         "name": "newInstance",
         "parameterTypes": []
       },
@@ -24260,6 +24284,12 @@
         "name": "setSource",
         "parameterTypes": [
           "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setType",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       }
     ],
@@ -25316,6 +25346,16 @@
     "fields": [],
     "methods": [
       {
+        "name": "addProp",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.impl.ObjPropMetaImpl"
+        ]
+      },
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
         "name": "getAbstract",
         "parameterTypes": []
       },
@@ -25486,6 +25526,10 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
       },
       {
         "name": "setAbstract",

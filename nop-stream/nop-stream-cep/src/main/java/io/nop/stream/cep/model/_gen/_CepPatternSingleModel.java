@@ -18,6 +18,13 @@ public abstract class _CepPatternSingleModel extends io.nop.stream.cep.model.Cep
     
     /**
      *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
+     *  
      * xml name: until
      * 仅适用于oneOrMore（）
      */
@@ -29,6 +36,25 @@ public abstract class _CepPatternSingleModel extends io.nop.stream.cep.model.Cep
      * 具有上下文变量event, Context context
      */
     private io.nop.core.lang.eval.IEvalFunction _where ;
+    
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
     
     /**
      * 
@@ -83,6 +109,7 @@ public abstract class _CepPatternSingleModel extends io.nop.stream.cep.model.Cep
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("type",this.getType());
         out.putNotNull("until",this.getUntil());
         out.putNotNull("where",this.getWhere());
     }
@@ -96,6 +123,7 @@ public abstract class _CepPatternSingleModel extends io.nop.stream.cep.model.Cep
     protected void copyTo(CepPatternSingleModel instance){
         super.copyTo(instance);
         
+        instance.setType(this.getType());
         instance.setUntil(this.getUntil());
         instance.setWhere(this.getWhere());
     }

@@ -45,6 +45,13 @@ public abstract class _CepPatternGroupModel extends io.nop.stream.cep.model.CepP
     private java.lang.String _start ;
     
     /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
      * 
      * xml name: afterMatchSkipStrategy
      *  
@@ -146,6 +153,25 @@ public abstract class _CepPatternGroupModel extends io.nop.stream.cep.model.CepP
     }
 
     
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -167,6 +193,7 @@ public abstract class _CepPatternGroupModel extends io.nop.stream.cep.model.CepP
         out.putNotNull("afterMatchSkipTo",this.getAfterMatchSkipTo());
         out.putNotNull("parts",this.getParts());
         out.putNotNull("start",this.getStart());
+        out.putNotNull("type",this.getType());
     }
 
     public CepPatternGroupModel cloneInstance(){
@@ -182,6 +209,7 @@ public abstract class _CepPatternGroupModel extends io.nop.stream.cep.model.CepP
         instance.setAfterMatchSkipTo(this.getAfterMatchSkipTo());
         instance.setParts(this.getParts());
         instance.setStart(this.getStart());
+        instance.setType(this.getType());
     }
 
     protected CepPatternGroupModel newInstance(){

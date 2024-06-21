@@ -35326,6 +35326,10 @@
         ]
       },
       {
+        "name": "getBeanValueType",
+        "parameterTypes": []
+      },
+      {
         "name": "getByAnnotation",
         "parameterTypes": []
       },
@@ -35375,6 +35379,12 @@
         "name": "setAsMap",
         "parameterTypes": [
           "boolean"
+        ]
+      },
+      {
+        "name": "setBeanValueType",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -36012,6 +36022,10 @@
         ]
       },
       {
+        "name": "getBeanValueType",
+        "parameterTypes": []
+      },
+      {
         "name": "getListClass",
         "parameterTypes": []
       },
@@ -36023,6 +36037,12 @@
         "name": "outputJson",
         "parameterTypes": [
           "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setBeanValueType",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -36371,6 +36391,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getBeanValueType",
+        "parameterTypes": []
+      },
+      {
         "name": "isIocIgnoreDepends",
         "parameterTypes": []
       },
@@ -36390,6 +36414,12 @@
       },
       {
         "name": "setBean",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setBeanValueType",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -36434,6 +36464,10 @@
         ]
       },
       {
+        "name": "getBeanValueType",
+        "parameterTypes": []
+      },
+      {
         "name": "getBody",
         "parameterTypes": []
       },
@@ -36449,6 +36483,12 @@
         "name": "outputJson",
         "parameterTypes": [
           "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setBeanValueType",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -50445,6 +50485,16 @@
     "fields": [],
     "methods": [
       {
+        "name": "addProp",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.impl.ObjPropMetaImpl"
+        ]
+      },
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
         "name": "getAbstract",
         "parameterTypes": []
       },
@@ -50615,6 +50665,10 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
       },
       {
         "name": "setAbstract",
