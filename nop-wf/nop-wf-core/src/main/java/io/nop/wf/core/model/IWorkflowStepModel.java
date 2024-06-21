@@ -20,7 +20,7 @@ public interface IWorkflowStepModel extends ITagSetSupport {
 
     String getSpecialType();
 
-    WfStepType getType();
+    WfStepType getStepType();
 
     WfJoinType getJoinType();
 

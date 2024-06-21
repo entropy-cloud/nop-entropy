@@ -60,6 +60,13 @@ public abstract class _ForkTaskStepModel extends io.nop.task.model.TaskStepsMode
     
     /**
      *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
+     *  
      * xml name: varName
      * 对应于fork时的producer产生的某个元素
      */
@@ -181,6 +188,25 @@ public abstract class _ForkTaskStepModel extends io.nop.task.model.TaskStepsMode
     
     /**
      * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: varName
      *  对应于fork时的producer产生的某个元素
      */
@@ -219,6 +245,7 @@ public abstract class _ForkTaskStepModel extends io.nop.task.model.TaskStepsMode
         out.putNotNull("indexName",this.getIndexName());
         out.putNotNull("joinType",this.getJoinType());
         out.putNotNull("producer",this.getProducer());
+        out.putNotNull("type",this.getType());
         out.putNotNull("varName",this.getVarName());
     }
 
@@ -237,6 +264,7 @@ public abstract class _ForkTaskStepModel extends io.nop.task.model.TaskStepsMode
         instance.setIndexName(this.getIndexName());
         instance.setJoinType(this.getJoinType());
         instance.setProducer(this.getProducer());
+        instance.setType(this.getType());
         instance.setVarName(this.getVarName());
     }
 

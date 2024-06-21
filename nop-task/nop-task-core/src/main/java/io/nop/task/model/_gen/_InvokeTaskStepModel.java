@@ -38,6 +38,13 @@ public abstract class _InvokeTaskStepModel extends io.nop.task.model.TaskStepMod
     private java.lang.String _returnAs ;
     
     /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
      * 
      * xml name: bean
      *  
@@ -94,6 +101,25 @@ public abstract class _InvokeTaskStepModel extends io.nop.task.model.TaskStepMod
     }
 
     
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -112,6 +138,7 @@ public abstract class _InvokeTaskStepModel extends io.nop.task.model.TaskStepMod
         out.putNotNull("bean",this.getBean());
         out.putNotNull("method",this.getMethod());
         out.putNotNull("returnAs",this.getReturnAs());
+        out.putNotNull("type",this.getType());
     }
 
     public InvokeTaskStepModel cloneInstance(){
@@ -126,6 +153,7 @@ public abstract class _InvokeTaskStepModel extends io.nop.task.model.TaskStepMod
         instance.setBean(this.getBean());
         instance.setMethod(this.getMethod());
         instance.setReturnAs(this.getReturnAs());
+        instance.setType(this.getType());
     }
 
     protected InvokeTaskStepModel newInstance(){

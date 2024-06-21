@@ -24,6 +24,13 @@ public abstract class _XplTaskStepModel extends io.nop.task.model.TaskStepModel 
     private io.nop.core.lang.eval.IEvalAction _source ;
     
     /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
      * 
      * xml name: source
      *  
@@ -38,6 +45,25 @@ public abstract class _XplTaskStepModel extends io.nop.task.model.TaskStepModel 
         checkAllowChange();
         
         this._source = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
            
     }
 
@@ -58,6 +84,7 @@ public abstract class _XplTaskStepModel extends io.nop.task.model.TaskStepModel 
         super.outputJson(out);
         
         out.putNotNull("source",this.getSource());
+        out.putNotNull("type",this.getType());
     }
 
     public XplTaskStepModel cloneInstance(){
@@ -70,6 +97,7 @@ public abstract class _XplTaskStepModel extends io.nop.task.model.TaskStepModel 
         super.copyTo(instance);
         
         instance.setSource(this.getSource());
+        instance.setType(this.getType());
     }
 
     protected XplTaskStepModel newInstance(){

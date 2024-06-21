@@ -1543,7 +1543,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                         if (targetStepModel == null)
                             throw wfRt.newError(ERR_WF_UNKNOWN_STEP).param(ARG_STEP_NAME, toM.getStepName());
 
-                        target.setStepType(targetStepModel.getType().name());
+                        target.setStepType(targetStepModel.getStepType().name());
                         WfAssignmentModel assignment = targetStepModel.getAssignment();
                         if (assignment != null) {
                             WfActorCandidatesBean candidates = getActorCandidates(assignment, wfRt);
@@ -1551,7 +1551,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                             target.setIgnoreNoAssign(assignment.isIgnoreNoAssign());
                         }
                         target.setStepSpecialType(targetStepModel.getSpecialType());
-                        target.setStepType(targetStepModel.getType().toString());
+                        target.setStepType(targetStepModel.getStepType().toString());
                         target.setStepName(targetStepModel.getName());
                         target.setStepDisplayName(targetStepModel.getDisplayName());
                         if (target.getAppState() == null)

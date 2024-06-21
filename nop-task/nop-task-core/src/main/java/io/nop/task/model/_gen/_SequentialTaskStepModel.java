@@ -16,6 +16,32 @@ import io.nop.commons.util.ClassHelper;
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _SequentialTaskStepModel extends io.nop.task.model.TaskStepsModel {
     
+    /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -31,6 +57,7 @@ public abstract class _SequentialTaskStepModel extends io.nop.task.model.TaskSte
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("type",this.getType());
     }
 
     public SequentialTaskStepModel cloneInstance(){
@@ -42,6 +69,7 @@ public abstract class _SequentialTaskStepModel extends io.nop.task.model.TaskSte
     protected void copyTo(SequentialTaskStepModel instance){
         super.copyTo(instance);
         
+        instance.setType(this.getType());
     }
 
     protected SequentialTaskStepModel newInstance(){

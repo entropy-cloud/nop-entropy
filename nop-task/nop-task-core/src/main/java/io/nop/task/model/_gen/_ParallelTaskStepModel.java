@@ -45,6 +45,13 @@ public abstract class _ParallelTaskStepModel extends io.nop.task.model.TaskSteps
     private io.nop.commons.concurrent.AsyncJoinType _joinType ;
     
     /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
      * 
      * xml name: aggregateVarName
      *  
@@ -120,6 +127,25 @@ public abstract class _ParallelTaskStepModel extends io.nop.task.model.TaskSteps
     }
 
     
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -139,6 +165,7 @@ public abstract class _ParallelTaskStepModel extends io.nop.task.model.TaskSteps
         out.putNotNull("aggregator",this.getAggregator());
         out.putNotNull("autoCancelUnfinished",this.isAutoCancelUnfinished());
         out.putNotNull("joinType",this.getJoinType());
+        out.putNotNull("type",this.getType());
     }
 
     public ParallelTaskStepModel cloneInstance(){
@@ -154,6 +181,7 @@ public abstract class _ParallelTaskStepModel extends io.nop.task.model.TaskSteps
         instance.setAggregator(this.getAggregator());
         instance.setAutoCancelUnfinished(this.isAutoCancelUnfinished());
         instance.setJoinType(this.getJoinType());
+        instance.setType(this.getType());
     }
 
     protected ParallelTaskStepModel newInstance(){

@@ -15,7 +15,7 @@ public class WfSubFlowModel extends _WfSubFlowModel {
     }
 
     @Override
-    public WfStepType getType() {
+    public WfStepType getStepType() {
         return WfStepType.flow;
     }
 }

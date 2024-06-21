@@ -24,6 +24,13 @@ public abstract class _SleepTaskStepModel extends io.nop.task.model.TaskStepMode
     private io.nop.core.lang.eval.IEvalAction _sleepMillisExpr ;
     
     /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
      * 
      * xml name: sleepMillisExpr
      *  
@@ -38,6 +45,25 @@ public abstract class _SleepTaskStepModel extends io.nop.task.model.TaskStepMode
         checkAllowChange();
         
         this._sleepMillisExpr = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
            
     }
 
@@ -58,6 +84,7 @@ public abstract class _SleepTaskStepModel extends io.nop.task.model.TaskStepMode
         super.outputJson(out);
         
         out.putNotNull("sleepMillisExpr",this.getSleepMillisExpr());
+        out.putNotNull("type",this.getType());
     }
 
     public SleepTaskStepModel cloneInstance(){
@@ -70,6 +97,7 @@ public abstract class _SleepTaskStepModel extends io.nop.task.model.TaskStepMode
         super.copyTo(instance);
         
         instance.setSleepMillisExpr(this.getSleepMillisExpr());
+        instance.setType(this.getType());
     }
 
     protected SleepTaskStepModel newInstance(){

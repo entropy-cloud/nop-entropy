@@ -15,7 +15,6 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.LogLevel;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
-import io.nop.core.reflect.bean.BeanTool;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.IOrmEntitySet;
@@ -94,7 +93,7 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
         NopWfStepInstance stepRecord = new NopWfStepInstance();
         stepRecord.setStepId(StringHelper.generateUUID());
         stepRecord.setStepName(stepModel.getName());
-        stepRecord.setStepType(stepModel.getType().name());
+        stepRecord.setStepType(stepModel.getStepType().name());
         stepRecord.setDisplayName(stepModel.getDisplayName());
         if (StringHelper.isEmpty(stepRecord.getDisplayName()))
             stepRecord.setDisplayName(stepModel.getName());

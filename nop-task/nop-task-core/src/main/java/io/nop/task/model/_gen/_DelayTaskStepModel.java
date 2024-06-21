@@ -24,6 +24,13 @@ public abstract class _DelayTaskStepModel extends io.nop.task.model.TaskStepMode
     private io.nop.core.lang.eval.IEvalAction _delayMillisExpr ;
     
     /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
      * 
      * xml name: delayMillisExpr
      *  
@@ -38,6 +45,25 @@ public abstract class _DelayTaskStepModel extends io.nop.task.model.TaskStepMode
         checkAllowChange();
         
         this._delayMillisExpr = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
            
     }
 
@@ -58,6 +84,7 @@ public abstract class _DelayTaskStepModel extends io.nop.task.model.TaskStepMode
         super.outputJson(out);
         
         out.putNotNull("delayMillisExpr",this.getDelayMillisExpr());
+        out.putNotNull("type",this.getType());
     }
 
     public DelayTaskStepModel cloneInstance(){
@@ -70,6 +97,7 @@ public abstract class _DelayTaskStepModel extends io.nop.task.model.TaskStepMode
         super.copyTo(instance);
         
         instance.setDelayMillisExpr(this.getDelayMillisExpr());
+        instance.setType(this.getType());
     }
 
     protected DelayTaskStepModel newInstance(){

@@ -38,6 +38,13 @@ public abstract class _CallStepTaskStepModel extends io.nop.task.model.TaskStepM
     private java.lang.String _stepName ;
     
     /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
      * 
      * xml name: libName
      *  
@@ -94,6 +101,25 @@ public abstract class _CallStepTaskStepModel extends io.nop.task.model.TaskStepM
     }
 
     
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -112,6 +138,7 @@ public abstract class _CallStepTaskStepModel extends io.nop.task.model.TaskStepM
         out.putNotNull("libName",this.getLibName());
         out.putNotNull("libVersion",this.getLibVersion());
         out.putNotNull("stepName",this.getStepName());
+        out.putNotNull("type",this.getType());
     }
 
     public CallStepTaskStepModel cloneInstance(){
@@ -126,6 +153,7 @@ public abstract class _CallStepTaskStepModel extends io.nop.task.model.TaskStepM
         instance.setLibName(this.getLibName());
         instance.setLibVersion(this.getLibVersion());
         instance.setStepName(this.getStepName());
+        instance.setType(this.getType());
     }
 
     protected CallStepTaskStepModel newInstance(){

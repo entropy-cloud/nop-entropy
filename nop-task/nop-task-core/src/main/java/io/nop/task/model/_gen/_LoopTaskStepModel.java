@@ -39,6 +39,13 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
     
     /**
      *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
+     *  
      * xml name: until
      * 
      */
@@ -111,6 +118,25 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
         checkAllowChange();
         
         this._maxCount = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
            
     }
 
@@ -190,6 +216,7 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
         out.putNotNull("indexName",this.getIndexName());
         out.putNotNull("itemsExpr",this.getItemsExpr());
         out.putNotNull("maxCount",this.getMaxCount());
+        out.putNotNull("type",this.getType());
         out.putNotNull("until",this.getUntil());
         out.putNotNull("varName",this.getVarName());
         out.putNotNull("varType",this.getVarType());
@@ -207,6 +234,7 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
         instance.setIndexName(this.getIndexName());
         instance.setItemsExpr(this.getItemsExpr());
         instance.setMaxCount(this.getMaxCount());
+        instance.setType(this.getType());
         instance.setUntil(this.getUntil());
         instance.setVarName(this.getVarName());
         instance.setVarType(this.getVarType());

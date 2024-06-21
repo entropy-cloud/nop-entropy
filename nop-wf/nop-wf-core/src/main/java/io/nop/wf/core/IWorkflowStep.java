@@ -100,15 +100,15 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
     }
 
     default boolean isJoinType() {
-        return getModel().getType() == WfStepType.join;
+        return getModel().getStepType() == WfStepType.join;
     }
 
     default boolean isStepType() {
-        return getModel().getType() == WfStepType.step;
+        return getModel().getStepType() == WfStepType.step;
     }
 
     default boolean isFlowType() {
-        return getModel().getType() == WfStepType.flow;
+        return getModel().getStepType() == WfStepType.flow;
     }
 
     IWfActor getActor();

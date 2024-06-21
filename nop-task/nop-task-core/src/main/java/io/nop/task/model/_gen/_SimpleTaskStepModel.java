@@ -24,6 +24,13 @@ public abstract class _SimpleTaskStepModel extends io.nop.task.model.TaskStepMod
     private java.lang.String _bean ;
     
     /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
      * 
      * xml name: bean
      *  
@@ -38,6 +45,25 @@ public abstract class _SimpleTaskStepModel extends io.nop.task.model.TaskStepMod
         checkAllowChange();
         
         this._bean = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
            
     }
 
@@ -58,6 +84,7 @@ public abstract class _SimpleTaskStepModel extends io.nop.task.model.TaskStepMod
         super.outputJson(out);
         
         out.putNotNull("bean",this.getBean());
+        out.putNotNull("type",this.getType());
     }
 
     public SimpleTaskStepModel cloneInstance(){
@@ -70,6 +97,7 @@ public abstract class _SimpleTaskStepModel extends io.nop.task.model.TaskStepMod
         super.copyTo(instance);
         
         instance.setBean(this.getBean());
+        instance.setType(this.getType());
     }
 
     protected SimpleTaskStepModel newInstance(){

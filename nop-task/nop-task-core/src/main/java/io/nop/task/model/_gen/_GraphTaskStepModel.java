@@ -31,6 +31,13 @@ public abstract class _GraphTaskStepModel extends io.nop.task.model.TaskStepsMod
     private java.util.Set<java.lang.String> _exitSteps ;
     
     /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
      * 
      * xml name: enterSteps
      *  
@@ -68,6 +75,25 @@ public abstract class _GraphTaskStepModel extends io.nop.task.model.TaskStepsMod
     }
 
     
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -85,6 +111,7 @@ public abstract class _GraphTaskStepModel extends io.nop.task.model.TaskStepsMod
         
         out.putNotNull("enterSteps",this.getEnterSteps());
         out.putNotNull("exitSteps",this.getExitSteps());
+        out.putNotNull("type",this.getType());
     }
 
     public GraphTaskStepModel cloneInstance(){
@@ -98,6 +125,7 @@ public abstract class _GraphTaskStepModel extends io.nop.task.model.TaskStepsMod
         
         instance.setEnterSteps(this.getEnterSteps());
         instance.setExitSteps(this.getExitSteps());
+        instance.setType(this.getType());
     }
 
     protected GraphTaskStepModel newInstance(){

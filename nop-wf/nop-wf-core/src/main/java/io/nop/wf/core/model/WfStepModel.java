@@ -60,8 +60,12 @@ public class WfStepModel extends _WfStepModel implements IWorkflowStepModel, Com
     }
 
     @Override
-    public WfStepType getType() {
+    public WfStepType getStepType() {
         return WfStepType.step;
+    }
+
+    public String getStep(){
+        return getStepType().name();
     }
 
     public boolean isEventuallyToAssigned() {

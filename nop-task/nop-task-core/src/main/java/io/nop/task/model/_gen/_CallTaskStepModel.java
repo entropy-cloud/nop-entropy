@@ -31,6 +31,13 @@ public abstract class _CallTaskStepModel extends io.nop.task.model.TaskStepModel
     private java.lang.Long _taskVersion ;
     
     /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
      * 
      * xml name: taskName
      *  
@@ -68,6 +75,25 @@ public abstract class _CallTaskStepModel extends io.nop.task.model.TaskStepModel
     }
 
     
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -85,6 +111,7 @@ public abstract class _CallTaskStepModel extends io.nop.task.model.TaskStepModel
         
         out.putNotNull("taskName",this.getTaskName());
         out.putNotNull("taskVersion",this.getTaskVersion());
+        out.putNotNull("type",this.getType());
     }
 
     public CallTaskStepModel cloneInstance(){
@@ -98,6 +125,7 @@ public abstract class _CallTaskStepModel extends io.nop.task.model.TaskStepModel
         
         instance.setTaskName(this.getTaskName());
         instance.setTaskVersion(this.getTaskVersion());
+        instance.setType(this.getType());
     }
 
     protected CallTaskStepModel newInstance(){

@@ -31,6 +31,13 @@ public abstract class _ScriptTaskStepModel extends io.nop.task.model.TaskStepMod
     private java.lang.String _source ;
     
     /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
      * 
      * xml name: lang
      *  
@@ -68,6 +75,25 @@ public abstract class _ScriptTaskStepModel extends io.nop.task.model.TaskStepMod
     }
 
     
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -85,6 +111,7 @@ public abstract class _ScriptTaskStepModel extends io.nop.task.model.TaskStepMod
         
         out.putNotNull("lang",this.getLang());
         out.putNotNull("source",this.getSource());
+        out.putNotNull("type",this.getType());
     }
 
     public ScriptTaskStepModel cloneInstance(){
@@ -98,6 +125,7 @@ public abstract class _ScriptTaskStepModel extends io.nop.task.model.TaskStepMod
         
         instance.setLang(this.getLang());
         instance.setSource(this.getSource());
+        instance.setType(this.getType());
     }
 
     protected ScriptTaskStepModel newInstance(){

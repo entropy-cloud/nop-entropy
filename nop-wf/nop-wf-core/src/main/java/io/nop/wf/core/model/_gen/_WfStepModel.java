@@ -214,6 +214,13 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
+     *  
      * xml name: waitSignals
      * 对应一组globalVars中必须存在的变量名，只有这些变量不为null, 才activated
      */
@@ -786,6 +793,25 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: waitSignals
      *  对应一组globalVars中必须存在的变量名，只有这些变量不为null, 才activated
      */
@@ -873,6 +899,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         out.putNotNull("specialType",this.getSpecialType());
         out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("transition",this.getTransition());
+        out.putNotNull("type",this.getType());
         out.putNotNull("waitSignals",this.getWaitSignals());
         out.putNotNull("wfAppState",this.getWfAppState());
     }
@@ -914,6 +941,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         instance.setSpecialType(this.getSpecialType());
         instance.setTagSet(this.getTagSet());
         instance.setTransition(this.getTransition());
+        instance.setType(this.getType());
         instance.setWaitSignals(this.getWaitSignals());
         instance.setWfAppState(this.getWfAppState());
     }

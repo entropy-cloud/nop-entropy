@@ -24,6 +24,13 @@ public abstract class _SuspendTaskStepModel extends io.nop.task.model.TaskStepMo
     private io.nop.core.lang.eval.IEvalPredicate _resumeWhen ;
     
     /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
      * 
      * xml name: resume-when
      *  
@@ -38,6 +45,25 @@ public abstract class _SuspendTaskStepModel extends io.nop.task.model.TaskStepMo
         checkAllowChange();
         
         this._resumeWhen = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
            
     }
 
@@ -58,6 +84,7 @@ public abstract class _SuspendTaskStepModel extends io.nop.task.model.TaskStepMo
         super.outputJson(out);
         
         out.putNotNull("resumeWhen",this.getResumeWhen());
+        out.putNotNull("type",this.getType());
     }
 
     public SuspendTaskStepModel cloneInstance(){
@@ -70,6 +97,7 @@ public abstract class _SuspendTaskStepModel extends io.nop.task.model.TaskStepMo
         super.copyTo(instance);
         
         instance.setResumeWhen(this.getResumeWhen());
+        instance.setType(this.getType());
     }
 
     protected SuspendTaskStepModel newInstance(){

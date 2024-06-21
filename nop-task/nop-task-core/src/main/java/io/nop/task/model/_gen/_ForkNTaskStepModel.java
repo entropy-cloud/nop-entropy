@@ -59,6 +59,13 @@ public abstract class _ForkNTaskStepModel extends io.nop.task.model.TaskStepsMod
     private io.nop.commons.concurrent.AsyncJoinType _joinType ;
     
     /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
      * 
      * xml name: aggregateVarName
      *  
@@ -172,6 +179,25 @@ public abstract class _ForkNTaskStepModel extends io.nop.task.model.TaskStepsMod
     }
 
     
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -193,6 +219,7 @@ public abstract class _ForkNTaskStepModel extends io.nop.task.model.TaskStepsMod
         out.putNotNull("countExpr",this.getCountExpr());
         out.putNotNull("indexName",this.getIndexName());
         out.putNotNull("joinType",this.getJoinType());
+        out.putNotNull("type",this.getType());
     }
 
     public ForkNTaskStepModel cloneInstance(){
@@ -210,6 +237,7 @@ public abstract class _ForkNTaskStepModel extends io.nop.task.model.TaskStepsMod
         instance.setCountExpr(this.getCountExpr());
         instance.setIndexName(this.getIndexName());
         instance.setJoinType(this.getJoinType());
+        instance.setType(this.getType());
     }
 
     protected ForkNTaskStepModel newInstance(){

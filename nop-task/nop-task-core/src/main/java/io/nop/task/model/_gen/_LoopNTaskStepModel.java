@@ -46,6 +46,13 @@ public abstract class _LoopNTaskStepModel extends io.nop.task.model.TaskStepsMod
     
     /**
      *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
+     *  
      * xml name: varName
      * 
      */
@@ -129,6 +136,25 @@ public abstract class _LoopNTaskStepModel extends io.nop.task.model.TaskStepsMod
     
     /**
      * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: varName
      *  
      */
@@ -165,6 +191,7 @@ public abstract class _LoopNTaskStepModel extends io.nop.task.model.TaskStepsMod
         out.putNotNull("endExpr",this.getEndExpr());
         out.putNotNull("indexName",this.getIndexName());
         out.putNotNull("stepExpr",this.getStepExpr());
+        out.putNotNull("type",this.getType());
         out.putNotNull("varName",this.getVarName());
     }
 
@@ -181,6 +208,7 @@ public abstract class _LoopNTaskStepModel extends io.nop.task.model.TaskStepsMod
         instance.setEndExpr(this.getEndExpr());
         instance.setIndexName(this.getIndexName());
         instance.setStepExpr(this.getStepExpr());
+        instance.setType(this.getType());
         instance.setVarName(this.getVarName());
     }
 

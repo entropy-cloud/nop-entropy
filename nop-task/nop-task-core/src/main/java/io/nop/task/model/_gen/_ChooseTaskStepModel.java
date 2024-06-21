@@ -38,6 +38,13 @@ public abstract class _ChooseTaskStepModel extends io.nop.task.model.TaskStepMod
     private io.nop.task.model.TaskChooseOtherwiseModel _otherwise ;
     
     /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
      * 
      * xml name: case
      *  
@@ -120,6 +127,25 @@ public abstract class _ChooseTaskStepModel extends io.nop.task.model.TaskStepMod
     }
 
     
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -142,6 +168,7 @@ public abstract class _ChooseTaskStepModel extends io.nop.task.model.TaskStepMod
         out.putNotNull("cases",this.getCases());
         out.putNotNull("decider",this.getDecider());
         out.putNotNull("otherwise",this.getOtherwise());
+        out.putNotNull("type",this.getType());
     }
 
     public ChooseTaskStepModel cloneInstance(){
@@ -156,6 +183,7 @@ public abstract class _ChooseTaskStepModel extends io.nop.task.model.TaskStepMod
         instance.setCases(this.getCases());
         instance.setDecider(this.getDecider());
         instance.setOtherwise(this.getOtherwise());
+        instance.setType(this.getType());
     }
 
     protected ChooseTaskStepModel newInstance(){
