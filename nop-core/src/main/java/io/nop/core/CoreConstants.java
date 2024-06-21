@@ -131,6 +131,9 @@ public interface CoreConstants extends ResourceConstants {
 
     String LOOP_ROOT_VAR = "$LOOP_ROOT$";
 
+    String PROP_OPTIONS = "options";
+    String PROP_VALUE = "value";
+
     String XRUN_FILE_SUFFIX = ".xrun";
     String XGEN_FILE_SUFFIX = ".xgen";
     String XGEN_FILE_PREFIX = "_";

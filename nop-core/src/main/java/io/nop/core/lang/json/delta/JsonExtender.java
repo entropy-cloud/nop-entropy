@@ -15,6 +15,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
 import io.nop.core.lang.json.DeltaJsonOptions;
 import io.nop.core.lang.json.JObject;
+import io.nop.core.resource.ResourceConstants;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -95,6 +96,9 @@ public class JsonExtender {
         if (loc == null)
             return extendsList;
         return extendsList.stream().map(path -> {
+            if (path.endsWith(CoreConstants.SUPER_NS)) {
+                return ResourceConstants.SUPER_NS + ':' + loc.getPath();
+            }
             return StringHelper.absolutePath(loc.getPath(), path);
         }).collect(Collectors.toList());
     }

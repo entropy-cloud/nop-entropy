@@ -10,11 +10,13 @@ package io.nop.core.dict;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.util.ICancellable;
 import io.nop.core.initialize.CoreInitialization;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.type.GenericClassKind;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestDictProvider {
@@ -43,5 +45,12 @@ public class TestDictProvider {
     public void testEnum() {
         DictBean dict = DictProvider.instance().requireDict("en", GenericClassKind.class.getName(), null, null);
         assertTrue(dict.getLabelByValue("interface").endsWith("INTERFACE"));
+    }
+
+    @Test
+    public void testDelta() {
+        DictBean dict = DictProvider.instance().requireDict("en", "core/enabled-locale", null, null);
+        System.out.println(JsonTool.serialize(dict,true));
+        assertEquals(3, dict.getOptions().size());
     }
 }

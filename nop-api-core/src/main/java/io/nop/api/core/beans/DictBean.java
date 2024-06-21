@@ -321,11 +321,11 @@ public class DictBean implements Serializable, IFreezable, IDeepCloneable,
     }
 
     @PropMeta(propId = 11)
+    @JsonAnyGetter
     public Map<String, Object> getAttrs() {
         return attrs;
     }
 
-    @JsonAnyGetter
     public Map<String, Object> attrs() {
         return attrs;
     }
