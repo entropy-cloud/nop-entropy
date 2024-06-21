@@ -1,0 +1,5 @@
+/**@generate
+<dingflow-gen:GenComponents modelPath="dingflow.graph-designer.xml" xpl:lib="/nop/wf/xlib/dingflow-gen.xlib" />
+*/
+
+export default NODE_COMPONENTS;

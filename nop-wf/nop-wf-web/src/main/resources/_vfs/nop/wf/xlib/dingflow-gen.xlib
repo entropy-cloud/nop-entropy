@@ -1,0 +1,19 @@
+<lib x:schema="/nop/schema/xlib.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
+    <tags>
+        <GenComponents outputMode="text">
+            <attr name="modelPath" stdDomain="v-path" />
+
+            <source>
+                <c:include src="dingflow-gen/impl_GenComponents.xpl" />
+            </source>
+        </GenComponents>
+
+        <GenFlowEditorSchema outputMode="text">
+            <attr name="modelPath" stdDomain="v-path" />
+            <source>
+                <c:include src="dingflow-gen/impl_GenFlowEditorSchema.xpl" />
+            </source>
+        </GenFlowEditorSchema>
+    </tags>
+</lib>

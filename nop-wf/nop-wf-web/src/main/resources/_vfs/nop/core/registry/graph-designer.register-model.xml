@@ -1,5 +1,5 @@
 <model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-       name="oa-flow">
+       name="graph-designer">
 
     <loaders>
         <xdsl-loader fileType="graph-designer.xml" schemaPath="/nop/schema/designer/graph-designer.xdef"/>

@@ -2,7 +2,7 @@
     <c:script><![CDATA[
         import io.nop.core.resource.component.ResourceComponentManager;
 
-        const model = ResourceComponentManager.instance().loadComponentModel(lib);
+        const model = ResourceComponentManager.instance().loadComponentModel(modelPath);
 
         function normalizeName(name){
             return name.$replace('-','_').$replace('.','_')
