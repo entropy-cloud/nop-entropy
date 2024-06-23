@@ -60,6 +60,31 @@
     "allDeclaredConstructors": true
   },
   {
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "name": "io.nop.core.resource.store.DeltaResourceStoreBuilder"
+  },
+  {
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "name": "io.nop.commons.collections.ListFunctions"
+  },
+  {
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "name": "io.nop.commons.collections.SetFunctions"
+  },
+  {
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "name": "io.nop.commons.util.StringHelper"
+  },
+  {
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "name": "io.nop.commons.util.DateHelper"
+  },
+  {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,

@@ -1,8 +1,88 @@
 [
   {
-    "condition": {
-      "typeReachable": "io.jsonwebtoken.impl.crypto.MacSigner"
-    },
+    "name": "io.jsonwebtoken.impl.security.KeysBridge",
+    "allPublicMethods": true
+  },
+
+  {
+    "name": "io.jsonwebtoken.impl.security.StandardSecureDigestAlgorithms",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+
+  {
+    "name": "io.jsonwebtoken.impl.security.StandardEncryptionAlgorithms",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+
+  {
+    "name": "io.jsonwebtoken.impl.security.StandardKeyAlgorithms",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+
+  {
+    "name": "io.jsonwebtoken.impl.security.StandardHashAlgorithms",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+
+  {
+    "name": "io.jsonwebtoken.impl.security.StandardKeyOperations",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+
+  {
+    "name": "io.jsonwebtoken.impl.security.StandardCurves",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+
+  {
+    "name": "io.jsonwebtoken.impl.io.StandardCompressionAlgorithms",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+
+  {
+    "name": "io.jsonwebtoken.impl.DefaultJwtHeaderBuilder",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+
+  {
+    "name": "io.jsonwebtoken.impl.DefaultClaimsBuilder",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+
+  {
+    "name": "io.jsonwebtoken.impl.DefaultJwtBuilder",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+
+  {
+    "name": "io.jsonwebtoken.impl.DefaultJwtParserBuilder",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+
+  {
+    "name": "io.jsonwebtoken.impl.security.DefaultKeyOperationBuilder",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+
+  {
+    "name": "io.jsonwebtoken.impl.security.DefaultKeyOperationPolicyBuilder",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+
+  {
     "name": "com.sun.crypto.provider.HmacCore$HmacSHA256",
     "methods": [
       {
@@ -12,9 +92,6 @@
     ]
   },
   {
-    "condition": {
-      "typeReachable": "io.jsonwebtoken.impl.crypto.MacSigner"
-    },
     "name": "com.sun.crypto.provider.HmacCore$HmacSHA384",
     "methods": [
       {
@@ -24,9 +101,6 @@
     ]
   },
   {
-    "condition": {
-      "typeReachable": "io.jsonwebtoken.impl.crypto.MacSigner"
-    },
     "name": "com.sun.crypto.provider.HmacCore$HmacSHA512",
     "methods": [
       {
@@ -36,9 +110,6 @@
     ]
   },
   {
-    "condition": {
-      "typeReachable": "io.jsonwebtoken.impl.crypto.MacProvider"
-    },
     "name": "com.sun.crypto.provider.KeyGeneratorCore$HmacKG$SHA256",
     "methods": [
       {
@@ -48,9 +119,6 @@
     ]
   },
   {
-    "condition": {
-      "typeReachable": "io.jsonwebtoken.impl.crypto.MacProvider"
-    },
     "name": "com.sun.crypto.provider.KeyGeneratorCore$HmacKG$SHA384",
     "methods": [
       {
@@ -60,9 +128,6 @@
     ]
   },
   {
-    "condition": {
-      "typeReachable": "io.jsonwebtoken.impl.crypto.MacProvider"
-    },
     "name": "com.sun.crypto.provider.KeyGeneratorCore$HmacKG$SHA512",
     "methods": [
       {
@@ -72,9 +137,6 @@
     ]
   },
   {
-    "condition": {
-      "typeReachable": "io.jsonwebtoken.impl.DefaultJwtBuilder"
-    },
     "name": "io.jsonwebtoken.impl.DefaultClaims",
     "methods": [
       {
@@ -84,9 +146,6 @@
     ]
   },
   {
-    "condition": {
-      "typeReachable": "io.jsonwebtoken.impl.DefaultJwtBuilder"
-    },
     "name": "io.jsonwebtoken.impl.DefaultJwsHeader",
     "methods": [
       {
@@ -96,9 +155,6 @@
     ]
   },
   {
-    "condition": {
-      "typeReachable": "io.jsonwebtoken.Jwts"
-    },
     "name": "io.jsonwebtoken.impl.DefaultJwtBuilder",
     "methods": [
       {
@@ -108,9 +164,6 @@
     ]
   },
   {
-    "condition": {
-      "typeReachable": "io.jsonwebtoken.Jwts"
-    },
     "name": "io.jsonwebtoken.impl.DefaultJwtParserBuilder",
     "methods": [
       {
@@ -120,9 +173,6 @@
     ]
   },
   {
-    "condition": {
-      "typeReachable": "io.jsonwebtoken.CompressionCodecs"
-    },
     "name": "io.jsonwebtoken.impl.compression.DeflateCompressionCodec",
     "methods": [
       {
@@ -132,9 +182,6 @@
     ]
   },
   {
-    "condition": {
-      "typeReachable": "io.jsonwebtoken.CompressionCodecs"
-    },
     "name": "io.jsonwebtoken.impl.compression.GzipCompressionCodec",
     "methods": [
       {
@@ -144,9 +191,6 @@
     ]
   },
   {
-    "condition": {
-      "typeReachable": "io.jsonwebtoken.security.Keys"
-    },
     "name": "io.jsonwebtoken.impl.crypto.EllipticCurveProvider",
     "methods": [
       {
@@ -158,9 +202,6 @@
     ]
   },
   {
-    "condition": {
-      "typeReachable": "io.jsonwebtoken.security.Keys"
-    },
     "name": "io.jsonwebtoken.impl.crypto.MacProvider",
     "methods": [
       {
@@ -172,9 +213,6 @@
     ]
   },
   {
-    "condition": {
-      "typeReachable": "io.jsonwebtoken.security.Keys"
-    },
     "name": "io.jsonwebtoken.impl.crypto.RsaProvider",
     "methods": [
       {
@@ -186,9 +224,6 @@
     ]
   },
   {
-    "condition": {
-      "typeReachable": "io.jsonwebtoken.impl.crypto.EllipticCurveProvider"
-    },
     "name": "java.security.AlgorithmParametersSpi"
   },
   {

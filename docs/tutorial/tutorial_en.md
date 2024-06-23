@@ -145,7 +145,7 @@ The code generated from the ORM model contains the full set of code from the fro
 ```shell
 mvn clean install -DskipTests -Dquarkus.package.type=uber-jar
 
-java -Dfile.encoding=UTF8 -Dquarkus.profile=dev -jar app-mall-app/target/app-mall-app-1.0-SNAPSHOT-runner.jar 
+java -Dfile.encoding=UTF8 -Dquarkus.profile=dev -jar app-mall-app/target/app-mall-app-1.0-SNAPSHOT-runner.jar
 ```
 
 app-mall-app uses the built-in H2 memory database to start, and will automatically create database tables according to the ORM model when starting. The default user is nop, and the password is 123.
@@ -421,7 +421,7 @@ Field linkage logic can be expressed through data binding property expressions, 
 ```
  <cell id="pid">
      <requiredOn>${level == 'L2'}</requiredOn>
-     <visibleOn>${level == 'L2'}</visibleOn>    
+     <visibleOn>${level == 'L2'}</visibleOn>
  </cell>
 ```
 
@@ -471,8 +471,8 @@ http://localhost:8080/index.html?#/amis/app/mall/pages/LitemallGoods/main.page.y
 The actual page it corresponds to is `src/main/resources/_vfs/app/mall/pages/LitemallGoods/main.page.yaml`, and the content is
 
 ```yaml
-x:gen-extends: | 
-    <web:GenPage view="LitemallGoods.view.xml" page="main" 
+x:gen-extends: |
+    <web:GenPage view="LitemallGoods.view.xml" page="main"
          xpl:lib="/nop/web/xlib/web.xlib" />
 ```
 
@@ -495,7 +495,7 @@ In debug mode, all front-end AMIS pages have two design buttons in the upper rig
 2. Click the JSON design button to pop up the YAML editor, which allows you to modify the JSON description directly in the frontend and then see the display immediately.
 
 3. Clicking the visual design button will pop up the amis-editor visual designer, allowing developers to adjust the content of the page through the visual designer. \*\* Click Save to reversely calculate the difference between the complete page and the generated View, and then save the difference to the page.yaml files \*\*。
-   
+
    ![](amis-editor-view.png)
 
 For example, after modifying the title of the \[商品上架\] page in the visual designer as \[新增-商品\] and saving it, the content in the add.page.yaml file is
@@ -632,11 +632,11 @@ Nop platform provides a standard technical route for realizing the dynamic simil
 
 1. With embedded metaprogramming and code generation, \*\* An inference pipeline can be established between any structure A and C. \*\*
 
-2. \*\* The reasoning pipeline is broken down into steps: A = \> B = \> C \*\*
+2. ** The reasoning pipeline is broken down into steps: A = \> B = \> C **
 
-3. \*\* The inference pipeline difference is further quantified. \*\*：A =\> `_B` =\> B =\> `_C` =\> C
+3. ** The inference pipeline difference is further quantified. **：A =\> `_B` =\> B =\> `_C` =\> C
 
-4. \*\* Each link allows temporary storage and transparent transmission of extended information \*\* that is not required in this step
+4. ** Each link allows temporary storage and transparent transmission of extended information ** that is not required in this step
 
 Specifically, the chain of logical reasoning from the back end to the front end can be decomposed into four main models:
 
