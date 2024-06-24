@@ -145,6 +145,7 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
         try {
             is = record.getInputStream();
             if (record.getLength() > 0) {
+                is = new LimitedInputStream(is, record.getLength());
                 filePath = resourceStore.saveResource(filePath, new InputStreamResource(filePath, is, record.getLastModified(), record.getLength()), null, null);
             } else {
                 tempResource = ResourceHelper.getTempResource("upload-file");
