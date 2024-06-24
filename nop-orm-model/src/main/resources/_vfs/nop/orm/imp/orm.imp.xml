@@ -275,7 +275,7 @@
                             <schema stdDomain="var-name"/>
                             <valueExpr>
                                 // id被保留为系统自动生成的主键名，因此不会作为字段名
-                                record.name = value.$colCodeToPropName()
+                                record.name = value?.$colCodeToPropName()
                                 return value
                             </valueExpr>
                         </field>

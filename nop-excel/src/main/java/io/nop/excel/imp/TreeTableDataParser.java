@@ -40,6 +40,7 @@ import static io.nop.excel.ExcelErrors.ERR_IMPORT_UNKNOWN_GROUP_FIELD;
 
 public class TreeTableDataParser {
     private final IEvalScope scope;
+    private String sheetName;
 
     public TreeTableDataParser(IEvalScope scope) {
         this.scope = scope;
@@ -47,6 +48,7 @@ public class TreeTableDataParser {
 
     public void parse(String sheetName, ITableView table, ImportSheetModel sheetModel, ITableDataEventListener listener) {
         listener.beginSheet(sheetName, sheetModel);
+        this.sheetName = sheetName;
 
         int rowIndex = skipNonDataRow(table, 0);
         if (rowIndex >= 0) {
@@ -212,7 +214,12 @@ public class TreeTableDataParser {
                 }
 
                 ICellView cell = table.getCell(i, j);
-                listener.simpleField(i, j, cell, header);
+                try {
+                    listener.simpleField(i, j, cell, header);
+                } catch (NopException e) {
+                    e.addXplStack("row=" + rowIndex + ",col=" + colIndex + ",sheet=" + sheetName + ",field=" + header);
+                    throw e;
+                }
             }
 
             listener.endObject(field);
@@ -420,7 +427,12 @@ public class TreeTableDataParser {
         colIndex += cell.getColSpan();
         ICellView valueCell = table.getCell(rowIndex, colIndex);
 
-        listener.simpleField(rowIndex, colIndex, valueCell, new LabelData(cell, fieldModel));
+        try {
+            listener.simpleField(rowIndex, colIndex, valueCell, new LabelData(cell, fieldModel));
+        } catch (NopException e) {
+            e.addXplStack("row=" + rowIndex + ",col=" + colIndex + ",sheet=" + sheetName + ",field=" + fieldLabel);
+            throw e;
+        }
 
         return new CellRange(rowIndex, colIndex, rowIndex + cell.getMergeDown(),
                 valueCell == null ? colIndex + 1 : colIndex + valueCell.getMergeAcross());
