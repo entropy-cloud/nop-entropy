@@ -167,6 +167,8 @@ public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClas
       function getConvertMethod(type){
          if(type == 'io.nop.commons.bytes.ByteString')
             return 'io.nop.commons.bytes.ByteString.from';
+         if(type == 'io.nop.commons.type.GeometryObject')
+            return 'io.nop.orm.geo.util.GeometryObjectHelper.toGeometryObject';
          return 'ConvertHelper.to' + type.$lastPart('.');
       }
     </c:script>
