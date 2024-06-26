@@ -287,7 +287,7 @@
                                 if(entityNode.attrText('x:override') == 'remove')
                                     continue;
                                 let fileCols = entityNode.childByTag('columns').children.filter(colNode=>{
-                                      return colNode.getAttr('stdDomain') == 'file';
+                                      return colNode.getAttr('stdDomain') == 'file' || colNode.getAttr('stdDomain') == 'fileList';
                                    });
                             ]]></c:script>
                             <!--
@@ -302,7 +302,7 @@
                                         </c:script>
                                         <component name="${colNode.getAttr('name')}Component" needFlush="true"
                                                    notGenCode="${colNode.getAttr('notGenCode')}"
-                                                   className="io.nop.orm.component.OrmFileComponent">
+                                                   className="io.nop.orm.component.${colNode.getAttr('stdDomain') == 'fileList' ? 'OrmFileListComponent' : 'OrmFileComponent'}">
                                             <prop name="filePath" column="${colNode.getAttr('name')}"/>
                                         </component>
                                     </c:for>
