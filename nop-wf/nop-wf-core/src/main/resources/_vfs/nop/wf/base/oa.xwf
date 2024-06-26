@@ -32,14 +32,14 @@
             </transition>
         </action>
 
-        <action name="agree" displayName="同意" common="true" local="true">
+        <action name="complete" displayName="完成" common="true" local="true">
             <when>
-                <oa:WhenAllowAgree/>
+                <oa:WhenAllowComplete/>
             </when>
-            <transition appState="agree"/>
+            <transition appState="complete"/>
         </action>
 
-        <action name="reject" displayName="退回" forReject="true" common="true">
+        <action name="reject" displayName="退回" forReject="true" common="true" local="true">
             <when>
                 <oa:WhenAllowReject/>
             </when>
@@ -51,6 +51,21 @@
                 <oa:WhenAllowConfirm/>
             </when>
             <transition appState="confirm"/>
+        </action>
+
+        <action name="delegate" displayName="委办" common="true" local="true">
+            <when>
+               <oa:WhenAllowDelegate/>
+            </when>
+
+            <transition appState="delegate" />
+        </action>
+
+        <action name="delegateReturn" displayName="委办完成" common="true" local="true">
+            <when>
+                <oa:WhenAllowDelegateReturn/>
+            </when>
+            <transition appState="delegateReturn"/>
         </action>
     </actions>
 </workflow>

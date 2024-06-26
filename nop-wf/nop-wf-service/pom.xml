@@ -29,6 +29,11 @@
         </dependency>
 
         <dependency>
+            <artifactId>nop-auth-core</artifactId>
+            <groupId>io.github.entropy-cloud</groupId>
+        </dependency>
+
+        <dependency>
             <artifactId>nop-auth-dao</artifactId>
             <groupId>io.github.entropy-cloud</groupId>
         </dependency>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:extends="/nop/wf/base/oa.xwf" x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <steps>
+        <step id="start">
+            <transition>
+                <to-step stepName="k004" label="7天长期" order="1">
+                    <when>
+                        <gt name="entity.day" value="${7}" />
+                    </when>
+                </to-step>
+
+                <to-step stepName="k007" label="短期" order="2">
+
+                </to-step>
+            </transition>
+        </step>
+
+        <step id="k004" displayName="七天领导审批" specialType="co-sign">
+            <assignment>
+                <actors>
+                    <actor actorType="user" actorId="test001" actorName="测试会签审批人001"/>
+                    <actor actorType="user" actorId="test003" actorName="测试会签审批人003"/>
+                </actors>
+            </assignment>
+
+            <transition>
+                <to-step stepId="k005" />
+            </transition>
+        </step>
+
+        <step id="k005" displayName="部门经理确认">
+            <assignment>
+                <actors>
+                    <actor actorType="user" actorId="test002" actorName="于杰"/>
+                </actors>
+            </assignment>
+
+            <transition>
+                <to-step stepId="k008" />
+            </transition>
+        </step>
+
+        <step id="k007" displayName="默认主管审批">
+            <assignment>
+                <actors>
+                    <actor actorType="user" actorId="test002" actorName="于杰"/>
+                </actors>
+            </assignment>
+
+            <transition>
+                <to-step stepId="k008" />
+            </transition>
+        </step>
+
+        <step id="k008" displayName="抄送人">
+            <assignment>
+                <actors>
+                    <actor actorType="user" actorId="test005" actorName="抄送人2"/>
+                </actors>
+            </assignment>
+
+            <transition>
+                <to-end />
+            </transition>
+        </step>
+
+    </steps>
+</workflow>

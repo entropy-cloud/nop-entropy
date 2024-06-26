@@ -133,6 +133,40 @@
                 </c:script>
             </source>
         </WhenAllowConfirm>
+
+        <WhenAllowDelegate>
+            <attr name="wfRt" implicit="true"/>
+
+            <source>
+                <c:script>
+                    const specialType = wfRt.currentStep.specialType;
+                    return specialType == 'cc'
+                </c:script>
+            </source>
+        </WhenAllowDelegate>
+
+        <WhenAllowComplete>
+            <attr name="wfRt" implicit="true"/>
+
+            <source>
+                <c:script>
+                    const specialType = wfRt.currentStep.specialType;
+                    return specialType == 'cc'
+                </c:script>
+            </source>
+        </WhenAllowComplete>
+
+        <WhenAllowDelegateReturn>
+            <attr name="wfRt" implicit="true"/>
+
+            <source>
+                <c:script>
+                    const specialType = wfRt.currentStep.specialType;
+                    return specialType == 'cc'
+                </c:script>
+            </source>
+        </WhenAllowDelegateReturn>
+
     </tags>
 
 </lib>

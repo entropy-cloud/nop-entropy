@@ -23,6 +23,7 @@
 
     <actors xdef:body-type="list" xdef:key-attr="actorModelId">
         <!--
+          @actorModelId actor节点的唯一标识
           @actorType actor类型，如果包含名字空间，则对应于标签库中定义的动态Actor
           @selectUser 选择actor本身还是actor对应的user
           @voteWeight [投票权重]
