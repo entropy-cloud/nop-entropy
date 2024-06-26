@@ -138,6 +138,10 @@ public class CodeGenTask {
     }
 
     public static void main(String[] args) {
+        if (args.length == 0) {
+            System.out.println("skip CodeGenTask since no project path is provided");
+            return;
+        }
         // args = new String[]{"C:\\can\\entropy-cloud\\nop-config"};
         LogLevel logLevel = getLogLevel();
 
