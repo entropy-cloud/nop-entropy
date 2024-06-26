@@ -236,7 +236,9 @@ if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
    直接新建一个新的业务对象，比如`MyObject_self`，然后它会自动使用缺省的xmeta模型和xbiz配置。
 
 ```
-<bean id="MyObject_self" class="xxx.MyObjectBizModel" />
+<bean id="MyObject_self" class="xxx.MyObjectBizModel" >
+  <prop name="bizObjName" value="MyObject_self" />
+</bean>
 ```
 
 如果增加`MyObject_self.xmeta`，则`MyObject_self`会使用这个meta配置，否则会使用缺省的MyObject.xmeta。对于xbiz配置，同样是这样处理。

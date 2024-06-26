@@ -1,2 +1,2 @@
 _chgType,FILE_ID,FILE_NAME,FILE_PATH,FILE_EXT,MIME_TYPE,FILE_LENGTH,FILE_LAST_MODIFIED,BIZ_OBJ_NAME,BIZ_OBJ_ID,FIELD_NAME,FILE_HASH,DEL_FLAG,CREATED_BY,CREATE_TIME,REMARK
-A,@var:NopFileRecord@fileId,decision-tree.rule.xlsx,@var:NopFileRecord@filePath,xlsx,binary,1000,,NopRuleDefinition,__TEMP__,importFile,,1,autotest-ref,*,
+A,@var:NopFileRecord@fileId,decision-tree.rule.xlsx,@var:NopFileRecord@filePath,xlsx,binary,11856,,NopRuleDefinition,__TEMP__,importFile,,1,autotest-ref,*,

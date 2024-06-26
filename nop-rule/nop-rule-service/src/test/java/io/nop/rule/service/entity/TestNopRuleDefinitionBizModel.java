@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
 import java.io.InputStream;
 import java.util.Map;
 
-@NopTestConfig(localDb = true, initDatabaseSchema = true)
+@NopTestConfig(localDb = true, initDatabaseSchema = true,disableSnapshot = false)
 @NopTestProperty(name = "nop.file.store-dir", value = "./target")
 @NopTestProperty(name = "nop.orm.dao-resource-check-interval", value = "0")
 public class TestNopRuleDefinitionBizModel extends JunitAutoTestCase {
@@ -78,7 +78,7 @@ public class TestNopRuleDefinitionBizModel extends JunitAutoTestCase {
             request.setFileName(fileName);
             request.setBizObjName(NopRuleDefinition.class.getSimpleName());
             request.setFieldName("importFile");
-            request.setLength(1000);
+            request.setLength(resource.length());
             request.setMimeType("binary");
             request.setLastModified(1000);
             request.setInputStream(is);

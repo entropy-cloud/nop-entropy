@@ -2,7 +2,7 @@
   "data": {
     "ruleId": "@var:NopRuleDefinition@ruleId",
     "ruleName": "test",
-    "ruleVersion": "1",
+    "ruleVersion": 1,
     "displayName": "Test Tree",
     "ruleGroup": "default",
     "ruleType": "TREE",
@@ -20,8 +20,8 @@
         "name": "season",
         "displayName": "季度",
         "type": "String",
-        "mandatory": true,
-        "computed": false,
+        "mandatory": "true",
+        "computed": "false",
         "defaultExpr": null,
         "description": null,
         "schema": {}
@@ -30,8 +30,8 @@
         "name": "guestCount",
         "displayName": "客人数",
         "type": "Integer",
-        "mandatory": true,
-        "computed": false,
+        "mandatory": "true",
+        "computed": "false",
         "defaultExpr": null,
         "description": null,
         "schema": {}

@@ -12,16 +12,16 @@
     "status_label": "1-启用",
     "version": 0,
     "createdBy": "autotest-ref",
-    "createTime": "@var:NopRuleDefinition@createTime",
+    "createTime": "@var:NopRuleDefinition@updateTime",
     "updatedBy": "autotest-ref",
-    "updateTime": "@var:NopRuleDefinition@createTime",
+    "updateTime": "@var:NopRuleDefinition@updateTime",
     "ruleInputs": [
       {
         "name": "是否有房",
         "displayName": "是否有房",
         "type": "Boolean",
-        "mandatory": true,
-        "computed": false,
+        "mandatory": "true",
+        "computed": "false",
         "defaultExpr": null,
         "description": null,
         "schema": {}
@@ -30,8 +30,8 @@
         "name": "是否已婚",
         "displayName": "是否已婚",
         "type": "String",
-        "mandatory": true,
-        "computed": false,
+        "mandatory": "true",
+        "computed": "false",
         "defaultExpr": null,
         "description": null,
         "schema": {}
@@ -40,8 +40,8 @@
         "name": "baseInfo",
         "displayName": "基础信息",
         "type": "Object",
-        "mandatory": true,
-        "computed": false,
+        "mandatory": "true",
+        "computed": "false",
         "defaultExpr": null,
         "description": null,
         "schema": {
@@ -55,13 +55,13 @@
               "ext:level": 1,
               "i18n-en:displayName": "Age",
               "internal": false,
-              "virtual": false,
-              "lazy": false,
               "deprecated": false,
+              "lazy": false,
               "insertable": true,
-              "published": true,
-              "queryable": false,
               "updatable": true,
+              "queryable": false,
+              "virtual": false,
+              "published": true,
               "schema": {
                 "type": "Integer"
               }
@@ -73,13 +73,13 @@
               "type": "Integer",
               "ext:level": 1,
               "internal": false,
-              "virtual": false,
-              "lazy": false,
               "deprecated": false,
+              "lazy": false,
               "insertable": true,
-              "published": true,
-              "queryable": false,
               "updatable": true,
+              "queryable": false,
+              "virtual": false,
+              "published": true,
               "schema": {
                 "type": "Integer"
               }
@@ -91,8 +91,8 @@
         "name": "gender",
         "displayName": "性别",
         "type": "Integer",
-        "mandatory": true,
-        "computed": true,
+        "mandatory": "true",
+        "computed": "true",
         "defaultExpr": "<_>baseInfo.gender</_>",
         "description": null,
         "schema": {
