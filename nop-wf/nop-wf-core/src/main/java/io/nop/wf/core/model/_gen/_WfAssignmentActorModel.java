@@ -26,7 +26,7 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
     /**
      *  
      * xml name: actorModelId
-     * 
+     * actor节点的唯一标识
      */
     private java.lang.String _actorModelId ;
     
@@ -87,7 +87,7 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
     /**
      * 
      * xml name: actorModelId
-     *  
+     *  actor节点的唯一标识
      */
     
     public java.lang.String getActorModelId(){

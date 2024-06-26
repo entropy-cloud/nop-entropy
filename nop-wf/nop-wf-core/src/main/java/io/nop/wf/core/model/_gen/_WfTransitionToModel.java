@@ -39,6 +39,13 @@ public abstract class _WfTransitionToModel extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: label
+     * 
+     */
+    private java.lang.String _label ;
+    
+    /**
+     *  
      * xml name: order
      * transition-to节点的执行顺序。当splitType=or的时候，如果排在前面的节点如果满足条件，就不会检查排在后面的节点
      */
@@ -110,6 +117,25 @@ public abstract class _WfTransitionToModel extends io.nop.core.resource.componen
     
     /**
      * 
+     * xml name: label
+     *  
+     */
+    
+    public java.lang.String getLabel(){
+      return _label;
+    }
+
+    
+    public void setLabel(java.lang.String value){
+        checkAllowChange();
+        
+        this._label = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: order
      *  transition-to节点的执行顺序。当splitType=or的时候，如果排在前面的节点如果满足条件，就不会检查排在后面的节点
      */
@@ -164,6 +190,7 @@ public abstract class _WfTransitionToModel extends io.nop.core.resource.componen
         out.putNotNull("afterTransition",this.getAfterTransition());
         out.putNotNull("beforeTransition",this.getBeforeTransition());
         out.putNotNull("caseValue",this.getCaseValue());
+        out.putNotNull("label",this.getLabel());
         out.putNotNull("order",this.getOrder());
         out.putNotNull("when",this.getWhen());
     }
@@ -180,6 +207,7 @@ public abstract class _WfTransitionToModel extends io.nop.core.resource.componen
         instance.setAfterTransition(this.getAfterTransition());
         instance.setBeforeTransition(this.getBeforeTransition());
         instance.setCaseValue(this.getCaseValue());
+        instance.setLabel(this.getLabel());
         instance.setOrder(this.getOrder());
         instance.setWhen(this.getWhen());
     }

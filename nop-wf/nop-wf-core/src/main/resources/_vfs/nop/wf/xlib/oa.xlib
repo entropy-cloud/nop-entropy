@@ -151,7 +151,7 @@
             <source>
                 <c:script>
                     const specialType = wfRt.currentStep.specialType;
-                    return specialType == 'cc'
+                    return specialType != 'cc'
                 </c:script>
             </source>
         </WhenAllowComplete>

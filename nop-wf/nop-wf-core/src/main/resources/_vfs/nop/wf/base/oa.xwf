@@ -32,6 +32,13 @@
             </transition>
         </action>
 
+        <action name="agree" displayName="同意" common="true" local="true">
+            <when>
+                <oa:WhenAllowAgree/>
+            </when>
+            <transition appState="agree"/>
+        </action>
+
         <action name="complete" displayName="完成" common="true" local="true">
             <when>
                 <oa:WhenAllowComplete/>
