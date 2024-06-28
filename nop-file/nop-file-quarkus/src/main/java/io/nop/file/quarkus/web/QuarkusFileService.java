@@ -9,7 +9,6 @@ package io.nop.file.quarkus.web;
 
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
-import io.nop.api.core.beans.WebContentBean;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.util.StringHelper;
@@ -17,7 +16,6 @@ import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.file.core.AbstractGraphQLFileService;
 import io.nop.file.core.DownloadRequestBean;
 import io.nop.file.core.FileConstants;
-import io.nop.file.core.MediaTypeHelper;
 import io.nop.file.core.UploadRequestBean;
 import io.nop.graphql.core.web.JaxrsHelper;
 import io.vertx.core.http.HttpServerRequest;
@@ -38,9 +36,9 @@ import jakarta.ws.rs.core.Response;
 import org.jboss.resteasy.plugins.providers.multipart.InputPart;
 import org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
@@ -58,8 +56,6 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
         return withRoutingContext(routingContext, () -> {
             Map<String, List<InputPart>> uploadForm = input.getFormDataMap();
             List<InputPart> inputParts = uploadForm.get("file");
-            String bizObjName = request.getParam(FileConstants.PARAM_BIZ_OBJ_NAME);
-            String fieldName = request.getParam(FileConstants.PARAM_FIELD_NAME);
 
             String locale = ContextProvider.currentLocale();
             CompletionStage<ApiResponse<?>> res = null;
@@ -79,12 +75,13 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
                     // 处理上传文件
                     InputStream inputStream = inputPart.getBody(InputStream.class, null);
 
-                    String mimeType = MediaTypeHelper.getMimeType(contentType, StringHelper.fileExt(fileName));
-                    UploadRequestBean fileInput = new UploadRequestBean(inputStream, fileName, -1, mimeType);
-                    fileInput.setBizObjName(bizObjName);
-                    fileInput.setFieldName(fieldName);
+                    UploadRequestBean fileInput = buildUploadRequestBean(inputStream,
+                                                                         fileName,
+                                                                         -1,
+                                                                         contentType,
+                                                                         (name) -> getParamFrom(request, input, name));
+                    res = uploadAsync(buildApiRequest(request, fileInput));
 
-                    res = uploadAsync(buildRequest(request, fileInput));
                     return res.thenApply(JaxrsHelper::buildJaxrsResponse);
                 }
                 throw new IllegalArgumentException("No Upload File");
@@ -95,6 +92,17 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
         });
     }
 
+    private String getParamFrom(HttpServerRequest request, MultipartFormDataInput input, String name) {
+        String value = request.getParam(name);
+        if (value == null) {
+            try {
+                value = input.getFormDataPart(name, String.class, null);
+            } catch (IOException ignore) {
+            }
+        }
+        return value;
+    }
+
     /**
      * resteasy内部强制使用了固定编码方式解析content-disposition来得到文件名
      */
@@ -102,16 +110,10 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
         return new String(fileName.getBytes(StringHelper.CHARSET_ISO_8859_1), StringHelper.CHARSET_UTF8);
     }
 
-    protected <T> ApiRequest<T> buildRequest(HttpServerRequest req, T data) {
-        ApiRequest<T> ret = new ApiRequest<>();
-        req.headers().forEach((name, value) -> {
-            name = name.toLowerCase(Locale.ENGLISH);
-            if (shouldIgnoreHeader(name))
-                return;
-            ret.setHeader(name, value);
+    protected <T> ApiRequest<T> buildApiRequest(HttpServerRequest req, T data) {
+        return buildApiRequest(data, (header) -> {
+            req.headers().forEach(header::accept);
         });
-        ret.setData(data);
-        return ret;
     }
 
     /**
@@ -123,19 +125,16 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
      **/
     //get uploaded filename, is there a easy way in RESTEasy?
     private String getFileName(MultivaluedMap<String, String> header) {
-
         String[] contentDisposition = header.getFirst("Content-Disposition").split(";");
 
         for (String filename : contentDisposition) {
             if ((filename.trim().startsWith("filename"))) {
-
                 String[] name = filename.split("=");
 
-                String finalFileName = name[1].trim().replaceAll("\"", "");
-                return finalFileName;
+                return name[1].trim().replaceAll("\"", "");
             }
         }
-        return "unknown";
+        return null;
     }
 
     @Path(FileConstants.PATH_DOWNLOAD + "/{fileId}")
@@ -145,16 +144,14 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
                                               @DefaultValue("") @QueryParam("contentType") String contentType,
                                               @Context HttpServerRequest req) {
         return withRoutingContext(routingContext, () -> {
-            DownloadRequestBean request = new DownloadRequestBean();
-            request.setFileId(fileId);
-            request.setContentType(contentType);
+            DownloadRequestBean request = buildDownloadRequestBean(fileId, contentType);
 
-            return downloadAsync(buildRequest(req, request)).thenApply(res -> {
+            return downloadAsync(buildApiRequest(req, request)).thenApply(res -> {
                 if (!res.isOk()) {
                     return JaxrsHelper.buildJaxrsResponse(res);
+                } else {
+                    return QuarkusFileHelper.buildFileResponse(res);
                 }
-                WebContentBean content = res.getData();
-                return QuarkusFileHelper.buildFileResponse(content.getContent(), content.getContentType(), content.getFileName());
             });
         });
     }
