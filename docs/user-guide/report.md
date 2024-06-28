@@ -275,3 +275,14 @@ output.generateToFile(outputFile, scope);
 
 * 可以使用import来引入Java类
 * 可以使用inject(beanName)引入IoC容器中定义的bean
+
+## 条件样式
+可以根据条件动态计算得到单元格的样式。
+
+1. 在报表模板中需要增加XptWorkbookModel这个Sheet页，在其中定义命名样式。
+![](report/named-styles.png)
+
+2. 配置单元格的styleIdExpr
+```
+styleIdExpr=cell.ev == 2002 ? 'red' : null
+```
