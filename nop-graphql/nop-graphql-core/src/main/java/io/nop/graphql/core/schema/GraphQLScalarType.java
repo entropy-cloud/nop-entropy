@@ -23,13 +23,14 @@ public enum GraphQLScalarType {
     // Short(StdDataType.SHORT),
     Int(StdDataType.INT), //
     Long(StdDataType.LONG),
-    Float(StdDataType.DOUBLE), //
+    Float(StdDataType.FLOAT), //
+    Double(StdDataType.DOUBLE), //
     String(StdDataType.STRING), //
     Map(StdDataType.MAP), //
     Any(StdDataType.ANY),
-    Void(StdDataType.VOID);
+    Void(StdDataType.VOID),
     // BigInteger(StdDataType.BIGINT),
-    // BigDecimal(StdDataType.DECIMAL);
+    BigDecimal(StdDataType.DECIMAL);
 
     private final StdDataType stdDataType;
 
@@ -52,7 +53,7 @@ public enum GraphQLScalarType {
         }
         // stdMap.put(StdDataType.LONG, GraphQLScalarType.String);
         stdMap.put(StdDataType.BIGINT, GraphQLScalarType.String);
-        stdMap.put(StdDataType.DECIMAL, GraphQLScalarType.Float);
+        stdMap.put(StdDataType.DECIMAL, GraphQLScalarType.BigDecimal);
         stdMap.put(StdDataType.BYTE, GraphQLScalarType.Int);
         stdMap.put(StdDataType.CHAR, GraphQLScalarType.String);
         stdMap.put(StdDataType.SHORT, GraphQLScalarType.Int);

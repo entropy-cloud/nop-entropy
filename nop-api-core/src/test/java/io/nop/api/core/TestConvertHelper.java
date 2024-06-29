@@ -93,4 +93,9 @@ public class TestConvertHelper {
         System.out.println(days + "," + (days / 365));
     }
 
+    @Test
+    public void testFloatToString(){
+        System.out.println(1.2f);
+        System.out.println((double)1.2f);
+    }
 }

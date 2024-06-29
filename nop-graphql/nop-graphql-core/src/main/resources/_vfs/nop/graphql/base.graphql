@@ -8,6 +8,10 @@ scalar Any
 
 scalar Void
 
+scalar BigDecimal
+
+scalar Double
+
 "表示Tree结构。max指定最多嵌套几层"
 directive @TreeChildren(max:Int) on FIELD
 
