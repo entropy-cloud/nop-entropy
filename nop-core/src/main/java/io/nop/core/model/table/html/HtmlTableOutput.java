@@ -19,7 +19,6 @@ import io.nop.core.resource.tpl.ITextTemplateOutput;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 public class HtmlTableOutput implements ITextTemplateOutput {
@@ -34,13 +33,26 @@ public class HtmlTableOutput implements ITextTemplateOutput {
     private String sideCellClass;
     private String cornerCellClass;
     private String scopeCssPrefix = "cls-";
+    private String hiddenClass;
+    private String colClass;
 
     private Double defaultHeight;
     private Double defaultWidth;
+    private boolean disableStyle; // 某些安全限制下不允许设置style，只能使用class
+    private boolean[] colHidden;
 
     public HtmlTableOutput(ITableView table, String themeCssPrefix) {
         this.table = table;
         this.setThemeCssPrefix(themeCssPrefix);
+    }
+
+    public void setDisableStyle(boolean disableStyle) {
+        this.disableStyle = disableStyle;
+    }
+
+    public HtmlTableOutput disableStyle(boolean disableStyle) {
+        setDisableStyle(disableStyle);
+        return this;
     }
 
     public Double getDefaultHeight() {
@@ -69,6 +81,8 @@ public class HtmlTableOutput implements ITextTemplateOutput {
         cellClass = cssPrefix + "cell";
         sideCellClass = cellClass + " side";
         cornerCellClass = cellClass + " corner";
+        this.hiddenClass = cssPrefix + "hidden";
+        this.colClass = cssPrefix + "col";
     }
 
     public void setScopeCssPrefix(String scopeCssPrefix) {
@@ -87,7 +101,16 @@ public class HtmlTableOutput implements ITextTemplateOutput {
         return baseClass + " " + scopeCssPrefix + styleId;
     }
 
-    void writeCell(Writer out, String cellClass, ICellView cell, IEvalContext context) throws IOException {
+    String rowClass(String styleId, boolean hidden) {
+        if (hidden)
+            return styleClass(rowClass, styleId) + " " + hiddenClass;
+        return styleClass(rowClass, styleId);
+    }
+
+    void writeCell(Writer out, String cellClass, ICellView cell, int colIndex, IEvalContext context) throws IOException {
+        if (colHidden[colIndex]) {
+            cellClass += " " + hiddenClass;
+        }
         if (cell == null) {
             out.write("<td ");
             writeAttr(out, "class", cellClass);
@@ -198,22 +221,29 @@ public class HtmlTableOutput implements ITextTemplateOutput {
     }
 
     void writeCols(Writer out) throws IOException {
-        List<? extends IColumnConfig> colTypes = table.getCols();
-        if (colTypes != null) {
-            for (IColumnConfig colType : colTypes) {
-                out.write("<col ");
-                Double width = null;
-                if (colType != null) {
-                    width = colType.getWidth();
-                }
+        this.colHidden = new boolean[table.getColCount()];
 
-                if (width == null)
-                    width = defaultWidth;
-                if (width != null) {
-                    writeAttr(out, "style", "width:" + ptValue(width));
-                }
-                out.write(" />");
+        for (int index = 0, n = table.getColCount(); index < n; index++) {
+            IColumnConfig colType = table.getCol(index);
+            out.write("<col ");
+
+            if (colType != null && colType.isHidden()) {
+                writeAttr(out, "hidden", "true");
+                colHidden[index] = true;
             }
+            Double width = null;
+            if (colType != null) {
+                width = colType.getWidth();
+            }
+
+            if (width == null)
+                width = defaultWidth;
+
+            if (width != null && !disableStyle) {
+                writeAttr(out, "style", "width:" + ptValue(width));
+            }
+
+            out.write(" />");
         }
     }
 
@@ -248,11 +278,11 @@ public class HtmlTableOutput implements ITextTemplateOutput {
         out.write("\n<tr ");
         writeAttr(out, "id", row.getId());
 
-        writeAttr(out, "class", styleClass(rowClass, row.getStyleId()));
+        writeAttr(out, "class", rowClass(row.getStyleId(), row.isHidden()));
         Double height = row.getHeight();
         if (height == null)
             height = defaultHeight;
-        if (height != null) {
+        if (height != null && !disableStyle) {
             out.write(" style=\"height:" + ptValue(height) + "\"");
         }
 
@@ -265,7 +295,7 @@ public class HtmlTableOutput implements ITextTemplateOutput {
         while (it.hasNext()) {
             ICellView cell = it.next();
             String cellClass = getCellClass(i < sideCount, pos);
-            writeCell(out, cellClass, cell, context);
+            writeCell(out, cellClass, cell, i, context);
             i++;
         }
 

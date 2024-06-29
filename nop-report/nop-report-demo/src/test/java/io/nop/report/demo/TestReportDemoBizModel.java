@@ -46,7 +46,7 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
 
 
 //    @EnableSnapshot
-//    @Test
+//    @TestCell
 //    public void runOnce() {
 //        setTestConfig(ApiConfigs.CFG_EXCEPTION_FILL_STACKTRACE, true);
 //        String reportName = "/base/02-段落明细表.xpt.xlsx";

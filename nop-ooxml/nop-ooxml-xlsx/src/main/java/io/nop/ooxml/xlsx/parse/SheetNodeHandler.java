@@ -166,13 +166,14 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
             headerFooter.setLength(0);
         } else if ("row".equals(localName)) {
             String rowNumStr = getAttr(attrs, "r");
+            boolean hidden = getAttrBoolean(attrs, "hidden", false);
             if (rowNumStr != null) {
                 rowNum = Integer.parseInt(rowNumStr) - 1;
             } else {
                 rowNum = nextRowNum;
             }
             rowHeight = getAttrDouble(attrs, "ht", null);
-            output.startRow(rowNum, rowHeight);
+            output.startRow(rowNum, rowHeight, hidden);
         }
         // c => cell
         else if ("c".equals(localName)) {
@@ -222,6 +223,8 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
         } else if ("col".equals(localName)) {
             int min = getAttrInt(attrs, "min", 1);
             int max = getAttrInt(attrs, "max", min);
+            boolean hidden = getAttrBoolean(attrs, "hidden", false);
+
             // 宽度为字符个数
             Double width = getAttrDouble(attrs, "width", null);
             if (width != null)
@@ -233,6 +236,7 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
             for (int i = min - 1; i < max; i++) {
                 ExcelColumnConfig col = new ExcelColumnConfig();
                 col.setWidth(width);
+                col.setHidden(hidden);
                 CollectionHelper.set(cols, i, col);
             }
         } else if ("pageMargins".equals(localName)) {

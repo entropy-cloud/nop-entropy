@@ -22,6 +22,7 @@ import io.nop.excel.model.ExcelCell;
 import io.nop.excel.model.ExcelColumnConfig;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelPageMargins;
+import io.nop.excel.model.ExcelRow;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.excel.model.ExcelTable;
@@ -140,8 +141,10 @@ public class ExcelWorkbookParser extends AbstractXlsxParser {
         }
 
         @Override
-        public void startRow(int rowNum, Double height) {
-            table.makeRow(rowNum).setHeight(height);
+        public void startRow(int rowNum, Double height, boolean hidden) {
+            ExcelRow row = table.makeRow(rowNum);
+            row.setHeight(height);
+            row.setHidden(hidden);
         }
 
         @Override

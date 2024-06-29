@@ -111,8 +111,10 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
                 Double width = col == null ? null : col.getWidth();
                 if (width == null)
                     width = sheet.getDefaultColumnWidth();
+                Boolean hidden = col != null && col.isHidden() ? true : null;
+
                 out.simpleNode(null, "col", attrs("min", i + 1, "max", i + 1, "width",
-                        ptToCharWidth(width),
+                        ptToCharWidth(width), "hidden", hidden,
                         "customWidth", width != null ? "1" : null));
             }
             out.endNode("cols");
@@ -132,9 +134,12 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
         int colCount = sheet.getTable().getColCount();
         for (int i = 0, n = rows.size(); i < n; i++) {
             IRowView row = rows.get(i);
+            Boolean hidden = row.isHidden() ? true : null;
+
             // <row r="1" spans="1:4" ht="38" customHeight="1" x14ac:dyDescent="0.3">
             out.beginNode(null, "row", attrs("r", i + 1, "spans", "1:" + colCount,
                     "ht", row.getHeight(), "customHeight", row.getHeight() != null ? "1" : null,
+                    "hidden", hidden,
                     "x14ac:dyDescent", "0.3"));
             genCells(out, i, row);
             out.endNode("row");

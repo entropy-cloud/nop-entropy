@@ -88,6 +88,22 @@ public class TestReportEngine extends BaseTestCase {
         output.generateToFile(getTargetFile("test-calc.xlsx"), XLang.newEvalScope());
     }
 
+    @Test
+    public void testHidden(){
+        IReportEngine reportEngine = newReportEngine();
+
+
+        ExcelWorkbook workbook = new ExcelWorkbookParser().parseFromVirtualPath("/nop/report/demo/test-hidden.xpt.xlsx");
+        ITextTemplateOutput htmlRenderer = (ITextTemplateOutput) reportEngine.getRendererForExcel(workbook, "html");
+        String html = htmlRenderer.generateText(XLang.newEvalScope());
+        // System.out.println(html);
+
+        FileHelper.writeText(getTargetFile("test-hidden.html"), html, null);
+
+        ITemplateOutput output = reportEngine.getRendererForExcel(workbook, "xlsx");
+        output.generateToFile(getTargetFile("test-hidden.xlsx"), XLang.newEvalScope());
+    }
+
     private IReportEngine newReportEngine() {
         ReportEngine reportEngine = new ReportEngine();
         Map<String, IReportRendererFactory> renderers = new HashMap<>();

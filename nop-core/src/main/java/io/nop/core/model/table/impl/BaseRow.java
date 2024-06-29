@@ -10,8 +10,8 @@ package io.nop.core.model.table.impl;
 import io.nop.core.lang.json.IJsonHandler;
 import io.nop.core.model.table.ICell;
 import io.nop.core.model.table.IRow;
-
 import jakarta.annotation.Nonnull;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -81,15 +81,15 @@ public class BaseRow extends AbstractRow implements IRow {
     @Override
     protected void outputJson(IJsonHandler out) {
         super.outputJson(out);
-        if (id != null)
-            out.put("id", id);
-        if (styleId != null)
-            out.put("styleId", styleId);
+        if (getId() != null)
+            out.put("id", getId());
+        if (getStyleId() != null)
+            out.put("styleId", getStyleId());
         if (getHeight() != null)
             out.put("height", getHeight());
         if (isHidden())
             out.put("hidden", true);
-        out.put("cells", cells);
+        out.put("cells", getCells());
     }
 
     public void freeze(boolean cascade) {

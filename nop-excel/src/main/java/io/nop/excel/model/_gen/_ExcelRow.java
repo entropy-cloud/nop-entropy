@@ -39,6 +39,13 @@ public abstract class _ExcelRow extends io.nop.core.model.table.impl.AbstractRow
     
     /**
      *  
+     * xml name: hidden
+     * 
+     */
+    private boolean _hidden  = false;
+    
+    /**
+     *  
      * xml name: model
      * 
      */
@@ -111,6 +118,25 @@ public abstract class _ExcelRow extends io.nop.core.model.table.impl.AbstractRow
         checkAllowChange();
         
         this._height = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: hidden
+     *  
+     */
+    
+    public boolean isHidden(){
+      return _hidden;
+    }
+
+    
+    public void setHidden(boolean value){
+        checkAllowChange();
+        
+        this._hidden = value;
            
     }
 
@@ -194,6 +220,7 @@ public abstract class _ExcelRow extends io.nop.core.model.table.impl.AbstractRow
         out.putNotNull("autoFitHeight",this.isAutoFitHeight());
         out.putNotNull("cells",this.getCells());
         out.putNotNull("height",this.getHeight());
+        out.putNotNull("hidden",this.isHidden());
         out.putNotNull("model",this.getModel());
         out.putNotNull("name",this.getName());
         out.putNotNull("styleId",this.getStyleId());
@@ -211,6 +238,7 @@ public abstract class _ExcelRow extends io.nop.core.model.table.impl.AbstractRow
         instance.setAutoFitHeight(this.isAutoFitHeight());
         instance.setCells(this.getCells());
         instance.setHeight(this.getHeight());
+        instance.setHidden(this.isHidden());
         instance.setModel(this.getModel());
         instance.setName(this.getName());
         instance.setStyleId(this.getStyleId());

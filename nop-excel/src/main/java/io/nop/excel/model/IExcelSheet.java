@@ -37,6 +37,9 @@ public interface IExcelSheet {
         double sum = 0;
         for (int i = fromColIndex; i <= toColIndex; i++) {
             IColumnConfig col = getTable().getCol(i);
+            if(col != null && col.isHidden())
+                continue;
+
             Double d;
             if (col == null || col.getWidth() == null) {
                 d = getDefaultColumnWidth();
@@ -54,6 +57,9 @@ public interface IExcelSheet {
         double sum = 0;
         for (int i = fromRowIndex; i <= toRowIndex; i++) {
             IRowView row = getTable().getRow(i);
+            if(row != null && row.isHidden())
+                continue;
+
             Double d;
             if (row == null || row.getHeight() == null) {
                 d = getDefaultRowHeight();

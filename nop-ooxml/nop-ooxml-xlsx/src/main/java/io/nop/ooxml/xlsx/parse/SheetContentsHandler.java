@@ -43,7 +43,7 @@ public interface SheetContentsHandler {
     /**
      * A row with the (zero based) row number has started
      */
-    void startRow(int rowNum, Double height);
+    void startRow(int rowNum, Double height, boolean hidden);
 
     /**
      * A row with the (zero based) row number has ended

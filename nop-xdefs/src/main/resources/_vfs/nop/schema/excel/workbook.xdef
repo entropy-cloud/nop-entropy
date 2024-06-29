@@ -65,7 +65,7 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
 
                 <rows xdef:body-type="list">
                     <row xdef:name="ExcelRow" styleId="string" height="double"
-                         autoFitHeight="!boolean=false" name="string"
+                         autoFitHeight="!boolean=false" name="string" hidden="!boolean=false"
                          xdef:bean-extends-type="io.nop.core.model.table.impl.AbstractRow"
                     >
                         <cells xdef:body-type="list">

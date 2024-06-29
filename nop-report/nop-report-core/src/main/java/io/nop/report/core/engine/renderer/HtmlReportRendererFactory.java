@@ -102,6 +102,8 @@ public class HtmlReportRendererFactory implements IReportRendererFactory {
         protected void renderStyles(List<ExcelStyle> styles, String reportId, String scopedCssPrefix, Writer out) throws IOException {
             out.write("<style>\n");
             out.append("#").append(reportId).append(' ');
+            out.append(".xpt-hidden{ display:none}\n");
+            out.append("#").append(reportId).append(' ');
             out.append(".xpt-table{\n" +
                     "   border-collapse:collapse;border-spacing:0;table-layout:fixed;\n" +
                     "}\n" + ("#" + reportId + " ") +
