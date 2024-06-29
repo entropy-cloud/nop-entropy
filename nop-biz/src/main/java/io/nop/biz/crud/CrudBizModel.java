@@ -513,6 +513,45 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     }
 
     @BizAction
+    protected void checkUniqueForUpdate(@Name("entity") T entity, IServiceContext context) {
+        IObjMeta objMeta = getThisObj().getObjMeta();
+        if (objMeta.getKeys() != null) {
+            IEntityDao<T> dao = dao();
+            for (ObjKeyModel keyModel : objMeta.getKeys()) {
+                Set<String> props = keyModel.getProps();
+                if (isAnyPropDirty(entity, props)) {
+                    T example = dao.newEntity();
+                    List<Object> keys = new ArrayList<>();
+                    List<Object> displayNames = new ArrayList<>();
+                    for (String propName : props) {
+                        Object value = entity.orm_propValueByName(propName);
+                        example.orm_propValueByName(propName, value);
+                        keys.add(value);
+                        displayNames.add(objMeta.getProp(propName).getDisplayName());
+                    }
+                    T existing = dao.findFirstByExample(example);
+                    if (existing != null && existing != entity) {
+                        throw new NopException(ERR_BIZ_ENTITY_WITH_SAME_KEY_ALREADY_EXISTS)
+                                .param(ARG_KEY, StringHelper.join(keys, ",")).param(ARG_DISPLAY_NAME, StringHelper.join(displayNames, ","))
+                                .param(ARG_BIZ_OBJ_NAME, getBizObjName());
+                    }
+                }
+            }
+        }
+    }
+
+    protected boolean isAnyPropDirty(T entity, Set<String> propNames) {
+        for (String propName : propNames) {
+            int propId = entity.orm_propId(propName);
+            if (propId < 0)
+                continue;
+            if (entity.orm_propDirty(propId))
+                return true;
+        }
+        return false;
+    }
+
+    @BizAction
     public void trySave(@Name("data") Map<String, Object> data, FieldSelectionBean selection, IServiceContext context) {
         if (CollectionHelper.isEmptyMap(data))
             throw new NopException(ERR_BIZ_EMPTY_DATA_FOR_SAVE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
@@ -677,6 +716,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
             prepareUpdate.accept(entityData, context);
 
         checkDataAuthAfterUpdate(entityData.getEntity(), context);
+        checkUniqueForUpdate(entityData.getEntity(), context);
 
         doUpdateEntity(entityData, context);
 
@@ -1384,10 +1424,13 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     public T copyForNew(@Name("data") Map<String, Object> data, IServiceContext context) {
         if (CollectionHelper.isEmptyMap(data))
             throw new NopException(ERR_BIZ_EMPTY_DATA_FOR_SAVE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
-        return doCopyForNew(data, BizConstants.SELECTION_COPY_FOR_NEW, context);
+        return doCopyForNew(data, BizConstants.SELECTION_COPY_FOR_NEW, this::defaultPrepareSave, context);
     }
 
-    protected T doCopyForNew(@Name("data") Map<String, Object> data, @Name("copySelection") String copySelection, IServiceContext context) {
+    @BizAction
+    protected T doCopyForNew(@Name("data") Map<String, Object> data, @Name("copySelection") String copySelection,
+                             @Name("prepareSave") BiConsumer<EntityData<T>, IServiceContext> prepareSave,
+                             IServiceContext context) {
         Object id = data.get(OrmConstants.PROP_ID);
 
         IEntityDao<T> dao = dao();
@@ -1398,6 +1441,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         FieldSelectionBean inputSelection = objMeta.getFieldSelection(copySelection);
         EntityData<T> entityData = buildEntityDataForSave(data, inputSelection, context);
         entityData.getValidatedData().remove(OrmConstants.PROP_ID);
+
+        checkUniqueForSave(entityData);
 
         T newEntity;
         if (inputSelection != null) {
@@ -1417,6 +1462,11 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         new OrmEntityCopier(daoProvider, bizObjectManager).copyToEntity(entityData.getValidatedData(),
                 newEntity, inputSelection, entityData.getObjMeta(), getBizObjName(),
                 BizConstants.METHOD_SAVE, context.getEvalScope());
+
+        if (prepareSave != null)
+            prepareSave.accept(entityData, context);
+
+        checkDataAuth(BizConstants.METHOD_SAVE, entityData.getEntity(), context);
 
         this.doSaveEntity(entityData, context);
         return newEntity;
