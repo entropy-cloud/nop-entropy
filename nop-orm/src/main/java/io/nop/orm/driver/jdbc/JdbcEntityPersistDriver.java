@@ -12,8 +12,6 @@ import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.collections.IntArray;
 import io.nop.core.lang.sql.SQL;
-import io.nop.dataset.binder.IDataParameterBinder;
-import io.nop.dataset.IDataRow;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.lock.LockOption;
 import io.nop.dao.jdbc.IJdbcTemplate;
@@ -22,6 +20,8 @@ import io.nop.dao.shard.ShardSelection;
 import io.nop.dao.txn.ITransaction;
 import io.nop.dao.txn.ITransactionListener;
 import io.nop.dao.utils.DaoHelper;
+import io.nop.dataset.IDataRow;
+import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.OrmErrors;
 import io.nop.orm.driver.IEntityPersistDriver;
@@ -185,7 +185,7 @@ public class JdbcEntityPersistDriver implements IEntityPersistDriver {
             if (dialect != this.dialect || !batchLoadSqlPart.propIds.equals(propIds)) {
                 batchLoadSqlPart = GenSqlHelper.genLoadSqlPart(dialect, entityModel, propIds);
             }
-            SQL.SqlBuilder sb = SQL.begin().append(batchLoadSqlPart.sql);
+            SQL.SqlBuilder sb = SQL.begin().append(batchLoadSqlPart.sql).querySpace(getQuerySpace(shard));
             GenSqlHelper.appendBatchLoadEq(sb, dialect, entityModel, binders, entities);
             SQL sql = sb.end();
 
@@ -211,6 +211,12 @@ public class JdbcEntityPersistDriver implements IEntityPersistDriver {
             }
             return null;
         });
+    }
+
+    private String getQuerySpace(ShardSelection shard) {
+        if (shard != null && shard.getQuerySpace() != null)
+            return shard.getQuerySpace();
+        return querySpace;
     }
 
     @Override

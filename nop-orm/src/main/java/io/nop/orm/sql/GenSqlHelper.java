@@ -56,6 +56,8 @@ public class GenSqlHelper {
                                        IntArray propIds) {
         SQL.SqlBuilder sb = SQL.begin();
         sb.name("load:" + entityModel.getName());
+        sb.querySpace(entityModel.getQuerySpace());
+
         sb.select();
         genSelectFields(sb, dialect, null, entityModel, propIds);
         sb.append('\n');
@@ -71,6 +73,8 @@ public class GenSqlHelper {
     public static EntitySQL genLoadSqlPart(IDialect dialect, IEntityModel entityModel, IntArray propIds) {
         SQL.SqlBuilder sb = SQL.begin();
         sb.name("batchLoad:" + entityModel.getName());
+        sb.querySpace(entityModel.getQuerySpace());
+
         sb.select();
         genSelectFields(sb, dialect, null, entityModel, propIds);
         sb.append('\n');
@@ -159,6 +163,8 @@ public class GenSqlHelper {
     public static EntitySQL genDeleteSql(IDialect dialect, IEntityModel entityModel, IDataParameterBinder[] binders) {
         SQL.SqlBuilder sb = SQL.begin();
         sb.name("delete:" + entityModel.getName());
+        sb.querySpace(entityModel.getQuerySpace());
+
         sb.deleteFrom();
         table(sb, dialect, entityModel, null);
         sb.append('\n');
@@ -179,6 +185,8 @@ public class GenSqlHelper {
                                        IntArray propIds, LockOption lockOption) {
         SQL.SqlBuilder sb = SQL.begin();
         sb.name("lock:" + entityModel.getName());
+        sb.querySpace(entityModel.getQuerySpace());
+
         sb.select();
         genSelectFields(sb, dialect, null, entityModel, propIds);
         sb.append('\n');
@@ -198,6 +206,7 @@ public class GenSqlHelper {
                                              IntArray propIds) {
         SQL.SqlBuilder sb = SQL.begin();
         sb.name("findLatest:" + entityModel.getName());
+        sb.querySpace(entityModel.getQuerySpace());
         sb.select();
         genSelectFields(sb, dialect, null, entityModel, propIds);
         sb.append('\n');
@@ -234,6 +243,8 @@ public class GenSqlHelper {
     public static EntitySQL genInsertSql(IDialect dialect, IEntityModel entityModel, IDataParameterBinder[] binders) {
         SQL.SqlBuilder sb = new SQL.SqlBuilder();
         sb.name("insert:" + entityModel.getName());
+        sb.querySpace(entityModel.getQuerySpace());
+
         sb.append(dialect.getInsertKeyword()).append(" into ");
         table(sb, dialect, entityModel, null);
         sb.append("(\n");
@@ -274,6 +285,8 @@ public class GenSqlHelper {
                                          IntArray propIds) {
         SQL.SqlBuilder sb = new SQL.SqlBuilder();
         sb.name("update:" + entityModel.getName());
+        sb.querySpace(entityModel.getQuerySpace());
+
         sb.append(dialect.getUpdateKeyword()).append(" ");
         table(sb, dialect, entityModel, null);
         sb.set();
@@ -583,7 +596,7 @@ public class GenSqlHelper {
     }
 
     public static void transformShard(SQL.SqlBuilder sb, IDialect dialect, ShardSelection shard) {
-        if (shard != null) {
+        if (shard != null && shard.getQuerySpace() != null) {
             sb.querySpace(shard.getQuerySpace());
         }
         if (shard != null && shard.getShardName() != null) {
