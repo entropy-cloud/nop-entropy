@@ -34,6 +34,7 @@ import io.nop.graphql.core.IGraphQLLogger;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.graphql.core.utils.GraphQLArgsHelper;
+import io.nop.graphql.core.utils.GraphQLResponseHelper;
 import io.nop.rpc.api.ContextBinder;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
@@ -355,30 +356,16 @@ public abstract class GraphQLWebService {
      *                        <li>status: 响应状态，来自于 {@link ApiResponse#getHttpStatus()}，在原值为 `0` 时，该入参实际传入 `200`；</li>
      *                        </ul>
      */
-    protected <T> T consumeWebContent(ApiResponse<?> response, WebContentBean contentBean,
-                                      ITriFunction<Map<String, Object>, Object, Integer, T> contentConsumer) {
-        int status = response.getHttpStatus();
-        if (status == 0) {
-            status = 200;
-        }
+    protected <T> T consumeWebContent(
+            ApiResponse<?> response, WebContentBean contentBean,
+            ITriFunction<Map<String, Object>, Object, Integer, T> contentConsumer
+    ) {
+        return GraphQLResponseHelper.consumeWebContent(response, contentBean, (invokeHeaderSet, content, status) -> {
+            Map<String, Object> headers = new HashMap<>();
+            invokeHeaderSet.accept(headers::put);
 
-        Map<String, Object> headers = response.getHeaders() != null
-                ? new HashMap<>(response.getHeaders())
-                : new HashMap<>();
-
-        String contentType = contentBean.getContentType();
-        String fileName = contentBean.getFileName();
-
-        headers.put(ApiConstants.HEADER_CONTENT_TYPE, contentType);
-
-        if (!StringHelper.isEmpty(fileName)) {
-            String encoded = StringHelper.encodeURL(fileName);
-
-            headers.put("content-disposition", "attachment; filename=" + encoded);
-            headers.put("Access-Control-Expose-Headers", "content-disposition");
-        }
-
-        return contentConsumer.apply(headers, contentBean.getContent(), status);
+            return contentConsumer.apply(headers, contentBean.getContent(), status);
+        });
     }
 
     /**

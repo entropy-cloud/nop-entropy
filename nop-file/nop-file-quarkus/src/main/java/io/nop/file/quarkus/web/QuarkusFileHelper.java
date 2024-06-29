@@ -7,44 +7,41 @@
  */
 package io.nop.file.quarkus.web;
 
-import io.nop.api.core.ApiConstants;
-import io.nop.commons.util.StringHelper;
+import java.io.File;
+
+import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.beans.WebContentBean;
 import io.nop.core.resource.IResource;
+import io.nop.graphql.core.utils.GraphQLResponseHelper;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
 
-import java.io.File;
-
 public class QuarkusFileHelper {
-    public static Response buildFileResponse(Object content, String contentType, String fileName) {
-        Response.ResponseBuilder builder = Response.ok();
-        builder.header(ApiConstants.HEADER_CONTENT_TYPE, contentType);
 
-        if (!StringHelper.isEmpty(fileName)) {
-            String encoded = StringHelper.encodeURL(fileName);
-            builder.header("Content-Disposition", "attachment;filename=" + encoded);
-        }
+    public static Response buildFileResponse(ApiResponse<WebContentBean> response) {
+        return GraphQLResponseHelper.consumeWebContent(response, (invokeHeaderSet, content, status) -> {
+            Response.ResponseBuilder builder = Response.status(status);
+            invokeHeaderSet.accept(builder::header);
 
-        if (content instanceof IResource) {
-            IResource resource = (IResource) content;
-            File file = resource.toFile();
-            if (file != null) {
-                builder.entity(file);
-            } else {
-                builder.entity((StreamingOutput) resource::writeToStream);
+            if (content instanceof IResource) {
+                IResource resource = (IResource) content;
+                File file = resource.toFile();
+
+                if (file != null) {
+                    builder.entity(file);
+                } else {
+                    builder.entity((StreamingOutput) resource::writeToStream);
+                }
+            } else if (content instanceof byte[]
+                       || content instanceof String
+                       || content instanceof File
+                       || content instanceof StreamingOutput) {
+                builder.entity(content);
+            } else if (content != null) {
+                builder.entity("INVALID CONTENT TYPE");
             }
-        } else if (content instanceof byte[]) {
-            builder.entity(content);
-        } else if (content instanceof String) {
-            builder.entity(content);
-        } else if (content instanceof File) {
-            builder.entity(content);
-        } else if (content instanceof StreamingOutput) {
-            builder.entity(content);
-        } else {
-            builder.entity("INVALID CONTENT TYPE");
-        }
 
-        return builder.build();
+            return builder.build();
+        });
     }
 }

@@ -8,31 +8,34 @@
 package io.nop.graphql.core.web;
 
 import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import io.nop.api.core.beans.ApiResponse;
-import io.nop.api.core.json.JSON;
-
+import io.nop.graphql.core.utils.GraphQLResponseHelper;
 import jakarta.ws.rs.core.Response;
 
 public class JaxrsHelper {
 
     public static Response buildJaxrsResponse(ApiResponse<?> res) {
-        String body = JSON.stringify(res.cloneInstance(false));
-
-        int status = res.getHttpStatus();
-        if (status == 0) {
-            status = 200;
-        }
-
-        return buildJaxrsResponse(res.getHeaders(), body, status);
+        return GraphQLResponseHelper.consumeJsonResponse(res, JaxrsHelper::buildResponse);
     }
 
     public static Response buildJaxrsResponse(Map<String, Object> headers, Object body, int status) {
+        return buildResponse((headerSet) -> {
+            if (headers != null) {
+                headers.forEach(headerSet);
+            }
+        }, body, status);
+    }
+
+    private static Response buildResponse(
+            Consumer<BiConsumer<String, Object>> invokeHeaderSet, Object body, int status
+    ) {
         Response.ResponseBuilder builder = Response.status(status).entity(body);
 
-        if (headers != null) {
-            headers.forEach(builder::header);
-        }
+        invokeHeaderSet.accept(builder::header);
+
         return builder.build();
     }
 }
