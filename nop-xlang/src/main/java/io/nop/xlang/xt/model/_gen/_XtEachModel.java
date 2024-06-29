@@ -24,6 +24,13 @@ public abstract class _XtEachModel extends io.nop.xlang.xt.model.XtRuleGroupMode
     private io.nop.core.lang.xml.IXSelector<io.nop.core.lang.xml.XNode> _xpath ;
     
     /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _xtType ;
+    
+    /**
      * 
      * xml name: xpath
      *  
@@ -38,6 +45,25 @@ public abstract class _XtEachModel extends io.nop.xlang.xt.model.XtRuleGroupMode
         checkAllowChange();
         
         this._xpath = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getXtType(){
+      return _xtType;
+    }
+
+    
+    public void setXtType(java.lang.String value){
+        checkAllowChange();
+        
+        this._xtType = value;
            
     }
 
@@ -58,6 +84,7 @@ public abstract class _XtEachModel extends io.nop.xlang.xt.model.XtRuleGroupMode
         super.outputJson(out);
         
         out.putNotNull("xpath",this.getXpath());
+        out.putNotNull("xtType",this.getXtType());
     }
 
     public XtEachModel cloneInstance(){
@@ -70,6 +97,7 @@ public abstract class _XtEachModel extends io.nop.xlang.xt.model.XtRuleGroupMode
         super.copyTo(instance);
         
         instance.setXpath(this.getXpath());
+        instance.setXtType(this.getXtType());
     }
 
     protected XtEachModel newInstance(){

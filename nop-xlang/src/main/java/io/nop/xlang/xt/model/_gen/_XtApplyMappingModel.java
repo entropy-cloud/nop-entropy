@@ -38,6 +38,13 @@ public abstract class _XtApplyMappingModel extends io.nop.xlang.xt.model.XtRuleG
     private io.nop.core.lang.xml.IXSelector<io.nop.core.lang.xml.XNode> _xpath ;
     
     /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _xtType ;
+    
+    /**
      * 
      * xml name: id
      *  
@@ -94,6 +101,25 @@ public abstract class _XtApplyMappingModel extends io.nop.xlang.xt.model.XtRuleG
     }
 
     
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getXtType(){
+      return _xtType;
+    }
+
+    
+    public void setXtType(java.lang.String value){
+        checkAllowChange();
+        
+        this._xtType = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -112,6 +138,7 @@ public abstract class _XtApplyMappingModel extends io.nop.xlang.xt.model.XtRuleG
         out.putNotNull("id",this.getId());
         out.putNotNull("mandatory",this.isMandatory());
         out.putNotNull("xpath",this.getXpath());
+        out.putNotNull("xtType",this.getXtType());
     }
 
     public XtApplyMappingModel cloneInstance(){
@@ -126,6 +153,7 @@ public abstract class _XtApplyMappingModel extends io.nop.xlang.xt.model.XtRuleG
         instance.setId(this.getId());
         instance.setMandatory(this.isMandatory());
         instance.setXpath(this.getXpath());
+        instance.setXtType(this.getXtType());
     }
 
     protected XtApplyMappingModel newInstance(){

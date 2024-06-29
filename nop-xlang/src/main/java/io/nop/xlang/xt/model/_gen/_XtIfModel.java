@@ -24,6 +24,13 @@ public abstract class _XtIfModel extends io.nop.xlang.xt.model.XtRuleGroupModel 
     private io.nop.core.lang.eval.IEvalAction _test ;
     
     /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _xtType ;
+    
+    /**
      * 
      * xml name: test
      *  
@@ -38,6 +45,25 @@ public abstract class _XtIfModel extends io.nop.xlang.xt.model.XtRuleGroupModel 
         checkAllowChange();
         
         this._test = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getXtType(){
+      return _xtType;
+    }
+
+    
+    public void setXtType(java.lang.String value){
+        checkAllowChange();
+        
+        this._xtType = value;
            
     }
 
@@ -58,6 +84,7 @@ public abstract class _XtIfModel extends io.nop.xlang.xt.model.XtRuleGroupModel 
         super.outputJson(out);
         
         out.putNotNull("test",this.getTest());
+        out.putNotNull("xtType",this.getXtType());
     }
 
     public XtIfModel cloneInstance(){
@@ -70,6 +97,7 @@ public abstract class _XtIfModel extends io.nop.xlang.xt.model.XtRuleGroupModel 
         super.copyTo(instance);
         
         instance.setTest(this.getTest());
+        instance.setXtType(this.getXtType());
     }
 
     protected XtIfModel newInstance(){

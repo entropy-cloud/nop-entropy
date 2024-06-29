@@ -39,6 +39,13 @@ public abstract class _XtCustomTagModel extends io.nop.xlang.xt.model.XtRuleGrou
     
     /**
      *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _xtType ;
+    
+    /**
+     *  
      * xml name: xt:xpath
      * 
      */
@@ -107,6 +114,25 @@ public abstract class _XtCustomTagModel extends io.nop.xlang.xt.model.XtRuleGrou
     
     /**
      * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getXtType(){
+      return _xtType;
+    }
+
+    
+    public void setXtType(java.lang.String value){
+        checkAllowChange();
+        
+        this._xtType = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: xt:xpath
      *  
      */
@@ -144,6 +170,7 @@ public abstract class _XtCustomTagModel extends io.nop.xlang.xt.model.XtRuleGrou
         out.putNotNull("attrs",this.getAttrs());
         out.putNotNull("tagName",this.getTagName());
         out.putNotNull("xtAttrs",this.getXtAttrs());
+        out.putNotNull("xtType",this.getXtType());
         out.putNotNull("xtXpath",this.getXtXpath());
     }
 
@@ -159,6 +186,7 @@ public abstract class _XtCustomTagModel extends io.nop.xlang.xt.model.XtRuleGrou
         instance.setAttrs(this.getAttrs());
         instance.setTagName(this.getTagName());
         instance.setXtAttrs(this.getXtAttrs());
+        instance.setXtType(this.getXtType());
         instance.setXtXpath(this.getXtXpath());
     }
 

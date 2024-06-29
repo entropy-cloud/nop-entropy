@@ -31,6 +31,13 @@ public abstract class _XtChooseModel extends io.nop.xlang.xt.model.XtRuleModel {
     private io.nop.xlang.xt.model.XtChooseWhenModel _when ;
     
     /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _xtType ;
+    
+    /**
      * 
      * xml name: otherwise
      *  
@@ -68,6 +75,25 @@ public abstract class _XtChooseModel extends io.nop.xlang.xt.model.XtRuleModel {
     }
 
     
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getXtType(){
+      return _xtType;
+    }
+
+    
+    public void setXtType(java.lang.String value){
+        checkAllowChange();
+        
+        this._xtType = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -89,6 +115,7 @@ public abstract class _XtChooseModel extends io.nop.xlang.xt.model.XtRuleModel {
         
         out.putNotNull("otherwise",this.getOtherwise());
         out.putNotNull("when",this.getWhen());
+        out.putNotNull("xtType",this.getXtType());
     }
 
     public XtChooseModel cloneInstance(){
@@ -102,6 +129,7 @@ public abstract class _XtChooseModel extends io.nop.xlang.xt.model.XtRuleModel {
         
         instance.setOtherwise(this.getOtherwise());
         instance.setWhen(this.getWhen());
+        instance.setXtType(this.getXtType());
     }
 
     protected XtChooseModel newInstance(){

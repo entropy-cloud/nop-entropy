@@ -31,6 +31,13 @@ public abstract class _XtValueModel extends io.nop.xlang.xt.model.XtRuleModel {
     private boolean _mandatory  = false;
     
     /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _xtType ;
+    
+    /**
      * 
      * xml name: 
      *  
@@ -68,6 +75,25 @@ public abstract class _XtValueModel extends io.nop.xlang.xt.model.XtRuleModel {
     }
 
     
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getXtType(){
+      return _xtType;
+    }
+
+    
+    public void setXtType(java.lang.String value){
+        checkAllowChange();
+        
+        this._xtType = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -85,6 +111,7 @@ public abstract class _XtValueModel extends io.nop.xlang.xt.model.XtRuleModel {
         
         out.putNotNull("body",this.getBody());
         out.putNotNull("mandatory",this.isMandatory());
+        out.putNotNull("xtType",this.getXtType());
     }
 
     public XtValueModel cloneInstance(){
@@ -98,6 +125,7 @@ public abstract class _XtValueModel extends io.nop.xlang.xt.model.XtRuleModel {
         
         instance.setBody(this.getBody());
         instance.setMandatory(this.isMandatory());
+        instance.setXtType(this.getXtType());
     }
 
     protected XtValueModel newInstance(){

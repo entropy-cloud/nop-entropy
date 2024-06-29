@@ -31,6 +31,13 @@ public abstract class _XtCopyBodyModel extends io.nop.xlang.xt.model.XtRuleModel
     private io.nop.core.lang.xml.IXSelector<io.nop.core.lang.xml.XNode> _xpath ;
     
     /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _xtType ;
+    
+    /**
      * 
      * xml name: mandatory
      *  
@@ -68,6 +75,25 @@ public abstract class _XtCopyBodyModel extends io.nop.xlang.xt.model.XtRuleModel
     }
 
     
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getXtType(){
+      return _xtType;
+    }
+
+    
+    public void setXtType(java.lang.String value){
+        checkAllowChange();
+        
+        this._xtType = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -85,6 +111,7 @@ public abstract class _XtCopyBodyModel extends io.nop.xlang.xt.model.XtRuleModel
         
         out.putNotNull("mandatory",this.isMandatory());
         out.putNotNull("xpath",this.getXpath());
+        out.putNotNull("xtType",this.getXtType());
     }
 
     public XtCopyBodyModel cloneInstance(){
@@ -98,6 +125,7 @@ public abstract class _XtCopyBodyModel extends io.nop.xlang.xt.model.XtRuleModel
         
         instance.setMandatory(this.isMandatory());
         instance.setXpath(this.getXpath());
+        instance.setXtType(this.getXtType());
     }
 
     protected XtCopyBodyModel newInstance(){
