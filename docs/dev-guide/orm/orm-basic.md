@@ -24,9 +24,9 @@ query.addFilter(eq(PROP_Name_username,"张三"))
         eq(PROP_NAME_gender, 1)
       )))
      .addOrderField(PROP_NAME_createTime, true);
-      
-IEntityDao<User> dao = daoProvider.daoFor(User.class);      
-List<User> usreList = dao.findAllByQuery(query);      
+
+IEntityDao<User> dao = daoProvider.daoFor(User.class);
+List<User> usreList = dao.findAllByQuery(query);
 
 // 如果分页查询
 query.setOffset(100);
@@ -43,7 +43,7 @@ User user = dao.findFirstByQuery(query);
 User example = new User();
 user.setStatus(10);
 
-IEntityDao<User> dao = daoProvider.daoFor(User.class);     
+IEntityDao<User> dao = daoProvider.daoFor(User.class);
 List<User> userList = dao.findAllByExample(example);
 User user = dao.findFirstbyExample(example);
 long count = dao.countByExample(example);
@@ -98,13 +98,13 @@ Nop平台非常强调同一种模型信息存在多种表达形式，并且这�
 ```xml
 
 <query name="active_findPage">
-    <source>
-        <bo:FindPage>
-            <filter>
-                <eq name="status" value="1"/>
-            </filter>
-        </bo:FindPage>
-    </source>
+  <source>
+    <bo:FindPage>
+      <filter>
+        <eq name="status" value="1"/>
+      </filter>
+    </bo:FindPage>
+  </source>
 </query>
 ```
 
@@ -117,7 +117,7 @@ bo.xlib中提供了对CrudBizModel中doFindPage等函数的封装
 
 @SqlLibMapper("/app/mall/sql/LitemallGoods.sql-lib.xml")
 public interface LitemallGoodsMapper {
-    void syncCartProduct(@Name("product") LitemallGoodsProduct product);
+  void syncCartProduct(@Name("product") LitemallGoodsProduct product);
 }
 ```
 
@@ -126,20 +126,20 @@ public interface LitemallGoodsMapper {
 ```xml
 
 <sql-lib>
-    <sqls>
-        <eql name="syncCartProduct" sqlMethod="execute">
-            <arg name="product"/>
+  <sqls>
+    <eql name="syncCartProduct" sqlMethod="execute">
+      <arg name="product"/>
 
-            <source>
-                update LitemallCart o
-                set o.price = ${product.price},
-                o.goodsName = ${product.goods.name},
-                o.picUrl = ${product.url},
-                o.goodsSn = ${product.goods.goodsSn}
-                where o.productId = ${product.id}
-            </source>
-        </eql>
-    </sqls>
+      <source>
+        update LitemallCart o
+        set o.price = ${product.price},
+        o.goodsName = ${product.goods.name},
+        o.picUrl = ${product.url},
+        o.goodsSn = ${product.goods.goodsSn}
+        where o.productId = ${product.id}
+      </source>
+    </eql>
+  </sqls>
 </sql-lib>
 ```
 
@@ -154,17 +154,17 @@ public interface LitemallGoodsMapper {
 ```xml
 
 <data-auth>
-    <objs>
-        <obj name="MyEntity">
-            <role-auths>
-                <role-auth roleId="manager">
-                    <filter>
-                        <eq name="type" value="1"/>
-                    </filter>
-                </role-auth>
-            </role-auths>
-        </obj>
-    </objs>
+  <objs>
+    <obj name="MyEntity">
+      <role-auths>
+        <role-auth roleId="manager">
+          <filter>
+            <eq name="type" value="1"/>
+          </filter>
+        </role-auth>
+      </role-auths>
+    </obj>
+  </objs>
 </data-auth>
 ```
 
@@ -173,8 +173,8 @@ public interface LitemallGoodsMapper {
 ```xml
 
 <and>
-    <eq name="status" value="1"/>
-    <app:FilterByTask/>
+  <eq name="status" value="1"/>
+  <app:FilterByTask/>
 </and>
 ```
 
@@ -204,7 +204,7 @@ public interface LitemallGoodsMapper {
 ```xml
 
 <c:if test="${!_.isEmpty(myVar)}">
-    and o.classId = ${myVar}
+  and o.classId = ${myVar}
 </c:if>
 ```
 
@@ -218,7 +218,34 @@ NopGraphQL引擎执行时已经自动开启了OrmSession，所以一般的业务
 注意使用Nop平台内定义的Transactional)注解，
 它们会自动打开OrmSession和事务管理器。
 
-如果要手工打开session，可以采用如下方法
+```java
+public class TccRecordRepository implements ITccRecordRepository {
+  // 这里强制设置开启新的事务，一般情况下设置propagation，会自动继承上下文中已有的事务
+  @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
+  @Override
+  public CompletionStage<Void> saveTccRecordAsync(ITccRecord record, TccStatus initStatus) {
+    return FutureHelper.futureCall(() -> {
+      NopTccRecord tccRecord = (NopTccRecord) record;
+      tccRecord.setStatus(initStatus.getCode());
+      recordDao().saveEntityDirectly(tccRecord);
+      return tccRecord;
+    });
+  }
+  // ...
+}
+```
+
+所有使用`@Transctional`这样的注解的bean，都需要在NopIoC的`beans.xml`
+文件中注册。因为AOP是使用NopIoC的内置能力实现的。参见[aop.md](../ioc/aop.md)
+
+```xml
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+  <bean id="nopTccRecordRepository" class="io.nop.tcc.dao.store.TccRecordRepository"/>
+</beans>
+```
+
+### 如果要手工打开session，可以采用如下方法
 
 ```javascript
 
@@ -241,3 +268,53 @@ transactionTemplate.runInTransaction(txn->{
    ...
 })
 ```
+
+## 与MyBatis的区别
+
+NopORM是一个类似JPA的完整的ORM引擎，因此它使用OrmSession来管理所有加载到内存中的实体，整体使用类似于JPA和Hibernate，相比于MyBatis要少很多手工调用步骤。
+
+### 1. 修改的时候不需要调用update方法。
+
+一般情况下我们是使用IEntityDao接口来实现实体的增删改查。它内部使用OrmTemplate来调用底层的NopORM引擎。
+OrmTemplate类似于Spring中的HibernateTemplate，调用它上面的方法时会自动打开OrmSession，并在操作完毕后调用`session.flush()`
+来将内存中的修改刷新到数据库中。
+
+因此从数据库中加载到实体之后，我们只需要调用set方法即可，不需要调用任何update方法，引擎会负责检测实体是否已经被修改，如果已经被修改，则自动更新数据库。
+更新数据库的时候与MyBatis不同，NopORM会自动根据修改了的字段生成对应的update语句，因此即使调用了set方法，但是如果实际并没有修改实体属性，则最后实体的状态不会转化为dirty，也就不会更新数据库。
+
+```javascript
+@SingleSession
+@Transactional
+public void changeEntityStatus(String id, int status){
+  IEntityDao<MyEntity> dao = daoProvider.daoFor(MyEntity.class);
+  MyEntity entity = dao.requireEntity(id);
+  entity.setStatus(3);
+
+  // 这里不需要调用dao.updateEntity(entity);
+}
+```
+
+如果是在BizModel的函数中调用，则不需要使用@SingleSession和@Transactional注解, NopGraphQL引擎会负责统一处理。
+
+### 2. 新增的时候也不一定需要调用save方法
+只要把新增实体和OrmSession中已经存在的其他实体关联在一起，NopORM引擎flush的时候就会自动沿着对象关联遍历到该实体。如果发现该实体还没有保存，则会自动生成insert语句。
+
+```javascript
+ MyEntity entity = dao.newEntity();
+ entity.setName("ssS");
+ parent.getChildren().add(entity);
+```
+
+### 3. 一般情况下不要调用updateDirectly这样的方法
+为了实现性能最大化，NopORM也提供了updateDirectly等绕过OrmSession直接生成SQL的更新方式。但是这相当于是一种性能后门，一般不要使用。
+
+### 4. 尽量使用EQL而不是SQL
+NopORM提供了类似MyBatis XML的SQL语句管理机制，在`sql-lib.xml`可以使用EQL、SQL和DQL等多种查询语法。
+
+EQL类似于Hibernate中的HQL查询语言，可以使用`entity.parent.name`这种属性关联语法，但是EQL比HQL强大得多。在EQL中可以自由使用各种join语法，
+with子句、limit子句、update returning子句等，
+
+* 从设计层面上说 `EQL = SQL + AutoJoin`，原则上一切SQL语言具有的语法EQL语法都支持，而且在此基础上，
+EQL语法增加了根据属性关联自动推导得到表关联的特性。
+* 实际实现中，EQL语法支持大部分标准SQL92语法，但是它为了数据库兼容性，只支持多个主流数据库都具有的语法特性，不支持专属于某个数据库的专有语法。对于SQL函数，通过dialect配置实现了兼容转换。
+* EQL支持GIS相关的`st_contains`等函数

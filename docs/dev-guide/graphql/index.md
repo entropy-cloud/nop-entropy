@@ -28,5 +28,8 @@
 
 参见[fragments.md](fragments.md)
 
+## 不经过GraphQL引擎直接调用BizModel
+参见[call-biz-model.md](call-biz-model.md)
+
 ## 关于GraphQL的答疑
 参见[qa-about-graphql.md](qa-about-graphql.md)

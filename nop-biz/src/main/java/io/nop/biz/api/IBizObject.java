@@ -60,6 +60,8 @@ public interface IBizObject extends IComponentModel, IGraphQLBizObject {
         return getBizModel().getAction(action);
     }
 
+    GraphQLOperationType getOperationType(String action);
+
     IServiceAction getAction(String action);
 
     default Object invoke(String action, Object request, FieldSelectionBean selection, IServiceContext context) {

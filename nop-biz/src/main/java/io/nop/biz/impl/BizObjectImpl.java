@@ -165,6 +165,14 @@ public class BizObjectImpl implements IBizObject, IMethodMissingHook {
     }
 
     @Override
+    public GraphQLOperationType getOperationType(String action) {
+        GraphQLFieldDefinition operation = operations.get(action);
+        if (operation == null)
+            return null;
+        return operation.getOperationType();
+    }
+
+    @Override
     public GraphQLFieldDefinition getOperationDefinition(GraphQLOperationType opType, String name) {
         // 不对外暴露为GraphQL服务
         if (bizModel != null && bizModel.containsTag(OrmModelConstants.TAG_NOT_PUB))
