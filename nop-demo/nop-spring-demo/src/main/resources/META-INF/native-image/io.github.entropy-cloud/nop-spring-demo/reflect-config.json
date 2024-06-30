@@ -16132,6 +16132,12 @@
         ]
       },
       {
+        "name": "getOperationType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getStateMachine",
         "parameterTypes": []
       }
@@ -16413,6 +16419,13 @@
         ]
       },
       {
+        "name": "checkUniqueForUpdate",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "copyForNew",
         "parameterTypes": [
           "java.util.Map",
@@ -16501,6 +16514,15 @@
         "parameterTypes": [
           "java.util.Map",
           "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doCopyForNew",
+        "parameterTypes": [
+          "java.util.Map",
+          "java.lang.String",
+          "java.util.function.BiConsumer",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -16916,6 +16938,13 @@
           "java.util.Map",
           "io.nop.core.context.IServiceContext",
           "io.nop.biz.crud.BizInvocation"
+        ]
+      },
+      {
+        "name": "isAnyPropDirty",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "java.util.Set"
         ]
       },
       {
@@ -33004,6 +33033,30 @@
       }
     ],
     "methods": [
+      {
+        "name": "buildApiRequest",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.util.function.Consumer"
+        ]
+      },
+      {
+        "name": "buildDownloadRequestBean",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "buildUploadRequestBean",
+        "parameterTypes": [
+          "java.io.InputStream",
+          "java.lang.String",
+          "long",
+          "java.lang.String",
+          "java.util.function.Function"
+        ]
+      },
       {
         "name": "downloadAsync",
         "parameterTypes": [

@@ -48,7 +48,7 @@ public class TestExcelWorkbook {
         ExcelTable table = wk.getSheet("test").getTable();
         String html = table.toHtmlString();
         assertEquals("<table  class=\"xui-table\">\n" +
-                "<colgroup></colgroup>\n" +
+                "<colgroup><col  /><col  /><col  /></colgroup>\n" +
                 "<thead>\n" +
                 "</thead>\n" +
                 "<tbody>\n" +
