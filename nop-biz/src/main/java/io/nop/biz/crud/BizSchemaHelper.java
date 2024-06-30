@@ -129,6 +129,9 @@ public class BizSchemaHelper {
                 continue;
 
             String refBizObj = propMeta.getBizObjName();
+            if(refBizObj == null)
+                refBizObj = propMeta.getItemBizObjName();
+
             if (refBizObj == null)
                 continue;
 
