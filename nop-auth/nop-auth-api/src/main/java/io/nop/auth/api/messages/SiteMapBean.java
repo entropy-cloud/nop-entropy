@@ -8,7 +8,6 @@
 package io.nop.auth.api.messages;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.util.IComponentModel;
@@ -151,6 +150,12 @@ public class SiteMapBean implements IComponentModel, ISourceLocationSetter {
     public void removeFunctionPoints() {
         if (resources != null) {
             resources.forEach(SiteResourceBean::removeFunctionPoints);
+        }
+    }
+
+    public void removePermissions() {
+        if (resources != null) {
+            resources.forEach(SiteResourceBean::removePermissions);
         }
     }
 

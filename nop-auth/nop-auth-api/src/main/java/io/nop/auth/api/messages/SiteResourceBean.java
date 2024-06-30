@@ -323,6 +323,13 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         }
     }
 
+    public void removePermissions(){
+        if(children != null){
+            setPermissions(null);
+            children.forEach(SiteResourceBean::removePermissions);
+        }
+    }
+
     @JsonIgnore
     public boolean isActive() {
         return getStatus() == AuthApiConstants.RESOURCE_STATUS_ACTIVE;

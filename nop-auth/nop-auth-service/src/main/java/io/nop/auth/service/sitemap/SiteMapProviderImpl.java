@@ -12,6 +12,7 @@ import io.nop.api.core.beans.query.QueryBean;
 import io.nop.auth.api.AuthApiConstants;
 import io.nop.auth.api.messages.SiteMapBean;
 import io.nop.auth.api.messages.SiteResourceBean;
+import io.nop.auth.core.AuthCoreConstants;
 import io.nop.auth.core.model.ActionAuthModel;
 import io.nop.auth.core.sitemap.ISiteMapProvider;
 import io.nop.auth.dao.entity.NopAuthResource;
@@ -30,10 +31,10 @@ import io.nop.dao.DaoConstants;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.xlang.xdsl.DslModelParser;
-
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -182,7 +183,8 @@ public class SiteMapProviderImpl implements ISiteMapProvider {
     }
 
     @Override
-    public SiteMapBean filterAllowedMenu(SiteMapBean site, String userId, String deptId, Set<String> roleIds) {
+    public SiteMapBean filterAllowedMenu(SiteMapBean site, String userId, String deptId, Set<String> roleIds,
+                                         boolean includeFunctionPoints) {
         site = site.deepClone();
         if (site.getLocale() == null)
             site.setLocale(I18nMessageManager.instance().getDefaultLocale());
@@ -191,12 +193,16 @@ public class SiteMapProviderImpl implements ISiteMapProvider {
             roleIds = Collections.emptySet();
 
         SiteCacheData cache = siteCache.get(site.getLocale());
+        site.removePermissions();
+
         if (enableActionAuth) {
             applyAuthFilter(site.getResources(), cache.getResourceToRoles(), roleIds);
-            site.removeFunctionPoints();
+            if (!includeFunctionPoints)
+                site.removeFunctionPoints();
             site.removeInactive();
         } else {
-            site.removeFunctionPoints();
+            if (!includeFunctionPoints)
+                site.removeFunctionPoints();
         }
         return site;
     }
@@ -227,6 +233,10 @@ public class SiteMapProviderImpl implements ISiteMapProvider {
     boolean containsRole(Set<String> authRoles, Set<String> roleIds) {
         if (authRoles == null || authRoles.isEmpty())
             return false;
+
+        // 总是允许user角色
+        if (authRoles.contains(AuthCoreConstants.ROLE_USER))
+            return true;
 
         for (String roleId : roleIds) {
             if (authRoles.contains(roleId))

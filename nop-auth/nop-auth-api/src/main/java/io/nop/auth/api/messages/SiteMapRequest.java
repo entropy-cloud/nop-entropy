@@ -8,10 +8,12 @@
 package io.nop.auth.api.messages;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.meta.PropMeta;
 
 @DataBean
 public class SiteMapRequest {
     private String siteId;
+    private boolean includeFunctionPoints;
 
     public SiteMapRequest() {
     }
@@ -20,11 +22,21 @@ public class SiteMapRequest {
         this.siteId = siteId;
     }
 
+    @PropMeta(propId = 1)
     public String getSiteId() {
         return siteId;
     }
 
     public void setSiteId(String siteId) {
         this.siteId = siteId;
+    }
+
+    @PropMeta(propId = 2)
+    public boolean isIncludeFunctionPoints() {
+        return includeFunctionPoints;
+    }
+
+    public void setIncludeFunctionPoints(boolean includeFunctionPoints) {
+        this.includeFunctionPoints = includeFunctionPoints;
     }
 }

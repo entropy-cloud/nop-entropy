@@ -228,6 +228,7 @@ public class SiteCacheDataBuilder {
     SiteResourceBean newSiteResource(NopAuthResource resource) {
         SiteResourceBean entry = entryMap.computeIfAbsent(resource.getResourceId(), k -> new SiteResourceBean());
         entry.setId(resource.getResourceId());
+        entry.setResourceType(resource.getResourceType());
         entry.setRoutePath(resource.getRoutePath());
         if (entry.getRoutePath() == null)
             entry.setRoutePath(StringHelper.appendPath("/", entry.getId()));

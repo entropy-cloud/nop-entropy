@@ -21,6 +21,8 @@ import io.nop.auth.service.NopAuthConstants;
 import io.nop.commons.util.StringHelper;
 import jakarta.inject.Inject;
 
+import java.util.Set;
+
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SITE_MAP_SUPPORT_DEBUG;
 import static io.nop.auth.service.NopAuthErrors.ARG_SITE_ID;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_UNKNOWN_SITE;
@@ -33,8 +35,9 @@ public class SiteMapApiBizModel {
 
     @BizQuery
     @Auth(publicAccess = true)
-    public SiteMapBean getSiteMap(@Optional @Name("siteId") String siteId) {
-        if(StringHelper.isEmpty(siteId))
+    public SiteMapBean getSiteMap(@Optional @Name("siteId") String siteId,
+                                  @Optional @Name("includeFunctionPoints") boolean includeFunctionPoints) {
+        if (StringHelper.isEmpty(siteId))
             siteId = NopAuthConstants.SITE_ID_MAIN;
 
         String locale = ContextProvider.currentLocale();
@@ -43,7 +46,7 @@ public class SiteMapApiBizModel {
         if (siteMap == null)
             throw new NopException(ERR_AUTH_UNKNOWN_SITE).param(ARG_SITE_ID, siteId);
 
-        siteMap = filterForUser(siteMap);
+        siteMap = filterForUser(siteMap, includeFunctionPoints);
 
         siteMap.setSupportDebug(CFG_AUTH_SITE_MAP_SUPPORT_DEBUG.get());
 
@@ -51,11 +54,14 @@ public class SiteMapApiBizModel {
     }
 
     // 只保留当前用户可以访问的菜单
-    protected SiteMapBean filterForUser(SiteMapBean site) {
+    protected SiteMapBean filterForUser(SiteMapBean site, boolean includeFunctionPoints) {
         IUserContext user = IUserContext.get();
-        if (user != null) {
-            site = siteMapProvider.filterAllowedMenu(site, user.getUserId(), user.getDeptId(), user.getRoles());
-        }
+        String userId = user == null ? null : user.getUserId();
+        String deptId = user == null ? null : user.getDeptId();
+        Set<String> roles = user == null ? null : user.getRoles();
+
+        site = siteMapProvider.filterAllowedMenu(site, userId,
+                deptId, roles, includeFunctionPoints);
         return site;
     }
 }

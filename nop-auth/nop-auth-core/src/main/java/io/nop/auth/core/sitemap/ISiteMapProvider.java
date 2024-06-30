@@ -35,5 +35,6 @@ public interface ISiteMapProvider extends IRolePermissionMapping {
      */
     Set<String> getAllowedSiteEntries(String siteId, String userId, String deptId, Set<String> roleIds);
 
-    SiteMapBean filterAllowedMenu(SiteMapBean site, String userId, String deptId, Set<String> roleIds);
+    SiteMapBean filterAllowedMenu(SiteMapBean site, String userId, String deptId,
+                                  Set<String> roleIds, boolean includeFunctionPoints);
 }
