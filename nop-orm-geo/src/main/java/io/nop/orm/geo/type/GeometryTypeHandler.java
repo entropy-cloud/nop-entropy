@@ -104,8 +104,12 @@ public class GeometryTypeHandler implements IDataTypeHandler {
 
     @Override
     public void setValue(IDataParameters params, int index, Object value) {
-        final Geometry geom = toGeometry(value);
-        params.setBytes(index, toBytes(geom, getWkbDialect(), getByteOrder()));
+        if (value == null) {
+            params.setNull(index);
+        } else {
+            final Geometry geom = toGeometry(value);
+            params.setBytes(index, toBytes(geom, getWkbDialect(), getByteOrder()));
+        }
     }
 
     protected byte[] toBytes(Geometry geom, Wkb.Dialect dialect, ByteOrder byteOrder) {

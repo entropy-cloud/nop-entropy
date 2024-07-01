@@ -32,11 +32,18 @@ public class PostgisGeometryTypeHandler extends GeometryTypeHandler {
 
     @Override
     public void setValue(IDataParameters params, int index, Object value) {
-        final PGobject geom = toPGobject(value);
-        params.setObject(index, geom);
+        if (value == null) {
+            params.setNull(index);
+        } else {
+            final PGobject geom = toPGobject(value);
+            params.setObject(index, geom);
+        }
     }
 
     private PGobject toPGobject(Object value) {
+        if (value == null)
+            return null;
+
         try {
             final WkbEncoder encoder = Wkb.newEncoder(getWkbDialect());
             final Geometry<?> geometry = toGeometry(value);

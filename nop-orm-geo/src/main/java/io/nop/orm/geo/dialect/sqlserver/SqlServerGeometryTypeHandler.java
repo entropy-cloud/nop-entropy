@@ -45,8 +45,12 @@ public class SqlServerGeometryTypeHandler extends GeometryTypeHandler {
 
     @Override
     public void setValue(IDataParameters params, int index, Object value) {
-        Geometry geometry = toGeometry(value);
-        byte[] bytes = Encoders.encode(geometry);
-        params.setObject(index, bytes);
+        if (value == null) {
+            params.setNull(index);
+        } else {
+            Geometry geometry = toGeometry(value);
+            byte[] bytes = Encoders.encode(geometry);
+            params.setObject(index, bytes);
+        }
     }
 }
