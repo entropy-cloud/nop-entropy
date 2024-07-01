@@ -9,3 +9,7 @@
 CrudBizModel中内置的验证规则，参见[validate.md](validate.md)
 
 验证模型详细介绍参见 [validator.md](validator.md)
+
+## Action装饰器
+
+参见[action-decorator.md](action-decorator.md)

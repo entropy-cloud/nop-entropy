@@ -5016,6 +5016,10 @@
         "parameterTypes": []
       },
       {
+        "name": "removePermissions",
+        "parameterTypes": []
+      },
+      {
         "name": "setConfigVersion",
         "parameterTypes": [
           "java.lang.String"
@@ -5198,6 +5202,10 @@
       },
       {
         "name": "removeInactive",
+        "parameterTypes": []
+      },
+      {
+        "name": "removePermissions",
         "parameterTypes": []
       },
       {
@@ -14406,9 +14414,23 @@
         ]
       },
       {
+        "name": "filterForUser",
+        "parameterTypes": [
+          "io.nop.auth.api.messages.SiteMapBean",
+          "boolean"
+        ]
+      },
+      {
         "name": "getSiteMap",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "getSiteMap",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean"
         ]
       }
     ],
@@ -15113,6 +15135,16 @@
         ]
       },
       {
+        "name": "filterAllowedMenu",
+        "parameterTypes": [
+          "io.nop.auth.api.messages.SiteMapBean",
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.Set",
+          "boolean"
+        ]
+      },
+      {
         "name": "getAllowedSiteEntries",
         "parameterTypes": [
           "java.lang.String",
@@ -15253,6 +15285,12 @@
         "name": "getOperationDefinitions",
         "parameterTypes": [
           "io.nop.graphql.core.ast.GraphQLOperationType"
+        ]
+      },
+      {
+        "name": "getOperationType",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -15504,6 +15542,13 @@
         ]
       },
       {
+        "name": "checkUniqueForUpdate",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "copyForNew",
         "parameterTypes": [
           "java.util.Map",
@@ -15592,6 +15637,15 @@
         "parameterTypes": [
           "java.util.Map",
           "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doCopyForNew",
+        "parameterTypes": [
+          "java.util.Map",
+          "java.lang.String",
+          "java.util.function.BiConsumer",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -15974,6 +16028,13 @@
           "java.util.Map",
           "io.nop.core.context.IServiceContext",
           "io.nop.biz.crud.BizInvocation"
+        ]
+      },
+      {
+        "name": "isAnyPropDirty",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "java.util.Set"
         ]
       },
       {
@@ -18157,6 +18218,10 @@
       },
       {
         "name": "clear",
+        "parameterTypes": []
+      },
+      {
+        "name": "cloneInstance",
         "parameterTypes": []
       },
       {
@@ -36694,6 +36759,30 @@
     ],
     "methods": [
       {
+        "name": "buildApiRequest",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.util.function.Consumer"
+        ]
+      },
+      {
+        "name": "buildDownloadRequestBean",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "buildUploadRequestBean",
+        "parameterTypes": [
+          "java.io.InputStream",
+          "java.lang.String",
+          "long",
+          "java.lang.String",
+          "java.util.function.Function"
+        ]
+      },
+      {
         "name": "downloadAsync",
         "parameterTypes": [
           "io.nop.api.core.beans.ApiRequest"
@@ -37467,6 +37556,13 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "buildApiRequest",
+        "parameterTypes": [
+          "io.vertx.core.http.HttpServerRequest",
+          "java.lang.Object"
+        ]
+      },
       {
         "name": "buildRequest",
         "parameterTypes": [
@@ -39618,6 +39714,10 @@
         ]
       },
       {
+        "name": "getBeanValueType",
+        "parameterTypes": []
+      },
+      {
         "name": "getByAnnotation",
         "parameterTypes": []
       },
@@ -39667,6 +39767,12 @@
         "name": "setAsMap",
         "parameterTypes": [
           "boolean"
+        ]
+      },
+      {
+        "name": "setBeanValueType",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -40284,6 +40390,10 @@
         ]
       },
       {
+        "name": "getBeanValueType",
+        "parameterTypes": []
+      },
+      {
         "name": "getListClass",
         "parameterTypes": []
       },
@@ -40295,6 +40405,12 @@
         "name": "outputJson",
         "parameterTypes": [
           "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setBeanValueType",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -40643,6 +40759,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getBeanValueType",
+        "parameterTypes": []
+      },
+      {
         "name": "isIocIgnoreDepends",
         "parameterTypes": []
       },
@@ -40662,6 +40782,12 @@
       },
       {
         "name": "setBean",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setBeanValueType",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -40706,6 +40832,10 @@
         ]
       },
       {
+        "name": "getBeanValueType",
+        "parameterTypes": []
+      },
+      {
         "name": "getBody",
         "parameterTypes": []
       },
@@ -40721,6 +40851,12 @@
         "name": "outputJson",
         "parameterTypes": [
           "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setBeanValueType",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -57020,6 +57156,12 @@
       {
         "name": "normalize",
         "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
       }
     ],
     "name": "io.nop.task.model.TaskStepModel",
@@ -58054,6 +58196,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
         "name": "newInstance",
         "parameterTypes": []
       },
@@ -58067,6 +58213,12 @@
         "name": "setSource",
         "parameterTypes": [
           "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setType",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       }
     ],
@@ -67933,6 +68085,16 @@
     "fields": [],
     "methods": [
       {
+        "name": "addProp",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.impl.ObjPropMetaImpl"
+        ]
+      },
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
         "name": "getAbstract",
         "parameterTypes": []
       },
@@ -68103,6 +68265,10 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
       },
       {
         "name": "setAbstract",

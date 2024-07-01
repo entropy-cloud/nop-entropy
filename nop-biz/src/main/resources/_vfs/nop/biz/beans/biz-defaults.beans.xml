@@ -18,10 +18,10 @@
         <!-- 与ApiConfigs中的常量定义保持一致 -->
         <property name="enableDataAuth" value="@cfg:nop.auth.enable-data-auth|false"/>
 
-        <property name="graphQLHook" ref="nopMetricsGraphQLHook" />
+        <property name="graphQLHook" ref="nopMetricsGraphQLHook"/>
     </bean>
 
-    <bean id="nopMetricsGraphQLHook" class="io.nop.graphql.core.engine.MetricsGraphQLHook" />
+    <bean id="nopMetricsGraphQLHook" class="io.nop.graphql.core.engine.MetricsGraphQLHook"/>
 
     <bean id="nopGraphQLOperationInvoker" class="io.nop.graphql.core.engine.DefaultOperationFunctionInvoker">
         <ioc:condition>
@@ -45,9 +45,14 @@
             <ioc:collect-beans only-concrete-classes="true"
                                by-type="io.nop.graphql.core.biz.IGraphQLSchemaInitializer"/>
         </property>
+
+        <property name="actionDecoratorCollectors">
+            <ioc:collect-beans only-concrete-classes="true"
+                               by-type="io.nop.biz.decorator.IActionDecoratorCollector"/>
+        </property>
     </bean>
 
-    <bean id="nopCrudBizInitializer" class="io.nop.biz.crud.CrudBizInitializer" >
+    <bean id="nopCrudBizInitializer" class="io.nop.biz.crud.CrudBizInitializer">
         <ioc:condition>
             <on-bean>nopDaoProvider</on-bean>
         </ioc:condition>
