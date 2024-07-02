@@ -9,6 +9,7 @@ package io.nop.config.impl;
 
 import io.nop.api.core.config.IConfigChangeListener;
 import io.nop.api.core.config.IConfigProvider;
+import io.nop.api.core.util.Guard;
 import io.nop.commons.util.StringHelper;
 
 import java.util.HashSet;
@@ -22,6 +23,9 @@ public class ChangeSubscriptions {
     private final Map<String, ChangeSubscription> patternSubscriptions = new ConcurrentHashMap<>();
 
     public Runnable subscribe(String pattern, IConfigChangeListener listener) {
+        Guard.notEmpty(pattern, "pattern");
+        Guard.notNull(listener, "listener");
+
         if (isSimple(pattern)) {
             return subscribeSimple(pattern, listener);
         } else {

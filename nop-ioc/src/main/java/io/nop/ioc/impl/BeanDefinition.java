@@ -597,8 +597,9 @@ public class BeanDefinition implements IBeanDefinition {
                             subscriptionCleanup = new Cancellable();
                         Runnable cleanup = configProvider.subscribeChange(configVar, propChangeListener);
                         subscriptionCleanup.appendOnCancelTask(cleanup);
-                        subscriptionCleanup
-                                .appendOnCancelTask(configProvider.subscribeChange(configVar, refreshListener));
+                        if (refreshListener != null)
+                            subscriptionCleanup
+                                    .appendOnCancelTask(configProvider.subscribeChange(configVar, refreshListener));
                     }
                 }
             }
