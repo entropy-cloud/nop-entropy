@@ -61,13 +61,6 @@ public class BizModelToGraphQLDefinition {
     public GraphQLFieldDefinition toOperationDefinition(String bizObjName, BizActionModel actionModel,
                                                         TypeRegistry typeRegistry, List<IActionDecoratorCollector> collectors,
                                                         IServiceActionArgBuilder thisObjBuilder) {
-        List<IServiceActionDecorator> decorators = new ArrayList<>();
-        if (collectors != null) {
-            for (IActionDecoratorCollector collector : collectors) {
-                collector.collectDecorator(actionModel, decorators);
-            }
-            Collections.sort(decorators, OrderedComparator.instance());
-        }
 
         GraphQLFieldDefinition field = new GraphQLFieldDefinition();
         field.setLocation(actionModel.getLocation());
@@ -85,9 +78,8 @@ public class BizModelToGraphQLDefinition {
             field.setArguments(args);
 
         IServiceAction action = buildAction(actionModel, thisObjBuilder);
-        for (IServiceActionDecorator decorator : decorators) {
-            action = decorator.decorate(action);
-        }
+        action = BizObjectBuildHelper.decorateAction(action, actionModel,collectors);
+
         field.setServiceAction(action);
         if (action != null)
             field.setFetcher(new ServiceActionFetcher(action));

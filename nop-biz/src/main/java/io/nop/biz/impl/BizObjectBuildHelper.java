@@ -9,11 +9,13 @@ package io.nop.biz.impl;
 
 import io.nop.api.core.util.OrderedComparator;
 import io.nop.biz.decorator.IActionDecoratorCollector;
+import io.nop.biz.model.BizActionModel;
 import io.nop.core.context.action.IServiceAction;
 import io.nop.core.context.action.IServiceActionDecorator;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.biz.IGraphQLBizObject;
+import io.nop.graphql.core.fetcher.BeanMethodAction;
 import io.nop.graphql.core.fetcher.ServiceActionFetcher;
 import io.nop.graphql.core.reflection.GraphQLBizModel;
 
@@ -36,7 +38,7 @@ public class BizObjectBuildHelper {
                         op.setServiceAction(action.getServiceAction());
                         op.setFetcher(action.getFetcher());
                     }
-                    if(op.getArguments() == null){
+                    if (op.getArguments() == null) {
                         op.setArguments(action.cloneArguments());
                     }
                 }
@@ -54,7 +56,7 @@ public class BizObjectBuildHelper {
                         op.setServiceAction(action.getServiceAction());
                         op.setFetcher(action.getFetcher());
                     }
-                    if(op.getArguments() == null){
+                    if (op.getArguments() == null) {
                         op.setArguments(action.cloneArguments());
                     }
                 }
@@ -64,7 +66,7 @@ public class BizObjectBuildHelper {
         bizModel.getBizActions().forEach((name, action) -> {
             // 如果xbiz文件中已经定义，则忽略java类上的定义
             if (bizObj.isAllowInheritAction(name) && !bizObj.getActions().containsKey(name)) {
-                bizObj.addAction(name, action);
+                bizObj.addAction(name, buildAction(action, collectors));
             }
         });
     }
@@ -75,21 +77,54 @@ public class BizObjectBuildHelper {
             return;
 
         List<IServiceActionDecorator> decorators = buildDecorators(field.getFunctionModel(), collectors);
-
-        for (IServiceActionDecorator decorator : decorators) {
-            action = decorator.decorate(action);
-        }
+        action = decorateAction(action, decorators);
         field.setFetcher(new ServiceActionFetcher(action));
     }
 
+    private static IServiceAction buildAction(BeanMethodAction action, List<IActionDecoratorCollector> collectors) {
+        if (action == null || collectors == null)
+            return action;
+        List<IServiceActionDecorator> decorators = buildDecorators(action.getFunctionModel(), collectors);
+        return decorateAction(action, decorators);
+    }
+
     private static List<IServiceActionDecorator> buildDecorators(IFunctionModel func, List<IActionDecoratorCollector> collectors) {
+        if (collectors == null)
+            return Collections.emptyList();
+
         List<IServiceActionDecorator> decorators = new ArrayList<>();
-        if (collectors != null) {
-            for (IActionDecoratorCollector collector : collectors) {
-                collector.collectDecorator(func, decorators);
-            }
-            Collections.sort(decorators, OrderedComparator.instance());
+        for (IActionDecoratorCollector collector : collectors) {
+            collector.collectDecorator(func, decorators);
         }
+        decorators.sort(OrderedComparator.instance());
         return decorators;
+    }
+
+    public static List<IServiceActionDecorator> buildDecorators(BizActionModel func, List<IActionDecoratorCollector> collectors) {
+        if (collectors == null)
+            return Collections.emptyList();
+
+        List<IServiceActionDecorator> decorators = new ArrayList<>();
+        for (IActionDecoratorCollector collector : collectors) {
+            collector.collectDecorator(func, decorators);
+        }
+        decorators.sort(OrderedComparator.instance());
+        return decorators;
+    }
+
+    private static IServiceAction decorateAction(IServiceAction action, List<IServiceActionDecorator> decorators) {
+        for (IServiceActionDecorator decorator : decorators) {
+            action = decorator.decorate(action);
+        }
+        return action;
+    }
+
+    public static IServiceAction decorateAction(IServiceAction action, BizActionModel actionModel,
+                                                List<IActionDecoratorCollector> collectors) {
+        if (action == null || collectors == null)
+            return action;
+
+        List<IServiceActionDecorator> decorators = buildDecorators(actionModel, collectors);
+        return decorateAction(action, decorators);
     }
 }

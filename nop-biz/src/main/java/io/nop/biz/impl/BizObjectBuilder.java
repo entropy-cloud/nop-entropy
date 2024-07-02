@@ -8,7 +8,6 @@
 package io.nop.biz.impl;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.util.OrderedComparator;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObject;
 import io.nop.biz.api.IBizObjectManager;
@@ -21,7 +20,6 @@ import io.nop.biz.model.BizModel;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.action.IServiceAction;
 import io.nop.core.context.action.IServiceActionDecorator;
-import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.fsm.execution.StateMachine;
@@ -31,7 +29,6 @@ import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.biz.IBizObjectQueryProcessor;
 import io.nop.graphql.core.biz.IGraphQLBizInitializer;
-import io.nop.graphql.core.fetcher.ServiceActionFetcher;
 import io.nop.graphql.core.reflection.GraphQLBizModel;
 import io.nop.graphql.core.reflection.GraphQLBizModels;
 import io.nop.graphql.core.reflection.ReflectionGraphQLTypeFactory;
@@ -46,7 +43,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -255,12 +251,12 @@ public class BizObjectBuilder {
         return baseName;
     }
 
-    BizModel loadBizModel(String bizPath) {
+    protected BizModel loadBizModel(String bizPath) {
         IResource resource = VirtualFileSystem.instance().getResource(bizPath);
         return (BizModel) new DslModelParser(BizConstants.XDEF_BIZ).parseFromResource(resource, true);
     }
 
-    IObjMeta loadObjMeta(String path) {
+    protected IObjMeta loadObjMeta(String path) {
         IResource resource = VirtualFileSystem.instance().getResource(path);
         if (resource.exists()) {
             return SchemaLoader.loadXMeta(path);
@@ -268,7 +264,7 @@ public class BizObjectBuilder {
         return null;
     }
 
-    BizObjectImpl newBizObject(String bizObjName, BizModel bizModel, IObjMeta objMeta) {
+    protected BizObjectImpl newBizObject(String bizObjName, BizModel bizModel, IObjMeta objMeta) {
         BizObjectImpl bo = new BizObjectImpl(bizObjName);
         bo.setBizModel(bizModel);
         bo.setObjMeta(objMeta);
@@ -322,32 +318,16 @@ public class BizObjectBuilder {
         }
     }
 
-    private void buildFetcher(GraphQLFieldDefinition field) {
-        List<IServiceActionDecorator> decorators = buildDecorators(field.getFunctionModel());
-        IServiceAction action = field.getServiceAction();
-        for (IServiceActionDecorator decorator : decorators) {
-            action = decorator.decorate(action);
-        }
-        field.setFetcher(new ServiceActionFetcher(action));
-    }
-
     GraphQLFieldDefinition buildActionOperation(BizObjectImpl bizObj, BizActionModel actionModel) {
         return BizModelToGraphQLDefinition.INSTANCE.toOperationDefinition(bizObj.getBizObjName(), actionModel,
                 typeRegistry, collectors, (req, sel, ctx) -> bizObj);
     }
 
     IServiceAction buildServiceAction(BizObjectImpl bizObj, BizActionModel actionModel) {
-        return BizModelToGraphQLDefinition.INSTANCE.buildAction(actionModel, (req, sel, ctx) -> bizObj);
-    }
+        IServiceAction action = BizModelToGraphQLDefinition.INSTANCE.buildAction(actionModel, (req, sel, ctx) -> bizObj);
+        if (action == null)
+            return null;
 
-    private List<IServiceActionDecorator> buildDecorators(IFunctionModel func) {
-        List<IServiceActionDecorator> decorators = new ArrayList<>();
-        if (collectors != null) {
-            for (IActionDecoratorCollector collector : collectors) {
-                collector.collectDecorator(func, decorators);
-            }
-            Collections.sort(decorators, OrderedComparator.instance());
-        }
-        return decorators;
+        return BizObjectBuildHelper.decorateAction(action, actionModel, collectors);
     }
 }

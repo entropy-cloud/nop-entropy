@@ -68,7 +68,6 @@ import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_INVALID_FRAGMENT_SEL
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_NOT_OBJ_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNDEFINED_OBJECT;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_BUILTIN_TYPE;
-import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_FRAGMENT_SELECTION;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_OBJ_TYPE;
 
 public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader {
@@ -182,7 +181,7 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
             typeRegistry.clear();
     }
 
-    private IBizObject buildBizObject(String bizObjName) {
+    protected IBizObject buildBizObject(String bizObjName) {
         try {
             return new BizObjectBuilder(this, bizModels, dynBizModels, typeRegistry,
                     actionDecoratorCollectors, bizInitializers, makerCheckerProvider)
