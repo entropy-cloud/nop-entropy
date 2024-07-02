@@ -251,7 +251,8 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
         </sheet>
     </sheets>
 
-    <model xdef:name="XptWorkbookModel" loopVarName="var-name" loopIndexName="var-name" loopItemsName="var-name">
+    <model xdef:name="XptWorkbookModel" loopVarName="var-name" loopIndexName="var-name" loopItemsName="var-name"
+           removeHiddenCell="!boolean=false">
         <beginLoop xdef:value="xpl"/>
         <endLoop xdef:value="xpl"/>
 

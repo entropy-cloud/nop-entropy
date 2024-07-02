@@ -74,6 +74,13 @@ public abstract class _XptWorkbookModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: removeHiddenCell
+     * 
+     */
+    private boolean _removeHiddenCell  = false;
+    
+    /**
+     *  
      * xml name: viewers
      * 
      */
@@ -259,6 +266,25 @@ public abstract class _XptWorkbookModel extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: removeHiddenCell
+     *  
+     */
+    
+    public boolean isRemoveHiddenCell(){
+      return _removeHiddenCell;
+    }
+
+    
+    public void setRemoveHiddenCell(boolean value){
+        checkAllowChange();
+        
+        this._removeHiddenCell = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: viewers
      *  
      */
@@ -329,6 +355,7 @@ public abstract class _XptWorkbookModel extends io.nop.core.resource.component.A
         out.putNotNull("loopIndexName",this.getLoopIndexName());
         out.putNotNull("loopItemsName",this.getLoopItemsName());
         out.putNotNull("loopVarName",this.getLoopVarName());
+        out.putNotNull("removeHiddenCell",this.isRemoveHiddenCell());
         out.putNotNull("viewers",this.getViewers());
     }
 
@@ -349,6 +376,7 @@ public abstract class _XptWorkbookModel extends io.nop.core.resource.component.A
         instance.setLoopIndexName(this.getLoopIndexName());
         instance.setLoopItemsName(this.getLoopItemsName());
         instance.setLoopVarName(this.getLoopVarName());
+        instance.setRemoveHiddenCell(this.isRemoveHiddenCell());
         instance.setViewers(this.getViewers());
     }
 

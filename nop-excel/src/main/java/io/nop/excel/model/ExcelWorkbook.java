@@ -18,6 +18,11 @@ public class ExcelWorkbook extends _ExcelWorkbook implements INeedInit {
 
     }
 
+    public boolean shouldRemoveHiddenCell() {
+        XptWorkbookModel model = getModel();
+        return model == null ? false : model.isRemoveHiddenCell();
+    }
+
     @Override
     public void init() {
         for (ExcelSheet sheet : getSheets()) {

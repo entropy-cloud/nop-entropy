@@ -397,6 +397,7 @@ public class ExpandedTable extends SerializableExtensibleObject implements ITabl
 
             if (prevCell != null) {
                 prevCell.setDown(cell.getDown());
+                prevCell = prevCell.getRight();
             } else {
                 cell.getCol().setFirstCell(cell.getDown());
             }
@@ -440,6 +441,7 @@ public class ExpandedTable extends SerializableExtensibleObject implements ITabl
 
             if (prevCell != null) {
                 prevCell.setRight(cell.getRight());
+                prevCell = prevCell.getDown();
             } else {
                 cell.getRow().setFirstCell(cell.getRight());
             }

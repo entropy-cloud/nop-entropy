@@ -17,8 +17,10 @@ public interface IServiceAction {
 ## 注册Decorator
 
 1. 仿照CacheActionDecoratorCollector实现IActionDecoratorCollector接口
-2. 在beans.xml中注册actionDecoratorCollector
+2. 在beans.xml中注册actionDecoratorCollector。**注意:注册的Bean必须是IActionDecoratorCollector接口而不是IServiceActionDecorator接口**
 3. BizObjectManager启动的时候会自动搜集IoC容器中注册的decoratorCollector，然后用于生成actionDecorator
+
+
 
 ```java
 public interface IServiceActionDecorator extends IOrdered {

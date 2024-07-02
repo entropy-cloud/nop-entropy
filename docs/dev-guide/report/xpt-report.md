@@ -44,6 +44,7 @@ cell对应于 ExpandedCell类型
 * colParent或者cp: 列父格
 * expandValue 或者ev: 单元格展开表达式返回的条目值
 * expandIndex 或者ei: 单元格展开时在父格中的下标，从0开始
+* value 当前单元格的值
 
 ## 单元格展开
 
@@ -79,6 +80,15 @@ cell对应于 ExpandedCell类型
 ![](xpt-report/absolute-coord.png)
 
 ![](xpt-report/absolute-coord-value.png)
+
+## 报表整体配置
+
+### 在【XptWorkbookModel】这个sheet中配置全局参数
+
+* 展开前：在报表引擎执行展开算法之前调用的xpl代码。可以在这里准备数据。通过assign函数设置数据到报表上下文中
+* 删除隐藏单元：缺省情况下隐藏的行或者列会被输出，在这里可以设置为true，从而输出时删除隐藏列。
+
+
 
 ## 常用公式
 

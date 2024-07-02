@@ -28,6 +28,10 @@
                     <schema stdDomain="xpl"/>
                 </field>
 
+                <field name="removeHiddenCell" displayName="删除隐藏单元">
+                    <schema stdDomain="boolean" />
+                </field>
+
                 <field name="ext:namedStyles" list="true" keyProp="id" displayName="命名样式">
                     <fields>
                         <field name="id" displayName="样式ID" mandatory="true">

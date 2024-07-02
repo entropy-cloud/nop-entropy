@@ -32,6 +32,8 @@ import org.junit.jupiter.api.Test;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
 public class TestReportEngine extends BaseTestCase {
 
     @BeforeAll
@@ -57,7 +59,7 @@ public class TestReportEngine extends BaseTestCase {
         new XptStructureToNode().buildNode(workbook).dump();
 
         IObjMeta objMeta = SchemaLoader.loadXMeta(XptConstants.XDSL_SCHEMA_WORKBOOK);
-        objMeta.toNode().saveToResource(getTargetResource("workbook.xmeta"),null);
+        objMeta.toNode().saveToResource(getTargetResource("workbook.xmeta"), null);
 
         XNode model = DslModelHelper.dslModelToXNode(XptConstants.XDSL_SCHEMA_WORKBOOK, workbook);
         model.dump();
@@ -89,18 +91,20 @@ public class TestReportEngine extends BaseTestCase {
     }
 
     @Test
-    public void testHidden(){
+    public void testHidden() {
         IReportEngine reportEngine = newReportEngine();
 
 
-        ExcelWorkbook workbook = new ExcelWorkbookParser().parseFromVirtualPath("/nop/report/demo/test-hidden.xpt.xlsx");
-        ITextTemplateOutput htmlRenderer = (ITextTemplateOutput) reportEngine.getRendererForExcel(workbook, "html");
+        ExcelWorkbook workbook = reportEngine.getXptModel("/nop/report/demo/test-hidden.xpt.xlsx");
+        ITextTemplateOutput htmlRenderer = (ITextTemplateOutput) reportEngine.getRendererForXptModel(workbook, "html");
         String html = htmlRenderer.generateText(XLang.newEvalScope());
         // System.out.println(html);
 
+        assertFalse(html.contains("xpt-row xpt-hidden"));
+
         FileHelper.writeText(getTargetFile("test-hidden.html"), html, null);
 
-        ITemplateOutput output = reportEngine.getRendererForExcel(workbook, "xlsx");
+        ITemplateOutput output = reportEngine.getRendererForXptModel(workbook, "xlsx");
         output.generateToFile(getTargetFile("test-hidden.xlsx"), XLang.newEvalScope());
     }
 

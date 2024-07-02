@@ -101,7 +101,7 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
                                 runXpl(sheetModel.getBeforeExpand(), xptRt);
                             }
 
-                            ExpandedSheet expandedSheet = generateSheet(sheet, xptRt,sheetNames);
+                            ExpandedSheet expandedSheet = generateSheet(sheet, xptRt, sheetNames);
 
                             if (sheetModel != null)
                                 runXpl(sheetModel.getAfterExpand(), xptRt);
@@ -117,7 +117,7 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
     }
 
     private ExpandedSheet generateSheet(ExcelSheet sheet, IXptRuntime xptRt,
-                               Map<String, Integer> sheetNames) {
+                                        Map<String, Integer> sheetNames) {
         XptSheetModel sheetModel = sheet.getModel();
         Guard.notNull(sheetModel, "sheetModel");
 
@@ -145,6 +145,8 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
 
         ExpandedSheetEvaluator.INSTANCE.evaluateSheetCells(expandedSheet, xptRt);
 
+        removeHidden(expandedSheet);
+
         dropRemoved(expandedSheet);
 
         expandedSheet.getTable().assignRowIndexAndColIndex();
@@ -154,6 +156,25 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
         initExportFormula(expandedSheet, xptRt);
 
         return expandedSheet;
+    }
+
+    private void removeHidden(ExpandedSheet sheet) {
+        if (workbook.shouldRemoveHiddenCell()) {
+            ExpandedTable table = sheet.getTable();
+            for (int i = 0, n = table.getColCount(); i < n; i++) {
+                ExpandedCol col = table.getCol(i);
+                if (col.isHidden()) {
+                    col.setRemoved(true);
+                }
+            }
+
+            for (int i = 0, n = table.getRowCount(); i < n; i++) {
+                ExpandedRow row = table.getRow(i);
+                if (row.isHidden()) {
+                    row.setRemoved(true);
+                }
+            }
+        }
     }
 
     private void collectImages(ExpandedSheet sheet) {
