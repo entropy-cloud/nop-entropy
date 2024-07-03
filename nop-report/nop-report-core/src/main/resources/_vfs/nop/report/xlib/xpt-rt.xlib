@@ -27,5 +27,70 @@
             </source>
 
         </JdbcDataSet>
+
+        <UseJdbcDataSet>
+            <attr name="dsName" type="String" optional="true"/>
+            <attr name="queryTimeout" type="Integer" optional="true"/>
+            <attr name="fetchSize" type="Integer" optional="true"/>
+            <attr name="querySpace" type="String" optional="true"/>
+            <attr name="rowType" stdDomain="generic-type" optional="true"/>
+            <attr name="xptRt" type="io.nop.report.core.engine.IXptRuntime" implicit="true"/>
+
+            <slot name="source" outputMode="sql" mandatory="true"/>
+
+            <source>
+                <c:script><![CDATA[
+                    const sql = slot_source().extend().timeout(queryTimeout)
+                          .fetchSize(fetchSize).querySpace(querySpace).end();
+
+                    const jdbcTemplate = inject('nopJdbcTemplate');
+                    const data = jdbcTemplate.findAll(sql,jdbcTemplate.getRowMapper(rowType,true));
+                    return xptRt.makeDs(dsName || 'ds1',data);
+                ]]></c:script>
+            </source>
+        </UseJdbcDataSet>
+
+        <UseOrmDataSet>
+            <attr name="dsName" type="String" optional="true"/>
+            <attr name="queryTimeout" type="Integer" optional="true"/>
+            <attr name="fetchSize" type="Integer" optional="true"/>
+            <attr name="disableLogicalDelete" type="Boolean" optional="true"/>
+            <attr name="rowType" stdDomain="generic-type" optional="true"/>
+            <attr name="xptRt" type="io.nop.report.core.engine.IXptRuntime" implicit="true"/>
+
+            <slot name="source" outputMode="sql" mandatory="true"/>
+
+            <source>
+                <c:script><![CDATA[
+                    const sql = slot_source().extend().timeout(queryTimeout)
+                          .fetchSize(fetchSize).disableLogicalDelete(disableLogicalDelete).end();
+
+                    const ormTemplate = inject('nopOrmTemplate');
+                    const data = ormTemplate.findAll(sql,ormTemplate.getRowMapper(rowType,false));
+                    return xptRt.makeDs(dsName || 'ds1',data);
+                ]]></c:script>
+            </source>
+        </UseOrmDataSet>
+
+        <UseQueryDataSet>
+            <attr name="dsName" type="String" optional="true"/>
+            <attr name="rowType" stdDomain="generic-type" implicit="true"/>
+            <attr name="xptRt" type="io.nop.report.core.engine.IXptRuntime" implicit="true"/>
+
+            <slot name="source" outputMode="node" mandatory="true"/>
+
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.core.model.query.QueryBeanHelper;
+
+                    const queryNode = slot_source();
+                    const query = QueryBeanHelper.buildQueryBeanFromTreeBean(queryNode);
+                    const ormTemplate = inject('nopOrmTemplate');
+                    const mapper = ormTemplate.getRowMapper(rowType,false);
+                    const data = ormTemplate.findListByQuery(query,mapper);
+                    return xptRt.makeDs(dsName || 'ds1',data);
+                ]]></c:script>
+            </source>
+        </UseQueryDataSet>
     </tags>
 </lib>

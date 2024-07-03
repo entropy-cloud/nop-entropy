@@ -76,12 +76,12 @@ NopReport对数据来源没有任何特殊要求，在【展开前】配置中�
 例如【展开前】可以引入Xpl标签抽象，将具体数据集的获取方式封装为Xpl标签。
 
 ```xml
-<rpt:UseJdbcDataSet dsName="ds1">
-  <sql> select xx from yy </sql>
-</rpt:UseJdbcDataSet>
+<xpt-rt:UseJdbcDataSet dsName="ds1" xpl:lib="/nop/report/xlib/xpt-rt.xlib">
+  <soure> select xx from yy where type=${type} </soure>
+</xpt-rt:UseJdbcDataSet>
 ```
 
-我们可以将`<rpt:UseJdbcDataSet>`等标签看作是一种配置文件，利用Nop平台的GenericTreeEditor(目前尚在开发过程中)就可以自动生成数据集的可视化设计器。
+我们可以将`<xpt-rt:UseJdbcDataSet>`等标签看作是一种配置文件，利用Nop平台的GenericTreeEditor(目前尚在开发过程中)就可以自动生成数据集的可视化设计器。
 
 利用Nop平台作为技术底座，我们可以积累出专门适用于自己领域的数据模型定义，而不用完全依赖平台内置提供的数据模型。
 
