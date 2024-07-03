@@ -20,7 +20,7 @@ public class BizActionInvoker {
   public static Object invokeActionSync(String bizObjName, String bizAction, Object request,
                                         FieldSelectionBean selection, IServiceContext context) {
     IBizObjectManager bizObjectManager = BeanContainer.getBeanByType(IBizObjectManager.class);
-    IBizObject bizObject = bizObjectManager.getBizObject(bizAction);
+    IBizObject bizObject = bizObjectManager.getBizObject(bizObjName);
     GraphQLOperationType opType = bizObject.getOperationType(bizAction);
     IOrmTemplate ormTemplate = BeanContainer.getBeanByType(IOrmTemplate.class);
     ITransactionTemplate txnTemplate = BeanContainer.getBeanByType(ITransactionTemplate.class);
