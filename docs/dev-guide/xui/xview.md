@@ -388,3 +388,51 @@ definitions:
 ```
 
 排序条件通过`orderField={fieldName}&orderDir={asc|desc}`来表示，也可以传入Array格式的
+
+## 问题处理
+
+### 1. 在CRUD行按钮上执行ajax调用会缺省触发表格的reload
+
+```xml
+        <crud name="main">
+            <rowActions>
+                <action id="test_ajax" level="primary" label="nop test ajax"
+                        actionType="ajax" reload="none">
+                    <api url="@query:NopAuthDept__get?id=$id" gql:selection="managerId"/>
+                </action>
+            </rowActions>
+        </crud>
+```
+可以设置`reload="none"`来禁用这个特性
+
+### 2. 如何向引用的子页面传递参数
+
+```xml
+<form id="rowView" editMode="view" title="查看合同" size="lg">
+  <layout>
+  !@contractId
+  </layout>
+  <cells>
+    <cell id="contractId">
+        <view path="/app/demo/pages/ContractMain/detail.page.yaml" />
+    </cell>
+  </cells>
+  <data>
+    <id>$contractId</id>
+  </data>
+</form>
+```
+
+* AMIS的子页面可以直接看到父scope中的变量，所以设置form的data会导致每个表单控件都看到对应变量
+
+另外可以通过定制view来实现
+
+```xml
+    <cell id="contractId">
+        <view path="/app/demo/pages/ContractMain/ContractMain.view.xml" page="viewContract"/>
+    </cell>
+```
+
+* 在指定view.xml模型文件中增加page定义，然后利用Delta定制可以继承已有的页面，定制initApi配置即可。这是在XView模型层面定制。
+
+也可以通过view引入page.yaml，然后在page.yaml中继承已有的page.yaml，在AMIS层面定制。
