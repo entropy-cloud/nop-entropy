@@ -2173,6 +2173,16 @@ public class StringHelper extends ApiStringHelper {
         return ret;
     }
 
+    @Deterministic
+    public static String removeUrlQuery(String path) {
+        if (path == null)
+            return null;
+        int pos = path.indexOf('?');
+        if (pos < 0)
+            return path;
+        return path.substring(0, pos);
+    }
+
 
     @Deterministic
     public static Map<String, Object> parseQuery(String query, String encoding) {

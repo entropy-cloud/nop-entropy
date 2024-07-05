@@ -20,6 +20,7 @@ import static io.nop.api.core.ApiConfigs.CFG_APPLICATION_VERSION;
 import static io.nop.api.core.ApiConfigs.CFG_DEBUG;
 import static io.nop.api.core.ApiConfigs.CFG_HOST_ID;
 import static io.nop.api.core.ApiConfigs.CFG_PROFILE;
+import static io.nop.api.core.ApiConfigs.CFG_WEB_FILE_TIMESTAMP;
 
 @SuppressWarnings("PMD.TooManyStaticImports")
 @GlobalInstance
@@ -79,6 +80,10 @@ public class AppConfig {
 
     public static <T> IConfigReference<T> varRef(SourceLocation loc, String name, Class<T> valueType, T defaultValue) {
         return s_provider.getStaticConfigReference(name, valueType, defaultValue, loc);
+    }
+
+    public static long webFileTimestamp() {
+        return CFG_WEB_FILE_TIMESTAMP.get();
     }
 
     public static <T> IConfigReference<T> withOverride(SourceLocation loc, IConfigReference<T> defaultRef, String name) {

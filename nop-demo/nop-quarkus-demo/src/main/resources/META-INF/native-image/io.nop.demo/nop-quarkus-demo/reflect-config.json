@@ -6350,6 +6350,17 @@
     "fields": [],
     "methods": [
       {
+        "name": "decideDynamicRoles",
+        "parameterTypes": [
+          "io.nop.auth.core.model.ObjDataAuthModel",
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "initCheckerFromFilter",
+        "parameterTypes": []
+      },
+      {
         "name": "sort",
         "parameterTypes": []
       }
@@ -6368,6 +6379,14 @@
         "name": "getFilter",
         "parameterTypes": [
           "java.lang.String",
+          "io.nop.api.core.auth.ISecurityContext"
+        ]
+      },
+      {
+        "name": "getRoleAuth",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.util.Set",
           "io.nop.api.core.auth.ISecurityContext"
         ]
       },
@@ -6398,6 +6417,12 @@
         "name": "compareTo",
         "parameterTypes": [
           "io.nop.auth.core.model.RoleDataAuthModel"
+        ]
+      },
+      {
+        "name": "generateFilter",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope"
         ]
       },
       {
@@ -6565,6 +6590,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getRoleDecider",
+        "parameterTypes": []
+      },
+      {
         "name": "hasObj",
         "parameterTypes": [
           "java.lang.String"
@@ -6592,6 +6621,12 @@
         "name": "setObjs",
         "parameterTypes": [
           "java.util.List"
+        ]
+      },
+      {
+        "name": "setRoleDecider",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
         ]
       }
     ],
@@ -6646,6 +6681,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getRoleDecider",
+        "parameterTypes": []
+      },
+      {
         "name": "hasRoleAuth",
         "parameterTypes": [
           "java.lang.String"
@@ -6685,6 +6724,12 @@
         "name": "setRoleAuths",
         "parameterTypes": [
           "java.util.List"
+        ]
+      },
+      {
+        "name": "setRoleDecider",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
         ]
       }
     ],
@@ -6727,11 +6772,23 @@
         "parameterTypes": []
       },
       {
+        "name": "getId",
+        "parameterTypes": []
+      },
+      {
         "name": "getPriority",
         "parameterTypes": []
       },
       {
         "name": "getRoleId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRoleIds",
+        "parameterTypes": []
+      },
+      {
+        "name": "getWhen",
         "parameterTypes": []
       },
       {
@@ -6763,6 +6820,12 @@
         ]
       },
       {
+        "name": "setId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setPriority",
         "parameterTypes": [
           "int"
@@ -6772,6 +6835,18 @@
         "name": "setRoleId",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRoleIds",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      },
+      {
+        "name": "setWhen",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalPredicate"
         ]
       }
     ],
@@ -16802,6 +16877,12 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "buildBizObject",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
       {
         "name": "buildResponse",
         "parameterTypes": [
@@ -37840,6 +37921,13 @@
       {
         "name": "executeRpcAsync",
         "parameterTypes": [
+          "io.nop.graphql.core.IGraphQLExecutionContext"
+        ]
+      },
+      {
+        "name": "fetchResult",
+        "parameterTypes": [
+          "java.lang.Object",
           "io.nop.graphql.core.IGraphQLExecutionContext"
         ]
       },

@@ -15,6 +15,7 @@ import io.nop.api.core.annotations.directive.Auth;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.beans.WebContentBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.web.page.DynamicWebFileProvider;
 import jakarta.inject.Inject;
@@ -35,6 +36,7 @@ public class SystemJsProviderBizModel {
     @BizQuery
     @Auth(publicAccess = true)
     public WebContentBean getJs(@Name("path") String path, IServiceContext context) {
+        path = StringHelper.removeUrlQuery(path);
         checkJsFile(path);
         return WebContentBean.js(jsProvider.getJs(path));
     }
@@ -44,6 +46,7 @@ public class SystemJsProviderBizModel {
         if (!editEnabled)
             throw new NopException(ERR_WEB_PAGE_NOT_ALLOW_EDIT);
 
+        path = StringHelper.removeUrlQuery(path);
         checkXjsFile(path);
         return WebContentBean.js(jsProvider.getJsSource(path));
     }
@@ -52,7 +55,7 @@ public class SystemJsProviderBizModel {
     public void saveJsSource(@Name("path") String path, @Name("source") String source) {
         if (!editEnabled)
             throw new NopException(ERR_WEB_PAGE_NOT_ALLOW_EDIT);
-
+        path = StringHelper.removeUrlQuery(path);
         checkXjsFile(path);
         jsProvider.saveJsSource(path, source);
     }
@@ -62,6 +65,7 @@ public class SystemJsProviderBizModel {
         if (!editEnabled)
             throw new NopException(ERR_WEB_PAGE_NOT_ALLOW_EDIT);
 
+        path = StringHelper.removeUrlQuery(path);
         checkXjsFile(path);
         jsProvider.rollback(path, null);
     }

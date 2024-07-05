@@ -2,4 +2,4 @@
 x:gen-extends: |
     <web:GenPage view="NopWfDefinition.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />
 
-xui:import: of-model.lib.js
+# xui:import: of-model.lib.js

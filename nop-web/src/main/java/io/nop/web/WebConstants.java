@@ -51,6 +51,9 @@ public interface WebConstants {
 
     String FUNC_ROLLUP_TRANSFORM = "rollupTransform";
 
+    String ATTR_XUI_IMPORT = "xui:import";
+
+    String ATTR_XUI_AUTH = "xui:auth";
 
     String PREFIX_GENERATE = "@generate";
 

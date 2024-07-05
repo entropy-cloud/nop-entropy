@@ -7,6 +7,8 @@
  */
 package io.nop.core.lang.json.utils;
 
+import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.functional.ITriFunction;
 import io.nop.commons.util.CollectionHelper;
 
 import java.util.ArrayList;
@@ -14,6 +16,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -61,6 +64,42 @@ public class JsonTransformHelper {
             ret.put(entry.getKey(), value);
         }
         return ret;
+    }
+
+    public static Object transformMapEntryInPlace(Object value, BiPredicate<String, Object> filter,
+                                                  ITriFunction<SourceLocation, String, Object, Object> fn) {
+        if (value instanceof Map) {
+            Map<String, Object> map = (Map<String, Object>) value;
+            Iterator<Map.Entry<String, Object>> it = map.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<String, Object> entry = it.next();
+                String name = entry.getKey();
+                Object v = entry.getValue();
+
+                if (filter.test(name, v)) {
+                    SourceLocation loc = SourceLocationHelper.getLocation(map, name);
+                    Object v2 = fn.apply(loc, name, v);
+                    entry.setValue(v2);
+                } else {
+                    Object v2 = transformMapEntryInPlace(v, filter, fn);
+                    if (v2 != v)
+                        entry.setValue(v2);
+                }
+            }
+            return map;
+        } else if (value instanceof List) {
+            List<Object> list = (List<Object>) value;
+            for (int i = 0, n = list.size(); i < n; i++) {
+                Object v = list.get(i);
+                Object v2 = transformMapEntryInPlace(v, filter, fn);
+                if (v2 != v) {
+                    list.set(i, v2);
+                }
+            }
+            return list;
+        } else {
+            return value;
+        }
     }
 
     public static Object transformInPlace(Object value, Function<Object, Object> fn) {

@@ -7,15 +7,19 @@
  */
 package io.nop.web.page;
 
+import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
+import io.nop.core.CoreErrors;
 import io.nop.core.i18n.I18nMessageManager;
 import io.nop.core.lang.json.DeltaJsonOptions;
 import io.nop.core.lang.json.JObject;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.json.delta.JsonCleaner;
 import io.nop.core.lang.json.utils.JsonTransformHelper;
+import io.nop.core.lang.json.utils.SourceLocationHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.web.WebConstants;
@@ -25,11 +29,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static io.nop.web.WebErrors.ARG_ALLOWED_FILE_TYPES;
 import static io.nop.web.WebErrors.ARG_PATH;
-import static io.nop.web.WebErrors.ERR_WEB_UNSUPPORTED_FILE_TYPE;
 import static io.nop.web.WebErrors.ERR_WEB_INVALID_PAGE_FILE_TYPE;
+import static io.nop.web.WebErrors.ERR_WEB_UNSUPPORTED_FILE_TYPE;
 
 public class WebPageHelper {
     public static Map<String, Object> internalLoadPage(String pagePath) {
@@ -218,5 +223,43 @@ public class WebPageHelper {
                 removeGeneratedId(item);
             }
         }
+    }
+
+    public static void normalizeXuiImport(Map<String, Object> page) {
+        JsonTransformHelper.transformMapEntryInPlace(page, (name, v) -> {
+            return name.equals(WebConstants.ATTR_XUI_IMPORT);
+        }, WebPageHelper::normalizeXuiImportUrls);
+    }
+
+    private static Object normalizeXuiImportUrls(SourceLocation loc, String name, Object value) {
+        if (value instanceof String) {
+            List<String> paths = StringHelper.split(value.toString(), ',');
+            return paths.stream().map(path -> normalizeFileUrl(loc, path)).collect(Collectors.joining(","));
+        } else if (value instanceof Collection) {
+            Collection<String> paths = (Collection<String>) value;
+            return paths.stream().map(path -> normalizeFileUrl(loc, name)).collect(Collectors.joining(","));
+        } else if (value instanceof Map) {
+            Map<String, Object> map = (Map<String, Object>) value;
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
+                SourceLocation loc2 = SourceLocationHelper.getLocation(map, entry.getKey());
+                if (loc2 == null)
+                    loc2 = loc;
+                entry.setValue(normalizeFileUrl(loc2, (String) entry.getValue()));
+            }
+            return map;
+        } else {
+            return value;
+        }
+    }
+
+    private static String normalizeFileUrl(SourceLocation loc, String path) {
+        String absPath = SourceLocationHelper.toAbsolutePath(loc, path);
+        IResource resource = VirtualFileSystem.instance().getResource(absPath);
+        if (!resource.exists())
+            throw new NopException(CoreErrors.ERR_RESOURCE_NOT_EXISTS).param(ARG_PATH, absPath).loc(loc);
+        long ts = AppConfig.webFileTimestamp();
+        if (ts > 0)
+            return absPath + "?_t=" + ts;
+        return absPath;
     }
 }

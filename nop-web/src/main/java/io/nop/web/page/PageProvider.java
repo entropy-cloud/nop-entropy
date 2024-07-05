@@ -209,6 +209,7 @@ public class PageProvider extends ResourceWithHistoryProvider {
 
             // 删除null值和空集合，简化最终的Page结构
             WebPageHelper.removeNullEntry(map);
+            WebPageHelper.normalizeXuiImport(map);
             WebPageHelper.fixPage(map, locale, useResolver);
 
             SourceLocation loc = SourceLocation.fromPath(resource.getPath());

@@ -9,8 +9,13 @@ package io.nop.core.lang.json.utils;
 
 import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.util.StringHelper;
+import io.nop.core.CoreConstants;
 import io.nop.core.lang.json.JArray;
 import io.nop.core.lang.json.JObject;
+import io.nop.core.resource.ResourceConstants;
+
+import java.util.Map;
 
 public class SourceLocationHelper {
     public static SourceLocation getPropLocation(Object bean, String propName) {
@@ -39,5 +44,21 @@ public class SourceLocationHelper {
         if (loc == null)
             return null;
         return loc.offset(0, colOffset);
+    }
+
+    public static SourceLocation getLocation(Map<String, Object> o, String name) {
+        if (o instanceof JObject)
+            return ((JObject) o).getLocation(name);
+        return null;
+    }
+
+    public static String toAbsolutePath(SourceLocation loc, String path) {
+        if(loc == null)
+            return path;
+
+        if (path.equals(CoreConstants.SUPER_NS)) {
+            return ResourceConstants.SUPER_NS + ':' + loc.getPath();
+        }
+        return StringHelper.absolutePath(loc.getPath(), path);
     }
 }

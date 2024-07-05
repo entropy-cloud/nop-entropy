@@ -15,7 +15,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
 import io.nop.core.lang.json.DeltaJsonOptions;
 import io.nop.core.lang.json.JObject;
-import io.nop.core.resource.ResourceConstants;
+import io.nop.core.lang.json.utils.SourceLocationHelper;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -96,18 +96,10 @@ public class JsonExtender {
         if (loc == null)
             return extendsList;
         return extendsList.stream().map(path -> {
-            if (path.endsWith(CoreConstants.SUPER_NS)) {
-                return ResourceConstants.SUPER_NS + ':' + loc.getPath();
-            }
-            return StringHelper.absolutePath(loc.getPath(), path);
+            return SourceLocationHelper.toAbsolutePath(loc, path);
         }).collect(Collectors.toList());
     }
 
-    private SourceLocation getLocation(Map<String, Object> o, String name) {
-        if (o instanceof JObject)
-            return ((JObject) o).getLocation(name);
-        return null;
-    }
 
     private Map<String, Object> loadStaticExtends(List<String> extendsList) {
         Map<String, Object> map = loadExtends(extendsList.get(0));
@@ -138,7 +130,7 @@ public class JsonExtender {
         if (StringHelper.isEmptyObject(genExtends))
             return null;
 
-        SourceLocation loc = getLocation(obj, CoreConstants.ATTR_X_GEN_EXTENDS);
+        SourceLocation loc = SourceLocationHelper.getLocation(obj, CoreConstants.ATTR_X_GEN_EXTENDS);
         Object generated = options.getExtendsGenerator().genExtends(loc, genExtends, obj);
         if (generated == null)
             return null;

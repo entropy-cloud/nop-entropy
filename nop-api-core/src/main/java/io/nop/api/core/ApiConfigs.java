@@ -51,7 +51,6 @@ public interface ApiConfigs {
     IConfigReference<String> CFG_APPLICATION_VERSION =
             varRef(s_loc, "nop.application.version", String.class, "");
 
-
     @Description("应用程序的多语言设置")
     IConfigReference<String> CFG_APPLICATION_LOCALE =
             varRef(s_loc, "nop.application.locale", String.class, "zh-CN");
@@ -67,6 +66,10 @@ public interface ApiConfigs {
     @Description("应用程序在配置中心对应的名字空间")
     IConfigReference<String> CFG_APPLICATION_NAMESPACE =
             varRef(s_loc, "nop.application.namespace", String.class, "default");
+
+    @Description("应用程序的前端文件时间戳，生成的js文件等前端文件缺省都会带有这个时间戳")
+    IConfigReference<Long> CFG_WEB_FILE_TIMESTAMP =
+            varRef(s_loc, "nop.web.file-timestamp", Long.class, 0L);
 
     @Description("RPC调用时自动传播的header的名称，采用逗号分隔，例如nop-svc-route")
     IConfigReference<String> CFG_RPC_PROPAGATE_HEADERS =
