@@ -48,6 +48,7 @@ public class CollectionPersisterImpl implements ICollectionPersister {
     private boolean useGlobalCache;
     private ICache<String, Object> globalCache;
     private ICollectionPersistDriver driver;
+    private String defaultQuerySpace;
 
     @Override
     public IEntityRelationModel getCollectionModel() {
@@ -62,6 +63,7 @@ public class CollectionPersisterImpl implements ICollectionPersister {
         }
         this.env = env;
         this.collectionModel = relation;
+        this.defaultQuerySpace = relation.getRefEntityModel().getQuerySpace();
 
         this.driver = env.createCollectionPersistDriver(collectionModel.getPersistDriver());
         driver.init(relation, env);
@@ -167,7 +169,7 @@ public class CollectionPersisterImpl implements ICollectionPersister {
                         evictGlobalCache(shard, collection);
                     }
                 });
-        session.getBatchActionQueue(shard == null ? null : shard.getQuerySpace()).enqueueCollection(action);
+        session.getBatchActionQueue(shard == null ? defaultQuerySpace : shard.getQuerySpace()).enqueueCollection(action);
     }
 
     boolean loadFromGlobalCache(IOrmEntitySet coll, IOrmSessionImplementor session) {
