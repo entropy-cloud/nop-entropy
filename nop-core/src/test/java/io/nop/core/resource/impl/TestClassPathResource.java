@@ -7,14 +7,25 @@
  */
 package io.nop.core.resource.impl;
 
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import io.nop.core.resource.IResource;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestClassPathResource {
     @Test
-    public void testNormalizePath(){
+    public void testNormalizePath() {
         String path = ClassPathResource.normalizeClassPath("classpath:/_vfs/a.txt");
-        assertEquals("classpath:_vfs/a.txt",path);
+        assertEquals("classpath:_vfs/a.txt", path);
+    }
+
+    @Test
+    public void testLength() {
+        IResource resource = new ClassPathResource("classpath:" + CacheLoader.class.getName().replace('.', '/') + ".class");
+        assertTrue(resource.exists());
+        assertTrue(resource.length() > 0);
+        assertTrue(resource.lastModified() > 0);
     }
 }

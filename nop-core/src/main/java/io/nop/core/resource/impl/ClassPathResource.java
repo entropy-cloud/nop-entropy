@@ -9,6 +9,7 @@ package io.nop.core.resource.impl;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.ClassHelper;
+import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.URLHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
@@ -19,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
+import java.net.URLConnection;
 
 import static io.nop.core.CoreErrors.ARG_RESOURCE;
 import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
@@ -32,6 +34,9 @@ public class ClassPathResource extends AbstractResource {
     private static final long serialVersionUID = 580938702502424559L;
     private transient URL url;
     private transient ClassLoader classLoader;
+
+    private long length = -1;
+    private long lastModified = -1;
 
     public ClassPathResource(String path, ClassLoader classLoader) {
         super(normalizeClassPath(path));
@@ -87,7 +92,17 @@ public class ClassPathResource extends AbstractResource {
         File file = toFile();
         if (file != null)
             return file.lastModified();
-        return -1;
+        initLength();
+        return lastModified;
+    }
+
+    @Override
+    public long length() {
+        File file = toFile();
+        if (file != null)
+            return file.length();
+        initLength();
+        return length;
     }
 
     @Override
@@ -95,6 +110,25 @@ public class ClassPathResource extends AbstractResource {
         if (url == null)
             url = _toURL();
         return url;
+    }
+
+    private void initLength() {
+        if (length >= 0)
+            return;
+
+        URLConnection conn = null;
+        InputStream is = null;
+        try {
+            conn = url.openConnection();
+            is = conn.getInputStream();
+            this.length = conn.getContentLengthLong();
+            this.lastModified = conn.getLastModified();
+        } catch (Exception e) {
+            // ignore
+        } finally {
+            // 读取lastModified会打开底层的流对象
+            IoHelper.safeCloseObject(is);
+        }
     }
 
     URL _toURL() {
