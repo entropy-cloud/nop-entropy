@@ -16,8 +16,8 @@ import io.nop.auth.service.NopAuthConstants;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
-
 import jakarta.inject.Inject;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,6 +36,10 @@ public class NopAuthResourceBizModel extends CrudBizModel<NopAuthResource> {
     @Override
     protected void afterEntityChange(NopAuthResource entity, IServiceContext context) {
         super.afterEntityChange(entity, context);
+        // 顶层菜单不应该具有parent
+        if (entity.isTopMenu()) {
+            entity.setParentId(null);
+        }
         siteMapProvider.refreshCache();
     }
 

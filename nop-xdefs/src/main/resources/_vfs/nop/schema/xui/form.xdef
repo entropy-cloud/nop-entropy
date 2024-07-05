@@ -86,10 +86,11 @@
         @notSubmit 仅用于前台控制，不提交到后台
         @custom 如果设置为true，则不要求该字段在meta中定义。否则一般情况下view模型会与某个objMeta绑定，所有字段都会继承meta中定义的属性，如显示名称，类型信息等。
         @submitOnChange 只要控件值发生改变就会自动触发表单提交。
+        @clearValueOnHidden 单元格被隐藏的时候自动从scope中删除变量
         -->
         <cell id="!string" notSubmit="!boolean=false" custom="!boolean=false"
               collapseTitle="string" titlePosition="string" submitOnChange="boolean"
-              readonly="boolean" mandatory="boolean"
+              readonly="boolean" mandatory="boolean" clearValueOnHidden="!boolean=false"
               xdef:name="UiFormCellModel" xdef:ref="disp.xdef"
         >
         </cell>

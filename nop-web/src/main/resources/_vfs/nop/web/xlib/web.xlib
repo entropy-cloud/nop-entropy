@@ -286,9 +286,9 @@
                     <when test="${formRow.colCount == 0}">
                         <divider/>
                     </when>
-                    <when test="${formRow.colCount == 1}">
-                        <thisLib:GenFormCell formCell="${formRow.getCell(0)}"/>
-                    </when>
+<!--                    <when test="${formRow.colCount == 1}">-->
+<!--                        <thisLib:GenFormCell formCell="${formRow.getCell(0)}"/>-->
+<!--                    </when>-->
                     <otherwise>
                         <group id="row-${_.pluck(formRow.cells,'id').join('-')}">
                             <body>
@@ -376,6 +376,7 @@
                         visibleOn: cellModel?.visibleOn,
                         staticOn: cellModel?.readonlyOn,
                         requiredOn: cellModel?.requiredOn,
+                        clearValueOnHidden: cellModel?.clearValueOnHidden,
                         submitOnChange: cellModel?.submitOnChange ?? formModel?.submitOnChange,
                         desc: cellModel?.desc && ('@i18n:cells.'+i18nRoot+"."+formCell.id + ".$desc").$i18n(cellModel.desc)
                     };

@@ -74,16 +74,16 @@
             </layout>
 
             <cells>
-                <cell id="parentId">
+                <cell id="parentId" clearValueOnHidden="true">
                     <requiredOn>${resourceType != 'TOPM'}</requiredOn>
                 </cell>
-                <cell id="menuProps">
+                <cell id="menuProps" clearValueOnHidden="true">
                     <visibleOn>${resourceType != 'FNPT'}</visibleOn>
                 </cell>
                 <!--
                 字段分组如果没有label，则仅起分组作用，不会显示为FieldSet
                 -->
-                <cell id="authProps">
+                <cell id="authProps" clearValueOnHidden="true">
                     <visibleOn>${resourceType == 'FNPT'}</visibleOn>
                 </cell>
             </cells>
@@ -104,7 +104,7 @@
                 <cell id="siteId" defaultValue="main"/>
                 <!--                <cell id="resourceType" component="list-select" />-->
 
-                <cell id="parentId">
+                <cell id="parentId" clearValueOnHidden="true">
                     <visibleOn>${resourceType != "TOPM"}</visibleOn>
                     <gen-control>
                         <!--
