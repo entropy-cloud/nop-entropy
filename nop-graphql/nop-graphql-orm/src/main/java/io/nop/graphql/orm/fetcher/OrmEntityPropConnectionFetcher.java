@@ -60,7 +60,7 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
 
     @Override
     public Object get(IDataFetchingEnvironment env) {
-        IServiceContext context = env.getExecutionContext();
+        IServiceContext context = env.getServiceContext();
         Object source = env.getSource();
 
         FieldSelectionBean selection = env.getSelectionBean();

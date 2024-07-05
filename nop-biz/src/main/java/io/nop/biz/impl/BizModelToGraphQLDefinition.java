@@ -10,14 +10,12 @@ package io.nop.biz.impl;
 import io.nop.api.core.annotations.biz.BizActionArgKind;
 import io.nop.api.core.annotations.biz.BizMakerCheckerMeta;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.util.OrderedComparator;
 import io.nop.biz.decorator.IActionDecoratorCollector;
 import io.nop.biz.model.BizActionArgModel;
 import io.nop.biz.model.BizActionModel;
 import io.nop.biz.model.BizLoaderModel;
 import io.nop.biz.model.BizReturnModel;
 import io.nop.core.context.action.IServiceAction;
-import io.nop.core.context.action.IServiceActionDecorator;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.type.IGenericType;
 import io.nop.graphql.core.GraphQLConstants;
@@ -44,7 +42,6 @@ import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.reflect.ReflectObjMetaParser;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -166,7 +163,7 @@ public class BizModelToGraphQLDefinition {
             case Cache:
                 return IDataFetchingEnvironment::getCache;
             case ServiceContext:
-                return IDataFetchingEnvironment::getExecutionContext;
+                return IDataFetchingEnvironment::getGraphQLExecutionContext;
             case FieldSelection:
                 return IDataFetchingEnvironment::getSelectionBean;
             case RequestBean:

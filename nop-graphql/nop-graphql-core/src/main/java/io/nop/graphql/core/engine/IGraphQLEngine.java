@@ -111,6 +111,8 @@ public interface IGraphQLEngine {
         return context;
     }
 
+    CompletionStage<Object> fetchResult(Object result, IGraphQLExecutionContext context);
+
     GraphQLResponseBean buildGraphQLResponse(Object result, Throwable err, IGraphQLExecutionContext context);
 
     ApiResponse<?> buildRpcResponse(Object result, Throwable err, IGraphQLExecutionContext context);

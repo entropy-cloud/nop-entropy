@@ -35,7 +35,7 @@ public class OrmEntityColumnFetcher implements IDataFetcher {
         session.getBatchLoadQueue().enqueueProp(entity, entity.orm_propName(propId));
 
         DataLoader<Supplier<Object>, Object> loader = OrmBatchLoader.makeDataLoader(ormTemplate,
-                env.getExecutionContext());
+                env.getGraphQLExecutionContext());
         return loader.load(() -> entity.orm_propValue(propId));
     }
 }

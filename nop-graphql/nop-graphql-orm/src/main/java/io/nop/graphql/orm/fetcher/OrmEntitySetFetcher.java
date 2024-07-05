@@ -37,7 +37,7 @@ public class OrmEntitySetFetcher implements IDataFetcher {
         session.getBatchLoadQueue().enqueueSelection(coll, env.getSelectionBean());
 
         DataLoader<Supplier<Object>, Object> loader = OrmBatchLoader.makeDataLoader(ormTemplate,
-                env.getExecutionContext());
+                env.getGraphQLExecutionContext());
         return loader.load(() -> coll);
     }
 }

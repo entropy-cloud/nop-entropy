@@ -9,7 +9,6 @@ package io.nop.core.resource.impl;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.ClassHelper;
-import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.URLHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
@@ -36,7 +35,6 @@ public class ClassPathResource extends AbstractResource {
     private transient ClassLoader classLoader;
 
     private long length = -1;
-    private long lastModified = -1;
 
     public ClassPathResource(String path, ClassLoader classLoader) {
         super(normalizeClassPath(path));
@@ -92,8 +90,9 @@ public class ClassPathResource extends AbstractResource {
         File file = toFile();
         if (file != null)
             return file.lastModified();
-        initLength();
-        return lastModified;
+
+        // 通过URL获取length会打开流，比较浪费资源，也没有多大用处
+        return -1;
     }
 
     @Override
@@ -117,17 +116,11 @@ public class ClassPathResource extends AbstractResource {
             return;
 
         URLConnection conn = null;
-        InputStream is = null;
         try {
             conn = url.openConnection();
-            is = conn.getInputStream();
             this.length = conn.getContentLengthLong();
-            this.lastModified = conn.getLastModified();
         } catch (Exception e) {
             // ignore
-        } finally {
-            // 读取lastModified会打开底层的流对象
-            IoHelper.safeCloseObject(is);
         }
     }
 

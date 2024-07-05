@@ -56,7 +56,6 @@ public class OrmDaoProvider implements IDaoProvider {
 
     @Override
     public boolean hasDao(String entityName) {
-        String fullName = normalizeEntityName(entityName);
         return ormTemplate.getOrmModel().getEntityModel(entityName) != null;
     }
 

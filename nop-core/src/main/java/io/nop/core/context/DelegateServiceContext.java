@@ -39,6 +39,11 @@ public class DelegateServiceContext implements IServiceContext {
     }
 
     @Override
+    public void setExecutionId(String executionId) {
+        serviceContext.setExecutionId(executionId);
+    }
+
+    @Override
     public void appendOnCancel(Consumer<String> task) {
         serviceContext.appendOnCancel(task);
     }

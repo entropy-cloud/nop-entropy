@@ -11,6 +11,7 @@ import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.cache.ICache;
+import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.reflect.bean.BeanTool;
@@ -59,7 +60,7 @@ public interface IDataFetchingEnvironment {
         if (value instanceof Map)
             return BeanTool.castBeanToType(value, beanClass);
         if (value instanceof String)
-            return (T) JsonTool.parseBeanFromText(((String) value).toLowerCase(), beanClass);
+            return (T) JsonTool.parseBeanFromText((String) value, beanClass);
         throw new NopException(ERR_GRAPHQL_INVALID_ARG_TYPE).source(getSelection())
                 .param(ARG_ACTION_NAME, getSelection().getName()).param(ARG_ARG_NAME, name)
                 .param(ARG_EXPECTED_TYPE, beanClass);
@@ -74,18 +75,22 @@ public interface IDataFetchingEnvironment {
 
     FieldSelectionBean getSelectionBean();
 
-    IGraphQLExecutionContext getExecutionContext();
+    IGraphQLExecutionContext getGraphQLExecutionContext();
+
+    default IServiceContext getServiceContext() {
+        return getGraphQLExecutionContext().getServiceContext();
+    }
 
     default IContext getContext() {
-        return getExecutionContext().getContext();
+        return getServiceContext().getContext();
     }
 
     default ICache<Object, Object> getCache() {
-        return getExecutionContext().getCache();
+        return getServiceContext().getCache();
     }
 
     default IEvalScope getEvalScope() {
-        return getExecutionContext().getEvalScope();
+        return getServiceContext().getEvalScope();
     }
 
     boolean isAsync();

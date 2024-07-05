@@ -102,7 +102,7 @@ public class DataFetchingEnvironment implements IDataFetchingEnvironment {
     }
 
     @Override
-    public IGraphQLExecutionContext getExecutionContext() {
+    public IGraphQLExecutionContext getGraphQLExecutionContext() {
         return context;
     }
 

@@ -69,8 +69,8 @@ public class DictLabelFetcherProvider implements IDataFetcherProvider {
 
     static BiFunction<Object, IDataFetchingEnvironment, Object> loadLabel(String dictName) {
         return (value, env) -> {
-            String locale = env.getExecutionContext().getContext().getLocale();
-            DictBean dict = DictProvider.instance().getDict(locale, dictName, env.getCache(), env.getExecutionContext());
+            String locale = env.getGraphQLExecutionContext().getContext().getLocale();
+            DictBean dict = DictProvider.instance().getDict(locale, dictName, env.getCache(), env.getServiceContext());
             if (dict == null)
                 return StringHelper.toString(value, null);
             return dict.getLabelByValue(value);

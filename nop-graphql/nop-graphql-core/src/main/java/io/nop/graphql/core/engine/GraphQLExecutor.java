@@ -102,6 +102,29 @@ public class GraphQLExecutor implements IGraphQLExecutor {
         }
     }
 
+
+    @Override
+    public CompletionStage<Object> fetchResult(Object result, IGraphQLExecutionContext context) {
+        try {
+            DataFetchingEnvironment env = new DataFetchingEnvironment();
+            env.setExecutionContext(context);
+            env.setSource(result);
+            env.setRoot(result);
+
+            GraphQLFieldSelection operation = context.getOperation().getFieldSelection();
+            env.setSelection(operation);
+            env.setOpRequest(operation.getOpRequest());
+            env.setSelectionBean(context.getFieldSelection().getField(operation.getAliasOrName()));
+
+            CompletionStage<Object> future = FutureHelper.toCompletionStage(fetchNext(result, env));
+
+            dispatchAll(context);
+            return future;
+        } catch (Exception e) {
+            return FutureHelper.reject(e);
+        }
+    }
+
     private CompletionStage<Object> invokeOperation(DataFetchingEnvironment env) {
         CompletionStage<OperationResult> future;
 
@@ -192,14 +215,14 @@ public class GraphQLExecutor implements IGraphQLExecutor {
         Object meter = graphQLHook == null ? null : graphQLHook.beginInvoke(env);
 
         CompletionStage<OperationResult> future = null;
-        if (env.getExecutionContext().isMakerCheckerEnabled()) {
-            GraphQLFieldSelection operation = env.getExecutionContext().getOperation().getFieldSelection();
+        if (env.getGraphQLExecutionContext().isMakerCheckerEnabled()) {
+            GraphQLFieldSelection operation = env.getGraphQLExecutionContext().getOperation().getFieldSelection();
             GraphQLFieldDefinition fieldDef = operation.getFieldDefinition();
             if (fieldDef.getTryAction() != null) {
                 Object request = env.getOpRequest();
                 FieldSelectionBean selection = env.getSelectionBean();
                 future = FutureHelper.futureCall(() -> {
-                    return withFlowControl(v -> fieldDef.getTryAction().invoke(request, selection, env.getExecutionContext())).get(env);
+                    return withFlowControl(v -> fieldDef.getTryAction().invoke(request, selection, env.getGraphQLExecutionContext().getServiceContext())).get(env);
                 }).thenApply(v -> {
                     return new OperationResult(v, true);
                 });
@@ -235,7 +258,7 @@ public class GraphQLExecutor implements IGraphQLExecutor {
     private CompletionStage<Void> _invokeOperations(DataFetchingEnvironment baseEnv, Map<String, Object> result,
                                                     List<Supplier<CompletionStage<Object>>> actions) {
         FieldSelectionBean sourceSelection = baseEnv.getSelectionBean();
-        GraphQLSelectionSet selectionSet = baseEnv.getExecutionContext().getOperation().getSelectionSet();
+        GraphQLSelectionSet selectionSet = baseEnv.getGraphQLExecutionContext().getOperation().getSelectionSet();
 
         List<CompletionStage<?>> promises = new ArrayList<>();
 

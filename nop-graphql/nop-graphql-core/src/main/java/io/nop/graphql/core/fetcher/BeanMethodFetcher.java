@@ -32,6 +32,6 @@ public class BeanMethodFetcher implements IDataFetcher {
         for (int i = 0, n = args.length; i < n; i++) {
             args[i] = argBuilders.get(i).apply(env);
         }
-        return function.invoke(bean, args, env.getExecutionContext().getEvalScope());
+        return function.invoke(bean, args, env.getGraphQLExecutionContext().getEvalScope());
     }
 }

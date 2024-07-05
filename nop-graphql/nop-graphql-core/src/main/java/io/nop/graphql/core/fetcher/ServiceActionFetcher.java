@@ -29,6 +29,6 @@ public class ServiceActionFetcher implements IDataFetcher {
 
     @Override
     public Object get(IDataFetchingEnvironment env) {
-        return action.invoke(env.getArgs(), env.getSelectionBean(), env.getExecutionContext());
+        return action.invoke(env.getArgs(), env.getSelectionBean(), env.getServiceContext());
     }
 }

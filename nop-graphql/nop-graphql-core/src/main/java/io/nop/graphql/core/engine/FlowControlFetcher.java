@@ -35,7 +35,7 @@ public class FlowControlFetcher implements IDataFetcher {
     private FlowControlEntry newFlowEntry(IDataFetchingEnvironment env) {
         FlowControlEntry entry = new FlowControlEntry();
         entry.setInBound(true);
-        Map<String, Object> headers = env.getExecutionContext().getRequestHeaders();
+        Map<String, Object> headers = env.getGraphQLExecutionContext().getRequestHeaders();
         entry.setOrigin(ApiHeaders.getStringHeader(headers, ApiConstants.HEADER_APP_ID));
         entry.setBizKey(ApiHeaders.getStringHeader(headers, ApiConstants.HEADER_BIZ_KEY));
         entry.setResource(env.getSelectionBean().getName());

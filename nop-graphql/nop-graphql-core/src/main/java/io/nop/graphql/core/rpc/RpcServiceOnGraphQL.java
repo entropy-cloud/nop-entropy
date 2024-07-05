@@ -78,6 +78,6 @@ public class RpcServiceOnGraphQL implements IRpcService {
 
     CompletionStage<ApiResponse<?>> invokeAsync0(IGraphQLExecutionContext ctx) {
         return FutureHelper.thenCompleteAsync(engine.executeRpcAsync(ctx),
-                (ret, e) -> AopProxyHelper.buildResponse(ret, e, ctx));
+                (ret, e) -> AopProxyHelper.buildResponse(ret, e, ctx.getServiceContext()));
     }
 }

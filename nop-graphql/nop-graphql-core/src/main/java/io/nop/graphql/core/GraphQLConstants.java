@@ -132,6 +132,8 @@ public interface GraphQLConstants {
     String VAR_ENTITY = "entity";
     String VAR_VALUE = "value";
 
+    String VAR_GQL_CTX = "gqlCtx";
+
 
     String SUB_PARAMS_PREFIX = "_subArgs.";
     String FILTER_PREFIX = "filter_";

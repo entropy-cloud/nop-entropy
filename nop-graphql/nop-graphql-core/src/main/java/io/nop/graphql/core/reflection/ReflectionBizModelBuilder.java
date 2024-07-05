@@ -389,13 +389,13 @@ public class ReflectionBizModelBuilder {
                 sourceIndex = i;
                 argBuilders.add(IDataFetchingEnvironment::getSource);
             } else if (IServiceContext.class.isAssignableFrom(arg.getRawClass())) {
-                argBuilders.add(IDataFetchingEnvironment::getExecutionContext);
+                argBuilders.add(IDataFetchingEnvironment::getGraphQLExecutionContext);
             } else if (IDataFetchingEnvironment.class.isAssignableFrom(arg.getRawClass())) {
                 argBuilders.add(getEnv());
             } else if (IEvalScope.class.isAssignableFrom(arg.getRawClass())) {
                 argBuilders.add(IDataFetchingEnvironment::getEvalScope);
             } else if (IUserContext.class.isAssignableFrom(arg.getRawClass())) {
-                argBuilders.add(env -> env.getExecutionContext().getUserContext());
+                argBuilders.add(env -> env.getServiceContext().getUserContext());
             } else if (IContext.class == arg.getRawClass()) {
                 argBuilders.add(IDataFetchingEnvironment::getContext);
             } else if (arg.isAnnotationPresent(ContextRoot.class)) {

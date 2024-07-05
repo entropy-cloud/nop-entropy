@@ -39,7 +39,7 @@ public class OrmEntityRefFetcher implements IDataFetcher {
         session.getBatchLoadQueue().enqueueEntity(refEntity, env.getSelectionBean());
 
         DataLoader<Supplier<Object>, Object> loader = OrmBatchLoader.makeDataLoader(ormTemplate,
-                env.getExecutionContext());
+                env.getGraphQLExecutionContext());
         return loader.load(() -> (refEntity == null || refEntity.orm_state().isMissing()) ? null : refEntity);
     }
 }

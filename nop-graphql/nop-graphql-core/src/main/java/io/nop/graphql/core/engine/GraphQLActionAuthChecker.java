@@ -50,7 +50,7 @@ public class GraphQLActionAuthChecker {
             if (subSelection == null)
                 continue;
 
-            checkAuth(objTypeName, selection, checker, context, true);
+            checkAuth(objTypeName, selection, checker, context.getServiceContext(), true);
 
             checkSelectionSet(selection.getSelectionSet(), subSelection, checker, userContext, context);
         }
@@ -74,7 +74,7 @@ public class GraphQLActionAuthChecker {
                 if (subSelection == null)
                     continue;
 
-                checkAuth(objTypeName, fieldSelection, checker, context, false);
+                checkAuth(objTypeName, fieldSelection, checker, context.getServiceContext(), false);
 
                 checkSelectionSet(fieldSelection.getSelectionSet(), subSelection, checker, userContext, context);
             }

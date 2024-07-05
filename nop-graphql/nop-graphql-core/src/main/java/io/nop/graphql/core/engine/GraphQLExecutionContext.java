@@ -11,7 +11,9 @@ import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
+import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
+import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ParsedGraphQLRequest;
 import io.nop.graphql.core.ast.GraphQLOperation;
@@ -29,8 +31,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import static io.nop.graphql.core.GraphQLErrors.ARG_LOADER_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_DUPLICATED_LOADER;
 
-public class GraphQLExecutionContext extends ServiceContextImpl implements IGraphQLExecutionContext {
+public class GraphQLExecutionContext implements IGraphQLExecutionContext {
     static final Logger LOG = LoggerFactory.getLogger(GraphQLExecutionContext.class);
+
+    private final IServiceContext serviceContext;
 
     private GraphQLOperation operation;
 
@@ -39,6 +43,45 @@ public class GraphQLExecutionContext extends ServiceContextImpl implements IGrap
     private FieldSelectionBean fieldSelection;
 
     private boolean makerCheckerEnabled;
+
+    public GraphQLExecutionContext(IServiceContext serviceContext) {
+        this.serviceContext = serviceContext == null ? new ServiceContextImpl() : serviceContext;
+        serviceContext.getEvalScope().setLocalValue(GraphQLConstants.VAR_GQL_CTX, this);
+    }
+
+    public GraphQLExecutionContext() {
+        this(new ServiceContextImpl());
+    }
+
+    @Override
+    public String getExecutionId() {
+        return serviceContext.getExecutionId();
+    }
+
+    @Override
+    public void setExecutionId(String executionId) {
+        serviceContext.setExecutionId(executionId);
+    }
+
+    @Override
+    public IServiceContext getServiceContext() {
+        return serviceContext;
+    }
+
+    @Override
+    public Object getResponse() {
+        return serviceContext.getResponse();
+    }
+
+    @Override
+    public void setResponse(Object response) {
+        serviceContext.setResponse(response);
+    }
+
+    @Override
+    public Map<String, Object> getRequestHeaders() {
+        return serviceContext.getRequestHeaders();
+    }
 
     @Override
     public boolean isMakerCheckerEnabled() {
@@ -67,8 +110,14 @@ public class GraphQLExecutionContext extends ServiceContextImpl implements IGrap
         this.operation = operation;
     }
 
+    @Override
     public synchronized ParsedGraphQLRequest getRequest() {
-        return (ParsedGraphQLRequest) super.getRequest();
+        return (ParsedGraphQLRequest) serviceContext.getRequest();
+    }
+
+    @Override
+    public void setRequest(ParsedGraphQLRequest request) {
+        serviceContext.setRequest(request);
     }
 
     @Override

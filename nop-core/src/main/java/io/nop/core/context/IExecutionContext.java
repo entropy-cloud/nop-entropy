@@ -21,6 +21,8 @@ public interface IExecutionContext extends IEvalContext, IAttributeSet, ICancell
 
     String getExecutionId();
 
+    void setExecutionId(String executionId);
+
     void setEvalScope(IEvalScope scope);
 
     /**

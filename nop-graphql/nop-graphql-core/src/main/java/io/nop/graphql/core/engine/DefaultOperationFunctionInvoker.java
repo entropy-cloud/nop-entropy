@@ -25,7 +25,7 @@ public class DefaultOperationFunctionInvoker implements IAsyncFunctionInvoker {
 
     @Override
     public <R, T> CompletionStage<T> invokeAsync(Function<R, CompletionStage<T>> task, R request) {
-        IGraphQLExecutionContext context = ((IDataFetchingEnvironment) request).getExecutionContext();
+        IGraphQLExecutionContext context = ((IDataFetchingEnvironment) request).getGraphQLExecutionContext();
         if (context.getOperation().getOperationType() == GraphQLOperationType.mutation) {
             return transactionalInvoker.invokeAsync(task, request);
         } else {

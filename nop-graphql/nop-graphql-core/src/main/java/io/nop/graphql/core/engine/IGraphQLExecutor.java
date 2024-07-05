@@ -17,4 +17,6 @@ public interface IGraphQLExecutor {
     CompletionStage<ApiResponse<?>> executeOneAsync(IGraphQLExecutionContext context);
 
     CompletionStage<GraphQLResponseBean> executeAsync(IGraphQLExecutionContext context);
+
+    CompletionStage<Object> fetchResult(Object result, IGraphQLExecutionContext context);
 }

@@ -32,7 +32,7 @@ public class OrmEntityPropertyFetcher implements IDataFetcher {
         session.getBatchLoadQueue().enqueueProp(entity, propName);
 
         DataLoader<Supplier<Object>, Object> loader = OrmBatchLoader.makeDataLoader(ormTemplate,
-                env.getExecutionContext());
+                env.getGraphQLExecutionContext());
         return loader.load(() -> entity.orm_propValueByName(propName));
     }
 }

@@ -41,6 +41,7 @@ public class CoreInitialization {
     private static List<ICoreInitializer> initializers;
     private static int initializationLevel = -1;
     private static boolean initialized;
+    private static long initializeBeginTime;
 
     private static volatile boolean initializerRunning = false;
     private static Map<String, Object> bootstrapConfig = null;
@@ -64,13 +65,17 @@ public class CoreInitialization {
         initializeTo(Integer.MAX_VALUE);
     }
 
+    public static long getInitializeBeginTime() {
+        return initializeBeginTime;
+    }
+
     public static synchronized void initializeTo(int level) {
         if (initializationLevel >= level)
             return;
 
         try {
             initializerRunning = true;
-            long beginTime = CoreMetrics.currentTimeMillis();
+            initializeBeginTime = CoreMetrics.currentTimeMillis();
             LOG.info("nop.core.begin-initialize:workDir={},initializationLevel={}",
                     FileHelper.currentDir(), initializationLevel);
 
@@ -98,7 +103,7 @@ public class CoreInitialization {
             }
 
             LOG.info("nop.core.end-initialize:usedTime={},initializationLevel={}",
-                    CoreMetrics.currentTimeMillis() - beginTime, initializationLevel);
+                    CoreMetrics.currentTimeMillis() - initializeBeginTime, initializationLevel);
 
             initialized = true;
         } catch (Exception e) {

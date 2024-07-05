@@ -41,7 +41,7 @@ public class BeanMethodBatchFetcher implements IDataFetcher {
 
     @Override
     public Object get(IDataFetchingEnvironment env) {
-        IGraphQLExecutionContext context = env.getExecutionContext();
+        IGraphQLExecutionContext context = env.getGraphQLExecutionContext();
         DataLoader<Object, Object> loader = context.getDataLoader(loaderName);
         if (loader == null) {
             Object[] args = new Object[argBuilders.size()];
