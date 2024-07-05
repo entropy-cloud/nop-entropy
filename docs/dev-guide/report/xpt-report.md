@@ -132,3 +132,15 @@ cell对应于 ExpandedCell类型
 ## 常用表达式
 
 * xptRt.incAndGet(seqName): 相当于是 seqName ++，即读取seqName对应的变量值，执行递增操作，然后返回递增之前的值。如果一开始变量不存在，则认为初始化为0
+
+
+## 常见问题解答：
+
+### 1. 单元格的展开值`cell.expandValue`和单元格个的值`cell.value`之间有什么区别?
+
+展开和计算单元格的值是两个步骤，第一步是按照层次坐标展开，此时使用的是展开表达式expandType，得到的是展开值expandValue。
+只有设置了expandType和expandExpr的单元格才具有展开值。
+
+全部展开完毕后再执行单元格计算，此时根据valueExpr计算单元格的值。如果没有设置valueExpr，则单元格会取展开值expandValue为自己的缺省值。
+
+

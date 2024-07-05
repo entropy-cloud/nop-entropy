@@ -248,7 +248,7 @@ Nop平台中对JSON提供了统一的i18n字符串替换机制，它规定了如
 
 2. 为每个需要被国际化的key，增加对应的`@i18n:key`属性
    例如
-   
+
    ```javascript
    {
    label: "@i18n:common.batchDelete|批量删除"
@@ -309,6 +309,24 @@ import appva from '../../views/breadcrumb_example/Elbutton.vue'
   amisLib.Renderer({
     test: /(^|\/)my-custom/
   })(CustomComponent);
+```
+
+## 使用Service来提供scope
+
+```json
+{
+  "type": "page",
+  "body": {
+    "type": "service",
+    "dataProvider": "setData({'id': data.contractId})",
+    "body": [
+      {
+        "type": "tpl",
+        "tpl": "data:${id}"
+      }
+    ]
+  }
+}
 ```
 
 ## 问题
