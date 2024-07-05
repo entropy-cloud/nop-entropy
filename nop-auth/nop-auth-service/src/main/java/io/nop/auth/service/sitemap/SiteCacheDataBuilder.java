@@ -229,15 +229,18 @@ public class SiteCacheDataBuilder {
         SiteResourceBean entry = entryMap.computeIfAbsent(resource.getResourceId(), k -> new SiteResourceBean());
         entry.setId(resource.getResourceId());
         entry.setResourceType(resource.getResourceType());
-        entry.setRoutePath(resource.getRoutePath());
+        if (!StringHelper.isEmpty(resource.getRoutePath()))
+            entry.setRoutePath(resource.getRoutePath());
         if (entry.getRoutePath() == null)
             entry.setRoutePath(StringHelper.appendPath("/", entry.getId()));
-        entry.setIcon(resource.getIcon());
-        entry.setDisplayName(resource.getDisplayName());
+        if (!StringHelper.isEmpty(resource.getIcon()))
+            entry.setIcon(resource.getIcon());
+        if (!StringHelper.isEmpty(resource.getDisplayName()))
+            entry.setDisplayName(resource.getDisplayName());
         entry.setComponent(resource.getComponent());
         entry.setTarget(resource.getTarget());
-        entry.setRoutePath(resource.getRoutePath());
-        entry.setUrl(resource.getUrl());
+        if (!StringHelper.isEmpty(resource.getUrl()))
+            entry.setUrl(resource.getUrl());
         entry.setHidden(isYes(resource.getHidden()));
         entry.setKeepAlive(isYes(resource.getKeepAlive()));
         entry.setNoAuth(isYes(resource.getNoAuth()));
@@ -251,8 +254,10 @@ public class SiteCacheDataBuilder {
         if (resource.getAuthCascadeUp() != null) {
             entry.setAuthCascadeUp(StringHelper.isYes(resource.getAuthCascadeUp()));
         }
-        entry.setDepends(ConvertHelper.toCsvSet(resource.getDepends()));
-        entry.setPermissions(ConvertHelper.toCsvSet(resource.getPermissions()));
+        if (!StringHelper.isEmpty(resource.getDepends()))
+            entry.setDepends(ConvertHelper.toCsvSet(resource.getDepends()));
+        if (!StringHelper.isEmpty(resource.getPermissions()))
+            entry.setPermissions(ConvertHelper.toCsvSet(resource.getPermissions()));
         entry.setStatus(resource.getStatus());
         return entry;
     }
