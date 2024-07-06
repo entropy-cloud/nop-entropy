@@ -9,8 +9,6 @@ package io.nop.auth.service;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
-import io.nop.api.core.beans.ApiRequest;
-import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.auth.dao.entity.NopAuthRole;
@@ -43,5 +41,13 @@ public class TestGraphQLTransaction extends JunitAutoTestCase {
         assertTrue(daoProvider.daoFor(NopAuthRole.class).getEntityById("test123") == null);
     }
 
-
+    @EnableSnapshot
+    @Test
+    public void testTransaction() {
+        GraphQLRequestBean request = new GraphQLRequestBean();
+        request.setQuery("mutation { DemoAuth__testTransaction }");
+        IGraphQLExecutionContext context = graphQLEngine.newGraphQLContext(request);
+        GraphQLResponseBean response = graphQLEngine.executeGraphQL(context);
+        assertTrue(!response.hasError());
+    }
 }

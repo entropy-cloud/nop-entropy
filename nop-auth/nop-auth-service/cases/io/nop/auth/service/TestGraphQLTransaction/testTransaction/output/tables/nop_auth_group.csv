@@ -1,0 +1,2 @@
+_chgType,GROUP_ID,NAME,PARENT_ID,OWNER_ID,DEL_FLAG,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME,REMARK
+A,@var:NopAuthGroup@groupId,test,,,0,0,autotest-ref,*,autotest-ref,*,
