@@ -158,6 +158,7 @@ public interface XplConstants {
     String FROM_NAME = "from";
     String AS_NAME = "as";
     String CLASS_NAME = "class";
+    String ID_NAME = "id";
 
     Set<String> HTML_INLINE_TAG_NAMES = buildImmutableSet("img", "span", "button");
     Set<String> HTML_SHORT_TAG_NAMES = buildImmutableSet("hr", "br", "input", "img", "meta", "col", "link", "base",

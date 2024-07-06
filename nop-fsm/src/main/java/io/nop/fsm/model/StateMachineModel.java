@@ -7,6 +7,7 @@
  */
 package io.nop.fsm.model;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.INeedInit;
 import io.nop.fsm.FsmConstants;
 import io.nop.fsm.execution.IStateContainer;
@@ -14,6 +15,11 @@ import io.nop.fsm.model._gen._StateMachineModel;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import static io.nop.fsm.FsmErrors.ARG_OLD_STATE_ID;
+import static io.nop.fsm.FsmErrors.ARG_STATE_ID;
+import static io.nop.fsm.FsmErrors.ARG_STATE_VALUE;
+import static io.nop.fsm.FsmErrors.ERR_FSM_DUPLICATE_STATE_VALUE;
 
 public class StateMachineModel extends _StateMachineModel implements INeedInit, IStateContainer {
 
@@ -49,7 +55,14 @@ public class StateMachineModel extends _StateMachineModel implements INeedInit, 
         if (stateValue == null)
             stateValue = stateId;
 
-        stateValueMap.put(stateValue.toString(), stateModel);
+        StateModel oldState = stateValueMap.put(stateValue.toString(), stateModel);
+        if (oldState != null)
+            throw new NopException(ERR_FSM_DUPLICATE_STATE_VALUE)
+                    .source(stateModel)
+                    .param(ARG_STATE_VALUE, stateValue)
+                    .param(ARG_STATE_ID, stateId)
+                    .param(ARG_OLD_STATE_ID, oldState.getFullStateId());
+
         fullStateIdMap.put(stateId.toString(), stateModel);
 
         for (StateModel subState : stateModel.getStates()) {

@@ -3573,6 +3573,10 @@
         ]
       },
       {
+        "name": "webFileTimestamp",
+        "parameterTypes": []
+      },
+      {
         "name": "withOverride",
         "parameterTypes": [
           "io.nop.api.core.util.SourceLocation",
@@ -19361,6 +19365,12 @@
         "name": "setEvalScope",
         "parameterTypes": [
           "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "setExecutionId",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       }
     ],
@@ -58784,6 +58794,12 @@
         "name": "internalLoadPage",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "normalizeXuiImport",
+        "parameterTypes": [
+          "java.util.Map"
         ]
       },
       {

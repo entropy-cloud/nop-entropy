@@ -22,6 +22,7 @@ import io.nop.xlang.ast.definition.ImportClassDefinition;
 import io.nop.xlang.xpl.IXplCompiler;
 import io.nop.xlang.xpl.IXplTagCompiler;
 import io.nop.xlang.xpl.IXplTagLib;
+import io.nop.xlang.xpl.XplConstants;
 import io.nop.xlang.xpl.xlib.XplLibHelper;
 
 import java.util.List;
@@ -32,6 +33,7 @@ import static io.nop.xlang.XLangErrors.ERR_XPL_IMPORT_NOT_ALLOW_BOTH_FROM_AND_CL
 import static io.nop.xlang.xpl.XplConstants.AS_NAME;
 import static io.nop.xlang.xpl.XplConstants.CLASS_NAME;
 import static io.nop.xlang.xpl.XplConstants.FROM_NAME;
+import static io.nop.xlang.xpl.XplConstants.ID_NAME;
 import static io.nop.xlang.xpl.utils.XplParseHelper.checkArgNames;
 import static io.nop.xlang.xpl.utils.XplParseHelper.checkNotSysVar;
 import static io.nop.xlang.xpl.utils.XplParseHelper.getAttrClass;
@@ -42,12 +44,13 @@ import static java.util.Arrays.asList;
 public class ImportTagCompiler implements IXplTagCompiler {
     public static final ImportTagCompiler INSTANCE = new ImportTagCompiler();
 
-    static final List<String> ATTR_NAMES = asList(FROM_NAME, AS_NAME, CLASS_NAME);
+    static final List<String> ATTR_NAMES = asList(FROM_NAME, AS_NAME, CLASS_NAME, XplConstants.ID_NAME);
 
     @Override
     public ImportAsDeclaration parseTag(XNode node, IXplCompiler cp, IXLangCompileScope scope) {
         checkArgNames(node, ATTR_NAMES);
 
+        String id = node.attrText(ID_NAME);
         String from = getAttrVPath(node, FROM_NAME, cp, scope);
         Identifier as = getAttrIdentifier(node, AS_NAME, cp, scope);
         checkNotSysVar(node, AS_NAME, as);
@@ -59,12 +62,13 @@ public class ImportTagCompiler implements IXplTagCompiler {
         if (from == null && className == null)
             throw new NopEvalException(ERR_XPL_IMPORT_FROM_ADN_CLASS_BOTH_NULL).param(ARG_NODE, node);
 
+        ImportAsDeclaration ret;
         if (from != null) {
             String ns = as == null ? XplLibHelper.getNamespaceFromLibPath(from) : as.getName();
             IXplTagLib lib = cp.loadLib(node.getLocation(), ns, from, scope);
             scope.addLib(ns, lib);
 
-            return XLangASTBuilder.importLib(node.getLocation(),
+            ret = XLangASTBuilder.importLib(node.getLocation(),
                     Literal.valueOf(node.attrValueLoc(FROM_NAME).getLocation(), from), as);
         } else {
             String name = as == null ? StringHelper.lastPart(className, '.') : as.getName();
@@ -72,7 +76,9 @@ public class ImportTagCompiler implements IXplTagCompiler {
             SourceLocation loc = node.attrValueLoc(CLASS_NAME).getLocation();
             scope.addImportedClass(name, new ImportClassDefinition(classModel));
 
-            return XLangASTBuilder.importClass(node.getLocation(), QualifiedName.valueOf(loc, className), as);
+            ret = XLangASTBuilder.importClass(node.getLocation(), QualifiedName.valueOf(loc, className), as);
         }
+        ret.setId(id);
+        return ret;
     }
 }

@@ -9,8 +9,11 @@ package io.nop.fsm.execution;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
+import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.context.IEvalContext;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.bean.BeanTool;
+import io.nop.fsm.FsmConstants;
 import io.nop.fsm.model.StateMachineModel;
 import io.nop.fsm.model.StateModel;
 import io.nop.fsm.model.StateTransitionModel;
@@ -50,14 +53,22 @@ public class StateMachine implements IStateMachine {
     }
 
     @Override
-    public void triggerStateChange(Object bean, String event, IEvalContext scope, Consumer<StateModel> action) {
-        Object stateValue = BeanTool.getComplexProperty(bean, model.getStateProp());
+    public void triggerStateChange(Object bean, String event, IEvalContext ctx, Consumer<StateModel> action) {
+        IEvalScope scope = ctx.getEvalScope();
+        ValueWithLocation vl = scope.recordValueLocation(FsmConstants.VAR_ENTITY);
+        scope.setLocalValue(FsmConstants.VAR_ENTITY, bean);
 
-        transit(stateValue, event, scope, (stateModel, value) -> {
-            BeanTool.setComplexProperty(bean, model.getStateProp(), value);
-            if (action != null)
-                action.accept(stateModel);
-        });
+        try {
+            Object stateValue = BeanTool.getComplexProperty(bean, model.getStateProp());
+
+            transit(stateValue, event, ctx, (stateModel, value) -> {
+                BeanTool.setComplexProperty(bean, model.getStateProp(), value);
+                if (action != null)
+                    action.accept(stateModel);
+            });
+        } finally {
+            scope.restoreValueLocation(FsmConstants.VAR_ENTITY, vl);
+        }
     }
 
     @Override

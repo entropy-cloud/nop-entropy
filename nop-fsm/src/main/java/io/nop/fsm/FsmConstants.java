@@ -9,4 +9,6 @@ package io.nop.fsm;
 
 public interface FsmConstants {
     String STATE_EMPTY = "_";
+
+    String VAR_ENTITY = "entity";
 }

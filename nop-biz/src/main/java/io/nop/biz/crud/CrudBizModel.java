@@ -50,6 +50,7 @@ import io.nop.dao.exceptions.UnknownEntityException;
 import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.dao.utils.DaoHelper;
 import io.nop.fsm.execution.IStateMachine;
+import io.nop.fsm.model.StateModel;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IBizModelImpl;
 import io.nop.graphql.core.biz.IBizObjectQueryProcessor;
@@ -89,6 +90,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static io.nop.auth.api.AuthApiErrors.ARG_BIZ_OBJ_NAME;
@@ -129,6 +131,7 @@ import static io.nop.biz.BizErrors.ERR_BIZ_NOT_ALLOW_DELETE_ENTITY_WHEN_REF_EXIS
 import static io.nop.biz.BizErrors.ERR_BIZ_NOT_ALLOW_DELETE_PARENT_WHEN_CHILDREN_IS_NOT_EMPTY;
 import static io.nop.biz.BizErrors.ERR_BIZ_NO_BIZ_MODEL_ANNOTATION;
 import static io.nop.biz.BizErrors.ERR_BIZ_NO_MANDATORY_PARAM;
+import static io.nop.biz.BizErrors.ERR_BIZ_NO_STATE_MACHINE;
 import static io.nop.biz.BizErrors.ERR_BIZ_OBJ_NO_DICT_TAG;
 import static io.nop.biz.BizErrors.ERR_BIZ_PROP_NOT_MANY_TO_MANY_REF;
 import static io.nop.biz.BizErrors.ERR_BIZ_TOO_MANY_LEFT_JOIN_PROPS_IN_QUERY;
@@ -662,6 +665,18 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         if (stm != null) {
             stm.initState(entityData.getEntity());
         }
+    }
+
+    protected void triggerStateChange(T entity, String event, IServiceContext context) {
+        triggerStateChange(entity, event, context, null);
+    }
+
+    protected void triggerStateChange(T entity, String event, IServiceContext context, Consumer<StateModel> action) {
+        IStateMachine stm = getThisObj().getStateMachine();
+        if (stm == null)
+            throw new NopException(ERR_BIZ_NO_STATE_MACHINE)
+                    .param(ARG_BIZ_OBJ_NAME, getBizObjName());
+        stm.triggerStateChange(entity, event, context, action);
     }
 
     @BizAction

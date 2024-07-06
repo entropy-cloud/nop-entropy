@@ -80,16 +80,18 @@ public class XDslValidator {
                     i--;
                     n--;
                 } else {
-                    // 如果checkNs中指定名字空间需要校验，则不使用unknownAttr来匹配
-                    if (!checkNs.isEmpty()
-                            && StringHelper.hasNamespace(child.getTagName())) {
-                        String ns = StringHelper.getNamespace(child.getTagName());
-                        if (checkNs.contains(ns))
-                            if (defNode.getChildren().get(child.getTagName()) == null)
-                                throw new NopException(ERR_XDSL_UNDEFINED_CHILD_NODE).param(ARG_NODE, child)
-                                        .param(ARG_XDEF_NODE_NAME, defNode.getTagName())
-                                        .param(ARG_TAG_NAME, child.getTagName())
-                                        .param(ARG_ALLOWED_NAMES, defNode.getChildren().keySet());
+                    if(!defNode.getChildren().isEmpty()) {
+                        // 如果checkNs中指定名字空间需要校验，则不使用unknownAttr来匹配
+                        if (!checkNs.isEmpty()
+                                && StringHelper.hasNamespace(child.getTagName())) {
+                            String ns = StringHelper.getNamespace(child.getTagName());
+                            if (checkNs.contains(ns))
+                                if (defNode.getChildren().get(child.getTagName()) == null)
+                                    throw new NopException(ERR_XDSL_UNDEFINED_CHILD_NODE).param(ARG_NODE, child)
+                                            .param(ARG_XDEF_NODE_NAME, defNode.getTagName())
+                                            .param(ARG_TAG_NAME, child.getTagName())
+                                            .param(ARG_ALLOWED_NAMES, defNode.getChildren().keySet());
+                        }
                     }
 
                     IXDefNode childDef = defNode.getChild(child.getTagName());

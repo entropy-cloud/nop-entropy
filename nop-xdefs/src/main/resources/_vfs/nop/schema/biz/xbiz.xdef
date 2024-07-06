@@ -7,9 +7,9 @@
   @graphql:base 逗号分隔的biz模型列表，例如crud，表示直接继承CrudBizModel模型中的所有方法
 -->
 <biz xdef:default-extends="/nop/core/defaults/default.xbiz" wfName="string" metaDir="v-path"
-     xdef:bean-package="io.nop.biz.model" xdef:name="BizModel" xdef:check-ns="graphql,task" xmlns:graphql="graphql"
+     xdef:bean-package="io.nop.biz.model" xdef:name="BizModel" xdef:check-ns="graphql,task,bo" xmlns:graphql="graphql"
      x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
-     graphql:base="csv-set" xmlns:task="task" tagSet="csv-set"
+     graphql:base="csv-set" xmlns:task="task" tagSet="csv-set" xmlns:bo="bo"
 >
     <!-- 可以强制禁用BizModel(包括Java中定义的方法)中的某些Action。缺省情况下平台会提供大量的操作，有可能从安全角度考虑需要缩小范围 -->
     <disabledActions xdef:value="word-set"/>
@@ -69,7 +69,7 @@
             <source xdef:value="xpl"/>
         </query>
 
-        <mutation name="!string" xdef:ref="BizActionModel"/>
+        <mutation name="!string" xdef:ref="BizActionModel" bo:triggerStateChange="!boolean=false"/>
 
         <subscription name="!string" xdef:ref="BizActionModel"/>
 

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef"  xmlns:c="c" xmlns:bo-gen="bo-gen"
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:bo-gen="bo-gen"
      xmlns:xpl="xpl" xmlns:thisLib="thisLib">
     <tags>
         <GetBizObject>
-            <attr name="bizObjName" mandatory="true" />
+            <attr name="bizObjName" mandatory="true"/>
             <source>
                 <c:script>
                     const bizObjManager = inject('nopBizObjectManager');
@@ -17,7 +17,7 @@
             <attr name="id"/>
             <attr name="ignoreUnknown" optional="true"/>
             <attr name="selection" optional="true" type="io.nop.api.core.beans.FieldSelectionBean"/>
-            <attr name="bizObjName" optional="true" />
+            <attr name="bizObjName" optional="true"/>
             <attr name="thisObj" implicit="true"/>
             <attr name="svcCtx" implicit="true"/>
 
@@ -33,7 +33,7 @@
                 <c:script>
                     const ret = thisObj.invoke('get',{id,ignoreUnknown},null,svcCtx);
                     if(ret and selection)
-                        inject('nopOrmTemplate').batchLoadSelectionForEntity(ret, selection);
+                    inject('nopOrmTemplate').batchLoadSelectionForEntity(ret, selection);
                     return ret;
                 </c:script>
             </source>
@@ -43,7 +43,7 @@
             <attr name="ids"/>
             <attr name="ignoreUnknown" optional="true"/>
             <attr name="selection" optional="true" type="io.nop.api.core.beans.FieldSelectionBean"/>
-            <attr name="bizObjName" optional="true" />
+            <attr name="bizObjName" optional="true"/>
             <attr name="thisObj" implicit="true"/>
             <attr name="svcCtx" implicit="true"/>
 
@@ -59,7 +59,7 @@
                 <c:script>
                     const ret = thisObj.invoke('batchGet',{ids},null,svcCtx);
                     if(ret and selection)
-                        inject('nopOrmTemplate').batchLoadSelection(ret, selection);
+                    inject('nopOrmTemplate').batchLoadSelection(ret, selection);
                     return ret;
                 </c:script>
             </source>
@@ -68,9 +68,9 @@
 
         <DoFindPage>
             <attr name="query" optional="true" type="io.nop.api.core.beans.query.QueryBean"/>
-            <attr name="authObjName" optional="true" type="String" />
+            <attr name="authObjName" optional="true" type="String"/>
             <attr name="selection" optional="true" type="io.nop.api.core.beans.FieldSelectionBean"/>
-            <attr name="bizObjName" optional="true" />
+            <attr name="bizObjName" optional="true"/>
             <attr name="thisObj" implicit="true" type="io.nop.biz.api.IBizObject"/>
             <attr name="svcCtx" implicit="true" type="io.nop.core.context.IServiceContext"/>
 
@@ -96,7 +96,8 @@
             </transform>
 
             <source>
-                <thisLib:_DoFindByQuery query="${query}" authObjName="${authObjName}" action="doFindPage0" filter="${slot_filter}"
+                <thisLib:_DoFindByQuery query="${query}" authObjName="${authObjName}" action="doFindPage0"
+                                        filter="${slot_filter}"
                                         orderBy="${slot_orderBy}" prepareQuery="${slot_prepareQuery}" xpl:return="ret"/>
                 <c:script><![CDATA[
                     if(ret.items and selection)
@@ -108,7 +109,8 @@
 
         <DoFindFirst x:prototype="DoFindPage">
             <source>
-                <thisLib:_DoFindByQuery query="${query}" authObjName="${authObjName}" action="doFindFirst0" filter="${slot_filter}"
+                <thisLib:_DoFindByQuery query="${query}" authObjName="${authObjName}" action="doFindFirst0"
+                                        filter="${slot_filter}"
                                         orderBy="${slot_orderBy}" prepareQuery="${slot_prepareQuery}" xpl:return="ret"/>
                 <c:script><![CDATA[
                     if(ret and selection)
@@ -120,7 +122,8 @@
 
         <DoFindList x:prototype="DoFindPage">
             <source>
-                <thisLib:_DoFindByQuery query="${query}" authObjName="${authObjName}" action="doFindList0" filter="${slot_filter}"
+                <thisLib:_DoFindByQuery query="${query}" authObjName="${authObjName}" action="doFindList0"
+                                        filter="${slot_filter}"
                                         orderBy="${slot_orderBy}" prepareQuery="${slot_prepareQuery}" xpl:return="ret"/>
                 <c:script><![CDATA[
                     if(ret and selection)
@@ -133,7 +136,7 @@
 
         <_DoFindByQuery>
             <attr name="query"/>
-            <attr name="authObjName" />
+            <attr name="authObjName"/>
             <attr name="filter"/>
             <attr name="orderBy"/>
             <attr name="prepareQuery"/>
@@ -168,7 +171,7 @@
         <DoSave>
             <attr name="data" type="Map"/>
             <attr name="inputSelection" optional="true" type="io.nop.api.core.beans.FieldSelectionBean"/>
-            <attr name="bizObjName" optional="true" />
+            <attr name="bizObjName" optional="true"/>
             <attr name="thisObj" implicit="true" type="io.nop.biz.api.IBizObject"/>
             <attr name="svcCtx" implicit="true" type="io.nop.core.context.IServiceContext"/>
 
@@ -191,7 +194,7 @@
         <DoUpdate>
             <attr name="data" type="Map"/>
             <attr name="inputSelection" optional="true" type="io.nop.api.core.beans.FieldSelectionBean"/>
-            <attr name="bizObjName" optional="true" />
+            <attr name="bizObjName" optional="true"/>
             <attr name="thisObj" implicit="true" type="io.nop.biz.api.IBizObject"/>
             <attr name="svcCtx" implicit="true" type="io.nop.core.context.IServiceContext"/>
 
@@ -213,7 +216,7 @@
 
         <DoDelete>
             <attr name="id" type="String"/>
-            <attr name="bizObjName" optional="true" />
+            <attr name="bizObjName" optional="true"/>
             <attr name="thisObj" implicit="true" type="io.nop.biz.api.IBizObject"/>
             <attr name="svcCtx" implicit="true" type="io.nop.core.context.IServiceContext"/>
 
@@ -235,26 +238,28 @@
 
         <DoFindTreeEntityPage x:prototype="DoFindPage">
             <source>
-                <thisLib:_DoFindByQuery query="${query}" authObjName="${authObjName}" action="doFindTreeEntityPage" filter="${slot_filter}"
-                  orderBy="${slot_orderBy}" prepareQuery="${slot_prepareQuery}" xpl:return="ret"/>
-                <c:script> ret </c:script>
+                <thisLib:_DoFindByQuery query="${query}" authObjName="${authObjName}" action="doFindTreeEntityPage"
+                                        filter="${slot_filter}"
+                                        orderBy="${slot_orderBy}" prepareQuery="${slot_prepareQuery}" xpl:return="ret"/>
+                <c:script>ret</c:script>
             </source>
         </DoFindTreeEntityPage>
 
         <DoFindTreeEntityList x:prototype="DoFindPage">
             <source>
-                <thisLib:_DoFindByQuery query="${query}" authObjName="${authObjName}" action="doFindTreeEntityList" filter="${slot_filter}"
-                  orderBy="${slot_orderBy}" prepareQuery="${slot_prepareQuery}" xpl:return="ret"/>
-                <c:script> ret </c:script>
+                <thisLib:_DoFindByQuery query="${query}" authObjName="${authObjName}" action="doFindTreeEntityList"
+                                        filter="${slot_filter}"
+                                        orderBy="${slot_orderBy}" prepareQuery="${slot_prepareQuery}" xpl:return="ret"/>
+                <c:script>ret</c:script>
             </source>
         </DoFindTreeEntityList>
 
 
         <_DoByQuery x:abstract="true">
             <attr name="query" type="io.nop.api.core.beans.query.QueryBean"/>
-            <attr name="data" mandatory="true" x:abstract="true" />
-            <attr name="authObjName" optional="true" type="String" />
-            <attr name="bizObjName" optional="true" />
+            <attr name="data" mandatory="true" x:abstract="true"/>
+            <attr name="authObjName" optional="true" type="String"/>
+            <attr name="bizObjName" optional="true"/>
             <attr name="thisObj" implicit="true" type="io.nop.biz.api.IBizObject"/>
             <attr name="svcCtx" implicit="true" type="io.nop.core.context.IServiceContext"/>
 
@@ -280,7 +285,7 @@
         </_DoByQuery>
 
         <DoUpdateByQuery x:prototype="_DoByQuery">
-            <attr name="data" mandatory="true" />
+            <attr name="data" mandatory="true"/>
 
             <slot name="prepareUpdate" outputMode="none">
                 <arg name="entityData"/>
@@ -348,26 +353,26 @@
         </DoDeleteByQuery>
 
         <DoFindListByMdxQuery>
-            <slot name="query" outputMode="node" slotType="renderer" />
+            <slot name="query" outputMode="node" slotType="renderer"/>
             <attr name="rowType" optional="true"/>
 
             <source>
-                <thisLib:_DoFindByMdxQuery queryBuilder="${slot_query}" method="findListByQuery" />
+                <thisLib:_DoFindByMdxQuery queryBuilder="${slot_query}" method="findListByQuery"/>
             </source>
         </DoFindListByMdxQuery>
 
         <DoFindFirstByMdxQuery>
-            <slot name="query" outputMode="node" slotType="renderer" />
+            <slot name="query" outputMode="node" slotType="renderer"/>
             <attr name="rowType" optional="true"/>
 
             <source>
-                <thisLib:_DoFindByMdxQuery queryBuilder="${slot_query}" method="findFirstByQuery" />
+                <thisLib:_DoFindByMdxQuery queryBuilder="${slot_query}" method="findFirstByQuery"/>
             </source>
         </DoFindFirstByMdxQuery>
 
         <_DoFindByMdxQuery>
-            <attr name="method" type="String" />
-            <attr name="queryBuilder" />
+            <attr name="method" type="String"/>
+            <attr name="queryBuilder"/>
             <attr name="rowType" implicit="true"/>
 
             <source>
@@ -379,10 +384,40 @@
                     const ormTemplate = inject('nopOrmTemplate');
                     const mapper = ormTemplate.getRowMapper(rowType,false);
                     if(method == 'findListByQuery')
-                       return ormTemplate.findListByQuery(query,mapper);
+                    return ormTemplate.findListByQuery(query,mapper);
                     return ormTemplate.findFirstByQuery(query, mapper);
                 </c:script>
             </source>
         </_DoFindByMdxQuery>
+
+        <RequireEntity>
+            <attr name="id" implicit="true"/>
+            <attr name="action" type="String" optional="true"/>
+            <attr name="thisObj" implicit="true" type="io.nop.biz.api.IBizObject"/>
+            <attr name="svcCtx" implicit="true" type="io.nop.core.context.IServiceContext"/>
+
+            <source>
+                <c:script><![CDATA[
+                    return thisObj.invoke("requireEntity",{id,action: action || 'get'});
+                ]]></c:script>
+            </source>
+        </RequireEntity>
+
+        <TriggerStateChange>
+            <attr name="entity" optional="true"/>
+            <attr name="id" type="String" optional="true" />
+            <attr name="event" type="String" mandatory="true"/>
+            <attr name="thisObj" implicit="true" type="io.nop.biz.api.IBizObject"/>
+            <attr name="svcCtx" implicit="true" type="io.nop.core.context.IServiceContext"/>
+
+            <source>
+                <c:script><![CDATA[
+                    if(!entity)
+                      entity = thisObj.invoke("requireEntity",{id,action:event},null,svcCtx);
+                    thisObj.stateMachine!.triggerStateChange(entity,event,svcCtx);
+                    return entity;
+                ]]></c:script>
+            </source>
+        </TriggerStateChange>
     </tags>
 </lib>

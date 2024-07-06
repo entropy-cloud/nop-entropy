@@ -35,6 +35,7 @@
 
             <source>
                 <thisLib:TaskFlowSupport xpl:if="#{hasClass('io.nop.task.utils.TaskGenHelper')}"/>
+                <thisLib:StateMachineSupport/>
             </source>
         </DefaultBizPostExtends>
 
@@ -57,12 +58,42 @@
                                 const taskVersion = taskAction.attrInt('task:version',0);
                                 const taskFlowModel = taskFlowManager.getTaskFlowModel(taskName, taskVersion);
                             </c:script>
-                            <c:out escape="none" value="${TaskGenHelper.buildBizActionFromTaskModel(taskAction, taskFlowModel)}" />
+                            <c:out escape="none"
+                                   value="${TaskGenHelper.buildBizActionFromTaskModel(taskAction, taskFlowModel)}"/>
                         </c:for>
                     </actions>
                 </biz>
             </source>
         </TaskFlowSupport>
+
+        <StateMachineSupport outputMode="node">
+            <attr name="_dsl_root" implicit="true"/>
+
+            <source>
+                <c:script>
+                    const actionsNode = _dsl_root.childByTag('actions');
+                    const stmActions =
+                    actionsNode.findChildren(node=>node.attrBoolean('bo:triggerStateChange'));
+                </c:script>
+                <biz xpl:if="!stmActions.empty">
+                    <actions>
+                        <c:for var="stmAction" items="${stmActions}">
+                            <mutation name="${stmAction.getAttr('name')}" >
+                                <arg name="id" type="String" mandatory="true"/>
+                                <arg name="selection" type="io.nop.api.core.beans.FieldSelectionBean"
+                                     kind="FieldSelection"/>
+                                <arg name="svcCtx" type="io.nop.core.context.IServiceContext" kind="ServiceContext"/>
+
+                                <source xpl:if="!stmAction.childByTag('source')?.hasBody()">
+                                    <bo:TriggerStateChange id="${'$'}{id}" event="${stmAction.getAttr('name')}"
+                                                           xpl:lib="/nop/biz/xlib/bo.xlib" xpl:ignoreTag="true"/>
+                                </source>
+                            </mutation>
+                        </c:for>
+                    </actions>
+                </biz>
+            </source>
+        </StateMachineSupport>
 
         <GenAbstractCrudMethods outputMode="node">
             <attr name="entityName"/>
@@ -71,7 +102,7 @@
             <source>
                 <biz>
                     <xdsl:config xpl:ignoreTag="true">
-                        <c:import from="/nop/biz/xlib/bo.xlib"/>
+                        <c:import id="bo.xlib" from="/nop/biz/xlib/bo.xlib"/>
                     </xdsl:config>
 
                     <actions>

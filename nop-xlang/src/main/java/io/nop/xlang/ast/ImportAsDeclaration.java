@@ -13,6 +13,8 @@ import io.nop.xlang.ast._gen._ImportAsDeclaration;
 import io.nop.xlang.xpl.xlib.XplLibHelper;
 
 public class ImportAsDeclaration extends _ImportAsDeclaration {
+    private String id;
+
     public static ImportAsDeclaration valueOf(SourceLocation loc, XLangASTNode source, Identifier local) {
         Guard.notNull(source, "source");
         ImportAsDeclaration node = new ImportAsDeclaration();
@@ -20,6 +22,14 @@ public class ImportAsDeclaration extends _ImportAsDeclaration {
         node.setSource(source);
         node.setLocal(local);
         return node;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public boolean isImportClass() {
