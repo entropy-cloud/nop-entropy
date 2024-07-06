@@ -37,6 +37,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
 import static io.nop.api.core.util.FutureHelper.tryResolve;
+import static io.nop.graphql.core.GraphQLErrors.ARG_FIELD_NAME;
 
 public class GraphQLExecutor implements IGraphQLExecutor {
     static Logger LOG = LoggerFactory.getLogger(GraphQLExecutor.class);
@@ -237,6 +238,7 @@ public class GraphQLExecutor implements IGraphQLExecutor {
                 throw new IllegalStateException("nop.graphql.null-operation-fetcher:" + fieldDef.getName());
 
             future = FutureHelper.toCompletionStage(withFlowControl(fetcher).get(env)).thenApply(v -> {
+                v = normalizeValue(v, selection);
                 return new OperationResult(v, false);
             });
         }
@@ -287,6 +289,7 @@ public class GraphQLExecutor implements IGraphQLExecutor {
                     opEnv.setRoot(r.getValue());
                     return r.getValue();
                 }), opEnv).thenApply(v -> {
+                    v = normalizeValue(v, fieldSelection);
                     synchronized (resultLock) {
                         result.put(alias, v);
                     }
@@ -364,10 +367,7 @@ public class GraphQLExecutor implements IGraphQLExecutor {
     // 确保返回值类型与GraphQL定义中的类型一致
     private Object normalizeValue(Object value, GraphQLFieldSelection selection) {
         GraphQLFieldDefinition field = selection.getFieldDefinition();
-        if (field.getType().isScalarType()) {
-            return field.getType().getScalarType().getStdDataType().convert(value);
-        }
-        return value;
+        return field.getTypeConverter().convert(value, err -> new NopException(err).param(ARG_FIELD_NAME, selection.getName()));
     }
 
     /**

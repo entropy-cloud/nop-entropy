@@ -12,6 +12,8 @@ import io.nop.api.core.annotations.core.Option;
 import io.nop.api.core.annotations.core.StaticFactoryMethod;
 import io.nop.api.core.beans.PointBean;
 import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.convert.ITypeConverter;
+import io.nop.api.core.convert.SysConverterRegistry;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ApiStringHelper;
@@ -337,6 +339,13 @@ public enum StdDataType {
         if (value == null)
             return null;
         return ConvertHelper.convertTo(getJavaClass(), value, errorFactory);
+    }
+
+    public ITypeConverter getConverter() {
+        ITypeConverter converter = SysConverterRegistry.instance().getConverterByType(getJavaClass());
+        if (converter != null)
+            return converter;
+        return this::convert;
     }
 
     public Object convert(Object value) {

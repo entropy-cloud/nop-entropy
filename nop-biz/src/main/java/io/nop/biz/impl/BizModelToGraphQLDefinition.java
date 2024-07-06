@@ -285,7 +285,7 @@ public class BizModelToGraphQLDefinition {
     GraphQLType getType(String thisObjName, BizActionModel actionModel, TypeRegistry typeRegistry) {
         BizReturnModel returnModel = actionModel.getReturn();
         if (returnModel == null)
-            return GraphQLTypeHelper.scalarType(GraphQLScalarType.String);
+            return GraphQLTypeHelper.scalarType(GraphQLScalarType.Void);
 
         ISchema schema = returnModel.getSchema();
         if (schema == null)

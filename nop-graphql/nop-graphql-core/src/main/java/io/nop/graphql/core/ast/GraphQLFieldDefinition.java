@@ -10,6 +10,9 @@ package io.nop.graphql.core.ast;
 import io.nop.api.core.annotations.biz.BizMakerCheckerMeta;
 import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.auth.ActionAuthMeta;
+import io.nop.api.core.convert.ITypeConverter;
+import io.nop.api.core.convert.IdentityTypeConverter;
+import io.nop.commons.type.StdDataType;
 import io.nop.core.context.action.IServiceAction;
 import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.IFunctionModel;
@@ -63,6 +66,8 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition implements I
 
     private IGenericType javaType;
 
+    private ITypeConverter typeConverter;
+
     @Override
     public GraphQLFieldDefinition deepClone() {
         GraphQLFieldDefinition field = super.deepClone();
@@ -75,6 +80,18 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition implements I
         field.setArgsNormalizer(argsNormalizer);
         field.setAuth(auth);
         return field;
+    }
+
+    public ITypeConverter getTypeConverter() {
+        if (typeConverter == null) {
+            if (getType().isScalarType()) {
+                StdDataType dataType = getType().getStdDataType();
+                typeConverter = dataType.getConverter();
+            } else {
+                typeConverter = IdentityTypeConverter.INSTANCE;
+            }
+        }
+        return typeConverter;
     }
 
     public boolean isAutoCreate() {
