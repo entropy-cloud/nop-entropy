@@ -1,0 +1,10 @@
+{
+  data: {
+    data: {
+      wfName: "test",
+      wfVersion: 1000,
+      displayName: "Test Workflow",
+      modelText: "<workflow x:schema='/nop/schemas/wf/wf.xdef'></workflow>",
+    }
+  }
+}

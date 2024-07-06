@@ -9,12 +9,11 @@ package io.nop.wf.service.entity;
 
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
-
 import io.nop.wf.dao.entity.NopWfDefinition;
 
 @BizModel("NopWfDefinition")
-public class NopWfDefinitionBizModel extends CrudBizModel<NopWfDefinition>{
-    public NopWfDefinitionBizModel(){
+public class NopWfDefinitionBizModel extends CrudBizModel<NopWfDefinition> {
+    public NopWfDefinitionBizModel() {
         setEntityName(NopWfDefinition.class.getName());
     }
 }

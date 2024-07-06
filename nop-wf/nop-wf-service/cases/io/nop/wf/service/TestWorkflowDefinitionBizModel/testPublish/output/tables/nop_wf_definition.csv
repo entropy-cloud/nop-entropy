@@ -1,0 +1,2 @@
+_chgType,WF_DEF_ID,WF_NAME,WF_VERSION,DISPLAY_NAME,DESCRIPTION,MODEL_TEXT,STATUS,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME,REMARK
+A,@var:NopWfDefinition@wfDefId,test,1000,Test Workflow,,<workflow x:schema='/nop/schemas/wf/wf.xdef'></workflow>,1,1,autotest-ref,*,autotest-ref,*,

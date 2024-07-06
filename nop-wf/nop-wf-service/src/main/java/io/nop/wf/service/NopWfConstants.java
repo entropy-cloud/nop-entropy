@@ -7,6 +7,8 @@
  */
 package io.nop.wf.service;
 
-public interface NopWfConstants{
-	
+public interface NopWfConstants {
+    String METHOD_PUBLISH = "publish";
+
+    String METHOD_UNPUBLISH = "unpublish";
 }

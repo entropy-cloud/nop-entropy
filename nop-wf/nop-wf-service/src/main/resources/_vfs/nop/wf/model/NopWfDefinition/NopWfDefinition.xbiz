@@ -1,5 +1,27 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopWfDefinition.xbiz">
+<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopWfDefinition.xbiz"
+     xmlns:bo="bo" xmlns:c="c" x:dump="true">
 
-    <actions/>
+    <x:config>
+        <c:import id="NopWfCoreConstants" class="io.nop.wf.core.NopWfCoreConstants"/>
+    </x:config>
+
+    <actions>
+        <mutation name="publish" bo:triggerStateChange="true"/>
+        <mutation name="unpublish" bo:triggerStateChange="true"/>
+    </actions>
+
+    <state-machine initial="unpublished" stateProp="status">
+        <state id="unpublished" stateValue="#{NopWfCoreConstants.WF_DEF_STATUS_UNPUBLISHED}">
+            <transition event="publish" target="published"/>
+        </state>
+
+        <state id="published" stateValue="#{NopWfCoreConstants.WF_DEF_STATUS_PUBLISHED}">
+            <on-entry>
+
+            </on-entry>
+            <transition event="unpublish" target="unpublished"/>
+        </state>
+
+    </state-machine>
 </biz>

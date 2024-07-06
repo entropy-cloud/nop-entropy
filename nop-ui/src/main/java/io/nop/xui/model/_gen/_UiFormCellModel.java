@@ -18,6 +18,13 @@ public abstract class _UiFormCellModel extends io.nop.xui.model.UiDisplayMeta {
     
     /**
      *  
+     * xml name: clearValueOnHidden
+     * 单元格被隐藏的时候自动从scope中删除变量
+     */
+    private boolean _clearValueOnHidden  = false;
+    
+    /**
+     *  
      * xml name: collapseTitle
      * 
      */
@@ -57,6 +64,25 @@ public abstract class _UiFormCellModel extends io.nop.xui.model.UiDisplayMeta {
      * 
      */
     private java.lang.String _titlePosition ;
+    
+    /**
+     * 
+     * xml name: clearValueOnHidden
+     *  单元格被隐藏的时候自动从scope中删除变量
+     */
+    
+    public boolean isClearValueOnHidden(){
+      return _clearValueOnHidden;
+    }
+
+    
+    public void setClearValueOnHidden(boolean value){
+        checkAllowChange();
+        
+        this._clearValueOnHidden = value;
+           
+    }
+
     
     /**
      * 
@@ -187,6 +213,7 @@ public abstract class _UiFormCellModel extends io.nop.xui.model.UiDisplayMeta {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("clearValueOnHidden",this.isClearValueOnHidden());
         out.putNotNull("collapseTitle",this.getCollapseTitle());
         out.putNotNull("mandatory",this.getMandatory());
         out.putNotNull("notSubmit",this.isNotSubmit());
@@ -204,6 +231,7 @@ public abstract class _UiFormCellModel extends io.nop.xui.model.UiDisplayMeta {
     protected void copyTo(UiFormCellModel instance){
         super.copyTo(instance);
         
+        instance.setClearValueOnHidden(this.isClearValueOnHidden());
         instance.setCollapseTitle(this.getCollapseTitle());
         instance.setMandatory(this.getMandatory());
         instance.setNotSubmit(this.isNotSubmit());
