@@ -20,6 +20,11 @@ public class FloatingScaleDecimal extends AbstractOrmComponent {
     public static final String PROP_NAME_value = "value";
     public static final String PROP_NAME_scale = "scale";
 
+    @Override
+    public void reset() {
+
+    }
+
     /**
      * 获取到的BigDecimal对象的scale已经规范化为scale字段所保存的值
      */

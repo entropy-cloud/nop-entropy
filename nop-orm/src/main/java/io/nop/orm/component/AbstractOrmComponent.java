@@ -52,6 +52,10 @@ public abstract class AbstractOrmComponent implements IOrmComponent {
             owner.orm_extDirty(true);
     }
 
+    @Override
+    public void reset() {
+
+    }
 
     @Override
     public Object orm_propValueByName(String propName) {

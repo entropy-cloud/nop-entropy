@@ -36,6 +36,11 @@ public class JsonOrmComponent extends AbstractOrmComponent
         out.value(null, get_jsonValue());
     }
 
+    @Override
+    public void reset() {
+        jsonValue = NOT_INITED;
+    }
+
     public String get_jsonText() {
         if (jsonValue != NOT_INITED)
             return JsonTool.stringify(jsonValue);

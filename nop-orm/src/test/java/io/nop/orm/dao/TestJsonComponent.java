@@ -38,4 +38,26 @@ public class TestJsonComponent extends AbstractOrmTestCase {
             assertEquals("xx", BeanTool.getComplexProperty(entity, "jsonExtComponent.a"));
         });
     }
+
+    @Test
+    public void testUpdate() {
+        IEntityDao<SimsClass> dao = daoProvider().daoFor(SimsClass.class);
+        orm().runInSession(() -> {
+            SimsClass simsClass = dao.newEntity();
+            simsClass.setMajorId("112");
+            simsClass.setClassId("112");
+            simsClass.setClassName("11");
+            simsClass.setJsonExt("{\"name\":\"John Doe\"}");
+            dao.saveEntity(simsClass);
+            SimsClass entity = dao.getEntityById("112");
+            Object jsonExt = entity.getJsonExt();
+            JsonOrmComponent jsonExtComponent = entity.getJsonExtComponent();
+            assertEquals("John Doe",jsonExtComponent.getValue("name"));
+            simsClass.setJsonExt("{\"name\":\"2222222\"}");
+            simsClass.getJsonExtComponent().reset();
+            Object jsonExt2 = entity.getJsonExt();
+            JsonOrmComponent jsonExtComponent2 = entity.getJsonExtComponent();
+            assertEquals("2222222",jsonExtComponent2.getValue("name"));
+        });
+    }
 }

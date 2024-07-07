@@ -35,6 +35,11 @@ public class XmlOrmComponent extends AbstractOrmComponent {
         internalSetPropValue(PROP_NAME_xmlText, xmlText);
     }
 
+    @Override
+    public void reset() {
+        node = null;
+    }
+
     public String getNormalizedXml() {
         XNode node = getNode();
         return node == null ? null : node.xml();
