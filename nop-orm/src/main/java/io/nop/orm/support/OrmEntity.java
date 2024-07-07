@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.ObjIntConsumer;
 
 import static io.nop.api.core.util.Guard.notNull;
@@ -518,6 +519,10 @@ public abstract class OrmEntity implements IOrmEntity {
         if (_t == null)
             _t = new HashMap<>();
         return _t;
+    }
+
+    public <T> T computeIfAbsent(String key, Function<String, T> fn) {
+        return (T) make_t().computeIfAbsent(key, fn);
     }
 
     protected NopException newError(ErrorCode errorCode) {

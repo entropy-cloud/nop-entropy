@@ -106,6 +106,11 @@ public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
     }
 
     @Override
+    public String getDeleteVersionProp() {
+        return getEntityModel().getDeleteVersionProp();
+    }
+
+    @Override
     public boolean isUseLogicalDelete() {
         return getEntityModel().isUseLogicalDelete();
     }

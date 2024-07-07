@@ -89,6 +89,7 @@ public class OrmEntityModelInitializer {
     int nopFlowIdPropId;
 
     int deleteFlagPropId;
+    int deleteVersionPropId;
     int createrPropId;
     int createTimePropId;
     int updaterPropId;
@@ -208,6 +209,10 @@ public class OrmEntityModelInitializer {
 
     public int getDeleteFlagPropId() {
         return deleteFlagPropId;
+    }
+
+    public int getDeleteVersionPropId() {
+        return deleteVersionPropId;
     }
 
     public int getCreaterPropId() {
@@ -379,6 +384,7 @@ public class OrmEntityModelInitializer {
         this.updaterPropId = getColPropId(entityModel.getUpdaterProp());
         this.updateTimePropId = getColPropId(entityModel.getUpdateTimeProp());
         this.deleteFlagPropId = getColPropId(entityModel.getDeleteFlagProp());
+        this.deleteVersionPropId = getColPropId(entityModel.getDeleteVersionProp());
 
         if (this.deleteFlagPropId <= 0)
             entityModel.setUseLogicalDelete(false);

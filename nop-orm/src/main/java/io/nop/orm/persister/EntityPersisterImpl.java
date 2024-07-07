@@ -307,8 +307,8 @@ public class EntityPersisterImpl implements IEntityPersister {
         // 如果是逻辑删除，则转为调用修改操作
         if (entityModel.isUseLogicalDelete() && !entity.orm_disableLogicalDelete()) {
             entity.orm_propValue(entityModel.getDeleteFlagPropId(), DaoConstants.YES_VALUE);
-            if (entityModel.getDeleteVersionProp() != null) {
-                entity.orm_propValueByName(entityModel.getDeleteFlagProp(), env.newDeleteVersion());
+            if (entityModel.getDeleteVersionPropId() > 0) {
+                entity.orm_propValue(entityModel.getDeleteVersionPropId(), env.newDeleteVersion());
             }
             syncComponentWhenDelete(entity, true);
             update(entity, session);
@@ -544,7 +544,7 @@ public class EntityPersisterImpl implements IEntityPersister {
         }
     }
 
-    protected String getQuerySpace(ShardSelection shard){
+    protected String getQuerySpace(ShardSelection shard) {
         return shard == null ? entityModel.getQuerySpace() : shard.getQuerySpace();
     }
 

@@ -17,7 +17,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static io.nop.orm.model.OrmModelErrors.*;
+import static io.nop.orm.model.OrmModelErrors.ARG_ENTITY_NAME;
+import static io.nop.orm.model.OrmModelErrors.ARG_TAG;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_NO_COL_WITH_TAG;
 
 public interface IEntityModel extends IPdmElement, IOrmDataType {
 
@@ -223,6 +225,8 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
     int getShardPropId();
 
     int getDeleteFlagPropId();
+
+    int getDeleteVersionPropId();
 
     String getDeleteFlagProp();
 

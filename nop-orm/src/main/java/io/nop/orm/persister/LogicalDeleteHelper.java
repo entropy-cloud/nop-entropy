@@ -37,5 +37,10 @@ public class LogicalDeleteHelper {
         // 初始化deleteFlag=0
         if (entity.orm_propValue(propId) == null)
             entity.orm_propValue(propId, DaoConstants.NO_VALUE);
+
+        int versionPropId = entityModel.getDeleteVersionPropId();
+        if (versionPropId > 0 && entity.orm_propValue(versionPropId) == null) {
+            entity.orm_propValue(versionPropId, 0);
+        }
     }
 }

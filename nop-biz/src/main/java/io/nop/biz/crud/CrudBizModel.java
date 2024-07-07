@@ -1183,7 +1183,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @BizMutation
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
     public T recoverDeleted(@Name("id") String id, IServiceContext context) {
-        String deleteFlagProp = dao().getDeleteFlagProp();
+        IEntityDao<T> dao = dao();
+        String deleteFlagProp = dao.getDeleteFlagProp();
         if (StringHelper.isEmpty(deleteFlagProp))
             throw new NopException(ERR_BIZ_ENTITY_NOT_SUPPORT_LOGICAL_DELETE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
 
@@ -1193,6 +1194,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         checkDataAuth(BizConstants.METHOD_UPDATE, entity, context);
 
         entity.orm_propValueByName(deleteFlagProp, 0);
+        if (dao.getDeleteVersionProp() != null)
+            entity.orm_propValueByName(dao.getDeleteVersionProp(), 0);
 
         dao().updateEntity(entity);
         return entity;

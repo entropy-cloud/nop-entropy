@@ -49,6 +49,7 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
     private int tenantPropId;
 
     private int deleteFlagPropId;
+    private int deleteVersionPropId;
     private int createrPropId;
     private int createTimePropId;
     private int updaterPropId;
@@ -257,6 +258,11 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
     }
 
     @Override
+    public int getDeleteVersionPropId(){
+        return deleteVersionPropId;
+    }
+
+    @Override
     public IColumnModel getShardColumn() {
         return colsByPropId[shardPropId];
     }
@@ -337,6 +343,7 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
         this.updaterPropId = initializer.getUpdaterPropId();
         this.updateTimePropId = initializer.getUpdateTimePropId();
         this.deleteFlagPropId = initializer.getDeleteFlagPropId();
+        this.deleteVersionPropId = initializer.getDeleteVersionPropId();
 
         this.colsByCode = initializer.getColsByCode();
         this.colsByPropId = initializer.getColsByPropId();

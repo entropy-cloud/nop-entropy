@@ -43,6 +43,8 @@ public interface IEntityDao<T extends IDaoEntity> {
 
     String getDeleteFlagProp();
 
+    String getDeleteVersionProp();
+
     boolean isUseLogicalDelete();
 
     /**
