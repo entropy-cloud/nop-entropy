@@ -45,7 +45,7 @@
             @in 判断当前状态是否为指定状态。格式符合xstate的约定，例如 in="#closed"。 #表示从根路径开始
             @actions 迁移到目标状态之后执行的action的列表
         -->
-        <transition xdef:name="StateTransitionModel" id="!string=@event" xdef:unique-attr="id" event="!string" in="string"
+        <transition xdef:name="StateTransitionModel" id="!string=@attr:event" xdef:unique-attr="id" event="!string" in="string"
                     target="var-name" internal="!boolean=false" actions="csv-set">
             <when xdef:value="xpl-predicate"/>
 
