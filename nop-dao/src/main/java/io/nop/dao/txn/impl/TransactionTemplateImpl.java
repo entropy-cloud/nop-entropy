@@ -326,12 +326,13 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
 
     private CompletionStage<Void> rollbackTransactionAsync(TxnState state, Throwable e) {
         if (state.groupTxn != null) {
-            return state.groupTxn.rollbackAsync(e);
+            if (state.newlyCreated && state.groupTxn.isTransactionOpened())
+                return state.groupTxn.rollbackAsync(e);
         } else if (state.txn != null) {
-            return state.txn.rollbackAsync(e);
-        } else {
-            return FutureHelper.success(null);
+            if (state.newlyCreated && state.txn.isTransactionOpened())
+                return state.txn.rollbackAsync(e);
         }
+        return FutureHelper.success(null);
     }
 
     private void commitTransaction(TxnState state) {
@@ -347,15 +348,13 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
 
     private void rollbackTransaction(TxnState state, Throwable e) {
         // 打开事务的函数负责回滚。
-        if(state.newlyOpen || state.newlyCreated || state.groupNewlyCreated) {
-            if (state.groupTxn != null) {
-                // 事务未打开的情况下不允许回滚
-                if (state.groupTxn.isTransactionOpened())
-                    state.groupTxn.rollback(e);
-            } else if (state.txn != null) {
-                if (state.txn.isTransactionOpened())
-                    state.txn.rollback(e);
-            }
+        if (state.groupTxn != null) {
+            // 事务未打开的情况下不允许回滚
+            if (state.groupNewlyCreated && state.groupTxn.isTransactionOpened())
+                state.groupTxn.rollback(e);
+        } else if (state.txn != null) {
+            if (state.newlyCreated && state.txn.isTransactionOpened())
+                state.txn.rollback(e);
         }
     }
 
