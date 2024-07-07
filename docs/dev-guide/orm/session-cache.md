@@ -15,13 +15,13 @@ NopORM与Hibernate类似，作为一个完整设计的ORM引擎，它提供了Se
 ```javascript
    List<MyEntity> list = dao.findPage(query1);
    assertEquals("abc", list.get(0).getName());
-   
+
    list.get(0).setName("sss");
-   
+
    List<MyEntity> list2 = dao.findPage(query2);
    assertTrue(list.get(0) == list2.get(0));
    assertEquals("sss", list2.get(0).getName());
-   
+
    assertEquals("sss", dao.getEntityById(list2.get(0).getId());
 ```
 
@@ -55,6 +55,7 @@ OrmEntity内置了一个Map类型的缓存属性`_t`，我们在报表引擎中�
 ```javascript
 entity.make_t().put("total",computeTotal());
 entity.get_t().get("total");
+entity.computeIfAbsent(key, loader);
 ```
 
 ## 概念层面不属于实体对象的缓存数据
@@ -66,7 +67,7 @@ interface IOrmTemplate{
     ICache<Object, Object> sessionCache();
 
     <T> T cacheGet(Object key, Supplier<T> loader);
-}    
+}
 ```
 
 通过NopORM引擎获取数据时，可以指定缓存的key对象。

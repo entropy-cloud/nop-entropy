@@ -11,20 +11,32 @@ import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.ioc.BeanContainerStartMode;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.dao.jdbc.IJdbcTemplate;
+import io.nop.dao.txn.ITransactionTemplate;
+import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmTemplate;
 import io.nop.orm.sql_lib.ISqlLibManager;
 import io.nop.xlang.api.XLang;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
-import jakarta.inject.Inject;
 import java.util.HashMap;
 import java.util.Map;
 
-@NopTestConfig(localDb = true, initDatabaseSchema = true,beanContainerStartMode = BeanContainerStartMode.DEFAULT)
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
+@NopTestConfig(localDb = true, initDatabaseSchema = true, beanContainerStartMode = BeanContainerStartMode.DEFAULT)
 public class TestMultiDataSource extends JunitBaseTestCase {
 
     @Inject
     IOrmTemplate ormTemplate;
+
+    @Inject
+    IJdbcTemplate jdbcTemplate;
+
+    @Inject
+    ITransactionTemplate transactionTemplate;
 
     @Inject
     ISqlLibManager sqlLibManager;
@@ -34,5 +46,26 @@ public class TestMultiDataSource extends JunitBaseTestCase {
         IEvalScope scope = XLang.newEvalScope();
         Map<String, Object> args = new HashMap<>();
         sqlLibManager.invoke("test.getAllLocations", null, args, scope);
+    }
+
+    @Test
+    public void testTransaction() {
+        try {
+            ormTemplate.runInSession(() -> {
+                transactionTemplate.runInTransaction(txn -> {
+                    IOrmEntity entity = ormTemplate.newEntity("test.TestGeo");
+                    entity.orm_propValueByName("sid","123");
+                    entity.orm_propValueByName("name", "test");
+                    ormTemplate.save(entity);
+                    ormTemplate.flushSession();
+
+                    jdbcTemplate.existsTable(null,"test");
+                    throw new IllegalStateException("test-error");
+                });
+            });
+            fail();
+        } catch (Exception e) {
+            assertTrue(e instanceof IllegalStateException);
+        }
     }
 }

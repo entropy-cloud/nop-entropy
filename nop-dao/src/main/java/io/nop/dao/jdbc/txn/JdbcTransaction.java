@@ -70,6 +70,7 @@ public class JdbcTransaction extends AbstractTransaction implements IJdbcTransac
         if (connection == null)
             return;
 
+        LOG.info("nop.dao.jdbc.rollback:{}",this);
         JdbcHelper.rollback(connection, dialect);
         if (eagerReleaseConnection)
             releaseConnection();
