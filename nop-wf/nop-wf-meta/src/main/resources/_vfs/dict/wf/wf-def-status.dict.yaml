@@ -13,11 +13,7 @@ options:
     value: 1
     description: 
   
-  - label: 已过时
-    value: 2
-    description: 过时的流程不推荐使用
-  
   - label: 已归档
-    value: 3
+    value: 2
     description: 已归档的流程不能新建实例
   

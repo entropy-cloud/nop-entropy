@@ -48,6 +48,11 @@ prop:
       modelText: Model Text
       status: Status
       status_label: null
+      publishedBy: Published By
+      publishTime: Publish Time
+      archivedBy: Archived By
+      archiveTime: Archive Time
+      isDeprecated: Is Deprecated
       version: Version
       createdBy: Created By
       createTime: Create Time

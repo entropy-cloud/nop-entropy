@@ -7,12 +7,30 @@
     </grids>
 
     <forms>
-        <form id="view"/>
-        <form id="edit"/>
+        <form id="view">
+            <layout>
+                wfName[工作流名称] wfVersion[工作流版本]
+                displayName[显示名称] description[描述]
+                status[状态]
+                createdBy[创建人] createTime[创建时间]
+                updatedBy[修改人] updateTime[修改时间]
+                remark[备注]
+            </layout>
+        </form>
+
+        <form id="edit">
+            <layout>
+                wfName[工作流名称] wfVersion[工作流版本]
+                displayName[显示名称] description[描述]
+                remark[备注]
+            </layout>
+        </form>
     </forms>
 
     <pages>
-        <crud name="main"/>
+        <crud name="main">
+        </crud>
+
         <picker name="picker"/>
     </pages>
 </view>

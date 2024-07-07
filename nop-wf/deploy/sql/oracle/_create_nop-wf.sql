@@ -7,6 +7,11 @@ CREATE TABLE nop_wf_definition(
   DESCRIPTION VARCHAR2(1000)  ,
   MODEL_TEXT CLOB NOT NULL ,
   STATUS INTEGER NOT NULL ,
+  PUBLISHED_BY VARCHAR2(50)  ,
+  PUBLISH_TIME DATE  ,
+  ARCHIVED_BY VARCHAR2(50)  ,
+  ARCHIVE_TIME DATE  ,
+  IS_DEPRECATED CHAR(1) NOT NULL ,
   VERSION INTEGER NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
@@ -265,6 +270,16 @@ CREATE TABLE nop_wf_log(
       COMMENT ON COLUMN nop_wf_definition.MODEL_TEXT IS '模型文本';
                     
       COMMENT ON COLUMN nop_wf_definition.STATUS IS '状态';
+                    
+      COMMENT ON COLUMN nop_wf_definition.PUBLISHED_BY IS '发布人';
+                    
+      COMMENT ON COLUMN nop_wf_definition.PUBLISH_TIME IS '发布时间';
+                    
+      COMMENT ON COLUMN nop_wf_definition.ARCHIVED_BY IS '归档人';
+                    
+      COMMENT ON COLUMN nop_wf_definition.ARCHIVE_TIME IS '归档时间';
+                    
+      COMMENT ON COLUMN nop_wf_definition.IS_DEPRECATED IS '是否已废弃';
                     
       COMMENT ON COLUMN nop_wf_definition.VERSION IS '数据版本';
                     

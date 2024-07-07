@@ -114,13 +114,8 @@ public interface _NopWfCoreConstants {
     int WF_DEF_STATUS_PUBLISHED = 1;
                     
     /**
-     * 工作流定义状态: 已过时 过时的流程不推荐使用
-     */
-    int WF_DEF_STATUS_DEPRECATED = 2;
-                    
-    /**
      * 工作流定义状态: 已归档 已归档的流程不能新建实例
      */
-    int WF_DEF_STATUS_ARCHIVED = 3;
+    int WF_DEF_STATUS_ARCHIVED = 2;
                     
 }

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<lib x:schema="/nop/schema/xlib.xdef" x:extends="ddl.xlib" xmlns:x="/nop/schema/xdsl.xdef">
+<lib x:schema="/nop/schema/xlib.xdef" x:extends="ddl.xlib" xmlns:x="/nop/schema/xdsl.xdef" x:dump="true">
     <tags>
         <AddComment>
             <source>
@@ -28,16 +28,21 @@
         <DefaultValue>
             <attr name="col" implicit="true"/>
             <attr name="dialect" implicit="true"/>
-            <attr name="allNullable" implicit="true" />
-            <source>
-                <c:unit>${col.stdSqlType.toString() == 'TIMESTAMP' and col.mandatory and !allNullable ? ' DEFAULT CURRENT_TIMESTAMP ':''}</c:unit>
+            <attr name="allNullable" type="Boolean" implicit="true"/>
+            <source x:override="prepend">
+                <c:if test="${!col.defaultValue and col.stdSqlType.toString() == 'TIMESTAMP' and col.mandatory and !allNullable}">
+                    <c:unit><![CDATA[ DEFAULT CURRENT_TIMESTAMP ]]></c:unit>
+                    <c:script>
+                        return;
+                    </c:script>
+                </c:if>
             </source>
         </DefaultValue>
 
         <ColCommentDef>
             <source>
                 <thisLib:ColumnComment col="${col}" xpl:return="colComment"/>
-                <c:unit>   COMMENT ${dialect.getStringLiteral(colComment)}</c:unit>
+                <c:unit><![CDATA[   COMMENT ${dialect.getStringLiteral(colComment)}]]></c:unit>
             </source>
         </ColCommentDef>
 
