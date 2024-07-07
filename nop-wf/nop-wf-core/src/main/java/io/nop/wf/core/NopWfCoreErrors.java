@@ -20,6 +20,8 @@ public interface NopWfCoreErrors {
 
     String ARG_WF_VERSION = "wfVersion";
 
+    String ARG_WF_DEF_ID = "wfDefId";
+
     String ARG_WF_ID = "wfId";
     String ARG_STEP_ID = "stepId";
 
@@ -222,4 +224,12 @@ public interface NopWfCoreErrors {
             define("nop.err.wf.not-allow-call-action-by-user",
                     "步骤[{stepName}:{stepId}]不允许被用户[{callerId}]调用,步骤的参与者限定为[{actorType}:${actorId}]",
                     ARG_STEP_NAME, ARG_STEP_ID, ARG_CALLER_ID, ARG_ACTOR_TYPE, ARG_ACTOR_ID);
+
+    ErrorCode ERR_WF_EMPTY_MODEL_TEXT =
+            define("nop.err.wf.empty-model-text", "工作流[{wfName}]的模型文本为空",
+                    ARG_WF_NAME, ARG_WF_VERSION);
+
+    ErrorCode ERR_WF_PARSE_MODEL_TEXT_FAIL =
+            define("nop.err.wf.parse-model-text-fail", "工作流[{wfName}]的模型文本解析失败",
+                    ARG_WF_NAME, ARG_WF_VERSION);
 }

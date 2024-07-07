@@ -17,4 +17,5 @@
     <bean id="nopWfResourceNamespaceHandler" ioc:default="true"
           class="io.nop.wf.dao.store.WfResourceNamespaceHandler"/>
 
+    <bean id="nopWorkflowDefinitionDOProvider" class="io.nop.wf.dao.dataobject.DefaultWorkflowDOProvider" />
 </beans>
