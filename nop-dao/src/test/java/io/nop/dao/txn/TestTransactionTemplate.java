@@ -269,7 +269,7 @@ public class TestTransactionTemplate extends JdbcTestCase {
 
             jdbc().executeUpdate(new SQL("update my_entity set a=44 where id = 1 "));
 
-            // 抛出异常就会触发回滚
+            // 抛出异常但是被捕获了也不会触发回滚
             try {
                 txn().runInTransaction(null, TransactionPropagation.REQUIRED, txn2 -> {
                     throw new RuntimeException("error");
@@ -281,14 +281,14 @@ public class TestTransactionTemplate extends JdbcTestCase {
             assertTrue(!txn.isRollbackOnly());
 
             // 缺省情况下commit或者rollback都会释放连接
-            assertEquals(0, getActiveConnections());
+            assertEquals(1, getActiveConnections());
 
             jdbc().executeUpdate(new SQL("update my_entity set b=44 where id = 1 "));
 
             assertEquals(1, getActiveConnections());
             return null;
         });
-        assertEquals(3L, jdbc().findLong(new SQL("select a from my_entity where id=1"), 0L));
+        assertEquals(44L, jdbc().findLong(new SQL("select a from my_entity where id=1"), 0L));
         assertEquals(44L, jdbc().findLong(new SQL("select b from my_entity where id=1"), 0L));
         checkNoActive();
     }
@@ -321,5 +321,14 @@ public class TestTransactionTemplate extends JdbcTestCase {
         assertEquals(44L, jdbc().findLong(new SQL("select a from my_entity where id=1"), 0L));
         assertEquals(44L, jdbc().findLong(new SQL("select b from my_entity where id=1"), 0L));
         checkNoActive();
+    }
+
+    @Test
+    public void testMultipleCommit(){
+        txn().runInTransaction(null, TransactionPropagation.REQUIRED,txn->{
+            txn.commit();
+            txn.commit();
+            return null;
+        });
     }
 }

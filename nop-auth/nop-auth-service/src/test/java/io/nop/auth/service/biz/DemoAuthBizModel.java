@@ -73,6 +73,6 @@ public class DemoAuthBizModel {
         SQL sql = new SQL("update nop_auth_group  set parent_id = null where 1=0");
         jdbcTemplate.executeUpdate(sql);
 
-        jdbcTemplate.existsTable(null,"nop_auth_group");
+        jdbcTemplate.existsTable(null,"nop_auth_group2");
     }
 }

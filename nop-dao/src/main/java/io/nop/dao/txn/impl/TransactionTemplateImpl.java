@@ -346,14 +346,16 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
     }
 
     private void rollbackTransaction(TxnState state, Throwable e) {
-        // 事务处理失败就调用回滚，不一定是由打开事务的函数负责回滚。
-        if (state.groupTxn != null) {
-            // 事务未打开的情况下不允许回滚
-            if (state.groupTxn.isTransactionOpened())
-                state.groupTxn.rollback(e);
-        } else if (state.txn != null) {
-            if (state.txn.isTransactionOpened())
-                state.txn.rollback(e);
+        // 打开事务的函数负责回滚。
+        if(state.newlyOpen || state.newlyCreated || state.groupNewlyCreated) {
+            if (state.groupTxn != null) {
+                // 事务未打开的情况下不允许回滚
+                if (state.groupTxn.isTransactionOpened())
+                    state.groupTxn.rollback(e);
+            } else if (state.txn != null) {
+                if (state.txn.isTransactionOpened())
+                    state.txn.rollback(e);
+            }
         }
     }
 
