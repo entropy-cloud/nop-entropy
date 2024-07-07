@@ -9,6 +9,7 @@ package io.nop.auth.service.biz;
 
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.annotations.txn.Transactional;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.auth.dao.entity.NopAuthOpLog;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -43,6 +44,8 @@ public class TestService {
         entity.setOperation("测试日志");
         entity.setUsedTime(1000L);
         entity.setUserName("test");
+        entity.setActionTime(CoreMetrics.currentTimestamp());
+        entity.setResultStatus(0);
         dao.saveEntity(entity);
     }
 }

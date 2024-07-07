@@ -249,6 +249,7 @@
                                 <goal>java</goal>
                             </goals>
                             <configuration>
+                                <classpathScope>test</classpathScope>
                                 <arguments>
                                     <argument>${project.basedir}</argument>
                                     <argument>aop</argument>

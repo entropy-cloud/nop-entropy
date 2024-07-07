@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-@Disabled
+//@Disabled
 @NopTestConfig(localDb = true, initDatabaseSchema = true)
 public class TestTransaction extends JunitAutoTestCase {
     @Inject
@@ -31,7 +31,7 @@ public class TestTransaction extends JunitAutoTestCase {
             testService.methodA();
             fail();
         } catch (Exception e) {
-            e.printStackTrace();
+           // e.printStackTrace();
             assertTrue(e instanceof IllegalStateException);
         }
     }

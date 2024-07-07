@@ -8,6 +8,7 @@
 package io.nop.codegen.task;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.reflect.aop.AopAnnotationsLoader;
@@ -22,6 +23,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.lang.reflect.Modifier;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,15 +52,21 @@ public class GenAopProxy {
         generate(classesDir, sourceDir);
     }
 
+    ClassLoader buildExtClassLoader(File classesDir) {
+        URLClassLoader classLoader = new URLClassLoader(new URL[]{FileHelper.toURL(classesDir)}, ClassHelper.getDefaultClassLoader());
+        return classLoader;
+    }
+
     public void generate(File classesDir, File sourceDir) {
         List<String> classNames = findClassNames(classesDir);
+        ClassLoader classLoader = buildExtClassLoader(classesDir);
 
         Class<?>[] annClasses = AopAnnotationsLoader.getAnnotationClasses().toArray(new Class<?>[0]);
 
         List<JavaSourceCode> sources = new ArrayList<>();
         classNames.forEach(className -> {
             try {
-                Class<?> clazz = Class.forName(className);
+                Class<?> clazz = ClassHelper.forName(className, classLoader);
                 if (Modifier.isAbstract(clazz.getModifiers()))
                     return;
                 if (IAopProxy.class.isAssignableFrom(clazz))

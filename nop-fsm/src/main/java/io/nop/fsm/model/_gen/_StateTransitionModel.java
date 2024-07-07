@@ -35,7 +35,7 @@ public abstract class _StateTransitionModel extends io.nop.core.resource.compone
      * xml name: id
      * 
      */
-    private java.lang.String _id ;
+    private java.lang.String _id  = "@event";
     
     /**
      *  

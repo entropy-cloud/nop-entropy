@@ -206,12 +206,15 @@ public class CodeGenTask {
     }
 
     static void genAopProxy(File projectDir) {
+        System.out.println("nop.gen-aop-proxy");
         new GenAopProxy().execute(projectDir, false);
 
         if (System.getProperty("skipTests") == null) {
+            System.out.println("nop.gen-aop-proxy-for-test");
             try {
                 new GenAopProxy().execute(projectDir, true);
             } catch (Exception e) {
+                e.printStackTrace();
                 LOG.debug("nop.gen-aop-proxy-fail", e);
             }
         }

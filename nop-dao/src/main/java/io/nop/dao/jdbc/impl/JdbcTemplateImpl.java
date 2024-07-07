@@ -415,7 +415,8 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
     @Override
     public boolean existsTable(String querySpace, String tableName) {
         IDialect dialect = getDialectForQuerySpace(querySpace);
-        SQL sql = SQL.begin().querySpace(querySpace).sql("select 1 from " + dialect.escapeSQLName(tableName)).end();
+        SQL sql = SQL.begin().querySpace(querySpace).sql("select 1 from ")
+                .sql(dialect.escapeSQLName(tableName)).where().sql("1=0").end();
         try {
             findFirst(sql);
             return true;
