@@ -79,3 +79,4 @@ node_modules/
 /.knosys/sites/default/Thumbs.db
 /.knosys/sites/default/db.json
 /.knosys/sites/default/package.json
+/nop-cli-jdk11/dependency-reduced-pom.xml
