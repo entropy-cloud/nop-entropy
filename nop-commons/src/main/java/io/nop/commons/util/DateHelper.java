@@ -11,10 +11,24 @@ import io.nop.api.core.util.ApiStringHelper;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.time.*;
+import java.time.DayOfWeek;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.MonthDay;
+import java.time.Period;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
-import java.util.*;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TimeZone;
 
 /**
  * 获得本月的天数 localDate.lengthOfMonth() 获得本年的天数 localDate.lengthOfYear() 判断是否闰年 localDate.isLeapYear()
@@ -237,6 +251,20 @@ public class DateHelper {
 
     public static LocalDateTime parseDataTime(String s) {
         return ConvertHelper.stringToLocalDateTime(s, NopException::new);
+    }
+
+    public static LocalDate parseDate(String s, String pattern) {
+        if (StringHelper.isEmpty(s))
+            return null;
+        DateTimeFormatter formatter = buildFormatter(pattern);
+        return LocalDate.parse(s, formatter);
+    }
+
+    public static LocalDateTime parseDateTime(String s, String pattern) {
+        if (StringHelper.isEmpty(s))
+            return null;
+        DateTimeFormatter formatter = buildFormatter(pattern);
+        return LocalDateTime.parse(s, formatter);
     }
 
     public static Duration parseDuration(String s) {

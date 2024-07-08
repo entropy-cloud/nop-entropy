@@ -76,6 +76,20 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     
     /**
      *  
+     * xml name: expandMaxCount
+     * 控制展开表达式最多返回多少行
+     */
+    private java.lang.Integer _expandMaxCount ;
+    
+    /**
+     *  
+     * xml name: expandMinCount
+     * 控制展开表达式返回的条目数不足时，自动补空行
+     */
+    private java.lang.Integer _expandMinCount ;
+    
+    /**
+     *  
      * xml name: expandOrderBy
      * 对expandExpr返回的列表进行排序
      */
@@ -331,6 +345,44 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         checkAllowChange();
         
         this._expandInplaceCount = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: expandMaxCount
+     *  控制展开表达式最多返回多少行
+     */
+    
+    public java.lang.Integer getExpandMaxCount(){
+      return _expandMaxCount;
+    }
+
+    
+    public void setExpandMaxCount(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._expandMaxCount = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: expandMinCount
+     *  控制展开表达式返回的条目数不足时，自动补空行
+     */
+    
+    public java.lang.Integer getExpandMinCount(){
+      return _expandMinCount;
+    }
+
+    
+    public void setExpandMinCount(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._expandMinCount = value;
            
     }
 
@@ -645,6 +697,8 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         out.putNotNull("editorId",this.getEditorId());
         out.putNotNull("expandExpr",this.getExpandExpr());
         out.putNotNull("expandInplaceCount",this.getExpandInplaceCount());
+        out.putNotNull("expandMaxCount",this.getExpandMaxCount());
+        out.putNotNull("expandMinCount",this.getExpandMinCount());
         out.putNotNull("expandOrderBy",this.getExpandOrderBy());
         out.putNotNull("expandType",this.getExpandType());
         out.putNotNull("exportFormattedValue",this.isExportFormattedValue());
@@ -679,6 +733,8 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         instance.setEditorId(this.getEditorId());
         instance.setExpandExpr(this.getExpandExpr());
         instance.setExpandInplaceCount(this.getExpandInplaceCount());
+        instance.setExpandMaxCount(this.getExpandMaxCount());
+        instance.setExpandMinCount(this.getExpandMinCount());
         instance.setExpandOrderBy(this.getExpandOrderBy());
         instance.setExpandType(this.getExpandType());
         instance.setExportFormattedValue(this.isExportFormattedValue());

@@ -759,7 +759,7 @@ public interface CoreErrors {
     ErrorCode ERR_TABLE_INVALID_ROW_RANGE = define("nop.err.core.table.invalid-row-range", "行区域表达式不合法");
 
     ErrorCode ERR_TABLE_INVALID_CELL_POSITION = define("nop.err.core.table.invalid-cell-position",
-            "单元格位置表达式不合法:rowIndex={},colIndex={}", ARG_ROW_INDEX, ARG_COL_INDEX);
+            "单元格位置表达式不合法:rowIndex={rowIndex},colIndex={colIndex}", ARG_ROW_INDEX, ARG_COL_INDEX);
 
     ErrorCode ERR_TABLE_NULL_ROW =
             define("nop.err.core.table.null-row", "下标为[{rowIndex}]的行为null", ARG_ROW_INDEX);

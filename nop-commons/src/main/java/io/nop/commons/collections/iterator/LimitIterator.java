@@ -8,6 +8,7 @@
 package io.nop.commons.collections.iterator;
 
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 public class LimitIterator<E> implements Iterator<E> {
     private final Iterator<E> it;
@@ -31,6 +32,6 @@ public class LimitIterator<E> implements Iterator<E> {
             count++;
             return o;
         }
-        throw new IllegalStateException("iterator count exceed limit: count=" + count + ",limit=" + limit);
+        throw new NoSuchElementException("iterator count exceed limit: count=" + count + ",limit=" + limit);
     }
 }

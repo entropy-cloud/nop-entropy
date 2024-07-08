@@ -439,5 +439,6 @@
         <module>nop-orm-data</module>
         <module>nop-rpa</module>
         <module>nop-orm-drivers</module>
+        <module>nop-cli-jdk11</module>
     </modules>
 </project>

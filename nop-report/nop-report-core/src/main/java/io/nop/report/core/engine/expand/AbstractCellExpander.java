@@ -7,6 +7,8 @@
  */
 package io.nop.report.core.engine.expand;
 
+import io.nop.commons.collections.iterator.FillMinIterator;
+import io.nop.commons.collections.iterator.LimitIterator;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.excel.model.XptCellModel;
 import io.nop.excel.model.constants.XptExpandType;
@@ -53,6 +55,25 @@ public abstract class AbstractCellExpander implements ICellExpander {
     }
 
     protected Iterator<?> runExpandExpr(ExpandedCell cell, IXptRuntime xptRt) {
+        Iterator<?> it = runExpandExpr0(cell, xptRt);
+        if (it == null)
+            it = Collections.emptyListIterator();
+
+        XptCellModel cellModel = cell.getModel();
+        if (cellModel == null)
+            return it;
+
+        if (cellModel.getExpandMaxCount() != null && cellModel.getExpandMaxCount() >= 0) {
+            it = new LimitIterator<>(it, cellModel.getExpandMaxCount());
+        }
+
+        if (cellModel.getExpandMinCount() != null && cellModel.getExpandMinCount() > 0) {
+            it = new FillMinIterator<>(it, cellModel.getExpandMinCount(), null);
+        }
+        return it;
+    }
+
+    protected Iterator<?> runExpandExpr0(ExpandedCell cell, IXptRuntime xptRt) {
         XptCellModel model = cell.getModel();
         xptRt.setCell(cell);
 

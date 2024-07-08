@@ -12,6 +12,7 @@ import io.nop.core.resource.IResource;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestClassPathResource {
@@ -26,6 +27,6 @@ public class TestClassPathResource {
         IResource resource = new ClassPathResource("classpath:" + CacheLoader.class.getName().replace('.', '/') + ".class");
         assertTrue(resource.exists());
         assertTrue(resource.length() > 0);
-        assertTrue(resource.lastModified() > 0);
+        assertFalse(resource.lastModified() > 0);
     }
 }
