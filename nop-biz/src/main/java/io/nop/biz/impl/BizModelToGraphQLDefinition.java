@@ -163,7 +163,7 @@ public class BizModelToGraphQLDefinition {
             case Cache:
                 return IDataFetchingEnvironment::getCache;
             case ServiceContext:
-                return IDataFetchingEnvironment::getGraphQLExecutionContext;
+                return IDataFetchingEnvironment::getServiceContext;
             case FieldSelection:
                 return IDataFetchingEnvironment::getSelectionBean;
             case RequestBean:
