@@ -237,8 +237,10 @@ public class SiteCacheDataBuilder {
             entry.setIcon(resource.getIcon());
         if (!StringHelper.isEmpty(resource.getDisplayName()))
             entry.setDisplayName(resource.getDisplayName());
-        entry.setComponent(resource.getComponent());
-        entry.setTarget(resource.getTarget());
+        if (!StringHelper.isEmpty(resource.getComponent()))
+            entry.setComponent(resource.getComponent());
+        if (!StringHelper.isEmpty(resource.getTarget()))
+            entry.setTarget(resource.getTarget());
         if (!StringHelper.isEmpty(resource.getUrl()))
             entry.setUrl(resource.getUrl());
         entry.setHidden(isYes(resource.getHidden()));
