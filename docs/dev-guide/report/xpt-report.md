@@ -38,6 +38,7 @@ xptRt.makeDs函数将一个列表数据包装为ReportDataSet对象，并设置�
 - workbook: 等价于xptRt.workbook
 
 ### cell对象上的属性
+
 cell对应于 ExpandedCell类型
 
 * rowParent或者rp: 行父格
@@ -57,6 +58,10 @@ cell对应于 ExpandedCell类型
 - keepExpandEmpty: 当展开集合返回空时，缺省情况下会把对应单元格及其子单元格都删除。但是如果设置了keepExpandEmpty，则这些未展开的单元格会保留，但值会被设置为null
 - rowParent: 行父格。必须是一个设置了expandType的单元格。行父格展开时会复制所有的子单元格。如果不指定，则向左侧查找。
 - colParent: 列父格。必须是一个设置了expandType的单元格。列父格展开时会复制所有的子单元格。如果不指定，则向上查找。
+- expandMinCount: 控制展开时最少有多少个元素，如果expandExpr返回的长度较小，则补充null。
+- expandMaxCount: 控制展开时最多有多少个元素。超过的行将会被自动丢弃
+
+* rowParent和colParent如果设置为A0，则表示它们是根单元格，没有父格。
 
 批注中可配置的属性参考 workflow.xdef元模型中的cell节点的model部分。
 
@@ -68,6 +73,7 @@ cell对应于 ExpandedCell类型
    A. `*=fieldName` 等价于配置field=fieldName
    B. `*=^ds1!fieldName`，等价于配置 expandType=r, ds=ds1, field=fieldName
    C. `*=>ds1!fieldName` 等价于配置 expandType=c, ds=ds1, field=fieldName
+   D. `*=^fieldName@data` 等价于配置 expandType=r, expandExpr=data, field=fieldName
 
 ## 层次坐标
 
@@ -87,8 +93,6 @@ cell对应于 ExpandedCell类型
 
 * 展开前：在报表引擎执行展开算法之前调用的xpl代码。可以在这里准备数据。通过assign函数设置数据到报表上下文中
 * 删除隐藏单元：缺省情况下隐藏的行或者列会被输出，在这里可以设置为true，从而输出时删除隐藏列。
-
-
 
 ## 常用公式
 
@@ -121,7 +125,8 @@ cell对应于 ExpandedCell类型
 
 ## 导出Excel公式
 
-如果在Excel单元格中配置了Excel公式，则导出Excel的时候会将valueExpr转换为Excel公式输出。例如 SUM(A3)将可以经过报表展开后成为 SUM(A3:D5)
+如果在Excel单元格中配置了Excel公式，则导出Excel的时候会将valueExpr转换为Excel公式输出。例如 SUM(A3)将可以经过报表展开后成为
+SUM(A3:D5)
 
 对于复杂的层次坐标表达式，无法直接用Excel公式直接表达，则可以配置valueExpr,然后设置单元格的exportFormula=true。
 
@@ -131,8 +136,7 @@ cell对应于 ExpandedCell类型
 
 ## 常用表达式
 
-* xptRt.incAndGet(seqName): 相当于是 seqName ++，即读取seqName对应的变量值，执行递增操作，然后返回递增之前的值。如果一开始变量不存在，则认为初始化为0
-
+* xptRt.seq(seqName): 相当于是 seqName ++，即读取seqName对应的变量值，执行递增操作，然后返回递增之前的值。如果一开始变量不存在，则认为初始化为1
 
 ## 常见问题解答：
 
@@ -142,5 +146,13 @@ cell对应于 ExpandedCell类型
 只有设置了expandType和expandExpr的单元格才具有展开值。
 
 全部展开完毕后再执行单元格计算，此时根据valueExpr计算单元格的值。如果没有设置valueExpr，则单元格会取展开值expandValue为自己的缺省值。
+
+### 2. 如何支持默认多个空行
+
+* 在单元格中配置expandInplaceCount，然后在模板中实现插入多行。如果展开表达式返回个数小于这个值，则不需要新增单元格。
+
+### 3. 数据条数过多，怎么支持  只显示 前 几个
+
+可以配置单元格的expandExpr，通过表达式去控制具体展开时返回的条目。 更简单的方式是通过expandMinCount来控制
 
 

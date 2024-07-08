@@ -899,7 +899,7 @@
 
         <view-password>
             <source><![CDATA[
-                return { type:'static', value: '***', name:''}
+                return { type:'static', value: '***'}
             ]]></source>
         </view-password>
 

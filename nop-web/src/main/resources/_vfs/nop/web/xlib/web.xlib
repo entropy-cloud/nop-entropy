@@ -123,7 +123,7 @@
                 <body j:list="true">
                     <c:choose>
                         <when test="${formModel.layoutControl=='tabs'}">
-                            <thisLib:GenLayoutTabs layoutGroups="${formModel.layout.groups}"/>
+                            <thisLib:GenLayoutTabs layoutGroups="${formModel.layout.groups}" id="${formModel.id}-tabs"/>
                         </when>
                         <when test="${formModel.layout.simpleTable}">
                             <thisLib:GenFormTable formTable="${formModel.layout.firstTable}"/>
@@ -193,6 +193,7 @@
 
         <GenLayoutTabs outputMode="xjson">
             <attr name="layoutGroups"/>
+            <attr name="id" optional="true" />
             <attr name="formModel" implicit="true"/>
             <attr name="objMeta" implicit="true"/>
             <attr name="bizObjName" implicit="true"/>
@@ -201,14 +202,14 @@
             <attr name="fixedProps" implicit="true" optional="true"/>
 
             <source>
-                <tabs>
+                <tabs id="${id}">
                     <tabs j:list="true">
                         <c:for var="formTable" items="${layoutGroups}">
                             <c:script>
                                 const groupModel = formModel.getCell(formTable.id);
                             </c:script>
 
-                            <_ title="@i18n:forms.${i18nRoot}.${formModel.id}.${formTable.id}|${formTable.label}">
+                            <_ title="@i18n:forms.${i18nRoot}.${formModel.id}.${formTable.id}|${formTable.label}" name="${formTable.id}">
                                 <visibleOn>${groupModel?.visibleOn}</visibleOn>
                                 <tab j:list="true">
                                     <c:for var="formRow" items="${formTable.rows}" index="rowIndex">
@@ -284,7 +285,7 @@
             <source>
                 <c:choose>
                     <when test="${formRow.colCount == 0}">
-                        <divider/>
+                        <divider name="row-${rowIndex}"/>
                     </when>
 <!--                    <when test="${formRow.colCount == 1}">-->
 <!--                        <thisLib:GenFormCell formCell="${formRow.getCell(0)}"/>-->
@@ -337,8 +338,8 @@
                     let cellModel = formModel.getCell(formCell.id);
                     let propMeta = objMeta?.getProp(cellModel?.prop || formCell.id);
                     let rd = formCell.readonly || cellModel?.readonly
-                                 || ((formModel.editMode == 'update' or formModel.editMode == 'edit') && propMeta && !propMeta?.updatable)
-                                 || (formModel.editMode == 'add' && propMeta && !propMeta?.insertable);
+                                 || (!cellModel?.custom  and (formModel.editMode == 'update' or formModel.editMode == 'edit') && propMeta && !propMeta?.updatable)
+                                 || (!cellModel?.custom and formModel.editMode == 'add' && propMeta && !propMeta?.insertable);
 
                     // 在编辑关联表时会明确指定字段的值固定，此时自动输出hidden字段
                     if(!rd and fixedProps?.contains(formCell.id)){

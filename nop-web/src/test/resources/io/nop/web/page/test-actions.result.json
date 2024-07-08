@@ -8,9 +8,15 @@
     "mode": "horizontal",
     "body": [
       {
-        "name": "a",
-        "label": "ABC",
-        "type": "static"
+        "type": "group",
+        "id": "row-a",
+        "body": [
+          {
+            "name": "a",
+            "label": "ABC",
+            "type": "static"
+          }
+        ]
       }
     ]
   }
