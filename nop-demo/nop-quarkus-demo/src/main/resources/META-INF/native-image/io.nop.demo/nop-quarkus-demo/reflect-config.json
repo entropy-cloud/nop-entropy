@@ -16298,6 +16298,23 @@
         ]
       },
       {
+        "name": "triggerStateChange",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "triggerStateChange",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext",
+          "java.util.function.Consumer"
+        ]
+      },
+      {
         "name": "tryDelete",
         "parameterTypes": [
           "java.lang.String",
@@ -17049,6 +17066,27 @@
       }
     ],
     "name": "io.nop.biz.impl.DefaultBizAuthChecker",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "transform",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
+          "java.lang.String",
+          "io.nop.biz.api.IBizObject",
+          "io.nop.core.context.IServiceContext"
+        ]
+      }
+    ],
+    "name": "io.nop.biz.impl.EmptyQueryTransformer",
     "unsafeAllocated": false
   },
   {
@@ -18842,6 +18880,10 @@
       },
       {
         "name": "getClassName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getConverter",
         "parameterTypes": []
       },
       {
@@ -37690,6 +37732,607 @@
     "fields": [],
     "methods": [
       {
+        "name": "getParentState",
+        "parameterTypes": [
+          "io.nop.fsm.model.StateId"
+        ]
+      },
+      {
+        "name": "getStateFromFullId",
+        "parameterTypes": [
+          "io.nop.fsm.model.StateId"
+        ]
+      },
+      {
+        "name": "getStateFromStateValue",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "init",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.fsm.model.StateMachineModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getFullStateId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getParentContainer",
+        "parameterTypes": []
+      },
+      {
+        "name": "setFullStateId",
+        "parameterTypes": [
+          "io.nop.fsm.model.StateId"
+        ]
+      },
+      {
+        "name": "setParentContainer",
+        "parameterTypes": [
+          "io.nop.fsm.execution.IStateContainer"
+        ]
+      }
+    ],
+    "name": "io.nop.fsm.model.StateModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.fsm.model.StateTransitionModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addState",
+        "parameterTypes": [
+          "io.nop.fsm.model.StateModel"
+        ]
+      },
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.fsm.model.StateMachineModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getHandleError",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInitial",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMeta",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOnEntry",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOnExit",
+        "parameterTypes": []
+      },
+      {
+        "name": "getState",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getStateProp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStates",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasMeta",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasState",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasStates",
+        "parameterTypes": []
+      },
+      {
+        "name": "isIgnoreUnknownTransition",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_states",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setHandleError",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setIgnoreUnknownTransition",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setInitial",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setMeta",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setOnEntry",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setOnExit",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setStateProp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setStates",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      }
+    ],
+    "name": "io.nop.fsm.model._gen._StateMachineModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addState",
+        "parameterTypes": [
+          "io.nop.fsm.model.StateModel"
+        ]
+      },
+      {
+        "name": "addTransition",
+        "parameterTypes": [
+          "io.nop.fsm.model.StateTransitionModel"
+        ]
+      },
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.fsm.model.StateModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getActivities",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEntry",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExit",
+        "parameterTypes": []
+      },
+      {
+        "name": "getHandleError",
+        "parameterTypes": []
+      },
+      {
+        "name": "getId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInitial",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMeta",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOnDone",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOnEntry",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOnError",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOnExit",
+        "parameterTypes": []
+      },
+      {
+        "name": "getState",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getStateValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStates",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTransition",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getTransitions",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasMeta",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasState",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasStates",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasTransition",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasTransitions",
+        "parameterTypes": []
+      },
+      {
+        "name": "isFinal",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_states",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_transitions",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setActivities",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setEntry",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      },
+      {
+        "name": "setExit",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      },
+      {
+        "name": "setFinal",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setHandleError",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setInitial",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setMeta",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setOnDone",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setOnEntry",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setOnError",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setOnExit",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setStateValue",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setStates",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setTransitions",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      }
+    ],
+    "name": "io.nop.fsm.model._gen._StateModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.fsm.model.StateTransitionModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getActions",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEvent",
+        "parameterTypes": []
+      },
+      {
+        "name": "getId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getIn",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInvoke",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTarget",
+        "parameterTypes": []
+      },
+      {
+        "name": "getWhen",
+        "parameterTypes": []
+      },
+      {
+        "name": "isInternal",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setActions",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      },
+      {
+        "name": "setEvent",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setIn",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setInternal",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setInvoke",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setTarget",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setWhen",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalPredicate"
+        ]
+      }
+    ],
+    "name": "io.nop.fsm.model._gen._StateTransitionModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "getBizObjName",
         "parameterTypes": []
       }
@@ -41942,6 +42585,10 @@
           "java.lang.String",
           "java.lang.Object"
         ]
+      },
+      {
+        "name": "reset",
+        "parameterTypes": []
       }
     ],
     "name": "io.nop.orm.IOrmComponent",
@@ -42547,6 +43194,10 @@
           "java.lang.String",
           "java.lang.Object"
         ]
+      },
+      {
+        "name": "reset",
+        "parameterTypes": []
       }
     ],
     "name": "io.nop.orm.component.AbstractOrmComponent",
@@ -42613,6 +43264,10 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "reset",
+        "parameterTypes": []
       },
       {
         "name": "setChildBodyXml",
@@ -43722,6 +44377,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getDeleteVersionPropId",
+        "parameterTypes": []
+      },
+      {
         "name": "getDisplayName",
         "parameterTypes": []
       },
@@ -44502,6 +45161,10 @@
       },
       {
         "name": "getDeleteFlagPropId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDeleteVersionPropId",
         "parameterTypes": []
       },
       {
@@ -48218,6 +48881,13 @@
       {
         "name": "clearId",
         "parameterTypes": []
+      },
+      {
+        "name": "computeIfAbsent",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.util.function.Function"
+        ]
       },
       {
         "name": "defaultGetProp",
@@ -59362,6 +60032,453 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "DEFAULT_WF_GROUP"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "DELEGATE_SCOPE_ALL"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_ACTIVATE_STEP"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_AFTER_ACTION"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_AFTER_END"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_AFTER_KILL"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_AFTER_SAVE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_AFTER_START"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_BEFORE_ACTION"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_BEFORE_END"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_BEFORE_KILL"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_BEFORE_START"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_CHANGE_ACTOR"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_CHANGE_OWNER"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_ENTER_STEP"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_EXIT_STEP"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_KILL_STEP"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_MARK_READ"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_ON_NO_ASSIGN"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_REMOVE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_RESUME"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_SIGNAL_OFF"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_SIGNAL_ON"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_SUSPEND"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_TRANSFER_TO_ACTOR"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EVENT_TRANSITION"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "FILE_TYPE_XWF"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "INTERNAL_ACTION_TRANSFER_TO_ACTOR"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "INTERNAL_ACTION_TRANSIT"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PARAM_BIZ_KEY"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PARAM_BIZ_OBJ_ID"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PARAM_BIZ_OBJ_NAME"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PARAM_TITLE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "POSTFIX_XWF"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "RESOLVE_WF_NS_PREFIX"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "SPECIAL_STEP_ID_PREFIX"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "STEP_ID_ASSIGNED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "STEP_ID_EMPTY"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "STEP_ID_END"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "SYS_ACTION_KILL"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "SYS_ACTION_RESUME"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "SYS_ACTION_START"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "SYS_ACTION_SUSPEND"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "TIMER_DUE_TIME"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "VAR_ACTION_RECORD"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "VAR_ACTORS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "VAR_ACTOR_MODEL"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "VAR_EXCEPTION"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "VAR_REJECT_STEPS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "VAR_SELECTED_ACTORS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "VAR_SELECTED_STEP_ACTORS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "VAR_SUB_WF_RESULTS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "VAR_TARGET_CASES"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "VAR_TARGET_STEPS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "VAR_WF"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "VAR_WF_RT"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "VAR_WF_STEP"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_ACTOR_LIB_PATH"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_ACTOR_NS_PREFIX"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_STATUS_HISTORY_BOUND"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_STEP_STATUS_HISTORY_BOUND"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "XDEF_PATH_WF"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.wf.core.NopWfCoreConstants",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_DEF_STATUS_ARCHIVED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_DEF_STATUS_PUBLISHED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_DEF_STATUS_UNPUBLISHED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_STATUS_ACTIVATED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_STATUS_COMPLETED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_STATUS_CREATED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_STATUS_EXPIRED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_STATUS_FAILED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_STATUS_KILLED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_STATUS_SUSPENDED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_STATUS_WAITING"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_STEP_STATUS_ACTIVATED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_STEP_STATUS_COMPLETED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_STEP_STATUS_CREATED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_STEP_STATUS_EXECUTED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_STEP_STATUS_EXPIRED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_STEP_STATUS_FAILED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_STEP_STATUS_KILLED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_STEP_STATUS_REJECTED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_STEP_STATUS_SUSPENDED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_STEP_STATUS_TRANSFERRED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_STEP_STATUS_WAITING"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "WF_STEP_STATUS_WITHDRAWN"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.wf.core._NopWfCoreConstants",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [
       {
@@ -60495,6 +61612,36 @@
     "fields": [],
     "methods": [
       {
+        "name": "getWorkflowDefinitionDO",
+        "parameterTypes": [
+          "io.nop.wf.dao.entity.NopWfDefinition",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "setDaoProvider",
+        "parameterTypes": [
+          "io.nop.dao.api.IDaoProvider"
+        ]
+      },
+      {
+        "name": "setWorkflowManager",
+        "parameterTypes": [
+          "io.nop.wf.core.IWorkflowManager"
+        ]
+      }
+    ],
+    "name": "io.nop.wf.dao.dataobject.DefaultWorkflowDOProvider",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "setCaller",
         "parameterTypes": [
           "io.nop.wf.api.actor.IWfActor"
@@ -61202,6 +62349,16 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_archiveTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_archivedBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_createTime"
       },
       {
@@ -61222,7 +62379,22 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_isDeprecated"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_modelText"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_publishTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_publishedBy"
       },
       {
         "allowUnsafeAccess": false,
@@ -61267,6 +62439,16 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_archiveTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_archivedBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_createTime"
       },
       {
@@ -61292,7 +62474,22 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_isDeprecated"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_modelText"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_publishTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_publishedBy"
       },
       {
         "allowUnsafeAccess": false,
@@ -61341,6 +62538,14 @@
         "parameterTypes": []
       },
       {
+        "name": "getArchiveTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getArchivedBy",
+        "parameterTypes": []
+      },
+      {
         "name": "getCreateTime",
         "parameterTypes": []
       },
@@ -61361,7 +62566,19 @@
         "parameterTypes": []
       },
       {
+        "name": "getIsDeprecated",
+        "parameterTypes": []
+      },
+      {
         "name": "getModelText",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPublishTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPublishedBy",
         "parameterTypes": []
       },
       {
@@ -61451,6 +62668,18 @@
         ]
       },
       {
+        "name": "setArchiveTime",
+        "parameterTypes": [
+          "java.time.LocalDateTime"
+        ]
+      },
+      {
+        "name": "setArchivedBy",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setCreateTime",
         "parameterTypes": [
           "java.sql.Timestamp"
@@ -61475,7 +62704,25 @@
         ]
       },
       {
+        "name": "setIsDeprecated",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
         "name": "setModelText",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setPublishTime",
+        "parameterTypes": [
+          "java.time.LocalDateTime"
+        ]
+      },
+      {
+        "name": "setPublishedBy",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -73851,6 +75098,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isClearValueOnHidden",
+        "parameterTypes": []
+      },
+      {
         "name": "isNotSubmit",
         "parameterTypes": []
       },
@@ -73862,6 +75113,12 @@
         "name": "outputJson",
         "parameterTypes": [
           "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setClearValueOnHidden",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {

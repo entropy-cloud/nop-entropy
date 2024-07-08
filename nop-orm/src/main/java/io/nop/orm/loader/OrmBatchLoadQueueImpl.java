@@ -586,6 +586,7 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
     private void invokeCallback() {
         List<Runnable> tasks = this.afterFlushCallbacks;
         if (tasks != null) {
+            this.afterFlushCallbacks = null;
             for (Runnable task : tasks) {
                 task.run();
             }

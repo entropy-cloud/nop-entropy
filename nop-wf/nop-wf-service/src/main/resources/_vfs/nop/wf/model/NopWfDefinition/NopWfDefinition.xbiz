@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopWfDefinition.xbiz"
-     xmlns:bo="bo" xmlns:c="c" x:dump="true">
+     xmlns:bo="bo" xmlns:c="c">
 
     <x:config>
         <c:import id="NopWfCoreConstants" class="io.nop.wf.core.NopWfCoreConstants"/>
