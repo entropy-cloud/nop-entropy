@@ -13,7 +13,8 @@ import java.util.function.Function;
 
 public class GeometryObjectHelper {
     public static void register() {
-        SysConverterRegistry.instance().registerConverter("toGeometryObject", GeometryObject.class, GeometryObjectHelper::toGeometryObject);
+        if (SysConverterRegistry.instance().getConverterByName("toGeometryObject") == null)
+            SysConverterRegistry.instance().registerConverter("toGeometryObject", GeometryObject.class, GeometryObjectHelper::toGeometryObject);
     }
 
     public static GeometryObject toGeometryObject(Object value, Function<ErrorCode, NopException> errorFactory) {
