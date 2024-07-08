@@ -220,11 +220,29 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
     }
 
     @Override
-    public int incAndGet(String name) {
+    public int incAndGet(String name, int delta) {
         int value = ConvertHelper.toPrimitiveInt(scope.getValue(name),
                 err -> new NopException(err).param(ARG_NAME, name));
-        int ret = value++;
-        scope.setLocalValue(name, value);
+        int ret = value + delta;
+        scope.setLocalValue(name, ret);
+        return ret;
+    }
+
+    @Override
+    public int getAndInc(String name, int delta) {
+        int value = ConvertHelper.toPrimitiveInt(scope.getValue(name),
+                err -> new NopException(err).param(ARG_NAME, name));
+        int ret = value;
+        scope.setLocalValue(name, ret + delta);
+        return ret;
+    }
+
+    @Override
+    public long seq(String name) {
+        long value = ConvertHelper.toPrimitiveLong(scope.getValue(name), 1,
+                err -> new NopException(err).param(ARG_NAME, name));
+        long ret = value;
+        scope.setLocalValue(name, value + 1);
         return ret;
     }
 

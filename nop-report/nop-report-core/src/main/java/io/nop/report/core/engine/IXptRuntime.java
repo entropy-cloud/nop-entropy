@@ -69,7 +69,19 @@ public interface IXptRuntime extends IEvalContext {
      * @param name 变量名
      * @return 递增前的值
      */
-    int incAndGet(String name);
+    default int incAndGet(String name) {
+        return incAndGet(name, 1);
+    }
+
+    default int getAndInc(String name) {
+        return getAndInc(name, 1);
+    }
+
+    int incAndGet(String name, int delta);
+
+    int getAndInc(String name, int delta);
+
+    long seq(String name);
 
     ExcelImage makeImage();
 
