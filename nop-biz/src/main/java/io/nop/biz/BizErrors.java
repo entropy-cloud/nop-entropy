@@ -196,7 +196,7 @@ public interface BizErrors {
             "对象[{bizObjName}]没有标记为parent的属性，不能执行树形结构相关的方法", ARG_BIZ_OBJ_NAME);
 
     ErrorCode ERR_BIZ_NOT_ALLOW_DELETE_PARENT_WHEN_CHILDREN_IS_NOT_EMPTY = define("nop.err.biz.not-allow-delete-parent-when-children-is-not-empty",
-            "当前[{entityName}]存在子节点，不允许删除", ARG_ENTITY_NAME);
+            "当前[{bizObjName}]存在子节点，不允许删除", ARG_BIZ_OBJ_NAME);
 
     ErrorCode ERR_BIZ_INVALID_META_PATH =
             define("nop.err.biz.invalid-meta-path", "meta文件的后缀名必须是xmeta:{metaPath}",

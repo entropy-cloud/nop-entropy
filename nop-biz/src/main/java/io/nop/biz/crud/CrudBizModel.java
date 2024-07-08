@@ -986,7 +986,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                         Collection<?> children = (Collection<?>) entity.orm_propValueByName(prop.getName());
                         if (children != null && !children.isEmpty()) {
                             throw new NopException(ERR_BIZ_NOT_ALLOW_DELETE_PARENT_WHEN_CHILDREN_IS_NOT_EMPTY)
-                                    .param(ARG_ENTITY_NAME, getEntityName())
+                                    .param(ARG_BIZ_OBJ_NAME, getBizObjName())
                                     .param(ARG_ID, entity.orm_idString());
                         }
                     }
