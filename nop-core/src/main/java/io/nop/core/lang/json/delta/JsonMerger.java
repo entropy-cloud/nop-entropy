@@ -145,7 +145,7 @@ public class JsonMerger {
             ret.put(name.substring(1), value);
         } else {
             Object oldValue = ret.get(name);
-            ret.put(name, merge(oldValue, v));
+            ret.put(name, ValueWithLocation.of(value.getLocation(),merge(oldValue, v)));
         }
     }
 

@@ -1,0 +1,3 @@
+xui:import: test.lib.js
+x:extends: test-col-label.page.yaml
+title: aaa

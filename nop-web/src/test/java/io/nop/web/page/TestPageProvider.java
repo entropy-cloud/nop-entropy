@@ -21,12 +21,13 @@ import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.deps.ResourceDependencySet;
 import io.nop.xlang.xdsl.json.XJsonLoader;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
-import jakarta.inject.Inject;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestPageProvider extends JunitBaseTestCase {
     @Inject
@@ -110,10 +111,18 @@ public class TestPageProvider extends JunitBaseTestCase {
     public void testColLabelChange() {
         Map<String, Object> json = pageProvider.getPageSource("/nop/test/pages/test-col-label.page.yaml");
         System.out.println(JsonTool.serialize(json, true));
-        assertEquals(attachmentJsonText("merged-col-label.json"), JsonTool.serialize(json,true));
+        assertEquals(attachmentJsonText("merged-col-label.json"), JsonTool.serialize(json, true));
 
-        json = pageProvider.getPage("/nop/test/pages/test-col-label.page.yaml",null);
-        System.out.println(JsonTool.serialize(json,true));
-        assertEquals(attachmentJsonText("merged-col-label-resolved.json"), JsonTool.serialize(json,true));
+        json = pageProvider.getPage("/nop/test/pages/test-col-label.page.yaml", null);
+        System.out.println(JsonTool.serialize(json, true));
+        assertEquals(attachmentJsonText("merged-col-label-resolved.json"), JsonTool.serialize(json, true));
+    }
+
+    @Test
+    public void testXuiImport() {
+        Map<String, Object> json = pageProvider.getPageSource("/nop/test/pages/test-xui-import.page.yaml");
+        System.out.println(JsonTool.serialize(json, true));
+        String jsonText = JsonTool.serialize(json, true);
+        assertTrue(jsonText.contains("/nop/test/pages/test.lib.js"));
     }
 }
