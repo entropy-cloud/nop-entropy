@@ -3,6 +3,10 @@
      xmlns:xpl="xpl" xmlns:bo="bo">
 
     <actions>
+        <query name="findFirst">
+           <auth roles="user" />
+        </query>
+
         <query name="my_findPage">
             <arg name="query" type="io.nop.api.core.beans.query.QueryBean" />
 

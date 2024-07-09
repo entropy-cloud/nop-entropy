@@ -667,6 +667,11 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         }
     }
 
+    @BizAction
+    protected void defaultPrepareCopyForNew(@Name("entityData") EntityData<T> entityData, IServiceContext context) {
+        this.defaultPrepareSave(entityData, context);
+    }
+
     protected void triggerStateChange(T entity, String event, IServiceContext context) {
         triggerStateChange(entity, event, context, null);
     }
@@ -1442,7 +1447,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     public T copyForNew(@Name("data") Map<String, Object> data, IServiceContext context) {
         if (CollectionHelper.isEmptyMap(data))
             throw new NopException(ERR_BIZ_EMPTY_DATA_FOR_SAVE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
-        return doCopyForNew(data, BizConstants.SELECTION_COPY_FOR_NEW, this::defaultPrepareSave, context);
+        return doCopyForNew(data, BizConstants.SELECTION_COPY_FOR_NEW, this::defaultPrepareCopyForNew, context);
     }
 
     @BizAction

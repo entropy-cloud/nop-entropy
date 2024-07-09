@@ -75,7 +75,7 @@ public class BizModelToGraphQLDefinition {
             field.setArguments(args);
 
         IServiceAction action = buildAction(actionModel, thisObjBuilder);
-        action = BizObjectBuildHelper.decorateAction(action, actionModel,collectors);
+        action = BizObjectBuildHelper.decorateAction(action, actionModel, collectors);
 
         field.setServiceAction(action);
         if (action != null)
@@ -286,6 +286,15 @@ public class BizModelToGraphQLDefinition {
         BizReturnModel returnModel = actionModel.getReturn();
         if (returnModel == null)
             return GraphQLTypeHelper.scalarType(GraphQLScalarType.Void);
+
+        GraphQLType type = GraphQLTypeHelper.parseType(returnModel.getLocation(),
+                (String) returnModel.prop_get(GraphQLConstants.ATTR_GRAPHQL_TYPE), typeRegistry);
+
+        if (type != null) {
+            if (returnModel.isMandatory())
+                type = GraphQLTypeHelper.nonNullType(type);
+            return type;
+        }
 
         ISchema schema = returnModel.getSchema();
         if (schema == null)
