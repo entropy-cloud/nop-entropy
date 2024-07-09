@@ -200,6 +200,17 @@ public class TestEqlCompiler extends AbstractOrmTestCase {
     }
 
     @Test
+    public void testTimestampKeyword(){
+        String sqlText = "select o.timestamp from NopAuthUser o";
+        try {
+            compile(sqlText);
+            fail();
+        } catch (NopException e) {
+            assertEquals(ERR_EQL_UNKNOWN_ENTITY_NAME.getErrorCode(), e.getErrorCode());
+        }
+    }
+
+    @Test
     public void testUpdateReturning() {
         String sqlText = "update SimsClass o set o.collegeId = 1 returning *";
 
