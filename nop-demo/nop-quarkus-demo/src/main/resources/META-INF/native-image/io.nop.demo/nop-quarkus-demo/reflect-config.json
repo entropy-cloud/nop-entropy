@@ -15655,6 +15655,13 @@
         "parameterTypes": []
       },
       {
+        "name": "defaultPrepareCopyForNew",
+        "parameterTypes": [
+          "io.nop.biz.crud.EntityData",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "defaultPrepareDelete",
         "parameterTypes": [
           "io.nop.orm.IOrmEntity",
@@ -61625,6 +61632,12 @@
         ]
       },
       {
+        "name": "setOrmTemplate",
+        "parameterTypes": [
+          "io.nop.orm.IOrmTemplate"
+        ]
+      },
+      {
         "name": "setWorkflowManager",
         "parameterTypes": [
           "io.nop.wf.core.IWorkflowManager"
@@ -62379,6 +62392,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_formPath"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_isDeprecated"
       },
       {
@@ -62474,6 +62492,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_formPath"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_isDeprecated"
       },
       {
@@ -62563,6 +62586,10 @@
       },
       {
         "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFormPath",
         "parameterTypes": []
       },
       {
@@ -62699,6 +62726,12 @@
       },
       {
         "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFormPath",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -67742,8 +67775,29 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "workflowDOProvider"
+      }
+    ],
+    "methods": [
+      {
+        "name": "defaultPrepareCopyForNew",
+        "parameterTypes": [
+          "io.nop.biz.crud.EntityData",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "defaultPrepareSave",
+        "parameterTypes": [
+          "io.nop.biz.crud.EntityData",
+          "io.nop.core.context.IServiceContext"
+        ]
+      }
+    ],
     "name": "io.nop.wf.service.entity.NopWfDefinitionBizModel",
     "unsafeAllocated": false
   },

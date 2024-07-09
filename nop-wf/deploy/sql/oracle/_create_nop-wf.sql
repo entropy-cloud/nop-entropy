@@ -5,7 +5,8 @@ CREATE TABLE nop_wf_definition(
   WF_VERSION NUMBER(20) NOT NULL ,
   DISPLAY_NAME VARCHAR2(200) NOT NULL ,
   DESCRIPTION VARCHAR2(1000)  ,
-  MODEL_TEXT CLOB NOT NULL ,
+  MODEL_TEXT CLOB  ,
+  FORM_PATH VARCHAR2(200)  ,
   STATUS INTEGER NOT NULL ,
   PUBLISHED_BY VARCHAR2(50)  ,
   PUBLISH_TIME DATE  ,
@@ -268,6 +269,8 @@ CREATE TABLE nop_wf_log(
       COMMENT ON COLUMN nop_wf_definition.DESCRIPTION IS '描述';
                     
       COMMENT ON COLUMN nop_wf_definition.MODEL_TEXT IS '模型文本';
+                    
+      COMMENT ON COLUMN nop_wf_definition.FORM_PATH IS '关联表单路径';
                     
       COMMENT ON COLUMN nop_wf_definition.STATUS IS '状态';
                     

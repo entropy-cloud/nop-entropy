@@ -41,55 +41,59 @@
               sortable="true" insertable="true" updatable="true" ui:show="L">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="modelText" displayName="模型文本" propId="6" i18n-en:displayName="Model Text" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
+        <prop name="modelText" displayName="模型文本" propId="6" i18n-en:displayName="Model Text" queryable="true"
+              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema domain="mediumtext" type="java.lang.String" precision="16777216"/>
         </prop>
-        <prop name="status" displayName="状态" propId="7" i18n-en:displayName="Status" mandatory="true" queryable="true"
+        <prop name="formPath" displayName="关联表单路径" propId="7" i18n-en:displayName="Form Path" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="status" displayName="状态" propId="8" i18n-en:displayName="Status" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer" dict="wf/wf-def-status"/>
         </prop>
-        <prop name="publishedBy" displayName="发布人" propId="8" i18n-en:displayName="Published By" queryable="true"
+        <prop name="publishedBy" displayName="发布人" propId="9" i18n-en:displayName="Published By" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="publishTime" displayName="发布时间" propId="9" i18n-en:displayName="Publish Time" queryable="true"
+        <prop name="publishTime" displayName="发布时间" propId="10" i18n-en:displayName="Publish Time" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.time.LocalDateTime"/>
         </prop>
-        <prop name="archivedBy" displayName="归档人" propId="10" i18n-en:displayName="Archived By" queryable="true"
+        <prop name="archivedBy" displayName="归档人" propId="11" i18n-en:displayName="Archived By" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="archiveTime" displayName="归档时间" propId="11" i18n-en:displayName="Archive Time" queryable="true"
+        <prop name="archiveTime" displayName="归档时间" propId="12" i18n-en:displayName="Archive Time" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.time.LocalDateTime"/>
         </prop>
-        <prop name="isDeprecated" displayName="是否已废弃" propId="12" i18n-en:displayName="Is Deprecated" mandatory="true"
+        <prop name="isDeprecated" displayName="是否已废弃" propId="13" i18n-en:displayName="Is Deprecated" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Boolean"/>
         </prop>
-        <prop name="version" displayName="数据版本" propId="13" i18n-en:displayName="Version" mandatory="true"
+        <prop name="version" displayName="数据版本" propId="14" i18n-en:displayName="Version" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="version" type="java.lang.Integer"/>
         </prop>
-        <prop name="createdBy" displayName="创建人" propId="14" i18n-en:displayName="Created By" mandatory="true"
+        <prop name="createdBy" displayName="创建人" propId="15" i18n-en:displayName="Created By" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="createdBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="createTime" displayName="创建时间" propId="15" i18n-en:displayName="Create Time" mandatory="true"
+        <prop name="createTime" displayName="创建时间" propId="16" i18n-en:displayName="Create Time" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="createTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="updatedBy" displayName="修改人" propId="16" i18n-en:displayName="Updated By" mandatory="true"
+        <prop name="updatedBy" displayName="修改人" propId="17" i18n-en:displayName="Updated By" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="updatedBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="updateTime" displayName="修改时间" propId="17" i18n-en:displayName="Update Time" mandatory="true"
+        <prop name="updateTime" displayName="修改时间" propId="18" i18n-en:displayName="Update Time" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="remark" displayName="备注" propId="18" i18n-en:displayName="Remark" queryable="true" sortable="true"
+        <prop name="remark" displayName="备注" propId="19" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="true" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>

@@ -9,6 +9,7 @@ common:
   query: 查询
   search: 搜索
   queryCondition: 条件查询
+  copyForNew: 复制新建
   submit: 提交
   reset: 重置
   operation: 操作
@@ -33,6 +34,8 @@ common:
   disableUser: 禁用用户
   confirmDisableUser: 确认禁用用户吗？
   confirmEnableUser: 确认启用用户吗？
+  confirmPublish: 确认发布吗？
+  confirmUnpublish: 确认取消发布吗？
   user: 用户
   authorization: 授权
   selectUser: 选择用户
@@ -40,3 +43,5 @@ common:
   newPassword: 新密码
   repeatPassword: 重复密码
   changePassword: 修改密码
+  publish: 发布
+  unpublish: 取消发布

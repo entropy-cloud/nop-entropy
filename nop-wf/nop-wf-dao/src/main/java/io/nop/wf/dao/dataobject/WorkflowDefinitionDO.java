@@ -5,10 +5,12 @@ import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
+import io.nop.core.lang.sql.SQL;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.orm.IOrmTemplate;
 import io.nop.wf.core.IWorkflowManager;
 import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.model.IWorkflowModel;
@@ -26,13 +28,16 @@ import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_PARSE_MODEL_TEXT_FAIL;
 
 public class WorkflowDefinitionDO implements IWorkflowDefinitionDO {
     private final IDaoProvider daoProvider;
+    private final IOrmTemplate ormTemplate;
     private final IWorkflowManager workflowManager;
     private final NopWfDefinition wfDefinition;
     private final IServiceContext serviceContext;
 
-    public WorkflowDefinitionDO(IDaoProvider daoProvider, IWorkflowManager workflowManager,
+    public WorkflowDefinitionDO(IDaoProvider daoProvider, IOrmTemplate ormTemplate,
+                                IWorkflowManager workflowManager,
                                 NopWfDefinition wfDefinition, IServiceContext serviceContext) {
         this.daoProvider = daoProvider;
+        this.ormTemplate = ormTemplate;
         this.workflowManager = workflowManager;
         this.wfDefinition = wfDefinition;
         this.serviceContext = serviceContext;
@@ -58,6 +63,15 @@ public class WorkflowDefinitionDO implements IWorkflowDefinitionDO {
         IEntityDao<NopWfInstance> dao = daoProvider.daoFor(NopWfInstance.class);
         QueryBean query = getWfQuery();
         return dao.countByQuery(query);
+    }
+
+    @Override
+    public long getMaxVersion() {
+        SQL sql = SQL.begin().sql("select max(wfVersion)")
+                .from().sql(NopWfDefinition.class.getName())
+                .where().eq(NopWfDefinition.PROP_NAME_wfName, wfDefinition.getWfName())
+                .end();
+        return ormTemplate.findLong(sql, 0L);
     }
 
     protected QueryBean getWfQuery() {

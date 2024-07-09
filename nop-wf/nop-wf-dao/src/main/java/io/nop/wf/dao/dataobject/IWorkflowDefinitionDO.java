@@ -11,6 +11,8 @@ public interface IWorkflowDefinitionDO extends IDataObject {
         return getSourceObject().getWfDefId();
     }
 
+    long getMaxVersion();
+
     long getRunningInstanceCount();
 
     long getAllInstanceCount();

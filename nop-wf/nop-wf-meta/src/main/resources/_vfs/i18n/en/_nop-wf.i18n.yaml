@@ -46,6 +46,7 @@ prop:
       displayName: DisplayName
       description: Description
       modelText: Model Text
+      formPath: Form Path
       status: Status
       status_label: null
       publishedBy: Published By

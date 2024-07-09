@@ -1,10 +1,18 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopWfDefinition" xmlns:i18n-en="i18n-en"
-      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="gql">
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c" xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
 
     <objMeta>/nop/wf/model/NopWfDefinition/NopWfDefinition.xmeta</objMeta>
 
     <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <x:gen-extends>
+        <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <view-gen:DefaultViewPostExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:post-extends>
 
     <grids>
         <grid id="list" x:abstract="true">
@@ -20,13 +28,28 @@
                 <col id="displayName" mandatory="true" sortable="true"/>
 
                 <!--描述-->
-                <col id="description" sortable="true"/>
+                <col id="description" sortable="true" x:abstract="true"/>
 
-                <!--模型文本-->
-                <col id="modelText" mandatory="true" sortable="true"/>
+                <!--关联表单路径-->
+                <col id="formPath" sortable="true"/>
 
                 <!--状态-->
                 <col id="status" mandatory="true" sortable="true"/>
+
+                <!--发布人-->
+                <col id="publishedBy" sortable="true"/>
+
+                <!--发布时间-->
+                <col id="publishTime" sortable="true"/>
+
+                <!--归档人-->
+                <col id="archivedBy" sortable="true"/>
+
+                <!--归档时间-->
+                <col id="archiveTime" sortable="true"/>
+
+                <!--是否已废弃-->
+                <col id="isDeprecated" mandatory="true" sortable="true"/>
 
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>
@@ -52,22 +75,25 @@
             <layout>
  wfName[工作流名称] wfVersion[工作流版本]
  displayName[显示名称] description[描述]
- modelText[模型文本] status[状态]
- createdBy[创建人] createTime[创建时间]
- updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
+ formPath[关联表单路径] status[状态]
+ publishedBy[发布人] publishTime[发布时间]
+ archivedBy[归档人] archiveTime[归档时间]
+ isDeprecated[是否已废弃] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] 
+                remark[备注]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-工作流模型定义" i18n-en:title="Add Worflow Definition" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-工作流模型定义" i18n-en:title="Edit Worflow Definition">
             <layout>
- wfName[工作流名称]
- wfVersion[工作流版本]
- displayName[显示名称]
- description[描述]
- modelText[模型文本]
- status[状态]
- remark[备注]
+ wfName[工作流名称] wfVersion[工作流版本]
+ displayName[显示名称] description[描述]
+ formPath[关联表单路径] status[状态]
+ publishedBy[发布人] publishTime[发布时间]
+ archivedBy[归档人] archiveTime[归档时间]
+ isDeprecated[是否已废弃] 
+                remark[备注]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">

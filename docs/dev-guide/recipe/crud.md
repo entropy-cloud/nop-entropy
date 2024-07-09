@@ -25,7 +25,7 @@ class MyEntityBizModel extends CrudBizModel {
             //...
         }, ctx);
     }
-}  
+}
 ```
 
 ## 2. 在事务提交成功之后再执行某个操作
@@ -46,10 +46,14 @@ CrudBizModel已经注入了transactionTemplate，可以通过this.txn()来使用
     @BizMakerChecker(tryMethod = METHOD_TRY_SAVE)
     public MyEntity my_save(@Name("data") Map<String, Object> data, IServiceContext context) {
         // 如果需要限制只允许接收部分字段，可以在meta中配置。如果没有特殊限制，inputSelection设置为null即可
-        FieldInputSelection inputSelection = getObjMeta().getFieldSelection("my_selectio"); 
+        FieldInputSelection inputSelection = getObjMeta().getFieldSelection("my_selectio");
         return doSave(data, inputSelection, this::myPrepareSave, context);
     }
 ```
 
 * inputSelection参数可以用于限制只接收前端传过来的某些参数
 * prepareSave回调函数可以用于定制实体实际保存前执行的额外的业务逻辑
+
+
+## 4. 查询时要求参数必填
+propMeta上可以配置ui:queryMandatory或者query form的cell上配置mandatory

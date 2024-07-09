@@ -9,6 +9,7 @@ common:
   search: Search
   query: Query
   queryCondition: Query Condition
+  copyForNew: Copy For New
   submit: Submit
   reset: Reset
   operation: Operation
@@ -33,6 +34,8 @@ common:
   disableUser: Disable User
   confirmDisableUser: Confirm Disable User?
   confirmEnableUser: Confirm Enable User?
+  confirmPublish: Confirm Publish?
+  confirmUnpublish: Confirm Unpublish?
   user: User
   authorization: Authorization
   selectUser: Select User
@@ -40,3 +43,5 @@ common:
   newPassword: New Password
   repeatPassword: Repeat Password
   changePassword: Change Password
+  publish: Publish
+  unpublish: Unpublish

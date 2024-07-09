@@ -44,56 +44,60 @@ public class _NopWfDefinition extends DynamicOrmEntity{
     public static final String PROP_NAME_modelText = "modelText";
     public static final int PROP_ID_modelText = 6;
     
+    /* 关联表单路径: FORM_PATH VARCHAR */
+    public static final String PROP_NAME_formPath = "formPath";
+    public static final int PROP_ID_formPath = 7;
+    
     /* 状态: STATUS INTEGER */
     public static final String PROP_NAME_status = "status";
-    public static final int PROP_ID_status = 7;
+    public static final int PROP_ID_status = 8;
     
     /* 发布人: PUBLISHED_BY VARCHAR */
     public static final String PROP_NAME_publishedBy = "publishedBy";
-    public static final int PROP_ID_publishedBy = 8;
+    public static final int PROP_ID_publishedBy = 9;
     
     /* 发布时间: PUBLISH_TIME DATETIME */
     public static final String PROP_NAME_publishTime = "publishTime";
-    public static final int PROP_ID_publishTime = 9;
+    public static final int PROP_ID_publishTime = 10;
     
     /* 归档人: ARCHIVED_BY VARCHAR */
     public static final String PROP_NAME_archivedBy = "archivedBy";
-    public static final int PROP_ID_archivedBy = 10;
+    public static final int PROP_ID_archivedBy = 11;
     
     /* 归档时间: ARCHIVE_TIME DATETIME */
     public static final String PROP_NAME_archiveTime = "archiveTime";
-    public static final int PROP_ID_archiveTime = 11;
+    public static final int PROP_ID_archiveTime = 12;
     
     /* 是否已废弃: IS_DEPRECATED BOOLEAN */
     public static final String PROP_NAME_isDeprecated = "isDeprecated";
-    public static final int PROP_ID_isDeprecated = 12;
+    public static final int PROP_ID_isDeprecated = 13;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 13;
+    public static final int PROP_ID_version = 14;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 14;
+    public static final int PROP_ID_createdBy = 15;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 15;
+    public static final int PROP_ID_createTime = 16;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 16;
+    public static final int PROP_ID_updatedBy = 17;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 17;
+    public static final int PROP_ID_updateTime = 18;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 18;
+    public static final int PROP_ID_remark = 19;
     
 
-    private static int _PROP_ID_BOUND = 19;
+    private static int _PROP_ID_BOUND = 20;
 
     
     /* relation: 工作流定义权限 */
@@ -103,7 +107,7 @@ public class _NopWfDefinition extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_wfDefId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_wfDefId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[19];
+    private static final String[] PROP_ID_TO_NAME = new String[20];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -124,6 +128,9 @@ public class _NopWfDefinition extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_modelText] = PROP_NAME_modelText;
           PROP_NAME_TO_ID.put(PROP_NAME_modelText, PROP_ID_modelText);
+      
+          PROP_ID_TO_NAME[PROP_ID_formPath] = PROP_NAME_formPath;
+          PROP_NAME_TO_ID.put(PROP_NAME_formPath, PROP_ID_formPath);
       
           PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
           PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
@@ -181,6 +188,9 @@ public class _NopWfDefinition extends DynamicOrmEntity{
     
     /* 模型文本: MODEL_TEXT */
     private java.lang.String _modelText;
+    
+    /* 关联表单路径: FORM_PATH */
+    private java.lang.String _formPath;
     
     /* 状态: STATUS */
     private java.lang.Integer _status;
@@ -310,6 +320,9 @@ public class _NopWfDefinition extends DynamicOrmEntity{
             case PROP_ID_modelText:
                return getModelText();
         
+            case PROP_ID_formPath:
+               return getFormPath();
+        
             case PROP_ID_status:
                return getStatus();
         
@@ -414,6 +427,16 @@ public class _NopWfDefinition extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_modelText));
                }
                setModelText(typedValue);
+               break;
+            }
+        
+            case PROP_ID_formPath:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_formPath));
+               }
+               setFormPath(typedValue);
                break;
             }
         
@@ -584,6 +607,13 @@ public class _NopWfDefinition extends DynamicOrmEntity{
             case PROP_ID_modelText:{
                onInitProp(propId);
                this._modelText = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_formPath:{
+               onInitProp(propId);
+               this._formPath = (java.lang.String)value;
                
                break;
             }
@@ -788,6 +818,25 @@ public class _NopWfDefinition extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_modelText,value)){
             this._modelText = value;
             internalClearRefs(PROP_ID_modelText);
+            
+        }
+    }
+    
+    /**
+     * 关联表单路径: FORM_PATH
+     */
+    public java.lang.String getFormPath(){
+         onPropGet(PROP_ID_formPath);
+         return _formPath;
+    }
+
+    /**
+     * 关联表单路径: FORM_PATH
+     */
+    public void setFormPath(java.lang.String value){
+        if(onPropSet(PROP_ID_formPath,value)){
+            this._formPath = value;
+            internalClearRefs(PROP_ID_formPath);
             
         }
     }

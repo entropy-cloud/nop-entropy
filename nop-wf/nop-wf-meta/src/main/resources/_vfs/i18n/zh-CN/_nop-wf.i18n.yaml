@@ -47,6 +47,7 @@ prop:
       definitionAuths: 工作流定义权限
       description: 描述
       displayName: 显示名称
+      formPath: 关联表单路径
       isDeprecated: 是否已废弃
       modelText: 模型文本
       publishTime: 发布时间

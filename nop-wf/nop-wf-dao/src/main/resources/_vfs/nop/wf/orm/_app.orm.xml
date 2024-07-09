@@ -89,34 +89,36 @@
                         i18n-en:displayName="DisplayName"/>
                 <column code="DESCRIPTION" displayName="描述" name="description" precision="1000" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description" ui:show="L"/>
-                <column code="MODEL_TEXT" displayName="模型文本" domain="mediumtext" mandatory="true" name="modelText"
-                        precision="16777216" propId="6" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Model Text" ui:show="X"/>
-                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="7" stdDataType="int"
+                <column code="MODEL_TEXT" displayName="模型文本" domain="mediumtext" name="modelText" precision="16777216"
+                        propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Model Text"
+                        ui:show="X"/>
+                <column code="FORM_PATH" displayName="关联表单路径" name="formPath" precision="200" propId="7"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Form Path"/>
+                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="8" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="wf/wf-def-status"/>
-                <column code="PUBLISHED_BY" displayName="发布人" name="publishedBy" precision="50" propId="8"
+                <column code="PUBLISHED_BY" displayName="发布人" name="publishedBy" precision="50" propId="9"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Published By"/>
-                <column code="PUBLISH_TIME" displayName="发布时间" name="publishTime" propId="9" stdDataType="datetime"
+                <column code="PUBLISH_TIME" displayName="发布时间" name="publishTime" propId="10" stdDataType="datetime"
                         stdSqlType="DATETIME" i18n-en:displayName="Publish Time"/>
-                <column code="ARCHIVED_BY" displayName="归档人" name="archivedBy" precision="50" propId="10"
+                <column code="ARCHIVED_BY" displayName="归档人" name="archivedBy" precision="50" propId="11"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Archived By"/>
-                <column code="ARCHIVE_TIME" displayName="归档时间" name="archiveTime" propId="11" stdDataType="datetime"
+                <column code="ARCHIVE_TIME" displayName="归档时间" name="archiveTime" propId="12" stdDataType="datetime"
                         stdSqlType="DATETIME" i18n-en:displayName="Archive Time"/>
-                <column code="IS_DEPRECATED" displayName="是否已废弃" mandatory="true" name="isDeprecated" propId="12"
+                <column code="IS_DEPRECATED" displayName="是否已废弃" mandatory="true" name="isDeprecated" propId="13"
                         stdDataType="boolean" stdSqlType="BOOLEAN" i18n-en:displayName="Is Deprecated"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="13"
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="14"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="14" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="15" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                        propId="16" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="16" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="17" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="17" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="18"
+                        propId="18" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="19"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>

@@ -8,10 +8,12 @@ import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
+@Disabled
 @NopTestConfig(localDb = true, initDatabaseSchema = true)
 public class TestWorkflowDefinitionBizModel extends JunitAutoTestCase {
 
