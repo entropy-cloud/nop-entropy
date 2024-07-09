@@ -32,6 +32,12 @@
                 remark[备注]
             </layout>
         </form>
+
+        <form id="query">
+            <layout>
+                wfName displayName status
+            </layout>
+        </form>
     </forms>
 
     <pages>
@@ -39,12 +45,11 @@
             <rowActions>
                 <actionGroup id="row-more-button">
                     <action id="copy-for-new-button" label="@i18n:common.copyForNew">
-                        <api url="@mutation:NopAuthDefinition__copyForNew">
+                        <api url="@mutation:NopWfDefinition__copyForNew/id">
                             <data>
-                                <userId>$id</userId>
+                                <id>$id</id>
                             </data>
                         </api>
-                        <visibleOn>${status == 0}</visibleOn>
                     </action>
 
                     <action id="publish-button" label="@i18n:common.publish">
@@ -59,9 +64,9 @@
 
                     <action id="unpublish-button" label="@i18n:common.unpublish">
                         <confirmText>@i18n:common.confirmPublish</confirmText>
-                        <api url="@mutation:NopAuthDefinition__unpublish">
+                        <api url="@mutation:NopWfDefinition__unpublish">
                             <data>
-                                <userId>$id</userId>
+                                <id>$id</id>
                             </data>
                         </api>
                         <visibleOn>${status == 1}</visibleOn>

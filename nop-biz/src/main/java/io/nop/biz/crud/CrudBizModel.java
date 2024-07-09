@@ -1482,6 +1482,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
             }
         }
 
+        entityData.setEntity(newEntity);
+
         new OrmEntityCopier(daoProvider, bizObjectManager).copyToEntity(entityData.getValidatedData(),
                 newEntity, inputSelection, entityData.getObjMeta(), getBizObjName(),
                 BizConstants.METHOD_SAVE, context.getEvalScope());

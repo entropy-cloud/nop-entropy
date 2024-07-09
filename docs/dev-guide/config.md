@@ -99,6 +99,15 @@ Nop平台的缺省配置文件名为application.yaml，它与quarkus框架和spr
 
 ## 常见配置参数
 
+* nop.debug: true
+  启用调试功能，会输出更多的日志。开启/p/DevDoc__graphql等多种调试输出链接
+
+* nop.profile
+ 启用application-{profile}.yaml等附加配置文件
+
+* nop.application.name
+ 应用名称，也是注册到服务中心时的名称
+
 * nop.orm.init-database-schema: true
   如果是空库，自动创建所有表
 
@@ -130,4 +139,4 @@ Nop平台的缺省配置文件名为application.yaml，它与quarkus框架和spr
   系统启动的时候是否自动检查所有page.yaml文件可以正常解析并加载。
 
 * quarkus.log.level
-  quakus框架的Log级别设置
+  quarkus框架的Log级别设置

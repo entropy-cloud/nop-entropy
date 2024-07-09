@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopWfDefinition.xmeta">
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopWfDefinition.xmeta" xmlns:ui="ui">
+
+    <props>
+        <prop name="wfName" allowFilterOp="eq,contains" ui:filterOp="contains">
+
+        </prop>
+
+        <prop name="displayName" allowFilterOp="eq,contains" ui:filterOp="contains">
+
+        </prop>
+    </props>
 
     <selections>
         <selection id="copyForNew">
