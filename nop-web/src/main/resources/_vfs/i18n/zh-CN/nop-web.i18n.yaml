@@ -36,6 +36,7 @@ common:
   confirmEnableUser: 确认启用用户吗？
   confirmPublish: 确认发布吗？
   confirmUnpublish: 确认取消发布吗？
+  confirmCopyForNew: 确认复制当前记录吗？
   user: 用户
   authorization: 授权
   selectUser: 选择用户

@@ -36,6 +36,7 @@ common:
   confirmEnableUser: Confirm Enable User?
   confirmPublish: Confirm Publish?
   confirmUnpublish: Confirm Unpublish?
+  confirmCopyForNew: Confirm Copy Current Record?
   user: User
   authorization: Authorization
   selectUser: Select User

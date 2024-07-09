@@ -44,7 +44,12 @@
         <crud name="main">
             <rowActions>
                 <actionGroup id="row-more-button">
+                    <action id="row-delete-button">
+                        <visibleOn>${status != 1}</visibleOn>
+                    </action>
+
                     <action id="copy-for-new-button" label="@i18n:common.copyForNew">
+                        <confirmText>@i18n:common.confirmCopyForNew</confirmText>
                         <api url="@mutation:NopWfDefinition__copyForNew/id">
                             <data>
                                 <id>$id</id>
@@ -63,7 +68,7 @@
                     </action>
 
                     <action id="unpublish-button" label="@i18n:common.unpublish">
-                        <confirmText>@i18n:common.confirmPublish</confirmText>
+                        <confirmText>@i18n:common.confirmUnpublish</confirmText>
                         <api url="@mutation:NopWfDefinition__unpublish">
                             <data>
                                 <id>$id</id>

@@ -16906,6 +16906,144 @@
     "fields": [],
     "methods": [
       {
+        "name": "getAction",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getActions",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBizModel",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBizObjName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEntityName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExtAttribute",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getLocation",
+        "parameterTypes": []
+      },
+      {
+        "name": "getObjMeta",
+        "parameterTypes": []
+      },
+      {
+        "name": "getObjectDefinition",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOperationDefinition",
+        "parameterTypes": [
+          "io.nop.graphql.core.ast.GraphQLOperationType",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getOperationDefinitions",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOperationDefinitions",
+        "parameterTypes": [
+          "io.nop.graphql.core.ast.GraphQLOperationType"
+        ]
+      },
+      {
+        "name": "getOperationType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getOperations",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStateMachine",
+        "parameterTypes": []
+      },
+      {
+        "name": "isAllowInheritAction",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "method_invoke",
+        "parameterTypes": [
+          "java.lang.String",
+          "[Ljava.lang.Object;",
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "setActions",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setBizModel",
+        "parameterTypes": [
+          "io.nop.biz.model.BizModel"
+        ]
+      },
+      {
+        "name": "setLocation",
+        "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation"
+        ]
+      },
+      {
+        "name": "setObjMeta",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.IObjMeta"
+        ]
+      },
+      {
+        "name": "setObjectDefinition",
+        "parameterTypes": [
+          "io.nop.graphql.core.ast.GraphQLObjectDefinition"
+        ]
+      },
+      {
+        "name": "setOperations",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setStateMachine",
+        "parameterTypes": [
+          "io.nop.fsm.execution.IStateMachine"
+        ]
+      }
+    ],
+    "name": "io.nop.biz.impl.BizObjectImpl",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "buildBizObject",
         "parameterTypes": [
           "java.lang.String"
@@ -37729,6 +37867,54 @@
       }
     ],
     "name": "io.nop.file.quarkus.web.QuarkusFileService",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      }
+    ],
+    "methods": [
+      {
+        "name": "initState",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "requireState",
+        "parameterTypes": [
+          "io.nop.fsm.execution.IStateContainer",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "transit",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.String",
+          "io.nop.core.context.IEvalContext",
+          "java.util.function.BiConsumer"
+        ]
+      },
+      {
+        "name": "triggerStateChange",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.String",
+          "io.nop.core.context.IEvalContext",
+          "java.util.function.Consumer"
+        ]
+      }
+    ],
+    "name": "io.nop.fsm.execution.StateMachine",
     "unsafeAllocated": false
   },
   {
@@ -69479,6 +69665,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.xlang.xmeta.impl.ObjSelectionMeta",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.xlang.xmeta.impl.ObjTreeModel",
     "unsafeAllocated": false
   },
@@ -71007,6 +71203,73 @@
       }
     ],
     "name": "io.nop.xlang.xmeta.impl._gen._ObjSchemaImpl",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.impl.ObjSelectionMeta"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMapping",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setMapping",
+        "parameterTypes": [
+          "io.nop.api.core.beans.FieldSelectionBean"
+        ]
+      }
+    ],
+    "name": "io.nop.xlang.xmeta.impl._gen._ObjSelectionMeta",
     "unsafeAllocated": false
   },
   {
