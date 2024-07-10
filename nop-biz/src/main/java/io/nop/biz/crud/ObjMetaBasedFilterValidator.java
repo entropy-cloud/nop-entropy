@@ -38,7 +38,7 @@ import static io.nop.biz.BizErrors.ERR_BIZ_UNKNOWN_QUERY_PROP;
 
 public class ObjMetaBasedFilterValidator extends FilterBeanValidator {
     static final Set<String> DEFAULT_ALLOW_FILTER_OP = CollectionHelper.buildImmutableSet(FilterOp.EQ.name(),
-            FilterOp.IN.name());
+            FilterOp.IN.name(), FilterOp.DATE_BETWEEN.name(), FilterOp.DATETIME_BETWEEN.name());
 
     private final IObjMeta objMeta;
     private final IBizObjectManager bizObjectManager;

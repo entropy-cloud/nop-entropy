@@ -18,7 +18,7 @@
       maxLength="int" minLength="int" minRows="int" charCase="string"
       matchRegexp="string" uploadUrl="string" defaultValue="string"
       selectFirst="boolean" maxUploadSize="long-size" ui:supportFileLink="boolean"
-      ui:pickerUrl="string" biz:moduleId="string"
+      ui:pickerUrl="string" biz:moduleId="string" ui:shortcuts="string"
       filterOp="string" sourceUrl="string" multiValue="!boolean=false" joinValues="!boolean=true"
       xdef:name="UiDisplayMeta" xdef:bean-package="io.nop.xui.model"
       xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xdef.xdef"

@@ -35,7 +35,8 @@
 
         <form id="query">
             <layout>
-                wfName displayName status
+                wfName displayName
+                status publishTime
             </layout>
         </form>
     </forms>

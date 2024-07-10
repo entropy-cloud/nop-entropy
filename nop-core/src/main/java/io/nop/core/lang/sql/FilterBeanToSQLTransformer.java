@@ -12,6 +12,7 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.IVariableScope;
 import io.nop.commons.text.marker.IMarkedString;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
 import io.nop.core.model.query.FilterBeanVisitor;
@@ -22,6 +23,7 @@ import java.util.List;
 
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_BETWEEN;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_CONTAINS;
+import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_DATETIME_BETWEEN;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_DATE_BETWEEN;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_ENDS_WITH;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_EQ;
@@ -193,6 +195,19 @@ public class FilterBeanToSQLTransformer extends FilterBeanVisitor<Void> {
         Object min = getMin(filter);
         Object max = getMax(filter);
 
+        if(min == null && max == null){
+            List<?> value = ConvertHelper.toCsvList(getValue(filter),NopException::new);
+            if(value != null){
+                min = CollectionHelper.get(value,0);
+                max = CollectionHelper.get(value,1);
+            }
+        }
+
+        if(min == null && max == null){
+            sb.alwaysFalse();
+            return null;
+        }
+
         String op = filterOp.name();
         if (op.equals(FILTER_OP_BETWEEN)) {
             sb.owner(owner).between(name, min, max, excludeMin, excludeMax);
@@ -204,6 +219,10 @@ public class FilterBeanToSQLTransformer extends FilterBeanVisitor<Void> {
                 max = d.plusDays(1);
                 excludeMax = true;
             }
+            sb.owner(owner).between(name, min, max, excludeMin, excludeMax);
+        } else if (op.equals(FILTER_OP_DATETIME_BETWEEN)) {
+            min = ConvertHelper.toLocalDateTime(min, NopException::new);
+            max = ConvertHelper.toLocalDateTime(max, NopException::new);
             sb.owner(owner).between(name, min, max, excludeMin, excludeMax);
         } else {
             visitUnknown(op, filter, scope);

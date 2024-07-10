@@ -25035,6 +25035,14 @@
           "java.io.OutputStream",
           "io.nop.core.resource.zip.ZipOptions"
         ]
+      },
+      {
+        "name": "zipLocalDir",
+        "parameterTypes": [
+          "java.io.File",
+          "java.io.File",
+          "io.nop.core.resource.zip.ZipOptions"
+        ]
       }
     ],
     "name": "io.nop.core.resource.ResourceHelper",
@@ -57926,6 +57934,13 @@
         "parameterTypes": [
           "java.lang.String",
           "long"
+        ]
+      },
+      {
+        "name": "getThreadPoolExecutor",
+        "parameterTypes": [
+          "io.nop.api.core.ioc.IBeanProvider",
+          "java.lang.String"
         ]
       },
       {

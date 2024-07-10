@@ -513,7 +513,7 @@
             <attr name="bizObjName" mandatory="true"/>
             <source>
                 <thisLib:edit-file dispMeta="${dispMeta}" propMeta="${propMeta}" bizObjName="${bizObjName}"
-                    accept=".jpg,.png,.gif,.icon,.svg,.bmp"/>
+                                   accept=".jpg,.png,.gif,.icon,.svg,.bmp"/>
             </source>
         </edit-image>
 
@@ -521,7 +521,7 @@
             <attr name="dispMeta"/>
             <attr name="propMeta"/>
             <attr name="bizObjName" mandatory="true"/>
-            <attr name="accept" optional="true" />
+            <attr name="accept" optional="true"/>
 
             <source><![CDATA[
               import io.nop.xui.utils.XuiHelper;
@@ -733,6 +733,44 @@
             ]]></source>
         </query-string>
 
+        <query-datetime>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                const name = propMeta?.name || dispMeta.id
+                const shortcuts = dispMeta?.['ui:shortcuts'] || propMeta?.['ui:shortcuts']
+                return {
+                    name: "filter_"+name + "__dateTimeBetween",
+                    "type": "input-datetime-range",
+                     "timeFormat": "HH:mm:ss",
+                     "inputFormat": "YYYY-MM-DD HH:mm:ss",
+                     "valueFormat": "YYYY-MM-DD HH:mm:ss",
+                     "shortcuts": shortcuts || "today,yesterday,1dayago,7daysago"
+                }
+            ]]></source>
+        </query-datetime>
+
+        <query-date>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                const name = propMeta?.name || dispMeta.id
+                const shortcuts = dispMeta?.['ui:shortcuts'] || propMeta?.['ui:shortcuts']
+                return {
+                    name: "filter_"+name + "__dateBetween",
+                    "type": "input-date-range",
+                    "inputFormat": "YYYY-MM-DD",
+                    "shortcuts": shortcuts || "today,yesterday,1dayago,7daysago"
+                }
+            ]]></source>
+        </query-date>
+
+        <query-timestamp x:prototype="query-datetime"/>
+
         <edit-relation>
             <attr name="dispMeta"/>
             <attr name="propMeta"/>
@@ -851,11 +889,12 @@
                             import io.nop.xui.utils.XuiHelper;
                             const viewPath = XuiHelper.getRelationViewUrl(propMeta,objMeta);
                         </c:script>
-                        <web:GenInputTable grid="${propMeta['ui:editGrid']}" view="${viewPath}" xpl:lib="/nop/web/xlib/web.xlib"/>
+                        <web:GenInputTable grid="${propMeta['ui:editGrid']}" view="${viewPath}"
+                                           xpl:lib="/nop/web/xlib/web.xlib"/>
                     </when>
                     <otherwise>
                         <thisLib:edit-relation dispMeta="${dispMeta}" propMeta="${propMeta}"
-                                               objMeta="${objMeta}" editMode="${editMode}" />
+                                               objMeta="${objMeta}" editMode="${editMode}"/>
                     </otherwise>
                 </c:choose>
 
@@ -875,11 +914,12 @@
                             import io.nop.xui.utils.XuiHelper;
                             const viewPath = XuiHelper.getRelationViewUrl(propMeta,objMeta);
                         </c:script>
-                        <web:GenTable grid="${propMeta['ui:viewGrid']}" view="${viewPath}" xpl:lib="/nop/web/xlib/web.xlib"/>
+                        <web:GenTable grid="${propMeta['ui:viewGrid']}" view="${viewPath}"
+                                      xpl:lib="/nop/web/xlib/web.xlib"/>
                     </when>
                     <otherwise>
                         <thisLib:view-relation dispMeta="${dispMeta}" propMeta="${propMeta}"
-                                               objMeta="${objMeta}" editMode="${editMode}" />
+                                               objMeta="${objMeta}" editMode="${editMode}"/>
                     </otherwise>
                 </c:choose>
             </source>
@@ -915,7 +955,7 @@
             ]]></source>
         </edit-hidden>
 
-        <view-hidden x:prototype="edit-hidden" />
+        <view-hidden x:prototype="edit-hidden"/>
 
         <edit-any x:prototype="edit-string"/>
 
@@ -948,8 +988,8 @@
             ]]></source>
         </edit-xml>
 
-        <view-xpl x:prototype="view-xml" />
+        <view-xpl x:prototype="view-xml"/>
 
-        <edit-xpl x:prototype="edit-xml" />
+        <edit-xpl x:prototype="edit-xml"/>
     </tags>
 </lib>
