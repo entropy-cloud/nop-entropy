@@ -52,6 +52,7 @@ public class TryTaskStepWrapper extends DelegateTaskStep {
                         }
                         return ret;
                     } finally {
+                        stepRt.runStepCleanups();
                         if (finallyAction != null)
                             finallyAction.invoke(stepRt);
                     }
@@ -70,8 +71,11 @@ public class TryTaskStepWrapper extends DelegateTaskStep {
                 throw NopException.adapt(e);
             }
         } finally {
-            if (finallyAction != null && !async) {
-                finallyAction.invoke(stepRt);
+            if (!async) {
+                stepRt.runStepCleanups();
+                if (finallyAction != null) {
+                    finallyAction.invoke(stepRt);
+                }
             }
         }
     }

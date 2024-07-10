@@ -4,6 +4,7 @@ import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
+import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.ratelimit.IRateLimiter;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
@@ -157,6 +158,11 @@ public class TaskRuntimeImpl implements ITaskRuntime {
     @Override
     public IScheduledExecutor getScheduledExecutor() {
         return taskManager.getScheduledExecutor();
+    }
+
+    @Override
+    public IThreadPoolExecutor getThreadPoolExecutor(String executorBean) {
+        return taskManager.getThreadPoolExecutor(getEvalScope().getBeanProvider(), executorBean);
     }
 
     @Override

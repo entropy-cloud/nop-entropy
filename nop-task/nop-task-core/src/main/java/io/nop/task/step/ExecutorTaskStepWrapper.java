@@ -25,7 +25,7 @@ public class ExecutorTaskStepWrapper extends DelegateTaskStep {
     @Nonnull
     @Override
     public TaskStepReturn execute(ITaskStepRuntime stepRt) {
-        IThreadPoolExecutor executor = (IThreadPoolExecutor) stepRt.getBean(executorBean);
+        IThreadPoolExecutor executor = stepRt.getTaskRuntime().getThreadPoolExecutor(executorBean);
 
         CompletableFuture<TaskStepReturn> ret = new CompletableFuture<>();
         CompletableFuture<?> future = executor.submit(() -> {

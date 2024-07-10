@@ -1,8 +1,10 @@
 package io.nop.task.impl;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.ioc.IBeanProvider;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
+import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.ratelimit.DefaultRateLimiter;
 import io.nop.commons.concurrent.ratelimit.IRateLimiter;
 import io.nop.commons.metrics.GlobalMeterRegistry;
@@ -51,6 +53,13 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
         if (scheduledExecutor == null)
             return GlobalExecutors.globalTimer();
         return scheduledExecutor;
+    }
+
+    @Override
+    public IThreadPoolExecutor getThreadPoolExecutor(IBeanProvider beanProvider, String executorBean) {
+        if(TaskConstants.BEAN_GLOBAL_WORKER.equals(executorBean))
+            return GlobalExecutors.globalWorker();
+        return (IThreadPoolExecutor) beanProvider.getBean(executorBean);
     }
 
     @Inject

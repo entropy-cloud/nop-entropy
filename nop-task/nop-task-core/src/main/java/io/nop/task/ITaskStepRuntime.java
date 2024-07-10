@@ -114,4 +114,8 @@ public interface ITaskStepRuntime extends IEvalContext {
 
     ITaskStepRuntime newStepRuntime(String stepName, String stepType,
                                     Set<String> persistVars, boolean useParentScope, boolean concurrent);
+
+    void addStepCleanup(Runnable cleanup);
+
+    void runStepCleanups();
 }

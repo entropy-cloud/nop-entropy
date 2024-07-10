@@ -8,11 +8,17 @@ import io.nop.task.ITaskStepRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskConstants;
 import jakarta.annotation.Nonnull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 public class TaskStepRuntimeImpl implements ITaskStepRuntime {
+    static final Logger LOG = LoggerFactory.getLogger(TaskStepRuntimeImpl.class);
+
     private final ITaskRuntime taskRt;
     private final ITaskStateStore stateStore;
     private final IEvalScope scope;
@@ -23,6 +29,8 @@ public class TaskStepRuntimeImpl implements ITaskStepRuntime {
     private Set<String> enabledFlags = Collections.emptySet();
     private boolean recoverMode;
     private Set<String> persistVars;
+
+    private List<Runnable> stepCleanups;
 
     public TaskStepRuntimeImpl(ITaskRuntime taskRt, ITaskStateStore stateStore, IEvalScope scope) {
         this.taskRt = taskRt;
@@ -125,5 +133,30 @@ public class TaskStepRuntimeImpl implements ITaskStepRuntime {
         newStepRt.setPersistVars(persistVars);
         newStepRt.setCancelToken(cancelToken);
         return newStepRt;
+    }
+
+    @Override
+    public synchronized void addStepCleanup(Runnable cleanup) {
+        if (cleanup == null)
+            return;
+        if (stepCleanups == null)
+            stepCleanups = new ArrayList<>();
+        stepCleanups.add(cleanup);
+    }
+
+    @Override
+    public void runStepCleanups() {
+        if (stepCleanups != null) {
+            stepCleanups.forEach(this::runCleanup);
+            stepCleanups.clear();
+        }
+    }
+
+    private void runCleanup(Runnable cleanup) {
+        try {
+            cleanup.run();
+        } catch (Exception e) {
+            LOG.error("nop.err.xpt.run-cleanup-error", e);
+        }
     }
 }

@@ -144,4 +144,6 @@ public interface TaskConstants {
     String DEFAULT_METER_PREFIX = "nop.";
 
     String BEAN_PREFIX_TASK_STEP_DECORATOR = "nopTaskStepDecorator_";
+
+    String BEAN_GLOBAL_WORKER = "globalWorker";
 }

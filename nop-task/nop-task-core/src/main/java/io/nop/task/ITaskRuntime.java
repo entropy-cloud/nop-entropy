@@ -10,6 +10,7 @@ package io.nop.task;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
+import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.ratelimit.IRateLimiter;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.context.IServiceContext;
@@ -130,6 +131,8 @@ public interface ITaskRuntime extends IEvalContext {
     Object computeAttributeIfAbsent(String name, Function<String, Object> action);
 
     IScheduledExecutor getScheduledExecutor();
+
+    IThreadPoolExecutor getThreadPoolExecutor(String executorBean);
 
     ITaskStepRuntime newMainStepRuntime();
 
