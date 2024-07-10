@@ -4441,4 +4441,12 @@ public class StringHelper extends ApiStringHelper {
         comment = StringHelper.replace(comment, "--", "- - ");
         return comment;
     }
+
+    static final char[] QUOTE_CN_CHARS = new char[]{'“', '‘'};
+    static final String[] QUOTE_EN_STRS = new String[]{"\"", "'"};
+
+    @Deterministic
+    public static String normalizeChineseQuote(String str) {
+        return escape(str, QUOTE_CN_CHARS, QUOTE_EN_STRS);
+    }
 }

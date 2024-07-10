@@ -855,6 +855,11 @@ public class ConvertHelper {
         if (isEmpty(str))
             return null;
 
+        if (ApiStringHelper.isAllDigit(str)) {
+            long ts = stringToLong(str, errorFactory);
+            return millisToLocalDate(ts);
+        }
+
         if (str.length() == 19 && str.endsWith(" 00:00:00")) {
             str = str.substring(0, 10);
         }
@@ -893,6 +898,11 @@ public class ConvertHelper {
     public static LocalDateTime stringToLocalDateTime(String str, Function<ErrorCode, NopException> errorFactory) {
         if (isEmpty(str))
             return null;
+
+        if (ApiStringHelper.isAllDigit(str)) {
+            long ts = stringToLong(str, errorFactory);
+            return millisToLocalDateTime(ts);
+        }
 
         // 仅包含日期部分
         if (str.length() == 10) {

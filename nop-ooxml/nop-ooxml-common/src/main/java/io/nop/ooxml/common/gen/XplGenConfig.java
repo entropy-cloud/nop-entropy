@@ -37,6 +37,7 @@ public class XplGenConfig extends AbstractComponentModel {
     private boolean dump;
     private String dumpFile;
     private List<String> importLibs;
+    private boolean normalizeQuote;
 
     private XNode beforeGen;
     private XNode afterGen;
@@ -57,6 +58,14 @@ public class XplGenConfig extends AbstractComponentModel {
 
     public void setDump(boolean dump) {
         this.dump = dump;
+    }
+
+    public boolean isNormalizeQuote() {
+        return normalizeQuote;
+    }
+
+    public void setNormalizeQuote(boolean normalizeQuote) {
+        this.normalizeQuote = normalizeQuote;
     }
 
     public boolean isDeleteAllAfterConfigTable() {

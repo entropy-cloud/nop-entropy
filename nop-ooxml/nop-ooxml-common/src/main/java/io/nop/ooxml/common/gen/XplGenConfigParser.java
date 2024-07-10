@@ -32,6 +32,7 @@ class XplGenConfigParser {
     static final String VAR_AFTER_GEN = "afterGen";
     static final String VAR_DUMP = "dump";
     static final String VAR_DUMP_FILE = "dumpFile";
+    static final String VAR_NORMALIZE_QUOTE = "normalizeQuote";
 
     static final String VAR_DELETE_ALL_AFTER_CONFIG_TABLE = "deleteAllAfterConfigTable";
 
@@ -64,6 +65,8 @@ class XplGenConfigParser {
                 ret.setAfterGen(parseXpl(valueText));
             } else if (VAR_DUMP_FILE.equals(text)) {
                 ret.setDumpFile(valueText);
+            }else if(VAR_NORMALIZE_QUOTE.equals(text)){
+                ret.setNormalizeQuote(ConvertHelper.toPrimitiveBoolean(valueText));
             } else if (VAR_DELETE_ALL_AFTER_CONFIG_TABLE.equals(text)) {
                 if (valueText != null)
                     valueText = valueText.toLowerCase(Locale.ROOT);

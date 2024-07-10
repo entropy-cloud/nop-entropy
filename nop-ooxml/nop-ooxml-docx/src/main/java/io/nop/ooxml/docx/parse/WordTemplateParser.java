@@ -89,7 +89,7 @@ public class WordTemplateParser {
                                         XLangCompileTool cp, XNode doc, String path) {
         OfficeRelsPart rels = pkg.getRelsForPartPath(path);
         replaceHyperLinkExprs(doc);
-        List<WordHyperlink> links = collectLinks(rels, doc);
+        List<WordHyperlink> links = collectLinks(rels, doc, config);
 
         normalizeExprs(doc, links);
         normalizeLinks(links);
@@ -166,15 +166,15 @@ public class WordTemplateParser {
         });
     }
 
-    List<WordHyperlink> collectLinks(OfficeRelsPart rels, XNode doc) {
+    List<WordHyperlink> collectLinks(OfficeRelsPart rels, XNode doc, XplGenConfig config) {
         List<WordHyperlink> links = new ArrayList<>();
         doc.findAll(WordXmlHelper::isHyperlink)
-                .forEach(node -> collectLink(rels, node, links));
+                .forEach(node -> collectLink(rels, node, links, config));
         return links;
     }
 
-    void collectLink(OfficeRelsPart rels, XNode node, List<WordHyperlink> links) {
-        WordHyperlink link = WordHyperlink.build(rels, node);
+    void collectLink(OfficeRelsPart rels, XNode node, List<WordHyperlink> links, XplGenConfig config) {
+        WordHyperlink link = WordHyperlink.build(rels, node, config);
         if (link != null && link.getLinkType() != WordHyperlink.LinkType.link) {
             links.add(link);
             rels.removeRelationshipById(link.getId());
@@ -281,8 +281,17 @@ public class WordTemplateParser {
                 link.getLinkNode().replaceBy(link.getSourceNode());
             } else if (link.getLinkType() == WordHyperlink.LinkType.xpl) {
                 XNode node = link.getSourceNode();
-                if (node.getTagName().equals("w:p")) {
+                if (node.getTagName().startsWith("docx-gen:p-")) {
                     link.getLinkNode().closest("w:p").replaceBy(link.getSourceNode());
+                } else if (node.getTagName().startsWith("docx-gen:r-")) {
+                    XNode rPr = link.getLinkNode().findByTag("w:rPr");
+                    XNode sourceNode = link.getSourceNode();
+                    if (rPr != null) {
+                        XNode rPrCopy = rPr.cloneInstance();
+                        rPrCopy.setTagName("rPr");
+                        sourceNode.appendChild(rPrCopy);
+                    }
+                    link.getLinkNode().replaceBy(link.getSourceNode());
                 } else {
                     link.getLinkNode().replaceBy(link.getSourceNode());
                 }

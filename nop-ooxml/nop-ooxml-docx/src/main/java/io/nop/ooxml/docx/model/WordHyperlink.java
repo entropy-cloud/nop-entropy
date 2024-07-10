@@ -13,6 +13,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.ooxml.common.constants.TargetMode;
+import io.nop.ooxml.common.gen.XplGenConfig;
 import io.nop.ooxml.common.model.OfficeRelationship;
 import io.nop.ooxml.common.model.OfficeRelsPart;
 import org.slf4j.Logger;
@@ -104,12 +105,12 @@ public class WordHyperlink {
     private XNode linkNode;
     private XNode sourceNode;
 
-    public static WordHyperlink build(OfficeRelsPart rels, XNode node) {
+    public static WordHyperlink build(OfficeRelsPart rels, XNode node, XplGenConfig config) {
         String url = node.attrText("url");
         if (!StringHelper.isEmpty(url)) {
             // 根据w:instrText转换得到的url
             OfficeRelationship rel = new OfficeRelationship(null, "a", "link", url, TargetMode.External);
-            return build(rel, node.text(), node);
+            return build(rel, node.text(), node, config);
         }
 
         String id = node.attrText("r:id");
@@ -120,10 +121,11 @@ public class WordHyperlink {
         }
 
         String label = node.text();
-        return build(rel, label, node);
+        return build(rel, label, node, config);
     }
 
-    public static WordHyperlink build(OfficeRelationship rel, String linkLabel, XNode linkNode) {
+    public static WordHyperlink build(OfficeRelationship rel, String linkLabel,
+                                      XNode linkNode, XplGenConfig config) {
         WordHyperlink link = new WordHyperlink();
         String target = rel.getTarget();
 
@@ -137,6 +139,9 @@ public class WordHyperlink {
             if (StringHelper.isEmpty(source)) {
                 source = linkLabel;
             }
+            if (config.isNormalizeQuote()) {
+                source = StringHelper.normalizeChineseQuote(source);
+            }
             link.setLinkType(LinkType.expr);
             XNode sourceNode = buildSourceNode(linkNode);
             sourceNode.makeChild("w:t").content(sourceNode.getLocation(), "${" + source + "}");
@@ -145,6 +150,9 @@ public class WordHyperlink {
             String source = decodeUrl(target.substring(LinkType.xpl.name().length() + 1));
             if (StringHelper.isEmpty(source)) {
                 source = linkLabel;
+            }
+            if (config.isNormalizeQuote()) {
+                source = StringHelper.normalizeChineseQuote(source);
             }
             parseLinkSource(source, link, linkNode);
         } else {

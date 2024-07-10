@@ -11,7 +11,7 @@
 如果界面上的显示空间足够，也可以使用链接的文本作为表达式，此时链接地址的格式为`expr:`或者`xpl:`，即链接地址中没有表达式内容时，会使用链接的文本作为表达式。例如图中的`${entity.consignee}`
 
 > expr：表示插入EL表达式，内置的表达式语法接近于JavaScript
-> 
+>
 > xpl: 表示插入xpl模板语言片段，它支持a${b}c这种嵌入式的表达式输出，也支持更复杂的标签结构。
 
 ## 2. 超链接可以表示插入完整的代码块
@@ -91,7 +91,7 @@ Word模板会被转换为XPL模板语言之后再作为XPL模板编译并输出�
 当xpl模板编译发现错误时，会抛出异常，其中包含有错误信息和准确的行号。行号对应于dumpFile文件中的位置，例如
 
 ```
-io.nop.api.core.exceptions.NopEvalException: 
+io.nop.api.core.exceptions.NopEvalException:
 NopEvalException[seq=1,errorCode=nop.err.commons.text.scan-unexpected-char,
 params={pos=19, reader=${model.displayNam[e], expected=}, eof=true},
 desc=读取到的下一个字符不是期待的字符[}]]
@@ -110,3 +110,10 @@ desc=读取到的下一个字符不是期待的字符[}]]
 [payment.docx](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-ooxml/nop-ooxml-docx/src/test/resources/payment.docx)
 
 [result-payment.docx](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-ooxml/nop-ooxml-docx/src/test/resources/result-payment.docx)
+
+## 7. 自动分行显示
+如果文本中包含回车，希望输出到word中时也自动换行，此时可以使用`<docx-gen:r-br>`标签。
+
+`docx-gen:r-`为前缀的标签会生成`<w:r>`文本段，在标签中通过`rPr`子节点可以读取到word中配置的样式。
+
+![](word-template/word-br.png)

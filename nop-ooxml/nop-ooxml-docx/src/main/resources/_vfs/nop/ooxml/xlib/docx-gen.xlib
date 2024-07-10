@@ -29,5 +29,27 @@
                 </c:if>
             </source>
         </Drawing>
+
+        <r-br outputMode="xml">
+            <attr name="value"/>
+            <slot name="rPr" slotType="node"/>
+
+            <source>
+                <c:script>
+                    const list = value?.toString().$split('\n');
+                    const node = slot_rPr?.cloneInstance();
+                    node?.setTagName('w:rPr');
+                </c:script>
+                <c:for var="item" items="${list}" index="index" xpl:allowUnknownTag="true">
+                    <c:if test="${index > 0}">
+                        <w:br/>
+                    </c:if>
+                    <w:r>
+                        <c:out escape="none" value="${node?.xml()}"/>
+                        <w:t>${item}</w:t>
+                    </w:r>
+                </c:for>
+            </source>
+        </r-br>
     </tags>
 </lib>

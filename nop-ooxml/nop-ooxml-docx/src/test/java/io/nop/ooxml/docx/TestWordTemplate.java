@@ -213,6 +213,16 @@ public class TestWordTemplate extends BaseTestCase {
         tpl.generateToFile(file, scope);
     }
 
+    @Test
+    public void testBr() {
+        IResource resource = classpathResource("docx/test-br.docx");
+        IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValue(null, "text", "abc\r\ndata");
+        File file = getTargetFile("/gen/result-br.docx");
+        WordTemplate tpl = new WordTemplateParser().parseFromResource(resource);
+        tpl.generateToFile(file, scope);
+    }
+
     //
     // public static void main(String[] args) {
     // ZipFileWatcher.main(new

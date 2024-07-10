@@ -139,6 +139,10 @@ public class StylesPart implements IOfficePackagePart {
             }
         }
 
+        if (!fontsN.hasChild()) {
+            addDefaultFont(fontsN);
+        }
+
         addNumberFormats(node, numberFormats);
         fontsN.setAttr("count", fontsN.getChildCount());
         node.appendChild(fontsN);
@@ -148,6 +152,9 @@ public class StylesPart implements IOfficePackagePart {
 
         addCellStyleXfs(node);
 
+        if (!cellXfs.hasChild()) {
+            addDefaultCellXf(cellXfs);
+        }
         cellXfs.setAttr("count", cellXfs.getChildCount());
         node.appendChild(cellXfs);
 
@@ -155,6 +162,45 @@ public class StylesPart implements IOfficePackagePart {
 
         addExt(node);
         return node;
+    }
+
+    /**
+     * <font>
+     * <sz val="11"/>
+     * <color theme="1"/>
+     * <name val="等线"/>
+     * <family val="2"/>
+     * <charset val="134"/>
+     * <scheme val="minor"/>
+     * </font>
+     *
+     * @param fontsN
+     */
+    private void addDefaultFont(XNode fontsN) {
+        XNode font = fontsN.addChild("font");
+        font.addChild("sz").setAttr("val", "11");
+        font.addChild("color").setAttr("theme", "1");
+        font.addChild("name").setAttr("val", "等线");
+        font.addChild("family").setAttr("val", "2");
+        font.addChild("charset").setAttr("val", "134");
+        font.addChild("scheme").setAttr("val", "minor");
+    }
+
+    /**
+     * <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0">
+     * <alignment vertical="center"/>
+     * </xf>
+     *
+     * @param cellXfs
+     */
+    private void addDefaultCellXf(XNode cellXfs) {
+        XNode xf = cellXfs.addChild("xf");
+        xf.setAttr("numFmtId", "0");
+        xf.setAttr("fontId", "0");
+        xf.setAttr("fillId", "0");
+        xf.setAttr("borderId", "0");
+        xf.setAttr("xfId", "0");
+        xf.addChild("alignment").setAttr("vertical", "center");
     }
 
     private void addNumberFormats(XNode node, Map<String, Integer> numberFormats) {
@@ -194,7 +240,31 @@ public class StylesPart implements IOfficePackagePart {
         for (ExcelBorder border : borders) {
             bordersN.appendChild(toBorderNode(border));
         }
+
+        if (!bordersN.hasChild()) {
+            addDefaultBorder(bordersN);
+        }
         bordersN.setAttr("count", borders.size());
+    }
+
+    /**
+     * <border>
+     * <left/>
+     * <right/>
+     * <top/>
+     * <bottom/>
+     * <diagonal/>
+     * </border>
+     *
+     * @param bordersN
+     */
+    private void addDefaultBorder(XNode bordersN) {
+        XNode border = bordersN.addChild("border");
+        border.addChild("left");
+        border.addChild("right");
+        border.addChild("top");
+        border.addChild("bottom");
+        border.addChild("diagonal");
     }
 
     private void addCellStyleXfs(XNode node) {
