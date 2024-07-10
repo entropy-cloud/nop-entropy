@@ -96,7 +96,7 @@ public class CsvResourceRecordIO<T> implements IResourceRecordIO<T> {
         if (encoding == null)
             encoding = this.encoding;
         Collection<String> headers = this.headers;
-        if (headers == null)
+        if (headers == null && recordType != List.class)
             headers = BeanTool.getReadableComplexPropNames(getTypeInfo(resource));
 
         return new CsvRecordOutput<>(resource, encoding, format, headers, supportZip);

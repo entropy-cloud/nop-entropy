@@ -243,7 +243,7 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
             return ProcessResult.CONTINUE;
         });
 
-        if (cells.size() > 0) {
+        if (!cells.isEmpty()) {
             out.beginNode(null, "mergeCells", attrs("count", cells.size()));
             for (String cell : cells) {
                 out.simpleNode(null, "mergeCell", attrs("ref", cell));

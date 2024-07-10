@@ -11,7 +11,10 @@ import io.nop.core.resource.IResource;
 import io.nop.dataset.record.IRecordInput;
 import io.nop.dataset.record.IRecordOutput;
 
-public interface IResourceRecordIO<T> {
+public interface IResourceRecordIO<T> extends
+        IResourceRecordInputProvider<T>,
+        IResourceRecordOutputProvider<T> {
+
     IRecordInput<T> openInput(IResource resource, String encoding);
 
     IRecordOutput<T> openOutput(IResource resource, String encoding);

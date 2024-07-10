@@ -497,6 +497,10 @@ public class ResourceHelper {
         tool.zipDirTo(dir, target, options, null);
     }
 
+    public static void zipLocalDir(File dir, File targetFile, ZipOptions options) {
+        zipDir(new FileResource(dir), new FileResource(targetFile), options);
+    }
+
     public static void zipDirToStream(IFile dir, OutputStream target, ZipOptions options) {
         IZipTool tool = getZipTool();
         IZipOutput output = tool.newZipOutput(target, options);

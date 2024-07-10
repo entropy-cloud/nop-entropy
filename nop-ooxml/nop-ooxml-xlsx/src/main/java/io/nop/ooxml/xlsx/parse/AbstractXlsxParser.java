@@ -15,7 +15,6 @@ import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.ooxml.common.IOfficePackagePart;
 import io.nop.ooxml.xlsx.XSSFRelation;
-import io.nop.ooxml.xlsx.model.CommentsPart;
 import io.nop.ooxml.xlsx.model.ExcelOfficePackage;
 import io.nop.ooxml.xlsx.model.SharedStringsPart;
 import io.nop.ooxml.xlsx.model.WorkbookPart;
@@ -52,7 +51,8 @@ public abstract class AbstractXlsxParser extends AbstractResourceParser<ExcelWor
         wk.setStyles(pkg.getStyles().getStyles());
         for (XSSFSheetRef sheetRef : workbookPart.getSheets()) {
             ExcelSheet sheet = parseSheet(wk, sheetRef, workbookPart);
-            wk.addSheet(sheet);
+            if (sheet != null)
+                wk.addSheet(sheet);
         }
 
         endParseWorkbook(wk);

@@ -7,6 +7,8 @@
  */
 package io.nop.core.lang.json;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.FilterBeans;
@@ -127,6 +129,37 @@ public class TestJsonTool {
         LocalDateTime dateTime = LocalDateTime.now();
         String str = JsonTool.serialize(dateTime, true);
         System.out.println(str);
-        assertEquals(StringHelper.quote(DateHelper.formatDateTime(dateTime, "yyyy-MM-dd HH:mm:ss")),str);
+        assertEquals(StringHelper.quote(DateHelper.formatDateTime(dateTime, "yyyy-MM-dd HH:mm:ss")), str);
+    }
+
+    @Test
+    public void testJsonIgnore2() {
+        String text = "{name:'3',value:2}";
+
+        MyBean bean = (MyBean) JsonTool.parseBeanFromText(text, MyBean.class);
+        assertEquals(0, bean.getValue());
+    }
+
+    @DataBean
+    public static class MyBean {
+        private String name;
+        private int value;
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        @JsonIgnore
+        public int getValue() {
+            return value;
+        }
+
+        public void setValue(int value) {
+            this.value = value;
+        }
     }
 }

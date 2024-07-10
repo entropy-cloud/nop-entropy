@@ -16,11 +16,15 @@ import java.util.NoSuchElementException;
 
 public class BaseRecordInput<T> implements IRecordInput<T> {
     private final List<T> records;
-    private final IRecordResourceMeta meta;
+    private IRecordResourceMeta meta;
     private int readCount;
 
     public BaseRecordInput(List<T> records, IRecordResourceMeta meta) {
         this.records = records == null ? Collections.emptyList() : records;
+        this.meta = meta;
+    }
+
+    public void setMeta(IRecordResourceMeta meta) {
         this.meta = meta;
     }
 

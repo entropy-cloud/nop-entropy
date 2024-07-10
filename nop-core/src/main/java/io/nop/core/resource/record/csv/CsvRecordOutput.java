@@ -88,6 +88,12 @@ public class CsvRecordOutput<T> implements IRecordOutput<T> {
                 headersWritten = true;
             }
 
+            if (headers == null) {
+                writer.printRecord((Iterable<?>) record);
+                writeCount++;
+                return;
+            }
+
             Object[] row = new String[headers.size()];
             int index = 0;
             for (String header : headers) {
@@ -109,7 +115,7 @@ public class CsvRecordOutput<T> implements IRecordOutput<T> {
         if (headers == null || headers.isEmpty()) {
             if (record instanceof Map) {
                 headers = CollectionHelper.toStringList(((Map<?, ?>) record).keySet());
-            } else if (record != null) {
+            } else if (record != null && !(record instanceof Collection)) {
                 headers = BeanTool.getReadableComplexPropNames(record.getClass());
             }
         }
