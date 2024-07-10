@@ -68,6 +68,8 @@ public interface IBeanPropertyModel {
 
     boolean isWritable();
 
+    boolean isNotSecure();
+
     /**
      * 类声明中为字段设置的缺省值
      */

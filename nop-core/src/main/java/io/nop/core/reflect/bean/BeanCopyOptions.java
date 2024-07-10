@@ -35,6 +35,10 @@ public class BeanCopyOptions extends AbstractFreezable {
 
     private boolean onlySerializableTarget = true;
 
+    private boolean onlySecureTarget = true;
+
+    private boolean onlySecureSource = false;
+
     /**
      * 是否允许循环引用，如果允许，则使用objMap来管理对象引用，避免为同一源对象创建多个目标对象
      */
@@ -85,6 +89,22 @@ public class BeanCopyOptions extends AbstractFreezable {
     public void setAllowListExt(boolean allowListExt) {
         checkAllowChange();
         this.allowListExt = allowListExt;
+    }
+
+    public boolean isOnlySecureTarget() {
+        return onlySecureTarget;
+    }
+
+    public void setOnlySecureTarget(boolean onlySecureTarget) {
+        this.onlySecureTarget = onlySecureTarget;
+    }
+
+    public boolean isOnlySecureSource() {
+        return onlySecureSource;
+    }
+
+    public void setOnlySecureSource(boolean onlySecureSource) {
+        this.onlySecureSource = onlySecureSource;
     }
 
     public boolean isReuseImmutable() {

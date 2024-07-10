@@ -12,7 +12,11 @@ import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.util.*;
+import io.nop.api.core.util.CloneHelper;
+import io.nop.api.core.util.Guard;
+import io.nop.api.core.util.IDeepCloneable;
+import io.nop.api.core.util.IFreezable;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.StringHelper;
@@ -26,9 +30,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Array;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import static io.nop.core.CoreErrors.*;
+import static io.nop.core.CoreErrors.ARG_CLASS_NAME;
+import static io.nop.core.CoreErrors.ARG_PROP_NAME;
+import static io.nop.core.CoreErrors.ARG_SRC_LENGTH;
+import static io.nop.core.CoreErrors.ARG_SRC_TYPE;
+import static io.nop.core.CoreErrors.ARG_TARGET_LENGTH;
+import static io.nop.core.CoreErrors.ARG_TARGET_TYPE;
+import static io.nop.core.CoreErrors.ARG_TYPE_VALUE;
+import static io.nop.core.CoreErrors.ERR_REFLECT_BEAN_NO_CLASS_FOR_TYPE;
+import static io.nop.core.CoreErrors.ERR_REFLECT_CAST_VALUE_TO_TARGET_TYPE_FAIL;
+import static io.nop.core.CoreErrors.ERR_REFLECT_COPY_BEAN_ARRAY_LENGTH_NOT_MATCH;
+import static io.nop.core.CoreErrors.ERR_REFLECT_NOT_COLLECTION_TYPE;
+import static io.nop.core.CoreErrors.ERR_REFLECT_UNKNOWN_BEAN_PROP;
 
 public class BeanCopier implements IBeanCopier {
     private static final Logger LOG = LoggerFactory.getLogger(BeanCopier.class);
@@ -188,6 +207,9 @@ public class BeanCopier implements IBeanCopier {
         } else {
             srcModel.forEachReadableProp(propModel -> {
                 if (options.isOnlySerializableSource() && !propModel.isSerializable())
+                    return;
+
+                if (options.isOnlySecureSource() && propModel.isNotSecure())
                     return;
 
                 String propName = propModel.getName();
@@ -448,8 +470,14 @@ public class BeanCopier implements IBeanCopier {
         }
         IBeanPropertyModel propModel = beanModel.getPropertyModel(propName);
         if (propModel != null) {
-            if(propModel.getType().isBooleanType()){
+            if (propModel.getType().isBooleanType()) {
                 value = ConvertHelper.toBoolean(value);
+            }
+
+            if (options.isOnlySecureTarget() && propModel.isNotSecure()) {
+                LOG.debug("nop.reflect.bean.builder.ignore-prop-not-secure:className={},propName={}",
+                        beanModel.getClassName(), propName);
+                return;
             }
 
             if (options.isOnlySerializableTarget() && !propModel.isSerializable()) {

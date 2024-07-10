@@ -43,6 +43,7 @@ public class BeanPropertyModel extends ReadonlyModel implements IBeanPropertyMod
     private boolean serializable;
     private boolean deterministic;
     private boolean lazyLoad;
+    private boolean notSecure;
 
     private Boolean nullable;
     private String description;
@@ -186,6 +187,15 @@ public class BeanPropertyModel extends ReadonlyModel implements IBeanPropertyMod
     @Override
     public boolean isWritable() {
         return setter != null;
+    }
+
+    @Override
+    public boolean isNotSecure() {
+        return notSecure;
+    }
+
+    public void setNotSecure(boolean notSecure) {
+        this.notSecure = notSecure;
     }
 
     public Include getJsonInclude() {

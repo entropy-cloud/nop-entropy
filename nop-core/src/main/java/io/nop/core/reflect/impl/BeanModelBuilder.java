@@ -24,6 +24,7 @@ import io.nop.api.core.annotations.core.BeanDeserializer;
 import io.nop.api.core.annotations.core.BeanSerializer;
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.LazyLoad;
+import io.nop.api.core.annotations.core.NotSecure;
 import io.nop.api.core.annotations.core.PropertyGetter;
 import io.nop.api.core.annotations.core.PropertySetter;
 import io.nop.api.core.annotations.data.DataBean;
@@ -344,6 +345,8 @@ public class BeanModelBuilder {
             }
         }
 
+        prop.setNotSecure(candidate.isNotSecure());
+
         if (candidate.isField()) {
             prop.setField(true);
         }
@@ -479,6 +482,17 @@ public class BeanModelBuilder {
         IFunctionModel setMethod;
         IFunctionModel makeMethod;
         String propName;
+
+        public boolean isNotSecure() {
+            if (getMethod != null) {
+                if (getMethod.isAnnotationPresent(NotSecure.class))
+                    return true;
+            }
+
+            if (setMethod != null && setMethod.isAnnotationPresent(NotSecure.class))
+                return true;
+            return false;
+        }
 
         public ConfigField getConfigField() {
             ConfigField configField;
