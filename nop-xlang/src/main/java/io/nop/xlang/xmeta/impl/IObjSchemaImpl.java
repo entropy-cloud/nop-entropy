@@ -8,6 +8,7 @@
 package io.nop.xlang.xmeta.impl;
 
 import io.nop.api.core.util.SourceLocation;
+import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.model.validator.ValidatorModel;
 import io.nop.core.type.IGenericType;
 import io.nop.xlang.xmeta.IObjSchema;
@@ -66,7 +67,7 @@ public interface IObjSchemaImpl extends IObjSchema {
      *
      * @param validator
      */
-    void setValidator(ValidatorModel validator);
+    void setValidator(IEvalAction validator);
 
     /**
      * 类型的基类，从基类会继承相关domain, type，props等属性。 因为根据schema会生成java类时ref会通过基类来实现，所以当前对象的属性与refSchema中的属性必须不冲突， 否则生成代码时会出现类型冲突。

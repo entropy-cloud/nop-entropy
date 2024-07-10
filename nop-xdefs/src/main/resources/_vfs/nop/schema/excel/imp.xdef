@@ -18,7 +18,7 @@
     <xpt:beforeExpand xdef:value="xml"/>
     <xpt:afterExpand xdef:value="xml"/>
 
-    <validator xdef:ref="/nop/schema/validator.xdef"/>
+    <validator xdef:value="xpl"/>
 
     <sheets xdef:body-type="list" xdef:key-attr="name">
         <!--

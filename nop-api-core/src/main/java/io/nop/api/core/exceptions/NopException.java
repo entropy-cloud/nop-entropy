@@ -210,6 +210,14 @@ public class NopException extends RuntimeException implements IException {
         return this;
     }
 
+    public NopException errorDescription(String description) {
+        return description(description);
+    }
+
+    public NopException errorStatus(int errorStatus) {
+        return status(errorStatus);
+    }
+
     /**
      * get description info for Exception
      */
@@ -303,7 +311,7 @@ public class NopException extends RuntimeException implements IException {
     /**
      * add extra param for exception
      *
-     * @param name 参数名
+     * @param name  参数名
      * @param value 参数值
      * @return 当前异常对象
      */

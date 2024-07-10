@@ -99,7 +99,7 @@
             </slot>
 
             <!-- 对标签的参数进行校验 -->
-            <validator xdef:ref="validator.xdef"/>
+            <validator xdef:value="xpl"/>
 
             <return type="generic-type" stdDomain="var-name" xdef:bean-prop="tagReturn" xdef:name="XplTagReturn">
                 <description xdef:value="string"/>

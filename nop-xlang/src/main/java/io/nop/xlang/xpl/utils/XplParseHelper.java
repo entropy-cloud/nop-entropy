@@ -305,7 +305,7 @@ public class XplParseHelper {
                                                 IXLangCompileScope scope) {
         ValueWithLocation attr = node.attrValueLoc(name);
         Object value = attr.getValue();
-        if (value instanceof String) {
+        if (value instanceof String && !isExpr(value.toString())) {
             Integer num = ConvertHelper.stringToInt(value.toString(),
                     err -> new NopEvalException(ERR_XPL_PARSE_ATTR_INT_FAIL).source(attr).param(ARG_ATTR_NAME, name)
                             .param(ARG_VALUE, value).param(ARG_NODE, node));

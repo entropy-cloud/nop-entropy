@@ -37,7 +37,6 @@ import io.nop.graphql.core.GraphQLConstants;
 import io.nop.orm.OrmConstants;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.filter.BizExprHelper;
-import io.nop.xlang.filter.BizValidatorHelper;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.IObjSchema;
@@ -305,8 +304,7 @@ public class ObjMetaBasedValidator {
                 SimpleSchemaValidator.INSTANCE.validate(schema, null, subPropName, value, scope, this.context,
                         IValidationErrorCollector.THROW_ERROR);
             } else if (schema.getValidator() != null) {
-                BizValidatorHelper.runValidatorModelForValue(schema.getValidator(), value, scope, this.context,
-                        IValidationErrorCollector.THROW_ERROR);
+                schema.getValidator().invoke(scope);
             }
 
             String dictName = schema.getDict();

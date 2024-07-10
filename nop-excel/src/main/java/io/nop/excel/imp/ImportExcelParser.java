@@ -8,7 +8,6 @@
 package io.nop.excel.imp;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.exceptions.NopRebuildException;
 import io.nop.api.core.util.INeedInit;
 import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.commons.cache.ICache;
@@ -17,7 +16,6 @@ import io.nop.commons.collections.KeyedList;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.model.object.DynamicObject;
-import io.nop.core.model.validator.ModelBasedValidator;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.excel.ExcelConstants;
 import io.nop.excel.imp.model.ImportModel;
@@ -38,7 +36,6 @@ import java.util.Map;
 
 import static io.nop.commons.cache.CacheConfig.newConfig;
 import static io.nop.core.CoreErrors.ARG_PROP_NAME;
-import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
 import static io.nop.excel.ExcelErrors.ARG_NAME_PATTERN;
 import static io.nop.excel.ExcelErrors.ARG_SHEET_NAME;
 import static io.nop.excel.ExcelErrors.ERR_IMPORT_MISSING_MANDATORY_SHEET;
@@ -127,9 +124,12 @@ public class ImportExcelParser {
         }
 
         if (importModel.getValidator() != null) {
-            new ModelBasedValidator(importModel.getValidator()).validate(scope, error -> {
-                throw NopRebuildException.rebuild(error).param(ARG_RESOURCE_PATH, workbook.resourcePath());
-            });
+            try {
+                importModel.getValidator().invoke(scope);
+            } catch (NopException e) {
+                e.addXplStack(workbook.resourcePath());
+                throw e;
+            }
         }
 
         Object result = obj;

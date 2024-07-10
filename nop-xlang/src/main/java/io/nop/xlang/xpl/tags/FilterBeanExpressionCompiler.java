@@ -187,8 +187,6 @@ public class FilterBeanExpressionCompiler extends FilterBeanVisitor<Expression> 
 
     @Override
     public Expression visitAnd(ITreeBean filter, IVariableScope scope) {
-        XplParseHelper.checkNoArgNames((XNode) filter);
-
         List<? extends ITreeBean> children = filter.getChildren();
         if (children == null || children.isEmpty())
             return Literal.booleanValue(filter.getLocation(), true);

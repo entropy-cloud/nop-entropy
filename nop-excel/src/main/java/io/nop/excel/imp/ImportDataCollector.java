@@ -10,7 +10,6 @@ package io.nop.excel.imp;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.exceptions.NopRebuildException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.util.CollectionHelper;
@@ -20,7 +19,6 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.model.object.DynamicObject;
 import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.ICellView;
-import io.nop.core.model.validator.ModelBasedValidator;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.excel.ExcelConstants;
 import io.nop.excel.imp.model.IFieldContainer;
@@ -261,11 +259,13 @@ public class ImportDataCollector implements ITableDataEventListener {
             if (field.getSchema().getValidator() != null) {
                 scope.setLocalValue(null, ExcelConstants.VAR_VALUE, value);
 
-                new ModelBasedValidator(field.getSchema().getValidator()).validate(scope, error -> {
-                    throw NopRebuildException.rebuild(error).param(ARG_SHEET_NAME, sheetName)
+                try {
+                    field.getSchema().getValidator().invoke(scope);
+                } catch (NopException e) {
+                    throw e.param(ARG_SHEET_NAME, sheetName)
                             .param(ARG_FIELD_NAME, field.getName()).param(ARG_FIELD_LABEL, field.getFieldLabel())
                             .param(ARG_CELL_POS, CellPosition.toABString(rowIndex, colIndex));
-                });
+                }
             }
         }
 

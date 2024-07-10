@@ -77,7 +77,7 @@ public abstract class _ImportModel extends io.nop.core.resource.component.Abstra
      * xml name: validator
      * 
      */
-    private io.nop.core.model.validator.ValidatorModel _validator ;
+    private io.nop.core.lang.eval.IEvalAction _validator ;
     
     /**
      *  
@@ -270,12 +270,12 @@ public abstract class _ImportModel extends io.nop.core.resource.component.Abstra
      *  
      */
     
-    public io.nop.core.model.validator.ValidatorModel getValidator(){
+    public io.nop.core.lang.eval.IEvalAction getValidator(){
       return _validator;
     }
 
     
-    public void setValidator(io.nop.core.model.validator.ValidatorModel value){
+    public void setValidator(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
         this._validator = value;
@@ -311,8 +311,6 @@ public abstract class _ImportModel extends io.nop.core.resource.component.Abstra
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
            this._sheets = io.nop.api.core.util.FreezeHelper.deepFreeze(this._sheets);
-            
-           this._validator = io.nop.api.core.util.FreezeHelper.deepFreeze(this._validator);
             
         }
     }

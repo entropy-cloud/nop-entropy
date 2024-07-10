@@ -10,6 +10,7 @@ package io.nop.xlang.xmeta;
 import io.nop.api.core.util.IFreezable;
 import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.commons.type.StdDataType;
+import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.validator.ValidatorModel;
 import io.nop.core.type.IGenericType;
@@ -77,7 +78,7 @@ public interface ISchemaNode extends ISourceLocationGetter, IFreezable {
      *
      * @return
      */
-    ValidatorModel getValidator();
+    IEvalAction getValidator();
 
     /**
      * 类型的基类，从基类会继承相关domain, type，props等属性。 因为根据schema会生成java类时ref会通过基类来实现，所以当前对象的属性与refSchema中的属性必须不冲突， 否则生成代码时会出现类型冲突。

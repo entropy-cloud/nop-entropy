@@ -70,7 +70,7 @@
         <when xdef:value="xpl-predicate"/>
 
         <!-- 验证输入数据 -->
-        <validator xdef:ref="../validator.xdef"/>
+        <validator xdef:value="xpl"/>
 
         <!-- 捕获异常后如果不抛出异常，则认为是成功执行，会执行output返回 -->
         <catch xdef:value="xpl"/>

@@ -149,6 +149,9 @@ public interface XplConstants {
     String ERROR_CODE_NAME = "errorCode";
     String PARAMS_NAME = "params";
     String CAUSE_NAME = "cause";
+    String ERROR_DESCRIPTION_NAME = "errorDescription";
+    String BIZ_FATAL_NAME = "bizFatal";
+    String ERROR_STATUS_NAME = "errorStatus";
 
     String LIB_NAME = "lib";
     String NAMESPACE_NAME = "namespace";

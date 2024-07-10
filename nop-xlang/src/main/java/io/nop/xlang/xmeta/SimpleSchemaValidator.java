@@ -14,7 +14,6 @@ import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.commons.util.MathHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
-import io.nop.xlang.filter.BizValidatorHelper;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 
@@ -73,7 +72,11 @@ public class SimpleSchemaValidator {
         checkLength(schema, loc, propName, value, collector);
 
         if (schema.getValidator() != null) {
-            BizValidatorHelper.runValidatorModelForValue(schema.getValidator(), value, scope, ctx, collector);
+            try {
+                schema.getValidator().invoke(scope);
+            } catch (Exception e) {
+                collector.addException(e);
+            }
         }
     }
 

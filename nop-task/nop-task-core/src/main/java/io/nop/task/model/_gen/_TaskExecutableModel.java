@@ -147,7 +147,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
      * xml name: validator
      * 验证输入数据
      */
-    private io.nop.core.model.validator.ValidatorModel _validator ;
+    private io.nop.core.lang.eval.IEvalAction _validator ;
     
     /**
      *  
@@ -582,12 +582,12 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
      *  验证输入数据
      */
     
-    public io.nop.core.model.validator.ValidatorModel getValidator(){
+    public io.nop.core.lang.eval.IEvalAction getValidator(){
       return _validator;
     }
 
     
-    public void setValidator(io.nop.core.model.validator.ValidatorModel value){
+    public void setValidator(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
         this._validator = value;
@@ -635,8 +635,6 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
            this._retry = io.nop.api.core.util.FreezeHelper.deepFreeze(this._retry);
             
            this._throttle = io.nop.api.core.util.FreezeHelper.deepFreeze(this._throttle);
-            
-           this._validator = io.nop.api.core.util.FreezeHelper.deepFreeze(this._validator);
             
         }
     }

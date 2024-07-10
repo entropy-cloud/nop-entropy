@@ -17,7 +17,7 @@ public class InternalTagCompilers {
 
     static {
         registerTagCompiler("c:break", BreakTagCompiler.INSTANCE);
-        registerTagCompiler("c:predicate", PredicateTagCompiler.INSTANCE);
+        registerTagCompiler("c:check", CheckTagCompiler.INSTANCE);
         registerTagCompiler("c:choose", ChooseTagCompiler.INSTANCE);
         registerTagCompiler("c:collect", CollectTagCompiler.INSTANCE);
         registerTagCompiler("c:continue", ContinueTagCompiler.INSTANCE);
@@ -29,6 +29,7 @@ public class InternalTagCompilers {
         // registerTagCompiler("c:tags", LibTagCompiler.INSTANCE);
         registerTagCompiler("c:log", LogTagCompiler.INSTANCE);
         registerTagCompiler("c:out", OutTagCompiler.INSTANCE);
+        registerTagCompiler("c:predicate", PredicateTagCompiler.INSTANCE);
         registerTagCompiler("c:print", PrintTagCompiler.INSTANCE);
         registerTagCompiler("c:return", ReturnTagCompiler.INSTANCE);
         registerTagCompiler("c:script", ScriptTagCompiler.INSTANCE);
@@ -37,7 +38,7 @@ public class InternalTagCompilers {
         registerTagCompiler("c:unit", UnitTagCompiler.INSTANCE);
         registerTagCompiler("c:var", VarTagCompiler.INSTANCE);
         registerTagCompiler("c:while", WhileTagCompiler.INSTANCE);
-        registerTagCompiler("c:ast",AstTagCompiler.INSTANCE);
+        registerTagCompiler("c:ast", AstTagCompiler.INSTANCE);
 
         registerTagCompiler("macro:var", MacroVarTagCompiler.INSTANCE);
         registerTagCompiler("macro:gen", MacroGenTagCompiler.INSTANCE);

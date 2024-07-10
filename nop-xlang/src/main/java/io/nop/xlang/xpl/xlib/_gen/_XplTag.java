@@ -183,7 +183,7 @@ public abstract class _XplTag extends io.nop.core.resource.component.AbstractCom
      * xml name: validator
      * 对标签的参数进行校验
      */
-    private io.nop.core.model.validator.ValidatorModel _validator ;
+    private io.nop.core.lang.eval.IEvalAction _validator ;
     
     /**
      * 
@@ -680,12 +680,12 @@ public abstract class _XplTag extends io.nop.core.resource.component.AbstractCom
      *  对标签的参数进行校验
      */
     
-    public io.nop.core.model.validator.ValidatorModel getValidator(){
+    public io.nop.core.lang.eval.IEvalAction getValidator(){
       return _validator;
     }
 
     
-    public void setValidator(io.nop.core.model.validator.ValidatorModel value){
+    public void setValidator(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
         this._validator = value;
@@ -706,8 +706,6 @@ public abstract class _XplTag extends io.nop.core.resource.component.AbstractCom
            this._slots = io.nop.api.core.util.FreezeHelper.deepFreeze(this._slots);
             
            this._tagReturn = io.nop.api.core.util.FreezeHelper.deepFreeze(this._tagReturn);
-            
-           this._validator = io.nop.api.core.util.FreezeHelper.deepFreeze(this._validator);
             
         }
     }

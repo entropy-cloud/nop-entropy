@@ -91,7 +91,7 @@ public abstract class _SchemaNodeImpl extends io.nop.core.resource.component.Abs
      * xml name: validator
      * 
      */
-    private io.nop.core.model.validator.ValidatorModel _validator ;
+    private io.nop.core.lang.eval.IEvalAction _validator ;
     
     /**
      * 
@@ -289,12 +289,12 @@ public abstract class _SchemaNodeImpl extends io.nop.core.resource.component.Abs
      *  
      */
     
-    public io.nop.core.model.validator.ValidatorModel getValidator(){
+    public io.nop.core.lang.eval.IEvalAction getValidator(){
       return _validator;
     }
 
     
-    public void setValidator(io.nop.core.model.validator.ValidatorModel value){
+    public void setValidator(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
         this._validator = value;
@@ -310,8 +310,6 @@ public abstract class _SchemaNodeImpl extends io.nop.core.resource.component.Abs
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
-           this._validator = io.nop.api.core.util.FreezeHelper.deepFreeze(this._validator);
-            
         }
     }
 

@@ -14,8 +14,6 @@ import io.nop.commons.util.retry.IRetryPolicy;
 import io.nop.commons.util.retry.RetryPolicy;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
-import io.nop.core.model.validator.DefaultValidationErrorCollector;
-import io.nop.core.model.validator.ValidatorModel;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepDecorator;
 import io.nop.task.ITaskStepRuntime;
@@ -40,7 +38,6 @@ import io.nop.task.step.TimeoutTaskStepWrapper;
 import io.nop.task.step.TryTaskStepWrapper;
 import io.nop.task.step.ValidatorTaskStepWrapper;
 import io.nop.xlang.api.XLang;
-import io.nop.xlang.filter.BizValidatorHelper;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -87,17 +84,17 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
                 stepModel.getErrorName(), stepModel.isUseParentScope());
     }
 
-    private IEvalAction buildValidator(ValidatorModel validatorModel) {
-        if (validatorModel == null)
-            return null;
-
-        return ctx -> {
-            ITaskStepRuntime stepRt = (ITaskStepRuntime) ctx;
-            BizValidatorHelper.runValidatorModelForValue(validatorModel, stepRt.getResult(), stepRt.getEvalScope(),
-                    stepRt.getTaskRuntime().getSvcCtx(), DefaultValidationErrorCollector.THROW_ERROR);
-            return null;
-        };
-    }
+//    private IEvalAction buildValidator(ValidatorModel validatorModel) {
+//        if (validatorModel == null)
+//            return null;
+//
+//        return ctx -> {
+//            ITaskStepRuntime stepRt = (ITaskStepRuntime) ctx;
+//            BizValidatorHelper.runValidatorModelForValue(validatorModel, stepRt.getResult(), stepRt.getEvalScope(),
+//                    stepRt.getTaskRuntime().getSvcCtx(), DefaultValidationErrorCollector.THROW_ERROR);
+//            return null;
+//        };
+//    }
 
     private ITaskStep wrap(TaskStepModel stepModel, ITaskStep step) {
         step = decorateStep(stepModel, step);
@@ -138,7 +135,7 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
         }
 
         if (stepModel.getValidator() != null || stepModel.getOnReload() != null || stepModel.getOnEnter() != null) {
-            step = new ValidatorTaskStepWrapper(step, stepModel.getOnEnter(), buildValidator(stepModel.getValidator()), stepModel.getOnReload());
+            step = new ValidatorTaskStepWrapper(step, stepModel.getOnEnter(), stepModel.getValidator(), stepModel.getOnReload());
         }
 
         if (stepModel.isSync())

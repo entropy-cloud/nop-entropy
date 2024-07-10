@@ -83,7 +83,7 @@
             @operationSize 操作按钮列的宽度
             -->
             <table name="string" mode="string" filterDefaultVisible="boolean" filterTogglable="boolean"
-                   stopAutoRefreshWhenModalIsOpen="boolean"
+                   stopAutoRefreshWhenModalIsOpen="boolean" maxItemSelectionLength="int"
                    alwaysShowPagination="boolean" initFetch="boolean"
                    autoFillHeight="boolean-or-number" loadDataOnce="boolean"
                    sortable="boolean" noOperations="boolean"

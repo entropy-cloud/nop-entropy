@@ -85,10 +85,10 @@ public abstract class SchemaNodeImpl extends _SchemaNodeImpl implements ISchemaN
             node.makeChild("description").content(getLocation(), CDataText.encodeIfNecessary(getDescription()));
         }
 
-        if (getValidator() != null) {
-            XNode validatorN = getValidator().toNode();
-            node.appendChild(validatorN);
-        }
+//        if (getValidator() != null) {
+//            XNode validatorN = getValidator().toNode();
+//            node.appendChild(validatorN);
+//        }
 
         if (getRef() != null)
             node.setAttr(getLocation(), "ref", getRef());
