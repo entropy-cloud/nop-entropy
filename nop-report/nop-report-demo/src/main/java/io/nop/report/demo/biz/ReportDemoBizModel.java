@@ -10,6 +10,7 @@ package io.nop.report.demo.biz;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.beans.TreeResultBean;
 import io.nop.api.core.beans.WebContentBean;
 import io.nop.api.core.exceptions.NopException;
@@ -29,6 +30,7 @@ import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static io.nop.report.core.XptErrors.ARG_REPORT_NAME;
@@ -76,13 +78,23 @@ public class ReportDemoBizModel {
         return ret;
     }
 
+    /**
+     * 没有@BizQuery和@BizMutation注解的函数不会被发布为服务函数
+     */
+    public String renderHtml(String reportName) {
+        return renderHtml(reportName, null);
+    }
+
     @BizQuery
-    public String renderHtml(@Name("reportName") String reportName) {
+    public String renderHtml(@Name("reportName") String reportName, @Optional @Name("data") Map<String, Object> data) {
         Guard.checkArgument(StringHelper.isValidVPath(reportName));
         String path = REPORT_DEMO_PATH + reportName;
 
         ITextTemplateOutput output = reportEngine.getHtmlRenderer(path);
         IEvalScope scope = XLang.newEvalScope();
+        // 通过scope可以给报表传参数
+        if (data != null)
+            scope.setLocalValues(data);
         return output.generateText(scope);
     }
 

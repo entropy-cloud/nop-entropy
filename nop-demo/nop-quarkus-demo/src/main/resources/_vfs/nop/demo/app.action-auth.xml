@@ -12,13 +12,17 @@
                 <resource id="report-demo" displayName="报表演示" i18n-en:displayName="Report Demo" orderNo="1"
                           icon="ant-design:appstore-twotone" routePath="/report/demo/pages/demo" component="AMIS"
                           resourceType="SUBM" url="/nop/report/demo/pages/demo.page.yaml"/>
+                <resource id="report-demo2" displayName="报表传参演示" i18n-en:displayName="Report Demo With Params" orderNo="2"
+                          icon="ant-design:appstore-twotone" routePath="/report/demo/pages/demo2" component="AMIS"
+                          resourceType="SUBM" url="/nop/report/demo/pages/report-with-params.page.yaml"/>
 
-                <resource id="validator-demo" displayName="后台验证" i18n-en:displayName="Validator Demo" orderNo="2"
+
+                <resource id="validator-demo" displayName="后台验证" i18n-en:displayName="Validator Demo" orderNo="3"
                           icon="ant-design:appstore-twotone" routePath="/report/demo/pages/test-validator"
                           component="AMIS"
                           resourceType="SUBM" url="/nop/demo/pages/Demo/test-validator.page.yaml"/>
 
-                <resource id="model-editor-demo" displayName="模型编辑" i18n-en:displayName="Model Editor Demo" orderNo="3"
+                <resource id="model-editor-demo" displayName="模型编辑" i18n-en:displayName="Model Editor Demo" orderNo="4"
                           icon="ant-design:appstore-twotone" routePath="/nop/dev/pages/DevModule/main"
                           component="AMIS"
                           resourceType="SUBM" url="/nop/dev/pages/DevModule/main.page.yaml"/>

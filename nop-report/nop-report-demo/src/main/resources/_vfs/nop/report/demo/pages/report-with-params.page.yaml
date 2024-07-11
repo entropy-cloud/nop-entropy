@@ -1,0 +1,28 @@
+type: page
+body:
+  - type: form
+    title: 查询条件
+    target: reportService
+    mode: horizontal
+    body:
+      - type: hidden
+        name: reportName
+        value: /ext/report-with-params.xpt.xlsx
+      - type: input-text
+        name: title
+        required: true
+        label: 标题
+  # 在amis的新版本中，兄弟节点已经无法督导Service返回的变量
+  - type: service
+    name: reportService
+    api:
+      url: "@query:ReportDemo__renderHtml?reportName=${reportName}"
+      data:
+        data:
+          title: "${title}"
+      responseKey: reportHtml
+      sendOn: ${title}
+    body:
+      - type: tpl
+        name: html
+        tpl: '${reportHtml|raw}'
