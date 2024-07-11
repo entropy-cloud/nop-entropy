@@ -42,6 +42,10 @@
             <thisLib:GenActions actions="${pageModel.listActions?.filter(a=>a.batch)}" genScope="${genScope}"/>
         </bulkActions>
 
+        <itemActions j:list="true" xpl:if="!pageModel.itemActions?.empty">
+            <thisLib:GenActions actions="${pageModel.itemActions}" genScope="${genScope}"/>
+        </itemActions>
+
         <headerToolbar j:list="true">
             <filter-toggler id="filter-toggler"/>
             <thisLib:GenActions actions="${pageModel.listActions?.filter(a=>!a.batch)}" genScope="${genScope}"/>
