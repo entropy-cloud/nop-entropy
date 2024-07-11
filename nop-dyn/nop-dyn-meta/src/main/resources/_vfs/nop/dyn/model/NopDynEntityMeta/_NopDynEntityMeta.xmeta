@@ -106,9 +106,17 @@
                 <item bizObjName="NopDynPropMeta"/>
             </schema>
         </prop>
-        <prop name="relationMetasForEntity1" tagSet="pub,cascade-delete" ext:kind="to-many" internal="true"
-              ext:joinLeftProp="entityMetaId" ext:joinRightProp="entity1MetaId" insertable="false" updatable="false"
-              lazy="true">
+        <prop name="relationMetasForEntity" displayName="关联属性元数据" i18n-en:displayName="Relation Metas"
+              tagSet="pub,cascade-delete" ext:kind="to-many" internal="true" ext:joinLeftProp="entityMetaId"
+              ext:joinRightProp="entityMetaId" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopDynEntityRelationMeta"/>
+            </schema>
+        </prop>
+        <prop name="relationMetasForRefEntity" displayName="引用本实体的关联属性"
+              i18n-en:displayName="Relation Metas For Ref Entity" tagSet="pub,cascade-delete" ext:kind="to-many"
+              internal="true" ext:joinLeftProp="entityMetaId" ext:joinRightProp="refEntityMetaId" insertable="false"
+              updatable="false" lazy="true">
             <schema>
                 <item bizObjName="NopDynEntityRelationMeta"/>
             </schema>

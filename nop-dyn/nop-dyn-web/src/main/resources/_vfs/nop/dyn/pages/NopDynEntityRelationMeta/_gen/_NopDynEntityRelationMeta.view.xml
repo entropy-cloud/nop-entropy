@@ -18,32 +18,29 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--实体1元数据-->
-                <col id="entity1MetaId" mandatory="true" sortable="true"/>
+                <!--实体元数据-->
+                <col id="entityMetaId" mandatory="true" sortable="true"/>
 
-                <!--实体2元数据-->
-                <col id="entity2MetaId" mandatory="true" sortable="true"/>
+                <!--关联实体-->
+                <col id="refEntityMetaId" mandatory="true" sortable="true"/>
 
                 <!--关联名-->
                 <col id="relationName" mandatory="true" sortable="true"/>
 
+                <!--关联显示名-->
+                <col id="relationDisplyName" mandatory="true" sortable="true"/>
+
                 <!--关联类型-->
                 <col id="relationType" mandatory="true" sortable="true"/>
 
-                <!--实体1上属性名-->
-                <col id="entity1PropName" mandatory="true" sortable="true"/>
+                <!--左属性名-->
+                <col id="leftPropName" mandatory="true" sortable="true"/>
 
-                <!--实体1上属性显示名-->
-                <col id="entity1DisplayName" mandatory="true" sortable="true"/>
-
-                <!--实体2上属性名-->
-                <col id="entity2PropName" sortable="true"/>
-
-                <!--实体2上属性显示名-->
-                <col id="entity2DisplayName" sortable="true"/>
+                <!--右属性名-->
+                <col id="rightPropName" mandatory="true" sortable="true"/>
 
                 <!--中间表表名-->
-                <col id="tableName" sortable="true"/>
+                <col id="middleTableName" sortable="true"/>
 
                 <!--标签-->
                 <col id="tagsText" sortable="true"/>
@@ -74,29 +71,29 @@
     </grids>
 
     <forms>
-        <form id="view" editMode="view" title="查看-实体关联元数据" i18n-en:title="View Entity Relation Meta">
+        <form id="view" editMode="view" title="查看-实体关联属性定义" i18n-en:title="View Entity Relation Meta">
             <layout>
- entity1MetaId[实体1元数据] entity2MetaId[实体2元数据]
- relationName[关联名] relationType[关联类型]
- entity1PropName[实体1上属性名] entity1DisplayName[实体1上属性显示名]
- entity2PropName[实体2上属性名] entity2DisplayName[实体2上属性显示名]
- tableName[中间表表名] tagsText[标签]
- status[状态] extConfig[扩展配置]
- createdBy[创建人] createTime[创建时间]
- updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
+ entityMetaId[实体元数据] refEntityMetaId[关联实体]
+ relationName[关联名] relationDisplyName[关联显示名]
+ relationType[关联类型] leftPropName[左属性名]
+ rightPropName[右属性名] middleTableName[中间表表名]
+ tagsText[标签] status[状态]
+ extConfig[扩展配置] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] 
+                remark[备注]
 </layout>
         </form>
-        <form id="add" editMode="add" title="新增-实体关联元数据" i18n-en:title="Add Entity Relation Meta" x:prototype="edit"/>
-        <form id="edit" editMode="edit" title="编辑-实体关联元数据" i18n-en:title="Edit Entity Relation Meta">
+        <form id="add" editMode="add" title="新增-实体关联属性定义" i18n-en:title="Add Entity Relation Meta" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-实体关联属性定义" i18n-en:title="Edit Entity Relation Meta">
             <layout>
- entity1MetaId[实体1元数据] entity2MetaId[实体2元数据]
- relationName[关联名] relationType[关联类型]
- entity1PropName[实体1上属性名] entity1DisplayName[实体1上属性显示名]
- entity2PropName[实体2上属性名] entity2DisplayName[实体2上属性显示名]
- tableName[中间表表名] tagsText[标签]
- status[状态] extConfig[扩展配置]
- remark[备注] 
+ entityMetaId[实体元数据] refEntityMetaId[关联实体]
+ relationName[关联名] relationDisplyName[关联显示名]
+ relationType[关联类型] leftPropName[左属性名]
+ rightPropName[右属性名] middleTableName[中间表表名]
+ tagsText[标签] status[状态]
+ extConfig[扩展配置] 
+                remark[备注]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
@@ -105,7 +102,7 @@
         <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
             <layout/>
         </form>
-        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-实体关联元数据"
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-实体关联属性定义"
               i18n-en:title="Update Entity Relation Meta">
             <layout/>
         </form>

@@ -22,7 +22,8 @@
   "module": null,
   "module.displayName": "",
   "propMetas": null,
-  "relationMetasForEntity1": null,
+  "relationMetasForEntity": null,
+  "relationMetasForRefEntity": null,
   "functionMetas": null,
   "extConfigComponent": null
 }

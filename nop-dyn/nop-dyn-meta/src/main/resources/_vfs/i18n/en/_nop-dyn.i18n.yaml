@@ -121,7 +121,8 @@ prop:
       module: Module
       module.displayName: Module
       propMetas: null
-      relationMetasForEntity1: null
+      relationMetasForEntity: Relation Metas
+      relationMetasForRefEntity: Relation Metas For Ref Entity
       functionMetas: Function Metas
       extConfigComponent: null
     NopDynEntityRelation:
@@ -139,16 +140,15 @@ prop:
       remark: Remark
     NopDynEntityRelationMeta:
       relMetaId: Relation Meta ID
-      entity1MetaId: Entity1 Meta ID
-      entity2MetaId: Entity2 Meta ID
+      entityMetaId: Entity Meta ID
+      refEntityMetaId: Ref Entity Meta ID
       relationName: Relation Name
+      relationDisplyName: Relation Display Name
       relationType: Relation Type
       relationType_label: null
-      entity1PropName: Entity1 Prop Name
-      entity1DisplayName: Entity1 Display Name
-      entity2PropName: Entity2 Prop Name
-      entity2DisplayName: Entity2 Display Name
-      tableName: Table Name
+      leftPropName: Left Prop Name
+      rightPropName: Right Prop Name
+      middleTableName: Middle Table Name
       tagsText: Tag Set
       status: Status
       extConfig: Ext Config
@@ -158,10 +158,10 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
-      entityMeta1: Entity1 Meta
-      entityMeta1.entityName: Entity1 Meta
-      entityMeta2: Entity2 Meta
-      entityMeta2.entityName: Entity2 Meta
+      entityMeta: Entity Meta
+      entityMeta.entityName: Entity Meta
+      refEntityMeta: Ref Entity Meta
+      refEntityMeta.entityName: Ref Entity Meta
       extConfigComponent: null
     NopDynFile:
       fileId: File ID
@@ -283,11 +283,6 @@ prop:
       dynPropMapping: Dynamic Property Mapping
       tagsText: Tag Set
       defaultValue: Default Value
-      refEntityName: Ref Entity Name
-      refPropName: Ref Property Name
-      refPropDisplayName: Ref Property Display Name
-      refSetSort: Ret Set Sort Expression
-      refTagsText: Ref Tag Set
       extConfig: Ext Config
       status: Status
       status_label: null

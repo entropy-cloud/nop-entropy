@@ -197,9 +197,9 @@ public class DynEntityMetaToOrmModel {
     protected void buildRealEntityModel(OrmEntityModel entityModel, NopDynEntityMeta entityMeta) {
         entityMeta.getPropMetas().forEach(propMeta -> {
             entityModel.addColumn(toColumnModel(propMeta));
-            if (propMeta.getRefEntityName() != null) {
-                entityModel.addRelation(toRefModel(propMeta));
-            }
+//            if (propMeta.getRefEntityName() != null) {
+//                entityModel.addRelation(toRefModel(propMeta));
+//            }
         });
     }
 
@@ -235,14 +235,14 @@ public class DynEntityMetaToOrmModel {
                 propModel.setTagSet(TagsHelper.add(propModel.getTagSet(), OrmModelConstants.TAG_EAGER));
                 propModel.setPropPath(buildVirtualPropPath(propModel));
                 entityModel.addAlias(propModel);
-                if (propMeta.getRefEntityName() != null) {
-                    entityModel.addRelation(toRefModel(propMeta));
-                }
+//                if (propMeta.getRefEntityName() != null) {
+//                    entityModel.addRelation(toRefModel(propMeta));
+//                }
             }
 
-            if (!StringHelper.isEmpty(propMeta.getRefEntityName())) {
-                addRelation(entityModel, propMeta);
-            }
+//            if (!StringHelper.isEmpty(propMeta.getRefEntityName())) {
+//                addRelation(entityModel, propMeta);
+//            }
         });
 
         addExtFields(entityModel);
@@ -253,9 +253,9 @@ public class DynEntityMetaToOrmModel {
         ref.setName(getRefObjName(propMeta));
         ref.setDisplayName(getRefObjDisplayName(propMeta));
         ref.setTagSet(propMeta.getTagSet());
-        ref.setRefEntityName(propMeta.getRefEntityName());
-        ref.setRefPropName(propMeta.getRefPropName());
-        ref.setRefDisplayName(propMeta.getRefPropDisplayName());
+//        ref.setRefEntityName(propMeta.getRefEntityName());
+//        ref.setRefPropName(propMeta.getRefPropName());
+//        ref.setRefDisplayName(propMeta.getRefPropDisplayName());
 
         OrmJoinOnModel join = new OrmJoinOnModel();
         join.setLeftProp(propMeta.getPropName());
@@ -297,9 +297,9 @@ public class DynEntityMetaToOrmModel {
         OrmToOneReferenceModel ret = new OrmToOneReferenceModel();
         ret.setName(toRelationName(propMeta.getPropName()));
         ret.setDisplayName(toDisplayName(propMeta.getDisplayName()));
-        ret.setRefEntityName(propMeta.getRefEntityName());
-        ret.setRefPropName(propMeta.getRefPropName());
-        ret.setRefDisplayName(propMeta.getRefPropDisplayName());
+//        ret.setRefEntityName(propMeta.getRefEntityName());
+//        ret.setRefPropName(propMeta.getRefPropName());
+//        ret.setRefDisplayName(propMeta.getRefPropDisplayName());
         ret.setTagSet(propMeta.getTagSet());
 
         List<OrmJoinOnModel> join = new ArrayList<>(1);
@@ -441,30 +441,30 @@ public class DynEntityMetaToOrmModel {
 
     protected void addRelationTables(List<OrmEntityModel> ret, Collection<NopDynEntityMeta> entityMetas,
                                      String basePackageName) {
-        entityMetas.forEach(entityMeta -> {
-            boolean virtualTable = isVirtualTable(entityMeta);
-            entityMeta.getRelationMetasForEntity1().forEach(rel -> {
-                OrmEntityModel relTable = new OrmEntityModel();
-                relTable.setComment(rel.getRemark());
-                forceAddCol(relTable, dynRelationModel.getColumn(NopDynEntityRelation.PROP_NAME_sid, false));
-                if (virtualTable) {
-                    buildVirtualRelationTable(rel, basePackageName);
-                } else {
-                    buildRealRelationTable(rel, basePackageName);
-                }
-                relTable.setName(StringHelper.fullClassName(rel.getRelationName(), basePackageName));
-                if (relTable.getTableName() == null) {
-                    relTable.setTableName(StringHelper.camelCaseToUnderscore(relTable.getShortName(), true));
-                }
-                forceAddCol(relTable, dynRelationModel.getColumn(NopDynEntityRelation.PROP_NAME_entityId1, false));
-                forceAddCol(relTable, dynRelationModel.getColumn(NopDynEntityRelation.PROP_NAME_entityId2, false));
-                addStdColumns(relTable);
-                addJoinRelation(relTable, rel);
-                relTable.setTagSet(TagsHelper.parse(rel.getTagsText(), ','));
-                relTable.addTag(OrmModelConstants.TAG_MANY_TO_MANY);
-                ret.add(relTable);
-            });
-        });
+//        entityMetas.forEach(entityMeta -> {
+//            boolean virtualTable = isVirtualTable(entityMeta);
+//            entityMeta.getRelationMetasForEntity1().forEach(rel -> {
+//                OrmEntityModel relTable = new OrmEntityModel();
+//                relTable.setComment(rel.getRemark());
+//                forceAddCol(relTable, dynRelationModel.getColumn(NopDynEntityRelation.PROP_NAME_sid, false));
+//                if (virtualTable) {
+//                    buildVirtualRelationTable(rel, basePackageName);
+//                } else {
+//                    buildRealRelationTable(rel, basePackageName);
+//                }
+//                relTable.setName(StringHelper.fullClassName(rel.getRelationName(), basePackageName));
+//                if (relTable.getTableName() == null) {
+//                    relTable.setTableName(StringHelper.camelCaseToUnderscore(relTable.getShortName(), true));
+//                }
+//                forceAddCol(relTable, dynRelationModel.getColumn(NopDynEntityRelation.PROP_NAME_entityId1, false));
+//                forceAddCol(relTable, dynRelationModel.getColumn(NopDynEntityRelation.PROP_NAME_entityId2, false));
+//                addStdColumns(relTable);
+//                addJoinRelation(relTable, rel);
+//                relTable.setTagSet(TagsHelper.parse(rel.getTagsText(), ','));
+//                relTable.addTag(OrmModelConstants.TAG_MANY_TO_MANY);
+//                ret.add(relTable);
+//            });
+//        });
     }
 
 
@@ -473,12 +473,12 @@ public class DynEntityMetaToOrmModel {
         relTable.setClassName(NopDynEntityRelation.class.getName());
         relTable.setTableName(dynRelationModel.getTableName());
 
-        String entityName1 = StringHelper.fullClassName(rel.getEntityMeta1().getEntityName(), basePackageName);
-        String entityName2 = StringHelper.fullClassName(rel.getEntityMeta2().getEntityName(), basePackageName);
-
-        List<OrmEntityFilterModel> filters = new ArrayList<>();
-        filters.add(OrmEntityFilterModel.of(NopDynEntityRelation.PROP_NAME_entityName1, entityName1));
-        filters.add(OrmEntityFilterModel.of(NopDynEntityRelation.PROP_NAME_entityName2, entityName2));
+//        String entityName1 = StringHelper.fullClassName(rel.getEntityMeta1().getEntityName(), basePackageName);
+//        String entityName2 = StringHelper.fullClassName(rel.getEntityMeta2().getEntityName(), basePackageName);
+//
+//        List<OrmEntityFilterModel> filters = new ArrayList<>();
+//        filters.add(OrmEntityFilterModel.of(NopDynEntityRelation.PROP_NAME_entityName1, entityName1));
+//        filters.add(OrmEntityFilterModel.of(NopDynEntityRelation.PROP_NAME_entityName2, entityName2));
         return relTable;
     }
 
@@ -490,12 +490,12 @@ public class DynEntityMetaToOrmModel {
     }
 
     private void addJoinRelation(OrmEntityModel relTable, NopDynEntityRelationMeta rel) {
-        OrmReferenceModel ref1 = toRelationRefModel(NopDynEntityRelation.PROP_NAME_entityId1,
-                rel.getEntity1PropName(), rel.getEntity1DisplayName());
-        OrmReferenceModel ref2 = toRelationRefModel(NopDynEntityRelation.PROP_NAME_entityId2,
-                rel.getEntity2PropName(), rel.getEntity2DisplayName());
-        relTable.addRelation(ref1);
-        relTable.addRelation(ref2);
+//        OrmReferenceModel ref1 = toRelationRefModel(NopDynEntityRelation.PROP_NAME_entityId1,
+//                rel.getEntity1PropName(), rel.getEntity1DisplayName());
+//        OrmReferenceModel ref2 = toRelationRefModel(NopDynEntityRelation.PROP_NAME_entityId2,
+//                rel.getEntity2PropName(), rel.getEntity2DisplayName());
+//        relTable.addRelation(ref1);
+//        relTable.addRelation(ref2);
     }
 
     protected OrmReferenceModel toRelationRefModel(String propName, String refPropName, String refDisplayName) {

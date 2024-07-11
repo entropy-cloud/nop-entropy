@@ -6,7 +6,7 @@ entity:
     NopDynEntity: 动态实体
     NopDynEntityMeta: 实体元数据
     NopDynEntityRelation: 实体关联
-    NopDynEntityRelationMeta: 实体关联元数据
+    NopDynEntityRelationMeta: 实体关联属性定义
     NopDynFile: 模块文件
     NopDynFunctionMeta: 实体函数定义
     NopDynModule: 模块定义
@@ -113,7 +113,8 @@ prop:
       moduleId: 模块ID
       propMetas: null
       querySpace: 查询空间
-      relationMetasForEntity1: null
+      relationMetasForEntity: 关联属性元数据
+      relationMetasForRefEntity: 引用本实体的关联属性
       remark: 备注
       status: 状态
       status_label: 状态
@@ -140,25 +141,24 @@ prop:
     NopDynEntityRelationMeta:
       createTime: 创建时间
       createdBy: 创建人
-      entity1DisplayName: 实体1上属性显示名
-      entity1MetaId: 实体1元数据
-      entity1PropName: 实体1上属性名
-      entity2DisplayName: 实体2上属性显示名
-      entity2MetaId: 实体2元数据
-      entity2PropName: 实体2上属性名
-      entityMeta1: 关联实体1元数据
-      entityMeta1.entityName: 关联实体1元数据
-      entityMeta2: 关联实体2元数据
-      entityMeta2.entityName: 关联实体2元数据
+      entityMeta: 实体元数据
+      entityMeta.entityName: 实体元数据
+      entityMetaId: 实体元数据
       extConfig: 扩展配置
       extConfigComponent: null
+      leftPropName: 左属性名
+      middleTableName: 中间表表名
+      refEntityMeta: 关联实体元数据
+      refEntityMeta.entityName: 关联实体元数据
+      refEntityMetaId: 关联实体
       relMetaId: 关联定义ID
+      relationDisplyName: 关联显示名
       relationName: 关联名
       relationType: 关联类型
       relationType_label: 关联类型
       remark: 备注
+      rightPropName: 右属性名
       status: 状态
-      tableName: 中间表表名
       tagsText: 标签
       updateTime: 修改时间
       updatedBy: 修改人
@@ -282,11 +282,6 @@ prop:
       propId: 属性编号
       propMetaId: 属性定义ID
       propName: 属性名
-      refEntityName: 关联实体名
-      refPropDisplayName: 关联属性显示名
-      refPropName: 关联属性名
-      refSetSort: 关联集合排序条件
-      refTagsText: 关联属性标签
       remark: 备注
       scale: 小数位数
       status: 状态

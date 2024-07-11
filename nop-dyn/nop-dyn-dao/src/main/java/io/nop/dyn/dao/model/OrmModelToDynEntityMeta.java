@@ -76,15 +76,15 @@ public class OrmModelToDynEntityMeta {
             NopDynEntityMeta entityMeta2 = getEntityMeta(entityMetas, mappingMeta.getRefEntityName2());
             if (entityMeta2 == null)
                 continue;
-            NopDynEntityRelationMeta relMeta = new NopDynEntityRelationMeta();
-            relMeta.setEntityMeta1(entityMeta1);
-            relMeta.setEntityMeta2(entityMeta2);
-            relMeta.setRelationName(mappingMeta.getMappingEntityName());
-            relMeta.setTableName(mappingMeta.getMappingTableName());
-            relMeta.setTagsText(TagsHelper.toString(mappingMeta.getMappingTable().getTagSet()));
-            relMeta.setRemark(mappingMeta.getMappingTable().getComment());
-            relMeta.setRelationType(StringHelper.toString(mappingMeta.getRelationType(), null));
-            entityMeta1.getRelationMetasForEntity1().add(relMeta);
+//            NopDynEntityRelationMeta relMeta = new NopDynEntityRelationMeta();
+//            relMeta.setEntityMeta1(entityMeta1);
+//            relMeta.setEntityMeta2(entityMeta2);
+//            relMeta.setRelationName(mappingMeta.getMappingEntityName());
+//            relMeta.setTableName(mappingMeta.getMappingTableName());
+//            relMeta.setTagsText(TagsHelper.toString(mappingMeta.getMappingTable().getTagSet()));
+//            relMeta.setRemark(mappingMeta.getMappingTable().getComment());
+//            relMeta.setRelationType(StringHelper.toString(mappingMeta.getRelationType(), null));
+//            entityMeta1.getRelationMetasForEntity1().add(relMeta);
         }
     }
 
@@ -137,8 +137,8 @@ public class OrmModelToDynEntityMeta {
                 if (join.getLeftProp() != null) {
                     NopDynPropMeta propMeta = propMetas.get(join.getLeftProp());
                     if (propMeta != null) {
-                        propMeta.setRefEntityName(rel.getRefEntityName());
-                        propMeta.setRefPropName(rel.getRefPropName());
+                        //propMeta.setRefEntityName(rel.getRefEntityName());
+                        //propMeta.setRefPropName(rel.getRefPropName());
                         //propMeta.setRefPropDisplayName(rel.getDisplayName());
                     }
                 }
@@ -183,7 +183,7 @@ public class OrmModelToDynEntityMeta {
         // 只有AI生成的模型会使用这个属性，假定实体名已经正确设置
         String refTable = (String) col.prop_get(NopDynDaoConstants.EXT_ORM_REF_TABLE);
         if (refTable != null) {
-            propMeta.setRefEntityName(StringHelper.camelCase(refTable, true));
+           // propMeta.setRefEntityName(StringHelper.camelCase(refTable, true));
         }
     }
 }

@@ -71,15 +71,15 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopDynEntityRelationMeta-main" displayName="实体关联元数据" orderNo="10016"
+                <resource id="NopDynEntityRelationMeta-main" displayName="实体关联属性定义" orderNo="10016"
                           i18n-en:displayName="Entity Relation Meta" icon="ant-design:appstore-twotone" component="AMIS"
                           resourceType="SUBM" url="/nop/dyn/pages/NopDynEntityRelationMeta/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopDynEntityRelationMeta:query" displayName="查询实体关联元数据" orderNo="10017"
+                        <resource id="FNPT:NopDynEntityRelationMeta:query" displayName="查询实体关联属性定义" orderNo="10017"
                                   resourceType="FNPT">
                             <permissions>NopDynEntityRelationMeta:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopDynEntityRelationMeta:mutation" displayName="修改实体关联元数据" orderNo="10018"
+                        <resource id="FNPT:NopDynEntityRelationMeta:mutation" displayName="修改实体关联属性定义" orderNo="10018"
                                   resourceType="FNPT">
                             <permissions>NopDynEntityRelationMeta:mutation</permissions>
                         </resource>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
-      displayName="实体关联元数据" i18n-en:displayName="Entity Relation Meta" xmlns:ui="ui" xmlns:orm="orm">
+      displayName="实体关联属性定义" i18n-en:displayName="Entity Relation Meta" xmlns:ui="ui" xmlns:orm="orm">
 
     <entityName>io.nop.dyn.dao.entity.NopDynEntityRelationMeta</entityName>
 
@@ -23,98 +23,93 @@
               ui:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="entity1MetaId" displayName="实体1元数据" propId="2" i18n-en:displayName="Entity1 Meta ID"
-              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true"
-              ext:relation="entityMeta1">
+        <prop name="entityMetaId" displayName="实体元数据" propId="2" i18n-en:displayName="Entity Meta ID" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="entityMeta">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="entity2MetaId" displayName="实体2元数据" propId="3" i18n-en:displayName="Entity2 Meta ID"
+        <prop name="refEntityMetaId" displayName="关联实体" propId="3" i18n-en:displayName="Ref Entity Meta ID"
               mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true"
-              ext:relation="entityMeta2">
+              ext:relation="refEntityMeta">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="relationName" displayName="关联名" propId="4" i18n-en:displayName="Relation Name" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="relationType" displayName="关联类型" propId="5" i18n-en:displayName="Relation Type" mandatory="true"
+        <prop name="relationDisplyName" displayName="关联显示名" propId="5" i18n-en:displayName="Relation Display Name"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="relationType" displayName="关联类型" propId="6" i18n-en:displayName="Relation Type" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="10" dict="io.nop.orm.model.OrmRelationType"/>
         </prop>
-        <prop name="entity1PropName" displayName="实体1上属性名" propId="6" i18n-en:displayName="Entity1 Prop Name"
-              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="100"/>
-        </prop>
-        <prop name="entity1DisplayName" displayName="实体1上属性显示名" propId="7" i18n-en:displayName="Entity1 Display Name"
-              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="100"/>
-        </prop>
-        <prop name="entity2PropName" displayName="实体2上属性名" propId="8" i18n-en:displayName="Entity2 Prop Name"
+        <prop name="leftPropName" displayName="左属性名" propId="7" i18n-en:displayName="Left Prop Name" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="entity2DisplayName" displayName="实体2上属性显示名" propId="9" i18n-en:displayName="Entity2 Display Name"
+        <prop name="rightPropName" displayName="右属性名" propId="8" i18n-en:displayName="Right Prop Name" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="tableName" displayName="中间表表名" propId="10" i18n-en:displayName="Table Name" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="middleTableName" displayName="中间表表名" propId="9" i18n-en:displayName="Middle Table Name"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="tagsText" displayName="标签" propId="11" i18n-en:displayName="Tag Set" queryable="true"
+        <prop name="tagsText" displayName="标签" propId="10" i18n-en:displayName="Tag Set" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="status" displayName="状态" propId="12" i18n-en:displayName="Status" mandatory="true" queryable="true"
+        <prop name="status" displayName="状态" propId="11" i18n-en:displayName="Status" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer"/>
         </prop>
-        <prop name="extConfig" displayName="扩展配置" propId="13" i18n-en:displayName="Ext Config" queryable="true"
+        <prop name="extConfig" displayName="扩展配置" propId="12" i18n-en:displayName="Ext Config" queryable="true"
               sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="extConfigComponent">
             <schema stdDomain="json" domain="json-1000" type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="version" displayName="数据版本" propId="14" i18n-en:displayName="Version" mandatory="true"
+        <prop name="version" displayName="数据版本" propId="13" i18n-en:displayName="Version" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="version" type="java.lang.Integer"/>
         </prop>
-        <prop name="createdBy" displayName="创建人" propId="15" i18n-en:displayName="Created By" mandatory="true"
+        <prop name="createdBy" displayName="创建人" propId="14" i18n-en:displayName="Created By" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="createdBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="createTime" displayName="创建时间" propId="16" i18n-en:displayName="Create Time" mandatory="true"
+        <prop name="createTime" displayName="创建时间" propId="15" i18n-en:displayName="Create Time" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="createTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="updatedBy" displayName="修改人" propId="17" i18n-en:displayName="Updated By" mandatory="true"
+        <prop name="updatedBy" displayName="修改人" propId="16" i18n-en:displayName="Updated By" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="updatedBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="updateTime" displayName="修改时间" propId="18" i18n-en:displayName="Update Time" mandatory="true"
+        <prop name="updateTime" displayName="修改时间" propId="17" i18n-en:displayName="Update Time" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="remark" displayName="备注" propId="19" i18n-en:displayName="Remark" queryable="true" sortable="true"
+        <prop name="remark" displayName="备注" propId="18" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="true" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="entityMeta1" displayName="关联实体1元数据" i18n-en:displayName="Entity1 Meta"
+        <prop name="entityMeta" displayName="实体元数据" i18n-en:displayName="Entity Meta"
               tagSet="pub,ref-pub,ref-cascade-delete" ext:kind="to-one" internal="true" queryable="true"
-              ext:joinLeftProp="entity1MetaId" ext:joinRightProp="entityMetaId" ext:joinRightDisplayProp="entityName"
+              ext:joinLeftProp="entityMetaId" ext:joinRightProp="entityMetaId" ext:joinRightDisplayProp="entityName"
               insertable="false" updatable="false" mandatory="true" lazy="true">
             <schema bizObjName="NopDynEntityMeta"/>
         </prop>
-        <prop name="entityMeta1.entityName" displayName="关联实体1元数据" i18n-en:displayName="Entity1 Meta" internal="true"
+        <prop name="entityMeta.entityName" displayName="实体元数据" i18n-en:displayName="Entity Meta" internal="true"
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
         </prop>
-        <prop name="entityMeta2" displayName="关联实体2元数据" i18n-en:displayName="Entity2 Meta"
+        <prop name="refEntityMeta" displayName="关联实体元数据" i18n-en:displayName="Ref Entity Meta"
               tagSet="pub,ref-pub,ref-cascade-delete" ext:kind="to-one" internal="true" queryable="true"
-              ext:joinLeftProp="entity2MetaId" ext:joinRightProp="entityMetaId" ext:joinRightDisplayProp="entityName"
+              ext:joinLeftProp="refEntityMetaId" ext:joinRightProp="entityMetaId" ext:joinRightDisplayProp="entityName"
               insertable="false" updatable="false" mandatory="true" lazy="true">
             <schema bizObjName="NopDynEntityMeta"/>
         </prop>
-        <prop name="entityMeta2.entityName" displayName="关联实体2元数据" i18n-en:displayName="Entity2 Meta" internal="true"
-              queryable="true" sortable="true" lazy="true">
+        <prop name="refEntityMeta.entityName" displayName="关联实体元数据" i18n-en:displayName="Ref Entity Meta"
+              internal="true" queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
         </prop>
         <prop name="extConfigComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="true"

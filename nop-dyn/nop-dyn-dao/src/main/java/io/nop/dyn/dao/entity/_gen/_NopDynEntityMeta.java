@@ -98,8 +98,11 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /* relation:  */
     public static final String PROP_NAME_propMetas = "propMetas";
     
-    /* relation:  */
-    public static final String PROP_NAME_relationMetasForEntity1 = "relationMetasForEntity1";
+    /* relation: 关联属性元数据 */
+    public static final String PROP_NAME_relationMetasForEntity = "relationMetasForEntity";
+    
+    /* relation: 引用本实体的关联属性 */
+    public static final String PROP_NAME_relationMetasForRefEntity = "relationMetasForRefEntity";
     
     /* relation: 函数定义 */
     public static final String PROP_NAME_functionMetas = "functionMetas";
@@ -1016,14 +1019,24 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
        return _propMetas;
     }
        
-    private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynEntityRelationMeta> _relationMetasForEntity1 = new OrmEntitySet<>(this, PROP_NAME_relationMetasForEntity1,
-        io.nop.dyn.dao.entity.NopDynEntityRelationMeta.PROP_NAME_entityMeta1, null,io.nop.dyn.dao.entity.NopDynEntityRelationMeta.class);
+    private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynEntityRelationMeta> _relationMetasForEntity = new OrmEntitySet<>(this, PROP_NAME_relationMetasForEntity,
+        io.nop.dyn.dao.entity.NopDynEntityRelationMeta.PROP_NAME_entityMeta, null,io.nop.dyn.dao.entity.NopDynEntityRelationMeta.class);
 
     /**
-     * 。 refPropName: entityMeta1, keyProp: {rel.keyProp}
+     * 关联属性元数据。 refPropName: entityMeta, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynEntityRelationMeta> getRelationMetasForEntity1(){
-       return _relationMetasForEntity1;
+    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynEntityRelationMeta> getRelationMetasForEntity(){
+       return _relationMetasForEntity;
+    }
+       
+    private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynEntityRelationMeta> _relationMetasForRefEntity = new OrmEntitySet<>(this, PROP_NAME_relationMetasForRefEntity,
+        io.nop.dyn.dao.entity.NopDynEntityRelationMeta.PROP_NAME_refEntityMeta, null,io.nop.dyn.dao.entity.NopDynEntityRelationMeta.class);
+
+    /**
+     * 引用本实体的关联属性。 refPropName: refEntityMeta, keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynEntityRelationMeta> getRelationMetasForRefEntity(){
+       return _relationMetasForRefEntity;
     }
        
     private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynFunctionMeta> _functionMetas = new OrmEntitySet<>(this, PROP_NAME_functionMetas,
