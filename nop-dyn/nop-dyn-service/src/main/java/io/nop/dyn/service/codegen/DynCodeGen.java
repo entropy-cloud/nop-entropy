@@ -44,6 +44,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static io.nop.dyn.service.NopDynConfigs.CFG_DYN_GEN_CODE_WHEN_INIT;
+
 public class DynCodeGen {
     @Inject
     IDaoProvider daoProvider;
@@ -68,7 +70,8 @@ public class DynCodeGen {
     @PostConstruct
     @SingleSession
     public void init() {
-        generateForAllModules();
+        if (CFG_DYN_GEN_CODE_WHEN_INIT.get())
+            generateForAllModules();
     }
 
     public synchronized void generateForAllApps() {
