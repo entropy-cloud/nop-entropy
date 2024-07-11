@@ -27,15 +27,15 @@
 label: 步骤状态
 locale: zh-CN
 valueType: int
-description: 
+description:
 options:
   - label: 已创建
     value: 0
-    description: 
-  
+    description:
+
   - label: 已暂停
     value: 10
-    description: 
+    description:
 ```
 
 ## 国际化
@@ -90,3 +90,10 @@ public enum XDefOverride {
 ```
 
 字典表SQL返回的字段名必须是DictOptionBean这个Java类中的属性名，它会被自动包装为DictOptionBean对象。
+
+## 配置选项
+
+* nop.core.dict.return-normalized-label
+缺省为true，会将字典的值和label拼接在一起显示
+
+
