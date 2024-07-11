@@ -90,6 +90,7 @@ unreservedWord_:
     | LOWER | UPPER | ZONE |WORK
     | RECURSIVE | CURRENT_USER | USER | DATE | OCTET_LENGTH
     | CURRENT_DATE | BIT_LENGTH |GROUP |TIMESTAMP
+    | BEGIN|END
     ;
 
 // variable
