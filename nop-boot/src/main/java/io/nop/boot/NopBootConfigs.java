@@ -18,4 +18,7 @@ public interface NopBootConfigs {
 
     @Description("是否打印Nop平台的Banner")
     IConfigReference<Boolean> CFG_BANNER_ENABLED = varRef(s_loc, "nop.banner.enabled", Boolean.class, true);
+
+    @Description("是否输出执行成功的提示信息")
+    IConfigReference<Boolean> CFG_PRINT_SUCCESS_FLAG = varRef(s_loc, "nop.boot.print-success", Boolean.class, false);
 }

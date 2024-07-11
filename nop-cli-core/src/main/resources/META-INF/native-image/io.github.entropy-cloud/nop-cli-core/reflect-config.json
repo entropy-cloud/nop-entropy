@@ -3776,6 +3776,20 @@
         ]
       },
       {
+        "name": "parseDate",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseDateTime",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "parseDuration",
         "parameterTypes": [
           "java.lang.String"
@@ -3948,6 +3962,16 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "LOWER_CASE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "QUOTE_CN_CHARS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "QUOTE_EN_STRS"
       },
       {
         "allowUnsafeAccess": false,
@@ -5206,6 +5230,12 @@
         ]
       },
       {
+        "name": "normalizeChineseQuote",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "normalizeClassName",
         "parameterTypes": [
           "java.lang.String",
@@ -5423,6 +5453,12 @@
         "name": "removeTail",
         "parameterTypes": [
           "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "removeUrlQuery",
+        "parameterTypes": [
           "java.lang.String"
         ]
       },
@@ -9474,6 +9510,14 @@
         "parameterTypes": [
           "io.nop.core.resource.IFile",
           "java.io.OutputStream",
+          "io.nop.core.resource.zip.ZipOptions"
+        ]
+      },
+      {
+        "name": "zipLocalDir",
+        "parameterTypes": [
+          "java.io.File",
+          "java.io.File",
           "io.nop.core.resource.zip.ZipOptions"
         ]
       }
@@ -14473,6 +14517,12 @@
       {
         "name": "setValidator",
         "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setValidator",
+        "parameterTypes": [
           "io.nop.core.model.validator.ValidatorModel"
         ]
       },
@@ -15044,6 +15094,14 @@
         "parameterTypes": []
       },
       {
+        "name": "getExpandMaxCount",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExpandMinCount",
+        "parameterTypes": []
+      },
+      {
         "name": "getExpandOrderBy",
         "parameterTypes": []
       },
@@ -15161,6 +15219,18 @@
       },
       {
         "name": "setExpandInplaceCount",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setExpandMaxCount",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setExpandMinCount",
         "parameterTypes": [
           "java.lang.Integer"
         ]
@@ -18466,6 +18536,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getDeleteVersionPropId",
+        "parameterTypes": []
+      },
+      {
         "name": "getDisplayName",
         "parameterTypes": []
       },
@@ -19030,6 +19104,10 @@
       },
       {
         "name": "getDeleteFlagPropId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDeleteVersionPropId",
         "parameterTypes": []
       },
       {
@@ -23191,6 +23269,13 @@
         ]
       },
       {
+        "name": "getThreadPoolExecutor",
+        "parameterTypes": [
+          "io.nop.api.core.ioc.IBeanProvider",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "loadTask",
         "parameterTypes": [
           "io.nop.core.resource.IResource"
@@ -23697,6 +23782,12 @@
         "name": "setTimeout",
         "parameterTypes": [
           "long"
+        ]
+      },
+      {
+        "name": "setValidator",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
         ]
       },
       {
@@ -25908,6 +25999,12 @@
       {
         "name": "setValidator",
         "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setValidator",
+        "parameterTypes": [
           "io.nop.core.model.validator.ValidatorModel"
         ]
       }
@@ -26547,6 +26644,12 @@
         "name": "setUnknownAttrsVar",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setValidator",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
         ]
       },
       {

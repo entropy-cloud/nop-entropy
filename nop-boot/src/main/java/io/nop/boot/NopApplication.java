@@ -61,7 +61,14 @@ public class NopApplication {
         int ret = task.getAsInt();
 
         long endTime = CoreMetrics.currentTimeMillis();
-        LOG.info("nop.app.run:ret={},usedTime={}", ret, (endTime - beginTime));
+        if (ret == 0) {
+            LOG.info("nop.app.run-success:usedTime={}", (endTime - beginTime));
+            if (NopBootConfigs.CFG_PRINT_SUCCESS_FLAG.get()) {
+                System.out.println("nop.app.run-success:usedTime=" + (endTime - beginTime));
+            }
+        } else {
+            LOG.info("nop.app.run:ret={},usedTime={}", ret, (endTime - beginTime));
+        }
         return ret;
     }
 
