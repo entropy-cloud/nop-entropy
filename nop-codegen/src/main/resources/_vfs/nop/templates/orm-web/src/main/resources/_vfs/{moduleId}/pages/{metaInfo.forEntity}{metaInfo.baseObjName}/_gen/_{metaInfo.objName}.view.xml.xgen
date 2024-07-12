@@ -1,8 +1,8 @@
 <view x:schema="/nop/schema/xui/xview.xdef" bizObjName="${metaInfo.objName}"
-xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c"
+      xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c"
       xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
     <c:script>
-      let objMeta = metaInfo.objMeta;
+        let objMeta = metaInfo.objMeta;
     </c:script>
 
     <objMeta>${objMeta.resourcePath()}</objMeta>
@@ -19,7 +19,7 @@ xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c"
     </c:print>
 
 
-    <c:import from="/nop/codegen/xlib/web-gen.xlib" />
+    <c:import from="/nop/codegen/xlib/web-gen.xlib"/>
 
     <c:script><![CDATA[
       import io.nop.xui.utils.XuiHelper;
@@ -45,13 +45,13 @@ xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c"
 
     <grids>
         <grid id="list" x:abstract="true">
-          <cols>
-            <c:for var="prop" items="${visibleProps}">
-            <c:out escape="none"><![CDATA[<!-- ${prop.displayName.$safeXmlComment()} -->]]></c:out>
-            <col id="${prop.name}" mandatory="${prop.mandatory ? true: null}"
-                sortable="${prop.sortable?true:null}" x:abstract="${listProps.contains(prop)?null:true}" />
-            </c:for>
-          </cols>
+            <cols>
+                <c:for var="prop" items="${visibleProps}">
+                    <c:out escape="none"><![CDATA[<!-- ${prop.displayName.$safeXmlComment()} -->]]></c:out>
+                    <col id="${prop.name}" mandatory="${prop.mandatory ? true: null}"
+                         sortable="${prop.sortable?true:null}" x:abstract="${listProps.contains(prop)?null:true}"/>
+                </c:for>
+            </cols>
         </grid>
 
         <grid id="tree-list" xpl:if="objMeta.tree?.childrenProp" x:prototype="list">
@@ -65,7 +65,8 @@ xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c"
         <grid id="sub-grid-edit" x:prototype="list" editMode="list-edit" xpl:if="!refGridProps.empty">
             <cols>
                 <c:for var="prop" items="${visibleProps}">
-                    <col id="${prop.name}" x:abstract="true" xpl:if="refGridProps.contains(prop) || !editableProps.contains(prop)" />
+                    <col id="${prop.name}" x:abstract="true"
+                         xpl:if="refGridProps.contains(prop) || !editableProps.contains(prop)"/>
                 </c:for>
             </cols>
         </grid>
@@ -73,55 +74,71 @@ xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c"
         <grid id="sub-grid-view" x:prototype="list" editMode="list-view" xpl:if="!refGridProps.empty">
             <cols>
                 <c:for var="prop" items="${refGridProps}">
-                    <col id="${prop.name}" x:abstract="true" />
+                    <col id="${prop.name}" x:abstract="true"/>
                 </c:for>
             </cols>
         </grid>
     </grids>
 
     <forms>
-        <form id="view" editMode="view" title="查看-${objMeta.displayName}" i18n-en:title="View ${objMeta['i18n-en:displayName']}">
-            <web-gen:GenLayout props="${visibleProps}" />
+        <form id="view" editMode="view" title="查看-${objMeta.displayName}"
+              i18n-en:title="View ${objMeta['i18n-en:displayName']}">
+            <web-gen:GenLayout props="${visibleProps}"/>
         </form>
 
         <form id="add" editMode="add"
-            title="新增-${objMeta.displayName}" i18n-en:title="Add ${objMeta['i18n-en:displayName']}"
-            xpl:if="supportAdd and !useAddForm" x:prototype="edit">
+              title="新增-${objMeta.displayName}" i18n-en:title="Add ${objMeta['i18n-en:displayName']}"
+              xpl:if="supportAdd and !useAddForm" x:prototype="edit">
         </form>
 
         <form id="add" editMode="add"
-            title="新增-${objMeta.displayName}" i18n-en:title="Add ${objMeta['i18n-en:displayName']}"
-            xpl:if="supportAdd and useAddForm">
-           <web-gen:GenLayout props="${insertableProps}" />
+              title="新增-${objMeta.displayName}" i18n-en:title="Add ${objMeta['i18n-en:displayName']}"
+              xpl:if="supportAdd and useAddForm">
+            <web-gen:GenLayout props="${insertableProps}"/>
         </form>
 
         <form id="edit" editMode="edit"
-            title="编辑-${objMeta.displayName}" i18n-en:title="Edit ${objMeta['i18n-en:displayName']}"
-            xpl:if="supportUpdate">
-            <web-gen:GenLayout props="${editableProps}" />
+              title="编辑-${objMeta.displayName}" i18n-en:title="Edit ${objMeta['i18n-en:displayName']}"
+              xpl:if="supportUpdate">
+            <web-gen:GenLayout props="${editableProps}"/>
         </form>
 
-        <form id="query"  editMode="query" title="查询条件" i18n-en:title="Query Condition"
-            x:abstract="true">
-            <layout />
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition"
+              x:abstract="true">
+            <layout/>
         </form>
 
-        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true" >
-            <layout />
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
+            <layout/>
         </form>
 
         <form id="batchUpdate" editMode="edit" x:abstract="true" xpl:if="supportUpdate"
-            title="修改-${objMeta.displayName}" i18n-en:title="Update ${objMeta['i18n-en:displayName']}">
+              title="修改-${objMeta.displayName}" i18n-en:title="Update ${objMeta['i18n-en:displayName']}">
             <layout/>
         </form>
     </forms>
 
     <pages>
+        <crud name="view-list" grid="${childrenProp ? 'tree-list': 'list'}" asideFilterForm="asideFilter"
+              filterForm="query" x:abstract="true">
+            <table autoFillHeight="true" xpl:if="!childrenProp">
+                <api url="@query:${metaInfo.objName}__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+
+            <table loadDataOnce="true" sortable="false" pager="none" xpl:if="childrenProp">
+                <!--
+                在url中可以通过{@gql:listSelection}来引用后台根据grid配置生成的字段选择列表
+                -->
+                <api url="@query:${metaInfo.objName}__findList?filter_${parentProp}=__null"
+                     gql:selection="{@listSelection}"/>
+            </table>
+        </crud>
+
         <crud name="main" grid="${childrenProp ? 'tree-list': 'list'}" asideFilterForm="asideFilter" filterForm="query"
-            x:abstract="true">
+              x:abstract="true">
 
             <table autoFillHeight="true" xpl:if="!childrenProp">
-                <api url="@query:${metaInfo.objName}__findPage" gql:selection="{@pageSelection}" />
+                <api url="@query:${metaInfo.objName}__findPage" gql:selection="{@pageSelection}"/>
             </table>
 
 
@@ -130,24 +147,25 @@ xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c"
                 在url中可以通过{@gql:listSelection}来引用后台根据grid配置生成的字段选择列表
                 -->
                 <api url="@query:${metaInfo.objName}__findList?filter_${parentProp}=__null"
-                    gql:selection="{@listSelection}"/>
+                     gql:selection="{@listSelection}"/>
             </table>
 
             <listActions>
-                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true" x:abstract="${supportDelete?null:'true'}">
-                    <api url="@mutation:${metaInfo.objName}__batchDelete?ids=$ids" />
-                     <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true"
+                        x:abstract="${supportDelete?null:'true'}">
+                    <api url="@mutation:${metaInfo.objName}__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
                 </action>
 
                 <action id="add-button" level="primary" label="@i18n:common.add"
-                                    icon="fa fa-plus pull-left" xpl:if="supportAdd">
+                        icon="fa fa-plus pull-left" xpl:if="supportAdd">
                     <dialog page="add" x:abstract="${supportAdd?null:'true'}"/>
                 </action>
             </listActions>
 
             <rowActions>
-                <action id="row-view-button" level="primary" label="@i18n:common.view" >
-                    <dialog page="view" />
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
                 </action>
 
                 <!-- 一般情况下编辑按钮和删除按钮总是放在【更多】下拉选项中，只有明确指定的时候才会直接显示在操作区。
@@ -155,21 +173,21 @@ xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c"
                  -->
                 <action id="row-update-button" level="primary" label="@i18n:common.edit"
                         x:abstract="true">
-                    <dialog page="update" />
+                    <dialog page="update"/>
                 </action>
 
                 <action id="row-delete-button" level="danger" label="@i18n:common.delete"
                         x:abstract="true">
-                    <api url="@mutation:${metaInfo.objName}__delete?id=$id" />
+                    <api url="@mutation:${metaInfo.objName}__delete?id=$id"/>
                     <confirmText>@i18n:common.confirmDelete</confirmText>
                 </action>
 
                 <actionGroup id="row-more-button" label="@i18n:common.more" level="primary"
-                    xpl:if="supportDelete or supportUpdate">
+                             xpl:if="supportDelete or supportUpdate">
 
                     <action id="row-update-button" label="@i18n:common.edit"
-                                        x:abstract="${supportUpdate?null:'true'}">
-                        <dialog page="update" />
+                            x:abstract="${supportUpdate?null:'true'}">
+                        <dialog page="update"/>
                     </action>
 
                     <action id="row-add-child-button" label="@i18n:common.addChild" xpl:if="parentProp">
@@ -177,8 +195,8 @@ xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c"
                     </action>
 
                     <action id="row-delete-button" label="@i18n:common.delete"
-                                        x:abstract="${supportDelete?null:'true'}">
-                        <api url="@mutation:${metaInfo.objName}__delete?id=$id" />
+                            x:abstract="${supportDelete?null:'true'}">
+                        <api url="@mutation:${metaInfo.objName}__delete?id=$id"/>
                         <confirmText>@i18n:common.confirmDelete</confirmText>
                     </action>
                 </actionGroup>
@@ -187,24 +205,24 @@ xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c"
             </rowActions>
         </crud>
 
-        <picker name="picker" grid="pick-list"  asideFilterForm="asideFilter"
-            filterForm="query" x:abstract="true">
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter"
+                filterForm="query" x:abstract="true">
             <table>
                 <api url="@query:${metaInfo.objName}__findPage" gql:selection="{@pageSelection}"/>
             </table>
         </picker>
 
         <simple name="add" form="add" xpl:if="supportAdd">
-            <api url="@mutation:${metaInfo.objName}__save/id" />
+            <api url="@mutation:${metaInfo.objName}__save/id"/>
         </simple>
 
         <simple name="view" form="view">
-            <initApi url="@query:${metaInfo.objName}__get?id=$id" gql:selection="{@formSelection}" />
+            <initApi url="@query:${metaInfo.objName}__get?id=$id" gql:selection="{@formSelection}"/>
         </simple>
 
         <simple name="update" form="edit" xpl:if="supportUpdate">
             <initApi url="@query:${metaInfo.objName}__get?id=$id" gql:selection="{@formSelection}"/>
-            <api url="@mutation:${metaInfo.objName}__update/id?id=$id" withFormData="true" />
+            <api url="@mutation:${metaInfo.objName}__update/id?id=$id" withFormData="true"/>
         </simple>
 
         <simple name="add-child" form="add" xpl:if="supportAdd and parentProp">

@@ -28,10 +28,13 @@
                 <col id="relationName" mandatory="true" sortable="true"/>
 
                 <!--关联显示名-->
-                <col id="relationDisplyName" mandatory="true" sortable="true"/>
+                <col id="relationDisplayName" mandatory="true" sortable="true"/>
 
                 <!--关联类型-->
                 <col id="relationType" mandatory="true" sortable="true"/>
+
+                <!--中间表表名-->
+                <col id="middleTableName" sortable="true"/>
 
                 <!--左属性名-->
                 <col id="leftPropName" mandatory="true" sortable="true"/>
@@ -39,14 +42,11 @@
                 <!--右属性名-->
                 <col id="rightPropName" mandatory="true" sortable="true"/>
 
-                <!--中间表表名-->
-                <col id="middleTableName" sortable="true"/>
+                <!--状态-->
+                <col id="status" mandatory="true" sortable="true"/>
 
                 <!--标签-->
                 <col id="tagsText" sortable="true"/>
-
-                <!--状态-->
-                <col id="status" mandatory="true" sortable="true"/>
 
                 <!--扩展配置-->
                 <col id="extConfig" sortable="true"/>
@@ -74,10 +74,10 @@
         <form id="view" editMode="view" title="查看-实体关联属性定义" i18n-en:title="View Entity Relation Meta">
             <layout>
  entityMetaId[实体元数据] refEntityMetaId[关联实体]
- relationName[关联名] relationDisplyName[关联显示名]
- relationType[关联类型] leftPropName[左属性名]
- rightPropName[右属性名] middleTableName[中间表表名]
- tagsText[标签] status[状态]
+ relationName[关联名] relationDisplayName[关联显示名]
+ relationType[关联类型] middleTableName[中间表表名]
+ leftPropName[左属性名] rightPropName[右属性名]
+ status[状态] tagsText[标签]
  extConfig[扩展配置] createdBy[创建人]
  createTime[创建时间] updatedBy[修改人]
  updateTime[修改时间] 
@@ -88,10 +88,10 @@
         <form id="edit" editMode="edit" title="编辑-实体关联属性定义" i18n-en:title="Edit Entity Relation Meta">
             <layout>
  entityMetaId[实体元数据] refEntityMetaId[关联实体]
- relationName[关联名] relationDisplyName[关联显示名]
- relationType[关联类型] leftPropName[左属性名]
- rightPropName[右属性名] middleTableName[中间表表名]
- tagsText[标签] status[状态]
+ relationName[关联名] relationDisplayName[关联显示名]
+ relationType[关联类型] middleTableName[中间表表名]
+ leftPropName[左属性名] rightPropName[右属性名]
+ status[状态] tagsText[标签]
  extConfig[扩展配置] 
                 remark[备注]
 </layout>
@@ -109,6 +109,11 @@
     </forms>
 
     <pages>
+        <crud name="view-list" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopDynEntityRelationMeta__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </crud>
         <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
             <table autoFillHeight="true">
                 <api url="@query:NopDynEntityRelationMeta__findPage" gql:selection="{@pageSelection}"/>

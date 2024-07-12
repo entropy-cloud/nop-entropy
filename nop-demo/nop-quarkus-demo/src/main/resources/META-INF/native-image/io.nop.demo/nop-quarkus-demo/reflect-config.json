@@ -3593,6 +3593,231 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "closed"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "s_seq"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "taskQueue"
+      }
+    ],
+    "methods": [
+      {
+        "name": "checkClosed",
+        "parameterTypes": []
+      },
+      {
+        "name": "close",
+        "parameterTypes": []
+      },
+      {
+        "name": "execute",
+        "parameterTypes": [
+          "java.lang.Runnable"
+        ]
+      },
+      {
+        "name": "executeBlocking",
+        "parameterTypes": [
+          "java.util.function.Supplier",
+          "boolean"
+        ]
+      },
+      {
+        "name": "executeWithContext",
+        "parameterTypes": [
+          "java.util.concurrent.Callable"
+        ]
+      },
+      {
+        "name": "getAttribute",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getAttrs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCallExpireTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCallIp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInternalContext",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLocale",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPropagateRpcHeaders",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSeq",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSourceContext",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTaskQueue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTenantId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTimezone",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTraceId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUserId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUserName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUserRefNo",
+        "parameterTypes": []
+      },
+      {
+        "name": "isClosed",
+        "parameterTypes": []
+      },
+      {
+        "name": "isRunningOnContext",
+        "parameterTypes": []
+      },
+      {
+        "name": "removeAttribute",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "removeAttribute",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "runOnContext",
+        "parameterTypes": [
+          "java.lang.Runnable"
+        ]
+      },
+      {
+        "name": "setAttribute",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setCallExpireTime",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "setCallIp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setLocale",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setPropagateRpcHeaders",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setTenantId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTimezone",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTraceId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUserId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUserName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUserRefNo",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "syncGet",
+        "parameterTypes": [
+          "java.util.concurrent.CompletionStage"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.context.BaseContext",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [
       {
@@ -33179,7 +33404,17 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_relationMetasForEntity"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_relationMetasForEntity1"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_relationMetasForRefEntity"
       },
       {
         "allowUnsafeAccess": false,
@@ -33280,7 +33515,15 @@
         "parameterTypes": []
       },
       {
+        "name": "getRelationMetasForEntity",
+        "parameterTypes": []
+      },
+      {
         "name": "getRelationMetasForEntity1",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelationMetasForRefEntity",
         "parameterTypes": []
       },
       {
@@ -33860,12 +34103,42 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_entityMetaId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_extConfig"
       },
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_leftPropName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_middleTableName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_refEntityMetaId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_relMetaId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_relationDisplayName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_relationDisplyName"
       },
       {
         "allowUnsafeAccess": false,
@@ -33881,6 +34154,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_ID_remark"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_rightPropName"
       },
       {
         "allowUnsafeAccess": false,
@@ -33955,12 +34233,22 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_entityMeta"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_entityMeta1"
       },
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_NAME_entityMeta2"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_entityMetaId"
       },
       {
         "allowUnsafeAccess": false,
@@ -33975,7 +34263,37 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_leftPropName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_middleTableName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_refEntityMeta"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_refEntityMetaId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_relMetaId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_relationDisplayName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_relationDisplyName"
       },
       {
         "allowUnsafeAccess": false,
@@ -33991,6 +34309,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_NAME_remark"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_rightPropName"
       },
       {
         "allowUnsafeAccess": false,
@@ -34061,11 +34384,19 @@
         "parameterTypes": []
       },
       {
+        "name": "getEntityMeta",
+        "parameterTypes": []
+      },
+      {
         "name": "getEntityMeta1",
         "parameterTypes": []
       },
       {
         "name": "getEntityMeta2",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEntityMetaId",
         "parameterTypes": []
       },
       {
@@ -34077,7 +34408,31 @@
         "parameterTypes": []
       },
       {
+        "name": "getLeftPropName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMiddleTableName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRefEntityMeta",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRefEntityMetaId",
+        "parameterTypes": []
+      },
+      {
         "name": "getRelMetaId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelationDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelationDisplyName",
         "parameterTypes": []
       },
       {
@@ -34090,6 +34445,10 @@
       },
       {
         "name": "getRemark",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRightPropName",
         "parameterTypes": []
       },
       {
@@ -34219,6 +34578,12 @@
         ]
       },
       {
+        "name": "setEntityMeta",
+        "parameterTypes": [
+          "io.nop.dyn.dao.entity.NopDynEntityMeta"
+        ]
+      },
+      {
         "name": "setEntityMeta1",
         "parameterTypes": [
           "io.nop.dyn.dao.entity.NopDynEntityMeta"
@@ -34231,13 +34596,55 @@
         ]
       },
       {
+        "name": "setEntityMetaId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setExtConfig",
         "parameterTypes": [
           "java.lang.String"
         ]
       },
       {
+        "name": "setLeftPropName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setMiddleTableName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRefEntityMeta",
+        "parameterTypes": [
+          "io.nop.dyn.dao.entity.NopDynEntityMeta"
+        ]
+      },
+      {
+        "name": "setRefEntityMetaId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setRelMetaId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRelationDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRelationDisplyName",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -34256,6 +34663,12 @@
       },
       {
         "name": "setRemark",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRightPropName",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -37680,7 +38093,14 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [],
+    "methods": [
+      {
+        "name": "allProps",
+        "parameterTypes": [
+          "io.nop.dyn.dao.entity.NopDynEntityMeta"
+        ]
+      }
+    ],
     "name": "io.nop.dyn.service.entity.NopDynEntityMetaBizModel",
     "unsafeAllocated": false
   },
@@ -83190,6 +83610,16 @@
     "fields": [],
     "methods": [],
     "name": "java.util.Collections$EmptyList",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.util.Collections$EmptyMap",
     "unsafeAllocated": false
   },
   {

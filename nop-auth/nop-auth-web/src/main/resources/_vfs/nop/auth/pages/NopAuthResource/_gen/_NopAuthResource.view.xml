@@ -146,6 +146,11 @@
     </forms>
 
     <pages>
+        <crud name="view-list" grid="tree-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table loadDataOnce="true" sortable="false" pager="none">
+                <api url="@query:NopAuthResource__findList?filter_parentId=__null" gql:selection="{@listSelection}"/>
+            </table>
+        </crud>
         <crud name="main" grid="tree-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
             <table loadDataOnce="true" sortable="false" pager="none">
                 <api url="@query:NopAuthResource__findList?filter_parentId=__null" gql:selection="{@listSelection}"/>

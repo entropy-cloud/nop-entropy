@@ -3420,6 +3420,12 @@
         ]
       },
       {
+        "name": "formatTimestampNoMillis",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
         "name": "fromUTC",
         "parameterTypes": [
           "java.time.LocalDateTime"

@@ -920,10 +920,15 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     }
 
     protected IOrmEntity getRefEntity(IEntityModel entityModel, T entity, String refName, IServiceContext context) {
+        IObjPropMeta propMeta = getThisObj().getObjMeta().getProp(refName);
+        if (propMeta != null) {
+
+        }
+
         IEntityRelationModel relModel = entityModel.getRelation(refName, true);
         if (relModel == null) {
             // 实体模型上不存在这个关联
-            IObjPropMeta propMeta = getThisObj().requireObjMeta().requireProp(refName);
+            propMeta = getThisObj().requireObjMeta().requireProp(refName);
             String leftProp = (String) propMeta.prop_get(BizConstants.EXT_JOIN_LEFT_PROP);
             String rightProp = (String) propMeta.prop_get(BizConstants.EXT_JOIN_RIGHT_PROP);
 

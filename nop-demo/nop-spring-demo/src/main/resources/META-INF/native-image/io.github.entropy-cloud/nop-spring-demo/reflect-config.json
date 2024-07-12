@@ -5793,6 +5793,10 @@
         "parameterTypes": []
       },
       {
+        "name": "removePermissions",
+        "parameterTypes": []
+      },
+      {
         "name": "setConfigVersion",
         "parameterTypes": [
           "java.lang.String"
@@ -5975,6 +5979,10 @@
       },
       {
         "name": "removeInactive",
+        "parameterTypes": []
+      },
+      {
+        "name": "removePermissions",
         "parameterTypes": []
       },
       {
@@ -15250,9 +15258,23 @@
         ]
       },
       {
+        "name": "filterForUser",
+        "parameterTypes": [
+          "io.nop.auth.api.messages.SiteMapBean",
+          "boolean"
+        ]
+      },
+      {
         "name": "getSiteMap",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "getSiteMap",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean"
         ]
       }
     ],
@@ -15982,6 +16004,16 @@
         ]
       },
       {
+        "name": "filterAllowedMenu",
+        "parameterTypes": [
+          "io.nop.auth.api.messages.SiteMapBean",
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.Set",
+          "boolean"
+        ]
+      },
+      {
         "name": "getAllowedSiteEntries",
         "parameterTypes": [
           "java.lang.String",
@@ -16451,6 +16483,13 @@
       {
         "name": "daoProvider",
         "parameterTypes": []
+      },
+      {
+        "name": "defaultPrepareCopyForNew",
+        "parameterTypes": [
+          "io.nop.biz.crud.EntityData",
+          "io.nop.core.context.IServiceContext"
+        ]
       },
       {
         "name": "defaultPrepareDelete",
@@ -17189,6 +17228,23 @@
         ]
       },
       {
+        "name": "triggerStateChange",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "triggerStateChange",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext",
+          "java.util.function.Consumer"
+        ]
+      },
+      {
         "name": "tryDelete",
         "parameterTypes": [
           "java.lang.String",
@@ -17801,6 +17857,12 @@
     "fields": [],
     "methods": [
       {
+        "name": "buildBizObject",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "buildResponse",
         "parameterTypes": [
           "java.lang.String",
@@ -17980,6 +18042,27 @@
       }
     ],
     "name": "io.nop.biz.impl.DefaultBizAuthChecker",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "transform",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.lang.String",
+          "java.lang.String",
+          "io.nop.biz.api.IBizObject",
+          "io.nop.core.context.IServiceContext"
+        ]
+      }
+    ],
+    "name": "io.nop.biz.impl.EmptyQueryTransformer",
     "unsafeAllocated": false
   },
   {
@@ -22704,6 +22787,12 @@
         "name": "setEvalScope",
         "parameterTypes": [
           "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "setExecutionId",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       }
     ],
@@ -34184,6 +34273,13 @@
         ]
       },
       {
+        "name": "fetchResult",
+        "parameterTypes": [
+          "java.lang.Object",
+          "io.nop.graphql.core.IGraphQLExecutionContext"
+        ]
+      },
+      {
         "name": "getDirective",
         "parameterTypes": [
           "java.lang.String"
@@ -39236,6 +39332,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getDeleteVersionPropId",
+        "parameterTypes": []
+      },
+      {
         "name": "getDisplayName",
         "parameterTypes": []
       },
@@ -40009,6 +40109,10 @@
       },
       {
         "name": "getDeleteFlagPropId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDeleteVersionPropId",
         "parameterTypes": []
       },
       {
@@ -43467,6 +43571,13 @@
         "parameterTypes": []
       },
       {
+        "name": "computeIfAbsent",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.util.function.Function"
+        ]
+      },
+      {
         "name": "defaultGetProp",
         "parameterTypes": [
           "java.lang.String"
@@ -44196,6 +44307,13 @@
         "name": "renderHtml",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "renderHtml",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.util.Map"
         ]
       }
     ],
@@ -52407,6 +52525,12 @@
       {
         "name": "setValidator",
         "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setValidator",
+        "parameterTypes": [
           "io.nop.core.model.validator.ValidatorModel"
         ]
       }
@@ -53420,6 +53544,12 @@
         "name": "setUnknownAttrsVar",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setValidator",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
         ]
       },
       {
