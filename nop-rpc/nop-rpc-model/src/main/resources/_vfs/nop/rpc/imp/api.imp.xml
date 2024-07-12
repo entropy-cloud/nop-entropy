@@ -197,6 +197,10 @@
                             <schema stdDomain="csv-set"/>
                         </field>
 
+                        <field name="restPath" displayName="服务链接">
+                            <schema stdDomain="string" />
+                        </field>
+
                         <field name="requestMessage" displayName="请求消息" mandatory="true">
                             <schema stdDomain="class-name"/>
                         </field>

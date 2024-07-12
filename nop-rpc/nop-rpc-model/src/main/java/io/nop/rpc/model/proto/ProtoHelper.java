@@ -83,6 +83,12 @@ public class ProtoHelper {
             case STRING:
             case DATE:
             case DATETIME:
+            case TIMESTAMP:
+            case TIME:
+            case GEOMETRY:
+            case DURATION:
+            //case FILE:
+            //case FILES:
             case MAP:
                 return BinaryScalarType.STRING;
             default:

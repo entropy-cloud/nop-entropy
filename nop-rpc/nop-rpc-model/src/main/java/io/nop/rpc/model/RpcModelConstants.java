@@ -15,4 +15,11 @@ public interface RpcModelConstants {
 
     String PROTO_TYPE_ANY = "google.protobuf.Any";
 
+    String OPTION_TCC_CANCEL_METHOD = "nop_tcc_cancel_method";
+
+    String OPTION_TCC_CONFIRM_METHOD = "nop_tcc_confirm_method";
+
+    String OPTION_TIMEOUT = "nop_timeout";
+
+    String OPTION_REST_PATH = "nop_rest_path";
 }
