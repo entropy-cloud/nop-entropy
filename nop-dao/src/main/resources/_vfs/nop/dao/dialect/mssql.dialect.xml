@@ -200,6 +200,7 @@
         <sqlDataType name="NUMERIC" stdSqlType="DECIMAL" deprecated="true"/>
         <sqlDataType name="TEXT" stdSqlType="VARCHAR" allowPrecision="false"/>
         <sqlDataType name="IMAGE" stdSqlType="VARBINARY" allowPrecision="false"/>
+        <sqlDataType name="JSON" stdSqlType="JSON"/>
     </sqlDataTypes>
 
 </dialect>

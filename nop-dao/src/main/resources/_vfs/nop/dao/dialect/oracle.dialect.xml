@@ -176,5 +176,6 @@
         1表示true, 0表示false。jdbc驱动可以自动转换为boolean
         -->
         <sqlDataType name="BOOLEAN" code="CHAR(1)" stdSqlType="BOOLEAN"/>
+        <sqlDataType name="JSON" stdSqlType="JSON"/>
     </sqlDataTypes>
 </dialect>
