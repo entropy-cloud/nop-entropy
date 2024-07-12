@@ -240,13 +240,13 @@ CREATE TABLE nop_dyn_entity_relation_meta(
   ENTITY_META_ID VARCHAR(32) NOT NULL ,
   REF_ENTITY_META_ID VARCHAR(32) NOT NULL ,
   RELATION_NAME VARCHAR(100) NOT NULL ,
-  RELATION_DISPLY_NAME VARCHAR(100) NOT NULL ,
+  RELATION_DISPLAY_NAME VARCHAR(100) NOT NULL ,
   RELATION_TYPE VARCHAR(10) NOT NULL ,
+  MIDDLE_TABLE_NAME VARCHAR(100)  ,
   LEFT_PROP_NAME VARCHAR(100) NOT NULL ,
   RIGHT_PROP_NAME VARCHAR(100) NOT NULL ,
-  MIDDLE_TABLE_NAME VARCHAR(100)  ,
-  TAGS_TEXT VARCHAR(200)  ,
   STATUS INT4 NOT NULL ,
+  TAGS_TEXT VARCHAR(200)  ,
   EXT_CONFIG VARCHAR(1000)  ,
   VERSION INT4 NOT NULL ,
   CREATED_BY VARCHAR(50) NOT NULL ,
@@ -689,19 +689,19 @@ CREATE TABLE nop_dyn_function_meta(
                     
       COMMENT ON COLUMN nop_dyn_entity_relation_meta.RELATION_NAME IS '关联名';
                     
-      COMMENT ON COLUMN nop_dyn_entity_relation_meta.RELATION_DISPLY_NAME IS '关联显示名';
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.RELATION_DISPLAY_NAME IS '关联显示名';
                     
       COMMENT ON COLUMN nop_dyn_entity_relation_meta.RELATION_TYPE IS '关联类型';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.MIDDLE_TABLE_NAME IS '中间表表名';
                     
       COMMENT ON COLUMN nop_dyn_entity_relation_meta.LEFT_PROP_NAME IS '左属性名';
                     
       COMMENT ON COLUMN nop_dyn_entity_relation_meta.RIGHT_PROP_NAME IS '右属性名';
                     
-      COMMENT ON COLUMN nop_dyn_entity_relation_meta.MIDDLE_TABLE_NAME IS '中间表表名';
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.STATUS IS '状态';
                     
       COMMENT ON COLUMN nop_dyn_entity_relation_meta.TAGS_TEXT IS '标签';
-                    
-      COMMENT ON COLUMN nop_dyn_entity_relation_meta.STATUS IS '状态';
                     
       COMMENT ON COLUMN nop_dyn_entity_relation_meta.EXT_CONFIG IS '扩展配置';
                     

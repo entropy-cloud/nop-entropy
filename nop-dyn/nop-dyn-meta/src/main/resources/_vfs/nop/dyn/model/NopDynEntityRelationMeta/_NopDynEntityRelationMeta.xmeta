@@ -36,7 +36,7 @@
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="relationDisplyName" displayName="关联显示名" propId="5" i18n-en:displayName="Relation Display Name"
+        <prop name="relationDisplayName" displayName="关联显示名" propId="5" i18n-en:displayName="Relation Display Name"
               mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
@@ -44,25 +44,25 @@
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="10" dict="io.nop.orm.model.OrmRelationType"/>
         </prop>
-        <prop name="leftPropName" displayName="左属性名" propId="7" i18n-en:displayName="Left Prop Name" mandatory="true"
+        <prop name="middleTableName" displayName="中间表表名" propId="7" i18n-en:displayName="Middle Table Name"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="rightPropName" displayName="右属性名" propId="8" i18n-en:displayName="Right Prop Name" mandatory="true"
+        <prop name="leftPropName" displayName="左属性名" propId="8" i18n-en:displayName="Left Prop Name" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="middleTableName" displayName="中间表表名" propId="9" i18n-en:displayName="Middle Table Name"
+        <prop name="rightPropName" displayName="右属性名" propId="9" i18n-en:displayName="Right Prop Name" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="tagsText" displayName="标签" propId="10" i18n-en:displayName="Tag Set" queryable="true"
-              sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="200"/>
-        </prop>
-        <prop name="status" displayName="状态" propId="11" i18n-en:displayName="Status" mandatory="true" queryable="true"
+        <prop name="status" displayName="状态" propId="10" i18n-en:displayName="Status" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="tagsText" displayName="标签" propId="11" i18n-en:displayName="Tag Set" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
         </prop>
         <prop name="extConfig" displayName="扩展配置" propId="12" i18n-en:displayName="Ext Config" queryable="true"
               sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="extConfigComponent">

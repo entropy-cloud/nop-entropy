@@ -152,7 +152,7 @@ prop:
       refEntityMeta.entityName: 关联实体元数据
       refEntityMetaId: 关联实体
       relMetaId: 关联定义ID
-      relationDisplyName: 关联显示名
+      relationDisplayName: 关联显示名
       relationName: 关联名
       relationType: 关联类型
       relationType_label: 关联类型

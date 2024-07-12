@@ -650,22 +650,22 @@
                         i18n-en:displayName="Ref Entity Meta ID"/>
                 <column code="RELATION_NAME" displayName="关联名" mandatory="true" name="relationName" precision="100"
                         propId="4" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Relation Name"/>
-                <column code="RELATION_DISPLY_NAME" displayName="关联显示名" mandatory="true" name="relationDisplyName"
+                <column code="RELATION_DISPLAY_NAME" displayName="关联显示名" mandatory="true" name="relationDisplayName"
                         precision="100" propId="5" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Relation Display Name"/>
                 <column code="RELATION_TYPE" displayName="关联类型" mandatory="true" name="relationType" precision="10"
                         propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Relation Type"
                         ext:dict="io.nop.orm.model.OrmRelationType"/>
-                <column code="LEFT_PROP_NAME" displayName="左属性名" mandatory="true" name="leftPropName" precision="100"
-                        propId="7" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Left Prop Name"/>
-                <column code="RIGHT_PROP_NAME" displayName="右属性名" mandatory="true" name="rightPropName" precision="100"
-                        propId="8" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Right Prop Name"/>
-                <column code="MIDDLE_TABLE_NAME" displayName="中间表表名" name="middleTableName" precision="100" propId="9"
+                <column code="MIDDLE_TABLE_NAME" displayName="中间表表名" name="middleTableName" precision="100" propId="7"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Middle Table Name"/>
-                <column code="TAGS_TEXT" displayName="标签" name="tagsText" precision="200" propId="10"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Tag Set"/>
-                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="11" stdDataType="int"
+                <column code="LEFT_PROP_NAME" displayName="左属性名" mandatory="true" name="leftPropName" precision="100"
+                        propId="8" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Left Prop Name"/>
+                <column code="RIGHT_PROP_NAME" displayName="右属性名" mandatory="true" name="rightPropName" precision="100"
+                        propId="9" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Right Prop Name"/>
+                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="10" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Status"/>
+                <column code="TAGS_TEXT" displayName="标签" name="tagsText" precision="200" propId="11"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Tag Set"/>
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-1000" name="extConfig" precision="1000"
                         propId="12" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>

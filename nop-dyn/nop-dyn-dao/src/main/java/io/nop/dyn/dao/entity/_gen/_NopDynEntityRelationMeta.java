@@ -36,33 +36,33 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
     public static final String PROP_NAME_relationName = "relationName";
     public static final int PROP_ID_relationName = 4;
     
-    /* 关联显示名: RELATION_DISPLY_NAME VARCHAR */
-    public static final String PROP_NAME_relationDisplyName = "relationDisplyName";
-    public static final int PROP_ID_relationDisplyName = 5;
+    /* 关联显示名: RELATION_DISPLAY_NAME VARCHAR */
+    public static final String PROP_NAME_relationDisplayName = "relationDisplayName";
+    public static final int PROP_ID_relationDisplayName = 5;
     
     /* 关联类型: RELATION_TYPE VARCHAR */
     public static final String PROP_NAME_relationType = "relationType";
     public static final int PROP_ID_relationType = 6;
     
+    /* 中间表表名: MIDDLE_TABLE_NAME VARCHAR */
+    public static final String PROP_NAME_middleTableName = "middleTableName";
+    public static final int PROP_ID_middleTableName = 7;
+    
     /* 左属性名: LEFT_PROP_NAME VARCHAR */
     public static final String PROP_NAME_leftPropName = "leftPropName";
-    public static final int PROP_ID_leftPropName = 7;
+    public static final int PROP_ID_leftPropName = 8;
     
     /* 右属性名: RIGHT_PROP_NAME VARCHAR */
     public static final String PROP_NAME_rightPropName = "rightPropName";
-    public static final int PROP_ID_rightPropName = 8;
-    
-    /* 中间表表名: MIDDLE_TABLE_NAME VARCHAR */
-    public static final String PROP_NAME_middleTableName = "middleTableName";
-    public static final int PROP_ID_middleTableName = 9;
-    
-    /* 标签: TAGS_TEXT VARCHAR */
-    public static final String PROP_NAME_tagsText = "tagsText";
-    public static final int PROP_ID_tagsText = 10;
+    public static final int PROP_ID_rightPropName = 9;
     
     /* 状态: STATUS INTEGER */
     public static final String PROP_NAME_status = "status";
-    public static final int PROP_ID_status = 11;
+    public static final int PROP_ID_status = 10;
+    
+    /* 标签: TAGS_TEXT VARCHAR */
+    public static final String PROP_NAME_tagsText = "tagsText";
+    public static final int PROP_ID_tagsText = 11;
     
     /* 扩展配置: EXT_CONFIG VARCHAR */
     public static final String PROP_NAME_extConfig = "extConfig";
@@ -125,11 +125,14 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_relationName] = PROP_NAME_relationName;
           PROP_NAME_TO_ID.put(PROP_NAME_relationName, PROP_ID_relationName);
       
-          PROP_ID_TO_NAME[PROP_ID_relationDisplyName] = PROP_NAME_relationDisplyName;
-          PROP_NAME_TO_ID.put(PROP_NAME_relationDisplyName, PROP_ID_relationDisplyName);
+          PROP_ID_TO_NAME[PROP_ID_relationDisplayName] = PROP_NAME_relationDisplayName;
+          PROP_NAME_TO_ID.put(PROP_NAME_relationDisplayName, PROP_ID_relationDisplayName);
       
           PROP_ID_TO_NAME[PROP_ID_relationType] = PROP_NAME_relationType;
           PROP_NAME_TO_ID.put(PROP_NAME_relationType, PROP_ID_relationType);
+      
+          PROP_ID_TO_NAME[PROP_ID_middleTableName] = PROP_NAME_middleTableName;
+          PROP_NAME_TO_ID.put(PROP_NAME_middleTableName, PROP_ID_middleTableName);
       
           PROP_ID_TO_NAME[PROP_ID_leftPropName] = PROP_NAME_leftPropName;
           PROP_NAME_TO_ID.put(PROP_NAME_leftPropName, PROP_ID_leftPropName);
@@ -137,14 +140,11 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_rightPropName] = PROP_NAME_rightPropName;
           PROP_NAME_TO_ID.put(PROP_NAME_rightPropName, PROP_ID_rightPropName);
       
-          PROP_ID_TO_NAME[PROP_ID_middleTableName] = PROP_NAME_middleTableName;
-          PROP_NAME_TO_ID.put(PROP_NAME_middleTableName, PROP_ID_middleTableName);
+          PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
+          PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
       
           PROP_ID_TO_NAME[PROP_ID_tagsText] = PROP_NAME_tagsText;
           PROP_NAME_TO_ID.put(PROP_NAME_tagsText, PROP_ID_tagsText);
-      
-          PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
-          PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
       
           PROP_ID_TO_NAME[PROP_ID_extConfig] = PROP_NAME_extConfig;
           PROP_NAME_TO_ID.put(PROP_NAME_extConfig, PROP_ID_extConfig);
@@ -182,11 +182,14 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
     /* 关联名: RELATION_NAME */
     private java.lang.String _relationName;
     
-    /* 关联显示名: RELATION_DISPLY_NAME */
-    private java.lang.String _relationDisplyName;
+    /* 关联显示名: RELATION_DISPLAY_NAME */
+    private java.lang.String _relationDisplayName;
     
     /* 关联类型: RELATION_TYPE */
     private java.lang.String _relationType;
+    
+    /* 中间表表名: MIDDLE_TABLE_NAME */
+    private java.lang.String _middleTableName;
     
     /* 左属性名: LEFT_PROP_NAME */
     private java.lang.String _leftPropName;
@@ -194,14 +197,11 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
     /* 右属性名: RIGHT_PROP_NAME */
     private java.lang.String _rightPropName;
     
-    /* 中间表表名: MIDDLE_TABLE_NAME */
-    private java.lang.String _middleTableName;
+    /* 状态: STATUS */
+    private java.lang.Integer _status;
     
     /* 标签: TAGS_TEXT */
     private java.lang.String _tagsText;
-    
-    /* 状态: STATUS */
-    private java.lang.Integer _status;
     
     /* 扩展配置: EXT_CONFIG */
     private java.lang.String _extConfig;
@@ -310,11 +310,14 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
             case PROP_ID_relationName:
                return getRelationName();
         
-            case PROP_ID_relationDisplyName:
-               return getRelationDisplyName();
+            case PROP_ID_relationDisplayName:
+               return getRelationDisplayName();
         
             case PROP_ID_relationType:
                return getRelationType();
+        
+            case PROP_ID_middleTableName:
+               return getMiddleTableName();
         
             case PROP_ID_leftPropName:
                return getLeftPropName();
@@ -322,14 +325,11 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
             case PROP_ID_rightPropName:
                return getRightPropName();
         
-            case PROP_ID_middleTableName:
-               return getMiddleTableName();
+            case PROP_ID_status:
+               return getStatus();
         
             case PROP_ID_tagsText:
                return getTagsText();
-        
-            case PROP_ID_status:
-               return getStatus();
         
             case PROP_ID_extConfig:
                return getExtConfig();
@@ -403,13 +403,13 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_relationDisplyName:{
+            case PROP_ID_relationDisplayName:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_relationDisplyName));
+                       err-> newTypeConversionError(PROP_NAME_relationDisplayName));
                }
-               setRelationDisplyName(typedValue);
+               setRelationDisplayName(typedValue);
                break;
             }
         
@@ -420,6 +420,16 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_relationType));
                }
                setRelationType(typedValue);
+               break;
+            }
+        
+            case PROP_ID_middleTableName:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_middleTableName));
+               }
+               setMiddleTableName(typedValue);
                break;
             }
         
@@ -443,13 +453,13 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_middleTableName:{
-               java.lang.String typedValue = null;
+            case PROP_ID_status:{
+               java.lang.Integer typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_middleTableName));
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_status));
                }
-               setMiddleTableName(typedValue);
+               setStatus(typedValue);
                break;
             }
         
@@ -460,16 +470,6 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_tagsText));
                }
                setTagsText(typedValue);
-               break;
-            }
-        
-            case PROP_ID_status:{
-               java.lang.Integer typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_status));
-               }
-               setStatus(typedValue);
                break;
             }
         
@@ -580,9 +580,9 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_relationDisplyName:{
+            case PROP_ID_relationDisplayName:{
                onInitProp(propId);
-               this._relationDisplyName = (java.lang.String)value;
+               this._relationDisplayName = (java.lang.String)value;
                
                break;
             }
@@ -590,6 +590,13 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
             case PROP_ID_relationType:{
                onInitProp(propId);
                this._relationType = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_middleTableName:{
+               onInitProp(propId);
+               this._middleTableName = (java.lang.String)value;
                
                break;
             }
@@ -608,9 +615,9 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_middleTableName:{
+            case PROP_ID_status:{
                onInitProp(propId);
-               this._middleTableName = (java.lang.String)value;
+               this._status = (java.lang.Integer)value;
                
                break;
             }
@@ -618,13 +625,6 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
             case PROP_ID_tagsText:{
                onInitProp(propId);
                this._tagsText = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_status:{
-               onInitProp(propId);
-               this._status = (java.lang.Integer)value;
                
                break;
             }
@@ -761,20 +761,20 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
     }
     
     /**
-     * 关联显示名: RELATION_DISPLY_NAME
+     * 关联显示名: RELATION_DISPLAY_NAME
      */
-    public java.lang.String getRelationDisplyName(){
-         onPropGet(PROP_ID_relationDisplyName);
-         return _relationDisplyName;
+    public java.lang.String getRelationDisplayName(){
+         onPropGet(PROP_ID_relationDisplayName);
+         return _relationDisplayName;
     }
 
     /**
-     * 关联显示名: RELATION_DISPLY_NAME
+     * 关联显示名: RELATION_DISPLAY_NAME
      */
-    public void setRelationDisplyName(java.lang.String value){
-        if(onPropSet(PROP_ID_relationDisplyName,value)){
-            this._relationDisplyName = value;
-            internalClearRefs(PROP_ID_relationDisplyName);
+    public void setRelationDisplayName(java.lang.String value){
+        if(onPropSet(PROP_ID_relationDisplayName,value)){
+            this._relationDisplayName = value;
+            internalClearRefs(PROP_ID_relationDisplayName);
             
         }
     }
@@ -794,6 +794,25 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_relationType,value)){
             this._relationType = value;
             internalClearRefs(PROP_ID_relationType);
+            
+        }
+    }
+    
+    /**
+     * 中间表表名: MIDDLE_TABLE_NAME
+     */
+    public java.lang.String getMiddleTableName(){
+         onPropGet(PROP_ID_middleTableName);
+         return _middleTableName;
+    }
+
+    /**
+     * 中间表表名: MIDDLE_TABLE_NAME
+     */
+    public void setMiddleTableName(java.lang.String value){
+        if(onPropSet(PROP_ID_middleTableName,value)){
+            this._middleTableName = value;
+            internalClearRefs(PROP_ID_middleTableName);
             
         }
     }
@@ -837,20 +856,20 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
     }
     
     /**
-     * 中间表表名: MIDDLE_TABLE_NAME
+     * 状态: STATUS
      */
-    public java.lang.String getMiddleTableName(){
-         onPropGet(PROP_ID_middleTableName);
-         return _middleTableName;
+    public java.lang.Integer getStatus(){
+         onPropGet(PROP_ID_status);
+         return _status;
     }
 
     /**
-     * 中间表表名: MIDDLE_TABLE_NAME
+     * 状态: STATUS
      */
-    public void setMiddleTableName(java.lang.String value){
-        if(onPropSet(PROP_ID_middleTableName,value)){
-            this._middleTableName = value;
-            internalClearRefs(PROP_ID_middleTableName);
+    public void setStatus(java.lang.Integer value){
+        if(onPropSet(PROP_ID_status,value)){
+            this._status = value;
+            internalClearRefs(PROP_ID_status);
             
         }
     }
@@ -870,25 +889,6 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_tagsText,value)){
             this._tagsText = value;
             internalClearRefs(PROP_ID_tagsText);
-            
-        }
-    }
-    
-    /**
-     * 状态: STATUS
-     */
-    public java.lang.Integer getStatus(){
-         onPropGet(PROP_ID_status);
-         return _status;
-    }
-
-    /**
-     * 状态: STATUS
-     */
-    public void setStatus(java.lang.Integer value){
-        if(onPropSet(PROP_ID_status,value)){
-            this._status = value;
-            internalClearRefs(PROP_ID_status);
             
         }
     }

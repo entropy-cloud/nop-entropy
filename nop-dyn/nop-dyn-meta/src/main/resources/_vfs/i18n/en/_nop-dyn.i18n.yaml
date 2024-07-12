@@ -143,14 +143,14 @@ prop:
       entityMetaId: Entity Meta ID
       refEntityMetaId: Ref Entity Meta ID
       relationName: Relation Name
-      relationDisplyName: Relation Display Name
+      relationDisplayName: Relation Display Name
       relationType: Relation Type
       relationType_label: null
+      middleTableName: Middle Table Name
       leftPropName: Left Prop Name
       rightPropName: Right Prop Name
-      middleTableName: Middle Table Name
-      tagsText: Tag Set
       status: Status
+      tagsText: Tag Set
       extConfig: Ext Config
       version: Version
       createdBy: Created By
