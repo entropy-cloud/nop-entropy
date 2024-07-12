@@ -338,7 +338,7 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
     @SuppressWarnings("PMD.CollapsibleIfStatements")
     void fixStatus() {
         if (getStatus() == AuthApiConstants.RESOURCE_STATUS_ACTIVE) {
-            if (children != null && children.stream().allMatch(res -> !res.isActive() && res.isMenu())) {
+            if (children != null && !children.isEmpty() && children.stream().allMatch(res -> !res.isActive() && res.isMenu())) {
                 setStatus(AuthApiConstants.RESOURCE_STATUS_DISABLED);
             }
         }
