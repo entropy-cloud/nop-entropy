@@ -48,6 +48,8 @@ public class ReportDemoBizModel {
         List<? extends IResource> groups = VirtualFileSystem.instance().getChildren(REPORT_DEMO_PATH);
         List<TreeResultBean> nodes = new ArrayList<>();
         for (IResource resource : groups) {
+            if(resource.getName().equals("ext"))
+                continue;
             List<TreeResultBean> reports = getReportBeans(resource);
             if (!reports.isEmpty()) {
                 TreeResultBean bean = new TreeResultBean();

@@ -23,7 +23,9 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @NopTestConfig(localDb = true, disableSnapshot = false)
 public class TestReportDemoBizModel extends JunitAutoTestCase {
@@ -35,10 +37,13 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
     @Test
     public void testReport() {
         CoreMetrics.today();
+        Map<String,Object> data = new HashMap<>();
+        data.put("title","aaa");
+
         List<TreeResultBean> reports = reportDemo.getDemoReports();
         for (TreeResultBean group : reports) {
             for (TreeResultBean report : group.getChildren()) {
-                String html = reportDemo.renderHtml(report.getValue());
+                String html = reportDemo.renderHtml(report.getValue(),data);
                 outputText(report.getValue() + ".html", html);
             }
         }
