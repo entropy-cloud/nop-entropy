@@ -9,7 +9,19 @@
 
     <forms>
         <form id="view"/>
-        <form id="edit"/>
+        <form id="edit">
+            <cells>
+                <cell id="leftPropName" control="select" defaultValue="id"
+                      sourceUrl="@query:NopDynEntityMeta__get/items:allProps{value,label}?id=$entityMetaId">
+                    <visibleOn>${entityMetaId}</visibleOn>
+                </cell>
+
+                <cell id="rightPropName" control="select" defaultValue="id"
+                      sourceUrl="@query:NopDynEntityMeta__get/items:allProps{value,label}?id=$refEntityMetaId">
+                    <visibleOn>${refEntityMetaId}</visibleOn>
+                </cell>
+            </cells>
+        </form>
     </forms>
 
     <pages>

@@ -991,5 +991,24 @@
         <view-xpl x:prototype="view-xml"/>
 
         <edit-xpl x:prototype="edit-xml"/>
+
+        <edit-select>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="objMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                 return {
+                    type: 'select',
+                    searchable: true,
+                    clearable: true,
+                    multiple: false,
+                    selectFirst: dispMeta?.selectFirst,
+                    source: dispMeta?.sourceUrl,
+                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null,
+                 }
+            ]]></source>
+        </edit-select>
     </tags>
 </lib>
