@@ -55,4 +55,23 @@ public class TestXLangParser {
 
         XLang.newCompileTool().allowUnregisteredScopeVar(true).compileFullExpr(null, "set.filter(f=>false)").invoke(scope);
     }
+
+    @Test
+    public void testReturn(){
+        IEvalScope scope = XLang.newEvalScope();
+        XLang.newCompileTool().compileFullExpr(null,"\n return {\na:1,b:2}").invoke(scope);
+
+        String source = "\n" +
+                "                 return {\n" +
+                "                    type: 'select',\n" +
+                "                    searchable: true,\n" +
+                "                    clearable: true,\n" +
+                "                    multiple: false,\n" +
+                "                    selectFirst: dispMeta?.selectFirst,\n" +
+                "                    source: dispMeta?.sourceUrl,\n" +
+                "                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null\n" +
+                "                 }\n" +
+                "            ";
+        XLang.newCompileTool().allowUnregisteredScopeVar(true).compileFullExpr(null,source);
+    }
 }

@@ -111,6 +111,7 @@ public class ObjMetaToGraphQLDefinition {
             }
         }
         field.setPropMeta(propMeta);
+        field.setJavaType(propMeta.getType());
 
         if (propMeta.getGetter() != null) {
             field.setFetcher(new PropGetterFetcher(propMeta.getGetter()));

@@ -9,15 +9,15 @@ Nop平台以数据模型为基础，自动生成实体定义、SQL表定义、Gr
 
 ```graphql
 extend type Query{
-    Department__get(id:String!): Department
-    Department__batchGet(ids:[String!]): [Department]
-    Department__findPage(query:QueryBeanInput): PageBean_Department
-    ...
+  Department__get(id:String!): Department
+  Department__batchGet(ids:[String!]): [Department]
+  Department__findPage(query:QueryBeanInput): PageBean_Department
+  ...
 }
 extend type Mutation{
-    Department__save(data: DepartmentInput): Department
-    Department__delete(id:String!): Boolean
-    ...
+  Department__save(data: DepartmentInput): Department
+  Department__delete(id:String!): Boolean
+  ...
 }
 ```
 
@@ -34,32 +34,32 @@ NopGraphQL引擎在初始化的时候会利用IoC容器的动态扫描能力发�
 
 @BizModel("NopAuthUser")
 public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> {
-    @BizMutation
-    public void changeSelfPassword(@Name("oldPassword") String oldPassword,
-                                   @Name("newPassword") String newPassword) {
+  @BizMutation
+  public void changeSelfPassword(@Name("oldPassword") String oldPassword,
+                                 @Name("newPassword") String newPassword) {
         ...
-    }
+  }
 }
 
 
 @BizModel("NopAuthUser")
 public class NopAuthUserBizModelEx {
-    @BizMutation
-    public void otherOperation() {
+  @BizMutation
+  public void otherOperation() {
          ...
-    }
+  }
 
-    @BizMutation
-    @Priority(NORMAL_PRIORITY - 100)
-    public void changeSelfPassword
-    @Name("oldPassword")
-    String oldPassword,
-    @Name("newPassword")
-    String newPassword)
+  @BizMutation
+  @Priority(NORMAL_PRIORITY - 100)
+  public void changeSelfPassword
+  @Name("oldPassword")
+  String oldPassword,
+  @Name("newPassword")
+  String newPassword)
 
-    {
+  {
         ...
-    }
+  }
 }
 ```
 
@@ -210,8 +210,8 @@ filter对应于后台的TreeBean类型的对象，这是一个通用的Tree结�
 ```xml
 
 <and>
-    <eq name="status" value="@:1"/>
-    <gt name="amount" value="@:3"/>
+  <eq name="status" value="@:1"/>
+  <gt name="amount" value="@:3"/>
 </and>
 ```
 
@@ -239,21 +239,21 @@ filter对应于后台的TreeBean类型的对象，这是一个通用的Tree结�
 中定义的操作符。
 重用的算符有：
 
-|操作符|说明|
-|---|---|
-|eq|等于|
-|gt|大于|
-|ge|大于等于|
-|lt|小于|
-|xe|小于等于|
-|in|在集合中|
-|between|介于min和max之间|
-|betweenDate|日期在min和max之间|
-|alwaysTrue|总是为真|
-|alwaysFalse|总是为假|
-|isEmpty|name对应的值为空|
-|startsWith|字符串的前缀为指定值|
-|endsWith|字符串的后缀为指定值|
+| 操作符         | 说明           |
+|-------------|--------------|
+| eq          | 等于           |
+| gt          | 大于           |
+| ge          | 大于等于         |
+| lt          | 小于           |
+| xe          | 小于等于         |
+| in          | 在集合中         |
+| between     | 介于min和max之间  |
+| betweenDate | 日期在min和max之间 |
+| alwaysTrue  | 总是为真         |
+| alwaysFalse | 总是为假         |
+| isEmpty     | name对应的值为空   |
+| startsWith  | 字符串的前缀为指定值   |
+| endsWith    | 字符串的后缀为指定值   |
 
 ## 3.3 this指针：知识的相对化
 
@@ -264,11 +264,11 @@ NopGraphQL中实现CRUD时只需要继承CrudBizModel基类，对外暴露的Gra
 
 ```java
 class CrudBizModel<T> {
-    @BizQuery
-    @GraphQLReturn(bizObjName = "THIS_OBJ")
-    public T get(@Name("id") String id) {
+  @BizQuery
+  @GraphQLReturn(bizObjName = "THIS_OBJ")
+  public T get(@Name("id") String id) {
        ....
-    }
+  }
 }
 
 @BizModel("NopAuthUser")
@@ -284,9 +284,11 @@ class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> {
 
 ```java
 @BizModel("NopAuthUser_admin")
-public NopAuthUserAdminBizModel extends CrudBizModel<NopAuthUser>{
+public NopAuthUserAdminBizModel extends CrudBizModel
 
-        }
+<NopAuthUser> {
+
+}
 ```
 
 同样是从`CrudBizModel<NopAuthUser>`继承，但是因为BizModel注解中提供的bizObjName为`NopAuthUser_admin`
@@ -338,26 +340,26 @@ NopGraphQL在实现业务方法时，采用的是一种框架无关的非侵入�
 
 @BizModel("MyEntity")
 class MyBizModel {
-    @BizQuery
-    public MyEntity get(@Name("id") String id) {
-        return ...
-    }
+  @BizQuery
+  public MyEntity get(@Name("id") String id) {
+    return ...
+  }
 
-    @BizLoader
-    public String extProp(@ContextSource MyEntity entity) {
+  @BizLoader
+  public String extProp(@ContextSource MyEntity entity) {
         ...
-    }
+  }
 
-    @BizLoader(forType = OtherEntity.class)
-    public String otherProp(@ContextSource OtherEntity entity) {
+  @BizLoader(forType = OtherEntity.class)
+  public String otherProp(@ContextSource OtherEntity entity) {
        ...
-    }
+  }
 
-    @BizLoader("someProp")
-    public CompletionStage<List<SomeObject>> batchLoadSomePropAsync(
-            @ContextSource List<MyEntity> entities) {
+  @BizLoader("someProp")
+  public CompletionStage<List<SomeObject>> batchLoadSomePropAsync(
+    @ContextSource List<MyEntity> entities) {
        ...
-    }
+  }
 }
 ```
 
@@ -398,7 +400,11 @@ GraphQL引擎可以运行在REST服务之上，提供所谓federation的功能�
 NopGraphQL借助lazy字段的概念，对GraphQL类型定义Eager加载的属性集合，通过规范化的方式将GraphQL模型中的方法转化为REST服务。具体REST链接格式如下
 
 ```java
-/r/{operationName}?@selection=a,b,c{d,e}
+/r/{operationName}?@selection=a,b,
+
+c {
+  d, e
+}
 ```
 
 1. 通过request body来传参数
@@ -430,9 +436,9 @@ api: {
 
 ```graphql
 query($id:String){
-    NopAuthUser_get(id:$id){
-       id, userName
-    }
+  NopAuthUser_get(id:$id){
+    id, userName
+  }
 }
 ```
 
@@ -499,10 +505,10 @@ GraphQL提供了REST所不具备的结果组合能力，可以极大提升系统
 
 ```graphql
 query{
-   DevDoc__globalVars{
-      name
-      methods
-   }
+  DevDoc__globalVars{
+    name
+    methods
+  }
 }
 ```
 
@@ -516,16 +522,16 @@ globalVars方法返回`List<GlobalVarDefinition>`之后，由GraphQL引擎进行
 
 @BizModel("DevDoc")
 public class DevDocBizModel {
-    @BizQuery
-    @Description("全局变量")
-    public List<GlobalVariableDefBean> globalVars() {
-        return ...
-    }
+  @BizQuery
+  @Description("全局变量")
+  public List<GlobalVariableDefBean> globalVars() {
+    return ...
+  }
 
-    @BizLoader(forType = GlobalVariableDefBean.class)
-    public List<FunctionDefBean> methods(@ContextSource GlobalVariableDefBean varDef) {
-        return ...
-    }
+  @BizLoader(forType = GlobalVariableDefBean.class)
+  public List<FunctionDefBean> methods(@ContextSource GlobalVariableDefBean varDef) {
+    return ...
+  }
 }
 ```
 
@@ -539,12 +545,12 @@ public class DevDocBizModel {
 
 @BizModel("NopAuthRole")
 public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
-    @BizLoader
-    @GraphQLReturn(bizObjName = "NopAuthUser")
-    public List<NopAuthUser> roleUsers(@ContextSource NopAuthRole role) {
-        return role.getUserMappings().stream().map(NopAuthUserRole::getUser)
-                .sorted(comparing(NopAuthUser::getUserName)).collect(Collectors.toList());
-    }
+  @BizLoader
+  @GraphQLReturn(bizObjName = "NopAuthUser")
+  public List<NopAuthUser> roleUsers(@ContextSource NopAuthRole role) {
+    return role.getUserMappings().stream().map(NopAuthUserRole::getUser)
+      .sorted(comparing(NopAuthUser::getUserName)).collect(Collectors.toList());
+  }
 }
 ```
 
@@ -553,17 +559,17 @@ public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
 ```xml
 
 <loaders>
-    <loader name="roleUsers">
-        <arg name="role" kind="ContextSource" type="io.nop.auth.dao.entity.NopAuthRole"/>
-        <return type="List&lt;io.nop.auth.dao.entity.NopAuthUser>"/>
+  <loader name="roleUsers">
+    <arg name="role" kind="ContextSource" type="io.nop.auth.dao.entity.NopAuthRole"/>
+    <return type="List&lt;io.nop.auth.dao.entity.NopAuthUser>"/>
 
-        <source>
-            <c:script>
-                const users = role.userMappings.map(m=>m.user);
-                return _.sortBy(users,"userName")
-            </c:script>
-        </source>
-    </loader>
+    <source>
+      <c:script>
+        const users = role.userMappings.map(m=>m.user);
+        return _.sortBy(users,"userName")
+      </c:script>
+    </source>
+  </loader>
 </loaders>
 ```
 
@@ -576,11 +582,39 @@ public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
 ```xml
 
 <prop name="nameEx">
-    <getter>
-        <c:script>
-            // 这里entity表示当前实体
-            return entity.name + 'M'
-        </c:script>
-    </getter>
+  <getter>
+    <c:script>
+      // 这里entity表示当前实体
+      return entity.name + 'M'
+    </c:script>
+  </getter>
+</prop>
+```
+
+## 数据类型
+
+GraphQL缺省只有少量标量类型，在NopGraphQL中定义了如下标量类型，使得类型更加精细化。
+
+```java
+public enum GraphQLScalarType {
+  ID(StdDataType.STRING), //
+  Boolean(StdDataType.BOOLEAN), //
+  Int(StdDataType.INT), //
+  Long(StdDataType.LONG),
+  Float(StdDataType.FLOAT), //
+  Double(StdDataType.DOUBLE), //
+  String(StdDataType.STRING), //
+  Map(StdDataType.MAP), //
+  Any(StdDataType.ANY),
+  Void(StdDataType.VOID),
+  BigDecimal(StdDataType.DECIMAL);
+}
+```
+
+对于Timestamp类型，缺省按照`yyyy-MM-dd HH:mm:ss`格式进行显示。在XMeta配置中，可以为prop配置`graphql:datePattern`来改为其他格式。
+如果希望timestamp返回毫秒数，则可以配置pattern为`ms`，这是一个特殊约定的格式名，在DateHelper中识别处理。
+
+```xml
+<prop name="createTime" graphql:datePattern="ms">
 </prop>
 ```

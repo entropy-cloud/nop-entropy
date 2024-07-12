@@ -40,11 +40,15 @@ public class DateHelper {
 
     public static final LocalDate INVALID_DATE = ApiStringHelper.INVALID_DATE;
 
+    public static final String PATTERN_MS = "ms";
+
     public static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     public static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     public static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
     public static final DateTimeFormatter COMPACT_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyMMddHHmmssSSSS");
     public static final DateTimeFormatter COMPACT_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
+
+    public static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
 
     private static Map<String, DateTimeFormatter> s_formatters = new HashMap<>();
 
@@ -207,6 +211,9 @@ public class DateHelper {
     public static String formatJavaDate(Date date, String pattern) {
         if (date == null)
             return null;
+        if (PATTERN_MS.equals(pattern))
+            return Long.toString(date.getTime());
+
         DateTimeFormatter formatter = buildFormatter(pattern);
         return formatter.format(ConvertHelper.toLocalDateTime(date, NopException::new));
     }
@@ -214,6 +221,10 @@ public class DateHelper {
     public static String formatDate(LocalDate date, String pattern) {
         if (date == null)
             return null;
+
+        if (PATTERN_MS.equals(pattern))
+            return Long.toString(ConvertHelper.localDateToMillis(date));
+
         DateTimeFormatter formatter = buildFormatter(pattern);
         return formatter.format(date);
     }
@@ -228,6 +239,8 @@ public class DateHelper {
     public static String formatDateTime(LocalDateTime dateTime, String pattern) {
         if (dateTime == null)
             return null;
+        if (PATTERN_MS.equals(pattern))
+            return Long.toString(ConvertHelper.localDateTimeToMillis(dateTime));
         DateTimeFormatter formatter = buildFormatter(pattern);
         return formatter.format(dateTime);
     }
@@ -235,7 +248,17 @@ public class DateHelper {
     public static String formatTimestamp(Timestamp date, String pattern) {
         if (date == null)
             return null;
+        if (PATTERN_MS.equals(pattern))
+            return Long.toString(date.getTime());
+
         return new SimpleDateFormat(pattern).format(date);
+    }
+
+    public static String formatTimestampNoMillis(Timestamp date) {
+        if (date == null)
+            return null;
+        String str = date.toString();
+        return str.substring(0, 19);
     }
 
     static DateTimeFormatter buildFormatter(String pattern) {

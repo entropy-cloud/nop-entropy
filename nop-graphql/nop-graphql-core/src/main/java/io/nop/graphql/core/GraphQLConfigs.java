@@ -71,4 +71,8 @@ public interface GraphQLConfigs {
     @Description("单次请求最多允许多少个Directive")
     IConfigReference<Integer> CFG_GRAPHQL_MAX_DIRECTIVE_PER_REQUEST = varRef(s_loc, "nop.graphql.max-directive-per-request",
             Integer.class, 20);
+
+    @Description("时间戳类型是否返回毫秒信息")
+    IConfigReference<Boolean> CFG_GRAPHQL_IGNORE_MILLIS_IN_TIMESTAMP =
+            varRef(s_loc, "nop.graphql.ignore-millis-in-timestamp", Boolean.class, true);
 }

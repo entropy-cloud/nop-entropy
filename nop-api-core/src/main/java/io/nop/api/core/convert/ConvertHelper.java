@@ -243,6 +243,12 @@ public class ConvertHelper {
         return o.toString();
     }
 
+    public static String formatTimestampNoMillis(Timestamp date) {
+        if (date == null)
+            return null;
+        String str = date.toString();
+        return str.substring(0, 19);
+    }
 
     public static Object toObject(Object o, Function<ErrorCode, NopException> errorFactory) {
         return o;

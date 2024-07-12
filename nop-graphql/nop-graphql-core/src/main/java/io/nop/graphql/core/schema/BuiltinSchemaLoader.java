@@ -279,10 +279,10 @@ public class BuiltinSchemaLoader {
         __InputValue ret = new __InputValue();
         __Type type = toGraphQLType(argDef.getType(), true);
         // 暂时不支持复杂input对象格式，全部转换为Map
-        if (type.getKind() == __TypeKind.OBJECT) {
-            type.setKind(__TypeKind.SCALAR);
-            type.setName(GraphQLScalarType.Map.name());
-        }
+//        if (type.getKind() == __TypeKind.OBJECT) {
+//            type.setKind(__TypeKind.SCALAR);
+//            type.setName(GraphQLScalarType.Map.name());
+//        }
         ret.setType(type);
         ret.setName(argDef.getName());
         ret.setDescription(resolveDescription(argDef.getDescription()));

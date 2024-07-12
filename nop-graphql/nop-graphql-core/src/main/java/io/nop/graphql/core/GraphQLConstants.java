@@ -35,6 +35,8 @@ public interface GraphQLConstants {
 
     String ATTR_GRAPHQL_AUTH_OBJ_NAME = "graphql:authObjName";
 
+    String ATTR_GRAPHQL_DATE_PATTERN = "graphql:datePattern";
+
     String TAG_GRAPHQL_FILTER = "graphql:filter";
     String TAG_GRAPHQL_ORDER_BY = "graphql:orderBy";
 
