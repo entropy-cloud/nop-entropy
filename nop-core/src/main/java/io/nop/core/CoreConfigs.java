@@ -84,7 +84,7 @@ public interface CoreConfigs {
 
     @Description("在启用tenant定制的情况下，最多允许多少个tenant的数据缓存在内存中")
     IConfigReference<Integer> CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE = varRef(s_loc,
-            "nop.core.component.resource-cache.tenant-cache-container-size", Integer.class, 10);
+            "nop.core.component.resource-cache.tenant-cache-container-size", Integer.class, 500);
 
     @Description("缓存IResource.lastModified的调用结果，避免频繁发出系统调用")
     IConfigReference<Integer> CFG_COMPONENT_RESOURCE_TIMESTAMP_CACHE_SIZE = varRef(s_loc,
@@ -207,5 +207,11 @@ public interface CoreConfigs {
 
     @Description("缺省掩码保留位数")
     IConfigReference<Integer> CFG_DEFAULT_MASKING_KEEP_CHARS = varRef(s_loc, "nop.core.default-masking-keep-chars", Integer.class, 2);
+
+    @Description("禁用租户定制的资源路径列表")
+    IConfigReference<Set> CFG_TENANT_FEATURE_DISABLED_PATHS = varRef(s_loc, "nop.core.tenant-feature.disabled-paths", Set.class, null);
+
+    @Description("启用租户定制的资源路径列表")
+    IConfigReference<Set> CFG_TENANT_FEATURE_ENABLED_PATHS = varRef(s_loc, "nop.core.tenant-feature.enabled-paths", Set.class, null);
 
 }

@@ -14,7 +14,6 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.cache.CacheConfig;
 import io.nop.commons.cache.CacheStats;
-import io.nop.commons.cache.ICacheManagement;
 import io.nop.commons.cache.LocalCache;
 import io.nop.commons.io.serialize.IStateSerializable;
 import io.nop.commons.lang.ICreationListener;
@@ -30,7 +29,16 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.nop.core.CoreConfigs.*;
+import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_CHECK_CHANGED;
+import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_NAMED_CACHE_NULL;
+import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_NAMED_REFRESH_MIN_INTERVAL;
+import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_NAMED_RELOADABLE;
+import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_NAMED_SIZE;
+import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_NAMED_SUPPORT_SERIALIZE;
+import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_NULL;
+import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_PER_TYPE_SIZE;
+import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_REFRESH_MIN_INTERVAL;
+import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_SUPPORT_SERIALIZE;
 import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_RESOURCE_CACHE_RETURN_NULL;
 
@@ -39,7 +47,7 @@ import static io.nop.core.CoreErrors.ERR_COMPONENT_RESOURCE_CACHE_RETURN_NULL;
  *
  * @param <V>
  */
-public class ResourceLoadingCache<V> implements ICacheManagement<String>, IStateSerializable, IConfigRefreshable {
+public class ResourceLoadingCache<V> implements IResourceLoadingCache<V> {
     static final SourceLocation s_loc = SourceLocation.fromClass(ResourceLoadingCache.class);
     private final String name;
     private final LocalCache<String, ResourceCacheEntry<V>> cache;
@@ -137,7 +145,7 @@ public class ResourceLoadingCache<V> implements ICacheManagement<String>, IState
         }
     }
 
-    public boolean checkRefresh(String key, boolean forceRefresh){
+    public boolean checkRefresh(String key, boolean forceRefresh) {
         return checkRefresh(key, forceRefresh, loader);
     }
 
@@ -166,16 +174,16 @@ public class ResourceLoadingCache<V> implements ICacheManagement<String>, IState
         return value;
     }
 
-    public V get(String path){
+    public V get(String path) {
         return get(path, loader);
     }
 
-    public V require(String path){
+    public V require(String path) {
         return require(path, loader);
     }
 
     public V require(String path, IResourceObjectLoader<V> loader) {
-        V v = get(path,loader);
+        V v = get(path, loader);
         if (v == null)
             throw new NopException(ERR_COMPONENT_RESOURCE_CACHE_RETURN_NULL).param(ARG_RESOURCE_PATH, path);
         return v;

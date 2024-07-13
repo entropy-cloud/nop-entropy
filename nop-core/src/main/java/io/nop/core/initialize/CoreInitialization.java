@@ -22,6 +22,7 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.ClassPathResource;
+import io.nop.core.resource.tenant.ResourceTenantManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -190,6 +191,7 @@ public class CoreInitialization {
             ReflectionManager.instance().clearCache();
             GlobalCacheRegistry.instance().clearAllCache();
         } finally {
+            ResourceTenantManager.instance().reset();
             initializerRunning = false;
         }
     }

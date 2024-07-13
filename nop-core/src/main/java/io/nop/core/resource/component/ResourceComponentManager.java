@@ -17,8 +17,6 @@ import io.nop.api.core.util.ICancellable;
 import io.nop.api.core.util.IComponentModel;
 import io.nop.api.core.util.IFreezable;
 import io.nop.commons.cache.GlobalCacheRegistry;
-import io.nop.commons.cache.ICache;
-import io.nop.commons.cache.LocalCache;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
@@ -29,7 +27,7 @@ import io.nop.core.resource.ResourceConstants;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.cache.IObjectChangeDetectable;
-import io.nop.core.resource.cache.ResourceLoadingCache;
+import io.nop.core.resource.cache.IResourceLoadingCache;
 import io.nop.core.resource.component.version.ResourceVersionHelper;
 import io.nop.core.resource.deps.DefaultResourceChangeChecker;
 import io.nop.core.resource.deps.IResourceChangeChecker;
@@ -37,6 +35,7 @@ import io.nop.core.resource.deps.IResourceDependsPersister;
 import io.nop.core.resource.deps.ResourceDependencySet;
 import io.nop.core.resource.deps.ResourceDependsManager;
 import io.nop.core.resource.impl.UnknownResource;
+import io.nop.core.resource.tenant.ResourceTenantManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,9 +49,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static io.nop.commons.cache.CacheConfig.newConfig;
-import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE;
-import static io.nop.core.CoreConfigs.CFG_RESOURCE_STORE_ENABLE_TENANT_DELTA;
 import static io.nop.core.CoreErrors.ARG_COMPONENT_PATH;
 import static io.nop.core.CoreErrors.ARG_FILE_TYPE;
 import static io.nop.core.CoreErrors.ARG_FROM_MODEL_TYPE;
@@ -95,11 +91,9 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
     private Map<Pair<String, String>, IComponentTransformer> modelTypeTransformers = new ConcurrentHashMap<>();
 
-    private ICache<String, Map<String, ResourceLoadingCache<ComponentCacheEntry>>> tenantModelCaches;
-    private Map<String, ResourceLoadingCache<ComponentCacheEntry>> modelCaches = new ConcurrentHashMap<>();
+    private Map<String, IResourceLoadingCache<ComponentCacheEntry>> modelCaches = new ConcurrentHashMap<>();
 
-    private ICache<String, Map<String, ResourceLoadingCache<IGeneratedComponent>>> tenantComponentCaches;
-    private Map<String, ResourceLoadingCache<IGeneratedComponent>> componentCaches = new ConcurrentHashMap<>();
+    private Map<String, IResourceLoadingCache<IGeneratedComponent>> componentCaches = new ConcurrentHashMap<>();
 
     private IResourceChangeChecker changeChecker = DefaultResourceChangeChecker.INSTANCE;
 
@@ -108,26 +102,13 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
     public ResourceComponentManager(boolean registerCache) {
         this.registerCache = registerCache;
-        tenantModelCaches = LocalCache.newCache("tenant-model-cache-container",
-                newConfig(CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE.get()),
-                k -> new ConcurrentHashMap<>());
-        tenantComponentCaches = LocalCache.newCache("tenant-component-cache-container",
-                newConfig(CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE.get()),
-                k -> new ConcurrentHashMap<>());
-
-        if (registerCache) {
-            GlobalCacheRegistry.instance().register(tenantModelCaches);
-            GlobalCacheRegistry.instance().register(tenantComponentCaches);
-        }
     }
 
     class ModelLoader implements IResourceObjectLoader<ComponentCacheEntry> {
         private final String modelType;
-        private boolean forceNoTenant;
 
-        public ModelLoader(String modelType, boolean forceNoTenant) {
+        public ModelLoader(String modelType) {
             this.modelType = modelType;
-            this.forceNoTenant = forceNoTenant;
         }
 
         @Override
@@ -137,7 +118,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
                 return null;
 
             IComponentModel model;
-            if (forceNoTenant) {
+            if (!ResourceTenantManager.supportTenant(path)) {
                 model = ContextProvider.runWithoutTenantId(() -> pair.getValue().loadObjectFromPath(pair.getKey()));
             } else {
                 model = pair.getValue().loadObjectFromPath(pair.getKey());
@@ -157,18 +138,16 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
     class GenComponentLoader implements IResourceObjectLoader<IGeneratedComponent> {
         private final ComponentModelConfig config;
-        private final boolean forceNoTenant;
 
-        public GenComponentLoader(ComponentModelConfig config, boolean forceNoTenant) {
+        public GenComponentLoader(ComponentModelConfig config) {
             this.config = config;
-            this.forceNoTenant = forceNoTenant;
         }
 
         @Override
         public IGeneratedComponent loadObjectFromPath(String path) {
             ComponentGenPath genPath = config.getGenPathStrategy().parseComponentPath(path);
             IComponentModel model = loadComponentModel(genPath.getModelPath());
-            if (forceNoTenant) {
+            if (!ResourceTenantManager.supportTenant(path)) {
                 return ContextProvider.runWithoutTenantId(() -> config.getGenerator().generateComponent(model,
                         genPath.getGenFormat(), ResourceComponentManager.this));
             }
@@ -179,37 +158,24 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
     @Override
     public void refreshConfig() {
-        for (ResourceLoadingCache<?> cache : this.modelCaches.values()) {
+        for (IResourceLoadingCache<?> cache : this.modelCaches.values()) {
             cache.refreshConfig();
         }
 
-        for (ResourceLoadingCache<?> cache : this.componentCaches.values()) {
+        for (IResourceLoadingCache<?> cache : this.componentCaches.values()) {
             cache.refreshConfig();
         }
     }
 
     @Override
     public void clearAllCache() {
-        for (ResourceLoadingCache<?> cache : this.modelCaches.values()) {
+        for (IResourceLoadingCache<?> cache : this.modelCaches.values()) {
             cache.clear();
         }
 
-        for (ResourceLoadingCache<?> cache : this.componentCaches.values()) {
+        for (IResourceLoadingCache<?> cache : this.componentCaches.values()) {
             cache.clear();
         }
-
-        tenantComponentCaches.forEachEntry((k, map) -> {
-            for (ResourceLoadingCache<?> cache : map.values()) {
-                cache.clear();
-            }
-        });
-
-        this.tenantModelCaches.forEachEntry((k, map) -> {
-            for (ResourceLoadingCache<?> cache : map.values()) {
-                cache.clear();
-            }
-        });
-
 
         // 清空资源文件的依赖关系缓存
         this.dependsManager.clear();
@@ -405,7 +371,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         String modelType = findModelTypeFromPath(resourcePath);
         IComponentTransformer transformer = getTransformer(modelType, transform);
 
-        ResourceLoadingCache<ComponentCacheEntry> cache = makeModelCache(modelType);
+        IResourceLoadingCache<ComponentCacheEntry> cache = makeModelCache(modelType, resourcePath);
         ComponentCacheEntry entry = cache.require(resourcePath);
         if (StringHelper.isEmpty(transform) || modelType.equals(transform))
             return (IComponentModel) entry.model;
@@ -429,14 +395,14 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
     @Override
     public void clearCache(String modelType) {
-        ResourceLoadingCache<?> cache = getModelCache(modelType);
+        IResourceLoadingCache<?> cache = modelCaches.get(modelType);
         if (cache != null)
             cache.clear();
     }
 
     public void removeCachedModel(String path) {
         ComponentModelConfig config = getModelConfigByModelPath(path);
-        ResourceLoadingCache<?> cache = getModelCache(config.getModelType());
+        IResourceLoadingCache<?> cache = getModelCache(config.getModelType());
         if (cache != null) {
             cache.remove(path);
         }
@@ -455,7 +421,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
     @Override
     public IComponentModel loadComponentModel(String resourcePath) {
         String modelType = findModelTypeFromPath(resourcePath);
-        ResourceLoadingCache<ComponentCacheEntry> cache = makeModelCache(modelType);
+        IResourceLoadingCache<ComponentCacheEntry> cache = makeModelCache(modelType, resourcePath);
         return (IComponentModel) cache.require(resourcePath).model;
     }
 
@@ -497,37 +463,21 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         }
     }
 
-    private boolean useTenantCache() {
-        return ContextProvider.currentTenantId() != null && CFG_RESOURCE_STORE_ENABLE_TENANT_DELTA.get();
-    }
-
-    private ResourceLoadingCache<ComponentCacheEntry> makeModelCache(String modelType) {
-        Map<String, ResourceLoadingCache<ComponentCacheEntry>> caches = modelCaches;
-
-        boolean tenant = useTenantCache();
-        if (tenant) {
-            caches = tenantModelCaches.get(ContextProvider.currentTenantId());
-        }
+    private IResourceLoadingCache<ComponentCacheEntry> makeModelCache(String modelType, String path) {
+        Map<String, IResourceLoadingCache<ComponentCacheEntry>> caches = modelCaches;
 
         return caches.computeIfAbsent(modelType, k -> {
-            String name = (tenant ? "model-tenant-cache:" : "model-cache:") + modelType;
-            ResourceLoadingCache<ComponentCacheEntry> cache = new ResourceLoadingCache<>(name,
-                    new ModelLoader(modelType, !tenant), null);
-            if (!tenant && registerCache)
+            String name = "model-cache:" + modelType;
+            IResourceLoadingCache<ComponentCacheEntry> cache = ResourceTenantManager.instance()
+                    .makeLoadingCache(name, new ModelLoader(modelType), null);
+            if (registerCache)
                 GlobalCacheRegistry.instance().register(cache);
             return cache;
         });
     }
 
-    private ResourceLoadingCache<ComponentCacheEntry> getModelCache(String modelType) {
-        Map<String, ResourceLoadingCache<ComponentCacheEntry>> caches = modelCaches;
-
-        boolean tenant = useTenantCache();
-        if (tenant) {
-            caches = tenantModelCaches.get(ContextProvider.currentTenantId());
-        }
-
-        return caches.get(modelType);
+    private IResourceLoadingCache<ComponentCacheEntry> getModelCache(String modelType) {
+        return modelCaches.get(modelType);
     }
 
 //    private ComponentModelConfig requireModelConfigByModelType(String modelType) {
@@ -612,7 +562,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
             throw new NopException(ERR_COMPONENT_NO_COMPONENT_GENERATOR).param(ARG_RESOURCE_PATH, componentPath)
                     .param(ARG_MODEL_TYPE, config.getModelType());
 
-        ResourceLoadingCache<IGeneratedComponent> cache = makeComponentCache(config);
+        IResourceLoadingCache<IGeneratedComponent> cache = makeComponentCache(config, componentPath);
         return cache.require(componentPath);
     }
 
@@ -628,19 +578,15 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         throw new NopException(ERR_COMPONENT_UNKNOWN_COMPONENT_FILE_TYPE).param(ARG_FILE_TYPE, fileType);
     }
 
-    private ResourceLoadingCache<IGeneratedComponent> makeComponentCache(ComponentModelConfig config) {
-        Map<String, ResourceLoadingCache<IGeneratedComponent>> caches = componentCaches;
-        boolean tenant = useTenantCache();
-        if (tenant) {
-            caches = tenantComponentCaches.get(ContextProvider.currentTenantId());
-        }
+    private IResourceLoadingCache<IGeneratedComponent> makeComponentCache(ComponentModelConfig config, String path) {
+        Map<String, IResourceLoadingCache<IGeneratedComponent>> caches = componentCaches;
 
         String modelType = config.getModelType();
         return caches.computeIfAbsent(modelType, k -> {
-            String name = (tenant ? "gen-component-tenant-cache:" : "gen-component-cache:") + modelType;
-            ResourceLoadingCache<IGeneratedComponent> cache = new ResourceLoadingCache<>(name,
-                    new GenComponentLoader(config, !tenant), null);
-            if (!tenant && registerCache)
+            String name = "gen-component-cache:" + modelType;
+            IResourceLoadingCache<IGeneratedComponent> cache = ResourceTenantManager.instance()
+                    .makeLoadingCache(name, new GenComponentLoader(config), null);
+            if (registerCache)
                 GlobalCacheRegistry.instance().register(cache);
             return cache;
         });
@@ -702,7 +648,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
     public ResourceDependencySet getModelDepends(String resourcePath) {
         String modelType = findModelTypeFromPath(resourcePath);
-        ResourceLoadingCache<ComponentCacheEntry> cache = makeModelCache(modelType);
+        IResourceLoadingCache<ComponentCacheEntry> cache = makeModelCache(modelType, resourcePath);
         return cache.getResourceDependsSet(resourcePath);
     }
 
@@ -715,7 +661,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
     @Override
     public <T> T runWhenDependsChanged(String path, Supplier<T> loader) {
         String modelType = "__runWithCache__";
-        ResourceLoadingCache<ComponentCacheEntry> cache = makeModelCache(modelType);
+        IResourceLoadingCache<ComponentCacheEntry> cache = makeModelCache(modelType, path);
         ComponentCacheEntry result = cache.get(path, p -> {
             T value = loader.get();
             ComponentCacheEntry entry = new ComponentCacheEntry();
