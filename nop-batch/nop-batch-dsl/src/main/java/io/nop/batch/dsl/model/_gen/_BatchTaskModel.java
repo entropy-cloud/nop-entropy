@@ -61,6 +61,13 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: name
+     * 
+     */
+    private java.lang.String _name ;
+    
+    /**
+     *  
      * xml name: processor
      * 
      */
@@ -273,6 +280,25 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._jitterRatio = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: name
+     *  
+     */
+    
+    public java.lang.String getName(){
+      return _name;
+    }
+
+    
+    public void setName(java.lang.String value){
+        checkAllowChange();
+        
+        this._name = value;
            
     }
 
@@ -575,6 +601,7 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         out.putNotNull("executor",this.getExecutor());
         out.putNotNull("inputSorter",this.getInputSorter());
         out.putNotNull("jitterRatio",this.getJitterRatio());
+        out.putNotNull("name",this.getName());
         out.putNotNull("processors",this.getProcessors());
         out.putNotNull("rateLimit",this.getRateLimit());
         out.putNotNull("reader",this.getReader());
@@ -603,6 +630,7 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         instance.setExecutor(this.getExecutor());
         instance.setInputSorter(this.getInputSorter());
         instance.setJitterRatio(this.getJitterRatio());
+        instance.setName(this.getName());
         instance.setProcessors(this.getProcessors());
         instance.setRateLimit(this.getRateLimit());
         instance.setReader(this.getReader());

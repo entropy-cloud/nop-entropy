@@ -22,6 +22,7 @@ import io.nop.batch.core.listener.EvalBatchConsumeListener;
 import io.nop.batch.core.listener.EvalBatchLoadListener;
 import io.nop.batch.core.listener.EvalBatchTaskListener;
 import io.nop.batch.core.loader.ResourceRecordLoader;
+import io.nop.batch.core.manager.IBatchTaskFactory;
 import io.nop.batch.dsl.model.BatchChunkProcessorModel;
 import io.nop.batch.dsl.model.BatchFileReaderModel;
 import io.nop.batch.dsl.model.BatchFileWriterModel;

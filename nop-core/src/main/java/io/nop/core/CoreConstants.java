@@ -39,6 +39,7 @@ public interface CoreConstants extends ResourceConstants {
 
     String GLOBAL_VAR_SCOPE = "$scope";
     String GLOBAL_VAR_OUT = "$out";
+    String GLOBAL_VAR_BEAN_PROVIDER = "$beanProvider";
 
     String GLOBAL_VAR_EVAL_RUNTIME = "$evalRt";
 

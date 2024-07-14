@@ -1,4 +1,4 @@
-package io.nop.batch.dsl.manager;
+package io.nop.batch.core.manager;
 
 import io.nop.api.core.ioc.IBeanProvider;
 import io.nop.batch.core.IBatchTask;

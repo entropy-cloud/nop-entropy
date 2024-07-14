@@ -62808,6 +62808,12 @@
     "fields": [],
     "methods": [
       {
+        "name": "getBeanContainerTemplate",
+        "parameterTypes": [
+          "io.nop.task.builder.ITaskBeanContainerBuilder"
+        ]
+      },
+      {
         "name": "getName",
         "parameterTypes": []
       },
@@ -63308,6 +63314,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getBeans",
+        "parameterTypes": []
+      },
+      {
         "name": "getEnterSteps",
         "parameterTypes": []
       },
@@ -63332,6 +63342,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isUseParentBeanContainer",
+        "parameterTypes": []
+      },
+      {
         "name": "newInstance",
         "parameterTypes": []
       },
@@ -63345,6 +63359,12 @@
         "name": "setAuth",
         "parameterTypes": [
           "io.nop.api.core.auth.ActionAuthMeta"
+        ]
+      },
+      {
+        "name": "setBeans",
+        "parameterTypes": [
+          "io.nop.ioc.model.BeansModel"
         ]
       },
       {
@@ -63373,6 +63393,12 @@
       },
       {
         "name": "setRestartable",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setUseParentBeanContainer",
         "parameterTypes": [
           "boolean"
         ]

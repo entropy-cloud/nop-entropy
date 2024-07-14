@@ -10,6 +10,7 @@ package io.nop.batch.core;
 import io.nop.api.core.util.FutureHelper;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 /**
  * 通过{@link BatchTaskBuilder}来创建IBatchTask对象。
@@ -18,7 +19,7 @@ import java.util.concurrent.CompletableFuture;
  * 基本处理逻辑为：在一个批次中批量加载一批数据，逐个调用processor进行处理，收集到所有数据之后再批量调用consumer处理
  */
 public interface IBatchTask {
-    CompletableFuture<Void> executeAsync(IBatchTaskContext context);
+    CompletionStage<Void> executeAsync(IBatchTaskContext context);
 
     default void execute(IBatchTaskContext context) {
         FutureHelper.syncGet(executeAsync(context));

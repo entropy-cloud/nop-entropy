@@ -34,6 +34,10 @@ public class ServiceContextImpl extends ExecutionContextImpl implements IService
 
     private IContext context = ContextProvider.getOrCreateContext();
 
+    public ServiceContextImpl() {
+        getEvalScope().setLocalValue(null, CoreConstants.VAR_SVC_CTX, this);
+    }
+
     @Override
     public IServiceContext getParentContext() {
         return parentContext;

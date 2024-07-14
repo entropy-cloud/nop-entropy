@@ -10,6 +10,8 @@ package io.nop.batch.core;
 public interface BatchConstants {
     String VAR_RECORD = "record";
 
+    String VAR_BATCH_TASK_CTX = "batchTaskCtx";
+
     String DEFAULT_METER_PREFIX = "nop.";
 
     String METER_TASK = "batch.task";

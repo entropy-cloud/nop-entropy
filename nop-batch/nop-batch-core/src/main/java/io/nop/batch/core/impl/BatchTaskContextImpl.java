@@ -8,17 +8,22 @@
 package io.nop.batch.core.impl;
 
 import io.nop.api.core.beans.IntRangeBean;
+import io.nop.batch.core.BatchConstants;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.IBatchTaskMetrics;
+import io.nop.core.context.ExecutionContextImpl;
 import io.nop.core.context.IServiceContext;
-import io.nop.core.context.ServiceContextImpl;
+import io.nop.core.lang.eval.IEvalScope;
+import io.nop.xlang.api.XLang;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class BatchTaskContextImpl extends ServiceContextImpl implements IBatchTaskContext {
+public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatchTaskContext {
+    private final IServiceContext serviceContext;
+
     private String taskName;
     private String taskId;
     private Map<String, Object> params;
@@ -28,11 +33,23 @@ public class BatchTaskContextImpl extends ServiceContextImpl implements IBatchTa
     private IBatchTaskMetrics metrics;
     private final AtomicLong skipItemCount = new AtomicLong();
 
-    public BatchTaskContextImpl() {
+    public BatchTaskContextImpl(IServiceContext svcCtx, IEvalScope scope) {
+        super(scope);
+        this.serviceContext = svcCtx;
+        getEvalScope().setLocalValue(BatchConstants.VAR_BATCH_TASK_CTX, this);
     }
 
     public BatchTaskContextImpl(IServiceContext svcCtx) {
+        this(svcCtx, svcCtx == null ? XLang.newEvalScope() : svcCtx.getEvalScope());
+    }
 
+    public BatchTaskContextImpl() {
+        this(null);
+    }
+
+    @Override
+    public IServiceContext getServiceContext() {
+        return serviceContext;
     }
 
     @Override
