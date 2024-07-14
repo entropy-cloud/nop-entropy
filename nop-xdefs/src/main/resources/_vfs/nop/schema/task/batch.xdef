@@ -48,12 +48,12 @@
 
         <orm-reader xdef:name="BatchOrmReaderModel" batchLoadProps="csv-list" entityName="class-name">
             <eql xdef:value="xpl-sql"/>
-            <query xdef:ref="../query/query.xdef"/>
+            <query xdef:value="xpl-node"/>
         </orm-reader>
 
         <jdbc-reader querySpace="string" sqlName="string" xdef:name="BatchJdbcReaderModel">
             <sql xdef:value="xpl-sql"/>
-            <query xdef:ref="../query/query.xdef"/>
+            <query xdef:value="xpl-node"/>
         </jdbc-reader>
 
         <source xdef:value="xpl-fn:(batchSize,ctx)=>List"/>
@@ -61,13 +61,13 @@
 
     <processor bean="bean-name" name="var-name" order="!int=0"
                xdef:unique-attr="name" xdef:name="BatchProcessorModel" xdef:ref="BatchListenersModel">
-        <filter xdef:value="xpl-predicate"/>
-        <source xdef:value="xpl-fn:(item,consumer,ctx)=>void"/>
+        <filter xdef:value="xpl-fn:(item,taskCtx)=>boolean"/>
+        <source xdef:value="xpl-fn:(item,consumer,chunkCtx)=>void"/>
     </processor>
 
-    <chunk-processor bean="bean-name" xdef:name="BatchChunkProcessorModel" xdef:ref="BatchListenersModel">
-        <source xdef:value="xpl-fn:(ctx)=>void"/>
-    </chunk-processor>
+    <chunk-processor-builder bean="bean-name" xdef:name="BatchChunkProcessorBuilderModel"
+                             xdef:ref="BatchListenersModel">
+    </chunk-processor-builder>
 
     <tagger bean="bean-name" xdef:name="BatchTaggerModel">
         <source xdef:value="xpl-fn:(item,ctx)=>Collection"/>
@@ -76,10 +76,22 @@
     <writer bean="bean-name" name="var-name" order="!int=0" forTag="string"
             xdef:unique-attr="name" xdef:name="BatchWriterModel" xdef:ref="BatchListenersModel"
             aggregator="bean-name" metaProvider="bean-name">
+        <filter xdef:value="xpl-fn:(item,taskCtx)=>boolean"/>
+
         <file-writer pathExpr="!expr" xdef:name="BatchFileWriterModel" encoding="string"
                      resourceLoader="bean-name" resourceIO="bean-name">
             <headers xdef:value="csv-set"/>
         </file-writer>
+
+        <orm-writer entityName="!string" xdef:name="BatchOrmWriterModel" allowUpdate="!boolean=false"
+                    allowInsert="!boolean=true">
+            <uniqueKey xdef:value="csv-set"/>
+        </orm-writer>
+
+        <jdbc-writer tableName="!string" xdef:name="BatchJdbcWriterModel" allowUpdate="!boolean=false"
+                     allowInsert="!boolean=true">
+            <uniqueKey xdef:value="csv-set"/>
+        </jdbc-writer>
 
         <source xdef:value="xpl-fn:(items,ctx)=>void"/>
     </writer>

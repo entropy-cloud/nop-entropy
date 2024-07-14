@@ -28,7 +28,7 @@ public abstract class _BatchProcessorModel extends io.nop.batch.dsl.model.BatchL
      * xml name: filter
      * 
      */
-    private io.nop.core.lang.eval.IEvalPredicate _filter ;
+    private io.nop.core.lang.eval.IEvalFunction _filter ;
     
     /**
      *  
@@ -76,12 +76,12 @@ public abstract class _BatchProcessorModel extends io.nop.batch.dsl.model.BatchL
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalPredicate getFilter(){
+    public io.nop.core.lang.eval.IEvalFunction getFilter(){
       return _filter;
     }
 
     
-    public void setFilter(io.nop.core.lang.eval.IEvalPredicate value){
+    public void setFilter(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._filter = value;

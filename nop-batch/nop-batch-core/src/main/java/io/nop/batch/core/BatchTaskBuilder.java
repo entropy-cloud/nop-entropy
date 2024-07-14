@@ -46,7 +46,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executor;
-import java.util.function.Predicate;
 
 /**
  * 负责创建{@link IBatchTask}的工厂类。它负责组织skip/retry/transaction/process/listener的处理顺序
@@ -77,7 +76,7 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
     private Set<IBatchProcessListener> processListeners = new LinkedHashSet<>();
     private Set<IBatchChunkListener> chunkListeners = new LinkedHashSet<>();
 
-    private IBatchChunkProcessor chunkProcessor;
+    private IBatchChunkProcessorBuilder chunkProcessorBuilder;
 
     private boolean singleSession;
     private BatchTransactionScope batchTransactionScope = BatchTransactionScope.consume;
@@ -236,10 +235,10 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
     }
 
     @PropertySetter
-    public BatchTaskBuilder chunkProcessor(IBatchChunkProcessor chunkProcessor) {
-        Guard.checkState(this.chunkProcessor == null, "chunkProcessor is already set");
-        this.chunkProcessor = chunkProcessor;
-        addListener(chunkProcessor);
+    public BatchTaskBuilder chunkProcessorBuilder(IBatchChunkProcessorBuilder chunkProcessorBuilder) {
+        Guard.checkState(this.chunkProcessorBuilder == null, "chunkProcessorBuilder is already set");
+        this.chunkProcessorBuilder = chunkProcessorBuilder;
+        addListener(chunkProcessorBuilder);
         return this;
     }
 
@@ -337,7 +336,7 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
         return this;
     }
 
-    public BatchTaskBuilder addFilter(Predicate<?> filter) {
+    public BatchTaskBuilder addFilter(IBatchRecordFilter<?> filter) {
         return addProcessor(new FilterBatchProcessor<>(filter));
     }
 
@@ -418,10 +417,13 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
             consumer = new SkipBatchConsumer(consumer, skipPolicy);
         }
 
+        IBatchChunkProcessor chunkProcessor;
         // 一般只会使用缺省的BatchChunkProcessor，它负责核心的load/process/consume过程
-        IBatchChunkProcessor chunkProcessor = this.chunkProcessor;
-        if (chunkProcessor == null) {
+        IBatchChunkProcessorBuilder chunkProcessorBuilder = this.chunkProcessorBuilder;
+        if (chunkProcessorBuilder == null) {
             chunkProcessor = new BatchChunkProcessor<>(loader, batchSize, jitterRatio, consumer);
+        } else {
+            chunkProcessor = chunkProcessorBuilder.buildChunkProcessor(loader, batchSize, jitterRatio, consumer);
         }
 
         if (batchTransactionScope == BatchTransactionScope.chunk && transactionalInvoker != null) {

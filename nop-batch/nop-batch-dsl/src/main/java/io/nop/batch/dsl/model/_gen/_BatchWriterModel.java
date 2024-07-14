@@ -39,10 +39,24 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
     
     /**
      *  
+     * xml name: filter
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _filter ;
+    
+    /**
+     *  
      * xml name: forTag
      * 
      */
     private java.lang.String _forTag ;
+    
+    /**
+     *  
+     * xml name: jdbc-writer
+     * 
+     */
+    private io.nop.batch.dsl.model.BatchJdbcWriterModel _jdbcWriter ;
     
     /**
      *  
@@ -64,6 +78,13 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
      * 
      */
     private int _order  = 0;
+    
+    /**
+     *  
+     * xml name: orm-writer
+     * 
+     */
+    private io.nop.batch.dsl.model.BatchOrmWriterModel _ormWriter ;
     
     /**
      *  
@@ -131,6 +152,25 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
     
     /**
      * 
+     * xml name: filter
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getFilter(){
+      return _filter;
+    }
+
+    
+    public void setFilter(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._filter = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: forTag
      *  
      */
@@ -144,6 +184,25 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
         checkAllowChange();
         
         this._forTag = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: jdbc-writer
+     *  
+     */
+    
+    public io.nop.batch.dsl.model.BatchJdbcWriterModel getJdbcWriter(){
+      return _jdbcWriter;
+    }
+
+    
+    public void setJdbcWriter(io.nop.batch.dsl.model.BatchJdbcWriterModel value){
+        checkAllowChange();
+        
+        this._jdbcWriter = value;
            
     }
 
@@ -207,6 +266,25 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
     
     /**
      * 
+     * xml name: orm-writer
+     *  
+     */
+    
+    public io.nop.batch.dsl.model.BatchOrmWriterModel getOrmWriter(){
+      return _ormWriter;
+    }
+
+    
+    public void setOrmWriter(io.nop.batch.dsl.model.BatchOrmWriterModel value){
+        checkAllowChange();
+        
+        this._ormWriter = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: source
      *  
      */
@@ -234,6 +312,10 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
         
            this._fileWriter = io.nop.api.core.util.FreezeHelper.deepFreeze(this._fileWriter);
             
+           this._jdbcWriter = io.nop.api.core.util.FreezeHelper.deepFreeze(this._jdbcWriter);
+            
+           this._ormWriter = io.nop.api.core.util.FreezeHelper.deepFreeze(this._ormWriter);
+            
         }
     }
 
@@ -244,10 +326,13 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
         out.putNotNull("aggregator",this.getAggregator());
         out.putNotNull("bean",this.getBean());
         out.putNotNull("fileWriter",this.getFileWriter());
+        out.putNotNull("filter",this.getFilter());
         out.putNotNull("forTag",this.getForTag());
+        out.putNotNull("jdbcWriter",this.getJdbcWriter());
         out.putNotNull("metaProvider",this.getMetaProvider());
         out.putNotNull("name",this.getName());
         out.putNotNull("order",this.getOrder());
+        out.putNotNull("ormWriter",this.getOrmWriter());
         out.putNotNull("source",this.getSource());
     }
 
@@ -263,10 +348,13 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
         instance.setAggregator(this.getAggregator());
         instance.setBean(this.getBean());
         instance.setFileWriter(this.getFileWriter());
+        instance.setFilter(this.getFilter());
         instance.setForTag(this.getForTag());
+        instance.setJdbcWriter(this.getJdbcWriter());
         instance.setMetaProvider(this.getMetaProvider());
         instance.setName(this.getName());
         instance.setOrder(this.getOrder());
+        instance.setOrmWriter(this.getOrmWriter());
         instance.setSource(this.getSource());
     }
 

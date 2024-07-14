@@ -2,7 +2,7 @@ package io.nop.batch.dsl.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
-import io.nop.batch.dsl.model.BatchChunkProcessorModel;
+import io.nop.batch.dsl.model.BatchChunkProcessorBuilderModel;
 import io.nop.commons.util.ClassHelper;
 
 
@@ -14,7 +14,7 @@ import io.nop.commons.util.ClassHelper;
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
-public abstract class _BatchChunkProcessorModel extends io.nop.batch.dsl.model.BatchListenersModel {
+public abstract class _BatchChunkProcessorBuilderModel extends io.nop.batch.dsl.model.BatchListenersModel {
     
     /**
      *  
@@ -22,13 +22,6 @@ public abstract class _BatchChunkProcessorModel extends io.nop.batch.dsl.model.B
      * 
      */
     private java.lang.String _bean ;
-    
-    /**
-     *  
-     * xml name: source
-     * 
-     */
-    private io.nop.core.lang.eval.IEvalFunction _source ;
     
     /**
      * 
@@ -49,25 +42,6 @@ public abstract class _BatchChunkProcessorModel extends io.nop.batch.dsl.model.B
     }
 
     
-    /**
-     * 
-     * xml name: source
-     *  
-     */
-    
-    public io.nop.core.lang.eval.IEvalFunction getSource(){
-      return _source;
-    }
-
-    
-    public void setSource(io.nop.core.lang.eval.IEvalFunction value){
-        checkAllowChange();
-        
-        this._source = value;
-           
-    }
-
-    
 
     @Override
     public void freeze(boolean cascade){
@@ -84,24 +58,22 @@ public abstract class _BatchChunkProcessorModel extends io.nop.batch.dsl.model.B
         super.outputJson(out);
         
         out.putNotNull("bean",this.getBean());
-        out.putNotNull("source",this.getSource());
     }
 
-    public BatchChunkProcessorModel cloneInstance(){
-        BatchChunkProcessorModel instance = newInstance();
+    public BatchChunkProcessorBuilderModel cloneInstance(){
+        BatchChunkProcessorBuilderModel instance = newInstance();
         this.copyTo(instance);
         return instance;
     }
 
-    protected void copyTo(BatchChunkProcessorModel instance){
+    protected void copyTo(BatchChunkProcessorBuilderModel instance){
         super.copyTo(instance);
         
         instance.setBean(this.getBean());
-        instance.setSource(this.getSource());
     }
 
-    protected BatchChunkProcessorModel newInstance(){
-        return (BatchChunkProcessorModel) ClassHelper.newInstance(getClass());
+    protected BatchChunkProcessorBuilderModel newInstance(){
+        return (BatchChunkProcessorBuilderModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

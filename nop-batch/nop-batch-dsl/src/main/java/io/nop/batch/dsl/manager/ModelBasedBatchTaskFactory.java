@@ -3,27 +3,30 @@ package io.nop.batch.dsl.manager;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.IBeanProvider;
-import io.nop.api.core.util.ProcessResult;
 import io.nop.batch.core.BatchTaskBuilder;
 import io.nop.batch.core.IBatchAggregator;
 import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchChunkProcessor;
+import io.nop.batch.core.IBatchChunkProcessorBuilder;
 import io.nop.batch.core.IBatchConsumer;
 import io.nop.batch.core.IBatchLoader;
 import io.nop.batch.core.IBatchMetaProvider;
 import io.nop.batch.core.IBatchProcessor;
+import io.nop.batch.core.IBatchRecordFilter;
 import io.nop.batch.core.IBatchStateStore;
 import io.nop.batch.core.IBatchTask;
+import io.nop.batch.core.consumer.FilteredBatchConsumer;
 import io.nop.batch.core.consumer.MultiBatchConsumer;
 import io.nop.batch.core.consumer.ResourceRecordConsumer;
 import io.nop.batch.core.consumer.SplitBatchConsumer;
+import io.nop.batch.core.filter.EvalBatchRecordFilter;
 import io.nop.batch.core.listener.EvalBatchChunkListener;
 import io.nop.batch.core.listener.EvalBatchConsumeListener;
 import io.nop.batch.core.listener.EvalBatchLoadListener;
 import io.nop.batch.core.listener.EvalBatchTaskListener;
 import io.nop.batch.core.loader.ResourceRecordLoader;
 import io.nop.batch.core.manager.IBatchTaskFactory;
-import io.nop.batch.dsl.model.BatchChunkProcessorModel;
+import io.nop.batch.core.processor.FilterBatchProcessor;
+import io.nop.batch.dsl.model.BatchChunkProcessorBuilderModel;
 import io.nop.batch.dsl.model.BatchFileReaderModel;
 import io.nop.batch.dsl.model.BatchFileWriterModel;
 import io.nop.batch.dsl.model.BatchJdbcReaderModel;
@@ -38,12 +41,16 @@ import io.nop.batch.orm.loader.OrmQueryBatchLoader;
 import io.nop.commons.collections.OrderByComparator;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IEvalContext;
+import io.nop.core.lang.eval.IEvalFunction;
+import io.nop.core.lang.xml.IXNodeGenerator;
+import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.IResourceLoader;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.record.IResourceRecordIO;
 import io.nop.core.resource.record.csv.CsvResourceRecordIO;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.dao.api.IQueryBuilder;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.dao.utils.TransactionalFunctionInvoker;
@@ -153,14 +160,17 @@ public class ModelBasedBatchTaskFactory implements IBatchTaskFactory {
 
             for (BatchProcessorModel processorModel : batchTaskModel.getProcessors()) {
                 IBatchProcessor<?, ?, IBatchChunkContext> processor = buildProcessor(processorModel, builder, beanContainer);
+                if (processorModel.getFilter() != null) {
+                    list.add(newFilterProcessor(processorModel.getFilter()));
+                }
                 list.add(processor);
             }
             builder.processors(list);
         }
 
-        IBatchChunkProcessor chunkProcessor = buildChunkProcessor(builder, beanContainer);
+        IBatchChunkProcessorBuilder chunkProcessor = buildChunkProcessorBuilder(builder, beanContainer);
         if (chunkProcessor != null)
-            builder.chunkProcessor(chunkProcessor);
+            builder.chunkProcessorBuilder(chunkProcessor);
 
         IRecordTagger<Object, IBatchChunkContext> tagger = getTagger(beanContainer);
         IRecordSplitter<?, ?, IBatchChunkContext> splitter = tagger == null ? null : new RecordTagSplitter<Object, IBatchChunkContext>(tagger);
@@ -200,6 +210,10 @@ public class ModelBasedBatchTaskFactory implements IBatchTaskFactory {
                 builder.consumers(writers);
             }
         }
+    }
+
+    private IBatchProcessor newFilterProcessor(IEvalFunction func) {
+        return new FilterBatchProcessor(new EvalBatchRecordFilter(func));
     }
 
     private IBatchConsumer<Object, IBatchChunkContext> buildWriter(List<IBatchConsumer<Object, IBatchChunkContext>> list) {
@@ -251,17 +265,24 @@ public class ModelBasedBatchTaskFactory implements IBatchTaskFactory {
     }
 
     private IBatchLoader<?, IBatchChunkContext> buildOrmReader(BatchOrmReaderModel readerModel) {
-        QueryBean query = readerModel.getQuery();
+        IXNodeGenerator query = readerModel.getQuery();
         List<String> batchLoadProps = readerModel.getBatchLoadProps();
 
         OrmQueryBatchLoader<IOrmEntity> loader = new OrmQueryBatchLoader<>();
         loader.setBatchLoadProps(batchLoadProps);
         loader.setDaoProvider(daoProvider);
         if (query != null)
-            loader.setQuery(query);
+            loader.setQueryBuilder(newQueryBuilder(query));
         //loader.setSqlGenerator(readerModel.getEql());
 
         return loader;
+    }
+
+    private IQueryBuilder newQueryBuilder(IXNodeGenerator generator) {
+        return context -> {
+            XNode node = generator.generateNode(context);
+            return BeanTool.buildBeanFromTreeBean(node, QueryBean.class);
+        };
     }
 
     private IBatchLoader<Object, IEvalContext> buildJdbcReader(BatchJdbcReaderModel readerModel) {
@@ -312,20 +333,17 @@ public class ModelBasedBatchTaskFactory implements IBatchTaskFactory {
         };
     }
 
-    private IBatchChunkProcessor buildChunkProcessor(BatchTaskBuilder builder, IBeanProvider beanContainer) {
-        if (batchTaskModel.getChunkProcessor() == null)
+    private IBatchChunkProcessorBuilder buildChunkProcessorBuilder(BatchTaskBuilder builder, IBeanProvider beanContainer) {
+        if (batchTaskModel.getChunkProcessorBuilder() == null)
             return null;
 
-        addListeners(builder, batchTaskModel.getChunkProcessor());
+        addListeners(builder, batchTaskModel.getChunkProcessorBuilder());
 
-        BatchChunkProcessorModel processorModel = batchTaskModel.getChunkProcessor();
+        BatchChunkProcessorBuilderModel processorModel = batchTaskModel.getChunkProcessorBuilder();
         if (processorModel.getBean() != null)
-            return (IBatchChunkProcessor) beanContainer.getBean(processorModel.getBean());
+            return (IBatchChunkProcessorBuilder) beanContainer.getBean(processorModel.getBean());
 
-        return ctx -> {
-            Object value = processorModel.getSource().call1(null, ctx, ctx.getEvalScope());
-            return ProcessResult.STOP == value ? ProcessResult.STOP : ProcessResult.CONTINUE;
-        };
+        return null;
     }
 
     private void addListeners(BatchTaskBuilder builder, BatchListenersModel listenersModel) {
@@ -365,14 +383,25 @@ public class ModelBasedBatchTaskFactory implements IBatchTaskFactory {
         IBatchAggregator aggregator = loadAggregator(writerModel.getAggregator(), beanContainer);
         IBatchMetaProvider metaProvider = loadMetaProvider(writerModel.getMetaProvider(), beanContainer);
 
+        IBatchConsumer<Object, IBatchChunkContext> ret;
         if (writerModel.getFileWriter() != null) {
             ResourceRecordConsumer<Object, IBatchChunkContext> writer = newFileWriter(writerModel.getFileWriter(), beanContainer);
             writer.setName(writerModel.getName());
             writer.setAggregator(aggregator);
             writer.setMetaProvider(metaProvider);
-            return writer;
+            ret = writer;
+        } else {
+            ret = null;
         }
-        return null;
+        return addFilterForWriter(writerModel, ret);
+    }
+
+    private IBatchConsumer<Object, IBatchChunkContext> addFilterForWriter(BatchWriterModel writerModel, IBatchConsumer<Object, IBatchChunkContext> consumer) {
+        if (writerModel.getFilter() == null)
+            return consumer;
+
+        IBatchRecordFilter<Object> filter = new EvalBatchRecordFilter<>(writerModel.getFilter());
+        return new FilteredBatchConsumer<>(filter, consumer);
     }
 
     private IBatchMetaProvider loadMetaProvider(String beanName, IBeanProvider beanContainer) {

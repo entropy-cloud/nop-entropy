@@ -21,7 +21,7 @@ public abstract class _BatchJdbcReaderModel extends io.nop.core.resource.compone
      * xml name: query
      * 
      */
-    private io.nop.api.core.beans.query.QueryBean _query ;
+    private io.nop.core.lang.xml.IXNodeGenerator _query ;
     
     /**
      *  
@@ -50,12 +50,12 @@ public abstract class _BatchJdbcReaderModel extends io.nop.core.resource.compone
      *  
      */
     
-    public io.nop.api.core.beans.query.QueryBean getQuery(){
+    public io.nop.core.lang.xml.IXNodeGenerator getQuery(){
       return _query;
     }
 
     
-    public void setQuery(io.nop.api.core.beans.query.QueryBean value){
+    public void setQuery(io.nop.core.lang.xml.IXNodeGenerator value){
         checkAllowChange();
         
         this._query = value;
@@ -128,8 +128,6 @@ public abstract class _BatchJdbcReaderModel extends io.nop.core.resource.compone
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
-           this._query = io.nop.api.core.util.FreezeHelper.deepFreeze(this._query);
-            
         }
     }
 

@@ -7,21 +7,22 @@
  */
 package io.nop.batch.core.processor;
 
+import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchProcessor;
+import io.nop.batch.core.IBatchRecordFilter;
 
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 
-public class FilterBatchProcessor<T, C> implements IBatchProcessor<T, T, C> {
-    private final Predicate<T> predicate;
+public class FilterBatchProcessor<T> implements IBatchProcessor<T, T, IBatchChunkContext> {
+    private final IBatchRecordFilter<T> predicate;
 
-    public FilterBatchProcessor(Predicate<T> predicate) {
+    public FilterBatchProcessor(IBatchRecordFilter<T> predicate) {
         this.predicate = predicate;
     }
 
     @Override
-    public void process(T item, Consumer<T> consumer, C context) {
-        if (predicate.test(item)) {
+    public void process(T item, Consumer<T> consumer, IBatchChunkContext context) {
+        if (predicate.accept(item, context.getTaskContext())) {
             consumer.accept(item);
         }
     }
