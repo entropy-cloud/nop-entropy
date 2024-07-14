@@ -27,6 +27,12 @@ public class WitchHistoryBatchConsumer<R> implements IBatchConsumer<R, IBatchChu
     public void consume(List<R> items, IBatchChunkContext context) {
         List<R> filtered = historyStore.filterProcessed(items, context);
         if (!filtered.isEmpty()) {
+            for (R item : items) {
+                if (!filtered.contains(item)) {
+                    context.addCompletedItem(item);
+                }
+            }
+
             try {
                 consumer.consume(filtered, context);
             } catch (Exception e) {
@@ -34,6 +40,8 @@ public class WitchHistoryBatchConsumer<R> implements IBatchConsumer<R, IBatchChu
                 throw NopException.adapt(e);
             }
             historyStore.saveProcessed(filtered, null, context);
+        } else {
+            filtered.forEach(context::addCompletedItem);
         }
     }
 }

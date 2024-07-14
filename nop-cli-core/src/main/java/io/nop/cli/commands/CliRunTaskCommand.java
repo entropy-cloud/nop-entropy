@@ -5,6 +5,8 @@ import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
+import io.nop.ioc.api.BeanScopeContext;
+import io.nop.ioc.api.IBeanScope;
 import io.nop.task.ITask;
 import io.nop.task.ITaskFlowManager;
 import io.nop.task.ITaskRuntime;
@@ -29,7 +31,6 @@ public class CliRunTaskCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"-if", "--input-file"}, description = "输入参数文件")
     String inputFile;
 
-
     @SuppressWarnings("unchecked")
     @Override
     public Integer call() throws Exception {
@@ -48,9 +49,11 @@ public class CliRunTaskCommand implements Callable<Integer> {
             taskRt.getEvalScope().setLocalValues(map);
         }
 
-        Object result = task.execute(taskRt).syncGetResult();
-        if (result instanceof Integer)
-            return (Integer) result;
-        return 0;
+        return BeanScopeContext.runWithNewScope(IBeanScope.SCOPE_TASK, () -> {
+            Object result = task.execute(taskRt).syncGetResult();
+            if (result instanceof Integer)
+                return (Integer) result;
+            return 0;
+        });
     }
 }

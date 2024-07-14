@@ -62,7 +62,7 @@ public class BatchTaskManagerImpl implements IBatchTaskManager {
     @Override
     public IBatchTask newBatchTask(String batchTaskName, Long taskVersion, IBatchTaskContext taskContext) {
         BatchTaskModel taskModel = loadBatchTaskModel(batchTaskName, taskVersion);
-        return new ModelBasedBatchTaskFactory(taskModel, stateStore, transactionTemplate,
+        return new ModelBasedBatchTaskFactory(batchTaskName, taskModel, stateStore, transactionTemplate,
                 ormTemplate, jdbcTemplate, daoProvider)
                 .newTask(taskContext.getEvalScope().getBeanProvider());
     }

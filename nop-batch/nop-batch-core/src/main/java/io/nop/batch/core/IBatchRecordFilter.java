@@ -7,6 +7,15 @@
  */
 package io.nop.batch.core;
 
-public interface IBatchRecordFilter<T> {
-    boolean accept(T record, IBatchTaskContext context);
+import java.util.List;
+import java.util.stream.Collectors;
+
+public interface IBatchRecordFilter<R> {
+    boolean accept(R record, IBatchTaskContext context);
+
+    default List<R> filter(List<R> records, IBatchTaskContext context) {
+        return records.stream().filter(record -> {
+            return accept(record, context);
+        }).collect(Collectors.toList());
+    }
 }

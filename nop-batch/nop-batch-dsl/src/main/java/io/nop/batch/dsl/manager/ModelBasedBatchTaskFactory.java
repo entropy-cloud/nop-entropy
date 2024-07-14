@@ -1,6 +1,7 @@
 package io.nop.batch.dsl.manager;
 
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.IBeanProvider;
 import io.nop.api.core.util.ProcessResult;
 import io.nop.batch.core.BatchTaskBuilder;
@@ -58,7 +59,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 
+import static io.nop.batch.dsl.BatchDslErrors.ARG_BATCH_TASK_NAME;
+import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_NO_LOADER;
+
 public class ModelBasedBatchTaskFactory implements IBatchTaskFactory {
+    private final String batchTaskName;
     private final BatchTaskModel batchTaskModel;
     private final ITransactionTemplate transactionTemplate;
     private final IOrmTemplate ormTemplate;
@@ -67,11 +72,12 @@ public class ModelBasedBatchTaskFactory implements IBatchTaskFactory {
     private final IDaoProvider daoProvider;
     private final IBatchStateStore stateStore;
 
-    public ModelBasedBatchTaskFactory(BatchTaskModel batchTaskModel,
+    public ModelBasedBatchTaskFactory(String batchTaskName, BatchTaskModel batchTaskModel,
                                       IBatchStateStore stateStore,
                                       ITransactionTemplate transactionTemplate,
                                       IOrmTemplate ormTemplate, IJdbcTemplate jdbcTemplate,
                                       IDaoProvider daoProvider) {
+        this.batchTaskName = batchTaskName;
         this.stateStore = stateStore;
         this.batchTaskModel = batchTaskModel;
         this.transactionTemplate = transactionTemplate;
@@ -135,6 +141,10 @@ public class ModelBasedBatchTaskFactory implements IBatchTaskFactory {
 
     private void buildTask(BatchTaskBuilder builder, IBeanProvider beanContainer) {
         IBatchLoader<?, ? extends IEvalContext> loader = buildLoader(builder, beanContainer);
+        if (loader == null)
+            throw new NopException(ERR_BATCH_TASK_NO_LOADER)
+                    .source(batchTaskModel)
+                    .param(ARG_BATCH_TASK_NAME, batchTaskName);
         builder.loader(loader);
 
         if (batchTaskModel.getProcessors() != null) {
