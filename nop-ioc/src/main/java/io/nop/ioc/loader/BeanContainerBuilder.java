@@ -12,6 +12,7 @@ import io.nop.api.core.ioc.IBeanContainer;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.lang.IClassLoader;
+import io.nop.commons.util.ClassHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.IFieldModel;
 import io.nop.core.resource.IResource;
@@ -20,6 +21,7 @@ import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.ioc.impl.BeanContainerDumper;
 import io.nop.ioc.impl.BeanContainerImpl;
 import io.nop.ioc.impl.BeanDefinition;
+import io.nop.ioc.impl.DefaultBeanClassIntrospection;
 import io.nop.ioc.impl.IBeanClassIntrospection;
 import io.nop.ioc.model.BeanAliasModel;
 import io.nop.ioc.model.BeanConditionModel;
@@ -72,6 +74,14 @@ public class BeanContainerBuilder implements IBeanContainerBuilder {
         this.parentContainer = parentContainer;
     }
 
+    public BeanContainerBuilder(IClassLoader classLoader, IBeanContainer parentContainer) {
+        this(classLoader, new DefaultBeanClassIntrospection(classLoader), parentContainer);
+    }
+
+    public BeanContainerBuilder(IBeanContainer parentContainer) {
+        this(ClassHelper.getSafeClassLoader(), parentContainer);
+    }
+
     @Override
     public IBeanContainerBuilder startMode(BeanContainerStartMode startMode) {
         this.startMode = startMode;
@@ -90,6 +100,12 @@ public class BeanContainerBuilder implements IBeanContainerBuilder {
         IXDefinition xdef = SchemaLoader.loadXDefinition(IocConstants.XDEF_BEANS);
         BeansModel beans = (BeansModel) new DslModelParser(IocConstants.XDEF_BEANS).parseWithXDef(xdef, beansNode);
         this.beans.merge(buildDefinition(beans, null));
+        return this;
+    }
+
+    @Override
+    public IBeanContainerBuilder addBeansModel(BeansModel beansModel) {
+        this.beans.merge(buildDefinition(beansModel, null));
         return this;
     }
 

@@ -7,7 +7,11 @@
  */
 package io.nop.ioc.api;
 
+import io.nop.api.core.ioc.BeanContainer;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.ioc.impl.BeanScopeContextImpl;
+import io.nop.ioc.impl.BeanScopeImpl;
+import io.nop.xlang.api.XLang;
 
 import java.util.function.Supplier;
 
@@ -18,7 +22,7 @@ public class BeanScopeContext {
         return _instance;
     }
 
-    public static <T> T withScope(IBeanScope scope, Supplier<T> task) {
+    public static <T> T runWithScope(IBeanScope scope, Supplier<T> task) {
         IBeanScopeContext context = instance();
         context.bind(scope);
         try {
@@ -26,5 +30,14 @@ public class BeanScopeContext {
         } finally {
             context.closeScope(scope);
         }
+    }
+
+    public static <T> T runWithNewScope(String scopeName, IEvalScope scope, Supplier<T> task) {
+        IBeanScope beanScope = new BeanScopeImpl(scopeName, scope, (IBeanContainerImplementor) BeanContainer.instance());
+        return runWithScope(beanScope, task);
+    }
+
+    public static <T> T runWithNewScope(String scopeName, Supplier<T> task) {
+        return runWithNewScope(scopeName, XLang.newEvalScope(), task);
     }
 }

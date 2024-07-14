@@ -145,5 +145,5 @@ public interface TaskConstants {
 
     String BEAN_PREFIX_TASK_STEP_DECORATOR = "nopTaskStepDecorator_";
 
-    String BEAN_GLOBAL_WORKER = "globalWorker";
+    String REASON_TASK_COMPLETE = "task-complete";
 }

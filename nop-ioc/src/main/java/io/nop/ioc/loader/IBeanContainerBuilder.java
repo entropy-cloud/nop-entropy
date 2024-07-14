@@ -12,6 +12,7 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.ioc.model.BeanModel;
+import io.nop.ioc.model.BeansModel;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -20,6 +21,8 @@ public interface IBeanContainerBuilder {
     IBeanContainerBuilder addResource(IResource resource);
 
     IBeanContainerBuilder addBeans(XNode beansNode);
+
+    IBeanContainerBuilder addBeansModel(BeansModel beansModel);
 
     IBeanContainerBuilder startMode(BeanContainerStartMode startMode);
 

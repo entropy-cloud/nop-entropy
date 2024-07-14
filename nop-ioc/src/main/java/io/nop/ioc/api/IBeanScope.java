@@ -13,6 +13,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 public interface IBeanScope extends AutoCloseable {
+    String SCOPE_TASK = "task";
+
     IEvalScope getEvalScope();
 
     IBeanContainerImplementor getContainer();

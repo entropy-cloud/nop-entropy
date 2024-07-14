@@ -97,6 +97,22 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         }
     }
 
+    BeanContainerImpl(String id, Map<String, BeanDefinition> enabledBeans,
+                      Collection<BeanDefinition> optionalBeans,
+                      Map<String, AliasName> aliases, IBeanContainer parentContainer, List<BeanDefinition> orderedBeans) {
+        this.id = id;
+        this.enabledBeans = enabledBeans;
+        this.aliases = aliases;
+        this.orderedBeans = orderedBeans;
+        this.parentContainer = parentContainer;
+        this.optionalBeans = optionalBeans == null ? Collections.emptyList() : optionalBeans;
+    }
+
+    @Override
+    public IBeanContainer buildNewInstance(IBeanContainer parentContainer) {
+        return new BeanContainerImpl(id, enabledBeans, optionalBeans, aliases, parentContainer, orderedBeans);
+    }
+
     public void setConfigProvider(IConfigProvider configProvider) {
         this.configProvider = configProvider;
     }
@@ -489,7 +505,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
 
     @Override
     public void injectTo(Object bean) {
-        LOG.debug("nop.inject-props-to-bean:{}",bean);
+        LOG.debug("nop.inject-props-to-bean:{}", bean);
         checkStarted();
         Class<?> beanClass = bean.getClass();
         BeanDefinition beanDef = new BeanDefinitionBuilder(classLoader, getClassIntrospection(), this)

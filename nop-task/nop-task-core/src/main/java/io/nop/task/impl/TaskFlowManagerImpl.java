@@ -57,8 +57,10 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
 
     @Override
     public IThreadPoolExecutor getThreadPoolExecutor(IBeanProvider beanProvider, String executorBean) {
-        if(TaskConstants.BEAN_GLOBAL_WORKER.equals(executorBean))
+        if (GlobalExecutors.NOP_GLOBAL_WORKER.equals(executorBean))
             return GlobalExecutors.globalWorker();
+        if (GlobalExecutors.NOP_GLOBAL_TIMER.equals(executorBean))
+            return GlobalExecutors.globalTimer();
         return (IThreadPoolExecutor) beanProvider.getBean(executorBean);
     }
 

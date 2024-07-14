@@ -25,6 +25,13 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
     
     /**
      *  
+     * xml name: beans
+     * 带ioc前缀的属性和子节点是相对于spring配置格式增加的扩展
+     */
+    private io.nop.ioc.model.BeansModel _beans ;
+    
+    /**
+     *  
      * xml name: defaultSaveState
      * 
      */
@@ -60,6 +67,13 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
     
     /**
      *  
+     * xml name: useParentBeanContainer
+     * 如果设置为false，则任务只使用自身定义的beans，不使用IServiceContext中的beanContainer
+     */
+    private boolean _useParentBeanContainer  = false;
+    
+    /**
+     *  
      * xml name: version
      * 
      */
@@ -80,6 +94,25 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
         checkAllowChange();
         
         this._auth = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: beans
+     *  带ioc前缀的属性和子节点是相对于spring配置格式增加的扩展
+     */
+    
+    public io.nop.ioc.model.BeansModel getBeans(){
+      return _beans;
+    }
+
+    
+    public void setBeans(io.nop.ioc.model.BeansModel value){
+        checkAllowChange();
+        
+        this._beans = value;
            
     }
 
@@ -181,6 +214,25 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
     
     /**
      * 
+     * xml name: useParentBeanContainer
+     *  如果设置为false，则任务只使用自身定义的beans，不使用IServiceContext中的beanContainer
+     */
+    
+    public boolean isUseParentBeanContainer(){
+      return _useParentBeanContainer;
+    }
+
+    
+    public void setUseParentBeanContainer(boolean value){
+        checkAllowChange();
+        
+        this._useParentBeanContainer = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: version
      *  
      */
@@ -208,6 +260,8 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
         
            this._auth = io.nop.api.core.util.FreezeHelper.deepFreeze(this._auth);
             
+           this._beans = io.nop.api.core.util.FreezeHelper.deepFreeze(this._beans);
+            
         }
     }
 
@@ -216,11 +270,13 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
         super.outputJson(out);
         
         out.putNotNull("auth",this.getAuth());
+        out.putNotNull("beans",this.getBeans());
         out.putNotNull("defaultSaveState",this.isDefaultSaveState());
         out.putNotNull("enterSteps",this.getEnterSteps());
         out.putNotNull("exitSteps",this.getExitSteps());
         out.putNotNull("graphMode",this.isGraphMode());
         out.putNotNull("restartable",this.isRestartable());
+        out.putNotNull("useParentBeanContainer",this.isUseParentBeanContainer());
         out.putNotNull("version",this.getVersion());
     }
 
@@ -234,11 +290,13 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
         super.copyTo(instance);
         
         instance.setAuth(this.getAuth());
+        instance.setBeans(this.getBeans());
         instance.setDefaultSaveState(this.isDefaultSaveState());
         instance.setEnterSteps(this.getEnterSteps());
         instance.setExitSteps(this.getExitSteps());
         instance.setGraphMode(this.isGraphMode());
         instance.setRestartable(this.isRestartable());
+        instance.setUseParentBeanContainer(this.isUseParentBeanContainer());
         instance.setVersion(this.getVersion());
     }
 

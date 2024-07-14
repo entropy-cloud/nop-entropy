@@ -1,6 +1,7 @@
 package io.nop.task.impl;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.ioc.IBeanContainer;
 import io.nop.api.core.util.Guard;
 import io.nop.task.ITask;
 import io.nop.task.ITaskRuntime;
@@ -27,8 +28,10 @@ public class TaskImpl implements ITask {
 
     private final List<? extends ITaskOutputModel> outputs;
 
+    private final ITaskBeanContainerFactory taskBeanContainerFactory;
+
     public TaskImpl(String taskName, long taskVersion, ITaskStep mainStep, boolean recordMetrics,
-                    ITaskStepFlagOperation flagOperation,
+                    ITaskStepFlagOperation flagOperation, ITaskBeanContainerFactory taskBeanContainerFactory,
                     List<? extends ITaskInputModel> inputs, List<? extends ITaskOutputModel> outputs) {
         this.inputs = inputs;
         this.outputs = outputs;
@@ -36,6 +39,7 @@ public class TaskImpl implements ITask {
         this.taskName = Guard.notEmpty(taskName, "taskName");
         this.taskVersion = taskVersion;
         this.recordMetrics = recordMetrics;
+        this.taskBeanContainerFactory = taskBeanContainerFactory;
         this.mainStep = Guard.notNull(mainStep, "mainStep");
     }
 
@@ -59,6 +63,12 @@ public class TaskImpl implements ITask {
         return taskVersion;
     }
 
+    IBeanContainer createBeanContainer(ITaskRuntime taskRt) {
+        if (taskBeanContainerFactory == null)
+            return null;
+        return taskBeanContainerFactory.createBeanContainer(taskRt);
+    }
+
     @Override
     public TaskStepReturn execute(ITaskRuntime taskRt, Set<String> outputNames) {
         ITaskStepRuntime stepRt = taskRt.newMainStepRuntime();
@@ -69,21 +79,32 @@ public class TaskImpl implements ITask {
         }
 
         stepRt.setOutputNames(outputNames);
-        if (!recordMetrics)
-            return mainStep.execute(stepRt);
 
-        ITaskFlowMetrics metrics = taskRt.getMetrics();
-        Object meter = metrics.beginTask();
+        TaskStepReturn stepReturn;
+        ITaskFlowMetrics metrics = recordMetrics ? taskRt.getMetrics() : null;
+        Object meter = metrics == null ? null : metrics.beginTask();
         try {
-            return mainStep.execute(stepRt).thenCompose((ret, err) -> {
-                metrics.endTask(meter, err != null);
-                if (err == null)
-                    return ret;
-                throw NopException.adapt(err);
-            });
+            // 如果设置了任务专用的beanContainer
+            IBeanContainer beanContainer = createBeanContainer(taskRt);
+            if (beanContainer != null) {
+                beanContainer.start();
+                taskRt.addTaskCleanup(beanContainer::stop);
+                taskRt.getEvalScope().setBeanProvider(beanContainer);
+            }
+            stepReturn = mainStep.execute(stepRt);
         } catch (Exception e) {
+            taskRt.runCleanup();
             metrics.endTask(meter, false);
             throw NopException.adapt(e);
         }
+
+        return stepReturn.thenCompose((ret, err) -> {
+            taskRt.runCleanup();
+            if (metrics != null)
+                metrics.endTask(meter, err != null);
+            if (err == null)
+                return ret;
+            throw NopException.adapt(err);
+        });
     }
 }

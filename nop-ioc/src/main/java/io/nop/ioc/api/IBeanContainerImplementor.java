@@ -14,8 +14,8 @@ import io.nop.commons.lang.IClassLoader;
 import io.nop.commons.service.ILifeCycle;
 import io.nop.core.lang.xml.XNode;
 import io.nop.ioc.impl.IBeanClassIntrospection;
-
 import jakarta.annotation.Nonnull;
+
 import java.lang.annotation.Annotation;
 import java.util.Map;
 
@@ -54,4 +54,6 @@ public interface IBeanContainerImplementor extends IBeanContainer, ILifeCycle {
     Map<String, IBeanDefinition> getBeanDefinitionsByType(Class<?> requiredType);
 
     Map<String, IBeanDefinition> getBeanDefinitionsByAnnotation(Class<? extends Annotation> annClass);
+
+    IBeanContainer buildNewInstance(IBeanContainer parentContainer);
 }

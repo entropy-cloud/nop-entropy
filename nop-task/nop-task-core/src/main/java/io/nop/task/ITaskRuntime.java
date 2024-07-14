@@ -137,4 +137,13 @@ public interface ITaskRuntime extends IEvalContext {
     ITaskStepRuntime newMainStepRuntime();
 
     IRateLimiter getRateLimiter(String key, double requestsPerSecond, boolean global);
+
+    /**
+     * 任务执行完毕之后清理资源
+     *
+     * @param cleanup
+     */
+    void addTaskCleanup(Runnable cleanup);
+
+    void runCleanup();
 }

@@ -4,9 +4,11 @@
 支持异步执行的轻量化任务引擎。持久化状态为可选特性，如果在步骤上配置了saveState，则可以从任意步骤中断并恢复执行。
 
 @firstStep 当graphMode为true时，第一个执行的步骤id
+@useParentBeanContainer 如果设置为false，则任务只使用自身定义的beans，不使用IServiceContext中的beanContainer
 -->
 <task defaultSaveState="!boolean=false" version="!long=0" recordMetrics="!boolean=true"
       restartable="!boolean=true" graphMode="!boolean=false" enterSteps="csv-set" exitSteps="csv-set"
+      useParentBeanContainer="!boolean=false"
       x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
       xdef:name="TaskFlowModel" xdef:bean-package="io.nop.task.model" xmlns:graphql="graphql"
       xdef:ref="TaskStepsModel" xdef:model-name-prop="name" xdef:model-version-prop="version"
@@ -15,6 +17,8 @@
     设置task的访问权限
     -->
     <auth xdef:ref="../schema/auth.xdef"/>
+
+    <beans xdef:ref="../beans.xdef"/>
 
     <xdef:define xdef:name="TaskExecutableModel" executor="bean-name" returnType="generic-type"
                  displayName="string" timeout="!long=0" persisVars="csv-set" catchInternalException="boolean">

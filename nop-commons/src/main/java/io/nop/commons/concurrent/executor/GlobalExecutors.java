@@ -17,10 +17,10 @@ import static io.nop.commons.CommonConfigs.CFG_CONCURRENT_GLOBAL_WORKER_MAX_POOL
 
 @GlobalInstance
 public class GlobalExecutors {
-    public static final String GLOBAL_TIMER = "nop-global-timer";
-    public static final String CACHED_THREAD_POOL = "nop-cached-thread-pool";
+    public static final String NOP_GLOBAL_TIMER = "nop-global-timer";
+    public static final String NOP_CACHED_THREAD_POOL = "nop-cached-thread-pool";
 
-    public static final String GLOBAL_WORKER = "nop-global-worker";
+    public static final String NOP_GLOBAL_WORKER = "nop-global-worker";
 
     private static final Map<String, IThreadPoolExecutor> g_executors = new ConcurrentHashMap<>();
 
@@ -29,10 +29,10 @@ public class GlobalExecutors {
     }
 
     public static IScheduledExecutor globalTimer() {
-        return (IScheduledExecutor) g_executors.computeIfAbsent(GLOBAL_TIMER, key -> {
+        return (IScheduledExecutor) g_executors.computeIfAbsent(NOP_GLOBAL_TIMER, key -> {
             DefaultScheduledExecutor timer = new DefaultScheduledExecutor();
             ThreadPoolConfig config = new ThreadPoolConfig();
-            config.setName(GLOBAL_TIMER);
+            config.setName(NOP_GLOBAL_TIMER);
             config.setThreadDaemon(true);
             config.setMaxPoolSize(CFG_CONCURRENT_GLOBAL_TIMER_MAX_POOL_SIZE.get());
             timer.setConfig(config);
@@ -42,10 +42,10 @@ public class GlobalExecutors {
     }
 
     public static IThreadPoolExecutor cachedThreadPool() {
-        return g_executors.computeIfAbsent(CACHED_THREAD_POOL, key -> {
+        return g_executors.computeIfAbsent(NOP_CACHED_THREAD_POOL, key -> {
             DefaultThreadPoolExecutor executor = new DefaultThreadPoolExecutor();
             ThreadPoolConfig config = new ThreadPoolConfig();
-            config.setName(CACHED_THREAD_POOL);
+            config.setName(NOP_CACHED_THREAD_POOL);
             config.setThreadDaemon(true);
             config.setMaxPoolSize(-1); // 不限制线程池大小
             config.setQueueCapacity(0);
@@ -56,10 +56,10 @@ public class GlobalExecutors {
     }
 
     public static IThreadPoolExecutor globalWorker() {
-        return g_executors.computeIfAbsent(GLOBAL_WORKER, key -> {
+        return g_executors.computeIfAbsent(NOP_GLOBAL_WORKER, key -> {
             DefaultThreadPoolExecutor executor = new DefaultThreadPoolExecutor();
             ThreadPoolConfig config = new ThreadPoolConfig();
-            config.setName(GLOBAL_WORKER);
+            config.setName(NOP_GLOBAL_WORKER);
             config.setThreadDaemon(true);
             config.setMaxPoolSize(CFG_CONCURRENT_GLOBAL_WORKER_MAX_POOL_SIZE.get());
             executor.setConfig(config);

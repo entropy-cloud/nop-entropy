@@ -36,6 +36,7 @@ public interface IocConstants {
 
     String PRODUCER_BEAN_PREFIX = "&";
 
+    String SYS_VAR_BEAN = "bean";
     String SYS_VAR_BEAN_DEF = "beanDef";
     String SYS_VAR_BEAN_CONTAINER = "beanContainer";
 

@@ -9,9 +9,11 @@ package io.nop.task.model;
 
 import io.nop.api.core.util.INeedInit;
 import io.nop.core.lang.xml.XNode;
+import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.task.ITask;
 import io.nop.task.ITaskStepLib;
 import io.nop.task.TaskConstants;
+import io.nop.task.builder.ITaskBeanContainerBuilder;
 import io.nop.task.builder.ITaskFlowBuilder;
 import io.nop.task.builder.ITaskStepLibBuilder;
 import io.nop.task.builder.TaskFlowAnalyzer;
@@ -21,6 +23,8 @@ public class TaskFlowModel extends _TaskFlowModel implements IGraphTaskStepModel
     private ITask task;
 
     private ITaskStepLib taskStepLib;
+
+    private IBeanContainerImplementor beanContainerTemplate;
 
     public TaskFlowModel() {
 
@@ -82,5 +86,15 @@ public class TaskFlowModel extends _TaskFlowModel implements IGraphTaskStepModel
             }
         }
         return schema;
+    }
+
+    public synchronized IBeanContainerImplementor getBeanContainerTemplate(ITaskBeanContainerBuilder builder) {
+        if (getBeans() == null)
+            return null;
+
+        if (beanContainerTemplate == null) {
+            beanContainerTemplate = builder.buildBeanContainer(this);
+        }
+        return beanContainerTemplate;
     }
 }
