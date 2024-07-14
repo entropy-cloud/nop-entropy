@@ -28,7 +28,7 @@ public abstract class _ValidatorModel extends io.nop.core.resource.component.Abs
      * xml name: checkLibPath
      * 在condition段以及check段中可以使用的判断标签
      */
-    private String _checkLibPath ;
+    private java.lang.String _checkLibPath ;
     
     /**
      *  
@@ -118,12 +118,12 @@ public abstract class _ValidatorModel extends io.nop.core.resource.component.Abs
      *  在condition段以及check段中可以使用的判断标签
      */
     
-    public String getCheckLibPath(){
+    public java.lang.String getCheckLibPath(){
       return _checkLibPath;
     }
 
     
-    public void setCheckLibPath(String value){
+    public void setCheckLibPath(java.lang.String value){
         checkAllowChange();
         
         this._checkLibPath = value;

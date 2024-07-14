@@ -10,5 +10,5 @@ package io.nop.core.resource.store;
 import io.nop.core.resource.IResourceStore;
 
 public interface ITenantResourceStoreSupplier {
-    IResourceStore getResourceStore(String tenantId);
+    IResourceStore getTenantResourceStore(String tenantId);
 }

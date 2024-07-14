@@ -17,6 +17,7 @@ import io.nop.core.resource.IResourceStore;
 import io.nop.core.resource.ResourceConstants;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.impl.UnknownResource;
+import io.nop.core.resource.tenant.ResourceTenantManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,12 +51,8 @@ public class DeltaResourceStore implements IDeltaResourceStore {
      */
     private List<String> deltaLayerIds;
 
-    private ITenantResourceStoreSupplier tenantStoreSupplier;
+    private ITenantResourceStoreSupplier tenantStoreSupplier = ResourceTenantManager.instance();
 
-    /**
-     * 是否每个租户可以具有自己单独的定制层
-     */
-    private boolean useTenantStore;
 
     private boolean useInMemoryLayer;
 
@@ -114,18 +111,10 @@ public class DeltaResourceStore implements IDeltaResourceStore {
         this.classPathFiles = classPathFiles;
     }
 
-    public boolean isUseTenantStore() {
-        return useTenantStore;
-    }
-
-    public void setUseTenantStore(boolean useTenantStore) {
-        this.useTenantStore = useTenantStore;
-    }
-
     @Override
     public IResource getResource(String path, boolean returnNullIfNotExists) {
         Guard.checkArgument(ResourceHelper.isNormalVirtualPath(path), "path must be normal virtual path");
-        if (useTenantStore) {
+        if (ResourceTenantManager.instance().isEnableTenant()) {
             String tenantId = ContextProvider.currentTenantId();
             if (tenantId != null) {
                 IResourceStore store = getTenantStore(tenantId);
@@ -154,7 +143,7 @@ public class DeltaResourceStore implements IDeltaResourceStore {
 
     IResourceStore getTenantStore(String tenantId) {
         if (tenantStoreSupplier != null)
-            return tenantStoreSupplier.getResourceStore(tenantId);
+            return tenantStoreSupplier.getTenantResourceStore(tenantId);
         return store;
     }
 
@@ -163,7 +152,7 @@ public class DeltaResourceStore implements IDeltaResourceStore {
         path = ResourceHelper.getStdPath(path);
         Map<String, IResource> map = new TreeMap<>();
         if (!path.equals("/")) {
-            if (useTenantStore) {
+            if (ResourceTenantManager.instance().isEnableTenant()) {
                 String tenantId = ContextProvider.currentTenantId();
                 if (tenantId != null) {
                     IResourceStore store = getTenantStore(tenantId);
@@ -209,7 +198,7 @@ public class DeltaResourceStore implements IDeltaResourceStore {
     @Override
     public String saveResource(String path, IResource resource, IStepProgressListener listener,
                                Map<String, Object> options) {
-        if (useTenantStore) {
+        if (ResourceTenantManager.instance().isEnableTenant()) {
             String tenantId = ContextProvider.currentTenantId();
             if (tenantId != null) {
                 String fullPath = ResourceHelper.buildTenantPath(tenantId, path);
@@ -286,6 +275,16 @@ public class DeltaResourceStore implements IDeltaResourceStore {
 
     @Override
     public IResource getRawResource(String path) {
+        if (ResourceHelper.isTenantPath(path)) {
+            int pos = path.indexOf('/', ResourceConstants.TENANT_PATH_PREFIX.length());
+            String tenantId = path.substring(ResourceConstants.TENANT_PATH_PREFIX.length(), pos);
+
+            IResourceStore store = getTenantStore(tenantId);
+            IResource resource = store.getResource(path);
+            if (resource.exists())
+                return resource;
+        }
+
         if (ResourceHelper.isDeltaPath(path)) {
             String deltaLayerId = ResourceHelper.getDeltaLayerId(path);
             if (deltaLayerId == null || !deltaLayerIds.contains(deltaLayerId))

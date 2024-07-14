@@ -31,8 +31,6 @@ public class VfsConfig implements Serializable {
      */
     private boolean scanClassPath = true;
 
-    private boolean useTenantStore;
-
     private String storeBuilderClass = DeltaResourceStoreBuilder.class.getName();
 
     public String getStoreBuilderClass() {
@@ -65,14 +63,6 @@ public class VfsConfig implements Serializable {
 
     public void setScanClassPath(boolean scanClassPath) {
         this.scanClassPath = scanClassPath;
-    }
-
-    public boolean isUseTenantStore() {
-        return useTenantStore;
-    }
-
-    public void setUseTenantStore(boolean useTenantStore) {
-        this.useTenantStore = useTenantStore;
     }
 
     public List<String> getLibFiles() {

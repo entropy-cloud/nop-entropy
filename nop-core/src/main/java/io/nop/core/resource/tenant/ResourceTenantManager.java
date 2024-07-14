@@ -8,9 +8,11 @@ import io.nop.commons.cache.GlobalCacheRegistry;
 import io.nop.commons.lang.ICreationListener;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.core.resource.IResourceObjectLoader;
+import io.nop.core.resource.IResourceStore;
 import io.nop.core.resource.cache.IResourceLoadingCache;
 import io.nop.core.resource.cache.ResourceLoadingCache;
 import io.nop.core.resource.cache.TenantAwareResourceLoadingCache;
+import io.nop.core.resource.store.ITenantResourceStoreSupplier;
 
 import java.util.List;
 import java.util.Map;
@@ -25,7 +27,7 @@ import static io.nop.core.CoreConfigs.CFG_RESOURCE_STORE_ENABLE_TENANT_DELTA;
  * 统一管理租户的启用和初始化。Resource的管理功能需要在IoC容器初始化之前执行，所以无法使用IoC容器来创建ResourceTenantManager
  */
 @GlobalInstance
-public class ResourceTenantManager {
+public class ResourceTenantManager implements ITenantResourceStoreSupplier {
     private static ResourceTenantManager _instance = new ResourceTenantManager();
 
     public static ResourceTenantManager instance() {
@@ -52,6 +54,7 @@ public class ResourceTenantManager {
     private IResourceTenantChecker tenantChecker;
     private final List<IResourceTenantInitializer> tenantInitializers = new CopyOnWriteArrayList<>();
 
+    private final Map<String, IResourceStore> tenantStores = new ConcurrentHashMap<>();
 
     public void addTenantInitializer(IResourceTenantInitializer tenantInitializer) {
         this.tenantInitializers.add(tenantInitializer);
@@ -139,4 +142,13 @@ public class ResourceTenantManager {
         return cache;
     }
 
+    @Override
+    public IResourceStore getTenantResourceStore(String tenantId) {
+        useTenant(tenantId);
+        return tenantStores.get(tenantId);
+    }
+
+    public void updateTenantResourceStore(String tenantId, IResourceStore store) {
+        tenantStores.put(tenantId, store);
+    }
 }

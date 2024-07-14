@@ -65,7 +65,6 @@ public class DeltaResourceStoreBuilder implements IDeltaResourceStoreBuilder {
         DeltaResourceStore store = new DeltaResourceStore();
         store.setClassPathFiles(classPathFiles);
         store.setDeltaLayerIds(config.getDeltaLayerIds());
-        store.setUseTenantStore(config.isUseTenantStore());
 
         store.setStore(buildBaseStore(config));
 
