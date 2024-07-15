@@ -20,6 +20,7 @@ import io.nop.api.core.exceptions.NopRebuildException;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.Pair;
 import io.nop.core.CoreConstants;
+import io.nop.core.i18n.I18nHelper;
 import io.nop.core.i18n.I18nMessageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -187,18 +188,7 @@ public class ErrorMessageManager implements IErrorMessageManager {
     }
 
     protected String getEntityDisplayName(String locale, String entityName) {
-        String displayName = I18nMessageManager.instance().getMessage(locale, "entity.label." + entityName, null);
-        if (displayName == null) {
-            int pos = entityName.lastIndexOf('.');
-            if (pos > 0) {
-                displayName = I18nMessageManager.instance().getMessage(locale,
-                        "entity.label." + entityName.substring(pos + 1), null);
-            }
-        }
-        if (displayName != null) {
-            return displayName;// return displayName + '(' + entityName + ')';
-        }
-        return entityName;
+        return I18nHelper.getEntityDisplayName(locale, entityName);
     }
 
     protected String getFieldDisplayName(String locale, String fieldName, Map<String, ?> params) {
@@ -206,34 +196,7 @@ public class ErrorMessageManager implements IErrorMessageManager {
         if (entityName == null)
             entityName = (String) params.get(ApiConstants.PARAM_ENTITY_NAME);
 
-        String fullFieldName = fieldName;
-        boolean useFullName = false;
-        if (!StringHelper.isEmpty(entityName)) {
-            fullFieldName = entityName + '.' + fieldName;
-            useFullName = true;
-        }
-
-        String displayName = I18nMessageManager.instance().getMessage(locale, "prop.label." + fullFieldName, null);
-        if (displayName == null && useFullName) {
-            int pos = entityName.lastIndexOf('.');
-            if (pos > 0) {
-                entityName = entityName.substring(pos + 1);
-                fullFieldName = entityName + '.' + fieldName;
-                displayName = I18nMessageManager.instance().getMessage(locale, "prop.label." + fullFieldName, null);
-            }
-
-            if (displayName == null) {
-                if (entityName.indexOf('_') > 0) {
-                    // 例如 NopAuthResource_main取到第一部分对应于 NopAuthResource
-                    fullFieldName = StringHelper.firstPart(entityName, '_') + '.' + fieldName;
-                    displayName = I18nMessageManager.instance().getMessage(locale, "prop.label." + fullFieldName, null);
-                }
-            }
-        }
-        if (displayName != null) {
-            return displayName + '(' + StringHelper.lastPart(fieldName, '.') + ')';
-        }
-        return fieldName;
+        return I18nHelper.getFieldDisplayName(locale, entityName, fieldName, true);
     }
 
     public ErrorBean defaultBuildErrorMessage(String locale, Throwable e, boolean includeStack) {
