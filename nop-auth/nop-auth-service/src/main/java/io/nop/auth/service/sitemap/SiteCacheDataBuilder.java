@@ -88,7 +88,10 @@ public class SiteCacheDataBuilder {
         List<SiteResourceBean> children = resource.getChildren();
         if (children != null) {
             for (SiteResourceBean child : children) {
-                addParentChild(resource.getId(), child.getId());
+                child.setParentId(resource.getId());
+
+                // 考虑到动态配置的资源可能会覆盖静态配置的资源，所以这里不构建父子关系，而是延迟到合并完成之后进行
+                //addParentChild(resource.getId(), child.getId());
                 mergeResource(child);
             }
         }
@@ -123,13 +126,12 @@ public class SiteCacheDataBuilder {
 
         for (NopAuthResource resource : resources) {
             SiteResourceBean entry = newSiteResource(resource);
-
-            if (resource.getParentId() != null) {
-                addParentChild(resource.getParentId(), entry.getId());
-            }
+//            if (resource.getParentId() != null) {
+//                addParentChild(resource.getParentId(), entry.getId());
+//            }
 
             if (RESOURCE_TYPE_TOP_MENU.equals(resource.getResourceType())) {
-                rootMenus.computeIfAbsent(resource.getSiteId(), k -> new LinkedHashSet<>()).add(resource.getResourceId());
+                rootMenus.computeIfAbsent(resource.getSiteId(), k -> new LinkedHashSet<>()).add(entry.getId());
             }
         }
 
@@ -137,6 +139,7 @@ public class SiteCacheDataBuilder {
     }
 
     public SiteCacheData build() {
+        initParentChildren();
         buildEntryTree(new HashSet<>());
 
         for (SiteResourceBean resource : entryMap.values()) {
@@ -229,6 +232,7 @@ public class SiteCacheDataBuilder {
         SiteResourceBean entry = entryMap.computeIfAbsent(resource.getResourceId(), k -> new SiteResourceBean());
         entry.setId(resource.getResourceId());
         entry.setResourceType(resource.getResourceType());
+        entry.setParentId(resource.getParentId());
         if (!StringHelper.isEmpty(resource.getRoutePath()))
             entry.setRoutePath(resource.getRoutePath());
         if (entry.getRoutePath() == null)
@@ -273,6 +277,14 @@ public class SiteCacheDataBuilder {
             allSiteMap.put(siteId, siteMap);
         }
         return siteMap;
+    }
+
+    void initParentChildren() {
+        for (SiteResourceBean resource : entryMap.values()) {
+            if (resource.getParentId() != null) {
+                addParentChild(resource.getParentId(), resource.getId());
+            }
+        }
     }
 
     void buildEntryTree(Set<String> visited) {

@@ -65,6 +65,8 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
     private Set<String> roles;
     private boolean authCascadeUp = true;
 
+    private String parentId;
+
     public SiteResourceBean cloneInstance() {
         SiteResourceBean ret = new SiteResourceBean();
         ret.setLocation(location);
@@ -89,8 +91,18 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         ret.setOrderNo(orderNo);
         ret.setAuthCascadeUp(authCascadeUp);
         ret.setRoles(roles);
+        ret.setParentId(parentId);
 
         return ret;
+    }
+
+    @JsonIgnore
+    public String getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(String parentId) {
+        this.parentId = parentId;
     }
 
     public SiteResourceBean deepClone() {
@@ -323,8 +335,8 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         }
     }
 
-    public void removePermissions(){
-        if(children != null){
+    public void removePermissions() {
+        if (children != null) {
             setPermissions(null);
             children.forEach(SiteResourceBean::removePermissions);
         }
