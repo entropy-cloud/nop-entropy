@@ -24,6 +24,7 @@ public class OrmComponentModel extends _OrmComponentModel implements IEntityComp
     private OrmEntityModel ownerEntityModel;
 
     private Map<String, Integer> colPropIds;
+    private int[] propIds;
 
     public OrmComponentModel() {
 
@@ -98,12 +99,23 @@ public class OrmComponentModel extends _OrmComponentModel implements IEntityComp
 
     @Override
     public int getColumnPropId() {
-        return 0;
+        return getColumnPropIds()[0];
     }
 
     @Override
     public int[] getColumnPropIds() {
-        return new int[0];
+        if (propIds == null) {
+            Map<String, Integer> colPropIds = getColumnPropIdMap();
+
+            int[] propIds = new int[colPropIds.size()];
+            int index = 0;
+            for (Integer propId : colPropIds.values()) {
+                propIds[index] = propId;
+                index++;
+            }
+            this.propIds = propIds;
+        }
+        return this.propIds;
     }
 
     @Override

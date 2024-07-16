@@ -2733,7 +2733,7 @@ public class StringHelper extends ApiStringHelper {
             return null;
 
         String fileExt = fileExt(path);
-        if (fileExt.length() > 0)
+        if (!fileExt.isEmpty())
             return path.substring(0, path.length() - fileExt.length() - 1);
         return path;
     }

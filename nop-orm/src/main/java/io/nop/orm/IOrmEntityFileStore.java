@@ -7,7 +7,11 @@
  */
 package io.nop.orm;
 
+import io.nop.api.core.beans.file.FileStatusBean;
 import io.nop.core.resource.IResource;
+
+import java.util.Collection;
+import java.util.concurrent.CompletionStage;
 
 public interface IOrmEntityFileStore {
     /**
@@ -19,6 +23,15 @@ public interface IOrmEntityFileStore {
     String getFileLink(String fileId);
 
     String decodeFileId(String fileLink);
+
+    /**
+     * 用于性能优化的函数，将对应的FileRecord加载到内存中
+     *
+     * @param fileIds 文件id列表
+     */
+    CompletionStage<?> batchLoadResource(Collection<String> fileIds);
+
+    FileStatusBean getFileStatus(String fileId, String bizObjName, String objId, String fieldName);
 
     IResource getFileResource(String fileId, String bizObjName, String objId, String fieldName);
 

@@ -8,6 +8,7 @@
 package io.nop.core.lang.xml;
 
 import io.nop.api.core.ApiConstants;
+import io.nop.api.core.annotations.graphql.GraphQLMap;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.convert.ConvertHelper;
@@ -97,6 +98,7 @@ import static io.nop.core.CoreErrors.ERR_XNODE_IS_READONLY;
  * <p>
  * 为了维持代码执行的精确语义，属性必须保持定义顺序，因此采用LinkedHashMap来保存。
  */
+@GraphQLMap
 public class XNode implements Serializable, ISourceLocationGetter, ISourceLocationSetter, ITreeBean, ITreeStructure,
         ICloneable, IJsonSerializable, IFreezable {
     private static final long serialVersionUID = -8460236455991070110L;

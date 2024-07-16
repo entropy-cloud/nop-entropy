@@ -5,27 +5,43 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.integration.api.file;
+package io.nop.api.core.beans.file;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.graphql.GraphQLBean;
+import io.nop.api.core.annotations.graphql.GraphQLObject;
+import io.nop.api.core.annotations.meta.PropMeta;
 
+@GraphQLObject
+@GraphQLBean
 @DataBean
-public class FileStatus {
+public class FileStatusBean {
+    private String fileId;
     private String name;
     private long size;
     private long lastModified;
     private String permissions;
 
-    public FileStatus() {
+    public FileStatusBean() {
     }
 
-    public FileStatus(String name, long size, long lastModified, String permissions) {
+    public FileStatusBean(String name, long size, long lastModified, String permissions) {
         this.name = name;
         this.size = size;
         this.lastModified = lastModified;
         this.permissions = permissions;
     }
 
+    @PropMeta(propId = 1)
+    public String getFileId() {
+        return fileId;
+    }
+
+    public void setFileId(String fileId) {
+        this.fileId = fileId;
+    }
+
+    @PropMeta(propId = 2)
     public long getLastModified() {
         return lastModified;
     }
@@ -34,6 +50,7 @@ public class FileStatus {
         this.lastModified = lastModified;
     }
 
+    @PropMeta(propId = 3)
     public String getName() {
         return name;
     }
@@ -42,6 +59,7 @@ public class FileStatus {
         this.name = name;
     }
 
+    @PropMeta(propId = 4)
     public long getSize() {
         return size;
     }
@@ -50,6 +68,7 @@ public class FileStatus {
         this.size = size;
     }
 
+    @PropMeta(propId = 5)
     public String getPermissions() {
         return permissions;
     }

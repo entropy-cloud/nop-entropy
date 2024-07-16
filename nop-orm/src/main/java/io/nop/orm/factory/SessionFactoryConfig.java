@@ -18,6 +18,7 @@ import io.nop.dao.seq.ISequenceGenerator;
 import io.nop.dao.seq.UuidSequenceGenerator;
 import io.nop.dao.shard.EmptyShardSelector;
 import io.nop.dao.shard.IShardSelector;
+import io.nop.orm.IOrmDaoListener;
 import io.nop.orm.IOrmInterceptor;
 import io.nop.orm.eql.IEqlAstTransformer;
 import io.nop.orm.eql.binder.IOrmColumnBinderEnhancer;
@@ -60,6 +61,8 @@ public class SessionFactoryConfig {
     private IClassLoader entityClassLoader = ClassHelper.getSafeClassLoader();
 
     private List<IOrmInterceptor> interceptors = Collections.emptyList();
+
+    private List<IOrmDaoListener> daoListeners;
 
     private Map<String, IQueryExecutor> queryExecutors = Collections.emptyMap();
 
@@ -258,4 +261,11 @@ public class SessionFactoryConfig {
         interceptors.remove(interceptor);
     }
 
+    public List<IOrmDaoListener> getDaoListeners() {
+        return daoListeners;
+    }
+
+    public void setDaoListeners(List<IOrmDaoListener> daoListeners) {
+        this.daoListeners = daoListeners;
+    }
 }

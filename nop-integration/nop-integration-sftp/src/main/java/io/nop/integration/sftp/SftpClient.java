@@ -13,7 +13,7 @@ import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpATTRS;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.resource.IResourceReference;
-import io.nop.integration.api.file.FileStatus;
+import io.nop.api.core.beans.file.FileStatusBean;
 import io.nop.integration.api.file.IFileServiceClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,10 +76,10 @@ public class SftpClient implements IFileServiceClient {
     }
 
     @Override
-    public List<FileStatus> listFiles(String remoteDir) {
+    public List<FileStatusBean> listFiles(String remoteDir) {
         try {
             Vector<ChannelSftp.LsEntry> files = channel.ls(remoteDir);
-            List<FileStatus> ret = new ArrayList<>(files.size());
+            List<FileStatusBean> ret = new ArrayList<>(files.size());
 
             for (ChannelSftp.LsEntry file : files) {
                 String name = file.getFilename();
@@ -94,15 +94,15 @@ public class SftpClient implements IFileServiceClient {
         }
     }
 
-    private FileStatus newFileStatus(String name, SftpATTRS attrs) {
+    private FileStatusBean newFileStatus(String name, SftpATTRS attrs) {
         String permissions = attrs.getPermissionsString();
         long size = attrs.getSize();
 
-        return new FileStatus(name, size, attrs.getMTime() * 1000L, permissions);
+        return new FileStatusBean(name, size, attrs.getMTime() * 1000L, permissions);
     }
 
     @Override
-    public FileStatus getFileStatus(String remotePath) {
+    public FileStatusBean getFileStatus(String remotePath) {
         try {
             SftpATTRS attrs = channel.lstat(remotePath);
             return newFileStatus(getFileName(remotePath), attrs);

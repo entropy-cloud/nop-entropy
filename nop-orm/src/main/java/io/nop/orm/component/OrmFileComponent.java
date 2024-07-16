@@ -7,9 +7,11 @@
  */
 package io.nop.orm.component;
 
+import io.nop.api.core.beans.file.FileStatusBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.ioc.IBeanProvider;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.resource.IResource;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntityFileStore;
 import io.nop.orm.OrmConstants;
@@ -25,6 +27,22 @@ public class OrmFileComponent extends AbstractOrmComponent {
         internalSetPropValue(PROP_NAME_filePath, value);
     }
 
+    public String getFileId() {
+        String filePath = getFilePath();
+        if (StringHelper.isEmpty(filePath))
+            return null;
+
+        IOrmEntity entity = orm_owner();
+        IBeanProvider beanProvider = entity.orm_enhancer().getBeanProvider();
+        // 有可能没有引入file store支持
+        if (!beanProvider.containsBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE))
+            return StringHelper.lastPart(filePath, '/');
+
+        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) beanProvider.getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
+        String fileId = fileStore.decodeFileId(getFilePath());
+        return fileId;
+    }
+
     @Override
     public void onEntityFlush() {
         IOrmEntity entity = orm_owner();
@@ -32,7 +50,7 @@ public class OrmFileComponent extends AbstractOrmComponent {
         if (entity.orm_state().isUnsaved() || entity.orm_propDirty(propId)) {
             IBeanProvider beanProvider = entity.orm_enhancer().getBeanProvider();
             // 有可能没有引入file store支持
-            if(!beanProvider.containsBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE))
+            if (!beanProvider.containsBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE))
                 return;
 
             IOrmEntityFileStore fileStore = (IOrmEntityFileStore) beanProvider.getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
@@ -74,6 +92,42 @@ public class OrmFileComponent extends AbstractOrmComponent {
 
             fileStore.detachFile(fileId, bizObjName, entity.orm_idString(), propName);
         }
+    }
+
+    public FileStatusBean getFileStatus() {
+        IOrmEntity entity = orm_owner();
+        IBeanProvider beanProvider = entity.orm_enhancer().getBeanProvider();
+        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) beanProvider.getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
+
+        String fileId = fileStore.decodeFileId(getFilePath());
+        if (StringHelper.isEmpty(fileId))
+            return null;
+
+
+        int propId = getColPropId(PROP_NAME_filePath);
+        String propName = entity.orm_propName(propId);
+
+        String bizObjName = getBizObjName();
+
+        return fileStore.getFileStatus(fileId, bizObjName, entity.orm_idString(), propName);
+    }
+
+    public IResource loadResource() {
+        IOrmEntity entity = orm_owner();
+        IBeanProvider beanProvider = entity.orm_enhancer().getBeanProvider();
+        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) beanProvider.getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
+
+        String fileId = fileStore.decodeFileId(getFilePath());
+        if (StringHelper.isEmpty(fileId))
+            return null;
+
+
+        int propId = getColPropId(PROP_NAME_filePath);
+        String propName = entity.orm_propName(propId);
+
+        String bizObjName = getBizObjName();
+
+        return fileStore.getFileResource(fileId, bizObjName, entity.orm_idString(), propName);
     }
 
     public String getBizObjName() {

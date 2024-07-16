@@ -155,4 +155,6 @@ public interface OrmConstants {
 
     String PROP_NAME_timestampValue = "timestampValue"; //NOSONAR
 
+    String PROP_FILE_STATUS = "fileStatus";
+    String PROP_FILE_STATUS_LIST = "fileStatusList";
 }

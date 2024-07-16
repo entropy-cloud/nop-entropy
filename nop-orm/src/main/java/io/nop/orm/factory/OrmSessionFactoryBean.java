@@ -85,6 +85,7 @@ public class OrmSessionFactoryBean extends SessionFactoryConfig implements IConf
         impl.setColumnBinderEnhancer(getColumnBinderEnhancer());
         impl.setEqlAstTransformer(getEqlAstTransformer());
         impl.setInterceptors(getInterceptors());
+        impl.setDaoListeners(getDaoListeners());
         impl.setEntityFilterProvider(getEntityFilterProvider());
 
         impl.setQueryPlanCache(LocalCache.newCache(buildFullName("orm-query-plan-cache"),

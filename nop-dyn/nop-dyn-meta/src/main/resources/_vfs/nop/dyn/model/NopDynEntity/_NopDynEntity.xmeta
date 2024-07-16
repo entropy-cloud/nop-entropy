@@ -168,13 +168,13 @@
                 <item bizObjName="NopDynEntityExt"/>
             </schema>
         </prop>
-        <prop name="nopFileFld1Component" ext:kind="component" internal="true" insertable="true" updatable="true"
-              lazy="true" published="false">
-            <schema type="io.nop.orm.component.OrmFileComponent"/>
+        <prop name="nopFileFld1ComponentFileStatus" mapToProp="nopFileFld1Component.fileStatus" internal="true"
+              lazy="true">
+            <schema type="io.nop.api.core.beans.file.FileStatusBean"/>
         </prop>
-        <prop name="nopFileFld2Component" ext:kind="component" internal="true" insertable="true" updatable="true"
-              lazy="true" published="false">
-            <schema type="io.nop.orm.component.OrmFileComponent"/>
+        <prop name="nopFileFld2ComponentFileStatus" mapToProp="nopFileFld2Component.fileStatus" internal="true"
+              lazy="true">
+            <schema type="io.nop.api.core.beans.file.FileStatusBean"/>
         </prop>
     </props>
 </meta>

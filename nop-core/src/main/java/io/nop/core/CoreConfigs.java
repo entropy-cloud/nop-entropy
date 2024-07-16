@@ -27,6 +27,7 @@ public interface CoreConfigs {
     String CFG_COMPONENT_RESOURCE_CACHE_NAMED_CACHE_NULL = "nop.core.component.resource-cache.{name}.cache-null";
     String CFG_COMPONENT_RESOURCE_CACHE_NAMED_SUPPORT_SERIALIZE = "nop.core.component.resource-cache.{name}.support-serialize";
     String CFG_COMPONENT_RESOURCE_CACHE_NAMED_REFRESH_MIN_INTERVAL = "nop.core.component.resource-cache.{name}.refresh-min-interval";
+    String CFG_COMPONENT_RESOURCE_CACHE_NAMED_TIMEOUT = "nop.core.component.resource-cache.{name}.timeout";
 
     @Description("是否启用命令行支持")
     IConfigReference<Boolean> CFG_CORE_NOP_COMMAND_EXECUTOR_ENABLED = varRef(s_loc, "nop.core.nop-command-executor.enabled",
@@ -73,8 +74,8 @@ public interface CoreConfigs {
             Boolean.class, false);
 
     @Description("组件编译缓存的保留时间，单位为毫秒")
-    IConfigReference<Integer> CFG_COMPONENT_RESOURCE_CACHE_TIMEOUT = varRef(s_loc,
-            "nop.core.components.resource-cache.timeout", Integer.class, -1);
+    IConfigReference<Duration> CFG_COMPONENT_RESOURCE_CACHE_TIMEOUT = varRef(s_loc,
+            "nop.core.components.resource-cache.timeout", Duration.class, null);
 
     IConfigReference<Boolean> CFG_COMPONENT_RESOURCE_SUPPORT_SERIALIZE = varRef(s_loc,
             "nop.core.components.resource-cache.support-serialize", Boolean.class, true);

@@ -95,8 +95,8 @@ prop:
       nopParent: Parent
       nopChildren: Children
       extFields: null
-      nopFileFld1Component: null
-      nopFileFld2Component: null
+      nopFileFld1ComponentFileStatus: null
+      nopFileFld2ComponentFileStatus: null
     NopDynEntityMeta:
       entityMetaId: Entity Meta ID
       moduleId: Module ID

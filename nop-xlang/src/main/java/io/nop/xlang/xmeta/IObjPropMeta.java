@@ -80,6 +80,11 @@ public interface IObjPropMeta
         return schema == null ? null : schema.getStdDomain();
     }
 
+    default String getDomain() {
+        ISchema schema = getSchema();
+        return schema == null ? null : schema.getDomain();
+    }
+
     boolean isPublished();
 
     boolean isMandatory();
@@ -137,6 +142,13 @@ public interface IObjPropMeta
         if (itemSchema == null)
             return null;
         return itemSchema.getBizObjName();
+    }
+
+    default String getRefBizObjName() {
+        String bizObjName = getBizObjName();
+        if (bizObjName == null)
+            bizObjName = getItemBizObjName();
+        return bizObjName;
     }
 
     /**

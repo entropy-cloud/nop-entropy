@@ -281,6 +281,12 @@ public class SessionFactoryImpl implements IPersistEnv {
         daoListeners.addDaoListener(daoListener);
     }
 
+    public void setDaoListeners(List<IOrmDaoListener> listeners) {
+        if (listeners != null) {
+            listeners.forEach(this::addDaoListener);
+        }
+    }
+
     @Override
     public void removeDaoListener(IOrmDaoListener daoListener) {
         if (daoListeners == null)

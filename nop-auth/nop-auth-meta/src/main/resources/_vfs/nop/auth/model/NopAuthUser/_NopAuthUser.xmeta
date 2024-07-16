@@ -227,9 +227,8 @@
                 <item bizObjName="NopAuthGroupUser"/>
             </schema>
         </prop>
-        <prop name="avatarComponent" ext:kind="component" internal="true" insertable="true" updatable="true" lazy="true"
-              published="false">
-            <schema type="io.nop.orm.component.OrmFileComponent"/>
+        <prop name="avatarComponentFileStatus" mapToProp="avatarComponent.fileStatus" internal="true" lazy="true">
+            <schema type="io.nop.api.core.beans.file.FileStatusBean"/>
         </prop>
         <prop name="relatedRoleList" displayName="角色列表" i18n-en:displayName="Role List" ext:kind="to-many"
               internal="true" lazy="true">

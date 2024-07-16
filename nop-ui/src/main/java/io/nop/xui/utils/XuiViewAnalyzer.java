@@ -8,6 +8,7 @@
 package io.nop.xui.utils;
 
 import io.nop.api.core.beans.FieldSelectionBean;
+import io.nop.api.core.beans.file.FileStatusBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.IComponentModel;
@@ -16,7 +17,9 @@ import io.nop.commons.collections.IKeyedList;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
+import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.BeanTool;
+import io.nop.core.reflect.bean.IBeanModel;
 import io.nop.core.reflect.hook.IPropGetMissingHook;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.xlang.xmeta.IObjMeta;
@@ -86,6 +89,7 @@ public class XuiViewAnalyzer {
                 });
 
                 addPropDepends(colModel, propMeta, objMeta, selection, gridModel.getEditMode());
+                addFileStatus(colModel, propMeta, selection);
             }
 
             Set<String> depends = colModel.getDepends();
@@ -104,6 +108,41 @@ public class XuiViewAnalyzer {
             selection.merge(gridModel.getSelection());
         }
         return selection;
+    }
+
+    private void addFileStatus(IUiDisplayMeta dispMeta, IObjPropMeta propMeta, FieldSelectionBean selection) {
+        String control = dispMeta == null ? null : dispMeta.getControl();
+        if (control == null)
+            control = (String) propMeta.prop_get(XuiConstants.UI_CONTROL);
+
+        if (control == null) {
+            control = dispMeta == null ? null : dispMeta.getDomain();
+            if (control == null)
+                control = propMeta.getDomain();
+        }
+
+        if (control == null)
+            control = dispMeta == null ? null : dispMeta.getStdDomain();
+        if (control == null)
+            control = propMeta.getStdDomain();
+
+        if (XuiConstants.CONTROL_FILE.equals(control)) {
+            String fileStatus = propMeta.getName() + "ComponentFileStatus";
+            FieldSelectionBean sub = selection.makeSubField(fileStatus, true);
+            IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(FileStatusBean.class);
+            beanModel.getPropertyModels().forEach((name, propModel) -> {
+                if (propModel.isSerializable())
+                    sub.addField(name);
+            });
+        } else if (XuiConstants.CONTROL_FILE_LIST.equals(control)) {
+            String fileStatus = propMeta.getName() + "ComponentFileStatusList";
+            FieldSelectionBean sub = selection.makeSubField(fileStatus, true);
+            IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(FileStatusBean.class);
+            beanModel.getPropertyModels().forEach((name, propModel) -> {
+                if (propModel.isSerializable())
+                    sub.addField(name);
+            });
+        }
     }
 
     public FieldSelectionBean getFormSelection(UiFormModel formModel, IObjMeta objMeta) {
@@ -167,6 +206,7 @@ public class XuiViewAnalyzer {
                 });
 
                 addPropDepends(cellModel, propMeta, objMeta, selection, formModel.getEditMode());
+                addFileStatus(cellModel, propMeta, selection);
             }
 
             if (cellModel != null) {

@@ -14,7 +14,7 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceStore;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.core.resource.store.LocalResourceStore;
-import io.nop.integration.api.file.FileStatus;
+import io.nop.api.core.beans.file.FileStatusBean;
 import io.nop.integration.api.file.IFileServiceClient;
 import io.nop.integration.api.file.IFileServiceClientFactory;
 
@@ -40,18 +40,18 @@ public class LocalFileServiceClientFactory implements IFileServiceClientFactory,
     }
 
     @Override
-    public List<FileStatus> listFiles(String remotePath) {
+    public List<FileStatusBean> listFiles(String remotePath) {
         List<? extends IResource> resources = resourceStore.getChildren(remotePath);
         return resources.stream().map(this::newFileStatus).collect(Collectors.toList());
     }
 
-    public FileStatus getFileStatus(String remotePath) {
+    public FileStatusBean getFileStatus(String remotePath) {
         IResource resource = resourceStore.getResource(remotePath);
         return newFileStatus(resource);
     }
 
-    private FileStatus newFileStatus(IResource resource) {
-        FileStatus status = new FileStatus();
+    private FileStatusBean newFileStatus(IResource resource) {
+        FileStatusBean status = new FileStatusBean();
         status.setName(resource.getName());
         status.setLastModified(resource.lastModified());
         status.setSize(resource.length());

@@ -34,11 +34,11 @@ import io.nop.orm.utils.OrmQueryHelper;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAX_PAGE_SIZE;
+import static io.nop.orm.utils.OrmQueryHelper.resolveRef;
 
 public class OrmEntityPropConnectionFetcher implements IDataFetcher {
     private final IBizObjectQueryProcessor<?> queryProcessor;
@@ -234,27 +234,4 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
         return ConvertHelper.toString(BeanTool.getProperty(obj, OrmConstants.PROP_ID));
     }
 
-    void resolveRef(TreeBean filter, Object source) {
-        Map<String, Object> attrs = filter.getAttrs();
-        if (attrs != null) {
-            for (Map.Entry<String, Object> entry : attrs.entrySet()) {
-                Object value = entry.getValue();
-                if (value instanceof String) {
-                    String filterValue = value.toString();
-                    if (filterValue.startsWith(OrmConstants.VALUE_PREFIX_PROP_REF)) {
-                        String propName = filterValue.substring(OrmConstants.VALUE_PREFIX_PROP_REF.length());
-                        Object refValue = BeanTool.getComplexProperty(source, propName);
-                        entry.setValue(refValue);
-                    }
-                }
-            }
-        }
-
-        List<TreeBean> children = filter.getChildren();
-        if (children != null) {
-            for (TreeBean child : children) {
-                resolveRef(child, source);
-            }
-        }
-    }
 }

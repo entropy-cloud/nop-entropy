@@ -15,7 +15,10 @@ import io.nop.core.reflect.bean.BeanTool;
 import io.nop.orm.IOrmCompositePk;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
+import io.nop.orm.component.OrmFileComponent;
+import io.nop.orm.component.OrmFileListComponent;
 import io.nop.orm.exceptions.OrmException;
+import io.nop.orm.model.IEntityComponentModel;
 import io.nop.orm.model.IEntityJoinConditionModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
@@ -38,6 +41,13 @@ import static io.nop.orm.OrmErrors.ERR_ORM_INVALID_ENTITY_ID;
 import static io.nop.orm.OrmErrors.ERR_ORM_NOT_SINGLETON_SET;
 
 public class OrmEntityHelper {
+    public static boolean isFileComponent(IEntityComponentModel comp) {
+        return comp.getClassName().equals(OrmFileComponent.class.getName());
+    }
+
+    public static boolean isFileListComponent(IEntityComponentModel comp) {
+        return comp.getClassName().equals(OrmFileListComponent.class.getName());
+    }
 
     public static void copyRefProps(IOrmEntity entity, IEntityRelationModel rel, IOrmEntity relatedEntity) {
         for (IEntityJoinConditionModel cond : rel.getJoin()) {

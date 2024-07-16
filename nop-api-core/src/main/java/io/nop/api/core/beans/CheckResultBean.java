@@ -8,11 +8,13 @@
 package io.nop.api.core.beans;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.graphql.GraphQLObject;
 import io.nop.api.core.annotations.meta.PropMeta;
 
 import java.io.Serializable;
 import java.util.List;
 
+@GraphQLObject
 @DataBean
 public class CheckResultBean implements Serializable {
     private boolean success;

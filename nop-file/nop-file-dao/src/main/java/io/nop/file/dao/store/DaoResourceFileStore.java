@@ -7,6 +7,7 @@
  */
 package io.nop.file.dao.store;
 
+import io.nop.api.core.beans.file.FileStatusBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.io.stream.LimitedInputStream;
@@ -35,7 +36,9 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.InputStream;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.Objects;
+import java.util.concurrent.CompletionStage;
 
 import static io.nop.file.core.FileErrors.ARG_BIZ_OBJ_ID;
 import static io.nop.file.core.FileErrors.ARG_BIZ_OBJ_NAME;
@@ -91,12 +94,17 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
     public String decodeFileId(String fileLink) {
         if (StringHelper.isEmpty(fileLink))
             return null;
-        String fileId = fileLink;
-        if (fileLink.startsWith(FileConstants.PATH_DOWNLOAD))
-            fileId = StringHelper.lastPart(fileLink, '/');
+        String fileId = StringHelper.lastPart(fileLink, '/');
         // 除去文件后缀名
-        fileId = StringHelper.firstPart(fileId, '.');
+        fileId = StringHelper.removeFileExt(fileId);
         return fileId;
+    }
+
+    @Override
+    public CompletionStage<?> batchLoadResource(Collection<String> fileIds) {
+        IEntityDao<NopFileRecord> dao = daoProvider.daoFor(NopFileRecord.class);
+        dao.batchGetEntitiesByIds(fileIds);
+        return null;
     }
 
     public void removeTempFileByOwner(String ownerId) {
@@ -202,6 +210,26 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
         if (keepFileExt && !StringHelper.isEmpty(fileExt))
             sb.append('.').append(fileExt);
         return sb.toString();
+    }
+
+    @Override
+    public FileStatusBean getFileStatus(String fileId, String bizObjName, String objId, String fieldName) {
+        NopFileRecord record = daoProvider.daoFor(NopFileRecord.class).getEntityById(fileId);
+        if (record == null)
+            return null;
+        if (!record.getBizObjName().equals(bizObjName) || !Objects.equals(objId, record.getBizObjId())
+                || !Objects.equals(record.getFieldName(), fieldName))
+            throw new NopException(ERR_FILE_NOT_ALLOW_ACCESS_FILE)
+                    .param(ARG_FILE_ID, fileId)
+                    .param(ARG_BIZ_OBJ_NAME, bizObjName)
+                    .param(ARG_BIZ_OBJ_ID, objId)
+                    .param(ARG_FIELD_NAME, fieldName);
+        FileStatusBean ret = new FileStatusBean();
+        ret.setFileId(record.getFileId());
+        ret.setName(record.getFileName());
+        ret.setLastModified(record.getFileLastModified() == null ? -1L : record.getFileLastModified().getTime());
+        ret.setSize(record.getFileLength() == null ? -1L : record.getFileLength());
+        return ret;
     }
 
     @Override

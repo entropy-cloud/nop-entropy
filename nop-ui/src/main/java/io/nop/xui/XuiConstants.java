@@ -64,4 +64,6 @@ public interface XuiConstants {
 
     String ID_SUB_GRID_VIEW = "sub-grid-view";
 
+    String CONTROL_FILE = "file";
+    String CONTROL_FILE_LIST = "file-list";
 }

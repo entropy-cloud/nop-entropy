@@ -339,6 +339,16 @@ public class GraphQLSelectionResolver {
                     hasTreeChildren = true;
                     return;
                 }
+
+                String typeName = fieldDef.getType().getNamedTypeName();
+                if (typeName != null) {
+                    GraphQLTypeDefinition typeDef = engine.getTypeDefinition(objName);
+                    if (typeDef == null)
+                        throw new NopException(ERR_GRAPHQL_UNDEFINED_OBJECT).source(selection).param(ARG_OBJ_NAME, objName);
+                    if (typeDef.isObjectDefinition() && ((GraphQLObjectDefinition) typeDef).isGraphqlBean())
+                        return;
+                }
+
                 throw new NopException(ERR_GRAPHQL_FIELD_COMPLEX_TYPE_NO_SELECTION).source(selection)
                         .param(ARG_OBJ_NAME, objName).param(ARG_FIELD_NAME, selection.getName())
                         .param(ARG_TYPE, fieldDef.getType());

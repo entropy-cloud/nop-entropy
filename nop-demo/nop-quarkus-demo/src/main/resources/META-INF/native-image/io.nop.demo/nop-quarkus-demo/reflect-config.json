@@ -2316,6 +2316,67 @@
     "fields": [],
     "methods": [
       {
+        "name": "getFileId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLastModified",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPermissions",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSize",
+        "parameterTypes": []
+      },
+      {
+        "name": "setFileId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setLastModified",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setPermissions",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSize",
+        "parameterTypes": [
+          "long"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.beans.file.FileStatusBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "getData",
         "parameterTypes": []
       },
@@ -5382,6 +5443,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getParentId",
+        "parameterTypes": []
+      },
+      {
         "name": "getPermissions",
         "parameterTypes": []
       },
@@ -5531,6 +5596,12 @@
         "name": "setOrderNo",
         "parameterTypes": [
           "int"
+        ]
+      },
+      {
+        "name": "setParentId",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -16255,6 +16326,15 @@
         ]
       },
       {
+        "name": "findRefEntity",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityModel",
+          "io.nop.orm.IOrmEntity",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "findRoots",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean",
@@ -20517,6 +20597,13 @@
       {
         "name": "newChildContext",
         "parameterTypes": []
+      },
+      {
+        "name": "restoreCtx",
+        "parameterTypes": [
+          "io.nop.api.core.context.IContext",
+          "io.nop.core.context.IServiceContext"
+        ]
       },
       {
         "name": "setActionAuthChecker",
@@ -41883,6 +41970,37 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getContentType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFileId",
+        "parameterTypes": []
+      },
+      {
+        "name": "setContentType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFileId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.file.core.DownloadRequestBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowUnsafeAccess": false,
@@ -42520,6 +42638,12 @@
         ]
       },
       {
+        "name": "batchLoadResource",
+        "parameterTypes": [
+          "java.util.Collection"
+        ]
+      },
+      {
         "name": "checkMaxSize",
         "parameterTypes": [
           "long",
@@ -42555,6 +42679,15 @@
       },
       {
         "name": "getFileResource",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getFileStatus",
         "parameterTypes": [
           "java.lang.String",
           "java.lang.String",
@@ -48197,6 +48330,59 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_filePath"
+      }
+    ],
+    "methods": [
+      {
+        "name": "getBizObjName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFileId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFilePath",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFileStatus",
+        "parameterTypes": []
+      },
+      {
+        "name": "loadResource",
+        "parameterTypes": []
+      },
+      {
+        "name": "onEntityDelete",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "onEntityFlush",
+        "parameterTypes": []
+      },
+      {
+        "name": "setFilePath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.orm.component.OrmFileComponent",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_xmlText"
       }
     ],
@@ -48439,6 +48625,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getDaoListeners",
+        "parameterTypes": []
+      },
+      {
         "name": "getDefaultDynamicEntityClass",
         "parameterTypes": []
       },
@@ -48528,6 +48718,12 @@
         "name": "setColumnBinderEnhancer",
         "parameterTypes": [
           "io.nop.orm.eql.binder.IOrmColumnBinderEnhancer"
+        ]
+      },
+      {
+        "name": "setDaoListeners",
+        "parameterTypes": [
+          "java.util.List"
         ]
       },
       {

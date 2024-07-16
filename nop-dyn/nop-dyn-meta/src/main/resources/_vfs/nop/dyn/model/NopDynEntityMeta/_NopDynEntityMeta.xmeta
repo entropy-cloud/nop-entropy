@@ -128,8 +128,8 @@
                 <item bizObjName="NopDynFunctionMeta"/>
             </schema>
         </prop>
-        <prop name="extConfigComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="true"
-              updatable="true" lazy="true">
+        <prop name="extConfigComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="false"
+              updatable="false" lazy="true">
             <schema type="io.nop.orm.component.JsonOrmComponent"/>
         </prop>
     </props>

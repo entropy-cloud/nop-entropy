@@ -12,7 +12,7 @@ import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceStore;
-import io.nop.integration.api.file.FileStatus;
+import io.nop.api.core.beans.file.FileStatusBean;
 import io.nop.integration.api.file.IFileServiceClient;
 import io.nop.integration.api.file.IFileServiceClientFactory;
 
@@ -48,7 +48,7 @@ public class FileServiceResourceStore implements IResourceStore {
     public List<? extends IResource> getChildren(String path) {
         IFileServiceClient client = fileServiceClientFactory.newClient();
         try {
-            List<FileStatus> children = client.listFiles(path);
+            List<FileStatusBean> children = client.listFiles(path);
             return children.stream().map(fs -> {
                 return newResource(StringHelper.appendPath(path, fs.getName()), fs);
             }).collect(Collectors.toList());
@@ -57,7 +57,7 @@ public class FileServiceResourceStore implements IResourceStore {
         }
     }
 
-    protected IResource newResource(String path, FileStatus status) {
+    protected IResource newResource(String path, FileStatusBean status) {
         String fullPath = StringHelper.appendPath(basePath, path);
         return new FileServiceResource(fullPath, path, fileServiceClientFactory, status);
     }

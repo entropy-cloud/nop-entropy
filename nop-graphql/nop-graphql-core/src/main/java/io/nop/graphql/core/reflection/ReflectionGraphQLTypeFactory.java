@@ -12,6 +12,7 @@ import io.nop.api.core.annotations.biz.RequestBean;
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
+import io.nop.api.core.annotations.graphql.GraphQLBean;
 import io.nop.api.core.annotations.graphql.GraphQLMap;
 import io.nop.api.core.annotations.graphql.GraphQLScalar;
 import io.nop.api.core.annotations.meta.PropMeta;
@@ -370,6 +371,7 @@ public class ReflectionGraphQLTypeFactory {
     GraphQLObjectDefinition newObjectDefinition(String name, Class<?> clazz, TypeRegistry registry,
                                                 Map<String, GraphQLTypeDefinition> creatingTypes) {
         GraphQLObjectDefinition def = new GraphQLObjectDefinition();
+        def.setGraphqlBean(clazz.isAnnotationPresent(GraphQLBean.class));
         def.setName(name);
         creatingTypes.put(name, def);
 

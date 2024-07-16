@@ -72,9 +72,9 @@ prop:
       nopDeptId: 部门ID
       nopDisplayName: 显示名称
       nopFileFld1: 文件字段1
-      nopFileFld1Component: null
+      nopFileFld1ComponentFileStatus: null
       nopFileFld2: 文件字段2
-      nopFileFld2Component: null
+      nopFileFld2ComponentFileStatus: null
       nopFlowId: 工作流实例ID
       nopIntFld1: 整数型字段1
       nopIntFld2: 整数型字段2

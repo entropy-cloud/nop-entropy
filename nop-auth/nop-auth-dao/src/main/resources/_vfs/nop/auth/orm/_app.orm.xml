@@ -28,6 +28,8 @@
         <domain name="updatedBy" precision="50" stdSqlType="VARCHAR"/>
         <domain name="delFlag" stdDomain="boolFlag" stdSqlType="TINYINT"/>
         <domain name="roleIds" precision="250" stdSqlType="VARCHAR"/>
+        <domain name="file" precision="100" stdDomain="file" stdSqlType="VARCHAR"/>
+        <domain name="file-list" precision="500" stdDomain="file-list" stdSqlType="VARCHAR"/>
     </domains>
 
     <entities>

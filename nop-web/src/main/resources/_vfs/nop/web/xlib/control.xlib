@@ -570,6 +570,17 @@
             ]]></source>
         </edit-file>
 
+        <view-file>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="bizObjName" mandatory="true"/>
+            <attr name="accept" optional="true"/>
+
+            <source>
+
+            </source>
+        </view-file>
+
         <view-images>
             <attr name="dispMeta"/>
             <attr name="propMeta"/>

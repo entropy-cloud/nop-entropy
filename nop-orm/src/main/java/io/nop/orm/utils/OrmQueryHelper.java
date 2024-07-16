@@ -7,12 +7,20 @@
  */
 package io.nop.orm.utils;
 
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.core.reflect.bean.BeanTool;
+import io.nop.orm.OrmConstants;
+import io.nop.orm.model.IEntityJoinConditionModel;
+import io.nop.orm.model.IEntityRelationModel;
 import io.nop.xlang.xmeta.impl.ObjKeyModel;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 public class OrmQueryHelper {
     public static boolean containsAnyKey(List<OrderFieldBean> orderBy, List<ObjKeyModel> keys) {
@@ -61,7 +69,7 @@ public class OrmQueryHelper {
             return null;
 
         List<OrderFieldBean> ret = new ArrayList<>(orderBy.size());
-        for(OrderFieldBean order: orderBy){
+        for (OrderFieldBean order : orderBy) {
             order = order.reverse();
             ret.add(order);
         }
@@ -74,5 +82,45 @@ public class OrmQueryHelper {
                 return true;
         }
         return false;
+    }
+
+    public static TreeBean buildRelationFilter(IEntityRelationModel propModel, Function<String, Object> propGetter) {
+        if (propModel == null)
+            return null;
+        List<TreeBean> filters = new ArrayList<>(propModel.getJoin().size());
+        for (IEntityJoinConditionModel join : propModel.getJoin()) {
+            if (join.getRightPropModel() != null) {
+                if (join.getLeftProp() != null) {
+                    filters.add(FilterBeans.eq(join.getRightProp(), propGetter.apply(join.getLeftProp())));
+                } else {
+                    filters.add(FilterBeans.eq(join.getRightProp(), join.getRightValue()));
+                }
+            }
+        }
+        return FilterBeans.and(filters);
+    }
+
+    public static void resolveRef(TreeBean filter, Object source) {
+        Map<String, Object> attrs = filter.getAttrs();
+        if (attrs != null) {
+            for (Map.Entry<String, Object> entry : attrs.entrySet()) {
+                Object value = entry.getValue();
+                if (value instanceof String) {
+                    String filterValue = value.toString();
+                    if (filterValue.startsWith(OrmConstants.VALUE_PREFIX_PROP_REF)) {
+                        String propName = filterValue.substring(OrmConstants.VALUE_PREFIX_PROP_REF.length());
+                        Object refValue = BeanTool.getComplexProperty(source, propName);
+                        entry.setValue(refValue);
+                    }
+                }
+            }
+        }
+
+        List<TreeBean> children = filter.getChildren();
+        if (children != null) {
+            for (TreeBean child : children) {
+                resolveRef(child, source);
+            }
+        }
     }
 }

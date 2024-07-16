@@ -10,7 +10,7 @@ package io.nop.integration.file.local;
 import io.nop.api.core.util.progress.IStepProgressListener;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.resource.impl.AbstractResource;
-import io.nop.integration.api.file.FileStatus;
+import io.nop.api.core.beans.file.FileStatusBean;
 import io.nop.integration.api.file.IFileServiceClient;
 import io.nop.integration.api.file.IFileServiceClientFactory;
 
@@ -21,25 +21,25 @@ import java.io.OutputStream;
 
 public class FileServiceResource extends AbstractResource {
     private final IFileServiceClientFactory factory;
-    private FileStatus status;
+    private FileStatusBean status;
     private String remotePath;
 
     public FileServiceResource(String path, String remotePath,
-                               IFileServiceClientFactory factory, FileStatus status) {
+                               IFileServiceClientFactory factory, FileStatusBean status) {
         super(path);
         this.factory = factory;
         this.status = status;
         this.remotePath = remotePath;
     }
 
-    private synchronized FileStatus getFileStatus() {
+    private synchronized FileStatusBean getFileStatus() {
         if (status == null) {
             synchronized (this) {
                 IFileServiceClient client = factory.newClient();
                 try {
                     status = client.getFileStatus(remotePath);
                     if (status == null) {
-                        status = new FileStatus();
+                        status = new FileStatusBean();
                         status.setName(getName());
                         status.setLastModified(-1);
                         status.setSize(0);

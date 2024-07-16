@@ -344,7 +344,7 @@ prop:
       version: 数据版本
     NopAuthUser:
       avatar: 头像
-      avatarComponent: null
+      avatarComponentFileStatus: null
       birthday: 生日
       changePwdAtLogin: 登陆后立刻修改密码
       clientId: 设备ID
@@ -433,7 +433,7 @@ prop:
       workScope: 工作范围
     NopAuthUser_tenant:
       avatar: 头像
-      avatarComponent: null
+      avatarComponentFileStatus: null
       birthday: 生日
       changePwdAtLogin: 登陆后立刻修改密码
       clientId: 设备ID

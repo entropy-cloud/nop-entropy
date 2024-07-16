@@ -10,10 +10,15 @@ package io.nop.orm.loader;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.collections.IntArray;
+import io.nop.commons.util.StringHelper;
 import io.nop.orm.IOrmBatchLoadQueue;
 import io.nop.orm.IOrmEntity;
+import io.nop.orm.IOrmEntityFileStore;
 import io.nop.orm.IOrmEntitySet;
+import io.nop.orm.OrmConstants;
 import io.nop.orm.OrmEntityState;
+import io.nop.orm.component.OrmFileComponent;
+import io.nop.orm.component.OrmFileListComponent;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IEntityRelationModel;
@@ -51,10 +56,13 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
 
         final Map<String /* collectionName */, CollectionLoad> collectionLoadMap = new HashMap<>();
 
+        final Set<String> fileIds = new HashSet<>();
+
         void clear() {
             entityLoadMap.clear();
             entityPropLoadMap.clear();
             collectionLoadMap.clear();
+            fileIds.clear();
         }
     }
 
@@ -260,7 +268,19 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
         if (obj instanceof IOrmEntitySet) {
             _enqueueCollectionProp((IOrmEntitySet) obj, propName);
         } else if (obj instanceof IOrmEntity) {
-            _enqueueEntityProp((IOrmEntity) obj, propName,null);
+            _enqueueEntityProp((IOrmEntity) obj, propName, null);
+        } else if (obj instanceof OrmFileComponent) {
+            if (propName.startsWith(OrmConstants.PROP_FILE_STATUS)) {
+                String fileId = ((OrmFileComponent) obj).getFileId();
+                if (!StringHelper.isEmpty(fileId))
+                    makeQueue().fileIds.add(fileId);
+            }
+        } else if (obj instanceof OrmFileListComponent) {
+            if (propName.startsWith(OrmConstants.PROP_FILE_STATUS_LIST)) {
+                List<String> fileIds = ((OrmFileListComponent) obj).getFileIds();
+                if (fileIds != null)
+                    makeQueue().fileIds.addAll(fileIds);
+            }
         } else if (obj instanceof Map) {
             int pos = propName.indexOf('.');
             if (pos < 0) {
@@ -569,6 +589,7 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
                     // 先加载集合，其中有可能已经包含了后续要加载的实体
                     _flushCollection(queue, futures);
                     _flushEntity(queue, futures);
+                    _flushFile(queue, futures);
 
                     queue = this.loadQueue;
                     this.loadQueue = null;
@@ -581,6 +602,16 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
             this.afterFlushCallbacks = null;
             this.flushing = false;
         }
+    }
+
+    private void _flushFile(LoadQueue queue, List<CompletionStage<?>> futures) {
+        if (queue.fileIds.isEmpty())
+            return;
+
+        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) session.getBeanProvider().getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
+        CompletionStage<?> future = fileStore.batchLoadResource(queue.fileIds);
+        if (future != null)
+            futures.add(future);
     }
 
     private void invokeCallback() {

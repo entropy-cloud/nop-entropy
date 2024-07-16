@@ -37,7 +37,7 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
     static final Logger LOG = LoggerFactory.getLogger(GraphQLObjectDefinition.class);
 
     private Map<String, GraphQLFieldDefinition> fieldsMap;
-
+    private boolean graphqlBean;
     private IObjMeta objMeta;
 
     public IObjMeta getObjMeta() {
@@ -46,6 +46,14 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
 
     public void setObjMeta(IObjMeta objMeta) {
         this.objMeta = objMeta;
+    }
+
+    public boolean isGraphqlBean() {
+        return graphqlBean;
+    }
+
+    public void setGraphqlBean(boolean graphqlBean) {
+        this.graphqlBean = graphqlBean;
     }
 
     @Override
@@ -172,6 +180,13 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
 
     public void addField(GraphQLFieldDefinition field) {
         this.makeFields().add(field);
+        if (fieldsMap != null) {
+            fieldsMap.put(field.getName(), field);
+        }
+    }
+
+    public void prependField(GraphQLFieldDefinition field) {
+        makeFields().add(0, field);
         if (fieldsMap != null) {
             fieldsMap.put(field.getName(), field);
         }

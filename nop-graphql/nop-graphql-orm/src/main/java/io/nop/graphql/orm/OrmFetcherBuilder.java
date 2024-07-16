@@ -34,14 +34,13 @@ import io.nop.graphql.orm.fetcher.OrmEntityRefFetcher;
 import io.nop.graphql.orm.fetcher.OrmEntitySetFetcher;
 import io.nop.orm.IOrmTemplate;
 import io.nop.orm.OrmConstants;
-import io.nop.orm.model.IEntityJoinConditionModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IEntityRelationModel;
+import io.nop.orm.utils.OrmQueryHelper;
 import io.nop.xlang.xdsl.ExtPropsGetter;
 import io.nop.xlang.xmeta.IObjPropMeta;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -122,7 +121,7 @@ public class OrmFetcherBuilder {
             field.setName(GraphQLConstants.PROP_ID);
             field.setType(GraphQLTypeHelper.scalarType(GraphQLScalarType.ID));
             field.setFetcher(OrmEntityIdFetcher.INSTANCE);
-            objDef.addField(field);
+            objDef.prependField(field);
         }
     }
 
@@ -170,19 +169,7 @@ public class OrmFetcherBuilder {
     }
 
     private TreeBean buildRelationFilter(IEntityRelationModel propModel) {
-        if (propModel == null)
-            return null;
-        List<TreeBean> filters = new ArrayList<>(propModel.getJoin().size());
-        for (IEntityJoinConditionModel join : propModel.getJoin()) {
-            if (join.getRightPropModel() != null) {
-                if (join.getLeftProp() != null) {
-                    filters.add(FilterBeans.eq(join.getRightProp(), OrmConstants.VALUE_PREFIX_PROP_REF + join.getLeftProp()));
-                } else {
-                    filters.add(FilterBeans.eq(join.getRightProp(), join.getRightValue()));
-                }
-            }
-        }
-        return FilterBeans.and(filters);
+        return OrmQueryHelper.buildRelationFilter(propModel, joinProp -> OrmConstants.VALUE_PREFIX_PROP_REF + joinProp);
     }
 
     IDataFetcher buildPropFetcher(Set<String> dependsOn, String propName) {

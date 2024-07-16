@@ -39,6 +39,10 @@
         <property name="registerGlobalCache" value="true"/>
         <property name="sequenceGenerator" ref="nopSequenceGenerator"/>
 
+        <property name="daoListeners">
+            <ioc:collect-beans by-type="io.nop.orm.IOrmDaoListener"/>
+        </property>
+
         <property name="interceptors">
             <ioc:collect-beans by-type="io.nop.orm.IOrmInterceptor"/>
         </property>

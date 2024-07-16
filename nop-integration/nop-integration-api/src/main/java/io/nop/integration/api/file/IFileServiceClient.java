@@ -7,6 +7,7 @@
  */
 package io.nop.integration.api.file;
 
+import io.nop.api.core.beans.file.FileStatusBean;
 import io.nop.api.core.resource.IResourceReference;
 
 import java.io.InputStream;
@@ -14,11 +15,11 @@ import java.io.OutputStream;
 import java.util.List;
 
 public interface IFileServiceClient extends AutoCloseable {
-    List<FileStatus> listFiles(String remotePath);
+    List<FileStatusBean> listFiles(String remotePath);
 
     boolean deleteFile(String remotePath);
 
-    FileStatus getFileStatus(String remotePath);
+    FileStatusBean getFileStatus(String remotePath);
 
     /**
      * @param localPath  本地文件路径

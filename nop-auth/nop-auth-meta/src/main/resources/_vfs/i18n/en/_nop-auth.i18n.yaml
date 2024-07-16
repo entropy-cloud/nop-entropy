@@ -394,7 +394,7 @@ prop:
       roleMappings: RoleMappings
       substitutionMappings: Substitution Mappings
       groupMappings: GroupMappings
-      avatarComponent: null
+      avatarComponentFileStatus: null
       relatedRoleList: Role List
       relatedRoleIdList: Role List
       relatedRoleList_label: Role List
@@ -452,7 +452,7 @@ prop:
       roleMappings: RoleMappings
       substitutionMappings: Substitution Mappings
       groupMappings: GroupMappings
-      avatarComponent: null
+      avatarComponentFileStatus: null
       relatedRoleList: Role List
       relatedRoleIdList: Role List
       relatedRoleList_label: Role List

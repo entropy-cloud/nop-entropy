@@ -7,15 +7,18 @@
  */
 package io.nop.orm.component;
 
+import io.nop.api.core.beans.file.FileStatusBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.ioc.IBeanProvider;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.resource.IResource;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntityFileStore;
 import io.nop.orm.OrmConstants;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class OrmFileListComponent extends AbstractOrmComponent {
     public static final String PROP_NAME_filePath = "filePath";
@@ -37,6 +40,62 @@ public class OrmFileListComponent extends AbstractOrmComponent {
     }
 
 
+    public List<IResource> loadResources() {
+        IOrmEntity entity = orm_owner();
+        IBeanProvider beanProvider = entity.orm_enhancer().getBeanProvider();
+        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) beanProvider.getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
+
+        List<String> paths = getFilePaths();
+        if (paths == null || paths.isEmpty())
+            return new ArrayList<>();
+
+        List<IResource> resources = new ArrayList<>();
+        for (String path : paths) {
+            String fileId = fileStore.decodeFileId(path);
+            IResource resource = fileStore.getFileResource(fileId, getBizObjName(), entity.orm_idString(), PROP_NAME_filePath);
+            resources.add(resource);
+        }
+
+        return resources;
+    }
+
+
+    public List<String> getFileIds() {
+        List<String> paths = getFilePaths();
+        if (paths == null || paths.isEmpty())
+            return null;
+
+        IOrmEntity entity = orm_owner();
+        IBeanProvider beanProvider = entity.orm_enhancer().getBeanProvider();
+        // 有可能没有引入file store支持
+        if (!beanProvider.containsBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE))
+            return paths.stream().map(filePath -> StringHelper.lastPart(filePath, '/')).collect(Collectors.toList());
+
+        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) beanProvider.getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
+        return paths.stream().map(fileStore::decodeFileId).collect(Collectors.toList());
+    }
+
+    public List<FileStatusBean> getFileStatusList() {
+        IOrmEntity entity = orm_owner();
+        IBeanProvider beanProvider = entity.orm_enhancer().getBeanProvider();
+        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) beanProvider.getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
+
+        List<String> paths = getFilePaths();
+        if (paths == null || paths.isEmpty())
+            return new ArrayList<>();
+
+        List<FileStatusBean> fileStatuses = new ArrayList<>();
+        String propName = entity.orm_propName(getColPropId(PROP_NAME_filePath));
+        String bizObjName = getBizObjName();
+
+        for (String path : paths) {
+            String fileId = fileStore.decodeFileId(path);
+            FileStatusBean fileStatus = fileStore.getFileStatus(fileId, bizObjName, entity.orm_idString(), propName);
+            fileStatuses.add(fileStatus);
+        }
+
+        return fileStatuses;
+    }
 
     @Override
     public void onEntityFlush() {

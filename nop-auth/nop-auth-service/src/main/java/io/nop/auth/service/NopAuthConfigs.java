@@ -30,6 +30,10 @@ public interface NopAuthConfigs {
     IConfigReference<Integer> CFG_AUTH_REFRESH_TOKEN_EXPIRE_SECONDS = varRef(s_loc, "nop.auth.refresh-token-expire-seconds",
             Integer.class, 300 * 60);
 
+    @Description("系统菜单缓存的大小")
+    IConfigReference<Integer> CFG_AUTH_SITE_MAP_CACHE_MAX_SIZE = varRef(s_loc, "nop.auth.site-map.cache-max-size",
+            Integer.class, 10);
+
     @Description("系统菜单缓存的超时时间")
     IConfigReference<Duration> CFG_AUTH_SITE_MAP_CACHE_TIMEOUT = varRef(s_loc, "nop.auth.site-map.cache-timeout",
             Duration.class, Duration.of(10, ChronoUnit.MINUTES));

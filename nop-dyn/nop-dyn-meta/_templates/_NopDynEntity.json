@@ -34,6 +34,6 @@
   "nopParent": null,
   "nopChildren": null,
   "extFields": null,
-  "nopFileFld1Component": null,
-  "nopFileFld2Component": null
+  "nopFileFld1ComponentFileStatus": null,
+  "nopFileFld2ComponentFileStatus": null
 }

@@ -18,7 +18,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.resource.IResourceReference;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
-import io.nop.integration.api.file.FileStatus;
+import io.nop.api.core.beans.file.FileStatusBean;
 import io.nop.integration.api.file.IFileServiceClient;
 import jakarta.ws.rs.core.MediaType;
 import org.slf4j.Logger;
@@ -56,12 +56,12 @@ public class OssFileServiceClient implements IFileServiceClient {
     }
 
     @Override
-    public List<FileStatus> listFiles(String remotePath) {
+    public List<FileStatusBean> listFiles(String remotePath) {
         remotePath = normalizePath(remotePath);
         ObjectListing listing = client.listObjects(getBucketName(remotePath), remotePath);
-        List<FileStatus> ret = new ArrayList<>();
+        List<FileStatusBean> ret = new ArrayList<>();
         for (S3ObjectSummary summary : listing.getObjectSummaries()) {
-            FileStatus status = new FileStatus();
+            FileStatusBean status = new FileStatusBean();
             status.setName(StringHelper.fileFullName(summary.getKey()));
             status.setSize(summary.getSize());
             status.setLastModified(summary.getLastModified().getTime());
@@ -82,12 +82,12 @@ public class OssFileServiceClient implements IFileServiceClient {
     }
 
     @Override
-    public FileStatus getFileStatus(String remotePath) {
+    public FileStatusBean getFileStatus(String remotePath) {
         remotePath = normalizePath(remotePath);
 
         ObjectMetadata obj = client.getObjectMetadata(getBucketName(remotePath), remotePath);
 
-        FileStatus status = new FileStatus();
+        FileStatusBean status = new FileStatusBean();
         status.setLastModified(obj.getLastModified().getTime());
         status.setSize(obj.getContentLength());
         status.setName(StringHelper.fileFullName(remotePath));
