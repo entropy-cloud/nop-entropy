@@ -3259,6 +3259,16 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PATTERN_MS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "TIMESTAMP_FORMATTER"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "TIME_FORMATTER"
       }
     ],
@@ -17708,6 +17718,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getDaoListeners",
+        "parameterTypes": []
+      },
+      {
         "name": "getDefaultDynamicEntityClass",
         "parameterTypes": []
       },
@@ -17797,6 +17811,12 @@
         "name": "setColumnBinderEnhancer",
         "parameterTypes": [
           "io.nop.orm.eql.binder.IOrmColumnBinderEnhancer"
+        ]
+      },
+      {
+        "name": "setDaoListeners",
+        "parameterTypes": [
+          "java.util.List"
         ]
       },
       {
@@ -23355,6 +23375,12 @@
     "fields": [],
     "methods": [
       {
+        "name": "getBeanContainerTemplate",
+        "parameterTypes": [
+          "io.nop.task.builder.ITaskBeanContainerBuilder"
+        ]
+      },
+      {
         "name": "getName",
         "parameterTypes": []
       },
@@ -23840,6 +23866,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getBeans",
+        "parameterTypes": []
+      },
+      {
         "name": "getEnterSteps",
         "parameterTypes": []
       },
@@ -23864,6 +23894,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isUseParentBeanContainer",
+        "parameterTypes": []
+      },
+      {
         "name": "newInstance",
         "parameterTypes": []
       },
@@ -23877,6 +23911,12 @@
         "name": "setAuth",
         "parameterTypes": [
           "io.nop.api.core.auth.ActionAuthMeta"
+        ]
+      },
+      {
+        "name": "setBeans",
+        "parameterTypes": [
+          "io.nop.ioc.model.BeansModel"
         ]
       },
       {
@@ -23905,6 +23945,12 @@
       },
       {
         "name": "setRestartable",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setUseParentBeanContainer",
         "parameterTypes": [
           "boolean"
         ]
