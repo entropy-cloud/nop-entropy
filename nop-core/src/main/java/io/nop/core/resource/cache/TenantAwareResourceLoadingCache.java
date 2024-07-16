@@ -1,5 +1,6 @@
 package io.nop.core.resource.cache;
 
+import io.nop.api.core.config.IConfigReference;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.commons.cache.CacheStats;
 import io.nop.commons.cache.ICache;
@@ -14,6 +15,7 @@ import jakarta.annotation.Nonnull;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.time.Duration;
 
 import static io.nop.commons.cache.CacheConfig.newConfig;
 import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE;
@@ -23,11 +25,16 @@ public class TenantAwareResourceLoadingCache<V> implements IResourceLoadingCache
     private final ICache<String, ResourceLoadingCache<V>> tenantCaches;
     private final ResourceLoadingCache<V> shareCache;
 
-    public TenantAwareResourceLoadingCache(String name, IResourceObjectLoader<V> loader, ICreationListener<V> listener) {
+    public TenantAwareResourceLoadingCache(String name, IResourceObjectLoader<V> loader, ICreationListener<V> listener,
+                                           IConfigReference<Integer> cacheMaxSize, IConfigReference<Duration> cacheTimeout) {
         this.tenantCaches = LocalCache.newCache(name,
                 newConfig(CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE.get()),
-                k -> new ResourceLoadingCache<>("tenant-" + name, loader, listener));
-        this.shareCache = new ResourceLoadingCache<>(name, loader, listener);
+                k -> new ResourceLoadingCache<>("tenant-" + name, loader, listener, cacheMaxSize, cacheTimeout));
+        this.shareCache = new ResourceLoadingCache<>(name, loader, listener, cacheMaxSize, cacheTimeout);
+    }
+
+    public TenantAwareResourceLoadingCache(String name, IResourceObjectLoader<V> loader, ICreationListener<V> listener) {
+        this(name, loader, listener, null, null);
     }
 
     @Override

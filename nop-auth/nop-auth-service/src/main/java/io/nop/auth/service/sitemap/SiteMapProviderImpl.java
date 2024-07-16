@@ -27,6 +27,9 @@ import io.nop.core.CoreConstants;
 import io.nop.core.i18n.I18nMessageManager;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.core.resource.cache.IResourceLoadingCache;
+import io.nop.core.resource.cache.TenantAwareResourceLoadingCache;
+import io.nop.core.resource.tenant.ResourceTenantManager;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -46,6 +49,7 @@ import static io.nop.api.core.beans.FilterBeans.and;
 import static io.nop.api.core.beans.FilterBeans.eq;
 import static io.nop.api.core.beans.FilterBeans.in;
 import static io.nop.auth.dao.entity._gen._NopAuthRoleResource.PROP_NAME_roleId;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SITE_MAP_CACHE_MAX_SIZE;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SITE_MAP_CACHE_TIMEOUT;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SITE_MAP_STATIC_CONFIG_PATH;
 import static io.nop.auth.service.NopAuthConstants.RESOURCE_TYPE_SUB_MENU;
@@ -59,8 +63,8 @@ public class SiteMapProviderImpl implements ISiteMapProvider {
 
     private boolean enableActionAuth;
 
-    protected ICache<String, SiteCacheData> siteCache = LocalCache.newCache("sitemap-cache",
-            newConfig(10).expireAfterWrite(CFG_AUTH_SITE_MAP_CACHE_TIMEOUT.get()), this::loadSiteData);
+    protected IResourceLoadingCache<SiteCacheData> siteCache = new TenantAwareResourceLoadingCache<>("sitemap-cache",
+            this::loadSiteData, null, CFG_AUTH_SITE_MAP_CACHE_MAX_SIZE, CFG_AUTH_SITE_MAP_CACHE_TIMEOUT);
 
     @PostConstruct
     public void init() {

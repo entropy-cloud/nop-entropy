@@ -1,6 +1,7 @@
 package io.nop.core.resource.tenant;
 
 import io.nop.api.core.annotations.core.GlobalInstance;
+import io.nop.api.core.config.IConfigReference;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancellable;
@@ -14,6 +15,7 @@ import io.nop.core.resource.cache.ResourceLoadingCache;
 import io.nop.core.resource.cache.TenantAwareResourceLoadingCache;
 import io.nop.core.resource.store.ITenantResourceStoreSupplier;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static io.nop.core.CoreConfigs.CFG_RESOURCE_STORE_ENABLE_TENANT_DELTA;
+import static io.nop.core.CoreErrors.ERR_RESOURCE_STORE_NOT_SUPPORT_TENANT_DELTA;
 
 /**
  * 统一管理租户的启用和初始化。Resource的管理功能需要在IoC容器初始化之前执行，所以无法使用IoC容器来创建ResourceTenantManager
@@ -115,6 +118,9 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
      * 第一次执行时会自动触发租户的初始化函数
      */
     public void useTenant(String tenantId) {
+        if (!isEnableTenant())
+            throw new NopException(ERR_RESOURCE_STORE_NOT_SUPPORT_TENANT_DELTA);
+
         tenantCleanups.computeIfAbsent(tenantId, k -> {
             Cancellable cancellable = new Cancellable();
             try {
@@ -132,12 +138,20 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
     public <V> IResourceLoadingCache<V> makeLoadingCache(String name,
                                                          IResourceObjectLoader<V> loader,
                                                          ICreationListener<V> listener) {
+        return makeLoadingCache(name, loader, listener, null, null);
+    }
+
+    public <V> IResourceLoadingCache<V> makeLoadingCache(String name,
+                                                         IResourceObjectLoader<V> loader,
+                                                         ICreationListener<V> listener,
+                                                         IConfigReference<Integer> cacheMaxSize,
+                                                         IConfigReference<Duration> cacheTimeout) {
         boolean tenant = getTenantChecker().isEnableTenant();
         IResourceLoadingCache<V> cache;
         if (tenant) {
-            cache = new TenantAwareResourceLoadingCache<>(name, loader, listener);
+            cache = new TenantAwareResourceLoadingCache<>(name, loader, listener, cacheMaxSize, cacheTimeout);
         } else {
-            cache = new ResourceLoadingCache<>(name, loader, listener);
+            cache = new ResourceLoadingCache<>(name, loader, listener, cacheMaxSize, cacheTimeout);
         }
         return cache;
     }
@@ -149,6 +163,8 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
     }
 
     public void updateTenantResourceStore(String tenantId, IResourceStore store) {
+        if (!isEnableTenant())
+            throw new NopException(ERR_RESOURCE_STORE_NOT_SUPPORT_TENANT_DELTA);
         tenantStores.put(tenantId, store);
     }
 }

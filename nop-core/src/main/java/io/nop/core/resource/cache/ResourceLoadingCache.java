@@ -9,13 +9,11 @@ package io.nop.core.resource.cache;
 
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.config.IConfigReference;
-import io.nop.api.core.config.IConfigRefreshable;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.cache.CacheConfig;
 import io.nop.commons.cache.CacheStats;
 import io.nop.commons.cache.LocalCache;
-import io.nop.commons.io.serialize.IStateSerializable;
 import io.nop.commons.lang.ICreationListener;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
@@ -26,6 +24,7 @@ import io.nop.core.resource.deps.ResourceDependencySet;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,8 +34,10 @@ import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_NAMED_REFRESH
 import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_NAMED_RELOADABLE;
 import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_NAMED_SIZE;
 import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_NAMED_SUPPORT_SERIALIZE;
+import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_NAMED_TIMEOUT;
 import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_NULL;
 import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_PER_TYPE_SIZE;
+import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_TIMEOUT;
 import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_REFRESH_MIN_INTERVAL;
 import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_SUPPORT_SERIALIZE;
 import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
@@ -57,23 +58,36 @@ public class ResourceLoadingCache<V> implements IResourceLoadingCache<V> {
     private final IConfigReference<Integer> cacheMaxSize;
     private final IConfigReference<Boolean> checkChanged;
     private final IConfigReference<Boolean> cacheNull;
+    private final IConfigReference<Duration> cacheTimeout;
 
     private final IConfigReference<Boolean> supportSerialize;
     private final IConfigReference<Integer> cacheRefreshMinInterval;
 
     public ResourceLoadingCache(String name, IResourceObjectLoader<V> loader, ICreationListener<V> listener) {
+        this(name, loader, listener, null, null);
+    }
+
+    public ResourceLoadingCache(String name,
+                                IResourceObjectLoader<V> loader, ICreationListener<V> listener,
+                                IConfigReference<Integer> cacheMaxSize, IConfigReference<Duration> cacheTimeout) {
         this.name = name;
         this.loader = loader;
         this.listener = listener;
 
-        this.cacheMaxSize = AppConfig.withOverride(s_loc, CFG_COMPONENT_RESOURCE_CACHE_PER_TYPE_SIZE,
-                configVar(CFG_COMPONENT_RESOURCE_CACHE_NAMED_SIZE));
+        this.cacheMaxSize = cacheMaxSize != null ? cacheMaxSize :
+                AppConfig.withOverride(s_loc, CFG_COMPONENT_RESOURCE_CACHE_PER_TYPE_SIZE,
+                        configVar(CFG_COMPONENT_RESOURCE_CACHE_NAMED_SIZE));
+        this.cacheTimeout = cacheTimeout != null ? cacheTimeout :
+                AppConfig.withOverride(s_loc, CFG_COMPONENT_RESOURCE_CACHE_TIMEOUT,
+                        configVar(CFG_COMPONENT_RESOURCE_CACHE_NAMED_TIMEOUT));
+
         this.cacheNull = AppConfig.withOverride(s_loc, CFG_COMPONENT_RESOURCE_CACHE_NULL,
                 configVar(CFG_COMPONENT_RESOURCE_CACHE_NAMED_CACHE_NULL));
         this.checkChanged = AppConfig.withOverride(s_loc, CFG_COMPONENT_RESOURCE_CACHE_CHECK_CHANGED,
                 configVar(CFG_COMPONENT_RESOURCE_CACHE_NAMED_RELOADABLE));
         this.supportSerialize = AppConfig.withOverride(s_loc, CFG_COMPONENT_RESOURCE_SUPPORT_SERIALIZE,
                 configVar(CFG_COMPONENT_RESOURCE_CACHE_NAMED_SUPPORT_SERIALIZE));
+
 
         this.cacheRefreshMinInterval = AppConfig.withOverride(s_loc, CFG_COMPONENT_RESOURCE_REFRESH_MIN_INTERVAL,
                 configVar(CFG_COMPONENT_RESOURCE_CACHE_NAMED_REFRESH_MIN_INTERVAL));
@@ -83,12 +97,18 @@ public class ResourceLoadingCache<V> implements IResourceLoadingCache<V> {
     @Override
     public void refreshConfig() {
         cache.getConfig().setMaximumSize(cacheMaxSize.get());
+        Duration timeout = cacheTimeout.get();
+        if (timeout != null)
+            cache.getConfig().setExpireAfterWrite(timeout);
         cache.refreshConfig();
     }
 
     LocalCache<String, ResourceCacheEntry<V>> createCache() {
         CacheConfig config = new CacheConfig();
         config.setMaximumSize(cacheMaxSize.get());
+        Duration timeout = cacheTimeout.get();
+        if (timeout != null)
+            config.setExpireAfterWrite(timeout);
         return LocalCache.newCache(getName(), config, this::newCacheEntry);
     }
 
@@ -99,8 +119,11 @@ public class ResourceLoadingCache<V> implements IResourceLoadingCache<V> {
 
     String configVar(String pattern) {
         return StringHelper.renderTemplate(pattern, name -> {
-            if (name.equals("name"))
-                return getName();
+            if (name.equals("name")) {
+                if (getName() == null)
+                    return "default";
+                return getName().toLowerCase();
+            }
             return null;
         });
     }

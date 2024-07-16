@@ -467,7 +467,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         Map<String, IResourceLoadingCache<ComponentCacheEntry>> caches = modelCaches;
 
         return caches.computeIfAbsent(modelType, k -> {
-            String name = "model-cache:" + modelType;
+            String name = "model-cache-" + modelType;
             IResourceLoadingCache<ComponentCacheEntry> cache = ResourceTenantManager.instance()
                     .makeLoadingCache(name, new ModelLoader(modelType), null);
             if (registerCache)
