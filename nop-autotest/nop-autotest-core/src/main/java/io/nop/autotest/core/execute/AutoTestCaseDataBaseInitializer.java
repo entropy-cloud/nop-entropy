@@ -104,6 +104,9 @@ public class AutoTestCaseDataBaseInitializer {
         try {
             jdbcTemplate.executeUpdate(new SQL(sql));
         } catch (NopException e) {
+            if(jdbcTemplate.existsTable(null,entityModel.getTableName()))
+                return;
+
             if (e.getErrorCode().equals(DaoErrors.ERR_SQL_BAD_SQL_GRAMMAR.getErrorCode())) {
                 LOG.debug("nop.create-table-fail:{}", entityModel.getTableName(), e);
                 return;
