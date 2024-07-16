@@ -73,7 +73,7 @@ public class SpringFileService extends AbstractGraphQLFileService {
         }
         return res.thenApply(response -> SpringWebHelper.buildResponse(response.getHttpStatus(), response));
     }
-    
+
     protected <T> ApiRequest<T> buildApiRequest(HttpServletRequest req, T data) {
         ApiRequest<T> ret = new ApiRequest<>();
         Enumeration<String> it = req.getHeaderNames();
@@ -186,12 +186,27 @@ public class OrmFileComponent extends AbstractOrmComponent {
             }
         }
     }
-    
+
 }
 ```
 
 这里很重要的一个设计就是实体层面上记录了附件字段是否已经被修改，以及修改前的值。可以想见，如果没有这种历史记录信息，我们就无法在单个字段层面确定如何实现文件存储与实体字段的同步，
 而必须上升到整个实体的处理函数中进行。
+
+## 后台读取
+通过`/f/upload`上传的文件在后台可以直接读取到
+
+```javascript
+ IOrmEntityFileStore fileStore = ...;
+String fileId = fileStore.decodeFileId(importFilePath);
+// 总是处理上传的临时文件
+String objId = FileConstants.TEMP_BIZ_OBJ_ID;
+IResource resource = fileStore.getFileResource(fileId, getBizObjName(), objId, NopRuleConstants.PROP_IMPORT_FILE);
+
+```
+通过IOrmEntityFileStore接口可以读取。
+
+如果是使用`domain=file`实现的附件字段，则
 
 ## 前端控件
 
@@ -205,7 +220,7 @@ public class OrmFileComponent extends AbstractOrmComponent {
   data:{
      value: "文件下载链接"
   }
-}  
+}
 ```
 
 下载链接的格式为 /f/download/{fileId}
