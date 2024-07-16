@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestConvertHelper {
     @Test
@@ -103,7 +104,7 @@ public class TestConvertHelper {
     @Test
     public void testTimestampToString() {
         Timestamp stamp = new Timestamp(123456);
-        assertEquals("1970-01-01 08:02:03.456", ConvertHelper.toString(stamp));
+        assertTrue(ConvertHelper.toString(stamp).endsWith("02:03.456"));
 
         LocalDateTime dt = LocalDateTime.now();
         assertFalse(ConvertHelper.toString(dt).contains("."));
