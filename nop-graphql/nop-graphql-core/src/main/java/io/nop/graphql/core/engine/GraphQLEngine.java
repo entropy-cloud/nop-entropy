@@ -310,6 +310,7 @@ public class GraphQLEngine implements IGraphQLEngine {
     @Override
     public IGraphQLExecutionContext newGraphQLContext() {
         GraphQLExecutionContext context = new GraphQLExecutionContext();
+
         if (enableActionAuth)
             context.setActionAuthChecker(actionAuthChecker);
         if (enableDataAuth)
@@ -437,28 +438,33 @@ public class GraphQLEngine implements IGraphQLEngine {
         IGraphQLExecutor executor = new GraphQLExecutor(operationInvoker, graphQLHook, flowControlRunner, this);
         IAsyncFunctionInvoker executionInvoker = getExecutionInvoker(gqlCtx);
 
-        CompletionStage<ApiResponse<?>> future;
-        if (executionInvoker != null) {
-            future = executionInvoker.invokeAsync(executor::executeOneAsync, gqlCtx);
-        } else {
-            future = executor.executeOneAsync(gqlCtx);
-        }
+        return gqlCtx.getServiceContext().invokeWithBindingCtx(() -> {
+            CompletionStage<ApiResponse<?>> future;
+            if (executionInvoker != null) {
+                future = executionInvoker.invokeAsync(executor::executeOneAsync, gqlCtx);
+            } else {
+                future = executor.executeOneAsync(gqlCtx);
+            }
 
-        return future;
+            return future;
+        });
     }
 
     @Override
     public CompletionStage<GraphQLResponseBean> executeGraphQLAsync(IGraphQLExecutionContext gqlCtx) {
         IGraphQLExecutor executor = new GraphQLExecutor(operationInvoker, graphQLHook, flowControlRunner, this);
         IAsyncFunctionInvoker executionInvoker = getExecutionInvoker(gqlCtx);
-        CompletionStage<GraphQLResponseBean> future;
-        if (executionInvoker != null) {
-            future = executionInvoker.invokeAsync(executor::executeAsync, gqlCtx);
-        } else {
-            future = executor.executeAsync(gqlCtx);
-        }
 
-        return future;
+        return gqlCtx.getServiceContext().invokeWithBindingCtx(() -> {
+            CompletionStage<GraphQLResponseBean> future;
+            if (executionInvoker != null) {
+                future = executionInvoker.invokeAsync(executor::executeAsync, gqlCtx);
+            } else {
+                future = executor.executeAsync(gqlCtx);
+            }
+
+            return future;
+        });
     }
 
     @Override

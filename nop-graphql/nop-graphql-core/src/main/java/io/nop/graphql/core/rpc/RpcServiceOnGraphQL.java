@@ -7,11 +7,8 @@
  */
 package io.nop.graphql.core.rpc;
 
-import io.nop.api.core.ApiConstants;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
-import io.nop.api.core.context.ContextProvider;
-import io.nop.api.core.context.IContext;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.core.reflect.ReflectionManager;
@@ -58,13 +55,8 @@ public class RpcServiceOnGraphQL implements IRpcService {
             cancelToken.appendOnCancel(ctx::cancel);
         }
 
-        IContext context = ContextProvider.getOrCreateContext();
-        Object oldCtx = context.getAttribute(ApiConstants.ATTR_SERVICE_CONTEXT);
-        context.setAttribute(ApiConstants.ATTR_SERVICE_CONTEXT, ctx);
 
-        return invokeAsync(ctx, serviceMethod, request, cancelToken).whenComplete((ret, e) -> {
-            context.setAttribute(ApiConstants.ATTR_SERVICE_CONTEXT, oldCtx);
-        });
+        return invokeAsync(ctx, serviceMethod, request, cancelToken);
     }
 
     CompletionStage<ApiResponse<?>> invokeAsync(IGraphQLExecutionContext ctx, String serviceMethod,

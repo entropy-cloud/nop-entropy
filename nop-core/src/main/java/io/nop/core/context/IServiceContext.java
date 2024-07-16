@@ -15,11 +15,14 @@ import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.util.ApiHeaders;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.cache.ICache;
 import io.nop.core.CoreConstants;
 
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 
 /**
  * 服务上下文对应一次请求处理过程的上下文。服务接收到{@link io.nop.api.core.beans.ApiRequest}之后， 会把headers和body拆解后放置到{@link IServiceContext}上。 *
@@ -122,5 +125,30 @@ public interface IServiceContext extends IExecutionContext, ISecurityContext {
     static IServiceContext bindingCtx() {
         IContext context = ContextProvider.currentContext();
         return context == null ? null : (IServiceContext) context.getAttribute(ApiConstants.ATTR_SERVICE_CONTEXT);
+    }
+
+    default void bindToContext(IContext context) {
+        context.setAttribute(ApiConstants.ATTR_SERVICE_CONTEXT, this);
+    }
+
+    static void restoreCtx(IContext context, IServiceContext oldCtx) {
+        if (oldCtx == null) {
+            context.removeAttribute(ApiConstants.ATTR_SERVICE_CONTEXT);
+        } else {
+            oldCtx.bindToContext(context);
+        }
+    }
+
+    default <T> CompletionStage<T> invokeWithBindingCtx(Supplier<CompletionStage<T>> task) {
+        IContext context = getContext();
+        IServiceContext oldCtx = (IServiceContext) context.getAttribute(ApiConstants.ATTR_SERVICE_CONTEXT);
+        try {
+            return task.get().whenComplete((ret, err) -> {
+                restoreCtx(context, oldCtx);
+            });
+        } catch (Exception e) {
+            restoreCtx(context, oldCtx);
+            return FutureHelper.reject(e);
+        }
     }
 }
