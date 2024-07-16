@@ -20,15 +20,12 @@ import io.nop.auth.dao.entity.NopAuthRoleResource;
 import io.nop.auth.dao.entity.NopAuthSite;
 import io.nop.auth.service.NopAuthConstants;
 import io.nop.commons.cache.GlobalCacheRegistry;
-import io.nop.commons.cache.ICache;
-import io.nop.commons.cache.LocalCache;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
 import io.nop.core.i18n.I18nMessageManager;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.cache.IResourceLoadingCache;
-import io.nop.core.resource.cache.TenantAwareResourceLoadingCache;
 import io.nop.core.resource.tenant.ResourceTenantManager;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.api.IDaoProvider;
@@ -54,7 +51,6 @@ import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SITE_MAP_CACHE_TIMEOUT
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SITE_MAP_STATIC_CONFIG_PATH;
 import static io.nop.auth.service.NopAuthConstants.RESOURCE_TYPE_SUB_MENU;
 import static io.nop.auth.service.NopAuthConstants.RESOURCE_TYPE_TOP_MENU;
-import static io.nop.commons.cache.CacheConfig.newConfig;
 
 public class SiteMapProviderImpl implements ISiteMapProvider {
 
@@ -63,17 +59,24 @@ public class SiteMapProviderImpl implements ISiteMapProvider {
 
     private boolean enableActionAuth;
 
-    protected IResourceLoadingCache<SiteCacheData> siteCache = new TenantAwareResourceLoadingCache<>("sitemap-cache",
-            this::loadSiteData, null, CFG_AUTH_SITE_MAP_CACHE_MAX_SIZE, CFG_AUTH_SITE_MAP_CACHE_TIMEOUT);
+    protected IResourceLoadingCache<SiteCacheData> siteCache;
 
     @PostConstruct
     public void init() {
+        boolean useTenant = isUseTenant();
+        this.siteCache = ResourceTenantManager.instance().makeLoadingCache("sitemap-cache", useTenant,
+                this::loadSiteData, null, CFG_AUTH_SITE_MAP_CACHE_MAX_SIZE, CFG_AUTH_SITE_MAP_CACHE_TIMEOUT);
         GlobalCacheRegistry.instance().register(siteCache);
+    }
+
+    boolean isUseTenant() {
+        return daoProvider.daoFor(NopAuthResource.class).isUseTenant();
     }
 
     @PreDestroy
     public void destroy() {
-        GlobalCacheRegistry.instance().unregister(siteCache);
+        if (siteCache != null)
+            GlobalCacheRegistry.instance().unregister(siteCache);
     }
 
     @Override

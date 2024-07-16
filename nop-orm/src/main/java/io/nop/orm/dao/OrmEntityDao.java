@@ -116,6 +116,11 @@ public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
     }
 
     @Override
+    public boolean isUseTenant() {
+        return getEntityModel().isUseTenant();
+    }
+
+    @Override
     public String getEntityName() {
         return entityName;
     }

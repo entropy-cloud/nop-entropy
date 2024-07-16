@@ -47,6 +47,8 @@ public interface IEntityDao<T extends IDaoEntity> {
 
     boolean isUseLogicalDelete();
 
+    boolean isUseTenant();
+
     /**
      * 将除了主键之外的所有属性值重置为缺省值
      */

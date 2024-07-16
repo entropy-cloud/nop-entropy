@@ -15583,6 +15583,10 @@
         ]
       },
       {
+        "name": "isUseTenant",
+        "parameterTypes": []
+      },
+      {
         "name": "loadSiteData",
         "parameterTypes": [
           "java.lang.String"

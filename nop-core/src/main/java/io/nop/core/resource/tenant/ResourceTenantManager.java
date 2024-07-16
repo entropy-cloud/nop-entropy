@@ -41,7 +41,7 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
         _instance = Guard.notNull(instance, "instance");
     }
 
-    public boolean isEnableTenant() {
+    public boolean isEnableTenantResource() {
         return getTenantChecker().isEnableTenant();
     }
 
@@ -118,9 +118,6 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
      * 第一次执行时会自动触发租户的初始化函数
      */
     public void useTenant(String tenantId) {
-        if (!isEnableTenant())
-            throw new NopException(ERR_RESOURCE_STORE_NOT_SUPPORT_TENANT_DELTA);
-
         tenantCleanups.computeIfAbsent(tenantId, k -> {
             Cancellable cancellable = new Cancellable();
             try {
@@ -138,17 +135,16 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
     public <V> IResourceLoadingCache<V> makeLoadingCache(String name,
                                                          IResourceObjectLoader<V> loader,
                                                          ICreationListener<V> listener) {
-        return makeLoadingCache(name, loader, listener, null, null);
+        return makeLoadingCache(name, isEnableTenantResource(), loader, listener, null, null);
     }
 
-    public <V> IResourceLoadingCache<V> makeLoadingCache(String name,
+    public <V> IResourceLoadingCache<V> makeLoadingCache(String name, boolean enableTenant,
                                                          IResourceObjectLoader<V> loader,
                                                          ICreationListener<V> listener,
                                                          IConfigReference<Integer> cacheMaxSize,
                                                          IConfigReference<Duration> cacheTimeout) {
-        boolean tenant = getTenantChecker().isEnableTenant();
         IResourceLoadingCache<V> cache;
-        if (tenant) {
+        if (enableTenant) {
             cache = new TenantAwareResourceLoadingCache<>(name, loader, listener, cacheMaxSize, cacheTimeout);
         } else {
             cache = new ResourceLoadingCache<>(name, loader, listener, cacheMaxSize, cacheTimeout);
@@ -158,12 +154,15 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
 
     @Override
     public IResourceStore getTenantResourceStore(String tenantId) {
+        if (!isEnableTenantResource())
+            throw new NopException(ERR_RESOURCE_STORE_NOT_SUPPORT_TENANT_DELTA);
+
         useTenant(tenantId);
         return tenantStores.get(tenantId);
     }
 
     public void updateTenantResourceStore(String tenantId, IResourceStore store) {
-        if (!isEnableTenant())
+        if (!isEnableTenantResource())
             throw new NopException(ERR_RESOURCE_STORE_NOT_SUPPORT_TENANT_DELTA);
         tenantStores.put(tenantId, store);
     }

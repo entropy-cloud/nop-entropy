@@ -114,7 +114,7 @@ public class DeltaResourceStore implements IDeltaResourceStore {
     @Override
     public IResource getResource(String path, boolean returnNullIfNotExists) {
         Guard.checkArgument(ResourceHelper.isNormalVirtualPath(path), "path must be normal virtual path");
-        if (ResourceTenantManager.instance().isEnableTenant()) {
+        if (ResourceTenantManager.instance().isEnableTenantResource()) {
             String tenantId = ContextProvider.currentTenantId();
             if (tenantId != null) {
                 IResourceStore store = getTenantStore(tenantId);
@@ -152,7 +152,7 @@ public class DeltaResourceStore implements IDeltaResourceStore {
         path = ResourceHelper.getStdPath(path);
         Map<String, IResource> map = new TreeMap<>();
         if (!path.equals("/")) {
-            if (ResourceTenantManager.instance().isEnableTenant()) {
+            if (ResourceTenantManager.instance().isEnableTenantResource()) {
                 String tenantId = ContextProvider.currentTenantId();
                 if (tenantId != null) {
                     IResourceStore store = getTenantStore(tenantId);
@@ -198,7 +198,7 @@ public class DeltaResourceStore implements IDeltaResourceStore {
     @Override
     public String saveResource(String path, IResource resource, IStepProgressListener listener,
                                Map<String, Object> options) {
-        if (ResourceTenantManager.instance().isEnableTenant()) {
+        if (ResourceTenantManager.instance().isEnableTenantResource()) {
             String tenantId = ContextProvider.currentTenantId();
             if (tenantId != null) {
                 String fullPath = ResourceHelper.buildTenantPath(tenantId, path);
