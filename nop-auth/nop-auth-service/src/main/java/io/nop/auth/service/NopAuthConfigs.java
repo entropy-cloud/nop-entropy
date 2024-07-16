@@ -68,4 +68,8 @@ public interface NopAuthConfigs {
     @Description("启用数据库数据权限配置")
     IConfigReference<Boolean> CFG_AUTH_USE_DATA_AUTH_TABLE =
             varRef(s_loc, "nop.auth.use-data-auth-table", Boolean.class, false);
+
+    @Description("数据权限缓存的超时时间")
+    IConfigReference<Duration> CFG_AUTH_DATA_AUTH_CACHE_TIMEOUT = varRef(s_loc, "nop.auth.data-auth.cache-timeout",
+            Duration.class, null);
 }

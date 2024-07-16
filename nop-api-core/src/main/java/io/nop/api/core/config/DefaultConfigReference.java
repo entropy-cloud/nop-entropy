@@ -24,6 +24,11 @@ public final class DefaultConfigReference<T> extends AbstractConfigReference<T> 
         this.provider = StaticValue.valueOf(defaultValue);
     }
 
+    public static <T> DefaultConfigReference<T> staticRef(String name, T value) {
+        Class valueType = value == null ? Object.class : value.getClass();
+        return new DefaultConfigReference<>(null, name, valueType, value);
+    }
+
     public static <T> DefaultConfigReference<T> makeDefault(IConfigReference<T> ref, T defaultValue) {
         return new DefaultConfigReference<>(ref.getLocation(), ref.getName(), ref.getValueType(), defaultValue, ref);
     }

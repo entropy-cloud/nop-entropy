@@ -18,6 +18,7 @@ import io.nop.auth.core.model.ObjDataAuthModel;
 import io.nop.auth.core.model.RoleDataAuthModel;
 import io.nop.auth.dao.entity.NopAuthRoleDataAuth;
 import io.nop.biz.crud.BizFilterNodeGenerator;
+import io.nop.commons.cache.GlobalCacheRegistry;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
 import io.nop.core.lang.eval.IEvalPredicate;
@@ -28,20 +29,24 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
-import io.nop.core.resource.cache.ResourceCacheEntry;
+import io.nop.core.resource.cache.IResourceLoadingCache;
+import io.nop.core.resource.tenant.ResourceTenantManager;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.xdsl.DslModelParser;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
 
 import java.util.List;
 import java.util.Set;
 
+import static io.nop.api.core.config.DefaultConfigReference.staticRef;
 import static io.nop.auth.api.AuthApiErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.auth.api.AuthApiErrors.ARG_ID;
 import static io.nop.auth.api.AuthApiErrors.ARG_USER_NAME;
 import static io.nop.auth.api.AuthApiErrors.ERR_AUTH_NO_DATA_AUTH;
-import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_DATA_AUTH_CACHE_CHECK_CHANGED;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_DATA_AUTH_CACHE_TIMEOUT;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_DATA_AUTH_CONFIG_PATH;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_USE_DATA_AUTH_TABLE;
 import static io.nop.auth.service.NopAuthErrors.ARG_WHEN_CONFIG;
@@ -49,14 +54,31 @@ import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_INVALID_AUTH_WHEN_CONFI
 
 public class DefaultDataAuthChecker implements IDataAuthChecker {
 
-    private final ResourceCacheEntry<DataAuthModel> modelCache =
-            new ResourceCacheEntry<>("data-auth");
+    private IResourceLoadingCache<DataAuthModel> modelCache;
 
     private IDaoProvider daoProvider;
 
     @Inject
     public void setDaoProvider(IDaoProvider daoProvider) {
         this.daoProvider = daoProvider;
+    }
+
+    @PostConstruct
+    public void init() {
+        this.modelCache = ResourceTenantManager.instance().makeLoadingCache("data-auth", isUseTenant(),
+                this::loadDataAuthModel, null, staticRef("data-auth", 1),
+                CFG_AUTH_DATA_AUTH_CACHE_TIMEOUT);
+        GlobalCacheRegistry.instance().register(modelCache);
+    }
+
+    @PreDestroy
+    public void destroy() {
+        if (modelCache != null)
+            GlobalCacheRegistry.instance().unregister(modelCache);
+    }
+
+    protected boolean isUseTenant() {
+        return CFG_AUTH_USE_DATA_AUTH_TABLE.get() && daoProvider.daoFor(NopAuthRoleDataAuth.class).isUseTenant();
     }
 
     protected DataAuthModel loadDataAuthModel(String key) {
@@ -132,7 +154,7 @@ public class DefaultDataAuthChecker implements IDataAuthChecker {
     }
 
     private DataAuthModel getAuthModel() {
-        return modelCache.getObject(CFG_AUTH_DATA_AUTH_CACHE_CHECK_CHANGED.get(), this::loadDataAuthModel);
+        return modelCache.get("data-auth", this::loadDataAuthModel);
     }
 
     protected IEvalScope newEvalScope(ObjDataAuthModel objAuth, String action, Object entity, ISecurityContext context) {
