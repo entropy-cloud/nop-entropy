@@ -69,6 +69,7 @@ import io.nop.orm.support.OrmEntityHelper;
 import io.nop.orm.utils.OrmQueryHelper;
 import io.nop.xlang.filter.BizExprHelper;
 import io.nop.xlang.filter.BizFilterEvaluator;
+import io.nop.xlang.xdsl.ExtPropsGetter;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.ISchema;
@@ -136,6 +137,7 @@ import static io.nop.biz.BizErrors.ERR_BIZ_OBJ_NO_DICT_TAG;
 import static io.nop.biz.BizErrors.ERR_BIZ_PROP_NOT_MANY_TO_MANY_REF;
 import static io.nop.biz.BizErrors.ERR_BIZ_TOO_MANY_LEFT_JOIN_PROPS_IN_QUERY;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAX_PAGE_SIZE;
+import static io.nop.orm.utils.OrmQueryHelper.resolveRef;
 
 @Locale("zh-CN")
 public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImpl, IBizObjectQueryProcessor<T> {
@@ -434,6 +436,9 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         return ret;
     }
 
+    /**
+     * 跳过数据权限直接执行查询，这里相比于直接使用dao，提供了一个定制机会。BizModel可以不基于Dao来实现这个函数
+     */
     @BizAction
     public T doFindFirstByQueryDirectly(@Name("query") QueryBean query, IServiceContext context) {
         return dao().findFirstByQuery(query);
@@ -910,7 +915,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         IEntityModel entityModel = entity.orm_entityModel();
         if (refNamesToCheck != null) {
             for (String refName : refNamesToCheck) {
-                IOrmEntity refEntity = getRefEntity(entityModel, entity, refName, context);
+                IOrmEntity refEntity = findRefEntity(entityModel, entity, refName, context);
                 if (refEntity != null)
                     throw new NopException(ERR_BIZ_NOT_ALLOW_DELETE_ENTITY_WHEN_REF_EXISTS)
                             .param(ARG_REF_ENTITY_NAME, refEntity.orm_entityModel().getName());
@@ -919,10 +924,23 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         }
     }
 
-    protected IOrmEntity getRefEntity(IEntityModel entityModel, T entity, String refName, IServiceContext context) {
+    protected IOrmEntity findRefEntity(IEntityModel entityModel, T entity, String refName, IServiceContext context) {
         IObjPropMeta propMeta = getThisObj().getObjMeta().getProp(refName);
         if (propMeta != null) {
+            String refBizObjName = propMeta.getBizObjName();
+            if (refBizObjName == null)
+                refBizObjName = propMeta.getItemBizObjName();
 
+            TreeBean filter = ExtPropsGetter.getTreeBean(propMeta, GraphQLConstants.TAG_GRAPHQL_FILTER);
+            if (filter != null && refBizObjName != null) {
+                resolveRef(filter.cloneInstance(), entity);
+                IBizObject refBizObj = bizObjectManager.getBizObject(refBizObjName);
+
+                Map<String, Object> request = new HashMap<>();
+                QueryBean query = new QueryBean();
+                query.addFilter(filter);
+                return (IOrmEntity) refBizObj.invoke(ACTION_doFindFirstByQueryDirectly, request, null, context);
+            }
         }
 
         IEntityRelationModel relModel = entityModel.getRelation(refName, true);
