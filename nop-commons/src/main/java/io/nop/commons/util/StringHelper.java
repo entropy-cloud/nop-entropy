@@ -1707,7 +1707,7 @@ public class StringHelper extends ApiStringHelper {
      */
     @Deterministic
     public static String colCodeToPropName(String str) {
-        if (CommonConstants.PROP_ID.equalsIgnoreCase(str))
+        if (CommonConstants.PROP_ID.equalsIgnoreCase(str) || CommonConstants.PROP_ID_.equalsIgnoreCase(str))
             return CommonConstants.PROP_ID_;
         if ("class".equalsIgnoreCase(str)) {
             return CommonConstants.PROP_CLASS_NAME;
