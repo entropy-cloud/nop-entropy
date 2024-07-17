@@ -84,6 +84,10 @@ public class XptCellModel extends _XptCellModel {
         return cellPosition.getColIndex();
     }
 
+    public boolean shouldRemoveEmpty() {
+        return Boolean.FALSE.equals(getKeepExpandEmpty());
+    }
+
     public boolean isRowDuplicate(String name) {
         return rowDuplicateCells.containsKey(name);
     }

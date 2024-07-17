@@ -28,9 +28,11 @@ public class CellColExpander extends AbstractCellExpander {
     @Override
     protected void removeCell(ExpandedCell cell) {
         cell.setRemoved(true);
-        for (List<ExpandedCell> list : cell.getColDescendants().values()) {
-            for (ExpandedCell child : list) {
-                child.setRemoved(true);
+        if (cell.getColDescendants() != null) {
+            for (List<ExpandedCell> list : cell.getColDescendants().values()) {
+                for (ExpandedCell child : list) {
+                    child.setRemoved(true);
+                }
             }
         }
 

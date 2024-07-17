@@ -134,10 +134,10 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     /**
      *  
      * xml name: keepExpandEmpty
-     * 当展开集合为空时，缺省会删除模板中定义的单元格以及它所在的行或者列。
-     * 但是如果keepExpandEmpty为true，则只是清除当前单元格以及所有子单元格的内容，但是并不自动删除。
+     * 当展开集合为空时，如果设置为false，则会删除模板中定义的单元格以及它所在的行或者列。
+     * 但是如果keepExpandEmpty为true，则只是清除当前单元格以及所有子单元格的内容，但是并不自动删除。缺省为true
      */
-    private boolean _keepExpandEmpty  = false;
+    private java.lang.Boolean _keepExpandEmpty ;
     
     /**
      *  
@@ -505,16 +505,16 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     /**
      * 
      * xml name: keepExpandEmpty
-     *  当展开集合为空时，缺省会删除模板中定义的单元格以及它所在的行或者列。
-     * 但是如果keepExpandEmpty为true，则只是清除当前单元格以及所有子单元格的内容，但是并不自动删除。
+     *  当展开集合为空时，如果设置为false，则会删除模板中定义的单元格以及它所在的行或者列。
+     * 但是如果keepExpandEmpty为true，则只是清除当前单元格以及所有子单元格的内容，但是并不自动删除。缺省为true
      */
     
-    public boolean isKeepExpandEmpty(){
+    public java.lang.Boolean getKeepExpandEmpty(){
       return _keepExpandEmpty;
     }
 
     
-    public void setKeepExpandEmpty(boolean value){
+    public void setKeepExpandEmpty(java.lang.Boolean value){
         checkAllowChange();
         
         this._keepExpandEmpty = value;
@@ -705,7 +705,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         out.putNotNull("exportFormula",this.isExportFormula());
         out.putNotNull("field",this.getField());
         out.putNotNull("formatExpr",this.getFormatExpr());
-        out.putNotNull("keepExpandEmpty",this.isKeepExpandEmpty());
+        out.putNotNull("keepExpandEmpty",this.getKeepExpandEmpty());
         out.putNotNull("linkExpr",this.getLinkExpr());
         out.putNotNull("processExpr",this.getProcessExpr());
         out.putNotNull("rowExtendForSibling",this.isRowExtendForSibling());
@@ -741,7 +741,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         instance.setExportFormula(this.isExportFormula());
         instance.setField(this.getField());
         instance.setFormatExpr(this.getFormatExpr());
-        instance.setKeepExpandEmpty(this.isKeepExpandEmpty());
+        instance.setKeepExpandEmpty(this.getKeepExpandEmpty());
         instance.setLinkExpr(this.getLinkExpr());
         instance.setProcessExpr(this.getProcessExpr());
         instance.setRowExtendForSibling(this.isRowExtendForSibling());

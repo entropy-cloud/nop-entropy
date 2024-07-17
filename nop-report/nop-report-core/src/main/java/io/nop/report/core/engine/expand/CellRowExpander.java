@@ -31,9 +31,11 @@ public class CellRowExpander extends AbstractCellExpander {
     @Override
     protected void removeCell(ExpandedCell cell) {
         cell.setRemoved(true);
-        for (List<ExpandedCell> list : cell.getRowDescendants().values()) {
-            for (ExpandedCell child : list) {
-                child.setRemoved(true);
+        if (cell.getRowDescendants() != null) {
+            for (List<ExpandedCell> list : cell.getRowDescendants().values()) {
+                for (ExpandedCell child : list) {
+                    child.setRemoved(true);
+                }
             }
         }
 

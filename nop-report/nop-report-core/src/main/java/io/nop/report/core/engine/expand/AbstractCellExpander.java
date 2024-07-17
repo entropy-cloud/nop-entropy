@@ -37,7 +37,7 @@ public abstract class AbstractCellExpander implements ICellExpander {
 
         Iterator<?> expandList = runExpandExpr(cell, xptRt);
         if (!expandList.hasNext()) {
-            if (cell.getModel() != null && cell.getModel().isKeepExpandEmpty()) {
+            if (cell.getModel() != null && cell.getModel().shouldRemoveEmpty()) {
                 clearCell(cell);
             } else {
                 removeCell(cell);
