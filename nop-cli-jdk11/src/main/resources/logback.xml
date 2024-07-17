@@ -4,16 +4,17 @@
     <!-- 关闭logback自身的日志输出 -->
     <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
 
-
     <!-- 定义日志的根级别，这里设置为 INFO -->
-    <root level="INFO">
+    <root level="${LOGBACK_ROOT_LEVEL:-INFO}">
         <!-- 指定输出到控制台 -->
-        <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-            <encoder>
-                <!-- 定义日志输出格式 -->
-                <pattern>%d{yyyy-MM-dd HH:mm:ss} - %msg%n</pattern>
-            </encoder>
-        </appender>
+        <appender-ref ref="STDOUT" />
     </root>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!-- 定义日志输出格式 -->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} - %msg%n</pattern>
+        </encoder>
+    </appender>
 
 </configuration>
