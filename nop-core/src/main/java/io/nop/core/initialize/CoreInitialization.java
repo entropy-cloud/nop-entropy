@@ -21,7 +21,7 @@ import io.nop.core.CoreConstants;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.resource.IResource;
-import io.nop.core.resource.impl.ClassPathResource;
+import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.tenant.ResourceTenantManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -269,7 +269,7 @@ public class CoreInitialization {
             return;
 
         bootstrapConfig = Collections.emptyMap();
-        IResource resource = new ClassPathResource("classpath:bootstrap.yaml");
+        IResource resource = getBootstrapResource();
         if (resource.exists()) {
             Map<String, Object> map = JsonTool.parseBeanFromResource(resource, Map.class);
             if (map != null) {
@@ -300,6 +300,23 @@ public class CoreInitialization {
                 }
             }
         }
+    }
+
+    public static String getBootstrapLocation() {
+        String path = System.getProperty(CoreConstants.CFG_CONFIG_BOOTSTRAP_LOCATION);
+        if (StringHelper.isEmpty(path)) {
+            path = System.getenv(CoreConstants.ENV_CONFIG_BOOTSTRAP__LOCATION);
+        }
+        if (StringHelper.isEmpty(path)) {
+            path = System.getenv(CoreConstants.ENV_CONFIG_BOOTSTRAP_LOCATION);
+        }
+        if (StringHelper.isEmpty(path))
+            path = CoreConstants.CFG_PATH_BOOTSTRAP_YAML;
+        return path;
+    }
+
+    public static IResource getBootstrapResource() {
+        return ResourceHelper.buildConfigResource(getBootstrapLocation());
     }
 
     private static String getProfile(Map<String, Object> map) {

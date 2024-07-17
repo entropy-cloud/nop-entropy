@@ -7,6 +7,12 @@ import java.util.HashSet;
 import java.util.Set;
 
 public interface CoreConstants extends ResourceConstants {
+
+    String CFG_CONFIG_BOOTSTRAP_LOCATION = "nop.config.bootstrap-location";
+    String CFG_PATH_BOOTSTRAP_YAML = "classpath:bootstrap.yaml";
+    String ENV_CONFIG_BOOTSTRAP__LOCATION = "NOP_CONFIG_BOOTSTRAP__LOCATION";
+    String ENV_CONFIG_BOOTSTRAP_LOCATION = "NOP_CONFIG_BOOTSTRAP_LOCATION";
+
     String FILTER_OP_SQL = "sql";
 
     String RESOURCE_CONTENT_CACHE_NAME = "resource-content-cache";

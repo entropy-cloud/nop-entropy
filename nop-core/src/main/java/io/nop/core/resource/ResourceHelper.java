@@ -1015,4 +1015,14 @@ public class ResourceHelper {
         }
         return dir;
     }
+
+    public static IResource buildConfigResource(String path) {
+        IResource resource;
+        if (ResourceHelper.startsWithNamespace(path, ResourceConstants.CLASSPATH_NS)) {
+            resource = new ClassPathResource(path);
+        } else {
+            resource = new FileResource(new File(path));
+        }
+        return resource;
+    }
 }

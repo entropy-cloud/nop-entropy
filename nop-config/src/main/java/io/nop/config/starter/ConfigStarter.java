@@ -47,18 +47,15 @@ import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.module.ModuleManager;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.resource.IResource;
-import io.nop.core.resource.ResourceConstants;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.impl.ClassPathResource;
-import io.nop.core.resource.impl.FileResource;
 import io.nop.core.resource.store.DefaultVirtualFileSystem;
 import io.nop.log.core.LogConfigs;
 import io.nop.log.core.LoggerConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -219,15 +216,10 @@ public class ConfigStarter extends LifeCycleSupport {
     }
 
     private IConfigSource loadBootstrapSource(IConfigSource propsSource, IConfigSource envSource) {
-        String path = propsSource.getConfigValue(ConfigConstants.CFG_CONFIG_BOOTSTRAP_LOCATION, "");
-        if (StringHelper.isEmpty(path)) {
-            path = envSource.getConfigValue(ConfigConstants.CFG_CONFIG_BOOTSTRAP_LOCATION,
-                    ConfigConstants.CFG_PATH_BOOTSTRAP_YAML);
-        }
-        IResource resource = buildConfigResource(path);
+        IResource resource = CoreInitialization.getBootstrapResource();
         if (!resource.exists()) {
-            LOG.warn("nop.config.no-bootstrap-config-file:path{}", path);
-            return new StaticConfigSource(path, Collections.emptyMap());
+            LOG.warn("nop.config.no-bootstrap-config-file:path{}", resource.getPath());
+            return new StaticConfigSource(resource.getPath(), Collections.emptyMap());
         }
 
         IConfigSourceLoader loader = new ResourceConfigSourceLoader(resource);
@@ -256,13 +248,7 @@ public class ConfigStarter extends LifeCycleSupport {
     }
 
     protected IResource buildConfigResource(String path) {
-        IResource resource;
-        if (ResourceHelper.startsWithNamespace(path, ResourceConstants.CLASSPATH_NS)) {
-            resource = new ClassPathResource(path);
-        } else {
-            resource = new FileResource(new File(path));
-        }
-        return resource;
+        return ResourceHelper.buildConfigResource(path);
     }
 
     protected List<String> getProfiles(IConfigSource baseSource) {
