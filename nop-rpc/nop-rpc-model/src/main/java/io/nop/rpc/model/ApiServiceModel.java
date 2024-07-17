@@ -18,4 +18,12 @@ public class ApiServiceModel extends _ApiServiceModel implements IWithOptions {
     public String getSimpleClassName() {
         return StringHelper.simpleClassName(getClassName());
     }
+
+    public String getPackageName() {
+        return StringHelper.packageName(getClassName());
+    }
+
+    public String getPackagePath() {
+        return StringHelper.classNameToPath(getPackageName());
+    }
 }

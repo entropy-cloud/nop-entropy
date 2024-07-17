@@ -175,10 +175,11 @@ Nop请求：
 
 ```
 /r/User__findList?@selection=id,name,status:userStatus,
-     roles:rolesList(limit:5){roleId, roleName}
+     roles:rolesList(limit:5)%7BroleId, roleName%7D
 ```
 
 * `roles:rolesList(limit:5)`表示调用后台User对象的rolesList加载方法，限制返回条目数最大为5条，然后将返回的列表数据对应的属性名重命名为roles
+* `{`和`}`在URL中是特殊字符，需要进行URL转义，`{`对应于`%7B`，`}`对应于`%7D`
 
 ### 获取动态及发布者用户
 
@@ -245,6 +246,9 @@ Nop返回:
 ```
 
 更详细的介绍，参见[Nop入门: 如何实现复杂查询]()
+
+* 这里的`graphql:queryMethod`方法表示当前端请求user这个属性的时候，会使用findFirst方法传入`graphql:filter`条件去获取数据。
+* 原则上还可以传入一些额外的查询和排序条件。这些条件和`graphql:filter`配置结合在一起，形成最终的条件。
 
 ### 获取类似微信朋友圈的动态列表
 
@@ -370,7 +374,7 @@ Nop请求:
 
 ```
 /r/Moment__findList?offset=0&limit=2&filter_content__contains=a
-&@selection=...F_defaults,user{id,name,head},comments(limit:2)
+&@selection=...F_defaults,user%7Bid,name,head%7D,comments(limit:2)
 ```
 
 Nop返回结果：
@@ -465,6 +469,7 @@ Nop返回结果：
 * 与APIJSON相比，NopGraphQL返回的数据是标准的JSON对象结构，属性名也是很自然的嵌套属性名，而APIJSON的对象结构层次是平展模式，还使用了特殊的`Comment[]`这种特殊的格式约定，在前台可能还需要经过额外的结构转换才能传递给组件使用。
 * NopGraphQL支持种多表关联查询：一对一、一对多、多对一、各种条件，只不过出于安全性考虑，关联条件需要在后台的XMeta或者ORM模型中配置。
 * NopORM支持各种JOIN： LEFT JOIN,  INNER JOIN，FULL JOIN 等. 还通过Dialect支持各类SQL函数，可以跨数据库迁移
+* `filter_content__contains=a`要求在后端的XMeta文件中为prop指定`allowFilterOps="in,eq,contains"`这种配置，需要开放contains查询运算才可以。
 
 ## 二. 对比传统RESTful方式
 
@@ -569,7 +574,7 @@ Nop平台可以自由选择使用标准的GraphQL协议或者gRPC协议或者RES
 #### 5. User发布的Moment列表， 每个Moment包括 1.发布者User 2.前3条Comment
 
 ```
-/r/Moment__findList?filter_userId=38710&@selection=...F_defaults,user,comments(limit:3)a
+/r/Moment__findList?filter_userId=38710&@selection=...F_defaults,user,comments(limit:3)
 ```
 
 ### 2.6 后端对应不同请求的返回结果
@@ -593,8 +598,8 @@ Nop平台支持多种方式来调用同一个后端服务函数，从而返回�
 4. CrudBizModel提供了`findList/findPage/findFirst/get/delete/update/save/batchDelete/batchModify`等多种增删改查操作，而且支持批量处理、支持主子表数据一次性提交。
 5. 所有的findXX方法都接收filter查询条件和orderBy排序条件，支持包含`and/or`的复杂组合查询条件
 6. 查询时可以直接使用`moment.user.dept`这种复合属性，在ORM层面它会被自动识别，并展开成多表关联查询。这是利用了NopORM底层的对象查询语言EQL的关联查询能力。
-   7， 可以通过http header来传递一些全局参数信息，比如tenantId, authToken，traceId等。
-7. 每个数据库实体缺省都具有对应的服务对象，可以通过`/r/{bizObjName}__{bizAction}`这种方式来调用服务对象上的服务方法。对于一些不需要直接暴露的子表结构，可以在数据模型上标记为no-web，则不会单独为它生成服务端点。
+7. 可以通过http header来传递一些全局参数信息，比如tenantId, authToken，traceId等。
+8. 每个数据库实体缺省都具有对应的服务对象，可以通过`/r/{bizObjName}__{bizAction}`这种方式来调用服务对象上的服务方法。对于一些不需要直接暴露的子表结构，可以在数据模型上标记为no-web，则不会单独为它生成服务端点。
 
 ### 3.2 功能符
 
@@ -638,13 +643,13 @@ Nop平台的复杂查询条件使用了QueryBean模型来表达。这是一个�
 Nop平台在`/r/User__get?id=123`这种读取单条实体的调用函数中会应用数据权限规则。此时，会自动将filter翻译为在内存中执行的Predicate接口来运行，相当于翻译为如下代码：
 
 ```java
-class MyDataAuthFilter implement Predicate<IEvalScope>{
+class MyDataAuthFilter implements Predicate<IEvalScope>{
    public boolean accept(IEvalScope scope){
       User user = (User)scope.getLocalValue("entity");
       if(user.getStatus() != 1)
          return false;
 
-      if(!Arrays.asList(1,2).contains(user.getType())
+      if(!Arrays.asList(1,2).contains(user.getType()))
          return false;
       return true;
    }

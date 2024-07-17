@@ -262,6 +262,13 @@ nop:
 
 **注意: 配置项是nop.integration.oss.enabled，而不是nop.file.integration.oss.enabled**
 
+## 前端显示
+如果excel数据模型中设置了`domain=file`或者`domain=file-list`，则XMeta中会自动生成对应FileStatus属性，例如NopAuthUser中的avatar字段对应生成`avatarComponentFileStatus`。
+
+FileStatus会返回文件的名称、大小等信息。
+
+`control.xlib`中的`<view-file>`用于在前台显示文件下载链接，它会使用FileStatus中的信息来获取文件名等。
+
 ## 配置变量
 
 * nop.file.store-dir
