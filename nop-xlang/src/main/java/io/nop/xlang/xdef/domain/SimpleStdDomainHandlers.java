@@ -606,14 +606,19 @@ public class SimpleStdDomainHandlers {
         @Override
         public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
-            if (text instanceof List)
+            if (text == null || text instanceof List)
                 return text;
 
             JsonParseOptions opts = new JsonParseOptions();
             opts.setKeepLocation(true);
             Object o;
             try {
-                o = JsonTool.instance().parseFromText(loc, text.toString(), opts);
+                String str = text.toString();
+                if (str.startsWith("[") && str.endsWith("]")) {
+                    o = JsonTool.instance().parseFromText(loc, text.toString(), opts);
+                } else {
+                    o = ConvertHelper.toCsvList(str, NopException::new);
+                }
             } catch (Exception e) {
                 throw new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN, e).loc(loc)
                         .param(ARG_STD_DOMAIN, getName()).param(ARG_PROP_NAME, propName).param(ARG_VALUE, text);
