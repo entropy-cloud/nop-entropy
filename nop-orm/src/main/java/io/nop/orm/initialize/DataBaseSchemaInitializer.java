@@ -11,9 +11,11 @@ import io.nop.core.lang.sql.SQL;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.utils.DaoHelper;
 import io.nop.orm.IOrmSessionFactory;
+import io.nop.orm.OrmConstants;
 import io.nop.orm.ddl.DdlSqlCreator;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IOrmModel;
+import io.nop.orm.model.OrmEntityModel;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
@@ -62,6 +64,9 @@ public class DataBaseSchemaInitializer {
     public static Map<String, List<IEntityModel>> splitByQuerySpace(Collection<IEntityModel> tables) {
         Map<String, List<IEntityModel>> map = new TreeMap<>();
         for (IEntityModel entityModel : tables) {
+            Object extProp = ((OrmEntityModel) entityModel).getExtProp(OrmConstants.EXT_AUTO_UPGRADE_DATABASE);
+            if (extProp != null && !Boolean.parseBoolean(extProp.toString()))
+                continue;
             String querySpace = DaoHelper.normalizeQuerySpace(entityModel.getQuerySpace());
             map.computeIfAbsent(querySpace, k -> new ArrayList<>()).add(entityModel);
         }
