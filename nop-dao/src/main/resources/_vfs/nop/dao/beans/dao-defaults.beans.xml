@@ -57,7 +57,7 @@
         <property name="password" value="@cfg:nop.datasource.password|"/>
         <property name="maximumPoolSize" value="@cfg:nop.datasource.max-size|8"/>
         <property name="minimumIdle" value="@cfg:nop.datasource.min-size|4"/>
-        <property name="connectionTimeout" value="@cfg:nop.datasource.connection-timeout|10000"/>
+        <property name="connectionTimeout" value="@cfg:nop.datasource.connection-timeout|60000"/>
         <property name="idleTimeout" value="@cfg:nop.datasource.idle-timeout|600000"/>
         <property name="maxLifetime" value="@cfg:nop.datasource.max-lifetime|3600000"/>
 
