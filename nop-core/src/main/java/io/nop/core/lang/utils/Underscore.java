@@ -226,6 +226,18 @@ public class Underscore {
     }
 
     @Deterministic
+    public static List<Object> pluckUnique(Collection<?> c, String propName) {
+        if (c == null)
+            return null;
+
+        Set<Object> ret = new LinkedHashSet<>(c.size());
+        for (Object o : c) {
+            ret.add(getFieldValue(o, propName));
+        }
+        return new ArrayList<>(ret);
+    }
+
+    @Deterministic
     public static String pluckThenJoin(Collection<?> c, String propName) {
         if (c == null)
             return null;

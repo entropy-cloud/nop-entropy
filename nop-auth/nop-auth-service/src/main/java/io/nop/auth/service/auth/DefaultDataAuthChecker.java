@@ -78,6 +78,8 @@ public class DefaultDataAuthChecker implements IDataAuthChecker {
     }
 
     protected boolean isUseTenant() {
+        if (ResourceTenantManager.instance().isEnableTenantResource())
+            return true;
         return CFG_AUTH_USE_DATA_AUTH_TABLE.get() && daoProvider.daoFor(NopAuthRoleDataAuth.class).isUseTenant();
     }
 
@@ -154,7 +156,7 @@ public class DefaultDataAuthChecker implements IDataAuthChecker {
     }
 
     private DataAuthModel getAuthModel() {
-        return modelCache.get("data-auth", this::loadDataAuthModel);
+        return modelCache.get("data-auth");
     }
 
     protected IEvalScope newEvalScope(ObjDataAuthModel objAuth, String action, Object entity, ISecurityContext context) {

@@ -2981,38 +2981,6 @@ public class StringHelper extends ApiStringHelper {
         }
     }
 
-    @Deterministic
-    public static String fileSizeString(long len) {
-        if (len < 0)
-            return "-";
-
-        if (len == 0)
-            return "0K";
-
-        if (len < 1024)
-            return len + "B";
-
-        long n = len * 10 / 1024;
-
-        if (n < 10240) {
-            return dropZero(n / 10.0) + "K";
-        }
-        n = n / 1024;
-        if (n < 10240) {
-            return dropZero(n / 10.0) + "M";
-        } else {
-            return dropZero(n / 1024 / 10.0) + "G";
-        }
-    }
-
-    @Deterministic
-    public static String dropZero(double value) {
-        String s = String.valueOf(value);
-        if (s.endsWith(".0"))
-            return s.substring(0, s.length() - 2);
-        return s;
-    }
-
     private static final String PATH_MATCH = "**";
 
     /**

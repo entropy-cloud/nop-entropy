@@ -576,9 +576,23 @@
             <attr name="bizObjName" mandatory="true"/>
             <attr name="accept" optional="true"/>
 
-            <source>
-
-            </source>
+            <source><![CDATA[
+                return {
+                    "type": "group",
+                    "body" : {
+                        "type": "action",
+                        "actionType": "download",
+                        "label": "${"+propMeta.name+"ComponentFileStatus.name}(${"+propMeta.name+"ComponentFileStatus.fileSize})",
+                        "leve": "link",
+                        "api": {
+                            method: "get",
+                            url: "${" + propMeta.name+"}",
+                            data: {},
+                            responseType: "blob"
+                        }
+                    }
+                }
+            ]]></source>
         </view-file>
 
         <view-images>

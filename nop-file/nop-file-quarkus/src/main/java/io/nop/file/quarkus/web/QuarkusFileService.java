@@ -18,6 +18,7 @@ import io.nop.file.core.DownloadRequestBean;
 import io.nop.file.core.FileConstants;
 import io.nop.file.core.UploadRequestBean;
 import io.nop.graphql.core.web.JaxrsHelper;
+import io.quarkus.vertx.http.runtime.RouteConstants;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -143,6 +144,22 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
                                               @PathParam("fileId") String fileId,
                                               @DefaultValue("") @QueryParam("contentType") String contentType,
                                               @Context HttpServerRequest req) {
+        return doDownload(routingContext,fileId,contentType,req);
+    }
+
+    @Path(FileConstants.PATH_DOWNLOAD + "/{fileId}")
+    @POST
+    public CompletionStage<Response> downloadPost(@Context RoutingContext routingContext,
+                                              @PathParam("fileId") String fileId,
+                                              @DefaultValue("") @QueryParam("contentType") String contentType,
+                                              @Context HttpServerRequest req) {
+        return doDownload(routingContext,fileId,contentType,req);
+    }
+
+    public CompletionStage<Response> doDownload(@Context RoutingContext routingContext,
+                                                @PathParam("fileId") String fileId,
+                                                @DefaultValue("") @QueryParam("contentType") String contentType,
+                                                @Context HttpServerRequest req) {
         return withRoutingContext(routingContext, () -> {
             DownloadRequestBean request = buildDownloadRequestBean(fileId, contentType);
 

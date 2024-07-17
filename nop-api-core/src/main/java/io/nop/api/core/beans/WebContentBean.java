@@ -7,6 +7,7 @@
  */
 package io.nop.api.core.beans;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
@@ -31,6 +32,7 @@ public class WebContentBean {
      */
     private final boolean autoCleanResource;
 
+    @JsonCreator
     public WebContentBean(@JsonProperty("contentType") String contentType,
                           @JsonProperty("content") Object content,
                           @JsonProperty("fileName") String fileName,

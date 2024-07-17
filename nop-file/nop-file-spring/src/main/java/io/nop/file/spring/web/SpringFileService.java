@@ -47,10 +47,10 @@ public class SpringFileService extends AbstractGraphQLFileService {
             String fileName = StringHelper.fileFullName(file.getOriginalFilename());
 
             UploadRequestBean input = buildUploadRequestBean(is,
-                                                             fileName,
-                                                             file.getSize(),
-                                                             file.getContentType(),
-                                                             request::getParameter);
+                    fileName,
+                    file.getSize(),
+                    file.getContentType(),
+                    request::getParameter);
 
             res = uploadAsync(buildApiRequest(request, input));
         } catch (IOException e) {
@@ -75,6 +75,19 @@ public class SpringFileService extends AbstractGraphQLFileService {
     public CompletionStage<ResponseEntity<Object>> download(@PathVariable("fileId") String fileId,
                                                             @RequestParam(value = "contentType", required = false) String contentType,
                                                             HttpServletRequest request) {
+        return doDownload(fileId, contentType, request);
+    }
+
+    @PostMapping(FileConstants.PATH_DOWNLOAD + "/{fileId}")
+    public CompletionStage<ResponseEntity<Object>> downloadPost(@PathVariable("fileId") String fileId,
+                                                                @RequestParam(value = "contentType", required = false) String contentType,
+                                                                HttpServletRequest request) {
+        return doDownload(fileId, contentType, request);
+    }
+
+    public CompletionStage<ResponseEntity<Object>> doDownload(@PathVariable("fileId") String fileId,
+                                                              @RequestParam(value = "contentType", required = false) String contentType,
+                                                              HttpServletRequest request) {
         DownloadRequestBean req = buildDownloadRequestBean(fileId, contentType);
 
         return downloadAsync(buildApiRequest(request, req)).thenApply(res -> {

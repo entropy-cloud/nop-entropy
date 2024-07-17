@@ -36,6 +36,10 @@
                 createdBy[创建人] createTime[创建时间]
                 updatedBy[修改人] updateTime[修改时间]
             </layout>
+
+<!--            <cells>-->
+<!--                <cell id="avatar" control="file"/>-->
+<!--            </cells>-->
         </form>
 
         <form id="add" x:inherit="true" layoutControl="tabs">
@@ -89,7 +93,8 @@
 
         <form id="query">
             <layout>
-                userName gender nickName phone status
+                userName gender status
+                nickName phone
             </layout>
         </form>
 

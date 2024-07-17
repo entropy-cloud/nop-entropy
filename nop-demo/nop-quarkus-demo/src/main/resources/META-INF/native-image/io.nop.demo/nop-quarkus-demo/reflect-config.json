@@ -2320,6 +2320,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getFileSize",
+        "parameterTypes": []
+      },
+      {
         "name": "getLastModified",
         "parameterTypes": []
       },
@@ -14676,12 +14680,20 @@
         "parameterTypes": []
       },
       {
+        "name": "destroy",
+        "parameterTypes": []
+      },
+      {
         "name": "getFilter",
         "parameterTypes": [
           "java.lang.String",
           "java.lang.String",
           "io.nop.api.core.auth.ISecurityContext"
         ]
+      },
+      {
+        "name": "init",
+        "parameterTypes": []
       },
       {
         "name": "isPermitted",
@@ -14691,6 +14703,10 @@
           "java.lang.Object",
           "io.nop.api.core.auth.ISecurityContext"
         ]
+      },
+      {
+        "name": "isUseTenant",
+        "parameterTypes": []
       },
       {
         "name": "loadDataAuthModel",
@@ -21426,6 +21442,13 @@
       },
       {
         "name": "pluckThenJoin",
+        "parameterTypes": [
+          "java.util.Collection",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "pluckUnique",
         "parameterTypes": [
           "java.util.Collection",
           "java.lang.String"
@@ -42778,7 +42801,25 @@
         ]
       },
       {
+        "name": "doDownload",
+        "parameterTypes": [
+          "io.vertx.ext.web.RoutingContext",
+          "java.lang.String",
+          "java.lang.String",
+          "io.vertx.core.http.HttpServerRequest"
+        ]
+      },
+      {
         "name": "download",
+        "parameterTypes": [
+          "io.vertx.ext.web.RoutingContext",
+          "java.lang.String",
+          "java.lang.String",
+          "io.vertx.core.http.HttpServerRequest"
+        ]
+      },
+      {
+        "name": "downloadPost",
         "parameterTypes": [
           "io.vertx.ext.web.RoutingContext",
           "java.lang.String",

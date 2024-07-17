@@ -11,6 +11,7 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
 import io.nop.api.core.annotations.meta.PropMeta;
+import io.nop.api.core.util.ApiStringHelper;
 
 @GraphQLObject
 @GraphQLBean
@@ -21,6 +22,7 @@ public class FileStatusBean {
     private long size;
     private long lastModified;
     private String permissions;
+    private String fileSize;
 
     public FileStatusBean() {
     }
@@ -75,5 +77,10 @@ public class FileStatusBean {
 
     public void setPermissions(String permissions) {
         this.permissions = permissions;
+    }
+
+    @PropMeta(propId = 6)
+    public String getFileSize() {
+        return ApiStringHelper.fileSizeString(getSize());
     }
 }
