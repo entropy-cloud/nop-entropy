@@ -12,6 +12,7 @@ import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.FileResource;
+import io.nop.core.resource.impl.UnknownResource;
 import io.nop.core.resource.record.csv.CsvResourceRecordIO;
 import io.nop.core.resource.record.list.HeaderListRecordOutput;
 import io.nop.excel.model.ExcelWorkbook;
@@ -22,6 +23,7 @@ import io.nop.ooxml.xlsx.parse.XlsxToRecordOutput;
 import io.nop.xlang.api.XLang;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -44,7 +46,25 @@ public class ExcelHelper {
         return new XlsxObjectLoader(impModelPath).parseFromResource(resource);
     }
 
-    public static List<Map<String, Object>> readXlsx(IResource xlsx, String selectedSheetName) {
+    public static List<ExcelSheetData> readAllSheets(IResource xlsx) {
+        List<ExcelSheetData> ret = new ArrayList<>();
+
+        new XlsxToRecordOutput((r, e) -> new HeaderListRecordOutput<>(xlsx, null, CollectionHelper::toMap) {
+            @Override
+            public void close() {
+                ExcelSheetData data = new ExcelSheetData();
+                data.setName(r.getName());
+                data.setData(this.getResult());
+                ret.add(data);
+            }
+        },
+                null, sheetName -> {
+            return new UnknownResource("/" + sheetName);
+        }).parseFromResource(xlsx);
+        return ret;
+    }
+
+    public static List<Map<String, Object>> readSheet(IResource xlsx, String selectedSheetName) {
         HeaderListRecordOutput<Map<String, Object>> output = new HeaderListRecordOutput<>(xlsx, null, CollectionHelper::toMap);
 
         MutableInt index = new MutableInt();
