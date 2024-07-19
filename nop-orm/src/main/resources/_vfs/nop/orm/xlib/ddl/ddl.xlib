@@ -83,7 +83,11 @@
                             let columns = uniqueKey.getColumnModelsWithTenant(table).map(col => dialect.escapeSQLName(col.code))
                         </c:script>
                         <c:unit><![CDATA[ constraint ${uniqueKey.constraint} unique (${
-                        columns.join(',')}),
+                        columns.join(',')})]]></c:unit>
+
+                        <thisLib:UniqueKeyComment uniqueKey="${uniqueKey}" xpl:return="uniqueComment" />
+                        <c:if test="${uniqueComment}"><![CDATA[    COMMENT ${dialect.getStringLiteral(uniqueComment)}]]></c:if>
+                        <c:unit><![CDATA[,
  ]]></c:unit>
                     </c:if>
                 </c:for>
@@ -191,6 +195,13 @@
             </source>
         </ColumnComment>
 
+        <UniqueKeyComment outputMode="none">
+            <attr name="uniqueKey" type="io.nop.orm.model.OrmUniqueKeyModel"/>
+            <source>
+                <c:script>uniqueKey.comment || null</c:script>
+            </source>
+        </UniqueKeyComment>
+
 
         <AddTenantIdForTables outputMode="text">
             <attr name="tables" type="Collection&lt;? extends io.nop.orm.model.IEntityModel>"/>
@@ -265,8 +276,9 @@
 
                 <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} drop constraint ${uniqueKey.constraint}</c:unit>
                 <c:unit>;&#10;</c:unit>
+                <thisLib:UniqueKeyComment uniqueKey="${uniqueKey}" xpl:return="uniqueComment"/>
                 <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} add constraint ${uniqueKey.constraint}
-                     unique (NOP_TENANT_ID,${columns.join(',')});&#10;
+                     unique (NOP_TENANT_ID,${columns.join(',')})${uniqueComment ? $String.format(' %s %s','COMMENT',dialect.getStringLiteral(uniqueComment)) : ''};&#10;
                 </c:unit>
             </source>
         </AddTenantIdToUniqueKey>

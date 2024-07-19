@@ -1707,7 +1707,7 @@ public class StringHelper extends ApiStringHelper {
      */
     @Deterministic
     public static String colCodeToPropName(String str) {
-        if (CommonConstants.PROP_ID.equalsIgnoreCase(str))
+        if (CommonConstants.PROP_ID.equalsIgnoreCase(str) || CommonConstants.PROP_ID_.equalsIgnoreCase(str))
             return CommonConstants.PROP_ID_;
         if ("class".equalsIgnoreCase(str)) {
             return CommonConstants.PROP_CLASS_NAME;
@@ -4416,5 +4416,11 @@ public class StringHelper extends ApiStringHelper {
     @Deterministic
     public static String normalizeChineseQuote(String str) {
         return escape(str, QUOTE_CN_CHARS, QUOTE_EN_STRS);
+    }
+
+
+    @Deterministic
+    public static String format(String format, Object... args) {
+        return String.format(format, args);
     }
 }
