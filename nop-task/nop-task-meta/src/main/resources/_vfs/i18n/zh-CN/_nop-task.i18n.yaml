@@ -48,6 +48,9 @@ prop:
       createdBy: 创建人
       dueTime: 完成时限
       endTime: 结束时间
+      errCode: 错误码
+      errMsg: 错误消息
+      jobId: Job ID
       managerDeptId: 管理者单位ID
       managerId: 管理者ID
       managerName: 管理者
@@ -76,6 +79,7 @@ prop:
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
+      workerId: Worker ID
     NopTaskStepInstance:
       childSteps: 子步骤集合
       createTime: 创建时间

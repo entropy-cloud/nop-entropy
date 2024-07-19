@@ -43,6 +43,10 @@ CREATE TABLE nop_task_instance(
   PRIORITY INTEGER NOT NULL ,
   SIGNAL_TEXT VARCHAR2(1000)  ,
   TAG_TEXT VARCHAR2(200)  ,
+  JOB_ID VARCHAR2(32)  ,
+  ERR_CODE VARCHAR2(200)  ,
+  ERR_MSG VARCHAR2(500)  ,
+  Worker_ID VARCHAR2(50)  ,
   VERSION INTEGER NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
@@ -182,6 +186,14 @@ CREATE TABLE nop_task_step_instance(
       COMMENT ON COLUMN nop_task_instance.SIGNAL_TEXT IS '信号集合';
                     
       COMMENT ON COLUMN nop_task_instance.TAG_TEXT IS '标签';
+                    
+      COMMENT ON COLUMN nop_task_instance.JOB_ID IS 'Job ID';
+                    
+      COMMENT ON COLUMN nop_task_instance.ERR_CODE IS '错误码';
+                    
+      COMMENT ON COLUMN nop_task_instance.ERR_MSG IS '错误消息';
+                    
+      COMMENT ON COLUMN nop_task_instance.Worker_ID IS 'Worker ID';
                     
       COMMENT ON COLUMN nop_task_instance.VERSION IS '数据版本';
                     

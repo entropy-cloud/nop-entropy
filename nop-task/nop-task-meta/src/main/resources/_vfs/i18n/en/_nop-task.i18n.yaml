@@ -68,6 +68,10 @@ prop:
       priority: Priority
       signalText: Signal Set
       tagText: Tags
+      jobId: Job Id
+      errCode: Error Code
+      errMsg: Error Message
+      workerId: Worker Id
       version: Version
       createdBy: Created By
       createTime: Create Time

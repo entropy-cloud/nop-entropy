@@ -87,6 +87,18 @@
                 <!--信号集合-->
                 <col id="signalText" sortable="true"/>
 
+                <!--Job ID-->
+                <col id="jobId" sortable="true"/>
+
+                <!--错误码-->
+                <col id="errCode" sortable="true"/>
+
+                <!--错误消息-->
+                <col id="errMsg" sortable="true"/>
+
+                <!--Worker ID-->
+                <col id="workerId" sortable="true"/>
+
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>
 
@@ -120,7 +132,9 @@
  starterName[启动人] starterDeptId[启动人单位ID]
  managerType[管理者类型] managerDeptId[管理者单位ID]
  managerName[管理者] managerId[管理者ID]
- signalText[信号集合] createdBy[创建人]
+ signalText[信号集合] jobId[Job ID]
+ errCode[错误码] errMsg[错误消息]
+ workerId[Worker ID] createdBy[创建人]
  createTime[创建时间] updatedBy[修改人]
  updateTime[修改时间] 
                 remark[备注]
@@ -140,7 +154,9 @@
  starterName[启动人] starterDeptId[启动人单位ID]
  managerType[管理者类型] managerDeptId[管理者单位ID]
  managerName[管理者] managerId[管理者ID]
- signalText[信号集合] 
+ signalText[信号集合] jobId[Job ID]
+ errCode[错误码] errMsg[错误消息]
+ workerId[Worker ID] 
                 remark[备注]
 </layout>
         </form>

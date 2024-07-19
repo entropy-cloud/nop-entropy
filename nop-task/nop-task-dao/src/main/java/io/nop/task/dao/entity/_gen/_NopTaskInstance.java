@@ -42,114 +42,130 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     
     /* 状态: STATUS INTEGER */
     public static final String PROP_NAME_status = "status";
-    public static final int PROP_ID_status = 8;
+    public static final int PROP_ID_status = 6;
     
     /* 启动时间: START_TIME TIMESTAMP */
     public static final String PROP_NAME_startTime = "startTime";
-    public static final int PROP_ID_startTime = 10;
+    public static final int PROP_ID_startTime = 7;
     
     /* 结束时间: END_TIME TIMESTAMP */
     public static final String PROP_NAME_endTime = "endTime";
-    public static final int PROP_ID_endTime = 11;
+    public static final int PROP_ID_endTime = 8;
     
     /* 完成时限: DUE_TIME TIMESTAMP */
     public static final String PROP_NAME_dueTime = "dueTime";
-    public static final int PROP_ID_dueTime = 12;
+    public static final int PROP_ID_dueTime = 9;
     
     /* 业务唯一键: BIZ_KEY VARCHAR */
     public static final String PROP_NAME_bizKey = "bizKey";
-    public static final int PROP_ID_bizKey = 13;
+    public static final int PROP_ID_bizKey = 10;
     
     /* 业务对象名: BIZ_OBJ_NAME VARCHAR */
     public static final String PROP_NAME_bizObjName = "bizObjName";
-    public static final int PROP_ID_bizObjName = 14;
+    public static final int PROP_ID_bizObjName = 11;
     
     /* 业务对象ID: BIZ_OBJ_ID VARCHAR */
     public static final String PROP_NAME_bizObjId = "bizObjId";
-    public static final int PROP_ID_bizObjId = 15;
+    public static final int PROP_ID_bizObjId = 12;
     
     /* 父流程名称: PARENT_TASK_NAME VARCHAR */
     public static final String PROP_NAME_parentTaskName = "parentTaskName";
-    public static final int PROP_ID_parentTaskName = 16;
+    public static final int PROP_ID_parentTaskName = 13;
     
     /* 父流程版本: PARENT_TASK_VERSION BIGINT */
     public static final String PROP_NAME_parentTaskVersion = "parentTaskVersion";
-    public static final int PROP_ID_parentTaskVersion = 17;
+    public static final int PROP_ID_parentTaskVersion = 14;
     
     /* 父流程ID: PARENT_TASK_ID VARCHAR */
     public static final String PROP_NAME_parentTaskId = "parentTaskId";
-    public static final int PROP_ID_parentTaskId = 18;
+    public static final int PROP_ID_parentTaskId = 15;
     
     /* 父流程步骤ID: PARENT_STEP_ID VARCHAR */
     public static final String PROP_NAME_parentStepId = "parentStepId";
-    public static final int PROP_ID_parentStepId = 19;
+    public static final int PROP_ID_parentStepId = 16;
     
     /* 启动人ID: STARTER_ID VARCHAR */
     public static final String PROP_NAME_starterId = "starterId";
-    public static final int PROP_ID_starterId = 20;
+    public static final int PROP_ID_starterId = 17;
     
     /* 启动人: STARTER_NAME VARCHAR */
     public static final String PROP_NAME_starterName = "starterName";
-    public static final int PROP_ID_starterName = 21;
+    public static final int PROP_ID_starterName = 18;
     
     /* 启动人单位ID: STARTER_DEPT_ID VARCHAR */
     public static final String PROP_NAME_starterDeptId = "starterDeptId";
-    public static final int PROP_ID_starterDeptId = 22;
+    public static final int PROP_ID_starterDeptId = 19;
     
     /* 管理者类型: MANAGER_TYPE VARCHAR */
     public static final String PROP_NAME_managerType = "managerType";
-    public static final int PROP_ID_managerType = 27;
+    public static final int PROP_ID_managerType = 20;
     
     /* 管理者单位ID: MANAGER_DEPT_ID VARCHAR */
     public static final String PROP_NAME_managerDeptId = "managerDeptId";
-    public static final int PROP_ID_managerDeptId = 28;
+    public static final int PROP_ID_managerDeptId = 21;
     
     /* 管理者: MANAGER_NAME VARCHAR */
     public static final String PROP_NAME_managerName = "managerName";
-    public static final int PROP_ID_managerName = 29;
+    public static final int PROP_ID_managerName = 22;
     
     /* 管理者ID: MANAGER_ID VARCHAR */
     public static final String PROP_NAME_managerId = "managerId";
-    public static final int PROP_ID_managerId = 30;
+    public static final int PROP_ID_managerId = 23;
     
     /* 优先级: PRIORITY INTEGER */
     public static final String PROP_NAME_priority = "priority";
-    public static final int PROP_ID_priority = 31;
+    public static final int PROP_ID_priority = 24;
     
     /* 信号集合: SIGNAL_TEXT VARCHAR */
     public static final String PROP_NAME_signalText = "signalText";
-    public static final int PROP_ID_signalText = 32;
+    public static final int PROP_ID_signalText = 25;
     
     /* 标签: TAG_TEXT VARCHAR */
     public static final String PROP_NAME_tagText = "tagText";
-    public static final int PROP_ID_tagText = 33;
+    public static final int PROP_ID_tagText = 26;
+    
+    /* Job ID: JOB_ID VARCHAR */
+    public static final String PROP_NAME_jobId = "jobId";
+    public static final int PROP_ID_jobId = 27;
+    
+    /* 错误码: ERR_CODE VARCHAR */
+    public static final String PROP_NAME_errCode = "errCode";
+    public static final int PROP_ID_errCode = 28;
+    
+    /* 错误消息: ERR_MSG VARCHAR */
+    public static final String PROP_NAME_errMsg = "errMsg";
+    public static final int PROP_ID_errMsg = 29;
+    
+    /* Worker ID: Worker_ID VARCHAR */
+    public static final String PROP_NAME_workerId = "workerId";
+    public static final int PROP_ID_workerId = 30;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 34;
+    public static final int PROP_ID_version = 31;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 35;
+    public static final int PROP_ID_createdBy = 32;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 36;
+    public static final int PROP_ID_createTime = 33;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 37;
+    public static final int PROP_ID_updatedBy = 34;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 38;
+    public static final int PROP_ID_updateTime = 35;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 40;
+    public static final int PROP_ID_remark = 37;
     
 
-    private static int _PROP_ID_BOUND = 41;
+    private static int _PROP_ID_BOUND = 38;
 
     
     /* relation: 父流程 */
@@ -162,7 +178,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_taskId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_taskId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[41];
+    private static final String[] PROP_ID_TO_NAME = new String[38];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -243,6 +259,18 @@ public class _NopTaskInstance extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_tagText] = PROP_NAME_tagText;
           PROP_NAME_TO_ID.put(PROP_NAME_tagText, PROP_ID_tagText);
+      
+          PROP_ID_TO_NAME[PROP_ID_jobId] = PROP_NAME_jobId;
+          PROP_NAME_TO_ID.put(PROP_NAME_jobId, PROP_ID_jobId);
+      
+          PROP_ID_TO_NAME[PROP_ID_errCode] = PROP_NAME_errCode;
+          PROP_NAME_TO_ID.put(PROP_NAME_errCode, PROP_ID_errCode);
+      
+          PROP_ID_TO_NAME[PROP_ID_errMsg] = PROP_NAME_errMsg;
+          PROP_NAME_TO_ID.put(PROP_NAME_errMsg, PROP_ID_errMsg);
+      
+          PROP_ID_TO_NAME[PROP_ID_workerId] = PROP_NAME_workerId;
+          PROP_NAME_TO_ID.put(PROP_NAME_workerId, PROP_ID_workerId);
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
@@ -342,6 +370,18 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     
     /* 标签: TAG_TEXT */
     private java.lang.String _tagText;
+    
+    /* Job ID: JOB_ID */
+    private java.lang.String _jobId;
+    
+    /* 错误码: ERR_CODE */
+    private java.lang.String _errCode;
+    
+    /* 错误消息: ERR_MSG */
+    private java.lang.String _errMsg;
+    
+    /* Worker ID: Worker_ID */
+    private java.lang.String _workerId;
     
     /* 数据版本: VERSION */
     private java.lang.Integer _version;
@@ -512,6 +552,18 @@ public class _NopTaskInstance extends DynamicOrmEntity{
         
             case PROP_ID_tagText:
                return getTagText();
+        
+            case PROP_ID_jobId:
+               return getJobId();
+        
+            case PROP_ID_errCode:
+               return getErrCode();
+        
+            case PROP_ID_errMsg:
+               return getErrMsg();
+        
+            case PROP_ID_workerId:
+               return getWorkerId();
         
             case PROP_ID_version:
                return getVersion();
@@ -802,6 +854,46 @@ public class _NopTaskInstance extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_jobId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_jobId));
+               }
+               setJobId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_errCode:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_errCode));
+               }
+               setErrCode(typedValue);
+               break;
+            }
+        
+            case PROP_ID_errMsg:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_errMsg));
+               }
+               setErrMsg(typedValue);
+               break;
+            }
+        
+            case PROP_ID_workerId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_workerId));
+               }
+               setWorkerId(typedValue);
+               break;
+            }
+        
             case PROP_ID_version:{
                java.lang.Integer typedValue = null;
                if(value != null){
@@ -1049,6 +1141,34 @@ public class _NopTaskInstance extends DynamicOrmEntity{
             case PROP_ID_tagText:{
                onInitProp(propId);
                this._tagText = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_jobId:{
+               onInitProp(propId);
+               this._jobId = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_errCode:{
+               onInitProp(propId);
+               this._errCode = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_errMsg:{
+               onInitProp(propId);
+               this._errMsg = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_workerId:{
+               onInitProp(propId);
+               this._workerId = (java.lang.String)value;
                
                break;
             }
@@ -1591,6 +1711,82 @@ public class _NopTaskInstance extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_tagText,value)){
             this._tagText = value;
             internalClearRefs(PROP_ID_tagText);
+            
+        }
+    }
+    
+    /**
+     * Job ID: JOB_ID
+     */
+    public java.lang.String getJobId(){
+         onPropGet(PROP_ID_jobId);
+         return _jobId;
+    }
+
+    /**
+     * Job ID: JOB_ID
+     */
+    public void setJobId(java.lang.String value){
+        if(onPropSet(PROP_ID_jobId,value)){
+            this._jobId = value;
+            internalClearRefs(PROP_ID_jobId);
+            
+        }
+    }
+    
+    /**
+     * 错误码: ERR_CODE
+     */
+    public java.lang.String getErrCode(){
+         onPropGet(PROP_ID_errCode);
+         return _errCode;
+    }
+
+    /**
+     * 错误码: ERR_CODE
+     */
+    public void setErrCode(java.lang.String value){
+        if(onPropSet(PROP_ID_errCode,value)){
+            this._errCode = value;
+            internalClearRefs(PROP_ID_errCode);
+            
+        }
+    }
+    
+    /**
+     * 错误消息: ERR_MSG
+     */
+    public java.lang.String getErrMsg(){
+         onPropGet(PROP_ID_errMsg);
+         return _errMsg;
+    }
+
+    /**
+     * 错误消息: ERR_MSG
+     */
+    public void setErrMsg(java.lang.String value){
+        if(onPropSet(PROP_ID_errMsg,value)){
+            this._errMsg = value;
+            internalClearRefs(PROP_ID_errMsg);
+            
+        }
+    }
+    
+    /**
+     * Worker ID: Worker_ID
+     */
+    public java.lang.String getWorkerId(){
+         onPropGet(PROP_ID_workerId);
+         return _workerId;
+    }
+
+    /**
+     * Worker ID: Worker_ID
+     */
+    public void setWorkerId(java.lang.String value){
+        if(onPropSet(PROP_ID_workerId,value)){
+            this._workerId = value;
+            internalClearRefs(PROP_ID_workerId);
             
         }
     }
