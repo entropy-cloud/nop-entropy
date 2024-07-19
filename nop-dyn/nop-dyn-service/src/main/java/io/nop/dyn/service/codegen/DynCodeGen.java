@@ -9,17 +9,13 @@ package io.nop.dyn.service.codegen;
 
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.orm.SingleSession;
-import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.context.ContextProvider;
 import io.nop.biz.api.IBizObjectManager;
-import io.nop.codegen.XCodeGenerator;
-import io.nop.core.lang.eval.IEvalScope;
-import io.nop.core.module.ModuleManager;
-import io.nop.core.module.ModuleModel;
-import io.nop.core.resource.IResource;
-import io.nop.core.resource.ResourceHelper;
-import io.nop.core.resource.VirtualFileSystem;
-import io.nop.core.resource.store.InMemoryResourceStore;
-import io.nop.core.resource.store.ResourceStoreHelper;
+import io.nop.commons.cache.ICache;
+import io.nop.commons.cache.LocalCache;
+import io.nop.commons.util.StringHelper;
+import io.nop.core.resource.tenant.IResourceTenantInitializer;
+import io.nop.core.resource.tenant.ResourceTenantManager;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dyn.dao.NopDynDaoConstants;
@@ -27,26 +23,21 @@ import io.nop.dyn.dao.entity.NopDynApp;
 import io.nop.dyn.dao.entity.NopDynAppModule;
 import io.nop.dyn.dao.entity.NopDynEntityMeta;
 import io.nop.dyn.dao.entity.NopDynModule;
-import io.nop.dyn.dao.model.DynEntityMetaToOrmModel;
-import io.nop.graphql.core.reflection.GraphQLBizModel;
 import io.nop.orm.IOrmSessionFactory;
-import io.nop.orm.model.OrmModel;
-import io.nop.xlang.api.XLang;
-import io.nop.xlang.api.XplModel;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
+import static io.nop.commons.cache.CacheConfig.newConfig;
+import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE;
 import static io.nop.dyn.service.NopDynConfigs.CFG_DYN_GEN_CODE_WHEN_INIT;
 
-public class DynCodeGen {
+public class DynCodeGen implements IResourceTenantInitializer {
     @Inject
     IDaoProvider daoProvider;
 
@@ -62,16 +53,51 @@ public class DynCodeGen {
     @InjectValue("@cfg:nop.dyn.format-gen-code|true")
     boolean formatGenCode;
 
-    private final Map<String, InMemoryResourceStore> moduleCoreStores = new ConcurrentHashMap<>();
-    private final Map<String, InMemoryResourceStore> moduleWebStores = new ConcurrentHashMap<>();
-
-    private final Map<String, Map<String, GraphQLBizModel>> moduleDynBizModels = new ConcurrentHashMap<>();
+    private final InMemoryCodeCache codeCache = new InMemoryCodeCache();
+    private final ICache<String, InMemoryCodeCache> tenantCache = LocalCache.newCache("gen-code-cache",
+            newConfig(CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE.get()), this::initTenantCache);
 
     @PostConstruct
     @SingleSession
     public void init() {
-        if (CFG_DYN_GEN_CODE_WHEN_INIT.get())
+        boolean useTenant = isUseTenant();
+        if (!useTenant && CFG_DYN_GEN_CODE_WHEN_INIT.get())
             generateForAllModules();
+
+        if (useTenant) {
+            ResourceTenantManager.instance().addTenantInitializer(this);
+        }
+    }
+
+    @PreDestroy
+    public void destroy() {
+        ResourceTenantManager.instance().removeTenantInitializer(this);
+        codeCache.clear();
+        tenantCache.clear();
+    }
+
+    public boolean isUseTenant() {
+        return daoProvider.daoFor(NopDynModule.class).isUseTenant();
+    }
+
+    private InMemoryCodeCache initTenantCache(String tenantId) {
+        InMemoryCodeCache cache = new InMemoryCodeCache(tenantId);
+        generateForAllModules(cache);
+        return cache;
+    }
+
+    public InMemoryCodeCache getCodeCache() {
+        String tenantId = ContextProvider.currentTenantId();
+        if (!StringHelper.isEmpty(tenantId) || !isUseTenant())
+            return codeCache;
+        return tenantCache.get(tenantId);
+    }
+
+    @Override
+    public Runnable initializeTenant(String tenantId) {
+        InMemoryCodeCache cache = getCodeCache();
+        generateForAllModules(getCodeCache());
+        return cache::clear;
     }
 
     public synchronized void generateForAllApps() {
@@ -86,194 +112,63 @@ public class DynCodeGen {
 
     public synchronized void generateForApp(NopDynApp app) {
         batchLoadApp(app);
+        InMemoryCodeCache codeCache = getCodeCache();
         for (NopDynModule module : app.getRelatedModuleList()) {
             if (module.getStatus() != NopDynDaoConstants.MODULE_STATUS_PUBLISHED) {
-                moduleCoreStores.remove(module.getModuleName());
+                codeCache.removeModule(module.getModuleName());
             } else {
-                generateForModule(module);
+                codeCache.generateForModule(genWebFiles, formatGenCode, module);
             }
         }
     }
 
+    public synchronized void generateForModule(NopDynModule module) {
+        getCodeCache().generateForModule(genWebFiles, formatGenCode, module);
+    }
+
     public synchronized void generateForAllModules() {
+        generateForAllModules(getCodeCache());
+    }
+
+    public synchronized void generateBizModel(NopDynEntityMeta module) {
+        getCodeCache().generateBizModel(module);
+    }
+
+    protected void generateForAllModules(InMemoryCodeCache cache) {
         IEntityDao<NopDynModule> dao = daoProvider.daoFor(NopDynModule.class);
         NopDynModule example = new NopDynModule();
         example.setStatus(NopDynDaoConstants.MODULE_STATUS_PUBLISHED);
         List<NopDynModule> list = dao.findAllByExample(example);
 
         dao.batchLoadProps(list,
-                Arrays.asList("entityMetas.propMetas.domain", "entityMetas.functionMetas"));
+                Arrays.asList("entityMetas.propMetas.domain", "entityMetas.functionMetas", "entityMetas.relationMetasForEntity1"));
 
         for (NopDynModule module : list) {
-            generateForModule(module);
+            cache.generateForModule(genWebFiles, formatGenCode, module);
         }
     }
 
-    public synchronized void generateForModule(NopDynModule module) {
-        InMemoryResourceStore store = genModuleCoreFiles(module);
-        if (genWebFiles) {
-            genModuleWebFiles(module, store);
-        }
+    protected void batchLoadModule(NopDynModule module) {
+        batchLoadModules(Collections.singletonList(module));
     }
 
-    public InMemoryResourceStore genModuleCoreFiles(NopDynModule module) {
-        batchLoadModule(module);
-
-        DynEntityMetaToOrmModel trans = new DynEntityMetaToOrmModel(false);
-        OrmModel ormModel = trans.transformModule(module);
-
-        for (NopDynEntityMeta entityMeta : module.getEntityMetas()) {
-            entityMeta.setEntityModel(ormModel.getEntityModel(entityMeta.getEntityName()));
-        }
-
-        InMemoryResourceStore store = genModuleCoreFiles(module, ormModel);
-
-        genModuleBizModels(module);
-
-        return store;
-    }
-
-    protected void genModuleBizModels(NopDynModule module) {
-        Map<String, GraphQLBizModel> bizModels = new HashMap<>();
-
-        String modulePath = module.getModuleName().replace('-', '/');
-        for (NopDynEntityMeta entityMeta : module.getEntityMetas()) {
-            String bizObjName = entityMeta.getBizObjName();
-            GraphQLBizModel bizModel = new GraphQLBizModel(bizObjName);
-            String bizPath = "/" + modulePath + "/model/" + bizObjName + "/" + bizObjName + ".xbiz";
-            bizModel.setBizPath(bizPath);
-
-            if (entityMeta.getEntityModel() != null) {
-                String metaPath = "/" + modulePath + "/model/" + bizObjName + "/" + bizObjName + ".xmeta";
-                bizModel.setMetaPath(metaPath);
-            }
-
-            bizModels.put(bizObjName, bizModel);
-        }
-        moduleDynBizModels.put(module.getModuleName(), bizModels);
-    }
-
-    protected InMemoryResourceStore genModuleCoreFiles(NopDynModule dynModule, OrmModel ormModel) {
-        String moduleName = dynModule.getModuleName();
-
-        XCodeGenerator gen = new XCodeGenerator("/nop/templates/dyn", "v:/");
-        gen.autoFormat(formatGenCode).forceOverride(true);
-        InMemoryResourceStore store = new InMemoryResourceStore();
-        store.setUseTextResourceAsUnknown(true);
-
-        gen.targetResourceLoader(store);
-        IEvalScope scope = XLang.newEvalScope();
-        scope.setLocalValue("dynModule", dynModule);
-        scope.setLocalValue("ormModel", ormModel);
-        gen.execute("/", scope);
-
-        moduleCoreStores.put(moduleName, store);
-        return store;
-    }
-
-    public synchronized void genModuleWebFiles(NopDynModule module) {
-        InMemoryResourceStore coreStore = moduleCoreStores.get(module.getModuleName());
-        if (coreStore != null)
-            genModuleWebFiles(module, coreStore);
-    }
-
-    protected void genModuleWebFiles(NopDynModule module, InMemoryResourceStore coreStore) {
-        XCodeGenerator gen = new XCodeGenerator("/nop/templates/dyn-web", "v:/");
-        gen.autoFormat(formatGenCode).forceOverride(true);
-        InMemoryResourceStore store = new InMemoryResourceStore();
-        store.setUseTextResourceAsUnknown(true);
-        gen.targetResourceLoader(store);
-
-        List<IResource> metaResources = new ArrayList<>();
-        for (NopDynEntityMeta entityMeta : module.getEntityMetas()) {
-            if (entityMeta.getEntityModel() == null || Boolean.TRUE.equals(entityMeta.getIsExternal()))
-                continue;
-
-            String bizObjName = entityMeta.getBizObjName();
-            String path = "/" + module.getModuleName().replace('-', '/') + "/model/" + bizObjName + "/" + bizObjName + ".xmeta";
-            IResource resource = coreStore.getResource(path);
-            metaResources.add(resource);
-        }
-        IEvalScope scope = XLang.newEvalScope();
-        scope.setLocalValue("metaResources", metaResources);
-        scope.setLocalValue("moduleId", module.getModuleName().replace('-', '/'));
-        gen.execute("/", scope);
-
-        moduleWebStores.put(module.getModuleName(), store);
-    }
-
-    void batchLoadModule(NopDynModule module) {
+    protected void batchLoadModules(Collection<NopDynModule> modules) {
         IEntityDao<NopDynModule> dao = daoProvider.daoFor(NopDynModule.class);
-        dao.batchLoadProps(Collections.singletonList(module),
+        dao.batchLoadProps(modules,
                 Arrays.asList("entityMetas.propMetas.domain", "entityMetas.functionMetas", "entityMetas.relationMetasForEntity1"));
     }
 
-    void batchLoadApp(NopDynApp app) {
+    protected void batchLoadApp(NopDynApp app) {
         IEntityDao<NopDynAppModule> dao = daoProvider.daoFor(NopDynAppModule.class);
         dao.batchLoadProps(app.getModuleMappings(),
                 Arrays.asList("module.entityMetas.propMetas.domain", "module.entityMetas.functionMetas"));
     }
 
-    public synchronized void generateBizModel(NopDynEntityMeta entityMeta) {
-        String moduleName = entityMeta.getModule().getModuleName();
-        String moduleId = ResourceHelper.getModuleIdFromModuleName(moduleName);
-        String bizObjName = entityMeta.getBizObjName();
-
-        InMemoryResourceStore coreStore = moduleCoreStores.get(moduleName);
-        // 如果模块未发布，则直接返回
-        if (coreStore == null) {
-            return;
-        }
-
-        String bizTpl = "/nop/templates/dyn/{moduleId}/model/{entityMeta.bizObjName}/{entityMeta.bizObjName}.xbiz.xgen";
-        String bizPath = "/" + moduleId + "/model/" + bizObjName + "/" + bizObjName + ".xbiz";
-
-        XplModel xplModel = XCodeGenerator.loadTpl(bizTpl);
-
-        IEvalScope scope = XLang.newEvalScope();
-        scope.setLocalValue("entityMeta", entityMeta);
-        scope.setLocalValue("moduleId", moduleId);
-        scope.setLocalValue("moduleName", moduleName);
-
-        IResource resource = coreStore.getResource(bizPath);
-        String text = xplModel.generateText(scope);
-
-        if (!resource.exists() || !resource.readText().equals(text)) {
-            resource.writeText(text, null);
-        }
-    }
-
     public synchronized void removeDynModule(NopDynModule module) {
-        this.moduleCoreStores.remove(module.getModuleName());
-        this.moduleWebStores.remove(module.getModuleName());
-        this.moduleDynBizModels.remove(module.getModuleName());
+        getCodeCache().removeDynModule(module);
     }
 
     public synchronized void reloadModel() {
-        InMemoryResourceStore merged = new InMemoryResourceStore();
-        this.moduleCoreStores.values().forEach(merged::merge);
-        this.moduleWebStores.values().forEach(merged::merge);
-
-        Map<String, GraphQLBizModel> bizModels = new HashMap<>();
-        this.moduleDynBizModels.values().forEach(bizModels::putAll);
-
-        Map<String, ModuleModel> dynModules = new HashMap<>();
-        moduleCoreStores.keySet().forEach(moduleName -> {
-            dynModules.put(moduleName, ModuleModel.forModuleName(moduleName));
-        });
-
-        moduleDynBizModels.keySet().forEach(moduleName -> {
-            dynModules.computeIfAbsent(moduleName, ModuleModel::forModuleName);
-        });
-
-        VirtualFileSystem.instance().updateInMemoryLayer(merged);
-        ModuleManager.instance().updateDynModules(dynModules);
-
-        ormSessionFactory.reloadModel();
-        bizObjectManager.updateDynBizModels(bizModels);
-
-        if (AppConfig.isDebugMode()) {
-            ResourceStoreHelper.dumpStore(merged, "/");
-        }
+        getCodeCache().reloadModel(ormSessionFactory, bizObjectManager);
     }
 }

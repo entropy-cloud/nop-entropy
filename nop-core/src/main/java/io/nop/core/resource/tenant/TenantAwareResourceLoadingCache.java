@@ -1,4 +1,4 @@
-package io.nop.core.resource.cache;
+package io.nop.core.resource.tenant;
 
 import io.nop.api.core.config.IConfigReference;
 import io.nop.api.core.context.ContextProvider;
@@ -8,8 +8,9 @@ import io.nop.commons.cache.LocalCache;
 import io.nop.commons.lang.ICreationListener;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResourceObjectLoader;
+import io.nop.core.resource.cache.IResourceLoadingCache;
+import io.nop.core.resource.cache.ResourceLoadingCache;
 import io.nop.core.resource.deps.ResourceDependencySet;
-import io.nop.core.resource.tenant.ResourceTenantManager;
 import jakarta.annotation.Nonnull;
 
 import java.io.IOException;
@@ -116,5 +117,10 @@ public class TenantAwareResourceLoadingCache<V> implements IResourceLoadingCache
     @Override
     public ResourceDependencySet getResourceDependsSet(String resourcePath) {
         return getCache().getResourceDependsSet(resourcePath);
+    }
+
+    @Override
+    public boolean shouldCheckChanged() {
+        return getCache().shouldCheckChanged();
     }
 }

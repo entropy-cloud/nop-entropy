@@ -29,7 +29,7 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
-import io.nop.core.resource.cache.IResourceLoadingCache;
+import io.nop.core.resource.cache.CacheEntryManagement;
 import io.nop.core.resource.tenant.ResourceTenantManager;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.xlang.api.XLang;
@@ -41,7 +41,6 @@ import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Set;
 
-import static io.nop.api.core.config.DefaultConfigReference.staticRef;
 import static io.nop.auth.api.AuthApiErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.auth.api.AuthApiErrors.ARG_ID;
 import static io.nop.auth.api.AuthApiErrors.ARG_USER_NAME;
@@ -54,7 +53,7 @@ import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_INVALID_AUTH_WHEN_CONFI
 
 public class DefaultDataAuthChecker implements IDataAuthChecker {
 
-    private IResourceLoadingCache<DataAuthModel> modelCache;
+    private CacheEntryManagement<DataAuthModel> modelCache;
 
     private IDaoProvider daoProvider;
 
@@ -65,9 +64,7 @@ public class DefaultDataAuthChecker implements IDataAuthChecker {
 
     @PostConstruct
     public void init() {
-        this.modelCache = ResourceTenantManager.instance().makeLoadingCache("data-auth", isUseTenant(),
-                this::loadDataAuthModel, null, staticRef("data-auth", 1),
-                CFG_AUTH_DATA_AUTH_CACHE_TIMEOUT);
+        this.modelCache = ResourceTenantManager.instance().makeCacheEntry("data-auth-cache", isUseTenant(), null);
         GlobalCacheRegistry.instance().register(modelCache);
     }
 
@@ -156,7 +153,7 @@ public class DefaultDataAuthChecker implements IDataAuthChecker {
     }
 
     private DataAuthModel getAuthModel() {
-        return modelCache.get("data-auth");
+        return modelCache.getObject(true, this::loadDataAuthModel, CFG_AUTH_DATA_AUTH_CACHE_TIMEOUT.get());
     }
 
     protected IEvalScope newEvalScope(ObjDataAuthModel objAuth, String action, Object entity, ISecurityContext context) {

@@ -27,7 +27,7 @@ import java.io.Serializable;
  *
  * @param <T>
  */
-public class ResourceCacheEntry<T> implements IDestroyable {
+public class ResourceCacheEntry<T> implements IDestroyable, IResourceCacheEntry<T> {
     static final Logger LOG = LoggerFactory.getLogger(ResourceCacheEntry.class);
 
     private final String path;
@@ -98,6 +98,7 @@ public class ResourceCacheEntry<T> implements IDestroyable {
         return lastLoadTime;
     }
 
+    @Override
     public boolean isRefreshEnabled(int refreshMinInterval) {
         long now = CoreMetrics.currentTimeMillis();
         return now - lastLoadTime > refreshMinInterval;

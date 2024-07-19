@@ -10,9 +10,11 @@ import io.nop.commons.lang.ICreationListener;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.IResourceStore;
+import io.nop.core.resource.cache.CacheEntryManagement;
+import io.nop.core.resource.cache.IResourceCacheEntry;
 import io.nop.core.resource.cache.IResourceLoadingCache;
+import io.nop.core.resource.cache.ResourceCacheEntry;
 import io.nop.core.resource.cache.ResourceLoadingCache;
-import io.nop.core.resource.cache.TenantAwareResourceLoadingCache;
 import io.nop.core.resource.store.ITenantResourceStoreSupplier;
 
 import java.time.Duration;
@@ -150,6 +152,17 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
             cache = new ResourceLoadingCache<>(name, loader, listener, cacheMaxSize, cacheTimeout);
         }
         return cache;
+    }
+
+    public <V> CacheEntryManagement<V> makeCacheEntry(String name, boolean enableTenant,
+                                                      ICreationListener<V> listener) {
+        IResourceCacheEntry<V> cache;
+        if (enableTenant) {
+            cache = new TenantAwareResourceCacheEntry<>(name, listener);
+        } else {
+            cache = new ResourceCacheEntry<>(name, listener);
+        }
+        return new CacheEntryManagement<>(name, cache);
     }
 
     @Override

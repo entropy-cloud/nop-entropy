@@ -23,7 +23,9 @@ import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.exceptions.ErrorMessageManager;
-import io.nop.core.resource.cache.ResourceLoadingCache;
+import io.nop.core.resource.cache.IResourceLoadingCache;
+import io.nop.core.resource.tenant.ResourceTenantManager;
+import io.nop.core.resource.tenant.TenantAwareModelReference;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.ast.GraphQLDefinition;
 import io.nop.graphql.core.ast.GraphQLDocument;
@@ -86,9 +88,10 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
 
     private IMakerCheckerProvider makerCheckerProvider;
 
-    private Map<String, GraphQLBizModel> dynBizModels = Collections.emptyMap();
+    private TenantAwareModelReference<Map<String, GraphQLBizModel>> dynBizModels = new TenantAwareModelReference<>("biz-gql-model-cache",
+            (name, tenantId) -> null);
 
-    private final ResourceLoadingCache<IBizObject> bizObjCache = new ResourceLoadingCache<>("biz-object-cache",
+    private final IResourceLoadingCache<IBizObject> bizObjCache = ResourceTenantManager.instance().makeLoadingCache("biz-object-cache",
             this::buildBizObject, null);
 
     public void setBizModelBeans(List<Object> bizModelBeans) {
@@ -97,7 +100,7 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
 
     public void updateDynBizModels(Map<String, GraphQLBizModel> dynBizModels) {
         Guard.notNull(dynBizModels, "dynBizModels");
-        Map<String, GraphQLBizModel> oldModels = this.dynBizModels;
+        Map<String, GraphQLBizModel> oldModels = this.dynBizModels.getModel();
         if (oldModels != null) {
             boolean checkChanged = bizObjCache.shouldCheckChanged();
             for (String bizObjName : oldModels.keySet()) {
@@ -108,7 +111,7 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
             }
         }
 
-        this.dynBizModels = dynBizModels;
+        this.dynBizModels.update(dynBizModels);
     }
 
     public void setBizInitializers(List<IGraphQLBizInitializer> bizInitializers) {
@@ -179,11 +182,13 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
             cancellable.cancel();
         if (typeRegistry != null)
             typeRegistry.clear();
+        bizObjCache.clear();
+        dynBizModels.clear();
     }
 
     protected IBizObject buildBizObject(String bizObjName) {
         try {
-            return new BizObjectBuilder(this, bizModels, dynBizModels, typeRegistry,
+            return new BizObjectBuilder(this, bizModels, dynBizModels.getModel(), typeRegistry,
                     actionDecoratorCollectors, bizInitializers, makerCheckerProvider)
                     .buildBizObject(bizObjName);
         } catch (NopException e) {

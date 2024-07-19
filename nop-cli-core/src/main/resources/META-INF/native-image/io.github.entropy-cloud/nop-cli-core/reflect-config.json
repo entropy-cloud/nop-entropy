@@ -1699,6 +1699,12 @@
         ]
       },
       {
+        "name": "dropZero",
+        "parameterTypes": [
+          "double"
+        ]
+      },
+      {
         "name": "encodeStringMap",
         "parameterTypes": [
           "java.util.Map",
@@ -1731,6 +1737,12 @@
         "name": "escapeJava",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "fileSizeString",
+        "parameterTypes": [
+          "long"
         ]
       },
       {
@@ -6516,6 +6528,13 @@
         ]
       },
       {
+        "name": "pluckUnique",
+        "parameterTypes": [
+          "java.util.Collection",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "removeAllWhere",
         "parameterTypes": [
           "java.util.Collection",
@@ -8820,6 +8839,12 @@
         "name": "buildClassPath",
         "parameterTypes": [
           "java.lang.Package",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "buildConfigResource",
+        "parameterTypes": [
           "java.lang.String"
         ]
       },
@@ -15053,6 +15078,10 @@
         "parameterTypes": [
           "io.nop.excel.model.ExcelCell"
         ]
+      },
+      {
+        "name": "shouldRemoveEmpty",
+        "parameterTypes": []
       }
     ],
     "name": "io.nop.excel.model.XptCellModel",
@@ -15131,6 +15160,10 @@
       },
       {
         "name": "getFormatExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getKeepExpandEmpty",
         "parameterTypes": []
       },
       {
@@ -15291,6 +15324,12 @@
         "name": "setKeepExpandEmpty",
         "parameterTypes": [
           "boolean"
+        ]
+      },
+      {
+        "name": "setKeepExpandEmpty",
+        "parameterTypes": [
+          "java.lang.Boolean"
         ]
       },
       {

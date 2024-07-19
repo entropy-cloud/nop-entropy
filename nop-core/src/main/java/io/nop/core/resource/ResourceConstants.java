@@ -29,6 +29,8 @@ public interface ResourceConstants {
     // 模块文件，在每个模块目录下查找
     String MODULE_NS = "module";
 
+    String MODULE_V = "v";
+
     // 临时文件系统
     String TEMP_NS = "temp";
     // 调试目录

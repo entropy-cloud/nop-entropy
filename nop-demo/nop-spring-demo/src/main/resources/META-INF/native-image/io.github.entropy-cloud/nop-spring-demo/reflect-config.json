@@ -2842,6 +2842,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getFileSize",
+        "parameterTypes": []
+      },
+      {
         "name": "getLastModified",
         "parameterTypes": []
       },
@@ -15204,12 +15208,20 @@
         "parameterTypes": []
       },
       {
+        "name": "destroy",
+        "parameterTypes": []
+      },
+      {
         "name": "getFilter",
         "parameterTypes": [
           "java.lang.String",
           "java.lang.String",
           "io.nop.api.core.auth.ISecurityContext"
         ]
+      },
+      {
+        "name": "init",
+        "parameterTypes": []
       },
       {
         "name": "isPermitted",
@@ -15219,6 +15231,10 @@
           "java.lang.Object",
           "io.nop.api.core.auth.ISecurityContext"
         ]
+      },
+      {
+        "name": "isUseTenant",
+        "parameterTypes": []
       },
       {
         "name": "loadDataAuthModel",
@@ -16141,6 +16157,10 @@
           "java.lang.String",
           "io.nop.api.core.auth.IUserContext"
         ]
+      },
+      {
+        "name": "isUseTenant",
+        "parameterTypes": []
       },
       {
         "name": "loadSiteData",
@@ -34089,6 +34109,14 @@
         ]
       },
       {
+        "name": "doDownload",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "jakarta.servlet.http.HttpServletRequest"
+        ]
+      },
+      {
         "name": "download",
         "parameterTypes": [
           "java.lang.String",
@@ -34102,6 +34130,14 @@
           "java.lang.String",
           "java.lang.String",
           "javax.servlet.http.HttpServletRequest"
+        ]
+      },
+      {
+        "name": "downloadPost",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "jakarta.servlet.http.HttpServletRequest"
         ]
       },
       {

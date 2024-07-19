@@ -8,18 +8,20 @@
 package io.nop.core.module;
 
 import io.nop.api.core.annotations.core.GlobalInstance;
+import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.core.resource.tenant.ResourceTenantManager;
+import io.nop.core.resource.tenant.TenantAwareModelReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +41,9 @@ public class ModuleManager {
         _instance = instance;
     }
 
-    private Map<String, ModuleModel> modules = Collections.emptyMap();
+    private final TenantAwareModelReference<Map<String, ModuleModel>> modules = new TenantAwareModelReference<>("module-model-cache",
+            (name, tenantId) -> new HashMap<>());
+
 
     public static ModuleManager instance() {
         return _instance;
@@ -71,13 +75,32 @@ public class ModuleManager {
             ModuleModel module = loadModuleById(ResourceHelper.getModuleIdFromModuleName(moduleName));
             modules.put(moduleName, module);
         }
-        this.modules = modules;
+        this.modules.updateStaticModel(modules);
+    }
+
+    protected String getTenantId() {
+        return ContextProvider.currentTenantId();
+    }
+
+    private Map<String, ModuleModel> getModuleMap() {
+        Map<String, ModuleModel> map = new TreeMap<>();
+        String tenantId = getTenantId();
+        if (StringHelper.isEmpty(tenantId) || ResourceTenantManager.instance().isEnableTenantResource()) {
+            Map<String, ModuleModel> m = this.modules.getStaticModel();
+            if (m != null)
+                map.putAll(m);
+        } else {
+            Map<String, ModuleModel> m = this.modules.getTenantModel(tenantId);
+            if (m != null)
+                map.putAll(m);
+        }
+        return map;
     }
 
     public synchronized void updateDynModules(Map<String, ModuleModel> dynModules) {
         Guard.notNull(dynModules, "dynModules");
 
-        Map<String, ModuleModel> modules = new TreeMap<>(this.modules);
+        Map<String, ModuleModel> modules = getModuleMap();
         modules.entrySet().removeIf(entry -> {
             if (dynModules.containsKey(entry.getKey()))
                 return false;
@@ -95,7 +118,7 @@ public class ModuleManager {
             disabledModuleNames.forEach(modules::remove);
         }
 
-        this.modules = modules;
+        this.modules.update(modules);
     }
 
     public Map<String, ModuleModel> loadModules(Set<String> moduleNames) {
@@ -127,12 +150,29 @@ public class ModuleManager {
         return module;
     }
 
+    private Map<String, ModuleModel> getAllModules() {
+        Map<String, ModuleModel> ret = new TreeMap<>();
+        String tenantId = getTenantId();
+        Map<String, ModuleModel> map = modules.getStaticModel();
+        if (map != null) {
+            ret.putAll(map);
+        }
+
+        if (!StringHelper.isEmpty(tenantId) && ResourceTenantManager.instance().isEnableTenantResource()) {
+            Map<String, ModuleModel> m = modules.getTenantModel(tenantId);
+            if (m != null) {
+                ret.putAll(m);
+            }
+        }
+        return ret;
+    }
+
     public Set<String> getEnabledModuleNames() {
-        return modules.keySet();
+        return getAllModules().keySet();
     }
 
     public Collection<ModuleModel> getEnabledModules() {
-        return modules.values();
+        return getAllModules().values();
     }
 
     public List<IResource> getAllModuleResources(String filePathInModule) {

@@ -15,4 +15,6 @@ public interface IResourceLoadingCache<V> extends ICacheManagement<String>, ISta
     V get(String resourcePath, IResourceObjectLoader<V> loader);
 
     ResourceDependencySet getResourceDependsSet(String resourcePath);
+
+    boolean shouldCheckChanged();
 }

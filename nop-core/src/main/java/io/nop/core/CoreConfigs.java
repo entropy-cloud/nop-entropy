@@ -85,7 +85,7 @@ public interface CoreConfigs {
 
     @Description("在启用tenant定制的情况下，最多允许多少个tenant的数据缓存在内存中")
     IConfigReference<Integer> CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE = varRef(s_loc,
-            "nop.core.component.resource-cache.tenant-cache-container-size", Integer.class, 500);
+            "nop.core.component.resource-cache.tenant-cache-container-size", Integer.class, 100);
 
     @Description("缓存IResource.lastModified的调用结果，避免频繁发出系统调用")
     IConfigReference<Integer> CFG_COMPONENT_RESOURCE_TIMESTAMP_CACHE_SIZE = varRef(s_loc,
