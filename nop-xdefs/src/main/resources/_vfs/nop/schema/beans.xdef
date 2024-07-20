@@ -133,7 +133,7 @@
         @ioc:skip-if-empty 当属性值为空时跳过本属性的设置
         -->
         <property name="!string" xdef:name="BeanPropertyModel" ioc:skip-if-empty="!boolean=false"
-                  xdef:allow-multiple="true" xdef:unique-attr="name"
+                  xdef:allow-multiple="true" xdef:unique-attr="name" ioc:ignore-depends="!boolean=false"
                   ref="bean-name" value="string" xdef:ref="BeanPropValue" xdef:bean-prop="properties"/>
 
         <ioc:interceptor bean="!bean-name" order="!#int=100" xdef:name="BeanInterceptorModel" xdef:unique-attr="bean"/>
