@@ -7,6 +7,7 @@
  */
 package io.nop.sys.dao.seq;
 
+import io.nop.api.core.annotations.ioc.IgnoreDepends;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.context.ContextProvider;
@@ -111,11 +112,13 @@ public class SysSequenceGenerator implements ISequenceGenerator {
     }
 
     @Inject
+    @IgnoreDepends
     public void setOrmTemplate(IOrmTemplate ormTemplate) {
         this.ormTemplate = ormTemplate;
     }
 
     @Inject
+    @IgnoreDepends
     public void setTransactionTemplate(ITransactionTemplate transactionTemplate) {
         this.transactionTemplate = transactionTemplate;
     }

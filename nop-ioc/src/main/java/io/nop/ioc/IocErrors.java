@@ -21,6 +21,8 @@ public interface IocErrors {
     String ARG_BEFORE = "before";
     String ARG_AFTER = "after";
 
+    String ARG_BEAN_DEPENDS_CYCLE = "beanDependsCycle";
+
     String ARG_METHOD_NAME = "methodName";
 
     String ARG_BEAN_REF = "beanRef";
@@ -209,11 +211,15 @@ public interface IocErrors {
     ErrorCode ERR_IOC_AOP_CLASS_NO_CONSTRUCTOR = define("nop.err.ioc.aop-class-no-constructor",
             "bean[{beanName}]对应的AOP代理类没有参数个数为{argCount}的构造函数", ARG_BEAN_NAME, ARG_ARG_COUNT);
 
-    ErrorCode ERR_IOC_CONTAINER_NOT_STARTED = define("bean容器[{containerId}]没有启动，无法访问其中定义的bean", ARG_CONTAINER_ID);
+    ErrorCode ERR_IOC_CONTAINER_NOT_STARTED = define("nop.err.ioc.container-not-started",
+            "bean容器[{containerId}]没有启动，无法访问其中定义的bean", ARG_CONTAINER_ID);
 
-    ErrorCode ERR_IOC_UNKNOWN_IOC_BEFORE = define("bean[{beanName}]的ioc:before指定的依赖[{before}]没有被定义", ARG_BEAN_NAME,
+    ErrorCode ERR_IOC_UNKNOWN_IOC_BEFORE = define("nop.err.ioc.unknown-ioc-before", "bean[{beanName}]的ioc:before指定的依赖[{before}]没有被定义", ARG_BEAN_NAME,
             ARG_BEFORE, ARG_BEAN);
 
-    ErrorCode ERR_IOC_UNKNOWN_IOC_AFTER = define("bean[{beanName}]的ioc:after指定的依赖[{after}]没有被定义", ARG_BEAN_NAME,
+    ErrorCode ERR_IOC_UNKNOWN_IOC_AFTER = define("nop.err.ioc.unknown-ioc-after", "bean[{beanName}]的ioc:after指定的依赖[{after}]没有被定义", ARG_BEAN_NAME,
             ARG_AFTER, ARG_BEAN);
+
+    ErrorCode ERR_IOC_BEAN_DEPENDS_GRAPH_CONTAINS_CYCLE = define("nop.err.ioc.bean-depends-graph-contains-loop",
+            "bean依赖关系不允许包含循环依赖。如果确实存在，可以在必要的地方配置节点上标注ioc:ignore-depends", ARG_BEAN_DEPENDS_CYCLE);
 }

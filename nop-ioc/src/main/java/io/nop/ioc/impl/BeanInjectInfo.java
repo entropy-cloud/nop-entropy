@@ -19,12 +19,19 @@ public class BeanInjectInfo implements Serializable {
 
     private final String value;
     private final boolean optional;
+    private final boolean ignoreDepends;
 
-    public BeanInjectInfo(String ref, IGenericType type, String value, boolean optional) {
+    public BeanInjectInfo(String ref, IGenericType type, String value,
+                          boolean optional, boolean ignoreDepends) {
         this.ref = ref;
         this.type = type;
         this.value = value;
         this.optional = optional;
+        this.ignoreDepends = ignoreDepends;
+    }
+
+    public boolean isIgnoreDepends() {
+        return ignoreDepends;
     }
 
     public String toString() {

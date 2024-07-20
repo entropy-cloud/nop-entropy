@@ -7,6 +7,7 @@
  */
 package io.nop.sys.dao.dict;
 
+import io.nop.api.core.annotations.ioc.IgnoreDepends;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
 import io.nop.api.core.beans.FilterBeans;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class SysDictLoader implements IDictLoader {
+    @IgnoreDepends
     @Inject
     IDaoProvider daoProvider;
 

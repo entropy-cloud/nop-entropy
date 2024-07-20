@@ -7,6 +7,7 @@
  */
 package io.nop.biz.dict;
 
+import io.nop.api.core.annotations.ioc.IgnoreDepends;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
@@ -21,7 +22,6 @@ import io.nop.core.dict.DictProvider;
 import io.nop.core.dict.IDictLoader;
 import io.nop.core.dict.IDictProvider;
 import io.nop.graphql.core.GraphQLConstants;
-
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
@@ -32,6 +32,7 @@ import static io.nop.biz.BizErrors.ERR_BIZ_INVALID_OBJ_DICT_NAME;
 public class ObjDictLoader implements IDictLoader {
     private IBizObjectManager bizObjectManager;
 
+    @IgnoreDepends
     @Inject
     public void setBizObjectManager(IBizObjectManager bizObjectManager) {
         this.bizObjectManager = bizObjectManager;

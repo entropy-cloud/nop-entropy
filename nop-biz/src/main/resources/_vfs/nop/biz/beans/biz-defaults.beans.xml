@@ -34,11 +34,13 @@
 
     <bean id="nopBizObjectManager" class="io.nop.biz.impl.BizObjectManager" ioc:delay-method="delayInit">
         <property name="bizModelBeans">
-            <ioc:collect-beans by-annotation="io.nop.api.core.annotations.biz.BizModel"
+            <!-- BizModel和BizObjectManager会循环依赖，这里打破循环 -->
+            <ioc:collect-beans by-annotation="io.nop.api.core.annotations.biz.BizModel" ioc:ignore-depends="true"
                                only-concrete-classes="true"/>
         </property>
         <property name="bizInitializers">
-            <ioc:collect-beans only-concrete-classes="true" by-type="io.nop.graphql.core.biz.IGraphQLBizInitializer"/>
+            <ioc:collect-beans only-concrete-classes="true" ioc:ignore-depends="true"
+                               by-type="io.nop.graphql.core.biz.IGraphQLBizInitializer"/>
         </property>
 
         <property name="schemaInitializers">
@@ -47,7 +49,7 @@
         </property>
 
         <property name="actionDecoratorCollectors">
-            <ioc:collect-beans only-concrete-classes="true"
+            <ioc:collect-beans only-concrete-classes="true" ioc:ignore-depends="true"
                                by-type="io.nop.biz.decorator.IActionDecoratorCollector"/>
         </property>
     </bean>

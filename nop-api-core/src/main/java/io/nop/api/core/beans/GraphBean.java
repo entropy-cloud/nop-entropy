@@ -113,6 +113,7 @@ public class GraphBean extends ExtensibleBean {
     }
 
     @PropMeta(propId = 3)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public Map<String, Object> getAttrs() {
         return super.getAttrs();
     }

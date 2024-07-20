@@ -184,7 +184,7 @@ public class DefaultBeanClassIntrospection implements IBeanClassIntrospection {
         BeanInjectInfo injectInfo = getInjectInfo(argModel.getName(), argModel.getType(), argModel, null);
         if (injectInfo == null) {
             // 缺省情况下按照类型自动注入
-            return new BeanInjectInfo(null, argModel.getType(), null, false);
+            return new BeanInjectInfo(null, argModel.getType(), null, false, false);
         }
         return injectInfo;
     }
@@ -208,17 +208,19 @@ public class DefaultBeanClassIntrospection implements IBeanClassIntrospection {
             if (StringHelper.isEmpty(beanName)) {
                 beanName = name;
             }
+            boolean ignoreDepends = springBeanSupport.isIgnoreDepends(element);
             boolean optional = element.isAnnotationPresent(Nullable.class);
-            return new BeanInjectInfo(beanName, null, null, optional);
+            return new BeanInjectInfo(beanName, null, null, optional, ignoreDepends);
         }
         return null;
     }
 
     BeanInjectInfo getValueInject(IAnnotatedElement element) {
+        boolean ignoreDepends = springBeanSupport.isIgnoreDepends(element);
         String value = springBeanSupport.getValue(element);
         if (value == null)
             return null;
-        return new BeanInjectInfo(null, null, value, false);
+        return new BeanInjectInfo(null, null, value, false, ignoreDepends);
     }
 
     BeanInjectInfo getAutowiredInject(IGenericType type, IAnnotatedElement element, IAnnotatedElement argModel) {
@@ -226,13 +228,14 @@ public class DefaultBeanClassIntrospection implements IBeanClassIntrospection {
         if (beanName == null && argModel != null)
             beanName = springBeanSupport.getQualifier(argModel);
 
+        boolean ignoreDepends = springBeanSupport.isIgnoreDepends(element);
         boolean inject = springBeanSupport.isInjectPresent(element);
         if (inject) {
             boolean optional = (argModel != null ? argModel : element).isAnnotationPresent(Nullable.class);
             if (beanName == null) {
-                return new BeanInjectInfo(null, type, null, optional);
+                return new BeanInjectInfo(null, type, null, optional, ignoreDepends);
             }
-            return new BeanInjectInfo(beanName, null, null, optional);
+            return new BeanInjectInfo(beanName, null, null, optional, ignoreDepends);
         }
 
         AnnotationData autowired = springBeanSupport.getAutowiredAnnotation(element);
@@ -242,8 +245,8 @@ public class DefaultBeanClassIntrospection implements IBeanClassIntrospection {
         boolean required = ConvertHelper.toPrimitiveBoolean(autowired.getProperty(SpringBeanSupport.ATTR_REQUIRED),
                 true, NopException::new);
         if (beanName == null) {
-            return new BeanInjectInfo(null, type, null, !required);
+            return new BeanInjectInfo(null, type, null, !required, ignoreDepends);
         }
-        return new BeanInjectInfo(beanName, null, null, !required);
+        return new BeanInjectInfo(beanName, null, null, !required, ignoreDepends);
     }
 }

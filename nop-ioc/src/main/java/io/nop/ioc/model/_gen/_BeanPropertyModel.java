@@ -18,6 +18,13 @@ public abstract class _BeanPropertyModel extends io.nop.ioc.model.BeanPropValue 
     
     /**
      *  
+     * xml name: ioc:ignore-depends
+     * 
+     */
+    private boolean _iocIgnoreDepends  = false;
+    
+    /**
+     *  
      * xml name: ioc:skip-if-empty
      * 当属性值为空时跳过本属性的设置
      */
@@ -43,6 +50,25 @@ public abstract class _BeanPropertyModel extends io.nop.ioc.model.BeanPropValue 
      * 
      */
     private java.lang.String _value ;
+    
+    /**
+     * 
+     * xml name: ioc:ignore-depends
+     *  
+     */
+    
+    public boolean isIocIgnoreDepends(){
+      return _iocIgnoreDepends;
+    }
+
+    
+    public void setIocIgnoreDepends(boolean value){
+        checkAllowChange();
+        
+        this._iocIgnoreDepends = value;
+           
+    }
+
     
     /**
      * 
@@ -135,6 +161,7 @@ public abstract class _BeanPropertyModel extends io.nop.ioc.model.BeanPropValue 
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("iocIgnoreDepends",this.isIocIgnoreDepends());
         out.putNotNull("iocSkipIfEmpty",this.isIocSkipIfEmpty());
         out.putNotNull("name",this.getName());
         out.putNotNull("ref",this.getRef());
@@ -150,6 +177,7 @@ public abstract class _BeanPropertyModel extends io.nop.ioc.model.BeanPropValue 
     protected void copyTo(BeanPropertyModel instance){
         super.copyTo(instance);
         
+        instance.setIocIgnoreDepends(this.isIocIgnoreDepends());
         instance.setIocSkipIfEmpty(this.isIocSkipIfEmpty());
         instance.setName(this.getName());
         instance.setRef(this.getRef());

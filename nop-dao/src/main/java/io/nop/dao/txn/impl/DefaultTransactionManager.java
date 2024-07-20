@@ -7,6 +7,7 @@
  */
 package io.nop.dao.txn.impl;
 
+import io.nop.api.core.annotations.ioc.IgnoreDepends;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.util.StringHelper;
@@ -137,6 +138,7 @@ public class DefaultTransactionManager implements ITransactionManager {
     }
 
     @Inject
+    @IgnoreDepends
     public void setDefaultListener(@Named("nopDefaultTransactionListener") @Nullable ITransactionListener defaultListener) {
         this.defaultListener = defaultListener;
     }

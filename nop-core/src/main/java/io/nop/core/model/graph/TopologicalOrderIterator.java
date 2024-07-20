@@ -17,11 +17,15 @@
 package io.nop.core.model.graph;
 
 import io.nop.commons.mutable.MutableInt;
+import io.nop.commons.util.CollectionHelper;
+import io.nop.commons.util.StringHelper;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -132,5 +136,40 @@ public class TopologicalOrderIterator<V> implements Iterator<V> {
         }
 
         return countMap.keySet();
+    }
+
+    public List<V> findOneCycle() {
+        List<V> visited = new ArrayList<>();
+        for (V node : countMap.keySet()) {
+            visited.clear();
+            if (containsCycle(node, visited))
+                break;
+        }
+        return visited;
+    }
+
+    public String displayOneCycle() {
+        List<V> cycle = findOneCycle();
+        cycle = CollectionHelper.reverseList(cycle);
+        return StringHelper.join(cycle, "->");
+    }
+
+    private boolean containsCycle(V node, List<V> visited) {
+        int index = visited.indexOf(node);
+        if (index >= 0) {
+            // 仅保留最小化的部分
+            for (int i = 0; i < index; i++) {
+                visited.remove(0);
+            }
+            visited.add(node);
+            return true;
+        }
+        visited.add(node);
+        for (V target : graph.getTargetVertexes(node)) {
+            if (containsCycle(target, visited))
+                return true;
+        }
+        visited.remove(visited.size() - 1);
+        return false;
     }
 }

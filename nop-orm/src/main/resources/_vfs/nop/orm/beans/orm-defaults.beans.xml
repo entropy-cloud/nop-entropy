@@ -40,11 +40,11 @@
         <property name="sequenceGenerator" ref="nopSequenceGenerator"/>
 
         <property name="daoListeners">
-            <ioc:collect-beans by-type="io.nop.orm.IOrmDaoListener"/>
+            <ioc:collect-beans by-type="io.nop.orm.IOrmDaoListener" ioc:ignore-depends="true"/>
         </property>
 
         <property name="interceptors">
-            <ioc:collect-beans by-type="io.nop.orm.IOrmInterceptor"/>
+            <ioc:collect-beans by-type="io.nop.orm.IOrmInterceptor" ioc:ignore-depends="true"/>
         </property>
     </bean>
 

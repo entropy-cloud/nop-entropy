@@ -249,3 +249,34 @@ NopIoC的JUnit支持提供了如下功能：
 5. 支持在测试用例中通过@Inject来注入bean
 
 关于Nop平台中自动化支持的详细介绍，可以参见 [autotest.md](autotest.md)
+
+### 3.11 问题诊断
+
+#### 检查循环依赖
+缺省情况下NopIoC允许bean的定义出现循环依赖，比如A注入B，B注入C，C又注入A等。
+如果设置 `nop.ioc.bean-depends-graph.allow-cycle` 为false，则启动时会检查bean的引用关系，发现循环依赖会报错。
+
+可以通过`@IgnoreDepends`注解或者ioc配置中的`ioc:ignore-depends`属性来打破循环
+
+```java
+public class SysSequenceGenerator implements ISequenceGenerator {
+  private IOrmTemplate ormTemplate;
+
+  @Inject
+  @IgnoreDepends
+  public void setOrmTemplate(IOrmTemplate ormTemplate) {
+    this.ormTemplate = ormTemplate;
+  }
+}
+```
+
+```xml
+    <bean id="nopOrmSessionFactory" class="io.nop.orm.factory.OrmSessionFactoryBean"
+          ioc:bean-method="getObject" ioc:default="true">
+
+        <property name="daoListeners">
+            <ioc:collect-beans by-type="io.nop.orm.IOrmDaoListener" ioc:ignore-depends="true"/>
+        </property>
+        ...
+    </bean>
+```

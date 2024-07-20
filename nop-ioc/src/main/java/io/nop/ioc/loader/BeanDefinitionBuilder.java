@@ -445,7 +445,7 @@ public class BeanDefinitionBuilder {
                 for (IFunctionArgument argModel : constructor.getArgs()) {
                     BeanInjectInfo injectInfo = introspection.getArgumentInject(argModel);
                     IBeanPropValueResolver resolver = buildInjectResolver(bean, bean.getLocation(), "constructor",
-                            injectInfo, false);
+                            injectInfo, injectInfo.isIgnoreDepends());
                     if (resolver == null)
                         resolver = NullValueResolver.INSTANCE;
                     args.add(resolver);
@@ -466,7 +466,7 @@ public class BeanDefinitionBuilder {
             if (body == null) {
                 String ref = propModel.getRef();
                 if (!StringHelper.isEmpty(ref)) {
-                    resolver = buildRefResolver(bean, propModel.getLocation(), propModel.getName(), ref, false, false);
+                    resolver = buildRefResolver(bean, propModel.getLocation(), propModel.getName(), ref, false, propModel.isIocIgnoreDepends());
                 } else {
                     resolver = buildValueResolver(bean, propModel.getLocation(), propModel.getName(),
                             propModel.getValue(), setter.getRight());
@@ -509,7 +509,7 @@ public class BeanDefinitionBuilder {
                 BeanInjectInfo injectInfo = introspection.getPropertyInject(propName, method);
                 if (injectInfo != null) {
                     SourceLocation loc = bean.getLocation();
-                    IBeanPropValueResolver resolver = buildInjectResolver(bean, loc, propName, injectInfo, false);
+                    IBeanPropValueResolver resolver = buildInjectResolver(bean, loc, propName, injectInfo, injectInfo.isIgnoreDepends());
 
                     // optional的情况下有可能找不到autowire的bean
                     if (resolver != null) {
@@ -533,7 +533,7 @@ public class BeanDefinitionBuilder {
             BeanInjectInfo injectInfo = introspection.getFieldInject(field);
             if (injectInfo != null) {
                 SourceLocation loc = bean.getLocation();
-                IBeanPropValueResolver resolver = buildInjectResolver(bean, loc, propName, injectInfo, false);
+                IBeanPropValueResolver resolver = buildInjectResolver(bean, loc, propName, injectInfo, injectInfo.isIgnoreDepends());
 
                 if (resolver != null) {
                     IPropertySetter setter = field.getSetter();

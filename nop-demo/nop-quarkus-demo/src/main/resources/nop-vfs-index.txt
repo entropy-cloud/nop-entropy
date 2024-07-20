@@ -565,7 +565,7 @@
 /nop/report/demo/base/09-套打.xpt.xlsx
 /nop/report/demo/base/10-导出Excel公式.xpt.xlsx
 /nop/report/demo/base/11-打印条码和二维码.xpt.xlsx
-/nop/report/demo/base/12-动态Sheet和动态列.xlsx
+/nop/report/demo/base/12-动态Sheet和动态列.xpt.xlsx
 /nop/report/demo/ext/report-with-params.xpt.xlsx
 /nop/report/demo/pages/demo.page.yaml
 /nop/report/demo/pages/report-with-params.page.yaml

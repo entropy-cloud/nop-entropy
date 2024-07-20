@@ -38076,6 +38076,16 @@
         ]
       },
       {
+        "name": "batchLoadModules",
+        "parameterTypes": [
+          "java.util.Collection"
+        ]
+      },
+      {
+        "name": "destroy",
+        "parameterTypes": []
+      },
+      {
         "name": "genModuleBizModels",
         "parameterTypes": [
           "io.nop.dyn.dao.entity.NopDynModule"
@@ -38122,6 +38132,12 @@
         "parameterTypes": []
       },
       {
+        "name": "generateForAllModules",
+        "parameterTypes": [
+          "io.nop.dyn.service.codegen.InMemoryCodeCache"
+        ]
+      },
+      {
         "name": "generateForApp",
         "parameterTypes": [
           "io.nop.dyn.dao.entity.NopDynApp"
@@ -38134,7 +38150,21 @@
         ]
       },
       {
+        "name": "getCodeCache",
+        "parameterTypes": []
+      },
+      {
         "name": "init",
+        "parameterTypes": []
+      },
+      {
+        "name": "initializeTenant",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isUseTenant",
         "parameterTypes": []
       },
       {
@@ -46594,6 +46624,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isIocIgnoreDepends",
+        "parameterTypes": []
+      },
+      {
         "name": "isIocSkipIfEmpty",
         "parameterTypes": []
       },
@@ -46605,6 +46639,12 @@
         "name": "outputJson",
         "parameterTypes": [
           "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setIocIgnoreDepends",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {

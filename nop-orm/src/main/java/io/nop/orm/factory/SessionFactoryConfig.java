@@ -7,6 +7,7 @@
  */
 package io.nop.orm.factory;
 
+import io.nop.api.core.annotations.ioc.IgnoreDepends;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.ioc.IBeanProvider;
 import io.nop.commons.cache.ICacheProvider;
@@ -102,6 +103,10 @@ public class SessionFactoryConfig {
         return entityFilterProvider;
     }
 
+    /**
+     * 数据权限过滤器一般会依赖ormTemplate，导致出现循环依赖
+     */
+    @IgnoreDepends
     @Inject
     public void setEntityFilterProvider(@Nullable IEntityFilterProvider entityFilterProvider) {
         this.entityFilterProvider = entityFilterProvider;

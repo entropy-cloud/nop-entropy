@@ -78,7 +78,11 @@ public class DefaultDirectedGraph<V, E extends IEdge<V>> implements IDirectedGra
         return "graph(" + "vertices: " + vertexMap.keySet() + ", edges: " + edges + ")";
     }
 
-    public GraphBean toGraphBean(Function<V,String> vertexIdGetter) {
+    public String toDot(IGraphvizAdapter<V> adapter, String name) {
+        return GraphvizHelper.toDot(adapter, this, true, name);
+    }
+
+    public GraphBean toGraphBean(Function<V, String> vertexIdGetter) {
         GraphBean dto = new GraphBean();
         List<GraphBean.VertexBean> vertices = new ArrayList<>(vertexMap.size());
         for (V v : vertexMap.keySet()) {
@@ -230,7 +234,7 @@ public class DefaultDirectedGraph<V, E extends IEdge<V>> implements IDirectedGra
             return false;
         }
 
-        _removeEdges(info,v);
+        _removeEdges(info, v);
         return true;
     }
 
@@ -278,7 +282,7 @@ public class DefaultDirectedGraph<V, E extends IEdge<V>> implements IDirectedGra
                 continue;
             }
 
-            _removeEdges(info,v);
+            _removeEdges(info, v);
         }
         vertexMap.keySet().removeAll(collection);
     }

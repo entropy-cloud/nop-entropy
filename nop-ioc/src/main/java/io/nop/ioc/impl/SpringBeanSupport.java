@@ -7,6 +7,7 @@
  */
 package io.nop.ioc.impl;
 
+import io.nop.api.core.annotations.ioc.IgnoreDepends;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.commons.lang.IClassLoader;
 import io.nop.commons.util.StringHelper;
@@ -59,6 +60,11 @@ class SpringBeanSupport {
         if (injectClass == null)
             return false;
         return element.isAnnotationPresent(injectClass);
+    }
+
+    public boolean isIgnoreDepends(IAnnotatedElement elements) {
+        IgnoreDepends ignoreDepends = elements.getAnnotation(IgnoreDepends.class);
+        return ignoreDepends != null && ignoreDepends.value();
     }
 
     public AnnotationData getResourceAnnotation(IAnnotatedElement element) {
