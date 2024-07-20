@@ -4417,4 +4417,10 @@ public class StringHelper extends ApiStringHelper {
     public static String normalizeChineseQuote(String str) {
         return escape(str, QUOTE_CN_CHARS, QUOTE_EN_STRS);
     }
+
+
+    @Deterministic
+    public static String format(String format, Object... args) {
+        return String.format(format, args);
+    }
 }
