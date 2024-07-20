@@ -7,6 +7,8 @@
  */
 package io.nop.orm.initialize;
 
+import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.utils.DaoHelper;
@@ -15,7 +17,6 @@ import io.nop.orm.OrmConstants;
 import io.nop.orm.ddl.DdlSqlCreator;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IOrmModel;
-import io.nop.orm.model.OrmEntityModel;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
@@ -64,8 +65,8 @@ public class DataBaseSchemaInitializer {
     public static Map<String, List<IEntityModel>> splitByQuerySpace(Collection<IEntityModel> tables) {
         Map<String, List<IEntityModel>> map = new TreeMap<>();
         for (IEntityModel entityModel : tables) {
-            Object extProp = ((OrmEntityModel) entityModel).getExtProp(OrmConstants.EXT_AUTO_UPGRADE_DATABASE);
-            if (extProp != null && !Boolean.parseBoolean(extProp.toString()))
+            Object extProp = entityModel.prop_get(OrmConstants.EXT_AUTO_UPGRADE_DATABASE);
+            if (extProp != null && ConvertHelper.toPrimitiveBoolean(extProp,true, NopException::new))
                 continue;
             String querySpace = DaoHelper.normalizeQuerySpace(entityModel.getQuerySpace());
             map.computeIfAbsent(querySpace, k -> new ArrayList<>()).add(entityModel);
