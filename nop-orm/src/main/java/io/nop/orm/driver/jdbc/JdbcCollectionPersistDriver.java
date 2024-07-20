@@ -114,7 +114,8 @@ public class JdbcCollectionPersistDriver implements ICollectionPersistDriver {
             SQL.SqlBuilder sb = loadSql.useParamsFromOwner(dialect, shard, null);
             GenSqlHelper.appendBatchCollectionIn(sb, dialect, collectionModel, binders, collections);
             GenSqlHelper.genOrderBy(sb, dialect, refEntityModel, null, collectionModel.getSort());
-            sb.querySpace(querySpace);
+            if (shard == null)
+                sb.querySpace(querySpace);
             SQL sql = sb.end();
 
             Map<Object, IOrmEntitySet> map = OrmAssembly.toOwnerKeyMap(collectionModel, collections);
