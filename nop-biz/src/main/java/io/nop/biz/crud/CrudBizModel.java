@@ -879,7 +879,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         return doDelete(id, this.getDefaultRefNamesToCheckExists(), this::defaultPrepareDelete, context);
     }
 
-    protected Set<String> getDefaultRefNamesToCheckExists() {
+    public Set<String> getDefaultRefNamesToCheckExists() {
         IObjMeta objMeta = getThisObj().getObjMeta();
         if (objMeta == null)
             return null;
@@ -887,7 +887,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     }
 
     @BizAction
-    protected boolean doDelete(@Name("id") @Description("@i18n:biz.id|对象的主键标识") String id,
+    public boolean doDelete(@Name("id") @Description("@i18n:biz.id|对象的主键标识") String id,
                                @Name("checkRefExist") Set<String> refNamesToCheck,
                                @Name("prepareDelete") BiConsumer<T, IServiceContext> prepareDelete, IServiceContext context) {
         checkMandatoryParam("delete", "id", id);
@@ -933,12 +933,13 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
             TreeBean filter = ExtPropsGetter.getTreeBean(propMeta, GraphQLConstants.TAG_GRAPHQL_FILTER);
             if (filter != null && refBizObjName != null) {
-                resolveRef(filter.cloneInstance(), entity);
+                resolveRef(filter, entity);
                 IBizObject refBizObj = bizObjectManager.getBizObject(refBizObjName);
 
                 Map<String, Object> request = new HashMap<>();
                 QueryBean query = new QueryBean();
                 query.addFilter(filter);
+                request.put(BizConstants.PARAM_QUERY, query);
                 return (IOrmEntity) refBizObj.invoke(ACTION_doFindFirstByQueryDirectly, request, null, context);
             }
         }
@@ -962,6 +963,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
             Map<String, Object> request = new HashMap<>();
             QueryBean query = new QueryBean();
             query.addFilter(FilterBeans.eq(rightProp, refValue));
+            request.put(BizConstants.PARAM_QUERY, query);
             return (IOrmEntity) refBizObj.invoke(ACTION_doFindFirstByQueryDirectly, request, null, context);
         }
 
