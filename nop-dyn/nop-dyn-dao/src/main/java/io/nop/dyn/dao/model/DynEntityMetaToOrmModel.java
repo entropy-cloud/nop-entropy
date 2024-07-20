@@ -36,6 +36,7 @@ import io.nop.orm.model.OrmJoinOnModel;
 import io.nop.orm.model.OrmModel;
 import io.nop.orm.model.OrmModelConstants;
 import io.nop.orm.model.OrmReferenceModel;
+import io.nop.orm.model.OrmRelationType;
 import io.nop.orm.model.OrmToManyReferenceModel;
 import io.nop.orm.model.OrmToOneReferenceModel;
 import io.nop.orm.support.DynamicOrmEntity;
@@ -90,7 +91,9 @@ public class DynEntityMetaToOrmModel {
 
         model.setEntities(toOrmEntityModels(module.getEntityMetas(), basePackageName));
 
-        addExternalExtTable(model);
+        if(!forceRealTable) {
+            addExternalExtTable(model);
+        }
         model.init();
         return model;
     }
@@ -195,12 +198,63 @@ public class DynEntityMetaToOrmModel {
     }
 
     protected void buildRealEntityModel(OrmEntityModel entityModel, NopDynEntityMeta entityMeta) {
+        entityModel.setClassName(DynamicOrmEntity.class.getName());
+
         entityMeta.getPropMetas().forEach(propMeta -> {
             entityModel.addColumn(toColumnModel(propMeta));
 //            if (propMeta.getRefEntityName() != null) {
 //                entityModel.addRelation(toRefModel(propMeta));
 //            }
         });
+
+        entityMeta.getRelationMetasForEntity().forEach(rel -> {
+            handlerRelation(entityModel, rel);
+        });
+    }
+
+    private void handlerRelation(OrmEntityModel entityModel, NopDynEntityRelationMeta rel) {
+
+        OrmRelationType ormRelationType = OrmRelationType.valueOf(rel.getRelationType());
+        if (ormRelationType == OrmRelationType.o2o
+                || ormRelationType == OrmRelationType.o2m
+                || ormRelationType == OrmRelationType.m2o) {
+
+            OrmReferenceModel oneRelationModel = this.toRelationModel(rel);
+            entityModel.addRelation(oneRelationModel);
+
+        } else if (ormRelationType == OrmRelationType.m2m) {
+            handlerManyToManyRelation(entityModel, rel);
+        }
+    }
+
+    private void handlerManyToManyRelation(OrmEntityModel entityModel, NopDynEntityRelationMeta rel) {
+
+        OrmReferenceModel manyRelationModel = this.toRelationModel(rel);
+        entityModel.addRelation(manyRelationModel);
+        entityModel.setTagSet(TagsHelper.add(StringHelper.parseCsvSet(rel.getTagsText()), OrmModelConstants.TAG_MANY_TO_MANY));
+    }
+
+
+    private OrmReferenceModel toRelationModel(NopDynEntityRelationMeta rel) {
+        OrmReferenceModel ret;
+        if (rel.getRelationType().equals(OrmRelationType.o2o.name())) {
+            ret = new OrmToOneReferenceModel();
+        } else {
+            ret = new OrmToManyReferenceModel();
+        }
+
+        ret.setName(rel.getRelationName());
+        ret.setDisplayName(rel.getRelationDisplayName());
+        ret.setRefEntityName(rel.getRefEntityMeta().getEntityName());
+        ret.setTagSet(StringHelper.parseCsvSet(rel.getTagsText()));
+
+        List<OrmJoinOnModel> join = new ArrayList<>(1);
+        OrmJoinOnModel joinOn = new OrmJoinOnModel();
+        joinOn.setLeftProp(rel.getLeftPropName());
+        joinOn.setRightProp(rel.getRightPropName());
+        join.add(joinOn);
+        ret.setJoin(join);
+        return ret;
     }
 
     protected void buildVirtualEntityModel(OrmEntityModel entityModel, NopDynEntityMeta entityMeta) {
