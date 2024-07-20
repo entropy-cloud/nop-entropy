@@ -157,4 +157,6 @@ public interface OrmConstants {
 
     String PROP_FILE_STATUS = "fileStatus";
     String PROP_FILE_STATUS_LIST = "fileStatusList";
+
+    String EXT_AUTO_UPGRADE_DATABASE = "ext:auto-upgrade-database";
 }
