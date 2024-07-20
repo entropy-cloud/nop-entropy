@@ -888,7 +888,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
     @BizAction
     public boolean doDelete(@Name("id") @Description("@i18n:biz.id|对象的主键标识") String id,
-                               @Name("checkRefExist") Set<String> refNamesToCheck,
+                               @Name("refNamesToCheck") Set<String> refNamesToCheck,
                                @Name("prepareDelete") BiConsumer<T, IServiceContext> prepareDelete, IServiceContext context) {
         checkMandatoryParam("delete", "id", id);
 
@@ -933,7 +933,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
             TreeBean filter = ExtPropsGetter.getTreeBean(propMeta, GraphQLConstants.TAG_GRAPHQL_FILTER);
             if (filter != null && refBizObjName != null) {
-                resolveRef(filter, entity);
+                // 因为从propMeta上获取的是缓存的filter，这里又可能会修改filter的内容，为安全期间复制一份
+                resolveRef(filter.cloneInstance(), entity);
                 IBizObject refBizObj = bizObjectManager.getBizObject(refBizObjName);
 
                 Map<String, Object> request = new HashMap<>();
