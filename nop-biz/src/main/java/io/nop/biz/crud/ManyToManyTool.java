@@ -15,6 +15,9 @@ import io.nop.commons.util.CollectionHelper;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.IOrmEntity;
+import io.nop.orm.dao.IOrmEntityDao;
+import io.nop.orm.model.IEntityModel;
+import io.nop.orm.model.IEntityPropModel;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -28,24 +31,54 @@ import java.util.Map;
  * @param <R> 中间表实体类型
  */
 public class ManyToManyTool<R extends IOrmEntity> {
-    private final IEntityDao<R> dao;
+    private final IEntityDao<R> middleDao;
     private final String leftProp;
     private final String rightProp;
+    private final IEntityModel entityModel;
+    private final IEntityDao<?> leftPropDao;
+    private final IEntityDao<?> rightPropDao;
 
     public ManyToManyTool(IDaoProvider daoProvider, String relationEntityName, String leftProp, String rightProp) {
         this.leftProp = leftProp;
         this.rightProp = rightProp;
-        this.dao = daoProvider.dao(relationEntityName);
+        this.middleDao = daoProvider.dao(relationEntityName);
+        this.entityModel = ((IOrmEntityDao) middleDao).getEntityModel();
+        IEntityPropModel leftPropModel = entityModel.requireProp(leftProp);
+        IEntityPropModel rightPropModel = entityModel.requireProp(rightProp);
+        if (leftPropModel.isToOneRelation()) {
+            leftPropDao = middleDao.propDao(leftProp);
+        } else {
+            leftPropDao = null;
+        }
+        if (rightPropModel.isToOneRelation()) {
+            rightPropDao = middleDao.propDao(rightProp);
+        } else {
+            rightPropDao = null;
+        }
+    }
+
+    private Object castLeftValue(Object leftValue) {
+        if (leftPropDao != null) {
+            return leftPropDao.loadEntityById(leftValue);
+        }
+        return leftValue;
+    }
+
+    private Object castRightValue(Object rightValue) {
+        if (rightPropDao != null) {
+            return rightPropDao.loadEntityById(rightValue);
+        }
+        return rightValue;
     }
 
     public void removeRelation(
             Object leftValue, Object rightValue) {
-        R example = dao.newEntity();
-        example.orm_propValueByName(leftProp, leftValue);
-        example.orm_propValueByName(rightProp, rightValue);
-        R rel = dao.findFirstByExample(example);
+        R example = middleDao.newEntity();
+        example.orm_propValueByName(leftProp, castLeftValue(leftValue));
+        example.orm_propValueByName(rightProp, castRightValue(rightValue));
+        R rel = middleDao.findFirstByExample(example);
         if (rel != null) {
-            dao.deleteEntity(rel);
+            middleDao.deleteEntity(rel);
         }
     }
 
@@ -57,27 +90,27 @@ public class ManyToManyTool<R extends IOrmEntity> {
         if (filter != null)
             query.addFilter(filter);
 
-        List<R> relations = dao.findAllByQuery(query);
-        dao.batchDeleteEntities(relations);
+        List<R> relations = middleDao.findAllByQuery(query);
+        middleDao.batchDeleteEntities(relations);
     }
 
     public void addRelations(Object leftValue, Collection<?> rightValues, TreeBean filter) {
         Map<String, Object> fixedProps = new HashMap<>();
-        fixedProps.put(leftProp, leftValue);
+        fixedProps.put(leftProp, castLeftValue(leftValue));
         updateRelations(fixedProps, filter, false, rightProp, rightValues);
     }
 
     public void updateRelations(
             Object leftValue, Collection<?> rightValues, TreeBean filter) {
         Map<String, Object> fixedProps = new HashMap<>();
-        fixedProps.put(leftProp, leftValue);
+        fixedProps.put(leftProp, castLeftValue(leftValue));
         updateRelations(fixedProps, filter, true, rightProp, rightValues);
     }
 
-    public List<R> getRelations(String leftProp, Object leftValue) {
-        R example = dao.newEntity();
-        example.orm_propValueByName(leftProp, leftValue);
-        return dao.findAllByExample(example);
+    public List<R> getRelations(Object leftValue) {
+        R example = middleDao.newEntity();
+        example.orm_propValueByName(leftProp, castLeftValue(leftValue));
+        return middleDao.findAllByExample(example);
     }
 
     public void updateRelations(
@@ -97,24 +130,30 @@ public class ManyToManyTool<R extends IOrmEntity> {
             query.addFilter(filter);
         }
 
-        List<R> relations = dao.findAllByQuery(query);
+        List<R> relations = middleDao.findAllByQuery(query);
         relValues = CollectionHelper.toStringList(relValues);
 
         for (R relation : relations) {
-            String relValue = ConvertHelper.toString(relation.orm_propValueByName(relProp));
+            String relValue = toString(relation.orm_propValueByName(relProp));
             if (!relValues.remove(relValue)) {
                 if (deleteUnknown)
-                    dao.deleteEntity(relation);
+                    middleDao.deleteEntity(relation);
             }
         }
 
         for (Object relValue : relValues) {
-            R relation = dao.newEntity();
+            R relation = middleDao.newEntity();
             for (Map.Entry<String, Object> entry : fixedProps.entrySet()) {
                 relation.orm_propValueByName(entry.getKey(), entry.getValue());
             }
-            relation.orm_propValueByName(relProp, relValue);
-            dao.saveEntity(relation);
+            relation.orm_propValueByName(relProp, castRightValue(relValue));
+            middleDao.saveEntity(relation);
         }
+    }
+
+    private String toString(Object value) {
+        if (value instanceof IOrmEntity)
+            return ((IOrmEntity) value).orm_idString();
+        return ConvertHelper.toString(value);
     }
 }

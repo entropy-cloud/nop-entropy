@@ -119,13 +119,13 @@ public interface OrmModelConstants {
 
     String ORM_MANY_TO_MANY_REF_PROP = "orm:manyToManyRefProp";
 
-    String ORM_MANY_TO_MANY_PROP_NAME1 = "orm:manyToManyPropName1";
+    String ORM_MANY_TO_MANY_REF_SET_NAME1 = "orm:manyToManyRefSetName1";
 
-    String ORM_MANY_TO_MANY_PROP_NAME2 = "orm:manyToManyPropName2";
+    String ORM_MANY_TO_MANY_REF_SET_NAME2 = "orm:manyToManyRefSetName2";
 
-    String ORM_MANY_TO_MANY_DISPLAY_NAME1 = "orm:manyToManyDisplayName1";
+    String ORM_MANY_TO_MANY_REF_SET_DISPLAY_NAME1 = "orm:manyToManyRefSetDisplayName1";
 
-    String ORM_MANY_TO_MANY_DISPLAY_NAME2 = "orm:manyToManyDisplayName2";
+    String ORM_MANY_TO_MANY_REF_SET_DISPLAY_NAME2 = "orm:manyToManyRefSetDisplayName2";
 
 
     String VAR_ENTITY = "entity";

@@ -293,4 +293,8 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
     int getNopRevEndVarPropId();
 
     int getNopRevExtChangePropId();
+
+    String getLabelProp();
+
+    String getStateProp();
 }

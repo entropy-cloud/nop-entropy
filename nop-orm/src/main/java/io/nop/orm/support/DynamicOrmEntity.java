@@ -251,7 +251,8 @@ public class DynamicOrmEntity extends OrmEntity implements IPropSetMissingHook, 
         if (propModel.isColumnModel()) {
             orm_propValue(propModel.getColumnPropId(), value);
         } else if (propModel.isToOneRelation()) {
-            internalSetRefEntity((IEntityRelationModel) propModel, (IOrmEntity) value);
+            IEntityRelationModel relModel = (IEntityRelationModel) propModel;
+            internalSetRefEntity(relModel, (IOrmEntity) value);
         } else if (propModel.isToManyRelation()) {
             throw newError(ERR_ORM_ENTITY_PROP_NOT_ALLOW_SET).param(ARG_PROP_NAME, propName);
         } else if (propModel.isAliasModel()) {
