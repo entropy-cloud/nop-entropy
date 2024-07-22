@@ -7,6 +7,7 @@
  */
 package io.nop.orm.initialize;
 
+import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.sql.SQL;
@@ -19,6 +20,7 @@ import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IOrmModel;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
+import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +35,13 @@ public class DataBaseSchemaInitializer {
 
     private IJdbcTemplate jdbcTemplate;
     private IOrmSessionFactory ormSessionFactory;
+
+    public static String[] specifyQuerySpaces;
+
+    @InjectValue("@cfg:nop.orm.db-differ.auto-upgrade-database-specify-query-spaces|")
+    public void setSpecifyQuerySpaces(String[] specifyQuerySpaces) {
+        this.specifyQuerySpaces = specifyQuerySpaces;
+    }
 
     @Inject
     public void setJdbcTemplate(IJdbcTemplate jdbcTemplate) {
@@ -65,10 +74,15 @@ public class DataBaseSchemaInitializer {
     public static Map<String, List<IEntityModel>> splitByQuerySpace(Collection<IEntityModel> tables) {
         Map<String, List<IEntityModel>> map = new TreeMap<>();
         for (IEntityModel entityModel : tables) {
-            Object extProp = entityModel.prop_get(OrmConstants.EXT_AUTO_UPGRADE_DATABASE);
-            if (extProp != null && ConvertHelper.toPrimitiveBoolean(extProp,true, NopException::new))
-                continue;
+
             String querySpace = DaoHelper.normalizeQuerySpace(entityModel.getQuerySpace());
+            if(specifyQuerySpaces.length > 0 && !Arrays.stream(specifyQuerySpaces).anyMatch(querySpace::equals)){
+                continue;
+            }
+
+            Object extProp = entityModel.prop_get(OrmConstants.EXT_AUTO_UPGRADE_DATABASE);
+            if (!ConvertHelper.toPrimitiveBoolean(extProp, true, NopException::new))
+                continue;
             map.computeIfAbsent(querySpace, k -> new ArrayList<>()).add(entityModel);
         }
         return map;
