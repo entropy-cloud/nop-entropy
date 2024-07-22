@@ -18,6 +18,13 @@ public abstract class _ApiMessageModel extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: baseClass
+     * 
+     */
+    private io.nop.core.type.IGenericType _baseClass ;
+    
+    /**
+     *  
      * xml name: description
      * 
      */
@@ -39,6 +46,13 @@ public abstract class _ApiMessageModel extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: interfaces
+     * 
+     */
+    private java.util.List<io.nop.core.type.IGenericType> _interfaces ;
+    
+    /**
+     *  
      * xml name: name
      * 
      */
@@ -57,6 +71,25 @@ public abstract class _ApiMessageModel extends io.nop.core.resource.component.Ab
      * 
      */
     private java.util.Set<java.lang.String> _tagSet ;
+    
+    /**
+     * 
+     * xml name: baseClass
+     *  
+     */
+    
+    public io.nop.core.type.IGenericType getBaseClass(){
+      return _baseClass;
+    }
+
+    
+    public void setBaseClass(io.nop.core.type.IGenericType value){
+        checkAllowChange();
+        
+        this._baseClass = value;
+           
+    }
+
     
     /**
      * 
@@ -140,6 +173,25 @@ public abstract class _ApiMessageModel extends io.nop.core.resource.component.Ab
     public boolean hasFields(){
         return !this._fields.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: interfaces
+     *  
+     */
+    
+    public java.util.List<io.nop.core.type.IGenericType> getInterfaces(){
+      return _interfaces;
+    }
+
+    
+    public void setInterfaces(java.util.List<io.nop.core.type.IGenericType> value){
+        checkAllowChange();
+        
+        this._interfaces = value;
+           
+    }
+
     
     /**
      * 
@@ -243,9 +295,11 @@ public abstract class _ApiMessageModel extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("baseClass",this.getBaseClass());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("fields",this.getFields());
+        out.putNotNull("interfaces",this.getInterfaces());
         out.putNotNull("name",this.getName());
         out.putNotNull("options",this.getOptions());
         out.putNotNull("tagSet",this.getTagSet());
@@ -260,9 +314,11 @@ public abstract class _ApiMessageModel extends io.nop.core.resource.component.Ab
     protected void copyTo(ApiMessageModel instance){
         super.copyTo(instance);
         
+        instance.setBaseClass(this.getBaseClass());
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
         instance.setFields(this.getFields());
+        instance.setInterfaces(this.getInterfaces());
         instance.setName(this.getName());
         instance.setOptions(this.getOptions());
         instance.setTagSet(this.getTagSet());

@@ -22,4 +22,6 @@ public interface RpcModelConstants {
     String OPTION_TIMEOUT = "nop_timeout";
 
     String OPTION_REST_PATH = "nop_rest_path";
+
+    String OPTION_USE_TCC = "nop_use_tcc";
 }

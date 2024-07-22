@@ -9,14 +9,16 @@ package io.nop.rpc.model;
 
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.lang.ITagSetSupport;
 import io.nop.rpc.model._gen._ApiMethodModel;
 
 import static io.nop.rpc.model.RpcModelConstants.OPTION_REST_PATH;
 import static io.nop.rpc.model.RpcModelConstants.OPTION_TCC_CANCEL_METHOD;
 import static io.nop.rpc.model.RpcModelConstants.OPTION_TCC_CONFIRM_METHOD;
 import static io.nop.rpc.model.RpcModelConstants.OPTION_TIMEOUT;
+import static io.nop.rpc.model.RpcModelConstants.OPTION_USE_TCC;
 
-public class ApiMethodModel extends _ApiMethodModel implements IWithOptions {
+public class ApiMethodModel extends _ApiMethodModel implements IWithOptions, ITagSetSupport {
     public ApiMethodModel() {
 
     }
@@ -27,6 +29,14 @@ public class ApiMethodModel extends _ApiMethodModel implements IWithOptions {
 
     public void setRestPath(String restPath) {
         setOptionValue(OPTION_REST_PATH, restPath);
+    }
+
+    public boolean isUseTcc() {
+        return ConvertHelper.toPrimitiveBoolean(getOption(OPTION_USE_TCC), false, NopException::new);
+    }
+
+    public void setUseTcc(boolean useTcc) {
+        setOptionValue(OPTION_USE_TCC, useTcc);
     }
 
     public String getTccConfirmMethod() {

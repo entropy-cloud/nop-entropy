@@ -581,6 +581,7 @@
                     "type": "group",
                     "body" : {
                         "type": "action",
+                        "visibleOn": "${" + propMeta.name+" != null}",
                         "actionType": "download",
                         "label": "${"+propMeta.name+"ComponentFileStatus.name}(${"+propMeta.name+"ComponentFileStatus.fileSize})",
                         "leve": "link",

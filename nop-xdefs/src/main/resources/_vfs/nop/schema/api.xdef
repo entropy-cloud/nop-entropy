@@ -59,7 +59,7 @@
     -->
     <messages xdef:body-type="list" xdef:key-attr="name">
         <message name="!class-name" displayName="string" tagSet="word-set"
-                 xdef:name="ApiMessageModel" xdef:unique-attr="name">
+                 xdef:name="ApiMessageModel" xdef:unique-attr="name" baseClass="generic-type" interfaces="generic-type-list">
             <description xdef:value="string"/>
 
             <option name="!string" xdef:ref="ApiOptionModel" xdef:unique-attr="name"/>
