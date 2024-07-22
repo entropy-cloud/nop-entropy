@@ -225,6 +225,7 @@ public class GraphQLSelectionResolver {
             fragmentSelection.setResolvedFragment(fragment);
             new RpcSelectionSetBuilder(builtinSchema, this.engine.getSchemaLoader(), maxDepth)
                     .addNonLazyFields(fragment.getSelectionSet(), objDef, level, selection);
+            fragment.setResolved(true);
             return;
         }
 

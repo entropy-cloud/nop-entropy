@@ -61,6 +61,7 @@ public class DataFetchingEnvironment implements IDataFetchingEnvironment {
         DataFetchingEnvironment env = new DataFetchingEnvironment();
         env.setRoot(root);
         env.setExecutionContext(context);
+        env.setSelectionBean(null);
         // env.setDepth(getDepth());
         return env;
     }

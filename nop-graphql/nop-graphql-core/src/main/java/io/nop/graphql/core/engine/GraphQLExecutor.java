@@ -358,6 +358,7 @@ public class GraphQLExecutor implements IGraphQLExecutor {
             } else if (selection instanceof GraphQLFragmentSelection) {
                 GraphQLFragmentSelection fragmentSelection = (GraphQLFragmentSelection) selection;
                 GraphQLSelectionSet fragmentSelectionSet = fragmentSelection.getResolvedFragment().getSelectionSet();
+                env.setSelectionBean(sourceSelection);
                 promises = _fetchSelections(promises, ret, source, fragmentSelectionSet, env);
             }
         }

@@ -11,10 +11,12 @@ import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.auth.core.login.UserContextImpl;
 import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.autotest.junit.JunitAutoTestCase;
+import io.nop.core.model.selection.FieldSelectionBeanParser;
 import io.nop.core.type.IGenericType;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -26,6 +28,10 @@ import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
+
+import static io.nop.auth.service.AuthTestHelper.saveRole;
+import static io.nop.auth.service.AuthTestHelper.saveUser;
+import static io.nop.auth.service.AuthTestHelper.saveUserRole;
 
 @NopTestConfig(enableActionAuth = "false", initDatabaseSchema = true)
 public class TestNopAuthUserBizModel extends JunitAutoTestCase {
@@ -84,5 +90,28 @@ public class TestNopAuthUserBizModel extends JunitAutoTestCase {
                 "NopAuthUser__findFirst", new ApiRequest<>());
         Object result = FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context));
         output("response.json5", result);
+    }
+
+    @EnableSnapshot
+    @Test
+    public void testNestedFragments() {
+        prepareData();
+        ApiRequest<Object> request = new ApiRequest<>();
+        request.setSelection(new FieldSelectionBeanParser().parseFromText(null, "...F_defaults,role{...F_defaults}"));
+        IGraphQLExecutionContext context = graphQLEngine.newRpcContext(GraphQLOperationType.query,
+                "NopAuthUserRole__findFirst", request);
+        Object result = FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context));
+        output("response.json5", result);
+
+        GraphQLRequestBean gqlReq = input("request.json5", GraphQLRequestBean.class);
+        context = graphQLEngine.newGraphQLContext(gqlReq);
+        result = FutureHelper.syncGet(graphQLEngine.executeGraphQLAsync(context));
+        output("response2.json5", result);
+    }
+
+    private void prepareData() {
+        saveUser("user1");
+        saveRole("test");
+        saveUserRole("user1", "test");
     }
 }

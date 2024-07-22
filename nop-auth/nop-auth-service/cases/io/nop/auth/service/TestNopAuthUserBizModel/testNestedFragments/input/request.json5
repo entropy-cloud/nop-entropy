@@ -1,0 +1,4 @@
+{
+  "query": "query{ NopAuthUserRole__findFirst{ ...F_defaults, role{...F_defaults}}}",
+  "variables": {}
+}
