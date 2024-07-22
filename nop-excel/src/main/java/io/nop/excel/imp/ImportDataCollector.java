@@ -40,6 +40,7 @@ import java.util.Map;
 
 import static io.nop.core.CoreErrors.ARG_CELL_POS;
 import static io.nop.core.CoreErrors.ARG_VALUE;
+import static io.nop.excel.ExcelErrors.ARG_ALLOWED_NAMES;
 import static io.nop.excel.ExcelErrors.ARG_ALLOWED_VALUES;
 import static io.nop.excel.ExcelErrors.ARG_DISPLAY_NAME;
 import static io.nop.excel.ExcelErrors.ARG_FIELD_LABEL;
@@ -308,7 +309,8 @@ public class ImportDataCollector implements ITableDataEventListener {
             if (field.isMandatory()) {
                 if (isPropEmpty(obj, field.getPropOrName()))
                     throw new NopException(ERR_IMPORT_MISSING_MANDATORY_FIELD).param(ARG_SHEET_NAME, sheetName)
-                            .param(ARG_FIELD_NAME, field.getName()).param(ARG_FIELD_LABEL, field.getFieldLabel());
+                            .param(ARG_FIELD_NAME, field.getName()).param(ARG_FIELD_LABEL, field.getFieldLabel())
+                            .param(ARG_ALLOWED_NAMES,fieldMap.keySet());
             }
         }
     }

@@ -11,6 +11,7 @@ import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.orm.IOrmCompositePk;
 import io.nop.orm.IOrmEntity;
@@ -47,6 +48,21 @@ public class OrmEntityHelper {
 
     public static boolean isFileListComponent(IEntityComponentModel comp) {
         return comp.getClassName().equals(OrmFileListComponent.class.getName());
+    }
+
+    @SuppressWarnings("unchecked")
+    public static List<String> parseFileList(String filePath) {
+        if (StringHelper.isEmpty(filePath))
+            return null;
+        if (filePath.startsWith("[") && filePath.endsWith("]"))
+            return (List<String>) JsonTool.parseNonStrict(filePath);
+        return StringHelper.stripedSplit(filePath, ',');
+    }
+
+    public static String joinFileList(List<String> filePaths) {
+        if (filePaths == null || filePaths.isEmpty())
+            return null;
+        return StringHelper.join(filePaths, ",");
     }
 
     public static void copyRefProps(IOrmEntity entity, IEntityRelationModel rel, IOrmEntity relatedEntity) {

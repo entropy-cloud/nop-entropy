@@ -15,6 +15,7 @@ import io.nop.core.resource.IResource;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntityFileStore;
 import io.nop.orm.OrmConstants;
+import io.nop.orm.support.OrmEntityHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,11 +33,11 @@ public class OrmFileListComponent extends AbstractOrmComponent {
     }
 
     public List<String> getFilePaths() {
-        return StringHelper.split(getFilePath(), ',');
+        return OrmEntityHelper.parseFileList(getFilePath());
     }
 
     public void setFilePaths(List<String> filePaths) {
-        setFilePath(StringHelper.join(filePaths, ","));
+        setFilePath(OrmEntityHelper.joinFileList(filePaths));
     }
 
 
@@ -110,8 +111,8 @@ public class OrmFileListComponent extends AbstractOrmComponent {
             IOrmEntityFileStore fileStore = (IOrmEntityFileStore) beanProvider.getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
             String oldValue = (String) entity.orm_propOldValue(propId);
 
-            List<String> paths = StringHelper.split(getFilePath(), ',');
-            List<String> oldPaths = StringHelper.split(oldValue, ',');
+            List<String> paths = getFilePaths();
+            List<String> oldPaths = OrmEntityHelper.parseFileList(oldValue);
             if (paths == null)
                 paths = new ArrayList<>();
             if (oldPaths == null)
@@ -154,7 +155,7 @@ public class OrmFileListComponent extends AbstractOrmComponent {
         IBeanProvider beanProvider = entity.orm_enhancer().getBeanProvider();
         IOrmEntityFileStore fileStore = (IOrmEntityFileStore) beanProvider.getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
 
-        List<String> paths = StringHelper.split(getFilePath(), ',');
+        List<String> paths = getFilePaths();
         if (paths == null || paths.isEmpty())
             return;
 
