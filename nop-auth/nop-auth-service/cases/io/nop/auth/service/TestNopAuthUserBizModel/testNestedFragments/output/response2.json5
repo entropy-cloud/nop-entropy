@@ -1,0 +1,29 @@
+{
+  "data": {
+    "NopAuthUserRole__findFirst": {
+      "id": "user1~test",
+      "userId": "@var:NopAuthUser@userId",
+      "roleId": "test",
+      "version": 0,
+      "createdBy": "autotest-ref",
+      "createTime": "@var:NopAuthUserRole@updateTime",
+      "updatedBy": "autotest-ref",
+      "updateTime": "@var:NopAuthUserRole@updateTime",
+      "remark": null,
+      "role": {
+        "id": "test",
+        "roleId": "test",
+        "roleName": "test",
+        "childRoleIds": null,
+        "isPrimary": null,
+        "delFlag": 0,
+        "version": 0,
+        "createdBy": "autotest-ref",
+        "createTime": "@var:NopAuthUserRole@updateTime",
+        "updatedBy": "autotest-ref",
+        "updateTime": "@var:NopAuthUserRole@updateTime",
+        "remark": null
+      }
+    }
+  }
+}
