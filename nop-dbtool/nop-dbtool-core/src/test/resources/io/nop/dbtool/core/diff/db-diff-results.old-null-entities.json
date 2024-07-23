@@ -8,7 +8,7 @@
     "type": "add"
   },
   {
-    "ddl": "CREATE TABLE dev_app_dict(\n  ID VARCHAR(32) NOT NULL  COMMENT 'ID' ,\n  APP_ID VARCHAR(32) NOT NULL  COMMENT '所属应用' ,\n  NAME VARCHAR(100) NOT NULL  COMMENT '名称' ,\n  DESCRIPTION VARCHAR(500)   COMMENT '说明' ,\n  constraint UK_DEV_APP_DICT_APPID_NAME unique (APP_ID,NAME),\n  constraint PK_dev_app_dict primary key (ID)\n)",
+    "ddl": "CREATE TABLE dev_app_dict(\n  ID VARCHAR(32) NOT NULL  COMMENT 'ID' ,\n  APP_ID VARCHAR(32) NOT NULL  COMMENT '所属应用' ,\n  NAME VARCHAR(100) NOT NULL  COMMENT '名称' ,\n  DESCRIPTION VARCHAR(500)   COMMENT '说明' ,\n  constraint UK_DEV_APP_DICT_APPID_NAME unique (APP_ID,NAME)    COMMENT '名称在应用内唯一',\n  constraint PK_dev_app_dict primary key (ID)\n)",
     "querySpace": "default",
     "target": null,
     "targetTable": "dev_app_dict",

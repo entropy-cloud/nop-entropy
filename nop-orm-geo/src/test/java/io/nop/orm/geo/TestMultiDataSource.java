@@ -15,6 +15,7 @@ import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmTemplate;
+import io.nop.orm.geo.dialect.h2gis.H2GisInitializer;
 import io.nop.orm.sql_lib.ISqlLibManager;
 import io.nop.xlang.api.XLang;
 import jakarta.inject.Inject;
@@ -40,6 +41,9 @@ public class TestMultiDataSource extends JunitBaseTestCase {
 
     @Inject
     ISqlLibManager sqlLibManager;
+
+    @Inject
+    H2GisInitializer h2GisInitializer;
 
     @Test
     public void testSqlQuerySpace() {

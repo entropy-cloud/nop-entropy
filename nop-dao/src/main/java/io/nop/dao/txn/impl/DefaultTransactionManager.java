@@ -41,7 +41,8 @@ public class DefaultTransactionManager implements ITransactionManager {
     private final Map<String, ITransactionFactory> transactionFactoryMap = new ConcurrentHashMap<>();
     private final Map<String, String> txnGroupMap = new ConcurrentHashMap<>();
 
-    private final Map<String, String> querySpaceToDialectMap = new ConcurrentHashMap<>();
+    private Map<String, String> querySpaceToDialectMap;
+
     private ITransactionFactory defaultFactory;
 
     private ITransactionListener defaultListener;
@@ -62,15 +63,8 @@ public class DefaultTransactionManager implements ITransactionManager {
         }
     };
 
-    public void setQuerySpaceToDialectMap(Map<String, String> map) {
-        if (map != null) {
-            querySpaceToDialectMap.putAll(map);
-        }
-    }
-
-    public void setQuerySpaceToDialectConfig(String config) {
-        Map<String, String> map = StringHelper.parseStringMap(config, '=', ',');
-        setQuerySpaceToDialectMap(map);
+    public void setQuerySpaceToDialectMap(Map<String, String> querySpaceToDialectMap) {
+        this.querySpaceToDialectMap = querySpaceToDialectMap;
     }
 
     public void setTransactionMetrics(ITransactionMetrics transactionMetrics) {
@@ -91,7 +85,7 @@ public class DefaultTransactionManager implements ITransactionManager {
                 String name = entry.getKey();
                 DataSource ds = entry.getValue();
 
-                transactionFactoryMap.put(name, new JdbcTransactionFactory(ds));
+                transactionFactoryMap.put(name, new JdbcTransactionFactory(ds, getDialectNameForQuerySpace(name)));
             }
         }
     }
@@ -119,7 +113,7 @@ public class DefaultTransactionManager implements ITransactionManager {
     public void addQuerySpace(String querySpace, DataSource ds) {
         Guard.notEmpty(querySpace, "querySpace");
         Guard.notNull(ds, "ds");
-        transactionFactoryMap.put(querySpace, new JdbcTransactionFactory(ds));
+        transactionFactoryMap.put(querySpace, new JdbcTransactionFactory(ds, getDialectNameForQuerySpace(querySpace)));
     }
 
     public void removeQuerySpace(String querySpace) {
@@ -217,11 +211,22 @@ public class DefaultTransactionManager implements ITransactionManager {
         return transactionFactoryMap.containsKey(querySpace);
     }
 
+    protected Map<String, String> getQuerySpaceToDialectMap() {
+        if (this.querySpaceToDialectMap == null) {
+            this.querySpaceToDialectMap = DaoHelper.getQuerySpaceToDialectConfig();
+        }
+        return querySpaceToDialectMap;
+    }
+
+    protected String getDialectNameForQuerySpace(String querySpace) {
+        return getQuerySpaceToDialectMap().get(querySpace);
+    }
+
     @Override
     public IDialect getDialectForQuerySpace(String querySpace) {
         querySpace = DaoHelper.normalizeQuerySpace(querySpace);
 
-        String dialectName = querySpaceToDialectMap.get(querySpace);
+        String dialectName = getDialectNameForQuerySpace(querySpace);
         if (dialectName != null)
             return DialectManager.instance().getDialect(dialectName);
 

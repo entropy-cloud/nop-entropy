@@ -33645,6 +33645,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_originFileId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_remark"
       },
       {
@@ -33720,6 +33725,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_originFileId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_remark"
       }
     ],
@@ -33782,6 +33792,10 @@
       },
       {
         "name": "getMimeType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOriginFileId",
         "parameterTypes": []
       },
       {
@@ -33927,6 +33941,12 @@
         ]
       },
       {
+        "name": "setOriginFileId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setRemark",
         "parameterTypes": [
           "java.lang.String"
@@ -33969,6 +33989,15 @@
         "parameterTypes": [
           "long",
           "long"
+        ]
+      },
+      {
+        "name": "copyFile",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
         ]
       },
       {
@@ -34019,6 +34048,13 @@
       {
         "name": "init",
         "parameterTypes": []
+      },
+      {
+        "name": "isUniqueRef",
+        "parameterTypes": [
+          "io.nop.dao.api.IEntityDao",
+          "io.nop.file.dao.entity.NopFileRecord"
+        ]
       },
       {
         "name": "newFileId",
@@ -36609,6 +36645,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isIocIgnoreDepends",
+        "parameterTypes": []
+      },
+      {
         "name": "isIocSkipIfEmpty",
         "parameterTypes": []
       },
@@ -36620,6 +36660,12 @@
         "name": "outputJson",
         "parameterTypes": [
           "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setIocIgnoreDepends",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -39500,6 +39546,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getLabelProp",
+        "parameterTypes": []
+      },
+      {
         "name": "getMaxBatchLoadSize",
         "parameterTypes": []
       },
@@ -39585,6 +39635,10 @@
       },
       {
         "name": "getShardPropId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStateProp",
         "parameterTypes": []
       },
       {

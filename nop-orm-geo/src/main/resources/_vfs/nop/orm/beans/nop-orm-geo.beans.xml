@@ -8,7 +8,8 @@
        xmlns:ioc="ioc"
 >
 
-    <bean id="io.nop.orm.geo.dialect.h2gis.H2GisInitializer" ioc:type="@bean:id" init-method="init">
+    <bean id="io.nop.orm.geo.dialect.h2gis.H2GisInitializer" ioc:type="@bean:id" init-method="init"
+          ioc:before="nopOrmSessionFactory">
         <ioc:condition>
             <on-class>org.h2gis.functions.factory.H2GISFunctions</on-class>
         </ioc:condition>

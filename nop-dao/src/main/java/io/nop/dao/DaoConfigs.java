@@ -61,4 +61,8 @@ public interface DaoConfigs {
     @Description("启用动态querySpace支持，可以动态将default的querySpace映射为指定的querySpace")
     IConfigReference<Boolean> CFG_ORM_ENABLE_DYNAMIC_QUERY_SPACE = varRef(s_loc,
             "nop.orm.enable-dynamic-query-space", Boolean.class, true);
+
+    @Description("查询空间和数据库方言之间的映射关系")
+    IConfigReference<String> CFG_QUERY_SPACE_TO_DIALECT = varRef(s_loc,
+            "nop.dao.config.query-space-to-dialect", String.class, null);
 }

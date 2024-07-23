@@ -10,7 +10,10 @@ package io.nop.dao.utils;
 import io.nop.commons.util.StringHelper;
 import io.nop.dao.DaoConstants;
 
+import java.util.Collections;
 import java.util.Map;
+
+import static io.nop.dao.DaoConfigs.CFG_QUERY_SPACE_TO_DIALECT;
 
 public class DaoHelper {
     public static boolean isDefaultQuerySpace(String querySpace) {
@@ -25,5 +28,16 @@ public class DaoHelper {
 
     public static String getChangeType(Map<String, Object> map) {
         return StringHelper.toString(map.get(DaoConstants.PROP_CHANGE_TYPE), "");
+    }
+
+    public static Map<String, String> getQuerySpaceToDialectConfig() {
+        String text = CFG_QUERY_SPACE_TO_DIALECT.get();
+        if (StringHelper.isEmpty(text))
+            return Collections.emptyMap();
+
+        Map<String, String> map = StringHelper.parseStringMap(text, '=', ',');
+        if (map == null)
+            map = Collections.emptyMap();
+        return map;
     }
 }
