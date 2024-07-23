@@ -210,6 +210,9 @@ public class OutputParseHelper {
                 if (name.equals(XplConstants.ATTR_XPL_ENABLE_NS) || name.equals(XplConstants.ATTR_XPL_DISABLE_NS))
                     return;
 
+                if (name.startsWith(XplConstants.NAMESPACE_XGEN_PREFIX))
+                    name = name.substring(XplConstants.NAMESPACE_XGEN_PREFIX.length());
+
                 if (XplParseHelper.hasExpr(value.asString())) {
                     Expression expr = XplParseHelper.parseTemplateExpr(value, cp, scope);
                     outputAttrExpr(buf, value.getLocation(), name, expr);

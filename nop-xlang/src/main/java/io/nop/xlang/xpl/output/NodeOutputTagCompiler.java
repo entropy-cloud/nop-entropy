@@ -77,8 +77,12 @@ public class NodeOutputTagCompiler implements IXplUnknownTagCompiler {
             }
 
             // xpl:disableNs和xpl:enableNs总是被处理？
-            if(name.equals(XplConstants.ATTR_XPL_ENABLE_NS) || name.equals(XplConstants.ATTR_XPL_DISABLE_NS))
+            if (name.equals(XplConstants.ATTR_XPL_ENABLE_NS) || name.equals(XplConstants.ATTR_XPL_DISABLE_NS))
                 return;
+
+
+            if (name.startsWith(XplConstants.NAMESPACE_XGEN_PREFIX))
+                name = name.substring(XplConstants.NAMESPACE_XGEN_PREFIX.length());
 
             Expression expr = XplParseHelper.parseAttrTemplateExpr(node, name, cp, scope);
             ret.add(GenNodeAttrExpression.valueOf(value.getLocation(), name, expr));
