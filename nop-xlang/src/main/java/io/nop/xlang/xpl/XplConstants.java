@@ -14,6 +14,8 @@ import static io.nop.commons.util.CollectionHelper.buildImmutableList;
 import static io.nop.commons.util.CollectionHelper.buildImmutableSet;
 
 public interface XplConstants {
+    String NAMESPACE_XGEN_PREFIX = "xgen:";
+
     String POSTFIX_XLIB = ".xlib";
 
     String TAG_C_IMPORT = "c:import";

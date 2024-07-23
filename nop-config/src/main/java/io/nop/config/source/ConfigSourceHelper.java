@@ -95,7 +95,7 @@ public class ConfigSourceHelper {
             String name = propModel.getName();
             name = StringHelper.camelCaseToHyphen(name);
             String configName = prefix + "." + name;
-            Object value = config.getConfigValue(name, null);
+            Object value = config.getConfigValue(configName, null);
 
             if (value != null) {
                 value = ConvertHelper.convertTo(propModel.getRawClass(), value,
