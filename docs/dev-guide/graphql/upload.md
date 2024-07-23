@@ -269,6 +269,17 @@ FileStatus会返回文件的名称、大小等信息。
 
 `control.xlib`中的`<view-file>`用于在前台显示文件下载链接，它会使用FileStatus中的信息来获取文件名等。
 
+## 文件共享
+IOrmEntityFileStore提供了copyFile函数，可以根据指定fileId复制一份NopFileRecord记录，从而允许多个附件字段复用同一个文件存储。
+
+```javascript
+    String copyFile(String fileId, String newBizObjName, String newObjId, String newFieldName);
+```
+
+* copyFile返回一个新的fileId
+* 在NopFileRecord记录上增加了originFileId字段，从同一个NopFileRecord复制得到的记录都具有同样的originFileId值。
+* detachFile的时候会检查当前记录是否是最后一个共享originFileId的记录。如果是，则也删除文件存储中的文件，否则只删除对应的NopFileRecord。
+
 ## 配置变量
 
 * nop.file.store-dir

@@ -4625,6 +4625,13 @@
         ]
       },
       {
+        "name": "format",
+        "parameterTypes": [
+          "java.lang.String",
+          "[Ljava.lang.Object;"
+        ]
+      },
+      {
         "name": "formatDate",
         "parameterTypes": [
           "java.util.Date",
@@ -16485,6 +16492,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isIocIgnoreDepends",
+        "parameterTypes": []
+      },
+      {
         "name": "isIocSkipIfEmpty",
         "parameterTypes": []
       },
@@ -16496,6 +16507,12 @@
         "name": "outputJson",
         "parameterTypes": [
           "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setIocIgnoreDepends",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -18621,6 +18638,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getLabelProp",
+        "parameterTypes": []
+      },
+      {
         "name": "getMaxBatchLoadSize",
         "parameterTypes": []
       },
@@ -18706,6 +18727,10 @@
       },
       {
         "name": "getShardPropId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStateProp",
         "parameterTypes": []
       },
       {

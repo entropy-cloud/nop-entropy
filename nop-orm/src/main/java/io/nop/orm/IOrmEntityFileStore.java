@@ -40,4 +40,6 @@ public interface IOrmEntityFileStore {
 
     void attachFile(String fileId, String bizObjName,
                     String objId, String fieldName);
+
+    String copyFile(String fileId, String newBizObjName, String newObjId, String newFieldName);
 }

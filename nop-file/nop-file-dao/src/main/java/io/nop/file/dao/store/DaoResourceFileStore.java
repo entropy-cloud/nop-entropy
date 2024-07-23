@@ -7,7 +7,10 @@
  */
 package io.nop.file.dao.store;
 
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.file.FileStatusBean;
+import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.io.stream.LimitedInputStream;
@@ -40,6 +43,8 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 
+import static io.nop.api.core.beans.FilterBeans.eq;
+import static io.nop.api.core.beans.FilterBeans.ne;
 import static io.nop.file.core.FileErrors.ARG_BIZ_OBJ_ID;
 import static io.nop.file.core.FileErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.file.core.FileErrors.ARG_FIELD_NAME;
@@ -146,6 +151,7 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
         String fileId = newFileId();
         String filePath = newPath(record.getBizObjName(), fileId, entity.getFileExt());
         entity.setFileId(fileId);
+        entity.setOriginFileId(fileId);
         entity.setFilePath(filePath);
 
         IResource tempResource = null;
@@ -214,6 +220,18 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
 
     @Override
     public FileStatusBean getFileStatus(String fileId, String bizObjName, String objId, String fieldName) {
+        NopFileRecord record = getRecord(fileId, bizObjName, objId, fieldName);
+        if (record == null)
+            return null;
+        FileStatusBean ret = new FileStatusBean();
+        ret.setFileId(record.getFileId());
+        ret.setName(record.getFileName());
+        ret.setLastModified(record.getFileLastModified() == null ? -1L : record.getFileLastModified().getTime());
+        ret.setSize(record.getFileLength() == null ? -1L : record.getFileLength());
+        return ret;
+    }
+
+    private NopFileRecord getRecord(String fileId, String bizObjName, String objId, String fieldName) {
         NopFileRecord record = daoProvider.daoFor(NopFileRecord.class).getEntityById(fileId);
         if (record == null)
             return null;
@@ -224,12 +242,7 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
                     .param(ARG_BIZ_OBJ_NAME, bizObjName)
                     .param(ARG_BIZ_OBJ_ID, objId)
                     .param(ARG_FIELD_NAME, fieldName);
-        FileStatusBean ret = new FileStatusBean();
-        ret.setFileId(record.getFileId());
-        ret.setName(record.getFileName());
-        ret.setLastModified(record.getFileLastModified() == null ? -1L : record.getFileLastModified().getTime());
-        ret.setSize(record.getFileLength() == null ? -1L : record.getFileLength());
-        return ret;
+        return record;
     }
 
     @Override
@@ -259,11 +272,23 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
         if (record != null) {
             if (Objects.equals(record.getBizObjName(), bizObjName) && Objects.equals(record.getBizObjId(), objId)) {
                 dao.deleteEntity(record);
-                removeResource(record.getFilePath());
+                if (isUniqueRef(dao, record))
+                    removeResource(record.getFilePath());
             } else {
                 LOG.warn("nop.file.record-not-attached-to-object:fileId={},bizObjName={},objId={},attachedObjName={},attachedObjId={}", fileId, bizObjName, objId, record.getBizObjName(), record.getBizObjId());
             }
         }
+    }
+
+    protected boolean isUniqueRef(IEntityDao<NopFileRecord> dao, NopFileRecord record) {
+        // originFileId与当前记录相同，但是又不是当前记录
+        QueryBean query = new QueryBean();
+        TreeBean filter = FilterBeans.and(
+                eq(NopFileRecord.PROP_NAME_originFileId, record.getOriginFileId()),
+                ne(NopFileRecord.PROP_NAME_fileId, record.getFileId()));
+        query.addFilter(filter);
+
+        return dao.findFirstByQuery(query) == null;
     }
 
     @Override
@@ -276,5 +301,24 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
         record.setBizObjId(objId);
         record.setFieldName(fieldName);
         dao.updateEntity(record);
+    }
+
+    @Override
+    public String copyFile(String fileId, String newBizObjName, String newObjId, String newFieldName) {
+        IEntityDao<NopFileRecord> dao = daoProvider.daoFor(NopFileRecord.class);
+        NopFileRecord record = dao.requireEntityById(fileId);
+        NopFileRecord newRecord = dao.newEntity();
+        newRecord.setBizObjName(newBizObjName);
+        newRecord.setBizObjId(newObjId);
+        newRecord.setFieldName(newFieldName);
+        newRecord.setOriginFileId(record.getFileId());
+        newRecord.setFileExt(record.getFileExt());
+        newRecord.setFileLength(record.getFileLength());
+        newRecord.setFileName(record.getFileName());
+        newRecord.setFilePath(record.getFilePath());
+        newRecord.setFileHash(record.getFileHash());
+        newRecord.setFileLastModified(record.getFileLastModified());
+        dao.saveEntity(newRecord);
+        return newRecord.getFileId();
     }
 }

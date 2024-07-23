@@ -56,15 +56,18 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Field Name"/>
                 <column code="FILE_HASH" displayName="文件摘要" name="fileHash" precision="200" propId="11"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="File Hash"/>
-                <column code="DEL_FLAG" displayName="删除标识" domain="delFlag" mandatory="true" name="delFlag" propId="12"
+                <column code="ORIGIN_FILE_ID" comment="原始文件ID，用于跟踪哪些文件是从同一个文件复制而来" displayName="原始文件ID" mandatory="true"
+                        name="originFileId" precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Original File ID"/>
+                <column code="DEL_FLAG" displayName="删除标识" domain="delFlag" mandatory="true" name="delFlag" propId="13"
                         stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Deleted"
                         ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="14" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
-                <column code="REMARK" displayName="备注" name="remark" precision="200" propId="15" stdDataType="string"
+                        propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="REMARK" displayName="备注" name="remark" precision="200" propId="16" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
         </entity>

@@ -64,31 +64,35 @@ public class _NopFileRecord extends DynamicOrmEntity{
     public static final String PROP_NAME_fileHash = "fileHash";
     public static final int PROP_ID_fileHash = 11;
     
+    /* 原始文件ID: ORIGIN_FILE_ID VARCHAR */
+    public static final String PROP_NAME_originFileId = "originFileId";
+    public static final int PROP_ID_originFileId = 12;
+    
     /* 删除标识: DEL_FLAG TINYINT */
     public static final String PROP_NAME_delFlag = "delFlag";
-    public static final int PROP_ID_delFlag = 12;
+    public static final int PROP_ID_delFlag = 13;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 13;
+    public static final int PROP_ID_createdBy = 14;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 14;
+    public static final int PROP_ID_createTime = 15;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 15;
+    public static final int PROP_ID_remark = 16;
     
 
-    private static int _PROP_ID_BOUND = 16;
+    private static int _PROP_ID_BOUND = 17;
 
     
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_fileId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_fileId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[16];
+    private static final String[] PROP_ID_TO_NAME = new String[17];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -124,6 +128,9 @@ public class _NopFileRecord extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_fileHash] = PROP_NAME_fileHash;
           PROP_NAME_TO_ID.put(PROP_NAME_fileHash, PROP_ID_fileHash);
+      
+          PROP_ID_TO_NAME[PROP_ID_originFileId] = PROP_NAME_originFileId;
+          PROP_NAME_TO_ID.put(PROP_NAME_originFileId, PROP_ID_originFileId);
       
           PROP_ID_TO_NAME[PROP_ID_delFlag] = PROP_NAME_delFlag;
           PROP_NAME_TO_ID.put(PROP_NAME_delFlag, PROP_ID_delFlag);
@@ -172,6 +179,9 @@ public class _NopFileRecord extends DynamicOrmEntity{
     
     /* 文件摘要: FILE_HASH */
     private java.lang.String _fileHash;
+    
+    /* 原始文件ID: ORIGIN_FILE_ID */
+    private java.lang.String _originFileId;
     
     /* 删除标识: DEL_FLAG */
     private java.lang.Byte _delFlag;
@@ -291,6 +301,9 @@ public class _NopFileRecord extends DynamicOrmEntity{
         
             case PROP_ID_fileHash:
                return getFileHash();
+        
+            case PROP_ID_originFileId:
+               return getOriginFileId();
         
             case PROP_ID_delFlag:
                return getDelFlag();
@@ -425,6 +438,16 @@ public class _NopFileRecord extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_originFileId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_originFileId));
+               }
+               setOriginFileId(typedValue);
+               break;
+            }
+        
             case PROP_ID_delFlag:{
                java.lang.Byte typedValue = null;
                if(value != null){
@@ -547,6 +570,13 @@ public class _NopFileRecord extends DynamicOrmEntity{
             case PROP_ID_fileHash:{
                onInitProp(propId);
                this._fileHash = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_originFileId:{
+               onInitProp(propId);
+               this._originFileId = (java.lang.String)value;
                
                break;
             }
@@ -790,6 +820,25 @@ public class _NopFileRecord extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_fileHash,value)){
             this._fileHash = value;
             internalClearRefs(PROP_ID_fileHash);
+            
+        }
+    }
+    
+    /**
+     * 原始文件ID: ORIGIN_FILE_ID
+     */
+    public java.lang.String getOriginFileId(){
+         onPropGet(PROP_ID_originFileId);
+         return _originFileId;
+    }
+
+    /**
+     * 原始文件ID: ORIGIN_FILE_ID
+     */
+    public void setOriginFileId(java.lang.String value){
+        if(onPropSet(PROP_ID_originFileId,value)){
+            this._originFileId = value;
+            internalClearRefs(PROP_ID_originFileId);
             
         }
     }
