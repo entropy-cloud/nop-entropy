@@ -25037,6 +25037,10 @@
         ]
       },
       {
+        "name": "getTenantId",
+        "parameterTypes": []
+      },
+      {
         "name": "instance",
         "parameterTypes": []
       },
@@ -25508,6 +25512,12 @@
         "name": "buildClassPath",
         "parameterTypes": [
           "java.lang.Package",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "buildConfigResource",
+        "parameterTypes": [
           "java.lang.String"
         ]
       },
@@ -30823,6 +30833,12 @@
         ]
       },
       {
+        "name": "getDialectNameForQuerySpace",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getMainTxnGroup",
         "parameterTypes": [
           "java.lang.String"
@@ -30830,6 +30846,10 @@
       },
       {
         "name": "getNamedQuerySpaces",
+        "parameterTypes": []
+      },
+      {
+        "name": "getQuerySpaceToDialectMap",
         "parameterTypes": []
       },
       {
@@ -31592,7 +31612,20 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [],
+    "methods": [
+      {
+        "name": "getOrmRelationType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTagSet",
+        "parameterTypes": []
+      },
+      {
+        "name": "isToMany",
+        "parameterTypes": []
+      }
+    ],
     "name": "io.nop.dyn.dao.entity.NopDynEntityRelationMeta",
     "unsafeAllocated": false
   },
@@ -42381,6 +42414,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_originFileId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_remark"
       },
       {
@@ -42456,6 +42494,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_originFileId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_remark"
       }
     ],
@@ -42518,6 +42561,10 @@
       },
       {
         "name": "getMimeType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOriginFileId",
         "parameterTypes": []
       },
       {
@@ -42663,6 +42710,12 @@
         ]
       },
       {
+        "name": "setOriginFileId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setRemark",
         "parameterTypes": [
           "java.lang.String"
@@ -42705,6 +42758,15 @@
         "parameterTypes": [
           "long",
           "long"
+        ]
+      },
+      {
+        "name": "copyFile",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
         ]
       },
       {
@@ -42755,6 +42817,13 @@
       {
         "name": "init",
         "parameterTypes": []
+      },
+      {
+        "name": "isUniqueRef",
+        "parameterTypes": [
+          "io.nop.dao.api.IEntityDao",
+          "io.nop.file.dao.entity.NopFileRecord"
+        ]
       },
       {
         "name": "newFileId",
@@ -49663,6 +49732,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getLabelProp",
+        "parameterTypes": []
+      },
+      {
         "name": "getMaxBatchLoadSize",
         "parameterTypes": []
       },
@@ -49748,6 +49821,10 @@
       },
       {
         "name": "getShardPropId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStateProp",
         "parameterTypes": []
       },
       {
@@ -76786,6 +76863,12 @@
         "parameterTypes": []
       },
       {
+        "name": "getLayoutCellById",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getLayoutCells",
         "parameterTypes": []
       },
@@ -76883,6 +76966,12 @@
       {
         "name": "getLabel",
         "parameterTypes": []
+      },
+      {
+        "name": "getLayoutCellById",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
       },
       {
         "name": "getLevel",
@@ -79136,6 +79225,12 @@
         "parameterTypes": []
       },
       {
+        "name": "getLayoutCellById",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getTables",
         "parameterTypes": []
       },
@@ -80560,6 +80655,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getColumnRatio",
+        "parameterTypes": []
+      },
+      {
         "name": "getMandatory",
         "parameterTypes": []
       },
@@ -80603,6 +80702,12 @@
         "name": "setCollapseTitle",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setColumnRatio",
+        "parameterTypes": [
+          "java.lang.Integer"
         ]
       },
       {
@@ -80710,6 +80815,10 @@
       },
       {
         "name": "getData",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDefaultColumnRatio",
         "parameterTypes": []
       },
       {
@@ -80958,6 +81067,12 @@
         "name": "setData",
         "parameterTypes": [
           "java.util.Map"
+        ]
+      },
+      {
+        "name": "setDefaultColumnRatio",
+        "parameterTypes": [
+          "java.lang.Integer"
         ]
       },
       {

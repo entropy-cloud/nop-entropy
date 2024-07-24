@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <lib x:schema="/nop/schema/xlib.xdef"
-     xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdsl="xdsl" xmlns:xpl="xpl" xmlns:c="c">
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdsl="xdsl" xmlns:xpl="xpl" xmlns:c="c" xmlns:ui="ui">
 
     <tags>
         <DefaultMetaGenExtends outputMode="node">
@@ -9,7 +9,7 @@
             <source>
                 <meta>
                     <xdsl:config xpl:ignoreTag="true">
-                        <c:import from="/nop/core/xlib/filter.xlib" />
+                        <c:import from="/nop/core/xlib/filter.xlib"/>
                     </xdsl:config>
                 </meta>
             </source>
@@ -23,6 +23,7 @@
                 <thisLib:GenConnectionFields/>
                 <thisLib:GenCodeRuleAutoExpr/>
                 <thisLib:GenMaskingExpr/>
+                <thisLib:GenFilterOp/>
             </source>
         </DefaultMetaPostExtends>
 
@@ -81,7 +82,7 @@
 
                             <prop name="${name}Connection" displayName="${prop.getAttr('displayName')}" lazy="true"
                                   internal="true" graphql:connectionProp="${name}" graphql:queryMethod="findConnection">
-                                <schema bizObjName="${prop.childByTag('schema').childAttr('item','bizObjName')}" />
+                                <schema bizObjName="${prop.childByTag('schema').childAttr('item','bizObjName')}"/>
                             </prop>
                         </c:for>
                     </props>
@@ -148,5 +149,21 @@
                 </meta>
             </source>
         </GenMaskingExpr>
+
+        <GenFilterOp outputMode="node">
+            <attr name="_dsl_root" implicit="true"/>
+
+            <source>
+                <meta>
+                    <props>
+                        <c:for var="prop" items="${_dsl_root.childByTag('props').children}">
+                            <prop name="${prop.getAttr('name')}" xpl:if="prop.attrCsvSet('tagSet')?.contains('like')"
+                                  ui:filterOp="contains" allowFilterOp="${'contains'.$mergeTagSet(prop.getAttr('allowFilterOp'))}">
+                            </prop>
+                        </c:for>
+                    </props>
+                </meta>
+            </source>
+        </GenFilterOp>
     </tags>
 </lib>

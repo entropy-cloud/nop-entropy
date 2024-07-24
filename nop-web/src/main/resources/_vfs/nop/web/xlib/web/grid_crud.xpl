@@ -69,7 +69,7 @@
             <labelTpl>$${objMeta.displayProp}</labelTpl>
         </c:if>
 
-        <filter xpl:if="filterForm" id="crud-filter" xpl:attrs="xpl('thisLib:FormDefaultAttrs',filterForm)" mode="${filterForm.layoutMode || 'horizontal'}">
+        <filter xpl:if="filterForm and !pageModel.autoGenerateFilter" id="crud-filter" xpl:attrs="xpl('thisLib:FormDefaultAttrs',filterForm)" mode="${filterForm.layoutMode || 'horizontal'}">
             <thisLib:GenFormBody formModel="${filterForm}" objMeta="${objMeta}"/>
             <actions j:list="true">
                 <reset label="@i18n:common.reset" id="reset-button"/>
@@ -77,8 +77,12 @@
             </actions>
         </filter>
 
+        <autoGenerateFilter xpl:if="pageModel.autoGenerateFilter"
+            columnsNum="${pageModel.autoGenerateFilter.columnsNum}" showBtnToolbar="${pageModel.autoGenerateFilter.showBtnToolbar}"
+                defaultCollapsed="${pageModel.autoGenerateFilter.defaultCollapsed}" />
+
         <columns j:list="true">
-            <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" ignoreCols="${genScope.fixedProps}"/>
+            <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" ignoreCols="${genScope.fixedProps}" filterForm="${pageModel.autoGenerateFilter ? filterForm:null}" />
             <operation label="@i18n:common.operation" id="operation" width="${pageModel.table?.operationSize || 140}"
                        toggled="@:true" fixed="right" labelClassName="text-center"
                        xpl:if="!pageModel.table?.noOperations">

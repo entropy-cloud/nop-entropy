@@ -73,6 +73,13 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
     private java.util.Map<java.lang.String,java.lang.Object> _data ;
     
     /**
+     *  
+     * xml name: defaultColumnRatio
+     * 
+     */
+    private java.lang.Integer _defaultColumnRatio ;
+    
+    /**
      *  控件编辑模式
      * xml name: editMode
      * edit:编辑模式, add:新增模式, view:查看模式, query:查询条件。不同的模式下使用的控件可能不同
@@ -516,6 +523,25 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
     public boolean hasData(){
         return this._data != null && !this._data.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: defaultColumnRatio
+     *  
+     */
+    
+    public java.lang.Integer getDefaultColumnRatio(){
+      return _defaultColumnRatio;
+    }
+
+    
+    public void setDefaultColumnRatio(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._defaultColumnRatio = value;
+           
+    }
+
     
     /**
      * 控件编辑模式
@@ -1291,6 +1317,7 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
         out.putNotNull("checkInterval",this.getCheckInterval());
         out.putNotNull("className",this.getClassName());
         out.putNotNull("data",this.getData());
+        out.putNotNull("defaultColumnRatio",this.getDefaultColumnRatio());
         out.putNotNull("editMode",this.getEditMode());
         out.putNotNull("id",this.getId());
         out.putNotNull("inheritData",this.getInheritData());
@@ -1347,6 +1374,7 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
         instance.setCheckInterval(this.getCheckInterval());
         instance.setClassName(this.getClassName());
         instance.setData(this.getData());
+        instance.setDefaultColumnRatio(this.getDefaultColumnRatio());
         instance.setEditMode(this.getEditMode());
         instance.setId(this.getId());
         instance.setInheritData(this.getInheritData());

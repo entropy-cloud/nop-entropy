@@ -14,10 +14,11 @@ import io.nop.core.model.table.IRow;
 import io.nop.core.model.table.impl.BaseCell;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 @DataBean
-public class LayoutGroupModel extends BaseCell implements ILayoutGroupModel , ILayoutCellModel{
+public class LayoutGroupModel extends BaseCell implements ILayoutGroupModel, ILayoutCellModel {
     private LayoutTableModel table;
 
     public String getType() {
@@ -30,6 +31,13 @@ public class LayoutGroupModel extends BaseCell implements ILayoutGroupModel , IL
 
     public void forEachLayoutCell(Consumer<LayoutCellModel> action) {
         table.forEachLayoutCell(action);
+    }
+
+    @Override
+    public ILayoutCellModel getLayoutCellById(String cellId) {
+        if (Objects.equals(getId(), cellId))
+            return this;
+        return table.getLayoutCellById(cellId);
     }
 
     @Override

@@ -4423,4 +4423,12 @@ public class StringHelper extends ApiStringHelper {
     public static String format(String format, Object... args) {
         return String.format(format, args);
     }
+
+    public static String mergeTagSet(String tagSet, String tagSet2) {
+        if (tagSet == null)
+            return tagSet2;
+        if (tagSet2 == null)
+            return tagSet;
+        return TagsHelper.toString(TagsHelper.merge(ConvertHelper.toCsvSet(tagSet), ConvertHelper.toCsvSet(tagSet2)));
+    }
 }

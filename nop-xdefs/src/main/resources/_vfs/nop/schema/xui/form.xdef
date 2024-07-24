@@ -15,7 +15,7 @@
 @silentPolling 配置刷新时是否显示加载动画
 -->
 <form id="string" title="string" label="string" editMode="xml-name" layoutMode="var-name" layoutControl="xml-name"
-      size="string"
+      size="string" defaultColumnRatio="int"
       submitOnChange="boolean" submitOnInit="boolean"
       resetAfterSubmit="boolean" reload="string" target="string" redirect="string"
       persistData="string" persistDataKeys="csv-set" preventEnterSubmit="boolean"
@@ -88,7 +88,7 @@
         @submitOnChange 只要控件值发生改变就会自动触发表单提交。
         @clearValueOnHidden 单元格被隐藏的时候自动从scope中删除变量
         -->
-        <cell id="!string" notSubmit="!boolean=false" custom="!boolean=false"
+        <cell id="!string" notSubmit="!boolean=false" custom="!boolean=false" columnRatio="int"
               collapseTitle="string" titlePosition="string" submitOnChange="boolean"
               readonly="boolean" mandatory="boolean" clearValueOnHidden="!boolean=false"
               xdef:name="UiFormCellModel" xdef:ref="disp.xdef"

@@ -12,6 +12,7 @@ import io.nop.api.core.util.INeedInit;
 import io.nop.commons.mutable.MutableInt;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.SchemaLoader;
+import io.nop.xlang.xmeta.layout.ILayoutCellModel;
 import io.nop.xlang.xmeta.layout.LayoutModel;
 import io.nop.xlang.xmeta.layout.LayoutTableModel;
 import io.nop.xui.model._gen._UiFormModel;
@@ -28,6 +29,12 @@ public class UiFormModel extends _UiFormModel implements INeedInit {
 
     }
 
+    public ILayoutCellModel getLayoutCellById(String cellId) {
+        if (getLayout() == null)
+            return null;
+        return getLayout().getLayoutCellById(cellId);
+    }
+
     public IObjMeta loadObjMeta() {
         return SchemaLoader.loadXMeta(getObjMeta());
     }
@@ -42,8 +49,8 @@ public class UiFormModel extends _UiFormModel implements INeedInit {
         return count.get();
     }
 
-    public void init(){
-        getCells().forEach(cell-> cell.init());
+    public void init() {
+        getCells().forEach(cell -> cell.init());
     }
 
     public List<LayoutTableModel> getTables() {

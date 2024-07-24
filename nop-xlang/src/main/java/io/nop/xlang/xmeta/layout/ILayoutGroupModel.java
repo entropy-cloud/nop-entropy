@@ -23,4 +23,6 @@ public interface ILayoutGroupModel {
 
     void display(StringBuilder sb, int indent);
 
+    ILayoutCellModel getLayoutCellById(String cellId);
+
 }

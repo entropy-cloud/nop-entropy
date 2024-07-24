@@ -318,13 +318,16 @@
                         <thisLib:GenFormTable formTable="${formCell.table}"/>
                     </when>
                     <otherwise>
-                        <thisLib:GenFormSimpleCell formCell="${formCell}"/>
+                        <thisLib:GenFormSimpleCell formCell="${formCell}" xpl:return="cell"/>
+                        <c:script>
+                            $out.appendChild(location(),"_",cell)
+                        </c:script>
                     </otherwise>
                 </c:choose>
             </source>
         </GenFormCell>
 
-        <GenFormSimpleCell outputMode="xjson">
+        <GenFormSimpleCell outputMode="none">
             <attr name="formCell"/>
             <attr name="formModel" implicit="true"/>
             <attr name="objMeta" implicit="true"/>
@@ -357,7 +360,7 @@
                         mandatory = formCell?.mandatory || propMeta?.['ui:queryMandatory']
 
                     let filterOp = cellModel?.filterOp || propMeta?.['ui:filterOp']
-                              || cellModel?.['xui:defaultFilterOp'] || propMeta?.['xui:defaultFilterOp']
+                              || cellModel?.['ui:filterOp'] || propMeta?.['xui:defaultFilterOp']
 
                     const placeholderKey = '@i18n:cells.'+i18nRoot+'.'+formCell.id + ".$placeholder";
                     let placeholder = cellModel?.placeholder
@@ -378,6 +381,7 @@
                         staticOn: cellModel?.readonlyOn,
                         requiredOn: cellModel?.requiredOn,
                         clearValueOnHidden: cellModel?.clearValueOnHidden,
+                        columnRatio: cellModel?.columnRatio ?? formModel?.defaultColumnRatio,
                         submitOnChange: cellModel?.submitOnChange ?? formModel?.submitOnChange,
                         desc: cellModel?.desc && ('@i18n:cells.'+i18nRoot+"."+formCell.id + ".$desc").$i18n(cellModel.desc)
                     };
@@ -397,7 +401,7 @@
                     if(control != null){
                         cell.putAll(control);
                     }
-                    $out.appendChild(location(),"_",cell)
+                    return cell;
                 ]]></c:script>
             </source>
         </GenFormSimpleCell>
@@ -410,6 +414,7 @@
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
             <attr name="editMode" optional="true"/>
+            <attr name="filterForm" optional="true" />
 
             <source>
                 <c:for var="col" items="${gridModel.cols}" index="colIndex">
@@ -418,7 +423,7 @@
                         if(ignoreCols and ignoreCols.contains(col.id)) continue;
                     </c:script>
                     <thisLib:GenGridCol colModel="${col}" objMeta="${objMeta}" colIndex="${colIndex}"
-                                        editMode="${editMode}"/>
+                                        editMode="${editMode}" filterForm="${filterForm}"/>
                 </c:for>
             </source>
         </GenGridCols>
@@ -430,12 +435,21 @@
             <attr name="colIndex"/>
             <attr name="objMeta"/>
             <attr name="editMode" optional="true"/>
+            <attr name="filterForm" optional="true" />
             <attr name="gridModel" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
+
 
             <source>
                 <c:script><![CDATA[
                     let propMeta = objMeta?.getProp(colModel.prop || colModel.id);
+
+                    let searchable = null;
+                    if(filterForm and propMeta){
+                        let formCell = filterForm.getLayoutCellById(propMeta.name);
+                        if(formCell)
+                           searchable = xpl('thisLib:GenFormSimpleCell',{formCell,formModel:filterForm,fixedProps:null})
+                    }
 
                     let col = {
                         name:colModel.id,
@@ -453,6 +467,7 @@
                         disabledOn: colModel.disabledOn,
                         breakpoint: colModel.breakpoint,
                         backgroundScale: colModel['xui:backgroundScale'],
+                        searchable: searchable,
                         remark: colModel.desc && ('@i18n:col.'+i18nRoot+"."+colModel.id + ".$desc").$i18n(colModel.desc),
                         hint: colModel.hint && ('@i18n:col.'+i18nRoot+"."+colModel.id + ".$hint").$i18n(colModel.hint)
                     };

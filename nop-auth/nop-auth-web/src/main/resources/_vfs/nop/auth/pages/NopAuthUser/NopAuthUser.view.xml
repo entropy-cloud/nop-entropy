@@ -139,6 +139,8 @@
 
     <pages>
         <crud name="main" asideFilterForm="asideFilter" x:inherit="true">
+            <autoGenerateFilter columnsNum="2" />
+
             <rowActions>
                 <actionGroup id="row-more-button">
                     <action id="reset-password-button" label="@i18n:common.resetUserPassword">

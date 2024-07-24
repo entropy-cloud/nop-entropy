@@ -32,6 +32,13 @@ public abstract class _UiFormCellModel extends io.nop.xui.model.UiDisplayMeta {
     
     /**
      *  
+     * xml name: columnRatio
+     * 
+     */
+    private java.lang.Integer _columnRatio ;
+    
+    /**
+     *  
      * xml name: mandatory
      * 
      */
@@ -99,6 +106,25 @@ public abstract class _UiFormCellModel extends io.nop.xui.model.UiDisplayMeta {
         checkAllowChange();
         
         this._collapseTitle = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: columnRatio
+     *  
+     */
+    
+    public java.lang.Integer getColumnRatio(){
+      return _columnRatio;
+    }
+
+    
+    public void setColumnRatio(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._columnRatio = value;
            
     }
 
@@ -215,6 +241,7 @@ public abstract class _UiFormCellModel extends io.nop.xui.model.UiDisplayMeta {
         
         out.putNotNull("clearValueOnHidden",this.isClearValueOnHidden());
         out.putNotNull("collapseTitle",this.getCollapseTitle());
+        out.putNotNull("columnRatio",this.getColumnRatio());
         out.putNotNull("mandatory",this.getMandatory());
         out.putNotNull("notSubmit",this.isNotSubmit());
         out.putNotNull("readonly",this.getReadonly());
@@ -233,6 +260,7 @@ public abstract class _UiFormCellModel extends io.nop.xui.model.UiDisplayMeta {
         
         instance.setClearValueOnHidden(this.isClearValueOnHidden());
         instance.setCollapseTitle(this.getCollapseTitle());
+        instance.setColumnRatio(this.getColumnRatio());
         instance.setMandatory(this.getMandatory());
         instance.setNotSubmit(this.isNotSubmit());
         instance.setReadonly(this.getReadonly());

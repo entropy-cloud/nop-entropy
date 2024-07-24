@@ -36,6 +36,15 @@ public class LayoutModel extends AbstractFreezable implements IComponentModel {
         }
     }
 
+    public ILayoutCellModel getLayoutCellById(String cellId) {
+        for (LayoutTableModel table : getGroups()) {
+            ILayoutCellModel cell = table.getLayoutCellById(cellId);
+            if (cell != null)
+                return cell;
+        }
+        return null;
+    }
+
     @JsonIgnore
     public List<LayoutCellModel> getLayoutCells() {
         List<LayoutCellModel> ret = new ArrayList<>();

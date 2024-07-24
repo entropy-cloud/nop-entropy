@@ -30,6 +30,25 @@ public class LayoutTableModel extends AbstractTable<LayoutRowModel> implements I
     private List<BaseColumnConfig> cols = Collections.emptyList();
     private boolean autoId;
 
+    @Override
+    public ILayoutCellModel getLayoutCellById(String cellId) {
+        for (LayoutRowModel row : getRows()) {
+            for (ICell cell : row.getCells()) {
+                if (cell.isProxyCell())
+                    continue;
+                if (cell instanceof ILayoutGroupModel) {
+                    ILayoutCellModel ret = ((ILayoutGroupModel) cell).getLayoutCellById(cellId);
+                    if (ret != null)
+                        return ret;
+                } else {
+                    if (cell.getId().equals(cellId))
+                        return (ILayoutCellModel) cell;
+                }
+            }
+        }
+        return null;
+    }
+
     public boolean isAutoId() {
         return autoId;
     }
