@@ -318,8 +318,6 @@ public class OrmEntityHelper {
      * @return 属性值集合
      */
     public static List<?> getRefProps(IOrmEntitySet<? extends IOrmEntity> coll, String propName) {
-        if (coll.isEmpty())
-            return Collections.emptyList();
         List<Object> ret = new ArrayList<>(coll.size());
         for (IOrmEntity entity : coll) {
             Object value = entity.orm_propValueByName(propName);
