@@ -114,6 +114,7 @@
         <sqlDataType name="DATE" stdSqlType="DATE"/>
         <sqlDataType name="DATETIME" code="TIMESTAMP" stdSqlType="DATETIME"/>
         <sqlDataType name="TIMESTAMP" stdSqlType="TIMESTAMP"/>
+        <sqlDataType name="TIME" stdSqlType="TIME" />
         <sqlDataType name="FLOAT4" stdSqlType="REAL"/>
         <sqlDataType name="FLOAT8" stdSqlType="DOUBLE" alias="DOUBLE PRECISION"/>
         <sqlDataType name="NUMERIC" stdSqlType="DECIMAL"/>
