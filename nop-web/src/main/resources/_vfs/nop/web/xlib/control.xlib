@@ -570,6 +570,61 @@
             ]]></source>
         </edit-file>
 
+
+        <edit-file-list>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="bizObjName" mandatory="true"/>
+            <attr name="accept" optional="true"/>
+
+            <source><![CDATA[
+              import io.nop.xui.utils.XuiHelper;
+              const name = propMeta?.name || dispMeta.id
+              const maxSize = XuiHelper.getMaxUploadSize(propMeta,dispMeta);
+              const uploadUrl = dispMeta?.uploadUrl || propMeta?.['ui:uploadUrl']
+                  || ($config.var('nop.file.upload-url','/f/upload') + '?bizObjName='+bizObjName.$encodeURL()+'&fieldName='+name.$encodeURL())
+              const supportFileLink = dispMeta?.['ui:supportFileLink'] ?? propMeta?.['ui:supportFileLink'] ?? false
+              accept = propMeta?.['ui:uploadAccept'] || dispMeta?.['ui:uploadAccept'] || accept
+
+              if(supportFileLink){
+              return {
+                        "type": "input-group",
+                        "name": "__group_" + name,
+                        "body": [
+                          {
+                            "type": "checkbox",
+                            "name": "__switch_" + name
+                          },
+                          {
+                            "type": "input-text",
+                            "name": name,
+                            "visibleOn": '${__switch_' + name + '}',
+                            placeholder: "输入文件链接"
+                          },
+                          {
+                            "type": "input-file",
+                            "name": name,
+                            "maxSize":maxSize,
+                            "visibleOn": '${!__switch_' + name + '}',
+                            "accept":accept,
+                            "receiver": uploadUrl,
+                            "useChunk":false
+                          }
+                        ]
+                      }
+              }else{
+                 return {
+                            "type": "input-file",
+                            "maxSize":maxSize,
+                            "accept":accept,
+                            "multiple":true,
+                            "receiver": uploadUrl,
+                            "useChunk":false
+                          }
+              }
+            ]]></source>
+        </edit-file-list>
+
         <view-file>
             <attr name="dispMeta"/>
             <attr name="propMeta"/>
@@ -595,6 +650,59 @@
                 }
             ]]></source>
         </view-file>
+
+        <view-file-list>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+
+            <source><![CDATA[
+                return {
+                    "type": "group",
+                    "body" : {
+                        "type": "action",
+                        "visibleOn": "${" + propMeta.name+" != null}",
+                        "actionType": "dialog",
+                        "label": "查看下载列表",
+                        "dialog": {
+                          "title": "文件列表",
+                          "body": {
+                            "type": "table",
+                            "source": "${"+propMeta.name+"ComponentFileStatusList}",
+
+                            "columns": [
+                              {
+                                "name": "name",
+                                "label": "文件名称",
+                                "level": "link"
+                              },
+                              {
+                                "name": "fileSize",
+                                "label": "文件大小"
+                              },
+                              {
+                                "label": "下载",
+                                "type": "operation",
+                                "buttons": [
+                                  {
+                                    "label": "下载",
+                                    "type": "action",
+                                    "actionType": "download",
+                                    "api": {
+                                        method: "get",
+                                        url: "/f/download/$fileId",
+                                        data: {},
+                                        responseType: "blob"
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                    }
+                }
+            ]]></source>
+        </view-file-list>
 
         <view-images>
             <attr name="dispMeta"/>
