@@ -32,7 +32,8 @@ import org.slf4j.LoggerFactory;
  * 数据库自动升级
  * <p/>
  * 在工程内引入依赖 `io.github.entropy-cloud:nop-dbtool-core`
- * 并配置 `nop.orm.db-differ.auto-upgrade-database` 为 `true` 可启用该功能。
+ * 并配置 `nop.orm.db-differ.auto-upgrade-database` 为 `true` 可启用该功能，
+ * 可选配置: `nop.orm.db-differ.auto-upgrade-database-specify-query-spaces` 指定需要自动升级的 querySpace 列表，
  * <p/>
  * 由于无法识别表移除、表更名和字段移除、字段重命名，为确保数据不会被误删除，
  * 其不会执行 `drop table` 和 `drop column` 语句，需自行处理。
