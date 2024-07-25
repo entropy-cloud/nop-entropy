@@ -61,8 +61,8 @@ public class ObjMetaToGraphQLDefinition {
             if (!published)
                 continue;
 
-            if (!propMeta.isReadable())
-                continue;
+//            if (!propMeta.isReadable())
+//                continue;
 
             // 忽略a.b.c这种复合字段
             if (propMeta.getName().indexOf('.') > 0)

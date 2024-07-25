@@ -69,7 +69,7 @@
             <prop name="${col.name}" displayName="${col.displayName}" propId="${col.propId}"
                   i18n-en:displayName="${col['i18n-en:displayName']}" tagSet="${_.join(col.tagSet,',')}"
                   mandatory="${col.mandatory || null}" published="${col.tagSet?.contains('not-pub') ? false:null}"
-                  queryable="${col['ext:queryable'] ?? true}" sortable="${col['ext:sortable'] ?? true}"
+                  queryable="${col.tagSet?.contains('not-query') ? false: true}" sortable="${col.tagSet?.contains('not-sort')?false:true}"
                   insertable="${xpl('meta-gen:IsColInsertable',col)}" updatable="${xpl('meta-gen:IsColUpdatable',col)}"
                   internal="${xpl('meta-gen:IsColInternal',col)||null}" dependsOn="${buildColDepends(col)}"
                   graphql:jsonComponentProp="${jsonCol? col.name + 'Component' : null}"

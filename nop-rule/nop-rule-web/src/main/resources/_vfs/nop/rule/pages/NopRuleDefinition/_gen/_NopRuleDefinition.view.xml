@@ -80,12 +80,14 @@
         <form id="add" editMode="add" title="新增-规则模型定义" i18n-en:title="Add Rule Definition" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-规则模型定义" i18n-en:title="Edit Rule Definition">
             <layout>
- ruleName[规则名称] ruleVersion[规则版本]
- displayName[显示名称] ruleGroup[规则分组]
- ruleType[规则类型] description[描述]
- status[状态] 
-                remark[备注]
- beforeExecute[初始化代码] decisionMatrix[决策矩阵配置]
+ ruleName[规则名称]
+ ruleVersion[规则版本]
+ displayName[显示名称]
+ ruleGroup[规则分组]
+ ruleType[规则类型]
+ description[描述]
+ status[状态]
+ remark[备注]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">

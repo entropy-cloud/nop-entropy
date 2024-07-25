@@ -91,9 +91,8 @@
  displayName[显示名] tableName[表名]
  querySpace[查询空间] storeType[存储类型]
  tagsText[标签] isExternal[是否外部实体]
- status[状态] mainPagePath[测试页面]
- extConfig[扩展配置] 
-                remark[备注]
+ status[状态] extConfig[扩展配置]
+ remark[备注] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">

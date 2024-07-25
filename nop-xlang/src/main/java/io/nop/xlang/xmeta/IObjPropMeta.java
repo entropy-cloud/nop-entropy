@@ -116,7 +116,7 @@ public interface IObjPropMeta
 
     boolean isUpdatable();
 
-    boolean isReadable();
+//    boolean isReadable();
 
     /**
      * 转换为xml属性或者节点时对应的标签名，一般情况下与属性名一致

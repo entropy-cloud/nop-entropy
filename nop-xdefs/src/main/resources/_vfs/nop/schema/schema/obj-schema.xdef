@@ -31,7 +31,6 @@
         @depends 获取本字段的值的时候，需要依赖其他字段。例如在批量加载的时候，表示需要把相关字段也进行批量加载
         @tagSet 逗号分隔的自定义附加标识
         @defaultValue 缺省值
-        @readable 是否可以作为返回值返回。readable=false一般是作为输入数据使用，只允许提交，而不允许查看
         @ui:maxUploadSize 文件上传时最大允许的文件大小，可以是20M这种写法
         @ui:maskPattern 如果设置了maskPattern，则在元编程阶段自动生成transformOut，输出到前台的时候会自动进行掩码转换
         @graphql:queryMethod 允许findCount/findFirst/findList/findPage/findConnection等值。这个参数不为空时表示输入类型为GraphQLConnectionInput,
@@ -48,17 +47,18 @@
               xmlName="xml-name" childXmlName="xml-name" xmlPos="enum:io.nop.core.lang.xml.XNodeValuePosition"
               childName="prop-name" defaultOverride="enum:io.nop.xlang.xdef.XDefOverride"
               tagSet="tag-set" lazy="!boolean=false"
-              insertable="!boolean=true" updatable="!boolean=true" queryable="!boolean=false" sortable="!boolean=false"
-              readable="!boolean=true" virtual="!boolean=false"
-              published="!boolean=true" allowFilterOp="word-set" kind="enum:io.nop.xlang.xmeta.ObjPropKind"
+              insertable="!boolean=false" updatable="!boolean=false" queryable="!boolean=false"
+              sortable="!boolean=false" virtual="!boolean=false" published="!boolean=true"
+              allowFilterOp="word-set" kind="enum:io.nop.xlang.xmeta.ObjPropKind"
               ui:control="xml-name" ui:show="string" ui:labelProp="prop-path" ui:filterOp="xml-name"
-              ui:maxUploadSize="long-size" ui:supportFileLink="boolean" ui:uploadAccept="string" ui:queryMandatory="boolean"
+              ui:maxUploadSize="long-size" ui:supportFileLink="boolean" ui:uploadAccept="string"
+              ui:queryMandatory="boolean"
               ui:editGrid="string" ui:viewGrid="string" ui:maskPattern="string" ui:shortcuts="string"
               orm:manyToManyRefProp="string"
               xml:mapper="string" graphql:mapper="string" biz:codeRule="string" graphql:datePattern="string"
               graphql:type="string" graphql:jsonComponentProp="string" graphql:dictValueProp="prop-path"
               graphql:joinLeftProps="word-set" graphql:joinRightProps="word-set"
-              graphql:connectionProp="prop-name"  graphql:maxFetchSize="int"
+              graphql:connectionProp="prop-name" graphql:maxFetchSize="int"
               graphql:queryMethod="dict:core/std-query-method" graphql:authObjName="string"
         >
             <description xdef:value="string"/>
@@ -73,7 +73,7 @@
 
             <graphql:inputType xdef:value="class-name"/>
 
-            <graphql:transFilter xdef:value="xpl-fn:(filter,query,forEntity)=>any" />
+            <graphql:transFilter xdef:value="xpl-fn:(filter,query,forEntity)=>any"/>
 
             <!--
             配置字段级别的权限约束

@@ -69,7 +69,7 @@ public class XuiViewAnalyzer {
             String prop = colModel.getProp() == null ? colModel.getId() : colModel.getProp();
             IObjPropMeta propMeta = objMeta == null ? null : objMeta.getProp(prop);
             if (propMeta != null) {
-                if (!propMeta.isReadable())
+                if (!propMeta.isPublished())
                     continue;
 
                 addRelationDispProp(propMeta, objMeta, selection);
@@ -185,7 +185,7 @@ public class XuiViewAnalyzer {
             IObjPropMeta propMeta = objMeta == null ? null : objMeta.getProp(prop);
             if (propMeta != null) {
                 // 不可读的数据不会进入selection
-                if (!propMeta.isReadable())
+                if (!propMeta.isPublished())
                     return;
 
                 addRelationDispProp(propMeta, objMeta, selection);

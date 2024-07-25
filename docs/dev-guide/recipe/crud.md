@@ -2,12 +2,12 @@
 
 在meta中增加prop，然后设置它的virtual属性为true，表示是虚拟字段，就不会自动拷贝到实体上。
 
-如果不允许读取，则需要配置readable=false，这样查询后台的时候就不允许从实体上读取此属性。
+如果不允许读取，则需要配置published=false，这样查询后台的时候就不允许从实体上读取此属性。
 
 ```xml
 <meta>
   <props>
-    <prop name="myProp" readable="false" virtual="true">
+    <prop name="myProp" published="false" virtual="true">
         <schema stdDomain="string" />
     </prop>
   </props>

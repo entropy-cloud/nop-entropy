@@ -6,7 +6,7 @@
     <props>
         <prop name="userName" allowFilterOp="eq,contains" ui:filterOp="contains"/>
 
-        <prop name="password" displayName="密码" readable="false" insertable="true" updatable="false">
+        <prop name="password" displayName="密码" published="false" insertable="true" updatable="false">
             <schema type="String" domain="password" maxLength="20"/>
         </prop>
 

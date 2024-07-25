@@ -79,7 +79,6 @@
  ruleId[规则ID]
  label[显示标签]
  sortNo[排序序号]
- predicateLabel[判断条件]
  outputs[输出结果]
  parentId[父ID]
  isLeaf[是否叶子节点]

@@ -18,4 +18,5 @@ prop:
       fileName: 文件名
       filePath: 文件路径
       mimeType: 内容类型
+      originFileId: 原始文件ID
       remark: 备注

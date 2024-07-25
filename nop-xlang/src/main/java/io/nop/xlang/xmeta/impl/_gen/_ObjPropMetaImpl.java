@@ -121,7 +121,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
      * xml name: insertable
      * 
      */
-    private boolean _insertable  = true;
+    private boolean _insertable  = false;
     
     /**
      *  
@@ -188,13 +188,6 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     
     /**
      *  
-     * xml name: readable
-     * 是否可以作为返回值返回。readable=false一般是作为输入数据使用，只允许提交，而不允许查看
-     */
-    private boolean _readable  = true;
-    
-    /**
-     *  
      * xml name: schema
      * schema包含如下几种情况：1. 简单数据类型 2. Map（命名属性集合） 3. List（顺序结构，重复结构） 4. Union（switch选择结构）
      * Map对应props配置,  List对应item配置, Union对应oneOf配置
@@ -249,7 +242,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
      * xml name: updatable
      * 
      */
-    private boolean _updatable  = true;
+    private boolean _updatable  = false;
     
     /**
      *  
@@ -784,25 +777,6 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     
     /**
      * 
-     * xml name: readable
-     *  是否可以作为返回值返回。readable=false一般是作为输入数据使用，只允许提交，而不允许查看
-     */
-    
-    public boolean isReadable(){
-      return _readable;
-    }
-
-    
-    public void setReadable(boolean value){
-        checkAllowChange();
-        
-        this._readable = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: schema
      *  schema包含如下几种情况：1. 简单数据类型 2. Map（命名属性集合） 3. List（顺序结构，重复结构） 4. Union（switch选择结构）
      * Map对应props配置,  List对应item配置, Union对应oneOf配置
@@ -1059,7 +1033,6 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
         out.putNotNull("propId",this.getPropId());
         out.putNotNull("published",this.isPublished());
         out.putNotNull("queryable",this.isQueryable());
-        out.putNotNull("readable",this.isReadable());
         out.putNotNull("schema",this.getSchema());
         out.putNotNull("setter",this.getSetter());
         out.putNotNull("sortable",this.isSortable());
@@ -1106,7 +1079,6 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
         instance.setPropId(this.getPropId());
         instance.setPublished(this.isPublished());
         instance.setQueryable(this.isQueryable());
-        instance.setReadable(this.isReadable());
         instance.setSchema(this.getSchema());
         instance.setSetter(this.getSetter());
         instance.setSortable(this.isSortable());

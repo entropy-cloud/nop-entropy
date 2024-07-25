@@ -49488,6 +49488,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "LOG"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "specifyQuerySpaces"
       }
     ],
     "methods": [
@@ -49505,6 +49510,12 @@
         "name": "setOrmSessionFactory",
         "parameterTypes": [
           "io.nop.orm.IOrmSessionFactory"
+        ]
+      },
+      {
+        "name": "setSpecifyQuerySpaces",
+        "parameterTypes": [
+          "[Ljava.lang.String;"
         ]
       },
       {

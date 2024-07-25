@@ -12,6 +12,7 @@ import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.commons.collections.IKeyedElement;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.hook.IExtensibleObject;
 import io.nop.xlang.api.XLang;
@@ -92,5 +93,19 @@ public interface IXplTag extends IExtensibleObject, ISourceLocationGetter, IKeye
             ExecutableFunction fn = (ExecutableFunction) getFunctionModel().getInvoker();
             return fn.executeWithArgs(XLang.getExecutor(), XplTagHelper.buildTagArgValues(this, args, scope), ctx);
         }, new EvalRuntime(scope));
+    }
+
+    @EvalMethod
+    default XNode generateNode(IEvalScope scope, Map<String, Object> args) {
+        return ExprEvalHelper.generateNode(ctx -> {
+            ExecutableFunction fn = (ExecutableFunction) getFunctionModel().getInvoker();
+            return fn.executeWithArgs(XLang.getExecutor(), XplTagHelper.buildTagArgValues(this, args, scope), ctx);
+        }, new EvalRuntime(scope));
+    }
+
+    default Object executeWithArgs(Map<String, Object> args, EvalRuntime rt) {
+        IEvalScope scope = rt.getScope();
+        ExecutableFunction fn = (ExecutableFunction) getFunctionModel().getInvoker();
+        return fn.executeWithArgs(XLang.getExecutor(), XplTagHelper.buildTagArgValues(this, args, scope), rt);
     }
 }

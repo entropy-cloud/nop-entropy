@@ -317,6 +317,7 @@
 /nop/core/xlib/file.xlib
 /nop/core/xlib/filter.xlib
 /nop/core/xlib/meta-gen.xlib
+/nop/core/xlib/meta-prop.xlib
 /nop/dao/beans/dao-defaults.beans.xml
 /nop/dao/dialect/db2.dialect.xml
 /nop/dao/dialect/default.dialect.xml

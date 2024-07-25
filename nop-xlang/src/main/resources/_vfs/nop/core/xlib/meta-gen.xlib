@@ -24,6 +24,7 @@
                 <thisLib:GenCodeRuleAutoExpr/>
                 <thisLib:GenMaskingExpr/>
                 <thisLib:GenFilterOp/>
+                <thisLib:GenPropForDomain/>
             </source>
         </DefaultMetaPostExtends>
 
@@ -158,12 +159,38 @@
                     <props>
                         <c:for var="prop" items="${_dsl_root.childByTag('props').children}">
                             <prop name="${prop.getAttr('name')}" xpl:if="prop.attrCsvSet('tagSet')?.contains('like')"
-                                  ui:filterOp="contains" allowFilterOp="${'contains'.$mergeTagSet(prop.getAttr('allowFilterOp'))}">
+                                  ui:filterOp="contains"
+                                  allowFilterOp="${'contains'.$mergeTagSet(prop.getAttr('allowFilterOp'))}">
                             </prop>
                         </c:for>
                     </props>
                 </meta>
             </source>
         </GenFilterOp>
+
+        <GenPropForDomain outputMode="node">
+            <attr name="_dsl_root" implicit="true"/>
+            <description>
+                根据prop上的domain和stdDomain设置，查找meta-prop.xlib中的扩展函数，自动生成transformIn/transformOut/autoExpr/getter/setter
+            </description>
+
+            <source>
+                <meta xdsl:dump="true">
+                    <props>
+                        <c:for var="propNode" items="${_dsl_root.childByTag('props').children}">
+                            <c:script>
+                                import io.nop.xlang.xmeta.utils.ObjMetaPropHelper;
+                                const propGen = ObjMetaPropHelper.findTagForDomain(propNode);
+                            </c:script>
+                            <prop name="${propNode.getAttr('name')}" xpl:if="propGen">
+                                <c:script>
+                                    propGen.generate(propNode,$evalRt);
+                                </c:script>
+                            </prop>
+                        </c:for>
+                    </props>
+                </meta>
+            </source>
+        </GenPropForDomain>
     </tags>
 </lib>

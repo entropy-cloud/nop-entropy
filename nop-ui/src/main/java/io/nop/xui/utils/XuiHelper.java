@@ -71,7 +71,7 @@ public class XuiHelper {
             }
         }
 
-        if(XuiConstants.MODE_UPDATE.equals(editMode))
+        if (XuiConstants.MODE_UPDATE.equals(editMode))
             editMode = MODE_EDIT;
 
         if (control == null && propMeta != null)
@@ -209,6 +209,10 @@ public class XuiHelper {
                 UiFormCellModel cellModel = formModel.getCell(cell.getId());
                 String prop = cell.getId();
                 if (cellModel != null) {
+                    // 不提交到后台，所以从集合中忽略
+                    if (cellModel.isNotSubmit())
+                        return ProcessResult.CONTINUE;
+
                     if (cellModel.getProp() != null) {
                         prop = cellModel.getProp();
                     }
@@ -260,8 +264,8 @@ public class XuiHelper {
             if (bizObjName != null)
                 return bizObjName;
 
-            if(schema.getItemSchema() != null){
-                if(schema.getItemSchema().getBizObjName() != null)
+            if (schema.getItemSchema() != null) {
+                if (schema.getItemSchema().getBizObjName() != null)
                     return schema.getItemSchema().getBizObjName();
             }
 
@@ -321,7 +325,7 @@ public class XuiHelper {
         }
         if (StringHelper.isEmpty(moduleId))
             moduleId = ResourceHelper.getModuleId(objMeta.resourcePath());
-        return '/' + moduleId + "/pages/" + bizObjName + "/"+bizObjName+".view.xml";
+        return '/' + moduleId + "/pages/" + bizObjName + "/" + bizObjName + ".view.xml";
     }
 
     /**

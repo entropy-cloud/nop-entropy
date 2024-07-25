@@ -1,0 +1,22 @@
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <tags>
+        <domain-csv-list outputMode="node">
+            <attr name="propNode"/>
+
+            <source>
+                <prop name="${propNode.getAttr('name')}">
+                    <schema type="List&lt;String>"/>
+
+                    <transformIn>
+                        return value?.$toCsvListString();
+                    </transformIn>
+
+                    <transformOut>
+                        return value?.$toCsvList();
+                    </transformOut>
+                </prop>
+            </source>
+        </domain-csv-list>
+    </tags>
+</lib>
