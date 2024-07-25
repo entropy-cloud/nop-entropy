@@ -44,7 +44,9 @@ import io.nop.orm.support.DynamicOrmEntity;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -60,6 +62,7 @@ public class DynEntityMetaToOrmModel {
     private final IEntityModel dynEntityModel;
     private final IEntityModel dynRelationModel;
     private final boolean forceRealTable;
+    private Map<String, OrmEntityModel> middleTables = new HashMap<>();
 
     static final List<String> STD_PROPS = Arrays.asList(NopDynEntity.PROP_NAME_version,
             NopDynEntity.PROP_NAME_createdBy, NopDynEntity.PROP_NAME_createTime,
@@ -91,7 +94,7 @@ public class DynEntityMetaToOrmModel {
 
         model.setEntities(toOrmEntityModels(module.getEntityMetas(), basePackageName));
 
-        if(!forceRealTable) {
+        if (!forceRealTable) {
             addExternalExtTable(model);
         }
         model.init();
@@ -112,7 +115,7 @@ public class DynEntityMetaToOrmModel {
     }
 
     List<OrmEntityModel> toOrmEntityModels(Collection<NopDynEntityMeta> entityMetas, String basePackageName) {
-        // 如果不是外部表，也没有属性，则不需要生成对应的实体定义
+        // 如果是外部表，或者没有属性，则不需要生成对应的实体定义
         List<OrmEntityModel> ret = entityMetas.stream().filter(entityMeta -> {
             return entityMeta.isHasProp() || Boolean.TRUE.equals(entityMeta.getIsExternal());
         }).map(this::toOrmEntityModel).collect(Collectors.toList());
@@ -208,11 +211,11 @@ public class DynEntityMetaToOrmModel {
         });
 
         entityMeta.getRelationMetasForEntity().forEach(rel -> {
-            handlerRelation(entityModel, rel);
+            handleRelationMeta(entityModel, rel);
         });
     }
 
-    private void handlerRelation(OrmEntityModel entityModel, NopDynEntityRelationMeta rel) {
+    private void handleRelationMeta(OrmEntityModel entityModel, NopDynEntityRelationMeta rel) {
 
         OrmRelationType ormRelationType = OrmRelationType.valueOf(rel.getRelationType());
         if (ormRelationType == OrmRelationType.o2o
@@ -223,12 +226,12 @@ public class DynEntityMetaToOrmModel {
             entityModel.addRelation(oneRelationModel);
 
         } else if (ormRelationType == OrmRelationType.m2m) {
-            handlerManyToManyRelation(entityModel, rel);
+            handleManyToManyRelation(entityModel, rel);
         }
     }
 
-    private void handlerManyToManyRelation(OrmEntityModel entityModel, NopDynEntityRelationMeta rel) {
-
+    private void handleManyToManyRelation(OrmEntityModel entityModel, NopDynEntityRelationMeta rel) {
+        // 多对多关联的定义是： 新建一个中间表，分别引用左表和右表的主键。这要求rel的leftProp和rightProp都应该是id
         OrmReferenceModel manyRelationModel = this.toRelationModel(rel);
         entityModel.addRelation(manyRelationModel);
         entityModel.setTagSet(TagsHelper.add(StringHelper.parseCsvSet(rel.getTagsText()), OrmModelConstants.TAG_MANY_TO_MANY));
@@ -237,10 +240,10 @@ public class DynEntityMetaToOrmModel {
 
     private OrmReferenceModel toRelationModel(NopDynEntityRelationMeta rel) {
         OrmReferenceModel ret;
-        if (rel.getRelationType().equals(OrmRelationType.o2o.name())) {
-            ret = new OrmToOneReferenceModel();
-        } else {
+        if (rel.isToMany()) {
             ret = new OrmToManyReferenceModel();
+        } else {
+            ret = new OrmToOneReferenceModel();
         }
 
         ret.setName(rel.getRelationName());
@@ -302,40 +305,6 @@ public class DynEntityMetaToOrmModel {
         addExtFields(entityModel);
     }
 
-    protected void addRelation(OrmEntityModel entityModel, NopDynPropMeta propMeta) {
-        OrmToOneReferenceModel ref = new OrmToOneReferenceModel();
-        ref.setName(getRefObjName(propMeta));
-        ref.setDisplayName(getRefObjDisplayName(propMeta));
-        ref.setTagSet(propMeta.getTagSet());
-//        ref.setRefEntityName(propMeta.getRefEntityName());
-//        ref.setRefPropName(propMeta.getRefPropName());
-//        ref.setRefDisplayName(propMeta.getRefPropDisplayName());
-
-        OrmJoinOnModel join = new OrmJoinOnModel();
-        join.setLeftProp(propMeta.getPropName());
-        join.setRightProp(OrmModelConstants.PROP_ID);
-
-        ref.setJoin(Arrays.asList(join));
-        entityModel.addRelation(ref);
-    }
-
-    private String getRefObjName(NopDynPropMeta propMeta) {
-        if (propMeta.getPropName().endsWith("Id"))
-            return StringHelper.removeTail(propMeta.getPropName(), "Id");
-        return propMeta.getPropName() + "Obj";
-    }
-
-    private String getRefObjDisplayName(NopDynPropMeta propMeta) {
-        String displayName = propMeta.getDisplayName();
-        if (displayName == null)
-            return null;
-        if (displayName.endsWith("Id") || displayName.endsWith("ID")) {
-            displayName = displayName.substring(0, displayName.length() - 2);
-            displayName = displayName.trim();
-        }
-        return displayName;
-    }
-
     protected void addExtFields(OrmEntityModel entityModel) {
         IEntityRelationModel rel = dynEntityModel.getRelation(NopDynEntity.PROP_NAME_extFields, false);
         OrmToManyReferenceModel ref = ((OrmToManyReferenceModel) rel).cloneInstance();
@@ -345,36 +314,6 @@ public class DynEntityMetaToOrmModel {
     protected String buildVirtualPropPath(OrmAliasModel alias) {
         StdDataType type = alias.getType().getStdDataType();
         return "extFields." + alias.getName() + "." + type;
-    }
-
-    protected OrmReferenceModel toRefModel(NopDynPropMeta propMeta) {
-        OrmToOneReferenceModel ret = new OrmToOneReferenceModel();
-        ret.setName(toRelationName(propMeta.getPropName()));
-        ret.setDisplayName(toDisplayName(propMeta.getDisplayName()));
-//        ret.setRefEntityName(propMeta.getRefEntityName());
-//        ret.setRefPropName(propMeta.getRefPropName());
-//        ret.setRefDisplayName(propMeta.getRefPropDisplayName());
-        ret.setTagSet(propMeta.getTagSet());
-
-        List<OrmJoinOnModel> join = new ArrayList<>(1);
-        OrmJoinOnModel joinOn = new OrmJoinOnModel();
-        joinOn.setLeftProp(propMeta.getPropName());
-        joinOn.setRightProp(OrmModelConstants.PROP_ID);
-        join.add(joinOn);
-        ret.setJoin(join);
-        return ret;
-    }
-
-    protected String toRelationName(String propName) {
-        if (propName.endsWith("Id")) return propName.substring(0, propName.length() - 2);
-        return propName + "Obj";
-    }
-
-    protected String toDisplayName(String displayName) {
-        if (displayName == null) return null;
-        if (displayName.endsWith("ID") || displayName.endsWith("Id"))
-            return displayName.substring(0, displayName.length() - 2).trim();
-        return displayName;
     }
 
     protected OrmAliasModel toAliasModel(NopDynPropMeta propMeta) {
@@ -550,19 +489,5 @@ public class DynEntityMetaToOrmModel {
 //                rel.getEntity2PropName(), rel.getEntity2DisplayName());
 //        relTable.addRelation(ref1);
 //        relTable.addRelation(ref2);
-    }
-
-    protected OrmReferenceModel toRelationRefModel(String propName, String refPropName, String refDisplayName) {
-        OrmToOneReferenceModel ret = new OrmToOneReferenceModel();
-        ret.setName(refPropName);
-        ret.setDisplayName(refDisplayName);
-
-        List<OrmJoinOnModel> join = new ArrayList<>(1);
-        OrmJoinOnModel joinOn = new OrmJoinOnModel();
-        joinOn.setLeftProp(propName);
-        joinOn.setRightProp(OrmModelConstants.PROP_ID);
-        join.add(joinOn);
-        ret.setJoin(join);
-        return ret;
     }
 }
