@@ -12,7 +12,6 @@ import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.FileResource;
-import io.nop.core.resource.impl.UnknownResource;
 import io.nop.core.resource.record.csv.CsvResourceRecordIO;
 import io.nop.core.resource.record.list.HeaderListRecordOutput;
 import io.nop.excel.model.ExcelWorkbook;
@@ -31,7 +30,6 @@ public class ExcelHelper {
     public static ExcelWorkbook parseExcel(IResource resource) {
         return new ExcelWorkbookParser().parseFromResource(resource);
     }
-
     public static void saveExcel(IResource resource, ExcelWorkbook workbook) {
         new ExcelTemplate(workbook, null).generateToResource(resource, XLang.newEvalScope());
     }
@@ -48,35 +46,31 @@ public class ExcelHelper {
 
     public static List<ExcelSheetData> readAllSheets(IResource xlsx) {
         List<ExcelSheetData> ret = new ArrayList<>();
-
-        new XlsxToRecordOutput((r, e) -> new HeaderListRecordOutput<>(xlsx, null, CollectionHelper::toMap) {
+        new XlsxToRecordOutput(sheetName -> new HeaderListRecordOutput<>(CollectionHelper::toMap) {
             @Override
             public void close() {
                 ExcelSheetData data = new ExcelSheetData();
-                data.setName(r.getName());
+                data.setName(sheetName);
                 data.setData(this.getResult());
                 ret.add(data);
             }
-        },
-                null, sheetName -> {
-            return new UnknownResource("/" + sheetName);
         }).parseFromResource(xlsx);
         return ret;
     }
 
     public static List<Map<String, Object>> readSheet(IResource xlsx, String selectedSheetName) {
-        HeaderListRecordOutput<Map<String, Object>> output = new HeaderListRecordOutput<>(xlsx, null, CollectionHelper::toMap);
+        HeaderListRecordOutput<Map<String, Object>> output = new HeaderListRecordOutput<>(CollectionHelper::toMap);
 
         MutableInt index = new MutableInt();
-        new XlsxToRecordOutput((r, e) -> output, null, sheetName -> {
+        new XlsxToRecordOutput(sheetName -> {
             if (selectedSheetName == null) {
                 if (index.get() > 0)
                     return null;
                 index.incrementAndGet();
-                return xlsx;
+                return output;
             } else {
                 if (selectedSheetName.equals(sheetName)) {
-                    return xlsx;
+                    return output;
                 }
                 return null;
             }
@@ -96,7 +90,7 @@ public class ExcelHelper {
         File dir = output.getParentFile();
 
         MutableInt index = new MutableInt();
-        new XlsxToRecordOutput(recordIO, encoding, sheetName -> {
+        new XlsxToRecordOutput(sheetName -> {
             String outputName;
             if (multiSheet) {
                 outputName = baseName + "-" + StringHelper.safeFileName(sheetName) + (fileExt.isEmpty() ? ".csv" : fileExt);
@@ -106,7 +100,7 @@ public class ExcelHelper {
                 outputName = baseName + (fileExt.isEmpty() ? ".csv" : fileExt);
                 index.incrementAndGet();
             }
-            return new FileResource(new File(dir, outputName));
+            return recordIO.openOutput(new FileResource(new File(dir, outputName)), encoding);
         }).parseFromResource(xlsx);
     }
 }

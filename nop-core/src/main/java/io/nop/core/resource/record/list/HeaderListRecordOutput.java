@@ -9,7 +9,6 @@ package io.nop.core.resource.record.list;
 
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.resource.IResource;
 import io.nop.dataset.record.IRecordOutput;
 
 import java.io.IOException;
@@ -18,19 +17,13 @@ import java.util.List;
 import java.util.function.BiFunction;
 
 public class HeaderListRecordOutput<R> implements IRecordOutput<List<Object>> {
-    private IResource resource;
-    private String encoding;
-
     private List<String> headers;
     private final List<R> records = new ArrayList<>();
     private final BiFunction<List<String>, List<Object>, R> rowBuilder;
     private boolean headersWritten;
     private long writeCount;
 
-    public HeaderListRecordOutput(IResource resource, String encoding,
-                                  BiFunction<List<String>, List<Object>, R> rowBuilder) {
-        this.resource = resource;
-        this.encoding = encoding;
+    public HeaderListRecordOutput(BiFunction<List<String>, List<Object>, R> rowBuilder) {
         this.rowBuilder = rowBuilder;
     }
 
