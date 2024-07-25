@@ -300,7 +300,7 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
                     .param(ARG_FILE_ID, fileId).param(ARG_BIZ_OBJ_NAME, bizObjName).param(ARG_FILE_OBJ_NAME, record.getBizObjName());
         record.setBizObjId(objId);
         record.setFieldName(fieldName);
-        dao.updateEntity(record);
+        dao.saveOrUpdateEntity(record);
     }
 
     @Override
@@ -318,6 +318,8 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
         newRecord.setFilePath(record.getFilePath());
         newRecord.setFileHash(record.getFileHash());
         newRecord.setFileLastModified(record.getFileLastModified());
+        newRecord.setMimeType(record.getMimeType());
+        newRecord.setFileId(newFileId());
         dao.saveEntity(newRecord);
         return newRecord.getFileId();
     }
