@@ -1,0 +1,9 @@
+<meta x:extends="super" x:schema="/nop/schema/xmeta.xdef"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:graphql="graphql" xmlns:filter="filter">
+
+    <props>
+        <prop name="opResponse">
+            <schema stdDomain="csv-list" />
+        </prop>
+    </props>
+</meta>

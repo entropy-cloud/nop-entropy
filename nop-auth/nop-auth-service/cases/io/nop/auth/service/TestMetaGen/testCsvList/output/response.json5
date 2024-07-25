@@ -1,0 +1,25 @@
+{
+  "data": [
+    {
+      "id": "@var:NopAuthOpLog@logId",
+      "logId": "@var:NopAuthOpLog@logId",
+      "userName": "aaa",
+      "userId": "a",
+      "sessionId": "123",
+      "operation": null,
+      "description": null,
+      "actionTime": "@var:NopAuthOpLog@actionTime",
+      "usedTime": 0,
+      "resultStatus": 1,
+      "errorCode": null,
+      "retMessage": null,
+      "opRequest": null,
+      "opResponse": [
+        "a",
+        "b",
+        "c"
+      ]
+    }
+  ],
+  "status": 0
+}
