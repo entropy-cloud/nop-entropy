@@ -45,10 +45,7 @@ import java.util.List;
 import java.util.Set;
 
 import static io.nop.graphql.core.GraphQLErrors.ARG_BIZ_OBJ_NAME;
-import static io.nop.graphql.core.GraphQLErrors.ARG_FIELD_NAME;
-import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_PROP_NAME;
-import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_FIELD_NOT_SCALAR;
 import static io.nop.graphql.orm.GraphQLOrmErrors.ERR_BIZ_CONNECTION_PROP_NOT_RELATION;
 
 /**
@@ -188,11 +185,10 @@ public class OrmFetcherBuilder {
 
         IDataFetcher fetcher;
         if (propModel.isColumnModel()) {
-            GraphQLScalarType scalarType = fieldDef.getType().getScalarType();
-            if (scalarType == null)
-                throw new NopException(ERR_GRAPHQL_FIELD_NOT_SCALAR).source(fieldDef)
-                        .param(ARG_OBJ_NAME, objDef.getName()).param(ARG_FIELD_NAME, fieldDef.getName());
-
+//            GraphQLScalarType scalarType = fieldDef.getType().getScalarType();
+//            if (scalarType == null)
+//                throw new NopException(ERR_GRAPHQL_FIELD_NOT_SCALAR).source(fieldDef)
+//                        .param(ARG_OBJ_NAME, objDef.getName()).param(ARG_FIELD_NAME, fieldDef.getName());
             fetcher = getColumnFetcher(propModel.getColumnPropId());
         } else if (propModel.isToOneRelation()) {
             fetcher = new OrmEntityRefFetcher(ormTemplate, name);

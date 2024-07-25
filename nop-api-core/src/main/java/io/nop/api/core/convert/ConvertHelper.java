@@ -1235,6 +1235,27 @@ public class ConvertHelper {
         return toList(o, errorFactory);
     }
 
+
+    public static String toCsvListString(Object o, Function<ErrorCode, NopException> errorFactory) {
+        if (o == null)
+            return null;
+        if (o instanceof String)
+            return o.toString();
+        if (o instanceof List)
+            return ApiStringHelper.join((List) o, ",");
+        return handleError(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL, null, String.class, o, errorFactory);
+    }
+
+    public static String toCsvSetString(Object o, Function<ErrorCode, NopException> errorFactory) {
+        if (o == null)
+            return null;
+        if (o instanceof String)
+            return o.toString();
+        if (o instanceof Collection)
+            return ApiStringHelper.join((Collection) o, ",");
+        return handleError(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL, null, String.class, o, errorFactory);
+    }
+
     public static BigInteger toBigInteger(Object o, Function<ErrorCode, NopException> errorFactory) {
         if (isEmptyObject(o))
             return null;

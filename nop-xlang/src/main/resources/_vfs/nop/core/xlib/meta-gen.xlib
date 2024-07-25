@@ -181,12 +181,8 @@
                             <c:script>
                                 import io.nop.xlang.xmeta.utils.ObjMetaPropHelper;
                                 const propGen = ObjMetaPropHelper.findTagForDomain(propNode);
+                                propGen?.executeWithArgs({propNode},$evalRt);
                             </c:script>
-                            <prop name="${propNode.getAttr('name')}" xpl:if="propGen">
-                                <c:script>
-                                    propGen.generate(propNode,$evalRt);
-                                </c:script>
-                            </prop>
                         </c:for>
                     </props>
                 </meta>

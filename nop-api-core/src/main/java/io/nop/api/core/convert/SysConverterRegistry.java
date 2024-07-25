@@ -83,7 +83,9 @@ public class SysConverterRegistry {
         registerConverter("toSet", Set.class, ConvertHelper::toSet);
         registerConverter("toMap", Map.class, ConvertHelper::toMap);
         registerNamedConverter("toCsvSet", new TargetTypeConverter(Set.class, ConvertHelper::toCsvSet));
-        registerNamedConverter("toCsvList", new TargetTypeConverter(Set.class, ConvertHelper::toCsvList));
+        registerNamedConverter("toCsvList", new TargetTypeConverter(List.class, ConvertHelper::toCsvList));
+        registerNamedConverter("toCsvSetString", new TargetTypeConverter(String.class, ConvertHelper::toCsvSetString));
+        registerNamedConverter("toCsvListString", new TargetTypeConverter(String.class, ConvertHelper::toCsvListString));
         registerConverter("toBigInteger", BigInteger.class, ConvertHelper::toBigInteger);
         registerConverter("toIterator", Iterator.class, ConvertHelper::toIterator);
         registerConverter("toMonthDay", MonthDay.class, ConvertHelper::toMonthDay);
