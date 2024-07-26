@@ -29,4 +29,6 @@ public interface IFileRecord {
     String getFieldName();
 
     IResource getResource();
+
+    boolean isPublic();
 }

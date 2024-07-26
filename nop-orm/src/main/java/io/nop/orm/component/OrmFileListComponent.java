@@ -9,7 +9,6 @@ package io.nop.orm.component;
 
 import io.nop.api.core.beans.file.FileStatusBean;
 import io.nop.api.core.convert.ConvertHelper;
-import io.nop.api.core.ioc.IBeanProvider;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
 import io.nop.orm.IOrmEntity;
@@ -43,8 +42,7 @@ public class OrmFileListComponent extends AbstractOrmComponent {
 
     public List<IResource> loadResources() {
         IOrmEntity entity = orm_owner();
-        IBeanProvider beanProvider = entity.orm_enhancer().getBeanProvider();
-        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) beanProvider.getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
+        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
 
         List<String> paths = getFilePaths();
         if (paths == null || paths.isEmpty())
@@ -66,20 +64,16 @@ public class OrmFileListComponent extends AbstractOrmComponent {
         if (paths == null || paths.isEmpty())
             return null;
 
-        IOrmEntity entity = orm_owner();
-        IBeanProvider beanProvider = entity.orm_enhancer().getBeanProvider();
-        // 有可能没有引入file store支持
-        if (!beanProvider.containsBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE))
+        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) tryGetBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
+        if (fileStore == null) {
             return paths.stream().map(filePath -> StringHelper.lastPart(filePath, '/')).collect(Collectors.toList());
-
-        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) beanProvider.getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
+        }
         return paths.stream().map(fileStore::decodeFileId).collect(Collectors.toList());
     }
 
     public List<FileStatusBean> getFileStatusList() {
         IOrmEntity entity = orm_owner();
-        IBeanProvider beanProvider = entity.orm_enhancer().getBeanProvider();
-        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) beanProvider.getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
+        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
 
         List<String> paths = getFilePaths();
         if (paths == null || paths.isEmpty())
@@ -103,12 +97,11 @@ public class OrmFileListComponent extends AbstractOrmComponent {
         IOrmEntity entity = orm_owner();
         int propId = getColPropId(PROP_NAME_filePath);
         if (entity.orm_state().isUnsaved() || entity.orm_propDirty(propId)) {
-            IBeanProvider beanProvider = entity.orm_enhancer().getBeanProvider();
-            // 有可能没有引入file store支持
-            if (!beanProvider.containsBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE))
+
+            IOrmEntityFileStore fileStore = (IOrmEntityFileStore) tryGetBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
+            if (fileStore == null)
                 return;
 
-            IOrmEntityFileStore fileStore = (IOrmEntityFileStore) beanProvider.getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
             String oldValue = (String) entity.orm_propOldValue(propId);
 
             List<String> paths = getFilePaths();
@@ -152,8 +145,9 @@ public class OrmFileListComponent extends AbstractOrmComponent {
             return;
 
         IOrmEntity entity = orm_owner();
-        IBeanProvider beanProvider = entity.orm_enhancer().getBeanProvider();
-        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) beanProvider.getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
+        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) tryGetBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
+        if (fileStore == null)
+            return;
 
         List<String> paths = getFilePaths();
         if (paths == null || paths.isEmpty())

@@ -68,31 +68,35 @@ public class _NopFileRecord extends DynamicOrmEntity{
     public static final String PROP_NAME_originFileId = "originFileId";
     public static final int PROP_ID_originFileId = 12;
     
+    /* 是否允许公开访问: IS_PUBLIC BOOLEAN */
+    public static final String PROP_NAME_isPublic = "isPublic";
+    public static final int PROP_ID_isPublic = 13;
+    
     /* 删除标识: DEL_FLAG TINYINT */
     public static final String PROP_NAME_delFlag = "delFlag";
-    public static final int PROP_ID_delFlag = 13;
+    public static final int PROP_ID_delFlag = 14;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 14;
+    public static final int PROP_ID_createdBy = 15;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 15;
+    public static final int PROP_ID_createTime = 16;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 16;
+    public static final int PROP_ID_remark = 17;
     
 
-    private static int _PROP_ID_BOUND = 17;
+    private static int _PROP_ID_BOUND = 18;
 
     
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_fileId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_fileId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[17];
+    private static final String[] PROP_ID_TO_NAME = new String[18];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -131,6 +135,9 @@ public class _NopFileRecord extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_originFileId] = PROP_NAME_originFileId;
           PROP_NAME_TO_ID.put(PROP_NAME_originFileId, PROP_ID_originFileId);
+      
+          PROP_ID_TO_NAME[PROP_ID_isPublic] = PROP_NAME_isPublic;
+          PROP_NAME_TO_ID.put(PROP_NAME_isPublic, PROP_ID_isPublic);
       
           PROP_ID_TO_NAME[PROP_ID_delFlag] = PROP_NAME_delFlag;
           PROP_NAME_TO_ID.put(PROP_NAME_delFlag, PROP_ID_delFlag);
@@ -182,6 +189,9 @@ public class _NopFileRecord extends DynamicOrmEntity{
     
     /* 原始文件ID: ORIGIN_FILE_ID */
     private java.lang.String _originFileId;
+    
+    /* 是否允许公开访问: IS_PUBLIC */
+    private java.lang.Boolean _isPublic;
     
     /* 删除标识: DEL_FLAG */
     private java.lang.Byte _delFlag;
@@ -304,6 +314,9 @@ public class _NopFileRecord extends DynamicOrmEntity{
         
             case PROP_ID_originFileId:
                return getOriginFileId();
+        
+            case PROP_ID_isPublic:
+               return getIsPublic();
         
             case PROP_ID_delFlag:
                return getDelFlag();
@@ -448,6 +461,16 @@ public class _NopFileRecord extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_isPublic:{
+               java.lang.Boolean typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toBoolean(value,
+                       err-> newTypeConversionError(PROP_NAME_isPublic));
+               }
+               setIsPublic(typedValue);
+               break;
+            }
+        
             case PROP_ID_delFlag:{
                java.lang.Byte typedValue = null;
                if(value != null){
@@ -577,6 +600,13 @@ public class _NopFileRecord extends DynamicOrmEntity{
             case PROP_ID_originFileId:{
                onInitProp(propId);
                this._originFileId = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_isPublic:{
+               onInitProp(propId);
+               this._isPublic = (java.lang.Boolean)value;
                
                break;
             }
@@ -839,6 +869,25 @@ public class _NopFileRecord extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_originFileId,value)){
             this._originFileId = value;
             internalClearRefs(PROP_ID_originFileId);
+            
+        }
+    }
+    
+    /**
+     * 是否允许公开访问: IS_PUBLIC
+     */
+    public java.lang.Boolean getIsPublic(){
+         onPropGet(PROP_ID_isPublic);
+         return _isPublic;
+    }
+
+    /**
+     * 是否允许公开访问: IS_PUBLIC
+     */
+    public void setIsPublic(java.lang.Boolean value){
+        if(onPropSet(PROP_ID_isPublic,value)){
+            this._isPublic = value;
+            internalClearRefs(PROP_ID_isPublic);
             
         }
     }

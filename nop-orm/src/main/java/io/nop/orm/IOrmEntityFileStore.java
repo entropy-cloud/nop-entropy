@@ -8,6 +8,7 @@
 package io.nop.orm;
 
 import io.nop.api.core.beans.file.FileStatusBean;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.core.resource.IResource;
 
 import java.util.Collection;
@@ -29,7 +30,12 @@ public interface IOrmEntityFileStore {
      *
      * @param fileIds 文件id列表
      */
-    CompletionStage<?> batchLoadResource(Collection<String> fileIds);
+    CompletionStage<?> batchLoadResourceAsync(Collection<String> fileIds);
+
+    default void batchLoadResource(Collection<String> fileIds) {
+        CompletionStage<?> ret = batchLoadResourceAsync(fileIds);
+        FutureHelper.syncGet(ret);
+    }
 
     FileStatusBean getFileStatus(String fileId, String bizObjName, String objId, String fieldName);
 
@@ -42,4 +48,12 @@ public interface IOrmEntityFileStore {
                     String objId, String fieldName);
 
     String copyFile(String fileId, String newBizObjName, String newObjId, String newFieldName);
+
+    /**
+     * 设置是否允许公开访问的标识
+     *
+     * @param fileId   文件id
+     * @param isPublic 是否允许公开访问
+     */
+    void changePublic(String fileId, boolean isPublic);
 }

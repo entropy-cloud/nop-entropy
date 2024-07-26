@@ -32,15 +32,22 @@ public class OrmFileComponent extends AbstractOrmComponent {
         if (StringHelper.isEmpty(filePath))
             return null;
 
-        IOrmEntity entity = orm_owner();
-        IBeanProvider beanProvider = entity.orm_enhancer().getBeanProvider();
+        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) tryGetBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
         // 有可能没有引入file store支持
-        if (!beanProvider.containsBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE))
+        if (fileStore == null)
             return StringHelper.lastPart(filePath, '/');
 
-        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) beanProvider.getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
         String fileId = fileStore.decodeFileId(getFilePath());
         return fileId;
+    }
+
+    public void changePublic(boolean isPublic) {
+        String fileId = getFileId();
+        if (StringHelper.isEmpty(fileId))
+            return;
+
+        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
+        fileStore.changePublic(fileId, isPublic);
     }
 
     @Override
@@ -48,12 +55,11 @@ public class OrmFileComponent extends AbstractOrmComponent {
         IOrmEntity entity = orm_owner();
         int propId = getColPropId(PROP_NAME_filePath);
         if (entity.orm_state().isUnsaved() || entity.orm_propDirty(propId)) {
-            IBeanProvider beanProvider = entity.orm_enhancer().getBeanProvider();
-            // 有可能没有引入file store支持
-            if (!beanProvider.containsBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE))
+
+            IOrmEntityFileStore fileStore = (IOrmEntityFileStore) tryGetBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
+            if (fileStore == null)
                 return;
 
-            IOrmEntityFileStore fileStore = (IOrmEntityFileStore) beanProvider.getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
             String oldValue = (String) entity.orm_propOldValue(propId);
 
             String fileId = fileStore.decodeFileId(getFilePath());
@@ -80,8 +86,10 @@ public class OrmFileComponent extends AbstractOrmComponent {
             return;
 
         IOrmEntity entity = orm_owner();
-        IBeanProvider beanProvider = entity.orm_enhancer().getBeanProvider();
-        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) beanProvider.getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
+
+        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) tryGetBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
+        if (fileStore == null)
+            return;
 
         String fileId = fileStore.decodeFileId(getFilePath());
         if (!StringHelper.isEmpty(fileId)) {
@@ -114,8 +122,7 @@ public class OrmFileComponent extends AbstractOrmComponent {
 
     public IResource loadResource() {
         IOrmEntity entity = orm_owner();
-        IBeanProvider beanProvider = entity.orm_enhancer().getBeanProvider();
-        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) beanProvider.getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
+        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
 
         String fileId = fileStore.decodeFileId(getFilePath());
         if (StringHelper.isEmpty(fileId))

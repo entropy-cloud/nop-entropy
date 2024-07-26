@@ -129,7 +129,7 @@ public class NopFileStoreBizModel {
 
     protected IFileRecord loadFileRecord(String fileId, IServiceContext ctx) {
         IFileRecord record = fileStore.getFile(fileId);
-        if (bizAuthChecker != null) {
+        if (!record.isPublic() && bizAuthChecker != null) {
             bizAuthChecker.checkAuth(record.getBizObjName(), record.getBizObjId(), record.getFieldName(), ctx);
         }
         return record;

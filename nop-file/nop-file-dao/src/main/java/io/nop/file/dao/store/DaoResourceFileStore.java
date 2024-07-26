@@ -106,7 +106,7 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
     }
 
     @Override
-    public CompletionStage<?> batchLoadResource(Collection<String> fileIds) {
+    public CompletionStage<?> batchLoadResourceAsync(Collection<String> fileIds) {
         IEntityDao<NopFileRecord> dao = daoProvider.daoFor(NopFileRecord.class);
         dao.batchGetEntitiesByIds(fileIds);
         return null;
@@ -322,5 +322,12 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
         newRecord.setFileId(newFileId());
         dao.saveEntity(newRecord);
         return newRecord.getFileId();
+    }
+
+    @Override
+    public void changePublic(String fileId, boolean isPublic) {
+        IEntityDao<NopFileRecord> dao = daoProvider.daoFor(NopFileRecord.class);
+        NopFileRecord record = dao.requireEntityById(fileId);
+        record.setIsPublic(isPublic);
     }
 }

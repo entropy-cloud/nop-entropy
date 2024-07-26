@@ -12,6 +12,7 @@ CREATE TABLE nop_file_record(
   FIELD_NAME VARCHAR2(100)  ,
   FILE_HASH VARCHAR2(200)  ,
   ORIGIN_FILE_ID VARCHAR2(50) NOT NULL ,
+  IS_PUBLIC CHAR(1) NOT NULL ,
   DEL_FLAG SMALLINT NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
@@ -45,6 +46,8 @@ CREATE TABLE nop_file_record(
       COMMENT ON COLUMN nop_file_record.FILE_HASH IS '文件摘要';
                     
       COMMENT ON COLUMN nop_file_record.ORIGIN_FILE_ID IS '原始文件ID';
+                    
+      COMMENT ON COLUMN nop_file_record.IS_PUBLIC IS '是否允许公开访问';
                     
       COMMENT ON COLUMN nop_file_record.DEL_FLAG IS '删除标识';
                     

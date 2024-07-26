@@ -73,4 +73,9 @@ public class DaoFileRecord implements IFileRecord {
     public IResource getResource() {
         return resource;
     }
+
+    @Override
+    public boolean isPublic() {
+        return Boolean.TRUE.equals(record.getIsPublic());
+    }
 }

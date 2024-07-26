@@ -609,7 +609,7 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
             return;
 
         IOrmEntityFileStore fileStore = (IOrmEntityFileStore) session.getBeanProvider().getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
-        CompletionStage<?> future = fileStore.batchLoadResource(queue.fileIds);
+        CompletionStage<?> future = fileStore.batchLoadResourceAsync(queue.fileIds);
         if (future != null)
             futures.add(future);
     }

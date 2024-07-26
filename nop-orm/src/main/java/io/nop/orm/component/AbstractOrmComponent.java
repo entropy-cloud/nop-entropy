@@ -7,6 +7,7 @@
  */
 package io.nop.orm.component;
 
+import io.nop.api.core.ioc.IBeanProvider;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.orm.IOrmComponent;
 import io.nop.orm.IOrmEntity;
@@ -55,6 +56,25 @@ public abstract class AbstractOrmComponent implements IOrmComponent {
     @Override
     public void reset() {
 
+    }
+
+    protected IBeanProvider getBeanProvider() {
+        IOrmEntity entity = orm_owner();
+        return entity.orm_enhancer().getBeanProvider();
+    }
+
+    protected Object tryGetBean(String beanName) {
+        IBeanProvider beanProvider = getBeanProvider();
+        if (beanProvider == null)
+            return null;
+        if (beanProvider.containsBean(beanName)) {
+            return beanProvider.getBean(beanName);
+        }
+        return null;
+    }
+
+    protected Object getBean(String beanName) {
+        return getBeanProvider().getBean(beanName);
     }
 
     @Override
