@@ -137,6 +137,7 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
         entity.setFieldName(record.getFieldName());
         entity.setFileExt(record.getFileExt());
         entity.setFileLength(record.getLength());
+        entity.setIsPublic(false);
         if (StringHelper.isEmpty(record.getBizObjId())) {
             // 标记为临时对象。如果最终没有提交，则会应该自动删除这些记录
             entity.setBizObjId(FileConstants.TEMP_BIZ_OBJ_ID);
@@ -320,6 +321,7 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
         newRecord.setFileLastModified(record.getFileLastModified());
         newRecord.setMimeType(record.getMimeType());
         newRecord.setFileId(newFileId());
+        newRecord.setIsPublic(false);
         dao.saveEntity(newRecord);
         return newRecord.getFileId();
     }
