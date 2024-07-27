@@ -65,6 +65,8 @@ public interface OrmEqlErrors {
 
     String ARG_FEATURE = "feature";
 
+    String ARG_EXPR = "expr";
+
     ErrorCode ERR_ORM_NULL_BINDER_FOR_COLUMN = define("nop.err.orm.null-binder-for-column",
             "对象[{entityName}]的列[{colName}]的类型为[{sqlType}],没有找到对应的数据绑定接口",
             ARG_ENTITY_NAME, ARG_COL_NAME, ARG_SQL_TYPE, ARG_DATA_TYPE);
@@ -181,4 +183,10 @@ public interface OrmEqlErrors {
     ErrorCode ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE =
             define("nop.err.eql.dialect-not-support-feature", "数据库方言[{dialect}]不支持特性[{feature}]",
                     ARG_DIALECT, ARG_FEATURE);
+
+    ErrorCode ERR_EQL_UNSUPPORTED_EVAL_EXPR =
+            define("nop.err.eql.unsupported-eval-expr", "不支持的表达式类型", ARG_EXPR);
+
+    ErrorCode ERR_EQL_NOT_SINGLE_EXPR =
+            define("nop.err.eql.not-single-expr", "不是合法SQL表达式", ARG_SQL);
 }

@@ -14,11 +14,15 @@ import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.objects.Pair;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.xlang.api.ExprEvalAction;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.ast.BinaryExpression;
+import io.nop.xlang.ast.Expression;
+import io.nop.xlang.ast.MemberExpression;
+import io.nop.xlang.exec.GetAttrExecutable;
 import io.nop.xlang.expr.simple.SimpleExprParser;
 import org.junit.jupiter.api.Test;
 
@@ -29,6 +33,7 @@ import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSimpleExprParser {
     @Test
@@ -95,6 +100,15 @@ public class TestSimpleExprParser {
         String text = "pageModel.table.pager != 'none'";
         BinaryExpression expr = (BinaryExpression) SimpleExprParser.newDefault().parseExpr(null, text);
         assertNotNull(expr.getLeft());
+    }
+
+    @Test
+    public void testArrayIndex() {
+        String text = "a[0]";
+        Expression expr = SimpleExprParser.newDefault().parseExpr(null, text);
+        IExecutableExpression eval = XLang.newCompileTool().allowUnregisteredScopeVar(true).buildExecutable(expr);
+        assertTrue(expr instanceof MemberExpression);
+        assertTrue(eval instanceof GetAttrExecutable);
     }
 
     @Test

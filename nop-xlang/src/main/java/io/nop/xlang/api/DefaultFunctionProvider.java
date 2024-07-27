@@ -7,6 +7,7 @@
  */
 package io.nop.xlang.api;
 
+import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancellable;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.core.reflect.IClassModel;
@@ -17,7 +18,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class DefaultFunctionProvider implements IFunctionProvider {
-    private final Map<String, IFunctionModel> functions = new HashMap<>();
+    private final Map<String, IFunctionModel> functions;
+
+    public DefaultFunctionProvider() {
+        this(new HashMap<>());
+    }
+
+    public DefaultFunctionProvider(Map<String, IFunctionModel> map) {
+        this.functions = Guard.notNull(map, "functions");
+    }
 
     @Override
     public void registerFunction(String funcName, IFunctionModel fn) {

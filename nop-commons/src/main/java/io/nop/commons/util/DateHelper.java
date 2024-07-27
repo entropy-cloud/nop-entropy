@@ -276,6 +276,10 @@ public class DateHelper {
         return ConvertHelper.stringToLocalDateTime(s, NopException::new);
     }
 
+    public static LocalTime parseTime(String s) {
+        return ConvertHelper.toLocalTime(s, NopException::new);
+    }
+
     public static LocalDate parseDate(String s, String pattern) {
         if (StringHelper.isEmpty(s))
             return null;

@@ -7,12 +7,23 @@
  */
 package io.nop.orm.eql.ast;
 
+import io.nop.api.core.util.Guard;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.objects.PropPath;
 import io.nop.core.lang.ast.ASTNode;
 import io.nop.orm.eql.ast._gen._SqlQualifiedName;
 
 public class SqlQualifiedName extends _SqlQualifiedName {
     private SqlTableSource resolvedSource;
+
+    public static SqlQualifiedName valueOf(SourceLocation loc, String name, SqlQualifiedName next) {
+        Guard.notEmpty(name, "name");
+        SqlQualifiedName ret = new SqlQualifiedName();
+        ret.setLocation(loc);
+        ret.setName(name);
+        ret.setNext(next);
+        return ret;
+    }
 
     public SqlTableSource getResolvedSource() {
         return resolvedSource;

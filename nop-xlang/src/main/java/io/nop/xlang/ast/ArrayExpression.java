@@ -7,8 +7,16 @@
  */
 package io.nop.xlang.ast;
 
+import io.nop.api.core.util.SourceLocation;
 import io.nop.xlang.ast._gen._ArrayExpression;
 
-public class ArrayExpression extends _ArrayExpression {
+import java.util.List;
 
+public class ArrayExpression extends _ArrayExpression {
+    public static ArrayExpression valueOf(SourceLocation loc, List<XLangASTNode> list) {
+        ArrayExpression ret = new ArrayExpression();
+        ret.setLocation(loc);
+        ret.setElements(list);
+        return ret;
+    }
 }

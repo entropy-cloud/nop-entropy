@@ -21,4 +21,8 @@ public class UnaryExpression extends _UnaryExpression {
         node.setArgument(argument);
         return node;
     }
+
+    public static UnaryExpression not(SourceLocation loc, Expression expr) {
+        return valueOf(loc, XLangOperator.NOT, expr);
+    }
 }

@@ -72,7 +72,6 @@ prop节点支持如下属性配置：
 |---|---|---|
 |tagSet||逗号分隔的扩展标签，在代码生成时会使用|
 |published|true|是否发布为GraphQL属性，可以通过服务访问|
-|readable|true|是否可以作为返回值返回。readable=false一般是作为输入数据使用，只允许提交，而不允许查看|
 |insertable|true|是否允许save操作的参数中包含此属性|
 |updatable|true|是否允许通过update操作修改此属性|
 |queryable|false|是否允许在查询条件中包含此属性|
