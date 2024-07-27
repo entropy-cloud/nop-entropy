@@ -7,6 +7,7 @@
  */
 package io.nop.excel.model;
 
+import io.nop.commons.util.StringHelper;
 import io.nop.excel.ExcelConstants;
 import io.nop.excel.model._gen._ExcelFont;
 import io.nop.excel.model.color.ColorHelper;
@@ -30,6 +31,15 @@ public class ExcelFont extends _ExcelFont {
         return font;
     }
 
+    public String getCssFontFamily() {
+        if (getFontFamily() == null)
+            return null;
+        ExcelFontFamily family = ExcelFontFamily.fromText(getFontFamily());
+        if (family == null)
+            return null;
+        return family.getCssFontFamily();
+    }
+
     public String getFontSizeString() {
         Float size = getFontSize();
         if (size == null)
@@ -41,10 +51,17 @@ public class ExcelFont extends _ExcelFont {
     }
 
     public void toCssStyle(StringBuilder sb) {
-        if (this.getFontName() != null) {
-            // fontName对应css中的fontFamily
+        if (this.getFontName() != null || this.getFontFamily() != null) {
             sb.append("font-family:");
-            sb.append(this.getFontName()).append(";\n");
+            if (this.getFontName() != null) {
+                sb.append(StringHelper.quote(this.getFontName()));
+            } else {
+                sb.append("Arial");
+            }
+            String cssFontFamily = getCssFontFamily();
+            if (cssFontFamily != null)
+                sb.append(',').append(cssFontFamily);
+            sb.append(";\n");
         }
         if (this.isBold()) {
             sb.append("font-weight:bold;\n");

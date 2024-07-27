@@ -31,18 +31,20 @@ import java.util.Map;
 public enum ExcelFontFamily {
 
     // NOT_APPLICABLE(0,null), //
-    ROMAN(1, "roman"), //
-    SWISS(2, "swiss"), //
-    MODERN(3, "modern"), //
-    SCRIPT(4, "script"), //
-    DECORATIVE(5, "decorative");
+    ROMAN(1, "roman", "serif"), //
+    SWISS(2, "swiss", "sans-serif"), //
+    MODERN(3, "modern", "monospace"), //
+    SCRIPT(4, "script", "cursive"), //
+    DECORATIVE(5, "decorative", "fantasy");
 
     private final int family;
     private final String text;
+    private final String cssFontFamily;
 
-    ExcelFontFamily(int value, String excelText) {
+    ExcelFontFamily(int value, String excelText, String cssFontFamily) {
         family = value;
         this.text = excelText;
+        this.cssFontFamily = cssFontFamily;
     }
 
     /**
@@ -56,6 +58,10 @@ public enum ExcelFontFamily {
 
     public String getText() {
         return text;
+    }
+
+    public String getCssFontFamily() {
+        return cssFontFamily;
     }
 
     public String toString() {
