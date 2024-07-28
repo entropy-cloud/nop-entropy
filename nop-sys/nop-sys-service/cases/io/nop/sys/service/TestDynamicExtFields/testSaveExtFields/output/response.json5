@@ -1,5 +1,6 @@
 {
   "data": {
+    "id": "@var:NopSysExtField@entityId",
     "sid": "@var:NopSysExtField@entityId",
     "name": "abc",
     "displayName": "XXX",
@@ -7,10 +8,9 @@
     "delFlag": 0,
     "version": 0,
     "createdBy": "autotest-ref",
-    "createTime": "@var:NopSysCodeRule@updateTime",
+    "createTime": "@var:NopSysExtField@updateTime",
     "updatedBy": "autotest-ref",
-    "updateTime": "@var:NopSysCodeRule@updateTime",
-    "id": "@var:NopSysExtField@entityId",
+    "updateTime": "@var:NopSysExtField@updateTime",
     "seqName": null,
     "remark": null,
     "extFldC": "xyz"

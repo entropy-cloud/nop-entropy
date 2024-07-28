@@ -9,7 +9,6 @@ package io.nop.autotest.junit;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.exceptions.ErrorCode;
-import io.nop.api.core.util.Guard;
 import io.nop.autotest.core.AutoTestCase;
 import io.nop.autotest.core.data.AutoTestDataHelper;
 import org.junit.jupiter.api.AfterEach;
@@ -104,7 +103,7 @@ public abstract class JunitAutoTestCase extends AutoTestCase {
     protected String getCaseDataPath(TestInfo testInfo) {
         Class<?> testClass = testInfo.getTestClass().orElse(null);
         Method testMethod = testInfo.getTestMethod().orElse(null);
-        if(testClass == null || testMethod == null)
+        if (testClass == null || testMethod == null)
             throw new IllegalArgumentException("null test info");
         return AutoTestDataHelper.getTestDataPath(testClass, testMethod);
     }

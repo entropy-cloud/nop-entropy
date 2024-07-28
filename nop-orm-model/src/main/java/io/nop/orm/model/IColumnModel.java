@@ -8,10 +8,11 @@
 package io.nop.orm.model;
 
 import io.nop.commons.type.StdDataType;
-import io.nop.commons.util.StringHelper;
 import io.nop.commons.type.StdSqlType;
+import io.nop.commons.util.StringHelper;
 
 import java.util.List;
+import java.util.Objects;
 
 public interface IColumnModel extends IEntityPropModel {
 
@@ -20,7 +21,10 @@ public interface IColumnModel extends IEntityPropModel {
     String getDomain();
 
     default String getBaseDomain() {
-        return StringHelper.firstPart(getDomain(), '-');
+        String domain = getDomain();
+        if (Objects.equals(domain, getStdDomain()))
+            return domain;
+        return StringHelper.firstPart(domain, '-');
     }
 
     String getStdDomain();

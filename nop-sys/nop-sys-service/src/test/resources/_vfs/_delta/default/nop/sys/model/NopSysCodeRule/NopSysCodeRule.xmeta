@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="super" xmlns:biz="biz">
     <props>
-        <prop name="extFldC" />
+        <prop name="extFldC" insertable="true" updatable="true"/>
     </props>
 </meta>
