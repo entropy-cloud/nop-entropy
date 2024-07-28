@@ -15,7 +15,7 @@
         "roleId": "test",
         "roleName": "test",
         "childRoleIds": null,
-        "isPrimary": null,
+        "isPrimary": 0,
         "delFlag": 0,
         "version": 0,
         "createdBy": "autotest-ref",

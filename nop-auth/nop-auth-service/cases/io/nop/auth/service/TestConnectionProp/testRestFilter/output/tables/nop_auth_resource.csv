@@ -1,3 +1,3 @@
 _chgType,RESOURCE_ID,SITE_ID,DISPLAY_NAME,ORDER_NO,RESOURCE_TYPE,PARENT_ID,ICON,ROUTE_PATH,URL,COMPONENT,TARGET,HIDDEN,KEEP_ALIVE,PERMISSIONS,NO_AUTH,DEPENDS,IS_LEAF,STATUS,AUTH_CASCADE_UP,Meta_CONFIG,PROPS_CONFIG,DEL_FLAG,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME,REMARK
-A,test1,test,RES1,2,TOPM,,,,,,,0,0,,0,,0,1,,,,0,0,autotest-ref,*,autotest-ref,*,
-A,test2,test2,RES2,3,TOPM,,,,,,,0,0,,0,,0,1,,,,0,0,autotest-ref,*,autotest-ref,*,
+A,test1,test,RES1,2,TOPM,,,,,,,0,0,,0,,0,1,0,,,0,0,autotest-ref,*,autotest-ref,*,
+A,test2,test2,RES2,3,TOPM,,,,,,,0,0,,0,,0,1,0,,,0,0,autotest-ref,*,autotest-ref,*,

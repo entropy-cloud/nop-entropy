@@ -1,2 +1,2 @@
 _chgType,ROLE_ID,ROLE_NAME,CHILD_ROLE_IDS,IS_PRIMARY,DEL_FLAG,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME,REMARK
-A,test,test,,,0,0,autotest-ref,*,autotest-ref,*,
+A,test,test,,0,0,0,autotest-ref,*,autotest-ref,*,
