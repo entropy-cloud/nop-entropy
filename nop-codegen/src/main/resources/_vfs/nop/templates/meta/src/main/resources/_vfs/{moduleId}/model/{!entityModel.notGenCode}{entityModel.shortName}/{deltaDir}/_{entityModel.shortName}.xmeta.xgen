@@ -71,7 +71,7 @@
                   mandatory="${col.mandatory || null}" published="${col.tagSet?.contains('not-pub') ? false:null}"
                   queryable="${col.tagSet?.contains('not-query') ? false: true}" sortable="${col.tagSet?.contains('not-sort')?false:true}"
                   insertable="${xpl('meta-gen:IsColInsertable',col)}" updatable="${xpl('meta-gen:IsColUpdatable',col)}"
-                  internal="${xpl('meta-gen:IsColInternal',col)||null}" dependsOn="${buildColDepends(col)}"
+                  internal="${xpl('meta-gen:IsColInternal',col)||null}" depends="${buildColDepends(col)}"
                   graphql:jsonComponentProp="${jsonCol? col.name + 'Component' : null}"
                   graphql:type="${col.primary and col.stdDataType.toString() == 'long' ? 'String':null}"
                   ui:show="${col['ui:show']}" ui:control="${col['ui:control'] || buildColControl(col)}"
