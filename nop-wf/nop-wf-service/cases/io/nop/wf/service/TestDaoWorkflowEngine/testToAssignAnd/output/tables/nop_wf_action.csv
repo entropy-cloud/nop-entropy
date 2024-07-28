@@ -1,3 +1,3 @@
 _chgType,SID,WF_ID,STEP_ID,ACTION_NAME,DISPLAY_NAME,EXEC_TIME,CALLER_ID,CALLER_NAME,OPINION,ERR_CODE,ERR_MSG,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME
 A,@var:NopWfAction@sid,@var:NopWfInstance@wfId,@var:NopWfStepInstance@stepId,sh,审核,@var:NopWfAction@execTime,1,user_1,,,,0,autotest-ref,*,autotest-ref,*
-A,@var:NopWfAction@sid_1,@var:NopWfInstance@wfId,@var:NopWfStepInstance@stepId_1,end,审核,@var:NopWfAction@execTime_1,1,user_1,,,,0,autotest-ref,*,autotest-ref,*
+A,@var:NopWfAction@sid_1,@var:NopWfInstance@wfId,@var:NopWfStepInstance@stepId_1,end,审核,@var:NopWfAction@execTime,1,user_1,,,,0,autotest-ref,*,autotest-ref,*
