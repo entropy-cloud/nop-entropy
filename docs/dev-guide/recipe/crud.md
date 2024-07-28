@@ -1,4 +1,6 @@
-# 1. 传递一些实体上没有的字段到后台
+# 增删改查相关
+
+## 1. 传递一些实体上没有的字段到后台
 
 在meta中增加prop，然后设置它的virtual属性为true，表示是虚拟字段，就不会自动拷贝到实体上。
 
@@ -57,3 +59,20 @@ CrudBizModel已经注入了transactionTemplate，可以通过this.txn()来使用
 
 ## 4. 查询时要求参数必填
 propMeta上可以配置ui:queryMandatory或者query form的cell上配置mandatory
+
+## 5. 自动设置实体上的属性
+
+### ORM save时自动设置缺省值
+1. 在Excel数据模型中设置defaultValue，则新建实体的时候如果没有设置该字段，则会自动设置为缺省值。
+2. 保存时，如果字段要求非空，但是当前值为null，则也会设置为缺省值。
+3. 保存时，如果字段当前值为null，但是具有seq标签，则自动生成一个序列号设置到实体上。
+
+### OrmEntityCopier执行XMeta中设置的autoExpr
+在XMeta层面，如果为prop配置了autoExpr，则当前台没有提交该属性时会自动执行autoExpr来设置。
+```xml
+<prop name="orderNo">
+  <autoExpr when="save">
+    <app:GenOrderNo/>
+  </autoExpr>
+</prop>
+```

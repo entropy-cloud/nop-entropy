@@ -28,12 +28,24 @@ public class AutoExprRunner {
         scope.setLocalValue(null, BizConstants.VAR_OBJ_META, objMeta);
 
         for (IObjPropMeta propMeta : objMeta.getProps()) {
-            ObjConditionExpr autoExpr = propMeta.getAutoExpr();
-            if (autoExpr == null)
+            if (propMeta.isVirtual())
                 continue;
+
+            String name = propMeta.getName();
+            if (propMeta.getMapToProp() != null)
+                name = propMeta.getMapToProp();
 
             if (ignoreFields != null && ignoreFields.contains(propMeta.getName()))
                 continue;
+
+            ObjConditionExpr autoExpr = propMeta.getAutoExpr();
+            if (autoExpr == null) {
+                // 只有save的时候才考虑设置缺省值。
+                if (propMeta.getDefaultValue() != null && BizConstants.METHOD_SAVE.equals(action)) {
+                    BeanTool.setProperty(entity, name, propMeta.getDefaultValue());
+                }
+                continue;
+            }
 
             if (autoExpr.getWhen() != null && !autoExpr.getWhen().contains(action))
                 continue;
@@ -45,7 +57,7 @@ public class AutoExprRunner {
             }
 
             if (value != Undefined.undefined)
-                BeanTool.setProperty(entity, propMeta.getName(), value);
+                BeanTool.setProperty(entity, name, value);
         }
     }
 }

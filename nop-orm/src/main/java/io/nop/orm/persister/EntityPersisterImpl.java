@@ -368,24 +368,28 @@ public class EntityPersisterImpl implements IEntityPersister {
         }
     }
 
-    void checkMandatoryWhenSave(IOrmEntity entity) {
+    void checkColumnValueWhenSave(IOrmEntity entity) {
         for (IColumnModel propModel : entityModel.getColumns()) {
-            if (!propModel.isMandatory())
-                continue;
-
             Object value = entity.orm_propValue(propModel.getPropId());
             if (value == null) {
-                if (propModel.containsTag(OrmConstants.TAG_SEQ)) {
-                    // 如果指定了seq标签，且字段非空，则自动根据sequence配置生成
-                    String propKey = OrmModelHelper.buildEntityPropKey(propModel);
-                    Object seqValue = propModel.getStdDataType().isNumericType() ?
-                            env.getSequenceGenerator().generateLong(propKey, false)
-                            : env.getSequenceGenerator().generateString(propKey, false);
-                    entity.orm_propValue(propModel.getPropId(), seqValue);
-                } else if (propModel.getDefaultValue() != null) {
-                    entity.orm_propValue(propModel.getPropId(), propModel.getDefaultValue());
+                if (propModel.isMandatory()) {
+                    if (propModel.getDefaultValue() != null) {
+                        entity.orm_propValue(propModel.getPropId(), propModel.getDefaultValue());
+                    } else if (propModel.containsTag(OrmConstants.TAG_SEQ)) {
+                        // 如果指定了seq标签，且字段非空，则自动根据sequence配置生成
+                        String propKey = OrmModelHelper.buildEntityPropKey(propModel);
+                        Object seqValue = propModel.getStdDataType().isNumericType() ?
+                                env.getSequenceGenerator().generateLong(propKey, false)
+                                : env.getSequenceGenerator().generateString(propKey, false);
+                        entity.orm_propValue(propModel.getPropId(), seqValue);
+                    } else {
+                        if (CFG_ORM_CHECK_MANDATORY_WHEN_SAVE.get())
+                            throw newError(ERR_ORM_MANDATORY_PROP_IS_NULL, entity).param(ARG_PROP_NAME, propModel.getName());
+                    }
                 } else {
-                    throw newError(ERR_ORM_MANDATORY_PROP_IS_NULL, entity).param(ARG_PROP_NAME, propModel.getName());
+                    // 即使不是mandatory的字段，只要设置了defaultValue，则新建的时候都会自动设置
+                    if (!entity.orm_propInited(propModel.getPropId()) && propModel.getDefaultValue() != null)
+                        entity.orm_propValue(propModel.getPropId(), propModel.getDefaultValue());
                 }
             }
         }
@@ -442,9 +446,7 @@ public class EntityPersisterImpl implements IEntityPersister {
     protected void queueSave(IOrmEntity entity, IOrmSessionImplementor session) {
         OrmTimestampHelper.onCreate(entityModel, entity);
 
-        if (CFG_ORM_CHECK_MANDATORY_WHEN_SAVE.get()) {
-            this.checkMandatoryWhenSave(entity);
-        }
+        this.checkColumnValueWhenSave(entity);
 
         ShardSelection shard = getShardSelection(entity);
 

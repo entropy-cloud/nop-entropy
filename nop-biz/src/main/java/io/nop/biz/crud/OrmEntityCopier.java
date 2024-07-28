@@ -133,7 +133,7 @@ public class OrmEntityCopier {
                     IObjPropMeta propMeta = getProp(objMeta, name);
                     if (propMeta != null) {
                         // 如果明确从前台提交参数，那么以提交的值为准。如果禁止前台提交，应该设置字段的insertable=false,updatable=false
-                        if (propMeta.getAutoExpr() != null) {
+                        if (propMeta.getAutoExpr() != null || propMeta.getDefaultValue() != null) {
                             ignoreAutoExprProps.add(propMeta.getName());
                         }
                     }
@@ -146,7 +146,7 @@ public class OrmEntityCopier {
                         return;
 
                     IObjPropMeta propMeta = getProp(objMeta, name);
-                    if (propMeta != null && propMeta.getAutoExpr() != null) {
+                    if (propMeta != null && (propMeta.getAutoExpr() != null || propMeta.getDefaultValue() != null)) {
                         ignoreAutoExprProps.add(propMeta.getName());
                     }
                     copyField(beanModel, null, src, target, name, name, null, propMeta, baseBizObjName, scope);
@@ -170,7 +170,7 @@ public class OrmEntityCopier {
 
                 IObjPropMeta propMeta = getProp(objMeta, from);
                 if (propMeta != null) {
-                    if (propMeta.getAutoExpr() != null)
+                    if (propMeta.getAutoExpr() != null || propMeta.getDefaultValue() != null)
                         ignoreAutoExprProps.add(propMeta.getName());
                 }
                 copyField(beanModel, map, src, target, from, name, field, propMeta, baseBizObjName, scope);
@@ -192,6 +192,10 @@ public class OrmEntityCopier {
                            FieldSelectionBean field, IObjPropMeta propMeta, String baseBizObjName, IEvalScope scope) {
         Object fromValue = beanModel.getProperty(src, from);
         if (propMeta != null) {
+            // 虚拟字段不会设置到实体上
+            if (propMeta.isVirtual())
+                return;
+
             IEvalAction setter = propMeta.getSetter();
             if (setter != null) {
                 scope = scope.newChildScope();
@@ -201,10 +205,6 @@ public class OrmEntityCopier {
                 setter.invoke(scope);
                 return;
             }
-
-            // 虚拟字段不会设置到实体上
-            if (propMeta.isVirtual())
-                return;
 
             if (propMeta.getMapToProp() != null) {
                 BeanTool.setComplexProperty(target, propMeta.getMapToProp(), fromValue);
