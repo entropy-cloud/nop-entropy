@@ -112,6 +112,7 @@ public class TestJsonTool {
     public void testTimestamp() {
         String str = JsonTool.stringify(new Timestamp(System.currentTimeMillis()));
         System.out.println(str);
+        assertTrue(str.length() > 19);
 
         assertEquals(3, JsonTool.serializeToJson(3));
     }

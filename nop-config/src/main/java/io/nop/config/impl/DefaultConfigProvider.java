@@ -58,7 +58,7 @@ public class DefaultConfigProvider extends AbstractConfigProvider {
         super(refs, staticValues);
         this.configSource = configSource;
         this.configValueEnhancer = configValueEnhancer;
-        this.configRefs = (Map) refs;
+        this.configRefs = refs;
         this.configValues = configSource.getConfigValues();
     }
 

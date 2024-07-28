@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
 import java.io.InputStream;
 import java.util.Map;
 
-@NopTestConfig(localDb = true, initDatabaseSchema = true,disableSnapshot = false)
+@NopTestConfig(localDb = true, initDatabaseSchema = true, disableSnapshot = false)
 @NopTestProperty(name = "nop.file.store-dir", value = "./target")
 @NopTestProperty(name = "nop.orm.dao-resource-check-interval", value = "0")
 public class TestNopRuleDefinitionBizModel extends JunitAutoTestCase {

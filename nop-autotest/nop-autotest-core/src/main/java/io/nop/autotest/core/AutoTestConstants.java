@@ -20,4 +20,6 @@ public interface AutoTestConstants {
     String VARIANT_DEFAULT = "_default";
 
     char PATTERN_PREFIX = '@';
+
+    String CFG_GRAPHQL_IGNORE_MILLIS_IN_TIMESTAMP = "nop.graphql.ignore-millis-in-timestamp";
 }

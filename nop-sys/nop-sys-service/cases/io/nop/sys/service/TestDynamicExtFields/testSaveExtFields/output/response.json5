@@ -8,9 +8,9 @@
     "delFlag": 0,
     "version": 0,
     "createdBy": "autotest-ref",
-    "createTime": "@var:NopSysExtField@updateTime",
+    "createTime": "@var:NopSysCodeRule@updateTime",
     "updatedBy": "autotest-ref",
-    "updateTime": "@var:NopSysExtField@updateTime",
+    "updateTime": "@var:NopSysCodeRule@updateTime",
     "seqName": null,
     "remark": null,
     "extFldC": "xyz"

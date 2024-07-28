@@ -3836,6 +3836,12 @@
         ]
       },
       {
+        "name": "parseTime",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "registerFormatter",
         "parameterTypes": [
           "java.lang.String",
@@ -5208,6 +5214,13 @@
       },
       {
         "name": "mergeCsvSet",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "mergeTagSet",
         "parameterTypes": [
           "java.lang.String",
           "java.lang.String"
@@ -13751,6 +13764,12 @@
         ]
       },
       {
+        "name": "getDialectNameForQuerySpace",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getMainTxnGroup",
         "parameterTypes": [
           "java.lang.String"
@@ -13758,6 +13777,10 @@
       },
       {
         "name": "getNamedQuerySpaces",
+        "parameterTypes": []
+      },
+      {
+        "name": "getQuerySpaceToDialectMap",
         "parameterTypes": []
       },
       {

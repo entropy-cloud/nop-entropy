@@ -1,5 +1,6 @@
 {
   "data": {
+    "id": "@var:NopSysNoticeTemplate@sid",
     "sid": "@var:NopSysNoticeTemplate@sid",
     "name": "123",
     "tplType": "1",
@@ -11,7 +12,6 @@
     "updatedBy": "autotest-ref",
     "updateTime": "@var:NopSysNoticeTemplate@updateTime",
     "remark": "sss",
-    "id": "@var:NopSysNoticeTemplate@sid",
     "extCode": "D2024123001",
     "extFldA": "x"
   },

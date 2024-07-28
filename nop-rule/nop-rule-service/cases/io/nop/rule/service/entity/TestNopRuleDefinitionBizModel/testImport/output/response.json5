@@ -1,5 +1,6 @@
 {
   "data": {
+    "id": "@var:NopRuleDefinition@ruleId",
     "ruleId": "@var:NopRuleDefinition@ruleId",
     "ruleName": "test",
     "ruleVersion": 1,
@@ -49,7 +50,6 @@
     ],
     "beforeExecute": null,
     "decisionMatrix": null,
-    "id": "@var:NopRuleDefinition@ruleId",
     "description": null,
     "remark": null
   },

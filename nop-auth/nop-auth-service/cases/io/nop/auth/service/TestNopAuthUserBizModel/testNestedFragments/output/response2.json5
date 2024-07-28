@@ -19,9 +19,9 @@
         "delFlag": 0,
         "version": 0,
         "createdBy": "autotest-ref",
-        "createTime": "@var:NopAuthUserRole@updateTime",
+        "createTime": "@var:NopAuthRole@updateTime",
         "updatedBy": "autotest-ref",
-        "updateTime": "@var:NopAuthUserRole@updateTime",
+        "updateTime": "@var:NopAuthRole@updateTime",
         "remark": null
       }
     }

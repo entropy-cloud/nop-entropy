@@ -86,8 +86,8 @@ public interface ApiConfigs {
             varRef(s_loc, "nop.auth.enable-data-auth", Boolean.class, false);
 
 
-    @Description("时间戳类型是否返回毫秒信息")
-    IConfigReference<Boolean> CFG_CONVERT_IGNORE_MILLIS_IN_TIMESTAMP =
-            varRef(s_loc, "nop.convert.ignore-millis-in-timestamp", Boolean.class, true);
+//    @Description("时间戳类型是否返回毫秒信息")
+//    IConfigReference<Boolean> CFG_CONVERT_IGNORE_MILLIS_IN_TIMESTAMP =
+//            varRef(s_loc, "nop.convert.ignore-millis-in-timestamp", Boolean.class, true);
 
 }

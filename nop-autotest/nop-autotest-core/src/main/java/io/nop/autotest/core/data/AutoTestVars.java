@@ -7,20 +7,17 @@
  */
 package io.nop.autotest.core.data;
 
-import io.nop.commons.util.DateHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.json.utils.JsonTransformHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 
-import static io.nop.api.core.ApiConfigs.CFG_CONVERT_IGNORE_MILLIS_IN_TIMESTAMP;
 import static io.nop.autotest.core.AutoTestConstants.PATTERN_PREFIX;
 import static io.nop.autotest.core.AutoTestConstants.V_VAR_PREFIX;
 import static io.nop.commons.util.StringHelper.leftPad;
@@ -133,11 +130,6 @@ public class AutoTestVars {
             return null;
         if (value instanceof String)
             return value;
-        if (value instanceof Timestamp) {
-            if (CFG_CONVERT_IGNORE_MILLIS_IN_TIMESTAMP.get()) {
-                return DateHelper.formatTimestampNoMillis((Timestamp) value);
-            }
-        }
         return JsonTool.serializeToJson(value, false);
     }
 
