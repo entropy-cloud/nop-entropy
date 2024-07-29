@@ -151,6 +151,13 @@ public interface IEntityDao<T extends IDaoEntity> {
     List<T> batchRequireEntitiesByIds(Collection<?> ids);
 
     /**
+     * 批量获取数据，并自动过滤所有未找到的记录，只返回状态不是Missing的实体
+     * @param ids 实体的id列表，有可能id对应的记录不存在，此时从数据库加载实体时会得到状态为missing的实体
+     * @return 过滤掉所有状态为Missing的实体
+     */
+    List<T> tryBatchGetEntitiesByIds(Collection<?> ids);
+
+    /**
      * 根据主键加载实体，返回主键到实体对象的映射集合。
      *
      * @param ids 主键列表。

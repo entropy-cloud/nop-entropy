@@ -849,12 +849,14 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @Description("@i18n:biz.batchGet|根据主键批量获取对象")
     @BizQuery
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
-    public List<T> batchGet(@Name("ids") Collection<String> ids, IServiceContext context) {
+    public List<T> batchGet(@Name("ids") Collection<String> ids,
+                            @Optional @Name("ignoreUnknown") boolean ignoreUnknown,
+                            IServiceContext context) {
         if (CollectionHelper.isEmpty(ids))
             return Collections.emptyList();
 
         IEntityDao<T> dao = dao();
-        List<T> list = dao.batchGetEntitiesByIds(ids);
+        List<T> list = ignoreUnknown ? dao.tryBatchGetEntitiesByIds(ids) : dao.batchRequireEntitiesByIds(ids);
         if (list.isEmpty()) {
             return list;
         }
@@ -888,8 +890,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
     @BizAction
     public boolean doDelete(@Name("id") @Description("@i18n:biz.id|对象的主键标识") String id,
-                               @Name("refNamesToCheck") Set<String> refNamesToCheck,
-                               @Name("prepareDelete") BiConsumer<T, IServiceContext> prepareDelete, IServiceContext context) {
+                            @Name("refNamesToCheck") Set<String> refNamesToCheck,
+                            @Name("prepareDelete") BiConsumer<T, IServiceContext> prepareDelete, IServiceContext context) {
         checkMandatoryParam("delete", "id", id);
 
         T entity = dao().getEntityById(id);

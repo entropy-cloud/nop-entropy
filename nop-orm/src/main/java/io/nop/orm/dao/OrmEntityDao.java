@@ -43,6 +43,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static io.nop.orm.OrmErrors.ARG_DAO_ENTITY_NAME;
 import static io.nop.orm.OrmErrors.ARG_ENTITY;
@@ -303,6 +304,14 @@ public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
                 throw new UnknownEntityException(entity.orm_entityName(), entity.get_id());
         }
         return ret;
+    }
+
+    @Override
+    public List<T> tryBatchGetEntitiesByIds(Collection<?> ids) {
+        List<T> ret = batchGetEntitiesByIds(ids);
+        if (ret.isEmpty())
+            return ret;
+        return ret.stream().filter(entity -> !entity.orm_state().isMissing()).collect(Collectors.toList());
     }
 
     @Override
