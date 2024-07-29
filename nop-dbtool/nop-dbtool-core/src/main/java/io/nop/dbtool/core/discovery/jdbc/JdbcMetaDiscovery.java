@@ -63,8 +63,8 @@ public class JdbcMetaDiscovery {
         this.dataSource = dataSource;
         this.connection = connection;
         this.dialect = dataSource != null
-                       ? DialectManager.instance().getDialectForDataSource(dataSource)
-                       : DialectManager.instance().getDialectForConnection(connection);
+                ? DialectManager.instance().getDialectForDataSource(dataSource)
+                : DialectManager.instance().getDialectForConnection(connection);
     }
 
     public JdbcMetaDiscovery basePackageName(String packageName) {
@@ -127,12 +127,16 @@ public class JdbcMetaDiscovery {
         }
     }
 
-    /** 优先通过 {@link #dataSource} 获取 {@link Connection} */
+    /**
+     * 优先通过 {@link #dataSource} 获取 {@link Connection}
+     */
     private Connection getConnection() throws SQLException {
         return dataSource != null ? dataSource.getConnection() : connection;
     }
 
-    /** 仅关闭由 {@link #dataSource} 获得的 {@link Connection} */
+    /**
+     * 仅关闭由 {@link #dataSource} 获得的 {@link Connection}
+     */
     private void closeConnection(Connection conn) {
         if (dataSource != null) {
             IoHelper.safeCloseObject(conn);
@@ -260,7 +264,12 @@ public class JdbcMetaDiscovery {
                 col.setCode(columnName);
                 col.setName(StringHelper.colCodeToPropName(columnName));
                 // Note：获取到的默认值可能是包含引号的转义值（若值为函数，则不会被转义），在使用时需注意
-                col.setDefaultValue(defaultValue);
+                if (StringHelper.isNumber(defaultValue)) {
+                    col.setDefaultValue(defaultValue);
+                } else if (defaultValue.startsWith("'") && defaultValue.endsWith("'")) {
+                    defaultValue = defaultValue.substring(1, defaultValue.length() - 1);
+                    col.setDefaultValue(defaultValue);
+                }
 
                 SqlDataTypeModel dataType = dialect.getNativeType(typeName);
                 SQLDataType sqlDataType;
@@ -530,9 +539,9 @@ public class JdbcMetaDiscovery {
                 table.addUniqueKey(indexModel);
 
                 indexModel.setColumnModels(indexModel.getColumns()
-                                                     .stream()
-                                                     .map(table::getColumn)
-                                                     .collect(Collectors.toList()));
+                        .stream()
+                        .map(table::getColumn)
+                        .collect(Collectors.toList()));
             }
         }
     }
@@ -546,7 +555,9 @@ public class JdbcMetaDiscovery {
         return true;
     }
 
-    /** 根据索引名称得到唯一键约束名称 */
+    /**
+     * 根据索引名称得到唯一键约束名称
+     */
     private String uniqueConstraintByIndexName(String indexName) {
         // 目前已知通过 java.sql.DatabaseMetaData.getIndexInfo
         // 获取的 H2 的唯一键的约束名（返回结果的 INDEX_NAME 列）会附加
