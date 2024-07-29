@@ -785,7 +785,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
         IEntityDao<T> dao = dao();
         T entity = dao.getEntityById(id);
-        if (entity == null) {
+        if (entity == null || entity.orm_state().isMissing()) {
             if (ignoreUnknown)
                 return null;
             throw new UnknownEntityException(dao.getEntityName(), id);
@@ -1110,14 +1110,16 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @Description("@i18n:biz.batchUpdate|批量修改")
     @BizMutation
     public void batchUpdate(@Name("ids") Set<String> ids, @Name("data") Map<String, Object> data,
+                            @Optional @Name("ignoreUnknown") boolean ignoreUnknown,
                             IServiceContext context) {
         if (CollectionHelper.isEmpty(ids) || CollectionHelper.isEmptyMap(data))
             return;
 
-        dao().batchGetEntitiesByIds(ids);
-        for (String id : ids) {
+        List<T> entityList = ignoreUnknown ?
+                dao().tryBatchGetEntitiesByIds(ids) : dao().batchGetEntitiesByIds(ids);
+        for (T entity: entityList) {
             Map<String, Object> copy = new LinkedHashMap<>(data);
-            copy.put(GraphQLConstants.PROP_ID, id);
+            copy.put(GraphQLConstants.PROP_ID, entity.orm_idString());
             update(copy, context);
         }
     }
