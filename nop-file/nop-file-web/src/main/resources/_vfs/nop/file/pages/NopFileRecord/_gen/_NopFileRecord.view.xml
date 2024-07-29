@@ -54,6 +54,9 @@
                 <!--原始文件ID-->
                 <col id="originFileId" mandatory="true" sortable="true"/>
 
+                <!--是否允许公开访问-->
+                <col id="isPublic" mandatory="true" sortable="true"/>
+
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>
 
@@ -76,8 +79,8 @@
  fileLastModified[文件修改时间] bizObjName[对象名]
  bizObjId[对象ID] fieldName[字段名]
  fileHash[文件摘要] originFileId[原始文件ID]
- createdBy[创建人] createTime[创建时间]
- remark[备注] 
+ isPublic[是否允许公开访问] createdBy[创建人]
+ createTime[创建时间] remark[备注]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-文件记录" i18n-en:title="Add File Record" x:prototype="edit"/>
@@ -89,7 +92,7 @@
  fileLastModified[文件修改时间] bizObjName[对象名]
  bizObjId[对象ID] fieldName[字段名]
  fileHash[文件摘要] originFileId[原始文件ID]
- remark[备注] 
+ isPublic[是否允许公开访问] remark[备注]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">

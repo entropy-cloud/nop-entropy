@@ -16,6 +16,7 @@ prop:
       fieldName: Field Name
       fileHash: File Hash
       originFileId: Original File ID
+      isPublic: Is Public
       delFlag: Deleted
       createdBy: Created By
       createTime: Create Time

@@ -17,6 +17,7 @@ prop:
       fileLength: 文件长度
       fileName: 文件名
       filePath: 文件路径
+      isPublic: 是否允许公开访问
       mimeType: 内容类型
       originFileId: 原始文件ID
       remark: 备注

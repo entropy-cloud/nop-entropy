@@ -32270,6 +32270,12 @@
         ]
       },
       {
+        "name": "getDialectNameForQuerySpace",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getMainTxnGroup",
         "parameterTypes": [
           "java.lang.String"
@@ -32277,6 +32283,10 @@
       },
       {
         "name": "getNamedQuerySpaces",
+        "parameterTypes": []
+      },
+      {
+        "name": "getQuerySpaceToDialectMap",
         "parameterTypes": []
       },
       {
@@ -33640,6 +33650,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_isPublic"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_mimeType"
       },
       {
@@ -33720,6 +33735,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_isPublic"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_mimeType"
       },
       {
@@ -33788,6 +33808,10 @@
       },
       {
         "name": "getFilePath",
+        "parameterTypes": []
+      },
+      {
+        "name": "getIsPublic",
         "parameterTypes": []
       },
       {
@@ -33935,6 +33959,12 @@
         ]
       },
       {
+        "name": "setIsPublic",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
         "name": "setMimeType",
         "parameterTypes": [
           "java.lang.String"
@@ -33982,6 +34012,19 @@
         "name": "batchLoadResource",
         "parameterTypes": [
           "java.util.Collection"
+        ]
+      },
+      {
+        "name": "batchLoadResourceAsync",
+        "parameterTypes": [
+          "java.util.Collection"
+        ]
+      },
+      {
+        "name": "changePublic",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean"
         ]
       },
       {
@@ -39288,6 +39331,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "LOG"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "specifyQuerySpaces"
       }
     ],
     "methods": [
@@ -39305,6 +39353,12 @@
         "name": "setOrmSessionFactory",
         "parameterTypes": [
           "io.nop.orm.IOrmSessionFactory"
+        ]
+      },
+      {
+        "name": "setSpecifyQuerySpaces",
+        "parameterTypes": [
+          "[Ljava.lang.String;"
         ]
       },
       {
@@ -53019,6 +53073,23 @@
       }
     ],
     "name": "io.nop.xlang.xmeta.layout.LayoutTableModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "findTagForDomain",
+        "parameterTypes": [
+          "io.nop.core.lang.xml.XNode"
+        ]
+      }
+    ],
+    "name": "io.nop.xlang.xmeta.utils.ObjMetaPropHelper",
     "unsafeAllocated": false
   },
   {
