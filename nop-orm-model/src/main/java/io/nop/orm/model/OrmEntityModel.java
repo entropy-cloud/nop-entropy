@@ -258,7 +258,7 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
     }
 
     @Override
-    public int getDeleteVersionPropId(){
+    public int getDeleteVersionPropId() {
         return deleteVersionPropId;
     }
 
@@ -384,4 +384,7 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
         }
     }
 
+    public String getCode() {
+        return getTableName();
+    }
 }

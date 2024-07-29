@@ -968,6 +968,9 @@ public class ResourceHelper {
             return path;
         }
 
+        if(path.startsWith("file:"))
+            return path;
+
         if (path.startsWith("v:")) {
             return path.substring("v:".length());
         }

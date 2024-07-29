@@ -250,6 +250,12 @@
                 </field>
 
                 <field name="columns" displayName="字段列表" list="true" keyProp="name">
+                    <normalizeFieldsExpr>
+                        if(!record.name){
+                            // id被保留为系统自动生成的主键名，因此不会作为字段名
+                            record.name = record.code.$colCodeToPropName()
+                        }
+                    </normalizeFieldsExpr>
                     <fields>
                         <field name="propId" displayName="编号" mandatory="true">
                             <schema stdDomain="int"/>
@@ -259,7 +265,7 @@
                             <schema stdDomain="boolean"/>
                             <valueExpr>
                                 <c:script>
-                                    value == 'PK' || value == 'Y'
+                                    value == 'PK' || value == 'Y' || value == true
                                 </c:script>
                             </valueExpr>
                         </field>
@@ -268,18 +274,17 @@
                             <schema stdDomain="boolean"/>
                             <valueExpr>
                                 <c:script>
-                                    value == 'M' || value == 'Y'
+                                    value == 'M' || value == 'Y' || value == true
                                 </c:script>
                             </valueExpr>
                         </field>
 
                         <field name="code" displayName="字段名" mandatory="true">
                             <schema stdDomain="var-name"/>
-                            <valueExpr>
-                                // id被保留为系统自动生成的主键名，因此不会作为字段名
-                                record.name = value?.$colCodeToPropName()
-                                return value
-                            </valueExpr>
+                        </field>
+
+                        <field name="name" displayName="属性名">
+                            <schema stdDomain="var-name" />
                         </field>
 
                         <field name="ui:show" displayName="显示">

@@ -49,7 +49,7 @@ public class GenOrmHelper {
         IReportEngine reportEngine = newReportEngine();
         ExcelWorkbook workbook = reportEngine.buildXptModelFromImpModel("/nop/orm/imp/orm.imp.xml");
         if (dump) {
-            IResource modelFile = ResourceHelper.getSiblingWithExt(new FileResource(outputFile), ".xpt");
+            IResource modelFile = ResourceHelper.getSiblingWithExt(new FileResource(outputFile), ".xml");
             DslModelHelper.saveDslModel(XptConstants.XDSL_SCHEMA_WORKBOOK, workbook, modelFile);
         }
 

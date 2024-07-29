@@ -50,6 +50,10 @@ public class GraphQLNameHelper {
         if (clazz.isAnnotationPresent(GraphQLObject.class))
             return clazz.getSimpleName();
 
+//        BizObjName bizObjName = clazz.getAnnotation(BizObjName.class);
+//        if(bizObjName != null)
+//            return bizObjName.value();
+
         if(clazz.isEnum())
             return "e_" + clazz.getName().replace('.','_');
 
