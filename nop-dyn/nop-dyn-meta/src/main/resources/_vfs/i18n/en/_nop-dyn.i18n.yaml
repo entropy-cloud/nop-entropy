@@ -147,6 +147,7 @@ prop:
       relationType: Relation Type
       relationType_label: null
       middleTableName: Middle Table Name
+      middleEntityName: Middle Entity Name
       leftPropName: Left Prop Name
       rightPropName: Right Prop Name
       status: Status

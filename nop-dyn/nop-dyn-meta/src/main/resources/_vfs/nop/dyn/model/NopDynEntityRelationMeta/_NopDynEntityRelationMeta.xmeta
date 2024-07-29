@@ -48,47 +48,51 @@
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="leftPropName" displayName="左属性名" propId="8" i18n-en:displayName="Left Prop Name" mandatory="true"
+        <prop name="middleEntityName" displayName="中间表实体名" propId="8" i18n-en:displayName="Middle Entity Name"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="rightPropName" displayName="右属性名" propId="9" i18n-en:displayName="Right Prop Name" mandatory="true"
+        <prop name="leftPropName" displayName="左属性名" propId="9" i18n-en:displayName="Left Prop Name" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="status" displayName="状态" propId="10" i18n-en:displayName="Status" mandatory="true" queryable="true"
+        <prop name="rightPropName" displayName="右属性名" propId="10" i18n-en:displayName="Right Prop Name" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="status" displayName="状态" propId="11" i18n-en:displayName="Status" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer"/>
         </prop>
-        <prop name="tagsText" displayName="标签" propId="11" i18n-en:displayName="Tag Set" queryable="true"
+        <prop name="tagsText" displayName="标签" propId="12" i18n-en:displayName="Tag Set" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="extConfig" displayName="扩展配置" propId="12" i18n-en:displayName="Ext Config" queryable="true"
+        <prop name="extConfig" displayName="扩展配置" propId="13" i18n-en:displayName="Ext Config" queryable="true"
               sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="extConfigComponent">
             <schema stdDomain="json" domain="json-1000" type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="version" displayName="数据版本" propId="13" i18n-en:displayName="Version" mandatory="true"
+        <prop name="version" displayName="数据版本" propId="14" i18n-en:displayName="Version" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="version" type="java.lang.Integer"/>
         </prop>
-        <prop name="createdBy" displayName="创建人" propId="14" i18n-en:displayName="Created By" mandatory="true"
+        <prop name="createdBy" displayName="创建人" propId="15" i18n-en:displayName="Created By" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="createdBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="createTime" displayName="创建时间" propId="15" i18n-en:displayName="Create Time" mandatory="true"
+        <prop name="createTime" displayName="创建时间" propId="16" i18n-en:displayName="Create Time" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="createTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="updatedBy" displayName="修改人" propId="16" i18n-en:displayName="Updated By" mandatory="true"
+        <prop name="updatedBy" displayName="修改人" propId="17" i18n-en:displayName="Updated By" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="updatedBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="updateTime" displayName="修改时间" propId="17" i18n-en:displayName="Update Time" mandatory="true"
+        <prop name="updateTime" displayName="修改时间" propId="18" i18n-en:displayName="Update Time" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="remark" displayName="备注" propId="18" i18n-en:displayName="Remark" queryable="true" sortable="true"
+        <prop name="remark" displayName="备注" propId="19" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="true" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>

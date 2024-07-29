@@ -240,7 +240,7 @@ public class DynEntityMetaToOrmModel {
 
     private OrmReferenceModel toRelationModel(NopDynEntityRelationMeta rel) {
         OrmReferenceModel ret;
-        if (rel.isToMany()) {
+        if (rel.isManyToMany()) {
             ret = new OrmToManyReferenceModel();
         } else {
             ret = new OrmToOneReferenceModel();

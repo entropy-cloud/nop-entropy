@@ -36,6 +36,9 @@
                 <!--中间表表名-->
                 <col id="middleTableName" sortable="true"/>
 
+                <!--中间表实体名-->
+                <col id="middleEntityName" sortable="true"/>
+
                 <!--左属性名-->
                 <col id="leftPropName" mandatory="true" sortable="true"/>
 
@@ -76,12 +79,12 @@
  entityMetaId[实体元数据] refEntityMetaId[关联实体]
  relationName[关联名] relationDisplayName[关联显示名]
  relationType[关联类型] middleTableName[中间表表名]
- leftPropName[左属性名] rightPropName[右属性名]
- status[状态] tagsText[标签]
- extConfig[扩展配置] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] 
-                remark[备注]
+ middleEntityName[中间表实体名] leftPropName[左属性名]
+ rightPropName[右属性名] status[状态]
+ tagsText[标签] extConfig[扩展配置]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-实体关联属性定义" i18n-en:title="Add Entity Relation Meta" x:prototype="edit"/>
@@ -90,10 +93,10 @@
  entityMetaId[实体元数据] refEntityMetaId[关联实体]
  relationName[关联名] relationDisplayName[关联显示名]
  relationType[关联类型] middleTableName[中间表表名]
- leftPropName[左属性名] rightPropName[右属性名]
- status[状态] tagsText[标签]
- extConfig[扩展配置] 
-                remark[备注]
+ middleEntityName[中间表实体名] leftPropName[左属性名]
+ rightPropName[右属性名] status[状态]
+ tagsText[标签] extConfig[扩展配置]
+ remark[备注] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">

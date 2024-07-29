@@ -147,6 +147,7 @@ prop:
       extConfig: 扩展配置
       extConfigComponent: null
       leftPropName: 左属性名
+      middleEntityName: 中间表实体名
       middleTableName: 中间表表名
       refEntityMeta: 关联实体元数据
       refEntityMeta.entityName: 关联实体元数据

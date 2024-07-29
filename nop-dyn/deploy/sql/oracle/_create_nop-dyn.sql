@@ -243,6 +243,7 @@ CREATE TABLE nop_dyn_entity_relation_meta(
   RELATION_DISPLAY_NAME VARCHAR2(100) NOT NULL ,
   RELATION_TYPE VARCHAR2(10) NOT NULL ,
   MIDDLE_TABLE_NAME VARCHAR2(100)  ,
+  MIDDLE_ENTITY_NAME VARCHAR2(100)  ,
   LEFT_PROP_NAME VARCHAR2(100) NOT NULL ,
   RIGHT_PROP_NAME VARCHAR2(100) NOT NULL ,
   STATUS INTEGER NOT NULL ,
@@ -694,6 +695,8 @@ CREATE TABLE nop_dyn_function_meta(
       COMMENT ON COLUMN nop_dyn_entity_relation_meta.RELATION_TYPE IS '关联类型';
                     
       COMMENT ON COLUMN nop_dyn_entity_relation_meta.MIDDLE_TABLE_NAME IS '中间表表名';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.MIDDLE_ENTITY_NAME IS '中间表实体名';
                     
       COMMENT ON COLUMN nop_dyn_entity_relation_meta.LEFT_PROP_NAME IS '左属性名';
                     

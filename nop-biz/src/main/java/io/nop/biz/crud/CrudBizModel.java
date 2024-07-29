@@ -1671,7 +1671,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
     protected List<T> getEntityListByTreeEntity(List<StdTreeEntity> list, IServiceContext context) {
         List<String> idList = list.stream().map(StdTreeEntity::getId).collect(Collectors.toList());
-        return batchGet(idList, context);
+        return batchGet(idList,false, context);
     }
 
     @BizQuery
