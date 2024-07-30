@@ -20,8 +20,12 @@ import java.util.Set;
 @BizObjName("NopDynEntityRelationMeta")
 public class NopDynEntityRelationMeta extends _NopDynEntityRelationMeta implements ITagSetSupport {
 
+    public boolean isOneToMany() {
+        return OrmRelationType.o2m.name().equals(getRelationType());
+    }
+
     public boolean isManyToMany() {
-        return OrmRelationType.m2m.equals(getRelationType()) || OrmRelationType.o2m.equals(getRelationType());
+        return OrmRelationType.m2m.name().equals(getRelationType());
     }
 
     @Override

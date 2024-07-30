@@ -102,6 +102,8 @@ public interface IObjPropMeta
 
     boolean isSortable();
 
+    boolean isExportable();
+
     Set<String> getAllowFilterOp();
 
     Boolean getAllowCpExpr();

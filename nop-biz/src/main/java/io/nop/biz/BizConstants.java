@@ -133,6 +133,8 @@ public interface BizConstants {
 
     String SELECTION_COPY_FOR_NEW = "copyForNew";
 
+    String SELECTION_EXPORTABLE = "exportable";
+
     String PARAM_IGNORE_UNKNOWN = "ignoreUnknown";
 
     String TEMP_BIZ_OBJ_ID = "__TEMP__";

@@ -61,6 +61,8 @@ public class ExcelWorkbookParser extends AbstractXlsxParser {
         if (sheetPart == null)
             throw new NopException(ERR_XLSX_NULL_REL_PART).param(ARG_TYPE, "sheet").param(ARG_REL_ID, sheetRef.getRelId());
 
+        if (StringHelper.isEmpty(sheetRef.getName()))
+            return null;
 
         SimpleSheetContentsHandler contentsHandler = new SimpleSheetContentsHandler(workbook, sheetRef.getName());
 

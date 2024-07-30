@@ -229,5 +229,7 @@ public interface BizErrors {
     ErrorCode ERR_BIZ_NOT_ALLOW_DELETE_ENTITY_WHEN_REF_EXISTS =
             define("nop.err.biz.not-allow-delete-entity-when-ref-exists", "此数据已被[{refEntityName}]中所引用，不允许删除", ARG_REF_ENTITY_NAME);
 
-
+    ErrorCode ERR_BIZ_NOT_EXPORTABLE_FIELD =
+            define("nop.err.biz.not-exportable-field", "[{propName}]不是可导出的字段",
+                    ARG_BIZ_OBJ_NAME, ARG_PROP_NAME);
 }

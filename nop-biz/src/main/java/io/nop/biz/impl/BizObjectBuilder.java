@@ -19,7 +19,6 @@ import io.nop.biz.model.BizLoaderModel;
 import io.nop.biz.model.BizModel;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.action.IServiceAction;
-import io.nop.core.context.action.IServiceActionDecorator;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.fsm.execution.StateMachine;
@@ -194,7 +193,7 @@ public class BizObjectBuilder {
 
     BizObjectImpl loadBizObjFromModel(String bizObjName) {
         GraphQLBizModel gqlBizModel = bizModels.getBizModel(bizObjName);
-        if (gqlBizModel == null)
+        if (gqlBizModel == null && dynBizModels != null)
             gqlBizModel = dynBizModels.get(bizObjName);
         if (gqlBizModel == null)
             throw new NopException(ERR_BIZ_UNKNOWN_BIZ_OBJ_NAME).param(ARG_BIZ_OBJ_NAME, bizObjName);

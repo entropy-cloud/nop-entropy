@@ -48,7 +48,7 @@
               childName="prop-name" defaultOverride="enum:io.nop.xlang.xdef.XDefOverride"
               tagSet="tag-set" lazy="!boolean=false"
               insertable="!boolean=false" updatable="!boolean=false" queryable="!boolean=false"
-              sortable="!boolean=false" virtual="!boolean=false" published="!boolean=true"
+              sortable="!boolean=false" virtual="!boolean=false" published="!boolean=true" exportable="!boolean=true"
               allowFilterOp="word-set" kind="enum:io.nop.xlang.xmeta.ObjPropKind"
               ui:control="xml-name" ui:show="string" ui:labelProp="prop-path" ui:filterOp="xml-name"
               ui:maxUploadSize="long-size" ui:supportFileLink="boolean" ui:uploadAccept="string"

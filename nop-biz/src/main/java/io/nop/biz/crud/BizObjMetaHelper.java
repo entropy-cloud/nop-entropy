@@ -7,16 +7,25 @@
  */
 package io.nop.biz.crud;
 
+import io.nop.api.core.beans.DictOptionBean;
+import io.nop.api.core.beans.FieldSelectionBean;
+import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObject;
 import io.nop.biz.api.IBizObjectManager;
+import io.nop.core.context.IServiceContext;
+import io.nop.core.i18n.I18nHelper;
+import io.nop.graphql.core.engine.GraphQLActionAuthChecker;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.IObjSchema;
 import io.nop.xlang.xmeta.ISchema;
+import io.nop.xlang.xmeta.impl.ObjSelectionMeta;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -106,4 +115,12 @@ public class BizObjMetaHelper {
 //        scope.setLocalValue(CoreConstants.VAR_SVC_CTX, context);
 //        return objMeta.getFilter().generateNode(scope);
 //    }
+
+    public static DictOptionBean getPropInfo(IObjPropMeta propMeta, String locale, String bizObjName) {
+        DictOptionBean option = new DictOptionBean();
+        option.setValue(propMeta.getName());
+        String displayName = I18nHelper.getFieldDisplayName(locale, bizObjName, propMeta.getName(), false);
+        option.setLabel(displayName);
+        return option;
+    }
 }

@@ -16,6 +16,7 @@ import io.nop.api.core.convert.IdentityTypeConverter;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.DateHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.context.IServiceContext;
 import io.nop.core.context.action.IServiceAction;
 import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.IFunctionModel;
@@ -23,6 +24,7 @@ import io.nop.core.type.IGenericType;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IDataFetcher;
 import io.nop.graphql.core.ast._gen._GraphQLFieldDefinition;
+import io.nop.graphql.core.engine.GraphQLActionAuthChecker;
 import io.nop.graphql.core.reflection.IGraphQLArgsNormalizer;
 import io.nop.xlang.xmeta.IObjPropMeta;
 
@@ -115,12 +117,28 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition implements I
         return typeConverter;
     }
 
+    public boolean isAllowAccess(IServiceContext context) {
+        return GraphQLActionAuthChecker.isAllowAccess(auth, context);
+    }
+
     public boolean isAutoCreate() {
         return autoCreate;
     }
 
     public void setAutoCreate(boolean autoCreate) {
         this.autoCreate = autoCreate;
+    }
+
+    public String getDisplayName() {
+        if (propMeta != null)
+            return propMeta.getDisplayName();
+
+        if (beanPropMeta != null) {
+            if (!StringHelper.isEmpty(beanPropMeta.displayName()))
+                return beanPropMeta.displayName();
+        }
+
+        return getName();
     }
 
     public IGenericType getJavaType() {

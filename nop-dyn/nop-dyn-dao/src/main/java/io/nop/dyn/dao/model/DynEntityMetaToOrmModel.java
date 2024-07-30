@@ -9,6 +9,7 @@ package io.nop.dyn.dao.model;
 
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
@@ -232,7 +233,11 @@ public class DynEntityMetaToOrmModel {
 
     private void handleManyToManyRelation(OrmEntityModel entityModel, NopDynEntityRelationMeta rel) {
         // 多对多关联的定义是： 新建一个中间表，分别引用左表和右表的主键。这要求rel的leftProp和rightProp都应该是id
-        OrmReferenceModel manyRelationModel = this.toRelationModel(rel);
+        String middleEntityName = rel.guessMiddleEntityName();
+        OrmEntityModel middleTable = middleTables.computeIfAbsent(middleEntityName,k->{
+            OrmEntityModel ret = new OrmEntityModel();
+            ret.setName();
+        });
         entityModel.addRelation(manyRelationModel);
         entityModel.setTagSet(TagsHelper.add(StringHelper.parseCsvSet(rel.getTagsText()), OrmModelConstants.TAG_MANY_TO_MANY));
     }
@@ -240,9 +245,11 @@ public class DynEntityMetaToOrmModel {
 
     private OrmReferenceModel toRelationModel(NopDynEntityRelationMeta rel) {
         OrmReferenceModel ret;
-        if (rel.isManyToMany()) {
+        if (rel.isOneToMany()) {
             ret = new OrmToManyReferenceModel();
         } else {
+            Guard.checkArgument(!rel.isManyToMany());
+
             ret = new OrmToOneReferenceModel();
         }
 

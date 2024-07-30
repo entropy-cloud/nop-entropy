@@ -35,6 +35,7 @@ import io.nop.auth.api.utils.AuthHelper;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObject;
 import io.nop.biz.api.IBizObjectManager;
+import io.nop.biz.crud.importexport.BizExportHelper;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
@@ -1117,7 +1118,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
         List<T> entityList = ignoreUnknown ?
                 dao().tryBatchGetEntitiesByIds(ids) : dao().batchGetEntitiesByIds(ids);
-        for (T entity: entityList) {
+        for (T entity : entityList) {
             Map<String, Object> copy = new LinkedHashMap<>(data);
             copy.put(GraphQLConstants.PROP_ID, entity.orm_idString());
             update(copy, context);
@@ -1671,7 +1672,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
     protected List<T> getEntityListByTreeEntity(List<StdTreeEntity> list, IServiceContext context) {
         List<String> idList = list.stream().map(StdTreeEntity::getId).collect(Collectors.toList());
-        return batchGet(idList,false, context);
+        return batchGet(idList, false, context);
     }
 
     @BizQuery
@@ -1707,5 +1708,11 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
             pageBean.setItems(getEntityListByTreeEntity(ret, context));
         }
         return pageBean;
+    }
+
+    @BizQuery
+    @Description("所有可导出的字段")
+    public List<DictOptionBean> exportableFields(IServiceContext context) {
+        return BizExportHelper.getExportableFields(getBizObjName(), getThisObj().getObjMeta(), context);
     }
 }

@@ -29,6 +29,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.BiConsumer;
 
 import static io.nop.api.core.ApiErrors.ARG_PROP_NAME;
 import static io.nop.api.core.util.CloneHelper.deepMerge;
@@ -127,6 +128,43 @@ public class FieldSelectionBean implements Serializable, IDeepCloneable, IFreeza
             }
         }
         return count;
+    }
+
+    public String getFirstSourceField() {
+        if (!hasField())
+            return null;
+        Map.Entry<String, FieldSelectionBean> entry = fields.entrySet().iterator().next();
+        FieldSelectionBean field = entry.getValue();
+        if (field.getName() != null)
+            return field.getName();
+        return entry.getKey();
+    }
+
+    public void forEachField(String prefix, BiConsumer<String, String> action) {
+        if (fields != null) {
+            for (Map.Entry<String, FieldSelectionBean> entry : this.fields.entrySet()) {
+                String name = entry.getKey();
+                FieldSelectionBean field = entry.getValue();
+                String sourceName = field.getName();
+                if (sourceName == null)
+                    sourceName = name;
+
+                if (prefix != null) {
+                    sourceName = prefix + '.' + sourceName;
+                }
+                action.accept(name, sourceName);
+
+                if (field.hasField())
+                    field.forEachField(sourceName, action);
+            }
+        }
+    }
+
+    @JsonIgnore
+    public Set<String> getAllSourceFields() {
+        Set<String> ret = new LinkedHashSet<>();
+        forEachField(null, (alias, name) -> ret.add(name));
+        return ret;
     }
 
     /**

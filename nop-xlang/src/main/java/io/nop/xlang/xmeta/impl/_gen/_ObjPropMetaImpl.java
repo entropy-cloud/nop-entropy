@@ -110,6 +110,13 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: exportable
+     * 
+     */
+    private boolean _exportable  = true;
+    
+    /**
+     *  
      * xml name: getter
      * 根据当前实体生成动态属性。getter和setter都是后台实体对象层的功能，类似Java对象上的get/set。
      * 上下文中可以通过entity变量访问当前实体对象。
@@ -561,6 +568,25 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
         checkAllowChange();
         
         this._displayName = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: exportable
+     *  
+     */
+    
+    public boolean isExportable(){
+      return _exportable;
+    }
+
+    
+    public void setExportable(boolean value){
+        checkAllowChange();
+        
+        this._exportable = value;
            
     }
 
@@ -1022,6 +1048,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
         out.putNotNull("deprecated",this.isDeprecated());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("exportable",this.isExportable());
         out.putNotNull("getter",this.getGetter());
         out.putNotNull("insertable",this.isInsertable());
         out.putNotNull("internal",this.isInternal());
@@ -1068,6 +1095,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
         instance.setDeprecated(this.isDeprecated());
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
+        instance.setExportable(this.isExportable());
         instance.setGetter(this.getGetter());
         instance.setInsertable(this.isInsertable());
         instance.setInternal(this.isInternal());

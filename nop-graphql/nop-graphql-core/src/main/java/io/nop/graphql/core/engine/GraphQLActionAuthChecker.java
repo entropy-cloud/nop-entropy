@@ -88,28 +88,12 @@ public class GraphQLActionAuthChecker {
 
     public static void checkAuth(String objTypeName, String fieldName, ActionAuthMeta auth, IActionAuthChecker checker,
                                  IServiceContext context, boolean action) {
-        if (checker == null)
-            return;
-
-        if (auth == null)
-            return;
-
-        // 如果是公开方法，则不检查用户权限
-        if (auth.isPublicAccess())
+        if (isAllowAccess(auth, context))
             return;
 
         IUserContext userContext = context.getUserContext();
         if (userContext == null)
             throw new IllegalStateException("nop.err.auth.no-user-context");
-        if (auth.getRoles() != null && !auth.getRoles().isEmpty()) {
-            if (userContext.isUserInAnyRole(auth.getRoles()))
-                return;
-        }
-
-        if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
-            if (checker.isPermissionSetSatisfied(auth.getPermissions(), context))
-                return;
-        }
 
         if (action) {
             throw new NopException(AuthApiErrors.ERR_AUTH_NO_PERMISSION)
@@ -124,5 +108,34 @@ public class GraphQLActionAuthChecker {
                     .param(ARG_ROLES, auth.getRoles())
                     .param(ARG_OBJ_TYPE_NAME, objTypeName);
         }
+    }
+
+    public static boolean isAllowAccess(ActionAuthMeta auth, IServiceContext context) {
+        if (auth == null)
+            return true;
+
+        IActionAuthChecker checker = context.getActionAuthChecker();
+        if (checker == null)
+            return true;
+
+        // 如果是公开方法，则不检查用户权限
+        if (auth.isPublicAccess())
+            return true;
+
+        IUserContext userContext = context.getUserContext();
+        if (userContext == null)
+            return false;
+
+        if (auth.getRoles() != null && !auth.getRoles().isEmpty()) {
+            if (userContext.isUserInAnyRole(auth.getRoles()))
+                return true;
+        }
+
+        if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
+            if (checker.isPermissionSetSatisfied(auth.getPermissions(), context))
+                return true;
+        }
+
+        return false;
     }
 }
