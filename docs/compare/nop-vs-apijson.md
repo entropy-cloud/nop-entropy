@@ -721,7 +721,7 @@ APIJSON中 `["contactIdList<>":38710]`等价于执行SQL过滤条件`json_contai
           allowFilterOp="contains,eq">
        <graphql:transFilter>
           <filter:sql>
-             json_contains(o.contactIdList,${value})
+             json_contains( o.contactIdList, ${value} )
           </filter:sql>
       </graphql:transFilter>
      </prop>
@@ -733,7 +733,7 @@ APIJSON中 `["contactIdList<>":38710]`等价于执行SQL过滤条件`json_contai
 * 可以配置`<graphql:transFilter>`来执行转换逻辑。例子中时使用`filter.xlib`标签库中的`<filter:sql>`标签函数来动态生成SQL片段。
 * 如果感觉上面的配置有些繁琐，可以利用Nop平台内置的元编程机制在编译期为JSON类型的字段统一生成相应的transFilter配置。这样看起来就像是原生支持json_contains运算符。
 
-```
+```xml
 <prop name="contactIdList" allowFilterOp="json_contains"/>
 ```
 
@@ -766,7 +766,9 @@ APIJSON中，如下调用
 <prop name="existsComment" allowFilterOp="exists">
    <graphql:transFilter>
       <filter:sql>
-          EXISTS(SELECT * FROM Comment o2 WHERE o2.momentId=${filter.getAttr('momentId')})
+          EXISTS(
+            SELECT * FROM Comment o2 WHERE o2.momentId= ${ filter.getAttr('momentId') }
+          )
       </filter:sql>
    </graphql:transFilter>
 </prop>
@@ -802,7 +804,7 @@ APIJSON中，如下调用
 * 可以使用inject函数从IoC容器中获取bean，或者使用import语法导入Java类。
 * 可以利用XPL模板语言的标签抽象机制类简化调用。例如
 
-```
+```xml
 <prop name="isPraised">
    <getter>
       <api:invoke name="isContains" args="${{praiseUserIdList, userId:entityId}}" />
@@ -911,7 +913,7 @@ Nop平台采用标准的ORM设计，一般要求先获取数据到Java内存中�
 
 对于少数需要直接在数据库中执行递增或者递减语法的情况，可以在XBiz模型中直接执行SQL语句来进行处理。
 
-```
+```xml
 <action name="changeAmount">
   <arg name="accountId" type="String" />
   <arg name="delta" type="Double" />

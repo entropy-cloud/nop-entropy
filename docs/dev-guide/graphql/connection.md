@@ -99,7 +99,7 @@ query($filter1:Map, $filter2:Map){
 
 ## REST请求时通过`_subArgs`简化传参方式
 
-```
+```json
 /r/MyObject__get?id=3&@selection=activeRecords:mySubObjectConnection,inactiveRecords:mySubObjectConnection
 
 {

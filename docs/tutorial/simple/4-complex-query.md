@@ -217,8 +217,9 @@ query($filter1:Map, $filter2: Map){
   <prop name="myCustomFilter" queryable="true">
       <graphql:transFilter>
           <filter:sql>
-              exists(select o2 from NopAuthResource o2 where o2.siteId= o.id
-               and o2.status >= ${filter.getAttr('value')})
+              exists( select o2 from NopAuthResource o2 where o2.siteId= o.id
+                and o2.status >= ${ filter.getAttr('value') }
+              )
           </filter:sql>
       </graphql:transFilter>
   </prop>
@@ -234,6 +235,7 @@ query($filter1:Map, $filter2: Map){
 select o
 from NopAuthSite o
 where
-  exists(select o2 from NopAuthResource o2 where o2.siteId= o.id
-   and o2.status >= 'main' })
+  exists( select o2 from NopAuthResource o2 where o2.siteId= o.id
+    and o2.status >= 'main'
+  )
 ```
