@@ -14,9 +14,9 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.web.page.PageProvider;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
-import jakarta.inject.Inject;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -75,5 +75,35 @@ public class TestWebPage extends JunitBaseTestCase {
 
         String text = JsonTool.serialize(page, true);
         assertTrue(text.contains("xui:permissions"));
+    }
+
+    @Test
+    public void testEditControls() {
+        String path = "/nop/auth/pages/TestWebControl/edit.page.yaml";
+        Map<String, Object> page = pageProvider.getPage(path,null);
+        System.out.println(JSON.serialize(page, true));
+
+        String text = JsonTool.serialize(page, true);
+        assertEquals(attachmentJsonText("edit-controls.page.json"), text);
+    }
+
+    @Test
+    public void testViewControls() {
+        String path = "/nop/auth/pages/TestWebControl/view.page.yaml";
+        Map<String, Object> page = pageProvider.getPage(path,null);
+        System.out.println(JSON.serialize(page, true));
+
+        String text = JsonTool.serialize(page, true);
+        assertEquals(attachmentJsonText("view-controls.page.json"), text);
+    }
+
+    @Test
+    public void testQueryControls() {
+        String path = "/nop/auth/pages/TestWebControl/query.page.yaml";
+        Map<String, Object> page = pageProvider.getPage(path,null);
+        System.out.println(JSON.serialize(page, true));
+
+        String text = JsonTool.serialize(page, true);
+        assertEquals(attachmentJsonText("query-controls.page.json"), text);
     }
 }

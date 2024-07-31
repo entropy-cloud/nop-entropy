@@ -8,6 +8,7 @@
 package io.nop.core.lang.json.bind;
 
 import io.nop.core.lang.json.bind.resolver.ConfigValueResolver;
+import io.nop.core.lang.json.bind.resolver.EmptyTextResolver;
 import io.nop.core.lang.json.bind.resolver.I18nTextResolver;
 import io.nop.core.lang.json.bind.resolver.LoadTextResolver;
 import io.nop.core.lang.json.bind.resolver.ScopeVarResolver;
@@ -27,6 +28,7 @@ public class ValueResolverCompilerRegistry {
         DEFAULT.addResolverCompiler("i18n", I18nTextResolver::compile);
         DEFAULT.addResolverCompiler("cfg", ConfigValueResolver::compile);
         DEFAULT.addResolverCompiler("load", LoadTextResolver::compile);
+        DEFAULT.addResolverCompiler("empty", EmptyTextResolver::compile);
     }
 
     public IValueResolverCompiler getResolverCompiler(String type) {

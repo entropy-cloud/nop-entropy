@@ -110,12 +110,14 @@ public class ValueResolverCompiler implements IValueResolverCompiler {
             if (text.charAt(0) == BIND_EXPR_SYMBOL) {
                 if (text.charAt(1) == BIND_EXPR_SYMBOL)
                     return FixedValueResolver.valueOf(text.substring(1));
-                String type = text;
+                String type;
                 String config = "";
                 int pos = text.indexOf(':');
                 if (pos >= 0) {
                     config = text.substring(pos + 1).trim();
                     type = text.substring(1, pos);
+                }else{
+                    type = text.substring(1);
                 }
                 IValueResolverCompiler compiler = getCompiler(loc, type, options);
                 if (compiler == null) {

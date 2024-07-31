@@ -119,16 +119,10 @@
  ceErrMsg[回调错误消息] remark[备注]
 </layout>
         </form>
-        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
-            <layout/>
-        </form>
-        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
-            <layout/>
-        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
         <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-MakerChecker审批记录"
-              i18n-en:title="Update Maker Checker Record">
-            <layout/>
-        </form>
+              i18n-en:title="Update Maker Checker Record"/>
     </forms>
 
     <pages>

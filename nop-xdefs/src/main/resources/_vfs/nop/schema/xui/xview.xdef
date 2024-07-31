@@ -122,7 +122,7 @@
         @useFormActions 对话框和form都支持actions设置。如果useFormActions为true，则actions实际对应的是form的actions
         -->
         <simple name="!string" form="!string" title="string" panelClassName="string" useFormActions="boolean"
-                redirect="string" reload="string" resetAfterSubmit="boolean"
+                redirect="string" reload="string" resetAfterSubmit="boolean" noActions="boolean"
                 xdef:bean-tag-prop="type">
             <remark xdef:value="string"/>
 

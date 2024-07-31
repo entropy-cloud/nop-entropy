@@ -23,7 +23,8 @@
         <!--
         amis的picker控件要求source同时提供获取初始值和查询列表的功能，而没有使用pickerSchema中定义的api
         -->
-        <source xpl:attrs="xpl('thisLib:NormalizeApi',gridApi,genScope)" valueField="id" labelField="${objMeta?.displayProp}" filter="${filter?.toJsonObject()}"/>
+        <source xpl:attrs="xpl('thisLib:NormalizeApi',gridApi,genScope)" valueField="id"
+                labelField="${objMeta?.displayProp}" filter="${filter?.toJsonObject()}"/>
     </c:if>
 
     <!--
@@ -34,7 +35,8 @@
     -->
     <crud xpl:is="${pageModel.type == 'picker'? 'pickerSchema': 'crud'}" name="${pageModel.table.name || 'crud-grid'}"
           xpl:attrs="xpl('thisLib:GridDefaultAttrs', gridModel)" autoFillHeight="${pageModel.table.autoFillHeight}"
-          syncLocation="@:false" pickerMode="${pageModel.table.pickerMode}" maxItemSelectionLength="${pageModel.table.maxItemSelectionLength}"
+          syncLocation="@:false" pickerMode="${pageModel.table.pickerMode}"
+          maxItemSelectionLength="${pageModel.table.maxItemSelectionLength}"
           multiple="${pageModel.table.multiple ?? gridModel.multiple}" footable="${gridModel.containsBreakpoint()}"
     >
 
@@ -62,14 +64,16 @@
 
         <api xpl:attrs="xpl('thisLib:NormalizeApi',gridApi,genScope)" filter="${filter?.toJsonObject()}"/>
 
-        <saveOrderApi xpl:attrs="xpl('thisLib:NormalizeApi',pageModel.table?.saveOrderApi || gridModel.saveOrderApi,genScope)"
-                      xpl:if="pageModel.table?.saveOrderApi || gridModel.saveOrderApi"/>
+        <saveOrderApi
+                xpl:attrs="xpl('thisLib:NormalizeApi',pageModel.table?.saveOrderApi || gridModel.saveOrderApi,genScope)"
+                xpl:if="pageModel.table?.saveOrderApi || gridModel.saveOrderApi"/>
 
         <c:if test="${objMeta.displayProp}">
             <labelTpl>$${objMeta.displayProp}</labelTpl>
         </c:if>
 
-        <filter xpl:if="filterForm and !pageModel.autoGenerateFilter" id="crud-filter" xpl:attrs="xpl('thisLib:FormDefaultAttrs',filterForm)" mode="${filterForm.layoutMode || 'horizontal'}">
+        <filter xpl:if="filterForm and !pageModel.autoGenerateFilter" id="crud-filter"
+                xpl:attrs="xpl('thisLib:FormDefaultAttrs',filterForm)" mode="${filterForm.layoutMode || 'horizontal'}">
             <thisLib:GenFormBody formModel="${filterForm}" objMeta="${objMeta}"/>
             <actions j:list="true">
                 <reset label="@i18n:common.reset" id="reset-button"/>
@@ -77,12 +81,11 @@
             </actions>
         </filter>
 
-        <autoGenerateFilter xpl:if="pageModel.autoGenerateFilter"
-            columnsNum="${pageModel.autoGenerateFilter.columnsNum}" showBtnToolbar="${pageModel.autoGenerateFilter.showBtnToolbar}"
-                defaultCollapsed="${pageModel.autoGenerateFilter.defaultCollapsed}" />
+        <thisLib:AutoGenerateFilter pageModel="${pageModel}"/>
 
         <columns j:list="true">
-            <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" ignoreCols="${genScope.fixedProps}" filterForm="${pageModel.autoGenerateFilter ? filterForm:null}" />
+            <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" ignoreCols="${genScope.fixedProps}"
+                                 filterForm="${pageModel.autoGenerateFilter ? filterForm:null}"/>
             <operation label="@i18n:common.operation" id="operation" width="${pageModel.table?.operationSize || 140}"
                        toggled="@:true" fixed="right" labelClassName="text-center"
                        xpl:if="!pageModel.table?.noOperations">

@@ -4,6 +4,8 @@
     <tags>
         <GenLayout outputMode="xml">
             <attr name="props"/>
+            <attr name="chunkSize" optional="true"/>
+
             <source>
                 <c:script><![CDATA[
                     function cell(prop){
@@ -22,8 +24,8 @@
                 ]]></c:script>
                 <layout>
                     <c:choose>
-                        <when test="${props.length >= 10}">
-                            <c:for var="row" items="${_.chunk(props,2)}">
+                        <when test="${props.length >= 10 or chunkSize}">
+                            <c:for var="row" items="${_.chunk(props,chunkSize || 2)}">
                                 <c:unit>${'\n'} ${cell(row[0])} ${cell_gap(row[0],row[1])}${cell(row[1])}</c:unit>
                             </c:for>
                         </when>
@@ -37,5 +39,39 @@
                 </layout>
             </source>
         </GenLayout>
+
+        <GenAsideFilterForm outputMode="xml">
+            <attr name="props"/>
+            <attr name="objMeta" implicit="true"/>
+
+            <source>
+                <form id="asideFilter" editMode="query" xgen-x:abstract="true" submitOnChange="true">
+                    <thisLib:GenLayout props="${props}" xpl:if="objMeta.containsTag('default-query')" chunkSize="4"/>
+                </form>
+            </source>
+        </GenAsideFilterForm>
+
+        <GenDefaultQueryForm outputMode="xml">
+            <attr name="props"/>
+            <attr name="objMeta" implicit="true"/>
+
+            <source>
+                <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition"
+                      xgen-x:abstract="${!objMeta.containsTag('default-query')}">
+                    <thisLib:GenLayout props="${props}" xpl:if="objMeta.containsTag('default-query')" chunkSize="4"/>
+                </form>
+            </source>
+        </GenDefaultQueryForm>
+
+        <GenBatchUpdateForm outputMode="xml">
+            <attr name="supportUpdate" />
+            <attr name="objMeta" implicit="true" />
+
+            <source>
+                <form id="batchUpdate" editMode="edit" xgen-x:abstract="true" xpl:if="supportUpdate"
+                      title="修改-${objMeta.displayName}" i18n-en:title="Update ${objMeta['i18n-en:displayName']}">
+                </form>
+            </source>
+        </GenBatchUpdateForm>
     </tags>
 </lib>

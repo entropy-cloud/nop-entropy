@@ -30,6 +30,8 @@
       const listProps = visibleProps.filter(prop => !prop['ui:show']?.contains('L'))
       const insertableProps = visibleProps.filter(prop=> prop.insertable)
       const editableProps = visibleProps.filter(prop=> prop.updatable || prop.insertable)
+      const queryableProps = visibleProps.filter(prop=> prop.queryable and !prop['ui:show']?.contains('Q') and !prop.containsTag('aside'))
+      const asideFilterProps = visibleProps.filter(prop=> prop.queryable and !prop['ui:show']?.contains('Q') and prop.containsTag('aside'))
 
       const refGridProps = _.first(visibleProps.filter(prop => XuiHelper.getRelationProp(prop,objMeta)?.containsTag('ref-grid')),1)
 
@@ -103,19 +105,11 @@
             <web-gen:GenLayout props="${editableProps}"/>
         </form>
 
-        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition"
-              x:abstract="true">
-            <layout/>
-        </form>
+        <web-gen:GenDefaultQueryForm props="${queryableProps}" />
 
-        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
-            <layout/>
-        </form>
+        <web-gen:GenAsideFilterForm props="${asideFilterProps}" />
 
-        <form id="batchUpdate" editMode="edit" x:abstract="true" xpl:if="supportUpdate"
-              title="修改-${objMeta.displayName}" i18n-en:title="Update ${objMeta['i18n-en:displayName']}">
-            <layout/>
-        </form>
+        <web-gen:GenBatchUpdateForm supportUpdate="${supportUpdate}"/>
     </forms>
 
     <pages>
@@ -136,6 +130,8 @@
 
         <crud name="main" grid="${childrenProp ? 'tree-list': 'list'}" asideFilterForm="asideFilter" filterForm="query"
               x:abstract="true">
+
+            <autoGenerateFilter xpl:if="objMeta.containsTag('default-query')" />
 
             <table autoFillHeight="true" xpl:if="!childrenProp">
                 <api url="@query:${metaInfo.objName}__findPage" gql:selection="{@pageSelection}"/>

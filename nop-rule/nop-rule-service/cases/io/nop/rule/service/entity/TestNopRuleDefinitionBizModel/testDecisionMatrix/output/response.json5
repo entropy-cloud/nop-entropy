@@ -13,9 +13,9 @@
     "status_label": "1-启用",
     "version": 0,
     "createdBy": "autotest-ref",
-    "createTime": "@var:NopRuleDefinition@updateTime",
+    "createTime": "@var:NopRuleDefinition@createTime",
     "updatedBy": "autotest-ref",
-    "updateTime": "@var:NopRuleDefinition@updateTime",
+    "updateTime": "@var:NopRuleDefinition@createTime",
     "ruleInputs": [
       {
         "name": "是否有房",
@@ -64,6 +64,7 @@
               "queryable": false,
               "virtual": false,
               "published": true,
+              "exportable": true,
               "schema": {
                 "type": "Integer"
               }
@@ -83,6 +84,7 @@
               "queryable": false,
               "virtual": false,
               "published": true,
+              "exportable": true,
               "schema": {
                 "type": "Integer"
               }

@@ -1876,6 +1876,13 @@
         "parameterTypes": []
       },
       {
+        "name": "forEachField",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.util.function.BiConsumer"
+        ]
+      },
+      {
         "name": "freeze",
         "parameterTypes": [
           "boolean"
@@ -1899,6 +1906,10 @@
       },
       {
         "name": "getAllDirectiveCount",
+        "parameterTypes": []
+      },
+      {
+        "name": "getAllSourceFields",
         "parameterTypes": []
       },
       {
@@ -1936,6 +1947,10 @@
       },
       {
         "name": "getFields",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFirstSourceField",
         "parameterTypes": []
       },
       {
@@ -16416,6 +16431,14 @@
         "name": "batchGet",
         "parameterTypes": [
           "java.util.Collection",
+          "boolean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "batchGet",
+        "parameterTypes": [
+          "java.util.Collection",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -16440,6 +16463,15 @@
         "parameterTypes": [
           "java.util.List",
           "java.util.Set",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "batchUpdate",
+        "parameterTypes": [
+          "java.util.Set",
+          "java.util.Map",
+          "boolean",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -40329,6 +40361,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getCode",
+        "parameterTypes": []
+      },
+      {
         "name": "getColumn",
         "parameterTypes": [
           "java.lang.String",
@@ -51989,6 +52025,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isExportable",
+        "parameterTypes": []
+      },
+      {
         "name": "isInsertable",
         "parameterTypes": []
       },
@@ -52128,6 +52168,12 @@
         "name": "setDisplayName",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setExportable",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {

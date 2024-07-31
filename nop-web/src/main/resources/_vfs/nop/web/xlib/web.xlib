@@ -883,6 +883,15 @@
             </source>
         </GenValidator>
 
+        <AutoGenerateFilter outputMode="xjson">
+            <attr name="pageModel" implicit="true" />
 
+            <source>
+                <autoGenerateFilter xpl:if="pageModel.autoGenerateFilter"
+                                    columnsNum="${pageModel.autoGenerateFilter.columnsNum || $config.var('nop.xui.crud.auto-filter-col-num') || 4}"
+                                    showBtnToolbar="${pageModel.autoGenerateFilter.showBtnToolbar ?? false}"
+                                    defaultCollapsed="${pageModel.autoGenerateFilter.defaultCollapsed}" />
+            </source>
+        </AutoGenerateFilter>
     </tags>
 </lib>

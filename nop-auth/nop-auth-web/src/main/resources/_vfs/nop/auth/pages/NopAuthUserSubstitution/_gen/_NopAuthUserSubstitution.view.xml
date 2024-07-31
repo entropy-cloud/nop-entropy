@@ -74,16 +74,10 @@
  remark[备注]
 </layout>
         </form>
-        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
-            <layout/>
-        </form>
-        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
-            <layout/>
-        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
         <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-用户代理"
-              i18n-en:title="Update User Substitution">
-            <layout/>
-        </form>
+              i18n-en:title="Update User Substitution"/>
     </forms>
 
     <pages>

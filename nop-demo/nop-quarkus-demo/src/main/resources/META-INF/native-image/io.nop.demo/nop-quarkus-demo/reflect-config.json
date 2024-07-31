@@ -1281,6 +1281,13 @@
         "parameterTypes": []
       },
       {
+        "name": "forEachField",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.util.function.BiConsumer"
+        ]
+      },
+      {
         "name": "freeze",
         "parameterTypes": [
           "boolean"
@@ -1304,6 +1311,10 @@
       },
       {
         "name": "getAllDirectiveCount",
+        "parameterTypes": []
+      },
+      {
+        "name": "getAllSourceFields",
         "parameterTypes": []
       },
       {
@@ -1341,6 +1352,10 @@
       },
       {
         "name": "getFields",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFirstSourceField",
         "parameterTypes": []
       },
       {
@@ -15838,6 +15853,14 @@
         "name": "batchGet",
         "parameterTypes": [
           "java.util.Collection",
+          "boolean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "batchGet",
+        "parameterTypes": [
+          "java.util.Collection",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -15862,6 +15885,15 @@
         "parameterTypes": [
           "java.util.List",
           "java.util.Set",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "batchUpdate",
+        "parameterTypes": [
+          "java.util.Set",
+          "java.util.Map",
+          "boolean",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -16287,6 +16319,12 @@
           "java.util.List",
           "java.util.Map",
           "java.util.function.BiConsumer",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "exportableFields",
+        "parameterTypes": [
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -31622,6 +31660,18 @@
         "parameterTypes": []
       },
       {
+        "name": "guessMiddleEntityName",
+        "parameterTypes": []
+      },
+      {
+        "name": "isManyToMany",
+        "parameterTypes": []
+      },
+      {
+        "name": "isOneToMany",
+        "parameterTypes": []
+      },
+      {
         "name": "isToMany",
         "parameterTypes": []
       }
@@ -34265,6 +34315,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_middleEntityName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_middleTableName"
       },
       {
@@ -34415,6 +34470,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_middleEntityName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_middleTableName"
       },
       {
@@ -34556,6 +34616,10 @@
       },
       {
         "name": "getLeftPropName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMiddleEntityName",
         "parameterTypes": []
       },
       {
@@ -34756,6 +34820,12 @@
       },
       {
         "name": "setLeftPropName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setMiddleEntityName",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -42409,6 +42479,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_isPublic"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_mimeType"
       },
       {
@@ -42489,6 +42564,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_isPublic"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_mimeType"
       },
       {
@@ -42557,6 +42637,10 @@
       },
       {
         "name": "getFilePath",
+        "parameterTypes": []
+      },
+      {
+        "name": "getIsPublic",
         "parameterTypes": []
       },
       {
@@ -42704,6 +42788,12 @@
         ]
       },
       {
+        "name": "setIsPublic",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
         "name": "setMimeType",
         "parameterTypes": [
           "java.lang.String"
@@ -42751,6 +42841,19 @@
         "name": "batchLoadResource",
         "parameterTypes": [
           "java.util.Collection"
+        ]
+      },
+      {
+        "name": "batchLoadResourceAsync",
+        "parameterTypes": [
+          "java.util.Collection"
+        ]
+      },
+      {
+        "name": "changePublic",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean"
         ]
       },
       {
@@ -48422,6 +48525,16 @@
         "parameterTypes": []
       },
       {
+        "name": "getBean",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getBeanProvider",
+        "parameterTypes": []
+      },
+      {
         "name": "getColPropId",
         "parameterTypes": [
           "java.lang.String"
@@ -48470,6 +48583,12 @@
       {
         "name": "reset",
         "parameterTypes": []
+      },
+      {
+        "name": "tryGetBean",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
       }
     ],
     "name": "io.nop.orm.component.AbstractOrmComponent",
@@ -50476,6 +50595,10 @@
       },
       {
         "name": "getAllProps",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCode",
         "parameterTypes": []
       },
       {
@@ -75982,6 +76105,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isExportable",
+        "parameterTypes": []
+      },
+      {
         "name": "isInsertable",
         "parameterTypes": []
       },
@@ -76115,6 +76242,12 @@
         "name": "setDisplayName",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setExportable",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -77060,6 +77193,23 @@
       }
     ],
     "name": "io.nop.xlang.xmeta.layout.LayoutTableModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "findTagForDomain",
+        "parameterTypes": [
+          "io.nop.core.lang.xml.XNode"
+        ]
+      }
+    ],
+    "name": "io.nop.xlang.xmeta.utils.ObjMetaPropHelper",
     "unsafeAllocated": false
   },
   {

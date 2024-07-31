@@ -46,7 +46,7 @@
             <source><![CDATA[
                 return {
                     type:'native-number',
-                    value: editMode == 'add' ? (propMeta?.stdDataType?.convert(dispMeta?.defaultValue) ?? propMeta?.defaultValue) :null
+                    value: propMeta?.stdDataType?.convert(dispMeta?.defaultValue) ?? (editMode == 'add' ? propMeta?.defaultValue :null)
                 }
             ]]></source>
         </edit-double>
@@ -59,8 +59,8 @@
             <source><![CDATA[
                 return {
                     type:'input-number',
-                    value: editMode == 'add' ? (propMeta?.stdDataType?.convert(dispMeta?.defaultValue) ?? propMeta?.defaultValue) :null,
-                    precision: propMeta?.schema.scale ?? 5
+                    value: propMeta?.stdDataType?.convert(dispMeta?.defaultValue) ?? (editMode == 'add' ? propMeta?.defaultValue :null),
+                    precision: propMeta?.schema?.scale ?? 5
                 }
             ]]></source>
         </edit-decimal>
@@ -74,7 +74,7 @@
                 return {
                     type:'input-text',
                     validations: "isInt",
-                    value: editMode == 'add' ? (propMeta?.stdDataType?.convert(dispMeta?.defaultValue) ?? propMeta?.defaultValue):null
+                    value: propMeta?.stdDataType?.convert(dispMeta?.defaultValue) ?? (editMode == 'add' ? propMeta?.defaultValue:null)
                 }
             ]]></source>
         </edit-short>
@@ -88,7 +88,7 @@
                 return {
                     type:'input-text',
                     validations: "isInt",
-                    value: editMode == 'add' ? (propMeta?.stdDataType?.convert(dispMeta?.defaultValue) ?? propMeta?.defaultValue):null
+                    value: propMeta?.stdDataType?.convert(dispMeta?.defaultValue) ?? (editMode == 'add' ? propMeta?.defaultValue:null)
                 }
             ]]></source>
         </edit-byte>
@@ -102,7 +102,7 @@
                 return {
                     type:'input-text',
                     validations: "isInt",
-                    value: editMode == 'add' ? dispMeta?.defaultValue:null
+                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null),
                 }
             ]]></source>
         </edit-int>
@@ -116,7 +116,7 @@
                 return {
                     type:'input-text',
                     validations: "isInt",
-                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue:null
+                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null),
                 }
             ]]></source>
         </edit-long>
@@ -136,7 +136,7 @@
                         minLength: dispMeta?.minLength,
                         matchRegexp: dispMeta?.matchRegexp,
                     },
-                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue: null,
+                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null),
                     transform: {
                         upperCase: dispMeta?.charCase == 'upper'? true:null,
                         lowerCase: dispMeta?.charCase == 'lower'? true:null
@@ -160,7 +160,7 @@
                         minLength: dispMeta?.minLength,
                         matchRegexp: dispMeta?.matchRegexp,
                     },
-                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null,
+                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null),
                     transform: {
                         upperCase: dispMeta?.charCase == 'upper'? true:null,
                         lowerCase: dispMeta?.charCase == 'lower'? true:null
@@ -208,7 +208,7 @@
                         minLength: dispMeta?.minLength,
                         matchRegexp: dispMeta?.matchRegexp,
                     },
-                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null
+                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null)
                 }
             ]]></source>
         </edit-asciiNum>
@@ -224,7 +224,7 @@
                     clearable:true,
                     validations: {
                         isUrlPath:true,
-                        maxLength: dispMeta?.maxLength ?? propMeta?.schema.precision,
+                        maxLength: dispMeta?.maxLength ?? propMeta?.schema?.precision,
                         minLength: dispMeta?.minLength,
                         matchRegexp: dispMeta?.matchRegexp,
                     },
@@ -252,7 +252,7 @@
                         minLength: dispMeta?.minLength,
                         matchRegexp: dispMeta?.matchRegexp,
                     },
-                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null,
+                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null)
                 }
             ]]></source>
         </edit-phone>
@@ -272,7 +272,7 @@
                         minLength: dispMeta?.minLength,
                         matchRegexp: dispMeta?.matchRegexp,
                     },
-                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null,
+                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null)
                 }
             ]]></source>
         </edit-telephone>
@@ -286,7 +286,7 @@
                 return {
                     type:'input-date',
                     format:"YYYY-MM-DD",
-                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null
+                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null)
                 }
             ]]></source>
         </edit-date>
@@ -300,7 +300,7 @@
                 return {
                     type:'input-datetime',
                     format:"YYYY-MM-DD HH:mm:ss",
-                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue: null
+                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null)
                 }
             ]]></source>
         </edit-datetime>
@@ -322,7 +322,7 @@
                     clearable: true,
                     selectFirst: dispMeta?.selectFirst,
                     source: '@dict:' + propMeta?.schema?.dict,
-                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null,
+                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null)
                  }
             ]]></source>
         </edit-list-select>
@@ -338,7 +338,7 @@
                     type: 'radios',
                     clearable: true,
                     source: '@dict:' + propMeta?.schema?.dict,
-                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null,
+                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null)
                  }
             ]]></source>
         </edit-radios>
@@ -356,8 +356,8 @@
                     clearable: true,
                     multiple: false,
                     selectFirst: dispMeta?.selectFirst,
-                    source: '@dict:' + propMeta?.schema.dict,
-                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null,
+                    source: '@dict:' + propMeta?.schema?.dict,
+                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null)
                  }
             ]]></source>
         </edit-enum>
@@ -389,12 +389,14 @@
         <edit-textarea>
             <attr name="dispMeta"/>
             <attr name="propMeta"/>
+            <attr name="editMode" />
 
             <source><![CDATA[
                 return {
                     type: "textarea",
                     minRows: dispMeta?.minRows || 3,
-                    maxLength: dispMeta?.maxLength
+                    maxLength: dispMeta?.maxLength,
+                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null)
                 }
             ]]></source>
         </edit-textarea>
@@ -402,6 +404,7 @@
         <edit-html>
             <attr name="dispMeta"/>
             <attr name="propMeta"/>
+            <attr name="editMode" />
 
             <source><![CDATA[
                 return {
@@ -413,6 +416,7 @@
         <view-html>
             <attr name="dispMeta"/>
             <attr name="propMeta"/>
+            <attr name="editMode" />
 
             <source><![CDATA[
                 return {
@@ -454,8 +458,6 @@
             <attr name="dispMeta"/>
             <attr name="propMeta"/>
             <attr name="editMode"/>
-            <attr name="objMeta" mandatory="true"/>
-            <attr name="bizObjName" mandatory="true"/>
 
             <source><![CDATA[
            return {
@@ -470,8 +472,6 @@
             <attr name="dispMeta"/>
             <attr name="propMeta"/>
             <attr name="editMode"/>
-            <attr name="objMeta" mandatory="true"/>
-            <attr name="bizObjName" mandatory="true"/>
 
             <source><![CDATA[
            return {
@@ -632,17 +632,18 @@
             <attr name="accept" optional="true"/>
 
             <source><![CDATA[
+                const name = propMeta?.name ?? dispMeta.id
                 return {
                     "type": "group",
                     "body" : {
                         "type": "action",
-                        "visibleOn": "${" + propMeta.name+" != null}",
+                        "visibleOn": "${" + name+" != null}",
                         "actionType": "download",
-                        "label": "${"+propMeta.name+"ComponentFileStatus.name}(${"+propMeta.name+"ComponentFileStatus.fileSize})",
+                        "label": "${"+name+"ComponentFileStatus.name}(${"+name+"ComponentFileStatus.fileSize})",
                         "leve": "link",
                         "api": {
                             method: "get",
-                            url: "${" + propMeta.name+"}",
+                            url: "${" + name+"}",
                             data: {},
                             responseType: "blob"
                         }
@@ -656,18 +657,19 @@
             <attr name="propMeta"/>
 
             <source><![CDATA[
+                const name = propMeta?.name || dispMeta.id
                 return {
                     "type": "group",
                     "body" : {
                         "type": "action",
-                        "visibleOn": "${" + propMeta.name+" != null}",
+                        "visibleOn": "${" + name+" != null}",
                         "actionType": "dialog",
                         "label": "查看下载列表",
                         "dialog": {
                           "title": "文件列表",
                           "body": {
                             "type": "table",
-                            "source": "${"+propMeta.name+"ComponentFileStatusList}",
+                            "source": "${"+name+"ComponentFileStatusList}",
 
                             "columns": [
                               {
@@ -709,9 +711,10 @@
             <attr name="propMeta"/>
 
             <source><![CDATA[
+                const name = propMeta?.name || dispMeta.id
                 return {
                     "type": "static-images",
-                    "name": propMeta ? propMeta.name + 'Component' : (dispMeta.id || propMeta.name),
+                    "name": name,
                     "enlargeAble": true
                 }
             ]]></source>
@@ -722,9 +725,10 @@
             <attr name="propMeta"/>
 
             <source><![CDATA[
+                const name = propMeta?.name || dispMeta.id
                 return {
                     type: 'input-array',
-                    "name": propMeta ? propMeta.name + 'Component' : (dispMeta.id || propMeta.name),
+                    "name": name,
                     items:{
                        type: 'input-text',
                        required:true,
@@ -807,7 +811,7 @@
             <attr name="editMode"/>
 
             <source><![CDATA[
-                let defaultValue =  editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null;
+                let defaultValue =  dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null);
                 if(mandatory && defaultValue == null)
                    defaultValue = 0;
 
@@ -1140,7 +1144,7 @@
                     multiple: false,
                     selectFirst: dispMeta?.selectFirst,
                     source: dispMeta?.sourceUrl,
-                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null,
+                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null)
                  }
             ]]></source>
         </edit-select>

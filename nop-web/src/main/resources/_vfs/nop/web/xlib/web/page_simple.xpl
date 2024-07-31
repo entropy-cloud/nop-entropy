@@ -50,8 +50,10 @@
             </form>
         </body>
 
-        <actions j:list="true" xpl:if="!pageModel.useFormActions and pageModel.actions?.size() > 0">
+        <actions j:list="true" xpl:if="!pageModel.noActions and !pageModel.useFormActions and pageModel.actions?.size() > 0">
             <thisLib:GenActions actions="${pageModel.actions}" genScope="${genScope}"/>
         </actions>
+
+        <actions j:list="true" xpl:if="pageModel.noActions" />
     </page>
 </c:unit>

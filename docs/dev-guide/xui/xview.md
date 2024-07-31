@@ -436,3 +436,7 @@ definitions:
 * 在指定view.xml模型文件中增加page定义，然后利用Delta定制可以继承已有的页面，定制initApi配置即可。这是在XView模型层面定制。
 
 也可以通过view引入page.yaml，然后在page.yaml中继承已有的page.yaml，在AMIS层面定制。
+
+## default-query配置
+如果meta具有`default-query`标签，则会自动把所有`visible and !internal and queriable and ui:show不包含Q`的所有字段收集到query form中，
+使用AMIS的autoGenerateFilter机制来实现前端查询表单。
