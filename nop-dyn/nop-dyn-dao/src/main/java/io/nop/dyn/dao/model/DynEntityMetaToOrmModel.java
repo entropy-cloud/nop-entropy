@@ -236,9 +236,10 @@ public class DynEntityMetaToOrmModel {
         String middleEntityName = rel.guessMiddleEntityName();
         OrmEntityModel middleTable = middleTables.computeIfAbsent(middleEntityName,k->{
             OrmEntityModel ret = new OrmEntityModel();
-            ret.setName();
+         //   ret.setName();
+            return null;
         });
-        entityModel.addRelation(manyRelationModel);
+       // entityModel.addRelation(manyRelationModel);
         entityModel.setTagSet(TagsHelper.add(StringHelper.parseCsvSet(rel.getTagsText()), OrmModelConstants.TAG_MANY_TO_MANY));
     }
 
