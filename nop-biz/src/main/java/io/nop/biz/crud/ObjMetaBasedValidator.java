@@ -378,14 +378,14 @@ public class ObjMetaBasedValidator {
 
     private Object convertValue(IObjPropMeta propMeta, Object value, Map<String, Object> data,
                                 Map<String, Object> ret) {
-        IEvalAction action = propMeta.getTransformIn();
-        if (action != null) {
-            IEvalScope scope = XLang.newEvalScope();
-            scope.setLocalValue(null, BizConstants.VAR_DATA, data);
-            scope.setLocalValue(null, BizConstants.VAR_TRNAS_DATA, ret);
-            scope.setLocalValue(null, BizConstants.VAR_VALUE, value);
-            value = action.invoke(scope);
-        }
+//        IEvalAction action = propMeta.getTransformIn();
+//        if (action != null) {
+//            IEvalScope scope = XLang.newEvalScope();
+//            scope.setLocalValue(null, BizConstants.VAR_DATA, data);
+//            scope.setLocalValue(null, BizConstants.VAR_TRNAS_DATA, ret);
+//            scope.setLocalValue(null, BizConstants.VAR_VALUE, value);
+//            value = action.invoke(scope);
+//        }
 
         StdDataType type = propMeta.getStdDataType();
         if (type == null)
