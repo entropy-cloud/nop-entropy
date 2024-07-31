@@ -1,0 +1,15 @@
+{
+  data: {
+    userName: "auto_test1",
+    phone: "132",
+    'dept': {
+      deptName: "科技部",
+      email: "123",
+    },
+    'position': {
+      name: "测试职位",
+      remark: "AAAAAA",
+    }
+  },
+  "status": 0
+}
