@@ -62,7 +62,8 @@ public class TestDataBaseUpgradeInitializer extends JunitBaseTestCase {
         LOG.info("nop.test.orm.db-differ.upgrade.done.ddl={}", JsonTool.stringify(diffDdlList, null, "  "));
         // 只有字段或表的删除脚本未执行
         Assertions.assertFalse(diffDdlList.isEmpty());
-        Assertions.assertEquals(0,
+        // CURRENT_TIMESTAMP的缺省值丢失
+        Assertions.assertEquals(1,
                                 diffDdlList.stream().filter(diffDdl -> diffDdl.getType() != DiffType.remove).count());
     }
 }

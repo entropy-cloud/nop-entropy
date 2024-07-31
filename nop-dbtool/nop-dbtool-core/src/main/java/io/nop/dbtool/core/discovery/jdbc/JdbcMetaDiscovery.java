@@ -264,11 +264,13 @@ public class JdbcMetaDiscovery {
                 col.setCode(columnName);
                 col.setName(StringHelper.colCodeToPropName(columnName));
                 // Note：获取到的默认值可能是包含引号的转义值（若值为函数，则不会被转义），在使用时需注意
-                if (StringHelper.isNumber(defaultValue)) {
-                    col.setDefaultValue(defaultValue);
-                } else if (defaultValue.startsWith("'") && defaultValue.endsWith("'")) {
-                    defaultValue = defaultValue.substring(1, defaultValue.length() - 1);
-                    col.setDefaultValue(defaultValue);
+                if(defaultValue != null) {
+                    if (StringHelper.isNumber(defaultValue)) {
+                        col.setDefaultValue(defaultValue);
+                    } else if (defaultValue.startsWith("'") && defaultValue.endsWith("'")) {
+                        defaultValue = defaultValue.substring(1, defaultValue.length() - 1);
+                        col.setDefaultValue(defaultValue);
+                    }
                 }
 
                 SqlDataTypeModel dataType = dialect.getNativeType(typeName);

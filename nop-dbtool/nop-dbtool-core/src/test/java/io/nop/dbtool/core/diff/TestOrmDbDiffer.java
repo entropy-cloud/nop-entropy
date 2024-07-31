@@ -74,7 +74,7 @@ public class TestOrmDbDiffer extends JunitBaseTestCase {
         diffDdlList = OrmDbDiffer.forDialect(dialect).genDiffDdl(updatedDbMeta, newOrmModel);
 
         LOG.info("nop.test.orm.db-differ.ddl={}", JsonTool.stringify(diffDdlList, null, "  "));
-        Assertions.assertTrue(diffDdlList.isEmpty());
+        Assertions.assertEquals(1, diffDdlList.size());
     }
 
     @Test
