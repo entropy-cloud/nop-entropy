@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view bizObjName="NopAuthDept" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xui="xui">
+    <objMeta>/nop/auth/model/NopAuthDept/NopAuthDept.xmeta</objMeta>
+
+    <x:gen-extends>
+        <view>
+            <forms>
+                <form id="editControls">
+                    <c:script>
+                        const layout = _dsl_root.selectOne(xpath `forms/*[@id=='editControls']/layout`);
+                        const controls = layout.contentText().$stripedSplit('\n');
+                    </c:script>
+                    <cells>
+                        <c:for var="control" items="${controls}">
+                            <cell id="${control}" custom="true" domain="${control}" label="${control}Label" >
+
+                            </cell>
+                        </c:for>
+                    </cells>
+                </form>
+            </forms>
+        </view>
+    </x:gen-extends>
+
+    <forms>
+        <form id="editControls" submitText="@empty" editMode="edit">
+            <layout>
+                tree-parent
+                double
+                decimal
+                short
+                byte
+                int
+                long
+                email
+                url
+                ascii
+                asciiNum
+                path
+                phone
+                telephone
+                date
+                datetime
+                timestamp
+                list-stelect
+                radios
+                enum
+                labelProp
+                textarea
+                html
+                longtext
+                reamark
+                tag-list
+                image
+                file
+                file-list
+                images
+                string-array
+                deptId
+                boolean
+                boolFlag
+                pre
+                string
+                roleId
+                userId
+                password
+                hidden
+                xml
+                xpl
+                select
+            </layout>
+        </form>
+
+        <form id="viewControls" editMode="view" x:prototype="editControls">
+
+        </form>
+
+        <form id="queryControls" editMode="query" x:prototype="editControls">
+
+        </form>
+    </forms>
+
+    <pages>
+        <simple name="edit" form="editControls">
+
+        </simple>
+
+        <simple name="view" form="viewControls">
+
+        </simple>
+
+        <simple name="query" form="queryControls">
+
+        </simple>
+    </pages>
+</view>

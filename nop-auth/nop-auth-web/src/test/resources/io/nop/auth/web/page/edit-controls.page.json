@@ -1,0 +1,930 @@
+{
+  "type": "page",
+  "name": "edit",
+  "size": "lg",
+  "body": {
+    "type": "form",
+    "name": "editControls",
+    "mode": "horizontal",
+    "submitText": "",
+    "body": [
+      {
+        "type": "group",
+        "id": "row-tree-parent",
+        "body": [
+          {
+            "name": "tree-parent",
+            "label": "tree-parentLabel",
+            "clearValueOnHidden": false,
+            "type": "tree-select",
+            "clearable": true,
+            "source": {
+              "url": "@query:NopAuthDept__findList/value:id,label:deptName,%0A%20children%20@TreeChildren(max:5)?filter_parentId=__null"
+            }
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-double",
+        "body": [
+          {
+            "name": "double",
+            "label": "doubleLabel",
+            "clearValueOnHidden": false,
+            "type": "native-number"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-decimal",
+        "body": [
+          {
+            "name": "decimal",
+            "label": "decimalLabel",
+            "clearValueOnHidden": false,
+            "type": "input-number",
+            "precision": 5
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-short",
+        "body": [
+          {
+            "name": "short",
+            "label": "shortLabel",
+            "clearValueOnHidden": false,
+            "type": "input-text",
+            "validations": "isInt"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-byte",
+        "body": [
+          {
+            "name": "byte",
+            "label": "byteLabel",
+            "clearValueOnHidden": false,
+            "type": "input-text",
+            "validations": "isInt"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-int",
+        "body": [
+          {
+            "name": "int",
+            "label": "intLabel",
+            "clearValueOnHidden": false,
+            "type": "input-text",
+            "validations": "isInt"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-long",
+        "body": [
+          {
+            "name": "long",
+            "label": "longLabel",
+            "clearValueOnHidden": false,
+            "type": "input-text",
+            "validations": "isInt"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-email",
+        "body": [
+          {
+            "name": "email",
+            "label": "emailLabel",
+            "clearValueOnHidden": false,
+            "type": "input-text",
+            "clearable": true,
+            "validations": {
+              "isEmail": true,
+              "maxLength": 100
+            }
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-url",
+        "body": [
+          {
+            "name": "url",
+            "label": "urlLabel",
+            "clearValueOnHidden": false,
+            "type": "input-text",
+            "clearable": true,
+            "validations": {
+              "isUrl": true
+            }
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-ascii",
+        "body": [
+          {
+            "name": "ascii",
+            "label": "asciiLabel",
+            "clearValueOnHidden": false,
+            "type": "input-text",
+            "clearable": true,
+            "validations": {
+              "isAlpha": true
+            }
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-asciiNum",
+        "body": [
+          {
+            "name": "asciiNum",
+            "label": "asciiNumLabel",
+            "clearValueOnHidden": false,
+            "type": "input-text",
+            "clearable": true,
+            "validations": {
+              "isAlphanumeric": true
+            }
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-path",
+        "body": [
+          {
+            "name": "path",
+            "label": "pathLabel",
+            "clearValueOnHidden": false,
+            "type": "input-text",
+            "clearable": true,
+            "validations": {
+              "isUrlPath": true
+            }
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-phone",
+        "body": [
+          {
+            "name": "phone",
+            "label": "phoneLabel",
+            "clearValueOnHidden": false,
+            "type": "input-text",
+            "clearable": true,
+            "validations": {
+              "isPhoneNumber": true,
+              "maxLength": 50
+            }
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-telephone",
+        "body": [
+          {
+            "name": "telephone",
+            "label": "telephoneLabel",
+            "clearValueOnHidden": false,
+            "type": "input-text",
+            "clearable": true,
+            "validations": {
+              "isTelPhoneNumber": true
+            }
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-date",
+        "body": [
+          {
+            "name": "date",
+            "label": "dateLabel",
+            "clearValueOnHidden": false,
+            "type": "input-date",
+            "format": "YYYY-MM-DD"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-datetime",
+        "body": [
+          {
+            "name": "datetime",
+            "label": "datetimeLabel",
+            "clearValueOnHidden": false,
+            "type": "input-datetime",
+            "format": "YYYY-MM-DD HH:mm:ss"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-timestamp",
+        "body": [
+          {
+            "name": "timestamp",
+            "label": "timestampLabel",
+            "clearValueOnHidden": false,
+            "type": "input-datetime",
+            "format": "YYYY-MM-DD HH:mm:ss"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-list-stelect",
+        "body": [
+          {
+            "name": "list-stelect",
+            "label": "list-stelectLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-radios",
+        "body": [
+          {
+            "name": "radios",
+            "label": "radiosLabel",
+            "clearValueOnHidden": false,
+            "type": "radios",
+            "clearable": true,
+            "source": "@dict:null"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-enum",
+        "body": [
+          {
+            "name": "enum",
+            "label": "enumLabel",
+            "clearValueOnHidden": false,
+            "type": "select",
+            "searchable": true,
+            "clearable": true,
+            "multiple": false,
+            "source": "@dict:null"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-labelProp",
+        "body": [
+          {
+            "name": "labelProp",
+            "label": "labelPropLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-textarea",
+        "body": [
+          {
+            "name": "textarea",
+            "label": "textareaLabel",
+            "clearValueOnHidden": false,
+            "type": "textarea",
+            "minRows": 3
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-html",
+        "body": [
+          {
+            "name": "html",
+            "label": "htmlLabel",
+            "clearValueOnHidden": false,
+            "type": "input-rich-text"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-longtext",
+        "body": [
+          {
+            "name": "longtext",
+            "label": "longtextLabel",
+            "clearValueOnHidden": false,
+            "type": "textarea",
+            "minRows": 3
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-reamark",
+        "body": [
+          {
+            "name": "reamark",
+            "label": "reamarkLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-tag-list",
+        "body": [
+          {
+            "name": "tag-list",
+            "label": "tag-listLabel",
+            "clearValueOnHidden": false,
+            "type": "input-tag",
+            "clearable": true
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-image",
+        "body": [
+          {
+            "name": "image",
+            "label": "imageLabel",
+            "clearValueOnHidden": false,
+            "type": "input-file",
+            "accept": ".jpg,.png,.gif,.icon,.svg,.bmp",
+            "receiver": "/f/upload?bizObjName=NopAuthDept&fieldName=image",
+            "useChunk": false
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-file",
+        "body": [
+          {
+            "name": "file",
+            "label": "fileLabel",
+            "clearValueOnHidden": false,
+            "type": "input-file",
+            "receiver": "/f/upload?bizObjName=NopAuthDept&fieldName=file",
+            "useChunk": false
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-file-list",
+        "body": [
+          {
+            "name": "file-list",
+            "label": "file-listLabel",
+            "clearValueOnHidden": false,
+            "type": "input-file",
+            "multiple": true,
+            "receiver": "/f/upload?bizObjName=NopAuthDept&fieldName=file-list",
+            "useChunk": false
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-images",
+        "body": [
+          {
+            "name": "images",
+            "label": "imagesLabel",
+            "clearValueOnHidden": false,
+            "type": "input-array",
+            "items": {
+              "type": "input-text",
+              "required": true,
+              "placeholder": "输入图片地址"
+            }
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-string-array",
+        "body": [
+          {
+            "name": "string-array",
+            "label": "string-arrayLabel",
+            "clearValueOnHidden": false,
+            "type": "input-array",
+            "items": {
+              "type": "input-text",
+              "required": true,
+              "validations": {
+                "maxLength": 0
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-deptId",
+        "body": [
+          {
+            "name": "deptId",
+            "label": "deptIdLabel",
+            "required": true,
+            "clearValueOnHidden": false,
+            "type": "tree-select",
+            "clearable": true,
+            "source": {
+              "url": "@query:NopAuthDept__findList/value:id,label:deptName,%0A%20children%20@TreeChildren(max:5)?filter_parentId=__null"
+            }
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-boolean",
+        "body": [
+          {
+            "name": "boolean",
+            "label": "booleanLabel",
+            "clearValueOnHidden": false,
+            "type": "switch",
+            "trueValue": 1,
+            "falseValue": 0
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-boolFlag",
+        "body": [
+          {
+            "name": "boolFlag",
+            "label": "boolFlagLabel",
+            "clearValueOnHidden": false,
+            "type": "switch",
+            "trueValue": 1,
+            "falseValue": 0
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-pre",
+        "body": [
+          {
+            "name": "pre",
+            "label": "preLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-string",
+        "body": [
+          {
+            "name": "string",
+            "label": "stringLabel",
+            "clearValueOnHidden": false,
+            "type": "input-text",
+            "clearable": true
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-roleId",
+        "body": [
+          {
+            "type": "picker",
+            "valueField": "roleId",
+            "labelField": "roleName",
+            "size": "lg",
+            "source": {
+              "valueField": "roleId",
+              "labelField": "roleName",
+              "url": "@query:NopAuthRole__findPage",
+              "gql:selection": "total,page,items{ id,roleId,roleName,isPrimary,createdBy,createTime,updatedBy,updateTime,remark }"
+            },
+            "pickerSchema": {
+              "name": "crud-grid",
+              "syncLocation": false,
+              "footable": false,
+              "bulkActions": [],
+              "itemActions": [],
+              "headerToolbar": [
+                {
+                  "type": "filter-toggler",
+                  "id": "filter-toggler"
+                },
+                {
+                  "type": "bulkActions",
+                  "id": "bulkActions"
+                },
+                {
+                  "type": "columns-toggler",
+                  "align": "right",
+                  "id": "columns-toggler"
+                }
+              ],
+              "footerToolbar": [
+                {
+                  "type": "statistics",
+                  "id": "statistics"
+                },
+                {
+                  "type": "switch-per-page",
+                  "id": "switch-per-page"
+                },
+                {
+                  "type": "pagination",
+                  "id": "pagination"
+                }
+              ],
+              "api": {
+                "url": "@query:NopAuthRole__findPage",
+                "gql:selection": "total,page,items{ id,roleId,roleName,isPrimary,createdBy,createTime,updatedBy,updateTime,remark }"
+              },
+              "labelTpl": "$roleName",
+              "columns": [
+                {
+                  "name": "roleId",
+                  "label": "角色ID",
+                  "sortable": true,
+                  "toggled": true,
+                  "fixed": "left",
+                  "type": "static"
+                },
+                {
+                  "name": "roleName",
+                  "label": "角色名",
+                  "sortable": true,
+                  "toggled": true,
+                  "type": "static"
+                },
+                {
+                  "name": "isPrimary",
+                  "label": "是否主角色",
+                  "sortable": true,
+                  "toggled": true,
+                  "align": "center",
+                  "type": "static-mapping",
+                  "map": {
+                    "1": "<span class='label label-success'>是</span>",
+                    "0": "<span class='label label-warning'>否</span>",
+                    "true": "<span class='label label-success'>是</span>",
+                    "false": "<span class='label label-warning'>否</span>",
+                    "": ""
+                  }
+                },
+                {
+                  "name": "createdBy",
+                  "label": "创建人",
+                  "sortable": true,
+                  "toggled": true,
+                  "type": "static"
+                },
+                {
+                  "name": "createTime",
+                  "label": "创建时间",
+                  "sortable": true,
+                  "width": "160px",
+                  "toggled": true,
+                  "type": "static"
+                },
+                {
+                  "name": "updatedBy",
+                  "label": "修改人",
+                  "sortable": true,
+                  "toggled": true,
+                  "type": "static"
+                },
+                {
+                  "name": "updateTime",
+                  "label": "修改时间",
+                  "sortable": true,
+                  "width": "160px",
+                  "toggled": true,
+                  "type": "static"
+                },
+                {
+                  "name": "remark",
+                  "label": "备注",
+                  "sortable": true,
+                  "toggled": true,
+                  "type": "static"
+                },
+                {
+                  "type": "operation",
+                  "label": "操作",
+                  "id": "operation",
+                  "width": 140,
+                  "toggled": true,
+                  "fixed": "right",
+                  "labelClassName": "text-center",
+                  "buttons": []
+                }
+              ]
+            },
+            "name": "roleId",
+            "label": "roleIdLabel",
+            "clearValueOnHidden": false,
+            "joinValues": false,
+            "extractValue": true,
+            "multiple": false
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-userId",
+        "body": [
+          {
+            "type": "picker",
+            "valueField": "userId",
+            "labelField": "userName",
+            "size": "lg",
+            "source": {
+              "valueField": "userId",
+              "labelField": "userName",
+              "url": "@query:NopAuthUser__active_findPage",
+              "gql:selection": "total,page,items{ id,userId,userName,nickName,dept{deptName},deptId,gender,gender_label,phone,userType,userType_label,status,status_label }"
+            },
+            "pickerSchema": {
+              "name": "crud-grid",
+              "syncLocation": false,
+              "footable": false,
+              "affixHeader": false,
+              "bulkActions": [],
+              "itemActions": [],
+              "headerToolbar": [
+                {
+                  "type": "filter-toggler",
+                  "id": "filter-toggler"
+                },
+                {
+                  "type": "bulkActions",
+                  "id": "bulkActions"
+                },
+                {
+                  "type": "columns-toggler",
+                  "align": "right",
+                  "id": "columns-toggler"
+                }
+              ],
+              "footerToolbar": [
+                {
+                  "type": "statistics",
+                  "id": "statistics"
+                },
+                {
+                  "type": "switch-per-page",
+                  "id": "switch-per-page"
+                },
+                {
+                  "type": "pagination",
+                  "id": "pagination"
+                }
+              ],
+              "api": {
+                "url": "@query:NopAuthUser__active_findPage",
+                "gql:selection": "total,page,items{ id,userId,userName,nickName,dept{deptName},deptId,gender,gender_label,phone,userType,userType_label,status,status_label }"
+              },
+              "labelTpl": "$userName",
+              "filter": {
+                "id": "crud-filter",
+                "mode": "horizontal",
+                "body": [
+                  {
+                    "type": "group",
+                    "id": "row-userName-gender-status",
+                    "body": [
+                      {
+                        "name": "filter_userName__contains",
+                        "label": "用户名",
+                        "type": "input-text",
+                        "clearable": true
+                      },
+                      {
+                        "name": "filter_gender",
+                        "label": "性别",
+                        "type": "select",
+                        "searchable": true,
+                        "clearable": true,
+                        "multiple": false,
+                        "source": "@dict:auth/gender"
+                      },
+                      {
+                        "name": "filter_status",
+                        "label": "用户状态",
+                        "type": "select",
+                        "searchable": true,
+                        "clearable": true,
+                        "multiple": false,
+                        "source": "@dict:auth/user-status"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "group",
+                    "id": "row-nickName-phone",
+                    "body": [
+                      {
+                        "name": "filter_nickName",
+                        "label": "昵称",
+                        "type": "input-text",
+                        "clearable": true
+                      },
+                      {
+                        "name": "filter_phone",
+                        "label": "电话",
+                        "type": "input-text",
+                        "clearable": true
+                      }
+                    ]
+                  }
+                ],
+                "actions": [
+                  {
+                    "type": "reset",
+                    "label": "重置",
+                    "id": "reset-button"
+                  },
+                  {
+                    "type": "submit",
+                    "label": "查询",
+                    "level": "primary",
+                    "id": "submit-button"
+                  }
+                ]
+              },
+              "columns": [
+                {
+                  "name": "userName",
+                  "label": "用户名",
+                  "sortable": true,
+                  "toggled": true,
+                  "fixed": "left",
+                  "type": "static"
+                },
+                {
+                  "name": "nickName",
+                  "label": "昵称",
+                  "sortable": true,
+                  "toggled": true,
+                  "type": "static"
+                },
+                {
+                  "name": "dept.deptName",
+                  "label": "所属部门",
+                  "sortable": true,
+                  "toggled": true,
+                  "type": "static"
+                },
+                {
+                  "name": "gender_label",
+                  "label": "性别",
+                  "sortable": true,
+                  "toggled": true,
+                  "type": "static"
+                },
+                {
+                  "name": "phone",
+                  "label": "电话",
+                  "sortable": true,
+                  "toggled": true,
+                  "type": "static"
+                },
+                {
+                  "name": "userType_label",
+                  "label": "用户类型",
+                  "sortable": true,
+                  "toggled": true,
+                  "type": "static"
+                },
+                {
+                  "name": "status_label",
+                  "label": "用户状态",
+                  "sortable": true,
+                  "toggled": true,
+                  "type": "static"
+                },
+                {
+                  "type": "operation",
+                  "label": "操作",
+                  "id": "operation",
+                  "width": 140,
+                  "toggled": true,
+                  "fixed": "right",
+                  "labelClassName": "text-center",
+                  "buttons": []
+                }
+              ]
+            },
+            "name": "userId",
+            "label": "userIdLabel",
+            "clearValueOnHidden": false,
+            "joinValues": false,
+            "extractValue": true,
+            "multiple": false
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-password",
+        "body": [
+          {
+            "name": "password",
+            "label": "passwordLabel",
+            "clearValueOnHidden": false,
+            "type": "input-password"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-hidden",
+        "body": [
+          {
+            "name": "hidden",
+            "label": "hiddenLabel",
+            "clearValueOnHidden": false,
+            "type": "hidden"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-xml",
+        "body": [
+          {
+            "name": "xml",
+            "label": "xmlLabel",
+            "clearValueOnHidden": false,
+            "type": "editor",
+            "language": "xml"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-xpl",
+        "body": [
+          {
+            "name": "xpl",
+            "label": "xplLabel",
+            "clearValueOnHidden": false,
+            "type": "editor",
+            "language": "xml"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-select",
+        "body": [
+          {
+            "name": "select",
+            "label": "selectLabel",
+            "clearValueOnHidden": false,
+            "type": "select",
+            "searchable": true,
+            "clearable": true,
+            "multiple": false
+          }
+        ]
+      }
+    ]
+  }
+}

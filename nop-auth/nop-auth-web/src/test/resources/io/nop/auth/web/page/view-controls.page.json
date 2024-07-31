@@ -1,0 +1,610 @@
+{
+  "type": "page",
+  "name": "view",
+  "size": "lg",
+  "body": {
+    "type": "form",
+    "name": "viewControls",
+    "mode": "horizontal",
+    "submitText": "",
+    "body": [
+      {
+        "type": "group",
+        "id": "row-tree-parent",
+        "body": [
+          {
+            "name": "tree-parent",
+            "label": "tree-parentLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-double",
+        "body": [
+          {
+            "name": "double",
+            "label": "doubleLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-decimal",
+        "body": [
+          {
+            "name": "decimal",
+            "label": "decimalLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-short",
+        "body": [
+          {
+            "name": "short",
+            "label": "shortLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-byte",
+        "body": [
+          {
+            "name": "byte",
+            "label": "byteLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-int",
+        "body": [
+          {
+            "name": "int",
+            "label": "intLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-long",
+        "body": [
+          {
+            "name": "long",
+            "label": "longLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-email",
+        "body": [
+          {
+            "name": "email",
+            "label": "emailLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-url",
+        "body": [
+          {
+            "name": "url",
+            "label": "urlLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-ascii",
+        "body": [
+          {
+            "name": "ascii",
+            "label": "asciiLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-asciiNum",
+        "body": [
+          {
+            "name": "asciiNum",
+            "label": "asciiNumLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-path",
+        "body": [
+          {
+            "name": "path",
+            "label": "pathLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-phone",
+        "body": [
+          {
+            "name": "phone",
+            "label": "phoneLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-telephone",
+        "body": [
+          {
+            "name": "telephone",
+            "label": "telephoneLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-date",
+        "body": [
+          {
+            "name": "date",
+            "label": "dateLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-datetime",
+        "body": [
+          {
+            "name": "datetime",
+            "label": "datetimeLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-timestamp",
+        "body": [
+          {
+            "name": "timestamp",
+            "label": "timestampLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-list-stelect",
+        "body": [
+          {
+            "name": "list-stelect",
+            "label": "list-stelectLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-radios",
+        "body": [
+          {
+            "name": "radios",
+            "label": "radiosLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-enum",
+        "body": [
+          {
+            "name": "enum",
+            "label": "enumLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-labelProp",
+        "body": [
+          {
+            "name": "labelProp",
+            "label": "labelPropLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-textarea",
+        "body": [
+          {
+            "name": "textarea",
+            "label": "textareaLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-html",
+        "body": [
+          {
+            "name": "html",
+            "label": "htmlLabel",
+            "clearValueOnHidden": false,
+            "type": "tpl",
+            "tpl": "${html|raw}"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-longtext",
+        "body": [
+          {
+            "name": "longtext",
+            "label": "longtextLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-reamark",
+        "body": [
+          {
+            "name": "reamark",
+            "label": "reamarkLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-tag-list",
+        "body": [
+          {
+            "name": "tag-list",
+            "label": "tag-listLabel",
+            "clearValueOnHidden": false,
+            "type": "input-tag",
+            "disabled": true
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-image",
+        "body": [
+          {
+            "name": "image",
+            "label": "imageLabel",
+            "clearValueOnHidden": false,
+            "type": "static-image",
+            "enlargeAble": true
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-file",
+        "body": [
+          {
+            "name": "file",
+            "label": "fileLabel",
+            "clearValueOnHidden": false,
+            "type": "group",
+            "body": [
+              {
+                "type": "action",
+                "visibleOn": "${file != null}",
+                "actionType": "download",
+                "label": "${fileComponentFileStatus.name}(${fileComponentFileStatus.fileSize})",
+                "leve": "link",
+                "api": {
+                  "method": "get",
+                  "url": "${file}",
+                  "data": {},
+                  "responseType": "blob"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-file-list",
+        "body": [
+          {
+            "name": "file-list",
+            "label": "file-listLabel",
+            "clearValueOnHidden": false,
+            "type": "group",
+            "body": [
+              {
+                "type": "action",
+                "visibleOn": "${file-list != null}",
+                "actionType": "dialog",
+                "label": "查看下载列表",
+                "dialog": {
+                  "title": "文件列表",
+                  "body": {
+                    "type": "table",
+                    "source": "${file-listComponentFileStatusList}",
+                    "columns": [
+                      {
+                        "name": "name",
+                        "label": "文件名称",
+                        "level": "link"
+                      },
+                      {
+                        "name": "fileSize",
+                        "label": "文件大小"
+                      },
+                      {
+                        "label": "下载",
+                        "type": "operation",
+                        "buttons": [
+                          {
+                            "label": "下载",
+                            "type": "action",
+                            "actionType": "download",
+                            "api": {
+                              "method": "get",
+                              "url": "/f/download/$fileId",
+                              "data": {},
+                              "responseType": "blob"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "bodyClassName": "amis"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-images",
+        "body": [
+          {
+            "name": "images",
+            "label": "imagesLabel",
+            "clearValueOnHidden": false,
+            "type": "static-images",
+            "enlargeAble": true
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-string-array",
+        "body": [
+          {
+            "name": "string-array",
+            "label": "string-arrayLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-deptId",
+        "body": [
+          {
+            "name": "deptId",
+            "label": "deptIdLabel",
+            "required": true,
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-boolean",
+        "body": [
+          {
+            "name": "boolean",
+            "label": "booleanLabel",
+            "clearValueOnHidden": false,
+            "type": "static-mapping",
+            "map": {
+              "1": "<span class='label label-success'>是</span>",
+              "0": "<span class='label label-warning'>否</span>",
+              "true": "<span class='label label-success'>是</span>",
+              "false": "<span class='label label-warning'>否</span>",
+              "": ""
+            }
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-boolFlag",
+        "body": [
+          {
+            "name": "boolFlag",
+            "label": "boolFlagLabel",
+            "clearValueOnHidden": false,
+            "type": "static-mapping",
+            "map": {
+              "1": "<span class='label label-success'>是</span>",
+              "0": "<span class='label label-warning'>否</span>",
+              "true": "<span class='label label-success'>是</span>",
+              "false": "<span class='label label-warning'>否</span>",
+              "": ""
+            }
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-pre",
+        "body": [
+          {
+            "name": "pre",
+            "label": "preLabel",
+            "clearValueOnHidden": false,
+            "type": "pre-static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-string",
+        "body": [
+          {
+            "name": "string",
+            "label": "stringLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-roleId",
+        "body": [
+          {
+            "name": "roleId",
+            "label": "roleIdLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-userId",
+        "body": [
+          {
+            "name": "userId",
+            "label": "userIdLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-password",
+        "body": [
+          {
+            "name": "password",
+            "label": "passwordLabel",
+            "clearValueOnHidden": false,
+            "type": "static",
+            "value": "***"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-hidden",
+        "body": [
+          {
+            "name": "hidden",
+            "label": "hiddenLabel",
+            "clearValueOnHidden": false,
+            "type": "hidden"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-xml",
+        "body": [
+          {
+            "name": "xml",
+            "label": "xmlLabel",
+            "clearValueOnHidden": false,
+            "type": "code",
+            "language": "xml"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-xpl",
+        "body": [
+          {
+            "name": "xpl",
+            "label": "xplLabel",
+            "clearValueOnHidden": false,
+            "type": "code",
+            "language": "xml"
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "id": "row-select",
+        "body": [
+          {
+            "name": "select",
+            "label": "selectLabel",
+            "clearValueOnHidden": false,
+            "type": "static"
+          }
+        ]
+      }
+    ]
+  }
+}

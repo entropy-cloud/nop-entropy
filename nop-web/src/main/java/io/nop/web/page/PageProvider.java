@@ -25,6 +25,7 @@ import io.nop.core.lang.json.JObject;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.json.bind.ValueResolverCompilerRegistry;
 import io.nop.core.lang.json.bind.resolver.ConfigValueResolver;
+import io.nop.core.lang.json.bind.resolver.EmptyTextResolver;
 import io.nop.core.lang.json.bind.resolver.I18nTextResolver;
 import io.nop.core.lang.json.bind.resolver.LoadTextResolver;
 import io.nop.core.lang.json.delta.DeltaJsonSaver;
@@ -72,6 +73,7 @@ public class PageProvider extends ResourceWithHistoryProvider {
         registry.addResolverCompiler("i18n", I18nTextResolver::compile);
         registry.addResolverCompiler("cfg", ConfigValueResolver::compile);
         registry.addResolverCompiler("load", LoadTextResolver::compile);
+        registry.addResolverCompiler("empty", EmptyTextResolver::compile);
     }
 
     public ValueResolverCompilerRegistry getValueResolverCompilerRegistry() {
