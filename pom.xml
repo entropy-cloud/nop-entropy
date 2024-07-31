@@ -418,7 +418,7 @@
         <module>nop-gateway</module>
         <module>nop-vertx</module>
         <module>nop-router</module>
-        <module>nop-biz-batch</module>
+        <module>nop-biz-report</module>
         <module>nop-web-page</module>
         <module>nop-file</module>
         <module>nop-netty</module>

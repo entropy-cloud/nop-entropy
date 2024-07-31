@@ -35,7 +35,6 @@ import io.nop.auth.api.utils.AuthHelper;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObject;
 import io.nop.biz.api.IBizObjectManager;
-import io.nop.biz.crud.importexport.BizExportHelper;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
@@ -1709,10 +1708,10 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         }
         return pageBean;
     }
-
-    @BizQuery
-    @Description("所有可导出的字段")
-    public List<DictOptionBean> exportableFields(IServiceContext context) {
-        return BizExportHelper.getExportableFields(getBizObjName(), getThisObj().getObjMeta(), context);
-    }
+//
+//    @BizQuery
+//    @Description("所有可导出的字段")
+//    public List<DictOptionBean> exportableFields(IServiceContext context) {
+//        return BizExportHelper.getExportableFields(getBizObjName(), getThisObj().getObjMeta(), context);
+//    }
 }

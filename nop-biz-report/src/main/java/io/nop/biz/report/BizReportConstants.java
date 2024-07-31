@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.biz.batch;
+package io.nop.biz.report;
 
-public interface BizBatchConstants {
+public interface BizReportConstants {
 }
