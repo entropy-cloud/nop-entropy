@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicLong;
@@ -51,7 +50,7 @@ public abstract class AbstractTransaction implements ITransaction {
 
     private boolean opened;
 
-    private TreeSet<ITransactionListener> listeners;
+    private List<ITransactionListener> listeners;
     private boolean rollbackOnly;
     private Throwable error;
 
@@ -77,8 +76,12 @@ public abstract class AbstractTransaction implements ITransaction {
     @Override
     public void addListener(ITransactionListener listener) {
         if (listeners == null)
-            listeners = new TreeSet<>();
-        listeners.add(listener);
+            listeners = new ArrayList<>();
+        if (!listeners.contains(listener)) {
+            listeners.add(listener);
+            if (listeners.size() > 1)
+                listeners.sort(ITransactionListener::compareTo);
+        }
     }
 
     @Override
