@@ -228,3 +228,20 @@ where
   exists(select o2 from NopAuthResource o2 where o2.siteId= o.id
    and o2.status >= 'main' })
 ```
+
+### 高级特性
+`graphql:transFilter`的类型是`xpl-fn`，它的返回值要求是XNode类型，但是它不直接支持输出。要使用xpl来输出XNode时，需要使用一个节点包装一下，设置outputMode
+
+```xml
+ <graphql:transFilter>
+    <and xpl:outputMode="node">
+        <alwaysTrue/>
+        <filter:sql>
+            exists(select o2 from NopAuthResource o2 where o2.siteId= o.id
+            and o2.status >= ${filter.getAttr('value')})
+        </filter:sql>
+    </and>
+</graphql:transFilter>
+```
+
+另外在配置`graphql:transFilter`的情况下，仍然可以设置allowFilterOp为多种op，在执行生成代码时通过`filter.tagName`可以判断前台传过来的到底是哪个op。

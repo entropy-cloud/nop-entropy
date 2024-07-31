@@ -88,8 +88,13 @@ public class GenNodeExecutable extends AbstractExecutable {
         IEvalOutput output = rt.getOut();
         if (output == DisabledEvalOutput.INSTANCE) {
             CollectXNodeHandler out = new CollectXNodeHandler();
-            executeWithHandler(out, executor, rt);
-            return out.endDoc();
+            rt.setOut(out);
+            try {
+                executeWithHandler(out, executor, rt);
+                return out.endDoc();
+            }finally {
+                rt.setOut(output);
+            }
         } else {
             IXNodeHandler out = (IXNodeHandler) rt.getOut();
             executeWithHandler(out, executor, rt);

@@ -544,3 +544,16 @@ Xpl模板语言可以设置不同的输出模式，当输出模式为xjson时，
 ```
 
 各种逻辑结构的形式边界在xpl模板语言中可以被很自然的消解，这才是最关键的部分。
+
+## 代码生成特性
+XLang内置了一些特殊的名字空间，比如x,xpl等，它们会在编译期被处理。如果就是要生成`x:abstract`这样的属性，可以使用`xgen-`前缀，例如
+
+```xml
+<form id="query" xgen-x:abstract="true" />
+```
+
+则实际输出时会移除`xgen-`前缀，最终生成
+
+```xml
+<form id="query" x:abstract="true" />
+```
