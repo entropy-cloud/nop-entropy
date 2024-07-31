@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
+import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_DEFAULT_PAGE_SIZE;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAX_PAGE_SIZE;
 import static io.nop.orm.utils.OrmQueryHelper.resolveRef;
 
@@ -87,7 +88,7 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
 
         if (queryMethod != GraphQLQueryMethod.findFirst) {
             if (query.getLimit() <= 0) {
-                query.setLimit(10);
+                query.setLimit(CFG_GRAPHQL_DEFAULT_PAGE_SIZE.get());
             } else if (query.getLimit() > CFG_GRAPHQL_MAX_PAGE_SIZE.get()) {
                 query.setLimit(CFG_GRAPHQL_MAX_PAGE_SIZE.get());
             }
