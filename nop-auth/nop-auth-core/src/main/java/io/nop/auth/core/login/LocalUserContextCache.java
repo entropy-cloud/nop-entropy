@@ -18,18 +18,18 @@ public class LocalUserContextCache extends AbstractUserContextCache {
 
     @PostConstruct
     public void init() {
-        userContextCache = LocalCache.newCache("user-context-cache",
+        userContextCache = LocalCache.newCache("login-user-context-cache",
                 newConfig(config.getMaxLoginUserCount() * 10).expireAfterAccess(config.getSessionTimeout()).useMetrics(),
                 null);
 
-        userSessionCache = LocalCache.newCache("user-session-cache",
+        userSessionCache = LocalCache.newCache("login-user-session-cache",
                 newConfig(config.getMaxLoginUserCount()).expireAfterAccess(config.getSessionTimeout()).useMetrics(),
                 null);
 
         loginFailCache = LocalCache.newCache("login-fail-cache", newConfig(config.getMaxLoginUserCount() * 2)
                 .expireAfterWrite(config.getLoginFailTimeout()).useMetrics(), null);
 
-        verifyCodeCache = LocalCache.newCache("verify-code-cache", newConfig(config.getMaxLoginUserCount() * 2)
+        verifyCodeCache = LocalCache.newCache("login-verify-code-cache", newConfig(config.getMaxLoginUserCount() * 2)
                 .expireAfterWrite(config.getVerifyCodeTimeout()).useMetrics(), null);
     }
 }

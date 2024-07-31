@@ -18,7 +18,7 @@ public class TenantAwareResourceCacheEntry<V> implements IResourceCacheEntry<V> 
 
     public TenantAwareResourceCacheEntry(String name, ICreationListener<V> listener) {
         this.tenantCaches = LocalCache.newCache(name,
-                newConfig(CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE.get()),
+                newConfig(CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE.get()).useMetrics(),
                 k -> new ResourceCacheEntry<>("tenant-" + name, listener));
         this.shareCache = new ResourceCacheEntry<>(name, listener);
     }

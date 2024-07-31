@@ -14,7 +14,8 @@ import static io.nop.commons.util.CollectionHelper.buildImmutableList;
 import static io.nop.commons.util.CollectionHelper.buildImmutableSet;
 
 public interface XplConstants {
-    String NAMESPACE_XGEN_PREFIX = "xgen:";
+    // 在IDEA中 xgen:x:abstract这种属性会提示格式错误，所以改成使用xgen-前缀
+    String NAMESPACE_XGEN_PREFIX = "xgen-";
 
     String POSTFIX_XLIB = ".xlib";
 

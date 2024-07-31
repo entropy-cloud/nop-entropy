@@ -18,7 +18,7 @@ public class TenantAwareModelReference<T> {
     public TenantAwareModelReference(String name, BiFunction<String, String, T> creator) {
         this.modelRef = new AtomicReference<>(creator.apply(name, null));
         this.tenantCache = LocalCache.newCache(name,
-                newConfig(CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE.get()),
+                newConfig(CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE.get()).useMetrics(),
                 k -> new AtomicReference<>(creator.apply("tenant-" + name, k)));
     }
 

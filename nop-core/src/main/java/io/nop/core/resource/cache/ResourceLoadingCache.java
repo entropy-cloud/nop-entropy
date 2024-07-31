@@ -104,7 +104,7 @@ public class ResourceLoadingCache<V> implements IResourceLoadingCache<V> {
     }
 
     LocalCache<String, ResourceCacheEntry<V>> createCache() {
-        CacheConfig config = new CacheConfig();
+        CacheConfig config = new CacheConfig().useMetrics();
         config.setMaximumSize(cacheMaxSize.get());
         Duration timeout = cacheTimeout.get();
         if (timeout != null)

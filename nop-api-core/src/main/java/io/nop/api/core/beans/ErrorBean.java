@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import io.nop.api.core.ApiConstants;
+import io.nop.api.core.annotations.core.LazyLoad;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.api.core.util.ICloneable;
@@ -224,6 +225,7 @@ public class ErrorBean implements Serializable, Comparable<ErrorBean>, ICloneabl
 
     @PropMeta(propId = 9)
     @JsonInclude(Include.NON_EMPTY)
+    @LazyLoad
     public Map<String, ErrorBean> getDetails() {
         return details;
     }
@@ -235,6 +237,7 @@ public class ErrorBean implements Serializable, Comparable<ErrorBean>, ICloneabl
 
     @PropMeta(propId = 10)
     @JsonInclude(Include.NON_NULL)
+    @LazyLoad
     public ErrorBean getCause() {
         return cause;
     }
