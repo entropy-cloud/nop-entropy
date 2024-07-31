@@ -247,7 +247,11 @@ QueryBean提供了transformFilter函数，可以对前台提交的查询条件�
 ```xml
   <prop name="myCustomFilter" queryable="true">
       <graphql:transFilter>
-          <eq name="status" value="${ filter.getAttr('value') }" />
+          <filter:sql>
+              exists( select o2 from NopAuthResource o2 where o2.siteId= o.id
+                and o2.status >= ${ filter.getAttr('value') }
+              )
+          </filter:sql>
       </graphql:transFilter>
   </prop>
 ```
