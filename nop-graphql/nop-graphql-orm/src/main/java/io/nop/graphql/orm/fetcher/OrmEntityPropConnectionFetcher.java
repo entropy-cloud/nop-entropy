@@ -86,15 +86,16 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
         }
 
         if (queryMethod != GraphQLQueryMethod.findFirst) {
-            if (maxFetchSize > 0) {
-                if (query.getLimit() > maxFetchSize) {
-                    query.setLimit(maxFetchSize);
-                }
-            }
             if (query.getLimit() <= 0) {
                 query.setLimit(10);
             } else if (query.getLimit() > CFG_GRAPHQL_MAX_PAGE_SIZE.get()) {
                 query.setLimit(CFG_GRAPHQL_MAX_PAGE_SIZE.get());
+            }
+
+            if (maxFetchSize > 0) {
+                if (query.getLimit() > maxFetchSize) {
+                    query.setLimit(maxFetchSize);
+                }
             }
         }
 
