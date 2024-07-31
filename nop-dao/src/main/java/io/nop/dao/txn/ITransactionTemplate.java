@@ -72,6 +72,15 @@ public interface ITransactionTemplate extends IDialectProvider {
         }
     }
 
+    default void beforeCommit(String txnGroup, Runnable action) {
+        addTransactionListener(txnGroup, new ITransactionListener() {
+            @Override
+            public void onBeforeCommit(ITransaction txn) {
+                action.run();
+            }
+        });
+    }
+
     default void afterCommit(String txnGroup, Runnable action) {
         addTransactionListener(txnGroup, new ITransactionListener() {
             @Override
