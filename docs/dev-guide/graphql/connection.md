@@ -10,18 +10,20 @@
 ```xml
 
 <meta>
-  <prop name="resources" displayName="资源列表" i18n-en:displayName="Resources" tagSet="pub,connection"
-        ext:kind="to-many" internal="true" ext:joinLeftProp="siteId" ext:joinRightProp="siteId"
-        ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
-    <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.auth.dao.entity.NopAuthResource&gt;"
-            bizObjName="NopAuthResource"/>
-  </prop>
-  <!--LOC:[90:22:0:0]/nop/core/xlib/biz-gen.xlib#/_delta/default/nop/auth/model/NopAuthSite/NopAuthSite.xmeta-->
-  <prop name="resourcesConnection" displayName="资源列表" internal="true"
-        graphql:connectionProp="resources" graphql:queryMethod="findConnection">
-    <schema type="io.nop.api.core.beans.graphql.GraphQLConnection&lt;io.nop.auth.dao.entity.NopAuthResource&gt;"
-            bizObjName="NopAuthResource"/>
-  </prop>
+    <props>
+        <prop name="resources" displayName="资源列表" i18n-en:displayName="Resources" tagSet="pub,connection"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="siteId" ext:joinRightProp="siteId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
+            <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.auth.dao.entity.NopAuthResource&gt;"
+                  bizObjName="NopAuthResource"/>
+        </prop>
+        <!--LOC:[90:22:0:0]/nop/core/xlib/biz-gen.xlib#/_delta/default/nop/auth/model/NopAuthSite/NopAuthSite.xmeta-->
+        <prop name="resourcesConnection" displayName="资源列表" internal="true"
+              graphql:connectionProp="resources" graphql:queryMethod="findConnection">
+            <schema type="io.nop.api.core.beans.graphql.GraphQLConnection&lt;io.nop.auth.dao.entity.NopAuthResource&gt;"
+                  bizObjName="NopAuthResource"/>
+        </prop>
+    </props>
 </meta>
 ```
 
@@ -81,7 +83,7 @@ query($filter1:Map, $filter2:Map){
        items{
          id
        }
-     },
+     }
 
      inactiveRecords: mySubObjectConnection(filter:$filter2, limit:5){
        total
@@ -97,7 +99,7 @@ query($filter1:Map, $filter2:Map){
 
 ## REST请求时通过`_subArgs`简化传参方式
 
-```
+```json
 /r/MyObject__get?id=3&@selection=activeRecords:mySubObjectConnection,inactiveRecords:mySubObjectConnection
 
 {

@@ -194,13 +194,13 @@ sql模式针对SQL输出的情况做了特殊处理，主要增加了如下规�
 
 如果确实希望直接输出SQL文本，拼接到SQL语句中，可以使用raw函数来包装。
 
-```
+```sql
 from MyEntity_${raw(postfix)} o
 ```
 
 此外，NopOrm对于参数化SQL对象本身也建立了一个简单的包装模型
 
-```
+```java
 SQL = Text + Params
 ```
 
@@ -228,8 +228,9 @@ XLang语言还内置了一些调试特性，方便在元编程阶段对问题进
 
 3. 任何表达式都可以追加调用扩展函数`$`，它会自动打印当前表达式对应的文本、行号以及表达式执行的结果, 并返回表达式的结果值。例如
 
-```
-x = a.f().$(prefix) 实际对应于
+```java
+x = a.f().$(prefix)
+// 实际对应于
 x = DebugHelper.v(location,prefix, "a.f()",a.f())
 ```
 
@@ -237,12 +238,12 @@ x = DebugHelper.v(location,prefix, "a.f()",a.f())
 
 利用标签库可以引入各种自定义的扩展逻辑。比如根据不同的数据库方言生成不同的SQL语句。
 
-```
+```xml
 select
 <sql:when-dialect name="h2">
     ...
 </sql:when-dialect>
-        from my_entity
+from my_entity
 ```
 
 ## 8. Mapper接口
@@ -327,8 +328,8 @@ OrmSessionFactory支持IEntityFilterProvider配置，nop-auth-service模块提�
 
 也可以使用在构造SQL对象时直接指定enableFilter属性
 
-```javascript
-   SQL sql = SQL.begin().enableFilter(true).sql("...").end();
+```java
+SQL sql = SQL.begin().enableFilter(true).sql("...").end();
 ```
 
 启用enableFilter后，会自动利用`IServiceContext.bindingCtx()`获取当前上下文中的IServiceContext，并调用`IDataAuthChecker.getFilter()`
@@ -338,7 +339,7 @@ OrmSessionFactory支持IEntityFilterProvider配置，nop-auth-service模块提�
 
 ### allowUnderscoreName设置为true，将会允许在EQL中直接使用数据库字段名
 
-```
+```xml
 <eql name="xx" allowUnderscoreName="true">
   <source>
      select o.statusId, o.status_id from MyEntity o
@@ -350,6 +351,6 @@ OrmSessionFactory支持IEntityFilterProvider配置，nop-auth-service模块提�
 
 也可以使用在构造SQL对象时直接指定allowUnderscoreName属性
 
-```javascript
-   SQL.begin().allowUnderscoreName(true).sql("....").end();
+```java
+SQL.begin().allowUnderscoreName(true).sql("....").end();
 ```

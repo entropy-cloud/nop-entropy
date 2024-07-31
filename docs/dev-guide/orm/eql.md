@@ -23,7 +23,7 @@ select o.dept.name, u.type
 from NopAuthUser o left join MyEntity u on o.id = u.userId
 
 select o.dept.name, u.type
-from NopAuthUser o , MyEntity u 
+from NopAuthUser o , MyEntity u
 where o.id = u.userId
 
 ```
@@ -36,25 +36,25 @@ select o from NopAuthUser o limit 10 offset 0
 
 ## 4. for update语句
 
-```
+```sql
 select o from NopAuthUser o where id = 1 for update
 ```
 
 ## 5. 删除语句
 
-```
+```sql
 delete from NopAuthUser o wher o.id = 3
 ```
 
 ## 6. 更新语句
 
-```
+```sql
 update NopAuthUser o set o.name = 'a' where o.id = 2
 ```
 
 ## 7. 插入语句
 
-```
+```sql
 insert NopAuthUser(name, status) values('a',1)
 ```
 
@@ -76,4 +76,4 @@ insert NopAuthUser(name, status) values('a',1)
 * `>>` : 右移位
 * % : 取余
 * ^
-* 
+*

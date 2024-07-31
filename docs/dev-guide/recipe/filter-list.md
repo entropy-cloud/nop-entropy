@@ -33,7 +33,7 @@
 
 XView模型中定义的grid可以配置filter条件，使用该grid生成的表格查询数据时会自动携带过滤条件。
 
-```
+```xml
 <grid id="list">
   <cols>
     ...
@@ -51,7 +51,7 @@ XView模型中定义的grid可以配置filter条件，使用该grid生成的表�
 
 xmeta配置文件中可以配置filter过滤条件。如果在meta中配置，则新增、修改的时候也会按照这里的过滤条件自动设置。例如
 
-```
+```xml
 <filter>
    <eq name="type" value="1" />
 </filter>
@@ -61,7 +61,7 @@ xmeta配置文件中可以配置filter过滤条件。如果在meta中配置，�
 
 基于已有的xmeta，可以新建xmeta。例如 MyEntity\_ext.xmeta
 
-```
+```xml
 <meta x:extends="MyEntity.xmeta">
   <filter>
      <eq name="type" value="1" />
@@ -71,7 +71,7 @@ xmeta配置文件中可以配置filter过滤条件。如果在meta中配置，�
 
 前台调用时使用对象名`MyEntity_ext`就会自动应用这里的meta。例如
 
-```
+```graphql
 query{
    MyEntity_ext__findPage{
       ...
@@ -83,7 +83,7 @@ query{
 
 ## 4. 在后台BizModel中增加新的方法
 
-```
+```java
 class MyEntityBizModel extends CrudBizModel<MyEntity>{
     @BizQuery
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
@@ -103,7 +103,7 @@ class MyEntityBizModel extends CrudBizModel<MyEntity>{
 
 在前台可以继承已有的页面，然后定制其中的api数据请求链接
 
-```
+```xml
 <form id="edit">
   <cells>
     <cell id="productId">
@@ -126,7 +126,10 @@ class MyEntityBizModel extends CrudBizModel<MyEntity>{
 <filter>
     <eq name="type" value="${3}" />
     <filter:sql xpl:lib="/nop/core/xlib/filter.xlib">
-        o.id in (select t.task.id from MyTask t where t.userId = ${$context.userId || '1'})
+        o.id in (
+          select t.task.id from MyTask t
+          where t.userId = ${ $context.userId || '1' }
+        )
     </filter:sql>
 </filter>
 ```
@@ -137,7 +140,10 @@ class MyEntityBizModel extends CrudBizModel<MyEntity>{
 
 ```sql
 o.type = 3
-and o.id in (select t.task.id from MyTask t where t.userId = ${$context.userId || '1'})
+and o.id in (
+  select t.task.id from MyTask t
+  where t.userId = ${ $context.userId || '1' }
+)
 ```
 
 > sql节点的value属性必须是SQL类型，不能是简单的文本字符串，这样约定的目的是避免前台提交filter查询条件插入子查询形成SQL注入攻击。要求value必须是SQL类型，就只能是在后台通过程序来构造。
@@ -242,8 +248,9 @@ QueryBean提供了transformFilter函数，可以对前台提交的查询条件�
   <prop name="myCustomFilter" queryable="true">
       <graphql:transFilter>
           <filter:sql>
-              exists(select o2 from NopAuthResource o2 where o2.siteId= o.id
-               and o2.status >= ${filter.getAttr('value')})
+              exists( select o2 from NopAuthResource o2 where o2.siteId= o.id
+                and o2.status >= ${ filter.getAttr('value') }
+              )
           </filter:sql>
       </graphql:transFilter>
   </prop>

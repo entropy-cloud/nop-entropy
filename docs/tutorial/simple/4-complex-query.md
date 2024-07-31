@@ -134,7 +134,7 @@ Nop平台中服务函数的返回值并不会被直接序列化为JSON返回到�
       xmlns:graphql="graphql">
     <props>
         <prop name="resourcesList" displayName="资源列表"
-           graphql:queryMethod="findList" lazy="true"
+           graphql:queryMethod="findConnection" lazy="true"
            graphql:connectionProp="resources">
             <schema bizObjName="NopAuthResource"/>
             <graphql:orderBy>
@@ -146,12 +146,12 @@ Nop平台中服务函数的返回值并不会被直接序列化为JSON返回到�
 ```
 
 * 通过`graphql:connectionProp`可以指定ORM层面的关联属性，通过它可以自动推理得到`graphql:filter`配置。此时如果再配置`graphql:filter`就表示在关联查询条件的基础上再补充额外的过滤条件
-* findConnection对应于返回结果为GraphQLConnection类型。关于它的具体介绍，参见[connection.md](../../dev-guide/graphql/connection.md)
+* `findConnection`对应于返回结果为GraphQLConnection类型。关于它的具体介绍，参见[connection.md](../../dev-guide/graphql/connection.md)
 
 在REST调用模式下，我们可以通过`_subArgs.{propName}.filter_xx=yy`这种形式来传递子表过滤条件
 
 ```
-http://localhost:8080/r/NopAuthSite__get?id=main&%40selection=id,displayName,resourcesList%7Bid%7D&_subArgs.resourcesList.filter_status=1
+http://localhost:8080/r/NopAuthSite__get?id=main&%40selection=id,displayName,resourcesList%7Bitems%7Bid,displayName%7D%7D&_subArgs.resourcesList.filter_status=1
 ```
 
 * 通过`@selection`可以传递类似GraphQL的字段映射配置，此时**特殊字符`@`和大括号等需要进行编码处理**，否则后台解析URL的时候报错，会返回400错误码。
@@ -161,10 +161,13 @@ http://localhost:8080/r/NopAuthSite__get?id=main&%40selection=id,displayName,res
 ```graphql
 query($filter:Map){
     NopAuthSite_get(id:"main"){
-        id,
-        displayName,
+        id
+        displayName
         resourcesList(filter:$filter,limit:10,offset:0){
-           id, displayName
+            items{
+                id
+                displayName
+            }
         }
     }
 }
@@ -184,13 +187,19 @@ variables:
 ```graphql
 query($filter1:Map, $filter2: Map){
     NopAuthSite_get(id:"main"){
-        id,
-        displayName,
+        id
+        displayName
         activeResources: resourcesList(filter:$filter1,limit:10,offset:0){
-           id, displayName
+            items{
+                id
+                displayName
+            }
         }
         inactiveResources: resourcesList(filter:$filter2,limit:10,offset:0){
-           id, displayName
+            items{
+                id
+                displayName
+            }
         }
     }
 }
@@ -208,8 +217,9 @@ query($filter1:Map, $filter2: Map){
   <prop name="myCustomFilter" queryable="true">
       <graphql:transFilter>
           <filter:sql>
-              exists(select o2 from NopAuthResource o2 where o2.siteId= o.id
-               and o2.status >= ${filter.getAttr('value')})
+              exists( select o2 from NopAuthResource o2 where o2.siteId= o.id
+                and o2.status >= ${ filter.getAttr('value') }
+              )
           </filter:sql>
       </graphql:transFilter>
   </prop>
@@ -225,8 +235,9 @@ query($filter1:Map, $filter2: Map){
 select o
 from NopAuthSite o
 where
-  exists(select o2 from NopAuthResource o2 where o2.siteId= o.id
-   and o2.status >= 'main' })
+  exists( select o2 from NopAuthResource o2 where o2.siteId= o.id
+    and o2.status >= 'main'
+  )
 ```
 
 ### 高级特性

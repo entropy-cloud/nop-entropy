@@ -2,7 +2,7 @@
 
 NopORM是一个类似Hibernate的完整ORM引擎，因此它也是通过OrmSession来管理所有加载到内存中的实体对象。在同一个session中，只会按照id从数据库加载一次，然后得到的实体对象就会被缓存到session中。
 
-```javascript
+```java
 MyEntity entity = dao.getEntityById("3");
 List<MyEntity> entities = dao.findAll();
 assertTrue(entityes.contains(entity));
@@ -19,9 +19,9 @@ assertTrue(entityes.contains(entity));
 * 向集合对象中加入实体隐含的就表示该实体也要同步到数据库中，因此调用parent.getChildren().add(child)之后不需要再调用dao.saveEntity(child)来保存子实体。
 * 从集合对象中删除实体会自动删除该实体，除非它的owner属性值被设置为null.
 
-```
+```java
 parent.getChildren().remove(child);
-// child.setParent(null); 
+// child.setParent(null);
 ```
 
 如果不调用child.setParent(null)，则从parent的children集合中删除child表示要从数据库中删除child。而如果设置了child的parent为null，则表示解除父实体和子实体的关联关系。
