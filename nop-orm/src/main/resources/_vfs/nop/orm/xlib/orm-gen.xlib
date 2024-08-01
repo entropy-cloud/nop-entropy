@@ -70,7 +70,7 @@
                                         </c:script>
                                         <component name="${colNode.getAttr('name')}Component" needFlush="true"
                                                    notGenCode="${colNode.getAttr('notGenCode')}"
-                                                   tagSet="json${pub and ',pub'}"
+                                                   tagSet="json${pub and ',pub,edit'}"
                                                    className="io.nop.orm.component.JsonOrmComponent">
                                             <prop name="_jsonText" column="${colNode.getAttr('name')}"/>
                                         </component>
@@ -114,7 +114,7 @@
                                         </c:script>
                                         <component name="${colNode.getAttr('name')}XmlComponent" needFlush="true"
                                                    notGenCode="${colNode.getAttr('notGenCode')}"
-                                                   tagSet="xml${pub and ',pub'}"
+                                                   tagSet="xml${pub and ',pub,edit'}"
                                                    className="io.nop.orm.component.XmlOrmComponent">
                                             <prop name="xmlText" column="${colNode.getAttr('name')}"/>
                                         </component>

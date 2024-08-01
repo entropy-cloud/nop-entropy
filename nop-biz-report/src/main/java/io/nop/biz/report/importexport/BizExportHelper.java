@@ -102,10 +102,10 @@ public class BizExportHelper {
         return fields;
     }
 
-    private static List<DictOptionBean> getExportableFields(IObjMeta objMeta,
-                                                            FieldSelectionBean selection,
-                                                            String locale, String bizObjName,
-                                                            IServiceContext context) {
+    public static List<DictOptionBean> getExportableFields(IObjMeta objMeta,
+                                                           FieldSelectionBean selection,
+                                                           String locale, String bizObjName,
+                                                           IServiceContext context) {
         List<DictOptionBean> ret = new ArrayList<>();
         selection.forEachField(null, (alias, name) -> {
             IObjPropMeta propMeta = objMeta.getProp(name);
