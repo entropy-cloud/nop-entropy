@@ -378,14 +378,11 @@ public class ObjMetaBasedValidator {
 
     private Object convertValue(IObjPropMeta propMeta, Object value, Map<String, Object> data,
                                 Map<String, Object> ret) {
-//        IEvalAction action = propMeta.getTransformIn();
-//        if (action != null) {
-//            IEvalScope scope = XLang.newEvalScope();
-//            scope.setLocalValue(null, BizConstants.VAR_DATA, data);
-//            scope.setLocalValue(null, BizConstants.VAR_TRNAS_DATA, ret);
-//            scope.setLocalValue(null, BizConstants.VAR_VALUE, value);
-//            value = action.invoke(scope);
-//        }
+        // 如果指定了transformIn，则以它的转换结果为准，不再需要根据类型进行转化。transformIn的结果类型也不一定和dataType一致
+        IEvalAction action = propMeta.getTransformIn();
+        if (action != null) {
+            return value;
+        }
 
         StdDataType type = propMeta.getStdDataType();
         if (type == null)
