@@ -107,6 +107,7 @@
         <sqlDataType name="INTEGER" code="INT4" stdSqlType="INTEGER" alias="INT"/>
         <sqlDataType name="TINYINT" code="INT4" stdSqlType="TINYINT"/>
         <sqlDataType name="SMALLINT" code="INT4" stdSqlType="SMALLINT"/>
+        <sqlDataType name="INT4"  stdSqlType="INTEGER"/>
         <sqlDataType name="INT8" stdSqlType="BIGINT"/>
         <sqlDataType name="VARCHAR" precision="4000" stdSqlType="VARCHAR"/>
         <sqlDataType name="NVARCHAR" precision="4000" stdSqlType="VARCHAR"/>
