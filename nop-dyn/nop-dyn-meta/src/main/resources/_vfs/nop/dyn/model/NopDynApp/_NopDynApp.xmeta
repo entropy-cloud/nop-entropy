@@ -64,7 +64,7 @@
             </schema>
         </prop>
         <prop name="relatedModuleList" displayName="关联模块列表" i18n-en:displayName="Module List" ext:kind="to-many"
-              internal="true" lazy="true">
+              insertable="false" updatable="false" internal="true" lazy="true">
             <schema>
                 <item bizObjName="NopDynModule"/>
             </schema>

@@ -124,7 +124,7 @@
             </schema>
         </prop>
         <prop name="relatedGroupList" displayName="分组列表" i18n-en:displayName="Group List" ext:kind="to-many"
-              internal="true" lazy="true">
+              insertable="true" updatable="true" internal="true" lazy="true">
             <schema>
                 <item bizObjName="NopAuthGroup"/>
             </schema>

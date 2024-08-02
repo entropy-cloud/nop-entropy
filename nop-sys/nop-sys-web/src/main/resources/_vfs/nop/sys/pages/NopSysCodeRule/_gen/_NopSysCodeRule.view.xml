@@ -120,7 +120,7 @@
             </rowActions>
         </crud>
         <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
-            <table>
+            <table noOperations="true">
                 <api url="@query:NopSysCodeRule__findPage" gql:selection="{@pageSelection}"/>
             </table>
         </picker>

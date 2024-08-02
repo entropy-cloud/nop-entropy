@@ -126,7 +126,7 @@
             </schema>
         </prop>
         <prop name="relatedAppList" displayName="所属应用列表" i18n-en:displayName="App List" ext:kind="to-many"
-              internal="true" lazy="true">
+              insertable="false" updatable="false" internal="true" lazy="true">
             <schema>
                 <item bizObjName="NopDynApp"/>
             </schema>

@@ -203,7 +203,8 @@
 
         <picker name="picker" grid="pick-list" asideFilterForm="asideFilter"
                 filterForm="query" x:abstract="true">
-            <table>
+            <!-- picker缺省去除operations按钮 -->
+            <table noOperations="true">
                 <api url="@query:${metaInfo.objName}__findPage" gql:selection="{@pageSelection}"/>
             </table>
         </picker>

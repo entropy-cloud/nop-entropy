@@ -96,8 +96,8 @@
                 <item bizObjName="NopRuleRole"/>
             </schema>
         </prop>
-        <prop name="modelTextXmlComponent" tagSet="xml,pub" ext:kind="component" internal="true" insertable="false"
-              updatable="false" lazy="true">
+        <prop name="modelTextXmlComponent" tagSet="xml,pub,edit" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
             <schema type="io.nop.orm.component.XmlOrmComponent"/>
         </prop>
     </props>

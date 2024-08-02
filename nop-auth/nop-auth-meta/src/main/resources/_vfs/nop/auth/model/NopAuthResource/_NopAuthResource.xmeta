@@ -177,16 +177,16 @@
                 <item bizObjName="NopAuthRoleResource"/>
             </schema>
         </prop>
-        <prop name="metaConfigComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="false"
-              updatable="false" lazy="true">
+        <prop name="metaConfigComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
             <schema type="io.nop.orm.component.JsonOrmComponent"/>
         </prop>
-        <prop name="propsConfigComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="false"
-              updatable="false" lazy="true">
+        <prop name="propsConfigComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
             <schema type="io.nop.orm.component.JsonOrmComponent"/>
         </prop>
         <prop name="relatedRoleList" displayName="角色列表" i18n-en:displayName="Role List" ext:kind="to-many"
-              internal="true" lazy="true">
+              insertable="true" updatable="true" internal="true" lazy="true">
             <schema>
                 <item bizObjName="NopAuthRole"/>
             </schema>
