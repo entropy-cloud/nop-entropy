@@ -88,7 +88,7 @@ public class DynCodeGen implements IResourceTenantInitializer {
 
     public InMemoryCodeCache getCodeCache() {
         String tenantId = ContextProvider.currentTenantId();
-        if (!StringHelper.isEmpty(tenantId) || !isUseTenant())
+        if (StringHelper.isEmpty(tenantId) || !isUseTenant())
             return codeCache;
         return tenantCache.get(tenantId);
     }
