@@ -770,7 +770,7 @@
                 return _.filterNull({
                     ...action,
                     actionType,
-                    icon: iconOnly ? action.icon: null,
+                    icon: action.icon,
                     label: iconOnly? null : action.label,
                     tooltip: iconOnly ? action.label: null,  // 如果只显示icon，则以label作为tooltip
                     level: iconOnly? null : action.level,

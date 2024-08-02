@@ -28,6 +28,8 @@ public class HttpClientConfig {
 
     private String sslVersion = "TLSv1.2";
 
+    private int ioThreadCount;
+
     private boolean followRedirects;
     private boolean retryOnConnectionFailure;
     private Duration readTimeout = Duration.of(30, ChronoUnit.SECONDS);
@@ -66,6 +68,14 @@ public class HttpClientConfig {
     private String threadName = "nop-http-client";
     private int threadPoolSize;
     private Executor executor;
+
+    public int getIoThreadCount() {
+        return ioThreadCount;
+    }
+
+    public void setIoThreadCount(int ioThreadCount) {
+        this.ioThreadCount = ioThreadCount;
+    }
 
     public String getThreadName() {
         return threadName;

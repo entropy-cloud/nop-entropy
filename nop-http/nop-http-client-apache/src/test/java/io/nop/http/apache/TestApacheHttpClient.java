@@ -21,4 +21,18 @@ public class TestApacheHttpClient {
         System.out.println(response.getBodyAsText());
         client.stop();
     }
+
+    @Test
+    public void testHttp2(){
+        HttpClientConfig config = new HttpClientConfig();
+        config.setHttp2(true);
+        config.setIgnoreSslCerts(true);
+        ApacheHttpClient client = new ApacheHttpClient(config);
+        client.start();
+        HttpRequest request = new HttpRequest();
+        request.setUrl("http://localhost:8080");
+        IHttpResponse response = FutureHelper.syncGet(client.fetchAsync(request, null));
+        System.out.println(response.getBodyAsText());
+        client.stop();
+    }
 }
