@@ -4195,6 +4195,10 @@
         ]
       },
       {
+        "name": "webFileTimestamp",
+        "parameterTypes": []
+      },
+      {
         "name": "withOverride",
         "parameterTypes": [
           "io.nop.api.core.config.IConfigReference",
@@ -4295,6 +4299,18 @@
         "name": "description",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "errorDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "errorStatus",
+        "parameterTypes": [
+          "int"
         ]
       },
       {
@@ -19452,6 +19468,10 @@
         "parameterTypes": []
       },
       {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
         "name": "contains",
         "parameterTypes": [
           "java.lang.Object"
@@ -20175,6 +20195,10 @@
       },
       {
         "name": "getClassName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getConverter",
         "parameterTypes": []
       },
       {
@@ -23674,6 +23698,13 @@
       },
       {
         "name": "pluckThenJoin",
+        "parameterTypes": [
+          "java.util.Collection",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "pluckUnique",
         "parameterTypes": [
           "java.util.Collection",
           "java.lang.String"
@@ -27188,6 +27219,12 @@
         ]
       },
       {
+        "name": "buildConfigResource",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "buildDeltaPath",
         "parameterTypes": [
           "java.lang.String",
@@ -27890,6 +27927,14 @@
         "parameterTypes": [
           "io.nop.core.resource.IFile",
           "java.io.OutputStream",
+          "io.nop.core.resource.zip.ZipOptions"
+        ]
+      },
+      {
+        "name": "zipLocalDir",
+        "parameterTypes": [
+          "java.io.File",
+          "java.io.File",
           "io.nop.core.resource.zip.ZipOptions"
         ]
       }
@@ -49749,6 +49794,12 @@
         ]
       },
       {
+        "name": "normalizeXuiImport",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
         "name": "removeGeneratedId",
         "parameterTypes": [
           "java.lang.Object"
@@ -52945,6 +52996,12 @@
         "parameterTypes": []
       },
       {
+        "name": "getLayoutCellById",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getLayoutCells",
         "parameterTypes": []
       },
@@ -53042,6 +53099,12 @@
       {
         "name": "getLabel",
         "parameterTypes": []
+      },
+      {
+        "name": "getLayoutCellById",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
       },
       {
         "name": "getLevel",
@@ -54598,6 +54661,12 @@
         "parameterTypes": []
       },
       {
+        "name": "getLayoutCellById",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getTables",
         "parameterTypes": []
       },
@@ -55993,6 +56062,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getColumnRatio",
+        "parameterTypes": []
+      },
+      {
         "name": "getMandatory",
         "parameterTypes": []
       },
@@ -56006,6 +56079,10 @@
       },
       {
         "name": "getTitlePosition",
+        "parameterTypes": []
+      },
+      {
+        "name": "isClearValueOnHidden",
         "parameterTypes": []
       },
       {
@@ -56023,9 +56100,21 @@
         ]
       },
       {
+        "name": "setClearValueOnHidden",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
         "name": "setCollapseTitle",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setColumnRatio",
+        "parameterTypes": [
+          "java.lang.Integer"
         ]
       },
       {
@@ -56133,6 +56222,10 @@
       },
       {
         "name": "getData",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDefaultColumnRatio",
         "parameterTypes": []
       },
       {
@@ -56409,6 +56502,12 @@
         "name": "setData",
         "parameterTypes": [
           "java.util.Map"
+        ]
+      },
+      {
+        "name": "setDefaultColumnRatio",
+        "parameterTypes": [
+          "java.lang.Integer"
         ]
       },
       {

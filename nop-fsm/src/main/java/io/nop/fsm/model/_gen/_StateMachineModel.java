@@ -21,7 +21,7 @@ public abstract class _StateMachineModel extends io.nop.core.resource.component.
      * xml name: handle-error
      * 状态迁移出现异常时触发的监听函数。如果返回true，则认为异常已经被处理，不对外抛出异常
      */
-    private io.nop.core.lang.eval.IEvalAction _handleError ;
+    private io.nop.core.lang.eval.IEvalFunction _handleError ;
     
     /**
      *  
@@ -36,6 +36,13 @@ public abstract class _StateMachineModel extends io.nop.core.resource.component.
      * 初始状态的id
      */
     private java.lang.String _initial ;
+    
+    /**
+     *  
+     * xml name: invoke-action
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _invokeAction ;
     
     /**
      *  
@@ -78,12 +85,12 @@ public abstract class _StateMachineModel extends io.nop.core.resource.component.
      *  状态迁移出现异常时触发的监听函数。如果返回true，则认为异常已经被处理，不对外抛出异常
      */
     
-    public io.nop.core.lang.eval.IEvalAction getHandleError(){
+    public io.nop.core.lang.eval.IEvalFunction getHandleError(){
       return _handleError;
     }
 
     
-    public void setHandleError(io.nop.core.lang.eval.IEvalAction value){
+    public void setHandleError(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._handleError = value;
@@ -125,6 +132,25 @@ public abstract class _StateMachineModel extends io.nop.core.resource.component.
         checkAllowChange();
         
         this._initial = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: invoke-action
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getInvokeAction(){
+      return _invokeAction;
+    }
+
+    
+    public void setInvokeAction(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._invokeAction = value;
            
     }
 
@@ -274,6 +300,7 @@ public abstract class _StateMachineModel extends io.nop.core.resource.component.
         out.putNotNull("handleError",this.getHandleError());
         out.putNotNull("ignoreUnknownTransition",this.isIgnoreUnknownTransition());
         out.putNotNull("initial",this.getInitial());
+        out.putNotNull("invokeAction",this.getInvokeAction());
         out.putNotNull("meta",this.getMeta());
         out.putNotNull("onEntry",this.getOnEntry());
         out.putNotNull("onExit",this.getOnExit());
@@ -293,6 +320,7 @@ public abstract class _StateMachineModel extends io.nop.core.resource.component.
         instance.setHandleError(this.getHandleError());
         instance.setIgnoreUnknownTransition(this.isIgnoreUnknownTransition());
         instance.setInitial(this.getInitial());
+        instance.setInvokeAction(this.getInvokeAction());
         instance.setMeta(this.getMeta());
         instance.setOnEntry(this.getOnEntry());
         instance.setOnExit(this.getOnExit());

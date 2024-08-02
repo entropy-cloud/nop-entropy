@@ -63,7 +63,7 @@ public abstract class _StateModel extends io.nop.core.resource.component.Abstrac
      * xml name: handle-error
      * 状态迁移出现异常时触发的监听函数。如果返回true，则认为异常已经被处理，不对外抛出异常
      */
-    private io.nop.core.lang.eval.IEvalAction _handleError ;
+    private io.nop.core.lang.eval.IEvalFunction _handleError ;
     
     /**
      *  
@@ -255,12 +255,12 @@ public abstract class _StateModel extends io.nop.core.resource.component.Abstrac
      *  状态迁移出现异常时触发的监听函数。如果返回true，则认为异常已经被处理，不对外抛出异常
      */
     
-    public io.nop.core.lang.eval.IEvalAction getHandleError(){
+    public io.nop.core.lang.eval.IEvalFunction getHandleError(){
       return _handleError;
     }
 
     
-    public void setHandleError(io.nop.core.lang.eval.IEvalAction value){
+    public void setHandleError(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._handleError = value;

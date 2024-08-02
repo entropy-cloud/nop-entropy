@@ -70,7 +70,7 @@
         <!--
         状态迁移出现异常时触发的监听函数。如果返回true，则认为异常已经被处理，不对外抛出异常
         -->
-        <handle-error xdef:value="xpl"/>
+        <handle-error xdef:value="xpl-fn:(err,ctx)=>boolean"/>
 
     </xdef:define>
 
@@ -85,8 +85,10 @@
     <!--
     状态迁移出现异常时触发的监听函数。如果返回true，则认为异常已经被处理，不对外抛出异常
     -->
-    <handle-error xdef:value="xpl"/>
+    <handle-error xdef:value="xpl-fn:(err)=>boolean"/>
 
     <meta xdef:value="xjson"/>
+
+    <invoke-action xdef:value="xpl-fn:(action)=>any" />
 
 </state-machine>

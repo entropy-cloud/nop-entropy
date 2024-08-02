@@ -11,6 +11,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.context.IEvalContext;
+import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.fsm.FsmConstants;
@@ -118,7 +119,7 @@ public class StateMachine implements IStateMachine {
             boolean handled = false;
 
             if (stateModel.getHandleError() != null) {
-                handled = Boolean.TRUE.equals(stateModel.getHandleError().invoke(scope));
+                handled = Boolean.TRUE.equals(stateModel.getHandleError().call1(null, e, scope.getEvalScope()));
                 if (!handled)
                     throw NopException.adapt(e);
             }
@@ -141,7 +142,17 @@ public class StateMachine implements IStateMachine {
     }
 
     private void invokeActions(Set<String> actions, IEvalContext scope) {
+        if (actions == null || actions.isEmpty())
+            return;
+
         LOG.debug("fsm.invoke-actions:actions={},scope={}", actions, scope.hashCode());
+
+        IEvalFunction actionInvoker = model.getInvokeAction();
+        if (actionInvoker != null) {
+            for (String action : actions) {
+                actionInvoker.call1(null, action, scope.getEvalScope());
+            }
+        }
     }
 
     private StateTransitionModel getTransition(StateModel stateModel, String event, IEvalContext scope) {
