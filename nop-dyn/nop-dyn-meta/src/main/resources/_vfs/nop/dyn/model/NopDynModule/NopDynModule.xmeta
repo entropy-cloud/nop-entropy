@@ -11,7 +11,7 @@
             <schema stdDomain="conf-name"/>
         </prop>
 
-        <prop name="importFile" virtual="true" displayName="导入文件" ui:uploadAccept=".xlsx" internal="true">
+        <prop name="importFile" virtual="true" displayName="导入文件" ui:uploadAccept=".xlsx" internal="true" updatable="true">
             <schema stdDomain="file"/>
         </prop>
     </props>
