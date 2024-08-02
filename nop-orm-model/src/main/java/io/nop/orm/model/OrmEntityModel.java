@@ -65,6 +65,8 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
 
     private boolean hasOneToOneRelation;
 
+    private boolean dependByOtherEntity;
+
     private Map<String, IEntityPropModel> props;
     private Map<String, OrmColumnModel> colsByCode;
 
@@ -139,6 +141,16 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
     public void setPkColumns(List<OrmColumnModel> cols) {
         checkAllowChange();
         this.pkColumns = cols;
+    }
+
+    @Override
+    public boolean isDependByOtherEntity() {
+        return dependByOtherEntity;
+    }
+
+    @Override
+    public void setDependByOtherEntity(boolean dependByOtherEntity) {
+        this.dependByOtherEntity = dependByOtherEntity;
     }
 
     @Override

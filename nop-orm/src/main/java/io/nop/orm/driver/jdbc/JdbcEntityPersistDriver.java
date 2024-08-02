@@ -227,6 +227,9 @@ public class JdbcEntityPersistDriver implements IEntityPersistDriver {
             IDialect dialect = getDialect(querySpace);
 
             if (topoAsc) {
+                if (!entityModel.isDependByOtherEntity())
+                    executeDelete(querySpace, deleteActions, dialect);
+
                 if (saveActions != null || updateActions != null) {
                     LOG.debug("orm.driver_execute_save_update:{}", entityModel.getName());
                     SQL sql = SQL.begin().name("batchExecute").querySpace(querySpace).end();
@@ -238,17 +241,23 @@ public class JdbcEntityPersistDriver implements IEntityPersistDriver {
                     });
                 }
             } else {
-                if (deleteActions != null) {
-                    LOG.debug("orm.driver_execute_delete:{}", entityModel.getName());
-                    SQL sql = SQL.begin().name("batchExecute_delete").querySpace(querySpace).end();
-                    jdbc().runWithConnection(sql, conn -> {
-                        batchExecuteCommand(conn, deleteActions, action -> buildDeleteSql(dialect, action));
-                        return null;
-                    });
-                }
+                if (entityModel.isDependByOtherEntity())
+                    executeDelete(querySpace, deleteActions, dialect);
             }
             return null;
         });
+    }
+
+    private void executeDelete(String querySpace,
+                               List<IBatchAction.EntityDeleteAction> deleteActions, IDialect dialect) {
+        if (deleteActions != null) {
+            LOG.debug("orm.driver_execute_delete:{}", entityModel.getName());
+            SQL sql = SQL.begin().name("batchExecute_delete").querySpace(querySpace).end();
+            jdbc().runWithConnection(sql, conn -> {
+                batchExecuteCommand(conn, deleteActions, action -> buildDeleteSql(dialect, action));
+                return null;
+            });
+        }
     }
 
     SQL buildSaveSql(IDialect dialect, IBatchAction.IEntityBatchAction action) {

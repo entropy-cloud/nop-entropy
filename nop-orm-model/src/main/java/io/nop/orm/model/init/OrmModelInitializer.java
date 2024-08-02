@@ -493,7 +493,14 @@ public class OrmModelInitializer {
     }
 
     private void initTopoMap() {
-        TopologicalOrderIterator<IEntityModel> it = buildDependsMap().topologicalOrderIterator(false);
+        IDirectedGraph<IEntityModel, DefaultEdge<IEntityModel>> graph = buildDependsMap();
+        for (IEntityModel entityModel : graph.vertexSet()) {
+            if (graph.getOutwardDegree(entityModel) != 0) {
+                entityModel.setDependByOtherEntity(true);
+            }
+        }
+
+        TopologicalOrderIterator<IEntityModel> it = graph.topologicalOrderIterator(false);
         int topoOrder = 0;
         while (it.hasNext()) {
             TopoEntry<IEntityModel> entry = new TopoEntry<>(topoOrder++, it.next());

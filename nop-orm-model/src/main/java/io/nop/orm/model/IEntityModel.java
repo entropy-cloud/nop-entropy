@@ -73,6 +73,10 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
 
     boolean hasOneToOneRelation();
 
+    boolean isDependByOtherEntity();
+
+    void setDependByOtherEntity(boolean b);
+
     /**
      * 首次加载的属性集合，剩下的属性为延迟加载属性。访问到实体上的任何属性时，都会导致加载所有eager属性。
      */
