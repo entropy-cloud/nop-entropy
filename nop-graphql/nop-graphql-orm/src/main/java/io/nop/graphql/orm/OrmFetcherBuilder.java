@@ -136,6 +136,11 @@ public class OrmFetcherBuilder {
                 throw new NopException(ERR_BIZ_CONNECTION_PROP_NOT_RELATION).source(propMeta)
                         .param(ARG_BIZ_OBJ_NAME, objType).param(ARG_PROP_NAME, connectionProp);
             }
+        } else {
+            // 如果是关联集合属性，且设置了graphql:queryMethod，则实际会使用queryMethod去加载数据
+            propModel = entityModel.getProp(propMeta.getName(), true);
+            if (propModel != null && !propModel.isRelationModel())
+                propModel = null;
         }
         return buildConnectionFetcher(objType, queryMethod, (IEntityRelationModel) propModel, propMeta);
     }
@@ -161,7 +166,7 @@ public class OrmFetcherBuilder {
         List<OrderFieldBean> orderBy = ExtPropsGetter.getOrderBy(propMeta, GraphQLConstants.TAG_GRAPHQL_ORDER_BY);
 
         IBizObjectQueryProcessor<?> queryProcessor = queryProcessorBuilder.buildQueryProcessor(bizObjName);
-        return new OrmEntityPropConnectionFetcher(queryProcessor, authObjName, maxFetchSize,
+        return new OrmEntityPropConnectionFetcher(queryProcessor, authObjName,  maxFetchSize,
                 queryMethod, filter, orderBy);
     }
 

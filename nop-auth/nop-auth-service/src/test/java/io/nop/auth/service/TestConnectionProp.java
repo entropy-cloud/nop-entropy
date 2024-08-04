@@ -105,4 +105,18 @@ public class TestConnectionProp extends JunitAutoTestCase {
         prepareData();
         run("request.yaml", "response.yaml");
     }
+
+    @EnableSnapshot
+    @Test
+    public void testFindList() {
+        prepareData();
+
+        ApiRequest<Map<String, Object>> request = request("request.yaml", Map.class);
+        GraphQLArgsHelper.normalizeSubArgs(request.getSelection(), request.getData());
+
+        IGraphQLExecutionContext context = graphQLEngine.newRpcContext(null, "NopAuthSite__get", request);
+        ApiResponse<?> result = graphQLEngine.executeRpc(context);
+
+        output("response.yaml", result);
+    }
 }

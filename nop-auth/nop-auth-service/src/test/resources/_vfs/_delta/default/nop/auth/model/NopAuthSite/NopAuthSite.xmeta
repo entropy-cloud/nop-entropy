@@ -9,6 +9,13 @@
 
         <prop name="createTime" allowFilterOp="eq,in,ge"/>
 
+        <!-- 设置了queryMethod，因为本身就是关联属性，所以不需要设置filter -->
+        <prop name="resources" displayName="资源列表" graphql:queryMethod="findList">
+            <graphql:orderBy>
+                <field name="orderNo" desc="false"/>
+            </graphql:orderBy>
+        </prop>
+
         <prop name="resourcesList" displayName="资源列表" graphql:queryMethod="findList">
             <schema bizObjName="NopAuthResource"/>
 

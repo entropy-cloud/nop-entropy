@@ -111,3 +111,26 @@ query($filter1:Map, $filter2:Map){
 ```
 
 后台GraphQLWebService接收到`_subArgs.`为前缀的参数之后会把它们转换为针对子属性的函数参数，并识别`filter_`前缀，将特殊前缀的变量收集在一起，转换为FilterBean对象。
+
+
+## 在Excel模型中为关联属性设置`ref-query`标签
+如果在`to-one`关联上设置了`ref-query`标签，则生成父表到子表的一对多集合属性时，会增加`query`标签。在`meta-gen.xlib`中，对于具有query标签的一对多属性，
+会自动增加`graphql:findMethod="findList"`配置，从而为该属性增加分页查询的支持。
+
+```xml
+<prop name="children" graphql:findMethod="findList">
+
+</prop>
+```
+
+在前台可以传入filter过滤条件和offset/limit分页参数
+
+```
+MyEntity__get(id:3) {
+   children(filter: {...}, limit:10){
+     name, status
+   }
+}
+```
+
+在meta的prop节点上，可以配置`graphql:maxFetchSize`从而自动限制获取条数为maxFetchSize。如果不指定，则受到全局的maxPageSize的限制。

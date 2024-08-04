@@ -143,6 +143,7 @@ Nop平台内置的表名都具有前缀`nop_`。
 * `ref-updatable`：主表提交的时候允许同时更新子表数据
 * `ref-grid`：自动生成界面时在主表编辑页面上增加子表表格，子表数据和主表数据一起提交
 * `ref-connection`: 父表上增加类似relay框架的对子表进行分页查询的Connection属性。具体功能参见[connection.md](../graphql/connection.md)
+* `ref-query`: 父表引用子表的关联集合属性设置`graphql:findMethod="findList"`，从而支持支持对子表进行分页查询。如果不传入limit参数，也不配置fetchSize，在缺省只获取maxPageSize数据。
 
 `ref-xx`表示的是在父表中对应子表的属性上所增加的标签。例如在子表的关联上增加`ref-pub`标签，对应于在`parent.children`这个属性上增加了`pub`标签。
 

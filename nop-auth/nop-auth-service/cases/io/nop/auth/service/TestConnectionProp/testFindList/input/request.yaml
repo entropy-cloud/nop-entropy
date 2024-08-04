@@ -1,0 +1,4 @@
+selection: id,displayName,resources{ id}
+data:
+  id: test
+  _subArgs.resources.filter_status: 1

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<lib x:schema="/nop/schema/xlib.xdef" x:extends="ddl.xlib" xmlns:x="/nop/schema/xdsl.xdef" x:dump="true">
+<lib x:schema="/nop/schema/xlib.xdef" x:extends="ddl.xlib" xmlns:x="/nop/schema/xdsl.xdef" >
     <tags>
         <AddComment>
             <source>

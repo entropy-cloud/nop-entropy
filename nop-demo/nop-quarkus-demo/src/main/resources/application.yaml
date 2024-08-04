@@ -83,6 +83,8 @@ nop:
 
     orm:
       init-database-schema: true
+      db-differ:
+        auto-upgrade-database: true
 
     # 支持graphql __schema查询，
     graphql:
@@ -117,11 +119,11 @@ quarkus:
 
     category:
       "io.nop":
-        level: INFO
+        level: DEBUG
       "io.nop.api.core.context":
-        level: TRACE
+        level: INFO
       "io.nop.http.api.server":
-          level: TRACE
+          level: INFO
 
     file:
       enable: false

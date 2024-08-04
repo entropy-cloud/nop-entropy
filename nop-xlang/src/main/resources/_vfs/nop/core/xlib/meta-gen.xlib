@@ -69,7 +69,8 @@
 
                         <c:for var="prop" items="${_dsl_root.childByTag('props').children}">
                             <c:script><![CDATA[
-                        if(!prop.attrCsvSet('tagSet')?.contains('connection'))
+                            const propTagSet = prop.attrCsvSet('tagSet');
+                        if(!propTagSet?.contains('connection') and !propTagSet?.contains('query'))
                             continue;
 
                         let kind = prop.getAttr('ext:kind');
@@ -79,9 +80,10 @@
                         let name = prop.getAttr('name');
                     ]]></c:script>
 
-                            <prop name="${name}"/>
+                            <prop name="${name}" graphql:queryMethod="${propTagSet.contains('query')? 'findList':null}"/>
 
-                            <prop name="${name}Connection" displayName="${prop.getAttr('displayName')}" lazy="true"
+                            <prop name="${name}Connection" xpl:if="propTagSet.contains('connection')"
+                                  displayName="${prop.getAttr('displayName')}" lazy="true"
                                   internal="true" graphql:connectionProp="${name}" graphql:queryMethod="findConnection">
                                 <schema bizObjName="${prop.childByTag('schema').childAttr('item','bizObjName')}"/>
                             </prop>
@@ -175,7 +177,7 @@
             </description>
 
             <source>
-                <meta xdsl:dump="true">
+                <meta>
                     <props>
                         <c:for var="propNode" items="${_dsl_root.childByTag('props').children}">
                             <c:script>

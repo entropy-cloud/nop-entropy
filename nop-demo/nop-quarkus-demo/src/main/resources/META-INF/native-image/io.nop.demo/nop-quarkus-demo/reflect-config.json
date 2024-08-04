@@ -31135,6 +31135,32 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "jdbcTemplate"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "ormSessionFactory"
+      }
+    ],
+    "methods": [
+      {
+        "name": "init",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.dbtool.core.initialize.DataBaseUpgradeInitializer",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [],
     "name": "io.nop.demo.annotations.SendEmail",
@@ -43201,6 +43227,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getInvokeAction",
+        "parameterTypes": []
+      },
+      {
         "name": "getMeta",
         "parameterTypes": []
       },
@@ -43265,6 +43295,12 @@
         ]
       },
       {
+        "name": "setHandleError",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalFunction"
+        ]
+      },
+      {
         "name": "setIgnoreUnknownTransition",
         "parameterTypes": [
           "boolean"
@@ -43274,6 +43310,12 @@
         "name": "setInitial",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setInvokeAction",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalFunction"
         ]
       },
       {
@@ -43507,6 +43549,12 @@
         "name": "setHandleError",
         "parameterTypes": [
           "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setHandleError",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalFunction"
         ]
       },
       {
@@ -44992,6 +45040,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getIoThreadCount",
+        "parameterTypes": []
+      },
+      {
         "name": "getKeepAliveDuration",
         "parameterTypes": []
       },
@@ -45143,6 +45195,12 @@
         "name": "setIgnoreSslCerts",
         "parameterTypes": [
           "boolean"
+        ]
+      },
+      {
+        "name": "setIoThreadCount",
+        "parameterTypes": [
+          "int"
         ]
       },
       {
@@ -49990,6 +50048,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isDependByOtherEntity",
+        "parameterTypes": []
+      },
+      {
         "name": "isEntityModeEnabled",
         "parameterTypes": []
       },
@@ -50032,6 +50094,12 @@
       {
         "name": "isUseTenant",
         "parameterTypes": []
+      },
+      {
+        "name": "setDependByOtherEntity",
+        "parameterTypes": [
+          "boolean"
+        ]
       }
     ],
     "name": "io.nop.orm.model.IEntityModel",
@@ -50761,8 +50829,18 @@
         "parameterTypes": []
       },
       {
+        "name": "isDependByOtherEntity",
+        "parameterTypes": []
+      },
+      {
         "name": "isGlobalUniqueId",
         "parameterTypes": []
+      },
+      {
+        "name": "setDependByOtherEntity",
+        "parameterTypes": [
+          "boolean"
+        ]
       },
       {
         "name": "setPkColumns",
@@ -82466,6 +82544,353 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "BYTES"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "MAX_VALUE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "MIN_VALUE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "SIZE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "TYPE"
+      }
+    ],
+    "methods": [
+      {
+        "name": "bitCount",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "byteValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "compare",
+        "parameterTypes": [
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "compareTo",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "compareUnsigned",
+        "parameterTypes": [
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "decode",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "describeConstable",
+        "parameterTypes": []
+      },
+      {
+        "name": "divideUnsigned",
+        "parameterTypes": [
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "doubleValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "equals",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "floatValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInteger",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getInteger",
+        "parameterTypes": [
+          "java.lang.String",
+          "int"
+        ]
+      },
+      {
+        "name": "getInteger",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "hashCode",
+        "parameterTypes": []
+      },
+      {
+        "name": "hashCode",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "highestOneBit",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "intValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "longValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "lowestOneBit",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "max",
+        "parameterTypes": [
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "min",
+        "parameterTypes": [
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "numberOfLeadingZeros",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "numberOfTrailingZeros",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "parseInt",
+        "parameterTypes": [
+          "java.lang.CharSequence",
+          "int",
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "parseInt",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseInt",
+        "parameterTypes": [
+          "java.lang.String",
+          "int"
+        ]
+      },
+      {
+        "name": "parseUnsignedInt",
+        "parameterTypes": [
+          "java.lang.CharSequence",
+          "int",
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "parseUnsignedInt",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseUnsignedInt",
+        "parameterTypes": [
+          "java.lang.String",
+          "int"
+        ]
+      },
+      {
+        "name": "remainderUnsigned",
+        "parameterTypes": [
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "resolveConstantDesc",
+        "parameterTypes": [
+          "java.lang.invoke.MethodHandles$Lookup"
+        ]
+      },
+      {
+        "name": "reverse",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "reverseBytes",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "rotateLeft",
+        "parameterTypes": [
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "rotateRight",
+        "parameterTypes": [
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "shortValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "signum",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "sum",
+        "parameterTypes": [
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "toBinaryString",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "toHexString",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "toOctalString",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
+      },
+      {
+        "name": "toString",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "toString",
+        "parameterTypes": [
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "toUnsignedLong",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "toUnsignedString",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "toUnsignedString",
+        "parameterTypes": [
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "valueOf",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "valueOf",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "valueOf",
+        "parameterTypes": [
+          "java.lang.String",
+          "int"
+        ]
+      }
+    ],
+    "name": "java.lang.Integer",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [
       {
@@ -82474,6 +82899,41 @@
       }
     ],
     "name": "java.lang.Iterable",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "byteValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "doubleValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "floatValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "intValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "longValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "shortValue",
+        "parameterTypes": []
+      }
+    ],
+    "name": "java.lang.Number",
     "unsafeAllocated": false
   },
   {

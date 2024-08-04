@@ -109,9 +109,9 @@ public class RegisterModelDiscovery {
                 models.appendChild(modelNode);
             } else {
                 new DeltaMerger(XDslKeys.DEFAULT).merge(existing, modelNode, xdef.getRootNode(), false);
-                if (AppConfig.isDebugMode()) {
-                    existing.dump("merge-register-model");
-                }
+//                if (AppConfig.isDebugMode()) {
+//                    existing.dump("merge-register-model");
+//                }
             }
         }
         return node;

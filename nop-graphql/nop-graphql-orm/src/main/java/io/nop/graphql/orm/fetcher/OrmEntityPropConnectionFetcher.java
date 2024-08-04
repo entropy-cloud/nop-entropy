@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_DEFAULT_PAGE_SIZE;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAX_PAGE_SIZE;
 import static io.nop.orm.utils.OrmQueryHelper.resolveRef;
 
@@ -49,7 +48,8 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
     private final TreeBean filter;
     private final List<OrderFieldBean> orderBy;
 
-    public OrmEntityPropConnectionFetcher(IBizObjectQueryProcessor<?> queryProcessor, String authObjName, int maxFetchSize,
+    public OrmEntityPropConnectionFetcher(IBizObjectQueryProcessor<?> queryProcessor, String authObjName,
+                                          int maxFetchSize,
                                           GraphQLQueryMethod queryMethod, TreeBean filter, List<OrderFieldBean> orderBy) {
         this.authObjName = authObjName;
         this.maxFetchSize = maxFetchSize;
@@ -87,16 +87,17 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
         }
 
         if (queryMethod != GraphQLQueryMethod.findFirst) {
+            int maxSize = maxFetchSize;
+            if (maxSize <= 0)
+                maxSize = CFG_GRAPHQL_MAX_PAGE_SIZE.get();
+
+            // 如果前端没有限制大小，则按照最大允许大小获取
             if (query.getLimit() <= 0) {
-                query.setLimit(CFG_GRAPHQL_DEFAULT_PAGE_SIZE.get());
-            } else if (query.getLimit() > CFG_GRAPHQL_MAX_PAGE_SIZE.get()) {
-                query.setLimit(CFG_GRAPHQL_MAX_PAGE_SIZE.get());
+                query.setLimit(maxSize);
             }
 
-            if (maxFetchSize > 0) {
-                if (query.getLimit() > maxFetchSize) {
-                    query.setLimit(maxFetchSize);
-                }
+            if (query.getLimit() > maxSize) {
+                query.setLimit(maxSize);
             }
         }
 
