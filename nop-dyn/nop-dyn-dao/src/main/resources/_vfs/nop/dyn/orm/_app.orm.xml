@@ -237,6 +237,16 @@
                         <on leftProp="moduleId" rightProp="moduleId"/>
                     </join>
                 </to-many>
+                <to-many cascadeDelete="true" displayName="数据域定义" keyProp="domainName" name="domains"
+                         refEntityName="io.nop.dyn.dao.entity.NopDynDomain" refPropName="module"
+                         tagSet="pub,cascade-delete" i18n-en:displayName="Domains">
+                    <join>
+                        <on leftProp="moduleId" rightProp="moduleId"/>
+                    </join>
+                    <sort>
+                        <field name="domainName"/>
+                    </sort>
+                </to-many>
             </relations>
         </entity>
         <entity className="io.nop.dyn.dao.entity.NopDynAppModule" createTimeProp="createTime" createrProp="createdBy"
@@ -292,10 +302,10 @@
                 <column code="MODULE_ID" displayName="模块ID" mandatory="true" name="moduleId" precision="32" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Module ID"/>
                 <column code="NAME" defaultValue="pages" displayName="SQL名称" mandatory="true" name="name"
-                        precision="100" propId="3" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"
+                        precision="100" propId="3" stdDataType="string" stdSqlType="VARCHAR" tagSet="key"
                         i18n-en:displayName="Name"/>
                 <column code="DISPLAY_NAME" displayName="显示名称" name="displayName" precision="200" propId="4"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Display Name"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
                 <column code="SQL_METHOD" displayName="SQL方法" name="sqlMethod" precision="10" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Sql Method"
                         ext:dict="io.nop.orm.sql_lib.SqlMethod"/>
@@ -471,10 +481,10 @@
                 <column code="MODULE_ID" displayName="模块ID" mandatory="true" name="moduleId" precision="32" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Module ID"/>
                 <column code="ENTITY_NAME" displayName="实体名" mandatory="true" name="entityName" precision="200"
-                        propId="3" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"
-                        i18n-en:displayName="Entity Name"/>
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Entity Name"/>
                 <column code="DISPLAY_NAME" displayName="显示名" mandatory="true" name="displayName" precision="100"
-                        propId="4" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Display Name"/>
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"
+                        i18n-en:displayName="Display Name"/>
                 <column code="TABLE_NAME" displayName="表名" name="tableName" precision="100" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="TableName"/>
                 <column code="QUERY_SPACE" displayName="查询空间" name="querySpace" precision="100" propId="6"
@@ -516,8 +526,9 @@
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-many cascadeDelete="true" name="propMetas" refEntityName="io.nop.dyn.dao.entity.NopDynPropMeta"
-                         refPropName="entityMeta" tagSet="pub,cascade-delete">
+                <to-many cascadeDelete="true" keyProp="propName" name="propMetas"
+                         refEntityName="io.nop.dyn.dao.entity.NopDynPropMeta" refPropName="entityMeta"
+                         tagSet="pub,cascade-delete">
                     <join>
                         <on leftProp="entityMetaId" rightProp="entityMetaId"/>
                     </join>
@@ -539,12 +550,15 @@
                         <on leftProp="entityMetaId" rightProp="refEntityMetaId"/>
                     </join>
                 </to-many>
-                <to-many cascadeDelete="true" displayName="函数定义" name="functionMetas"
+                <to-many cascadeDelete="true" displayName="函数定义" keyProp="name" name="functionMetas"
                          refEntityName="io.nop.dyn.dao.entity.NopDynFunctionMeta" refPropName="entityMeta"
                          tagSet="pub,cascade-delete" i18n-en:displayName="Function Metas">
                     <join>
                         <on leftProp="entityMetaId" rightProp="entityMetaId"/>
                     </join>
+                    <sort>
+                        <field name="name"/>
+                    </sort>
                 </to-many>
             </relations>
         </entity>
@@ -561,9 +575,10 @@
                 <column code="IS_MANDATORY" displayName="是否非空" mandatory="true" name="isMandatory" propId="3"
                         stdDataType="boolean" stdSqlType="BOOLEAN" i18n-en:displayName="Is Mandatory"/>
                 <column code="PROP_NAME" displayName="属性名" mandatory="true" name="propName" precision="50" propId="4"
-                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Property Name"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Property Name"/>
                 <column code="DISPLAY_NAME" displayName="显示名" mandatory="true" name="displayName" precision="100"
-                        propId="5" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Display Name"/>
+                        propId="5" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"
+                        i18n-en:displayName="Display Name"/>
                 <column code="STD_SQL_TYPE" displayName="标准SQL数据类型" mandatory="true" name="stdSqlType" precision="10"
                         propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Std Sql Type"
                         ext:dict="core/std-sql-type"/>
@@ -620,7 +635,7 @@
                     <join>
                         <on leftProp="entityMetaId" rightProp="entityMetaId"/>
                     </join>
-                    <ref-set>
+                    <ref-set keyProp="propName">
                         <sort>
                             <field name="propId"/>
                         </sort>
@@ -665,26 +680,30 @@
                         propId="9" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Left Prop Name"/>
                 <column code="RIGHT_PROP_NAME" displayName="右属性名" mandatory="true" name="rightPropName" precision="100"
                         propId="10" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Right Prop Name"/>
-                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="11" stdDataType="int"
+                <column code="REF_SET_KEY_PROP" displayName="集合内唯一标识" name="refSetKeyProp" precision="50" propId="11"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Key Prop"/>
+                <column code="REF_SET_SORT" displayName="集合排序条件" name="refSetSort" precision="100" propId="12"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Sort"/>
+                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="13" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Status"/>
-                <column code="TAGS_TEXT" displayName="标签" name="tagsText" precision="200" propId="12"
+                <column code="TAGS_TEXT" displayName="标签" name="tagsText" precision="200" propId="14"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Tag Set"/>
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-1000" name="extConfig" precision="1000"
-                        propId="13" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        propId="15" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="14"
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="16"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="15" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="17" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="16" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                        propId="18" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="17" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="19" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="18" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="19"
+                        propId="20" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="21"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>
@@ -719,9 +738,10 @@
                 <column code="ENTITY_META_ID" displayName="实体定义ID" mandatory="true" name="entityMetaId" precision="32"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Entity Meta ID"/>
                 <column code="NAME" displayName="函数名" mandatory="true" name="name" precision="50" propId="3"
-                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Name"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Name"/>
                 <column code="DISPLAY_NAME" displayName="显示名" mandatory="true" name="displayName" precision="100"
-                        propId="4" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Display Name"/>
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"
+                        i18n-en:displayName="Display Name"/>
                 <column code="FUNCTION_TYPE" displayName="函数类型" mandatory="true" name="functionType" precision="10"
                         propId="5" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Function Type"
                         ext:dict="dyn/function-type"/>
@@ -763,7 +783,11 @@
                     <join>
                         <on leftProp="entityMetaId" rightProp="entityMetaId"/>
                     </join>
-                    <ref-set/>
+                    <ref-set keyProp="name">
+                        <sort>
+                            <field name="name"/>
+                        </sort>
+                    </ref-set>
                 </to-one>
             </relations>
         </entity>
@@ -775,35 +799,53 @@
                 <column code="DOMAIN_ID" displayName="数据域ID" mandatory="true" name="domainId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
                         i18n-en:displayName="Domain ID"/>
+                <column code="MODULE_ID" displayName="模块ID" mandatory="true" name="moduleId" precision="32" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Module ID"/>
                 <column code="DOMAIN_NAME" displayName="数据域名称" mandatory="true" name="domainName" precision="50"
-                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Domain Name"/>
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Domain Name"/>
                 <column code="DISPLAY_NAME" displayName="显示名" mandatory="true" name="displayName" precision="100"
-                        propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Display Name"/>
-                <column code="STD_DOMAIN_NAME" displayName="标准域" name="stdDomainName" precision="50" propId="4"
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"
+                        i18n-en:displayName="Display Name"/>
+                <column code="STD_DOMAIN_NAME" displayName="标准域" name="stdDomainName" precision="50" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Std Domain Name"
                         ext:dict="core/std-domain"/>
                 <column code="STD_SQL_TYPE" displayName="标准SQL数据类型" mandatory="true" name="stdSqlType" precision="10"
-                        propId="5" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Std Sql Type"
+                        propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Std Sql Type"
                         ext:dict="core/std-sql-type"/>
-                <column code="PRECISION" displayName="长度" name="precision" propId="6" stdDataType="int"
+                <column code="PRECISION" displayName="长度" name="precision" propId="7" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Precision"/>
-                <column code="SCALE" defaultValue="0" displayName="小数位数" name="scale" propId="7" stdDataType="int"
+                <column code="SCALE" defaultValue="0" displayName="小数位数" name="scale" propId="8" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Scale"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="8"
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                        propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="13"
+                        propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="14"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
+            <relations>
+                <to-one displayName="所属模块" name="module" refDisplayName="数据域定义"
+                        refEntityName="io.nop.dyn.dao.entity.NopDynModule" refPropName="domains"
+                        tagSet="pub,ref-pub,ref-cascade-delete" i18n-en:displayName="Module"
+                        ref-i18n-en:displayName="Domains">
+                    <join>
+                        <on leftProp="moduleId" rightProp="moduleId"/>
+                    </join>
+                    <ref-set keyProp="domainName">
+                        <sort>
+                            <field name="domainName"/>
+                        </sort>
+                    </ref-set>
+                </to-one>
+            </relations>
         </entity>
         <entity className="io.nop.dyn.dao.entity.NopDynEntity" createTimeProp="createTime" createrProp="createdBy"
                 displayName="动态实体" name="io.nop.dyn.dao.entity.NopDynEntity" registerShortName="true"
@@ -817,7 +859,7 @@
                 <column code="NOP_NAME" displayName="名称" name="nopName" precision="100" propId="3" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Name"/>
                 <column code="NOP_DISPLAY_NAME" displayName="显示名称" name="nopDisplayName" precision="500" propId="4"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Display Name"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
                 <column code="NOP_SORT_ORDER" displayName="排序" name="nopSortOrder" propId="5" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Sort Order"/>
                 <column code="NOP_FLOW_ID" displayName="工作流实例ID" name="nopFlowId" precision="32" propId="6"

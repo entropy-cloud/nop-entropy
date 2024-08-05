@@ -1010,7 +1010,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     }
        
     private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynPropMeta> _propMetas = new OrmEntitySet<>(this, PROP_NAME_propMetas,
-        io.nop.dyn.dao.entity.NopDynPropMeta.PROP_NAME_entityMeta, null,io.nop.dyn.dao.entity.NopDynPropMeta.class);
+        io.nop.dyn.dao.entity.NopDynPropMeta.PROP_NAME_entityMeta, io.nop.dyn.dao.entity.NopDynPropMeta.PROP_NAME_propName,io.nop.dyn.dao.entity.NopDynPropMeta.class);
 
     /**
      * 。 refPropName: entityMeta, keyProp: {rel.keyProp}
@@ -1040,7 +1040,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     }
        
     private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynFunctionMeta> _functionMetas = new OrmEntitySet<>(this, PROP_NAME_functionMetas,
-        io.nop.dyn.dao.entity.NopDynFunctionMeta.PROP_NAME_entityMeta, null,io.nop.dyn.dao.entity.NopDynFunctionMeta.class);
+        io.nop.dyn.dao.entity.NopDynFunctionMeta.PROP_NAME_entityMeta, io.nop.dyn.dao.entity.NopDynFunctionMeta.PROP_NAME_name,io.nop.dyn.dao.entity.NopDynFunctionMeta.class);
 
     /**
      * 函数定义。 refPropName: entityMeta, keyProp: {rel.keyProp}

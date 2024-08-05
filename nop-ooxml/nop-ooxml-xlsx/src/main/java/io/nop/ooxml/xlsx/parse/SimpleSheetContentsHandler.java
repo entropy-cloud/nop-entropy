@@ -111,6 +111,9 @@ public class SimpleSheetContentsHandler implements SheetContentsHandler {
 
     @Override
     public void link(String ref, String location, String rId) {
+        if(ref.indexOf(':') > 0)
+            return;
+
         CellPosition pos = CellPosition.fromABString(ref);
         ExcelCell cell = (ExcelCell) table.makeCell(pos.getRowIndex(), pos.getColIndex());
         if (location != null) {

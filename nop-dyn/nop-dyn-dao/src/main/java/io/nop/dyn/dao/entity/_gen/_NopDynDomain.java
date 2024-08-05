@@ -24,68 +24,78 @@ public class _NopDynDomain extends DynamicOrmEntity{
     public static final String PROP_NAME_domainId = "domainId";
     public static final int PROP_ID_domainId = 1;
     
+    /* 模块ID: MODULE_ID VARCHAR */
+    public static final String PROP_NAME_moduleId = "moduleId";
+    public static final int PROP_ID_moduleId = 2;
+    
     /* 数据域名称: DOMAIN_NAME VARCHAR */
     public static final String PROP_NAME_domainName = "domainName";
-    public static final int PROP_ID_domainName = 2;
+    public static final int PROP_ID_domainName = 3;
     
     /* 显示名: DISPLAY_NAME VARCHAR */
     public static final String PROP_NAME_displayName = "displayName";
-    public static final int PROP_ID_displayName = 3;
+    public static final int PROP_ID_displayName = 4;
     
     /* 标准域: STD_DOMAIN_NAME VARCHAR */
     public static final String PROP_NAME_stdDomainName = "stdDomainName";
-    public static final int PROP_ID_stdDomainName = 4;
+    public static final int PROP_ID_stdDomainName = 5;
     
     /* 标准SQL数据类型: STD_SQL_TYPE VARCHAR */
     public static final String PROP_NAME_stdSqlType = "stdSqlType";
-    public static final int PROP_ID_stdSqlType = 5;
+    public static final int PROP_ID_stdSqlType = 6;
     
     /* 长度: PRECISION INTEGER */
     public static final String PROP_NAME_precision = "precision";
-    public static final int PROP_ID_precision = 6;
+    public static final int PROP_ID_precision = 7;
     
     /* 小数位数: SCALE INTEGER */
     public static final String PROP_NAME_scale = "scale";
-    public static final int PROP_ID_scale = 7;
+    public static final int PROP_ID_scale = 8;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 8;
+    public static final int PROP_ID_version = 9;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 9;
+    public static final int PROP_ID_createdBy = 10;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 10;
+    public static final int PROP_ID_createTime = 11;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 11;
+    public static final int PROP_ID_updatedBy = 12;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 12;
+    public static final int PROP_ID_updateTime = 13;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 13;
+    public static final int PROP_ID_remark = 14;
     
 
-    private static int _PROP_ID_BOUND = 14;
+    private static int _PROP_ID_BOUND = 15;
 
+    
+    /* relation: 所属模块 */
+    public static final String PROP_NAME_module = "module";
     
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_domainId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_domainId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[14];
+    private static final String[] PROP_ID_TO_NAME = new String[15];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
           PROP_ID_TO_NAME[PROP_ID_domainId] = PROP_NAME_domainId;
           PROP_NAME_TO_ID.put(PROP_NAME_domainId, PROP_ID_domainId);
+      
+          PROP_ID_TO_NAME[PROP_ID_moduleId] = PROP_NAME_moduleId;
+          PROP_NAME_TO_ID.put(PROP_NAME_moduleId, PROP_ID_moduleId);
       
           PROP_ID_TO_NAME[PROP_ID_domainName] = PROP_NAME_domainName;
           PROP_NAME_TO_ID.put(PROP_NAME_domainName, PROP_ID_domainName);
@@ -128,6 +138,9 @@ public class _NopDynDomain extends DynamicOrmEntity{
     
     /* 数据域ID: DOMAIN_ID */
     private java.lang.String _domainId;
+    
+    /* 模块ID: MODULE_ID */
+    private java.lang.String _moduleId;
     
     /* 数据域名称: DOMAIN_NAME */
     private java.lang.String _domainName;
@@ -242,6 +255,9 @@ public class _NopDynDomain extends DynamicOrmEntity{
             case PROP_ID_domainId:
                return getDomainId();
         
+            case PROP_ID_moduleId:
+               return getModuleId();
+        
             case PROP_ID_domainName:
                return getDomainName();
         
@@ -296,6 +312,16 @@ public class _NopDynDomain extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_domainId));
                }
                setDomainId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_moduleId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_moduleId));
+               }
+               setModuleId(typedValue);
                break;
             }
         
@@ -435,6 +461,13 @@ public class _NopDynDomain extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_moduleId:{
+               onInitProp(propId);
+               this._moduleId = (java.lang.String)value;
+               
+               break;
+            }
+        
             case PROP_ID_domainName:{
                onInitProp(propId);
                this._domainName = (java.lang.String)value;
@@ -541,6 +574,25 @@ public class _NopDynDomain extends DynamicOrmEntity{
             this._domainId = value;
             internalClearRefs(PROP_ID_domainId);
             orm_id();
+        }
+    }
+    
+    /**
+     * 模块ID: MODULE_ID
+     */
+    public java.lang.String getModuleId(){
+         onPropGet(PROP_ID_moduleId);
+         return _moduleId;
+    }
+
+    /**
+     * 模块ID: MODULE_ID
+     */
+    public void setModuleId(java.lang.String value){
+        if(onPropSet(PROP_ID_moduleId,value)){
+            this._moduleId = value;
+            internalClearRefs(PROP_ID_moduleId);
+            
         }
     }
     
@@ -772,5 +824,28 @@ public class _NopDynDomain extends DynamicOrmEntity{
         }
     }
     
+    /**
+     * 所属模块
+     */
+    public io.nop.dyn.dao.entity.NopDynModule getModule(){
+       return (io.nop.dyn.dao.entity.NopDynModule)internalGetRefEntity(PROP_NAME_module);
+    }
+
+    public void setModule(io.nop.dyn.dao.entity.NopDynModule refEntity){
+   
+           if(refEntity == null){
+           
+                   this.setModuleId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_module, refEntity,()->{
+           
+                           this.setModuleId(refEntity.getModuleId());
+                       
+           });
+           }
+       
+    }
+       
 }
 // resume CPD analysis - CPD-ON

@@ -29,4 +29,8 @@ public interface NopDynDaoErrors {
     ErrorCode ERR_DYN_VIRTUAL_ENTITY_PROP_MAPPING_NOT_VALID =
             define("nop.err.dyn.virtual-entity-prop-mapping-not-valid", "虚拟实体[{entityName}]的动态属性[{propName}]指定了propMapping映射，但是指定映射的字段[{propMapping}]不是NopDynEntity实体的属性",
                     ARG_ENTITY_NAME, ARG_PROP_NAME, ARG_PROP_MAPPING);
+
+    ErrorCode ERR_DYN_ENTITY_NO_PROP =
+            define("nop.err.dyn.entity-no-prop", "实体[{entityName}]没有定义属性[{propName}]",
+                    ARG_ENTITY_NAME, ARG_PROP_NAME);
 }

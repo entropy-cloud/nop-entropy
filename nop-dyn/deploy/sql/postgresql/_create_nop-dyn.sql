@@ -29,23 +29,6 @@ CREATE TABLE nop_dyn_module(
   constraint PK_nop_dyn_module primary key (MODULE_ID)
 );
 
-CREATE TABLE nop_dyn_domain(
-  DOMAIN_ID VARCHAR(32) NOT NULL ,
-  DOMAIN_NAME VARCHAR(50) NOT NULL ,
-  DISPLAY_NAME VARCHAR(100) NOT NULL ,
-  STD_DOMAIN_NAME VARCHAR(50)  ,
-  STD_SQL_TYPE VARCHAR(10) NOT NULL ,
-  PRECISION INT4  ,
-  SCALE INT4   default '0' ,
-  VERSION INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR(200)  ,
-  constraint PK_nop_dyn_domain primary key (DOMAIN_ID)
-);
-
 CREATE TABLE nop_dyn_entity(
   SID VARCHAR(32) NOT NULL ,
   NOP_OBJ_TYPE VARCHAR(100) NOT NULL ,
@@ -206,33 +189,22 @@ CREATE TABLE nop_dyn_entity_meta(
   constraint PK_nop_dyn_entity_meta primary key (ENTITY_META_ID)
 );
 
-CREATE TABLE nop_dyn_prop_meta(
-  PROP_META_ID VARCHAR(32) NOT NULL ,
-  ENTITY_META_ID VARCHAR(32) NOT NULL ,
-  IS_MANDATORY BOOLEAN NOT NULL ,
-  PROP_NAME VARCHAR(50) NOT NULL ,
+CREATE TABLE nop_dyn_domain(
+  DOMAIN_ID VARCHAR(32) NOT NULL ,
+  MODULE_ID VARCHAR(32) NOT NULL ,
+  DOMAIN_NAME VARCHAR(50) NOT NULL ,
   DISPLAY_NAME VARCHAR(100) NOT NULL ,
+  STD_DOMAIN_NAME VARCHAR(50)  ,
   STD_SQL_TYPE VARCHAR(10) NOT NULL ,
   PRECISION INT4  ,
   SCALE INT4   default '0' ,
-  PROP_ID INT4 NOT NULL ,
-  UI_SHOW VARCHAR(10)  ,
-  UI_CONTROL VARCHAR(100)  ,
-  DOMAIN_ID VARCHAR(32)  ,
-  STD_DOMAIN_NAME VARCHAR(50)  ,
-  DICT_NAME VARCHAR(100)  ,
-  DYN_PROP_MAPPING VARCHAR(100)  ,
-  TAGS_TEXT VARCHAR(200)  ,
-  DEFAULT_VALUE VARCHAR(100)  ,
-  EXT_CONFIG VARCHAR(1000)  ,
-  STATUS INT4 NOT NULL ,
   VERSION INT4 NOT NULL ,
   CREATED_BY VARCHAR(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
   UPDATED_BY VARCHAR(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR(200)  ,
-  constraint PK_nop_dyn_prop_meta primary key (PROP_META_ID)
+  constraint PK_nop_dyn_domain primary key (DOMAIN_ID)
 );
 
 CREATE TABLE nop_dyn_entity_relation_meta(
@@ -246,6 +218,8 @@ CREATE TABLE nop_dyn_entity_relation_meta(
   MIDDLE_ENTITY_NAME VARCHAR(100)  ,
   LEFT_PROP_NAME VARCHAR(100) NOT NULL ,
   RIGHT_PROP_NAME VARCHAR(100) NOT NULL ,
+  REF_SET_KEY_PROP VARCHAR(50)  ,
+  REF_SET_SORT VARCHAR(100)  ,
   STATUS INT4 NOT NULL ,
   TAGS_TEXT VARCHAR(200)  ,
   EXT_CONFIG VARCHAR(1000)  ,
@@ -277,6 +251,35 @@ CREATE TABLE nop_dyn_function_meta(
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR(200)  ,
   constraint PK_nop_dyn_function_meta primary key (FUNC_META_ID)
+);
+
+CREATE TABLE nop_dyn_prop_meta(
+  PROP_META_ID VARCHAR(32) NOT NULL ,
+  ENTITY_META_ID VARCHAR(32) NOT NULL ,
+  IS_MANDATORY BOOLEAN NOT NULL ,
+  PROP_NAME VARCHAR(50) NOT NULL ,
+  DISPLAY_NAME VARCHAR(100) NOT NULL ,
+  STD_SQL_TYPE VARCHAR(10) NOT NULL ,
+  PRECISION INT4  ,
+  SCALE INT4   default '0' ,
+  PROP_ID INT4 NOT NULL ,
+  UI_SHOW VARCHAR(10)  ,
+  UI_CONTROL VARCHAR(100)  ,
+  DOMAIN_ID VARCHAR(32)  ,
+  STD_DOMAIN_NAME VARCHAR(50)  ,
+  DICT_NAME VARCHAR(100)  ,
+  DYN_PROP_MAPPING VARCHAR(100)  ,
+  TAGS_TEXT VARCHAR(200)  ,
+  DEFAULT_VALUE VARCHAR(100)  ,
+  EXT_CONFIG VARCHAR(1000)  ,
+  STATUS INT4 NOT NULL ,
+  VERSION INT4 NOT NULL ,
+  CREATED_BY VARCHAR(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR(200)  ,
+  constraint PK_nop_dyn_prop_meta primary key (PROP_META_ID)
 );
 
 
@@ -327,34 +330,6 @@ CREATE TABLE nop_dyn_function_meta(
       COMMENT ON COLUMN nop_dyn_module.UPDATED_BY IS '修改人';
                     
       COMMENT ON COLUMN nop_dyn_module.UPDATE_TIME IS '修改时间';
-                    
-      COMMENT ON TABLE nop_dyn_domain IS '数据域';
-                
-      COMMENT ON COLUMN nop_dyn_domain.DOMAIN_ID IS '数据域ID';
-                    
-      COMMENT ON COLUMN nop_dyn_domain.DOMAIN_NAME IS '数据域名称';
-                    
-      COMMENT ON COLUMN nop_dyn_domain.DISPLAY_NAME IS '显示名';
-                    
-      COMMENT ON COLUMN nop_dyn_domain.STD_DOMAIN_NAME IS '标准域';
-                    
-      COMMENT ON COLUMN nop_dyn_domain.STD_SQL_TYPE IS '标准SQL数据类型';
-                    
-      COMMENT ON COLUMN nop_dyn_domain.PRECISION IS '长度';
-                    
-      COMMENT ON COLUMN nop_dyn_domain.SCALE IS '小数位数';
-                    
-      COMMENT ON COLUMN nop_dyn_domain.VERSION IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_dyn_domain.CREATED_BY IS '创建人';
-                    
-      COMMENT ON COLUMN nop_dyn_domain.CREATE_TIME IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_dyn_domain.UPDATED_BY IS '修改人';
-                    
-      COMMENT ON COLUMN nop_dyn_domain.UPDATE_TIME IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_dyn_domain.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_dyn_entity IS '动态实体';
                 
@@ -628,57 +603,35 @@ CREATE TABLE nop_dyn_function_meta(
                     
       COMMENT ON COLUMN nop_dyn_entity_meta.REMARK IS '备注';
                     
-      COMMENT ON TABLE nop_dyn_prop_meta IS '属性元数据';
+      COMMENT ON TABLE nop_dyn_domain IS '数据域';
                 
-      COMMENT ON COLUMN nop_dyn_prop_meta.PROP_META_ID IS '属性定义ID';
+      COMMENT ON COLUMN nop_dyn_domain.DOMAIN_ID IS '数据域ID';
                     
-      COMMENT ON COLUMN nop_dyn_prop_meta.ENTITY_META_ID IS '实体定义ID';
+      COMMENT ON COLUMN nop_dyn_domain.MODULE_ID IS '模块ID';
                     
-      COMMENT ON COLUMN nop_dyn_prop_meta.IS_MANDATORY IS '是否非空';
+      COMMENT ON COLUMN nop_dyn_domain.DOMAIN_NAME IS '数据域名称';
                     
-      COMMENT ON COLUMN nop_dyn_prop_meta.PROP_NAME IS '属性名';
+      COMMENT ON COLUMN nop_dyn_domain.DISPLAY_NAME IS '显示名';
                     
-      COMMENT ON COLUMN nop_dyn_prop_meta.DISPLAY_NAME IS '显示名';
+      COMMENT ON COLUMN nop_dyn_domain.STD_DOMAIN_NAME IS '标准域';
                     
-      COMMENT ON COLUMN nop_dyn_prop_meta.STD_SQL_TYPE IS '标准SQL数据类型';
+      COMMENT ON COLUMN nop_dyn_domain.STD_SQL_TYPE IS '标准SQL数据类型';
                     
-      COMMENT ON COLUMN nop_dyn_prop_meta.PRECISION IS '长度';
+      COMMENT ON COLUMN nop_dyn_domain.PRECISION IS '长度';
                     
-      COMMENT ON COLUMN nop_dyn_prop_meta.SCALE IS '小数位数';
+      COMMENT ON COLUMN nop_dyn_domain.SCALE IS '小数位数';
                     
-      COMMENT ON COLUMN nop_dyn_prop_meta.PROP_ID IS '属性编号';
+      COMMENT ON COLUMN nop_dyn_domain.VERSION IS '数据版本';
                     
-      COMMENT ON COLUMN nop_dyn_prop_meta.UI_SHOW IS '显示控制';
+      COMMENT ON COLUMN nop_dyn_domain.CREATED_BY IS '创建人';
                     
-      COMMENT ON COLUMN nop_dyn_prop_meta.UI_CONTROL IS '显示控件';
+      COMMENT ON COLUMN nop_dyn_domain.CREATE_TIME IS '创建时间';
                     
-      COMMENT ON COLUMN nop_dyn_prop_meta.DOMAIN_ID IS '数据域ID';
+      COMMENT ON COLUMN nop_dyn_domain.UPDATED_BY IS '修改人';
                     
-      COMMENT ON COLUMN nop_dyn_prop_meta.STD_DOMAIN_NAME IS '标准域';
+      COMMENT ON COLUMN nop_dyn_domain.UPDATE_TIME IS '修改时间';
                     
-      COMMENT ON COLUMN nop_dyn_prop_meta.DICT_NAME IS '数据字典';
-                    
-      COMMENT ON COLUMN nop_dyn_prop_meta.DYN_PROP_MAPPING IS '动态字段映射';
-                    
-      COMMENT ON COLUMN nop_dyn_prop_meta.TAGS_TEXT IS '标签';
-                    
-      COMMENT ON COLUMN nop_dyn_prop_meta.DEFAULT_VALUE IS '缺省值';
-                    
-      COMMENT ON COLUMN nop_dyn_prop_meta.EXT_CONFIG IS '扩展配置';
-                    
-      COMMENT ON COLUMN nop_dyn_prop_meta.STATUS IS '状态';
-                    
-      COMMENT ON COLUMN nop_dyn_prop_meta.VERSION IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_dyn_prop_meta.CREATED_BY IS '创建人';
-                    
-      COMMENT ON COLUMN nop_dyn_prop_meta.CREATE_TIME IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_dyn_prop_meta.UPDATED_BY IS '修改人';
-                    
-      COMMENT ON COLUMN nop_dyn_prop_meta.UPDATE_TIME IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_dyn_prop_meta.REMARK IS '备注';
+      COMMENT ON COLUMN nop_dyn_domain.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_dyn_entity_relation_meta IS '实体关联属性定义';
                 
@@ -701,6 +654,10 @@ CREATE TABLE nop_dyn_function_meta(
       COMMENT ON COLUMN nop_dyn_entity_relation_meta.LEFT_PROP_NAME IS '左属性名';
                     
       COMMENT ON COLUMN nop_dyn_entity_relation_meta.RIGHT_PROP_NAME IS '右属性名';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.REF_SET_KEY_PROP IS '集合内唯一标识';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.REF_SET_SORT IS '集合排序条件';
                     
       COMMENT ON COLUMN nop_dyn_entity_relation_meta.STATUS IS '状态';
                     
@@ -755,4 +712,56 @@ CREATE TABLE nop_dyn_function_meta(
       COMMENT ON COLUMN nop_dyn_function_meta.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_dyn_function_meta.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_dyn_prop_meta IS '属性元数据';
+                
+      COMMENT ON COLUMN nop_dyn_prop_meta.PROP_META_ID IS '属性定义ID';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.ENTITY_META_ID IS '实体定义ID';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.IS_MANDATORY IS '是否非空';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.PROP_NAME IS '属性名';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.DISPLAY_NAME IS '显示名';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.STD_SQL_TYPE IS '标准SQL数据类型';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.PRECISION IS '长度';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.SCALE IS '小数位数';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.PROP_ID IS '属性编号';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.UI_SHOW IS '显示控制';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.UI_CONTROL IS '显示控件';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.DOMAIN_ID IS '数据域ID';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.STD_DOMAIN_NAME IS '标准域';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.DICT_NAME IS '数据字典';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.DYN_PROP_MAPPING IS '动态字段映射';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.TAGS_TEXT IS '标签';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.DEFAULT_VALUE IS '缺省值';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.EXT_CONFIG IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.STATUS IS '状态';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.REMARK IS '备注';
                     

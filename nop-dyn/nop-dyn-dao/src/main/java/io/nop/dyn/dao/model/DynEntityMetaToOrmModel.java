@@ -30,6 +30,7 @@ import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.model.OrmAliasModel;
 import io.nop.orm.model.OrmColumnModel;
+import io.nop.orm.model.OrmComputePropModel;
 import io.nop.orm.model.OrmDomainModel;
 import io.nop.orm.model.OrmEntityFilterModel;
 import io.nop.orm.model.OrmEntityModel;
@@ -63,11 +64,49 @@ public class DynEntityMetaToOrmModel {
     private final IEntityModel dynEntityModel;
     private final IEntityModel dynRelationModel;
     private final boolean forceRealTable;
-    private Map<String, OrmEntityModel> middleTables = new HashMap<>();
+    private Map<String, MiddleEntityInfo> middleInfos = new HashMap<>();
 
     static final List<String> STD_PROPS = Arrays.asList(NopDynEntity.PROP_NAME_version,
             NopDynEntity.PROP_NAME_createdBy, NopDynEntity.PROP_NAME_createTime,
             NopDynEntity.PROP_NAME_updatedBy, NopDynEntity.PROP_NAME_updateTime);
+
+    static class MiddleEntityInfo {
+        OrmEntityModel entityModelA;
+        OrmEntityModel entityModelB;
+        NopDynEntityRelationMeta relationA;
+        NopDynEntityRelationMeta relationB;
+
+        public String getEntityNameA() {
+            return entityModelA.getName();
+        }
+
+        public String getEntityNameB() {
+            if (entityModelB != null)
+                return entityModelB.getName();
+            return relationA.getRefEntityMeta().getFullEntityName();
+        }
+
+        void addRelation(OrmEntityModel entityModel, NopDynEntityRelationMeta rel) {
+            if (relationA == null) {
+                this.entityModelA = entityModel;
+                this.relationA = rel;
+            } else {
+                this.entityModelB = entityModel;
+                this.relationB = rel;
+            }
+        }
+
+        void sort() {
+            if (entityModelB != null && entityModelA.getName().compareTo(entityModelB.getName()) > 0) {
+                OrmEntityModel temp = this.entityModelA;
+                NopDynEntityRelationMeta tempRel = this.relationA;
+                this.entityModelA = this.entityModelB;
+                this.entityModelB = temp;
+                this.relationA = this.relationB;
+                this.relationB = tempRel;
+            }
+        }
+    }
 
     public DynEntityMetaToOrmModel(boolean forceRealTable) {
         this.dynEntityModel = ((IOrmEntityDao<?>) DaoProvider.instance().daoFor(NopDynEntity.class)).getEntityModel();
@@ -227,20 +266,15 @@ public class DynEntityMetaToOrmModel {
             entityModel.addRelation(oneRelationModel);
 
         } else if (ormRelationType == OrmRelationType.m2m) {
-            handleManyToManyRelation(entityModel, rel);
+            // 多对多关联的定义是： 新建一个中间表，分别引用左表和右表的主键。这要求rel的leftProp和rightProp都应该是id
+            String middleEntityName = rel.guessMiddleEntityName();
+            middleInfos.computeIfAbsent(middleEntityName, k -> new MiddleEntityInfo()).addRelation(entityModel, rel);
         }
     }
 
-    private void handleManyToManyRelation(OrmEntityModel entityModel, NopDynEntityRelationMeta rel) {
-        // 多对多关联的定义是： 新建一个中间表，分别引用左表和右表的主键。这要求rel的leftProp和rightProp都应该是id
-        String middleEntityName = rel.guessMiddleEntityName();
-        OrmEntityModel middleTable = middleTables.computeIfAbsent(middleEntityName,k->{
-            OrmEntityModel ret = new OrmEntityModel();
-         //   ret.setName();
-            return null;
-        });
-       // entityModel.addRelation(manyRelationModel);
-        entityModel.setTagSet(TagsHelper.add(StringHelper.parseCsvSet(rel.getTagsText()), OrmModelConstants.TAG_MANY_TO_MANY));
+    private void addRefField(OrmEntityModel entityModel, NopDynEntityMeta refEntityMeta, String refPropName) {
+        NopDynPropMeta propMeta = refEntityMeta.requirePropByName(refPropName);
+
     }
 
 
@@ -442,30 +476,68 @@ public class DynEntityMetaToOrmModel {
 
     protected void addRelationTables(List<OrmEntityModel> ret, Collection<NopDynEntityMeta> entityMetas,
                                      String basePackageName) {
-//        entityMetas.forEach(entityMeta -> {
-//            boolean virtualTable = isVirtualTable(entityMeta);
-//            entityMeta.getRelationMetasForEntity1().forEach(rel -> {
-//                OrmEntityModel relTable = new OrmEntityModel();
-//                relTable.setComment(rel.getRemark());
-//                forceAddCol(relTable, dynRelationModel.getColumn(NopDynEntityRelation.PROP_NAME_sid, false));
-//                if (virtualTable) {
-//                    buildVirtualRelationTable(rel, basePackageName);
-//                } else {
-//                    buildRealRelationTable(rel, basePackageName);
-//                }
-//                relTable.setName(StringHelper.fullClassName(rel.getRelationName(), basePackageName));
-//                if (relTable.getTableName() == null) {
-//                    relTable.setTableName(StringHelper.camelCaseToUnderscore(relTable.getShortName(), true));
-//                }
-//                forceAddCol(relTable, dynRelationModel.getColumn(NopDynEntityRelation.PROP_NAME_entityId1, false));
-//                forceAddCol(relTable, dynRelationModel.getColumn(NopDynEntityRelation.PROP_NAME_entityId2, false));
-//                addStdColumns(relTable);
-//                addJoinRelation(relTable, rel);
-//                relTable.setTagSet(TagsHelper.parse(rel.getTagsText(), ','));
-//                relTable.addTag(OrmModelConstants.TAG_MANY_TO_MANY);
-//                ret.add(relTable);
-//            });
-//        });
+        middleInfos.forEach((middleName, middleInfo) -> {
+            middleInfo.sort();
+
+            NopDynEntityRelationMeta relA = middleInfo.relationA;
+            NopDynEntityRelationMeta relB = middleInfo.relationB;
+
+            OrmEntityModel middleEntity = new OrmEntityModel();
+            middleEntity.setName(middleName);
+            boolean useShareTable = false;
+
+            if (relA.getMiddleTableName() != null) {
+                middleEntity.setTableName(relA.getMiddleTableName());
+                middleEntity.setClassName(DynamicOrmEntity.class.getName());
+            } else if (relB != null && relB.getMiddleTableName() != null) {
+                middleEntity.setTableName(relB.getMiddleTableName());
+                middleEntity.setClassName(DynamicOrmEntity.class.getName());
+            } else {
+                middleEntity.setTableName(dynRelationModel.getTableName());
+                middleEntity.setClassName(dynRelationModel.getClassName());
+                List<OrmEntityFilterModel> filters = new ArrayList<>();
+                filters.add(buildFilter(NopDynEntityRelation.PROP_NAME_relationName, relA.getRelationName()));
+                filters.add(buildFilter(NopDynEntityRelation.PROP_NAME_entityName1, middleInfo.getEntityNameA()));
+                filters.add(buildFilter(NopDynEntityRelation.PROP_NAME_entityName2, middleInfo.getEntityNameB()));
+                middleEntity.setFilters(filters);
+                useShareTable = true;
+            }
+
+            if (useShareTable) {
+                for (IColumnModel col : dynRelationModel.getColumns()) {
+                    middleEntity.addColumn(((OrmColumnModel) col).cloneInstance());
+                }
+            } else {
+                forceAddCol(middleEntity, dynRelationModel.getColumn(NopDynEntityRelation.PROP_NAME_sid, false));
+                forceAddCol(middleEntity, dynRelationModel.getColumn(NopDynEntityRelation.PROP_NAME_entityId1, false));
+                forceAddCol(middleEntity, dynRelationModel.getColumn(NopDynEntityRelation.PROP_NAME_entityId2, false));
+                addStdColumns(middleEntity);
+            }
+
+            if (relA != null)
+                addToManyRelation(middleInfo.entityModelA, middleName, relA);
+            if (relB != null)
+                addToManyRelation(middleInfo.entityModelB, middleName, relB);
+        });
+
+    }
+
+    private void addToManyRelation(OrmEntityModel entityModel, String middleName, NopDynEntityRelationMeta rel) {
+        OrmToManyReferenceModel ref = new OrmToManyReferenceModel();
+        ref.setName(rel.getRelationName() + "_middle");
+        ref.setDisplayName(rel.getRelationDisplayName());
+        ref.setRefEntityName(middleName);
+        entityModel.addRelation(ref);
+
+        OrmComputePropModel computed = new OrmComputePropModel();
+    }
+
+
+    private OrmEntityFilterModel buildFilter(String propName, String value) {
+        OrmEntityFilterModel filter = new OrmEntityFilterModel();
+        filter.setName(propName);
+        filter.setValue(value);
+        return filter;
     }
 
 

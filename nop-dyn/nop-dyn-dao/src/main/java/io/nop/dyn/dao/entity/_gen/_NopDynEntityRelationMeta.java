@@ -60,44 +60,52 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
     public static final String PROP_NAME_rightPropName = "rightPropName";
     public static final int PROP_ID_rightPropName = 10;
     
+    /* 集合内唯一标识: REF_SET_KEY_PROP VARCHAR */
+    public static final String PROP_NAME_refSetKeyProp = "refSetKeyProp";
+    public static final int PROP_ID_refSetKeyProp = 11;
+    
+    /* 集合排序条件: REF_SET_SORT VARCHAR */
+    public static final String PROP_NAME_refSetSort = "refSetSort";
+    public static final int PROP_ID_refSetSort = 12;
+    
     /* 状态: STATUS INTEGER */
     public static final String PROP_NAME_status = "status";
-    public static final int PROP_ID_status = 11;
+    public static final int PROP_ID_status = 13;
     
     /* 标签: TAGS_TEXT VARCHAR */
     public static final String PROP_NAME_tagsText = "tagsText";
-    public static final int PROP_ID_tagsText = 12;
+    public static final int PROP_ID_tagsText = 14;
     
     /* 扩展配置: EXT_CONFIG VARCHAR */
     public static final String PROP_NAME_extConfig = "extConfig";
-    public static final int PROP_ID_extConfig = 13;
+    public static final int PROP_ID_extConfig = 15;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 14;
+    public static final int PROP_ID_version = 16;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 15;
+    public static final int PROP_ID_createdBy = 17;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 16;
+    public static final int PROP_ID_createTime = 18;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 17;
+    public static final int PROP_ID_updatedBy = 19;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 18;
+    public static final int PROP_ID_updateTime = 20;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 19;
+    public static final int PROP_ID_remark = 21;
     
 
-    private static int _PROP_ID_BOUND = 20;
+    private static int _PROP_ID_BOUND = 22;
 
     
     /* relation: 实体元数据 */
@@ -113,7 +121,7 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_relMetaId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_relMetaId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[20];
+    private static final String[] PROP_ID_TO_NAME = new String[22];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -146,6 +154,12 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_rightPropName] = PROP_NAME_rightPropName;
           PROP_NAME_TO_ID.put(PROP_NAME_rightPropName, PROP_ID_rightPropName);
+      
+          PROP_ID_TO_NAME[PROP_ID_refSetKeyProp] = PROP_NAME_refSetKeyProp;
+          PROP_NAME_TO_ID.put(PROP_NAME_refSetKeyProp, PROP_ID_refSetKeyProp);
+      
+          PROP_ID_TO_NAME[PROP_ID_refSetSort] = PROP_NAME_refSetSort;
+          PROP_NAME_TO_ID.put(PROP_NAME_refSetSort, PROP_ID_refSetSort);
       
           PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
           PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
@@ -206,6 +220,12 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
     
     /* 右属性名: RIGHT_PROP_NAME */
     private java.lang.String _rightPropName;
+    
+    /* 集合内唯一标识: REF_SET_KEY_PROP */
+    private java.lang.String _refSetKeyProp;
+    
+    /* 集合排序条件: REF_SET_SORT */
+    private java.lang.String _refSetSort;
     
     /* 状态: STATUS */
     private java.lang.Integer _status;
@@ -337,6 +357,12 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
         
             case PROP_ID_rightPropName:
                return getRightPropName();
+        
+            case PROP_ID_refSetKeyProp:
+               return getRefSetKeyProp();
+        
+            case PROP_ID_refSetSort:
+               return getRefSetSort();
         
             case PROP_ID_status:
                return getStatus();
@@ -473,6 +499,26 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_rightPropName));
                }
                setRightPropName(typedValue);
+               break;
+            }
+        
+            case PROP_ID_refSetKeyProp:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_refSetKeyProp));
+               }
+               setRefSetKeyProp(typedValue);
+               break;
+            }
+        
+            case PROP_ID_refSetSort:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_refSetSort));
+               }
+               setRefSetSort(typedValue);
                break;
             }
         
@@ -641,6 +687,20 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
             case PROP_ID_rightPropName:{
                onInitProp(propId);
                this._rightPropName = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_refSetKeyProp:{
+               onInitProp(propId);
+               this._refSetKeyProp = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_refSetSort:{
+               onInitProp(propId);
+               this._refSetSort = (java.lang.String)value;
                
                break;
             }
@@ -900,6 +960,44 @@ public class _NopDynEntityRelationMeta extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_rightPropName,value)){
             this._rightPropName = value;
             internalClearRefs(PROP_ID_rightPropName);
+            
+        }
+    }
+    
+    /**
+     * 集合内唯一标识: REF_SET_KEY_PROP
+     */
+    public java.lang.String getRefSetKeyProp(){
+         onPropGet(PROP_ID_refSetKeyProp);
+         return _refSetKeyProp;
+    }
+
+    /**
+     * 集合内唯一标识: REF_SET_KEY_PROP
+     */
+    public void setRefSetKeyProp(java.lang.String value){
+        if(onPropSet(PROP_ID_refSetKeyProp,value)){
+            this._refSetKeyProp = value;
+            internalClearRefs(PROP_ID_refSetKeyProp);
+            
+        }
+    }
+    
+    /**
+     * 集合排序条件: REF_SET_SORT
+     */
+    public java.lang.String getRefSetSort(){
+         onPropGet(PROP_ID_refSetSort);
+         return _refSetSort;
+    }
+
+    /**
+     * 集合排序条件: REF_SET_SORT
+     */
+    public void setRefSetSort(java.lang.String value){
+        if(onPropSet(PROP_ID_refSetSort,value)){
+            this._refSetSort = value;
+            internalClearRefs(PROP_ID_refSetSort);
             
         }
     }

@@ -97,6 +97,9 @@ public class _NopDynModule extends DynamicOrmEntity{
     /* relation: 模块实体定义 */
     public static final String PROP_NAME_entityMetas = "entityMetas";
     
+    /* relation: 数据域定义 */
+    public static final String PROP_NAME_domains = "domains";
+    
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_moduleId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_moduleId};
@@ -874,6 +877,16 @@ public class _NopDynModule extends DynamicOrmEntity{
      */
     public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynEntityMeta> getEntityMetas(){
        return _entityMetas;
+    }
+       
+    private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynDomain> _domains = new OrmEntitySet<>(this, PROP_NAME_domains,
+        io.nop.dyn.dao.entity.NopDynDomain.PROP_NAME_module, io.nop.dyn.dao.entity.NopDynDomain.PROP_NAME_domainName,io.nop.dyn.dao.entity.NopDynDomain.class);
+
+    /**
+     * 数据域定义。 refPropName: module, keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynDomain> getDomains(){
+       return _domains;
     }
        
         public List<io.nop.dyn.dao.entity.NopDynApp> getRelatedAppList(){
