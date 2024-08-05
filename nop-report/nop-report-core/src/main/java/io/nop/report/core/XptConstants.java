@@ -93,6 +93,8 @@ public interface XptConstants {
 
     String EXT_PROP_XPT_STYLE_ID_EXPR = "xpt:styleIdExpr";
 
+    String EXT_PROP_XPT_LINK_EXPR = "xpt:linkExpr";
+
     String EXT_PROP_XPT_EXPORT_FORMATTED_VALUE = "xpt:exportFormattedValue";
 
     String PROP_FORMULA_EXPR = "formulaExpr";

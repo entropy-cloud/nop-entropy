@@ -32,6 +32,13 @@ public abstract class _ExcelCell extends io.nop.core.model.table.impl.AbstractCe
     
     /**
      *  
+     * xml name: linkUrl
+     * 
+     */
+    private java.lang.String _linkUrl ;
+    
+    /**
+     *  
      * xml name: mergeAcross
      * 向右合并的列数。mergeAcross + 1 == colSpan
      */
@@ -120,6 +127,25 @@ public abstract class _ExcelCell extends io.nop.core.model.table.impl.AbstractCe
         checkAllowChange();
         
         this._formula = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: linkUrl
+     *  
+     */
+    
+    public java.lang.String getLinkUrl(){
+      return _linkUrl;
+    }
+
+    
+    public void setLinkUrl(java.lang.String value){
+        checkAllowChange();
+        
+        this._linkUrl = value;
            
     }
 
@@ -297,6 +323,7 @@ public abstract class _ExcelCell extends io.nop.core.model.table.impl.AbstractCe
         
         out.putNotNull("comment",this.getComment());
         out.putNotNull("formula",this.getFormula());
+        out.putNotNull("linkUrl",this.getLinkUrl());
         out.putNotNull("mergeAcross",this.getMergeAcross());
         out.putNotNull("mergeDown",this.getMergeDown());
         out.putNotNull("model",this.getModel());
@@ -318,6 +345,7 @@ public abstract class _ExcelCell extends io.nop.core.model.table.impl.AbstractCe
         
         instance.setComment(this.getComment());
         instance.setFormula(this.getFormula());
+        instance.setLinkUrl(this.getLinkUrl());
         instance.setMergeAcross(this.getMergeAcross());
         instance.setMergeDown(this.getMergeDown());
         instance.setModel(this.getModel());

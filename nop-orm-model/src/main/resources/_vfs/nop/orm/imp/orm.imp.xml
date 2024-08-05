@@ -283,7 +283,8 @@
                             <schema stdDomain="var-name"/>
                         </field>
 
-                        <field name="name" displayName="属性名">
+                        <field name="name" displayName="属性名"
+                               xpt:formatExpr="cell.value == cell.rp?.ev?.code?.$colCodeToPropName()?'':cell.value">
                             <schema stdDomain="var-name" />
                         </field>
 
@@ -426,6 +427,10 @@
 
                                 return OrderBySqlParser.INSTANCE.parseFromText(cell.location,value);
                          ]]></valueExpr>
+                        </field>
+
+                        <field name="refSet.keyProp" displayName="唯一标识">
+                            <schema stdDomain="string" />
                         </field>
 
                         <field name="join" displayName="关联条件" list="true" mandatory="true">

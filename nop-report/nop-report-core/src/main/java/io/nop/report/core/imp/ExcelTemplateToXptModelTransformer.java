@@ -437,6 +437,11 @@ public class ExcelTemplateToXptModelTransformer {
             if (styleIdExpr != null) {
                 cellModel.setStyleIdExpr(compileTool.compileTagBodyWithSource(styleIdExpr, XLangOutputMode.none));
             }
+
+            XNode linkExpr = XNode.fromValue(fieldModel.prop_get(XptConstants.EXT_PROP_XPT_LINK_EXPR));
+            if (linkExpr != null) {
+                cellModel.setLinkExpr(compileTool.compileTagBodyWithSource(linkExpr, XLangOutputMode.none));
+            }
         }
 
         void initCellField(XptCellModel cellModel, FieldRange parent, String fieldName) {

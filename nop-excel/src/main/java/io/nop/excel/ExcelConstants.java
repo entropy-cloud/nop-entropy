@@ -47,4 +47,6 @@ public interface ExcelConstants {
     double DEFAULT_COL_WIDTH = 8.5;
 
     String DISPLAY_MODE_TABLE = "table";
+
+    String REF_LINK_PREFIX = "ref:";
 }

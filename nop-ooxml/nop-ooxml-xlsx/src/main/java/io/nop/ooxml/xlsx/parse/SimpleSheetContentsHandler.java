@@ -5,6 +5,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.CellRange;
 import io.nop.core.model.table.ICell;
+import io.nop.excel.ExcelConstants;
 import io.nop.excel.format.ExcelDateHelper;
 import io.nop.excel.model.ExcelCell;
 import io.nop.excel.model.ExcelColumnConfig;
@@ -106,6 +107,15 @@ public class SimpleSheetContentsHandler implements SheetContentsHandler {
             }
         }
         table.mergeCell(range);
+    }
+
+    @Override
+    public void link(String ref, String location, String rId) {
+        CellPosition pos = CellPosition.fromABString(ref);
+        ExcelCell cell = (ExcelCell) table.makeCell(pos.getRowIndex(), pos.getColIndex());
+        if (location != null) {
+            cell.setLinkUrl(ExcelConstants.REF_LINK_PREFIX + location);
+        }
     }
 
     ExcelStyle getStyle(ExcelWorkbook wk, ExcelCell ec) {

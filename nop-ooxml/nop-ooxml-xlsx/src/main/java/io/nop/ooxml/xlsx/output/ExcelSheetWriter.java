@@ -17,6 +17,7 @@ import io.nop.core.model.table.ICellView;
 import io.nop.core.model.table.IColumnConfig;
 import io.nop.core.model.table.IRowView;
 import io.nop.core.resource.tpl.AbstractXmlTemplate;
+import io.nop.excel.ExcelConstants;
 import io.nop.excel.format.ExcelDateHelper;
 import io.nop.excel.model.ExcelPageMargins;
 import io.nop.excel.model.ExcelStyle;
@@ -75,6 +76,8 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
         genCols(out, sheet);
         genRows(out, sheet);
         genMergeCells(out, sheet);
+
+        genLinks(out, sheet);
 
         genPageMargins(out, sheet);
 
@@ -259,5 +262,70 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
                     "top", margins.getTop(), "bottom", margins.getBottom(), "header", margins.getHeader(),
                     "footer", margins.getFooter()));
         }
+    }
+
+    /**
+     * <hyperlink ref="B2" location="nop_wf_instance!A1" display="a" xr:uid="{074F63BF-E89D-4D35-AB00-86F3F72AF403}"/>
+     * <hyperlink ref="B3" location="wf_status" display="dd" xr:uid="{1E0AC103-9F7F-465F-9C86-64335D36742B}"/>
+     * <hyperlink ref="B4" r:id="rId1" xr:uid="{600CE871-0B2C-47DB-A4AB-A39BD76FEFE9}"/>
+     */
+    void genLinks(IXNodeHandler out, IExcelSheet sheet) {
+        List<Link> links = new ArrayList<>();
+        sheet.getTable().forEachRealCell((cell, rowIndex, colIndex) -> {
+            String linkUrl = cell.getLinkUrl();
+            if (linkUrl != null && linkUrl.startsWith(ExcelConstants.REF_LINK_PREFIX)) {
+                String location = linkUrl.substring(ExcelConstants.REF_LINK_PREFIX.length());
+                Link link = new Link();
+                link.index = links.size();
+                link.rowIndex = rowIndex;
+                link.colIndex = colIndex;
+                link.location = location;
+                link.text = cell.getText();
+
+                if (location.indexOf('!') > 0) {
+                    links.add(link);
+                }
+            }
+            return ProcessResult.CONTINUE;
+        });
+
+        if (!links.isEmpty()) {
+            out.beginNode("hyperlinks");
+            links.forEach(link -> {
+                Map<String, ValueWithLocation> attrs = new LinkedHashMap<>();
+                attrs.put("ref", ValueWithLocation.of(null, CellPosition.toABString(link.rowIndex, link.colIndex)));
+                attrs.put("location", ValueWithLocation.of(null, link.location));
+                attrs.put("display", ValueWithLocation.of(null, link.text));
+                attrs.put("xr:id", ValueWithLocation.of(null, intToUUID(link.index)));
+                out.simpleNode(null, "hyperlink", attrs);
+            });
+            out.endNode("hyperlinks");
+        }
+    }
+
+    static class Link {
+        int index;
+        int rowIndex;
+        int colIndex;
+        String text;
+        String location;
+    }
+
+    public static String intToUUID(int number) {
+        // 第一步：获取整数的哈希码
+        int hashCode = Integer.hashCode(number);
+
+        // 第二步：将哈希码扩展到128位
+        // 注意：这里只是一个示例，实际的哈希算法可能需要更复杂的逻辑来确保分布均匀
+        long mostSigBits = hashCode & 0xFFFFFFFFL;
+        long leastSigBits = (hashCode ^ 0xFFFFFFFFL) & 0xFFFFFFFFL;
+
+        // 第三步：为了符合UUID的版本4（随机）格式，我们需要设置特定的位
+        mostSigBits |= 0x4000L << 48; // 设置版本位为4
+        leastSigBits |= 0x8000000000000000L; // 设置变体位
+
+        // 第四步：使用UUID的静态方法来构造UUID
+        UUID uuid = new UUID(mostSigBits, leastSigBits);
+        return "{" + uuid + "}";
     }
 }

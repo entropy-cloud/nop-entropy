@@ -86,6 +86,8 @@
                     <!-- 动态计算单元格对应的样式id。id需要在XptWorkbookModel这个sheet页中通过【命名样式】来定义 -->
                     <xpt:styleIdExpr xdef:value="xml" />
 
+                    <xpt:linkExpr xdef:value="xml" />
+
                     <schema xdef:ref="/nop/schema/schema/schema.xdef"/>
 
                     <fields xdef:body-type="list" xdef:key-attr="name">

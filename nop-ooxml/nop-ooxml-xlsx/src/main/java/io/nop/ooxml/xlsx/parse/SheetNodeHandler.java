@@ -265,6 +265,12 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
             String id = getAttr(attrs, "r:id");
             if (id != null)
                 output.drawing(id);
+        } else if ("hyperlink".equals(localName)) {
+            String ref = getAttr(attrs, "ref");
+            String location = getAttr(attrs, "location");
+            String rId = getAttr(attrs, "r:id");
+            if (ref != null)
+                output.link(ref, location, rId);
         }
     }
 

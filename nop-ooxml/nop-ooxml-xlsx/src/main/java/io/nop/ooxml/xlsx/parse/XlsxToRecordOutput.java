@@ -113,5 +113,10 @@ public class XlsxToRecordOutput extends AbstractXlsxParser {
         public void drawing(String id) {
 
         }
+
+        @Override
+        public void link(String ref, String location, String rId) {
+
+        }
     }
 }

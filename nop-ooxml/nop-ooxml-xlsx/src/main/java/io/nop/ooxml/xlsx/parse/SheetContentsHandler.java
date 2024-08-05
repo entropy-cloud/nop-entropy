@@ -63,6 +63,8 @@ public interface SheetContentsHandler {
 
     void drawing(String id);
 
+    void link(String ref, String location, String rId);
+
     /**
      * A header or footer has been encountered
      */

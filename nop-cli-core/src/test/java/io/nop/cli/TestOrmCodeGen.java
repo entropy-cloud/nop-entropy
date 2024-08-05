@@ -7,6 +7,8 @@
  */
 package io.nop.cli;
 
+import io.nop.cli.commands.GenOrmHelper;
+import io.nop.commons.type.StdSqlType;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
@@ -15,16 +17,21 @@ import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.tpl.ITemplateOutput;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.excel.model.ExcelWorkbook;
+import io.nop.orm.model.OrmColumnModel;
+import io.nop.orm.model.OrmEntityModel;
+import io.nop.orm.model.OrmModel;
 import io.nop.report.core.engine.IReportEngine;
 import io.nop.report.core.engine.IReportRendererFactory;
 import io.nop.report.core.engine.ReportEngine;
 import io.nop.report.core.engine.renderer.XlsxReportRendererFactory;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.xdsl.DslModelHelper;
+import io.quarkus.arc.impl.Sets;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -62,6 +69,29 @@ public class TestOrmCodeGen extends BaseTestCase {
         IEvalScope scope = XLang.newEvalScope();
         scope.setLocalValue("entity", model);
         output.generateToFile(getTargetFile("output.api.xlsx"), scope);
+    }
+
+    @Test
+    public void testGenOrmModel() {
+        File targetFile = getTargetFile("output.orm.xlsx");
+
+        OrmModel model = new OrmModel();
+        OrmEntityModel entity = new OrmEntityModel();
+        entity.setName("test");
+        entity.setDisplayName("Test");
+
+        OrmColumnModel col = new OrmColumnModel();
+        col.setPropId(1);
+        col.setName("sid");
+        col.setCode("SID");
+        col.setStdSqlType(StdSqlType.VARCHAR);
+        col.setPrecision(32);
+        col.setPrimary(true);
+        col.setTagSet(Sets.of("seq"));
+        entity.addColumn(col);
+        model.addEntity(entity);
+
+        GenOrmHelper.saveOrmToExcel(model, targetFile, false);
     }
 
     private IReportEngine newReportEngine() {

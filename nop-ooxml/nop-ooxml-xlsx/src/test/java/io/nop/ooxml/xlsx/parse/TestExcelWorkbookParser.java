@@ -15,6 +15,7 @@ import io.nop.core.resource.impl.FileResource;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.excel.model.ExcelCell;
 import io.nop.excel.model.ExcelSheet;
+import io.nop.excel.model.ExcelTable;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.ooxml.xlsx.output.ExcelTemplate;
 import io.nop.xlang.api.XLang;
@@ -79,5 +80,16 @@ public class TestExcelWorkbookParser extends BaseTestCase {
         wk = new ExcelWorkbookParser().parseFromResource(new FileResource(targetFile));
         ExcelCell cell = (ExcelCell) wk.getSheets().get(0).getTable().getCell(0, 0);
         assertEquals("SUM(B2:C2)", cell.getFormula());
+    }
+
+    @Test
+    public void testHyperlink() {
+        IResource resource = new ClassPathResource("classpath:xlsx/test-link.xlsx");
+        ExcelWorkbook wk = new ExcelWorkbookParser().parseFromResource(resource);
+        File targetFile = getTargetFile("test-link.xlsx");
+        new ExcelTemplate(wk).generateToFile(targetFile, XLang.newEvalScope());
+
+        ExcelTable table = wk.getSheets().get(0).getTable();
+        assertEquals("ref:nop_wf_instance!A1", table.getCell(1, 1).getLinkUrl());
     }
 }
