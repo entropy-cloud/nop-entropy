@@ -84,7 +84,7 @@ nop:
     orm:
       init-database-schema: true
       db-differ:
-        auto-upgrade-database: true
+        auto-upgrade-database: false
 
     # 支持graphql __schema查询，
     graphql:

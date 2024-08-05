@@ -48,7 +48,7 @@
         </ioc:condition>
     </bean>
 
-    <bean id="nopAuthFilterConfig" class="io.nop.auth.core.filter.AuthFilterConfig">
+    <bean id="nopAuthFilterConfig" class="io.nop.auth.core.filter.AuthFilterConfig" ioc:default="true">
         <!-- 未指定的情况下都是公开页面，主要是js/css/image等 -->
         <property name="defaultPublic" value="true"/>
 
@@ -58,6 +58,7 @@
                 <value>/q/health*</value>
                 <value>/q/metrics*</value>
                 <value feature:on="nop.auth.quarkus-dev-public">/q/*</value>
+                <value feature:on="nop.auth.download-file-public">/f/download/*</value>
             </list>
         </property>
 

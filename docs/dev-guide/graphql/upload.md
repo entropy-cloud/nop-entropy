@@ -280,6 +280,11 @@ IOrmEntityFileStore提供了copyFile函数，可以根据指定fileId复制一�
 * 在NopFileRecord记录上增加了originFileId字段，从同一个NopFileRecord复制得到的记录都具有同样的originFileId值。
 * detachFile的时候会检查当前记录是否是最后一个共享originFileId的记录。如果是，则也删除文件存储中的文件，否则只删除对应的NopFileRecord。
 
+## 设置文件允许匿名下载
+
+1.  `IOrmEntityFileStore.changePublic(fileId, true)`设置文件允许被公开访问
+2. 设置`nop.auth.download-file-public=true`，或者定制`auth-service.beans.xml`中的nopAuthFilterConfig，允许公开访问`/f/download/*`
+
 ## 配置变量
 
 * nop.file.store-dir
