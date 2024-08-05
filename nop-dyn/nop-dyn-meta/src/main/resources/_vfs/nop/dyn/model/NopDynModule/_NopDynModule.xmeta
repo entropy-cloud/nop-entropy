@@ -99,7 +99,7 @@
         </prop>
         <prop name="sqls" displayName="SQL语句" i18n-en:displayName="SQL Definitions" tagSet="pub,cascade-delete"
               ext:kind="to-many" internal="true" ext:joinLeftProp="moduleId" ext:joinRightProp="moduleId"
-              ext:joinRightDisplayProp="name" insertable="false" updatable="false" lazy="true">
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
             <schema>
                 <item bizObjName="NopDynSql"/>
             </schema>
@@ -120,9 +120,16 @@
         </prop>
         <prop name="entityMetas" displayName="模块实体定义" i18n-en:displayName="Entity Metas" tagSet="pub,cascade-delete"
               ext:kind="to-many" internal="true" ext:joinLeftProp="moduleId" ext:joinRightProp="moduleId"
-              ext:joinRightDisplayProp="entityName" insertable="false" updatable="false" lazy="true">
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
             <schema>
                 <item bizObjName="NopDynEntityMeta"/>
+            </schema>
+        </prop>
+        <prop name="domains" displayName="数据域定义" i18n-en:displayName="Domains" tagSet="pub,cascade-delete"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="moduleId" ext:joinRightProp="moduleId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopDynDomain"/>
             </schema>
         </prop>
         <prop name="relatedAppList" displayName="所属应用列表" i18n-en:displayName="App List" ext:kind="to-many"

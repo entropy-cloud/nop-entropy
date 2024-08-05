@@ -7,7 +7,7 @@
 
     <primaryKey>entityMetaId</primaryKey>
 
-    <displayProp>entityName</displayProp>
+    <displayProp>displayName</displayProp>
 
     <x:gen-extends>
         <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
@@ -29,12 +29,12 @@
               queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="module">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="entityName" displayName="实体名" propId="3" i18n-en:displayName="Entity Name" tagSet="disp"
-              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
+        <prop name="entityName" displayName="实体名" propId="3" i18n-en:displayName="Entity Name" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="displayName" displayName="显示名" propId="4" i18n-en:displayName="Display Name" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true">
+        <prop name="displayName" displayName="显示名" propId="4" i18n-en:displayName="Display Name" tagSet="disp"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
         <prop name="tableName" displayName="表名" propId="5" i18n-en:displayName="TableName" queryable="true"
@@ -100,7 +100,7 @@
             <schema type="String"/>
         </prop>
         <prop name="propMetas" tagSet="pub,cascade-delete" ext:kind="to-many" internal="true"
-              ext:joinLeftProp="entityMetaId" ext:joinRightProp="entityMetaId" ext:joinRightDisplayProp="propName"
+              ext:joinLeftProp="entityMetaId" ext:joinRightProp="entityMetaId" ext:joinRightDisplayProp="displayName"
               insertable="false" updatable="false" lazy="true">
             <schema>
                 <item bizObjName="NopDynPropMeta"/>
@@ -123,7 +123,7 @@
         </prop>
         <prop name="functionMetas" displayName="函数定义" i18n-en:displayName="Function Metas" tagSet="pub,cascade-delete"
               ext:kind="to-many" internal="true" ext:joinLeftProp="entityMetaId" ext:joinRightProp="entityMetaId"
-              ext:joinRightDisplayProp="name" insertable="false" updatable="false" lazy="true">
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
             <schema>
                 <item bizObjName="NopDynFunctionMeta"/>
             </schema>

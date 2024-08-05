@@ -45,6 +45,7 @@ prop:
       module.displayName: Module
     NopDynDomain:
       domainId: Domain ID
+      moduleId: Module ID
       domainName: Domain Name
       displayName: Display Name
       stdDomainName: Std Domain Name
@@ -59,6 +60,8 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      module: Module
+      module.displayName: Module
     NopDynEntity:
       sid: SID
       nopObjType: Object Type
@@ -93,6 +96,7 @@ prop:
       updateTime: Update Time
       remark: Remark
       nopParent: Parent
+      nopParent.nopDisplayName: Parent
       nopChildren: Children
       extFields: null
       nopFileFld1ComponentFileStatus: null
@@ -150,6 +154,8 @@ prop:
       middleEntityName: Middle Entity Name
       leftPropName: Left Prop Name
       rightPropName: Right Prop Name
+      refSetKeyProp: Key Prop
+      refSetSort: Sort
       status: Status
       tagsText: Tag Set
       extConfig: Ext Config
@@ -160,9 +166,9 @@ prop:
       updateTime: Update Time
       remark: Remark
       entityMeta: Entity Meta
-      entityMeta.entityName: Entity Meta
+      entityMeta.displayName: Entity Meta
       refEntityMeta: Ref Entity Meta
-      refEntityMeta.entityName: Ref Entity Meta
+      refEntityMeta.displayName: Ref Entity Meta
       extConfigComponent: null
     NopDynFile:
       fileId: File ID
@@ -202,7 +208,7 @@ prop:
       updateTime: Update Time
       remark: Remark
       entityMeta: Module
-      entityMeta.entityName: Module
+      entityMeta.displayName: Module
       funcMetaComponent: null
       args: null
     NopDynModule:
@@ -229,6 +235,7 @@ prop:
       files: Module Files
       pages: Module Pages
       entityMetas: Entity Metas
+      domains: Domains
       relatedAppList: App List
       relatedAppIdList: App List
       relatedAppList_label: App List
@@ -294,8 +301,9 @@ prop:
       updateTime: Update Time
       remark: Remark
       entityMeta: Module
-      entityMeta.entityName: Module
+      entityMeta.displayName: Module
       domain: Domain
+      domain.displayName: Domain
       extConfigComponent: null
     NopDynSql:
       sqlId: SQL ID

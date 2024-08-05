@@ -21,6 +21,9 @@
                 <!--数据域ID-->
                 <col id="domainId" mandatory="true" sortable="true"/>
 
+                <!--模块ID-->
+                <col id="moduleId" mandatory="true" sortable="true"/>
+
                 <!--数据域名称-->
                 <col id="domainName" mandatory="true" sortable="true"/>
 
@@ -61,19 +64,20 @@
     <forms>
         <form id="view" editMode="view" title="查看-数据域" i18n-en:title="View Domain">
             <layout>
- domainId[数据域ID] domainName[数据域名称]
- displayName[显示名] stdDomainName[标准域]
- stdSqlType[标准SQL数据类型] precision[长度]
- scale[小数位数] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] 
-                remark[备注]
+ domainId[数据域ID] moduleId[模块ID]
+ domainName[数据域名称] displayName[显示名]
+ stdDomainName[标准域] stdSqlType[标准SQL数据类型]
+ precision[长度] scale[小数位数]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-数据域" i18n-en:title="Add Domain" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-数据域" i18n-en:title="Edit Domain">
             <layout>
  domainId[数据域ID]
+ moduleId[模块ID]
  domainName[数据域名称]
  displayName[显示名]
  stdDomainName[标准域]

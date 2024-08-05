@@ -7,7 +7,7 @@
 
     <primaryKey>funcMetaId</primaryKey>
 
-    <displayProp>name</displayProp>
+    <displayProp>displayName</displayProp>
 
     <x:gen-extends>
         <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
@@ -29,12 +29,12 @@
               queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="entityMeta">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="name" displayName="函数名" propId="3" i18n-en:displayName="Name" tagSet="disp" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true">
+        <prop name="name" displayName="函数名" propId="3" i18n-en:displayName="Name" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="displayName" displayName="显示名" propId="4" i18n-en:displayName="Display Name" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true">
+        <prop name="displayName" displayName="显示名" propId="4" i18n-en:displayName="Display Name" tagSet="disp"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
         <prop name="functionType" displayName="函数类型" propId="5" i18n-en:displayName="Function Type" mandatory="true"
@@ -92,11 +92,11 @@
         </prop>
         <prop name="entityMeta" displayName="所属模块" i18n-en:displayName="Module" tagSet="pub,ref-pub,ref-cascade-delete"
               ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="entityMetaId"
-              ext:joinRightProp="entityMetaId" ext:joinRightDisplayProp="entityName" insertable="false"
+              ext:joinRightProp="entityMetaId" ext:joinRightDisplayProp="displayName" insertable="false"
               updatable="false" mandatory="true" lazy="true">
             <schema bizObjName="NopDynEntityMeta"/>
         </prop>
-        <prop name="entityMeta.entityName" displayName="所属模块" i18n-en:displayName="Module" internal="true"
+        <prop name="entityMeta.displayName" displayName="所属模块" i18n-en:displayName="Module" internal="true"
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
         </prop>

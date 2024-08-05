@@ -1,5 +1,6 @@
 {
   "domainId": "",
+  "moduleId": "",
   "domainName": "",
   "displayName": "",
   "stdDomainName": "",
@@ -13,5 +14,7 @@
   "createTime": "2000-01-01 14:00:00",
   "updatedBy": "",
   "updateTime": "2000-01-01 14:00:00",
-  "remark": ""
+  "remark": "",
+  "module": null,
+  "module.displayName": ""
 }

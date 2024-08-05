@@ -45,6 +45,12 @@
                 <!--右属性名-->
                 <col id="rightPropName" mandatory="true" sortable="true"/>
 
+                <!--集合内唯一标识-->
+                <col id="refSetKeyProp" sortable="true"/>
+
+                <!--集合排序条件-->
+                <col id="refSetSort" sortable="true"/>
+
                 <!--状态-->
                 <col id="status" mandatory="true" sortable="true"/>
 
@@ -80,7 +86,8 @@
  relationName[关联名] relationDisplayName[关联显示名]
  relationType[关联类型] middleTableName[中间表表名]
  middleEntityName[中间表实体名] leftPropName[左属性名]
- rightPropName[右属性名] status[状态]
+ rightPropName[右属性名] refSetKeyProp[集合内唯一标识]
+ refSetSort[集合排序条件] status[状态]
  tagsText[标签] extConfig[扩展配置]
  createdBy[创建人] createTime[创建时间]
  updatedBy[修改人] updateTime[修改时间]
@@ -94,7 +101,8 @@
  relationName[关联名] relationDisplayName[关联显示名]
  relationType[关联类型] middleTableName[中间表表名]
  middleEntityName[中间表实体名] leftPropName[左属性名]
- rightPropName[右属性名] status[状态]
+ rightPropName[右属性名] refSetKeyProp[集合内唯一标识]
+ refSetSort[集合排序条件] status[状态]
  tagsText[标签] extConfig[扩展配置]
  remark[备注] 
 </layout>

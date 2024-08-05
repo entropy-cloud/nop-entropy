@@ -29,7 +29,8 @@
   "updateTime": "2000-01-01 14:00:00",
   "remark": "",
   "entityMeta": null,
-  "entityMeta.entityName": "",
+  "entityMeta.displayName": "",
   "domain": null,
+  "domain.displayName": "",
   "extConfigComponent": null
 }

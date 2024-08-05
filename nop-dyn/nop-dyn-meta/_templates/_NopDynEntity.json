@@ -32,6 +32,7 @@
   "updateTime": "2000-01-01 14:00:00",
   "remark": "",
   "nopParent": null,
+  "nopParent.nopDisplayName": "",
   "nopChildren": null,
   "extFields": null,
   "nopFileFld1ComponentFileStatus": null,

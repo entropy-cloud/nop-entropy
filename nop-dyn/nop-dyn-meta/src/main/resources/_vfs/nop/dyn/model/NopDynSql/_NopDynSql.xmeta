@@ -7,7 +7,7 @@
 
     <primaryKey>sqlId</primaryKey>
 
-    <displayProp>name</displayProp>
+    <displayProp>displayName</displayProp>
 
     <x:gen-extends>
         <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
@@ -29,12 +29,12 @@
               queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="module">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="name" displayName="SQL名称" propId="3" i18n-en:displayName="Name" tagSet="disp" mandatory="true"
+        <prop name="name" displayName="SQL名称" propId="3" i18n-en:displayName="Name" tagSet="key" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="pages">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="displayName" displayName="显示名称" propId="4" i18n-en:displayName="Display Name" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="displayName" displayName="显示名称" propId="4" i18n-en:displayName="Display Name" tagSet="disp"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
         <prop name="sqlMethod" displayName="SQL方法" propId="5" i18n-en:displayName="Sql Method" queryable="true"

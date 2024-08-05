@@ -49,6 +49,9 @@ prop:
       displayName: 显示名
       domainId: 数据域ID
       domainName: 数据域名称
+      module: 所属模块
+      module.displayName: 所属模块
+      moduleId: 模块ID
       precision: 长度
       remark: 备注
       scale: 小数位数
@@ -85,6 +88,7 @@ prop:
       nopOwnerId: 拥有者ID
       nopOwnerName: 拥有者姓名
       nopParent: 父对象
+      nopParent.nopDisplayName: 父对象
       nopParentId: 父ID
       nopSortOrder: 排序
       nopStatus: 业务状态码
@@ -142,7 +146,7 @@ prop:
       createTime: 创建时间
       createdBy: 创建人
       entityMeta: 实体元数据
-      entityMeta.entityName: 实体元数据
+      entityMeta.displayName: 实体元数据
       entityMetaId: 实体元数据
       extConfig: 扩展配置
       extConfigComponent: null
@@ -150,8 +154,10 @@ prop:
       middleEntityName: 中间表实体名
       middleTableName: 中间表表名
       refEntityMeta: 关联实体元数据
-      refEntityMeta.entityName: 关联实体元数据
+      refEntityMeta.displayName: 关联实体元数据
       refEntityMetaId: 关联实体
+      refSetKeyProp: 集合内唯一标识
+      refSetSort: 集合排序条件
       relMetaId: 关联定义ID
       relationDisplayName: 关联显示名
       relationName: 关联名
@@ -187,7 +193,7 @@ prop:
       createdBy: 创建人
       displayName: 显示名
       entityMeta: 所属模块
-      entityMeta.entityName: 所属模块
+      entityMeta.displayName: 所属模块
       entityMetaId: 实体定义ID
       funcMeta: 函数元数据
       funcMetaComponent: null
@@ -215,6 +221,7 @@ prop:
       createdBy: 创建人
       derivedModules: 派生模块
       displayName: 显示名
+      domains: 数据域定义
       entityMetas: 模块实体定义
       files: 模块文件
       importFile: 导入文件
@@ -270,11 +277,12 @@ prop:
       dictName: 数据字典
       displayName: 显示名
       domain: 数据域
+      domain.displayName: 数据域
       domainId: 数据域ID
       domainId_label: 数据域ID
       dynPropMapping: 动态字段映射
       entityMeta: 所属模块
-      entityMeta.entityName: 所属模块
+      entityMeta.displayName: 所属模块
       entityMetaId: 实体定义ID
       extConfig: 扩展配置
       extConfigComponent: null

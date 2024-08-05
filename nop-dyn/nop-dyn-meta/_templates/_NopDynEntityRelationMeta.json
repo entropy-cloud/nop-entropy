@@ -10,6 +10,8 @@
   "middleEntityName": "",
   "leftPropName": "",
   "rightPropName": "",
+  "refSetKeyProp": "",
+  "refSetSort": "",
   "status": 0,
   "tagsText": "",
   "extConfig": "",
@@ -20,8 +22,8 @@
   "updateTime": "2000-01-01 14:00:00",
   "remark": "",
   "entityMeta": null,
-  "entityMeta.entityName": "",
+  "entityMeta.displayName": "",
   "refEntityMeta": null,
-  "refEntityMeta.entityName": "",
+  "refEntityMeta.displayName": "",
   "extConfigComponent": null
 }
