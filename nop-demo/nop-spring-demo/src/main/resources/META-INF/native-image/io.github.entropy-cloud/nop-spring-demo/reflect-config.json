@@ -34941,6 +34941,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getIoThreadCount",
+        "parameterTypes": []
+      },
+      {
         "name": "getKeepAliveDuration",
         "parameterTypes": []
       },
@@ -35092,6 +35096,12 @@
         "name": "setIgnoreSslCerts",
         "parameterTypes": [
           "boolean"
+        ]
+      },
+      {
+        "name": "setIoThreadCount",
+        "parameterTypes": [
+          "int"
         ]
       },
       {
@@ -39805,6 +39815,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isDependByOtherEntity",
+        "parameterTypes": []
+      },
+      {
         "name": "isEntityModeEnabled",
         "parameterTypes": []
       },
@@ -39847,6 +39861,12 @@
       {
         "name": "isUseTenant",
         "parameterTypes": []
+      },
+      {
+        "name": "setDependByOtherEntity",
+        "parameterTypes": [
+          "boolean"
+        ]
       }
     ],
     "name": "io.nop.orm.model.IEntityModel",
@@ -40569,8 +40589,18 @@
         "parameterTypes": []
       },
       {
+        "name": "isDependByOtherEntity",
+        "parameterTypes": []
+      },
+      {
         "name": "isGlobalUniqueId",
         "parameterTypes": []
+      },
+      {
+        "name": "setDependByOtherEntity",
+        "parameterTypes": [
+          "boolean"
+        ]
       },
       {
         "name": "setPkColumns",
