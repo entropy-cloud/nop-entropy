@@ -56,6 +56,7 @@ public class SysServiceLoader {
         List<IConfigSourceLoader> ret = new ArrayList<>();
         for (IConfigSourceLoader loader : loaders) {
             if (loader.isEnabled()) {
+                ret.add(loader);
                 LOG.debug("nop.config.use-config-source-loader:{}", loader.getClass());
             } else {
                 LOG.debug("nop.config.ignore-config-source-loader:{}", loader.getClass());
