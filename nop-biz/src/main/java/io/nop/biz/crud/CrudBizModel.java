@@ -1503,7 +1503,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
             newEntity = dao.newEntity();
             new OrmEntityCopier(daoProvider, bizObjectManager).copyToEntity(entity,
                     newEntity, inputSelection, entityData.getObjMeta(), getBizObjName(),
-                    BizConstants.METHOD_SAVE, context.getEvalScope());
+                    BizConstants.SELECTION_COPY_FOR_NEW, context.getEvalScope());
         } else {
             newEntity = (T) entity.cloneInstance();
             // 序列号主键被设置为空
@@ -1517,12 +1517,12 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
         new OrmEntityCopier(daoProvider, bizObjectManager).copyToEntity(entityData.getValidatedData(),
                 newEntity, inputSelection, entityData.getObjMeta(), getBizObjName(),
-                BizConstants.METHOD_SAVE, context.getEvalScope());
+                BizConstants.SELECTION_COPY_FOR_NEW, context.getEvalScope());
 
         if (prepareSave != null)
             prepareSave.accept(entityData, context);
 
-        checkDataAuth(BizConstants.METHOD_SAVE, entityData.getEntity(), context);
+        checkDataAuth(BizConstants.SELECTION_COPY_FOR_NEW, entityData.getEntity(), context);
 
         this.doSaveEntity(entityData, context);
         return newEntity;
