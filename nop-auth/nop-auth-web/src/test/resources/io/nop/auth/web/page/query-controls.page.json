@@ -632,16 +632,6 @@
                   "sortable": true,
                   "toggled": true,
                   "type": "static"
-                },
-                {
-                  "type": "operation",
-                  "label": "操作",
-                  "id": "operation",
-                  "width": 140,
-                  "toggled": true,
-                  "fixed": "right",
-                  "labelClassName": "text-center",
-                  "buttons": []
                 }
               ]
             },
@@ -827,16 +817,6 @@
                   "sortable": true,
                   "toggled": true,
                   "type": "static"
-                },
-                {
-                  "type": "operation",
-                  "label": "操作",
-                  "id": "operation",
-                  "width": 140,
-                  "toggled": true,
-                  "fixed": "right",
-                  "labelClassName": "text-center",
-                  "buttons": []
                 }
               ]
             },
