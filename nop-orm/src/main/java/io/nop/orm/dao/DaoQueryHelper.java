@@ -235,6 +235,12 @@ public class DaoQueryHelper {
         SQL.SqlBuilder sb = newSQL(query);
 
         sb.append("select count(1) from ").append(entityName).as("o");
+        if (query.getLeftJoinProps() != null) {
+            for (String propName : query.getLeftJoinProps()) {
+                Guard.checkArgument(StringHelper.isValidPropPath(propName));
+                sb.append(" left join o.").append(propName);
+            }
+        }
         appendWhere(sb, "o", query == null ? null : query.getFilter());
         return sb.end();
     }
