@@ -168,24 +168,26 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Base Module ID"/>
                 <column code="BASE_PACKAGE_NAME" displayName="Java包名" name="basePackageName" precision="200" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Base Package Name"/>
-                <column code="MAVEN_GROUP_ID" displayName="Maven组名" name="mavenGroupId" precision="200" propId="7"
+                <column code="ENTITY_PACKAGE_NAME" displayName="实体包名" name="entityPackageName" precision="200"
+                        propId="7" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Entity Package Name"/>
+                <column code="MAVEN_GROUP_ID" displayName="Maven组名" name="mavenGroupId" precision="200" propId="8"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Maven Group Id"/>
-                <column code="STATUS" defaultValue="0" displayName="状态" mandatory="true" name="status" propId="8"
+                <column code="STATUS" defaultValue="0" displayName="状态" mandatory="true" name="status" propId="9"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="dyn/module-status"
                         ui:show="R"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="10"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By" ui:show="R"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
+                        propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
                         ui:show="R"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By" ui:show="R"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"
+                        propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"
                         ui:show="R"/>
             </columns>
             <relations>

@@ -223,6 +223,7 @@ prop:
       displayName: 显示名
       domains: 数据域定义
       entityMetas: 模块实体定义
+      entityPackageName: 实体包名
       files: 模块文件
       importFile: 导入文件
       mavenGroupId: Maven组名

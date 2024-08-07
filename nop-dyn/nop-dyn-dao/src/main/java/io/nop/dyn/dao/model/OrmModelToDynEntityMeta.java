@@ -21,6 +21,7 @@ import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IOrmModel;
 import io.nop.orm.model.OrmModelConstants;
+import io.nop.orm.model.OrmRelationType;
 import io.nop.orm.support.OrmManyToManyMappingMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,13 +35,34 @@ import java.util.Map;
 public class OrmModelToDynEntityMeta {
     static final Logger LOG = LoggerFactory.getLogger(OrmModelToDynEntityMeta.class);
 
+    private final boolean removeNotExisting;
+    private NopDynModule dynModule;
+    private Map<String, NopDynEntityMeta> entityMetas;
+    private String basePackageName;
+    private String entityPackageName;
+    private String entityPackagePrefix;
+
+    public OrmModelToDynEntityMeta(boolean removeNotExisting) {
+        this.removeNotExisting = removeNotExisting;
+    }
+
     public void transformModule(IOrmModel ormModel, NopDynModule dynModule) {
-        dynModule.setBasePackageName((String) ormModel.prop_get(OrmModelConstants.EXT_BASE_PACKAGE_NAME));
+        this.basePackageName = (String) ormModel.prop_get(OrmModelConstants.EXT_BASE_PACKAGE_NAME);
+        this.entityPackageName = (String) ormModel.prop_get(OrmModelConstants.EXT_ENTITY_PACKAGE_NAME);
+        if (entityPackageName == null) {
+            entityPackageName = NopDynDaoConstants.DEFAULT_ENTITY_PACKAGE_NAME;
+        }
+        this.entityPackagePrefix = this.entityPackageName + ".";
+
+        dynModule.setBasePackageName(basePackageName);
+        dynModule.setEntityPackageName(entityPackageName);
         dynModule.setMavenGroupId((String) ormModel.prop_get(OrmModelConstants.EXT_MAVEN_GROUP_ID));
 
-        //removeNotExistingMetas(ormModel, dynModule);
+        if (removeNotExisting)
+            removeNotExistingMetas(ormModel, dynModule);
 
-        Map<String, NopDynEntityMeta> entityMetas = new HashMap<>();
+        this.dynModule = dynModule;
+        this.entityMetas = new HashMap<>();
         dynModule.getEntityMetas().forEach(entityMeta -> {
             entityMetas.put(entityMeta.getEntityName(), entityMeta);
         });
@@ -53,14 +75,7 @@ public class OrmModelToDynEntityMeta {
                 return;
             }
 
-            NopDynEntityMeta entityMeta = entityMetas.get(entityModel.getName());
-            if (entityMeta == null) {
-                entityMeta = new NopDynEntityMeta();
-                entityMeta.setEntityName(entityModel.getName());
-                entityMeta.setStatus(1);
-                entityMeta.setStoreType(NopDynDaoConstants.ENTITY_STORE_TYPE_VIRTUAL);
-                dynModule.getEntityMetas().add(entityMeta);
-            }
+            NopDynEntityMeta entityMeta = makeEntityMeta(entityModel.getName());
             transformEntityMeta(entityModel, entityMeta);
         });
 
@@ -76,16 +91,45 @@ public class OrmModelToDynEntityMeta {
             NopDynEntityMeta entityMeta2 = getEntityMeta(entityMetas, mappingMeta.getRefEntityName2());
             if (entityMeta2 == null)
                 continue;
-//            NopDynEntityRelationMeta relMeta = new NopDynEntityRelationMeta();
-//            relMeta.setEntityMeta1(entityMeta1);
-//            relMeta.setEntityMeta2(entityMeta2);
-//            relMeta.setRelationName(mappingMeta.getMappingEntityName());
-//            relMeta.setTableName(mappingMeta.getMappingTableName());
-//            relMeta.setTagsText(TagsHelper.toString(mappingMeta.getMappingTable().getTagSet()));
-//            relMeta.setRemark(mappingMeta.getMappingTable().getComment());
-//            relMeta.setRelationType(StringHelper.toString(mappingMeta.getRelationType(), null));
-//            entityMeta1.getRelationMetasForEntity1().add(relMeta);
+            NopDynEntityRelationMeta relMeta1 = new NopDynEntityRelationMeta();
+            relMeta1.setEntityMeta(entityMeta1);
+            relMeta1.setRefEntityMeta(entityMeta2);
+            relMeta1.setMiddleEntityName(mappingMeta.getMappingEntityName());
+            //relMeta.setMiddleTableName(mappingMeta.getMappingTableName());
+            relMeta1.setTagsText(TagsHelper.toString(mappingMeta.getMappingTable().getTagSet()));
+            relMeta1.setRemark(mappingMeta.getMappingTable().getComment());
+            relMeta1.setRelationType(OrmRelationType.m2m.name());
+            relMeta1.setRelationName(mappingMeta.getRefSetPropName1());
+            relMeta1.setLeftPropName(OrmModelConstants.PROP_ID);
+            relMeta1.setRightPropName(OrmModelConstants.PROP_ID);
+            entityMeta1.getRelationMetasForEntity().add(relMeta1);
+
+
+            NopDynEntityRelationMeta relMeta2 = new NopDynEntityRelationMeta();
+            relMeta2.setEntityMeta(entityMeta2);
+            relMeta2.setRefEntityMeta(entityMeta1);
+            relMeta2.setMiddleEntityName(mappingMeta.getMappingEntityName());
+            //relMeta.setMiddleTableName(mappingMeta.getMappingTableName());
+            relMeta2.setTagsText(TagsHelper.toString(mappingMeta.getMappingTable().getTagSet()));
+            relMeta2.setRemark(mappingMeta.getMappingTable().getComment());
+            relMeta2.setRelationType(OrmRelationType.m2m.name());
+            relMeta2.setRelationName(mappingMeta.getRefSetPropName2());
+            relMeta2.setLeftPropName(OrmModelConstants.PROP_ID);
+            relMeta2.setRightPropName(OrmModelConstants.PROP_ID);
+            entityMeta2.getRelationMetasForEntity().add(relMeta2);
         }
+    }
+
+    private NopDynEntityMeta makeEntityMeta(String entityName) {
+        NopDynEntityMeta entityMeta = entityMetas.get(entityName);
+        if (entityMeta == null) {
+            entityMeta = new NopDynEntityMeta();
+            entityMeta.setEntityName(StringHelper.removeHead(entityName, this.entityPackagePrefix));
+            entityMeta.setStatus(1);
+            entityMeta.setStoreType(NopDynDaoConstants.ENTITY_STORE_TYPE_VIRTUAL);
+            dynModule.getEntityMetas().add(entityMeta);
+        }
+        return entityMeta;
     }
 
     private NopDynEntityMeta getEntityMeta(Map<String, NopDynEntityMeta> entityMetas, String entityName) {
@@ -137,9 +181,31 @@ public class OrmModelToDynEntityMeta {
                 if (join.getLeftProp() != null) {
                     NopDynPropMeta propMeta = propMetas.get(join.getLeftProp());
                     if (propMeta != null) {
-                        //propMeta.setRefEntityName(rel.getRefEntityName());
-                        //propMeta.setRefPropName(rel.getRefPropName());
-                        //propMeta.setRefPropDisplayName(rel.getDisplayName());
+                        NopDynEntityRelationMeta relMeta1 = new NopDynEntityRelationMeta();
+                        relMeta1.setRelationDisplayName(rel.getDisplayName());
+                        NopDynEntityMeta entityMeta1 = makeEntityMeta(rel.getOwnerEntityModel().getName());
+                        NopDynEntityMeta entityMeta2 = makeEntityMeta(rel.getRefEntityName());
+                        relMeta1.setEntityMeta(entityMeta1);
+                        relMeta1.setRefEntityMeta(entityMeta2);
+                        relMeta1.setTagsText(TagsHelper.toString(rel.getTagSet()));
+                        relMeta1.setRelationName(rel.getName());
+                        relMeta1.setRelationType(rel.isOneToOne() ? OrmRelationType.o2o.name() : OrmRelationType.m2o.name());
+                        relMeta1.setLeftPropName(join.getLeftProp());
+                        relMeta1.setRightPropName(join.getRightProp());
+                        entityMeta1.getRelationMetasForEntity().add(relMeta1);
+
+                        if (rel.getRefPropName() != null) {
+                            NopDynEntityRelationMeta relMeta2 = new NopDynEntityRelationMeta();
+                            relMeta2.setRelationDisplayName(rel.getDisplayName());
+                            relMeta2.setEntityMeta(entityMeta2);
+                            relMeta2.setRefEntityMeta(entityMeta1);
+                            relMeta2.setTagsText(TagsHelper.toString(rel.getTagSet()));
+                            relMeta2.setRelationName(rel.getRefPropName());
+                            relMeta2.setRelationType(rel.isOneToOne() ? OrmRelationType.o2o.name() : OrmRelationType.o2m.name());
+                            relMeta2.setLeftPropName(join.getRightProp());
+                            relMeta2.setRightPropName(join.getLeftProp());
+                            entityMeta2.getRelationMetasForEntity().add(relMeta2);
+                        }
                     }
                 }
             }
@@ -183,7 +249,33 @@ public class OrmModelToDynEntityMeta {
         // 只有AI生成的模型会使用这个属性，假定实体名已经正确设置
         String refTable = (String) col.prop_get(NopDynDaoConstants.EXT_ORM_REF_TABLE);
         if (refTable != null) {
-           // propMeta.setRefEntityName(StringHelper.camelCase(refTable, true));
+            addRefTable(col, refTable);
         }
+    }
+
+    private void addRefTable(IColumnModel col, String refTable) {
+        String refEntityName = StringHelper.camelCase(refTable, true);
+
+        NopDynEntityRelationMeta relMeta1 = new NopDynEntityRelationMeta();
+        relMeta1.setRelationName(getRefPropNameFromColCode(col.getCode(), refEntityName));
+        relMeta1.setRelationDisplayName(col.getDisplayName());
+        NopDynEntityMeta entityMeta1 = makeEntityMeta(col.getOwnerEntityModel().getName());
+        NopDynEntityMeta entityMeta2 = makeEntityMeta(refEntityName);
+        relMeta1.setEntityMeta(entityMeta1);
+        relMeta1.setRefEntityMeta(entityMeta2);
+        relMeta1.setRelationType(col.isPrimary() ? OrmRelationType.o2o.name() : OrmRelationType.m2o.name());
+        relMeta1.setLeftPropName(col.getName());
+        relMeta1.setRightPropName(OrmModelConstants.PROP_ID);
+        entityMeta1.getRelationMetasForEntity().add(relMeta1);
+    }
+
+    private String getRefPropNameFromColCode(String colCode, String refEntityName) {
+        if (colCode.equalsIgnoreCase("_id") || colCode.endsWith("id"))
+            return refEntityName;
+
+        if (StringHelper.endsWithIgnoreCase(colCode, "_id")) {
+            return StringHelper.camelCase(colCode.substring(0, colCode.length() - "_id".length()), false);
+        }
+        return StringHelper.camelCase(colCode, false) + "Obj";
     }
 }

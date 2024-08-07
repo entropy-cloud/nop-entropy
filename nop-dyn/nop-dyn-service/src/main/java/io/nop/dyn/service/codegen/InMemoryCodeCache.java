@@ -137,8 +137,8 @@ public class InMemoryCodeCache {
 
     protected String getTargetDir() {
         if (StringHelper.isEmpty(tenantId))
-            return "v:";
-        return "v:/_delta/" + tenantId;
+            return "v:/";
+        return "v:/_tenant/" + tenantId;
     }
 
     protected String getTargetPath(String path) {

@@ -218,6 +218,7 @@ prop:
       displayName: Display Name
       baseModuleId: Base Module ID
       basePackageName: Base Package Name
+      entityPackageName: Entity Package Name
       mavenGroupId: Maven Group Id
       importFile: null
       status: Status

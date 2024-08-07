@@ -49,7 +49,9 @@ public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> {
     }
 
     @BizMutation
-    public NopDynModule importExcel(@Name("importFile") String importFile, IServiceContext context) {
+    public NopDynModule importExcel(@Name("importFile") String importFile,
+                                    @Optional @Name("removeNotExisting") boolean removeNotExisting,
+                                    IServiceContext context) {
         String fileId = fileStore.decodeFileId(importFile);
         // 总是处理上传的临时文件
         String objId = FileConstants.TEMP_BIZ_OBJ_ID;
@@ -66,7 +68,7 @@ public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> {
         entity.setMavenGroupId((String) ormModel.prop_get(OrmModelConstants.EXT_MAVEN_GROUP_ID));
         entity.setModuleVersion(1);
 
-        new OrmModelToDynEntityMeta().transformModule(ormModel, entity);
+        new OrmModelToDynEntityMeta(removeNotExisting).transformModule(ormModel, entity);
 
         fileStore.detachFile(fileId, getBizObjName(), objId, NopDynDaoConstants.PROP_IMPORT_FILE);
         checkDataAuth(BizConstants.METHOD_SAVE, entity, context);
@@ -101,7 +103,7 @@ public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> {
         entity.setMavenGroupId((String) ormModel.prop_get(OrmModelConstants.EXT_MAVEN_GROUP_ID));
         entity.setModuleVersion(1);
 
-        new OrmModelToDynEntityMeta().transformModule(ormModel, entity);
+        new OrmModelToDynEntityMeta(true).transformModule(ormModel, entity);
         entity.setStatus(NopDynDaoConstants.MODULE_STATUS_PUBLISHED);
         dao.saveEntity(entity);
 

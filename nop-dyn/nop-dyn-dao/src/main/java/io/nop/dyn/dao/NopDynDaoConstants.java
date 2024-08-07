@@ -15,4 +15,9 @@ public interface NopDynDaoConstants extends _NopDynDaoConstants {
     String EXT_ORM_REF_TABLE = "orm:ref-table";
 
     String DEFAULT_BASE_PACKAGE_NAME = "app.dyn";
+
+    String NAME_REF_ENTITY1 = "refEntity1";
+    String NAME_REF_ENTITY2 = "refEntity2";
+
+    String DEFAULT_ENTITY_PACKAGE_NAME = "app.dyn.entity";
 }

@@ -19,6 +19,7 @@ CREATE TABLE nop_dyn_module(
   DISPLAY_NAME VARCHAR2(200) NOT NULL ,
   BASE_MODULE_ID VARCHAR2(100)  ,
   BASE_PACKAGE_NAME VARCHAR2(200)  ,
+  ENTITY_PACKAGE_NAME VARCHAR2(200)  ,
   MAVEN_GROUP_ID VARCHAR2(200)  ,
   STATUS INTEGER NOT NULL  default '0' ,
   VERSION INTEGER NOT NULL ,
@@ -316,6 +317,8 @@ CREATE TABLE nop_dyn_prop_meta(
       COMMENT ON COLUMN nop_dyn_module.BASE_MODULE_ID IS '基础模块ID';
                     
       COMMENT ON COLUMN nop_dyn_module.BASE_PACKAGE_NAME IS 'Java包名';
+                    
+      COMMENT ON COLUMN nop_dyn_module.ENTITY_PACKAGE_NAME IS '实体包名';
                     
       COMMENT ON COLUMN nop_dyn_module.MAVEN_GROUP_ID IS 'Maven组名';
                     

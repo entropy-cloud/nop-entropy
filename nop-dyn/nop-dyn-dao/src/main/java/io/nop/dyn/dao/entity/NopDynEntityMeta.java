@@ -13,6 +13,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.lang.ITagSetSupport;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.TagsHelper;
+import io.nop.dyn.dao.NopDynDaoConstants;
 import io.nop.dyn.dao.entity._gen._NopDynEntityMeta;
 import io.nop.orm.model.IEntityModel;
 
@@ -59,10 +60,12 @@ public class NopDynEntityMeta extends _NopDynEntityMeta implements ITagSetSuppor
             return entityName;
         NopDynModule module = getModule();
         if (module == null)
-            return "app." + entityName;
-        if (!module.getBasePackageName().endsWith(".entity"))
-            return module.getBasePackageName() + ".entity." + entityName;
-        return module.getBasePackageName() + "." + entityName;
+            return NopDynDaoConstants.DEFAULT_ENTITY_PACKAGE_NAME + '.' + entityName;
+        String entityPackageName = module.getEntityPackageName();
+        if (entityPackageName == null) {
+            entityPackageName = NopDynDaoConstants.DEFAULT_ENTITY_PACKAGE_NAME;
+        }
+        return entityPackageName + "." + entityName;
     }
 
     @Override
