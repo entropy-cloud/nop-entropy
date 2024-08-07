@@ -36,6 +36,8 @@ public interface ExcelErrors {
 
     String ARG_PAPER_SIZE = "paperSize";
 
+    String ARG_ERROR_DESC = "errorDesc";
+
     ErrorCode ERR_IMPORT_UNKNOWN_SHEET = define("nop.err.excel.import.unknown-sheet",
             "未定义的Excel表格:[{sheetName}],允许的名称为{allowedNames}", ARG_SHEET_NAME, ARG_ALLOWED_NAMES);
 
@@ -61,6 +63,11 @@ public interface ExcelErrors {
 
     ErrorCode ERR_IMPORT_FIELD_VALUE_NOT_IN_DICT = define("nop.err.excel.import.field-value-not-in-dict",
             "表格[{sheetName}]中的单元格[{cellPos}]的值不在字典表[{dictName}]中", ARG_SHEET_NAME, ARG_CELL_POS, ARG_DICT_NAME);
+
+    ErrorCode ERR_IMPORT_FIELD_VALUE_VALIDATE_FAIL =
+            define("nop.err.excel.import.field-value-validate-fail",
+                    "表格[{sheetName}]中的单元格[{cellPos}]的值验证失败: {errorDesc}",
+                    ARG_SHEET_NAME, ARG_CELL_POS, ARG_ERROR_DESC);
 
     ErrorCode ERR_IMPORT_MULTIPLE_ITEM_WITH_SAME_KEY = define("nop.err.excel.import.multiple-item-with-same-key",
             "列表属性[{fieldName}]中多个条目的属性[{keyProp}]的值相同：{key}", ARG_FIELD_NAME, ARG_KEY, ARG_KEY_PROP);

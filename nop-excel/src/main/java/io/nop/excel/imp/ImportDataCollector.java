@@ -9,6 +9,7 @@ package io.nop.excel.imp;
 
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
+import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.validate.IValidationErrorCollector;
@@ -16,6 +17,7 @@ import io.nop.commons.cache.ICache;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.dict.DictProvider;
+import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.model.object.DynamicObject;
 import io.nop.core.model.table.CellPosition;
@@ -40,15 +42,18 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static io.nop.api.core.ApiErrors.ARG_ERROR_CODE;
 import static io.nop.core.CoreErrors.ARG_CELL_POS;
 import static io.nop.core.CoreErrors.ARG_VALUE;
 import static io.nop.excel.ExcelErrors.ARG_ALLOWED_NAMES;
 import static io.nop.excel.ExcelErrors.ARG_ALLOWED_VALUES;
 import static io.nop.excel.ExcelErrors.ARG_DISPLAY_NAME;
+import static io.nop.excel.ExcelErrors.ARG_ERROR_DESC;
 import static io.nop.excel.ExcelErrors.ARG_FIELD_LABEL;
 import static io.nop.excel.ExcelErrors.ARG_FIELD_NAME;
 import static io.nop.excel.ExcelErrors.ARG_SHEET_NAME;
 import static io.nop.excel.ExcelErrors.ERR_IMPORT_FIELD_VALUE_NOT_IN_DICT;
+import static io.nop.excel.ExcelErrors.ERR_IMPORT_FIELD_VALUE_VALIDATE_FAIL;
 import static io.nop.excel.ExcelErrors.ERR_IMPORT_MANDATORY_FIELD_IS_EMPTY;
 import static io.nop.excel.ExcelErrors.ERR_IMPORT_MISSING_MANDATORY_FIELD;
 
@@ -244,15 +249,17 @@ public class ImportDataCollector implements ITableDataEventListener {
                 } else {
                     value = option.getValue();
                 }
-            }else{
-                try {
-                    SimpleSchemaValidator.INSTANCE.validate(field.getSchema(), null, field.getName(), value, scope, IValidationErrorCollector.THROW_ERROR);
-                }catch(NopException e){
-                    e.param(ARG_SHEET_NAME, sheetName)
-                            .param(ARG_FIELD_NAME, field.getName()).param(ARG_FIELD_LABEL, field.getFieldLabel())
-                            .param(ARG_CELL_POS, CellPosition.toABString(rowIndex, colIndex));
-                    throw e;
-                }
+            } else {
+                SimpleSchemaValidator.INSTANCE.validate(field.getSchema(), null, field.getName(), value, scope, new IValidationErrorCollector() {
+                    @Override
+                    public void addError(ErrorBean error) {
+                        throw new NopException(ERR_IMPORT_FIELD_VALUE_VALIDATE_FAIL).param(ARG_SHEET_NAME, sheetName)
+                                .param(ARG_FIELD_NAME, field.getName()).param(ARG_FIELD_LABEL, field.getFieldLabel())
+                                .param(ARG_CELL_POS, CellPosition.toABString(rowIndex, colIndex))
+                                .param(ARG_ERROR_CODE, error.getErrorCode())
+                                .param(ARG_ERROR_DESC, ErrorMessageManager.instance().resolveErrorBean(error, false).getDescription());
+                    }
+                });
             }
             String stdDomain = field.getSchema().getStdDomain();
             if (stdDomain != null) {
@@ -309,7 +316,7 @@ public class ImportDataCollector implements ITableDataEventListener {
                 if (isPropEmpty(obj, field.getPropOrName()))
                     throw new NopException(ERR_IMPORT_MISSING_MANDATORY_FIELD).param(ARG_SHEET_NAME, sheetName)
                             .param(ARG_FIELD_NAME, field.getName()).param(ARG_FIELD_LABEL, field.getFieldLabel())
-                            .param(ARG_ALLOWED_NAMES,fieldMap.keySet());
+                            .param(ARG_ALLOWED_NAMES, fieldMap.keySet());
             }
         }
     }
