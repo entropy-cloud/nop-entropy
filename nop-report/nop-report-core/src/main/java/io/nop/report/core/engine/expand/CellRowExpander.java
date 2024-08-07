@@ -149,12 +149,12 @@ public class CellRowExpander extends AbstractCellExpander {
 
         while (nextCell != null) {
             if (cell == nextCell) {
-                copyCellValue(nextCell, newCell);
+                copyCellValue(nextCell, newCell,true);
                 newCell.setExpandIndex(expandIndex);
                 newCell.setExpandValue(expandValue);
                 cellMap.put(nextCell, newCell);
             } else if (xptModel != null && xptModel.getRowDuplicateCells().containsKey(nextCell.getName())) {
-                copyCellValue(nextCell, newCell);
+                copyCellValue(nextCell, newCell,true);
                 cellMap.put(nextCell, newCell);
                 if (newCell.isExpandable())
                     processing.add(newCell);

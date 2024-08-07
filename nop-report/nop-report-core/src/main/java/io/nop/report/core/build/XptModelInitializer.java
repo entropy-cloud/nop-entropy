@@ -528,11 +528,24 @@ public class XptModelInitializer {
             // 2. 且不是展开单元格的子单元格
             if (rcModel.getRowIndex() <= beginIndex
                     && rcModel.getRowIndex() + rc.getRowSpan() >= endIndex) {
-                if (!xptModel.getRowDuplicateCells().containsKey(name) && !Boolean.FALSE.equals(rcModel.getRowExtendForSibling())) {
-                    xptModel.addRowExtendCell(rc);
+                if (!xptModel.getRowDuplicateCells().containsKey(name)) {
+                    if (isRowExtendForSibling(rcModel, sheet.getModel())
+                            || rcModel.getRowIndex() + rc.getRowSpan() > endIndex // 除非不延展就会被插入的新行撕
+                            || xptModel.getRowParent(name) != null
+                    ) {
+                        xptModel.addRowExtendCell(rc);
+                    }
                 }
             }
         }
+    }
+
+    private boolean isRowExtendForSibling(XptCellModel rcModel, XptSheetModel sheetModel) {
+        if (rcModel.getRowExtendForSibling() != null)
+            return rcModel.getRowExtendForSibling();
+        if (sheetModel.getDefaultRowExtendForSibling() != null)
+            return sheetModel.getDefaultRowExtendForSibling();
+        return true;
     }
 
     private void collectColExtendCells(ExcelSheet sheet, ExcelCell cell) {
@@ -561,11 +574,24 @@ public class XptModelInitializer {
             // 2. 且不是展开单元格的子单元格
             if (rcModel.getColIndex() <= beginIndex
                     && rcModel.getColIndex() + rc.getColSpan() >= endIndex) {
-                if (!xptModel.getColDuplicateCells().containsKey(name) && !Boolean.FALSE.equals(rcModel.getColExtendForSibling())) {
-                    xptModel.addColExtendCell(rc);
+                if (!xptModel.getColDuplicateCells().containsKey(name)) {
+                    if (isColExtendForSibling(rcModel, sheet.getModel())
+                            || rcModel.getColIndex() + rc.getColSpan() > endIndex // 除非不延展就会被插入的新行撕
+                            || xptModel.getColParent(name) != null
+                    ) {
+                        xptModel.addColExtendCell(rc);
+                    }
                 }
             }
         }
+    }
+
+    private boolean isColExtendForSibling(XptCellModel rcModel, XptSheetModel sheetModel) {
+        if (rcModel.getColExtendForSibling() != null)
+            return rcModel.getColExtendForSibling();
+        if (sheetModel.getDefaultColExtendForSibling() != null)
+            return sheetModel.getDefaultColExtendForSibling();
+        return true;
     }
 
     private void addDefaultRowParents(ExcelCell cell, ExcelTable table) {

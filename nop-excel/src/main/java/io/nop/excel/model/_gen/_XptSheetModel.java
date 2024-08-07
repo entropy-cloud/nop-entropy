@@ -39,6 +39,20 @@ public abstract class _XptSheetModel extends io.nop.core.resource.component.Abst
     
     /**
      *  
+     * xml name: defaultColExtendForSibling
+     * 
+     */
+    private java.lang.Boolean _defaultColExtendForSibling ;
+    
+    /**
+     *  
+     * xml name: defaultRowExtendForSibling
+     * 
+     */
+    private java.lang.Boolean _defaultRowExtendForSibling ;
+    
+    /**
+     *  
      * xml name: endLoop
      * 
      */
@@ -141,6 +155,44 @@ public abstract class _XptSheetModel extends io.nop.core.resource.component.Abst
         checkAllowChange();
         
         this._beginLoop = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: defaultColExtendForSibling
+     *  
+     */
+    
+    public java.lang.Boolean getDefaultColExtendForSibling(){
+      return _defaultColExtendForSibling;
+    }
+
+    
+    public void setDefaultColExtendForSibling(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._defaultColExtendForSibling = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: defaultRowExtendForSibling
+     *  
+     */
+    
+    public java.lang.Boolean getDefaultRowExtendForSibling(){
+      return _defaultRowExtendForSibling;
+    }
+
+    
+    public void setDefaultRowExtendForSibling(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._defaultRowExtendForSibling = value;
            
     }
 
@@ -298,6 +350,8 @@ public abstract class _XptSheetModel extends io.nop.core.resource.component.Abst
         out.putNotNull("afterExpand",this.getAfterExpand());
         out.putNotNull("beforeExpand",this.getBeforeExpand());
         out.putNotNull("beginLoop",this.getBeginLoop());
+        out.putNotNull("defaultColExtendForSibling",this.getDefaultColExtendForSibling());
+        out.putNotNull("defaultRowExtendForSibling",this.getDefaultRowExtendForSibling());
         out.putNotNull("endLoop",this.getEndLoop());
         out.putNotNull("loopIndexName",this.getLoopIndexName());
         out.putNotNull("loopItemsName",this.getLoopItemsName());
@@ -319,6 +373,8 @@ public abstract class _XptSheetModel extends io.nop.core.resource.component.Abst
         instance.setAfterExpand(this.getAfterExpand());
         instance.setBeforeExpand(this.getBeforeExpand());
         instance.setBeginLoop(this.getBeginLoop());
+        instance.setDefaultColExtendForSibling(this.getDefaultColExtendForSibling());
+        instance.setDefaultRowExtendForSibling(this.getDefaultRowExtendForSibling());
         instance.setEndLoop(this.getEndLoop());
         instance.setLoopIndexName(this.getLoopIndexName());
         instance.setLoopItemsName(this.getLoopItemsName());

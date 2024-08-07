@@ -9,10 +9,8 @@ package io.nop.excel.imp;
 
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
-import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
@@ -250,16 +248,14 @@ public class ImportDataCollector implements ITableDataEventListener {
                     value = option.getValue();
                 }
             } else {
-                SimpleSchemaValidator.INSTANCE.validate(field.getSchema(), null, field.getName(), value, scope, new IValidationErrorCollector() {
-                    @Override
-                    public void addError(ErrorBean error) {
-                        throw new NopException(ERR_IMPORT_FIELD_VALUE_VALIDATE_FAIL).param(ARG_SHEET_NAME, sheetName)
-                                .param(ARG_FIELD_NAME, field.getName()).param(ARG_FIELD_LABEL, field.getFieldLabel())
-                                .param(ARG_CELL_POS, CellPosition.toABString(rowIndex, colIndex))
-                                .param(ARG_ERROR_CODE, error.getErrorCode())
-                                .param(ARG_ERROR_DESC, ErrorMessageManager.instance().resolveErrorBean(error, false).getDescription());
-                    }
-                });
+                SimpleSchemaValidator.INSTANCE.validate(field.getSchema(), null, field.getName(), value, scope,
+                        error -> {
+                            throw new NopException(ERR_IMPORT_FIELD_VALUE_VALIDATE_FAIL).param(ARG_SHEET_NAME, sheetName)
+                                    .param(ARG_FIELD_NAME, field.getName()).param(ARG_FIELD_LABEL, field.getFieldLabel())
+                                    .param(ARG_CELL_POS, CellPosition.toABString(rowIndex, colIndex))
+                                    .param(ARG_ERROR_CODE, error.getErrorCode())
+                                    .param(ARG_ERROR_DESC, ErrorMessageManager.instance().resolveErrorBean(error, false).getDescription());
+                        });
             }
             String stdDomain = field.getSchema().getStdDomain();
             if (stdDomain != null) {

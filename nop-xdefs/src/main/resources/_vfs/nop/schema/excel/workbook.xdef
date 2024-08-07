@@ -48,8 +48,7 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
     <defaultFont xdef:ref="ExcelFont"/>
 
     <sheets xdef:body-type="list" xdef:key-attr="name">
-        <sheet name="!string" xdef:name="ExcelSheet" defaultColumnWidth="double" defaultRowHeight="double"
-        >
+        <sheet name="!string" xdef:name="ExcelSheet" defaultColumnWidth="double" defaultRowHeight="double">
             <table xdef:name="ExcelTable"
                    xdef:bean-extends-type="io.nop.core.model.table.impl.AbstractTable&lt;io.nop.excel.model.ExcelRow>"
             >
@@ -102,7 +101,7 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
                                 -->
                                 <model xdef:name="XptCellModel" domain="string" editorId="var-name" viewerId="var-name"
                                        field="prop-name" ds="var-name" expandInplaceCount="int"
-                                       exportFormula="!boolean=false"  expandMaxCount="int" expandMinCount="int"
+                                       exportFormula="!boolean=false" expandMaxCount="int" expandMinCount="int"
                                        expandType="enum:io.nop.excel.model.constants.XptExpandType"
                                        keepExpandEmpty="boolean" exportFormattedValue="!boolean=false"
                                        rowExtendForSibling="boolean" colExtendForSibling="boolean"
@@ -230,6 +229,7 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
                     如果没有指定sheetVarName, 则field=x，实际对应scope.getValue('x')
             -->
             <model xdef:name="XptSheetModel" sheetVarName="string"
+                   defaultRowExtendForSibling="boolean" defaultColExtendForSibling="boolean"
                    loopVarName="var-name" loopIndexName="var-name" loopItemsName="var-name">
                 <!--
                 如果返回false，则跳过当前sheet的生成。判断通过之后才会执行beginLoop

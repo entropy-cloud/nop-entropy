@@ -97,5 +97,13 @@ public interface XptConstants {
 
     String EXT_PROP_XPT_EXPORT_FORMATTED_VALUE = "xpt:exportFormattedValue";
 
+    String EXT_PROP_XPT_ROW_EXTEND_FOR_SIBLING = "xpt:rowExtendForSibling";
+
+    String EXT_PROP_XPT_COL_EXTEND_FOR_SIBLING = "xpt:colExtendForSibling";
+
+    String EXT_PROP_XPT_DEFAULT_ROW_EXTEND_FOR_SIBLING = "xpt:defaultRowExtendForSibling";
+
+    String EXT_PROP_XPT_DEFAULT_COL_EXTEND_FOR_SIBLING = "xpt:defaultColExtendForSibling";
+
     String PROP_FORMULA_EXPR = "formulaExpr";
 }

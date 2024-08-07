@@ -153,6 +153,20 @@ public class ExcelTemplateToXptModelTransformer {
                 return ProcessResult.CONTINUE;
             });
 
+            Boolean rowExtendForSibling = ConvertHelper.toBoolean(sheetModel.prop_get(XptConstants.EXT_PROP_XPT_DEFAULT_ROW_EXTEND_FOR_SIBLING));
+            if (rowExtendForSibling != null) {
+                xptModel.setDefaultRowExtendForSibling(rowExtendForSibling);
+            } else {
+                xptModel.setDefaultRowExtendForSibling(false);
+            }
+
+            Boolean colExtendForSibling = ConvertHelper.toBoolean(sheetModel.prop_get(XptConstants.EXT_PROP_XPT_DEFAULT_COL_EXTEND_FOR_SIBLING));
+            if (colExtendForSibling != null) {
+                xptModel.setDefaultColExtendForSibling(colExtendForSibling);
+            } else {
+                xptModel.setDefaultColExtendForSibling(false);
+            }
+
             XNode beforeExpandNode = XNode.fromValue(sheetModel.prop_get(XptConstants.EXT_PROP_XPT_BEFORE_EXPAND));
             if (beforeExpandNode != null) {
                 IEvalAction action = compileTool.compileTagBodyWithSource(beforeExpandNode, XLangOutputMode.none);
@@ -409,6 +423,17 @@ public class ExcelTemplateToXptModelTransformer {
             if (exportFormattedValue != null) {
                 cellModel.setExportFormattedValue(exportFormattedValue);
             }
+
+            Boolean rowExtendForSibling = ConvertHelper.toBoolean(fieldModel.prop_get(XptConstants.EXT_PROP_XPT_ROW_EXTEND_FOR_SIBLING));
+            if (rowExtendForSibling != null) {
+                cellModel.setRowExtendForSibling(rowExtendForSibling);
+            }
+
+            Boolean colExtendForSibling = ConvertHelper.toBoolean(fieldModel.prop_get(XptConstants.EXT_PROP_XPT_COL_EXTEND_FOR_SIBLING));
+            if (colExtendForSibling != null) {
+                cellModel.setColExtendForSibling(colExtendForSibling);
+            }
+
 
             // 只考虑第一行
             if (parent.childIndex > 0)

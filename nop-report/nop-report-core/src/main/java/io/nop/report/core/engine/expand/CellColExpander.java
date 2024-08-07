@@ -142,12 +142,12 @@ public class CellColExpander extends AbstractCellExpander {
 
         while (nextCell != null) {
             if (cell == nextCell) {
-                copyCellValue(nextCell, newCell);
+                copyCellValue(nextCell, newCell,false);
                 newCell.setExpandIndex(expandIndex);
                 newCell.setExpandValue(expandValue);
                 cellMap.put(nextCell, newCell);
             } else if (xptModel != null && xptModel.getColDuplicateCells().containsKey(nextCell.getName())) {
-                copyCellValue(nextCell, newCell);
+                copyCellValue(nextCell, newCell,false);
                 cellMap.put(nextCell, newCell);
                 if (newCell.isExpandable())
                     processing.add(newCell);

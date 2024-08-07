@@ -31468,7 +31468,22 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "DEFAULT_ENTITY_PACKAGE_NAME"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "EXT_ORM_REF_TABLE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "NAME_REF_ENTITY1"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "NAME_REF_ENTITY2"
       },
       {
         "allowUnsafeAccess": false,
@@ -31633,8 +31648,18 @@
         "parameterTypes": []
       },
       {
+        "name": "getFullEntityName",
+        "parameterTypes": []
+      },
+      {
         "name": "getMainPagePath",
         "parameterTypes": []
+      },
+      {
+        "name": "getPropByName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
       },
       {
         "name": "getTagSet",
@@ -31643,6 +31668,12 @@
       {
         "name": "isHasProp",
         "parameterTypes": []
+      },
+      {
+        "name": "requirePropByName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
       },
       {
         "name": "setEntityModel",
@@ -32391,6 +32422,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_moduleId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_precision"
       },
       {
@@ -32456,6 +32492,16 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_module"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_moduleId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_precision"
       },
       {
@@ -32517,6 +32563,14 @@
       },
       {
         "name": "getDomainName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getModule",
+        "parameterTypes": []
+      },
+      {
+        "name": "getModuleId",
         "parameterTypes": []
       },
       {
@@ -32631,6 +32685,18 @@
       },
       {
         "name": "setDomainName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setModule",
+        "parameterTypes": [
+          "io.nop.dyn.dao.entity.NopDynModule"
+        ]
+      },
+      {
+        "name": "setModuleId",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -34356,6 +34422,16 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_refSetKeyProp"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_refSetSort"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_relMetaId"
       },
       {
@@ -34516,6 +34592,16 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_refSetKeyProp"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_refSetSort"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_relMetaId"
       },
       {
@@ -34658,6 +34744,14 @@
       },
       {
         "name": "getRefEntityMetaId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRefSetKeyProp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRefSetSort",
         "parameterTypes": []
       },
       {
@@ -34870,6 +34964,18 @@
       },
       {
         "name": "setRefEntityMetaId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRefSetKeyProp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRefSetSort",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -35799,6 +35905,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_entityPackageName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_mavenGroupId"
       },
       {
@@ -35879,7 +35990,17 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_domains"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_entityMetas"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_entityPackageName"
       },
       {
         "allowUnsafeAccess": false,
@@ -35975,7 +36096,15 @@
         "parameterTypes": []
       },
       {
+        "name": "getDomains",
+        "parameterTypes": []
+      },
+      {
         "name": "getEntityMetas",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEntityPackageName",
         "parameterTypes": []
       },
       {
@@ -36120,6 +36249,12 @@
       },
       {
         "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setEntityPackageName",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -38461,6 +38596,14 @@
         "name": "generateByAI",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "importExcel",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean",
+          "io.nop.core.context.IServiceContext"
         ]
       },
       {
@@ -76968,6 +77111,12 @@
         "name": "setValidator",
         "parameterTypes": [
           "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setValidator",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalFunction"
         ]
       },
       {

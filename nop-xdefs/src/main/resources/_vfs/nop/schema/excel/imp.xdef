@@ -34,6 +34,7 @@
                multiple="!boolean=false" list="!boolean=false" mandatory="!boolean=false" displayMode="string"
                field="string" sheetVarName="string" keyProp="string" multipleAsMap="!boolean=false"
                imp:treeChildrenProp="string" imp:treeChildKeyProp="string" imp:treeLevelProp="string"
+               xpt:defaultRowExtendForSibling="boolean" xpt:defaultColExtendForSibling="boolean"
         >
 
             <description xdef:value="string"/>
@@ -65,6 +66,7 @@
                        list="!boolean=false" computed="!boolean=false" virtual="!boolean=false" groupField="xml-name"
                        keyProp="string" alias="csv-set" prop="string" ignoreWhenEmpty="!boolean=false"
                        xpt:formatExpr="string" xpt:exportFormula="boolean"  xpt:exportFormattedValue="boolean"
+                       xpt:rowExtendForSibling="boolean" xpt:colExtendForSibling="boolean"
                        imp:treeChildrenProp="string" imp:treeChildKeyProp="string" imp:treeLevelProp="string"
                 >
                     <when xdef:value="xpl-predicate"/>

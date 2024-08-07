@@ -144,11 +144,14 @@ public abstract class AbstractCellExpander implements ICellExpander {
         return ret;
     }
 
-    protected void copyCellValue(ExpandedCell nextCell, ExpandedCell newCell) {
+    protected void copyCellValue(ExpandedCell nextCell, ExpandedCell newCell, boolean row) {
         newCell.setModel(nextCell.getModel());
         newCell.setValue(nextCell.getValue());
-        newCell.setMergeAcross(nextCell.getMergeAcross());
-        newCell.setMergeDown(nextCell.getMergeDown());
+        if(row) {
+            newCell.setMergeAcross(nextCell.getMergeAcross());
+        }else {
+            newCell.setMergeDown(nextCell.getMergeDown());
+        }
         newCell.setStyleId(nextCell.getStyleId());
         newCell.setRowParent(nextCell.getRowParent());
         newCell.setColParent(nextCell.getColParent());
