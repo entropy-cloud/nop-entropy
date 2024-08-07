@@ -301,10 +301,10 @@ public class ObjMetaBasedValidator {
                                IObjSchema objSchema, IEvalScope scope) {
         if (schema != null) {
             if (schema.isSimpleSchema()) {
-                SimpleSchemaValidator.INSTANCE.validate(schema, null, subPropName, value, scope, this.context,
+                SimpleSchemaValidator.INSTANCE.validate(schema, null, subPropName, value, scope,
                         IValidationErrorCollector.THROW_ERROR);
             } else if (schema.getValidator() != null) {
-                schema.getValidator().invoke(scope);
+                schema.getValidator().call1(null, value, scope);
             }
 
             String dictName = schema.getDict();

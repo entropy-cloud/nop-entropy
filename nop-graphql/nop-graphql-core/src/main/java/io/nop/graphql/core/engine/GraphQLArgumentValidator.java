@@ -95,7 +95,7 @@ public class GraphQLArgumentValidator {
 
                 SimpleSchemaValidator.INSTANCE.validate(argDef.getSchema(), argDef.getLocation(),
                         argDef.getName(), value, context.getEvalScope(),
-                        context.getServiceContext(), DefaultValidationErrorCollector.THROW_ERROR);
+                        DefaultValidationErrorCollector.THROW_ERROR);
             }
         }
     }

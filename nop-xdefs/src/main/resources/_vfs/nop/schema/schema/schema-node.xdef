@@ -19,6 +19,6 @@ schema节点的基类
 >
     <description xdef:value="string"/>
 
-    <validator xdef:value="xpl"/>
+    <validator xdef:value="xpl-fn:(value)=>any"/>
 
 </schema>

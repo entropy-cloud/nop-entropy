@@ -91,7 +91,7 @@ public abstract class _SchemaNodeImpl extends io.nop.core.resource.component.Abs
      * xml name: validator
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _validator ;
+    private io.nop.core.lang.eval.IEvalFunction _validator ;
     
     /**
      * 
@@ -289,12 +289,12 @@ public abstract class _SchemaNodeImpl extends io.nop.core.resource.component.Abs
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getValidator(){
+    public io.nop.core.lang.eval.IEvalFunction getValidator(){
       return _validator;
     }
 
     
-    public void setValidator(io.nop.core.lang.eval.IEvalAction value){
+    public void setValidator(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._validator = value;

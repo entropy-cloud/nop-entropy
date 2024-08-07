@@ -12,7 +12,6 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.commons.util.MathHelper;
-import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
@@ -37,7 +36,7 @@ public class SimpleSchemaValidator {
     public static final SimpleSchemaValidator INSTANCE = new SimpleSchemaValidator();
 
     public void validate(ISchema schema, SourceLocation loc, String propName, Object value,
-                         IEvalScope scope, IServiceContext ctx,
+                         IEvalScope scope,
                          IValidationErrorCollector collector) {
         if (value == null)
             return;
@@ -73,7 +72,7 @@ public class SimpleSchemaValidator {
 
         if (schema.getValidator() != null) {
             try {
-                schema.getValidator().invoke(scope);
+                schema.getValidator().call1(null, value, scope);
             } catch (Exception e) {
                 collector.addException(e);
             }

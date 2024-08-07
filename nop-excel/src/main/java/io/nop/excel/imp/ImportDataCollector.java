@@ -11,6 +11,7 @@ import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
@@ -30,6 +31,7 @@ import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.api.source.IWithSourceCode;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
+import io.nop.xlang.xmeta.SimpleSchemaValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -242,6 +244,15 @@ public class ImportDataCollector implements ITableDataEventListener {
                 } else {
                     value = option.getValue();
                 }
+            }else{
+                try {
+                    SimpleSchemaValidator.INSTANCE.validate(field.getSchema(), null, field.getName(), value, scope, IValidationErrorCollector.THROW_ERROR);
+                }catch(NopException e){
+                    e.param(ARG_SHEET_NAME, sheetName)
+                            .param(ARG_FIELD_NAME, field.getName()).param(ARG_FIELD_LABEL, field.getFieldLabel())
+                            .param(ARG_CELL_POS, CellPosition.toABString(rowIndex, colIndex));
+                    throw e;
+                }
             }
             String stdDomain = field.getSchema().getStdDomain();
             if (stdDomain != null) {
@@ -254,18 +265,6 @@ public class ImportDataCollector implements ITableDataEventListener {
                     if (value instanceof ExprEvalAction && !(value instanceof IWithSourceCode)) {
                         value = EvalCode.addSource((ExprEvalAction) value, source);
                     }
-                }
-            }
-
-            if (field.getSchema().getValidator() != null) {
-                scope.setLocalValue(null, ExcelConstants.VAR_VALUE, value);
-
-                try {
-                    field.getSchema().getValidator().invoke(scope);
-                } catch (NopException e) {
-                    throw e.param(ARG_SHEET_NAME, sheetName)
-                            .param(ARG_FIELD_NAME, field.getName()).param(ARG_FIELD_LABEL, field.getFieldLabel())
-                            .param(ARG_CELL_POS, CellPosition.toABString(rowIndex, colIndex));
                 }
             }
         }
