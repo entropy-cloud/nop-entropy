@@ -82,10 +82,10 @@ public class SimpleSheetContentsHandler implements SheetContentsHandler {
                 sheet.getName(), cellRef.toABString(), null));
         if (styleId >= 0) {
             cell.setStyleId(String.valueOf(styleId));
-            if (value instanceof Double) {
+            if (value instanceof Number) {
                 ExcelStyle style = workbook.getStyle(cell.getStyleId());
                 if (style != null && style.isDateFormat()) {
-                    value = ExcelDateHelper.excelDateToLocalDateTime((Double) value);
+                    value = ExcelDateHelper.excelDateToLocalDateTime(((Number) value).doubleValue());
                 }
             }
         }

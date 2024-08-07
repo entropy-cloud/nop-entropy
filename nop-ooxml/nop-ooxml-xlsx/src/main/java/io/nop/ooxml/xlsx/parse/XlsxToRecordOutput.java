@@ -93,10 +93,10 @@ public class XlsxToRecordOutput extends AbstractXlsxParser {
         @Override
         public void cell(CellPosition cellRef, Object value, String formulaStr, int styleId) {
             if (styleId >= 0) {
-                if (value instanceof Double) {
+                if (value instanceof Number) {
                     ExcelStyle style = workbook.getStyle(String.valueOf(styleId));
                     if (style != null && style.isDateFormat()) {
-                        value = ExcelDateHelper.excelDateToLocalDateTime((Double) value);
+                        value = ExcelDateHelper.excelDateToLocalDateTime(((Number) value).doubleValue());
                     }
                 }
             }
