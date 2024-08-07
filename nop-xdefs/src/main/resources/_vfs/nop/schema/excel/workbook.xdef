@@ -93,8 +93,8 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
                                 @expandInplaceCount 在模板中已经预留了几个展开单元格空间。如果展开表达式返回个数小于这个值，则不需要新增单元格。
                                 @expandMaxCount 控制展开表达式最多返回多少行
                                 @expandMinCount 控制展开表达式返回的条目数不足时，自动补空行
-                                @rowExtendForSibling 同一行的兄弟单元格展开时是否自动拉伸本单元格
-                                @colExtendForSibling 同一列的兄弟单元格展开时是否自动拉伸本单元格
+                                @rowExtendForSibling 同一行的兄弟单元格展开时是否自动拉伸本单元格。缺省为true
+                                @colExtendForSibling 同一列的兄弟单元格展开时是否自动拉伸本单元格。缺省为true
                                 @keepExpandEmpty 当展开集合为空时，如果设置为false，则会删除模板中定义的单元格以及它所在的行或者列。
                                            但是如果keepExpandEmpty为true，则只是清除当前单元格以及所有子单元格的内容，但是并不自动删除。缺省为true
                                 @exportFormattedValue 如果设置为true，则导出Excel时会应用formatExpr或者Excel配置的NumberFormat，
@@ -105,7 +105,7 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
                                        exportFormula="!boolean=false"  expandMaxCount="int" expandMinCount="int"
                                        expandType="enum:io.nop.excel.model.constants.XptExpandType"
                                        keepExpandEmpty="boolean" exportFormattedValue="!boolean=false"
-                                       rowExtendForSibling="!boolean=false" colExtendForSibling="!boolean=false"
+                                       rowExtendForSibling="boolean" colExtendForSibling="boolean"
                                        rowParent="cell-pos" colParent="cell-pos"
                                        qr:barcodeFormat="string" qr:margin="int" qr:imgType="string" qr:width="double"
                                        qr:height="double" qr:encoding="string" qr:errorCorrection="int"

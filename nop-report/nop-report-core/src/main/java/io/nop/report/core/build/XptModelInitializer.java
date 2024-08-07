@@ -528,11 +528,8 @@ public class XptModelInitializer {
             // 2. 且不是展开单元格的子单元格
             if (rcModel.getRowIndex() <= beginIndex
                     && rcModel.getRowIndex() + rc.getRowSpan() >= endIndex) {
-                if (!xptModel.getRowDuplicateCells().containsKey(name)) {
-                    if (rcModel.isRowExtendForSibling()
-                            || rcModel.getRowIndex() + rc.getRowSpan() > endIndex // 除非不延展就会被插入的新行撕裂
-                            || xptModel.getRowParent(name) != null)
-                        xptModel.addRowExtendCell(rc);
+                if (!xptModel.getRowDuplicateCells().containsKey(name) && !Boolean.FALSE.equals(rcModel.getRowExtendForSibling())) {
+                    xptModel.addRowExtendCell(rc);
                 }
             }
         }
@@ -564,11 +561,8 @@ public class XptModelInitializer {
             // 2. 且不是展开单元格的子单元格
             if (rcModel.getColIndex() <= beginIndex
                     && rcModel.getColIndex() + rc.getColSpan() >= endIndex) {
-                if (!xptModel.getColDuplicateCells().containsKey(name)) {
-                    if (rcModel.isColExtendForSibling()
-                            || rcModel.getColIndex() + rc.getColSpan() > endIndex // 除非不延展就会被插入的新列撕裂
-                            || xptModel.getColParent(name) != null)
-                        xptModel.addColExtendCell(rc);
+                if (!xptModel.getColDuplicateCells().containsKey(name) && !Boolean.FALSE.equals(rcModel.getColExtendForSibling())) {
+                    xptModel.addColExtendCell(rc);
                 }
             }
         }

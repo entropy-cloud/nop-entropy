@@ -19,9 +19,9 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     /**
      *  
      * xml name: colExtendForSibling
-     * 同一列的兄弟单元格展开时是否自动拉伸本单元格
+     * 同一列的兄弟单元格展开时是否自动拉伸本单元格。缺省为true
      */
-    private boolean _colExtendForSibling  = false;
+    private java.lang.Boolean _colExtendForSibling ;
     
     /**
      *  
@@ -156,9 +156,9 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     /**
      *  
      * xml name: rowExtendForSibling
-     * 同一行的兄弟单元格展开时是否自动拉伸本单元格
+     * 同一行的兄弟单元格展开时是否自动拉伸本单元格。缺省为true
      */
-    private boolean _rowExtendForSibling  = false;
+    private java.lang.Boolean _rowExtendForSibling ;
     
     /**
      *  
@@ -198,15 +198,15 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     /**
      * 
      * xml name: colExtendForSibling
-     *  同一列的兄弟单元格展开时是否自动拉伸本单元格
+     *  同一列的兄弟单元格展开时是否自动拉伸本单元格。缺省为true
      */
     
-    public boolean isColExtendForSibling(){
+    public java.lang.Boolean getColExtendForSibling(){
       return _colExtendForSibling;
     }
 
     
-    public void setColExtendForSibling(boolean value){
+    public void setColExtendForSibling(java.lang.Boolean value){
         checkAllowChange();
         
         this._colExtendForSibling = value;
@@ -563,15 +563,15 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     /**
      * 
      * xml name: rowExtendForSibling
-     *  同一行的兄弟单元格展开时是否自动拉伸本单元格
+     *  同一行的兄弟单元格展开时是否自动拉伸本单元格。缺省为true
      */
     
-    public boolean isRowExtendForSibling(){
+    public java.lang.Boolean getRowExtendForSibling(){
       return _rowExtendForSibling;
     }
 
     
-    public void setRowExtendForSibling(boolean value){
+    public void setRowExtendForSibling(java.lang.Boolean value){
         checkAllowChange();
         
         this._rowExtendForSibling = value;
@@ -689,7 +689,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("colExtendForSibling",this.isColExtendForSibling());
+        out.putNotNull("colExtendForSibling",this.getColExtendForSibling());
         out.putNotNull("colParent",this.getColParent());
         out.putNotNull("colTestExpr",this.getColTestExpr());
         out.putNotNull("domain",this.getDomain());
@@ -708,7 +708,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         out.putNotNull("keepExpandEmpty",this.getKeepExpandEmpty());
         out.putNotNull("linkExpr",this.getLinkExpr());
         out.putNotNull("processExpr",this.getProcessExpr());
-        out.putNotNull("rowExtendForSibling",this.isRowExtendForSibling());
+        out.putNotNull("rowExtendForSibling",this.getRowExtendForSibling());
         out.putNotNull("rowParent",this.getRowParent());
         out.putNotNull("rowTestExpr",this.getRowTestExpr());
         out.putNotNull("styleIdExpr",this.getStyleIdExpr());
@@ -725,7 +725,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     protected void copyTo(XptCellModel instance){
         super.copyTo(instance);
         
-        instance.setColExtendForSibling(this.isColExtendForSibling());
+        instance.setColExtendForSibling(this.getColExtendForSibling());
         instance.setColParent(this.getColParent());
         instance.setColTestExpr(this.getColTestExpr());
         instance.setDomain(this.getDomain());
@@ -744,7 +744,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         instance.setKeepExpandEmpty(this.getKeepExpandEmpty());
         instance.setLinkExpr(this.getLinkExpr());
         instance.setProcessExpr(this.getProcessExpr());
-        instance.setRowExtendForSibling(this.isRowExtendForSibling());
+        instance.setRowExtendForSibling(this.getRowExtendForSibling());
         instance.setRowParent(this.getRowParent());
         instance.setRowTestExpr(this.getRowTestExpr());
         instance.setStyleIdExpr(this.getStyleIdExpr());

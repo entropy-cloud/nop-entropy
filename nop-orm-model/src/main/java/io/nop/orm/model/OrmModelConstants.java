@@ -104,6 +104,7 @@ public interface OrmModelConstants {
 
     String EXT_BASE_PACKAGE_NAME = "ext:basePackageName";
     String EXT_MAVEN_GROUP_ID = "ext:mavenGroupId";
+    String EXT_ENTITY_PACKAGE_NAME = "ext:entityPackageName";
 
 //    String EXT_MODULE_NAME = "ext:moduleName";
 
@@ -116,6 +117,10 @@ public interface OrmModelConstants {
 
     String EXT_UI_CONTROL = "ui:control";
     String EXT_UI_SHOW = "ui:show";
+
+    String EXT_KIND = "ext:kind";
+
+    String KIND_TO_MANY = "to-many";
 
     String ORM_MANY_TO_MANY_REF_PROP = "orm:manyToManyRefProp";
 

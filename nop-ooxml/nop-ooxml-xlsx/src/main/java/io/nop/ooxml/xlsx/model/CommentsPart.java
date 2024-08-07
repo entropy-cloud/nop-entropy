@@ -48,8 +48,6 @@ public class CommentsPart {
         public void beginNode(SourceLocation loc, String tagName, Map<String, ValueWithLocation> attrs) {
             if (tagName.equals("comment")) {
                 cellPos = CellPosition.fromABString(getAttr(attrs, "ref"));
-            }
-            if (tagName.equals("t")) {
                 buf.setLength(0);
             }
         }
