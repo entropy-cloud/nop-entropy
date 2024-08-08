@@ -796,7 +796,7 @@
                if(dlgProps?.actions?.length > 0){
                    dlgProps.actions = dlgProps.actions.map(a=>xpl('thisLib:NormalizeAction',a,{}));
                }else{
-                   dlgProps.actions = null;
+                   dlgProps.remove('actions');
                }
                if(dialog?.noActions)
                    dlgProps.actions = []

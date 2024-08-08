@@ -62,6 +62,6 @@ public interface RuleErrors {
             define("nop.err.rule.invalid-output-cell", "输出单元格格式不正确：{cellPos}");
 
     ErrorCode ERR_RULE_INPUT_VAR_NOT_ALLOW_EMPTY =
-            define("nop.err.rule.input-var-not-allow-empty", "输入变量不允许为空:name={varName},displayName={}",
+            define("nop.err.rule.input-var-not-allow-empty", "输入变量不允许为空:name={varName},displayName={displayName}",
                     ARG_VAR_NAME, ARG_DISPLAY_NAME);
 }

@@ -18,7 +18,7 @@ public interface NopRuleErrors {
     String ARG_PATH = "path";
     ErrorCode ERR_RULE_UNKNOWN_RULE_DEFINITION =
             define("nop.err.rule.unknown-rule-definition",
-                    "未知的规则定义：ruleName={}", ARG_RULE_NAME, ARG_RULE_GROUP);
+                    "未定义或者未发布的规则定义：ruleName={ruleName}", ARG_RULE_NAME, ARG_RULE_GROUP);
 
     ErrorCode ERR_RULE_INVALID_DAO_RESOURCE_PATH =
             define("nop.err.rule.invalid-dao-resource-path",
