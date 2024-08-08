@@ -911,4 +911,7 @@ public interface CoreErrors {
     ErrorCode ERR_TREE_DUPLICATE_NODE_ID =
             define("nop.err.tree.duplicate-node-id",
                     "多个节点具有同样的id:{}", ARG_NODE_ID);
+
+    ErrorCode ERR_CORE_NO_TENANT_ID =
+            define("nop.err.core.no-tenant-id", "上下文环境没有设置租户id");
 }

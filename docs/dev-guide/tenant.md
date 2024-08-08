@@ -1,12 +1,14 @@
 ## 租户配置
 
+* 需要配置`nop.core.tenant-resource.enabled=true`来使用租户相关的模型缓存
+
 * app.orm.xml中实体的useTenant属性设置为true时会针对此实体启用租户配置，此时会自动为该实体增加nop\_tenant\_id字段。
 
-* nop.orm.enable-tenant-by-default设置为true时会全局缺省启用租户。此时，所有没有明确设置useTenant的实体都会自动启用租户配置。
+* `nop.orm.enable-tenant-by-default`设置为true时会全局缺省启用租户。此时，所有没有明确设置useTenant的实体都会自动启用租户配置。
 
 * 在 excel 模型中，标签栏中增加标签: `no-tenant` 的实体，不会自动增加租户字段。
 
-* 如果配置nop.orm.user-use-tenant=true，则用户表也自动进行tenant过滤，按主键查询的时候也会传入租户过滤条件。缺省是不需要的。
+* 如果配置`nop.orm.user-use-tenant=true`，则用户表也自动进行tenant过滤，按主键查询的时候也会传入租户过滤条件。缺省是不需要的。
 
 
 ## 租户上下文的设置方式

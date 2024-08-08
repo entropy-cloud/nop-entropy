@@ -209,10 +209,12 @@ public interface CoreConfigs {
     @Description("缺省掩码保留位数")
     IConfigReference<Integer> CFG_DEFAULT_MASKING_KEEP_CHARS = varRef(s_loc, "nop.core.default-masking-keep-chars", Integer.class, 2);
 
-    @Description("禁用租户定制的资源路径列表")
-    IConfigReference<Set> CFG_TENANT_FEATURE_DISABLED_PATHS = varRef(s_loc, "nop.core.tenant-feature.disabled-paths", Set.class, null);
+    @Description("禁用租户定制的资源路径前缀列表")
+    IConfigReference<Set> CFG_TENANT_RESOURCE_DISABLED_PATHS = varRef(s_loc, "nop.core.tenant-resource.disabled-paths", Set.class, null);
 
-    @Description("启用租户定制的资源路径列表")
-    IConfigReference<Set> CFG_TENANT_FEATURE_ENABLED_PATHS = varRef(s_loc, "nop.core.tenant-feature.enabled-paths", Set.class, null);
+    @Description("启用租户定制的资源路径前缀列表")
+    IConfigReference<Set> CFG_TENANT_RESOURCE_ENABLED_PATHS = varRef(s_loc, "nop.core.tenant-resource.enabled-paths", Set.class, null);
 
+    @Description("资源文件启用租户支持")
+    IConfigReference<Boolean> CFG_TENANT_RESOURCE_ENABLED = varRef(s_loc, "nop.core.tenant-resource.enabled", Boolean.class, false);
 }

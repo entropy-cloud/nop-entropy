@@ -12,7 +12,7 @@ nop:
       support-debug: true
 
     data-auth-config-path: /nop/demo/app.data-auth.xml
-    enable-data-auth: true
+    enable-data-auth: false
     # enable-action-auth: true
 
     login:
@@ -58,6 +58,11 @@ nop:
       endpoint: http://localhost:9000
       access-key: nop
       secret-key: nop-test
+
+
+  core:
+    tenant-resource:
+      enabled: true
 
 # 开发模式配置
 

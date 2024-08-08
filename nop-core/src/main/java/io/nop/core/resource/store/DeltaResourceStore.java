@@ -118,10 +118,12 @@ public class DeltaResourceStore implements IDeltaResourceStore {
             String tenantId = ContextProvider.currentTenantId();
             if (tenantId != null) {
                 IResourceStore store = getTenantStore(tenantId);
-                String fullPath = ResourceHelper.buildTenantPath(tenantId, path);
-                IResource resource = store.getResource(fullPath);
-                if (resource.exists())
-                    return resource;
+                if (store != null) {
+                    String fullPath = ResourceHelper.buildTenantPath(tenantId, path);
+                    IResource resource = store.getResource(fullPath);
+                    if (resource.exists())
+                        return resource;
+                }
             }
         }
 
@@ -156,8 +158,10 @@ public class DeltaResourceStore implements IDeltaResourceStore {
                 String tenantId = ContextProvider.currentTenantId();
                 if (tenantId != null) {
                     IResourceStore store = getTenantStore(tenantId);
-                    String fullPath = ResourceHelper.buildTenantPath(tenantId, path);
-                    addResource(map, store, fullPath);
+                    if (store != null) {
+                        String fullPath = ResourceHelper.buildTenantPath(tenantId, path);
+                        addResource(map, store, fullPath);
+                    }
                 }
             }
 
@@ -200,10 +204,11 @@ public class DeltaResourceStore implements IDeltaResourceStore {
                                Map<String, Object> options) {
         if (ResourceTenantManager.instance().isEnableTenantResource()) {
             String tenantId = ContextProvider.currentTenantId();
-            if (tenantId != null) {
+            if (tenantId != null && ResourceTenantManager.supportTenant(path)) {
                 String fullPath = ResourceHelper.buildTenantPath(tenantId, path);
                 IResourceStore store = getTenantStore(tenantId);
-                return store.saveResource(fullPath, resource, listener, options);
+                if (store != null)
+                    return store.saveResource(fullPath, resource, listener, options);
             }
         }
         if (deltaLayerIds != null && !deltaLayerIds.isEmpty()) {
@@ -221,9 +226,11 @@ public class DeltaResourceStore implements IDeltaResourceStore {
         String tenantId = ContextProvider.currentTenantId();
         if (tenantId != null) {
             IResourceStore store = getTenantStore(tenantId);
-            String fullPath = ResourceHelper.buildTenantPath(tenantId, path);
-            IResource resource = store.getResource(fullPath);
-            return resource;
+            if (store != null) {
+                String fullPath = ResourceHelper.buildTenantPath(tenantId, path);
+                IResource resource = store.getResource(fullPath);
+                return resource;
+            }
         }
         return new UnknownResource(path);
     }
@@ -280,9 +287,9 @@ public class DeltaResourceStore implements IDeltaResourceStore {
             String tenantId = path.substring(ResourceConstants.TENANT_PATH_PREFIX.length(), pos);
 
             IResourceStore store = getTenantStore(tenantId);
-            IResource resource = store.getResource(path);
-            if (resource.exists())
-                return resource;
+            if (store == null)
+                return new UnknownResource(path);
+            return store.getResource(path);
         }
 
         if (ResourceHelper.isDeltaPath(path)) {

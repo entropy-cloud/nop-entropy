@@ -72,12 +72,12 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
     public IResourceTenantChecker getTenantChecker() {
         if (this.tenantChecker == null) {
             if (CFG_RESOURCE_STORE_ENABLE_TENANT_DELTA.get()) {
-                IResourceTenantChecker checker = DefaultResourceTenantChecker.createFromConfig();
+                IResourceTenantChecker checker = ConfigurableResourceTenantChecker.createFromConfig();
                 if (checker == null)
-                    checker = DisabledResourceTenantChecker.INSTANCE;
+                    checker = DefaultResourceTenantChecker.INSTANCE;
                 this.tenantChecker = checker;
             } else {
-                this.tenantChecker = DisabledResourceTenantChecker.INSTANCE;
+                this.tenantChecker = DefaultResourceTenantChecker.INSTANCE;
             }
         }
         return this.tenantChecker;

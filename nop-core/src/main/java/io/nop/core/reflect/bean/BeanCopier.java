@@ -529,7 +529,7 @@ public class BeanCopier implements IBeanCopier {
                 } else {
                     if (!options.isIgnoreUnknownProp()) {
                         // 忽略ISourceLocationGetter引入到的location属性
-                        if (!propName.equals(CoreConstants.PROP_LOCATION)) {
+                        if (!propName.equals(CoreConstants.PROP_LOCATION) && !propName.startsWith("__")) {
                             throw new NopException(ERR_REFLECT_UNKNOWN_BEAN_PROP).param(ARG_CLASS_NAME, bean.getClass())
                                     .param(ARG_PROP_NAME, propName);
                         }

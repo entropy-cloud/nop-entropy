@@ -52,18 +52,22 @@ public class TenantAwareResourceLoadingCache<V> implements IResourceLoadingCache
         return ContextProvider.currentTenantId();
     }
 
-    protected ResourceLoadingCache<V> getCache() {
+    protected ResourceLoadingCache<V> getCache(String path) {
         String tenantId = getTenantId();
         if (StringHelper.isEmpty(tenantId)) {
             return shareCache;
         }
+
+        if (!ResourceTenantManager.supportTenant(path))
+            return shareCache;
+
         ResourceTenantManager.instance().useTenant(tenantId);
         return tenantCaches.get(tenantId);
     }
 
     @Override
     public void remove(@Nonnull String path) {
-        getCache().remove(path);
+        getCache(path).remove(path);
     }
 
     @Override
@@ -77,7 +81,7 @@ public class TenantAwareResourceLoadingCache<V> implements IResourceLoadingCache
 
     @Override
     public CacheStats stats() {
-        return getCache().stats();
+        return getCache("/").stats();
     }
 
     @Override
@@ -91,7 +95,7 @@ public class TenantAwareResourceLoadingCache<V> implements IResourceLoadingCache
 
     @Override
     public V require(String resourcePath) {
-        return getCache().require(resourcePath);
+        return getCache(resourcePath).require(resourcePath);
     }
 
     @Override
@@ -106,21 +110,21 @@ public class TenantAwareResourceLoadingCache<V> implements IResourceLoadingCache
 
     @Override
     public V get(String resourcePath) {
-        return getCache().get(resourcePath);
+        return getCache(resourcePath).get(resourcePath);
     }
 
     @Override
     public V get(String resourcePath, IResourceObjectLoader<V> loader) {
-        return getCache().get(resourcePath, loader);
+        return getCache(resourcePath).get(resourcePath, loader);
     }
 
     @Override
     public ResourceDependencySet getResourceDependsSet(String resourcePath) {
-        return getCache().getResourceDependsSet(resourcePath);
+        return getCache(resourcePath).getResourceDependsSet(resourcePath);
     }
 
     @Override
     public boolean shouldCheckChanged() {
-        return getCache().shouldCheckChanged();
+        return getCache("/").shouldCheckChanged();
     }
 }
