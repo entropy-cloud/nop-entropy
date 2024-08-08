@@ -543,6 +543,9 @@ public class XptModelInitializer {
     private boolean isRowExtendForSibling(XptCellModel rcModel, XptSheetModel sheetModel) {
         if (rcModel.getRowExtendForSibling() != null)
             return rcModel.getRowExtendForSibling();
+        // 如果是同样需要展开的兄弟单元格，则不应该延展
+        if (rcModel.getExpandType() == XptExpandType.r)
+            return false;
         if (sheetModel.getDefaultRowExtendForSibling() != null)
             return sheetModel.getDefaultRowExtendForSibling();
         return true;
@@ -589,6 +592,9 @@ public class XptModelInitializer {
     private boolean isColExtendForSibling(XptCellModel rcModel, XptSheetModel sheetModel) {
         if (rcModel.getColExtendForSibling() != null)
             return rcModel.getColExtendForSibling();
+        // 如果是同样需要展开的兄弟单元格，则不应该延展
+        if (rcModel.getExpandType() == XptExpandType.c)
+            return false;
         if (sheetModel.getDefaultColExtendForSibling() != null)
             return sheetModel.getDefaultColExtendForSibling();
         return true;

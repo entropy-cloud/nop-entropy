@@ -203,10 +203,12 @@
 
                         <field name="requestMessage" displayName="请求消息" mandatory="true">
                             <schema stdDomain="class-name"/>
+                            <xpt:linkExpr>"ref:"+cell.value.$simpleClassName() + '!A1'</xpt:linkExpr>
                         </field>
 
                         <field name="responseMessage" displayName="响应消息" mandatory="true">
                             <schema stdDomain="generic-type"/>
+                            <xpt:linkExpr>!cell.value || cell.value?.toString()?.contains('>') ? null: "ref:"+cell.value.toString().$simpleClassName()+'!A1'</xpt:linkExpr>
                         </field>
 
                         <field name="description" displayName="描述">
