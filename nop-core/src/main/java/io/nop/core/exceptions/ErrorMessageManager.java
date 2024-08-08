@@ -195,8 +195,14 @@ public class ErrorMessageManager implements IErrorMessageManager {
         String entityName = (String) params.get(ApiConstants.PARAM_BIZ_OBJ_NAME);
         if (entityName == null)
             entityName = (String) params.get(ApiConstants.PARAM_ENTITY_NAME);
+        if (entityName == null)
+            entityName = (String) params.get(ApiConstants.PARAM_OBJ_NAME);
 
-        return I18nHelper.getFieldDisplayName(locale, entityName, fieldName, true);
+        String displayName = (String) params.get(ApiConstants.PARAM_FIELD_DISPLAY_NAME);
+        if (displayName == null)
+            displayName = (String) params.get(ApiConstants.PARAM_DISPLAY_NAME);
+
+        return I18nHelper.getFieldDisplayName(locale, entityName, fieldName, true, displayName);
     }
 
     public ErrorBean defaultBuildErrorMessage(String locale, Throwable e, boolean includeStack) {

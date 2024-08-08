@@ -200,7 +200,7 @@ public class ImportExcelParser {
         return obj;
     }
 
-    private void parseSheet(ImportSheetModel sheetModel, ExcelSheet sheet, DynamicObject obj, IEvalScope scope) {
+    protected void parseSheet(ImportSheetModel sheetModel, ExcelSheet sheet, DynamicObject obj, IEvalScope scope) {
         //new SheetBeanParser(sheetModel, compileTool, cache, importModel.isDump()).parseFromSheet(sheet, obj, scope);
         ImportDataCollector builder = new ImportDataCollector(scope, cache, compileTool, obj);
         new TreeTableDataParser(scope).parse(sheet.getName(), sheet.getTable(), sheetModel, builder);

@@ -242,6 +242,7 @@ public class ImportDataCollector implements ITableDataEventListener {
                 if (option == null) {
                     throw new NopException(ERR_IMPORT_FIELD_VALUE_NOT_IN_DICT).param(ARG_SHEET_NAME, sheetName)
                             .param(ARG_FIELD_NAME, field.getName())
+                            .param(ARG_DISPLAY_NAME, field.getName())
                             .param(ARG_CELL_POS, CellPosition.toABString(rowIndex, colIndex)).param(ARG_VALUE, value)
                             .param(ARG_ALLOWED_VALUES, dictBean.getValues());
                 } else {
@@ -251,7 +252,7 @@ public class ImportDataCollector implements ITableDataEventListener {
                 SimpleSchemaValidator.INSTANCE.validate(field.getSchema(), null, field.getName(), value, scope,
                         error -> {
                             throw new NopException(ERR_IMPORT_FIELD_VALUE_VALIDATE_FAIL).param(ARG_SHEET_NAME, sheetName)
-                                    .param(ARG_FIELD_NAME, field.getName()).param(ARG_FIELD_LABEL, field.getFieldLabel())
+                                    .param(ARG_FIELD_NAME, field.getName()).param(ARG_DISPLAY_NAME, field.getFieldLabel())
                                     .param(ARG_CELL_POS, CellPosition.toABString(rowIndex, colIndex))
                                     .param(ARG_ERROR_CODE, error.getErrorCode())
                                     .param(ARG_ERROR_DESC, ErrorMessageManager.instance().resolveErrorBean(error, false).getDescription());

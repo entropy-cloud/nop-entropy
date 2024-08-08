@@ -18,8 +18,14 @@ public class I18nHelper {
         return entityName;
     }
 
+
     public static String getFieldDisplayName(String locale, String entityName, String fieldName,
                                              boolean includeOriginal) {
+        return getFieldDisplayName(locale, entityName, fieldName, includeOriginal, null);
+    }
+
+    public static String getFieldDisplayName(String locale, String entityName, String fieldName,
+                                             boolean includeOriginal, String fieldDisplayName) {
         String fullFieldName = fieldName;
         boolean useFullName = false;
         if (!StringHelper.isEmpty(entityName)) {
@@ -44,9 +50,18 @@ public class I18nHelper {
                 }
             }
         }
-        if (displayName != null && includeOriginal) {
+
+        if (displayName == null) {
+            displayName = fieldDisplayName;
+        }
+
+        if (displayName != null && includeOriginal && !displayName.equals(fieldName)) {
             return displayName + '(' + StringHelper.lastPart(fieldName, '.') + ')';
         }
+
+        if (displayName != null)
+            return displayName;
+
         return fieldName;
     }
 }
