@@ -617,6 +617,7 @@
 /nop/report/xlib/xpt-rt.xlib
 /nop/report/xlib/xpt.xlib
 /nop/rpc/imp/api.imp.xml
+/nop/rpc/imp/api.imp.xml.rej
 /nop/rpc/imp/template.api.xlsx
 /nop/rule/_module
 /nop/rule/auth/_nop-rule-api.action-auth.xml
@@ -1049,6 +1050,7 @@
 /nop/web/xlib/view-gen.xlib
 /nop/web/xlib/view-gen/impl_GenFromMeta.xpl
 /nop/web/xlib/web.xlib
+/nop/web/xlib/web.xlib.rej
 /nop/web/xlib/web/grid_crud.xpl
 /nop/web/xlib/web/impl_GenForm.xpl
 /nop/web/xlib/web/impl_GenGrid.xpl

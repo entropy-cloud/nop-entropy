@@ -16,7 +16,7 @@
         </prop>
 
         <prop name="beforeExecute" displayName="初始化代码" ui:show="L" insertable="true" updatable="true">
-            <schema stdDomain="xpl"/>
+            <schema stdDomain="xpl" type="String"/>
         </prop>
 
         <prop name="importFile" displayName="Excel规则文件" published="false" updatable="false" insertable="false"
@@ -31,7 +31,7 @@
         </prop>
 
         <prop name="decisionMatrix" displayName="决策矩阵配置" ui:show="L" insertable="true" updatable="true">
-            <schema stdDomain="xml"/>
+            <schema stdDomain="xml" type="String"/>
         </prop>
     </props>
 </meta>

@@ -3,7 +3,7 @@
 
     <actions>
         <query name="getOutputFieldsEditSchema">
-           <arg name="ruleId" mandatory="true" />
+           <arg name="ruleId" mandatory="true" type="String" />
            <arg name="selection" kind="FieldSelection"/>
            <arg name="svcCtx" kind="ServiceContext" />
 

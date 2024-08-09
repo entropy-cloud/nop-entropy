@@ -23,7 +23,7 @@
         </prop>
 
         <prop name="defaultExpr" displayName="缺省值" insertable="true" updatable="true">
-            <schema stdDomain="xpl"/>
+            <schema stdDomain="xpl" type="String"/>
         </prop>
 
         <prop name="description" displayName="描述" insertable="true" updatable="true">

@@ -341,7 +341,11 @@ public class GraphQLSourcePrinter extends GraphQLASTVisitor {
     public void visitGraphQLArgumentDefinition(GraphQLArgumentDefinition node) {
         out.append(node.getName());
         out.append(':');
-        visit(node.getType());
+        if(node.getType() == null){
+            out.append("Any");
+        }else {
+            visit(node.getType());
+        }
         if (node.getDefaultValue() != null) {
             out.append(" = ");
             visit(node.getDefaultValue());

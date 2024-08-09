@@ -30,6 +30,7 @@ import io.nop.graphql.core.schema.GraphQLScalarType;
 import io.nop.graphql.core.schema.TypeRegistry;
 import io.nop.graphql.core.utils.GraphQLObjMetaHelper;
 import io.nop.graphql.core.utils.GraphQLTypeHelper;
+import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.ISchema;
@@ -195,12 +196,15 @@ public class ObjMetaToGraphQLDefinition {
                 if (bizObjName != null)
                     return GraphQLTypeHelper.namedType(bizObjName);
 
-                StdDataType stdDataType = schema.getStdDataType();
-                if (stdDataType != null)
-                    gqlType = GraphQLTypeHelper.scalarType(GraphQLScalarType.fromStdDataType(stdDataType));
-                if (gqlType == null)
-                    gqlType = GraphQLTypeHelper.scalarType(GraphQLScalarType.String);
-                return gqlType;
+                type = guessType(schema);
+                if (type == null) {
+                    StdDataType stdDataType = schema.getStdDataType();
+                    if (stdDataType != null)
+                        gqlType = GraphQLTypeHelper.scalarType(GraphQLScalarType.fromStdDataType(stdDataType));
+                    if (gqlType == null)
+                        gqlType = GraphQLTypeHelper.scalarType(GraphQLScalarType.String);
+                    return gqlType;
+                }
             }
             gqlType = ReflectionGraphQLTypeFactory.INSTANCE.buildGraphQLType(type, thisObjName, bizObjName,
                     typeRegistry, input);
@@ -211,6 +215,13 @@ public class ObjMetaToGraphQLDefinition {
         }
 
         return gqlType;
+    }
+
+    IGenericType guessType(ISchema schema) {
+        String stdDomain = schema.getStdDomain();
+        if (stdDomain == null)
+            return null;
+        return StdDomainRegistry.instance().getStdDomainHandler(stdDomain).getGenericType(false, null);
     }
 
     private GraphQLType buildObjType(String thisObjName, ISchema schema, TypeRegistry registry, boolean input) {
