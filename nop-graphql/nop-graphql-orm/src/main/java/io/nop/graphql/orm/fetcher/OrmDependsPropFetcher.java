@@ -10,36 +10,52 @@ package io.nop.graphql.orm.fetcher;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.graphql.core.IDataFetcher;
 import io.nop.graphql.core.IDataFetchingEnvironment;
+import io.nop.orm.IOrmBatchLoadQueue;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmSession;
 import io.nop.orm.IOrmTemplate;
 import org.dataloader.DataLoader;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.function.Supplier;
 
 public class OrmDependsPropFetcher implements IDataFetcher {
     private final IOrmTemplate ormTemplate;
     private final Collection<String> dependsOn;
     private final String propName;
+    private final IDataFetcher fetcher;
 
-    public OrmDependsPropFetcher(IOrmTemplate ormTemplate, Collection<String> dependsOn, String propName) {
+    public OrmDependsPropFetcher(IOrmTemplate ormTemplate, Collection<String> dependsOn,
+                                 String propName,
+                                 IDataFetcher fetcher) {
         this.ormTemplate = ormTemplate;
         this.dependsOn = dependsOn;
         this.propName = propName;
+        this.fetcher = fetcher;
     }
 
     @Override
     public Object get(IDataFetchingEnvironment env) {
         IOrmEntity entity = (IOrmEntity) env.getSource();
         IOrmSession session = ormTemplate.requireSession();
-        if (dependsOn != null && !dependsOn.isEmpty())
-            session.getBatchLoadQueue().enqueueManyProps(Collections.singletonList(entity), dependsOn);
-        session.getBatchLoadQueue().enqueueProp(entity, propName);
+
+        IOrmBatchLoadQueue loadQueue = session.getBatchLoadQueue();
+        if (dependsOn != null && !dependsOn.isEmpty()) {
+            for (String depend : dependsOn) {
+                loadQueue.enqueueProp(entity, depend);
+            }
+        }
+
+        if (propName != null)
+            session.getBatchLoadQueue().enqueueProp(entity, propName);
 
         DataLoader<Supplier<Object>, Object> loader = OrmBatchLoader.makeDataLoader(ormTemplate,
                 env.getGraphQLExecutionContext());
-        return loader.load(() -> BeanTool.getComplexProperty(entity, propName));
+
+        return loader.load(() -> {
+            if (fetcher != null)
+                return fetcher.get(env);
+            return BeanTool.getComplexProperty(entity, propName);
+        });
     }
 }

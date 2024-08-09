@@ -20,4 +20,6 @@ public interface NopDynDaoConstants extends _NopDynDaoConstants {
     String NAME_REF_ENTITY2 = "refEntity2";
 
     String DEFAULT_ENTITY_PACKAGE_NAME = "app.dyn.entity";
+
+    String MIDDLE_TABLE_POSTFIX = "_middle";
 }

@@ -84,6 +84,9 @@ public class BizObjMetaHelper {
             return;
 
         Set<String> allowed = ConvertHelper.toCsvSet(objMeta.prop_get(BizConstants.BIZ_ALLOW_LEFT_JOIN_PROPS));
+        if (allowed != null && allowed.contains("*"))
+            return;
+
         if (allowed == null || allowed.isEmpty() || !allowed.containsAll(leftJoinProps))
             throw new NopException(ERR_BIZ_NOT_ALLOWED_LEFT_JOIN_PROPS)
                     .param(ARG_BIZ_OBJ_NAME, objMeta.getBizObjName())

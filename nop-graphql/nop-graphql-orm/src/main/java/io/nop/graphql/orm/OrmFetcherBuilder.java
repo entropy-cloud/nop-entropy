@@ -12,6 +12,7 @@ import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.graphql.core.GraphQLConstants;
@@ -77,12 +78,21 @@ public class OrmFetcherBuilder {
             return;
 
         for (GraphQLFieldDefinition fieldDef : objDef.getFields()) {
-            // 如果fetcher已经由biz或者java method提供，则跳过orm的处理
-            if (fieldDef.getFetcher() != null && fieldDef.getFetcher() != BeanPropertyFetcher.INSTANCE)
-                continue;
-
             String name = fieldDef.getName();
             IObjPropMeta propMeta = fieldDef.getPropMeta();
+
+            // 如果fetcher已经由biz或者java method提供，则跳过orm的处理
+            if (fieldDef.getFetcher() != null && fieldDef.getFetcher() != BeanPropertyFetcher.INSTANCE) {
+                if (propMeta != null) {
+                    // 如果设置了依赖，则额外增加依赖加载处理
+                    Set<String> dependsOn = propMeta.getDependOnProps();
+                    if (!CollectionHelper.isEmpty(dependsOn)) {
+                        IDataFetcher fetcher = buildDependsFetcher(dependsOn, name, fieldDef.getFetcher());
+                        fieldDef.setFetcher(fetcher);
+                    }
+                }
+                continue;
+            }
 
             if (propMeta != null) {
                 IDataFetcher fetcher = getConnectionFetcher(entityModel, objDef.getName(), propMeta);
@@ -96,14 +106,14 @@ public class OrmFetcherBuilder {
             String mapToProp = null;
             if (propMeta != null) {
                 mapToProp = propMeta.getMapToProp();
-                dependsOn = propMeta.getDepends();
+                dependsOn = propMeta.getDependOnProps();
             }
 
             IDataFetcher fetcher;
             if (mapToProp != null) {
-                fetcher = buildPropFetcher(dependsOn, mapToProp);
+                fetcher = buildDependsFetcher(dependsOn, mapToProp, null);
             } else if (dependsOn != null) {
-                fetcher = buildPropFetcher(dependsOn, fieldDef.getName());
+                fetcher = buildDependsFetcher(dependsOn, fieldDef.getName(), null);
             } else {
                 fetcher = buildFetcher(entityModel, name, objDef, fieldDef);
                 if (fetcher == null)
@@ -166,7 +176,7 @@ public class OrmFetcherBuilder {
         List<OrderFieldBean> orderBy = ExtPropsGetter.getOrderBy(propMeta, GraphQLConstants.TAG_GRAPHQL_ORDER_BY);
 
         IBizObjectQueryProcessor<?> queryProcessor = queryProcessorBuilder.buildQueryProcessor(bizObjName);
-        return new OrmEntityPropConnectionFetcher(queryProcessor, authObjName,  maxFetchSize,
+        return new OrmEntityPropConnectionFetcher(queryProcessor, authObjName, maxFetchSize,
                 queryMethod, filter, orderBy);
     }
 
@@ -174,8 +184,8 @@ public class OrmFetcherBuilder {
         return OrmQueryHelper.buildRelationFilter(propModel, joinProp -> OrmConstants.VALUE_PREFIX_PROP_REF + joinProp);
     }
 
-    IDataFetcher buildPropFetcher(Set<String> dependsOn, String propName) {
-        return new OrmDependsPropFetcher(ormTemplate, dependsOn, propName);
+    IDataFetcher buildDependsFetcher(Set<String> dependsOn, String propName, IDataFetcher fetcher) {
+        return new OrmDependsPropFetcher(ormTemplate, dependsOn, propName, fetcher);
     }
 
     private IDataFetcher buildFetcher(IEntityModel entityModel, String name, GraphQLObjectDefinition objDef,

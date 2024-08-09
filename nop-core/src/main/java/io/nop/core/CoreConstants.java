@@ -68,7 +68,7 @@ public interface CoreConstants extends ResourceConstants {
     String TAG_NAME_J_LIST = "j:list";
     String TAG_NAME_J_SIMPLE = "j:simple";
 
-    String PREFIX_INTERNAL_DEPENDS = "~";
+    //String PREFIX_INTERNAL_DEPENDS = "~";
 
     String XML_PROP_TYPE = "$type";
     String XML_PROP_BODY = "$body";

@@ -41,7 +41,6 @@ import io.nop.orm.model.OrmRelationType;
 import io.nop.orm.model.OrmToManyReferenceModel;
 import io.nop.orm.model.OrmToOneReferenceModel;
 import io.nop.orm.support.DynamicOrmEntity;
-import io.nop.orm.support.DynamicOrmKeyValueTable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,6 +52,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static io.nop.dyn.dao.NopDynDaoConstants.MIDDLE_TABLE_POSTFIX;
 import static io.nop.dyn.dao.NopDynDaoErrors.ARG_ENTITY_NAME;
 import static io.nop.dyn.dao.NopDynDaoErrors.ARG_PROP_MAPPING;
 import static io.nop.dyn.dao.NopDynDaoErrors.ARG_PROP_NAME;
@@ -534,6 +534,7 @@ public class DynEntityMetaToOrmModel {
         ref.setName(propName);
         ref.setDisplayName(propName);
         ref.setRefEntityName(entityName);
+
         List<OrmJoinOnModel> joins = new ArrayList<>(1);
         OrmJoinOnModel join = new OrmJoinOnModel();
         join.setLeftProp(leftProp);
@@ -546,9 +547,10 @@ public class DynEntityMetaToOrmModel {
     private void addToManyRelation(OrmEntityModel entityModel, String middleName, NopDynEntityRelationMeta rel,
                                    String refPropName) {
         OrmToManyReferenceModel ref = new OrmToManyReferenceModel();
-        ref.setName(rel.getRelationName() + "_middle");
+        ref.setName(rel.getRelationName() + MIDDLE_TABLE_POSTFIX);
         ref.setDisplayName(rel.getRelationDisplayName());
         ref.setRefEntityName(middleName);
+
         List<OrmJoinOnModel> joins = new ArrayList<>(1);
         OrmJoinOnModel join = new OrmJoinOnModel();
         join.setLeftProp(OrmModelConstants.PROP_ID);
@@ -558,7 +560,6 @@ public class DynEntityMetaToOrmModel {
 
         entityModel.addRelation(ref);
     }
-
 
     private OrmEntityFilterModel buildFilter(String propName, String value) {
         OrmEntityFilterModel filter = new OrmEntityFilterModel();

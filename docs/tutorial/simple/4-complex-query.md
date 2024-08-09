@@ -256,3 +256,13 @@ where
 ```
 
 另外在配置`graphql:transFilter`的情况下，仍然可以设置allowFilterOp为多种op，在执行生成代码时通过`filter.tagName`可以判断前台传过来的到底是哪个op。
+
+### 前台指定是否左连接
+
+前台传递QueryBean类型的参数时，可以通过leftJoinProps指定哪些关联对象属性是通过左连接方式访问的。
+
+从安全性考虑，只有指定的属性才允许加入leftJoinProps集合中。这些属性在meta文件的根节点上，通过`biz:allowLeftJoinProps`属性来指定。
+如果指定了值为`*`，则允许所有关联对象属性都放入leftJoinProps集合。
+
+平台在列表查询中返回子表对象时，会自动启用BatchLoader机制来优化加载，避免产生n+1问题。具体做法是先加载主表对象，然后再批量加载子表对象。目前对于ORM中的
+`to-one`和`to-many`关联属性都做了加载优化。但是`graphql:queryMethod="findList"`这种自己指定关联条件的查询还没有做优化。

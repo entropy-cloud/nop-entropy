@@ -11,6 +11,7 @@ import io.nop.api.core.ApiConstants;
 import io.nop.api.core.auth.ActionAuthMeta;
 import io.nop.commons.text.CDataText;
 import io.nop.commons.util.StringHelper;
+import io.nop.commons.util.TagsHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.XNodeValuePosition;
 import io.nop.core.type.IGenericType;
@@ -20,6 +21,7 @@ import io.nop.xlang.xmeta.ISchemaNode;
 import io.nop.xlang.xmeta.impl._gen._ObjPropMetaImpl;
 
 import java.util.Map;
+import java.util.Set;
 
 public class ObjPropMetaImpl extends _ObjPropMetaImpl implements IObjPropMeta {
     static final ActionAuthMeta NULL_AUTH = new ActionAuthMeta(false, null, null);
@@ -82,6 +84,14 @@ public class ObjPropMetaImpl extends _ObjPropMetaImpl implements IObjPropMeta {
             setSchema(schema);
         }
         ((SchemaNodeImpl) schema).setType(type);
+    }
+
+    public Set<String> getDependOnProps() {
+        return TagsHelper.removeInternalPrefix(getDepends());
+    }
+
+    public boolean hasInternalDependOn() {
+        return TagsHelper.containsInternal(getDepends());
     }
 
     public String toString() {

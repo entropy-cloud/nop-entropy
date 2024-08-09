@@ -13,10 +13,10 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.IComponentModel;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.CommonConstants;
 import io.nop.commons.collections.IKeyedList;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.CoreConstants;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.reflect.bean.IBeanModel;
@@ -342,7 +342,7 @@ public class XuiViewAnalyzer {
 
         for (String depend : depends) {
             // 后台识别的特殊字段或者忽略配置
-            if (depend.startsWith(CoreConstants.PREFIX_INTERNAL_DEPENDS))
+            if (depend.startsWith(CommonConstants.PREFIX_INTERNAL_TAG))
                 continue;
 
             String prop = StringHelper.firstPart(depend, '.');

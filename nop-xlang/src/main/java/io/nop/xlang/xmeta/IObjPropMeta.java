@@ -163,6 +163,11 @@ public interface IObjPropMeta
      */
     Set<String> getDepends();
 
+    /**
+     * 去除内部依赖属性前面的标记符号，比如~dept表示内部依赖dept对象
+     */
+    Set<String> getDependOnProps();
+
     String getMapToProp();
 
     /**

@@ -95,11 +95,6 @@
 <!--            <version>${nop-entropy.version}</version>-->
 <!--        </dependency>-->
 
-        <dependency>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-shade-plugin</artifactId>
-            <version>3.5.0</version>
-        </dependency>
     </dependencies>
 
     <build>

@@ -7,12 +7,15 @@
  */
 package io.nop.commons.util;
 
+import io.nop.commons.CommonConstants;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 标签的存储格式为",a,b,", 在首尾都增加了逗号，因此作为数据库字段存储时可以通过 like '%,a,%'这种方式来匹配。
@@ -52,6 +55,46 @@ public class TagsHelper {
         if (tags == null || tags.isEmpty())
             return false;
         return tags.contains(tag);
+    }
+
+    public static boolean containsInternal(Collection<String> tags) {
+        if (tags == null || tags.isEmpty())
+            return false;
+        for (String tag : tags) {
+            if (tag.startsWith(CommonConstants.PREFIX_INTERNAL_TAG))
+                return true;
+        }
+        return false;
+    }
+
+    public static boolean isInternalTag(String tag) {
+        return tag != null && tag.startsWith(CommonConstants.PREFIX_INTERNAL_TAG);
+    }
+
+    public static boolean isNormalTag(String tag) {
+        return !isInternalTag(tag);
+    }
+
+    public static Set<String> getNormalTags(Set<String> tags) {
+        if (containsInternal(tags)) {
+            return tags.stream().filter(TagsHelper::isNormalTag).collect(Collectors.toSet());
+        }
+        return tags;
+    }
+
+    public static String removeInternalPrefixForTag(String tag) {
+        if (StringHelper.isEmpty(tag))
+            return tag;
+        if (tag.startsWith(CommonConstants.PREFIX_INTERNAL_TAG))
+            return tag.substring(CommonConstants.PREFIX_INTERNAL_TAG.length());
+        return tag;
+    }
+
+    public static Set<String> removeInternalPrefix(Set<String> tags) {
+        if (containsInternal(tags)) {
+            return tags.stream().map(TagsHelper::removeInternalPrefixForTag).collect(Collectors.toSet());
+        }
+        return tags;
     }
 
     public static boolean containsAny(Collection<String> tags, Collection<String> filters) {
