@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.nop.core.CoreConfigs.CFG_RESOURCE_STORE_ENABLE_TENANT_DELTA;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_STORE_NOT_SUPPORT_TENANT_DELTA;
@@ -54,12 +55,43 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
         return instance().getTenantChecker().isSupportTenant(path);
     }
 
-    private final Map<String, ICancellable> tenantCleanups = new ConcurrentHashMap<>();
+    private final Map<String, TenantCleanup> tenantCleanups = new ConcurrentHashMap<>();
 
     private IResourceTenantChecker tenantChecker;
     private final List<IResourceTenantInitializer> tenantInitializers = new CopyOnWriteArrayList<>();
 
     private final Map<String, IResourceStore> tenantStores = new ConcurrentHashMap<>();
+
+    class TenantCleanup {
+        private final String tenantId;
+
+        ICancellable cleanup;
+        volatile AtomicInteger state = new AtomicInteger();
+
+        public TenantCleanup(String tenantId) {
+            this.tenantId = tenantId;
+        }
+
+        public void cancel() {
+            if (cleanup != null)
+                cleanup.cancel();
+        }
+
+        public void init() {
+            if (state.compareAndSet(0, 1)) {
+                Cancellable cancellable = new Cancellable();
+                try {
+                    for (IResourceTenantInitializer initializer : tenantInitializers) {
+                        cancellable.appendOnCancelTask(initializer.initializeTenant(tenantId));
+                    }
+                    this.cleanup = cancellable;
+                } catch (Exception e) {
+                    cancellable.cancel();
+                    throw NopException.adapt(e);
+                }
+            }
+        }
+    }
 
     public void addTenantInitializer(IResourceTenantInitializer tenantInitializer) {
         this.tenantInitializers.add(tenantInitializer);
@@ -104,7 +136,7 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
      * 销毁租户所占用的资源
      */
     public void clearForTenant(String tenantId) {
-        ICancellable cleanup = tenantCleanups.remove(tenantId);
+        TenantCleanup cleanup = tenantCleanups.remove(tenantId);
         if (cleanup != null)
             cleanup.cancel();
         GlobalCacheRegistry.instance().clearForTenant(tenantId);
@@ -120,18 +152,8 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
      * 第一次执行时会自动触发租户的初始化函数
      */
     public void useTenant(String tenantId) {
-        tenantCleanups.computeIfAbsent(tenantId, k -> {
-            Cancellable cancellable = new Cancellable();
-            try {
-                for (IResourceTenantInitializer initializer : tenantInitializers) {
-                    cancellable.appendOnCancelTask(initializer.initializeTenant(tenantId));
-                }
-                return cancellable;
-            } catch (Exception e) {
-                cancellable.cancel();
-                throw NopException.adapt(e);
-            }
-        });
+        TenantCleanup cleanup = tenantCleanups.computeIfAbsent(tenantId, TenantCleanup::new);
+        cleanup.init();
     }
 
     public <V> IResourceLoadingCache<V> makeLoadingCache(String name,
