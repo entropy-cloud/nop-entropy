@@ -267,9 +267,22 @@ public class AutoTestCaseData {
         if (isDefaultVariant(variant))
             return getInputSqlFiles();
 
-        List<File> files = getInputTableFiles();
+        List<File> files = getInputSqlFiles();
         List<File> varFiles = getFiles("input/" + variant, ".sql");
         return mergeFiles(files, varFiles);
+    }
+
+    public List<File> getInitSqlFiles(String variant) {
+        if (isDefaultVariant(variant))
+            return getInitSqlFiles();
+
+        List<File> files = getInitSqlFiles();
+        List<File> varFiles = getFiles("init/" + variant, ".sql");
+        return mergeFiles(files, varFiles);
+    }
+
+    private List<File> getInitSqlFiles() {
+        return getFiles("init", ".sql");
     }
 
     private List<File> getInputSqlFiles() {

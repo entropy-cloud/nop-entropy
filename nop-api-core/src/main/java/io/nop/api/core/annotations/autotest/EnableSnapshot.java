@@ -26,6 +26,8 @@ public @interface EnableSnapshot {
     /**
      * 是否自动执行input目录下的sql文件
      */
+    boolean sqlInput() default true;
+
     boolean sqlInit() default true;
 
     /**

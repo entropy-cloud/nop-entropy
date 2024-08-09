@@ -33,34 +33,44 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
+import static io.nop.autotest.core.AutoTestConstants.INCLUDE_DIRECTIVE_PREFIX;
 import static io.nop.autotest.core.AutoTestErrors.ARG_FILE;
 import static io.nop.autotest.core.AutoTestErrors.ARG_TABLE_NAME;
 import static io.nop.autotest.core.AutoTestErrors.ERR_AUTOTEST_NO_DAO_FOR_TABLE;
 
+@SuppressWarnings("rawtypes")
 public class AutoTestCaseDataBaseInitializer {
     static final Logger LOG = LoggerFactory.getLogger(AutoTestCaseDataBaseInitializer.class);
 
     private final boolean localDb;
     private final boolean tableInit;
     private final boolean sqlInit;
+    private final boolean sqlInput;
     private final AutoTestCaseData caseData;
     private final IDaoProvider daoProvider;
     private final IJdbcTemplate jdbcTemplate;
     private final String variant;
 
-    public AutoTestCaseDataBaseInitializer(String variant, boolean localDb, boolean tableInit, boolean sqlInit,
+    public AutoTestCaseDataBaseInitializer(String variant, boolean localDb, boolean tableInit,
+                                           boolean sqlInit, boolean sqlInput,
                                            AutoTestCaseData caseData, IDaoProvider daoProvider, IJdbcTemplate jdbcTemplate) {
         this.variant = variant;
         this.localDb = localDb;
         this.tableInit = tableInit;
         this.sqlInit = sqlInit;
+        this.sqlInput = sqlInput;
         this.caseData = caseData;
         this.daoProvider = daoProvider;
         this.jdbcTemplate = jdbcTemplate;
     }
 
     public void initialize() {
+        if (sqlInit) {
+            executeInitSqls();
+        }
+
         if (localDb) {
             // 1. 建表
             createTables();
@@ -71,9 +81,9 @@ public class AutoTestCaseDataBaseInitializer {
             loadInputData();
         }
 
-        if (sqlInit) {
+        if (sqlInput) {
             // 3. 执行初始化sql语句
-            executeInitSqls();
+            executeInputSqls();
         }
     }
 
@@ -104,7 +114,7 @@ public class AutoTestCaseDataBaseInitializer {
         try {
             jdbcTemplate.executeUpdate(new SQL(sql));
         } catch (NopException e) {
-            if(jdbcTemplate.existsTable(null,entityModel.getTableName()))
+            if (jdbcTemplate.existsTable(null, entityModel.getTableName()))
                 return;
 
             if (e.getErrorCode().equals(DaoErrors.ERR_SQL_BAD_SQL_GRAMMAR.getErrorCode())) {
@@ -179,13 +189,42 @@ public class AutoTestCaseDataBaseInitializer {
     }
 
     private void executeInitSqls() {
+        List<File> files = caseData.getInitSqlFiles(variant);
+        executeSqlFiles(files);
+    }
+
+    private void executeInputSqls() {
         List<File> files = caseData.getInputSqlFiles(variant);
+        executeSqlFiles(files);
+    }
+
+    private void executeSqlFiles(List<File> files) {
         for (File file : files) {
             String sql = FileHelper.readText(file, null);
             if (StringHelper.isBlank(sql))
                 continue;
 
+            sql = resolveSql(file, sql);
             jdbcTemplate.executeMultiSql(new SQL(sql));
         }
+    }
+
+    private String resolveSql(File file, String sql) {
+        if (!sql.contains(INCLUDE_DIRECTIVE_PREFIX))
+            return sql;
+
+        List<String> list = StringHelper.stripedSplit(sql, '\n');
+        list = list.stream().map(str -> {
+            if (str.startsWith(INCLUDE_DIRECTIVE_PREFIX)) {
+                String path = str.substring(INCLUDE_DIRECTIVE_PREFIX.length()).trim();
+                String absPath = StringHelper.absolutePath(file.getAbsolutePath().replace('\\', '/'),
+                        path.replace('\\', '/'));
+                File includeFile = new File(absPath);
+                return FileHelper.readText(includeFile, null);
+            } else {
+                return str;
+            }
+        }).collect(Collectors.toList());
+        return StringHelper.join(list, "\n");
     }
 }

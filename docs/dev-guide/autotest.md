@@ -297,7 +297,7 @@ public @interface EnableSnapshot {
     /**
      * 是否自动执行input目录下的sql文件
      */
-    boolean sqlInit() default true;
+    boolean sqlInput() default true;
 
     /**
      * 是否自动将input/tables目录下的数据插入到数据库中
@@ -315,6 +315,11 @@ public @interface EnableSnapshot {
     boolean checkOutput() default true;
 }
 ```
+
+### SQL初始化
+init目录下的`xxx.sql`会在自动建表之前执行，而input目录下的`xxx.sql`会在自动建表之后执行。
+
+在sql文件中，可以使用 `@include: ../init.sql`这种方法引入其他目录下的sql文件。
 
 ## 四. 数据变体
 

@@ -7,6 +7,7 @@
  */
 package io.nop.dyn.service.codegen;
 
+import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.beans.ApiRequest;
@@ -14,9 +15,7 @@ import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.autotest.junit.JunitAutoTestCase;
-import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.commons.type.StdSqlType;
-import io.nop.core.lang.sql.SQL;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.jdbc.IJdbcTemplate;
@@ -33,7 +32,6 @@ import io.nop.orm.model.OrmRelationType;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
 
 import java.util.Iterator;
 import java.util.List;
@@ -60,12 +58,6 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
     @Inject
     IJdbcTemplate jdbcTemplate;
 
-    @Override
-    public void init(TestInfo testInfo) {
-        super.init(testInfo);
-        initDb();
-    }
-
     public void testGen(OrmRelationType relationType) {
         ormTemplate.runInSession(() -> {
             saveRelModule(relationType);
@@ -80,6 +72,10 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
         this.testManyToOneRelation();
     }
 
+    /**
+     * 自动录制的input实体RoleEntity实际上是动态创建的，所以录制完成后需要删除input目录下的role-entity.csv等，否则重放的时候会报实体不存在。
+     */
+    @EnableSnapshot
     @Test
     public void testManyToOneRelation() {
 
@@ -97,6 +93,7 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
         assertEquals(2, items.size());
     }
 
+    @EnableSnapshot
     @Test
     public void testOneToManyRelation() {
 
@@ -114,6 +111,7 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
         assertEquals(1, items.size());
     }
 
+    @EnableSnapshot(saveOutput = true)
     @Test
     public void testManyToManyRelation() {
 
@@ -129,73 +127,6 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
         assertEquals(true, response.isOk());
         List<?> items = BeanTool.castBeanToType(response.getData(), List.class);
         assertEquals(1, items.size());
-    }
-
-    private void initDb() {
-
-        if (jdbcTemplate.existsTable("", "USER_ENTITY")) {
-            return;
-        }
-
-        String userSql = "CREATE TABLE USER_ENTITY(\n"
-                + "                  SID VARCHAR(32)   COMMENT '主键ID' ,\n"
-                + "                  USER_NAME VARCHAR(100)   COMMENT '用户名' ,\n"
-                + "                  USER_AGE INTEGER   default '1'  COMMENT '用户年龄' ,\n"
-                + "                  ROLE_ID VARCHAR(200)   COMMENT '角色 ID' ,\n"
-                + "                  STATUS INTEGER   default '1'  COMMENT '状态' ,\n"
-                + "                  VERSION INTEGER   COMMENT '数据版本' ,\n"
-                + "                  CREATED_BY VARCHAR(50)   COMMENT '创建人' ,\n"
-                + "                  CREATE_TIME TIMESTAMP   COMMENT '创建时间' ,\n"
-                + "                  UPDATED_BY VARCHAR(50)   COMMENT '修改人' ,\n"
-                + "                  UPDATE_TIME TIMESTAMP   COMMENT '修改时间' ,\n"
-                + "                  constraint PK_USER_ENTITY_ID primary key (sid)\n"
-                + "                )";
-
-        String insertSql = "INSERT INTO USER_ENTITY (sid, user_name, user_age, role_id, STATUS, VERSION, CREATED_BY, CREATE_TIME, UPDATED_BY, UPDATE_TIME) VALUES "
-                + "('1', '小明', 1, '123', 1, 1, '小明', '2021-09-01 00:00:00', '小明', '2021-09-01 00:00:00'),"
-                + "('2', '小李', 200, '123', 1, 1, '小李', '2021-09-01 00:00:00', '小李', '2021-09-01 00:00:00')";
-
-
-        String roleSql = "CREATE TABLE ROLE_ENTITY(\n"
-                + "                  SID VARCHAR(32)   COMMENT '主键ID' ,\n"
-                + "                  ROLE_NAME VARCHAR(100)   COMMENT '角色名称' ,\n"
-                + "                  ROLE_KEY VARCHAR(100)   COMMENT '角色 key' ,\n"
-                + "                  STATUS INTEGER   default '1'  COMMENT '状态' ,\n"
-                + "                  VERSION INTEGER   COMMENT '数据版本' ,\n"
-                + "                  CREATED_BY VARCHAR(50)   COMMENT '创建人' ,\n"
-                + "                  CREATE_TIME TIMESTAMP   COMMENT '创建时间' ,\n"
-                + "                  UPDATED_BY VARCHAR(50)   COMMENT '修改人' ,\n"
-                + "                  UPDATE_TIME TIMESTAMP   COMMENT '修改时间' ,\n"
-                + "                  constraint PK_ROLE_ENTITY_ID primary key (sid)\n"
-                + "                )";
-
-        String insertRoleSql = "INSERT INTO ROLE_ENTITY (sid, role_name, role_key, STATUS, VERSION, CREATED_BY, CREATE_TIME, UPDATED_BY, UPDATE_TIME) VALUES "
-                + " ('123', '开发角色2', '1', 1, 1, 'development', '2021-09-01 00:00:00', 'development', '2021-09-01 00:00:00')";
-        // + " ('12356', '测试角色', '2', 1, 1, 'test', '2021-09-01 00:00:00', 'test', '2021-09-01 00:00:00') ";
-
-        String manySql = "CREATE TABLE USER_MANY_ROLE(\n"
-                + "                  SID VARCHAR(32)   COMMENT '主键ID' ,\n"
-                + "                  USER_ID VARCHAR(32)   COMMENT '用户 ID' ,\n"
-                + "                  ROLE_ID VARCHAR(32)   COMMENT '角色 ID' ,\n"
-                + "                  STATUS INTEGER   default '1'  COMMENT '状态' ,\n"
-                + "                  VERSION INTEGER   COMMENT '数据版本' ,\n"
-                + "                  CREATED_BY VARCHAR(50)   COMMENT '创建人' ,\n"
-                + "                  CREATE_TIME TIMESTAMP   COMMENT '创建时间' ,\n"
-                + "                  UPDATED_BY VARCHAR(50)   COMMENT '修改人' ,\n"
-                + "                  UPDATE_TIME TIMESTAMP   COMMENT '修改时间' ,\n"
-                + "                  constraint PK_USER_MANY_ROLE_ID primary key (user_id, role_id)\n"
-                + "                )";
-        String insertManySql = "INSERT INTO USER_MANY_ROLE (sid, user_id, role_id, STATUS, VERSION, CREATED_BY, CREATE_TIME, UPDATED_BY, UPDATE_TIME) VALUES "
-                + "('1233123', '1', '123', 1, 1, '小明', '2021-09-01 00:00:00', '小明', '2021-09-01 00:00:00'),"
-                + "('1412414', '255', '123', 1, 1, '小明', '2021-09-01 00:00:00', '小明', '2021-09-01 00:00:00')";
-
-        System.out.println(userSql + "\n" + insertSql + "\n" + roleSql + "\n" + insertRoleSql + "\n" + manySql + "\n" + insertManySql);
-        jdbcTemplate.executeMultiSql(new SQL(userSql));
-        jdbcTemplate.executeUpdate(new SQL(insertSql));
-        jdbcTemplate.executeMultiSql(new SQL(roleSql));
-        jdbcTemplate.executeUpdate(new SQL(insertRoleSql));
-        jdbcTemplate.executeMultiSql(new SQL(manySql));
-        jdbcTemplate.executeUpdate(new SQL(insertManySql));
     }
 
     private void saveRelModule(OrmRelationType ormRelationType) {
@@ -315,11 +246,13 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
         NopDynEntityMeta roleEntity = iterator.next();
         NopDynEntityMeta middleEntity = iterator.next();
 
+        module.getEntityMetas().remove(middleEntity);
+
         addRelation(OrmRelationType.m2m, "userRoles", "测试用户对多对关联",
-                "sid", "userId", userEntity, middleEntity, "USER_MANY_ROLE");
+                "sid", "userId", userEntity, roleEntity, "USER_MANY_ROLE");
 
         addRelation(OrmRelationType.m2m, "roleUsers", "测试角色对多对关联",
-                "sid", "roleId", roleEntity, middleEntity, "USER_MANY_ROLE");
+                "sid", "roleId", roleEntity, userEntity, "USER_MANY_ROLE");
     }
 
     private NopDynPropMeta addProp(NopDynEntityMeta entityMeta, String propName, StdSqlType sqlType, int precision) {

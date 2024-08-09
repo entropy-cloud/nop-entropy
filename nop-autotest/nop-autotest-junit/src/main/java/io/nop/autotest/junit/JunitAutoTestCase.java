@@ -72,6 +72,7 @@ public abstract class JunitAutoTestCase extends AutoTestCase {
         if (enableSnapshot != null && !CFG_AUTOTEST_DISABLE_SNAPSHOT.get()) {
             setCheckOutput(enableSnapshot.checkOutput());
             setLocalDb(enableSnapshot.localDb());
+            setSqlInput(enableSnapshot.sqlInput());
             setSqlInit(enableSnapshot.sqlInit());
             setTableInit(enableSnapshot.tableInit());
             setSaveOutput(enableSnapshot.saveOutput());
@@ -95,6 +96,7 @@ public abstract class JunitAutoTestCase extends AutoTestCase {
             setCheckOutput(false);
             setLocalDb(false);
             setSqlInit(false);
+            setSqlInput(false);
             setTableInit(false);
             setSaveOutput(true);
         }

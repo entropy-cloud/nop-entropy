@@ -21,5 +21,7 @@ public interface AutoTestConstants {
 
     char PATTERN_PREFIX = '@';
 
+    String INCLUDE_DIRECTIVE_PREFIX = "@include:";
+
     String CFG_GRAPHQL_IGNORE_MILLIS_IN_TIMESTAMP = "nop.graphql.ignore-millis-in-timestamp";
 }

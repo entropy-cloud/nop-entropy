@@ -84,6 +84,7 @@ public class AutoTestCase extends BaseTestCase {
     private boolean localDb;
     private boolean tableInit;
     private boolean sqlInit;
+    private boolean sqlInput;
     private boolean saveOutput;
 
     public String getTestMethod() {
@@ -154,7 +155,7 @@ public class AutoTestCase extends BaseTestCase {
         if (localDb || tableInit || sqlInit) {
             LOG.info("\n========= autotest restore data from snapshot ============");
             if (daoProvider != null) {
-                new AutoTestCaseDataBaseInitializer(variant, localDb, tableInit, sqlInit, caseData, daoProvider,
+                new AutoTestCaseDataBaseInitializer(variant, localDb, tableInit, sqlInit, sqlInput, caseData, daoProvider,
                         jdbcTemplate).initialize();
             }
         }
@@ -265,6 +266,10 @@ public class AutoTestCase extends BaseTestCase {
 
     public void setSqlInit(boolean sqlInit) {
         this.sqlInit = sqlInit;
+    }
+
+    public void setSqlInput(boolean sqlInput){
+        this.sqlInput = sqlInput;
     }
 
     /**
