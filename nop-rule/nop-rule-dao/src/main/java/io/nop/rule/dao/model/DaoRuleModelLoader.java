@@ -130,7 +130,7 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
             propNode.setAttr("name", inputNode.getAttr("name"));
             propNode.setAttr("displayName", inputNode.getAttr("displayName"));
             propNode.setAttr("mandatory", inputNode.getAttr("mandatory"));
-            propNode.setAttr("computed", inputNode.getAttr("computed"));
+            //propNode.setAttr("computed", inputNode.getAttr("computed"));
             propNode.setAttr("type", inputNode.getAttr("type"));
             XNode inputSchema = inputNode.removeChildByTag("schema");
             if (inputSchema != null) {
@@ -159,18 +159,6 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
         node.setAttr("displayName", entity.getDisplayName());
         node.setAttr("ruleVersion", entity.getRuleVersion());
         node.setAttr(XDslKeys.DEFAULT.SCHEMA, RuleConstants.XDSL_SCHEMA_RULE);
-
-//        XNode inputs = node.makeChild("inputs");
-//        for (NopRuleInput input : entity.getInputs()) {
-//            XNode inputNode = buildInputNode(input);
-//            inputs.appendChild(inputNode);
-//        }
-//
-//        XNode outputs = node.makeChild("outputs");
-//        for (NopRuleOutput output : entity.getOutputs()) {
-//            XNode outputNode = buildOutputNode(output);
-//            outputs.appendChild(outputNode);
-//        }
 
         List<NopRuleNode> nodes = new ArrayList<>(entity.getRuleNodes());
         nodes.sort(Comparator.comparing(NopRuleNode::getSortNo));
@@ -255,43 +243,4 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
         }
     }
 
-    /**
-     * <pre>{@code
-     * <var name="!var-name" displayName="string" x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-     *      xmlns:xdef="/nop/schema/xdef.xdef" xdef:bean-package="io.nop.xlang.xmeta" xdef:name="ObjVarDefineModel">
-     *      <description xdef:value="string" />
-     *      <defaultExpr xdef:value="xpl" />
-     *      <schema xdef:ref="schema.xdef" />
-     * </var>
-     * }</pre>
-     */
-//    private XNode buildInputNode(NopRuleInput input) {
-//        XNode node = XNode.make("input");
-//        node.setAttr("name", input.getName());
-//        node.setAttr("displayName", input.getDisplayName());
-//        node.makeChild("description").content(input.getDescription());
-//        node.makeChild("defaultExpr").content(input.getDefaultValue());
-//        node.setAttr("computed", Boolean.TRUE.equals(input.getIsComputed()));
-//        node.setAttr("mandatory", Boolean.TRUE.equals(input.getIsMandatory()));
-//
-//        if (!StringHelper.isBlank(input.getSchema())) {
-//            XNode schema = XDslParseHelper.parseSchema(null, input.getSchema());
-//            node.appendChild(schema);
-//        }
-//        return node;
-//    }
-//
-//    private XNode buildOutputNode(NopRuleOutput output) {
-//        XNode node = XNode.make("output");
-//        node.setAttr("name", output.getName());
-//        node.setAttr("displayName", output.getDisplayName());
-//        node.makeChild("description").content(output.getDescription());
-//        node.makeChild("defaultExpr").content(output.getDefaultValue());
-//
-//        if (!StringHelper.isBlank(output.getSchema())) {
-//            XNode schema = XDslParseHelper.parseSchema(null, output.getSchema());
-//            node.appendChild(schema);
-//        }
-//        return node;
-//    }
 }

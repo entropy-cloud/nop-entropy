@@ -1,5 +1,34 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopRuleDefinition.xbiz">
 
-    <actions/>
+    <actions>
+        <query name="getOutputFieldsEditSchema">
+           <arg name="ruleId" mandatory="true" />
+           <arg name="selection" kind="FieldSelection"/>
+           <arg name="svcCtx" kind="ServiceContext" />
+
+           <return type="Map" />
+
+           <source>
+              <c:script>
+                const options = thisObj.invoke("getOutputFields",{ruleId},selection,svcCtx).options;
+
+                return {
+                           "name": "outputsMap",
+                           "label": "输出值",
+                           "clearValueOnHidden": false,
+                           "type": "input-kv",
+                           "keySchema": {
+                             "type": "select",
+                             "options": options,
+                           },
+                           "valueSchema": {
+                             "type": "textarea",
+                             "size": "sm"
+                           }
+                        }
+              </c:script>
+           </source>
+        </query>
+    </actions>
 </biz>

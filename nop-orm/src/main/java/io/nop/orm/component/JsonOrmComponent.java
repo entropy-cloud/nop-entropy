@@ -68,7 +68,10 @@ public class JsonOrmComponent extends AbstractOrmComponent
 
     @JsonIgnore
     public Map<String, Object> get_jsonMap() {
-        return (Map<String, Object>) get_jsonValue();
+        Object value = get_jsonValue();
+        if(value instanceof Map)
+            return (Map<String, Object>) value;
+        return null;
     }
 
     public Map<String, Object> require_jsonMap() {

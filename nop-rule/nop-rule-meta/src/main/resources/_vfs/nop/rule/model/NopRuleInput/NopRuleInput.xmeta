@@ -2,35 +2,35 @@
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
     <props>
-        <prop name="name" displayName="变量名" mandatory="true">
+        <prop name="name" displayName="变量名" mandatory="true" insertable="true" updatable="true">
             <schema type="String" maxLength="100"/>
         </prop>
 
-        <prop name="displayName" displayName="显示名" mandatory="true">
+        <prop name="displayName" displayName="显示名" mandatory="true" insertable="true" updatable="true">
             <schema type="String" maxLength="100"/>
         </prop>
 
-        <prop name="type" displayName="类型" mandatory="true">
+        <prop name="type" displayName="类型" mandatory="true" insertable="true" updatable="true">
             <schema type="String" stdDomain="generic-type" maxLength="100" dict="core/java-type"/>
         </prop>
 
-        <prop name="mandatory" displayName="是否非空">
+        <prop name="mandatory" displayName="是否非空" insertable="true" updatable="true">
             <schema stdDomain="boolean"/>
         </prop>
 
-        <prop name="computed" displayName="是否计算值">
+        <prop name="computed" displayName="是否计算值" insertable="true" updatable="true">
             <schema stdDomain="boolean"/>
         </prop>
 
-        <prop name="defaultExpr" displayName="缺省值">
+        <prop name="defaultExpr" displayName="缺省值" insertable="true" updatable="true">
             <schema stdDomain="xpl"/>
         </prop>
 
-        <prop name="description" displayName="描述">
+        <prop name="description" displayName="描述" insertable="true" updatable="true">
             <schema type="String"/>
         </prop>
 
-        <prop name="schema" internal="true" xmlPos="child">
+        <prop name="schema" internal="true" xmlPos="child" insertable="true" updatable="true">
             <schema type="Map" />
         </prop>
     </props>

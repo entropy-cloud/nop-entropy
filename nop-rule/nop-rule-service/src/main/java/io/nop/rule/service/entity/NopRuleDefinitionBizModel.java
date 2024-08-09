@@ -33,8 +33,9 @@ import io.nop.rule.service.NopRuleConstants;
 import io.nop.web.page.condition.ConditionSchemaHelper;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.jsonschema.XSchemaToJsonSchema;
-
 import jakarta.inject.Inject;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -64,10 +65,12 @@ public class NopRuleDefinitionBizModel extends CrudBizModel<NopRuleDefinition> {
         NopRuleDefinition rule = get(ruleId, false, context);
         List<Map<String, Object>> outputs = rule.getRuleOutputs();
         DictBean dict = new DictBean();
-        if (outputs == null) {
+        List<DictOptionBean> options = new ArrayList<>();
+        if (outputs == null || outputs.isEmpty()) {
             DictOptionBean option = new DictOptionBean();
             option.setLabel(NopRuleConstants.VAR_RESULT);
             option.setValue(NopRuleConstants.VAR_RESULT);
+            options.add(option);
         } else {
             for (Map<String, Object> output : outputs) {
                 DictOptionBean option = new DictOptionBean();
@@ -77,8 +80,10 @@ public class NopRuleDefinitionBizModel extends CrudBizModel<NopRuleDefinition> {
                     displayName = name;
                 option.setValue(name);
                 option.setLabel(displayName);
+                options.add(option);
             }
         }
+        dict.setOptions(options);
         return dict;
     }
 

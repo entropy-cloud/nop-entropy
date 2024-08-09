@@ -95,11 +95,10 @@
 
                 <cell id="outputsMap">
                     <gen-control>
-                        <input-kv>
-                            <keySchema type="select"
-                                       options="@dict:/r/NopRuleDefinition__getOutputFields?ruleId=$ruleId"/>
-                            <valueSchema type="editor" language="xml" size="sm"/>
-                        </input-kv>
+                        <input-kv/>
+<!--                        <service>-->
+<!--                            <schemaApi url="/r/NopRuleDefinition__getOutputFieldsEditSchema?ruleId=$ruleId" data="${{}}" />-->
+<!--                        </service>-->
                     </gen-control>
                 </cell>
             </cells>

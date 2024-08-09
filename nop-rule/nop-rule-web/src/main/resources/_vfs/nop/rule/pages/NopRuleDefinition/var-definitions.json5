@@ -18,7 +18,7 @@
         type: "editor",
         language: "xml",
         size: "sm",
-        visibleOn: "${computed}"
+        visibleOn: "${computed == true}"
       },
       {
         "name": "schema.props",
@@ -45,7 +45,7 @@
         label: "缺省值表达式",
         type: "code",
         language: "xml",
-        visibleOn: "${computed}"
+        visibleOn: "${computed == true}"
       },
       {
         "name": "schema.props",

@@ -45,7 +45,7 @@
         @aggregate 如果存在多个同名的输出时的汇总方式：max,min, sum等
         @useWeight: 是否启用权重配置。如果启用，则存在变量名__weight的变量，类型为Double
         -->
-        <output name="!var-name" xdef:ref="schema/var-define.xdef"
+        <output name="!var-name" xdef:ref="schema/var-define.xdef" mandatory="!boolean=false"
                 aggregate="enum:io.nop.rule.core.model.RuleAggregateMethod" useWeight="!boolean=false"
                 xdef:name="RuleOutputDefineModel"/>
     </outputs>

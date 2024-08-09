@@ -27,7 +27,7 @@
 
         <prop name="outputs" />
 
-        <prop name="outputsMap" mapToProp="outputsComponent._jsonValue" displayName="输出值" lazy="true"/>
+        <prop name="outputsMap" mapToProp="outputsComponent._jsonMap" displayName="输出值" lazy="true"/>
 
         <prop name="isLeaf">
             <autoExpr when="save">0</autoExpr>

@@ -3,19 +3,19 @@
       xmlns:ui="ui">
 
     <props>
-        <prop name="ruleInputs" displayName="输入变量" ui:show="L">
+        <prop name="ruleInputs" displayName="输入变量" ui:show="L" insertable="true" updatable="true">
             <schema>
                 <item bizObjName="NopRuleInput"/>
             </schema>
         </prop>
 
-        <prop name="ruleOutputs" displayName="输出变量" ui:show="L">
+        <prop name="ruleOutputs" displayName="输出变量" ui:show="L" insertable="true" updatable="true">
             <schema>
                 <item bizObjName="NopRuleOutput"/>
             </schema>
         </prop>
 
-        <prop name="beforeExecute" displayName="初始化代码" ui:show="L">
+        <prop name="beforeExecute" displayName="初始化代码" ui:show="L" insertable="true" updatable="true">
             <schema stdDomain="xpl"/>
         </prop>
 
@@ -30,7 +30,7 @@
             </schema>
         </prop>
 
-        <prop name="decisionMatrix" displayName="决策矩阵配置" ui:show="L">
+        <prop name="decisionMatrix" displayName="决策矩阵配置" ui:show="L" insertable="true" updatable="true">
             <schema stdDomain="xml"/>
         </prop>
     </props>
