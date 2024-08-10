@@ -178,7 +178,7 @@ public class ConfigStarter extends LifeCycleSupport {
 
         configSources.addAll(appSources);
 
-        List<String> profiles = getProfiles(baseSource);
+        List<String> profiles = getProfiles(configSource);
         configSource = new CompositeConfigSource(configSources);
         if (!profiles.isEmpty()) {
             configSource = new ProfileConfigSource(profiles, configSource);
