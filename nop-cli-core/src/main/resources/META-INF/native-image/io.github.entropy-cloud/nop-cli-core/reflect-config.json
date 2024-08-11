@@ -913,12 +913,27 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PARAM_DISPLAY_NAME"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PARAM_ENTITY_NAME"
       },
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PARAM_FIELD_DISPLAY_NAME"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PARAM_FIELD_NAME"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PARAM_OBJ_NAME"
       },
       {
         "allowUnsafeAccess": false,
@@ -15141,6 +15156,10 @@
         ]
       },
       {
+        "name": "getColExtendForSibling",
+        "parameterTypes": []
+      },
+      {
         "name": "getColParent",
         "parameterTypes": []
       },
@@ -15205,6 +15224,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getRowExtendForSibling",
+        "parameterTypes": []
+      },
+      {
         "name": "getRowParent",
         "parameterTypes": []
       },
@@ -15258,6 +15281,12 @@
         "name": "setColExtendForSibling",
         "parameterTypes": [
           "boolean"
+        ]
+      },
+      {
+        "name": "setColExtendForSibling",
+        "parameterTypes": [
+          "java.lang.Boolean"
         ]
       },
       {
@@ -15378,6 +15407,12 @@
         "name": "setRowExtendForSibling",
         "parameterTypes": [
           "boolean"
+        ]
+      },
+      {
+        "name": "setRowExtendForSibling",
+        "parameterTypes": [
+          "java.lang.Boolean"
         ]
       },
       {
@@ -26163,6 +26198,12 @@
         "name": "setValidator",
         "parameterTypes": [
           "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setValidator",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalFunction"
         ]
       },
       {

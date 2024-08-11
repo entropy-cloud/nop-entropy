@@ -10,6 +10,7 @@ package io.nop.quarkus.core;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.commons.metrics.GlobalMeterRegistry;
 import io.nop.commons.util.StringHelper;
@@ -38,7 +39,7 @@ public class QuarkusIntegration {
 
         if (parentProfile.isPresent()) {
             System.setProperty(ApiConfigs.CFG_PROFILE_PARENT.getName(), parentProfile.get());
-            AppConfig.getConfigProvider().updateConfigValue(ApiConfigs.CFG_PROFILE_PARENT, parentProfile.get());
+            AppConfig.getConfigProvider().updateConfigValue(ApiConfigs.CFG_PROFILE_PARENT, ConvertHelper.toCsvSet(parentProfile.get()));
         }
 
         BeanContainer.registerInstance(new NopQuarkusBeanContainer());

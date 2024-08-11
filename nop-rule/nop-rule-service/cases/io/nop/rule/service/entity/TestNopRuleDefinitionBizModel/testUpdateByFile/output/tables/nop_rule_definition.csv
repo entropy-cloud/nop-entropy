@@ -9,7 +9,7 @@ A,@var:NopRuleDefinition@ruleId,test,1,Test Tree,default,TREE,,"<rule displayNam
         </input>
     </inputs>
     <outputs>
-        <output displayName=""食物"" name=""dish"" type=""String"" ext:level=""0"">
+        <output displayName=""食物"" mandatory=""true"" name=""dish"" type=""String"" ext:level=""0"">
             <schema/>
         </output>
     </outputs>

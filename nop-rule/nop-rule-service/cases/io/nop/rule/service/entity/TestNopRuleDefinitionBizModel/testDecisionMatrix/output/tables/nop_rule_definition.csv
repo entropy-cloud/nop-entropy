@@ -228,10 +228,10 @@ A,@var:NopRuleDefinition@ruleId,testMatrix,1,Test Matrix,default,MATX,,"<rule di
         </input>
     </inputs>
     <outputs>
-        <output displayName=""分数"" name=""result"" type=""Double"" ext:level=""0"">
+        <output displayName=""分数"" mandatory=""true"" name=""result"" type=""Double"" ext:level=""0"">
             <schema/>
         </output>
-        <output displayName=""类型"" name=""type"" type=""String"" ext:level=""0"">
+        <output displayName=""类型"" mandatory=""true"" name=""type"" type=""String"" ext:level=""0"">
             <schema/>
         </output>
     </outputs>

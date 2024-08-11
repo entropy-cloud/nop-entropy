@@ -25,6 +25,13 @@ public abstract class _RuleOutputDefineModel extends io.nop.xlang.xmeta.ObjVarDe
     
     /**
      *  
+     * xml name: mandatory
+     * 
+     */
+    private boolean _mandatory  = false;
+    
+    /**
+     *  
      * xml name: useWeight
      * 
      */
@@ -45,6 +52,25 @@ public abstract class _RuleOutputDefineModel extends io.nop.xlang.xmeta.ObjVarDe
         checkAllowChange();
         
         this._aggregate = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: mandatory
+     *  
+     */
+    
+    public boolean isMandatory(){
+      return _mandatory;
+    }
+
+    
+    public void setMandatory(boolean value){
+        checkAllowChange();
+        
+        this._mandatory = value;
            
     }
 
@@ -84,6 +110,7 @@ public abstract class _RuleOutputDefineModel extends io.nop.xlang.xmeta.ObjVarDe
         super.outputJson(out);
         
         out.putNotNull("aggregate",this.getAggregate());
+        out.putNotNull("mandatory",this.isMandatory());
         out.putNotNull("useWeight",this.isUseWeight());
     }
 
@@ -97,6 +124,7 @@ public abstract class _RuleOutputDefineModel extends io.nop.xlang.xmeta.ObjVarDe
         super.copyTo(instance);
         
         instance.setAggregate(this.getAggregate());
+        instance.setMandatory(this.isMandatory());
         instance.setUseWeight(this.isUseWeight());
     }
 

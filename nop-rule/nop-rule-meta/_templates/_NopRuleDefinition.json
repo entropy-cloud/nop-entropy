@@ -21,8 +21,8 @@
   "modelTextXmlComponent": null,
   "ruleInputs": null,
   "ruleOutputs": null,
-  "beforeExecute": null,
+  "beforeExecute": "",
   "importFile": null,
   "rootRuleNodes": null,
-  "decisionMatrix": null
+  "decisionMatrix": ""
 }

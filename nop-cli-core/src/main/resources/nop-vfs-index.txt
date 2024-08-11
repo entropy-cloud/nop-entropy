@@ -105,6 +105,7 @@
 /nop/report/xlib/xpt-rt.xlib
 /nop/report/xlib/xpt.xlib
 /nop/rpc/imp/api.imp.xml
+/nop/rpc/imp/api.imp.xml.rej
 /nop/rpc/imp/template.api.xlsx
 /nop/schema/action-auth.xdef
 /nop/schema/api.xdef

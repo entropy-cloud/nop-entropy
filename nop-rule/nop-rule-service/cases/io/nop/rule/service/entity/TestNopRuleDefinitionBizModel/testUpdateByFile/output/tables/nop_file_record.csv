@@ -1,3 +1,3 @@
 _chgType,FILE_ID,FILE_NAME,FILE_PATH,FILE_EXT,MIME_TYPE,FILE_LENGTH,FILE_LAST_MODIFIED,BIZ_OBJ_NAME,BIZ_OBJ_ID,FIELD_NAME,FILE_HASH,ORIGIN_FILE_ID,IS_PUBLIC,DEL_FLAG,CREATED_BY,CREATE_TIME,REMARK
-A,@var:NopFileRecord@fileId,decision-tree.rule.xlsx,@var:NopFileRecord@filePath,xlsx,binary,11856,,NopRuleDefinition,@var:NopFileRecord@bizObjId_1,importFile,,@var:NopFileRecord@originFileId,false,1,autotest-ref,*,
 A,@var:NopFileRecord@fileId_1,decision-tree.rule.xlsx,@var:NopFileRecord@filePath_1,xlsx,binary,11856,,NopRuleDefinition,@var:NopFileRecord@bizObjId_1,importFile,,@var:NopFileRecord@originFileId_1,false,1,autotest-ref,*,
+A,@var:NopFileRecord@fileId,decision-tree.rule.xlsx,@var:NopFileRecord@filePath,xlsx,binary,11856,,NopRuleDefinition,@var:NopFileRecord@bizObjId_1,importFile,,@var:NopFileRecord@originFileId,false,1,autotest-ref,*,
