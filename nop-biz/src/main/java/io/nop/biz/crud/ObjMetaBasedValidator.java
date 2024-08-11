@@ -246,6 +246,10 @@ public class ObjMetaBasedValidator {
         if (authChecker == null || auth == null)
             return;
 
+        // 如果是公开方法，则不检查用户权限
+        if (auth.isPublicAccess())
+            return;
+
         if (auth.getRoles() != null && !auth.getRoles().isEmpty()) {
             if (this.context.getUserContext().isUserInAnyRole(auth.getRoles()))
                 return;
