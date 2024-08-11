@@ -12,6 +12,8 @@ import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.config.IConfigReference;
 import io.nop.api.core.util.SourceLocation;
 
+import java.util.Set;
+
 import static io.nop.api.core.config.AppConfig.varRef;
 
 @Locale("zh-CN")
@@ -23,8 +25,8 @@ public interface ApiConfigs {
             varRef(s_loc, "nop.profile", String.class, null);
 
     @Description("当前profile的父配置。配置查找顺序为 profile --> profile.parent --> standard")
-    IConfigReference<String> CFG_PROFILE_PARENT =
-            varRef(s_loc, "nop.profile.parent", String.class, null);
+    IConfigReference<Set> CFG_PROFILE_PARENT =
+            varRef(s_loc, "nop.profile.parent", Set.class, null);
 
     @Description("在NopException中记录的xpl堆栈的最大深度")
     IConfigReference<Integer> CFG_EXCEPTION_MAX_XPL_STACK_SIZE =

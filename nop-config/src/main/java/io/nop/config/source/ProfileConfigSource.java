@@ -7,6 +7,7 @@
  */
 package io.nop.config.source;
 
+import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +28,7 @@ public class ProfileConfigSource implements IConfigSource {
     private final IConfigSource source;
 
     public ProfileConfigSource(List<String> profiles, IConfigSource source) {
-        this.profiles = profiles;
+        this.profiles = CollectionHelper.reverseList(profiles);
         this.source = source;
     }
 

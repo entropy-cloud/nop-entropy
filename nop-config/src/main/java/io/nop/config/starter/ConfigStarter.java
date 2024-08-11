@@ -7,7 +7,6 @@
  */
 package io.nop.config.starter;
 
-import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.config.IConfigExecutor;
 import io.nop.api.core.config.IConfigProvider;
@@ -61,7 +60,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
+import static io.nop.api.core.ApiConfigs.CFG_PROFILE;
+import static io.nop.api.core.ApiConfigs.CFG_PROFILE_PARENT;
 import static io.nop.config.ConfigConstants.CFG_KEY_FILE_CONFIG_SOURCE_PATHS;
 import static io.nop.config.ConfigConstants.CFG_KEY_FILE_CONFIG_SOURCE_REFRESH_INTERVAL;
 import static io.nop.config.ConfigConstants.CFG_PROPS_FILE_CONFIG_SOURCE_PATHS;
@@ -90,6 +92,8 @@ public class ConfigStarter extends LifeCycleSupport {
 
     private DefaultVirtualFileSystem vfs;
 
+    private List<String> profiles;
+
     private Cancellable cancellable = new Cancellable();
 
     private List<IConfigSource> closeableSources = new ArrayList<>();
@@ -99,11 +103,11 @@ public class ConfigStarter extends LifeCycleSupport {
         // 1. 装载boostrap.yaml
         IConfigSource propsSource = new SysPropertyConfigSourceLoader().loadConfigSource(null);
         IConfigSource envSource = new EnvConfigSourceLoader().loadConfigSource(null);
-        IConfigSource bootstrapSource = loadBootstrapSource(propsSource, envSource);
+        IConfigSource bootstrapSource = loadBootstrapSource();
 
-        // 优先级从高到低 System.properties --> bootstrap.yaml --> System.env
+        // 优先级从高到低  System.env --> System.properties --> bootstrap.yaml, 与spring保持一致
         CompositeConfigSource baseSource = new CompositeConfigSource(
-                Arrays.asList(propsSource, bootstrapSource, envSource));
+                Arrays.asList(envSource, propsSource, bootstrapSource));
 
         initConfigProvider(baseSource);
 
@@ -174,11 +178,16 @@ public class ConfigStarter extends LifeCycleSupport {
         configSource = new CompositeConfigSource(configSources);
 
         // 8. 装载应用配置 application.yaml
-        List<IConfigSource> appSources = loadAppConfigs(configSource);
+        IConfigSource appSource = loadAppConfigSource(configSource);
+
+        List<IConfigSource> appSources = loadAppConfigs(configSource, appSource);
 
         configSources.addAll(appSources);
 
-        List<String> profiles = getProfiles(configSource);
+        List<String> profiles = getProfiles(configSource, appSource);
+
+        LOG.info("nop.profiles.active:{}", profiles);
+
         configSource = new CompositeConfigSource(configSources);
         if (!profiles.isEmpty()) {
             configSource = new ProfileConfigSource(profiles, configSource);
@@ -215,7 +224,7 @@ public class ConfigStarter extends LifeCycleSupport {
         this.changeApplier.deactivate();
     }
 
-    private IConfigSource loadBootstrapSource(IConfigSource propsSource, IConfigSource envSource) {
+    private IConfigSource loadBootstrapSource() {
         IResource resource = CoreInitialization.getBootstrapResource();
         if (!resource.exists()) {
             LOG.warn("nop.config.no-bootstrap-config-file:path{}", resource.getPath());
@@ -251,11 +260,19 @@ public class ConfigStarter extends LifeCycleSupport {
         return ResourceHelper.buildConfigResource(path);
     }
 
-    protected List<String> getProfiles(IConfigSource baseSource) {
-        String profile = baseSource.getConfigValue(ApiConfigs.CFG_PROFILE.getName(), "");
+    protected List<String> getProfiles(IConfigSource baseSource, IConfigSource appSource) {
+        if (this.profiles != null)
+            return this.profiles;
 
-        String profileParent = baseSource.getConfigValue(ApiConfigs.CFG_PROFILE_PARENT.getName(), "");
-        if (StringHelper.isEmpty(profile) && StringHelper.isEmpty(profileParent))
+        String profile = appSource.getConfigValue(CFG_PROFILE.get(), null);
+        if (StringHelper.isEmpty(profile))
+            profile = baseSource.getConfigValue(CFG_PROFILE.getName(), "");
+
+        Set<String> profileParent = ConvertHelper.toCsvSet(appSource.getConfigValue(CFG_PROFILE_PARENT.getName()));
+        if (CollectionHelper.isEmpty(profileParent))
+            profileParent = ConvertHelper.toCsvSet(baseSource.getConfigValue(CFG_PROFILE_PARENT.getName()));
+
+        if (StringHelper.isEmpty(profile) && CollectionHelper.isEmpty(profileParent))
             return Collections.emptyList();
 
         List<String> profiles = new ArrayList<>();
@@ -263,16 +280,16 @@ public class ConfigStarter extends LifeCycleSupport {
             profiles.add(profile);
         }
 
-        if (!StringHelper.isEmpty(profileParent))
-            profiles.add(profileParent);
+        if (profileParent != null)
+            profiles.addAll(profileParent);
+
+        this.profiles = profiles;
         return profiles;
     }
 
     protected List<IConfigSource> loadFromConfigCenter(IConfigSource baseSource) {
         if (configService == null)
             return Collections.emptyList();
-
-        String productName = baseSource.getConfigValue(ConfigConstants.CFG_PRODUCT_NAME, "");
 
         String appName = baseSource.getConfigValue(ConfigConstants.CFG_APPLICATION_NAME, "");
         if (StringHelper.isEmpty(appName))
@@ -281,18 +298,20 @@ public class ConfigStarter extends LifeCycleSupport {
         List<IConfigSource> serviceSources = new ArrayList<>(2);
 
         try {
-            List<String> profiles = getProfiles(baseSource);
+            IConfigSource appSource = configService.getConfigSource(baseSource, appName);
+
+            List<String> profiles = getProfiles(baseSource, appSource);
             for (String profile : profiles) {
                 String dataId = appName + '-' + profile;
                 IConfigSource profileSource = configService.getConfigSource(baseSource, dataId);
                 serviceSources.add(profileSource);
             }
 
-            if (!StringHelper.isEmpty(appName)) {
-                String dataId = appName;
-                IConfigSource serviceSource = configService.getConfigSource(baseSource, dataId);
-                serviceSources.add(serviceSource);
-            }
+            serviceSources.add(appSource);
+
+            String productName = appSource.getConfigValue(ConfigConstants.CFG_PRODUCT_NAME, "");
+            if (StringHelper.isEmpty(productName))
+                productName = baseSource.getConfigValue(ConfigConstants.CFG_PRODUCT_NAME, "");
 
             if (!StringHelper.isEmpty(productName)) {
                 String dataId = productName;
@@ -340,7 +359,7 @@ public class ConfigStarter extends LifeCycleSupport {
         return new JdbcConfigSource(config);
     }
 
-    protected List<IConfigSource> loadAppConfigs(IConfigSource configSource) {
+    protected List<IConfigSource> loadAppConfigs(IConfigSource configSource, IConfigSource appSource) {
         List<IConfigSource> appSources = new ArrayList<>(4);
 
         String additional = configSource.getConfigValue(ConfigConstants.CFG_CONFIG_ADDITIONAL_LOCATION, "");
@@ -350,15 +369,22 @@ public class ConfigStarter extends LifeCycleSupport {
             appSources.add(source);
         }
 
-        List<String> profiles = getProfiles(configSource);
+        List<String> profiles = getProfiles(configSource, appSource);
         for (String profile : profiles) {
             IResource resource = getAppProfileFile(profile);
             if (resource.exists()) {
                 IConfigSource source = new ResourceConfigSourceLoader(resource).loadConfigSource(configSource);
                 appSources.add(source);
+            } else {
+                LOG.warn("nop.profile.not-exists:{}", profile);
             }
         }
 
+        appSources.add(appSource);
+        return appSources;
+    }
+
+    protected IConfigSource loadAppConfigSource(IConfigSource configSource) {
         String path = configSource.getConfigValue(ConfigConstants.CFG_CONFIG_LOCATION,
                 ConfigConstants.CFG_PATH_APPLICATION_YAML);
         IResource resource = buildConfigResource(path);
@@ -369,8 +395,7 @@ public class ConfigStarter extends LifeCycleSupport {
             }
         }
         IConfigSource source = new ResourceConfigSourceLoader(resource).loadConfigSource(configSource);
-        appSources.add(source);
-        return appSources;
+        return source;
     }
 
     protected IResource getAppProfileFile(String profile) {
