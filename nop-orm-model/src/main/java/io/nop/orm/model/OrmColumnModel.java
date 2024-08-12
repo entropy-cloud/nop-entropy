@@ -18,6 +18,7 @@ public class OrmColumnModel extends _OrmColumnModel implements IColumnModel {
     private List<IEntityRelationModel> columnRefs;
 
     private String sqlType;
+    private Class<?> javaClass;
 
     public OrmColumnModel() {
         setInsertable(true);
@@ -89,6 +90,16 @@ public class OrmColumnModel extends _OrmColumnModel implements IColumnModel {
         this.columnRefs = columnRefs;
     }
 
+    @Override
+    public Class<?> getJavaClass() {
+        if (javaClass == null)
+            return getStdDataType().getJavaClass();
+        return javaClass;
+    }
+
+    public void setJavaClass(Class<?> javaClass) {
+        this.javaClass = javaClass;
+    }
 
     public String getSqlType() {
         return sqlType;
