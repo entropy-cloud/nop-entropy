@@ -144,7 +144,7 @@ NopGraphQL引擎返回的对象信息完全由XMeta来定义。如果一个属�
 
 实体模型中的关联对象生成到XMeta模型中体现为如下配置
 
-```
+```xml
 <props>
   <prop name="parent">
     <schema bizObjName="NopAuthDepartment" />

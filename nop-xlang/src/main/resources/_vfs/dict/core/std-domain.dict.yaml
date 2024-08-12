@@ -93,7 +93,7 @@ options:
 
   - value: conf-name
     label: 配置变量名
-    description: 配置变量名，由英文字母、数字、下划线、字符-和.构成，不包含下划线、$等特殊字符
+    description: 配置变量名，由英文字母、数字、下划线、字符-和.构成，不包含$等特殊字符
 
   - value: url
     label: 网页URL

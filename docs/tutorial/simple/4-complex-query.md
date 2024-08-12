@@ -210,7 +210,7 @@ query($filter1:Map, $filter2: Map){
 可以在XMeta中增加一个自定义字段，然后通过`graphql:transFilter`将自定义字段条件翻译为子表查询条件所对应的SQL语句。
 具体实现原理是利用QueryBean提供的transformFilter函数，对前台提交的查询条件进行结构变换，
 
-例如对于`/r/NopAuthSite__findPage?filter__myCustomFilter=main`这种自定义查询条件，
+例如对于`/r/NopAuthSite__findPage?filter__myCustomFilter=1`这种自定义查询条件，
 我们在XMeta中通过prop节点的`graphql:transFilter`子节点配置来定义转换逻辑。
 
 ```xml
@@ -236,7 +236,7 @@ select o
 from NopAuthSite o
 where
   exists( select o2 from NopAuthResource o2 where o2.siteId= o.id
-    and o2.status >= 'main'
+    and o2.status >= 1
   )
 ```
 
