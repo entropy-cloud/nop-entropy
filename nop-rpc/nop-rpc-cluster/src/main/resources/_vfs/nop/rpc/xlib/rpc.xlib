@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <tags>
+        <invoke>
+            <attr name="serviceName" type="String" mandatory="true"/>
+            <attr name="serviceMethod" type="String" mandatory="true"/>
+            <attr name="data" optional="true"/>
+            <attr name="headers" type="Map" optional="true"/>
+            <attr name="selection" type="io.nop.api.core.beans.FieldSelectionBean"
+                  stdDomain="field-selection" optional="true"/>
+            <attr name="cancelToken" type="io.nop.api.core.util.ICancelToken" optional="true"/>
+
+            <source>
+                <c:script><![CDATA[
+                    const rpcService = inject('nopDynamicRpcService');
+                    return rpcService.dynamicInvokeWithArgs(serviceName, serviceMethod,
+                        headers, data, selection, cancelToken);
+                ]]></c:script>
+            </source>
+        </invoke>
+    </tags>
+</lib>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:feature="feature">
+
+    <actions>
+        <query name="getDict" feature:on="nop.biz.use-dict-service">
+            <arg name="dictName" type="String" mandatory="true"/>
+            <arg name="svcCtx" kind="ServiceContext"/>
+
+            <return type="io.nop.api.core.beans.DictBean"/>
+
+            <source>
+                <c:script>
+                    const dictServiceName = $config.var('nop.biz.dict-service.name','nop-sys-service')
+                </c:script>
+                <rpc:invoke serviceName="${dictServiceName}" serviceMethod="DictProvider__getDict"
+                            data="${ {dictName}}" cancelToken="${svcCtx}"/>
+            </source>
+        </query>
+    </actions>
+</biz>

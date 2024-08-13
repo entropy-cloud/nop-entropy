@@ -1363,6 +1363,9 @@ public class SimpleStdDomainHandlers {
         @Override
         public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
+            if (text instanceof FieldSelectionBean)
+                return text;
+
             try {
                 return new FieldSelectionBeanParser().parseFromText(loc, text.toString());
             } catch (NopException e) {

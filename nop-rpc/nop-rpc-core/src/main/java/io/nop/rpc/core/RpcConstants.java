@@ -32,4 +32,8 @@ public interface RpcConstants {
 
     String PROP_HTTP_METHOD = "httpMethod";
     String PROP_HTTP_URL = "httpUrl";
+
+    String METHOD_DYNAMIC_INVOKE = "dynamicInvoke";
+
+    String SERVICE_DYNAMIC_RPC_SERVICE = "DynamicRpcService";
 }

@@ -22,6 +22,7 @@ import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.reflect.bean.IBeanModel;
 import io.nop.core.type.IGenericType;
+import io.nop.rpc.core.RpcConstants;
 
 import java.util.HashMap;
 import java.util.List;
@@ -60,12 +61,8 @@ public class DefaultRpcMessageTransformer implements IRpcMessageTransformer {
             IFunctionArgument argModel = method.getArgs().get(i);
             if (argModel.getRawClass() == ApiRequest.class) {
                 req = (ApiRequest<Object>) args[0];
-                ApiHeaders.setSvcName(req, serviceName);
-                ApiHeaders.setSvcAction(req, methodName);
             } else if (argModel.isAnnotationPresent(RequestBean.class)) {
                 req = ApiRequest.build(args[0]);
-                ApiHeaders.setSvcName(req, serviceName);
-                ApiHeaders.setSvcAction(req, methodName);
             } else if (argModel.getType().isAssignableTo(ICancelToken.class)) {
                 // 忽略当前参数，继续执行
             } else {
@@ -79,8 +76,13 @@ public class DefaultRpcMessageTransformer implements IRpcMessageTransformer {
         if (req == null)
             req = new ApiRequest<>();
 
-        ApiHeaders.setSvcName(req, serviceName);
-        ApiHeaders.setSvcAction(req, methodName);
+        if (!serviceName.equals(RpcConstants.SERVICE_DYNAMIC_RPC_SERVICE))
+            ApiHeaders.setSvcName(req, serviceName);
+
+        // 如果是dynamicInvoke方法，则可以使用ApiRequest中设置的svc-action
+        if (ApiHeaders.getSvcAction(req) == null || !methodName.equals(RpcConstants.METHOD_DYNAMIC_INVOKE))
+            ApiHeaders.setSvcAction(req, methodName);
+
         initSelection(req, method);
 
         if (params != null && req.getData() == null) {

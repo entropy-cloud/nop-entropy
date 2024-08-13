@@ -9,6 +9,7 @@ package io.nop.rpc.core.reflect;
 
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.util.DestroyHelper;
 import io.nop.core.reflect.IFunctionModel;
@@ -61,9 +62,10 @@ public class RpcInvocationHandler implements InvocationHandler {
 
         IFunctionModel methodModel = methods.computeIfAbsent(method, mtd -> MethodModelBuilder.from(mtd.getDeclaringClass(), mtd));
 
-        String methodName = transformer.getMethodName(methodModel);
-
         ApiRequest<?> req = transformer.toRequest(serviceName, methodModel, args);
+
+        String methodName = ApiHeaders.getSvcAction(req);
+
         ICancelToken cancelToken = getCancelToken(args);
 
         IRpcServiceInvocation inv = new DefaultRpcServiceInvocation(serviceName, methodName, req, cancelToken, false,
