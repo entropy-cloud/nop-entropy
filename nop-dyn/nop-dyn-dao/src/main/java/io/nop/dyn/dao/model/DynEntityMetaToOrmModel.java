@@ -524,7 +524,7 @@ public class DynEntityMetaToOrmModel {
             addToManyRelation(middleInfo.entityModelA, middleName, relA, NopDynEntityRelation.PROP_NAME_entityId1);
 
             if (relB != null)
-                addToManyRelation(middleInfo.entityModelB, middleName, relB, NopDynEntityRelation.PROP_NAME_entityId1);
+                addToManyRelation(middleInfo.entityModelB, middleName, relB, NopDynEntityRelation.PROP_NAME_entityId2);
         });
 
     }
