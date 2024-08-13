@@ -10,7 +10,7 @@
         <biz-gen:DefaultBizPostExtends xpl:lib="/nop/core/xlib/biz-gen.xlib" xpl:disableNs="xpl"/>
     </x:post-extends>
 
-    <actions>
+    <actions xpl:if="entityMeta.functionMetas">
         <c:for var="funcMeta" items="${entityMeta.functionMetas}">
             <c:script><![CDATA[
                 if(funcMeta.functionType == 'loader')
@@ -26,7 +26,7 @@
         </c:for>
     </actions>
 
-    <loaders>
+    <loaders xpl:if="entityMeta.functionMetas">
         <c:for var="funcMeta" items="${entityMeta.functionMetas}">
 
             <loader xpl:if="funcMeta.functionType == 'loader'" name="${funcMeta.name}"
