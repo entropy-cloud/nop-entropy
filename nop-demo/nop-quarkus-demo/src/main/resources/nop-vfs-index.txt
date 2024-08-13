@@ -290,6 +290,7 @@
 /nop/codegen/xlib/web-gen.xlib
 /nop/core/_module
 /nop/core/app.module.yaml
+/nop/core/model/DictProvider/DictProvider.xbiz
 /nop/core/registry/api.register-model.xml
 /nop/core/registry/dao-rule.register-model.xml
 /nop/core/registry/dao-wf.register-model.xml

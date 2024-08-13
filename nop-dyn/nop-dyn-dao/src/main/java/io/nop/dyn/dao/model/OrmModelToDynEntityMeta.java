@@ -22,7 +22,7 @@ import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IOrmModel;
 import io.nop.orm.model.OrmModelConstants;
 import io.nop.orm.model.OrmRelationType;
-import io.nop.orm.support.OrmManyToManyMappingMeta;
+import io.nop.orm.support.OrmMappingTableMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,11 +67,11 @@ public class OrmModelToDynEntityMeta {
             entityMetas.put(entityMeta.getEntityName(), entityMeta);
         });
 
-        List<OrmManyToManyMappingMeta> mappingTables = new ArrayList<>();
+        List<OrmMappingTableMeta> mappingTables = new ArrayList<>();
         ormModel.getEntityModels().forEach(entityModel -> {
             // many-to-many的中间表不转换为实体表
             if (entityModel.containsTag(OrmModelConstants.TAG_MANY_TO_MANY)) {
-                mappingTables.add(new OrmManyToManyMappingMeta(entityModel));
+                mappingTables.add(new OrmMappingTableMeta(entityModel));
                 return;
             }
 
@@ -79,7 +79,7 @@ public class OrmModelToDynEntityMeta {
             transformEntityMeta(entityModel, entityMeta);
         });
 
-        for (OrmManyToManyMappingMeta mappingMeta : mappingTables) {
+        for (OrmMappingTableMeta mappingMeta : mappingTables) {
             if (mappingMeta.getRefProp2() == null) {
                 LOG.warn("nop.dyn.ignore-invalid-many-to-many-mapping-table:{}", mappingMeta.getMappingTable());
                 continue;
@@ -99,7 +99,7 @@ public class OrmModelToDynEntityMeta {
             relMeta1.setTagsText(TagsHelper.toString(mappingMeta.getMappingTable().getTagSet()));
             relMeta1.setRemark(mappingMeta.getMappingTable().getComment());
             relMeta1.setRelationType(OrmRelationType.m2m.name());
-            relMeta1.setRelationName(mappingMeta.getRefSetPropName1());
+            relMeta1.setRelationName(mappingMeta.getRefPropName1());
             relMeta1.setLeftPropName(OrmModelConstants.PROP_ID);
             relMeta1.setRightPropName(OrmModelConstants.PROP_ID);
             entityMeta1.getRelationMetasForEntity().add(relMeta1);
@@ -113,7 +113,7 @@ public class OrmModelToDynEntityMeta {
             relMeta2.setTagsText(TagsHelper.toString(mappingMeta.getMappingTable().getTagSet()));
             relMeta2.setRemark(mappingMeta.getMappingTable().getComment());
             relMeta2.setRelationType(OrmRelationType.m2m.name());
-            relMeta2.setRelationName(mappingMeta.getRefSetPropName2());
+            relMeta2.setRelationName(mappingMeta.getRefPropName2());
             relMeta2.setLeftPropName(OrmModelConstants.PROP_ID);
             relMeta2.setRightPropName(OrmModelConstants.PROP_ID);
             entityMeta2.getRelationMetasForEntity().add(relMeta2);

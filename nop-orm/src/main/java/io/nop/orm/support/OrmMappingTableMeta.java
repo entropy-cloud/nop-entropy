@@ -1,31 +1,44 @@
 package io.nop.orm.support;
 
+import io.nop.api.core.util.Guard;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
-import io.nop.orm.OrmConstants;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.model.OrmModelConstants;
-import io.nop.orm.model.OrmRelationType;
 
 import java.util.List;
 
-import static io.nop.core.reflect.utils.BeanReflectHelper.getValueByFactoryMethod;
-
-public class OrmManyToManyMappingMeta {
+/**
+ * 专用于多对多关联的中间表
+ */
+public class OrmMappingTableMeta {
     private final IEntityModel mappingTable;
     private final IEntityRelationModel refProp1;
     private final IEntityRelationModel refProp2;
 
-    public OrmManyToManyMappingMeta(IEntityModel mappingTable) {
+    public OrmMappingTableMeta(IEntityModel mappingTable) {
         this.mappingTable = mappingTable;
         List<? extends IEntityRelationModel> rels = mappingTable.getToOneRelations();
         this.refProp1 = CollectionHelper.first(rels);
         this.refProp2 = CollectionHelper.last(rels);
+
+        Guard.checkArgument(rels.size() == 2, "mappingTable must contains two to-one relations");
+    }
+
+    /**
+     * 中间表具有mapping标签或者many-to-man标签
+     */
+    public static boolean isMappingTable(IEntityModel entityModel) {
+        return entityModel.containsTag(OrmModelConstants.TAG_MAPPING) || entityModel.containsTag(OrmModelConstants.TAG_MANY_TO_MANY);
     }
 
     public boolean isOneToOne() {
-        return getRelationType() == OrmRelationType.o2o;
+        return mappingTable.containsTag(OrmModelConstants.TAG_ONE_TO_ONE);
+    }
+
+    public boolean isManyToMany() {
+        return mappingTable.containsTag(OrmModelConstants.TAG_MANY_TO_MANY);
     }
 
     public IEntityModel getMappingTable() {
@@ -40,11 +53,28 @@ public class OrmManyToManyMappingMeta {
         return refProp2;
     }
 
-    public String getRefSetPropName1() {
-        String refSetName = (String) mappingTable.prop_get(OrmModelConstants.ORM_MANY_TO_MANY_REF_SET_NAME1);
+    public String getRefPropName1() {
+        String refSetName = (String) mappingTable.prop_get(OrmModelConstants.ORM_MAPPING_PROP_NAME1);
         if (StringHelper.isEmpty(refSetName))
             refSetName = "related" + StringHelper.capitalize(refProp2.getName()) + "List";
         return refSetName;
+    }
+
+    public String getRefPropName2() {
+        String refSetName = (String) mappingTable.prop_get(OrmModelConstants.ORM_MAPPING_PROP_NAME2);
+        if (StringHelper.isEmpty(refSetName))
+            refSetName = "related" + StringHelper.capitalize(refProp1.getName()) + "List";
+        return refSetName;
+    }
+
+    public String getRefPropDisplayName1() {
+        String displayName = (String) mappingTable.prop_get(OrmModelConstants.ORM_MAPPING_PROP_DISPLAY_NAME1);
+        return displayName;
+    }
+
+    public String getRefPropDisplayName2() {
+        String displayName = (String) mappingTable.prop_get(OrmModelConstants.ORM_MAPPING_PROP_DISPLAY_NAME2);
+        return displayName;
     }
 
     public String getJoinPropName1() {
@@ -61,27 +91,20 @@ public class OrmManyToManyMappingMeta {
         return refProp2.getName();
     }
 
-    public String getRefSetPropName1_label() {
-        return getRefSetPropName1() + "_label";
+    public String getRefPropName1_label() {
+        return getRefPropName1() + "_label";
     }
 
-    public String getRefSetPropName1_ids() {
-        return getRefSetPropName1() + "_ids";
+    public String getRefPropName1_ids() {
+        return getRefPropName1() + "_ids";
     }
 
-    public String getRefSetPropName2() {
-        String refSetName = (String) mappingTable.prop_get(OrmModelConstants.ORM_MANY_TO_MANY_REF_SET_NAME2);
-        if (StringHelper.isEmpty(refSetName))
-            refSetName = "related" + StringHelper.capitalize(refProp1.getName()) + "List";
-        return refSetName;
+    public String getRefPropName2_label() {
+        return getRefPropName2() + "_label";
     }
 
-    public String getRefSetPropName2_label() {
-        return getRefSetPropName2() + "_label";
-    }
-
-    public String getRefSetPropName2_ids() {
-        return getRefSetPropName2() + "_ids";
+    public String getRefPropName2_ids() {
+        return getRefPropName2() + "_ids";
     }
 
     public String getRefEntityName1() {
@@ -100,14 +123,14 @@ public class OrmManyToManyMappingMeta {
         return StringHelper.simpleClassName(getRefEntityName2());
     }
 
-    public String getRefLabelPropName1() {
+    public String getRefLabelProp1() {
         String labelProp = refProp1.getRefEntityModel().getLabelProp();
         if (StringHelper.isEmpty(labelProp))
             labelProp = OrmModelConstants.PROP_ID;
         return labelProp;
     }
 
-    public String getRefLabelPropName2() {
+    public String getRefLabelProp2() {
         String labelProp = refProp2.getRefEntityModel().getLabelProp();
         if (StringHelper.isEmpty(labelProp))
             labelProp = OrmModelConstants.PROP_ID;
@@ -120,10 +143,5 @@ public class OrmManyToManyMappingMeta {
 
     public String getMappingTableName() {
         return mappingTable.getTableName();
-    }
-
-    public OrmRelationType getRelationType() {
-        return getValueByFactoryMethod(OrmRelationType.class, mappingTable,
-                OrmConstants.EXT_ORM_RELATION_TYPE);
     }
 }

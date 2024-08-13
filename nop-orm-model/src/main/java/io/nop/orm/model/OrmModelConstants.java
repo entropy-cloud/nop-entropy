@@ -68,6 +68,10 @@ public interface OrmModelConstants {
 
     String TAG_MANY_TO_MANY = "many-to-many";
 
+    String TAG_ONE_TO_ONE = "one-to-one";
+
+    String TAG_MAPPING = "mapping";
+
     String PROP_NAME_nopRevType = "nopRevType";
     String PROP_NAME_nopRevBeginVer = "nopRevBeginVer";
     String PROP_NAME_nopRevEndVer = "nopRevEndVer";
@@ -124,13 +128,13 @@ public interface OrmModelConstants {
 
     String ORM_MANY_TO_MANY_REF_PROP = "orm:manyToManyRefProp";
 
-    String ORM_MANY_TO_MANY_REF_SET_NAME1 = "orm:manyToManyRefSetName1";
+    String ORM_MAPPING_PROP_NAME1 = "orm:mappingPropName1";
 
-    String ORM_MANY_TO_MANY_REF_SET_NAME2 = "orm:manyToManyRefSetName2";
+    String ORM_MAPPING_PROP_NAME2 = "orm:mappingPropName2";
 
-    String ORM_MANY_TO_MANY_REF_SET_DISPLAY_NAME1 = "orm:manyToManyRefSetDisplayName1";
+    String ORM_MAPPING_PROP_DISPLAY_NAME1 = "orm:mappingPropDisplayName1";
 
-    String ORM_MANY_TO_MANY_REF_SET_DISPLAY_NAME2 = "orm:manyToManyRefSetDisplayName2";
+    String ORM_MAPPING_PROP_DISPLAY_NAME2 = "orm:mappingPropDisplayName2";
 
 
     String VAR_ENTITY = "entity";
