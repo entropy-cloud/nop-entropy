@@ -138,6 +138,16 @@ SUM(A3:D5)
 
 * xptRt.seq(seqName): 相当于是 seqName ++，即读取seqName对应的变量值，执行递增操作，然后返回递增之前的值。如果一开始变量不存在，则认为初始化为1
 
+## 调试
+在【XptWorkbookModel】配置中可以设置`dump=true`启用调试文件输出，在模板展开的过程中会把每一个中间结果输出到dumpDir目录下，dumpDir的缺省值为`./target`。
+
+![](xpt-report/report-dump.png)
+
+调试文件的文件名格式为`{seq}-{cellPos}.html`
+![](xpt-report/report-dump-file.png)
+
+调试文件中的每个单元格中的内容为 `cellText <- cellLayerCoordinate`。
+
 ## 常见问题解答：
 
 ### 1. 单元格的展开值`cell.expandValue`和单元格个的值`cell.value`之间有什么区别?

@@ -254,8 +254,12 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
         </sheet>
     </sheets>
 
+    <!--
+    @dump 如果为true，则每一步展开的中间结果都会输出为html
+    @dumpDir 配置了dumpDir，则dump的时候会输出到此目录下
+    -->
     <model xdef:name="XptWorkbookModel" loopVarName="var-name" loopIndexName="var-name" loopItemsName="var-name"
-           removeHiddenCell="!boolean=false">
+           removeHiddenCell="!boolean=false" maxSheetNameLength="int" dump="boolean" dumpDir="string">
         <beginLoop xdef:value="xpl"/>
         <endLoop xdef:value="xpl"/>
 

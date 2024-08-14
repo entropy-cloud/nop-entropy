@@ -395,9 +395,11 @@ public class GraphQLEngine implements IGraphQLEngine {
         ParsedGraphQLRequest req = new ParsedGraphQLRequest();
         req.setDocument(doc);
         context.setRequest(req);
-        context.setOperation(doc.getOperation());
 
-        GraphQLOperation op = (GraphQLOperation) doc.getDefinitions().get(0);
+
+        GraphQLOperation op = doc.getOperation();
+        context.setOperation(op);
+
         FieldSelectionBean fieldSelection = buildSelectionBean(operationName, op.getSelectionSet(), Collections.emptyMap());
 
         context.setFieldSelection(fieldSelection);

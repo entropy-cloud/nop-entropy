@@ -39,6 +39,20 @@ public abstract class _XptWorkbookModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: dump
+     * 如果为true，则每一步展开的中间结果都会输出为html
+     */
+    private java.lang.Boolean _dump ;
+    
+    /**
+     *  
+     * xml name: dumpDir
+     * 配置了dumpDir，则dump的时候会输出到此目录下
+     */
+    private java.lang.String _dumpDir ;
+    
+    /**
+     *  
      * xml name: editors
      * 
      */
@@ -71,6 +85,13 @@ public abstract class _XptWorkbookModel extends io.nop.core.resource.component.A
      * 
      */
     private java.lang.String _loopVarName ;
+    
+    /**
+     *  
+     * xml name: maxSheetNameLength
+     * 
+     */
+    private java.lang.Integer _maxSheetNameLength ;
     
     /**
      *  
@@ -139,6 +160,44 @@ public abstract class _XptWorkbookModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._beginLoop = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: dump
+     *  如果为true，则每一步展开的中间结果都会输出为html
+     */
+    
+    public java.lang.Boolean getDump(){
+      return _dump;
+    }
+
+    
+    public void setDump(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._dump = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: dumpDir
+     *  配置了dumpDir，则dump的时候会输出到此目录下
+     */
+    
+    public java.lang.String getDumpDir(){
+      return _dumpDir;
+    }
+
+    
+    public void setDumpDir(java.lang.String value){
+        checkAllowChange();
+        
+        this._dumpDir = value;
            
     }
 
@@ -266,6 +325,25 @@ public abstract class _XptWorkbookModel extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: maxSheetNameLength
+     *  
+     */
+    
+    public java.lang.Integer getMaxSheetNameLength(){
+      return _maxSheetNameLength;
+    }
+
+    
+    public void setMaxSheetNameLength(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._maxSheetNameLength = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: removeHiddenCell
      *  
      */
@@ -350,11 +428,14 @@ public abstract class _XptWorkbookModel extends io.nop.core.resource.component.A
         out.putNotNull("afterExpand",this.getAfterExpand());
         out.putNotNull("beforeExpand",this.getBeforeExpand());
         out.putNotNull("beginLoop",this.getBeginLoop());
+        out.putNotNull("dump",this.getDump());
+        out.putNotNull("dumpDir",this.getDumpDir());
         out.putNotNull("editors",this.getEditors());
         out.putNotNull("endLoop",this.getEndLoop());
         out.putNotNull("loopIndexName",this.getLoopIndexName());
         out.putNotNull("loopItemsName",this.getLoopItemsName());
         out.putNotNull("loopVarName",this.getLoopVarName());
+        out.putNotNull("maxSheetNameLength",this.getMaxSheetNameLength());
         out.putNotNull("removeHiddenCell",this.isRemoveHiddenCell());
         out.putNotNull("viewers",this.getViewers());
     }
@@ -371,11 +452,14 @@ public abstract class _XptWorkbookModel extends io.nop.core.resource.component.A
         instance.setAfterExpand(this.getAfterExpand());
         instance.setBeforeExpand(this.getBeforeExpand());
         instance.setBeginLoop(this.getBeginLoop());
+        instance.setDump(this.getDump());
+        instance.setDumpDir(this.getDumpDir());
         instance.setEditors(this.getEditors());
         instance.setEndLoop(this.getEndLoop());
         instance.setLoopIndexName(this.getLoopIndexName());
         instance.setLoopItemsName(this.getLoopItemsName());
         instance.setLoopVarName(this.getLoopVarName());
+        instance.setMaxSheetNameLength(this.getMaxSheetNameLength());
         instance.setRemoveHiddenCell(this.isRemoveHiddenCell());
         instance.setViewers(this.getViewers());
     }

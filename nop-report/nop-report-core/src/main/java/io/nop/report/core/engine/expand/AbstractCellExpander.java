@@ -10,10 +10,13 @@ package io.nop.report.core.engine.expand;
 import io.nop.commons.collections.iterator.FillMinIterator;
 import io.nop.commons.collections.iterator.LimitIterator;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.commons.util.MathHelper;
+import io.nop.commons.util.StringHelper;
 import io.nop.excel.model.XptCellModel;
 import io.nop.excel.model.constants.XptExpandType;
 import io.nop.report.core.dataset.DynamicReportDataSet;
 import io.nop.report.core.engine.IXptRuntime;
+import io.nop.report.core.engine.renderer.HtmlRenderHelper;
 import io.nop.report.core.model.ExpandedCell;
 import io.nop.report.core.model.ExpandedTable;
 import org.slf4j.Logger;
@@ -38,9 +41,9 @@ public abstract class AbstractCellExpander implements ICellExpander {
         Iterator<?> expandList = runExpandExpr(cell, xptRt);
         if (!expandList.hasNext()) {
             if (cell.getModel() != null && cell.getModel().shouldRemoveEmpty()) {
-                clearCell(cell);
-            } else {
                 removeCell(cell);
+            } else {
+                clearCell(cell);
             }
         } else {
             Object value = expandList.next();
@@ -51,7 +54,9 @@ public abstract class AbstractCellExpander implements ICellExpander {
             if (expandCount > 0)
                 extendCells(cell, expandCount);
         }
-        //ExpandedTableToNode.dump(cell.getTable());
+
+        if (xptRt.getWorkbook().isEnableDump())
+            HtmlRenderHelper.dumpHtml(xptRt.getWorkbook(), cell.getSheet(), StringHelper.leftPad(MathHelper.nextSeq() + "-", 4, '0') + cell.getName() + ".html");
     }
 
     protected Iterator<?> runExpandExpr(ExpandedCell cell, IXptRuntime xptRt) {
@@ -147,9 +152,8 @@ public abstract class AbstractCellExpander implements ICellExpander {
     protected void copyCellValue(ExpandedCell nextCell, ExpandedCell newCell, boolean row) {
         newCell.setModel(nextCell.getModel());
         newCell.setValue(nextCell.getValue());
-        if(row) {
+        if (!nextCell.isProxyCell()) {
             newCell.setMergeAcross(nextCell.getMergeAcross());
-        }else {
             newCell.setMergeDown(nextCell.getMergeDown());
         }
         newCell.setStyleId(nextCell.getStyleId());
@@ -172,6 +176,29 @@ public abstract class AbstractCellExpander implements ICellExpander {
                 for (ExpandedCell child : list) {
                     child.markEvaluated();
                 }
+            }
+        }
+    }
+
+    protected void initRowParentAndColParent(Map<ExpandedCell, ExpandedCell> cellMap) {
+        for (Map.Entry<ExpandedCell, ExpandedCell> entry : cellMap.entrySet()) {
+            ExpandedCell cell = entry.getKey();
+            ExpandedCell newCell = entry.getValue();
+
+            ExpandedCell colParent = cell.getColParent();
+            if (colParent != null) {
+                ExpandedCell newParent = cellMap.get(colParent);
+                if (newParent == null)
+                    newParent = colParent;
+                newCell.setColParent(newParent);
+            }
+
+            ExpandedCell rowParent = cell.getRowParent();
+            if (rowParent != null) {
+                ExpandedCell newParent = cellMap.get(rowParent);
+                if (newParent == null)
+                    newParent = rowParent;
+                newCell.setRowParent(newParent);
             }
         }
     }

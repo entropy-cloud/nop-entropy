@@ -23,6 +23,14 @@ public class CellLayerCoordinate {
     private List<CellCoordinate> rowCoordinates;
     private List<CellCoordinate> colCoordinates;
 
+    public boolean hasParent() {
+        if (rowCoordinates != null && !rowCoordinates.isEmpty())
+            return true;
+        if (colCoordinates != null && !colCoordinates.isEmpty())
+            return true;
+        return false;
+    }
+
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append(cellName);

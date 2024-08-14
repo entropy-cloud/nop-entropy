@@ -34,17 +34,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static io.nop.ooxml.xlsx.output.XlsxGenHelper.normalizeSheetName;
+
 public class ExcelSheetWriter extends AbstractXmlTemplate {
     private final IExcelSheet sheet;
     private final boolean tabSelected;
+    private final int sheetIndex;
 
     private final ExcelWorkbook workbook;
 
     private String drawingRelId;
 
-    public ExcelSheetWriter(IExcelSheet sheet, boolean tabSelected, ExcelWorkbook workbook) {
+    public ExcelSheetWriter(IExcelSheet sheet, boolean tabSelected, int sheetIndex, ExcelWorkbook workbook) {
         this.sheet = sheet;
         this.tabSelected = tabSelected;
+        this.sheetIndex = sheetIndex;
         this.workbook = workbook;
     }
 
@@ -294,13 +298,28 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
             links.forEach(link -> {
                 Map<String, ValueWithLocation> attrs = new LinkedHashMap<>();
                 attrs.put("ref", ValueWithLocation.of(null, CellPosition.toABString(link.rowIndex, link.colIndex)));
-                attrs.put("location", ValueWithLocation.of(null, link.location));
+                attrs.put("location", ValueWithLocation.of(null, normalizeLocation(link.location)));
                 attrs.put("display", ValueWithLocation.of(null, link.text));
                 attrs.put("xr:id", ValueWithLocation.of(null, intToUUID(link.index)));
                 out.simpleNode(null, "hyperlink", attrs);
             });
             out.endNode("hyperlinks");
         }
+    }
+
+    private String normalizeLocation(String location) {
+        int pos = location.indexOf('!');
+        if (pos > 0) {
+            String abPos = location.substring(pos + 1);
+            try {
+                CellPosition.fromABString(abPos);
+                String sheetName = location.substring(0, pos);
+                return normalizeSheetName(sheetName, sheetIndex, workbook) + '!' + abPos;
+            } catch (Exception e) {
+                return location;
+            }
+        }
+        return location;
     }
 
     static class Link {

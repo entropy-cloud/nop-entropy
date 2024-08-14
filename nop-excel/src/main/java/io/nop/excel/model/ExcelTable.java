@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
-public class ExcelTable extends _ExcelTable implements INeedInit {
+public class ExcelTable extends _ExcelTable implements INeedInit, IExcelTable {
     public ExcelTable() {
         setRows(new ArrayList<>());
     }

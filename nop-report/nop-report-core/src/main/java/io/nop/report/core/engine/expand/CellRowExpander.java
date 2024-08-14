@@ -108,13 +108,14 @@ public class CellRowExpander extends AbstractCellExpander {
                     xptModel == null || xptModel.getExpandInplaceCount() == null ? -1 : xptModel.getExpandInplaceCount());
 
             if (needInsert) {
-                incSpan++;
                 needInsert = !isAllowReuse(cell, table, newIndex);
+                if (needInsert) incSpan++;
             }
 
             ExpandedRow newRow = needInsert ? table.insertEmptyRow(newIndex) : table.makeRow(newIndex);
             if (needInsert) {
                 newRow.setNewlyCreated(true);
+                newRow.setGeneratorCell(cell);
                 newRow.setHeight(r.getHeight());
                 newRow.setModel(r.getModel());
                 newRow.useNextRowStyle();
@@ -122,16 +123,23 @@ public class CellRowExpander extends AbstractCellExpander {
             duplicateRow(r, cell, expandIndex, expandValue, newRow, cellMap, processing);
         }
 
-        initRowParent(cellMap);
+        initRowParentAndColParent(cellMap);
 
         addNewCellToParentDescendants(table, cellMap);
         return incSpan;
     }
 
     private boolean isAllowReuse(ExpandedCell cell, ExpandedTable table, int index) {
-        if (cell.isRowParentExpandable())
+        if (index >= table.getRowCount())
             return false;
-        return table.isNewlyCreatedRow(index);
+
+        ExpandedRow row = table.getRow(index);
+        if (row.isNewlyCreated()) {
+            // 同一个父节点的兄弟节点可以复用展开列
+            return cell.getRowParent() == row.getGeneratorCell().getRowParent();
+        }
+
+        return false;
     }
 
 
@@ -145,19 +153,24 @@ public class CellRowExpander extends AbstractCellExpander {
         ExpandedCell nextCell = row.getFirstCell();
         ExpandedCell newCell = newRow.getFirstCell();
 
-        XptCellModel xptModel = cell.getModel();
-
         while (nextCell != null) {
             if (cell == nextCell) {
-                copyCellValue(nextCell, newCell,true);
+                copyCellValue(nextCell, newCell, true);
                 newCell.setExpandIndex(expandIndex);
                 newCell.setExpandValue(expandValue);
                 cellMap.put(nextCell, newCell);
-            } else if (xptModel != null && xptModel.getRowDuplicateCells().containsKey(nextCell.getName())) {
-                copyCellValue(nextCell, newCell,true);
-                cellMap.put(nextCell, newCell);
-                if (newCell.isExpandable())
-                    processing.add(newCell);
+            } else if (cell.getRowDescendants() != null && cell.getRowDescendants().containsKey(nextCell.getName())) {
+                List<ExpandedCell> cells = cell.getRowDescendants().get(nextCell.getName());
+                if (cells.contains(nextCell)) {
+                    copyCellValue(nextCell, newCell, true);
+                    cellMap.put(nextCell, newCell);
+                    if (newCell.isExpandable())
+                        processing.add(newCell);
+                } else {
+                    newCell.setStyleId(nextCell.getStyleId());
+                }
+            } else if (!nextCell.isProxyCell()) {
+                newCell.setStyleId(nextCell.getStyleId());
             }
             nextCell = nextCell.getRight();
             newCell = newCell.getRight();
@@ -168,25 +181,5 @@ public class CellRowExpander extends AbstractCellExpander {
         if (expandInplaceCount <= 0)
             return true;
         return expandIndex >= expandInplaceCount;
-    }
-
-    private void initRowParent(Map<ExpandedCell, ExpandedCell> cellMap) {
-        for (Map.Entry<ExpandedCell, ExpandedCell> entry : cellMap.entrySet()) {
-            ExpandedCell cell = entry.getKey();
-            ExpandedCell newCell = entry.getValue();
-
-            ExpandedCell parent = cell.getRowParent();
-            if (parent != null) {
-                ExpandedCell newParent = cellMap.get(parent);
-                if (newParent == null)
-                    newParent = parent;
-                newCell.setRowParent(newParent);
-            }
-//
-//            if (cell.hasRowDescendant()) {
-//                Map<String, List<ExpandedCell>> children = getNewListMap(cell.getRowDescendants(), cellMap);
-//                newCell.setRowDescendants(children);
-//            }
-        }
     }
 }

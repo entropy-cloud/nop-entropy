@@ -8,13 +8,14 @@
 package io.nop.report.core.model;
 
 import io.nop.commons.util.CollectionHelper;
-import io.nop.core.model.table.ICell;
-import io.nop.core.model.table.ITableView;
+import io.nop.core.model.table.ICellView;
 import io.nop.core.reflect.hook.SerializableExtensibleObject;
 import io.nop.excel.model.ExcelCell;
-import io.nop.excel.model.ExcelColumnConfig;
-import io.nop.excel.model.ExcelRow;
 import io.nop.excel.model.ExcelTable;
+import io.nop.excel.model.IExcelCell;
+import io.nop.excel.model.IExcelCol;
+import io.nop.excel.model.IExcelRow;
+import io.nop.excel.model.IExcelTable;
 import io.nop.excel.model.XptCellModel;
 
 import java.util.ArrayList;
@@ -26,7 +27,7 @@ import java.util.Map;
 /**
  * Xpt报表的展开算法基本将行与列平等对待，因此使用ExpandedCol来管理每列的数据，与ExpandedRow的作用等价。
  */
-public class ExpandedTable extends SerializableExtensibleObject implements ITableView {
+public class ExpandedTable extends SerializableExtensibleObject implements IExcelTable {
     private final List<ExpandedRow> rows = new ArrayList<>();
     private final List<ExpandedCol> cols = new ArrayList<>();
     private ExpandedSheet sheet;
@@ -34,7 +35,7 @@ public class ExpandedTable extends SerializableExtensibleObject implements ITabl
     private String styleId;
     private final Map<String, List<ExpandedCell>> namedCells = new HashMap<>();
 
-    public ExpandedTable(ExcelTable table) {
+    public ExpandedTable(IExcelTable table) {
         this.init(table);
     }
 
@@ -65,7 +66,7 @@ public class ExpandedTable extends SerializableExtensibleObject implements ITabl
         }
     }
 
-    private void init(ExcelTable table) {
+    private void init(IExcelTable table) {
         this.id = table.getId();
         this.styleId = table.getStyleId();
         int rowCount = table.getRowCount();
@@ -75,13 +76,14 @@ public class ExpandedTable extends SerializableExtensibleObject implements ITabl
 
         for (int i = 0; i < colCount; i++) {
             ExpandedCol col = cols.get(i);
-            col.setColModel((ExcelColumnConfig) table.getCol(i));
+            IExcelCol colModel = (IExcelCol) table.getCol(i);
+            col.setColModel(colModel == null ? null : colModel.getColModel());
         }
 
-        Map<ExcelCell, ExpandedCell> cellMap = new IdentityHashMap<>();
+        Map<IExcelCell, ExpandedCell> cellMap = new IdentityHashMap<>();
 
         for (int i = 0; i < rowCount; i++) {
-            ExcelRow row = table.getRow(i);
+            IExcelRow row = table.getRow(i);
 
             ExpandedRow er = rows.get(i);
             er.setModel(row.getModel());
@@ -90,10 +92,10 @@ public class ExpandedTable extends SerializableExtensibleObject implements ITabl
 
             ExpandedCell cell = er.getFirstCell();
             for (int j = 0; j < colCount; j++) {
-                ICell ic = row.getCell(j);
+                ICellView ic = row.getCell(j);
 
                 if (ic != null && !ic.isProxyCell()) {
-                    ExcelCell ec = (ExcelCell) ic;
+                    IExcelCell ec = (IExcelCell) ic;
                     XptCellModel xptModel = ec.getModel();
                     cell.setModel(xptModel);
                     cell.setComment(ec.getComment());
@@ -102,6 +104,13 @@ public class ExpandedTable extends SerializableExtensibleObject implements ITabl
                     cell.setId(ec.getId());
                     cell.setMergeDown(ec.getMergeDown());
                     cell.setMergeAcross(ec.getMergeAcross());
+
+                    if (ec instanceof ExpandedCell) {
+                        ExpandedCell e = (ExpandedCell) ec;
+                        cell.setExpandIndex(e.getExpandIndex());
+                        cell.setExpandValue(e.getExpandValue());
+                    }
+
                     cell.markProxy();
 
                     addNamedCell(cell);
@@ -113,7 +122,11 @@ public class ExpandedTable extends SerializableExtensibleObject implements ITabl
             }
         }
 
-        initParentChildren(cellMap);
+        if (table instanceof ExcelTable) {
+            initParentChildren(cellMap);
+        } else if (table instanceof ExpandedTable) {
+            initParentForExpanded(cellMap);
+        }
     }
 
     public void addNamedCell(ExpandedCell cell) {
@@ -130,9 +143,26 @@ public class ExpandedTable extends SerializableExtensibleObject implements ITabl
         return cells == null ? null : cells.get(0);
     }
 
-    private void initParentChildren(Map<ExcelCell, ExpandedCell> cellMap) {
+    private void initParentForExpanded(Map<IExcelCell, ExpandedCell> cellMap) {
+        for (Map.Entry<IExcelCell, ExpandedCell> entry : cellMap.entrySet()) {
+            ExpandedCell fromCell = (ExpandedCell) entry.getKey();
+            ExpandedCell cell = entry.getValue();
+
+            if (fromCell.getRowParent() != null) {
+                cell.setRowParent(cellMap.get(fromCell.getRowParent()));
+            }
+            if (fromCell.getColParent() != null) {
+                cell.setColParent(cellMap.get(fromCell.getColParent()));
+            }
+        }
+    }
+
+    private void initParentChildren(Map<IExcelCell, ExpandedCell> cellMap) {
         for (ExpandedCell cell : cellMap.values()) {
             XptCellModel xptModel = cell.getModel();
+            if (xptModel == null)
+                continue;
+
             if (xptModel.getRowParentCell() != null) {
                 cell.setRowParent(cellMap.get(xptModel.getRowParentCell()));
             }
@@ -210,7 +240,7 @@ public class ExpandedTable extends SerializableExtensibleObject implements ITabl
 
     @Override
     public ExpandedCell getCell(int rowIndex, int colIndex) {
-        return (ExpandedCell) ITableView.super.getCell(rowIndex, colIndex);
+        return (ExpandedCell) IExcelTable.super.getCell(rowIndex, colIndex);
     }
 
     public int getColCount() {

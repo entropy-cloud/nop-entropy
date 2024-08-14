@@ -18,6 +18,11 @@ public class ExcelWorkbook extends _ExcelWorkbook implements INeedInit {
 
     }
 
+    public boolean isEnableDump() {
+        XptWorkbookModel model = getModel();
+        return model == null ? false : Boolean.TRUE.equals(model.getDump());
+    }
+
     public boolean shouldRemoveHiddenCell() {
         XptWorkbookModel model = getModel();
         return model == null ? false : model.isRemoveHiddenCell();

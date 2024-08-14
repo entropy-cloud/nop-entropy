@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static io.nop.ooxml.common.model.PackagingURIHelper.createPartName;
+import static io.nop.ooxml.xlsx.output.XlsxGenHelper.normalizeSheetName;
 
 public class ExcelTemplate extends AbstractOfficeTemplate {
 
@@ -109,10 +110,10 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         OfficeRelsPart rels = pkg.makeRelsForPart(workbook);
         String relPath = "worksheets/sheet" + sheetId + ".xml";
         String relId = rels.addRelationship(XSSFRelation.WORKSHEET.getRelation(), relPath, null);
-        workbook.addSheet(relId, sheetId, sheet.getName());
+        workbook.addSheet(relId, sheetId, normalizeSheetName(sheet.getName(), index, this.workbook));
 
         IResource resource = new FileResource(new File(dir, sheetPath));
-        ExcelSheetWriter writer = new ExcelSheetWriter(sheet, index == 0, this.workbook);
+        ExcelSheetWriter writer = new ExcelSheetWriter(sheet, index == 0, index, this.workbook);
         writer.indent(isIndent()).generateToResource(resource, context);
         IOfficePackagePart sheetPart = pkg.addFile(sheetPath, resource);
 

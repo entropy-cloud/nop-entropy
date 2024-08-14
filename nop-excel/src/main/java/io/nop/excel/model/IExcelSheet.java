@@ -19,6 +19,8 @@ import static io.nop.excel.util.UnitsHelper.DEFAULT_CHARACTER_WIDTH_IN_PT;
 public interface IExcelSheet {
     String getName();
 
+    XptSheetModel getModel();
+
     ExcelPageSetup getPageSetup();
 
     ExcelPageMargins getPageMargins();
@@ -29,7 +31,7 @@ public interface IExcelSheet {
 
     Double getDefaultColumnWidth();
 
-    ITableView getTable();
+    IExcelTable getTable();
 
     List<ExcelImage> getImages();
 

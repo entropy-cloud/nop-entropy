@@ -1,28 +1,21 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 package io.nop.report.core.model;
 
 import io.nop.api.core.util.ProcessResult;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.model.table.CellPosition;
 import io.nop.excel.model.XptCellModel;
 
-import java.util.List;
-
 public class ExpandedTableToNode {
-
-    public static void dump(ExpandedTable table) {
-        new ExpandedTableToNode().buildNodeForTable(table).dump();
+    public static void dump(ExpandedSheet sheet) {
+        new ExpandedTableToNode().buildNodeForSheet(sheet).dump();
     }
 
-    public XNode buildNodeForTable(ExpandedTable table) {
-        XNode node = XNode.make("table");
-        table.forEachRealCell((cell, rowIndex, colIndex) -> {
+    public XNode buildNodeForSheet(ExpandedSheet sheet) {
+        XNode node = XNode.make("sheet");
+        node.setAttr("name", sheet.getName());
+
+        sheet.getTable().forEachRealCell((cell, rowIndex, colIndex) -> {
             ExpandedCell ec = (ExpandedCell) cell;
             if (ec != null && isRootNode(ec)) {
                 XNode cellNode = buildCellNode(ec);
@@ -39,7 +32,14 @@ public class ExpandedTableToNode {
 
     private XNode buildCellNode(ExpandedCell cell) {
         XNode cellNode = XNode.make("cell");
-        cellNode.setAttr("name", cell.getModel().getName());
+        cellNode.setAttr("name", cell.getName());
+        cellNode.setAttr("pos", CellPosition.toABString(cell.getRowIndex(), cell.getColIndex()));
+
+        if (cell.getExpandIndex() >= 0) {
+            cellNode.setAttr("expandedIndex", cell.getExpandIndex());
+            cellNode.setAttr("expandedValue", cell.getExpandValue());
+        }
+
         if (cell.getMergeAcross() > 0) {
             cellNode.setAttr("mergeAcross", cell.getMergeAcross());
         }
@@ -52,49 +52,28 @@ public class ExpandedTableToNode {
             cellNode.setAttr("text", cell.getText());
         }
 
-        if (cell.getExpandType() != null) {
-            cellNode.setAttr("expandType", cell.getExpandType());
-        }
-
-        if (cell.getExpandIndex() >= 0) {
-            cellNode.setAttr("expandIndex", cell.getExpandIndex());
-        }
-
-        if (cell.getExpandValue() != null) {
-            cellNode.setAttr("expandValue", cell.getExpandValue());
-        }
-
         XptCellModel cellModel = cell.getModel();
-        if (!StringHelper.isEmpty(cellModel.getField())) {
+        if (cellModel != null && !StringHelper.isEmpty(cellModel.getField())) {
             cellNode.setAttr("field", cellModel.getField());
         }
 
-        if (cell.getRowParent() != null) {
-            cellNode.setAttr("rowParent", cell.getRowParent().getName());
-            if (cell.getRowParent().getExpandIndex() >= 0)
-                cellNode.setAttr("rowParentExpandIndex", cell.getRowParent().getExpandIndex());
-        }
+        if (cell.getName() != null)
+            cellNode.setAttr("coordinate", cell.getLayerCoordinate());
 
-        List<ExpandedCell> rowChildren = cell.getRowChildren();
-        if (rowChildren != null && !rowChildren.isEmpty()) {
-            XNode children = cellNode.makeChild("rowChildren");
-            for (ExpandedCell child : rowChildren) {
+        if (cell.getRowChildren() != null && !cell.getRowChildren().isEmpty()) {
+            XNode children = XNode.make("rowChildren");
+            for (ExpandedCell child : cell.getRowChildren()) {
                 children.appendChild(buildCellNode(child));
             }
+            cellNode.appendChild(children);
         }
 
-        if (cell.getColParent() != null) {
-            cellNode.setAttr("colParent", cell.getColParent().getName());
-            if (cell.getColParent().getExpandIndex() >= 0)
-                cellNode.setAttr("colParentExpandIndex", cell.getColParent().getExpandIndex());
-        }
-
-        List<ExpandedCell> colChildren = cell.getColChildren();
-        if (colChildren != null && !colChildren.isEmpty()) {
-            XNode children = cellNode.makeChild("colChildren");
-            for (ExpandedCell child : colChildren) {
+        if (cell.getColChildren() != null && !cell.getColChildren().isEmpty()) {
+            XNode children = XNode.make("colChildren");
+            for (ExpandedCell child : cell.getColChildren()) {
                 children.appendChild(buildCellNode(child));
             }
+            cellNode.appendChild(children);
         }
         return cellNode;
     }

@@ -12,7 +12,7 @@ import io.nop.excel.model._gen._ExcelRow;
 
 import java.util.ArrayList;
 
-public class ExcelRow extends _ExcelRow {
+public class ExcelRow extends _ExcelRow implements IExcelRow {
     public ExcelRow() {
         setCells(new ArrayList<>());
     }

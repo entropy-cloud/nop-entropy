@@ -33,9 +33,10 @@ public class ExpandedSheet implements IExcelSheet {
     public ExpandedSheet(XptSheetModel model, ExpandedTable table) {
         this.model = model;
         this.table = table;
+        table.setSheet(this);
     }
 
-    public ExpandedSheet(ExcelSheet sheet) {
+    public ExpandedSheet(IExcelSheet sheet) {
         this(sheet.getModel(), new ExpandedTable(sheet.getTable()));
         setName(sheet.getName());
         setPageMargins(sheet.getPageMargins());

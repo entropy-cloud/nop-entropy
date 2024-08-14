@@ -7,11 +7,15 @@
  */
 package io.nop.excel.model;
 
-import io.nop.core.model.table.IColumnConfig;
 import io.nop.excel.model._gen._ExcelColumnConfig;
 
-public class ExcelColumnConfig extends _ExcelColumnConfig implements IColumnConfig {
+public class ExcelColumnConfig extends _ExcelColumnConfig implements IExcelCol {
     public ExcelColumnConfig() {
 
+    }
+
+    @Override
+    public ExcelColumnConfig getColModel() {
+        return this;
     }
 }

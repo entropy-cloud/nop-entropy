@@ -32,6 +32,14 @@
                     <schema stdDomain="boolean" />
                 </field>
 
+                <field name="dump" displayName="输出调试文件">
+                    <schema stdDomain="boolean" />
+                </field>
+
+                <field name="dumpDir" displayName="调试文件输出目录">
+                    <schema stdDomain="string" />
+                </field>
+
                 <field name="ext:namedStyles" list="true" keyProp="id" displayName="命名样式">
                     <fields>
                         <field name="id" displayName="样式ID" mandatory="true">

@@ -70,22 +70,39 @@ public class XptStructureToNode {
         if (!StringHelper.isEmpty(cellModel.getField())) {
             cellNode.setAttr("field", cellModel.getField());
         }
+
         if (cellModel.getExpandType() != null) {
             cellNode.setAttr("expandType", cellModel.getExpandType());
-            if(cellModel.getRowExpandOffset() != 0){
+            if (cellModel.getRowExpandOffset() != 0) {
                 cellNode.setAttr("rowExpandOffset", cellModel.getRowExpandOffset());
             }
 
-            if(cellModel.getRowExpandSpan() > 1){
+            if (cellModel.getRowExpandSpan() > 1) {
                 cellNode.setAttr("rowExpandSpan", cellModel.getRowExpandSpan());
             }
 
-            if(cellModel.getColExpandOffset() != 0){
+            if (cellModel.getColExpandOffset() != 0) {
                 cellNode.setAttr("colExpandOffset", cellModel.getColExpandOffset());
             }
 
-            if(cellModel.getColExpandSpan() > 1){
+            if (cellModel.getColExpandSpan() > 1) {
                 cellNode.setAttr("colExpandSpan", cellModel.getColExpandSpan());
+            }
+
+            if (!cellModel.getColExtendCells().isEmpty()) {
+                cellNode.setAttr("colExtendCells", cellModel.getColExtendCells().keySet());
+            }
+
+            if (!cellModel.getRowExtendCells().isEmpty()) {
+                cellNode.setAttr("rowExtendCells", cellModel.getRowExtendCells().keySet());
+            }
+
+            if (!cellModel.getRowDuplicateCells().isEmpty()) {
+                cellNode.setAttr("rowDuplicateCells", cellModel.getRowDuplicateCells().keySet());
+            }
+
+            if (!cellModel.getColDuplicateCells().isEmpty()) {
+                cellNode.setAttr("colDuplicateCells", cellModel.getColDuplicateCells().keySet());
             }
         }
 

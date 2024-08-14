@@ -70,7 +70,7 @@ public class OrmModelToDynEntityMeta {
         List<OrmMappingTableMeta> mappingTables = new ArrayList<>();
         ormModel.getEntityModels().forEach(entityModel -> {
             // many-to-many的中间表不转换为实体表
-            if (entityModel.containsTag(OrmModelConstants.TAG_MANY_TO_MANY)) {
+            if (OrmMappingTableMeta.isMappingTable(entityModel)) {
                 mappingTables.add(new OrmMappingTableMeta(entityModel));
                 return;
             }

@@ -88,7 +88,8 @@ public class ReportDataSet implements Iterable<Object> {
 
     public List<KeyedReportDataSet> group(String field) {
         Map<Object, List<Object>> map = new LinkedHashMap<>();
-        for (Object item : current()) {
+        List<Object> current = current();
+        for (Object item : current) {
             Object value = getFieldValue(item, field);
             map.computeIfAbsent(value, k -> new ArrayList<>()).add(item);
         }

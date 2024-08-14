@@ -15,8 +15,6 @@ import io.nop.api.core.beans.WebContentBean;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.commons.util.FileHelper;
-import io.nop.core.resource.IResource;
-import io.nop.core.resource.impl.ClassPathResource;
 import io.nop.report.core.XptConstants;
 import io.nop.report.demo.biz.ReportDemoBizModel;
 import jakarta.inject.Inject;
@@ -37,13 +35,13 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
     @Test
     public void testReport() {
         CoreMetrics.today();
-        Map<String,Object> data = new HashMap<>();
-        data.put("title","aaa");
+        Map<String, Object> data = new HashMap<>();
+        data.put("title", "aaa");
 
         List<TreeResultBean> reports = reportDemo.getDemoReports();
         for (TreeResultBean group : reports) {
             for (TreeResultBean report : group.getChildren()) {
-                String html = reportDemo.renderHtml(report.getValue(),data);
+                String html = reportDemo.renderHtml(report.getValue(), data);
                 outputText(report.getValue() + ".html", html);
             }
         }
@@ -132,6 +130,20 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
         WebContentBean result = reportDemo.download(reportName, XptConstants.RENDER_TYPE_XLSX);
         File file = (File) result.getContent();
         FileHelper.copyFile(file, getTargetFile("test-qrcode.xlsx"));
+        file.delete();
+    }
+
+    @EnableSnapshot
+    @Test
+    public void testSiblingExpand() {
+        setTestConfig(ApiConfigs.CFG_EXCEPTION_FILL_STACKTRACE, true);
+        String reportName = "/base/15-兄弟节点同时展开.xpt.xlsx";
+        String html = reportDemo.renderHtml(reportName);
+        outputText(reportName + ".html", html);
+
+        WebContentBean result = reportDemo.download(reportName, XptConstants.RENDER_TYPE_XLSX);
+        File file = (File) result.getContent();
+        FileHelper.copyFile(file, getTargetFile("test-sibling-expand.xlsx"));
         file.delete();
     }
 }

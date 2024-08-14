@@ -10,13 +10,14 @@ package io.nop.report.core.model;
 import io.nop.core.model.table.ICellView;
 import io.nop.core.model.table.IColumnConfig;
 import io.nop.excel.model.ExcelColumnConfig;
+import io.nop.excel.model.IExcelCol;
 import jakarta.annotation.Nonnull;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class ExpandedCol implements IColumnConfig {
+public class ExpandedCol implements IExcelCol {
     private ExcelColumnConfig colModel;
     private int assignedColIndex = -1;
 
@@ -28,6 +29,8 @@ public class ExpandedCol implements IColumnConfig {
 
     private boolean newlyCreated;
 
+    private ExpandedCell generatorCell;
+
     public boolean isNewlyCreated() {
         return newlyCreated;
     }
@@ -35,6 +38,15 @@ public class ExpandedCol implements IColumnConfig {
     public void setNewlyCreated(boolean newlyCreated) {
         this.newlyCreated = newlyCreated;
     }
+
+    public ExpandedCell getGeneratorCell() {
+        return generatorCell;
+    }
+
+    public void setGeneratorCell(ExpandedCell generatorCell) {
+        this.generatorCell = generatorCell;
+    }
+    
 
     public void forEachCell(Consumer<ExpandedCell> action) {
         ExpandedCell cell = firstCell;

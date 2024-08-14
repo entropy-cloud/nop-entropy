@@ -103,29 +103,37 @@ public class CellColExpander extends AbstractCellExpander {
             boolean needInsert = isNeedInsert(expandIndex,
                     xptModel == null || xptModel.getExpandInplaceCount() == null ? -1 : xptModel.getExpandInplaceCount());
             if (needInsert) {
-                incSpan++;
                 needInsert = !isAllowReuse(cell, table, newIndex);
+                if (needInsert) incSpan++;
             }
 
             ExpandedCol newCol = needInsert ? table.insertEmptyCol(newIndex) : table.makeCol(newIndex);
             if (needInsert) {
                 newCol.setNewlyCreated(true);
+                newCol.setGeneratorCell(cell);
                 newCol.setColModel(col.getColModel());
                 newCol.useNextColStyle();
             }
             duplicateCol(r, cell, expandIndex, expandValue, newCol, cellMap, processing);
         }
 
-        initColParent(cellMap);
+        initRowParentAndColParent(cellMap);
 
         addNewCellToParentDescendants(table, cellMap);
         return incSpan;
     }
 
     private boolean isAllowReuse(ExpandedCell cell, ExpandedTable table, int index) {
-        if (cell.isColParentExpandable())
+        if (index >= table.getColCount())
             return false;
-        return table.isNewlyCreatedCol(index);
+
+        ExpandedCol col = table.getCol(index);
+        if (col.isNewlyCreated()) {
+            // 同一个父节点的兄弟节点可以复用展开列
+            return cell.getColParent() == col.getGeneratorCell().getColParent();
+        }
+
+        return false;
     }
 
     // 如果是待复制单元格或者其子单元格，则复制，否则延展。
@@ -138,19 +146,24 @@ public class CellColExpander extends AbstractCellExpander {
         ExpandedCell nextCell = col.getFirstCell();
         ExpandedCell newCell = newCol.getFirstCell();
 
-        XptCellModel xptModel = cell.getModel();
-
         while (nextCell != null) {
             if (cell == nextCell) {
-                copyCellValue(nextCell, newCell,false);
+                copyCellValue(nextCell, newCell, false);
                 newCell.setExpandIndex(expandIndex);
                 newCell.setExpandValue(expandValue);
                 cellMap.put(nextCell, newCell);
-            } else if (xptModel != null && xptModel.getColDuplicateCells().containsKey(nextCell.getName())) {
-                copyCellValue(nextCell, newCell,false);
-                cellMap.put(nextCell, newCell);
-                if (newCell.isExpandable())
-                    processing.add(newCell);
+            } else if (cell.getColDescendants() != null && cell.getColDescendants().containsKey(nextCell.getName())) {
+                List<ExpandedCell> cells = cell.getColDescendants().get(nextCell.getName());
+                if (cells.contains(nextCell)) {
+                    copyCellValue(nextCell, newCell, false);
+                    cellMap.put(nextCell, newCell);
+                    if (newCell.isExpandable())
+                        processing.add(newCell);
+                } else {
+                    newCell.setStyleId(nextCell.getStyleId());
+                }
+            } else if (!nextCell.isProxyCell()) {
+                newCell.setStyleId(nextCell.getStyleId());
             }
             nextCell = nextCell.getDown();
             newCell = newCell.getDown();
@@ -163,23 +176,4 @@ public class CellColExpander extends AbstractCellExpander {
         return expandIndex >= expandInplaceCount;
     }
 
-    private void initColParent(Map<ExpandedCell, ExpandedCell> cellMap) {
-        for (Map.Entry<ExpandedCell, ExpandedCell> entry : cellMap.entrySet()) {
-            ExpandedCell cell = entry.getKey();
-            ExpandedCell newCell = entry.getValue();
-
-            ExpandedCell parent = cell.getColParent();
-            if (parent != null) {
-                ExpandedCell newParent = cellMap.get(parent);
-                if (newParent == null)
-                    newParent = parent;
-                newCell.setColParent(newParent);
-            }
-
-//            if (cell.hasColDescendant()) {
-//                Map<String, List<ExpandedCell>> children = getNewListMap(cell.getColDescendants(), cellMap);
-//                newCell.setColDescendants(children);
-//            }
-        }
-    }
 }

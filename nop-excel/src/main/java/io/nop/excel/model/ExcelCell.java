@@ -10,7 +10,7 @@ package io.nop.excel.model;
 import io.nop.core.model.table.ICell;
 import io.nop.excel.model._gen._ExcelCell;
 
-public class ExcelCell extends _ExcelCell {
+public class ExcelCell extends _ExcelCell implements IExcelCell {
     private ExcelCell realCell;
     private int rowOffset;
     private int colOffset;

@@ -8,6 +8,7 @@
 package io.nop.report.core.model;
 
 import io.nop.core.model.table.IRowView;
+import io.nop.excel.model.IExcelRow;
 import io.nop.excel.model.XptRowModel;
 import jakarta.annotation.Nonnull;
 
@@ -17,7 +18,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.Consumer;
 
-public class ExpandedRow implements IRowView {
+public class ExpandedRow implements IExcelRow {
     private XptRowModel model;
 
     /**
@@ -40,12 +41,25 @@ public class ExpandedRow implements IRowView {
      */
     private boolean newlyCreated;
 
+    /**
+     * 如果是newlyCreated的列，则记录它是因为哪个单元格展开所产生的
+     */
+    private ExpandedCell generatorCell;
+
     public boolean isNewlyCreated() {
         return newlyCreated;
     }
 
     public void setNewlyCreated(boolean newlyCreated) {
         this.newlyCreated = newlyCreated;
+    }
+
+    public ExpandedCell getGeneratorCell() {
+        return generatorCell;
+    }
+
+    public void setGeneratorCell(ExpandedCell generatorCell) {
+        this.generatorCell = generatorCell;
     }
 
     @Override

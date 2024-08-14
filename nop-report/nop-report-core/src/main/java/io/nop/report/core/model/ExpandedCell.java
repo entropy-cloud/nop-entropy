@@ -14,8 +14,11 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.utils.Underscore;
 import io.nop.core.model.table.ICellView;
 import io.nop.excel.model.ExcelImage;
+import io.nop.excel.model.IExcelCell;
 import io.nop.excel.model.XptCellModel;
 import io.nop.excel.model.constants.XptExpandType;
+import io.nop.report.core.coordinate.CellCoordinate;
+import io.nop.report.core.coordinate.CellLayerCoordinate;
 import io.nop.report.core.dataset.KeyedReportDataSet;
 import io.nop.report.core.dataset.ReportDataSet;
 import io.nop.report.core.engine.IXptRuntime;
@@ -30,7 +33,7 @@ import java.util.function.Function;
 /**
  * 报表展开过程中需要频繁修改行和列，所以采用单向列表形式来维护
  */
-public class ExpandedCell implements ICellView {
+public class ExpandedCell implements IExcelCell {
     private XptCellModel model;
 
     private String id;
@@ -81,7 +84,56 @@ public class ExpandedCell implements ICellView {
     private Map<String, Object> extValues;
 
     public String toString() {
-        return "ExpandedCell[name=" + getName() + ",expandIndex=" + getExpandIndex() + ",text=" + getText() + "]";
+        return "ExpandedCell[name=" + getName() + ",expandIndex=" + getExpandIndex() + ",text=" + getText()
+                + ",coord=" + getColCoordinates() + "]";
+    }
+
+    public CellLayerCoordinate getLayerCoordinate() {
+        CellLayerCoordinate coord = new CellLayerCoordinate();
+        coord.setCellName(getName());
+        if (getRowParent() != null) {
+            List<CellCoordinate> rowCoordinates = getRowCoordinates();
+            coord.setRowCoordinates(rowCoordinates);
+        }
+        if (getColParent() != null) {
+            List<CellCoordinate> colCoordinates = getColCoordinates();
+            coord.setColCoordinates(colCoordinates);
+        }
+        return coord;
+    }
+
+    private List<CellCoordinate> getRowCoordinates() {
+        List<ExpandedCell> parents = new ArrayList<>();
+        ExpandedCell parent = getRowParent();
+        while (parent != null) {
+            parents.add(parent);
+            parent = parent.getRowParent();
+        }
+
+        return toCoordinates(parents);
+    }
+
+    private List<CellCoordinate> getColCoordinates() {
+        List<ExpandedCell> parents = new ArrayList<>();
+        ExpandedCell parent = getColParent();
+        while (parent != null) {
+            parents.add(parent);
+            parent = parent.getColParent();
+        }
+
+        return toCoordinates(parents);
+    }
+
+    private List<CellCoordinate> toCoordinates(List<ExpandedCell> parents) {
+        List<CellCoordinate> ret = new ArrayList<>(parents.size());
+        for (int i = parents.size() - 1; i >= 0; i--) {
+            ExpandedCell parentCell = parents.get(i);
+            CellCoordinate ord = new CellCoordinate();
+            ord.setCellName(parentCell.getName());
+            ord.setPosition(parentCell.getExpandIndex() + 1);
+            ret.add(ord);
+        }
+        return ret;
     }
 
     public Object getComputed(String key, Function<ExpandedCell, Object> fn) {
@@ -195,7 +247,7 @@ public class ExpandedCell implements ICellView {
     public void markEvaluated() {
         setEvaluated(true);
         setExpandValue(null);
-        setExpandIndex(0);
+        //setExpandIndex(0);
         if (!isStaticCell()) {
             setValue(null);
         }
@@ -322,6 +374,11 @@ public class ExpandedCell implements ICellView {
     @JsonIgnore
     public ExpandedTable getTable() {
         return getRow().getTable();
+    }
+
+    @JsonIgnore
+    public ExpandedSheet getSheet() {
+        return getTable().getSheet();
     }
 
     @JsonIgnore
