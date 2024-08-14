@@ -45,6 +45,13 @@ NopReport在[Nop平台](https://gitee.com/canonical-entropy/nop-entropy)中的�
 ![](report/MOM-YOY-report.png)
 ![](report/MOM-YOY-report-result.png)
 
+### 兄弟节点并行展开
+![](report/sibling-expand.png)
+![](report/sibling-expand-result.png)
+
+列父格D2的展开将导致D3被复制为多个，而当D3执行行展开的时候，就产生了多个兄弟节点同时进行行展开。
+兄弟节点进行行展开时将会自动共享新建的行，因此父节点最终被扩展为多少行，由所有子节点的总计的展开数量来决定。
+
 ### Excel模型扩展
 
 NopReport报表模型可以看作是对Excel模型的一种扩展。在单元格的批注中我们可以通过expandType、expandExpr和field等属性来指定单元格展开方向和展开内容。另外在单元格的文本中，我们可以直接写表达式语法。优点是在界面上可以直接看见表达式内容，而不需要把批注展开。支持两种格式的文本表达式语法：

@@ -34,7 +34,6 @@ import io.nop.report.core.model.ExpandedCol;
 import io.nop.report.core.model.ExpandedRow;
 import io.nop.report.core.model.ExpandedSheet;
 import io.nop.report.core.model.ExpandedTable;
-import io.nop.report.core.model.ExpandedTableToNode;
 import io.nop.xlang.api.EvalCodeWithAst;
 import io.nop.xlang.ast.Expression;
 import org.slf4j.Logger;
@@ -140,10 +139,8 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
         expandedSheet.setName(sheetName);
         xptRt.setSheet(expandedSheet);
 
-        //ExpandedTableToNode.dump(expandedSheet.getTable());
-
         new TableExpander(expandedSheet.getTable()).expand(xptRt);
-        ExpandedTableToNode.dump(expandedSheet);
+        //ExpandedTableToNode.dump(expandedSheet);
 
         ExpandedSheetEvaluator.INSTANCE.evaluateSheetCells(expandedSheet, xptRt);
 

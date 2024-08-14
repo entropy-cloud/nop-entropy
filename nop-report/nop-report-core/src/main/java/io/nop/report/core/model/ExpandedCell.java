@@ -247,7 +247,8 @@ public class ExpandedCell implements IExcelCell {
     public void markEvaluated() {
         setEvaluated(true);
         setExpandValue(null);
-        //setExpandIndex(0);
+        // 通过这个标志来标记已经展开完毕
+        setExpandIndex(0);
         if (!isStaticCell()) {
             setValue(null);
         }

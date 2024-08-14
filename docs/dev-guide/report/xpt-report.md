@@ -52,15 +52,22 @@ cell对应于 ExpandedCell类型
 在单元格的批注中可以写如下属性
 
 - expandType:  r表示沿行的方向展开，而c表示沿列的方向展开
-- expandExpr:  如果非空，则表达式应该返回一个集合，当前单元格会按照此集合的值展开成多个单元格。
-- ds: 当前数据源对象
-- field: 如果没有指定expandExpr，而指定了field，则按照该字段对当前数据集进行汇总，然后针对分组情况进行展开。
-- keepExpandEmpty: 当展开集合返回空时，缺省情况下会把对应单元格及其子单元格都删除。但是如果设置了keepExpandEmpty，则这些未展开的单元格会保留，但值会被设置为null
-- rowParent: 行父格。必须是一个设置了expandType的单元格。行父格展开时会复制所有的子单元格。如果不指定，则向左侧查找。
-- colParent: 列父格。必须是一个设置了expandType的单元格。列父格展开时会复制所有的子单元格。如果不指定，则向上查找。
-- expandMinCount: 控制展开时最少有多少个元素，如果expandExpr返回的长度较小，则补充null。
-- expandMaxCount: 控制展开时最多有多少个元素。超过的行将会被自动丢弃
 
+- expandExpr:  如果非空，则表达式应该返回一个集合，当前单元格会按照此集合的值展开成多个单元格。
+
+- ds: 当前数据源对象
+
+- field: 如果没有指定expandExpr，而指定了field，则按照该字段对当前数据集进行汇总，然后针对分组情况进行展开。
+
+- keepExpandEmpty: 当展开集合返回空时，缺省情况下会把对应单元格及其子单元格都删除。但是如果设置了keepExpandEmpty，则这些未展开的单元格会保留，但值会被设置为null
+
+- rowParent: 行父格。必须是一个设置了expandType的单元格。行父格展开时会复制所有的子单元格。如果不指定，则向左侧查找。
+
+- colParent: 列父格。必须是一个设置了expandType的单元格。列父格展开时会复制所有的子单元格。如果不指定，则向上查找。
+
+- expandMinCount: 控制展开时最少有多少个元素，如果expandExpr返回的长度较小，则补充null。
+
+- expandMaxCount: 控制展开时最多有多少个元素。超过的行将会被自动丢弃
 * rowParent和colParent如果设置为A0，则表示它们是根单元格，没有父格。
 
 批注中可配置的属性参考 workflow.xdef元模型中的cell节点的model部分。
@@ -139,6 +146,7 @@ SUM(A3:D5)
 * xptRt.seq(seqName): 相当于是 seqName ++，即读取seqName对应的变量值，执行递增操作，然后返回递增之前的值。如果一开始变量不存在，则认为初始化为1
 
 ## 调试
+
 在【XptWorkbookModel】配置中可以设置`dump=true`启用调试文件输出，在模板展开的过程中会把每一个中间结果输出到dumpDir目录下，dumpDir的缺省值为`./target`。
 
 ![](xpt-report/report-dump.png)
@@ -164,5 +172,3 @@ SUM(A3:D5)
 ### 3. 数据条数过多，怎么支持  只显示 前 几个
 
 可以配置单元格的expandExpr，通过表达式去控制具体展开时返回的条目。 更简单的方式是通过expandMinCount来控制
-
-
