@@ -7,8 +7,12 @@
  */
 package io.nop.orm.eql.ast;
 
+import io.nop.commons.type.StdSqlType;
 import io.nop.orm.eql.ast._gen._SqlNullLiteral;
 
 public class SqlNullLiteral extends _SqlNullLiteral {
-
+    @Override
+    public StdSqlType getSqlType() {
+        return StdSqlType.ANY;
+    }
 }

@@ -17,6 +17,7 @@ import io.nop.orm.eql.ast.SqlAggregateFunction;
 import io.nop.orm.eql.ast.SqlBinaryExpr;
 import io.nop.orm.eql.ast.SqlDateTimeLiteral;
 import io.nop.orm.eql.ast.SqlExpr;
+import io.nop.orm.eql.ast.SqlLiteral;
 import io.nop.orm.eql.ast.SqlRegularFunction;
 import io.nop.orm.eql.meta.ISqlExprMeta;
 import io.nop.orm.eql.meta.SingleColumnExprMeta;
@@ -79,6 +80,10 @@ public class ExprTypeResolver {
                 type = resolveAggFuncType((SqlAggregateFunction) expr);
                 break;
             }
+        }
+        if(type == StdSqlType.OTHER){
+            if(expr instanceof SqlLiteral)
+                return ((SqlLiteral) expr).getSqlType();
         }
         if (type == null)
             type = StdSqlType.ANY;

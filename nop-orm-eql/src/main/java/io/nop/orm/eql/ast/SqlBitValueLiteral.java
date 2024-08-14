@@ -7,8 +7,12 @@
  */
 package io.nop.orm.eql.ast;
 
+import io.nop.commons.type.StdSqlType;
 import io.nop.orm.eql.ast._gen._SqlBitValueLiteral;
 
 public class SqlBitValueLiteral extends _SqlBitValueLiteral {
-
+    @Override
+    public StdSqlType getSqlType() {
+        return StdSqlType.TINYINT;
+    }
 }

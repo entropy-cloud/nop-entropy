@@ -7,8 +7,12 @@
  */
 package io.nop.orm.eql.ast;
 
+import io.nop.commons.type.StdSqlType;
 import io.nop.orm.eql.ast._gen._SqlDateTimeLiteral;
 
 public class SqlDateTimeLiteral extends _SqlDateTimeLiteral {
-
+    @Override
+    public StdSqlType getSqlType() {
+        return StdSqlType.DATETIME;
+    }
 }

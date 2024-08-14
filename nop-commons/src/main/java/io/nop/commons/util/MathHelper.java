@@ -49,6 +49,7 @@ import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static io.nop.api.core.convert.ConvertHelper.toBigDecimal;
 import static io.nop.api.core.convert.ConvertHelper.toBigInteger;
@@ -167,6 +168,12 @@ public class MathHelper {
     public static final int MIN_REAL_TYPE = FLOAT;
 
     private static IRandom s_randomImpl = DefaultThreadLocalRandom.INSTANCE;
+
+    private static AtomicLong s_seq = new AtomicLong();
+
+    public static long nextSeq() {
+        return s_seq.incrementAndGet();
+    }
 
     /**
      * 缺省返回ThreadLocalRandom

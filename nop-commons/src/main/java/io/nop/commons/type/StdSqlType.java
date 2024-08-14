@@ -188,4 +188,11 @@ public enum StdSqlType implements ISqlDataType {
     public static StdSqlType fromStdDataTYpe(StdDataType dataType) {
         return stdTypeMap.get(dataType);
     }
+
+    public static StdSqlType fromJavaClass(Class<?> clazz) {
+        StdDataType dataType = StdDataType.fromJavaClass(clazz);
+        if (dataType == null)
+            return null;
+        return StdSqlType.fromStdDataTYpe(dataType);
+    }
 }

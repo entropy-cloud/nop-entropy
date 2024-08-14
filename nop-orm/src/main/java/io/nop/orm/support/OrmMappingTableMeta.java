@@ -1,6 +1,5 @@
 package io.nop.orm.support;
 
-import io.nop.api.core.util.Guard;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.orm.model.IEntityModel;
@@ -23,7 +22,7 @@ public class OrmMappingTableMeta {
         this.refProp1 = CollectionHelper.first(rels);
         this.refProp2 = CollectionHelper.last(rels);
 
-        Guard.checkArgument(rels.size() == 2, "mappingTable must contains two to-one relations");
+        // Guard.checkArgument(rels.size() == 2, "mappingTable must contains two to-one relations");
     }
 
     /**

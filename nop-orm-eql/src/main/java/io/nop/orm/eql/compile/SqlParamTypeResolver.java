@@ -15,6 +15,7 @@ import io.nop.orm.eql.ast.EqlASTNode;
 import io.nop.orm.eql.ast.EqlASTVisitor;
 import io.nop.orm.eql.ast.SqlAssignment;
 import io.nop.orm.eql.ast.SqlBinaryExpr;
+import io.nop.orm.eql.ast.SqlExpr;
 import io.nop.orm.eql.ast.SqlParameterMarker;
 import io.nop.orm.eql.meta.ISqlExprMeta;
 import io.nop.orm.eql.meta.SingleColumnExprMeta;
@@ -64,15 +65,26 @@ public class SqlParamTypeResolver extends EqlASTVisitor {
             case SqlBinaryExpr: {
                 SqlBinaryExpr binaryExpr = (SqlBinaryExpr) parent;
                 StdSqlType sqlType;
+                SqlExpr otherExpr;
                 if (binaryExpr.getLeft() == node) {
+                    otherExpr = binaryExpr.getRight();
                     resolvedMeta = binaryExpr.getRight().getResolvedExprMeta();
                     sqlType = binaryExpr.getOperator().getLeftSqlType();
                 } else {
+                    otherExpr = binaryExpr.getLeft();
                     resolvedMeta = binaryExpr.getLeft().getResolvedExprMeta();
                     sqlType = binaryExpr.getOperator().getRightSqlType();
                 }
+
+                // 比较算符要求相同的类型
+                if (resolvedMeta == null && binaryExpr.getOperator().isCompareOp()) {
+                    resolvedMeta = new ExprTypeResolver(dialect).resolveExprMeta(otherExpr);
+                }
+
                 if (resolvedMeta == null) {
                     IDataParameterBinder binder = dialect.getDataParameterBinder(sqlType.getStdDataType(), sqlType);
+                    if (binder == null)
+                        binder = DataParameterBinders.ANY;
                     resolvedMeta = new SingleColumnExprMeta("?", binder, ExprOrmDataType.fromSqlType(sqlType));
                 }
                 break;

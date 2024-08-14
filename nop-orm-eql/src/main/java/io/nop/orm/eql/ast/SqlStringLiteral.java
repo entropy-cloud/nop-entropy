@@ -8,6 +8,7 @@
 package io.nop.orm.eql.ast;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.type.StdSqlType;
 import io.nop.orm.eql.ast._gen._SqlStringLiteral;
 
 import static io.nop.core.CoreErrors.ARG_AST_NODE;
@@ -19,5 +20,10 @@ public class SqlStringLiteral extends _SqlStringLiteral {
         if (value == null)
             throw new NopException(ERR_LANG_AST_NODE_PROP_NOT_ALLOW_EMPTY).loc(getLocation())
                     .param(ARG_AST_NODE, getASTType()).param(ARG_PROP_NAME, propName);
+    }
+
+    @Override
+    public StdSqlType getSqlType() {
+        return StdSqlType.VARCHAR;
     }
 }

@@ -111,6 +111,15 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
     }
 
     @Test
+    public void testParamValueType() {
+        txn().runInTransaction(null, TransactionPropagation.SUPPORTS, txn -> {
+            SQL sql = SQL.begin().sql("select o,2 from io.nop.app.SimsClass o where 1=? and date(o.createdTime) > ?", 3,"2002-01-03").end();
+            orm().findAll(sql);
+            return null;
+        });
+    }
+
+    @Test
     public void testEntityId() {
         SimsClass entity = (SimsClass) orm().newEntity(SimsClass.class.getName());
         entity.setClassId("3");

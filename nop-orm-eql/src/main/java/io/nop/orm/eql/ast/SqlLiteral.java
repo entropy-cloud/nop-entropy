@@ -7,7 +7,9 @@
  */
 package io.nop.orm.eql.ast;
 
+import io.nop.commons.type.StdSqlType;
 import io.nop.orm.eql.ast._gen._SqlLiteral;
 
 public abstract class SqlLiteral extends _SqlLiteral {
+    public abstract StdSqlType getSqlType();
 }
