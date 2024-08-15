@@ -86,14 +86,16 @@ public class BizActionInvoker {
     public static CompletionStage<ApiResponse<?>> invokeGraphQLAsync(String bizObjName, String bizAction,
                                                                      ApiRequest<?> request) {
         IGraphQLEngine graphQLEngine = BeanContainer.getBeanByType(IGraphQLEngine.class);
-        IGraphQLExecutionContext gqlCtx = graphQLEngine.newRpcContext(null, bizObjName, request);
+        String realBizName = bizObjName + "__" + bizAction;
+        IGraphQLExecutionContext gqlCtx = graphQLEngine.newRpcContext(null, realBizName, request);
         return graphQLEngine.executeRpcAsync(gqlCtx);
     }
 
     public static ApiResponse<?> invokeGraphQLSync(String bizObjName, String bizAction,
                                                    ApiRequest<?> request) {
         IGraphQLEngine graphQLEngine = BeanContainer.getBeanByType(IGraphQLEngine.class);
-        IGraphQLExecutionContext gqlCtx = graphQLEngine.newRpcContext(null, bizObjName, request);
+        String realBizName = bizObjName + "__" + bizAction;
+        IGraphQLExecutionContext gqlCtx = graphQLEngine.newRpcContext(null, realBizName, request);
         return graphQLEngine.executeRpc(gqlCtx);
     }
 }
