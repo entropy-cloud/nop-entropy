@@ -92,8 +92,11 @@ public class OrmColumnModel extends _OrmColumnModel implements IColumnModel {
 
     @Override
     public Class<?> getJavaClass() {
-        if (javaClass == null)
+        if (javaClass == null) {
+            if (getStdDataType() == null)
+                return null;
             return getStdDataType().getJavaClass();
+        }
         return javaClass;
     }
 

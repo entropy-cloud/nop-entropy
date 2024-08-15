@@ -3176,6 +3176,12 @@
         ]
       },
       {
+        "name": "fromJavaClass",
+        "parameterTypes": [
+          "java.lang.Class"
+        ]
+      },
+      {
         "name": "fromJdbcType",
         "parameterTypes": [
           "int"
@@ -19114,6 +19120,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getJavaClass",
+        "parameterTypes": []
+      },
+      {
         "name": "getKind",
         "parameterTypes": []
       },
@@ -19149,6 +19159,12 @@
         "name": "setColumnRefs",
         "parameterTypes": [
           "java.util.List"
+        ]
+      },
+      {
+        "name": "setJavaClass",
+        "parameterTypes": [
+          "java.lang.Class"
         ]
       },
       {
@@ -23002,6 +23018,14 @@
         "parameterTypes": []
       },
       {
+        "name": "getExpandableColParent",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExpandableRowParent",
+        "parameterTypes": []
+      },
+      {
         "name": "getExportValue",
         "parameterTypes": []
       },
@@ -23029,6 +23053,10 @@
       },
       {
         "name": "getImage",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLayerCoordinate",
         "parameterTypes": []
       },
       {
@@ -23103,6 +23131,10 @@
       },
       {
         "name": "getRr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSheet",
         "parameterTypes": []
       },
       {
