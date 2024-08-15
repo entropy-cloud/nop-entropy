@@ -10,8 +10,8 @@ package io.nop.ooxml.xlsx.output;
 import io.nop.core.context.IEvalContext;
 import io.nop.excel.model.IExcelSheet;
 
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 public interface IExcelSheetGenerator {
-    void generate(IEvalContext context, Consumer<IExcelSheet> consumer);
+    void generate(IEvalContext context, BiConsumer<IExcelSheet, IEvalContext> consumer);
 }

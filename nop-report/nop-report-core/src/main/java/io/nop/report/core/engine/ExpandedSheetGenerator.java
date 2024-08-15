@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class ExpandedSheetGenerator implements IExcelSheetGenerator {
@@ -54,7 +55,7 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
     }
 
     @Override
-    public void generate(IEvalContext ctx, Consumer<IExcelSheet> consumer) {
+    public void generate(IEvalContext ctx, BiConsumer<IExcelSheet, IEvalContext> consumer) {
         XptRuntime xptRt = new XptRuntime(ctx.getEvalScope());
         xptRt.setWorkbook(workbook);
 
@@ -79,7 +80,7 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
                 });
     }
 
-    void generateSheetLoop(ExcelSheet sheet, ExcelWorkbook workbook, IXptRuntime xptRt, Consumer<IExcelSheet> consumer) {
+    void generateSheetLoop(ExcelSheet sheet, ExcelWorkbook workbook, IXptRuntime xptRt, BiConsumer<IExcelSheet,IEvalContext> consumer) {
         XptSheetModel sheetModel = sheet.getModel();
         xptRt.getEvalScope().setLocalValue(null, XptConstants.VAR_SHEET_TPL, sheet);
 
@@ -106,7 +107,7 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
                             if (sheetModel != null)
                                 runXpl(sheetModel.getAfterExpand(), xptRt);
 
-                            consumer.accept(expandedSheet);
+                            consumer.accept(expandedSheet,xptRt);
                         } finally {
                             xptRt.runSheetCleanup();
                         }

@@ -29,6 +29,8 @@ public interface ExcelConstants {
 
     String VAR_FIELD_LABEL = "fieldLabel";
 
+    String VAR_SHEET_NAME_MAPPING = "sheetNameMapping";
+
     /**
      * By default, Microsoft Office Excel 2007 uses the Calibry font in font size 11
      */

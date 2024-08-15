@@ -81,7 +81,7 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
         genRows(out, sheet);
         genMergeCells(out, sheet);
 
-        genLinks(out, sheet);
+        genLinks(out, sheet, context);
 
         genPageMargins(out, sheet);
 
@@ -273,7 +273,7 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
      * <hyperlink ref="B3" location="wf_status" display="dd" xr:uid="{1E0AC103-9F7F-465F-9C86-64335D36742B}"/>
      * <hyperlink ref="B4" r:id="rId1" xr:uid="{600CE871-0B2C-47DB-A4AB-A39BD76FEFE9}"/>
      */
-    void genLinks(IXNodeHandler out, IExcelSheet sheet) {
+    void genLinks(IXNodeHandler out, IExcelSheet sheet, IEvalContext context) {
         List<Link> links = new ArrayList<>();
         sheet.getTable().forEachRealCell((cell, rowIndex, colIndex) -> {
             String linkUrl = cell.getLinkUrl();
@@ -298,7 +298,8 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
             links.forEach(link -> {
                 Map<String, ValueWithLocation> attrs = new LinkedHashMap<>();
                 attrs.put("ref", ValueWithLocation.of(null, CellPosition.toABString(link.rowIndex, link.colIndex)));
-                attrs.put("location", ValueWithLocation.of(null, normalizeLocation(link.location)));
+                attrs.put("location", ValueWithLocation.of(null, normalizeLocation(link.location,
+                        (Map<String, String>) context.getEvalScope().getValue(ExcelConstants.VAR_SHEET_NAME_MAPPING))));
                 attrs.put("display", ValueWithLocation.of(null, link.text));
                 attrs.put("xr:id", ValueWithLocation.of(null, intToUUID(link.index)));
                 out.simpleNode(null, "hyperlink", attrs);
@@ -307,13 +308,16 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
         }
     }
 
-    private String normalizeLocation(String location) {
+    private String normalizeLocation(String location, Map<String, String> sheetNameMap) {
         int pos = location.indexOf('!');
         if (pos > 0) {
             String abPos = location.substring(pos + 1);
             try {
                 CellPosition.fromABString(abPos);
                 String sheetName = location.substring(0, pos);
+                String mappedName = sheetNameMap == null ? null : sheetNameMap.get(sheetName);
+                if (mappedName != null)
+                    return mappedName + '!' + abPos;
                 return normalizeSheetName(sheetName, sheetIndex, workbook) + '!' + abPos;
             } catch (Exception e) {
                 return location;

@@ -21,6 +21,10 @@ public class EvalActionWithCode implements IEvalAction, IWithSourceCode {
         return code;
     }
 
+    public String toString() {
+        return code == null ? "" : code;
+    }
+
     @Override
     public Object invoke(IEvalContext ctx) {
         return action.invoke(ctx);

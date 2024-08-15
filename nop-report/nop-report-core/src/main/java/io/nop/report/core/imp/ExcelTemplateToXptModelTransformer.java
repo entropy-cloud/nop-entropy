@@ -33,6 +33,7 @@ import io.nop.excel.model.ExcelTable;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.XptCellModel;
 import io.nop.excel.model.XptSheetModel;
+import io.nop.excel.model.XptWorkbookModel;
 import io.nop.excel.model.constants.XptExpandType;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.build.XptConfigParseHelper;
@@ -53,13 +54,26 @@ import java.util.List;
  */
 public class ExcelTemplateToXptModelTransformer {
     private final IEvalScope scope;
+    private final XLangCompileTool compileTool = XLang.newCompileTool().allowUnregisteredScopeVar(true);
 
     public ExcelTemplateToXptModelTransformer(IEvalScope scope) {
         this.scope = scope;
     }
 
     public void transform(ExcelWorkbook template, ImportModel model) {
-        XptConfigParseHelper.parseWorkbookModel(template);
+        XptWorkbookModel xptModel = XptConfigParseHelper.parseWorkbookModel(template);
+
+        XNode beforeExpandNode = XNode.fromValue(model.prop_get(XptConstants.EXT_PROP_XPT_BEFORE_EXPAND));
+        if (beforeExpandNode != null) {
+            IEvalAction action = compileTool.compileTagBodyWithSource(beforeExpandNode, XLangOutputMode.none);
+            xptModel.setBeforeExpand(action);
+        }
+
+        XNode afterExpandNode = XNode.fromValue(model.prop_get(XptConstants.EXT_PROP_XPT_AFTER_EXPAND));
+        if (afterExpandNode != null) {
+            IEvalAction action = compileTool.compileTagBodyWithSource(afterExpandNode, XLangOutputMode.none);
+            xptModel.setAfterExpand(action);
+        }
 
         for (ExcelSheet sheet : template.getSheets()) {
             ImportSheetModel sheetModel = getSheetModel(model, sheet);
@@ -76,7 +90,7 @@ public class ExcelTemplateToXptModelTransformer {
 
     private void transformSheet(ExcelSheet sheet, ImportSheetModel sheetModel) {
         new TreeTableDataParser(scope).parse(sheet.getName(), sheet.getTable(), sheetModel,
-                new BuildXptModelListener(sheet));
+                new BuildXptModelListener(sheet, compileTool));
     }
 
     private ImportSheetModel getSheetModel(ImportModel model, ExcelSheet sheet) {
@@ -104,7 +118,7 @@ public class ExcelTemplateToXptModelTransformer {
 
         private final List<ExcelCell> labelCells = new ArrayList<>();
 
-        private final XLangCompileTool compileTool = XLang.newCompileTool().allowUnregisteredScopeVar(true);
+        private final XLangCompileTool compileTool;
 
         static class FieldRange {
             int rowIndex;
@@ -131,8 +145,9 @@ public class ExcelTemplateToXptModelTransformer {
             }
         }
 
-        public BuildXptModelListener(ExcelSheet sheet) {
+        public BuildXptModelListener(ExcelSheet sheet, XLangCompileTool compileTool) {
             this.sheet = sheet;
+            this.compileTool = compileTool;
         }
 
         public ExcelTable getTable() {

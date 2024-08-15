@@ -23,12 +23,12 @@ import java.util.List;
 
 public class XptConfigParseHelper {
 
-    public static void parseWorkbookModel(ExcelWorkbook workbook) {
+    public static XptWorkbookModel parseWorkbookModel(ExcelWorkbook workbook) {
         ImportModel importModel = ImportModelHelper.getImportModel(XptConstants.XPT_IMP_MODEL_PATH);
-        parseWorkbookModel(workbook, importModel);
+        return parseWorkbookModel(workbook, importModel);
     }
 
-    public static void parseWorkbookModel(ExcelWorkbook workbook, ImportModel importModel) {
+    public static XptWorkbookModel parseWorkbookModel(ExcelWorkbook workbook, ImportModel importModel) {
         IEvalScope scope = XLang.newEvalScope();
         scope.setLocalValue(ExcelConstants.VAR_WORKBOOK, workbook);
 
@@ -42,7 +42,7 @@ public class XptConfigParseHelper {
             if (namedStyles != null) {
                 workbookModel.prop_remove(XptConstants.PROP_NAMED_STYLES);
                 for (DynamicObject namedStyle : namedStyles) {
-                    ExcelStyle style = getStyle(workbook,(String)namedStyle.prop_get(XptConstants.PROP_STYLE));
+                    ExcelStyle style = getStyle(workbook, (String) namedStyle.prop_get(XptConstants.PROP_STYLE));
                     if (style != null) {
                         String id = (String) namedStyle.prop_get(XptConstants.PROP_ID);
                         if (!StringHelper.isEmpty(id)) {
@@ -53,8 +53,11 @@ public class XptConfigParseHelper {
                     }
                 }
             }
-            workbook.setModel(workbookModel);
+        }else {
+            workbookModel = new XptWorkbookModel();
         }
+        workbook.setModel(workbookModel);
+        return workbookModel;
     }
 
     static ExcelStyle getStyle(ExcelWorkbook wk, String styleId){

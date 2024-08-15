@@ -69,9 +69,7 @@ public class PdfReportRenderer implements IBinaryTemplateOutput {
 
 
         if (sheetGenerator != null) {
-            sheetGenerator.generate(context, sheet -> {
-                renderSheet(sheet, context);
-            });
+            sheetGenerator.generate(context, this::renderSheet);
         } else {
             model.getSheets().forEach(sheet -> {
                 renderSheet(sheet, context);

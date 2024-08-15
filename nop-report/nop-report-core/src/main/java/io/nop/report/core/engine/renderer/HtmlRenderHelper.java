@@ -17,7 +17,7 @@ import java.io.File;
 public class HtmlRenderHelper {
     public static String getHtml(ExcelWorkbook workbook, IExcelSheet sheet) {
         return new HtmlReportRendererFactory.HtmlTemplate(workbook,
-                (ctx, action) -> action.accept(sheet)).generateText(DisabledEvalScope.INSTANCE);
+                (ctx, action) -> action.accept(sheet,ctx)).generateText(DisabledEvalScope.INSTANCE);
     }
 
     public static void dumpHtml(ExcelWorkbook workbook, IExcelSheet sheet, String fileName) {

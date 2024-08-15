@@ -572,6 +572,7 @@
 /nop/report/demo/base/12-动态Sheet和动态列.xpt.xlsx
 /nop/report/demo/base/13-复杂结构列展开.xpt.xlsx
 /nop/report/demo/base/14-复杂结构行展开.xpt.xlsx
+/nop/report/demo/base/15-兄弟节点同时展开.xpt.xlsx
 /nop/report/demo/ext/report-with-params.xpt.xlsx
 /nop/report/demo/pages/demo.page.yaml
 /nop/report/demo/pages/report-with-params.page.yaml
@@ -618,7 +619,6 @@
 /nop/report/xlib/xpt-rt.xlib
 /nop/report/xlib/xpt.xlib
 /nop/rpc/imp/api.imp.xml
-/nop/rpc/imp/api.imp.xml.rej
 /nop/rpc/imp/template.api.xlsx
 /nop/rule/_module
 /nop/rule/auth/_nop-rule-api.action-auth.xml
@@ -1051,7 +1051,6 @@
 /nop/web/xlib/view-gen.xlib
 /nop/web/xlib/view-gen/impl_GenFromMeta.xpl
 /nop/web/xlib/web.xlib
-/nop/web/xlib/web.xlib.rej
 /nop/web/xlib/web/grid_crud.xpl
 /nop/web/xlib/web/impl_GenForm.xpl
 /nop/web/xlib/web/impl_GenGrid.xpl

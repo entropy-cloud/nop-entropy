@@ -65,10 +65,10 @@ public class HtmlReportRendererFactory implements IReportRendererFactory {
             MutableInt index = new MutableInt();
 
             if (sheetGenerator != null) {
-                sheetGenerator.generate(context, sheet -> {
+                sheetGenerator.generate(context, (sheet,ctx) -> {
                     index.incrementAndGet();
                     String sheetId = reportId + "-sheet-" + index;
-                    renderSheet(sheet, sheetId, scopeCssPrefix, out, context);
+                    renderSheet(sheet, sheetId, scopeCssPrefix, out, ctx);
                 });
             } else {
                 model.getSheets().forEach(sheet -> {

@@ -4,6 +4,18 @@
      templatePath="template.api.xlsx" xmlns:c="c" xmlns:xpt="xpt"
      xdef="/nop/schema/api.xdef">
 
+    <xpt:beforeExpand><![CDATA[
+        import io.nop.ooxml.xlsx.output.XlsxGenHelper;
+
+        let index = 1;
+        const mapping = {}
+        for(let msg of entity.messages){
+            let name = XlsxGenHelper.normalizeSheetName(msg.name, index++, workbook);
+            mapping[msg.name] = name
+        }
+        assign("sheetNameMapping",mapping);
+    ]]></xpt:beforeExpand>
+
     <sheets>
         <sheet name="目录" ignore="true"/>
         <sheet name="配置">

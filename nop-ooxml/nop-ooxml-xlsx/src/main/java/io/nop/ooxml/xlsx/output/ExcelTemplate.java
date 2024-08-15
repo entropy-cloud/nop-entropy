@@ -13,6 +13,7 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.ByteArrayResource;
 import io.nop.core.resource.impl.FileResource;
+import io.nop.excel.ExcelConstants;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelWorkbook;
@@ -35,7 +36,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static io.nop.ooxml.common.model.PackagingURIHelper.createPartName;
-import static io.nop.ooxml.xlsx.output.XlsxGenHelper.normalizeSheetName;
 
 public class ExcelTemplate extends AbstractOfficeTemplate {
 
@@ -79,9 +79,9 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         GenState genState = new GenState();
 
         if (sheetGenerator != null) {
-            sheetGenerator.generate(context, sheet -> {
+            sheetGenerator.generate(context,(sheet,ctx) -> {
                 int index = genState.nextSheetIndex++;
-                generateSheet(pkg, dir, index, sheet, context, genState);
+                generateSheet(pkg, dir, index, sheet, ctx, genState);
             });
         } else if (workbook != null) {
             for (ExcelSheet sheet : workbook.getSheets()) {
@@ -110,7 +110,7 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         OfficeRelsPart rels = pkg.makeRelsForPart(workbook);
         String relPath = "worksheets/sheet" + sheetId + ".xml";
         String relId = rels.addRelationship(XSSFRelation.WORKSHEET.getRelation(), relPath, null);
-        workbook.addSheet(relId, sheetId, normalizeSheetName(sheet.getName(), index, this.workbook));
+        workbook.addSheet(relId, sheetId, normalizeSheetName(sheet.getName(), index, context));
 
         IResource resource = new FileResource(new File(dir, sheetPath));
         ExcelSheetWriter writer = new ExcelSheetWriter(sheet, index == 0, index, this.workbook);
@@ -127,6 +127,16 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         OfficeRelsPart sheetRels = pkg.makeRelsForPart(sheetPart);
         sheetRels.removeRelationshipByType(XSSFRelation.SHEET_COMMENTS.getRelation());
         sheetRels.addRelationship(XSSFRelation.SHEET_COMMENTS.getRelation(), relCommentsPath, null);
+    }
+
+    private String normalizeSheetName(String sheetName, int index, IEvalContext context) {
+        Map<String, String> mapping = (Map<String, String>) context.getEvalScope().getValue(ExcelConstants.VAR_SHEET_NAME_MAPPING);
+        if (mapping != null) {
+            String mappedName = mapping.get(sheetName);
+            if (mappedName != null)
+                return mappedName;
+        }
+        return XlsxGenHelper.normalizeSheetName(sheetName, index, workbook);
     }
 
     private void generateDrawings(ExcelOfficePackage pkg, IExcelSheet sheet, String drawingRelId, IOfficePackagePart sheetPart, GenState genState) {
