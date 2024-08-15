@@ -81,6 +81,7 @@ Engine）、任务调度引擎(Job Scheduler)、批处理引擎（Batch Prcessin
 ## 源码地址
 
 - gitee: [https://gitee.com/canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
+- gitcode:[https://gitcode.com/canonical-entropy/nop-entropy](https://gitcode.com/canonical-entropy/nop-entropy)
 - github: [https://github.com/entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
 
 ## 设计原理
