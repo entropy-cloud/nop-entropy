@@ -563,6 +563,26 @@ public class ExpandedCell implements IExcelCell {
         return colParent;
     }
 
+    public ExpandedCell getExpandableColParent() {
+        if (colParent == null)
+            return null;
+        if (colParent.getModel() == null)
+            return null;
+        if (colParent.getModel().getExpandType() == null)
+            return colParent.getExpandableColParent();
+        return colParent;
+    }
+
+    public ExpandedCell getExpandableRowParent() {
+        if (rowParent == null)
+            return null;
+        if (rowParent.getModel() == null)
+            return null;
+        if (rowParent.getModel().getExpandType() == null)
+            return rowParent.getExpandableColParent();
+        return rowParent;
+    }
+
     public void setColParent(ExpandedCell colParent) {
         this.colParent = colParent;
     }

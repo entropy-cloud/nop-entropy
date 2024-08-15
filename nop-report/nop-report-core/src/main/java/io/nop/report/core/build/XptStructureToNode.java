@@ -48,7 +48,7 @@ public class XptStructureToNode {
             return true;
         }
 
-        return cellModel.getRowParent() == null && cellModel.getColParent() == null;
+        return cellModel.isTopColCell() && cellModel.isTopRowCell();
     }
 
     private XNode buildCellNode(ExcelCell cell) {

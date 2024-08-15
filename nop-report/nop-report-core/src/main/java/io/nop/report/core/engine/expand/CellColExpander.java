@@ -45,7 +45,7 @@ public class CellColExpander extends AbstractCellExpander {
     }
 
     @Override
-    protected void extendCells(ExpandedCell cell, int incSpan) {
+    protected void extendCells(ExpandedCell cell, ExpandCounter counter) {
         XptCellModel xptModel = cell.getModel();
         ExpandedCol col = cell.getCol();
         int colIndex = col.getColIndex();
@@ -72,14 +72,35 @@ public class CellColExpander extends AbstractCellExpander {
             });
         }
 
-        for (ExpandedCell needExtend : needExtends.keySet()) {
-            needExtend.setMergeAcross(needExtend.getMergeAcross() + incSpan);
-            needExtend.markProxy();
+        if (counter.incSpan == counter.realIncSpan) {
+            for (ExpandedCell needExtend : needExtends.keySet()) {
+                needExtend.setMergeAcross(needExtend.getMergeAcross() + counter.incSpan);
+                needExtend.markProxy();
+            }
+        } else {
+            // 兄弟节点展开导致共享了部分新增列
+            for (ExpandedCell needExtend : needExtends.keySet()) {
+                int span = counter.incSpan - skipExtendSpan(table, needExtend, cell, counter);
+                needExtend.setMergeAcross(needExtend.getMergeAcross() + span);
+                needExtend.markProxy();
+            }
         }
     }
 
+    private int skipExtendSpan(ExpandedTable table, ExpandedCell needExtend, ExpandedCell cell, ExpandCounter counter) {
+        int skipSpan = 0;
+        for (int i = counter.minReuse; i <= counter.maxReuse; i++) {
+            ExpandedCol col = table.getCol(i);
+            if (col.getGeneratorCell() != null && col.getGeneratorCell() != cell
+                    && col.getGeneratorCell().getModel().getColExtendCells().containsKey(needExtend.getName()))
+                skipSpan++;
+        }
+        return skipSpan;
+    }
+
     @Override
-    protected int duplicateCell(ExpandedCell cell, int expandIndex, Object expandValue, Collection<ExpandedCell> processing) {
+    protected void duplicateCell(ExpandedCell cell, int expandIndex, Object expandValue,
+                                 Collection<ExpandedCell> processing, ExpandCounter counter) {
         XptCellModel xptModel = cell.getModel();
         ExpandedCol col = cell.getCol();
         int colIndex = col.getColIndex();
@@ -93,8 +114,6 @@ public class CellColExpander extends AbstractCellExpander {
 
         int startIndex = colIndex + expandOffset;
 
-        int incSpan = 0;
-
         for (int i = 0; i < expandSpan; i++) {
             int index = startIndex + i;
             ExpandedCol r = table.getCol(index);
@@ -104,7 +123,15 @@ public class CellColExpander extends AbstractCellExpander {
                     xptModel == null || xptModel.getExpandInplaceCount() == null ? -1 : xptModel.getExpandInplaceCount());
             if (needInsert) {
                 needInsert = !isAllowReuse(cell, table, newIndex);
-                if (needInsert) incSpan++;
+                if (!needInsert) {
+                    if (counter.minReuse == Integer.MAX_VALUE)
+                        counter.minReuse = newIndex;
+                    if (counter.maxReuse < newIndex)
+                        counter.maxReuse = newIndex;
+                }
+                counter.incSpan++;
+                if (needInsert)
+                    counter.realIncSpan++;
             }
 
             ExpandedCol newCol = needInsert ? table.insertEmptyCol(newIndex) : table.makeCol(newIndex);
@@ -120,7 +147,6 @@ public class CellColExpander extends AbstractCellExpander {
         initRowParentAndColParent(cellMap);
 
         addNewCellToParentDescendants(table, cellMap);
-        return incSpan;
     }
 
     private boolean isAllowReuse(ExpandedCell cell, ExpandedTable table, int index) {
@@ -130,7 +156,7 @@ public class CellColExpander extends AbstractCellExpander {
         ExpandedCol col = table.getCol(index);
         if (col.isNewlyCreated()) {
             // 同一个父节点的兄弟节点可以复用展开列
-            return cell.getColParent() == col.getGeneratorCell().getColParent();
+            return cell.getExpandableColParent() == col.getGeneratorCell().getExpandableColParent();
         }
 
         return false;

@@ -7,8 +7,8 @@
  */
 package io.nop.report.core.model;
 
+import io.nop.api.core.util.ProcessResult;
 import io.nop.commons.util.CollectionHelper;
-import io.nop.core.model.table.ICellView;
 import io.nop.core.reflect.hook.SerializableExtensibleObject;
 import io.nop.excel.model.ExcelCell;
 import io.nop.excel.model.ExcelTable;
@@ -21,6 +21,7 @@ import io.nop.excel.model.XptCellModel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -90,10 +91,9 @@ public class ExpandedTable extends SerializableExtensibleObject implements IExce
             er.setHeight(row.getHeight());
             er.setHidden(row.isHidden());
 
-            ExpandedCell cell = er.getFirstCell();
-            for (int j = 0; j < colCount; j++) {
-                ICellView ic = row.getCell(j);
-
+            Iterator<ExpandedCell> it = er.iterator();
+            row.forEachCell(i, (ic, rowIndex, colIndex) -> {
+                ExpandedCell cell = it.next();
                 if (ic != null && !ic.isProxyCell()) {
                     IExcelCell ec = (IExcelCell) ic;
                     XptCellModel xptModel = ec.getModel();
@@ -109,6 +109,7 @@ public class ExpandedTable extends SerializableExtensibleObject implements IExce
                         ExpandedCell e = (ExpandedCell) ec;
                         cell.setExpandIndex(e.getExpandIndex());
                         cell.setExpandValue(e.getExpandValue());
+                        e.markProxy();
                     }
 
                     cell.markProxy();
@@ -117,9 +118,8 @@ public class ExpandedTable extends SerializableExtensibleObject implements IExce
 
                     cellMap.put(ec, cell);
                 }
-
-                cell = cell.getRight();
-            }
+                return ProcessResult.CONTINUE;
+            });
         }
 
         if (table instanceof ExcelTable) {

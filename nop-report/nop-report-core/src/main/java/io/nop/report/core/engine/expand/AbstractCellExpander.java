@@ -9,6 +9,7 @@ package io.nop.report.core.engine.expand;
 
 import io.nop.commons.collections.iterator.FillMinIterator;
 import io.nop.commons.collections.iterator.LimitIterator;
+import io.nop.commons.mutable.MutableInt;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
@@ -33,6 +34,14 @@ import java.util.Map;
 public abstract class AbstractCellExpander implements ICellExpander {
     static final Logger LOG = LoggerFactory.getLogger(AbstractCellExpander.class);
 
+    static class ExpandCounter {
+        int count;
+        int incSpan;
+        int realIncSpan;
+        int minReuse = Integer.MAX_VALUE;
+        int maxReuse;
+    }
+
     @Override
     public void expand(ExpandedCell cell, Deque<ExpandedCell> processing, IXptRuntime xptRt) {
         //  LOG.info("nop.report.expand-cell:cell={},expandType={},rowParentExpandIndex={},colParentExpandIndex={}",
@@ -50,9 +59,9 @@ public abstract class AbstractCellExpander implements ICellExpander {
             cell.setExpandIndex(0);
             cell.setExpandValue(value);
 
-            int expandCount = duplicate(expandList, cell, processing);
-            if (expandCount > 0)
-                extendCells(cell, expandCount);
+            ExpandCounter counter = duplicate(expandList, cell, processing);
+            if (counter.incSpan > 0)
+                extendCells(cell, counter);
         }
 
         if (xptRt.getWorkbook().isEnableDump())
@@ -108,25 +117,28 @@ public abstract class AbstractCellExpander implements ICellExpander {
 
     protected abstract void removeCell(ExpandedCell cell);
 
-    protected abstract void extendCells(ExpandedCell cell, int expandCount);
+    protected abstract void extendCells(ExpandedCell cell, ExpandCounter counter);
 
-    protected int duplicate(Iterator<?> it, ExpandedCell cell,
-                            Deque<ExpandedCell> processing) {
+    protected ExpandCounter duplicate(Iterator<?> it, ExpandedCell cell,
+                                      Deque<ExpandedCell> processing) {
+
+        ExpandCounter counter = new ExpandCounter();
+        counter.count = 1;
 
         int expandIndex = 0;
-        int count = 0;
         while (it.hasNext()) {
             expandIndex++;
+            counter.count++;
             Object expandValue = it.next();
 
-            count += duplicateCell(cell, expandIndex, expandValue, processing);
+            duplicateCell(cell, expandIndex, expandValue, processing, counter);
         }
 
-        return count;
+        return counter;
     }
 
-    protected abstract int duplicateCell(ExpandedCell cell, int expandIndex, Object expandValue,
-                                         Collection<ExpandedCell> processing);
+    protected abstract void duplicateCell(ExpandedCell cell, int expandIndex, Object expandValue,
+                                         Collection<ExpandedCell> processing, ExpandCounter counter);
 
     protected Map<String, List<ExpandedCell>> getNewListMap(Map<String, List<ExpandedCell>> listMap, Map<ExpandedCell, ExpandedCell> cellMap) {
         Map<String, List<ExpandedCell>> ret = CollectionHelper.newHashMap(listMap.size());

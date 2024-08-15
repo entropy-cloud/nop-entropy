@@ -7,7 +7,6 @@
  */
 package io.nop.report.core.build;
 
-import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ProcessResult;
 import io.nop.commons.util.StringHelper;
@@ -83,7 +82,7 @@ public class ExcelToXptModelTransformer {
                     || sheetName.endsWith(XptConstants.POSTFIX_XPT_SHEET_MODEL);
         });
 
-        if (AppConfig.isDebugMode()) {
+        if (workbook.isEnableDump()) {
             dumpModel(workbook);
         }
     }

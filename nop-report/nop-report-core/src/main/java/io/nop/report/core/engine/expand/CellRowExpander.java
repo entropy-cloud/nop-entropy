@@ -48,7 +48,7 @@ public class CellRowExpander extends AbstractCellExpander {
     }
 
     @Override
-    protected void extendCells(ExpandedCell cell, int incSpan) {
+    protected void extendCells(ExpandedCell cell, ExpandCounter counter) {
         XptCellModel xptModel = cell.getModel();
         ExpandedRow row = cell.getRow();
         int rowIndex = row.getRowIndex();
@@ -75,14 +75,36 @@ public class CellRowExpander extends AbstractCellExpander {
             });
         }
 
-        for (ExpandedCell needExtend : needExtends.keySet()) {
-            needExtend.setMergeDown(needExtend.getMergeDown() + incSpan);
-            needExtend.markProxy();
+        if (counter.incSpan == counter.realIncSpan) {
+            for (ExpandedCell needExtend : needExtends.keySet()) {
+                needExtend.setMergeDown(needExtend.getMergeDown() + counter.incSpan);
+                needExtend.markProxy();
+            }
+        } else {
+            // 兄弟节点展开导致共享了部分新增列
+            for (ExpandedCell needExtend : needExtends.keySet()) {
+                int span = counter.incSpan - skipExtendSpan(table, needExtend, cell, counter);
+                needExtend.setMergeDown(needExtend.getMergeDown() + span);
+                needExtend.markProxy();
+            }
         }
     }
 
+    private int skipExtendSpan(ExpandedTable table, ExpandedCell needExtend, ExpandedCell cell, ExpandCounter counter) {
+        int skipSpan = 0;
+        for (int i = counter.minReuse; i <= counter.maxReuse; i++) {
+            ExpandedRow row = table.getRow(i);
+            if (row.getGeneratorCell() != null && row.getGeneratorCell() != cell
+                    && row.getGeneratorCell().getModel().getRowExtendCells().containsKey(needExtend.getName()))
+                skipSpan++;
+        }
+        return skipSpan;
+    }
+
+
     @Override
-    protected int duplicateCell(ExpandedCell cell, int expandIndex, Object expandValue, Collection<ExpandedCell> processing) {
+    protected void duplicateCell(ExpandedCell cell, int expandIndex, Object expandValue,
+                                 Collection<ExpandedCell> processing, ExpandCounter counter) {
         XptCellModel xptModel = cell.getModel();
         ExpandedRow row = cell.getRow();
         int rowIndex = row.getRowIndex();
@@ -109,7 +131,14 @@ public class CellRowExpander extends AbstractCellExpander {
 
             if (needInsert) {
                 needInsert = !isAllowReuse(cell, table, newIndex);
-                if (needInsert) incSpan++;
+                if (counter.minReuse == Integer.MAX_VALUE)
+                    counter.minReuse = newIndex;
+                if (counter.maxReuse < newIndex)
+                    counter.maxReuse = newIndex;
+
+                counter.incSpan++;
+                if (needInsert)
+                    counter.realIncSpan++;
             }
 
             ExpandedRow newRow = needInsert ? table.insertEmptyRow(newIndex) : table.makeRow(newIndex);
@@ -126,7 +155,6 @@ public class CellRowExpander extends AbstractCellExpander {
         initRowParentAndColParent(cellMap);
 
         addNewCellToParentDescendants(table, cellMap);
-        return incSpan;
     }
 
     private boolean isAllowReuse(ExpandedCell cell, ExpandedTable table, int index) {

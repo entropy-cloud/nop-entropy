@@ -56,7 +56,6 @@ public class TestReportEngine extends BaseTestCase {
 
         IReportEngine reportEngine = newReportEngine();
         ExcelWorkbook workbook = reportEngine.buildXptModelFromImpModel("/nop/report/orm/test-orm.imp.xml");
-        new XptStructureToNode().buildNode(workbook).dump();
 
         IObjMeta objMeta = SchemaLoader.loadXMeta(XptConstants.XDSL_SCHEMA_WORKBOOK);
         objMeta.toNode().saveToResource(getTargetResource("workbook.xmeta"), null);

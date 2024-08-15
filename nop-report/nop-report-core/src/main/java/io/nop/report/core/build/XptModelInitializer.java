@@ -67,6 +67,9 @@ public class XptModelInitializer {
         for (ExcelSheet sheet : workbook.getSheets()) {
             buildSheetModel(sheet);
         }
+
+        if(workbook.isEnableDump())
+            new XptStructureToNode().buildNode(workbook).dump();
     }
 
     public void buildSheetModel(ExcelSheet sheet) {
