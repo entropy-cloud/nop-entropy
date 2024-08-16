@@ -164,7 +164,7 @@ public class CellRowExpander extends AbstractCellExpander {
         ExpandedRow row = table.getRow(index);
         if (row.isNewlyCreated()) {
             // 同一个父节点的兄弟节点可以复用展开列
-            return cell.getRowParent() == row.getGeneratorCell().getRowParent();
+            return cell.getExpandableRowParent() == row.getGeneratorCell().getExpandableRowParent();
         }
 
         return false;
