@@ -20,6 +20,8 @@ public abstract class _ImportAsDeclaration extends io.nop.xlang.ast.ModuleDeclar
     
     protected io.nop.xlang.ast.XLangASTNode source;
     
+    protected boolean staticImport;
+    
 
     public _ImportAsDeclaration(){
     }
@@ -45,6 +47,16 @@ public abstract class _ImportAsDeclaration extends io.nop.xlang.ast.ModuleDeclar
         if(value != null) value.setASTParent(this);
         
         this.source = value;
+    }
+    
+    public boolean getStaticImport(){
+        return staticImport;
+    }
+
+    public void setStaticImport(boolean value){
+        checkAllowChange();
+        
+        this.staticImport = value;
     }
     
 
@@ -79,6 +91,8 @@ public abstract class _ImportAsDeclaration extends io.nop.xlang.ast.ModuleDeclar
                           ret.setLocal(local.deepClone());
                       
                 }
+            
+                ret.setStaticImport(staticImport);
             
        return ret;
     }
@@ -152,6 +166,10 @@ public abstract class _ImportAsDeclaration extends io.nop.xlang.ast.ModuleDeclar
                return false;
             }
         
+                if(!isValueEquivalent(this.staticImport,other.getStaticImport())){
+                   return false;
+                }
+            
         return true;
     }
 
@@ -173,6 +191,8 @@ public abstract class _ImportAsDeclaration extends io.nop.xlang.ast.ModuleDeclar
                               json.put("local", local);
                           
                     }
+                
+                   json.put("staticImport", staticImport);
                 
     }
 

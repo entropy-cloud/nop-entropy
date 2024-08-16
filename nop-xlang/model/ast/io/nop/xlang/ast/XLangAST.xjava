@@ -52,6 +52,13 @@ public class XLangAST {
 
     }
 
+    class CompilationUnit{
+       @PropMeta(mandatory=true)
+       String packageName;
+
+       List<Statement> statements;
+    }
+
     class Program extends Expression {
         String sourceType; //: "script" | "module";
 
@@ -574,6 +581,8 @@ public class XLangAST {
         XLangASTNode source;
 
         Identifier local;
+
+        boolean staticImport;
     }
 
     //import {foo as bar} from "mod"

@@ -115,6 +115,8 @@ import io.nop.xlang.ast.XLangASTNode;
 import io.nop.xlang.ast.XLangASTVisitor;
 import io.nop.xlang.ast.XLangOperator;
 
+import java.util.List;
+
 public class XLangExpressionPrinter extends XLangASTVisitor {
     protected final StringBuilder sb;
 
@@ -131,6 +133,11 @@ public class XLangExpressionPrinter extends XLangASTVisitor {
 
     public String toExprString(Expression expr) {
         visit(expr);
+        return getResult();
+    }
+
+    public String toSource(XLangASTNode node) {
+        visit(node);
         return getResult();
     }
 
@@ -161,12 +168,26 @@ public class XLangExpressionPrinter extends XLangASTVisitor {
         return this;
     }
 
-    void incIndent() {
-        indentLevel++;
+    protected XLangExpressionPrinter printList(List<? extends XLangASTNode> node, String separator) {
+        if (node == null || node.isEmpty())
+            return this;
+
+        for (int i = 0, n = node.size(); i < n; i++) {
+            if (i != 0)
+                print(separator);
+            visit(node.get(i));
+        }
+        return this;
     }
 
-    void decIndent() {
+    XLangExpressionPrinter incIndent() {
+        indentLevel++;
+        return this;
+    }
+
+    XLangExpressionPrinter decIndent() {
         indentLevel--;
+        return this;
     }
 
     void indent() {
@@ -177,9 +198,10 @@ public class XLangExpressionPrinter extends XLangASTVisitor {
         }
     }
 
-    void println() {
+    XLangExpressionPrinter println() {
         print("\n");
         indent();
+        return this;
     }
 
     @Override
@@ -627,7 +649,7 @@ public class XLangExpressionPrinter extends XLangASTVisitor {
 
     @Override
     public void visitQualifiedName(QualifiedName node) {
-        super.visitQualifiedName(node);
+        print(node.getFullName());
     }
 
     @Override

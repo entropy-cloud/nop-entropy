@@ -9,6 +9,9 @@ public class XLangASTProcessor<T,C>{
             return null;
        switch(node.getASTKind()){
     
+            case CompilationUnit:
+                return processCompilationUnit((CompilationUnit)node,context);
+        
             case Program:
                 return processProgram((Program)node,context);
         
@@ -326,6 +329,10 @@ public class XLangASTProcessor<T,C>{
        }
     }
 
+    
+	public T processCompilationUnit(CompilationUnit node, C context){
+        return defaultProcess(node, context);
+	}
     
 	public T processProgram(Program node, C context){
         return defaultProcess(node, context);

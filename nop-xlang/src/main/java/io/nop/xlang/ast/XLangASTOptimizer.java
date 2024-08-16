@@ -10,6 +10,9 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
     public XLangASTNode optimize(XLangASTNode node,C context){
         switch(node.getASTKind()){
         
+                case CompilationUnit:
+                return optimizeCompilationUnit((CompilationUnit)node,context);
+            
                 case Program:
                 return optimizeProgram((Program)node,context);
             
@@ -327,6 +330,24 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
         }
     }
 
+    
+	public XLangASTNode optimizeCompilationUnit(CompilationUnit node, C context){
+        CompilationUnit ret = node;
+
+        
+                    if(node.getStatements() != null){
+                    
+                            java.util.List<io.nop.xlang.ast.Statement> statementsOpt = optimizeList(node.getStatements(),true, context);
+                            if(statementsOpt != node.getStatements()){
+                                incChangeCount();
+                                if(shouldClone(ret,node))  { clearParent(statementsOpt); ret = node.deepClone();}
+                                ret.setStatements(statementsOpt);
+                            }
+                        
+                    }
+                
+		return ret;
+	}
     
 	public XLangASTNode optimizeProgram(Program node, C context){
         Program ret = node;

@@ -10,6 +10,10 @@ public class XLangASTVisitor extends AbstractVisitor<XLangASTNode>{
     public void visit(XLangASTNode node){
         switch(node.getASTKind()){
         
+                case CompilationUnit:
+                    visitCompilationUnit((CompilationUnit)node);
+                    return;
+            
                 case Program:
                     visitProgram((Program)node);
                     return;
@@ -432,6 +436,11 @@ public class XLangASTVisitor extends AbstractVisitor<XLangASTNode>{
     }
 
     
+            public void visitCompilationUnit(CompilationUnit node){
+            
+                    this.visitChildren(node.getStatements());         
+            }
+        
             public void visitProgram(Program node){
             
                     this.visitChildren(node.getBody());         
