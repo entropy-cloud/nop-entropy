@@ -22538,6 +22538,153 @@
     "fields": [],
     "methods": [
       {
+        "name": "getBizModuleId1",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBizModuleId2",
+        "parameterTypes": []
+      },
+      {
+        "name": "getJoinPropName1",
+        "parameterTypes": []
+      },
+      {
+        "name": "getJoinPropName2",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLabelPropOfRefEntity1",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLabelPropOfRefEntity2",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMappingEntityName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMappingPropDisplayName1",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMappingPropDisplayName2",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMappingPropEnDisplayName1",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMappingPropEnDisplayName2",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMappingPropInfo",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityRelationModel"
+        ]
+      },
+      {
+        "name": "getMappingPropInfo1",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMappingPropInfo2",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMappingPropName1",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMappingPropName1_ids",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMappingPropName1_label",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMappingPropName2",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMappingPropName2_ids",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMappingPropName2_label",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMappingTable",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMappingTableName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRefBizObjName1",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRefBizObjName2",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRefEntityName1",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRefEntityName2",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRefProp1",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRefProp2",
+        "parameterTypes": []
+      },
+      {
+        "name": "getReverseRefPropName1",
+        "parameterTypes": []
+      },
+      {
+        "name": "getReverseRefPropName2",
+        "parameterTypes": []
+      },
+      {
+        "name": "isManyToMany",
+        "parameterTypes": []
+      },
+      {
+        "name": "isMappingTable",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityModel"
+        ]
+      },
+      {
+        "name": "isOneToOne",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.orm.support.OrmMappingTableMeta",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "onAfterCompletion",
         "parameterTypes": [
           "io.nop.dao.txn.ITransaction",

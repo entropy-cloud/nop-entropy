@@ -136,20 +136,39 @@
                 <item bizObjName="NopDynDomain"/>
             </schema>
         </prop>
-        <prop name="relatedAppList" displayName="所属应用列表" i18n-en:displayName="App List" ext:kind="to-many"
-              insertable="false" updatable="false" internal="true" lazy="true">
+        <prop name="relatedAppList" displayName="relatedAppList" insertable="false" updatable="false"
+              depends="~appMappings" internal="true" lazy="true">
             <schema>
                 <item bizObjName="NopDynApp"/>
             </schema>
+            <getter>
+                            import io.nop.orm.support.OrmEntityHelper;
+                            return OrmEntityHelper.getRefProps(
+                                entity.getAppMappings(), "app");
+                        </getter>
         </prop>
-        <prop name="relatedAppIdList" displayName="所属应用列表" i18n-en:displayName="App List" insertable="false"
-              updatable="false" ext:relation="relatedAppList" graphql:labelProp="relatedAppList_label" lazy="true"
-              internal="true">
-            <schema type="List&lt;java.lang.String&gt;"/>
+        <prop name="relatedAppList_ids" displayName="relatedAppList" insertable="false" updatable="false"
+              graphql:labelProp="relatedAppList_label" lazy="true" internal="true" depends="~appMappings">
+            <schema type="List&lt;String&gt;"/>
+            <getter>
+                            import io.nop.orm.support.OrmEntityHelper;
+                            return OrmEntityHelper.getRefIds(
+                                entity.getAppMappings(), "app");
+                        </getter>
+            <setter>
+                            import io.nop.orm.support.OrmEntityHelper;
+                            OrmEntityHelper.setRefIds(
+                                entity.getAppMappings(), "app",value);
+                        </setter>
         </prop>
-        <prop name="relatedAppList_label" displayName="所属应用列表" i18n-en:displayName="App List" lazy="true"
-              internal="true">
+        <prop name="relatedAppList_label" displayName="relatedAppList" internal="true" depends="~appMappings"
+              lazy="true">
             <schema type="String"/>
+            <getter>
+                    import io.nop.orm.support.OrmEntityHelper;
+                    return OrmEntityHelper.getLabelForRefProps(
+                        entity.getAppMappings(), "app");
+                </getter>
         </prop>
     </props>
 </meta>

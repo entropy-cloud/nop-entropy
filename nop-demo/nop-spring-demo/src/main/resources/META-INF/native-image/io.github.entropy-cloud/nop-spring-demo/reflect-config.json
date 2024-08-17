@@ -918,12 +918,27 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PARAM_DISPLAY_NAME"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PARAM_ENTITY_NAME"
       },
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PARAM_FIELD_DISPLAY_NAME"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PARAM_FIELD_NAME"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PARAM_OBJ_NAME"
       },
       {
         "allowUnsafeAccess": false,
@@ -8270,6 +8285,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getRelatedGroupList_ids",
+        "parameterTypes": []
+      },
+      {
         "name": "getRelatedGroupList_label",
         "parameterTypes": []
       },
@@ -8423,6 +8442,12 @@
       },
       {
         "name": "setRelatedGroupIdList",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setRelatedGroupList_ids",
         "parameterTypes": [
           "java.util.List"
         ]
@@ -9080,6 +9105,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getRelatedDeptList_ids",
+        "parameterTypes": []
+      },
+      {
         "name": "getRelatedDeptList_label",
         "parameterTypes": []
       },
@@ -9089,6 +9118,10 @@
       },
       {
         "name": "getRelatedUserList",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedUserList_ids",
         "parameterTypes": []
       },
       {
@@ -9230,7 +9263,19 @@
         ]
       },
       {
+        "name": "setRelatedDeptList_ids",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
         "name": "setRelatedUserIdList",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setRelatedUserList_ids",
         "parameterTypes": [
           "java.util.List"
         ]
@@ -11013,6 +11058,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getRelatedRoleList_ids",
+        "parameterTypes": []
+      },
+      {
         "name": "getRelatedRoleList_label",
         "parameterTypes": []
       },
@@ -11232,6 +11281,12 @@
       },
       {
         "name": "setRelatedRoleIdList",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setRelatedRoleList_ids",
         "parameterTypes": [
           "java.util.List"
         ]
@@ -11483,6 +11538,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getRelatedResourceList_ids",
+        "parameterTypes": []
+      },
+      {
         "name": "getRelatedResourceList_label",
         "parameterTypes": []
       },
@@ -11492,6 +11551,10 @@
       },
       {
         "name": "getRelatedUserList",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedUserList_ids",
         "parameterTypes": []
       },
       {
@@ -11621,7 +11684,19 @@
         ]
       },
       {
+        "name": "setRelatedResourceList_ids",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
         "name": "setRelatedUserIdList",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setRelatedUserList_ids",
         "parameterTypes": [
           "java.util.List"
         ]
@@ -14115,6 +14190,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getRelatedGroupList_ids",
+        "parameterTypes": []
+      },
+      {
         "name": "getRelatedGroupList_label",
         "parameterTypes": []
       },
@@ -14124,6 +14203,10 @@
       },
       {
         "name": "getRelatedRoleList",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedRoleList_ids",
         "parameterTypes": []
       },
       {
@@ -14415,7 +14498,19 @@
         ]
       },
       {
+        "name": "setRelatedGroupList_ids",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
         "name": "setRelatedRoleIdList",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setRelatedRoleList_ids",
         "parameterTypes": [
           "java.util.List"
         ]
@@ -20458,6 +20553,12 @@
         "parameterTypes": [
           "java.lang.Object",
           "java.util.function.Function"
+        ]
+      },
+      {
+        "name": "fromJavaClass",
+        "parameterTypes": [
+          "java.lang.Class"
         ]
       },
       {
@@ -40105,6 +40206,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getJavaClass",
+        "parameterTypes": []
+      },
+      {
         "name": "getKind",
         "parameterTypes": []
       },
@@ -40140,6 +40245,12 @@
         "name": "setColumnRefs",
         "parameterTypes": [
           "java.util.List"
+        ]
+      },
+      {
+        "name": "setJavaClass",
+        "parameterTypes": [
+          "java.lang.Class"
         ]
       },
       {
@@ -44342,6 +44453,239 @@
       }
     ],
     "name": "io.nop.orm.support.OrmEntity",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "castId",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityModel",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "copyRefProps",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "io.nop.orm.model.IEntityRelationModel",
+          "io.nop.orm.IOrmEntity"
+        ]
+      },
+      {
+        "name": "getEntityChange",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity"
+        ]
+      },
+      {
+        "name": "getLabelForRefProps",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntitySet",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getLeftValue",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityJoinConditionModel",
+          "io.nop.orm.IOrmEntity"
+        ]
+      },
+      {
+        "name": "getOwnerKey",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityRelationModel",
+          "io.nop.orm.IOrmEntity"
+        ]
+      },
+      {
+        "name": "getOwnerKey",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityRelationModel",
+          "io.nop.orm.IOrmEntitySet"
+        ]
+      },
+      {
+        "name": "getPropFromSingleton",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntitySet",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getPropValue",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityPropModel",
+          "io.nop.orm.IOrmEntity"
+        ]
+      },
+      {
+        "name": "getRefIdFromSingleton",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntitySet",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getRefIds",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntitySet",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getRefPropId",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "getRefProps",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntitySet",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getRightValue",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityJoinConditionModel",
+          "io.nop.orm.IOrmEntity"
+        ]
+      },
+      {
+        "name": "isAnyPropNull",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "[I"
+        ]
+      },
+      {
+        "name": "isFileComponent",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityComponentModel"
+        ]
+      },
+      {
+        "name": "isFileListComponent",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityComponentModel"
+        ]
+      },
+      {
+        "name": "isPropLoaded",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "io.nop.orm.model.IEntityPropModel"
+        ]
+      },
+      {
+        "name": "isPropValueEquals",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityPropModel",
+          "java.lang.Object",
+          "io.nop.orm.model.IEntityPropModel",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "isRefPropLoaded",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityRelationModel",
+          "io.nop.orm.IOrmEntity"
+        ]
+      },
+      {
+        "name": "isSameTenant",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "io.nop.orm.IOrmEntity"
+        ]
+      },
+      {
+        "name": "joinFileList",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "normalizePropType",
+        "parameterTypes": [
+          "java.util.List",
+          "io.nop.orm.model.IEntityModel",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "normalizePropTypes",
+        "parameterTypes": [
+          "java.util.List",
+          "io.nop.orm.model.IEntityModel",
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "parseFileList",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setId",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityModel",
+          "io.nop.orm.IOrmEntity",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setPropToSingleton",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntitySet",
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setPropValue",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityPropModel",
+          "io.nop.orm.IOrmEntity",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setRefIdToSingleton",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntitySet",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRefIds",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntitySet",
+          "java.lang.String",
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setRefProps",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntitySet",
+          "java.lang.String",
+          "java.util.List"
+        ]
+      }
+    ],
+    "name": "io.nop.orm.support.OrmEntityHelper",
     "unsafeAllocated": false
   },
   {
@@ -50949,6 +51293,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getDependOnProps",
+        "parameterTypes": []
+      },
+      {
         "name": "getReadAuth",
         "parameterTypes": []
       },
@@ -50958,6 +51306,10 @@
       },
       {
         "name": "getWriteAuth",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasInternalDependOn",
         "parameterTypes": []
       },
       {
@@ -52909,6 +53261,12 @@
         "name": "setValidator",
         "parameterTypes": [
           "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setValidator",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalFunction"
         ]
       },
       {

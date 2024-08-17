@@ -28,13 +28,11 @@ import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.orm.IOrmTemplate;
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Disabled
 @NopTestConfig(localDb = true, initDatabaseSchema = true)
 public class TestDynCodeGen extends JunitBaseTestCase {
 

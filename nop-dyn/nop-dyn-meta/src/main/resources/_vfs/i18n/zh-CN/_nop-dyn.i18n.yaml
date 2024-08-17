@@ -23,9 +23,9 @@ prop:
       createdBy: 创建人
       displayName: 显示名
       moduleMappings: null
-      relatedModuleIdList: 关联模块列表
-      relatedModuleList: 关联模块列表
-      relatedModuleList_label: 关联模块列表
+      relatedModuleList: relatedModuleList
+      relatedModuleList_ids: relatedModuleList
+      relatedModuleList_label: relatedModuleList
       status: 状态
       status_label: 状态
       updateTime: 修改时间
@@ -231,9 +231,9 @@ prop:
       moduleName: 模块名
       moduleVersion: 模块版本
       pages: 模块页面
-      relatedAppIdList: 所属应用列表
-      relatedAppList: 所属应用列表
-      relatedAppList_label: 所属应用列表
+      relatedAppList: relatedAppList
+      relatedAppList_ids: relatedAppList
+      relatedAppList_label: relatedAppList
       sqls: SQL语句
       status: 状态
       status_label: 状态

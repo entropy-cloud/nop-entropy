@@ -63,20 +63,39 @@
                 <item bizObjName="NopDynAppModule"/>
             </schema>
         </prop>
-        <prop name="relatedModuleList" displayName="关联模块列表" i18n-en:displayName="Module List" ext:kind="to-many"
-              insertable="false" updatable="false" internal="true" lazy="true">
+        <prop name="relatedModuleList" displayName="relatedModuleList" insertable="false" updatable="false"
+              depends="~moduleMappings" internal="true" lazy="true">
             <schema>
                 <item bizObjName="NopDynModule"/>
             </schema>
+            <getter>
+                            import io.nop.orm.support.OrmEntityHelper;
+                            return OrmEntityHelper.getRefProps(
+                                entity.getModuleMappings(), "module");
+                        </getter>
         </prop>
-        <prop name="relatedModuleIdList" displayName="关联模块列表" i18n-en:displayName="Module List" insertable="false"
-              updatable="false" ext:relation="relatedModuleList" graphql:labelProp="relatedModuleList_label" lazy="true"
-              internal="true">
-            <schema type="List&lt;java.lang.String&gt;"/>
+        <prop name="relatedModuleList_ids" displayName="relatedModuleList" insertable="false" updatable="false"
+              graphql:labelProp="relatedModuleList_label" lazy="true" internal="true" depends="~moduleMappings">
+            <schema type="List&lt;String&gt;"/>
+            <getter>
+                            import io.nop.orm.support.OrmEntityHelper;
+                            return OrmEntityHelper.getRefIds(
+                                entity.getModuleMappings(), "module");
+                        </getter>
+            <setter>
+                            import io.nop.orm.support.OrmEntityHelper;
+                            OrmEntityHelper.setRefIds(
+                                entity.getModuleMappings(), "module",value);
+                        </setter>
         </prop>
-        <prop name="relatedModuleList_label" displayName="关联模块列表" i18n-en:displayName="Module List" lazy="true"
-              internal="true">
+        <prop name="relatedModuleList_label" displayName="relatedModuleList" internal="true" depends="~moduleMappings"
+              lazy="true">
             <schema type="String"/>
+            <getter>
+                    import io.nop.orm.support.OrmEntityHelper;
+                    return OrmEntityHelper.getLabelForRefProps(
+                        entity.getModuleMappings(), "module");
+                </getter>
         </prop>
     </props>
 </meta>

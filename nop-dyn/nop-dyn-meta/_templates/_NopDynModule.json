@@ -25,6 +25,6 @@
   "entityMetas": null,
   "domains": null,
   "relatedAppList": null,
-  "relatedAppIdList": null,
+  "relatedAppList_ids": null,
   "relatedAppList_label": ""
 }

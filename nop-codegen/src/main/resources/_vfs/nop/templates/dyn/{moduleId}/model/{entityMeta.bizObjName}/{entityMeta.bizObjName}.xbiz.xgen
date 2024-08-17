@@ -21,6 +21,7 @@
                 <arg name="selection" kind="FieldSelection"/>
                 <arg name="svcCtx" kind="ServiceContext"/>
 
+                <return graphql:type="${funcMeta.returnGqlType}" type="${funcMeta.returnType}"/>
                 <source>${raw(funcMeta.sourceXml)}</source>
             </c:unit>
         </c:for>

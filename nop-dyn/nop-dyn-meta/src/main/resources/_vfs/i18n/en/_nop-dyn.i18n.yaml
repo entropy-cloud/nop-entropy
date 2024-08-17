@@ -28,9 +28,9 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       moduleMappings: null
-      relatedModuleList: Module List
-      relatedModuleIdList: Module List
-      relatedModuleList_label: Module List
+      relatedModuleList: null
+      relatedModuleList_ids: null
+      relatedModuleList_label: null
     NopDynAppModule:
       appId: App ID
       moduleId: Module ID
@@ -237,9 +237,9 @@ prop:
       pages: Module Pages
       entityMetas: Entity Metas
       domains: Domains
-      relatedAppList: App List
-      relatedAppIdList: App List
-      relatedAppList_label: App List
+      relatedAppList: null
+      relatedAppList_ids: null
+      relatedAppList_label: null
     NopDynModuleDep:
       moduleId: Module ID
       depModuleId: Dep Module ID
