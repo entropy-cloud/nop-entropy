@@ -42,6 +42,8 @@ public interface IOrmEntitySet<T extends IOrmEntity>
 
     String orm_refPropName();
 
+    String orm_refEntityName();
+
     /**
      * 集合的名称，格式为 owner.entityName + '@' + propName
      */

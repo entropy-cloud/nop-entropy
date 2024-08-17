@@ -939,20 +939,22 @@ public class _NopDynModule extends DynamicOrmEntity{
     }
        
         public List<io.nop.dyn.dao.entity.NopDynApp> getRelatedAppList(){
-            return (List<io.nop.dyn.dao.entity.NopDynApp>)io.nop.orm.support.OrmEntityHelper.getRefProps(getAppMappings(),io.nop.dyn.dao.entity.NopDynAppModule.PROP_NAME_app);
-        }
-    
-        public String getRelatedAppList_label(){
-        return io.nop.core.lang.utils.Underscore.pluckThenJoin(getRelatedAppList(),io.nop.dyn.dao.entity.NopDynApp.PROP_NAME_displayName);
-        }
-    
-        public List<java.lang.String> getRelatedAppIdList(){
-        return (List<java.lang.String>)io.nop.orm.support.OrmEntityHelper.getRefProps(getAppMappings(),io.nop.dyn.dao.entity.NopDynAppModule.PROP_NAME_appId);
+            return (List<io.nop.dyn.dao.entity.NopDynApp>)io.nop.orm.support.OrmEntityHelper.getRefProps(getAppMappings(),"app");
         }
 
-        public void setRelatedAppIdList(List<java.lang.String> value){
-        io.nop.orm.support.OrmEntityHelper.setRefProps(getAppMappings(),io.nop.dyn.dao.entity.NopDynAppModule.PROP_NAME_appId,value);
+        public List<String> getRelatedAppList_ids(){
+            return io.nop.orm.support.OrmEntityHelper.getRefIds(getAppMappings(),"app");
+        }
+
+        public void setRelatedAppList_ids(List<String> value){
+            io.nop.orm.support.OrmEntityHelper.setRefIds(getAppMappings(),"app",value);
         }
     
+
+    public String getRelatedAppList_label(){
+        return io.nop.orm.support.OrmEntityHelper.getLabelForRefProps(getAppMappings(),"app");
+    }
+
+
 }
 // resume CPD analysis - CPD-ON

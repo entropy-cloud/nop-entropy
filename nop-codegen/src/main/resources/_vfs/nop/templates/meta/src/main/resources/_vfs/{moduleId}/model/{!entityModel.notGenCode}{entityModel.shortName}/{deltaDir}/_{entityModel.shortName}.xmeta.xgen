@@ -69,7 +69,8 @@
             <prop name="${col.name}" displayName="${col.displayName}" propId="${col.propId}"
                   i18n-en:displayName="${col['i18n-en:displayName']}" tagSet="${_.join(col.tagSet,',')}"
                   mandatory="${col.mandatory || null}" published="${col.tagSet?.contains('not-pub') ? false:null}"
-                  queryable="${col.tagSet?.contains('not-query') ? false: true}" sortable="${col.tagSet?.contains('not-sort')?false:true}"
+                  queryable="${col.tagSet?.contains('not-query') ? false: true}"
+                  sortable="${col.tagSet?.contains('not-sort')?false:true}"
                   insertable="${xpl('meta-gen:IsColInsertable',col)}" updatable="${xpl('meta-gen:IsColUpdatable',col)}"
                   internal="${xpl('meta-gen:IsColInternal',col)||null}" depends="${buildColDepends(col)}"
                   graphql:jsonComponentProp="${jsonCol? col.name + 'Component' : null}"
@@ -178,63 +179,94 @@
 
         <c:for var="rel" items="${entityModel.relations}">
             <c:script><![CDATA[
-                import io.nop.orm.support.OrmManyToManyHelper;
+                import io.nop.orm.support.OrmMappingTableMeta
 
                 if(rel.tagSet?.contains('not-gen')) continue;
 
-                const refOnePropInfo = OrmManyToManyHelper.getRefOnePropInfo(rel);
-                const refManyPropInfo = OrmManyToManyHelper.getRefManyPropInfo(rel);
+                if(!OrmMappingTableMeta.isMappingTable(rel.refEntityModel))
+                   continue;
+
+                const mappingMeta = new OrmMappingTableMeta(rel.refEntityModel);
+
+                const mappingPropInfo = mappingMeta.getMappingPropInfo(rel);
                 const insertable = rel.tagSet?.contains('insertable');
                 const updatable = rel.tagSet?.contains('updatable');
                 const published = rel.tagSet?.contains('pub') ? null : false;
 
             ]]></c:script>
-            <prop name="${refOnePropInfo.relatedObjPropName}" displayName="${refOnePropInfo.relatedDisplayName}"
-                  i18n-en:displayName="${refOnePropInfo.relatedEnDisplayName}" published="${published}"
-                  ext:kind="to-one" insertable="${insertable}" updatable="${updatable}"
-                  biz:moduleId="${refOnePropInfo.relatedEntityModel['biz:moduleId']}"
-                  xpl:if="refOnePropInfo" internal="true" lazy="true">
-                <schema bizObjName="${refOnePropInfo.bizObjName}"/>
-            </prop>
-            <prop name="${refOnePropInfo.relatedColPropName}" displayName="${refOnePropInfo.relatedDisplayName}"
-                  i18n-en:displayName="${refOnePropInfo.relatedEnDisplayName}" published="${published}"
+            <prop name="${mappingPropInfo.propName}" displayName="${mappingPropInfo.displayName}"
+                  i18n-en:displayName="${mappingPropInfo.enDisplayName}" published="${published}"
                   insertable="${insertable}" updatable="${updatable}"
-                  ext:relation="${refOnePropInfo.relatedObjPropName}"
-                  graphql:labelProp="${refOnePropInfo.relatedObjPropName_label}" lazy="true"
-                  xpl:if="refOnePropInfo and refOnePropInfo.relatedColPropName" internal="true">
-                <schema type="${refOnePropInfo.relatedColTypeName}"/>
+                  biz:moduleId="${mappingPropInfo.bizModuleId}" depends="~${rel.name}"
+                  xpl:if="mappingPropInfo" internal="true" lazy="true">
+                <c:iif test="${mappingPropInfo.toMany}">
+                    <c:unit>
+                        <schema>
+                            <item bizObjName="${mappingPropInfo.bizObjName}"/>
+                        </schema>
+                        <getter><![CDATA[
+                            import io.nop.orm.support.OrmEntityHelper;
+                            return OrmEntityHelper.getRefProps(
+                                entity.${rel.name.$methodGet()}(), "${mappingPropInfo.refPropNameInMappingTable}");
+                        ]]></getter>
+                    </c:unit>
+                    <c:unit>
+                        <schema bizObjName="${mappingPropInfo.bizObjName}"/>
+                        <c:unit xpl:ignoreTag="true"><![CDATA[
+                            import io.nop.orm.support.OrmEntityHelper;
+                            return OrmEntityHelper.getPropFromSingleton(
+                                entity.${rel.name.$methodGet()}(), "${mappingPropInfo.refPropNameInMappingTable}");
+                        ]]></c:unit>
+                    </c:unit>
+                </c:iif>
             </prop>
-            <prop name="${refOnePropInfo.relatedObjPropName_label}" displayName="${refOnePropInfo.relatedDisplayName}"
-                  i18n-en:displayName="${refOnePropInfo.relatedEnDisplayName}" published="${published}"
-                  xpl:if="refOnePropInfo and refOnePropInfo.relatedObjPropName_label" internal="true">
-                <schema type="String" lazy="true"/>
-            </prop>
-            <prop name="${refManyPropInfo.relatedObjListPropName}"
-                  displayName="${refManyPropInfo.relatedDisplayName}列表"
-                  i18n-en:displayName="${refManyPropInfo.relatedEnDisplayName} List" published="${published}"
-                  ext:kind="to-many" insertable="${insertable}" updatable="${updatable}"
-                  biz:moduleId="${refManyPropInfo.relatedEntityModel['biz:moduleId']}"
-                  xpl:if="refManyPropInfo" internal="true" lazy="true">
-                <schema>
-                    <item bizObjName="${refManyPropInfo.bizObjName}"/>
-                </schema>
-            </prop>
-            <prop name="${refManyPropInfo.relatedColListPropName}"
-                  displayName="${refManyPropInfo.relatedDisplayName}列表"
-                  i18n-en:displayName="${refManyPropInfo.relatedEnDisplayName} List" published="${published}"
+
+            <prop name="${mappingPropInfo.mappingIdProp}" displayName="${mappingPropInfo.displayName}"
+                  i18n-en:displayName="${mappingPropInfo.enDisplayName}" published="${published}"
                   insertable="${insertable}" updatable="${updatable}"
-                  ext:relation="${refManyPropInfo.relatedObjListPropName}"
-                  graphql:labelProp="${refManyPropInfo.relatedObjListPropName_label}" lazy="true"
-                  xpl:if="refManyPropInfo and refManyPropInfo.relatedColListPropName" internal="true">
-                <schema type="List&lt;${refManyPropInfo.relatedColTypeName}>"/>
+                  graphql:labelProp="${mappingPropInfo.mappingLabelProp}" lazy="true"
+                  xpl:if="mappingPropInfo" internal="true" depends="~${rel.name}">
+                <c:iif test="${mappingPropInfo.toMany}">
+                    <c:unit>
+                        <schema type="List&lt;String>"/>
+                        <getter><![CDATA[
+                            import io.nop.orm.support.OrmEntityHelper;
+                            return OrmEntityHelper.getRefIds(
+                                entity.${rel.name.$methodGet()}(), "${mappingPropInfo.refPropNameInMappingTable}");
+                        ]]></getter>
+                        <setter><![CDATA[
+                            import io.nop.orm.support.OrmEntityHelper;
+                            OrmEntityHelper.setRefIds(
+                                entity.${rel.name.$methodGet()}(), "${mappingPropInfo.refPropNameInMappingTable}",value);
+                        ]]></setter>
+                    </c:unit>
+                    <c:unit>
+                        <schema type="String"/>
+                        <getter><![CDATA[
+                            import io.nop.orm.support.OrmEntityHelper;
+                            return OrmEntityHelper.getRefIdFromSingleton(
+                                entity.${rel.name.$methodGet()}(), "${mappingPropInfo.refPropNameInMappingTable}");
+                        ]]></getter>
+                        <setter><![CDATA[
+                            import io.nop.orm.support.OrmEntityHelper;
+                            OrmEntityHelper.setRefIdFromSingleton(
+                                entity.${rel.name.$methodGet()}(), "${mappingPropInfo.refPropNameInMappingTable}",value);
+                        ]]></setter>
+                    </c:unit>
+                </c:iif>
             </prop>
-            <prop name="${refManyPropInfo.relatedObjListPropName_label}"
-                  displayName="${refManyPropInfo.relatedDisplayName}列表"
-                  i18n-en:displayName="${refManyPropInfo.relatedEnDisplayName} List" published="${published}"
-                  lazy="true"
-                  xpl:if="refManyPropInfo and refManyPropInfo.relatedObjListPropName_label" internal="true">
-                <schema type="String"/>
+
+            <prop name="${mappingPropInfo.mappingLabelProp}" displayName="${mappingPropInfo.displayName}"
+                  i18n-en:displayName="${mappingPropInfo.enDisplayName}" published="${published}"
+                  xpl:if="mappingPropInfo" internal="true" depends="~${rel.name}" lazy="true">
+                <schema type="String" />
+                <getter><![CDATA[
+                    import io.nop.orm.support.OrmEntityHelper;
+                    return OrmEntityHelper.getLabelForRefProps(
+                        entity.${rel.name.$methodGet()}(), "${mappingPropInfo.refPropNameInMappingTable}");
+                ]]></getter>
             </prop>
+
         </c:for>
     </props>
 

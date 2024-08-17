@@ -7,6 +7,7 @@
  */
 package io.nop.orm.support;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.MathHelper;
@@ -24,6 +25,7 @@ import io.nop.orm.model.IEntityJoinConditionModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IEntityRelationModel;
+import io.nop.orm.model.OrmModelConstants;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -293,6 +295,19 @@ public class OrmEntityHelper {
         return data.orm_propValueByName(propName);
     }
 
+    public static String getRefIdFromSingleton(IOrmEntitySet<? extends IOrmEntity> coll, String propName) {
+        if (coll.isEmpty())
+            return null;
+        if (coll.size() > 1)
+            throw new OrmException(ERR_ORM_NOT_SINGLETON_SET)
+                    .param(ARG_COLLECTION_NAME, coll.orm_collectionName())
+                    .param(ARG_OWNER, coll.orm_owner());
+
+        IOrmEntity data = coll.iterator().next();
+        Object value = data.orm_propValueByName(propName);
+        return getRefPropId(value);
+    }
+
     public static <T extends IOrmEntity> void setPropToSingleton(IOrmEntitySet<T> coll, String propName, Object value) {
         IOrmEntity entity;
         if (coll.isEmpty()) {
@@ -309,6 +324,18 @@ public class OrmEntityHelper {
             entity.orm_propValueByName(propName, value);
         }
     }
+
+    public static <T extends IOrmEntity> void setRefIdToSingleton(IOrmEntitySet<T> coll, String propName, String value) {
+        IEntityModel refEntityModel = coll.orm_enhancer().getEntityModel(coll.orm_refEntityName());
+        IEntityPropModel propModel = refEntityModel.requireProp(propName);
+        if (propModel.isRelationModel()) {
+            String refEntityName = ((IEntityRelationModel) propModel).getRefEntityName();
+            setPropToSingleton(coll, propName, coll.orm_enhancer().internalLoad(refEntityName, value));
+        } else {
+            setPropToSingleton(coll, propName, value);
+        }
+    }
+
 
     /**
      * 从多对多关联表中获取指定关联属性值
@@ -362,6 +389,59 @@ public class OrmEntityHelper {
                 coll.add((T) entity);
             }
         }
+    }
+
+    static String getRefPropId(Object value) {
+        if (value == null)
+            return null;
+        if (value instanceof IOrmEntity)
+            return ((IOrmEntity) value).orm_idString();
+        return ConvertHelper.toString(value);
+    }
+
+    public static List<String> getRefIds(IOrmEntitySet<? extends IOrmEntity> coll, String propName) {
+        List<String> ret = new ArrayList<>(coll.size());
+        for (IOrmEntity entity : coll) {
+            Object value = entity.orm_propValueByName(propName);
+            ret.add(getRefPropId(value));
+        }
+        return ret;
+    }
+
+    public static <T extends IOrmEntity> void setRefIds(IOrmEntitySet<T> coll, String propName, List<String> values) {
+        if (values == null)
+            values = Collections.emptyList();
+
+        IEntityModel refEntityModel = coll.orm_enhancer().getEntityModel(coll.orm_refEntityName());
+        IEntityPropModel propModel = refEntityModel.requireProp(propName);
+        if (propModel.isRelationModel()) {
+            String refEntityName = ((IEntityRelationModel) propModel).getRefEntityName();
+            List<IOrmEntity> refEntities = new ArrayList<>(values.size());
+            for (String value : values) {
+                refEntities.add(coll.orm_enhancer().internalLoad(refEntityName, value));
+            }
+            setRefProps(coll, propName, refEntities);
+        } else {
+            setRefProps(coll, propName, values);
+        }
+    }
+
+    public static String getLabelForRefProps(IOrmEntitySet<? extends IOrmEntity> coll, String propName) {
+        IEntityModel refEntityModel = coll.orm_enhancer().getEntityModel(coll.orm_refEntityName());
+        String labelProp = refEntityModel.getLabelProp();
+        if (labelProp == null)
+            labelProp = OrmModelConstants.PROP_ID;
+
+        StringBuilder sb = new StringBuilder();
+        for (IOrmEntity entity : coll) {
+            IOrmEntity refEntity = entity.orm_refEntity(propName);
+            if (refEntity != null) {
+                if (sb.length() == 0)
+                    sb.append(',');
+                sb.append(refEntity.orm_propValueByName(labelProp));
+            }
+        }
+        return sb.toString();
     }
 
     public static void normalizePropTypes(List<Object> list, IEntityModel entityModel, List<String> propNames) {

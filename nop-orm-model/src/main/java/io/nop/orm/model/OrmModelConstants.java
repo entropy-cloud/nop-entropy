@@ -136,6 +136,9 @@ public interface OrmModelConstants {
 
     String ORM_MAPPING_PROP_DISPLAY_NAME2 = "orm:mappingPropDisplayName2";
 
+    String ORM_MAPPING_PROP_EN_DISPLAY_NAME1 = "i18n-en:mappingPropDisplayName1";
+
+    String ORM_MAPPING_PROP_EN_DISPLAY_NAME2 = "i18n-en:mappingPropDisplayName2";
 
     String VAR_ENTITY = "entity";
 
@@ -144,4 +147,6 @@ public interface OrmModelConstants {
     String PROP_NAME_sid = "sid";
 
     String EXT_I18N_EN_DISPLAY_NAME = "i18n-en:displayName";
+
+    String EXT_BIZ_MODULE_ID = "biz:moduleId";
 }

@@ -99,7 +99,7 @@ public class OrmModelToDynEntityMeta {
             relMeta1.setTagsText(TagsHelper.toString(mappingMeta.getMappingTable().getTagSet()));
             relMeta1.setRemark(mappingMeta.getMappingTable().getComment());
             relMeta1.setRelationType(OrmRelationType.m2m.name());
-            relMeta1.setRelationName(mappingMeta.getRefPropName1());
+            relMeta1.setRelationName(mappingMeta.getMappingPropName1());
             relMeta1.setLeftPropName(OrmModelConstants.PROP_ID);
             relMeta1.setRightPropName(OrmModelConstants.PROP_ID);
             entityMeta1.getRelationMetasForEntity().add(relMeta1);
@@ -113,7 +113,7 @@ public class OrmModelToDynEntityMeta {
             relMeta2.setTagsText(TagsHelper.toString(mappingMeta.getMappingTable().getTagSet()));
             relMeta2.setRemark(mappingMeta.getMappingTable().getComment());
             relMeta2.setRelationType(OrmRelationType.m2m.name());
-            relMeta2.setRelationName(mappingMeta.getRefPropName2());
+            relMeta2.setRelationName(mappingMeta.getMappingPropName2());
             relMeta2.setLeftPropName(OrmModelConstants.PROP_ID);
             relMeta2.setRightPropName(OrmModelConstants.PROP_ID);
             entityMeta2.getRelationMetasForEntity().add(relMeta2);

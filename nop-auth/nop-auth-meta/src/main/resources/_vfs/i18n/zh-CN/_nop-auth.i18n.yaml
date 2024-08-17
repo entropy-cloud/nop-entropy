@@ -40,9 +40,9 @@ prop:
       parent.deptName: 父资源
       parentId: 父ID
       phone: 电话
-      relatedGroupIdList: 分组列表
-      relatedGroupList: 分组列表
-      relatedGroupList_label: 分组列表
+      relatedGroupList: relatedGroupList
+      relatedGroupList_ids: relatedGroupList
+      relatedGroupList_label: relatedGroupList
       remark: 备注
       updateTime: 修改时间
       updatedBy: 修改人
@@ -79,12 +79,12 @@ prop:
       parent: 父分组
       parent.name: 父分组
       parentId: 父ID
-      relatedDeptIdList: 部门列表
-      relatedDeptList: 部门列表
-      relatedDeptList_label: 部门列表
-      relatedUserIdList: 用户列表
-      relatedUserList: 用户列表
-      relatedUserList_label: 用户列表
+      relatedDeptList: relatedDeptList
+      relatedDeptList_ids: relatedDeptList
+      relatedDeptList_label: relatedDeptList
+      relatedUserList: relatedUserList
+      relatedUserList_ids: relatedUserList
+      relatedUserList_label: relatedUserList
       remark: 备注
       updateTime: 修改时间
       updatedBy: 修改人
@@ -169,9 +169,9 @@ prop:
       permissions: 权限标识
       propsConfig: 组件属性
       propsConfigComponent: null
-      relatedRoleIdList: 角色列表
-      relatedRoleList: 角色列表
-      relatedRoleList_label: 角色列表
+      relatedRoleList: relatedRoleList
+      relatedRoleList_ids: relatedRoleList
+      relatedRoleList_label: relatedRoleList
       remark: 备注
       resourceId: 资源ID
       resourceType: 资源类型
@@ -212,9 +212,9 @@ prop:
       permissions: 权限标识
       propsConfig: 组件属性
       propsConfigComponent: null
-      relatedRoleIdList: 角色列表
-      relatedRoleList: 角色列表
-      relatedRoleList_label: 角色列表
+      relatedRoleList: relatedRoleList
+      relatedRoleList_ids: relatedRoleList
+      relatedRoleList_label: relatedRoleList
       remark: 备注
       resourceId: 资源ID
       resourceType: 资源类型
@@ -238,12 +238,12 @@ prop:
       createdBy: 创建人
       delFlag: 删除标识
       isPrimary: 是否主角色
-      relatedResourceIdList: 资源列表
-      relatedResourceList: 资源列表
-      relatedResourceList_label: 资源列表
-      relatedUserIdList: 用户列表
-      relatedUserList: 用户列表
-      relatedUserList_label: 用户列表
+      relatedResourceList: relatedResourceList
+      relatedResourceList_ids: relatedResourceList
+      relatedResourceList_label: relatedResourceList
+      relatedUserList: relatedUserList
+      relatedUserList_ids: relatedUserList
+      relatedUserList_label: relatedUserList
       remark: 备注
       resourceMappings: 资源映射
       roleId: 角色ID
@@ -378,12 +378,12 @@ prop:
       relDeptId: 相关部门
       relatedDept: 部门
       relatedDept.deptName: 部门
-      relatedGroupIdList: 分组列表
-      relatedGroupList: 分组列表
-      relatedGroupList_label: 分组列表
-      relatedRoleIdList: 角色列表
-      relatedRoleList: 角色列表
-      relatedRoleList_label: 角色列表
+      relatedGroupList: relatedGroupList
+      relatedGroupList_ids: relatedGroupList
+      relatedGroupList_label: relatedGroupList
+      relatedRoleList: relatedRoleList
+      relatedRoleList_ids: relatedRoleList
+      relatedRoleList_label: relatedRoleList
       remark: 备注
       roleMappings: 角色映射
       salt: 密码加盐
@@ -467,12 +467,12 @@ prop:
       relDeptId: 相关部门
       relatedDept: 部门
       relatedDept.deptName: 部门
-      relatedGroupIdList: 分组列表
-      relatedGroupList: 分组列表
-      relatedGroupList_label: 分组列表
-      relatedRoleIdList: 角色列表
-      relatedRoleList: 角色列表
-      relatedRoleList_label: 角色列表
+      relatedGroupList: relatedGroupList
+      relatedGroupList_ids: relatedGroupList
+      relatedGroupList_label: relatedGroupList
+      relatedRoleList: relatedRoleList
+      relatedRoleList_ids: relatedRoleList
+      relatedRoleList_label: relatedRoleList
       remark: 备注
       roleMappings: 角色映射
       salt: 密码加盐

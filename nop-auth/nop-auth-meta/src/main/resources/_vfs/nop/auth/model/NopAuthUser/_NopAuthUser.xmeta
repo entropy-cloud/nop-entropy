@@ -230,35 +230,73 @@
         <prop name="avatarComponentFileStatus" mapToProp="avatarComponent.fileStatus" internal="true" lazy="true">
             <schema type="io.nop.api.core.beans.file.FileStatusBean"/>
         </prop>
-        <prop name="relatedRoleList" displayName="角色列表" i18n-en:displayName="Role List" ext:kind="to-many"
-              insertable="true" updatable="true" internal="true" lazy="true">
+        <prop name="relatedRoleList" displayName="relatedRoleList" insertable="true" updatable="true"
+              depends="~roleMappings" internal="true" lazy="true">
             <schema>
                 <item bizObjName="NopAuthRole"/>
             </schema>
+            <getter>
+                            import io.nop.orm.support.OrmEntityHelper;
+                            return OrmEntityHelper.getRefProps(
+                                entity.getRoleMappings(), "role");
+                        </getter>
         </prop>
-        <prop name="relatedRoleIdList" displayName="角色列表" i18n-en:displayName="Role List" insertable="true"
-              updatable="true" ext:relation="relatedRoleList" graphql:labelProp="relatedRoleList_label" lazy="true"
-              internal="true">
-            <schema type="List&lt;java.lang.String&gt;"/>
+        <prop name="relatedRoleList_ids" displayName="relatedRoleList" insertable="true" updatable="true"
+              graphql:labelProp="relatedRoleList_label" lazy="true" internal="true" depends="~roleMappings">
+            <schema type="List&lt;String&gt;"/>
+            <getter>
+                            import io.nop.orm.support.OrmEntityHelper;
+                            return OrmEntityHelper.getRefIds(
+                                entity.getRoleMappings(), "role");
+                        </getter>
+            <setter>
+                            import io.nop.orm.support.OrmEntityHelper;
+                            OrmEntityHelper.setRefIds(
+                                entity.getRoleMappings(), "role",value);
+                        </setter>
         </prop>
-        <prop name="relatedRoleList_label" displayName="角色列表" i18n-en:displayName="Role List" lazy="true"
-              internal="true">
+        <prop name="relatedRoleList_label" displayName="relatedRoleList" internal="true" depends="~roleMappings"
+              lazy="true">
             <schema type="String"/>
+            <getter>
+                    import io.nop.orm.support.OrmEntityHelper;
+                    return OrmEntityHelper.getLabelForRefProps(
+                        entity.getRoleMappings(), "role");
+                </getter>
         </prop>
-        <prop name="relatedGroupList" displayName="分组列表" i18n-en:displayName="Group List" ext:kind="to-many"
-              insertable="true" updatable="true" internal="true" lazy="true">
+        <prop name="relatedGroupList" displayName="relatedGroupList" insertable="true" updatable="true"
+              depends="~groupMappings" internal="true" lazy="true">
             <schema>
                 <item bizObjName="NopAuthGroup"/>
             </schema>
+            <getter>
+                            import io.nop.orm.support.OrmEntityHelper;
+                            return OrmEntityHelper.getRefProps(
+                                entity.getGroupMappings(), "group");
+                        </getter>
         </prop>
-        <prop name="relatedGroupIdList" displayName="分组列表" i18n-en:displayName="Group List" insertable="true"
-              updatable="true" ext:relation="relatedGroupList" graphql:labelProp="relatedGroupList_label" lazy="true"
-              internal="true">
-            <schema type="List&lt;java.lang.String&gt;"/>
+        <prop name="relatedGroupList_ids" displayName="relatedGroupList" insertable="true" updatable="true"
+              graphql:labelProp="relatedGroupList_label" lazy="true" internal="true" depends="~groupMappings">
+            <schema type="List&lt;String&gt;"/>
+            <getter>
+                            import io.nop.orm.support.OrmEntityHelper;
+                            return OrmEntityHelper.getRefIds(
+                                entity.getGroupMappings(), "group");
+                        </getter>
+            <setter>
+                            import io.nop.orm.support.OrmEntityHelper;
+                            OrmEntityHelper.setRefIds(
+                                entity.getGroupMappings(), "group",value);
+                        </setter>
         </prop>
-        <prop name="relatedGroupList_label" displayName="分组列表" i18n-en:displayName="Group List" lazy="true"
-              internal="true">
+        <prop name="relatedGroupList_label" displayName="relatedGroupList" internal="true" depends="~groupMappings"
+              lazy="true">
             <schema type="String"/>
+            <getter>
+                    import io.nop.orm.support.OrmEntityHelper;
+                    return OrmEntityHelper.getLabelForRefProps(
+                        entity.getGroupMappings(), "group");
+                </getter>
         </prop>
     </props>
 </meta>

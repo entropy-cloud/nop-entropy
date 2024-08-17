@@ -44,9 +44,9 @@ prop:
       deptUsers: Users
       children: Children
       groupMappings: GroupMappings
-      relatedGroupList: Group List
-      relatedGroupIdList: Group List
-      relatedGroupList_label: Group List
+      relatedGroupList: null
+      relatedGroupList_ids: null
+      relatedGroupList_label: null
     NopAuthExtLogin:
       sid: ID
       userId: User ID
@@ -84,12 +84,12 @@ prop:
       children: Children
       deptMappings: Department Mappings
       userMappings: UserMappings
-      relatedDeptList: User List
-      relatedDeptIdList: User List
-      relatedDeptList_label: User List
-      relatedUserList: User List
-      relatedUserIdList: User List
-      relatedUserList_label: User List
+      relatedDeptList: null
+      relatedDeptList_ids: null
+      relatedDeptList_label: null
+      relatedUserList: null
+      relatedUserList_ids: null
+      relatedUserList_label: null
     NopAuthGroupDept:
       deptId: Department ID
       groupId: Group ID
@@ -186,9 +186,9 @@ prop:
       roleMappings: Roles
       metaConfigComponent: null
       propsConfigComponent: null
-      relatedRoleList: Role List
-      relatedRoleIdList: Role List
-      relatedRoleList_label: Role List
+      relatedRoleList: null
+      relatedRoleList_ids: null
+      relatedRoleList_label: null
     NopAuthResource_main:
       resourceId: Resource ID
       siteId: Site Id
@@ -229,9 +229,9 @@ prop:
       roleMappings: Roles
       metaConfigComponent: null
       propsConfigComponent: null
-      relatedRoleList: Role List
-      relatedRoleIdList: Role List
-      relatedRoleList_label: Role List
+      relatedRoleList: null
+      relatedRoleList_ids: null
+      relatedRoleList_label: null
     NopAuthRole:
       roleId: Role ID
       roleName: Role Name
@@ -246,12 +246,12 @@ prop:
       remark: Remark
       userMappings: UserMappings
       resourceMappings: Resources
-      relatedUserList: User List
-      relatedUserIdList: User List
-      relatedUserList_label: User List
-      relatedResourceList: Resource List
-      relatedResourceIdList: Resource List
-      relatedResourceList_label: Resource List
+      relatedUserList: null
+      relatedUserList_ids: null
+      relatedUserList_label: null
+      relatedResourceList: null
+      relatedResourceList_ids: null
+      relatedResourceList_label: null
       roleUsers: null
       roleResourceIds: null
     NopAuthRoleDataAuth:
@@ -395,12 +395,12 @@ prop:
       substitutionMappings: Substitution Mappings
       groupMappings: GroupMappings
       avatarComponentFileStatus: null
-      relatedRoleList: Role List
-      relatedRoleIdList: Role List
-      relatedRoleList_label: Role List
-      relatedGroupList: Group List
-      relatedGroupIdList: Group List
-      relatedGroupList_label: Group List
+      relatedRoleList: null
+      relatedRoleList_ids: null
+      relatedRoleList_label: null
+      relatedGroupList: null
+      relatedGroupList_ids: null
+      relatedGroupList_label: null
     NopAuthUser_tenant:
       userId: User ID
       userName: User Name
@@ -453,12 +453,12 @@ prop:
       substitutionMappings: Substitution Mappings
       groupMappings: GroupMappings
       avatarComponentFileStatus: null
-      relatedRoleList: Role List
-      relatedRoleIdList: Role List
-      relatedRoleList_label: Role List
-      relatedGroupList: Group List
-      relatedGroupIdList: Group List
-      relatedGroupList_label: Group List
+      relatedRoleList: null
+      relatedRoleList_ids: null
+      relatedRoleList_label: null
+      relatedGroupList: null
+      relatedGroupList_ids: null
+      relatedGroupList_label: null
     NopAuthUserRole:
       userId: User ID
       roleId: Role ID

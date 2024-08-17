@@ -1626,20 +1626,22 @@ public class _NopAuthResource extends DynamicOrmEntity{
    }
 
         public List<io.nop.auth.dao.entity.NopAuthRole> getRelatedRoleList(){
-            return (List<io.nop.auth.dao.entity.NopAuthRole>)io.nop.orm.support.OrmEntityHelper.getRefProps(getRoleMappings(),io.nop.auth.dao.entity.NopAuthRoleResource.PROP_NAME_role);
-        }
-    
-        public String getRelatedRoleList_label(){
-        return io.nop.core.lang.utils.Underscore.pluckThenJoin(getRelatedRoleList(),io.nop.auth.dao.entity.NopAuthRole.PROP_NAME_roleName);
-        }
-    
-        public List<java.lang.String> getRelatedRoleIdList(){
-        return (List<java.lang.String>)io.nop.orm.support.OrmEntityHelper.getRefProps(getRoleMappings(),io.nop.auth.dao.entity.NopAuthRoleResource.PROP_NAME_roleId);
+            return (List<io.nop.auth.dao.entity.NopAuthRole>)io.nop.orm.support.OrmEntityHelper.getRefProps(getRoleMappings(),"role");
         }
 
-        public void setRelatedRoleIdList(List<java.lang.String> value){
-        io.nop.orm.support.OrmEntityHelper.setRefProps(getRoleMappings(),io.nop.auth.dao.entity.NopAuthRoleResource.PROP_NAME_roleId,value);
+        public List<String> getRelatedRoleList_ids(){
+            return io.nop.orm.support.OrmEntityHelper.getRefIds(getRoleMappings(),"role");
+        }
+
+        public void setRelatedRoleList_ids(List<String> value){
+            io.nop.orm.support.OrmEntityHelper.setRefIds(getRoleMappings(),"role",value);
         }
     
+
+    public String getRelatedRoleList_label(){
+        return io.nop.orm.support.OrmEntityHelper.getLabelForRefProps(getRoleMappings(),"role");
+    }
+
+
 }
 // resume CPD analysis - CPD-ON

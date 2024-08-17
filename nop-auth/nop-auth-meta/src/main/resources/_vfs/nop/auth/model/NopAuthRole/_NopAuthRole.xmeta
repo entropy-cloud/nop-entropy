@@ -82,35 +82,73 @@
                 <item bizObjName="NopAuthRoleResource"/>
             </schema>
         </prop>
-        <prop name="relatedUserList" displayName="用户列表" i18n-en:displayName="User List" ext:kind="to-many"
-              insertable="true" updatable="true" internal="true" lazy="true">
+        <prop name="relatedUserList" displayName="relatedUserList" insertable="true" updatable="true"
+              depends="~userMappings" internal="true" lazy="true">
             <schema>
                 <item bizObjName="NopAuthUser"/>
             </schema>
+            <getter>
+                            import io.nop.orm.support.OrmEntityHelper;
+                            return OrmEntityHelper.getRefProps(
+                                entity.getUserMappings(), "user");
+                        </getter>
         </prop>
-        <prop name="relatedUserIdList" displayName="用户列表" i18n-en:displayName="User List" insertable="true"
-              updatable="true" ext:relation="relatedUserList" graphql:labelProp="relatedUserList_label" lazy="true"
-              internal="true">
-            <schema type="List&lt;java.lang.String&gt;"/>
+        <prop name="relatedUserList_ids" displayName="relatedUserList" insertable="true" updatable="true"
+              graphql:labelProp="relatedUserList_label" lazy="true" internal="true" depends="~userMappings">
+            <schema type="List&lt;String&gt;"/>
+            <getter>
+                            import io.nop.orm.support.OrmEntityHelper;
+                            return OrmEntityHelper.getRefIds(
+                                entity.getUserMappings(), "user");
+                        </getter>
+            <setter>
+                            import io.nop.orm.support.OrmEntityHelper;
+                            OrmEntityHelper.setRefIds(
+                                entity.getUserMappings(), "user",value);
+                        </setter>
         </prop>
-        <prop name="relatedUserList_label" displayName="用户列表" i18n-en:displayName="User List" lazy="true"
-              internal="true">
+        <prop name="relatedUserList_label" displayName="relatedUserList" internal="true" depends="~userMappings"
+              lazy="true">
             <schema type="String"/>
+            <getter>
+                    import io.nop.orm.support.OrmEntityHelper;
+                    return OrmEntityHelper.getLabelForRefProps(
+                        entity.getUserMappings(), "user");
+                </getter>
         </prop>
-        <prop name="relatedResourceList" displayName="资源列表" i18n-en:displayName="Resource List" ext:kind="to-many"
-              insertable="true" updatable="true" internal="true" lazy="true">
+        <prop name="relatedResourceList" displayName="relatedResourceList" insertable="true" updatable="true"
+              depends="~resourceMappings" internal="true" lazy="true">
             <schema>
                 <item bizObjName="NopAuthResource"/>
             </schema>
+            <getter>
+                            import io.nop.orm.support.OrmEntityHelper;
+                            return OrmEntityHelper.getRefProps(
+                                entity.getResourceMappings(), "resource");
+                        </getter>
         </prop>
-        <prop name="relatedResourceIdList" displayName="资源列表" i18n-en:displayName="Resource List" insertable="true"
-              updatable="true" ext:relation="relatedResourceList" graphql:labelProp="relatedResourceList_label"
-              lazy="true" internal="true">
-            <schema type="List&lt;java.lang.String&gt;"/>
+        <prop name="relatedResourceList_ids" displayName="relatedResourceList" insertable="true" updatable="true"
+              graphql:labelProp="relatedResourceList_label" lazy="true" internal="true" depends="~resourceMappings">
+            <schema type="List&lt;String&gt;"/>
+            <getter>
+                            import io.nop.orm.support.OrmEntityHelper;
+                            return OrmEntityHelper.getRefIds(
+                                entity.getResourceMappings(), "resource");
+                        </getter>
+            <setter>
+                            import io.nop.orm.support.OrmEntityHelper;
+                            OrmEntityHelper.setRefIds(
+                                entity.getResourceMappings(), "resource",value);
+                        </setter>
         </prop>
-        <prop name="relatedResourceList_label" displayName="资源列表" i18n-en:displayName="Resource List" lazy="true"
-              internal="true">
+        <prop name="relatedResourceList_label" displayName="relatedResourceList" internal="true"
+              depends="~resourceMappings" lazy="true">
             <schema type="String"/>
+            <getter>
+                    import io.nop.orm.support.OrmEntityHelper;
+                    return OrmEntityHelper.getLabelForRefProps(
+                        entity.getResourceMappings(), "resource");
+                </getter>
         </prop>
     </props>
 </meta>

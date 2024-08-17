@@ -148,6 +148,11 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
     }
 
     @Override
+    public String orm_refEntityName() {
+        return refEntityName;
+    }
+
+    @Override
     public Object prop_get(String propName) {
         if (keyProp == null)
             throw newError(ERR_ORM_ENTITY_SET_NO_KEY_PROP).param(ARG_PROP_NAME, propName);

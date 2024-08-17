@@ -39,6 +39,6 @@
   "metaConfigComponent": null,
   "propsConfigComponent": null,
   "relatedRoleList": null,
-  "relatedRoleIdList": null,
+  "relatedRoleList_ids": null,
   "relatedRoleList_label": ""
 }

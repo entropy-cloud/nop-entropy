@@ -13,10 +13,10 @@
   "userMappings": null,
   "resourceMappings": null,
   "relatedUserList": null,
-  "relatedUserIdList": null,
+  "relatedUserList_ids": null,
   "relatedUserList_label": "",
   "relatedResourceList": null,
-  "relatedResourceIdList": null,
+  "relatedResourceList_ids": null,
   "relatedResourceList_label": "",
   "roleUsers": null,
   "roleResourceIds": null

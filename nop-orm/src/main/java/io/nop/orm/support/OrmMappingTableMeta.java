@@ -9,7 +9,10 @@ import io.nop.orm.model.OrmModelConstants;
 import java.util.List;
 
 /**
- * 专用于多对多关联的中间表
+ * 专用于多对多关联的中间表MappingTable。
+ * 1. MappingTable中refProp1指向实体Entity1，而refProp2指向实体Entity2。
+ * 2. Entity1上的reverseRefProp1指向MappingTable, Entity2上的reverseRefProp2指向MappingTable
+ * 3. Entity1上的mappingProp1指向Entity2，而Entity2上的mappingProp2指向Entity1。也就是说mappingProp对应于多对多关联属性。
  */
 public class OrmMappingTableMeta {
     private final IEntityModel mappingTable;
@@ -52,28 +55,100 @@ public class OrmMappingTableMeta {
         return refProp2;
     }
 
-    public String getRefPropName1() {
+    public String getReverseRefPropName1() {
+        if (refProp1 == null)
+            return null;
+        return refProp1.getRefPropName();
+    }
+
+    public String getReverseRefPropName2() {
+        if (refProp2 == null)
+            return null;
+        return refProp2.getRefPropName();
+    }
+
+    public String getMappingPropName1() {
         String refSetName = (String) mappingTable.prop_get(OrmModelConstants.ORM_MAPPING_PROP_NAME1);
-        if (StringHelper.isEmpty(refSetName))
-            refSetName = "related" + StringHelper.capitalize(refProp2.getName()) + "List";
+        if (StringHelper.isEmpty(refSetName)) {
+            if (isOneToOne()) {
+                refSetName = "related" + StringHelper.capitalize(refProp2.getName());
+            } else {
+                refSetName = "related" + StringHelper.capitalize(refProp2.getName()) + "List";
+            }
+        }
         return refSetName;
     }
 
-    public String getRefPropName2() {
+    public String getMappingPropName2() {
         String refSetName = (String) mappingTable.prop_get(OrmModelConstants.ORM_MAPPING_PROP_NAME2);
-        if (StringHelper.isEmpty(refSetName))
-            refSetName = "related" + StringHelper.capitalize(refProp1.getName()) + "List";
+        if (StringHelper.isEmpty(refSetName)) {
+            if (isOneToOne()) {
+                refSetName = "related" + StringHelper.capitalize(refProp1.getName());
+            } else {
+                refSetName = "related" + StringHelper.capitalize(refProp1.getName()) + "List";
+            }
+        }
         return refSetName;
     }
 
-    public String getRefPropDisplayName1() {
+    public String getMappingPropDisplayName1() {
         String displayName = (String) mappingTable.prop_get(OrmModelConstants.ORM_MAPPING_PROP_DISPLAY_NAME1);
+        if (displayName == null)
+            displayName = getMappingPropName1();
         return displayName;
     }
 
-    public String getRefPropDisplayName2() {
+    public String getMappingPropDisplayName2() {
         String displayName = (String) mappingTable.prop_get(OrmModelConstants.ORM_MAPPING_PROP_DISPLAY_NAME2);
+        if (displayName == null)
+            displayName = getMappingPropName2();
         return displayName;
+    }
+
+    public String getMappingPropEnDisplayName1() {
+        String displayName = (String) mappingTable.prop_get(OrmModelConstants.ORM_MAPPING_PROP_EN_DISPLAY_NAME1);
+        return displayName;
+    }
+
+    public String getMappingPropEnDisplayName2() {
+        String displayName = (String) mappingTable.prop_get(OrmModelConstants.ORM_MAPPING_PROP_EN_DISPLAY_NAME1);
+        return displayName;
+    }
+
+    public String getBizModuleId1() {
+        IEntityModel refEntityModel1 = refProp1.getRefEntityModel();
+        return (String) refEntityModel1.prop_get(OrmModelConstants.EXT_BIZ_MODULE_ID);
+    }
+
+    public String getBizModuleId2() {
+        IEntityModel refEntityModel2 = refProp2.getRefEntityModel();
+        return (String) refEntityModel2.prop_get(OrmModelConstants.EXT_BIZ_MODULE_ID);
+    }
+
+    public OrmMappingPropInfo getMappingPropInfo1() {
+        return new OrmMappingPropInfo(getRefBizObjName2(), getMappingPropName1(),
+                getMappingPropDisplayName1(), getMappingPropEnDisplayName1(),
+                !isOneToOne(), getMappingPropName1_label(), getMappingPropName1_ids(),
+                refProp2, getBizModuleId1());
+    }
+
+    public OrmMappingPropInfo getMappingPropInfo2() {
+        return new OrmMappingPropInfo(getRefBizObjName1(), getMappingPropName2(),
+                getMappingPropDisplayName2(), getMappingPropEnDisplayName2(),
+                !isOneToOne(), getMappingPropName2_label(), getMappingPropName2_ids(),
+                refProp1, getBizModuleId2());
+    }
+
+    public OrmMappingPropInfo getMappingPropInfo(IEntityRelationModel reverseRefProp) {
+        if (reverseRefProp.getName().equals(getReverseRefPropName1()))
+            return getMappingPropInfo1();
+        if (reverseRefProp.getName().equals(getReverseRefPropName2()))
+            return getMappingPropInfo2();
+        if (reverseRefProp.getOwnerEntityModel().getName().equals(getRefEntityName1()))
+            return getMappingPropInfo1();
+        if (reverseRefProp.getOwnerEntityModel().getName().equals(getRefEntityName2()))
+            return getMappingPropInfo2();
+        return null;
     }
 
     public String getJoinPropName1() {
@@ -90,20 +165,26 @@ public class OrmMappingTableMeta {
         return refProp2.getName();
     }
 
-    public String getRefPropName1_label() {
-        return getRefPropName1() + "_label";
+    public String getMappingPropName1_label() {
+        return getMappingPropName1() + "_label";
     }
 
-    public String getRefPropName1_ids() {
-        return getRefPropName1() + "_ids";
+    public String getMappingPropName1_ids() {
+        if (isOneToOne())
+            return getMappingPropName1() + "_id";
+
+        return getMappingPropName1() + "_ids";
     }
 
-    public String getRefPropName2_label() {
-        return getRefPropName2() + "_label";
+    public String getMappingPropName2_label() {
+        return getMappingPropName2() + "_label";
     }
 
-    public String getRefPropName2_ids() {
-        return getRefPropName2() + "_ids";
+    public String getMappingPropName2_ids() {
+        if (isOneToOne())
+            return getMappingPropName2() + "_id";
+
+        return getMappingPropName2() + "_ids";
     }
 
     public String getRefEntityName1() {
@@ -122,14 +203,14 @@ public class OrmMappingTableMeta {
         return StringHelper.simpleClassName(getRefEntityName2());
     }
 
-    public String getRefLabelProp1() {
+    public String getLabelPropOfRefEntity1() {
         String labelProp = refProp1.getRefEntityModel().getLabelProp();
         if (StringHelper.isEmpty(labelProp))
             labelProp = OrmModelConstants.PROP_ID;
         return labelProp;
     }
 
-    public String getRefLabelProp2() {
+    public String getLabelPropOfRefEntity2() {
         String labelProp = refProp2.getRefEntityModel().getLabelProp();
         if (StringHelper.isEmpty(labelProp))
             labelProp = OrmModelConstants.PROP_ID;

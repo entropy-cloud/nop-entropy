@@ -39,8 +39,8 @@ public class TestManyToManyProp extends JunitAutoTestCase {
             role.setRoleId("test");
             role.setRoleName("testRole");
             String userId = getNopUserId();
-            role.setRelatedUserIdList(Arrays.asList(userId));
-            role.setRelatedUserIdList(Arrays.asList(userId));
+            role.setRelatedUserList_ids(Arrays.asList(userId));
+            role.setRelatedUserList_ids(Arrays.asList(userId));
             ormTemplate.save(role);
         });
     }

@@ -360,49 +360,49 @@ public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClas
 </c:for>
 <c:for var="rel" items="${entityModel.relations}">
     <c:script><![CDATA[
-        import io.nop.orm.support.OrmManyToManyHelper;
+         import io.nop.orm.support.OrmMappingTableMeta
 
-        const refOnePropInfo = OrmManyToManyHelper.getRefOnePropInfo(rel);
-        const refManyPropInfo = OrmManyToManyHelper.getRefManyPropInfo(rel);
+        if(rel.notGenCode) continue;
+
+        if(!OrmMappingTableMeta.isMappingTable(rel.refEntityModel))
+           continue;
+
+        const mappingMeta = new OrmMappingTableMeta(rel.refEntityModel);
+
+        const mappingPropInfo = mappingMeta.getMappingPropInfo(rel);
     ]]></c:script>
-    <c:if test="${refOnePropInfo}"><![CDATA[
-        public ${refOnePropInfo.relatedEntityName} ${refOnePropInfo.relatedObjPropName.$methodGet()}(){
-            return (${refOnePropInfo.relatedEntityName})io.nop.orm.support.OrmEntityHelper.getPropFromSingleton(${rel.name.$methodGet()}(),${refOnePropInfo.getObjPropNameConst()});
-        }
-    ]]></c:if>
-    <c:if test="${refOnePropInfo and refOnePropInfo.dispColName}"><![CDATA[
-        public String ${refOnePropInfo.relatedObjPropName.$methodGet()}_label(){
-        return ConvertHelper.toString(io.nop.core.reflect.bean.BeanTool.getProperty(${refOnePropInfo.relatedObjPropName.$methodGet()}}(),${refOnePropInfo.dispColNameConst}));
-        }
-    ]]></c:if>
-    <c:if test="${refOnePropInfo and refOnePropInfo.relatedColPropName}"><![CDATA[
-        public ${refOnePropInfo.relatedColTypeName} ${refOnePropInfo.relatedColPropName.$methodGet()}(){
-            return (${refOnePropInfo.relatedColTypeName})io.nop.orm.support.OrmEntityHelper.getPropFromSingleton(${rel.name.$methodGet()}(),${refOnePropInfo.getColNameConst()});
+    <c:if test="${mappingPropInfo and !mappingPropInfo.toMany}"><![CDATA[
+        public ${mappingPropInfo.refClassName} ${mappingInfo.propName.$methodGet()}(){
+            return (${mappingPropInfo.refClassName})io.nop.orm.support.OrmEntityHelper.getPropFromSingleton(${rel.name.$methodGet()}(),"${mappingPropInfo.refPropNameInMappingTable}");
         }
 
-        public void ${refOnePropInfo.relatedColPropName.$methodSet()}(${refOnePropInfo.relatedColTypeName} value){
-            io.nop.orm.support.OrmEntityHelper.setPropToSingleton(${rel.name.$methodGet()}(),${refOnePropInfo.getColNameConst()},value);
-        }
-    ]]></c:if>
-    <c:if test="${refManyPropInfo}"><![CDATA[
-        public List<${refManyPropInfo.relatedEntityName}> ${refManyPropInfo.relatedObjListPropName.$methodGet()}(){
-            return (List<${refManyPropInfo.relatedEntityName}>)io.nop.orm.support.OrmEntityHelper.getRefProps(${rel.name.$methodGet()}(),${refManyPropInfo.objPropNameConst});
-        }
-    ]]></c:if>
-    <c:if test="${refManyPropInfo and refManyPropInfo.dispColName}"><![CDATA[
-        public String ${refManyPropInfo.relatedObjListPropName.$methodGet()}_label(){
-        return io.nop.core.lang.utils.Underscore.pluckThenJoin(${refManyPropInfo.relatedObjListPropName.$methodGet()}(),${refManyPropInfo.dispColNameConst});
-        }
-    ]]></c:if>
-    <c:if test="${refManyPropInfo and refManyPropInfo.relatedColPropName}"><![CDATA[
-        public List<${refManyPropInfo.relatedColTypeName}> ${refManyPropInfo.relatedColListPropName.$methodGet()}(){
-        return (List<${refManyPropInfo.relatedColTypeName}>)io.nop.orm.support.OrmEntityHelper.getRefProps(${rel.name.$methodGet()}(),${refManyPropInfo.colNameConst});
+        public String ${mappingPropInfo.mappingIdProp.$methodGet()}(){
+            return io.nop.orm.support.OrmEntityHelper.getRefIdFromSingleton(${rel.name.$methodGet()}(),"${mappingPropInfo.refPropNameInMappingTable}");
         }
 
-        public void ${refManyPropInfo.relatedColListPropName.$methodSet()}(List<${refManyPropInfo.relatedColTypeName}> value){
-        io.nop.orm.support.OrmEntityHelper.setRefProps(${rel.name.$methodGet()}(),${refManyPropInfo.colNameConst},value);
+        public void ${mappingPropInfo.mappingIdProp.$methodSet()}(String value){
+            io.nop.orm.support.OrmEntityHelper.setRefIdFromSingleton(${rel.name.$methodGet()}(),"${mappingPropInfo.refPropNameInMappingTable}",value);
         }
     ]]></c:if>
+
+    <c:if test="${mappingPropInfo and mappingPropInfo.toMany}"><![CDATA[
+        public List<${mappingPropInfo.refClassName}> ${mappingPropInfo.propName.$methodGet()}(){
+            return (List<${mappingPropInfo.refClassName}>)io.nop.orm.support.OrmEntityHelper.getRefProps(${rel.name.$methodGet()}(),"${mappingPropInfo.refPropNameInMappingTable}");
+        }
+
+        public List<String> ${mappingPropInfo.mappingIdProp.$methodGet()}(){
+            return io.nop.orm.support.OrmEntityHelper.getRefIds(${rel.name.$methodGet()}(),"${mappingPropInfo.refPropNameInMappingTable}");
+        }
+
+        public void ${mappingPropInfo.mappingIdProp.$methodSet()}(List<String> value){
+            io.nop.orm.support.OrmEntityHelper.setRefIds(${rel.name.$methodGet()}(),"${mappingPropInfo.refPropNameInMappingTable}",value);
+        }
+    ]]></c:if>
+
+    public String ${mappingPropInfo.mappingLabelProp.$methodGet()}(){
+        return io.nop.orm.support.OrmEntityHelper.getLabelForRefProps(${rel.name.$methodGet()}(),"${mappingPropInfo.refPropNameInMappingTable}");
+    }
+
 </c:for>
 }
 // resume CPD analysis - CPD-ON

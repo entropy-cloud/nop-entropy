@@ -18,9 +18,9 @@
   "deptMappings": null,
   "userMappings": null,
   "relatedDeptList": null,
-  "relatedDeptIdList": null,
+  "relatedDeptList_ids": null,
   "relatedDeptList_label": "",
   "relatedUserList": null,
-  "relatedUserIdList": null,
+  "relatedUserList_ids": null,
   "relatedUserList_label": ""
 }

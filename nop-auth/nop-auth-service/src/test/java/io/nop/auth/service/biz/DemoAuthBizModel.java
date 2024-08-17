@@ -56,11 +56,11 @@ public class DemoAuthBizModel {
 
     @BizMutation
     public String testFlushError() {
-        NopAuthRole role = new NopAuthRole();
+        NopAuthRole role = daoProvider.daoFor(NopAuthRole.class).newEntity();
         role.setRoleName("test123");
         role.setRoleId("test123");
         // 长度超长，flush的时候会抛出异常
-        role.setRelatedUserIdList(Arrays.asList(StringHelper.repeat("a", 1024)));
+        role.setRelatedUserList_ids(Arrays.asList(StringHelper.repeat("a", 1024)));
 
         daoProvider.daoFor(NopAuthRole.class).saveEntity(role);
         return role.orm_idString();

@@ -52,9 +52,9 @@
   "groupMappings": null,
   "avatarComponentFileStatus": null,
   "relatedRoleList": null,
-  "relatedRoleIdList": null,
+  "relatedRoleList_ids": null,
   "relatedRoleList_label": "",
   "relatedGroupList": null,
-  "relatedGroupIdList": null,
+  "relatedGroupList_ids": null,
   "relatedGroupList_label": ""
 }
