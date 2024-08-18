@@ -73,6 +73,7 @@ public class EntityPersisterImpl implements IEntityPersister {
     private boolean useGlobalCache;
     private ICache<String, Object> globalCache;
     private IBeanConstructor constructor;
+    private boolean useTenantCache;
 
     @Override
     public void close() throws Exception {
@@ -93,6 +94,7 @@ public class EntityPersisterImpl implements IEntityPersister {
         driver.init(entityModel, env);
 
         this.constructor = env.getEntityConstructor(entityModel);
+        this.useTenantCache = entityModel.isUseTenant() && !entityModel.isGlobalUniqueId();
     }
 
     int getMaxBatchLoadSize() {
@@ -502,7 +504,7 @@ public class EntityPersisterImpl implements IEntityPersister {
     }
 
     protected boolean loadFromGlobalCache(IOrmEntity entity, IOrmSessionImplementor session) {
-        Object values = globalCache.get(entity.orm_idString());
+        Object values = globalCache.get(getCacheKey(entity));
         if (values != null) {
             Object[] cacheValues = convertCacheValues(values);
             // 全局缓存中保存实体全部属性，简化动态改变装载策略时的处理逻辑
@@ -515,10 +517,10 @@ public class EntityPersisterImpl implements IEntityPersister {
 
     protected void updateGlobalCache(IOrmEntity entity, IOrmSessionImplementor session) {
         if (entity.orm_state().isMissing()) {
-            globalCache.removeAsync(entity.orm_idString());
+            globalCache.removeAsync(getCacheKey(entity));
         } else {
             Object[] values = OrmAssembly.getPropValues(entity, entityModel.getAllPropIds());
-            globalCache.putAsync(entity.orm_idString(), values);
+            globalCache.putAsync(getCacheKey(entity), values);
         }
     }
 
@@ -538,12 +540,21 @@ public class EntityPersisterImpl implements IEntityPersister {
             this.env.txn().addTransactionListener(querySpace, new ITransactionListener() {
                 @Override
                 public void onAfterCommit(ITransaction txn) {
-                    globalCache.removeAsync(entity.orm_idString());
+                    globalCache.removeAsync(getCacheKey(entity));
                 }
             });
         } else {
-            globalCache.removeAsync(entity.orm_idString());
+            globalCache.removeAsync(getCacheKey(entity));
         }
+    }
+
+    private String getCacheKey(IOrmEntity entity) {
+        if (!useTenantCache)
+            return entity.orm_idString();
+        Object tenantId = entity.orm_propValue(entityModel.getTenantPropId());
+        if (tenantId == null)
+            tenantId = ContextProvider.currentTenantId();
+        return tenantId + ":" + entity.orm_id();
     }
 
     protected String getQuerySpace(ShardSelection shard) {
@@ -561,7 +572,7 @@ public class EntityPersisterImpl implements IEntityPersister {
 
         List<String> keys = new ArrayList<>(entities.size());
         for (IOrmEntity entity : ret) {
-            keys.add(entity.orm_idString());
+            keys.add(getCacheKey(entity));
         }
 
         Map<String, Object> values = globalCache.getAll(keys);

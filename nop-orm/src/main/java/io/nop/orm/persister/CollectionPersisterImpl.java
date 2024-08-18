@@ -49,6 +49,7 @@ public class CollectionPersisterImpl implements ICollectionPersister {
     private ICache<String, Object> globalCache;
     private ICollectionPersistDriver driver;
     private String defaultQuerySpace;
+    private boolean useTenantCache;
 
     @Override
     public IEntityRelationModel getCollectionModel() {
@@ -64,6 +65,8 @@ public class CollectionPersisterImpl implements ICollectionPersister {
         this.env = env;
         this.collectionModel = relation;
         this.defaultQuerySpace = relation.getRefEntityModel().getQuerySpace();
+
+        this.useTenantCache = relation.getRefEntityModel().isUseTenant();
 
         this.driver = env.createCollectionPersistDriver(collectionModel.getPersistDriver());
         driver.init(relation, env);
@@ -173,7 +176,7 @@ public class CollectionPersisterImpl implements ICollectionPersister {
     }
 
     boolean loadFromGlobalCache(IOrmEntitySet coll, IOrmSessionImplementor session) {
-        Object[] elementIds = convertCacheValues(globalCache.get(coll.orm_owner().orm_idString()));
+        Object[] elementIds = convertCacheValues(globalCache.get(getCacheKey(coll.orm_owner())));
         if (elementIds == null) {
             return false;
         }
@@ -204,11 +207,11 @@ public class CollectionPersisterImpl implements ICollectionPersister {
             env.txn().addTransactionListener(querySpace, new ITransactionListener() {
                 @Override
                 public void onAfterCommit(ITransaction txn) {
-                    globalCache.remove(coll.orm_owner().orm_idString());
+                    globalCache.remove(getCacheKey(coll.orm_owner()));
                 }
             });
         } else {
-            globalCache.remove(coll.orm_owner().orm_idString());
+            globalCache.remove(getCacheKey(coll.orm_owner()));
         }
     }
 
@@ -216,7 +219,23 @@ public class CollectionPersisterImpl implements ICollectionPersister {
 
         Object[] elementIds = getElementIds(coll);
 
-        globalCache.put(coll.orm_owner().orm_idString(), elementIds);
+        globalCache.put(getCacheKey(coll.orm_owner()), elementIds);
+    }
+
+    private String getCacheKey(IOrmEntity entity) {
+        if (!useTenantCache)
+            return entity.orm_idString();
+
+        Object tenantId = null;
+        int tenantPropId = entity.orm_entityModel().getTenantPropId();
+        if (tenantPropId > 0) {
+            // 存在一种可能，非租户表引用租户表的集合
+            tenantId = entity.orm_propValue(tenantPropId);
+        }
+
+        if (tenantId == null)
+            tenantId = ContextProvider.currentTenantId();
+        return tenantId + ":" + entity.orm_id();
     }
 
     public static Object[] getElementIds(Collection<IOrmEntity> collection) {
@@ -234,16 +253,16 @@ public class CollectionPersisterImpl implements ICollectionPersister {
         if (!useGlobalCache)
             return colls;
 
-        Set<String> ids = new HashSet<>(colls.size());
+        Set<String> keys = new HashSet<>(colls.size());
         Set<IOrmEntitySet> ret = new HashSet<>();
         for (IOrmEntitySet coll : colls) {
             if (!coll.orm_proxy())
                 continue;
             ret.add(coll);
-            ids.add(coll.orm_owner().orm_idString());
+            keys.add(getCacheKey(coll.orm_owner()));
         }
 
-        Map<String, Object> values = globalCache.getAll(ids);
+        Map<String, Object> values = globalCache.getAll(keys);
 
         String entityName = collectionModel.getRefEntityName();
 
