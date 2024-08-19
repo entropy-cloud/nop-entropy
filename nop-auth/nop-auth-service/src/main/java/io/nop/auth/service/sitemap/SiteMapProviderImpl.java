@@ -35,7 +35,6 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -109,7 +108,7 @@ public class SiteMapProviderImpl implements ISiteMapProvider {
         return data;
     }
 
-    Collection<SiteMapBean> loadStaticSiteMap() {
+    public List<SiteMapBean> loadStaticSiteMap() {
         String path = CFG_AUTH_SITE_MAP_STATIC_CONFIG_PATH.get();
         if (StringHelper.isEmpty(path))
             return Collections.emptyList();
