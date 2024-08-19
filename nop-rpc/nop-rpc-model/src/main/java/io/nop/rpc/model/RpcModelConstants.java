@@ -24,4 +24,6 @@ public interface RpcModelConstants {
     String OPTION_REST_PATH = "nop_rest_path";
 
     String OPTION_USE_TCC = "nop_use_tcc";
+
+    String OPTION_EXAMPLE = "nop_example";
 }

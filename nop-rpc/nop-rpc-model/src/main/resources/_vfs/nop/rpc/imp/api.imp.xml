@@ -210,7 +210,7 @@
                         </field>
 
                         <field name="restPath" displayName="服务链接">
-                            <schema stdDomain="string" />
+                            <schema stdDomain="string"/>
                         </field>
 
                         <field name="requestMessage" displayName="请求消息" mandatory="true">
@@ -220,7 +220,9 @@
 
                         <field name="responseMessage" displayName="响应消息" mandatory="true">
                             <schema stdDomain="generic-type"/>
-                            <xpt:linkExpr>!cell.value || cell.value?.toString()?.contains('>') ? null: "ref:"+cell.value.toString().$simpleClassName()+'!A1'</xpt:linkExpr>
+                            <xpt:linkExpr>!cell.value || cell.value?.toString()?.contains('>') ? null:
+                                "ref:"+cell.value.toString().$simpleClassName()+'!A1'
+                            </xpt:linkExpr>
                         </field>
 
                         <field name="description" displayName="描述">
@@ -266,6 +268,10 @@
                     <schema stdDomain="string"/>
                 </field>
 
+                <field name="example" displayName="样例">
+                    <schema stdDomain="string"/>
+                </field>
+
                 <field name="fields" displayName="字段列表" list="true" keyProp="name">
                     <normalizeFieldsExpr>
                         <c:script><![CDATA[
@@ -276,7 +282,7 @@
 
                     <fields>
                         <field name="propId" displayName="编号" mandatory="true">
-                            <schema stdDomain="int" />
+                            <schema stdDomain="int"/>
                         </field>
 
                         <field name="mandatory" displayName="非空" xpt:formatExpr="cell.value ? 'M': ''">
