@@ -230,7 +230,14 @@ public class CollectionPersisterImpl implements ICollectionPersister {
         int tenantPropId = entity.orm_entityModel().getTenantPropId();
         if (tenantPropId > 0) {
             // 存在一种可能，非租户表引用租户表的集合
-            tenantId = entity.orm_propValue(tenantPropId);
+            // 第一次按照主键进行load的时候没有设置tenantId。如果直接读取则导致proxy加载
+            if (!entity.orm_propInited(tenantPropId)) {
+                tenantId = ContextProvider.currentTenantId();
+            } else {
+                tenantId = entity.orm_propValue(tenantPropId);
+                if (tenantId == null)
+                    tenantId = ContextProvider.currentTenantId();
+            }
         }
 
         if (tenantId == null)

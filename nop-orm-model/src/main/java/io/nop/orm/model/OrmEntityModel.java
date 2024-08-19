@@ -72,6 +72,8 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
 
     private Map<String, IEntityPropModel> propsByUnderscoreName;
 
+    private boolean tenantModel;
+
     private boolean inited;
 
     public OrmEntityModel() {
@@ -81,6 +83,15 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
     public String toString() {
         return getClass().getSimpleName() + "[name=" + StringHelper.simpleClassName(getName()) + ",table="
                 + getTableName() + "]@" + getLocation();
+    }
+
+    @Override
+    public boolean isTenantModel() {
+        return tenantModel;
+    }
+
+    public void setTenantModel(boolean tenantModel) {
+        this.tenantModel = tenantModel;
     }
 
     /**

@@ -150,6 +150,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
     private final Set<String> readEntityModels = new LinkedHashSet<>();
     private String writeEntityModel;
+    private boolean useTenantModel;
 
     /**
      * 判断是否正在处理order by子句。如果仅在order by语句中通过a.b.c这种属性表达式引用关联表上的字段，且关联字段允许为空， 则使用left join来实现隐式关联。
@@ -171,6 +172,10 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
     public IDialect getDialect() {
         return dialect;
+    }
+
+    public boolean isUseTenantModel() {
+        return useTenantModel;
     }
 
     public void transform(SqlProgram program) {
@@ -621,6 +626,9 @@ public class EqlTransformVisitor extends EqlASTVisitor {
     void addResolvedEntity(SourceLocation loc, ISqlTableMeta tableMeta) {
         readEntityModels.add(tableMeta.getEntityName());
 
+        if (tableMeta.getEntityModel().isTenantModel())
+            this.useTenantModel = true;
+
         String querySpace = tableMeta.getQuerySpace();
         querySpaceToEntityNames.put(querySpace, tableMeta.getEntityName());
         if (querySpaceToEntityNames.size() > 1)
@@ -881,6 +889,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
     SqlSingleTableSource makeTableSource(SourceLocation loc, IEntityModel entityModel, SqlAlias alias) {
         readEntityModels.add(entityModel.getName());
+        if (entityModel.isTenantModel())
+            this.useTenantModel = entityModel.isTenantModel();
 
         SqlSingleTableSource table = new SqlSingleTableSource();
         table.setLocation(loc);
@@ -1320,6 +1330,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         node.setResolvedTableSource(source);
 
         writeEntityModel = tableMeta.getEntityName();
+        if (tableMeta.getEntityModel().isTenantModel())
+            this.useTenantModel = tableMeta.getEntityModel().isTenantModel();
 
         visitChildren(node.getColumns());
 
@@ -1361,6 +1373,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         node.setResolvedTableSource(source);
 
         writeEntityModel = tableMeta.getEntityName();
+        if (tableMeta.getEntityModel().isTenantModel())
+            this.useTenantModel = tableMeta.getEntityModel().isTenantModel();
 
         this.visitChildren(node.getAssignments());
         this.visitChild(node.getWhere());
@@ -1404,6 +1418,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
         ISqlTableMeta tableMeta = resolveEntity(table);
         writeEntityModel = tableMeta.getEntityName();
+        if (tableMeta.getEntityModel().isTenantModel())
+            this.useTenantModel = tableMeta.getEntityModel().isTenantModel();
 
         SqlSingleTableSource source = newSingleTableSource(table, node.getAlias());
         node.setResolvedTableSource(source);

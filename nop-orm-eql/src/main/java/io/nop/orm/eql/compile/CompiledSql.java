@@ -30,6 +30,7 @@ public class CompiledSql implements ICompiledSql {
     private SQL sql;
     private List<String> readEntityModels = Collections.emptyList();
     private String writeEntityModel;
+    private boolean useTenantModel;
 
     @Override
     public List<String> getReadEntityNames() {
@@ -118,6 +119,15 @@ public class CompiledSql implements ICompiledSql {
 
     public void setParamBuilders(List<ISqlParamBuilder> paramBuilders) {
         this.paramBuilders = paramBuilders;
+    }
+
+    @Override
+    public boolean isUseTenantModel() {
+        return useTenantModel;
+    }
+
+    public void setUseTenantModel(boolean useTenantModel) {
+        this.useTenantModel = useTenantModel;
     }
 
     @Override

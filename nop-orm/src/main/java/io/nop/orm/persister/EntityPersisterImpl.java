@@ -551,9 +551,17 @@ public class EntityPersisterImpl implements IEntityPersister {
     private String getCacheKey(IOrmEntity entity) {
         if (!useTenantCache)
             return entity.orm_idString();
-        Object tenantId = entity.orm_propValue(entityModel.getTenantPropId());
-        if (tenantId == null)
+        int tenantPropId = entityModel.getTenantPropId();
+
+        Object tenantId;
+        // 第一次按照主键进行load的时候没有设置tenantId。如果直接读取则导致proxy加载
+        if (!entity.orm_propInited(tenantPropId)) {
             tenantId = ContextProvider.currentTenantId();
+        } else {
+            tenantId = entity.orm_propValue(entityModel.getTenantPropId());
+            if (tenantId == null)
+                tenantId = ContextProvider.currentTenantId();
+        }
         return tenantId + ":" + entity.orm_id();
     }
 

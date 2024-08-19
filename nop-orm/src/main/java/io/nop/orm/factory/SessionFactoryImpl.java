@@ -27,6 +27,7 @@ import io.nop.dao.shard.EmptyShardSelector;
 import io.nop.dao.shard.IShardSelector;
 import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.dao.utils.DaoHelper;
+import io.nop.orm.IOrmCachedQueryPlan;
 import io.nop.orm.IOrmComponent;
 import io.nop.orm.IOrmDaoListener;
 import io.nop.orm.IOrmEntity;
@@ -90,7 +91,7 @@ public class SessionFactoryImpl implements IPersistEnv {
 
     private ICacheProvider globalCache;
 
-    private ICache<QueryPlanCacheKey, ICompiledSql> queryPlanCache;
+    private ICache<QueryPlanCacheKey, IOrmCachedQueryPlan> queryPlanCache;
 
     private IQueryExecutor defaultQueryExecutor;
 
@@ -174,11 +175,11 @@ public class SessionFactoryImpl implements IPersistEnv {
     }
 
     @Override
-    public ICache<QueryPlanCacheKey, ICompiledSql> getQueryPlanCache() {
+    public ICache<QueryPlanCacheKey, IOrmCachedQueryPlan> getQueryPlanCache() {
         return queryPlanCache;
     }
 
-    public void setQueryPlanCache(ICache<QueryPlanCacheKey, ICompiledSql> queryPlanCache) {
+    public void setQueryPlanCache(ICache<QueryPlanCacheKey, IOrmCachedQueryPlan> queryPlanCache) {
         this.queryPlanCache = queryPlanCache;
     }
 
@@ -408,14 +409,26 @@ public class SessionFactoryImpl implements IPersistEnv {
 
         if (useCache) {
             QueryPlanCacheKey key = new QueryPlanCacheKey(name, sqlText, disableLogicalDelete, allowUnderscoreName);
-            ICompiledSql result = getQueryPlanCache().get(key);
-            if (result == null) {
+            IOrmCachedQueryPlan result = getQueryPlanCache().get(key);
+            if (result == null || result.getCompiledSql() == null) {
                 ISqlCompileContext ctx = new EqlCompileContext(this, disableLogicalDelete,
                         astTransformer, allowUnderscoreName, enableFilter);
-                result = new EqlCompiler().compile(name, sqlText, ctx);
+                ICompiledSql compiledSql = new EqlCompiler().compile(name, sqlText, ctx);
+                if (compiledSql.isUseTenantModel()) {
+                    TenantCachedQueryPlan tenantPlan;
+                    if (result instanceof TenantCachedQueryPlan) {
+                        tenantPlan = (TenantCachedQueryPlan) result;
+                    } else {
+                        tenantPlan = new TenantCachedQueryPlan();
+                        result = tenantPlan;
+                    }
+                    tenantPlan.addCompiledSql(compiledSql);
+                } else {
+                    result = new SimpleCachedQueryPlan(compiledSql);
+                }
                 getQueryPlanCache().put(key, result);
             }
-            return result;
+            return result.getCompiledSql();
         } else {
             ISqlCompileContext ctx = new EqlCompileContext(this, disableLogicalDelete,
                     astTransformer, allowUnderscoreName, enableFilter);

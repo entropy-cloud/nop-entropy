@@ -85,6 +85,7 @@ public class EqlCompiler implements ISqlCompiler {
         compiledSql.setParamBuilders(transformer.getParams());
         compiledSql.setReadEntityModels(transformer.getReadEntityModels());
         compiledSql.setWriteEntityModel(transformer.getWriteEntityModel());
+        compiledSql.setUseTenantModel(transformer.isUseTenantModel());
 
         if (stm.getStatementKind() == SqlStatementKind.SELECT) {
             SqlSelect select = stm instanceof SqlSelectWithCte ? ((SqlSelectWithCte) stm).getSelect() : (SqlSelect) stm;

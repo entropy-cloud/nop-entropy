@@ -43,7 +43,7 @@ public interface IOrmSessionFactory extends AutoCloseable, IDialectProvider, ISq
 
     IOrmSession openSession(boolean stateless);
 
-    ICache<QueryPlanCacheKey, ICompiledSql> getQueryPlanCache();
+    ICache<QueryPlanCacheKey, IOrmCachedQueryPlan> getQueryPlanCache();
 
     ICacheProvider getGlobalCache();
 

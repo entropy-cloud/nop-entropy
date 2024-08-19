@@ -21,6 +21,8 @@ import java.util.List;
 public interface ICompiledSql {
     String getName();
 
+    boolean isUseTenantModel();
+
     /**
      * 一条SQL语句只能是在一个数据源中执行。目前不支持一条SQL语句访问多个数据源。
      */

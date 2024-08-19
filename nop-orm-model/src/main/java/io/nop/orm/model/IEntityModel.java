@@ -37,6 +37,13 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
 
     boolean isTableView();
 
+    /**
+     * 一般的租户设计是所有租户共享同一个表结构，通过tenantId来区分，但是对于NopDynEntityMeta配置的动态结构，不同的租户可能会定义同名的实体结构
+     *
+     * @return 是否是某个租户定义的实体
+     */
+    boolean isTenantModel();
+
     default String getSimpleClassName() {
         return StringHelper.simpleClassName(getClassName());
     }
