@@ -10,6 +10,7 @@ import io.nop.excel.format.ExcelDateHelper;
 import io.nop.excel.model.ExcelCell;
 import io.nop.excel.model.ExcelColumnConfig;
 import io.nop.excel.model.ExcelPageMargins;
+import io.nop.excel.model.ExcelPageSetup;
 import io.nop.excel.model.ExcelRow;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelStyle;
@@ -56,6 +57,11 @@ public class SimpleSheetContentsHandler implements SheetContentsHandler {
     @Override
     public void pageMargins(ExcelPageMargins pageMargins) {
         sheet.setPageMargins(pageMargins);
+    }
+
+    @Override
+    public void pageSetup(ExcelPageSetup pageSetup) {
+        sheet.setPageSetup(pageSetup);
     }
 
     @Override
@@ -111,7 +117,7 @@ public class SimpleSheetContentsHandler implements SheetContentsHandler {
 
     @Override
     public void link(String ref, String location, String rId) {
-        if(ref.indexOf(':') > 0)
+        if (ref.indexOf(':') > 0)
             return;
 
         CellPosition pos = CellPosition.fromABString(ref);

@@ -53,6 +53,13 @@ public abstract class _ExcelPageSetup extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: gridLines
+     * 
+     */
+    private java.lang.Boolean _gridLines ;
+    
+    /**
+     *  
      * xml name: header
      * 
      */
@@ -74,10 +81,24 @@ public abstract class _ExcelPageSetup extends io.nop.core.resource.component.Abs
     
     /**
      *  
-     * xml name: paperSize
+     * xml name: paperHeight
      * 
      */
+    private java.lang.Float _paperHeight ;
+    
+    /**
+     *  
+     * xml name: paperSize
+     * 为ooxml中定义的标准页面大小。如果设置了paperWidth和paperHeight时，以这两个值为准
+     */
     private java.lang.Integer _paperSize ;
+    
+    /**
+     *  
+     * xml name: paperWidth
+     * 单位为pt
+     */
+    private java.lang.Float _paperWidth ;
     
     /**
      *  
@@ -190,6 +211,25 @@ public abstract class _ExcelPageSetup extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: gridLines
+     *  
+     */
+    
+    public java.lang.Boolean getGridLines(){
+      return _gridLines;
+    }
+
+    
+    public void setGridLines(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._gridLines = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: header
      *  
      */
@@ -247,8 +287,27 @@ public abstract class _ExcelPageSetup extends io.nop.core.resource.component.Abs
     
     /**
      * 
-     * xml name: paperSize
+     * xml name: paperHeight
      *  
+     */
+    
+    public java.lang.Float getPaperHeight(){
+      return _paperHeight;
+    }
+
+    
+    public void setPaperHeight(java.lang.Float value){
+        checkAllowChange();
+        
+        this._paperHeight = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: paperSize
+     *  为ooxml中定义的标准页面大小。如果设置了paperWidth和paperHeight时，以这两个值为准
      */
     
     public java.lang.Integer getPaperSize(){
@@ -260,6 +319,25 @@ public abstract class _ExcelPageSetup extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._paperSize = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: paperWidth
+     *  单位为pt
+     */
+    
+    public java.lang.Float getPaperWidth(){
+      return _paperWidth;
+    }
+
+    
+    public void setPaperWidth(java.lang.Float value){
+        checkAllowChange();
+        
+        this._paperWidth = value;
            
     }
 
@@ -326,10 +404,13 @@ public abstract class _ExcelPageSetup extends io.nop.core.resource.component.Abs
         out.putNotNull("fitToHeight",this.getFitToHeight());
         out.putNotNull("fitToWidth",this.getFitToWidth());
         out.putNotNull("footer",this.getFooter());
+        out.putNotNull("gridLines",this.getGridLines());
         out.putNotNull("header",this.getHeader());
         out.putNotNull("horizontalCentered",this.getHorizontalCentered());
         out.putNotNull("orientationHorizontal",this.getOrientationHorizontal());
+        out.putNotNull("paperHeight",this.getPaperHeight());
         out.putNotNull("paperSize",this.getPaperSize());
+        out.putNotNull("paperWidth",this.getPaperWidth());
         out.putNotNull("scale",this.getScale());
         out.putNotNull("verticalCentered",this.getVerticalCentered());
     }
@@ -348,10 +429,13 @@ public abstract class _ExcelPageSetup extends io.nop.core.resource.component.Abs
         instance.setFitToHeight(this.getFitToHeight());
         instance.setFitToWidth(this.getFitToWidth());
         instance.setFooter(this.getFooter());
+        instance.setGridLines(this.getGridLines());
         instance.setHeader(this.getHeader());
         instance.setHorizontalCentered(this.getHorizontalCentered());
         instance.setOrientationHorizontal(this.getOrientationHorizontal());
+        instance.setPaperHeight(this.getPaperHeight());
         instance.setPaperSize(this.getPaperSize());
+        instance.setPaperWidth(this.getPaperWidth());
         instance.setScale(this.getScale());
         instance.setVerticalCentered(this.getVerticalCentered());
     }

@@ -185,7 +185,7 @@ public class ExpandedCell implements IExcelCell {
     public boolean isExportFormattedValue() {
         if (model == null)
             return false;
-        return model.isExportFormattedValue();
+        return Boolean.TRUE.equals(model.getExportFormattedValue());
     }
 
     @Override
@@ -349,7 +349,7 @@ public class ExpandedCell implements IExcelCell {
 
     @Override
     public Object getExportValue() {
-        if (model.isExportFormattedValue())
+        if (isExportFormattedValue())
             return getFormattedValue();
         return getValue();
     }

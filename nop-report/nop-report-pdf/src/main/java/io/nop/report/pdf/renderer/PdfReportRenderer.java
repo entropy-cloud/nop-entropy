@@ -139,6 +139,7 @@ public class PdfReportRenderer implements IBinaryTemplateOutput {
 
     private void renderRow(IRowView row, Table pTable, IEvalContext context,
                            ITableView table, int rowIndex, int colCount) {
+
         row.forEachCell(rowIndex, (cell, i, j) -> {
             Cell pCell;
             if (cell == null) {
@@ -146,12 +147,6 @@ public class PdfReportRenderer implements IBinaryTemplateOutput {
                 pCell.disableBorderSide(Rectangle.BOX);
             } else {
                 pCell = renderCell(cell, i, j, context);
-            }
-
-            if (j == 0) {
-                if (row.getHeight() != null) {
-                    // pTable.getRow.set(row.getHeight().floatValue());
-                }
             }
             pTable.addCell(pCell);
             return ProcessResult.CONTINUE;

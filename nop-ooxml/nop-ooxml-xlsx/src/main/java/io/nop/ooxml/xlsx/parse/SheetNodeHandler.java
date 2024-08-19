@@ -29,6 +29,7 @@ import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.CellRange;
 import io.nop.excel.model.ExcelColumnConfig;
 import io.nop.excel.model.ExcelPageMargins;
+import io.nop.excel.model.ExcelPageSetup;
 import io.nop.excel.util.UnitsHelper;
 import io.nop.ooxml.xlsx.model.SharedStringsPart;
 
@@ -250,12 +251,12 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
 
             ExcelPageMargins margins = new ExcelPageMargins();
             margins.setLocation(loc);
-            margins.setLeft(left);
-            margins.setRight(right);
-            margins.setTop(top);
-            margins.setBottom(bottom);
-            margins.setHeader(header);
-            margins.setFooter(footer);
+            margins.setLeftInches(left);
+            margins.setRightInches(right);
+            margins.setTopInches(top);
+            margins.setBottomInches(bottom);
+            margins.setHeaderInches(header);
+            margins.setFooterInches(footer);
 
             output.pageMargins(margins);
         } else if ("sheetFormatPr".equals(localName)) {
@@ -271,6 +272,15 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
             String rId = getAttr(attrs, "r:id");
             if (ref != null)
                 output.link(ref, location, rId);
+        } else if ("pageSetup".equals(localName)) {
+            // <pageSetup paperSize="0" orientation="portrait" horizontalDpi="0" verticalDpi="0" copies="0"/>
+            int paperSize = getAttrInt(attrs, "paperSize", 0);
+            boolean horizontal = "landscape".equals(getAttr(attrs, "orientation"));
+
+            ExcelPageSetup pageSetup = new ExcelPageSetup();
+            pageSetup.setPaperSize(paperSize);
+            pageSetup.setOrientationHorizontal(horizontal);
+            output.pageSetup(pageSetup);
         }
     }
 

@@ -95,7 +95,7 @@ public class ExcelCell extends _ExcelCell implements IExcelCell {
     @Override
     public boolean isExportFormattedValue() {
         XptCellModel model = getModel();
-        return model != null && model.isExportFormattedValue();
+        return model != null && Boolean.TRUE.equals(model.getExportFormattedValue());
     }
 
     public int getRowIndex() {

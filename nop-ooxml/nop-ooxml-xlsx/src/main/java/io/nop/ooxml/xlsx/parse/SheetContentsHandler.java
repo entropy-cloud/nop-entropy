@@ -21,6 +21,7 @@ import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.CellRange;
 import io.nop.excel.model.ExcelColumnConfig;
 import io.nop.excel.model.ExcelPageMargins;
+import io.nop.excel.model.ExcelPageSetup;
 
 import java.util.List;
 
@@ -37,6 +38,10 @@ public interface SheetContentsHandler {
     void cols(List<ExcelColumnConfig> cols);
 
     void pageMargins(ExcelPageMargins pageMargins);
+
+    default void pageSetup(ExcelPageSetup pageSetup){
+
+    }
 
     void sheetFormat(Double defaultRowHeight);
 

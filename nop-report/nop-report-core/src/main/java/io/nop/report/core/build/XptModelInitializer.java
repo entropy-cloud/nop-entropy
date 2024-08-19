@@ -143,7 +143,7 @@ public class XptModelInitializer {
                 xptModel.setName(name);
 
                 normalizeValueExpr(ec);
-                if (xptModel.isExportFormula())
+                if (Boolean.TRUE.equals(xptModel.getExportFormula()))
                     useExportFormula = true;
             }
         }

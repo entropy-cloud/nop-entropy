@@ -89,6 +89,14 @@ public class XNodeHandlerAdapter implements IXNodeHandler {
         return ConvertHelper.toDouble(vl.getValue(), err -> new NopException(err).source(vl).param(ARG_ATTR_NAME, name));
     }
 
+    protected Float getAttrFloat(Map<String, ValueWithLocation> attrs, String name, Float defaultValue) {
+        ValueWithLocation vl = attrs.get(name);
+        if (vl == null)
+            return defaultValue;
+
+        return ConvertHelper.toFloat(vl.getValue(), err -> new NopException(err).source(vl).param(ARG_ATTR_NAME, name));
+    }
+
     protected boolean getAttrBoolean(Map<String, ValueWithLocation> attrs, String name, boolean defaultValue) {
         ValueWithLocation vl = attrs.get(name);
         if (vl == null)

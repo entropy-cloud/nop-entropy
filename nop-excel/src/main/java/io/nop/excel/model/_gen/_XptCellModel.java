@@ -108,14 +108,14 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
      * 如果设置为true，则导出Excel时会应用formatExpr或者Excel配置的NumberFormat，
      * 格式化为字符串后导出，而不是导出单元格的原始值。缺省情况下会导出原始值，使用Excel的NumberFormat来格式化
      */
-    private boolean _exportFormattedValue  = false;
+    private java.lang.Boolean _exportFormattedValue ;
     
     /**
      *  
      * xml name: exportFormula
      * 导出到Excel时保持公式
      */
-    private boolean _exportFormula  = false;
+    private java.lang.Boolean _exportFormula ;
     
     /**
      *  
@@ -432,12 +432,12 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
      * 格式化为字符串后导出，而不是导出单元格的原始值。缺省情况下会导出原始值，使用Excel的NumberFormat来格式化
      */
     
-    public boolean isExportFormattedValue(){
+    public java.lang.Boolean getExportFormattedValue(){
       return _exportFormattedValue;
     }
 
     
-    public void setExportFormattedValue(boolean value){
+    public void setExportFormattedValue(java.lang.Boolean value){
         checkAllowChange();
         
         this._exportFormattedValue = value;
@@ -451,12 +451,12 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
      *  导出到Excel时保持公式
      */
     
-    public boolean isExportFormula(){
+    public java.lang.Boolean getExportFormula(){
       return _exportFormula;
     }
 
     
-    public void setExportFormula(boolean value){
+    public void setExportFormula(java.lang.Boolean value){
         checkAllowChange();
         
         this._exportFormula = value;
@@ -701,8 +701,8 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         out.putNotNull("expandMinCount",this.getExpandMinCount());
         out.putNotNull("expandOrderBy",this.getExpandOrderBy());
         out.putNotNull("expandType",this.getExpandType());
-        out.putNotNull("exportFormattedValue",this.isExportFormattedValue());
-        out.putNotNull("exportFormula",this.isExportFormula());
+        out.putNotNull("exportFormattedValue",this.getExportFormattedValue());
+        out.putNotNull("exportFormula",this.getExportFormula());
         out.putNotNull("field",this.getField());
         out.putNotNull("formatExpr",this.getFormatExpr());
         out.putNotNull("keepExpandEmpty",this.getKeepExpandEmpty());
@@ -737,8 +737,8 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         instance.setExpandMinCount(this.getExpandMinCount());
         instance.setExpandOrderBy(this.getExpandOrderBy());
         instance.setExpandType(this.getExpandType());
-        instance.setExportFormattedValue(this.isExportFormattedValue());
-        instance.setExportFormula(this.isExportFormula());
+        instance.setExportFormattedValue(this.getExportFormattedValue());
+        instance.setExportFormula(this.getExportFormula());
         instance.setField(this.getField());
         instance.setFormatExpr(this.getFormatExpr());
         instance.setKeepExpandEmpty(this.getKeepExpandEmpty());

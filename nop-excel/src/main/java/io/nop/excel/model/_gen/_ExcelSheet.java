@@ -88,13 +88,6 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
-     * xml name: print
-     * 
-     */
-    private io.nop.excel.model.ExcelPrint _print ;
-    
-    /**
-     *  
      * xml name: sheetOptions
      * 
      */
@@ -377,25 +370,6 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
     
     /**
      * 
-     * xml name: print
-     *  
-     */
-    
-    public io.nop.excel.model.ExcelPrint getPrint(){
-      return _print;
-    }
-
-    
-    public void setPrint(io.nop.excel.model.ExcelPrint value){
-        checkAllowChange();
-        
-        this._print = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: sheetOptions
      *  
      */
@@ -454,8 +428,6 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
             
            this._pageSetup = io.nop.api.core.util.FreezeHelper.deepFreeze(this._pageSetup);
             
-           this._print = io.nop.api.core.util.FreezeHelper.deepFreeze(this._print);
-            
            this._sheetOptions = io.nop.api.core.util.FreezeHelper.deepFreeze(this._sheetOptions);
             
            this._table = io.nop.api.core.util.FreezeHelper.deepFreeze(this._table);
@@ -477,7 +449,6 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
         out.putNotNull("pageBreaks",this.getPageBreaks());
         out.putNotNull("pageMargins",this.getPageMargins());
         out.putNotNull("pageSetup",this.getPageSetup());
-        out.putNotNull("print",this.getPrint());
         out.putNotNull("sheetOptions",this.getSheetOptions());
         out.putNotNull("table",this.getTable());
     }
@@ -501,7 +472,6 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
         instance.setPageBreaks(this.getPageBreaks());
         instance.setPageMargins(this.getPageMargins());
         instance.setPageSetup(this.getPageSetup());
-        instance.setPrint(this.getPrint());
         instance.setSheetOptions(this.getSheetOptions());
         instance.setTable(this.getTable());
     }

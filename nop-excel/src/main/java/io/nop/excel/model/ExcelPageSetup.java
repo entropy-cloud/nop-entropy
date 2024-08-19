@@ -7,10 +7,17 @@
  */
 package io.nop.excel.model;
 
+import io.nop.excel.ExcelConstants;
 import io.nop.excel.model._gen._ExcelPageSetup;
 
 public class ExcelPageSetup extends _ExcelPageSetup {
     public ExcelPageSetup() {
 
+    }
+
+    public String getOrientation() {
+        if (Boolean.TRUE.equals(getOrientationHorizontal()))
+            return ExcelConstants.ORIENTATION_LANDSCAPE;
+        return ExcelConstants.ORIENTATION_PORTRAIT;
     }
 }

@@ -20,6 +20,7 @@ import io.nop.core.resource.tpl.AbstractXmlTemplate;
 import io.nop.excel.ExcelConstants;
 import io.nop.excel.format.ExcelDateHelper;
 import io.nop.excel.model.ExcelPageMargins;
+import io.nop.excel.model.ExcelPageSetup;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.IExcelSheet;
@@ -84,6 +85,8 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
         genLinks(out, sheet, context);
 
         genPageMargins(out, sheet);
+
+        genPageSetup(out, sheet);
 
         if (sheet.getImages() != null && !sheet.getImages().isEmpty()) {
             this.drawingRelId = "rId1";
@@ -262,9 +265,17 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
     void genPageMargins(IXNodeHandler out, IExcelSheet sheet) {
         ExcelPageMargins margins = sheet.getPageMargins();
         if (margins != null) {
-            out.simpleNode(null, "pageMargins", attrs("left", margins.getLeft(), "right", margins.getRight(),
-                    "top", margins.getTop(), "bottom", margins.getBottom(), "header", margins.getHeader(),
-                    "footer", margins.getFooter()));
+            out.simpleNode(null, "pageMargins", attrs("left", margins.getLeftInches(), "right", margins.getRightInches(),
+                    "top", margins.getTopInches(), "bottom", margins.getBottomInches(), "header", margins.getHeaderInches(),
+                    "footer", margins.getFooterInches()));
+        }
+    }
+
+    void genPageSetup(IXNodeHandler out, IExcelSheet sheet) {
+        ExcelPageSetup pageSetup = sheet.getPageSetup();
+        if (pageSetup != null) {
+            out.simpleNode(null, "pageSetup", attrs("paperSize", pageSetup.getPaperSize(),
+                    "orientation", pageSetup.getOrientation(), "verticalDpi", "0", "horizontalDpi", "0"));
         }
     }
 

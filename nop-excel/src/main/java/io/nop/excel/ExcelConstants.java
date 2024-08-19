@@ -51,4 +51,7 @@ public interface ExcelConstants {
     String DISPLAY_MODE_TABLE = "table";
 
     String REF_LINK_PREFIX = "ref:";
+
+    String ORIENTATION_LANDSCAPE = "landscape";
+    String ORIENTATION_PORTRAIT = "portrait";
 }

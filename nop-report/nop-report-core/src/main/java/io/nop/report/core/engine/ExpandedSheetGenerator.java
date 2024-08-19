@@ -231,7 +231,7 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
 
     private void exportFormula(ExpandedCell cell, IEvalScope scope, IXptRuntime xptRt) {
         XptCellModel cellModel = cell.getModel();
-        if (cellModel != null && cellModel.isExportFormula()) {
+        if (cellModel != null && Boolean.TRUE.equals(cellModel.getExportFormula())) {
             if (cellModel.getValueExpr() instanceof EvalCodeWithAst) {
                 Expression expr = ((EvalCodeWithAst) cellModel.getValueExpr()).getAst();
                 // 层次坐标需要根据当前单元格进行定位

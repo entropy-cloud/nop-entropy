@@ -101,9 +101,9 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
                                 -->
                                 <model xdef:name="XptCellModel" domain="string" editorId="var-name" viewerId="var-name"
                                        field="prop-name" ds="var-name" expandInplaceCount="int"
-                                       exportFormula="!boolean=false" expandMaxCount="int" expandMinCount="int"
+                                       exportFormula="boolean" expandMaxCount="int" expandMinCount="int"
                                        expandType="enum:io.nop.excel.model.constants.XptExpandType"
-                                       keepExpandEmpty="boolean" exportFormattedValue="!boolean=false"
+                                       keepExpandEmpty="boolean" exportFormattedValue="boolean"
                                        rowExtendForSibling="boolean" colExtendForSibling="boolean"
                                        rowParent="cell-pos" colParent="cell-pos"
                                        qr:barcodeFormat="string" qr:margin="int" qr:imgType="string" qr:width="double"
@@ -193,10 +193,13 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
 
             <!--
             @scale 放大百分比
+            @paperSize 为ooxml中定义的标准页面大小。如果设置了paperWidth和paperHeight时，以这两个值为准
+            @paperWidth 单位为pt
             -->
             <pageSetup xdef:name="ExcelPageSetup" orientationHorizontal="boolean"
                        horizontalCentered="boolean" verticalCentered="boolean"
-                       paperSize="int" scale="int" fitToHeight="boolean" fitToWidth="boolean"
+                       paperSize="int" paperWidth="float" paperHeight="float" scale="int"
+                       fitToHeight="boolean" fitToWidth="boolean" gridLines="boolean"
                        firstPageNumber="int" blackAndWhite="boolean">
                 <header xdef:name="ExcelHeaderFooter">
                     <left xdef:value="string"/>
@@ -213,10 +216,6 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
 
             <pageMargins xdef:name="ExcelPageMargins"
                          top="double" bottom="double" left="double" right="double" header="double" footer="double"/>
-
-            <print xdef:name="ExcelPrint" pageSizeIndex="int" horizontalResolution="int"
-                   verticalResolution="int" scale="double" gridlines="boolean"
-                   rowColHeadings="boolean" fitWidth="!boolean=false" fitHeight="!boolean=false"/>
 
             <pageBreaks xdef:name="ExcelPageBreaks">
                 <cols xdef:value="int-list"/>

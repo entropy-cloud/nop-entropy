@@ -18,14 +18,9 @@ package io.nop.excel.util;
 
 // copy from POI
 
-import java.awt.font.FontRenderContext;
-import java.awt.font.TextAttribute;
-import java.awt.font.TextLayout;
-import java.text.AttributedString;
-
 /**
  * width = Truncate([{Number of Characters} * {Maximum Digit Width} + {5 pixel padding}] / {Maximum Digit Width} * 256) / 256
- *
+ * <p>
  * Excel每个字体的缺省宽度（Default Font Width)。Excel中输入的列宽是DFW的整数被。padding=DFW/4 向上取整。
  * 对于宋体48号字体字符宽度32像素。Excel缺省列宽必须完整显示8个字符。
  * 273 = 8 * 32 + (32/4)*2 + 1
@@ -236,6 +231,21 @@ public class UnitsHelper {
         return (int) (twips / 20d * EMU_PER_POINT);
     }
 
+    public static double inchesToPoints(double inches) {
+        return inches * 72.0F;
+    }
+
+    public static double pointsToInches(double points) {
+        return points / 72.0F;
+    }
+
+    public static double mmToPoints(double mm) {
+        return mm * 2.835F;
+    }
+
+    public static double pointsToMm(double points) {
+        return points / 2.835F;
+    }
 
 //    private static final FontRenderContext fontRenderContext = new FontRenderContext(null, true, true);
 //
