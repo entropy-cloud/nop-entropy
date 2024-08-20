@@ -8,8 +8,11 @@ import io.nop.api.core.util.ICancellable;
 import io.nop.commons.cache.GlobalCacheRegistry;
 import io.nop.commons.lang.ICreationListener;
 import io.nop.commons.lang.impl.Cancellable;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.IResourceStore;
+import io.nop.core.resource.ResourceConstants;
+import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.cache.CacheEntryManagement;
 import io.nop.core.resource.cache.IResourceCacheEntry;
 import io.nop.core.resource.cache.IResourceLoadingCache;
@@ -18,6 +21,7 @@ import io.nop.core.resource.cache.ResourceLoadingCache;
 import io.nop.core.resource.store.ITenantResourceStoreSupplier;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,7 +30,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.nop.core.CoreConfigs.CFG_RESOURCE_STORE_ENABLE_TENANT_DELTA;
+import static io.nop.core.CoreConfigs.CFG_TENANT_RESOURCE_DISABLED_PATHS;
+import static io.nop.core.CoreConfigs.CFG_TENANT_RESOURCE_ENABLED;
+import static io.nop.core.CoreConfigs.CFG_TENANT_RESOURCE_ENABLED_PATHS;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_STORE_NOT_SUPPORT_TENANT_DELTA;
 
 /**
@@ -44,23 +50,27 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
         _instance = Guard.notNull(instance, "instance");
     }
 
+    private Set<String> enabledTenantPaths;
+    private Set<String> disabledTenantPaths;
+
     public boolean isEnableTenantResource() {
-        return getTenantChecker().isEnableTenant();
+        return CFG_TENANT_RESOURCE_ENABLED.get();
     }
 
     /**
      * 检查一个资源路径对应的模型是否会被租户定制。注意，除了直接定制模型文件之外，模型所依赖的其他文件有可能被租户定制的时候，这里也要返回true
      */
     public static boolean supportTenant(String path) {
-        return instance().getTenantChecker().isSupportTenant(path);
+        return instance().isSupportTenant(path);
     }
 
     private final Map<String, TenantCleanup> tenantCleanups = new ConcurrentHashMap<>();
 
-    private IResourceTenantChecker tenantChecker;
     private final List<IResourceTenantInitializer> tenantInitializers = new CopyOnWriteArrayList<>();
 
     private final Map<String, IResourceStore> tenantStores = new ConcurrentHashMap<>();
+
+    private ITenantModuleDiscovery tenantModuleDiscovery;
 
     class TenantCleanup {
         private final String tenantId;
@@ -101,26 +111,46 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
         this.tenantInitializers.remove(tenantInitializer);
     }
 
-    public IResourceTenantChecker getTenantChecker() {
-        if (this.tenantChecker == null) {
-            if (CFG_RESOURCE_STORE_ENABLE_TENANT_DELTA.get()) {
-                IResourceTenantChecker checker = ConfigurableResourceTenantChecker.createFromConfig();
-                if (checker == null)
-                    checker = DefaultResourceTenantChecker.INSTANCE;
-                this.tenantChecker = checker;
-            } else {
-                this.tenantChecker = DefaultResourceTenantChecker.INSTANCE;
-            }
-        }
-        return this.tenantChecker;
+    public ITenantModuleDiscovery getTenantModuleDiscovery() {
+        return tenantModuleDiscovery;
     }
 
-    public void setTenantChecker(IResourceTenantChecker feature) {
-        this.tenantChecker = feature;
+    public void setTenantModuleDiscovery(ITenantModuleDiscovery tenantModuleDiscovery) {
+        this.tenantModuleDiscovery = tenantModuleDiscovery;
+    }
+
+    public boolean isSupportTenant(String resourcePath) {
+        if (disabledTenantPaths == null) {
+            disabledTenantPaths = CFG_TENANT_RESOURCE_DISABLED_PATHS.get();
+            if (disabledTenantPaths == null)
+                disabledTenantPaths = Collections.emptySet();
+        }
+
+        if (enabledTenantPaths == null) {
+            enabledTenantPaths = CFG_TENANT_RESOURCE_ENABLED_PATHS.get();
+            if (enabledTenantPaths == null || enabledTenantPaths.isEmpty())
+                enabledTenantPaths = Collections.singleton(ResourceConstants.RESOLVE_PREFIX);
+        }
+
+        for (String enabledPath : enabledTenantPaths) {
+            if (resourcePath.startsWith(enabledPath))
+                return true;
+        }
+
+        for (String disabledPath : disabledTenantPaths) {
+            if (resourcePath.startsWith(disabledPath))
+                return false;
+        }
+
+        String moduleName = ResourceHelper.getModuleName(resourcePath);
+        if (StringHelper.isEmpty(moduleName))
+            return false;
+        if (tenantModuleDiscovery != null)
+            return tenantModuleDiscovery.isEnabledTenantModule(moduleName);
+        return false;
     }
 
     public void reset() {
-        tenantChecker = null;
         tenantCleanups.clear();
     }
 

@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Predicate;
 
 import static io.nop.core.CoreErrors.ARG_RESOURCE;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_NOT_DIR;
@@ -49,7 +50,7 @@ public class ResourceTreeNode implements ITreeChildrenStructure {
         return children == null || children.isEmpty();
     }
 
-    public void merge(ResourceTreeNode node) {
+    public void merge(ResourceTreeNode node, Predicate<IResource> filter) {
         if (children == null) {
             children = new TreeMap<>();
         }
@@ -59,9 +60,10 @@ public class ResourceTreeNode implements ITreeChildrenStructure {
                 ResourceTreeNode c = children.putIfAbsent(childName, child);
                 if (c != null) {
                     if (c.isLeaf() || child.isLeaf()) {
-                        children.put(childName, child);
+                        if (filter == null || filter.test(child.resource))
+                            children.put(childName, child);
                     } else {
-                        c.merge(child);
+                        c.merge(child, filter);
                     }
                 }
             });

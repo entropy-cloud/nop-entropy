@@ -99,9 +99,9 @@ public interface CoreConfigs {
     IConfigReference<String> CFG_RESOURCE_VFS_CONFIG_FILE = varRef(s_loc, "nop.core.resource.vfs-config-file", String.class,
             "");
 
-    @Description("是否允许每个租户定义专属于自己的定制目录。如果启用，则每个租户都拥有自己的组件缓存")
-    IConfigReference<Boolean> CFG_RESOURCE_STORE_ENABLE_TENANT_DELTA = varRef(s_loc,
-            "nop.core.resource.store.enable-tenant-delta", Boolean.class, false);
+//    @Description("是否允许每个租户定义专属于自己的定制目录。如果启用，则每个租户都拥有自己的组件缓存")
+//    IConfigReference<Boolean> CFG_RESOURCE_STORE_ENABLE_TENANT_DELTA = varRef(s_loc,
+//            "nop.core.resource.store.enable-tenant-delta", Boolean.class, false);
 
     @Description("指定差量文件系统的Delta层,例如_platform,product,app。对应/_delta/product等虚拟路径")
     IConfigReference<String> CFG_VFS_DELTA_LAYER_IDS = varRef(s_loc, "nop.core.vfs.delta-layer-ids",

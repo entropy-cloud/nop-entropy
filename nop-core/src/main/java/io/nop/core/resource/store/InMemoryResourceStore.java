@@ -169,6 +169,10 @@ public class InMemoryResourceStore implements IResourceStore {
     }
 
     public void merge(InMemoryResourceStore store) {
-        this.root.merge(store.root);
+        this.merge(store, null);
+    }
+
+    public void merge(InMemoryResourceStore store, Predicate<IResource> filter) {
+        this.root.merge(store.root, filter);
     }
 }
