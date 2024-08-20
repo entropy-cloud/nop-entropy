@@ -390,6 +390,14 @@ public enum ExcelPaperSize {
         return height;
     }
 
+    public float getFloatHeight(){
+        return (float) getHeight();
+    }
+
+    public float getFloatWidth(){
+        return (float) getWidth();
+    }
+
 
     public static ExcelPaperSize of(int paperSize) {
         if (paperSize < 0 || paperSize >= values().length)

@@ -19,11 +19,11 @@ public class ExcelPdfHelper {
             paperSize = ExcelPaperSize.A4_PAPER;
 
         if (horizontal) {
-            Rectangle rect = new Rectangle(paperSize.getHeight(), paperSize.getWidth());
+            Rectangle rect = new Rectangle(paperSize.getFloatHeight(), paperSize.getFloatWidth());
             rect.rotate();
             return rect;
         } else {
-            Rectangle rect = new Rectangle(paperSize.getWidth(), paperSize.getHeight());
+            Rectangle rect = new Rectangle(paperSize.getFloatWidth(), paperSize.getFloatHeight());
             return rect;
         }
     }
