@@ -30,6 +30,8 @@ import io.nop.excel.model.XptWorkbookModel;
 import io.nop.excel.model.constants.XptExpandType;
 import io.nop.report.core.expr.ExcelFormulaParser;
 import io.nop.report.core.initialize.TemplateReportExprStdDomainHandler;
+import io.nop.xlang.api.EvalCode;
+import io.nop.xlang.api.ExprEvalAction;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.xdef.domain.XplStdDomainHandlers;
 
@@ -68,7 +70,7 @@ public class XptModelInitializer {
             buildSheetModel(sheet);
         }
 
-        if(workbook.isEnableDump())
+        if (workbook.isEnableDump())
             new XptStructureToNode().buildNode(workbook).dump();
     }
 
@@ -160,9 +162,9 @@ public class XptModelInitializer {
                 parseCellExpr(cellModel, cell.getLocation(), text.substring(EXCEL_MODEL_FIELD_PREFIX.length()).trim());
             } else if (text.contains("${") && text.contains("}")) {
                 // 解析 ${x}这种xpl模板表达式
-                IEvalAction valueExpr = (IEvalAction) TemplateReportExprStdDomainHandler.INSTANCE.parseProp(null, cell.getLocation(),
+                ExprEvalAction valueExpr = TemplateReportExprStdDomainHandler.INSTANCE.parseProp(null, cell.getLocation(),
                         "valueExpr", text, cp);
-                cellModel.setValueExpr(valueExpr);
+                cellModel.setValueExpr(EvalCode.addSource(valueExpr, "tpl`" + text + "`"));
             }
         }
 
@@ -195,7 +197,7 @@ public class XptModelInitializer {
 
             IEvalAction expandExpr = XplStdDomainHandlers.ExprType.INSTANCE.parseProp(null, loc,
                     "expandExpr", expr, cp);
-            cellModel.setExpandExpr(expandExpr);
+            cellModel.setExpandExpr(EvalCode.addSource((ExprEvalAction) expandExpr, expr));
         }
 
         int pos = text.indexOf('!');

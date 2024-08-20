@@ -11,6 +11,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.xml.XNode;
 import io.nop.report.core.expr.ReportExpressionParser;
 import io.nop.report.core.functions.ReportFunctionProvider;
+import io.nop.xlang.api.ExprEvalAction;
 import io.nop.xlang.api.IFunctionProvider;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.ast.Expression;
@@ -29,7 +30,7 @@ public class TemplateReportExprStdDomainHandler extends XplStdDomainHandlers.Abs
     }
 
     @Override
-    public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text, XLangCompileTool cp) {
+    public ExprEvalAction parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text, XLangCompileTool cp) {
         String source = (String) text;
 
         Expression expr = new ReportExpressionParser().parseTemplateExpr(loc, source, false, ExprPhase.eval);
