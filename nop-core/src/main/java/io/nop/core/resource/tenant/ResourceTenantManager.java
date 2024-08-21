@@ -156,7 +156,7 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
         if (StringHelper.isEmpty(moduleName))
             return false;
         // nop资源不支持租户缓存
-        return moduleName.startsWith("nop-");
+        return !moduleName.startsWith("nop-");
     }
 
     public void reset() {

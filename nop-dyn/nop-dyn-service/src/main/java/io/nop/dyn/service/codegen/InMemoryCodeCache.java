@@ -1,6 +1,7 @@
 package io.nop.dyn.service.codegen;
 
 import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.context.ContextProvider;
 import io.nop.biz.api.IBizObjectManager;
 import io.nop.biz.impl.IDynamicBizModelProvider;
 import io.nop.codegen.XCodeGenerator;
@@ -157,17 +158,20 @@ public class InMemoryCodeCache {
 
     protected InMemoryResourceStore genModuleCoreFiles(boolean formatGenCode, NopDynModule dynModule, OrmModel ormModel) {
         String moduleName = dynModule.getModuleName();
-
+        InMemoryResourceStore store = new InMemoryResourceStore();
         XCodeGenerator gen = new XCodeGenerator("/nop/templates/dyn", getTargetDir());
         gen.autoFormat(formatGenCode).forceOverride(true);
-        InMemoryResourceStore store = new InMemoryResourceStore();
         store.setUseTextResourceAsUnknown(true);
 
         gen.targetResourceLoader(store);
         IEvalScope scope = XLang.newEvalScope();
         scope.setLocalValue("dynModule", dynModule);
         scope.setLocalValue("ormModel", ormModel);
-        gen.execute("/", scope);
+
+        ContextProvider.runWithoutTenantId(() -> {
+            gen.execute("/", scope);
+            return null;
+        });
 
         moduleCoreStores.put(moduleName, store);
         return store;
@@ -214,7 +218,11 @@ public class InMemoryCodeCache {
         IEvalScope scope = XLang.newEvalScope();
         scope.setLocalValue("metaResources", metaResources);
         scope.setLocalValue("moduleId", module.getModuleName().replace('-', '/'));
-        gen.execute("/", scope);
+
+        ContextProvider.runWithoutTenantId(() -> {
+            gen.execute("/", scope);
+            return null;
+        });
 
         moduleWebStores.put(module.getModuleName(), store);
     }
