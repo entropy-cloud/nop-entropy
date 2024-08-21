@@ -11,7 +11,6 @@ import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancellable;
 import io.nop.biz.api.IBizObject;
 import io.nop.biz.api.IBizObjectManager;
@@ -25,7 +24,6 @@ import io.nop.core.context.IServiceContext;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.resource.cache.IResourceLoadingCache;
 import io.nop.core.resource.tenant.ResourceTenantManager;
-import io.nop.core.resource.tenant.TenantAwareModelReference;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.ast.GraphQLDefinition;
 import io.nop.graphql.core.ast.GraphQLDocument;
@@ -35,9 +33,9 @@ import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.ast.GraphQLType;
 import io.nop.graphql.core.ast.GraphQLTypeDefinition;
+import io.nop.graphql.core.ast._gen._GraphQLTypeDefinition;
 import io.nop.graphql.core.biz.IGraphQLBizInitializer;
 import io.nop.graphql.core.biz.IGraphQLSchemaInitializer;
-import io.nop.graphql.core.reflection.GraphQLBizModel;
 import io.nop.graphql.core.reflection.GraphQLBizModels;
 import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
 import io.nop.graphql.core.schema.TypeRegistry;
@@ -88,30 +86,21 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
 
     private IMakerCheckerProvider makerCheckerProvider;
 
-    private TenantAwareModelReference<Map<String, GraphQLBizModel>> dynBizModels = new TenantAwareModelReference<>("biz-gql-model-cache",
-            (name, tenantId) -> null);
-
+    private IDynamicBizModelProvider dynamicBizModelProvider;
     private final IResourceLoadingCache<IBizObject> bizObjCache = ResourceTenantManager.instance().makeLoadingCache("biz-object-cache",
             this::buildBizObject, null);
+
+    private Runnable cleanup;
 
     public void setBizModelBeans(List<Object> bizModelBeans) {
         this.bizModelBeans = bizModelBeans;
     }
 
-    public void updateDynBizModels(Map<String, GraphQLBizModel> dynBizModels) {
-        Guard.notNull(dynBizModels, "dynBizModels");
-        Map<String, GraphQLBizModel> oldModels = this.dynBizModels.getModel();
-        if (oldModels != null) {
-            boolean checkChanged = bizObjCache.shouldCheckChanged();
-            for (String bizObjName : oldModels.keySet()) {
-                // 如果禁用了文件修改检查，则直接清空缓存
-                if (!checkChanged || !dynBizModels.containsKey(bizObjName)) {
-                    removeCache(bizObjName);
-                }
-            }
-        }
-
-        this.dynBizModels.update(dynBizModels);
+    @Inject
+    public void setDynamicBizModelProvider(@Nullable IDynamicBizModelProvider dynamicBizModelProvider) {
+        this.dynamicBizModelProvider = dynamicBizModelProvider;
+        if (dynamicBizModelProvider != null)
+            cleanup = dynamicBizModelProvider.addOnChangeListener(this::removeCache);
     }
 
     public void setBizInitializers(List<IGraphQLBizInitializer> bizInitializers) {
@@ -183,12 +172,13 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
         if (typeRegistry != null)
             typeRegistry.clear();
         bizObjCache.clear();
-        dynBizModels.clear();
+        if (cleanup != null)
+            cleanup.run();
     }
 
     protected IBizObject buildBizObject(String bizObjName) {
         try {
-            return new BizObjectBuilder(this, bizModels, dynBizModels.getModel(), typeRegistry,
+            return new BizObjectBuilder(this, bizModels, dynamicBizModelProvider, typeRegistry,
                     actionDecoratorCollectors, bizInitializers, makerCheckerProvider)
                     .buildBizObject(bizObjName);
         } catch (NopException e) {
@@ -340,7 +330,7 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
     public GraphQLDocument getGraphQLDocument() {
         GraphQLDocument doc = new GraphQLDocument();
         List<GraphQLDefinition> defs = new ArrayList<>();
-        defs.addAll(getTypeDefinitions().stream().map(def -> def.deepClone()).collect(Collectors.toList()));
+        defs.addAll(getTypeDefinitions().stream().map(_GraphQLTypeDefinition::deepClone).collect(Collectors.toList()));
 
         GraphQLObjectDefinition queryType = getObjDef(GraphQLOperationType.query);
         if (queryType != null) {
@@ -366,7 +356,7 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
         if (fields.isEmpty())
             return null;
 
-        fields = fields.stream().map(f -> f.deepClone()).collect(Collectors.toList());
+        fields = fields.stream().map(GraphQLFieldDefinition::deepClone).collect(Collectors.toList());
 
         GraphQLObjectDefinition objDef = new GraphQLObjectDefinition();
         objDef.setExtension(true);

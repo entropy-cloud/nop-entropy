@@ -48,6 +48,10 @@ public interface OrmModelConstants {
 
     String TAG_EAGER = "eager";
 
+    String TAG_EDIT = "edit";
+
+    String TAG_SYS = "sys";
+
     String TAG_CASCADE_DELETE = "cascade-delete";
 
     /**

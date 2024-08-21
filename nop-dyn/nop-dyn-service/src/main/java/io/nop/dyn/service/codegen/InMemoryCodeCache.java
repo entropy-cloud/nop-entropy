@@ -2,16 +2,17 @@ package io.nop.dyn.service.codegen;
 
 import io.nop.api.core.config.AppConfig;
 import io.nop.biz.api.IBizObjectManager;
+import io.nop.biz.impl.IDynamicBizModelProvider;
 import io.nop.codegen.XCodeGenerator;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
-import io.nop.core.module.ModuleManager;
 import io.nop.core.module.ModuleModel;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.store.InMemoryResourceStore;
 import io.nop.core.resource.store.ResourceStoreHelper;
+import io.nop.core.resource.tenant.ResourceTenantManager;
 import io.nop.dyn.dao.entity.NopDynEntityMeta;
 import io.nop.dyn.dao.entity.NopDynModule;
 import io.nop.dyn.dao.model.DynEntityMetaToOrmModel;
@@ -23,17 +24,29 @@ import io.nop.xlang.api.XplModel;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
+/**
+ * 最终发布到虚拟文件系统中的是一个合并后的只读副本，避免出现并发更新的情况。作为编辑使用的CodeCache，每次编辑时都使用同步机制避免并发错误。
+ * <p>
+ * 处于部署状态时，总是会根据当前数据库定义生成一个对应的模块CodeCache，然后每次编辑一个实体对象，可以只更新针对单个实体的数据文件。
+ */
 public class InMemoryCodeCache {
     private final String tenantId;
     private final Map<String, InMemoryResourceStore> moduleCoreStores = new ConcurrentHashMap<>();
     private final Map<String, InMemoryResourceStore> moduleWebStores = new ConcurrentHashMap<>();
 
+    private final Map<String, ModuleModel> enabledModules = new ConcurrentHashMap<>();
+
     // moduleName => bizObjName => BizModel
-    private final Map<String, Map<String, GraphQLBizModel>> moduleDynBizModels = new ConcurrentHashMap<>();
+    private final Map<String, GraphQLBizModel> dynBizModels = new ConcurrentHashMap<>();
+
+    private final List<IDynamicBizModelProvider.ChangeListener> changeListeners = new CopyOnWriteArrayList<>();
 
     public Map<String, InMemoryResourceStore> getModuleCoreStores() {
         return moduleCoreStores;
@@ -41,10 +54,6 @@ public class InMemoryCodeCache {
 
     public Map<String, InMemoryResourceStore> getModuleWebStores() {
         return moduleWebStores;
-    }
-
-    public Map<String, Map<String, GraphQLBizModel>> getModuleDynBizModels() {
-        return moduleDynBizModels;
     }
 
     public InMemoryCodeCache(String tenantId) {
@@ -58,7 +67,7 @@ public class InMemoryCodeCache {
     public void clear() {
         moduleCoreStores.clear();
         moduleWebStores.clear();
-        moduleDynBizModels.clear();
+        dynBizModels.clear();
     }
 
     public synchronized void generateForModule(boolean genWebFiles, boolean formatCode,
@@ -69,13 +78,39 @@ public class InMemoryCodeCache {
         }
     }
 
+    public Map<String, ModuleModel> getEnabledModules() {
+        return enabledModules;
+    }
+
+    public Map<String, GraphQLBizModel> getDynBizModels() {
+        return dynBizModels;
+    }
+
+    public GraphQLBizModel getBizModel(String bizObjName) {
+        return dynBizModels.get(bizObjName);
+    }
+
+    public Runnable addOnChangeListener(IDynamicBizModelProvider.ChangeListener changeListener) {
+        this.changeListeners.add(changeListener);
+        return () -> changeListeners.remove(changeListener);
+    }
+
     public void removeModule(String moduleName) {
-        moduleCoreStores.remove(moduleName);
+        this.enabledModules.remove(moduleName);
+        removeModuleCoreResources(moduleName);
         moduleWebStores.remove(moduleName);
-        moduleDynBizModels.remove(moduleName);
+    }
+
+    private void removeModuleCoreResources(String moduleName) {
+        moduleCoreStores.remove(moduleName);
+        dynBizModels.values().removeIf(model -> {
+            return moduleName.equals(model.getModuleName());
+        });
     }
 
     protected InMemoryResourceStore genModuleCoreFiles(boolean formatGenCode, NopDynModule module) {
+        removeModuleCoreResources(module.getModuleName());
+
         DynEntityMetaToOrmModel trans = new DynEntityMetaToOrmModel(false);
         OrmModel ormModel = trans.transformModule(module);
 
@@ -87,16 +122,22 @@ public class InMemoryCodeCache {
 
         genModuleBizModels(module);
 
+        ModuleModel moduleModel = new ModuleModel();
+        moduleModel.setModuleId(module.getModuleId());
+
+        enabledModules.put(moduleModel.getModuleName(), moduleModel);
         return store;
     }
 
     protected void genModuleBizModels(NopDynModule module) {
-        Map<String, GraphQLBizModel> bizModels = new HashMap<>();
+        Set<String> oldNames = new HashSet<>(dynBizModels.keySet());
 
+        String moduleName = module.getModuleName();
         String modulePath = module.getModuleName().replace('-', '/');
         for (NopDynEntityMeta entityMeta : module.getEntityMetas()) {
             String bizObjName = entityMeta.getBizObjName();
             GraphQLBizModel bizModel = new GraphQLBizModel(bizObjName);
+            bizModel.setModuleName(moduleName);
             String bizPath = "/" + modulePath + "/model/" + bizObjName + "/" + bizObjName + ".xbiz";
             bizModel.setBizPath(bizPath);
 
@@ -105,9 +146,13 @@ public class InMemoryCodeCache {
                 bizModel.setMetaPath(metaPath);
             }
 
-            bizModels.put(bizObjName, bizModel);
+            dynBizModels.put(bizObjName, bizModel);
         }
-        moduleDynBizModels.put(module.getModuleName(), bizModels);
+
+        for (String oldName : oldNames) {
+            if (!dynBizModels.containsKey(oldName))
+                this.changeListeners.forEach(listener -> listener.onBizObjRemoved(oldName));
+        }
     }
 
     protected InMemoryResourceStore genModuleCoreFiles(boolean formatGenCode, NopDynModule dynModule, OrmModel ormModel) {
@@ -148,6 +193,8 @@ public class InMemoryCodeCache {
     }
 
     protected void genModuleWebFiles(boolean formatGenCode, NopDynModule module, InMemoryResourceStore coreStore) {
+        moduleWebStores.remove(module.getModuleName());
+
         XCodeGenerator gen = new XCodeGenerator("/nop/templates/dyn-web", getTargetDir());
         gen.autoFormat(formatGenCode).forceOverride(true);
         InMemoryResourceStore store = new InMemoryResourceStore();
@@ -170,13 +217,6 @@ public class InMemoryCodeCache {
         gen.execute("/", scope);
 
         moduleWebStores.put(module.getModuleName(), store);
-    }
-
-
-    public synchronized void removeDynModule(NopDynModule module) {
-        this.moduleCoreStores.remove(module.getModuleName());
-        this.moduleWebStores.remove(module.getModuleName());
-        this.moduleDynBizModels.remove(module.getModuleName());
     }
 
     public synchronized void generateBizModel(NopDynEntityMeta entityMeta) {
@@ -214,23 +254,18 @@ public class InMemoryCodeCache {
         this.moduleCoreStores.values().forEach(merged::merge);
         this.moduleWebStores.values().forEach(merged::merge);
 
-        Map<String, GraphQLBizModel> bizModels = new HashMap<>();
-        this.moduleDynBizModels.values().forEach(bizModels::putAll);
-
         Map<String, ModuleModel> dynModules = new HashMap<>();
         moduleCoreStores.keySet().forEach(moduleName -> {
             dynModules.put(moduleName, ModuleModel.forModuleName(moduleName));
         });
 
-        moduleDynBizModels.keySet().forEach(moduleName -> {
-            dynModules.computeIfAbsent(moduleName, ModuleModel::forModuleName);
-        });
-
-        VirtualFileSystem.instance().updateInMemoryLayer(merged);
-        ModuleManager.instance().updateDynModules(dynModules);
+        if (tenantId != null) {
+            ResourceTenantManager.instance().updateTenantResourceStore(tenantId, merged);
+        } else {
+            VirtualFileSystem.instance().updateInMemoryLayer(merged);
+        }
 
         ormSessionFactory.reloadModel();
-        bizObjectManager.updateDynBizModels(bizModels);
 
         if (AppConfig.isDebugMode()) {
             ResourceStoreHelper.dumpStore(merged, "/");

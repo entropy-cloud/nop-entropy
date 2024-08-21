@@ -150,7 +150,7 @@ public class PageProvider extends ResourceWithHistoryProvider {
     }
 
     public void validateAllPages() {
-        ModuleManager.instance().getEnabledModules().forEach(module -> {
+        ModuleManager.instance().getEnabledModules(true).forEach(module -> {
             List<IResource> pageFiles = VirtualFileSystem.instance().findAll("/" + module.getModuleId(), "pages/*/*.page.yaml");
             for (IResource resource : pageFiles) {
                 getPage(resource.getPath(), AppConfig.defaultLocale());

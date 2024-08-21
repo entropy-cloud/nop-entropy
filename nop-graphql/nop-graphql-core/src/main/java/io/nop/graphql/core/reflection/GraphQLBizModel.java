@@ -37,6 +37,7 @@ import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_MULTI_BIZ_FILE_FOR_B
 
 @DataBean
 public class GraphQLBizModel {
+    private String moduleName;
     private final String bizObjName;
     private final Map<String, GraphQLFieldDefinition> queryActions = new HashMap<>();
     private final Map<String, GraphQLFieldDefinition> mutationActions = new HashMap<>();
@@ -61,7 +62,16 @@ public class GraphQLBizModel {
         ret.bizActions.putAll(bizActions);
         ret.metaPath = metaPath;
         ret.bizPath = bizPath;
+        ret.moduleName = moduleName;
         return ret;
+    }
+
+    public String getModuleName() {
+        return moduleName;
+    }
+
+    public void setModuleName(String moduleName) {
+        this.moduleName = moduleName;
     }
 
     public String getMetaPath() {

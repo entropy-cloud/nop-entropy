@@ -3,6 +3,7 @@ package io.nop.core.resource.tenant;
 import io.nop.api.core.annotations.core.GlobalInstance;
 import io.nop.api.core.config.IConfigReference;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancellable;
 import io.nop.commons.cache.GlobalCacheRegistry;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -64,7 +66,7 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
         return instance().isSupportTenant(path);
     }
 
-    private final Map<String, TenantCleanup> tenantCleanups = new ConcurrentHashMap<>();
+    private final Map<String, TenantInitialization> tenantInitializations = new ConcurrentHashMap<>();
 
     private final List<IResourceTenantInitializer> tenantInitializers = new CopyOnWriteArrayList<>();
 
@@ -72,13 +74,14 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
 
     private ITenantModuleDiscovery tenantModuleDiscovery;
 
-    class TenantCleanup {
+    class TenantInitialization {
         private final String tenantId;
 
         ICancellable cleanup;
-        volatile AtomicInteger state = new AtomicInteger();
+        final AtomicInteger state = new AtomicInteger();
+        final CompletableFuture<Void> ready = new CompletableFuture<>();
 
-        public TenantCleanup(String tenantId) {
+        public TenantInitialization(String tenantId) {
             this.tenantId = tenantId;
         }
 
@@ -95,11 +98,18 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
                         cancellable.appendOnCancelTask(initializer.initializeTenant(tenantId));
                     }
                     this.cleanup = cancellable;
+                    ready.complete(null);
                 } catch (Exception e) {
+                    ready.completeExceptionally(e);
                     cancellable.cancel();
                     throw NopException.adapt(e);
                 }
             }
+        }
+
+        public void awaitReady() {
+            init();
+            FutureHelper.syncGet(ready);
         }
     }
 
@@ -145,28 +155,27 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
         String moduleName = ResourceHelper.getModuleName(resourcePath);
         if (StringHelper.isEmpty(moduleName))
             return false;
-        if (tenantModuleDiscovery != null)
-            return tenantModuleDiscovery.isEnabledTenantModule(moduleName);
-        return false;
+        // nop资源不支持租户缓存
+        return moduleName.startsWith("nop-");
     }
 
     public void reset() {
-        tenantCleanups.clear();
+        tenantInitializations.clear();
     }
 
     public boolean isTenantUsed(String tenantId) {
-        return tenantCleanups.containsKey(tenantId);
+        return tenantInitializations.containsKey(tenantId);
     }
 
     public Set<String> getUsedTenants() {
-        return new TreeSet<>(tenantCleanups.keySet());
+        return new TreeSet<>(tenantInitializations.keySet());
     }
 
     /**
      * 销毁租户所占用的资源
      */
     public void clearForTenant(String tenantId) {
-        TenantCleanup cleanup = tenantCleanups.remove(tenantId);
+        TenantInitialization cleanup = tenantInitializations.remove(tenantId);
         if (cleanup != null)
             cleanup.cancel();
         GlobalCacheRegistry.instance().clearForTenant(tenantId);
@@ -182,8 +191,13 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
      * 第一次执行时会自动触发租户的初始化函数
      */
     public void useTenant(String tenantId) {
-        TenantCleanup cleanup = tenantCleanups.computeIfAbsent(tenantId, TenantCleanup::new);
-        cleanup.init();
+        TenantInitialization tenant = tenantInitializations.computeIfAbsent(tenantId, TenantInitialization::new);
+        tenant.init();
+    }
+
+    public void awaitTenantReady(String tenantId) {
+        TenantInitialization tenant = tenantInitializations.computeIfAbsent(tenantId, TenantInitialization::new);
+        tenant.awaitReady();
     }
 
     public <V> IResourceLoadingCache<V> makeLoadingCache(String name,

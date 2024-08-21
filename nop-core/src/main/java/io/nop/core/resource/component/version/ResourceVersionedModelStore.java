@@ -34,7 +34,7 @@ public class ResourceVersionedModelStore<T extends IComponentModel> implements I
 
     @Override
     public Long getLatestVersion(String modelName) {
-        List<IResource> resources = ModuleManager.instance().findModuleResources(basePath + modelName, "." + fileType);
+        List<IResource> resources = ModuleManager.instance().findModuleResources(true, basePath + modelName, "." + fileType);
         Collections.sort(resources, Comparator.comparing(IResource::getName));
         if (resources.isEmpty())
             return null;
@@ -44,7 +44,7 @@ public class ResourceVersionedModelStore<T extends IComponentModel> implements I
 
     @Override
     public List<Long> getAllVersions(String modelName) {
-        List<IResource> resources = ModuleManager.instance().findModuleResources(basePath + modelName, "." + fileType);
+        List<IResource> resources = ModuleManager.instance().findModuleResources(true, basePath + modelName, "." + fileType);
         Collections.sort(resources, Comparator.comparing(IResource::getName));
         if (resources.isEmpty())
             return Collections.emptyList();

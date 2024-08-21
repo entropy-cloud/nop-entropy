@@ -12,6 +12,7 @@ import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.module.ModuleManager;
+import io.nop.core.module.ModuleModel;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
@@ -23,6 +24,8 @@ import io.nop.orm.model.OrmModelErrors;
 import io.nop.xlang.xdsl.DslModelHelper;
 import io.nop.xlang.xdsl.DslModelParser;
 
+import java.util.Collection;
+
 public class OrmModelLoader {
     static final SourceLocation merged_loc = SourceLocation.fromPath("/nop/main/orm/merged-app.orm.xml");
 
@@ -33,12 +36,16 @@ public class OrmModelLoader {
     }
 
     public OrmModel loadOrmModel() {
+        return loadOrmModel(ModuleManager.instance().getEnabledModules(false));
+    }
+
+    public OrmModel loadOrmModel(Collection<ModuleModel> modules) {
         OrmModel model = new OrmModel();
         model.setLocation(merged_loc);
         model.setMerged(true);
 
-        ModuleManager.instance().getAllModuleResources("orm/app.orm.xml").forEach(resource -> {
-            OrmModel moduleModel = loadFromResource(resource,true);
+        ModuleManager.instance().getAllModuleResourcesInModules(modules, "orm/app.orm.xml").forEach(resource -> {
+            OrmModel moduleModel = loadFromResource(resource, true);
             if (moduleModel != null) {
                 merge(model, moduleModel, false);
             }

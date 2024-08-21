@@ -25,7 +25,7 @@ public class ErrorCodeMappingsLoader {
     public Map<String, ErrorCodeMapping> loadErrorCodeMappings() {
         Map<String, ErrorCodeMapping> merged = new HashMap<>();
 
-        ModuleManager.instance().getEnabledModules().forEach(module -> {
+        ModuleManager.instance().getEnabledModules(false).forEach(module -> {
             Map<String, ErrorCodeMapping> moduleErrors = loadModuleErrors(module.getModuleId());
             if (moduleErrors != null) {
                 merge(merged, moduleErrors);

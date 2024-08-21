@@ -39,18 +39,18 @@ public class DynamicWebFileProvider extends ResourceWithHistoryProvider {
     }
 
     public void loadAllXjs() {
-        List<IResource> resources = ModuleManager.instance().findModuleResources("/pages", WebConstants.FILE_EXT_XJS);
+        List<IResource> resources = ModuleManager.instance().findModuleResources(false, "/pages", WebConstants.FILE_EXT_XJS);
         resources.forEach(resource -> jsLoader.loadText(StringHelper.replaceFileExt(resource.getStdPath(), WebConstants.FILE_EXT_JS)));
 
-        resources = ModuleManager.instance().findModuleResources("/js", WebConstants.FILE_EXT_XJS);
+        resources = ModuleManager.instance().findModuleResources(false, "/js", WebConstants.FILE_EXT_XJS);
         resources.forEach(resource -> jsLoader.loadText(StringHelper.replaceFileExt(resource.getStdPath(), WebConstants.FILE_EXT_JS)));
     }
 
     public void loadAllXcss() {
-        List<IResource> resources = ModuleManager.instance().findModuleResources("/pages", WebConstants.FILE_EXT_XCSS);
+        List<IResource> resources = ModuleManager.instance().findModuleResources(false, "/pages", WebConstants.FILE_EXT_XCSS);
         resources.forEach(resource -> cssLoader.loadText(StringHelper.replaceFileExt(resource.getStdPath(), WebConstants.FILE_EXT_CSS)));
 
-        resources = ModuleManager.instance().findModuleResources("/css", WebConstants.FILE_EXT_XCSS);
+        resources = ModuleManager.instance().findModuleResources(false, "/css", WebConstants.FILE_EXT_XCSS);
         resources.forEach(resource -> cssLoader.loadText(StringHelper.replaceFileExt(resource.getStdPath(), WebConstants.FILE_EXT_CSS)));
     }
 

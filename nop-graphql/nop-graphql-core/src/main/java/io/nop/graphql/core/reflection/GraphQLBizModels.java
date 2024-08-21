@@ -52,7 +52,7 @@ public class GraphQLBizModels {
     }
 
     private void findBizResources() {
-        for (IResource resource : ModuleManager.instance().findModuleResources("model", ".xbiz")) {
+        for (IResource resource : ModuleManager.instance().findModuleResources(false, "model", ".xbiz")) {
             String fileName = resource.getName();
             if (fileName.startsWith("_"))
                 continue;
@@ -66,7 +66,7 @@ public class GraphQLBizModels {
             makeBizModel(bizObjName).setBizPath(resource.getStdPath());
         }
 
-        for (IResource resource : ModuleManager.instance().findModuleResources("model", ".xmeta")) {
+        for (IResource resource : ModuleManager.instance().findModuleResources(false,"model", ".xmeta")) {
             String fileName = resource.getName();
             if (fileName.startsWith("_"))
                 continue;

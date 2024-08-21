@@ -311,7 +311,7 @@ public class DynEntityMetaToOrmModel {
         objTypeCol.setTagSet(TagsHelper.add(objTypeCol.getTagSet(), OrmModelConstants.TAG_NOT_PUB));
 
         entityMeta.getPropMetas().forEach(propMeta -> {
-            if (propMeta.getDynPropMapping() != null && !propMeta.getPropName().equals(propMeta.getDynPropMapping())) {
+            if (propMeta.getDynPropMapping() != null) {
                 IColumnModel col = dynEntityModel.getColumn(propMeta.getDynPropMapping(), true);
                 if (col == null)
                     throw new NopException(ERR_DYN_VIRTUAL_ENTITY_PROP_MAPPING_NOT_VALID)
@@ -320,13 +320,17 @@ public class DynEntityMetaToOrmModel {
                             .param(ARG_PROP_MAPPING, propMeta.getDynPropMapping());
                 OrmColumnModel baseCol = ((OrmColumnModel) col).cloneInstance();
                 entityModel.addColumn(baseCol);
-                entityModel.addAlias(toAliasModel(propMeta));
+                if(!propMeta.getPropName().equals(propMeta.getDynPropMapping())) {
+                    // 列本身声明为内部字段，对外暴露的只有alias
+                    baseCol.setTagSet(TagsHelper.add(baseCol.getTagSet(), OrmModelConstants.TAG_SYS));
+                    entityModel.addAlias(toAliasModel(propMeta));
+                }
             } else {
                 if (STD_PROPS.contains(propMeta.getPropName()))
                     return;
 
                 OrmAliasModel propModel = toAliasModel(propMeta);
-                propModel.setTagSet(TagsHelper.add(propModel.getTagSet(), OrmModelConstants.TAG_EAGER));
+                propModel.setTagSet(TagsHelper.merge(propModel.getTagSet(), Arrays.asList(OrmModelConstants.TAG_EDIT, OrmModelConstants.TAG_EAGER)));
                 propModel.setPropPath(buildVirtualPropPath(propModel));
                 entityModel.addAlias(propModel);
 //                if (propMeta.getRefEntityName() != null) {

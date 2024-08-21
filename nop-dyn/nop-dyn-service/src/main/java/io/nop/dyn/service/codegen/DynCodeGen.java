@@ -11,10 +11,13 @@ import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.orm.SingleSession;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.biz.api.IBizObjectManager;
+import io.nop.biz.impl.IDynamicBizModelProvider;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.cache.LocalCache;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.module.ModuleModel;
 import io.nop.core.resource.tenant.IResourceTenantInitializer;
+import io.nop.core.resource.tenant.ITenantModuleDiscovery;
 import io.nop.core.resource.tenant.ResourceTenantManager;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -23,7 +26,9 @@ import io.nop.dyn.dao.entity.NopDynApp;
 import io.nop.dyn.dao.entity.NopDynAppModule;
 import io.nop.dyn.dao.entity.NopDynEntityMeta;
 import io.nop.dyn.dao.entity.NopDynModule;
+import io.nop.graphql.core.reflection.GraphQLBizModel;
 import io.nop.orm.IOrmSessionFactory;
+import io.nop.orm.IOrmTemplate;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
@@ -32,12 +37,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static io.nop.commons.cache.CacheConfig.newConfig;
 import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE;
 import static io.nop.dyn.service.NopDynConfigs.CFG_DYN_GEN_CODE_WHEN_INIT;
 
-public class DynCodeGen implements IResourceTenantInitializer {
+public class DynCodeGen implements IResourceTenantInitializer, IDynamicBizModelProvider, ITenantModuleDiscovery {
     @Inject
     IDaoProvider daoProvider;
 
@@ -47,11 +53,16 @@ public class DynCodeGen implements IResourceTenantInitializer {
     @Inject
     IBizObjectManager bizObjectManager;
 
+    @Inject
+    IOrmTemplate ormTemplate;
+
     @InjectValue("@cfg:nop.dyn.gen-web-files|true")
     boolean genWebFiles;
 
     @InjectValue("@cfg:nop.dyn.format-gen-code|true")
     boolean formatGenCode;
+
+    private boolean registerTenant;
 
     private final InMemoryCodeCache codeCache = new InMemoryCodeCache();
     private final ICache<String, InMemoryCodeCache> tenantCache = LocalCache.newCache("gen-code-cache",
@@ -65,13 +76,18 @@ public class DynCodeGen implements IResourceTenantInitializer {
             generateForAllModules();
 
         if (useTenant) {
+            registerTenant = true;
             ResourceTenantManager.instance().addTenantInitializer(this);
+            ResourceTenantManager.instance().setTenantModuleDiscovery(this);
         }
     }
 
     @PreDestroy
     public void destroy() {
-        ResourceTenantManager.instance().removeTenantInitializer(this);
+        if (registerTenant) {
+            ResourceTenantManager.instance().removeTenantInitializer(this);
+            ResourceTenantManager.instance().setTenantModuleDiscovery(null);
+        }
         codeCache.clear();
         tenantCache.clear();
     }
@@ -83,6 +99,7 @@ public class DynCodeGen implements IResourceTenantInitializer {
     private InMemoryCodeCache initTenantCache(String tenantId) {
         InMemoryCodeCache cache = new InMemoryCodeCache(tenantId);
         generateForAllModules(cache);
+        cache.reloadModel(ormSessionFactory,bizObjectManager);
         return cache;
     }
 
@@ -91,6 +108,11 @@ public class DynCodeGen implements IResourceTenantInitializer {
         if (StringHelper.isEmpty(tenantId) || !isUseTenant())
             return codeCache;
         return tenantCache.get(tenantId);
+    }
+
+    @Override
+    public Map<String, ModuleModel> getEnabledTenantModules() {
+        return getCodeCache().getEnabledModules();
     }
 
     @Override
@@ -135,17 +157,19 @@ public class DynCodeGen implements IResourceTenantInitializer {
     }
 
     protected void generateForAllModules(InMemoryCodeCache cache) {
-        IEntityDao<NopDynModule> dao = daoProvider.daoFor(NopDynModule.class);
-        NopDynModule example = new NopDynModule();
-        example.setStatus(NopDynDaoConstants.MODULE_STATUS_PUBLISHED);
-        List<NopDynModule> list = dao.findAllByExample(example);
+        ormTemplate.runInSession(() -> {
+            IEntityDao<NopDynModule> dao = daoProvider.daoFor(NopDynModule.class);
+            NopDynModule example = new NopDynModule();
+            example.setStatus(NopDynDaoConstants.MODULE_STATUS_PUBLISHED);
+            List<NopDynModule> list = dao.findAllByExample(example);
 
-        dao.batchLoadProps(list,
-                Arrays.asList("entityMetas.propMetas.domain", "entityMetas.functionMetas", "entityMetas.relationMetasForEntity1"));
+            dao.batchLoadProps(list,
+                    Arrays.asList("entityMetas.propMetas.domain", "entityMetas.functionMetas", "entityMetas.relationMetasForEntity1"));
 
-        for (NopDynModule module : list) {
-            cache.generateForModule(genWebFiles, formatGenCode, module);
-        }
+            for (NopDynModule module : list) {
+                cache.generateForModule(genWebFiles, formatGenCode, module);
+            }
+        });
     }
 
     protected void batchLoadModule(NopDynModule module) {
@@ -165,10 +189,20 @@ public class DynCodeGen implements IResourceTenantInitializer {
     }
 
     public synchronized void removeDynModule(NopDynModule module) {
-        getCodeCache().removeDynModule(module);
+        getCodeCache().removeModule(module.getModuleName());
     }
 
     public synchronized void reloadModel() {
         getCodeCache().reloadModel(ormSessionFactory, bizObjectManager);
+    }
+
+    @Override
+    public GraphQLBizModel getBizModel(String bizObjName) {
+        return getCodeCache().getBizModel(bizObjName);
+    }
+
+    @Override
+    public Runnable addOnChangeListener(ChangeListener listener) {
+        return getCodeCache().addOnChangeListener(listener);
     }
 }

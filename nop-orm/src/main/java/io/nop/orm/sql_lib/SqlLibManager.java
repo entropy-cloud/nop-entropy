@@ -106,7 +106,7 @@ public class SqlLibManager implements ISqlLibManager {
     }
 
     public void checkAllLibValid() {
-        List<IResource> resources = ModuleManager.instance().findModuleResources("/sql", OrmConstants.FILE_TYPE_SQL_LIB);
+        List<IResource> resources = ModuleManager.instance().findModuleResources(false, "/sql", OrmConstants.FILE_TYPE_SQL_LIB);
         resources.forEach(resource -> checkLibValid(resource.getStdPath()));
     }
 

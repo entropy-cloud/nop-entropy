@@ -61,7 +61,7 @@ public class BizObjectBuilder {
     static final Logger LOG = LoggerFactory.getLogger(BizObjectImpl.class);
     private final GraphQLBizModels bizModels;
 
-    private final Map<String, GraphQLBizModel> dynBizModels;
+    private final IDynamicBizModelProvider dynBizModels;
     private final TypeRegistry typeRegistry;
 
     private final List<IActionDecoratorCollector> collectors;
@@ -72,7 +72,7 @@ public class BizObjectBuilder {
     private final IBizObjectManager bizObjectManager;
 
     public BizObjectBuilder(IBizObjectManager bizObjectManager, GraphQLBizModels bizModels,
-                            Map<String, GraphQLBizModel> dynBizModels, TypeRegistry typeRegistry,
+                            IDynamicBizModelProvider dynBizModels, TypeRegistry typeRegistry,
                             List<IActionDecoratorCollector> collectors,
                             List<IGraphQLBizInitializer> bizInitializers,
                             IMakerCheckerProvider makerCheckerProvider) {
@@ -194,7 +194,7 @@ public class BizObjectBuilder {
     BizObjectImpl loadBizObjFromModel(String bizObjName) {
         GraphQLBizModel gqlBizModel = bizModels.getBizModel(bizObjName);
         if (gqlBizModel == null && dynBizModels != null)
-            gqlBizModel = dynBizModels.get(bizObjName);
+            gqlBizModel = dynBizModels.getBizModel(bizObjName);
         if (gqlBizModel == null)
             throw new NopException(ERR_BIZ_UNKNOWN_BIZ_OBJ_NAME).param(ARG_BIZ_OBJ_NAME, bizObjName);
 

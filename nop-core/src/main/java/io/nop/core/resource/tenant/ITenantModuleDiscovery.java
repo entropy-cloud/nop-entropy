@@ -12,8 +12,4 @@ public interface ITenantModuleDiscovery {
         return getEnabledTenantModules().containsKey(moduleName);
     }
 
-    /**
-     * 检查在租户模块中是否定义了业务对象。如果业务对象存在，则生成相关资源文件
-     */
-    boolean checkBizObjExists(String bizObjName);
 }

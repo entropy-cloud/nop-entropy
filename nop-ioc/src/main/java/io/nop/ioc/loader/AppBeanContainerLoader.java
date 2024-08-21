@@ -124,7 +124,7 @@ public class AppBeanContainerLoader {
         }
 
         if (CFG_IOC_APP_BEANS_FILE_ENABLED.get()) {
-            ModuleManager.instance().getEnabledModules().forEach(module -> {
+            ModuleManager.instance().getEnabledModules(false).forEach(module -> {
                 List<? extends IResource> resources = getModuleAppResources(module.getModuleId());
                 for (IResource resource : resources) {
                     builder.addResource(resource);
