@@ -123,10 +123,11 @@ public class InMemoryCodeCache {
 
         genModuleBizModels(module);
 
+        String moduleName = module.getModuleName();
         ModuleModel moduleModel = new ModuleModel();
-        moduleModel.setModuleId(module.getModuleId());
+        moduleModel.setModuleName(moduleName);
 
-        enabledModules.put(moduleModel.getModuleName(), moduleModel);
+        enabledModules.put(moduleName, moduleModel);
         return store;
     }
 

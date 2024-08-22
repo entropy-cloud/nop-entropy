@@ -214,7 +214,7 @@ public class ResourceDependsManager {
         }
 
         if (lastVersion != null) {
-            if (deps.getVersion() != lastVersion)
+            if (deps.getVersion() < lastVersion)
                 return true;
         }
 
