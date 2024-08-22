@@ -79,14 +79,22 @@ public class XLang {
         return (XplModel) ResourceComponentManager.instance().loadComponentModel(path);
     }
 
-    public static AbstractEvalAction getTagAction(String libPath, String tagName) {
+    public static AbstractEvalAction getTagAction(String libPath, String tagName, boolean isException) {
         IXplTagLib lib = (IXplTagLib) ResourceComponentManager.instance().loadComponentModel(libPath);
         IXplTag tag = lib.getTag(tagName);
-        if (tag == null)
-            throw new NopException(ERR_XLIB_UNKNOWN_TAG).param(ARG_LIB_PATH, libPath).param(ARG_TAG_NAME, tagName);
+        if (tag == null) {
+            if (isException) {
+                throw new NopException(ERR_XLIB_UNKNOWN_TAG).param(ARG_LIB_PATH, libPath).param(ARG_TAG_NAME, tagName);
+            }
+            return null;
+        }
 
         IFunctionModel func = tag.getFunctionModel();
         return new ExecutableFunctionEvalAction(func);
+    }
+
+    public static AbstractEvalAction getTagAction(String libPath, String tagName) {
+        return getTagAction(libPath, tagName, true);
     }
 
     public static IXplTag getTag(String libPath, String tagName) {
