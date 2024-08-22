@@ -105,6 +105,106 @@
                 </to-many>
             </relations>
         </entity>
+        <entity className="io.nop.dyn.dao.entity.NopDynPatch" createTimeProp="createTime" createrProp="createdBy"
+                displayName="补丁定义" name="io.nop.dyn.dao.entity.NopDynPatch" registerShortName="true"
+                tableName="nop_dyn_patch" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                i18n-en:displayName="Patch">
+            <columns>
+                <column code="PATCH_ID" displayName="补丁ID" mandatory="true" name="patchId" precision="32" primary="true"
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="Patch ID"
+                        ui:show="X"/>
+                <column code="PATCH_NAME" displayName="补丁名" mandatory="true" name="patchName" precision="100" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Patch Name"/>
+                <column code="PATCH_ORDER" defaultValue="1" displayName="补丁顺序" mandatory="true" name="patchOrder"
+                        propId="3" stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Patch Order"/>
+                <column code="DISPLAY_NAME" displayName="显示名" mandatory="true" name="displayName" precision="200"
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"
+                        i18n-en:displayName="Display Name"/>
+                <column code="STATUS" defaultValue="0" displayName="状态" mandatory="true" name="status" propId="9"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Status" ui:show="R"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="10"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By" ui:show="R"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
+                        ui:show="R"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By" ui:show="R"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"
+                        ui:show="R"/>
+            </columns>
+            <comment>引入多个模块可能出现冲突，可以通过补丁机制增加补丁文件来覆盖模块中已有的文件</comment>
+            <relations>
+                <to-many cascadeDelete="true" displayName="补丁文件" name="patchFiles"
+                         refEntityName="io.nop.dyn.dao.entity.NopDynPatchFile" refPropName="patch"
+                         tagSet="pub,cascade-delete" i18n-en:displayName="Patch Files">
+                    <join>
+                        <on leftProp="patchId" rightProp="patchId"/>
+                    </join>
+                </to-many>
+            </relations>
+        </entity>
+        <entity className="io.nop.dyn.dao.entity.NopDynPatchFile" createTimeProp="createTime" createrProp="createdBy"
+                displayName="补丁文件" name="io.nop.dyn.dao.entity.NopDynPatchFile" registerShortName="true"
+                tableName="nop_dyn_patch_file" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                i18n-en:displayName="Patch File">
+            <columns>
+                <column code="FILE_ID" displayName="文件ID" mandatory="true" name="fileId" precision="32" primary="true"
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="gid,seq"
+                        i18n-en:displayName="File ID" ui:show="X"/>
+                <column code="PATCH_ID" displayName="补丁ID" mandatory="true" name="patchId" precision="32" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Patch ID"/>
+                <column code="MODULE_ID" displayName="模块ID" name="moduleId" precision="32" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Module ID"/>
+                <column code="FILE_PATH" defaultValue="pages" displayName="文件路径" domain="v-path" mandatory="true"
+                        name="filePath" precision="800" propId="4" stdDataType="string" stdDomain="v-path"
+                        stdSqlType="VARCHAR" i18n-en:displayName="File Path" ui:show="X"/>
+                <column code="FILE_NAME" displayName="文件名称" mandatory="true" name="fileName" precision="200" propId="5"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="File Name"/>
+                <column code="FILE_TYPE" displayName="文件类型" mandatory="true" name="fileType" precision="50" propId="6"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="File Type"/>
+                <column code="FILE_LENGTH" displayName="文件大小" mandatory="true" name="fileLength" propId="7"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="File Length" ui:show="X"/>
+                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="8" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="core/active-status"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="14"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
+            </columns>
+            <relations>
+                <to-one displayName="所属模块" name="module" refEntityName="io.nop.dyn.dao.entity.NopDynModule"
+                        tagSet="pub,ref-pub,ref-cascade-delete" i18n-en:displayName="Module">
+                    <join>
+                        <on leftProp="moduleId" rightProp="moduleId"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+                <to-one displayName="所属补丁" name="patch" refDisplayName="补丁文件"
+                        refEntityName="io.nop.dyn.dao.entity.NopDynPatch" refPropName="patchFiles"
+                        tagSet="pub,ref-pub,ref-cascade-delete" i18n-en:displayName="Patch"
+                        ref-i18n-en:displayName="Patch Files">
+                    <join>
+                        <on leftProp="patchId" rightProp="patchId"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+            </relations>
+        </entity>
         <entity className="io.nop.dyn.dao.entity.NopDynModuleDep" createTimeProp="createTime" createrProp="createdBy"
                 displayName="模块依赖" name="io.nop.dyn.dao.entity.NopDynModuleDep" registerShortName="true"
                 tableName="nop_dyn_module_dep" tagSet="many-to-many,no-web" updateTimeProp="updateTime"

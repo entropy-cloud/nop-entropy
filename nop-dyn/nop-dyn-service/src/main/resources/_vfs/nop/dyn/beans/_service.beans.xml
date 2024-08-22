@@ -29,6 +29,10 @@
 
     <bean id="io.nop.dyn.service.entity.NopDynPageBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="io.nop.dyn.service.entity.NopDynPatchBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="io.nop.dyn.service.entity.NopDynPatchFileBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
     <bean id="io.nop.dyn.service.entity.NopDynPropMetaBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.dyn.service.entity.NopDynSqlBizModel" ioc:type="@bean:id" ioc:default="true"/>

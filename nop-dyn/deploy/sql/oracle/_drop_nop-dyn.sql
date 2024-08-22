@@ -1,8 +1,10 @@
 
 drop table nop_dyn_app;
+drop table nop_dyn_patch;
 drop table nop_dyn_module;
 drop table nop_dyn_entity;
 drop table nop_dyn_entity_relation;
+drop table nop_dyn_patch_file;
 drop table nop_dyn_module_dep;
 drop table nop_dyn_app_module;
 drop table nop_dyn_sql;

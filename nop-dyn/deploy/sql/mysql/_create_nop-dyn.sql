@@ -12,6 +12,20 @@ CREATE TABLE nop_dyn_app(
   constraint PK_nop_dyn_app primary key (APP_ID)
 );
 
+CREATE TABLE nop_dyn_patch(
+  PATCH_ID VARCHAR(32) NOT NULL    COMMENT '补丁ID',
+  PATCH_NAME VARCHAR(100) NOT NULL    COMMENT '补丁名',
+  PATCH_ORDER INTEGER NOT NULL  default '1'    COMMENT '补丁顺序',
+  DISPLAY_NAME VARCHAR(200) NOT NULL    COMMENT '显示名',
+  STATUS INTEGER NOT NULL  default '0'    COMMENT '状态',
+  VERSION INTEGER NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
+  constraint PK_nop_dyn_patch primary key (PATCH_ID)
+);
+
 CREATE TABLE nop_dyn_module(
   MODULE_ID VARCHAR(32) NOT NULL    COMMENT '模块ID',
   MODULE_NAME VARCHAR(100) NOT NULL    COMMENT '模块名',
@@ -80,6 +94,24 @@ CREATE TABLE nop_dyn_entity_relation(
   UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_dyn_entity_relation primary key (SID)
+);
+
+CREATE TABLE nop_dyn_patch_file(
+  FILE_ID VARCHAR(32) NOT NULL    COMMENT '文件ID',
+  PATCH_ID VARCHAR(32) NOT NULL    COMMENT '补丁ID',
+  MODULE_ID VARCHAR(32) NULL    COMMENT '模块ID',
+  FILE_PATH VARCHAR(800) NOT NULL  default 'pages'    COMMENT '文件路径',
+  FILE_NAME VARCHAR(200) NOT NULL    COMMENT '文件名称',
+  FILE_TYPE VARCHAR(50) NOT NULL    COMMENT '文件类型',
+  FILE_LENGTH INTEGER NOT NULL    COMMENT '文件大小',
+  STATUS INTEGER NOT NULL    COMMENT '状态',
+  VERSION INTEGER NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_dyn_patch_file primary key (FILE_ID)
 );
 
 CREATE TABLE nop_dyn_module_dep(
@@ -286,11 +318,15 @@ CREATE TABLE nop_dyn_prop_meta(
 
    ALTER TABLE nop_dyn_app COMMENT '应用定义';
                 
+   ALTER TABLE nop_dyn_patch COMMENT '补丁定义';
+                
    ALTER TABLE nop_dyn_module COMMENT '模块定义';
                 
    ALTER TABLE nop_dyn_entity COMMENT '动态实体';
                 
    ALTER TABLE nop_dyn_entity_relation COMMENT '实体关联';
+                
+   ALTER TABLE nop_dyn_patch_file COMMENT '补丁文件';
                 
    ALTER TABLE nop_dyn_module_dep COMMENT '模块依赖';
                 

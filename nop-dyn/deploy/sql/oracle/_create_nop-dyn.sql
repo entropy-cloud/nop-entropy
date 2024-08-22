@@ -12,6 +12,20 @@ CREATE TABLE nop_dyn_app(
   constraint PK_nop_dyn_app primary key (APP_ID)
 );
 
+CREATE TABLE nop_dyn_patch(
+  PATCH_ID VARCHAR2(32) NOT NULL ,
+  PATCH_NAME VARCHAR2(100) NOT NULL ,
+  PATCH_ORDER INTEGER NOT NULL  default '1' ,
+  DISPLAY_NAME VARCHAR2(200) NOT NULL ,
+  STATUS INTEGER NOT NULL  default '0' ,
+  VERSION INTEGER NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  constraint PK_nop_dyn_patch primary key (PATCH_ID)
+);
+
 CREATE TABLE nop_dyn_module(
   MODULE_ID VARCHAR2(32) NOT NULL ,
   MODULE_NAME VARCHAR2(100) NOT NULL ,
@@ -80,6 +94,24 @@ CREATE TABLE nop_dyn_entity_relation(
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
   constraint PK_nop_dyn_entity_relation primary key (SID)
+);
+
+CREATE TABLE nop_dyn_patch_file(
+  FILE_ID VARCHAR2(32) NOT NULL ,
+  PATCH_ID VARCHAR2(32) NOT NULL ,
+  MODULE_ID VARCHAR2(32)  ,
+  FILE_PATH VARCHAR2(800) NOT NULL  default 'pages' ,
+  FILE_NAME VARCHAR2(200) NOT NULL ,
+  FILE_TYPE VARCHAR2(50) NOT NULL ,
+  FILE_LENGTH INTEGER NOT NULL ,
+  STATUS INTEGER NOT NULL ,
+  VERSION INTEGER NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_dyn_patch_file primary key (FILE_ID)
 );
 
 CREATE TABLE nop_dyn_module_dep(
@@ -304,6 +336,28 @@ CREATE TABLE nop_dyn_prop_meta(
                     
       COMMENT ON COLUMN nop_dyn_app.UPDATE_TIME IS '修改时间';
                     
+      COMMENT ON TABLE nop_dyn_patch IS '补丁定义';
+                
+      COMMENT ON COLUMN nop_dyn_patch.PATCH_ID IS '补丁ID';
+                    
+      COMMENT ON COLUMN nop_dyn_patch.PATCH_NAME IS '补丁名';
+                    
+      COMMENT ON COLUMN nop_dyn_patch.PATCH_ORDER IS '补丁顺序';
+                    
+      COMMENT ON COLUMN nop_dyn_patch.DISPLAY_NAME IS '显示名';
+                    
+      COMMENT ON COLUMN nop_dyn_patch.STATUS IS '状态';
+                    
+      COMMENT ON COLUMN nop_dyn_patch.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_dyn_patch.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_dyn_patch.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_dyn_patch.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_dyn_patch.UPDATE_TIME IS '修改时间';
+                    
       COMMENT ON TABLE nop_dyn_module IS '模块定义';
                 
       COMMENT ON COLUMN nop_dyn_module.MODULE_ID IS '模块ID';
@@ -425,6 +479,36 @@ CREATE TABLE nop_dyn_prop_meta(
       COMMENT ON COLUMN nop_dyn_entity_relation.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_dyn_entity_relation.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_dyn_patch_file IS '补丁文件';
+                
+      COMMENT ON COLUMN nop_dyn_patch_file.FILE_ID IS '文件ID';
+                    
+      COMMENT ON COLUMN nop_dyn_patch_file.PATCH_ID IS '补丁ID';
+                    
+      COMMENT ON COLUMN nop_dyn_patch_file.MODULE_ID IS '模块ID';
+                    
+      COMMENT ON COLUMN nop_dyn_patch_file.FILE_PATH IS '文件路径';
+                    
+      COMMENT ON COLUMN nop_dyn_patch_file.FILE_NAME IS '文件名称';
+                    
+      COMMENT ON COLUMN nop_dyn_patch_file.FILE_TYPE IS '文件类型';
+                    
+      COMMENT ON COLUMN nop_dyn_patch_file.FILE_LENGTH IS '文件大小';
+                    
+      COMMENT ON COLUMN nop_dyn_patch_file.STATUS IS '状态';
+                    
+      COMMENT ON COLUMN nop_dyn_patch_file.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_dyn_patch_file.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_dyn_patch_file.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_dyn_patch_file.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_dyn_patch_file.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_dyn_patch_file.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_dyn_module_dep IS '模块依赖';
                 

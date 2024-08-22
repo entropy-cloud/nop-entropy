@@ -23,6 +23,10 @@ alter table nop_dyn_module_dep add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' 
 
 alter table nop_dyn_page add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_dyn_patch add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_dyn_patch_file add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_dyn_prop_meta add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_dyn_sql add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -62,6 +66,12 @@ alter table nop_dyn_module_dep add primary key (NOP_TENANT_ID, MODULE_ID,DEP_MOD
 
 alter table nop_dyn_page drop primary key;
 alter table nop_dyn_page add primary key (NOP_TENANT_ID, PAGE_ID);
+
+alter table nop_dyn_patch drop primary key;
+alter table nop_dyn_patch add primary key (NOP_TENANT_ID, PATCH_ID);
+
+alter table nop_dyn_patch_file drop primary key;
+alter table nop_dyn_patch_file add primary key (NOP_TENANT_ID, FILE_ID);
 
 alter table nop_dyn_prop_meta drop primary key;
 alter table nop_dyn_prop_meta add primary key (NOP_TENANT_ID, PROP_META_ID);
