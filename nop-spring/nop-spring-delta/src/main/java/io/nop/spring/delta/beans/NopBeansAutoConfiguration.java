@@ -34,7 +34,7 @@ public class NopBeansAutoConfiguration {
         @Override
         public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata,
                                             BeanDefinitionRegistry registry) {
-            List<IResource> resources = ModuleManager.instance().findModuleResources("/beans", "beans.xml");
+            List<IResource> resources = ModuleManager.instance().findModuleResources(false,"/beans", "beans.xml");
             if (resources.isEmpty())
                 return;
 
