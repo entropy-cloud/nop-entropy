@@ -9,4 +9,6 @@
     <import resource="_service.beans.xml"/>
 
     <bean id="nopDynCodeGen" class="io.nop.dyn.service.codegen.DynCodeGen"/>
+
+    <bean id="nopDynOrmModelHolder" class="io.nop.dyn.service.codegen.DynOrmModelHolder"/>
 </beans>

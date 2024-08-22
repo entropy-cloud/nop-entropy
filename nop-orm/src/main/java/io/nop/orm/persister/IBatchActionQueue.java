@@ -39,13 +39,13 @@ public interface IBatchActionQueue {
 
     boolean isFlushing();
 
-    default void flush(IOrmSessionImplementor session) {
-        FutureHelper.syncGet(flushAsync(session));
+    default void flush() {
+        FutureHelper.syncGet(flushAsync());
     }
 
     /**
      * 异步刷新。这是一个内部接口，异步执行过程中可能在别的线程上更新实体状态，所以需要谨慎使用。
      */
     @Internal
-    CompletionStage<Void> flushAsync(IOrmSessionImplementor session);
+    CompletionStage<Void> flushAsync();
 }

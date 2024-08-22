@@ -27,6 +27,7 @@ import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.IDaoEntity;
 import io.nop.dataset.IComplexDataSet;
 import io.nop.dataset.IDataSet;
+import io.nop.orm.ILoadedOrmModel;
 import io.nop.orm.IOrmComponent;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntityEnhancer;
@@ -85,7 +86,6 @@ import static io.nop.orm.OrmErrors.ERR_ORM_SAVE_ENTITY_NOT_TRANSIENT;
 import static io.nop.orm.OrmErrors.ERR_ORM_SAVE_ENTITY_REPLACE_EXISTING_ENTITY;
 import static io.nop.orm.OrmErrors.ERR_ORM_SESSION_CLOSED;
 import static io.nop.orm.OrmErrors.ERR_ORM_SESSION_NOT_RUN_ON_CONTEXT;
-import static io.nop.orm.OrmErrors.ERR_ORM_UNKNOWN_COLLECTION_PERSISTER;
 import static io.nop.orm.OrmErrors.ERR_ORM_UPDATE_ENTITY_NOT_MANAGED;
 
 /**
@@ -101,6 +101,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     private final IOrmSessionEntityCache cache;
     private final IPersistEnv env;
+    private final ILoadedOrmModel loadedOrmModel;
 
     private boolean readOnly;
     private boolean closed;
@@ -125,8 +126,9 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     public OrmSessionImpl(boolean stateless, IPersistEnv env, List<IOrmInterceptor> interceptors) {
         this.env = env;
+        this.loadedOrmModel = env.getLoadedOrmModel();
         this.cache = stateless ? new StatelessOrmSessionEntityCache(this) :
-                (env.getOrmModel().isAnyEntityUseTenant() ? new TenantOrmSessionEntityCache(this) : new OrmSessionEntityCache(this));
+                (loadedOrmModel.isAnyEntityUseTenant() ? new TenantOrmSessionEntityCache(this) : new OrmSessionEntityCache(this));
         this.interceptors = CollectionHelper.toNotNull(interceptors);
 
 
@@ -200,7 +202,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
             this.dirty = false;
             this.cache.clearDirty();
 
-            this.batchActionQueue.flush(this);
+            this.batchActionQueue.flush();
         } catch (Throwable e) {
             exp = e;
         } finally {
@@ -243,6 +245,11 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     }
 
     @Override
+    public ILoadedOrmModel getLoadedOrmModel() {
+        return loadedOrmModel;
+    }
+
+    @Override
     public Class<?> getEntityClass(IEntityModel entityModel) {
         return env.getEntityClassModel(entityModel).getRawClass();
     }
@@ -268,15 +275,11 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     }
 
     IEntityPersister requireEntityPersister(String entityName) {
-        IEntityPersister persister = env.requireEntityPersister(entityName);
-        return persister;
+        return loadedOrmModel.requireEntityPersister(entityName);
     }
 
     ICollectionPersister requireCollectionPersister(String collectionName) {
-        ICollectionPersister persister = env.requireCollectionPersister(collectionName);
-        if (persister == null)
-            throw new OrmException(ERR_ORM_UNKNOWN_COLLECTION_PERSISTER).param(ARG_COLLECTION_NAME, collectionName);
-        return persister;
+        return loadedOrmModel.requireCollectionPersister(collectionName);
     }
 
     @Override
@@ -786,7 +789,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public IBatchActionQueue getBatchActionQueue(String querySpace) {
-        return this.batchActionQueue.getBatchActionQueue(querySpace, env);
+        return this.batchActionQueue.getBatchActionQueue(querySpace, this);
     }
 
     @Override
@@ -958,7 +961,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
         boolean oldDirty = this.dirty;
         try {
             flusher.execute(entity);
-            this.batchActionQueue.flush(this);
+            this.batchActionQueue.flush();
         } finally {
             if (createExecutor)
                 this.flusher = null;
@@ -1010,6 +1013,8 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     void interceptPostLoad(IOrmEntity entity) {
         entity.orm_postLoad();
+        if (loadedOrmModel.getOrmInterceptor() != null)
+            loadedOrmModel.getOrmInterceptor().postLoad(entity);
 
         for (IOrmInterceptor interceptor : interceptors)
             interceptor.postLoad(entity);
@@ -1017,13 +1022,16 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     void interceptPostSave(IOrmEntity entity) {
         entity.orm_postSave();
+        if (loadedOrmModel.getOrmInterceptor() != null)
+            loadedOrmModel.getOrmInterceptor().postSave(entity);
         for (IOrmInterceptor interceptor : interceptors)
             interceptor.postSave(entity);
     }
 
     void interceptPostUpdate(IOrmEntity entity) {
         entity.orm_postUpdate();
-
+        if (loadedOrmModel.getOrmInterceptor() != null)
+            loadedOrmModel.getOrmInterceptor().postUpdate(entity);
         for (IOrmInterceptor interceptor : interceptors)
             interceptor.postUpdate(entity);
     }
@@ -1031,16 +1039,24 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     void interceptPostDelete(IOrmEntity entity) {
         entity.orm_postDelete();
 
+        if (loadedOrmModel.getOrmInterceptor() != null)
+            loadedOrmModel.getOrmInterceptor().postDelete(entity);
         for (IOrmInterceptor interceptor : interceptors)
             interceptor.postDelete(entity);
     }
 
     void interceptPreFlush() {
+        if (loadedOrmModel.getOrmInterceptor() != null)
+            loadedOrmModel.getOrmInterceptor().preFlush();
+
         for (IOrmInterceptor interceptor : interceptors)
             interceptor.preFlush();
     }
 
     void interceptPostFlush(Throwable e) {
+        if (loadedOrmModel.getOrmInterceptor() != null)
+            loadedOrmModel.getOrmInterceptor().postFlush(e);
+
         for (IOrmInterceptor interceptor : interceptors)
             interceptor.postFlush(e);
     }
@@ -1048,6 +1064,10 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     ProcessResult interceptPreSave(IOrmEntity entity) {
         if (entity.orm_preSave() == ProcessResult.STOP)
             return ProcessResult.STOP;
+        if (loadedOrmModel.getOrmInterceptor() != null) {
+            if (loadedOrmModel.getOrmInterceptor().preSave(entity) == ProcessResult.STOP)
+                return ProcessResult.STOP;
+        }
 
         for (IOrmInterceptor interceptor : interceptors)
             if (interceptor.preSave(entity) == ProcessResult.STOP)
@@ -1060,6 +1080,11 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
         if (entity.orm_preUpdate() == ProcessResult.STOP)
             return ProcessResult.STOP;
 
+        if (loadedOrmModel.getOrmInterceptor() != null) {
+            if (loadedOrmModel.getOrmInterceptor().preUpdate(entity) == ProcessResult.STOP)
+                return ProcessResult.STOP;
+        }
+
         for (IOrmInterceptor interceptor : interceptors)
             if (interceptor.preUpdate(entity) == ProcessResult.STOP)
                 return ProcessResult.STOP;
@@ -1070,6 +1095,11 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     ProcessResult interceptPreDelete(IOrmEntity entity) {
         if (entity.orm_preDelete() == ProcessResult.STOP)
             return ProcessResult.STOP;
+
+        if (loadedOrmModel.getOrmInterceptor() != null) {
+            if (loadedOrmModel.getOrmInterceptor().preDelete(entity) == ProcessResult.STOP)
+                return ProcessResult.STOP;
+        }
 
         for (IOrmInterceptor interceptor : interceptors)
             if (interceptor.preDelete(entity) == ProcessResult.STOP)

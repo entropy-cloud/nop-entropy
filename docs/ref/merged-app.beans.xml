@@ -71,7 +71,7 @@
           id="nopSHA256PasswordEncoder" ioc:aop="false"/>
 
 <!--LOC:[42:6:0:0]/nop/orm/beans/orm-defaults.beans.xml-->
-    <bean class="io.nop.orm.factory.XplOrmInterceptorFactoryBean" id="nopXplOrmInterceptor" ioc:aop="false"
+    <bean class="io.nop.orm.factory.XplOrmInterceptorLoader" id="nopXplOrmInterceptor" ioc:aop="false"
           ioc:bean-method="getObject" init-method="init"/>
 
     <bean class="io.nop.commons.cache.LocalCacheProvider" id="$DEFAULT$nopOrmGlobalCacheProvider" ioc:aop="false"

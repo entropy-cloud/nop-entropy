@@ -21,6 +21,7 @@ import io.nop.orm.persister.CollectionPersisterImpl;
 import io.nop.orm.persister.EntityPersisterImpl;
 import io.nop.orm.persister.ICollectionPersister;
 import io.nop.orm.persister.IEntityPersister;
+import io.nop.orm.persister.IPersistEnv;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -43,12 +44,12 @@ import static io.nop.orm.OrmErrors.ERR_ORM_ENTITY_PROP_ID_NOT_MATCH_DEF_IN_MODEL
 class PersistEnvBuilder {
     private final IOrmModel ormModel;
     private final ISequenceGenerator sequenceGenerator;
-    private final SessionFactoryImpl env;
+    private final IPersistEnv env;
 
     private Map<String, IEntityPersister> entityPersisters;
     private Map<String, ICollectionPersister> collectionPersisters;
 
-    public PersistEnvBuilder(IOrmModel ormModel, ISequenceGenerator sequenceGenerator, SessionFactoryImpl env) {
+    public PersistEnvBuilder(IOrmModel ormModel, ISequenceGenerator sequenceGenerator, IPersistEnv env) {
         this.ormModel = ormModel;
         this.sequenceGenerator = sequenceGenerator;
         this.env = env;

@@ -12,16 +12,12 @@ import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.module.ModuleManager;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
-import io.nop.core.resource.cache.ResourceCacheEntry;
-import io.nop.orm.IOrmInterceptor;
-import io.nop.orm.OrmConfigs;
 import io.nop.orm.OrmConstants;
 import io.nop.orm.interceptor.XplOrmInterceptor;
 import io.nop.orm.model.interceptor.OrmInterceptorActionModel;
 import io.nop.orm.model.interceptor.OrmInterceptorEntityModel;
 import io.nop.orm.model.interceptor.OrmInterceptorModel;
 import io.nop.xlang.xdsl.DslModelParser;
-import jakarta.annotation.PostConstruct;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -29,15 +25,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class XplOrmInterceptorFactoryBean {
+public class XplOrmInterceptorLoader {
 
-    private final ResourceCacheEntry<XplOrmInterceptor> ormInterceptorCache = new ResourceCacheEntry<>("orm-interceptor-cache");
-
-    private XplOrmInterceptor loadInterceptor(String cacheName) {
+    public XplOrmInterceptor loadInterceptor(String cacheName, boolean includeTenant) {
         // event -> entityName -> actions
         Map<String, Map<String, List<OrmInterceptorActionModel>>> allActions = new HashMap<>();
 
-        ModuleManager.instance().getEnabledModules(false).forEach(module -> {
+        ModuleManager.instance().getEnabledModules(includeTenant).forEach(module -> {
             String path = "/" + module.getModuleId() + "/orm/app.orm-interceptor.xml";
 
             IResource resource = VirtualFileSystem.instance().getResource(path);
@@ -72,14 +66,5 @@ public class XplOrmInterceptorFactoryBean {
         }
 
         return interceptor;
-    }
-
-    @PostConstruct
-    public void init() {
-        getObject();
-    }
-
-    public IOrmInterceptor getObject() {
-        return ormInterceptorCache.getObject(OrmConfigs.CFG_ORM_INTERCEPTOR_CACHE_CHECK_CHANGE.get(), this::loadInterceptor);
     }
 }

@@ -9,21 +9,22 @@ package io.nop.orm.persister;
 
 import io.nop.api.core.ioc.IBeanProvider;
 import io.nop.commons.cache.ICache;
-import io.nop.core.model.graph.TopoEntry;
 import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.bean.IBeanConstructor;
+import io.nop.dao.dialect.IDialectProvider;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.metrics.IDaoMetrics;
 import io.nop.dao.seq.ISequenceGenerator;
 import io.nop.dao.txn.ITransactionTemplate;
+import io.nop.orm.ILoadedOrmModel;
 import io.nop.orm.IOrmComponent;
 import io.nop.orm.IOrmDaoListener;
 import io.nop.orm.IOrmSessionFactory;
 import io.nop.orm.driver.ICollectionPersistDriver;
 import io.nop.orm.driver.IEntityPersistDriver;
 import io.nop.orm.eql.ICompiledSql;
+import io.nop.orm.eql.IEqlAstTransformer;
 import io.nop.orm.eql.binder.IOrmColumnBinderEnhancer;
-import io.nop.orm.eql.meta.EntityTableMeta;
 import io.nop.orm.loader.IQueryExecutor;
 import io.nop.orm.metrics.IOrmMetrics;
 import io.nop.orm.model.IEntityModel;
@@ -36,17 +37,20 @@ public interface IPersistEnv extends IOrmSessionFactory {
 
     IClassModel getEntityClassModel(IEntityModel entityModel);
 
-    EntityTableMeta resolveEntityTableMeta(String entityName, boolean allowUnderscoreName);
+    ILoadedOrmModel getLoadedOrmModel();
 
-    IEntityPersister requireEntityPersister(String entityName);
+    IDialectProvider getDialectProvider();
 
-    ICollectionPersister requireCollectionPersister(String collectionName);
+    default <T> T getExtension(String entityName, Class<T> extensionClass) {
+        return getLoadedOrmModel().getExtension(entityName, extensionClass);
+    }
+
+
+    IEqlAstTransformer getDefaultAstTransformer();
 
     IQueryExecutor getQueryExecutor(String querySpace);
 
     IEntityFilterProvider getEntityFilterProvider();
-
-    TopoEntry<? extends IEntityModel> getEntityModelTopoEntry(String entityName);
 
     ICache<String, Object> getGlobalCache(String referenceName);
 

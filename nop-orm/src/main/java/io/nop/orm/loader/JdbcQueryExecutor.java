@@ -19,6 +19,7 @@ import io.nop.dataset.impl.SingleColumnRow;
 import io.nop.dataset.impl.TransformedComplexDataSet;
 import io.nop.dataset.impl.TransformedDataSet;
 import io.nop.orm.IOrmDaoListener;
+import io.nop.orm.IOrmSession;
 import io.nop.orm.eql.ICompiledSql;
 import io.nop.orm.eql.meta.ISqlExprMeta;
 import io.nop.orm.model.IEntityModel;
@@ -62,7 +63,7 @@ public class JdbcQueryExecutor implements IQueryExecutor {
                                  @Nonnull List<Object> markerValues) {
         invokeListener(compiled);
 
-        SQL sql = transformEQL(compiled, markerValues);
+        SQL sql = transformEQL(session, compiled, markerValues);
         return jdbc().executeUpdate(sql);
     }
 
@@ -83,7 +84,7 @@ public class JdbcQueryExecutor implements IQueryExecutor {
                                  @Nonnull Function<? super IDataSet, T> callback) {
         invokeListener(compiled);
 
-        SQL sql = transformEQL(compiled, markerValues);
+        SQL sql = transformEQL(session, compiled, markerValues);
 
         return jdbc().executeQuery(sql, range, ds -> {
             ds = new TransformedDataSet(ds, compiled.getDataSetMeta(), rs -> transformRow(rs, compiled, session));
@@ -106,7 +107,7 @@ public class JdbcQueryExecutor implements IQueryExecutor {
                                      @Nonnull List<Object> markerValues, LongRangeBean range,
                                      @Nonnull Function<IComplexDataSet, T> callback, ICancelToken cancelToken) {
         invokeListener(compiled);
-        SQL sql = transformEQL(compiled, markerValues);
+        SQL sql = transformEQL(session, compiled, markerValues);
         return jdbc().executeStatement(sql, range, ds -> {
             ds = new TransformedComplexDataSet(ds, compiled.getDataSetMeta(),
                     rs -> transformRow(rs, compiled, session));
@@ -143,9 +144,9 @@ public class JdbcQueryExecutor implements IQueryExecutor {
         }
     }
 
-    private SQL transformEQL(ICompiledSql compiled, List<Object> markerValues) {
+    private SQL transformEQL(IOrmSession session, ICompiledSql compiled, List<Object> markerValues) {
         List<Object> params = compiled.buildParams(markerValues);
-        return new GenSqlTransformer(env.getShardSelector(), env.getOrmModel(), env, env,
+        return new GenSqlTransformer(env.getShardSelector(), env.getOrmModel(), env, session.getLoadedOrmModel(),
                 this.env.getEntityFilterProvider())
                 .transform(compiled.getSql(), params).end();
     }

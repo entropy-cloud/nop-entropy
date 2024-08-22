@@ -44,7 +44,7 @@ public class InMemoryCodeCache {
 
     private final Map<String, ModuleModel> enabledModules = new ConcurrentHashMap<>();
 
-    // moduleName => bizObjName => BizModel
+    // bizObjName => BizModel
     private final Map<String, GraphQLBizModel> dynBizModels = new ConcurrentHashMap<>();
 
     private final List<IDynamicBizModelProvider.ChangeListener> changeListeners = new CopyOnWriteArrayList<>();

@@ -48,9 +48,6 @@
         </property>
     </bean>
 
-    <bean id="nopXplOrmInterceptor" class="io.nop.orm.factory.XplOrmInterceptorFactoryBean"
-          ioc:bean-method="getObject"/>
-
     <bean id="nopOrmTemplate" class="io.nop.orm.impl.OrmTemplateImpl" ioc:default="true">
     </bean>
 

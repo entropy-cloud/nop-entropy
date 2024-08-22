@@ -8,6 +8,7 @@
 package io.nop.orm.compile;
 
 import io.nop.dao.dialect.IDialect;
+import io.nop.orm.ILoadedOrmModel;
 import io.nop.orm.eql.IEqlAstTransformer;
 import io.nop.orm.eql.compile.ISqlCompileContext;
 import io.nop.orm.eql.meta.EntityTableMeta;
@@ -17,6 +18,7 @@ import io.nop.orm.persister.IPersistEnv;
 
 public class EqlCompileContext implements ISqlCompileContext {
     private final IPersistEnv env;
+    private final ILoadedOrmModel ormModel;
     private final boolean disableLogicalDelete;
 
     private final IEqlAstTransformer astTransformer;
@@ -25,9 +27,11 @@ public class EqlCompileContext implements ISqlCompileContext {
 
     private final boolean enableFilter;
 
-    public EqlCompileContext(IPersistEnv env, boolean disableLogicalDelete, IEqlAstTransformer astTransformer,
+    public EqlCompileContext(IPersistEnv env, ILoadedOrmModel loadedOrmModel,
+                             boolean disableLogicalDelete, IEqlAstTransformer astTransformer,
                              boolean allowUnderscoreName, boolean enableFilter) {
         this.env = env;
+        this.ormModel = loadedOrmModel;
         this.disableLogicalDelete = disableLogicalDelete;
         this.astTransformer = astTransformer;
         this.allowUnderscoreName = allowUnderscoreName;
@@ -60,7 +64,7 @@ public class EqlCompileContext implements ISqlCompileContext {
 
     @Override
     public EntityTableMeta resolveEntityTableMeta(String entityName) {
-        return env.resolveEntityTableMeta(entityName, allowUnderscoreName);
+        return ormModel.resolveEntityTableMeta(entityName, allowUnderscoreName);
     }
 
     @Override

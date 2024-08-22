@@ -10,6 +10,7 @@ package io.nop.orm.persister;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.core.model.graph.TopoEntry;
+import io.nop.orm.ILoadedOrmModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.session.IOrmSessionImplementor;
 import org.slf4j.Logger;
@@ -33,16 +34,16 @@ public class BatchActionQueueImpl implements IBatchActionQueue {
     private final String querySpace;
 
     private final NavigableMap<TopoEntry<? extends IEntityModel>, BatchActionHolder> actionMap = new TreeMap<>();
-    private final IPersistEnv env;
+    private final IOrmSessionImplementor session;
 
     private List<IBatchAction.CollectionBatchAction> collectionActions;
 
     private Map<String, Runnable> delayTasks;
     private boolean flushing;
 
-    public BatchActionQueueImpl(String querySpace, IPersistEnv env) {
+    public BatchActionQueueImpl(String querySpace, IOrmSessionImplementor session) {
         this.querySpace = querySpace;
-        this.env = env;
+        this.session = session;
     }
 
     static class BatchActionHolder {
@@ -87,7 +88,7 @@ public class BatchActionQueueImpl implements IBatchActionQueue {
     }
 
     BatchActionHolder makeActionHolder(IBatchAction.IEntityBatchAction action) {
-        TopoEntry<? extends IEntityModel> topoEntry = env.getEntityModelTopoEntry(action.getEntityName());
+        TopoEntry<? extends IEntityModel> topoEntry = session.getLoadedOrmModel().getEntityModelTopoEntry(action.getEntityName());
         Guard.notNull(topoEntry, "topoEntry");
         BatchActionHolder holder = actionMap.get(topoEntry);
         if (holder == null) {
@@ -136,7 +137,8 @@ public class BatchActionQueueImpl implements IBatchActionQueue {
     }
 
     @Override
-    public CompletionStage<Void> flushAsync(IOrmSessionImplementor session) {
+    public CompletionStage<Void> flushAsync() {
+        ILoadedOrmModel model = session.getLoadedOrmModel();
         try {
             this.flushing = true;
             List<CompletionStage<?>> futures = new ArrayList<>();
@@ -147,7 +149,7 @@ public class BatchActionQueueImpl implements IBatchActionQueue {
             for (Map.Entry<TopoEntry<? extends IEntityModel>, BatchActionHolder> entry : actionMap.entrySet()) {
                 IEntityModel entityModel = entry.getKey().getValue();
                 BatchActionHolder holder = entry.getValue();
-                IEntityPersister persister = env.requireEntityPersister(entityModel.getName());
+                IEntityPersister persister = model.requireEntityPersister(entityModel.getName());
                 CompletionStage<Void> future = persister.batchExecuteAsync(true, querySpace, holder.saveActions,
                         holder.getUpdateActions(), holder.deleteActions, session);
 
@@ -164,7 +166,7 @@ public class BatchActionQueueImpl implements IBatchActionQueue {
                         .entrySet()) {
                     IEntityModel entityModel = entry.getKey().getValue();
                     BatchActionHolder holder = entry.getValue();
-                    IEntityPersister persister = env.requireEntityPersister(entityModel.getName());
+                    IEntityPersister persister = model.requireEntityPersister(entityModel.getName());
 
                     CompletionStage<Void> future = persister.batchExecuteAsync(false, querySpace, holder.saveActions,
                             holder.getUpdateActions(), holder.deleteActions, session);

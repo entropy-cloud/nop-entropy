@@ -11,7 +11,6 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.dao.DaoConstants;
 import io.nop.orm.persister.BatchActionQueueImpl;
 import io.nop.orm.persister.IBatchActionQueue;
-import io.nop.orm.persister.IPersistEnv;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +24,7 @@ public class SessionBatchActionQueue {
      */
     Map<String, IBatchActionQueue> queues;
 
-    public IBatchActionQueue getBatchActionQueue(String querySpace, IPersistEnv env) {
+    public IBatchActionQueue getBatchActionQueue(String querySpace, IOrmSessionImplementor session) {
         // querSpace为map的key时，不允许为null
         if (querySpace == null)
             querySpace = DaoConstants.DEFAULT_QUERY_SPACE;
@@ -37,23 +36,23 @@ public class SessionBatchActionQueue {
 
         IBatchActionQueue queue = queues.get(querySpace);
         if (queue == null) {
-            queue = new BatchActionQueueImpl(querySpace, env);
+            queue = new BatchActionQueueImpl(querySpace, session);
         }
         queues.put(querySpace, queue);
         return queue;
     }
 
-    public void flush(IOrmSessionImplementor session) {
-        FutureHelper.syncGet(flushAsync(session));
+    public void flush() {
+        FutureHelper.syncGet(flushAsync());
     }
 
-    public CompletionStage<Void> flushAsync(IOrmSessionImplementor session) {
+    public CompletionStage<Void> flushAsync() {
         if (queues != null) {
             List<CompletionStage<?>> futures = new ArrayList<>();
             for (IBatchActionQueue queue : queues.values()) {
-                CompletionStage<?> future = queue.flushAsync(session);
+                CompletionStage<?> future = queue.flushAsync();
                 FutureHelper.collectWaiting(future, futures);
-                if(FutureHelper.isError(future)){
+                if (FutureHelper.isError(future)) {
                     break;
                 }
             }

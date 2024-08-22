@@ -87,6 +87,10 @@ public class OrmTemplateImpl extends AbstractSqlExecutor implements IOrmTemplate
 
     @Override
     public <T> T getExtension(String entityName, Class<T> extensionClass) {
+        IOrmSession session = currentSession();
+        if(session != null)
+            return session.getLoadedOrmModel().getExtension(entityName, extensionClass);
+
         return sessionFactory.getExtension(entityName, extensionClass);
     }
 

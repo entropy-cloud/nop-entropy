@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static io.nop.commons.cache.CacheConfig.newConfig;
 import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE;
@@ -62,21 +63,22 @@ public class DynCodeGen implements IResourceTenantInitializer, IDynamicBizModelP
     @InjectValue("@cfg:nop.dyn.format-gen-code|true")
     boolean formatGenCode;
 
-    private boolean registerTenant;
+    private boolean useTenant;
 
     private final InMemoryCodeCache codeCache = new InMemoryCodeCache();
-    private final ICache<String, InMemoryCodeCache> tenantCache = LocalCache.newCache("gen-code-cache",
-            newConfig(CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE.get()), this::initTenantCache);
+    private final ICache<String, AtomicReference<InMemoryCodeCache>> tenantCache = LocalCache.newCache("gen-code-cache",
+            newConfig(CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE.get()), k -> new AtomicReference<>());
 
     @PostConstruct
     @SingleSession
     public void init() {
-        boolean useTenant = isUseTenant();
+        useTenant = ContextProvider.runWithoutTenantId(
+                () -> daoProvider.daoFor(NopDynModule.class).isUseTenant());
+
         if (!useTenant && CFG_DYN_GEN_CODE_WHEN_INIT.get())
             generateForAllModules();
 
         if (useTenant) {
-            registerTenant = true;
             ResourceTenantManager.instance().addTenantInitializer(this);
             ResourceTenantManager.instance().setTenantModuleDiscovery(this);
         }
@@ -84,7 +86,7 @@ public class DynCodeGen implements IResourceTenantInitializer, IDynamicBizModelP
 
     @PreDestroy
     public void destroy() {
-        if (registerTenant) {
+        if (useTenant) {
             ResourceTenantManager.instance().removeTenantInitializer(this);
             ResourceTenantManager.instance().setTenantModuleDiscovery(null);
         }
@@ -93,21 +95,29 @@ public class DynCodeGen implements IResourceTenantInitializer, IDynamicBizModelP
     }
 
     public boolean isUseTenant() {
-        return daoProvider.daoFor(NopDynModule.class).isUseTenant();
+        return useTenant;
     }
 
     private InMemoryCodeCache initTenantCache(String tenantId) {
-        InMemoryCodeCache cache = new InMemoryCodeCache(tenantId);
-        generateForAllModules(cache);
-        cache.reloadModel(ormSessionFactory,bizObjectManager);
-        return cache;
+        return DynOrmModelHolder.runInitializeTask(() -> {
+            InMemoryCodeCache cache = new InMemoryCodeCache(tenantId);
+            generateForAllModules(cache);
+            cache.reloadModel(ormSessionFactory, bizObjectManager);
+            return cache;
+        });
     }
 
     public InMemoryCodeCache getCodeCache() {
         String tenantId = ContextProvider.currentTenantId();
         if (StringHelper.isEmpty(tenantId) || !isUseTenant())
             return codeCache;
-        return tenantCache.get(tenantId);
+        return tenantCache.get(tenantId).updateAndGet(k -> {
+            if (k == null) {
+                return initTenantCache(tenantId);
+            } else {
+                return k;
+            }
+        });
     }
 
     @Override

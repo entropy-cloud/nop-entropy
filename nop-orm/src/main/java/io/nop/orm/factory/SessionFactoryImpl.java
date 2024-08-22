@@ -12,8 +12,6 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.cache.ICacheProvider;
 import io.nop.commons.lang.IClassLoader;
-import io.nop.commons.util.IoHelper;
-import io.nop.core.model.graph.TopoEntry;
 import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.IBeanConstructor;
@@ -27,6 +25,7 @@ import io.nop.dao.shard.EmptyShardSelector;
 import io.nop.dao.shard.IShardSelector;
 import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.dao.utils.DaoHelper;
+import io.nop.orm.ILoadedOrmModel;
 import io.nop.orm.IOrmCachedQueryPlan;
 import io.nop.orm.IOrmComponent;
 import io.nop.orm.IOrmDaoListener;
@@ -34,7 +33,6 @@ import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmInterceptor;
 import io.nop.orm.IOrmSession;
 import io.nop.orm.QueryPlanCacheKey;
-import io.nop.orm.compile.EqlCompileContext;
 import io.nop.orm.driver.ICollectionPersistDriver;
 import io.nop.orm.driver.IEntityPersistDriver;
 import io.nop.orm.driver.jdbc.JdbcCollectionPersistDriver;
@@ -42,21 +40,12 @@ import io.nop.orm.driver.jdbc.JdbcEntityPersistDriver;
 import io.nop.orm.eql.ICompiledSql;
 import io.nop.orm.eql.IEqlAstTransformer;
 import io.nop.orm.eql.binder.IOrmColumnBinderEnhancer;
-import io.nop.orm.eql.compile.EqlCompiler;
-import io.nop.orm.eql.compile.ISqlCompileContext;
-import io.nop.orm.eql.meta.EntityTableMeta;
-import io.nop.orm.eql.meta.SqlExprMetaCache;
 import io.nop.orm.exceptions.OrmException;
 import io.nop.orm.impl.MultiOrmDaoListener;
 import io.nop.orm.loader.IQueryExecutor;
 import io.nop.orm.metrics.IOrmMetrics;
-import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
-import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IOrmModel;
-import io.nop.orm.model.init.OrmModelUpdater;
-import io.nop.orm.persister.ICollectionPersister;
-import io.nop.orm.persister.IEntityPersister;
 import io.nop.orm.persister.IPersistEnv;
 import io.nop.orm.session.OrmSessionImpl;
 import io.nop.orm.sql.IEntityFilterProvider;
@@ -73,11 +62,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.nop.orm.OrmErrors.ARG_BEAN_NAME;
-import static io.nop.orm.OrmErrors.ARG_COLLECTION_NAME;
-import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
 import static io.nop.orm.OrmErrors.ERR_ORM_BEAN_NOT_PROTOTYPE_SCOPE;
-import static io.nop.orm.OrmErrors.ERR_ORM_UNKNOWN_COLLECTION_PERSISTER;
-import static io.nop.orm.OrmErrors.ERR_ORM_UNKNOWN_ENTITY_PERSISTER;
 
 /**
  * @author canonical_entropy@163.com
@@ -109,9 +94,6 @@ public class SessionFactoryImpl implements IPersistEnv {
 
     private IDialectProvider dialectProvider;
 
-    private Map<String, IEntityPersister> entityPersisters = Collections.emptyMap();
-    private Map<String, ICollectionPersister> collectionPersisters = Collections.emptyMap();
-    private IOrmModel ormModel;
     private IOrmMetrics ormMetrics;
 
     private Class<?> defaultDynamicEntityClass = DynamicOrmEntity.class;
@@ -119,21 +101,11 @@ public class SessionFactoryImpl implements IPersistEnv {
 
     private IOrmColumnBinderEnhancer columnBinderEnhancer;
 
-    private SqlExprMetaCache sqlExprMetaCache;
+    private IEqlAstTransformer defaultAstTransformer;
 
-    private IEqlAstTransformer eqlAstTransformer;
+    private IOrmModelHolder ormModelHolder;
 
     private ISequenceGenerator sequenceGenerator;
-
-    private Runnable reloadFunction;
-
-    public Runnable getReloadFunction() {
-        return reloadFunction;
-    }
-
-    public void setReloadFunction(Runnable reloadFunction) {
-        this.reloadFunction = reloadFunction;
-    }
 
     @Override
     public ISequenceGenerator getSequenceGenerator() {
@@ -148,12 +120,25 @@ public class SessionFactoryImpl implements IPersistEnv {
         return columnBinderEnhancer;
     }
 
-    public void setEqlAstTransformer(IEqlAstTransformer eqlAstTransformer) {
-        this.eqlAstTransformer = eqlAstTransformer;
+    public void setDefaultAstTransformer(IEqlAstTransformer defaultAstTransformer) {
+        this.defaultAstTransformer = defaultAstTransformer;
+    }
+
+    public IEqlAstTransformer getDefaultAstTransformer() {
+        return defaultAstTransformer;
     }
 
     public void setEntityFilterProvider(IEntityFilterProvider entityFilterProvider) {
         this.entityFilterProvider = entityFilterProvider;
+    }
+
+    public void setOrmModelHolder(IOrmModelHolder ormModelHolder) {
+        this.ormModelHolder = ormModelHolder;
+    }
+
+    @Override
+    public ILoadedOrmModel getLoadedOrmModel() {
+        return ormModelHolder.getOrmModel(this);
     }
 
     @Override
@@ -311,26 +296,6 @@ public class SessionFactoryImpl implements IPersistEnv {
         this.dialectProvider = dialectProvider;
     }
 
-    public void setEntityPersisters(Map<String, IEntityPersister> entityPersisters) {
-        this.entityPersisters = entityPersisters;
-    }
-
-    public void setCollectionPersisters(Map<String, ICollectionPersister> collectionPersisters) {
-        this.collectionPersisters = collectionPersisters;
-    }
-
-    public SqlExprMetaCache getSqlExprMetaCache() {
-        return sqlExprMetaCache;
-    }
-
-    public void setSqlExprMetaCache(SqlExprMetaCache sqlExprMetaCache) {
-        this.sqlExprMetaCache = sqlExprMetaCache;
-    }
-
-    public EntityTableMeta resolveEntityTableMeta(String entityName, boolean allowUnderscoreName) {
-        return sqlExprMetaCache.getEntityTableMeta(entityName, allowUnderscoreName);
-    }
-
     public void clearQueryPlanCache() {
         this.getQueryPlanCache().clear();
     }
@@ -357,83 +322,26 @@ public class SessionFactoryImpl implements IPersistEnv {
 
     @Override
     public IOrmModel getOrmModel() {
-        return ormModel;
-    }
-
-    public void setOrmModel(IOrmModel ormModel) {
-        this.ormModel = ormModel;
-    }
-
-    @Override
-    public <T> T getExtension(String entityName, Class<T> extensionClass) {
-        return requireEntityPersister(entityName).getExtension(extensionClass);
-    }
-
-    @Override
-    public String getIdText(String entityName, String alias) {
-        IEntityModel entityModel = this.ormModel.requireEntityModel(entityName);
-        IEntityPropModel prop = entityModel.getIdProp();
-        IDialect dialect = this.getDialectForQuerySpace(entityModel.getQuerySpace());
-
-        if (prop.isColumnModel()) {
-            return alias + "." + dialect.escapeSQLName(((IColumnModel) prop).getCode());
-        } else {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0, n = entityModel.getPkColumns().size(); i < n; i++) {
-                String code = entityModel.getColumns().get(i).getCode();
-                sb.append(alias).append(".").append(dialect.escapeSQLName(code));
-                if (i != 0)
-                    sb.append(',');
-            }
-            return sb.toString();
-        }
+        return getLoadedOrmModel().getOrmModel();
     }
 
     @Override
     public ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete) {
-        return compileSql(name, sqlText, disableLogicalDelete, eqlAstTransformer, true, false, false);
+        return compileSql(name, sqlText, disableLogicalDelete, defaultAstTransformer, true, false, false);
     }
 
     @Override
     public ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete,
                                    boolean allowUnderscoreName, boolean enableFilter) {
-        return compileSql(name, sqlText, disableLogicalDelete, eqlAstTransformer, true, allowUnderscoreName, enableFilter);
+        return compileSql(name, sqlText, disableLogicalDelete, defaultAstTransformer, true, allowUnderscoreName, enableFilter);
     }
 
     @Override
     public ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete,
                                    IEqlAstTransformer astTransformer, boolean useCache,
                                    boolean allowUnderscoreName, boolean enableFilter) {
-        if (astTransformer == null)
-            astTransformer = this.eqlAstTransformer;
-
-        if (useCache) {
-            QueryPlanCacheKey key = new QueryPlanCacheKey(name, sqlText, disableLogicalDelete, allowUnderscoreName);
-            IOrmCachedQueryPlan result = getQueryPlanCache().get(key);
-            if (result == null || result.getCompiledSql() == null) {
-                ISqlCompileContext ctx = new EqlCompileContext(this, disableLogicalDelete,
-                        astTransformer, allowUnderscoreName, enableFilter);
-                ICompiledSql compiledSql = new EqlCompiler().compile(name, sqlText, ctx);
-                if (compiledSql.isUseTenantModel()) {
-                    TenantCachedQueryPlan tenantPlan;
-                    if (result instanceof TenantCachedQueryPlan) {
-                        tenantPlan = (TenantCachedQueryPlan) result;
-                    } else {
-                        tenantPlan = new TenantCachedQueryPlan();
-                        result = tenantPlan;
-                    }
-                    tenantPlan.addCompiledSql(compiledSql);
-                } else {
-                    result = new SimpleCachedQueryPlan(compiledSql);
-                }
-                getQueryPlanCache().put(key, result);
-            }
-            return result.getCompiledSql();
-        } else {
-            ISqlCompileContext ctx = new EqlCompileContext(this, disableLogicalDelete,
-                    astTransformer, allowUnderscoreName, enableFilter);
-            return new EqlCompiler().compile(name, sqlText, ctx);
-        }
+        return getLoadedOrmModel().compileSql(name, sqlText, disableLogicalDelete, astTransformer, useCache,
+                allowUnderscoreName, enableFilter);
     }
 
     @Override
@@ -448,27 +356,6 @@ public class SessionFactoryImpl implements IPersistEnv {
 
     public void setOrmMetrics(IOrmMetrics ormMetrics) {
         this.ormMetrics = ormMetrics;
-    }
-
-    @Override
-    public IEntityPersister requireEntityPersister(String entityName) {
-        IEntityPersister persister = entityPersisters.get(entityName);
-        if (persister == null)
-            throw new OrmException(ERR_ORM_UNKNOWN_ENTITY_PERSISTER).param(ARG_ENTITY_NAME, entityName);
-        return persister;
-    }
-
-    @Override
-    public ICollectionPersister requireCollectionPersister(String collectionName) {
-        ICollectionPersister persister = collectionPersisters.get(collectionName);
-        if (persister == null)
-            throw new OrmException(ERR_ORM_UNKNOWN_COLLECTION_PERSISTER).param(ARG_COLLECTION_NAME, collectionName);
-        return persister;
-    }
-
-    @Override
-    public TopoEntry<? extends IEntityModel> getEntityModelTopoEntry(String entityName) {
-        return ormModel.getTopoEntry(entityName);
     }
 
     @Override
@@ -548,16 +435,7 @@ public class SessionFactoryImpl implements IPersistEnv {
 
     @Override
     public void close() throws Exception {
-        for (IEntityPersister persister : this.entityPersisters.values()) {
-            IoHelper.safeCloseObject(persister);
-        }
-
-        for (ICollectionPersister persister : this.collectionPersisters.values()) {
-            IoHelper.safeCloseObject(persister);
-        }
-
-        this.entityPersisters.clear();
-        this.collectionPersisters.clear();
+        ormModelHolder.close();
     }
 
     public Object getBean(String name, boolean mustPrototype) {
@@ -570,13 +448,7 @@ public class SessionFactoryImpl implements IPersistEnv {
 
     @Override
     public void reloadModel() {
-        if (this.reloadFunction != null)
-            this.reloadFunction.run();
-    }
-
-    @Override
-    public void updateDynamicModel(Set<String> moduleNames, IOrmModel dynModel) {
-        // 更新所有标记为dynamic的模型。这里需要强制要求非dynamic的模型不会引用dynModel中的实体
-        this.ormModel = new OrmModelUpdater(ormModel).updateDynamicModel(moduleNames, dynModel);
+        ormModelHolder.clearCache();
+        ormModelHolder.getOrmModel(this);
     }
 }

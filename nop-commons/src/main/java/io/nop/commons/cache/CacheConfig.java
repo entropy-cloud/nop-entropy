@@ -134,6 +134,11 @@ public class CacheConfig implements Serializable {
         return this;
     }
 
+    public CacheConfig destroyOnRemove() {
+        this.setDestroyOnRemove(true);
+        return this;
+    }
+
     public boolean isUseMetrics() {
         return useMetrics;
     }

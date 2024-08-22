@@ -24,7 +24,6 @@ import io.nop.orm.IOrmInterceptor;
 import io.nop.orm.eql.IEqlAstTransformer;
 import io.nop.orm.eql.binder.IOrmColumnBinderEnhancer;
 import io.nop.orm.loader.IQueryExecutor;
-import io.nop.orm.model.IOrmModel;
 import io.nop.orm.sql.IEntityFilterProvider;
 import io.nop.orm.support.DynamicOrmEntity;
 import jakarta.annotation.Nullable;
@@ -68,8 +67,6 @@ public class SessionFactoryConfig {
     private Map<String, IQueryExecutor> queryExecutors = Collections.emptyMap();
 
     private IDialectProvider dialectProvider;
-
-    private IOrmModel ormModel;
 
     private ISequenceGenerator sequenceGenerator = UuidSequenceGenerator.INSTANCE;
 
@@ -158,14 +155,6 @@ public class SessionFactoryConfig {
 
     public void setSequenceGenerator(ISequenceGenerator sequenceGenerator) {
         this.sequenceGenerator = sequenceGenerator;
-    }
-
-    public IOrmModel getOrmModel() {
-        return ormModel;
-    }
-
-    public void setOrmModel(IOrmModel ormModel) {
-        this.ormModel = ormModel;
     }
 
     protected String buildFullName(String prefix) {

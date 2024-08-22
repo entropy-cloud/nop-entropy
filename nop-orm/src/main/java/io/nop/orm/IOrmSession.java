@@ -15,13 +15,15 @@ import io.nop.commons.cache.ICache;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dataset.IComplexDataSet;
 import io.nop.dataset.IDataSet;
-
 import jakarta.annotation.Nonnull;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 
 public interface IOrmSession extends AutoCloseable {
+
+    ILoadedOrmModel getLoadedOrmModel();
 
     void close();
 

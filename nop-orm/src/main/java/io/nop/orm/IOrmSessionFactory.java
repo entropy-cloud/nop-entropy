@@ -18,12 +18,10 @@ import io.nop.orm.eql.ICompiledSql;
 import io.nop.orm.eql.IEqlAstTransformer;
 import io.nop.orm.loader.IQueryExecutor;
 import io.nop.orm.model.IOrmModel;
-import io.nop.orm.sql.ISqlCompileTool;
 
 import java.io.Serializable;
-import java.util.Set;
 
-public interface IOrmSessionFactory extends AutoCloseable, IDialectProvider, ISqlCompileTool {
+public interface IOrmSessionFactory extends AutoCloseable, IDialectProvider {
 
     /**
      * 清空所有查询数据缓存
@@ -31,6 +29,8 @@ public interface IOrmSessionFactory extends AutoCloseable, IDialectProvider, ISq
     void clearQueryCache();
 
     ITransactionTemplate txn();
+
+    <T> T getExtension(String entityName, Class<T> extensionClass);
 
     /**
      * 清空指定查询缓存
@@ -48,8 +48,6 @@ public interface IOrmSessionFactory extends AutoCloseable, IDialectProvider, ISq
     ICacheProvider getGlobalCache();
 
     IOrmModel getOrmModel();
-
-    <T> T getExtension(String entityName, Class<T> extensionClass);
 
     IShardSelector getShardSelector();
 
@@ -72,11 +70,4 @@ public interface IOrmSessionFactory extends AutoCloseable, IDialectProvider, ISq
     IQueryExecutor getQueryExecutor(String querySpace);
 
     void reloadModel();
-
-    /**
-     * 更新指定几个模块的实体模型
-     *
-     * @param dynModel 包含指定模块中所有的实体模型
-     */
-    void updateDynamicModel(Set<String> moduleNames, IOrmModel dynModel);
 }

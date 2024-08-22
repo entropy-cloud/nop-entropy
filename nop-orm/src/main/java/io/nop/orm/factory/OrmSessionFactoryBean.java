@@ -18,21 +18,16 @@ import io.nop.commons.metrics.GlobalMeterRegistry;
 import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.IoHelper;
 import io.nop.orm.IOrmSessionFactory;
-import io.nop.orm.eql.meta.SqlExprMetaCache;
 import io.nop.orm.loader.JdbcQueryExecutor;
 import io.nop.orm.metrics.EmptyOrmMetricsImpl;
 import io.nop.orm.metrics.OrmMetricsImpl;
-import io.nop.orm.model.IOrmModel;
-import io.nop.orm.model.loader.OrmModelLoader;
-import io.nop.orm.persister.ICollectionPersister;
-import io.nop.orm.persister.IEntityPersister;
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Map;
 
 import static io.nop.commons.cache.CacheConfig.newConfig;
 import static io.nop.orm.OrmConfigs.CFG_ENTITY_GLOBAL_CACHE_SIZE;
@@ -48,6 +43,13 @@ public class OrmSessionFactoryBean extends SessionFactoryConfig implements IConf
     private SessionFactoryImpl sessionFactory;
 
     private ICacheManagement cacheManagement;
+
+    private IOrmModelHolder ormModelHolder;
+
+    @Inject
+    public void setOrmModelHolder(@Nullable IOrmModelHolder ormModelHolder) {
+        this.ormModelHolder = ormModelHolder;
+    }
 
     @Override
     public void refreshConfig() {
@@ -83,10 +85,11 @@ public class OrmSessionFactoryBean extends SessionFactoryConfig implements IConf
         impl.setDefaultDynamicEntityClass(getDefaultDynamicEntityClass());
         impl.setDynamicEntityNames(getDynamicEntityNames());
         impl.setColumnBinderEnhancer(getColumnBinderEnhancer());
-        impl.setEqlAstTransformer(getEqlAstTransformer());
+        impl.setDefaultAstTransformer(getEqlAstTransformer());
         impl.setInterceptors(getInterceptors());
         impl.setDaoListeners(getDaoListeners());
         impl.setEntityFilterProvider(getEntityFilterProvider());
+        impl.setSequenceGenerator(getSequenceGenerator());
 
         impl.setQueryPlanCache(LocalCache.newCache(buildFullName("orm-query-plan-cache"),
                 newConfig(CFG_QUERY_PLAN_CACHE_SIZE.get()).useMetrics()));
@@ -115,7 +118,7 @@ public class OrmSessionFactoryBean extends SessionFactoryConfig implements IConf
         }
 
         this.sessionFactory = impl;
-        reloadOrmModel();
+        setOrmModel(sessionFactory);
 
         if (this.isRegisterGlobalCache()) {
             cacheManagement = new OrmSessionFactoryCacheManagement();
@@ -157,28 +160,19 @@ public class OrmSessionFactoryBean extends SessionFactoryConfig implements IConf
             // EQL编译缓存
             sessionFactory.getQueryPlanCache().clear();
         }
+
+        IOrmModelHolder holder = this.ormModelHolder;
+        if(holder != null)
+            holder.clearCache();
     }
 
-    public void reloadOrmModel() {
-        IOrmModel ormModel = getOrmModel();
-        if (ormModel == null) {
-            ormModel = new OrmModelLoader().loadOrmModel();
+    private void setOrmModel(SessionFactoryImpl sessionFactory) {
+        IOrmModelHolder ormModelHolder = this.ormModelHolder;
+        if (ormModelHolder == null) {
+            ormModelHolder = new DefaultOrmModelHolder(sessionFactory);
         }
 
-        PersistEnvBuilder builder = new PersistEnvBuilder(ormModel, getSequenceGenerator(), sessionFactory);
-        builder.build();
-        Map<String, IEntityPersister> entityPersisters = builder.getEntityPersisters();
-        Map<String, ICollectionPersister> collectionPersisters = builder.getCollectionPersisters();
-
-        SqlExprMetaCache sqlExprMetaCache = new SqlExprMetaCache(sessionFactory.getColumnBinderEnhancer(),
-                sessionFactory.getDialectProvider(), ormModel);
-
-        sessionFactory.setEntityPersisters(entityPersisters);
-        sessionFactory.setCollectionPersisters(collectionPersisters);
-        sessionFactory.setOrmModel(ormModel);
-        sessionFactory.setSequenceGenerator(getSequenceGenerator());
-        sessionFactory.setSqlExprMetaCache(sqlExprMetaCache);
-        sessionFactory.setReloadFunction(this::reloadOrmModel);
+        sessionFactory.setOrmModelHolder(ormModelHolder);
     }
 
     @PreDestroy
@@ -190,6 +184,9 @@ public class OrmSessionFactoryBean extends SessionFactoryConfig implements IConf
         if (sessionFactory != null) {
             IoHelper.safeCloseObject(sessionFactory);
         }
+
+        if (ormModelHolder != null)
+            IoHelper.safeCloseObject(ormModelHolder);
     }
 
     public IOrmSessionFactory getObject() {

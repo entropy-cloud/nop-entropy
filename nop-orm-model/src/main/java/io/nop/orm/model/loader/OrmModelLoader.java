@@ -35,8 +35,8 @@ public class OrmModelLoader {
         return model;
     }
 
-    public OrmModel loadOrmModel() {
-        return loadOrmModel(ModuleManager.instance().getEnabledModules(false));
+    public OrmModel loadOrmModel(boolean includeTenant) {
+        return loadOrmModel(ModuleManager.instance().getEnabledModules(includeTenant));
     }
 
     public OrmModel loadOrmModel(Collection<ModuleModel> modules) {

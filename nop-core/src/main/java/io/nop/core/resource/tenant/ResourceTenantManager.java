@@ -52,6 +52,8 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
         _instance = Guard.notNull(instance, "instance");
     }
 
+    private static final ThreadLocal<Boolean> tenantInitializing = new ThreadLocal<>();
+
     private Set<String> enabledTenantPaths;
     private Set<String> disabledTenantPaths;
 
