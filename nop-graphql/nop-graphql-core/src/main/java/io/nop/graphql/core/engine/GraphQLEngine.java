@@ -326,8 +326,7 @@ public class GraphQLEngine implements IGraphQLEngine {
         }
         validateDocument(doc);
 
-        Map<String, Object> vars = request.getVariables();
-        GraphQLOperation op = (GraphQLOperation) doc.getDefinitions().get(0);
+        GraphQLOperation op = doc.getOperation();
         if (op.getSelectionSet() == null || op.getSelectionSet().isEmpty())
             throw new NopException(ERR_GRAPHQL_QUERY_NO_OPERATION);
 
@@ -337,6 +336,8 @@ public class GraphQLEngine implements IGraphQLEngine {
 
         context.setOperation(op);
         context.setExecutionId(request.getOperationId());
+
+        Map<String, Object> vars = request.getVariables();
         FieldSelectionBean selectionBean = buildSelectionBean(op.getName(), op.getSelectionSet(), vars);
         context.setFieldSelection(selectionBean);
     }
