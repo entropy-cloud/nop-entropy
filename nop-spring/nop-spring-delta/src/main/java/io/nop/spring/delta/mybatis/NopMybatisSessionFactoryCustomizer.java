@@ -29,7 +29,7 @@ public class NopMybatisSessionFactoryCustomizer implements SqlSessionFactoryBean
     @Override
     public void customize(SqlSessionFactoryBean factoryBean) {
 
-        List<IResource> resources = ModuleManager.instance().findModuleResources("/mapper", ".mapper.xml");
+        List<IResource> resources = ModuleManager.instance().findModuleResources(false, "/mapper", ".mapper.xml");
 
         if (!resources.isEmpty()) {
             List<Resource> locations = new ArrayList<>(resources.size());
