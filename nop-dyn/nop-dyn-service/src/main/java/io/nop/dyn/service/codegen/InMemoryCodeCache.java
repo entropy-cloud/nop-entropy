@@ -7,6 +7,7 @@ import io.nop.biz.impl.IDynamicBizModelProvider;
 import io.nop.codegen.XCodeGenerator;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.module.ModuleManager;
 import io.nop.core.module.ModuleModel;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
@@ -257,7 +258,8 @@ public class InMemoryCodeCache {
         }
     }
 
-    public synchronized void reloadModel(IOrmSessionFactory ormSessionFactory, IBizObjectManager bizObjectManager) {
+    public synchronized void reloadModel(IOrmSessionFactory ormSessionFactory,
+                                         IBizObjectManager bizObjectManager) {
         InMemoryResourceStore merged = new InMemoryResourceStore();
 
         this.moduleCoreStores.values().forEach(merged::merge);
@@ -272,6 +274,7 @@ public class InMemoryCodeCache {
             ResourceTenantManager.instance().updateTenantResourceStore(tenantId, merged);
         } else {
             VirtualFileSystem.instance().updateInMemoryLayer(merged);
+            ModuleManager.instance().updateDynamicModules(dynModules);
         }
 
         ormSessionFactory.reloadModel();

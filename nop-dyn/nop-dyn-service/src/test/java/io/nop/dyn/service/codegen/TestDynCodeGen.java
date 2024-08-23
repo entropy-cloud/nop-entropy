@@ -48,13 +48,21 @@ public class TestDynCodeGen extends JunitBaseTestCase {
     @Inject
     IGraphQLEngine graphQLEngine;
 
+    @Inject
+    DynOrmModelHolder ormModelHolder; // 单元测试时所有的bean都是延迟初始化，这里引入bean强制要求初始化
+
     @Test
     public void testGen() {
         saveModule();
 
         ormTemplate.runInSession(() -> {
             codeGen.generateForAllModules();
+
+            // 更新模型后在当前session中不可见，需要在下一次打开session时才课教案
             codeGen.reloadModel();
+        });
+
+        ormTemplate.runInSession(() -> {
 
             IEntityDao<NopDynEntity> dao = daoProvider.dao("MyDynEntity");
             dao.findAll();
@@ -81,6 +89,9 @@ public class TestDynCodeGen extends JunitBaseTestCase {
         ormTemplate.runInSession(() -> {
             codeGen.generateForAllModules();
             codeGen.reloadModel();
+        });
+
+        ormTemplate.runInSession(() -> {
 
             NopDynFunctionMeta func = getFuncMeta("myMethod");
             func.setSource("return 321");

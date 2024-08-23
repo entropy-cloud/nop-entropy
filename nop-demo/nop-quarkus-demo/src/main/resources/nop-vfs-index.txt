@@ -421,6 +421,7 @@
 /nop/dyn/model/NopDynFunctionMeta/_NopDynFunctionMeta.xbiz
 /nop/dyn/model/NopDynFunctionMeta/_NopDynFunctionMeta.xmeta
 /nop/dyn/model/NopDynModule/NopDynModule.xbiz
+/nop/dyn/model/NopDynModule/NopDynModule.xbiz.rej
 /nop/dyn/model/NopDynModule/NopDynModule.xmeta
 /nop/dyn/model/NopDynModule/_NopDynModule.xbiz
 /nop/dyn/model/NopDynModule/_NopDynModule.xmeta
@@ -1059,6 +1060,7 @@
 /nop/web/xlib/view-gen.xlib
 /nop/web/xlib/view-gen/impl_GenFromMeta.xpl
 /nop/web/xlib/web.xlib
+/nop/web/xlib/web.xlib.rej
 /nop/web/xlib/web/grid_crud.xpl
 /nop/web/xlib/web/impl_GenForm.xpl
 /nop/web/xlib/web/impl_GenGrid.xpl

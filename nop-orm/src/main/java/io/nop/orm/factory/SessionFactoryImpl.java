@@ -447,8 +447,8 @@ public class SessionFactoryImpl implements IPersistEnv {
     }
 
     @Override
-    public void reloadModel() {
+    public ILoadedOrmModel reloadModel() {
         ormModelHolder.clearCache();
-        ormModelHolder.getOrmModel(this);
+        return ormModelHolder.getOrmModel(this);
     }
 }

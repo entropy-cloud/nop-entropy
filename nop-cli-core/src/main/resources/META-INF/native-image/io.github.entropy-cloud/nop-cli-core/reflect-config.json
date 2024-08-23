@@ -2427,6 +2427,10 @@
         "parameterTypes": []
       },
       {
+        "name": "destroyOnRemove",
+        "parameterTypes": []
+      },
+      {
         "name": "expireAfterAccess",
         "parameterTypes": [
           "java.time.Duration"
@@ -15210,6 +15214,14 @@
         "parameterTypes": []
       },
       {
+        "name": "getExportFormattedValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExportFormula",
+        "parameterTypes": []
+      },
+      {
         "name": "getField",
         "parameterTypes": []
       },
@@ -15368,9 +15380,21 @@
         ]
       },
       {
+        "name": "setExportFormattedValue",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
         "name": "setExportFormula",
         "parameterTypes": [
           "boolean"
+        ]
+      },
+      {
+        "name": "setExportFormula",
+        "parameterTypes": [
+          "java.lang.Boolean"
         ]
       },
       {
@@ -17805,6 +17829,12 @@
       {
         "name": "reloadOrmModel",
         "parameterTypes": []
+      },
+      {
+        "name": "setOrmModelHolder",
+        "parameterTypes": [
+          "io.nop.orm.factory.IOrmModelHolder"
+        ]
       }
     ],
     "name": "io.nop.orm.factory.OrmSessionFactoryBean",
@@ -18858,6 +18888,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isTenantModel",
+        "parameterTypes": []
+      },
+      {
         "name": "isUseGlobalCache",
         "parameterTypes": []
       },
@@ -19413,6 +19447,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isTenantModel",
+        "parameterTypes": []
+      },
+      {
         "name": "setDependByOtherEntity",
         "parameterTypes": [
           "boolean"
@@ -19428,6 +19466,12 @@
         "name": "setRevLatestKeyColumns",
         "parameterTypes": [
           "java.util.List"
+        ]
+      },
+      {
+        "name": "setTenantModel",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {

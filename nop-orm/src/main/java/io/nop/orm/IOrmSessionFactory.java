@@ -69,5 +69,5 @@ public interface IOrmSessionFactory extends AutoCloseable, IDialectProvider {
 
     IQueryExecutor getQueryExecutor(String querySpace);
 
-    void reloadModel();
+    ILoadedOrmModel reloadModel();
 }

@@ -12,6 +12,8 @@ entity:
     NopDynModule: 模块定义
     NopDynModuleDep: 模块依赖
     NopDynPage: 页面定义
+    NopDynPatch: 补丁定义
+    NopDynPatchFile: 补丁文件
     NopDynPropMeta: 属性元数据
     NopDynSql: SQL定义
 prop:
@@ -265,6 +267,38 @@ prop:
       pageName: 页面名称
       pageSchemaType: 页面类型
       pageSchemaType_label: 页面类型
+      remark: 备注
+      status: 状态
+      status_label: 状态
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopDynPatch:
+      createTime: 创建时间
+      createdBy: 创建人
+      displayName: 显示名
+      patchFiles: 补丁文件
+      patchId: 补丁ID
+      patchName: 补丁名
+      patchOrder: 补丁顺序
+      status: 状态
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopDynPatchFile:
+      createTime: 创建时间
+      createdBy: 创建人
+      fileId: 文件ID
+      fileLength: 文件大小
+      fileName: 文件名称
+      filePath: 文件路径
+      fileType: 文件类型
+      module: 所属模块
+      module.displayName: 所属模块
+      moduleId: 模块ID
+      patch: 所属补丁
+      patch.displayName: 所属补丁
+      patchId: 补丁ID
       remark: 备注
       status: 状态
       status_label: 状态

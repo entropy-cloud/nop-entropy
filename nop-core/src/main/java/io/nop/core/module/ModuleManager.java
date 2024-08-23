@@ -42,6 +42,8 @@ public class ModuleManager {
 
     private static ModuleManager _instance = new ModuleManager();
 
+    private final AtomicReference<Map<String, ModuleModel>> dynamicModules = new AtomicReference<>();
+
     public static void registerInstance(ModuleManager instance) {
         _instance = instance;
     }
@@ -122,6 +124,10 @@ public class ModuleManager {
             ret.putAll(map);
         }
 
+        Map<String, ModuleModel> dynamics = dynamicModules.get();
+        if (dynamics != null)
+            ret.putAll(dynamics);
+
         if (includeTenant) {
             String tenantId = getTenantId();
             if (!StringHelper.isEmpty(tenantId) && ResourceTenantManager.instance().getTenantModuleDiscovery() != null) {
@@ -134,9 +140,12 @@ public class ModuleManager {
         return ret;
     }
 
+    public void updateDynamicModules(Map<String, ModuleModel> dynamicModules) {
+        this.dynamicModules.set(dynamicModules);
+    }
+
     public Collection<ModuleModel> getEnabledModules(boolean includeTenant) {
         return getEnabledModuleMap(includeTenant).values();
-
     }
 
     public Set<String> getEnabledModuleNames(boolean includeTenant) {
