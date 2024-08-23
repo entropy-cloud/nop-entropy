@@ -17,7 +17,6 @@ import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IOrmModel;
-import io.nop.orm.model.OrmModel;
 import io.nop.orm.persister.ICollectionPersister;
 import io.nop.orm.persister.IEntityPersister;
 import io.nop.orm.persister.IPersistEnv;
@@ -26,13 +25,13 @@ import java.util.Map;
 
 public class LoadedOrmModel implements ILoadedOrmModel {
     private final IPersistEnv env;
-    private final OrmModel ormModel;
+    private final IOrmModel ormModel;
     private final Map<String, IEntityPersister> entityPersisters;
     private final Map<String, ICollectionPersister> collectionPersisters;
     private final SqlExprMetaCache sqlExprMetaCache;
     private IOrmInterceptor ormInterceptor;
 
-    public LoadedOrmModel(IPersistEnv env, OrmModel ormModel) {
+    public LoadedOrmModel(IPersistEnv env, IOrmModel ormModel) {
         this.env = env;
         PersistEnvBuilder builder = new PersistEnvBuilder(ormModel, env.getSequenceGenerator(), env);
         builder.build();
