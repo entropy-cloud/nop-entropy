@@ -13,7 +13,7 @@ import io.nop.commons.concurrent.ContextualizedRegistry;
 import io.nop.orm.IOrmSession;
 import io.nop.orm.IOrmSessionFactory;
 
-class OrmSessionRegistry extends ContextualizedRegistry<IOrmSessionFactory, IOrmSession> {
+public class OrmSessionRegistry extends ContextualizedRegistry<IOrmSessionFactory, IOrmSession> {
     static final String CONTEXT_KEY = OrmSessionRegistry.class.getSimpleName();
 
     public static OrmSessionRegistry instance() {

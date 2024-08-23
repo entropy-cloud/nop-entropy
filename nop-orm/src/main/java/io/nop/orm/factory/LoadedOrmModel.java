@@ -5,6 +5,7 @@ import io.nop.dao.dialect.IDialect;
 import io.nop.orm.ILoadedOrmModel;
 import io.nop.orm.IOrmCachedQueryPlan;
 import io.nop.orm.IOrmInterceptor;
+import io.nop.orm.IOrmSession;
 import io.nop.orm.QueryPlanCacheKey;
 import io.nop.orm.compile.EqlCompileContext;
 import io.nop.orm.eql.ICompiledSql;
@@ -13,6 +14,7 @@ import io.nop.orm.eql.compile.EqlCompiler;
 import io.nop.orm.eql.compile.ISqlCompileContext;
 import io.nop.orm.eql.meta.EntityTableMeta;
 import io.nop.orm.eql.meta.SqlExprMetaCache;
+import io.nop.orm.impl.OrmSessionRegistry;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
@@ -134,6 +136,15 @@ public class LoadedOrmModel implements ILoadedOrmModel {
 
     @Override
     public void close() {
+        IOrmSession session = OrmSessionRegistry.instance().get(env);
+        if (session != null && session.getLoadedOrmModel() == this) {
+            session.addOnClose(this::doClose);
+        } else {
+            doClose();
+        }
+    }
+
+    private void doClose() {
         for (IEntityPersister persister : this.entityPersisters.values()) {
             IoHelper.safeCloseObject(persister);
         }
@@ -141,8 +152,5 @@ public class LoadedOrmModel implements ILoadedOrmModel {
         for (ICollectionPersister persister : this.collectionPersisters.values()) {
             IoHelper.safeCloseObject(persister);
         }
-
-        this.entityPersisters.clear();
-        this.collectionPersisters.clear();
     }
 }

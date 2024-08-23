@@ -52,6 +52,8 @@ public interface IOrmSession extends AutoCloseable {
 
     boolean isClosed();
 
+    void addOnClose(Runnable task);
+
     /**
      * 在session范围内有效的缓存。
      */

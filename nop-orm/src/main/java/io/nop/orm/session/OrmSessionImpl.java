@@ -55,6 +55,7 @@ import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -124,6 +125,8 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     // 这里总使用当前的context，不需要自己创建
     private final IContext context = ContextProvider.currentContext();
 
+    private List<Runnable> onClose;
+
     public OrmSessionImpl(boolean stateless, IPersistEnv env, List<IOrmInterceptor> interceptors) {
         this.env = env;
         this.loadedOrmModel = env.getLoadedOrmModel();
@@ -164,6 +167,13 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     @Override
     public boolean isDirty() {
         return dirty;
+    }
+
+    @Override
+    public void addOnClose(Runnable task) {
+        if (onClose == null)
+            onClose = new ArrayList<>();
+        onClose.add(task);
     }
 
     @Override
@@ -737,6 +747,15 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
         if (sessionCache != null)
             sessionCache.clear();
         closed = true;
+
+        if (onClose != null)
+            for (Runnable task : onClose) {
+                try {
+                    task.run();
+                } catch (Exception e) {
+                    LOG.error("nop.orm.session-on-close-fail", e);
+                }
+            }
     }
 
     IOrmEntity makeProxy(String entityName, Object id) {
