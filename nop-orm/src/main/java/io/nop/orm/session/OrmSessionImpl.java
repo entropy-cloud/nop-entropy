@@ -130,6 +130,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     public OrmSessionImpl(boolean stateless, IPersistEnv env, List<IOrmInterceptor> interceptors) {
         this.env = env;
         this.loadedOrmModel = env.getLoadedOrmModel();
+        this.loadedOrmModel.incRef();
         this.cache = stateless ? new StatelessOrmSessionEntityCache(this) :
                 (loadedOrmModel.isAnyEntityUseTenant() ? new TenantOrmSessionEntityCache(this) : new OrmSessionEntityCache(this));
         this.interceptors = CollectionHelper.toNotNull(interceptors);
@@ -742,6 +743,8 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
         env.getOrmMetrics().onSessionClosed();
 
         LOG.debug("orm.session_close:{}", this);
+
+        this.loadedOrmModel.decRef();
 
         cache.clear();
         if (sessionCache != null)

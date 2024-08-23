@@ -19,6 +19,10 @@ import static io.nop.orm.OrmErrors.ERR_ORM_UNKNOWN_ENTITY_PERSISTER;
 public interface ILoadedOrmModel extends AutoCloseable, ISqlCompileTool {
     IOrmModel getOrmModel();
 
+    void incRef();
+
+    void decRef();
+
     default boolean isAnyEntityUseTenant() {
         return getOrmModel().isAnyEntityUseTenant();
     }

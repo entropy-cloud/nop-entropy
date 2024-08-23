@@ -5,7 +5,6 @@ import io.nop.dao.dialect.IDialect;
 import io.nop.orm.ILoadedOrmModel;
 import io.nop.orm.IOrmCachedQueryPlan;
 import io.nop.orm.IOrmInterceptor;
-import io.nop.orm.IOrmSession;
 import io.nop.orm.QueryPlanCacheKey;
 import io.nop.orm.compile.EqlCompileContext;
 import io.nop.orm.eql.ICompiledSql;
@@ -14,7 +13,6 @@ import io.nop.orm.eql.compile.EqlCompiler;
 import io.nop.orm.eql.compile.ISqlCompileContext;
 import io.nop.orm.eql.meta.EntityTableMeta;
 import io.nop.orm.eql.meta.SqlExprMetaCache;
-import io.nop.orm.impl.OrmSessionRegistry;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
@@ -24,6 +22,7 @@ import io.nop.orm.persister.IEntityPersister;
 import io.nop.orm.persister.IPersistEnv;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class LoadedOrmModel implements ILoadedOrmModel {
     private final IPersistEnv env;
@@ -32,6 +31,9 @@ public class LoadedOrmModel implements ILoadedOrmModel {
     private final Map<String, ICollectionPersister> collectionPersisters;
     private final SqlExprMetaCache sqlExprMetaCache;
     private IOrmInterceptor ormInterceptor;
+
+    private volatile boolean needClose;
+    private final AtomicInteger refCount = new AtomicInteger();
 
     public LoadedOrmModel(IPersistEnv env, IOrmModel ormModel) {
         this.env = env;
@@ -136,11 +138,21 @@ public class LoadedOrmModel implements ILoadedOrmModel {
 
     @Override
     public void close() {
-        IOrmSession session = OrmSessionRegistry.instance().get(env);
-        if (session != null && session.getLoadedOrmModel() == this) {
-            session.addOnClose(this::doClose);
-        } else {
+        this.needClose = true;
+        // 如果仍有引用，则延迟销毁
+        if (refCount.get() <= 0)
             doClose();
+    }
+
+    public void incRef() {
+        refCount.incrementAndGet();
+    }
+
+    public void decRef() {
+        if (refCount.decrementAndGet() == 0) {
+            if (needClose) {
+                doClose();
+            }
         }
     }
 
