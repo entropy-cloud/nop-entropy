@@ -27,6 +27,11 @@ public class GraphQLFragmentSelection extends _GraphQLFragmentSelection {
     }
 
     @Override
+    public String getAliasOrName(){
+        return getFragmentName();
+    }
+
+    @Override
     public boolean isExceedDepth(int maxDepth) {
         if (resolvedFragment == null)
             return true;

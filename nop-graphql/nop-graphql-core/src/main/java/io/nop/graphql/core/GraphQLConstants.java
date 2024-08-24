@@ -154,4 +154,6 @@ public interface GraphQLConstants {
     String FRAGMENT_SELECTION_PREFIX = "F_";
 
     String FRAGMENT_DEFAULTS = "F_defaults";
+
+    String SYS_OPERATION_FETCH_RESULTS = "__fetchResult";
 }

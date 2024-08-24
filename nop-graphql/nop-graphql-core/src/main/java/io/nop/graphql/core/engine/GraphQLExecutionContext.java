@@ -46,7 +46,7 @@ public class GraphQLExecutionContext implements IGraphQLExecutionContext {
 
     public GraphQLExecutionContext(IServiceContext serviceContext) {
         this.serviceContext = serviceContext == null ? new ServiceContextImpl() : serviceContext;
-        serviceContext.getEvalScope().setLocalValue(GraphQLConstants.VAR_GQL_CTX, this);
+        this.serviceContext.getEvalScope().setLocalValue(GraphQLConstants.VAR_GQL_CTX, this);
     }
 
     public GraphQLExecutionContext() {

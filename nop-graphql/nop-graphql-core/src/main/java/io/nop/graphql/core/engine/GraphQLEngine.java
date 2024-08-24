@@ -21,6 +21,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.cache.LocalCache;
 import io.nop.commons.functional.IAsyncFunctionInvoker;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.context.IServiceContext;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.resource.cache.ResourceCacheEntryWithLoader;
 import io.nop.graphql.core.GraphQLConfigs;
@@ -37,6 +38,7 @@ import io.nop.graphql.core.ast.GraphQLOperation;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.ast.GraphQLSelection;
 import io.nop.graphql.core.ast.GraphQLSelectionSet;
+import io.nop.graphql.core.ast.GraphQLType;
 import io.nop.graphql.core.ast.GraphQLTypeDefinition;
 import io.nop.graphql.core.ast.GraphQLVariableDefinition;
 import io.nop.graphql.core.parse.GraphQLDocumentParser;
@@ -45,6 +47,7 @@ import io.nop.graphql.core.rpc.RpcServiceOnGraphQL;
 import io.nop.graphql.core.schema.BuiltinSchemaLoader;
 import io.nop.graphql.core.schema.GraphQLSchema;
 import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
+import io.nop.graphql.core.utils.GraphQLTypeHelper;
 import io.nop.rpc.api.flowcontrol.IFlowControlRunner;
 import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
@@ -52,6 +55,7 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -63,6 +67,7 @@ import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_PARSE_CACHE_CHECK_C
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_QUERY_MAX_DEPTH;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_QUERY_MAX_OPERATION_COUNT;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_SCHEMA_INTROSPECTION_ENABLED;
+import static io.nop.graphql.core.GraphQLConstants.SYS_OPERATION_FETCH_RESULTS;
 import static io.nop.graphql.core.GraphQLErrors.ARG_ALLOWED_NAMES;
 import static io.nop.graphql.core.GraphQLErrors.ARG_ARG_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_COUNT;
@@ -308,8 +313,8 @@ public class GraphQLEngine implements IGraphQLEngine {
     }
 
     @Override
-    public IGraphQLExecutionContext newGraphQLContext() {
-        GraphQLExecutionContext context = new GraphQLExecutionContext();
+    public IGraphQLExecutionContext newGraphQLContextFromContext(IServiceContext ctx) {
+        GraphQLExecutionContext context = new GraphQLExecutionContext(ctx);
 
         if (enableActionAuth)
             context.setActionAuthChecker(actionAuthChecker);
@@ -383,14 +388,27 @@ public class GraphQLEngine implements IGraphQLEngine {
             checkOperationArgs(action, map);
         }
 
+        GraphQLFieldSelection field = initForReturnType(context, opType, operationName,
+                request.getData(), action.getType(), request.getSelection());
+        field.setFieldDefinition(action);
+    }
+
+    private GraphQLFieldSelection initForReturnType(IGraphQLExecutionContext context,
+                                                    GraphQLOperationType operationType, String operationName, Object request,
+                                                    GraphQLType returnType, FieldSelectionBean selectionBean) {
         GraphQLDocument doc = new GraphQLDocument();
-        GraphQLFieldSelection selection = doc.addOperation(action.getOperationType(), operationName, request.getData());
+        GraphQLFieldSelection selection = doc.addOperation(operationType, operationName, request);
+        if (operationName.equals(SYS_OPERATION_FETCH_RESULTS)) {
+            GraphQLFieldDefinition mockField = new GraphQLFieldDefinition();
+            mockField.setName(operationName);
+            mockField.setType(returnType);
+            selection.setFieldDefinition(mockField);
+        }
 
         GraphQLSelectionSet selectionSet = new RpcSelectionSetBuilder(this.builtinSchema, schemaLoader,
-                CFG_GRAPHQL_QUERY_MAX_DEPTH.get()).buildForType(action.getType(), request.getSelection());
+                CFG_GRAPHQL_QUERY_MAX_DEPTH.get()).buildForType(returnType, selectionBean);
 
         selection.setSelectionSet(selectionSet);
-        selection.setFieldDefinition(action);
         resolveSelections(doc, CFG_GRAPHQL_QUERY_MAX_DEPTH.get());
 
         ParsedGraphQLRequest req = new ParsedGraphQLRequest();
@@ -404,6 +422,7 @@ public class GraphQLEngine implements IGraphQLEngine {
         FieldSelectionBean fieldSelection = buildSelectionBean(operationName, op.getSelectionSet(), Collections.emptyMap());
 
         context.setFieldSelection(fieldSelection);
+        return selection;
     }
 
     private void validateSelection(FieldSelectionBean selection) {
@@ -557,8 +576,20 @@ public class GraphQLEngine implements IGraphQLEngine {
     }
 
     @Override
-    public CompletionStage<Object> fetchResult(Object result, IGraphQLExecutionContext context) {
+    public CompletionStage<Object> fetchResultWithSelection(Object result, String resultType,
+                                                            FieldSelectionBean selectionBean, IServiceContext ctx) {
         IGraphQLExecutor executor = new GraphQLExecutor(operationInvoker, graphQLHook, flowControlRunner, this);
+
+        GraphQLType gqlType = new GraphQLDocumentParser().parseType(null, resultType);
+        if (result instanceof Collection) {
+            if (!gqlType.isListType()) {
+                gqlType = GraphQLTypeHelper.listType(gqlType);
+            }
+        }
+        IGraphQLExecutionContext context = newGraphQLContextFromContext(ctx);
+
+        initForReturnType(context, GraphQLOperationType.query, SYS_OPERATION_FETCH_RESULTS, result, gqlType, selectionBean);
+
         return executor.fetchResult(result, context);
     }
 }

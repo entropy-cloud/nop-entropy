@@ -16,6 +16,7 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.auth.core.login.UserContextImpl;
 import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.autotest.junit.JunitAutoTestCase;
+import io.nop.core.context.IServiceContext;
 import io.nop.core.model.selection.FieldSelectionBeanParser;
 import io.nop.core.type.IGenericType;
 import io.nop.dao.api.IDaoProvider;
@@ -23,11 +24,15 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.IGraphQLEngine;
+import io.nop.orm.IOrmTemplate;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.concurrent.CompletionStage;
 
 import static io.nop.auth.service.AuthTestHelper.saveRole;
 import static io.nop.auth.service.AuthTestHelper.saveUser;
@@ -41,6 +46,9 @@ public class TestNopAuthUserBizModel extends JunitAutoTestCase {
 
     @Inject
     IDaoProvider daoProvider;
+
+    @Inject
+    IOrmTemplate ormTemplate;
 
     @EnableSnapshot
     @Test
@@ -113,5 +121,19 @@ public class TestNopAuthUserBizModel extends JunitAutoTestCase {
         saveUser("user1");
         saveRole("test");
         saveUserRole("user1", "test");
+    }
+
+    @EnableSnapshot
+    @Test
+    public void testFetchResult() {
+        prepareData();
+        ormTemplate.runInSession(() -> {
+            IEntityDao<NopAuthUser> user = daoProvider.daoFor(NopAuthUser.class);
+            List<NopAuthUser> list = user.findAll();
+            IServiceContext svcCtx = null; // 在后端模板运行时上下文中一般存在svcCtx
+            CompletionStage<Object> future = graphQLEngine.fetchResult(list,
+                    "NopAuthUser", "...F_defaults,status_label,relatedRoleList", svcCtx);
+            output("result.json5", FutureHelper.syncGet(future));
+        });
     }
 }

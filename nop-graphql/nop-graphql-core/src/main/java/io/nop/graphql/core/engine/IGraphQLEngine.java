@@ -13,6 +13,9 @@ import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.commons.util.StringHelper;
+import io.nop.core.context.IServiceContext;
+import io.nop.core.model.selection.FieldSelectionBeanParser;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ParsedGraphQLRequest;
 import io.nop.graphql.core.ast.GraphQLDirectiveDefinition;
@@ -52,7 +55,7 @@ public interface IGraphQLEngine {
      */
     FieldSelectionBean buildSelectionBean(String name, GraphQLSelectionSet selectionSet, Map<String, Object> vars);
 
-    IGraphQLExecutionContext newGraphQLContext();
+    IGraphQLExecutionContext newGraphQLContextFromContext(IServiceContext context);
 
     void initGraphQLContext(IGraphQLExecutionContext context, ParsedGraphQLRequest request);
 
@@ -66,20 +69,24 @@ public interface IGraphQLEngine {
         return parsed;
     }
 
-    default IGraphQLExecutionContext newGraphQLContext(ParsedGraphQLRequest request) {
-        IGraphQLExecutionContext context = newGraphQLContext();
+    default IGraphQLExecutionContext newGraphQLContextForParsedRequest(ParsedGraphQLRequest request, IServiceContext ctx) {
+        IGraphQLExecutionContext context = newGraphQLContextFromContext(ctx);
         initGraphQLContext(context, request);
         return context;
     }
 
-    default IGraphQLExecutionContext newGraphQLContext(GraphQLRequestBean request) {
+    default IGraphQLExecutionContext newGraphQLContext(GraphQLRequestBean request, IServiceContext ctx) {
         GraphQLDocument doc = parseOperation(request.getQuery(), false);
         ParsedGraphQLRequest parsed = new ParsedGraphQLRequest();
         parsed.setOperationId(request.getOperationId());
         parsed.setDocument(doc);
         parsed.setExtensions(request.getExtensions());
         parsed.setVariables(request.getVariables());
-        return newGraphQLContext(parsed);
+        return newGraphQLContextForParsedRequest(parsed, ctx);
+    }
+
+    default IGraphQLExecutionContext newGraphQLContext(GraphQLRequestBean request) {
+        return newGraphQLContext(request, null);
     }
 
     boolean cancel(String requestId);
@@ -105,13 +112,27 @@ public interface IGraphQLEngine {
                         String operationName, ApiRequest<?> request);
 
     default IGraphQLExecutionContext newRpcContext(GraphQLOperationType opType, String operationName,
-                                                   ApiRequest<?> request) {
-        IGraphQLExecutionContext context = newGraphQLContext();
+                                                   ApiRequest<?> request, IServiceContext ctx) {
+        IGraphQLExecutionContext context = newGraphQLContextFromContext(ctx);
         initRpcContext(context, opType, operationName, request);
         return context;
     }
 
-    CompletionStage<Object> fetchResult(Object result, IGraphQLExecutionContext context);
+    default IGraphQLExecutionContext newRpcContext(GraphQLOperationType opType, String operationName,
+                                                   ApiRequest<?> request) {
+        return newRpcContext(opType, operationName, request, null);
+    }
+
+    CompletionStage<Object> fetchResultWithSelection(Object result, String resultType,
+                                                     FieldSelectionBean selectionBean, IServiceContext ctx);
+
+    default CompletionStage<Object> fetchResult(Object result, String resultType, String selection, IServiceContext ctx) {
+        FieldSelectionBean selectionBean = null;
+        if (!StringHelper.isBlank(selection)) {
+            selectionBean = new FieldSelectionBeanParser().parseFromText(null, selection);
+        }
+        return fetchResultWithSelection(result, resultType, selectionBean, ctx);
+    }
 
     GraphQLResponseBean buildGraphQLResponse(Object result, Throwable err, IGraphQLExecutionContext context);
 

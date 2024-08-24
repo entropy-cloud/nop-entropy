@@ -74,7 +74,8 @@ public class RpcSelectionSetBuilder {
         }
     }
 
-    void addNonLazyFields(GraphQLSelectionSet selectionSet, GraphQLObjectDefinition objDef, int level,
+    void addNonLazyFields(GraphQLSelectionSet selectionSet,
+                          GraphQLObjectDefinition objDef, int level,
                           FieldSelectionBean selectionBean) {
         if (selectionBean != null && !selectionBean.getFields().isEmpty()) {
             addFieldsForSelection(selectionSet, objDef, level, selectionBean);
@@ -90,7 +91,7 @@ public class RpcSelectionSetBuilder {
                 return;
             }
 
-            addDefaultFieldsForObjType(selectionSet, objDef, level);
+            addDefaultFieldsForObjType(selectionSet, selectionBean, objDef, level);
         }
     }
 
@@ -101,7 +102,7 @@ public class RpcSelectionSetBuilder {
             if (alias.startsWith("...")) {
                 // fragment,
                 String fragmentName = alias.substring("...".length());
-                addFragment(selectionSet, objDef, fragmentName, level);
+                addFragment(selectionSet, selectionBean, objDef, fragmentName, level);
                 continue;
             }
             FieldSelectionBean subSelection = entry.getValue();
@@ -122,11 +123,16 @@ public class RpcSelectionSetBuilder {
         }
     }
 
-    void addDefaultFieldsForObjType(GraphQLSelectionSet selectionSet, GraphQLObjectDefinition objType, int level) {
+    void addDefaultFieldsForObjType(GraphQLSelectionSet selectionSet,
+                                    FieldSelectionBean assignedSelection,
+                                    GraphQLObjectDefinition objType, int level) {
         for (GraphQLFieldDefinition fieldDef : objType.getFields()) {
             if (isLazy(fieldDef)) {
                 continue;
             }
+
+            if (assignedSelection != null && assignedSelection.hasField(fieldDef.getName()))
+                continue;
 
             GraphQLFieldSelection field = buildField(objType, fieldDef, null, level);
             if (field != null)
@@ -134,11 +140,12 @@ public class RpcSelectionSetBuilder {
         }
     }
 
-    private void addFragment(GraphQLSelectionSet selectionSet, GraphQLObjectDefinition objType, String fragmentName, int level) {
+    private void addFragment(GraphQLSelectionSet selectionSet, FieldSelectionBean assignedSelection,
+                             GraphQLObjectDefinition objType, String fragmentName, int level) {
         FieldSelectionBean fragment = this.schemaLoader.getFragmentDefinition(objType.getName(), fragmentName);
         if (fragment == null) {
             if (GraphQLConstants.FRAGMENT_DEFAULTS.equals(fragmentName)) {
-                addDefaultFieldsForObjType(selectionSet, objType, level);
+                addDefaultFieldsForObjType(selectionSet, assignedSelection, objType, level);
                 return;
             }
 

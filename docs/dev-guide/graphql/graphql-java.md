@@ -618,3 +618,15 @@ public enum GraphQLScalarType {
 <prop name="createTime" graphql:datePattern="ms">
 </prop>
 ```
+
+## 使用GraphQL的加载器来加载对象属性
+例如使用dao获取到User对象之后，希望自动根据status获取到`status_label`属性。
+
+```javascript
+IEntityDao<NopAuthUser> user = daoProvider.daoFor(NopAuthUser.class);
+List<NopAuthUser> list = user.findAll();
+IServiceContext svcCtx = null; // 在后端模板运行时上下文中一般存在svcCtx
+CompletionStage<Object> future = graphQLEngine.fetchResult(list,
+        "NopAuthUser", "...F_defaults,status_label,relatedRoleList", svcCtx);
+output("result.json5", FutureHelper.syncGet(future));
+```

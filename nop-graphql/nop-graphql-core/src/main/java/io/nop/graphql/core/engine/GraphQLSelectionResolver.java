@@ -119,8 +119,10 @@ public class GraphQLSelectionResolver {
         for (GraphQLSelection selection : op.getSelectionSet().getSelections()) {
             if (selection instanceof GraphQLFieldSelection) {
                 GraphQLFieldSelection fieldSelection = (GraphQLFieldSelection) selection;
-                GraphQLFieldDefinition fieldDef = engine.getOperationDefinition(op.getOperationType(),
-                        fieldSelection.getName());
+                GraphQLFieldDefinition fieldDef = fieldSelection.getFieldDefinition();
+                if (fieldDef == null)
+                    fieldDef = engine.getOperationDefinition(op.getOperationType(),
+                            fieldSelection.getName());
                 if (fieldDef == null) {
                     throw new NopException(ERR_GRAPHQL_UNDEFINED_OPERATION).source(op)
                             .param(ARG_OPERATION_NAME, fieldSelection.getName())
@@ -206,8 +208,8 @@ public class GraphQLSelectionResolver {
         } else {
             GraphQLSelectionSet copy = selectionSet.deepClone();
             fieldSelection.setSelectionSet(copy);
-            GraphQLFieldSelection selection = copy.getSelection(fieldSelection.getAliasOrName());
-            expandTreeChildren(copy, selection, maxLevel - 1);
+            GraphQLSelection selection = copy.getSelection(fieldSelection.getAliasOrName());
+            expandTreeChildren(copy, (GraphQLFieldSelection) selection, maxLevel - 1);
         }
     }
 

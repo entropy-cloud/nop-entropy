@@ -11,4 +11,6 @@ import io.nop.graphql.core.ast._gen._GraphQLSelection;
 
 public abstract class GraphQLSelection extends _GraphQLSelection {
     public abstract boolean isExceedDepth(int maxDepth);
+
+    public abstract String getAliasOrName();
 }

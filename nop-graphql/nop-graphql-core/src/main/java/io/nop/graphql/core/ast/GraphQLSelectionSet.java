@@ -11,10 +11,14 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.graphql.core.ast._gen._GraphQLSelectionSet;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class GraphQLSelectionSet extends _GraphQLSelectionSet {
 
     private GraphQLObjectDefinition objectDefinition;
+
+    private Map<String, GraphQLSelection> selectionMap;
 
     public GraphQLObjectDefinition getObjectDefinition() {
         return objectDefinition;
@@ -36,20 +40,24 @@ public class GraphQLSelectionSet extends _GraphQLSelectionSet {
         return ret;
     }
 
-    public GraphQLFieldSelection getSelection(String name) {
-        for (GraphQLSelection selection : getSelections()) {
-            if (selection instanceof GraphQLFieldSelection) {
-                GraphQLFieldSelection field = (GraphQLFieldSelection) selection;
-                if (field.getAliasOrName().equals(name))
-                    return field;
+    private Map<String, GraphQLSelection> buildSelectionMap() {
+        if (selectionMap == null) {
+            selectionMap = new HashMap<>();
+            for (GraphQLSelection selection : getSelections()) {
+                selectionMap.put(selection.getAliasOrName(), selection);
             }
         }
-        return null;
+        return selectionMap;
+    }
+
+    public GraphQLSelection getSelection(String name) {
+        return buildSelectionMap().get(name);
     }
 
     public void removeSelection(String name) {
-        GraphQLFieldSelection selection = getSelection(name);
+        GraphQLSelection selection = getSelection(name);
         if (selection != null) {
+            selectionMap.remove(name);
             removeChild(selection);
         }
     }
@@ -66,6 +74,8 @@ public class GraphQLSelectionSet extends _GraphQLSelectionSet {
         if (this.selections == null)
             this.selections = new ArrayList<>();
         this.selections.add(field);
+        if (selectionMap != null)
+            selectionMap.put(field.getAliasOrName(), field);
     }
 
     @JsonIgnore

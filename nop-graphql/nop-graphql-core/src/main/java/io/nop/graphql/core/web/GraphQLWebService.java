@@ -149,7 +149,7 @@ public abstract class GraphQLWebService {
     }
 
     protected IGraphQLExecutionContext newGraphQLContext(IGraphQLEngine engine) {
-        return engine.newGraphQLContext();
+        return engine.newGraphQLContextFromContext(null);
     }
 
     protected Response buildJaxrsGraphQLResponse(GraphQLResponseBean res, IGraphQLExecutionContext context) {
