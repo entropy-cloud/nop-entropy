@@ -434,9 +434,7 @@
 /nop/dyn/model/NopDynPage/_NopDynPage.xbiz
 /nop/dyn/model/NopDynPage/_NopDynPage.xmeta
 /nop/dyn/model/NopDynPatch/NopDynPatch.xbiz
-/nop/dyn/model/NopDynPatch/NopDynPatch.xmeta
 /nop/dyn/model/NopDynPatch/_NopDynPatch.xbiz
-/nop/dyn/model/NopDynPatch/_NopDynPatch.xmeta
 /nop/dyn/model/NopDynPatchFile/NopDynPatchFile.xbiz
 /nop/dyn/model/NopDynPatchFile/NopDynPatchFile.xmeta
 /nop/dyn/model/NopDynPatchFile/_NopDynPatchFile.xbiz
@@ -511,6 +509,11 @@
 /nop/dyn/pages/NopDynPage/main.page.yaml
 /nop/dyn/pages/NopDynPage/picker.page.yaml
 /nop/dyn/pages/NopDynPage/ref-module.page.yaml
+/nop/dyn/pages/NopDynPatchFile/NopDynPatchFile.lib.xjs
+/nop/dyn/pages/NopDynPatchFile/NopDynPatchFile.view.xml
+/nop/dyn/pages/NopDynPatchFile/_gen/_NopDynPatchFile.view.xml
+/nop/dyn/pages/NopDynPatchFile/main.page.yaml
+/nop/dyn/pages/NopDynPatchFile/picker.page.yaml
 /nop/dyn/pages/NopDynPropMeta/NopDynPropMeta.lib.xjs
 /nop/dyn/pages/NopDynPropMeta/NopDynPropMeta.view.xml
 /nop/dyn/pages/NopDynPropMeta/_gen/_NopDynPropMeta.view.xml
