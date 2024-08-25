@@ -3,6 +3,8 @@ CREATE TABLE nop_dyn_app(
   APP_ID VARCHAR(32) NOT NULL ,
   APP_NAME VARCHAR(200) NOT NULL ,
   DISPLAY_NAME VARCHAR(200) NOT NULL ,
+  APP_VERSION INT4 NOT NULL  default '1' ,
+  SORT_ORDER INT4  ,
   STATUS INT4 NOT NULL ,
   VERSION INT4 NOT NULL ,
   CREATED_BY VARCHAR(50) NOT NULL ,
@@ -10,20 +12,6 @@ CREATE TABLE nop_dyn_app(
   UPDATED_BY VARCHAR(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   constraint PK_nop_dyn_app primary key (APP_ID)
-);
-
-CREATE TABLE nop_dyn_patch(
-  PATCH_ID VARCHAR(32) NOT NULL ,
-  PATCH_NAME VARCHAR(100) NOT NULL ,
-  PATCH_ORDER INT4 NOT NULL  default '1' ,
-  DISPLAY_NAME VARCHAR(200) NOT NULL ,
-  STATUS INT4 NOT NULL  default '0' ,
-  VERSION INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  constraint PK_nop_dyn_patch primary key (PATCH_ID)
 );
 
 CREATE TABLE nop_dyn_module(
@@ -98,7 +86,7 @@ CREATE TABLE nop_dyn_entity_relation(
 
 CREATE TABLE nop_dyn_patch_file(
   FILE_ID VARCHAR(32) NOT NULL ,
-  PATCH_ID VARCHAR(32) NOT NULL ,
+  APP_ID VARCHAR(32) NOT NULL ,
   MODULE_ID VARCHAR(32)  ,
   FILE_PATH VARCHAR(800) NOT NULL  default 'pages' ,
   FILE_NAME VARCHAR(200) NOT NULL ,
@@ -324,6 +312,10 @@ CREATE TABLE nop_dyn_prop_meta(
                     
       COMMENT ON COLUMN nop_dyn_app.DISPLAY_NAME IS '显示名';
                     
+      COMMENT ON COLUMN nop_dyn_app.APP_VERSION IS '应用版本';
+                    
+      COMMENT ON COLUMN nop_dyn_app.SORT_ORDER IS '排序';
+                    
       COMMENT ON COLUMN nop_dyn_app.STATUS IS '状态';
                     
       COMMENT ON COLUMN nop_dyn_app.VERSION IS '数据版本';
@@ -335,28 +327,6 @@ CREATE TABLE nop_dyn_prop_meta(
       COMMENT ON COLUMN nop_dyn_app.UPDATED_BY IS '修改人';
                     
       COMMENT ON COLUMN nop_dyn_app.UPDATE_TIME IS '修改时间';
-                    
-      COMMENT ON TABLE nop_dyn_patch IS '补丁定义';
-                
-      COMMENT ON COLUMN nop_dyn_patch.PATCH_ID IS '补丁ID';
-                    
-      COMMENT ON COLUMN nop_dyn_patch.PATCH_NAME IS '补丁名';
-                    
-      COMMENT ON COLUMN nop_dyn_patch.PATCH_ORDER IS '补丁顺序';
-                    
-      COMMENT ON COLUMN nop_dyn_patch.DISPLAY_NAME IS '显示名';
-                    
-      COMMENT ON COLUMN nop_dyn_patch.STATUS IS '状态';
-                    
-      COMMENT ON COLUMN nop_dyn_patch.VERSION IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_dyn_patch.CREATED_BY IS '创建人';
-                    
-      COMMENT ON COLUMN nop_dyn_patch.CREATE_TIME IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_dyn_patch.UPDATED_BY IS '修改人';
-                    
-      COMMENT ON COLUMN nop_dyn_patch.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON TABLE nop_dyn_module IS '模块定义';
                 
@@ -484,7 +454,7 @@ CREATE TABLE nop_dyn_prop_meta(
                 
       COMMENT ON COLUMN nop_dyn_patch_file.FILE_ID IS '文件ID';
                     
-      COMMENT ON COLUMN nop_dyn_patch_file.PATCH_ID IS '补丁ID';
+      COMMENT ON COLUMN nop_dyn_patch_file.APP_ID IS 'App ID';
                     
       COMMENT ON COLUMN nop_dyn_patch_file.MODULE_ID IS '模块ID';
                     

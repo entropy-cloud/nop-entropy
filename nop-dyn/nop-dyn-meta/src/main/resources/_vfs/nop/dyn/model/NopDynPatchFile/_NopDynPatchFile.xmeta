@@ -25,8 +25,8 @@
               ui:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="patchId" displayName="补丁ID" propId="2" i18n-en:displayName="Patch ID" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="patch">
+        <prop name="appId" displayName="App ID" propId="2" i18n-en:displayName="App ID" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="app">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="moduleId" displayName="模块ID" propId="3" i18n-en:displayName="Module ID" queryable="true"
@@ -88,12 +88,12 @@
               sortable="true" lazy="true">
             <schema type="String"/>
         </prop>
-        <prop name="patch" displayName="所属补丁" i18n-en:displayName="Patch" tagSet="pub,ref-pub,ref-cascade-delete"
-              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="patchId" ext:joinRightProp="patchId"
+        <prop name="app" displayName="所属应用" i18n-en:displayName="App" tagSet="pub,ref-pub,ref-cascade-delete"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="appId" ext:joinRightProp="appId"
               ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" mandatory="true" lazy="true">
-            <schema bizObjName="NopDynPatch"/>
+            <schema bizObjName="NopDynApp"/>
         </prop>
-        <prop name="patch.displayName" displayName="所属补丁" i18n-en:displayName="Patch" internal="true" queryable="true"
+        <prop name="app.displayName" displayName="所属应用" i18n-en:displayName="App" internal="true" queryable="true"
               sortable="true" lazy="true">
             <schema type="String"/>
         </prop>

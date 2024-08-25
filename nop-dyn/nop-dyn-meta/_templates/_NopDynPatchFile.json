@@ -1,6 +1,6 @@
 {
   "fileId": "",
-  "patchId": "",
+  "appId": "",
   "moduleId": "",
   "filePath": "",
   "fileName": "",
@@ -16,6 +16,6 @@
   "remark": "",
   "module": null,
   "module.displayName": "",
-  "patch": null,
-  "patch.displayName": ""
+  "app": null,
+  "app.displayName": ""
 }

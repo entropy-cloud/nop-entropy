@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopDynApp" xmlns:i18n-en="i18n-en"
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopDynPatchFile" xmlns:i18n-en="i18n-en"
       xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c" xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
 
-    <objMeta>/nop/dyn/model/NopDynApp/NopDynApp.xmeta</objMeta>
+    <objMeta>/nop/dyn/model/NopDynPatchFile/NopDynPatchFile.xmeta</objMeta>
 
     <controlLib>/nop/web/xlib/control.xlib</controlLib>
 
@@ -18,17 +18,17 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--应用名-->
-                <col id="appName" mandatory="true" sortable="true"/>
+                <!--App ID-->
+                <col id="appId" mandatory="true" sortable="true"/>
 
-                <!--显示名-->
-                <col id="displayName" mandatory="true" sortable="true"/>
+                <!--模块ID-->
+                <col id="moduleId" sortable="true"/>
 
-                <!--应用版本-->
-                <col id="appVersion" mandatory="true" sortable="true"/>
+                <!--文件名称-->
+                <col id="fileName" mandatory="true" sortable="true"/>
 
-                <!--排序-->
-                <col id="sortOrder" sortable="true"/>
+                <!--文件类型-->
+                <col id="fileType" mandatory="true" sortable="true"/>
 
                 <!--状态-->
                 <col id="status" mandatory="true" sortable="true"/>
@@ -44,53 +44,54 @@
 
                 <!--修改时间-->
                 <col id="updateTime" mandatory="true" sortable="true"/>
+
+                <!--备注-->
+                <col id="remark" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
     </grids>
 
     <forms>
-        <form id="view" editMode="view" title="查看-应用定义" i18n-en:title="View App Definition">
+        <form id="view" editMode="view" title="查看-补丁文件" i18n-en:title="View Patch File">
             <layout>
- appName[应用名]
- displayName[显示名]
- appVersion[应用版本]
- sortOrder[排序]
- status[状态]
- createdBy[创建人]
- createTime[创建时间]
- updatedBy[修改人]
- updateTime[修改时间]
+ appId[App ID] moduleId[模块ID]
+ fileName[文件名称] fileType[文件类型]
+ status[状态] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] 
+                remark[备注]
 </layout>
         </form>
-        <form id="add" editMode="add" title="新增-应用定义" i18n-en:title="Add App Definition" x:prototype="edit"/>
-        <form id="edit" editMode="edit" title="编辑-应用定义" i18n-en:title="Edit App Definition">
+        <form id="add" editMode="add" title="新增-补丁文件" i18n-en:title="Add Patch File" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-补丁文件" i18n-en:title="Edit Patch File">
             <layout>
- appName[应用名]
- displayName[显示名]
- appVersion[应用版本]
- sortOrder[排序]
+ appId[App ID]
+ moduleId[模块ID]
+ fileName[文件名称]
+ fileType[文件类型]
  status[状态]
+ remark[备注]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
         <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
-        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-应用定义" i18n-en:title="Update App Definition"/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-补丁文件" i18n-en:title="Update Patch File"/>
     </forms>
 
     <pages>
         <crud name="view-list" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
             <table autoFillHeight="true">
-                <api url="@query:NopDynApp__findPage" gql:selection="{@pageSelection}"/>
+                <api url="@query:NopDynPatchFile__findPage" gql:selection="{@pageSelection}"/>
             </table>
         </crud>
         <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
             <table autoFillHeight="true">
-                <api url="@query:NopDynApp__findPage" gql:selection="{@pageSelection}"/>
+                <api url="@query:NopDynPatchFile__findPage" gql:selection="{@pageSelection}"/>
             </table>
             <listActions>
                 <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
-                    <api url="@mutation:NopDynApp__batchDelete?ids=$ids"/>
+                    <api url="@mutation:NopDynPatchFile__batchDelete?ids=$ids"/>
                     <confirmText>@i18n:common.confirmBatchDelete</confirmText>
                 </action>
                 <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
@@ -105,7 +106,7 @@
                     <dialog page="update"/>
                 </action>
                 <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
-                    <api url="@mutation:NopDynApp__delete?id=$id"/>
+                    <api url="@mutation:NopDynPatchFile__delete?id=$id"/>
                     <confirmText>@i18n:common.confirmDelete</confirmText>
                 </action>
                 <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
@@ -113,7 +114,7 @@
                         <dialog page="update"/>
                     </action>
                     <action id="row-delete-button" label="@i18n:common.delete">
-                        <api url="@mutation:NopDynApp__delete?id=$id"/>
+                        <api url="@mutation:NopDynPatchFile__delete?id=$id"/>
                         <confirmText>@i18n:common.confirmDelete</confirmText>
                     </action>
                 </actionGroup>
@@ -121,18 +122,18 @@
         </crud>
         <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
             <table noOperations="true">
-                <api url="@query:NopDynApp__findPage" gql:selection="{@pageSelection}"/>
+                <api url="@query:NopDynPatchFile__findPage" gql:selection="{@pageSelection}"/>
             </table>
         </picker>
         <simple name="add" form="add">
-            <api url="@mutation:NopDynApp__save/id"/>
+            <api url="@mutation:NopDynPatchFile__save/id"/>
         </simple>
         <simple name="view" form="view">
-            <initApi url="@query:NopDynApp__get?id=$id" gql:selection="{@formSelection}"/>
+            <initApi url="@query:NopDynPatchFile__get?id=$id" gql:selection="{@formSelection}"/>
         </simple>
         <simple name="update" form="edit">
-            <initApi url="@query:NopDynApp__get?id=$id" gql:selection="{@formSelection}"/>
-            <api url="@mutation:NopDynApp__update/id?id=$id" withFormData="true"/>
+            <initApi url="@query:NopDynPatchFile__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopDynPatchFile__update/id?id=$id" withFormData="true"/>
         </simple>
     </pages>
 </view>

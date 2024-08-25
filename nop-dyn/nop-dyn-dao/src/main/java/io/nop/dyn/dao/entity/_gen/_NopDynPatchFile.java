@@ -24,9 +24,9 @@ public class _NopDynPatchFile extends DynamicOrmEntity{
     public static final String PROP_NAME_fileId = "fileId";
     public static final int PROP_ID_fileId = 1;
     
-    /* 补丁ID: PATCH_ID VARCHAR */
-    public static final String PROP_NAME_patchId = "patchId";
-    public static final int PROP_ID_patchId = 2;
+    /* App ID: APP_ID VARCHAR */
+    public static final String PROP_NAME_appId = "appId";
+    public static final int PROP_ID_appId = 2;
     
     /* 模块ID: MODULE_ID VARCHAR */
     public static final String PROP_NAME_moduleId = "moduleId";
@@ -83,8 +83,8 @@ public class _NopDynPatchFile extends DynamicOrmEntity{
     /* relation: 所属模块 */
     public static final String PROP_NAME_module = "module";
     
-    /* relation: 所属补丁 */
-    public static final String PROP_NAME_patch = "patch";
+    /* relation: 所属应用 */
+    public static final String PROP_NAME_app = "app";
     
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_fileId);
@@ -97,8 +97,8 @@ public class _NopDynPatchFile extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_fileId] = PROP_NAME_fileId;
           PROP_NAME_TO_ID.put(PROP_NAME_fileId, PROP_ID_fileId);
       
-          PROP_ID_TO_NAME[PROP_ID_patchId] = PROP_NAME_patchId;
-          PROP_NAME_TO_ID.put(PROP_NAME_patchId, PROP_ID_patchId);
+          PROP_ID_TO_NAME[PROP_ID_appId] = PROP_NAME_appId;
+          PROP_NAME_TO_ID.put(PROP_NAME_appId, PROP_ID_appId);
       
           PROP_ID_TO_NAME[PROP_ID_moduleId] = PROP_NAME_moduleId;
           PROP_NAME_TO_ID.put(PROP_NAME_moduleId, PROP_ID_moduleId);
@@ -142,8 +142,8 @@ public class _NopDynPatchFile extends DynamicOrmEntity{
     /* 文件ID: FILE_ID */
     private java.lang.String _fileId;
     
-    /* 补丁ID: PATCH_ID */
-    private java.lang.String _patchId;
+    /* App ID: APP_ID */
+    private java.lang.String _appId;
     
     /* 模块ID: MODULE_ID */
     private java.lang.String _moduleId;
@@ -258,8 +258,8 @@ public class _NopDynPatchFile extends DynamicOrmEntity{
             case PROP_ID_fileId:
                return getFileId();
         
-            case PROP_ID_patchId:
-               return getPatchId();
+            case PROP_ID_appId:
+               return getAppId();
         
             case PROP_ID_moduleId:
                return getModuleId();
@@ -318,13 +318,13 @@ public class _NopDynPatchFile extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_patchId:{
+            case PROP_ID_appId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_patchId));
+                       err-> newTypeConversionError(PROP_NAME_appId));
                }
-               setPatchId(typedValue);
+               setAppId(typedValue);
                break;
             }
         
@@ -464,9 +464,9 @@ public class _NopDynPatchFile extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_patchId:{
+            case PROP_ID_appId:{
                onInitProp(propId);
-               this._patchId = (java.lang.String)value;
+               this._appId = (java.lang.String)value;
                
                break;
             }
@@ -581,20 +581,20 @@ public class _NopDynPatchFile extends DynamicOrmEntity{
     }
     
     /**
-     * 补丁ID: PATCH_ID
+     * App ID: APP_ID
      */
-    public java.lang.String getPatchId(){
-         onPropGet(PROP_ID_patchId);
-         return _patchId;
+    public java.lang.String getAppId(){
+         onPropGet(PROP_ID_appId);
+         return _appId;
     }
 
     /**
-     * 补丁ID: PATCH_ID
+     * App ID: APP_ID
      */
-    public void setPatchId(java.lang.String value){
-        if(onPropSet(PROP_ID_patchId,value)){
-            this._patchId = value;
-            internalClearRefs(PROP_ID_patchId);
+    public void setAppId(java.lang.String value){
+        if(onPropSet(PROP_ID_appId,value)){
+            this._appId = value;
+            internalClearRefs(PROP_ID_appId);
             
         }
     }
@@ -851,22 +851,22 @@ public class _NopDynPatchFile extends DynamicOrmEntity{
     }
        
     /**
-     * 所属补丁
+     * 所属应用
      */
-    public io.nop.dyn.dao.entity.NopDynPatch getPatch(){
-       return (io.nop.dyn.dao.entity.NopDynPatch)internalGetRefEntity(PROP_NAME_patch);
+    public io.nop.dyn.dao.entity.NopDynApp getApp(){
+       return (io.nop.dyn.dao.entity.NopDynApp)internalGetRefEntity(PROP_NAME_app);
     }
 
-    public void setPatch(io.nop.dyn.dao.entity.NopDynPatch refEntity){
+    public void setApp(io.nop.dyn.dao.entity.NopDynApp refEntity){
    
            if(refEntity == null){
            
-                   this.setPatchId(null);
+                   this.setAppId(null);
                
            }else{
-           internalSetRefEntity(PROP_NAME_patch, refEntity,()->{
+           internalSetRefEntity(PROP_NAME_app, refEntity,()->{
            
-                           this.setPatchId(refEntity.getPatchId());
+                           this.setAppId(refEntity.getAppId());
                        
            });
            }

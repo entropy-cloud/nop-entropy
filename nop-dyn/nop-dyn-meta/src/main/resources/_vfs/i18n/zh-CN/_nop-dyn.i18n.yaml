@@ -21,13 +21,16 @@ prop:
     NopDynApp:
       appId: 应用ID
       appName: 应用名
+      appVersion: 应用版本
       createTime: 创建时间
       createdBy: 创建人
       displayName: 显示名
       moduleMappings: null
+      patchFiles: 补丁文件
       relatedModuleList: relatedModuleList
       relatedModuleList_ids: relatedModuleList
       relatedModuleList_label: relatedModuleList
+      sortOrder: 排序
       status: 状态
       status_label: 状态
       updateTime: 修改时间
@@ -286,6 +289,9 @@ prop:
       updatedBy: 修改人
       version: 数据版本
     NopDynPatchFile:
+      app: 所属应用
+      app.displayName: 所属应用
+      appId: App ID
       createTime: 创建时间
       createdBy: 创建人
       fileId: 文件ID
@@ -296,9 +302,6 @@ prop:
       module: 所属模块
       module.displayName: 所属模块
       moduleId: 模块ID
-      patch: 所属补丁
-      patch.displayName: 所属补丁
-      patchId: 补丁ID
       remark: 备注
       status: 状态
       status_label: 状态

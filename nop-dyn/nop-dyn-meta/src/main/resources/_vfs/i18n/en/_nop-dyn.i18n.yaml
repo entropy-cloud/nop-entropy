@@ -22,6 +22,8 @@ prop:
       appId: App ID
       appName: App Name
       displayName: Display Name
+      appVersion: App Version
+      sortOrder: Sort Order
       status: Status
       status_label: null
       version: Version
@@ -29,6 +31,7 @@ prop:
       createTime: Create Time
       updatedBy: Updated By
       updateTime: Update Time
+      patchFiles: Patch Files
       moduleMappings: null
       relatedModuleList: null
       relatedModuleList_ids: null
@@ -287,7 +290,7 @@ prop:
       patchFiles: Patch Files
     NopDynPatchFile:
       fileId: File ID
-      patchId: Patch ID
+      appId: App ID
       moduleId: Module ID
       filePath: File Path
       fileName: File Name
@@ -303,8 +306,8 @@ prop:
       remark: Remark
       module: Module
       module.displayName: Module
-      patch: Patch
-      patch.displayName: Patch
+      app: App
+      app.displayName: App
     NopDynPropMeta:
       propMetaId: Prop Meta ID
       entityMetaId: Entity Meta ID

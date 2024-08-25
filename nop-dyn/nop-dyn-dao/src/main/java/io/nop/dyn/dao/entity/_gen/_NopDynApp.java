@@ -32,33 +32,44 @@ public class _NopDynApp extends DynamicOrmEntity{
     public static final String PROP_NAME_displayName = "displayName";
     public static final int PROP_ID_displayName = 3;
     
+    /* 应用版本: APP_VERSION INTEGER */
+    public static final String PROP_NAME_appVersion = "appVersion";
+    public static final int PROP_ID_appVersion = 4;
+    
+    /* 排序: SORT_ORDER INTEGER */
+    public static final String PROP_NAME_sortOrder = "sortOrder";
+    public static final int PROP_ID_sortOrder = 5;
+    
     /* 状态: STATUS INTEGER */
     public static final String PROP_NAME_status = "status";
-    public static final int PROP_ID_status = 5;
+    public static final int PROP_ID_status = 6;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 6;
+    public static final int PROP_ID_version = 7;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 7;
+    public static final int PROP_ID_createdBy = 8;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 8;
+    public static final int PROP_ID_createTime = 9;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 9;
+    public static final int PROP_ID_updatedBy = 10;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 10;
+    public static final int PROP_ID_updateTime = 11;
     
 
-    private static int _PROP_ID_BOUND = 11;
+    private static int _PROP_ID_BOUND = 12;
 
+    
+    /* relation: 补丁文件 */
+    public static final String PROP_NAME_patchFiles = "patchFiles";
     
     /* relation:  */
     public static final String PROP_NAME_moduleMappings = "moduleMappings";
@@ -67,7 +78,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_appId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_appId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[11];
+    private static final String[] PROP_ID_TO_NAME = new String[12];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -79,6 +90,12 @@ public class _NopDynApp extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_displayName] = PROP_NAME_displayName;
           PROP_NAME_TO_ID.put(PROP_NAME_displayName, PROP_ID_displayName);
+      
+          PROP_ID_TO_NAME[PROP_ID_appVersion] = PROP_NAME_appVersion;
+          PROP_NAME_TO_ID.put(PROP_NAME_appVersion, PROP_ID_appVersion);
+      
+          PROP_ID_TO_NAME[PROP_ID_sortOrder] = PROP_NAME_sortOrder;
+          PROP_NAME_TO_ID.put(PROP_NAME_sortOrder, PROP_ID_sortOrder);
       
           PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
           PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
@@ -109,6 +126,12 @@ public class _NopDynApp extends DynamicOrmEntity{
     
     /* 显示名: DISPLAY_NAME */
     private java.lang.String _displayName;
+    
+    /* 应用版本: APP_VERSION */
+    private java.lang.Integer _appVersion;
+    
+    /* 排序: SORT_ORDER */
+    private java.lang.Integer _sortOrder;
     
     /* 状态: STATUS */
     private java.lang.Integer _status;
@@ -211,6 +234,12 @@ public class _NopDynApp extends DynamicOrmEntity{
             case PROP_ID_displayName:
                return getDisplayName();
         
+            case PROP_ID_appVersion:
+               return getAppVersion();
+        
+            case PROP_ID_sortOrder:
+               return getSortOrder();
+        
             case PROP_ID_status:
                return getStatus();
         
@@ -267,6 +296,26 @@ public class _NopDynApp extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_displayName));
                }
                setDisplayName(typedValue);
+               break;
+            }
+        
+            case PROP_ID_appVersion:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_appVersion));
+               }
+               setAppVersion(typedValue);
+               break;
+            }
+        
+            case PROP_ID_sortOrder:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_sortOrder));
+               }
+               setSortOrder(typedValue);
                break;
             }
         
@@ -356,6 +405,20 @@ public class _NopDynApp extends DynamicOrmEntity{
             case PROP_ID_displayName:{
                onInitProp(propId);
                this._displayName = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_appVersion:{
+               onInitProp(propId);
+               this._appVersion = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_sortOrder:{
+               onInitProp(propId);
+               this._sortOrder = (java.lang.Integer)value;
                
                break;
             }
@@ -461,6 +524,44 @@ public class _NopDynApp extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_displayName,value)){
             this._displayName = value;
             internalClearRefs(PROP_ID_displayName);
+            
+        }
+    }
+    
+    /**
+     * 应用版本: APP_VERSION
+     */
+    public java.lang.Integer getAppVersion(){
+         onPropGet(PROP_ID_appVersion);
+         return _appVersion;
+    }
+
+    /**
+     * 应用版本: APP_VERSION
+     */
+    public void setAppVersion(java.lang.Integer value){
+        if(onPropSet(PROP_ID_appVersion,value)){
+            this._appVersion = value;
+            internalClearRefs(PROP_ID_appVersion);
+            
+        }
+    }
+    
+    /**
+     * 排序: SORT_ORDER
+     */
+    public java.lang.Integer getSortOrder(){
+         onPropGet(PROP_ID_sortOrder);
+         return _sortOrder;
+    }
+
+    /**
+     * 排序: SORT_ORDER
+     */
+    public void setSortOrder(java.lang.Integer value){
+        if(onPropSet(PROP_ID_sortOrder,value)){
+            this._sortOrder = value;
+            internalClearRefs(PROP_ID_sortOrder);
             
         }
     }
@@ -579,6 +680,16 @@ public class _NopDynApp extends DynamicOrmEntity{
         }
     }
     
+    private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynPatchFile> _patchFiles = new OrmEntitySet<>(this, PROP_NAME_patchFiles,
+        io.nop.dyn.dao.entity.NopDynPatchFile.PROP_NAME_app, null,io.nop.dyn.dao.entity.NopDynPatchFile.class);
+
+    /**
+     * 补丁文件。 refPropName: app, keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynPatchFile> getPatchFiles(){
+       return _patchFiles;
+    }
+       
     private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynAppModule> _moduleMappings = new OrmEntitySet<>(this, PROP_NAME_moduleMappings,
         io.nop.dyn.dao.entity.NopDynAppModule.PROP_NAME_app, null,io.nop.dyn.dao.entity.NopDynAppModule.class);
 
