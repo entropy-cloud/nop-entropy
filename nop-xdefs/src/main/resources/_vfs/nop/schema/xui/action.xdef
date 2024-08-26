@@ -37,6 +37,9 @@
         <failed xdef:value="string"/>
     </messages>
 
+    <!--
+    @size sm/lg/xl/full控制不同的大小。full表示全屏
+    -->
     <dialog page="!name-or-v-path" height="string" width="string" size="string" closeOnEsc="boolean"
             closeOnOutside="boolean" showCloseButton="boolean" noActions="boolean"
             xdef:name="UiDialogModel">

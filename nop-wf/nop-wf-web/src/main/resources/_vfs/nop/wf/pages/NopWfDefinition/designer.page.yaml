@@ -1,0 +1,161 @@
+type: page
+title: "@i18n:common.flowDesigner"
+bodyClassName: flex overflow-auto
+toolbar:
+  - type: button
+    label: 点击我
+    actionType: toast
+    toast:
+      items:
+        - type: info
+          title: 提示
+          body: 按钮被点击了
+  - type: button
+    label: 点击2
+    actionType: dialog
+    dialog:
+      type: info
+      title: 提示
+      body: 按钮被点击了
+body:
+  - type: nop-flow-editor
+    componentLib: /nop/wf/pages/NopWfDefinition/flow.lib.js
+    editable: true
+    flowEditorSchema:
+      editForms:
+        start:
+          type: form
+          name: start
+          id: propsForm
+          panelClassName: nop-full
+          preventEnterSubmit: true
+          body:
+            - type: input-text
+              name: a
+              required: true
+            - type: input-text
+              label: Main
+              name: name
+          actions:
+            - type: action
+              actionType: "action:cancel"
+              label: Cancel
+            - type: action
+              label: Submit
+              onEvent:
+                click:
+                  actions:
+                    - actionType: validate
+                      componentId: propsForm
+                      outputVar: form_validate_result
+                    - actionType: "action:invoke"
+                      actionName: "action:ok"
+                      expression: '!event.data.form_validate_result.error'
+                      args:
+                        data: ${event.data.form_validate_result.payload}
+      nodeMetas:
+        start:
+          label: 发起人
+          color: rgb(87, 106, 149)
+          info: allMember
+          nodeType: start
+          nodeKind: start
+        approver:
+          nodeType: approver
+          nodeKind: normal
+          color: '#ff943e'
+          label: approver
+          icon: seal
+          info: pleaseChooseApprover
+          deletable: true
+          addable: true
+          defaultConfig: {}
+        notifier:
+          nodeType: notifier
+          nodeKind: normal
+          color: '#4ca3fb'
+          label: notifier
+          icon: notifier
+          info: pleaseChooseNotifier
+          deletable: true
+          addable: true
+          defaultConfig: {}
+        audit:
+          nodeType: audit
+          nodeKind: normal
+          color: '#fb602d'
+          label: dealer
+          icon: deal
+          info: pleaseChooseDealer
+          deletable: true
+          addable: true
+          defaultConfig: {}
+        route:
+          nodeType: route
+          nodeKind: route
+          color: '#15bc83'
+          label: routeNode
+          icon: route
+          deletable: true
+          addable: true
+          defaultConfig:
+            conditionNodeList:
+              - id: '@uuid'
+                nodeType: condition
+                nodeKind: condition
+                name: Condition1
+              - id: '@uuid'
+                nodeType: condition
+                nodeKind: condition
+                name: Condition2
+        condition:
+          nodeType: condition
+          nodeKind: condition
+          label: condition
+          color: ''
+          info: pleaseSetCondition
+          deletable: true
+          addable: true
+          defaultConfig: {}
+      edgeMetas:
+        default:
+          allowTargets:
+            - approver
+            - notifier
+            - audit
+            - route
+    flowData:
+      startNode:
+        id: start
+        name: StartNode
+        nodeType: start
+        childNode:
+          nodeType: approver
+          id: 2324fb89-394f-4fa0-a5a5-10dc7306cc94
+          name: 审批人
+          childNode:
+            id: bc96c847-9dbf-4d01-876c-94cb5c234379
+            nodeType: route
+            nodeKind: route
+            conditionNodeList:
+              - id: f65e1ddf-220d-496d-8de3-16fdd56d2219
+                nodeType: condition
+                name: 条件1
+                childNode:
+                  nodeType: audit
+                  id: c943d0bf-3543-410a-9a75-1b006b99f654
+                  name: 办理人
+              - id: 88a6610f-2ed2-48d4-bcf4-53e8f61b164b
+                nodeType: condition
+                name: 条件2
+                childNode:
+                  nodeType: notifier
+                  id: 68187b5e-55d8-4f08-8b16-3702090e1eaf
+                  name: 抄送人
+            name: 条件分支
+            childNode:
+              nodeType: notifier
+              id: 3f1d31e5-6f12-4e05-8518-bebfeeede702
+              name: 抄送人
+    body:
+      type: nop-flow-editor-canvas

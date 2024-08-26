@@ -72,6 +72,18 @@
 NopAuthResource按照siteId进行组织，缺省使用siteId=MAIN作为主站点的网站菜单。nop-auth支持同时管理多个前端应用所对应的菜单链接。
 比如siteId=mobile可以用于移动端菜单，而siteId=MAIN用于Web端等。
 
+### 引入其他模块的菜单
+新建一个文件`/nop/main/auth/main.action-auth.xml`，在其中可以通过`x:extends`引入其他模块的菜单。
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<auth x:extends="/nop/auth/auth/nop-auth.action-auth.xml,/nop/sys/auth/nop-sys.action-auth.xml"
+      x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+</auth>
+```
+
+* 通过`nop.auth.site-map.static-config-path`配置指定其他的`action-auth.xml`文件，缺省会使用`main.action.xml`
+
 ### 后台Action
 
 在action函数上通过`@Auth`注解来指定需要对应的`permissions`或者允许访问的`roles`。如果不指定，则按照是否是`@BizQuery`

@@ -46,3 +46,5 @@ common:
   changePassword: Change Password
   publish: Publish
   unpublish: Unpublish
+  design: Design
+  flowDesigner: Flow Designer

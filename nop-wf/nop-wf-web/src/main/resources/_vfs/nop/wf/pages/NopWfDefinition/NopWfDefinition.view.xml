@@ -45,8 +45,9 @@
         <crud name="main">
             <rowActions>
                 <actionGroup id="row-more-button">
-                    <action id="row-delete-button">
-                        <visibleOn>${status != 1}</visibleOn>
+
+                    <action id="design" label="@i18n:common.design">
+                        <drawer page="designer.page.yaml" size="xl"/>
                     </action>
 
                     <action id="copy-for-new-button" label="@i18n:common.copyForNew">
@@ -76,6 +77,10 @@
                             </data>
                         </api>
                         <visibleOn>${status == 1}</visibleOn>
+                    </action>
+
+                    <action id="row-delete-button">
+                        <visibleOn>${status != 1}</visibleOn>
                     </action>
                 </actionGroup>
             </rowActions>

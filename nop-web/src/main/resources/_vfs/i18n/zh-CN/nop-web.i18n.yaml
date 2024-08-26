@@ -46,3 +46,5 @@ common:
   changePassword: 修改密码
   publish: 发布
   unpublish: 取消发布
+  design: 设计
+  flowDesigner: 流程设计器
