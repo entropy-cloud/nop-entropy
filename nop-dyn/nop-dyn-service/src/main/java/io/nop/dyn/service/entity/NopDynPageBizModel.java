@@ -85,7 +85,7 @@ public class NopDynPageBizModel extends CrudBizModel<NopDynPage> {
         String moduleName = ResourceHelper.getModuleNameFromModuleId(moduleId);
 
         int pos = moduleId.length() + 1;
-        if (StringHelper.startsWithAt(path, "/pages/", pos))
+        if (!StringHelper.startsWithAt(path, "/pages/", pos))
             throw new NopException(ERR_DYN_INVALID_PAGE_PATH)
                     .param(ARG_PATH, path);
 

@@ -40,6 +40,7 @@ public class BaseContext implements IContext {
     private long expireTime;
     private String userRefNo;
     private String callIp;
+    private String dynAppId;
     private Map<String, Object> propagateHeaders;
     private final Map<String, Object> attributes = new ConcurrentHashMap<>();
 
@@ -153,6 +154,16 @@ public class BaseContext implements IContext {
         this.expireTime = expireTime;
     }
 
+    @Override
+    public String getDynAppId() {
+        return dynAppId;
+    }
+
+    @Override
+    public void setDynAppId(String dynAppId) {
+        this.dynAppId = dynAppId;
+    }
+
     protected ContextTaskQueue getTaskQueue() {
         return taskQueue;
     }
@@ -258,7 +269,7 @@ public class BaseContext implements IContext {
     }
 
     @Override
-    public IContext getSourceContext(){
+    public IContext getSourceContext() {
         return this;
     }
 

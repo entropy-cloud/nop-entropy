@@ -65,7 +65,7 @@ public class DynCodeGen implements IResourceTenantInitializer, IDynamicBizModelP
 
     private boolean useTenant;
 
-    private final InMemoryCodeCache codeCache = new InMemoryCodeCache();
+    private final InMemoryCodeCache codeCache = newInMemoryCodeCache(null);
     private final ICache<String, AtomicReference<InMemoryCodeCache>> tenantCache = LocalCache.newCache("gen-code-cache",
             newConfig(CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE.get()), k -> new AtomicReference<>());
 
@@ -100,11 +100,15 @@ public class DynCodeGen implements IResourceTenantInitializer, IDynamicBizModelP
 
     private InMemoryCodeCache initTenantCache(String tenantId) {
         return DynOrmModelHolder.runInitializeTask(() -> {
-            InMemoryCodeCache cache = new InMemoryCodeCache(tenantId);
+            InMemoryCodeCache cache = newInMemoryCodeCache(tenantId);
             generateForAllModules(cache);
             cache.reloadModel(ormSessionFactory, bizObjectManager);
             return cache;
         });
+    }
+
+    protected InMemoryCodeCache newInMemoryCodeCache(String tenantId) {
+        return new InMemoryCodeCache(tenantId);
     }
 
     public InMemoryCodeCache getCodeCache() {

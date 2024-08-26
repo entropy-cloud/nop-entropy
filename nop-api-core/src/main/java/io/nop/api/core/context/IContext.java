@@ -91,6 +91,13 @@ public interface IContext extends Executor, AutoCloseable {
 
     void setCallIp(String callIp);
 
+    /**
+     * 提供类似sandbox的动态隔离环境
+     */
+    String getDynAppId();
+
+    void setDynAppId(String dynAppId);
+
     Map<String, Object> getPropagateRpcHeaders();
 
     void setPropagateRpcHeaders(Map<String, Object> propagateHeaders);

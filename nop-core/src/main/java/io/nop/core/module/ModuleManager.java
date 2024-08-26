@@ -144,6 +144,10 @@ public class ModuleManager {
         this.dynamicModules.set(dynamicModules);
     }
 
+    public Collection<ModuleModel> getEnabledModules() {
+        return getEnabledModules(true);
+    }
+
     public Collection<ModuleModel> getEnabledModules(boolean includeTenant) {
         return getEnabledModuleMap(includeTenant).values();
     }

@@ -31,7 +31,7 @@
             <attr name="allNullable" type="Boolean" implicit="true"/>
             <source x:override="prepend">
                 <c:if test="${!col.defaultValue and col.stdSqlType.toString() == 'TIMESTAMP' and col.mandatory and !allNullable}">
-                    <c:unit><![CDATA[ DEFAULT CURRENT_TIMESTAMP ]]></c:unit>
+                    <c:unit><![CDATA[ DEFAULT CURRENT_TIMESTAMP(3) ]]></c:unit>
                     <c:script>
                         return;
                     </c:script>

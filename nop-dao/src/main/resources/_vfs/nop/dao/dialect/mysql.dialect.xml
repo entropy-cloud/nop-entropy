@@ -161,7 +161,7 @@
         <sqlDataType name="DATE" stdSqlType="DATE"/>
         <sqlDataType name="TIME" stdSqlType="TIME"/>
         <sqlDataType name="DATETIME" stdSqlType="DATETIME"/>
-        <sqlDataType name="TIMESTAMP" stdSqlType="TIMESTAMP"/>
+        <sqlDataType name="TIMESTAMP" code="TIMESTAMP(3)" stdSqlType="TIMESTAMP"/>
         <sqlDataType name="REAL" stdSqlType="REAL" alias="FLOAT"/>
         <sqlDataType name="DOUBLE" stdSqlType="DOUBLE" alias="DOUBLE PRECISION"/>
         <sqlDataType name="DECIMAL" stdSqlType="DECIMAL"/>

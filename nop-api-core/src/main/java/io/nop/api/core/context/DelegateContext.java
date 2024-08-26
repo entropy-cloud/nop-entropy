@@ -38,6 +38,16 @@ public class DelegateContext implements IContext {
     }
 
     @Override
+    public String getDynAppId() {
+        return context.getDynAppId();
+    }
+
+    @Override
+    public void setDynAppId(String dynAppId) {
+        context.setDynAppId(dynAppId);
+    }
+
+    @Override
     public String getUserId() {
         return context.getUserId();
     }
