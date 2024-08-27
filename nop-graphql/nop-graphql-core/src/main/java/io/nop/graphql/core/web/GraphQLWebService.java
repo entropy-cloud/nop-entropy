@@ -333,8 +333,11 @@ public abstract class GraphQLWebService {
             if (content instanceof IResource) {
                 IResource resource = (IResource) content;
 
-                if (resource.toFile() == null) {
+                File file = resource.toFile();
+                if (file == null) {
                     content = (StreamingOutput) resource::writeToStream;
+                } else {
+                    content = file;
                 }
             }
 
