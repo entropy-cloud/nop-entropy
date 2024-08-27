@@ -17,10 +17,12 @@ import io.nop.biz.model.BizLoaderModel;
 import io.nop.biz.model.BizReturnModel;
 import io.nop.core.context.action.IServiceAction;
 import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.type.IGenericType;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IDataFetcher;
 import io.nop.graphql.core.IDataFetchingEnvironment;
+import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLArgumentDefinition;
 import io.nop.graphql.core.ast.GraphQLDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
@@ -29,6 +31,7 @@ import io.nop.graphql.core.ast.GraphQLInputFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLNamedType;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLType;
+import io.nop.graphql.core.fetcher.BeanMethodBatchFetcher;
 import io.nop.graphql.core.fetcher.ServiceActionFetcher;
 import io.nop.graphql.core.reflection.ArgBuilders;
 import io.nop.graphql.core.reflection.EvalGraphQLArgsNormalizer;
@@ -45,12 +48,17 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static io.nop.graphql.core.GraphQLErrors.ARG_ACTION_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_ARG_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_METHOD_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_ACTION_ARG_TYPE_NOT_OBJ_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_BATCH_LOAD_METHOD_MUST_RETURN_LIST;
 
 public class BizModelToGraphQLDefinition {
     public static final BizModelToGraphQLDefinition INSTANCE = new BizModelToGraphQLDefinition();
@@ -104,7 +112,7 @@ public class BizModelToGraphQLDefinition {
         if (args != null)
             field.setArguments(args);
 
-        IDataFetcher fetcher = buildFetcher(loaderModel, typeRegistry);
+        IDataFetcher fetcher = buildFetcher(thisObjName, loaderModel, typeRegistry);
         field.setFetcher(fetcher);
         field.setAutoCreate(loaderModel.isAutoCreateField());
         return field;
@@ -125,18 +133,45 @@ public class BizModelToGraphQLDefinition {
         return new EvalServiceAction(source, argBuilders);
     }
 
-    IDataFetcher buildFetcher(BizLoaderModel loaderModel, TypeRegistry typeRegistry) {
+    IDataFetcher buildFetcher(String bizObjName, BizLoaderModel loaderModel, TypeRegistry typeRegistry) {
         IEvalAction source = loaderModel.getSource();
         if (source == null)
             source = ctx -> null;
 
         Map<String, Function<IDataFetchingEnvironment, Object>> argBuilders = new LinkedHashMap<>();
+        BizActionArgModel contextSourceArg = null;
         for (BizActionArgModel arg : loaderModel.getArgs()) {
+            if (arg.getKind() == BizActionArgKind.ContextSource)
+                contextSourceArg = arg;
+
             Function<IDataFetchingEnvironment, Object> argBuilder = getFetcherArg(arg.getKind(), arg.getName(),
                     arg.getType());
             argBuilders.put(arg.getName(), argBuilder);
         }
+
+        if (contextSourceArg != null && contextSourceArg.getType() != null && contextSourceArg.getType().isCollectionLike()) {
+            // 如果是集合类型的参数，则表示这是一个BatchLoader
+            if (!loaderModel.isReturnList()) {
+                throw new NopException(ERR_GRAPHQL_BATCH_LOAD_METHOD_MUST_RETURN_LIST).source(loaderModel)
+                        .param(ARG_OBJ_NAME, bizObjName).param(ARG_METHOD_NAME, loaderModel.getName());
+            }
+            int sourceIndex = loaderModel.getArgs().indexOf(contextSourceArg);
+            String loaderName = bizObjName + "@" + loaderModel.getName();
+
+            List<Function<IDataFetchingEnvironment, Object>> argsList = loaderModel.getArgs()
+                    .stream().map(arg -> argBuilders.get(arg.getName()))
+                    .collect(Collectors.toList());
+
+            return new BeanMethodBatchFetcher(loaderName, newFetcher(source, loaderModel), argsList, sourceIndex);
+        }
         return new EvalActionDataFetcher(source, argBuilders);
+    }
+
+    private static BiFunction<Object[], IGraphQLExecutionContext, Object> newFetcher(IEvalAction source, BizLoaderModel loaderModel) {
+        return (args, ctx) -> {
+            IEvalScope scope = loaderModel.newEvalScope(args, ctx.getEvalScope());
+            return source.invoke(scope);
+        };
     }
 
     IServiceActionArgBuilder getArgBuilder(BizActionArgKind kind, String name, IGenericType type) {

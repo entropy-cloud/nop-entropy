@@ -40,6 +40,10 @@
                     <schema stdDomain="xml-name"/>
                 </field>
 
+                <field name="ext:proxyModuleName" displayName="proxyModuleName" mandatory="true">
+                    <schema stdDomain="xml-name"/>
+                </field>
+
                 <field name="ext:mavenGroupId" displayName="maven.groupId" mandatory="true">
                     <schema stdDomain="string"/>
                 </field>

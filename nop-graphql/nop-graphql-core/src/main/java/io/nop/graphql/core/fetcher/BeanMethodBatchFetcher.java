@@ -18,6 +18,7 @@ import org.dataloader.DataLoader;
 import org.dataloader.DataLoaderFactory;
 
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -25,16 +26,19 @@ import java.util.function.Function;
  */
 public class BeanMethodBatchFetcher implements IDataFetcher {
     private final String loaderName;
-    private final Object bean;
-    private final IFunctionModel function;
+    private final BiFunction<Object[], IGraphQLExecutionContext, Object> realFetcher;
     private final List<Function<IDataFetchingEnvironment, Object>> argBuilders;
     private final int sourceIndex;
 
     public BeanMethodBatchFetcher(String loaderName, Object bean, IFunctionModel function,
                                   List<Function<IDataFetchingEnvironment, Object>> argBuilders, int sourceIndex) {
+        this(loaderName, (args, context) -> function.invoke(bean, args, context.getEvalScope()), argBuilders, sourceIndex);
+    }
+
+    public BeanMethodBatchFetcher(String loaderName, BiFunction<Object[], IGraphQLExecutionContext, Object> realFetcher,
+                                  List<Function<IDataFetchingEnvironment, Object>> argBuilders, int sourceIndex) {
         this.loaderName = loaderName;
-        this.bean = bean;
-        this.function = function;
+        this.realFetcher = realFetcher;
         this.argBuilders = argBuilders;
         this.sourceIndex = Guard.checkPositionIndex(sourceIndex, argBuilders.size(), "sourceIndex");
     }
@@ -52,7 +56,7 @@ public class BeanMethodBatchFetcher implements IDataFetcher {
             }
             BatchLoader<Object, Object> batchLoader = keys -> {
                 args[sourceIndex] = keys;
-                return FutureHelper.futureCall(() -> function.invoke(bean, args, context.getEvalScope()));
+                return FutureHelper.futureCall(() -> realFetcher.apply(args, context));
             };
             loader = DataLoaderFactory.newDataLoader(batchLoader);
             context.registerDataLoader(loaderName, loader);
