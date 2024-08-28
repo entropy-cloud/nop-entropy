@@ -40,7 +40,7 @@
                     <schema stdDomain="xml-name"/>
                 </field>
 
-                <field name="ext:proxyModuleName" displayName="proxyModuleName" mandatory="true">
+                <field name="ext:proxyModuleName" displayName="proxyModuleName">
                     <schema stdDomain="xml-name"/>
                 </field>
 

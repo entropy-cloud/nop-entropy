@@ -100,7 +100,7 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
                                     格式化为字符串后导出，而不是导出单元格的原始值。缺省情况下会导出原始值，使用Excel的NumberFormat来格式化
                                 -->
                                 <model xdef:name="XptCellModel" domain="string" editorId="var-name" viewerId="var-name"
-                                       field="prop-name" ds="var-name" expandInplaceCount="int"
+                                       field="prop-path" ds="var-name" expandInplaceCount="int"
                                        exportFormula="boolean" expandMaxCount="int" expandMinCount="int"
                                        expandType="enum:io.nop.excel.model.constants.XptExpandType"
                                        keepExpandEmpty="boolean" exportFormattedValue="boolean"
