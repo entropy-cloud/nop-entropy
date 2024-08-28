@@ -720,23 +720,7 @@
             ]]></source>
         </view-images>
 
-        <edit-images>
-            <attr name="dispMeta"/>
-            <attr name="propMeta"/>
-
-            <source><![CDATA[
-                const name = propMeta?.name || dispMeta.id
-                return {
-                    type: 'input-array',
-                    "name": name,
-                    items:{
-                       type: 'input-text',
-                       required:true,
-                       placeholder: '输入图片地址'
-                    }
-                }
-            ]]></source>
-        </edit-images>
+        <edit-images x:prototype="edit-file-list" />
 
         <edit-string-array>
             <attr name="dispMeta"/>

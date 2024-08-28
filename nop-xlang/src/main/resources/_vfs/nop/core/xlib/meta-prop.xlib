@@ -18,5 +18,27 @@
                 </prop>
             </source>
         </domain-csv-list>
+
+        <domain-file-list outputMode="node">
+            <attr name="propNode"/>
+
+            <source>
+                <prop name="${propNode.getAttr('name')}">
+                    <schema type="List&lt;String>"/>
+
+                    <transformIn>
+                        import io.nop.orm.support.OrmEntityHelper;
+                        return OrmEntityHelper.joinFileList(value?.$toCsvList());
+                    </transformIn>
+
+                    <transformOut>
+                        import io.nop.orm.support.OrmEntityHelper;
+                        return OrmEntityHelper.parseFileList(value);
+                    </transformOut>
+                </prop>
+            </source>
+        </domain-file-list>
+
+        <domain-images x:prototype="domain-file-list" />
     </tags>
 </lib>

@@ -16,7 +16,7 @@ Nop平台系统化的使用DSL来解决传统软件工程中的问题，这也�
 
 ## 一. XCodeGenerator的执行过程
 
-  `App = Delta x-extends Generator<DSL>`这个公式中提到的Generator是一个抽象概念，它泛指一切针对领域结构的抽象变换机制，具体的表现可以是一个独立的代码生成工具，也可以是某种内置在程序语言内部的宏函数(Macro Function)和元编程(Meta Programming)机制。XCodeGenerator是Nop平台内置的一个通用代码生成器。
+`App = Delta x-extends Generator<DSL>`这个公式中提到的Generator是一个抽象概念，它泛指一切针对领域结构的抽象变换机制，具体的表现可以是一个独立的代码生成工具，也可以是某种内置在程序语言内部的宏函数(Macro Function)和元编程(Meta Programming)机制。XCodeGenerator是Nop平台内置的一个通用代码生成器。
 
 > 参见[地表最强的模型驱动代码生成器NopCodeGen](https://mp.weixin.qq.com/s/rd36AFh5pmjwtRFmApRswg)
 
@@ -119,8 +119,8 @@ Nop平台提供的是一个通用解析器，它会根据ImportModel模型给出
 
 需要注意的是，这里的转换逻辑比JSON序列化复杂，因为解析得到的模型对象丢失了Excel格式和布局信息，它和ExcelWorkbook的相互转换在两个方向上是不对称的，可以看作是JSON序列化的一种非对称扩展。
 
-> **ExcelWorkbook  + ImportModel => ModelObject** 
-> 
+> **ExcelWorkbook  + ImportModel => ModelObject**
+>
 > **ModelObject + ReportModel => ExcelWorkbook**
 
 ImportModel是ImportExcelParser在运行时所使用的模型信息，它可以保存为imp.xml文件，以DSL的形态存在。
@@ -217,7 +217,7 @@ xpl模板语言是整个XLang语言家族的一部分，而XLang语言是Nop平�
 * XDef元模型本身也通过`xdef.xdef`来进行约束，但是在具体实现层面XDefinitionParser解析XDef模型文件的时候是手工编写的，并没有使用自动解析，否则解析XDef需要先解析`xdef.xdef`会导致循环。
 
 * Xpl虽然采用XML语法，但是它解析后得到的抽象语法树AST与XScript是一致的，都是XLangAST。
-  
+
   ```xml
   <c:unit>
      <c:for var="x" items="${list}">
@@ -225,12 +225,12 @@ xpl模板语言是整个XLang语言家族的一部分，而XLang语言是Nop平�
      </c:for>
      <c:script>
         for(let x of list){
-           // ... 
+           // ...
         }
      </c:script>
   </c:unit>
   ```
-  
+
   上面的`<c:for>`标签和`<c:script>`标签中的for语句解析得到的都是ForOfStatement。
 
 ## 六. DSL背后的统一结构构造规律

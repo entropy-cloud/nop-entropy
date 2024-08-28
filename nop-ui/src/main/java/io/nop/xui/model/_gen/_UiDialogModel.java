@@ -75,7 +75,7 @@ public abstract class _UiDialogModel extends io.nop.core.resource.component.Abst
     /**
      *  
      * xml name: size
-     * 
+     * sm/lg/xl/full控制不同的大小。full表示全屏
      */
     private java.lang.String _size ;
     
@@ -253,7 +253,7 @@ public abstract class _UiDialogModel extends io.nop.core.resource.component.Abst
     /**
      * 
      * xml name: size
-     *  
+     *  sm/lg/xl/full控制不同的大小。full表示全屏
      */
     
     public java.lang.String getSize(){
