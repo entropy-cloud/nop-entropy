@@ -47,7 +47,7 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> {
 
 ## 多数据源事务
 
-参见 [multi-db.md](multi-db.md)
+参见 [multi-datasource.md](multi-datasource.md)
 
 NopORM引擎支持同时使用多个数据源，例如一些表存放在数据库A中，另一些表存放在数据库B中，它们映射到实体对象后可以存在于同一个OrmSession中。
 缺省情况下，所有的的数据源都属于同一个事务组(txnGroup=default)，当打开事务的时候会认为打开的是事务组，然后不同数据源的事务都挂接在这一个事务组中。
