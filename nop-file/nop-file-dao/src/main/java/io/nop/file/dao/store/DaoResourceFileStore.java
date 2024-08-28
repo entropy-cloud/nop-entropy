@@ -312,7 +312,7 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
         newRecord.setBizObjName(newBizObjName);
         newRecord.setBizObjId(newObjId);
         newRecord.setFieldName(newFieldName);
-        newRecord.setOriginFileId(record.getFileId());
+        newRecord.setOriginFileId(record.getOriginFileId());
         newRecord.setFileExt(record.getFileExt());
         newRecord.setFileLength(record.getFileLength());
         newRecord.setFileName(record.getFileName());
