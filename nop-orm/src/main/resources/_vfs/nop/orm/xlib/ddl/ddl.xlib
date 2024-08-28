@@ -243,7 +243,7 @@
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
 
             <source>
-                <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} add column NOP_TENANT_ID ${dialect.stdToNativeSqlType('VARCHAR', 32, 0)} DEFAULT '0' NOT NULL</c:unit>
+                <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} add NOP_TENANT_ID ${dialect.stdToNativeSqlType('VARCHAR', 32, 0)} DEFAULT '0' NOT NULL</c:unit>
 
                 <c:if test="${addToPk}">
                     <c:unit>;&#10;</c:unit>
@@ -298,10 +298,11 @@
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
 
             <source>
-                <c:unit>alter table ${dialect.escapeSQLName(col.ownerEntityModel.tableName)} add column ${dialect.escapeSQLName(col.code)} </c:unit>
+                <!-- oracle 不允许add column，只支持add-->
+                <c:unit>alter table ${dialect.escapeSQLName(col.ownerEntityModel.tableName)} add ${dialect.escapeSQLName(col.code)} </c:unit>
                 <thisLib:ColSqlType/>
-                <thisLib:ColNullDef allNullable="${false}"/>
                 <thisLib:DefaultValue allNullable="${false}"/>
+                <thisLib:ColNullDef allNullable="${false}"/>
                 <thisLib:ColCommentDef/>
             </source>
         </AddColumn>
