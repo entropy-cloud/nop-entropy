@@ -55,8 +55,8 @@
                 <c:for var="col" items="${table.columns}">
                     <c:unit><![CDATA[ ${     dialect.escapeSQLName(col.code)} ]]></c:unit>
                     <thisLib:ColSqlType/>
-                    <thisLib:ColNullDef/>
                     <thisLib:DefaultValue/>
+                    <thisLib:ColNullDef/>  <!-- oracle要求 default 0 not null这种顺序，缺省值要放到not null的前面-->
                     <thisLib:ColCommentDef/>
                     <c:unit><![CDATA[,
  ]]></c:unit>
