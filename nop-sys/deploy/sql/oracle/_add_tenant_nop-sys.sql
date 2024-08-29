@@ -1,27 +1,27 @@
 
-    alter table nop_sys_checker_record add column NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+    alter table nop_sys_checker_record add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
-alter table nop_sys_cluster_leader add column NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+alter table nop_sys_cluster_leader add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
-alter table nop_sys_code_rule add column NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+alter table nop_sys_code_rule add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
-alter table nop_sys_dict add column NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+alter table nop_sys_dict add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
-alter table nop_sys_dict_option add column NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+alter table nop_sys_dict_option add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
-alter table nop_sys_ext_field add column NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+alter table nop_sys_ext_field add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
-alter table nop_sys_i18n add column NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+alter table nop_sys_i18n add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
-alter table nop_sys_lock add column NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+alter table nop_sys_lock add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
-alter table nop_sys_notice_template add column NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+alter table nop_sys_notice_template add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
-alter table nop_sys_sequence add column NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+alter table nop_sys_sequence add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
-alter table nop_sys_user_variable add column NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+alter table nop_sys_user_variable add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
-alter table nop_sys_variable add column NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+alter table nop_sys_variable add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
 alter table nop_sys_checker_record drop constraint PK_nop_sys_checker_record;
 alter table nop_sys_checker_record add constraint PK_nop_sys_checker_record primary key (NOP_TENANT_ID, SID);

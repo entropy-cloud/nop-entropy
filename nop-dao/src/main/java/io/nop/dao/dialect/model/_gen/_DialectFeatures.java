@@ -174,14 +174,15 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
     /**
      *  
      * xml name: useAsInFrom
-     * 
+     * select xx from t as v 这种语句是否允许使用as，oracle不允许使用as
      */
     private java.lang.Boolean _useAsInFrom ;
     
     /**
      *  
      * xml name: useGetStringForDate
-     * 
+     * 使用ResultSet.getString来获取日期时间类型的值。
+     * h2数据库的Date类型读取存在问题。1899以前的日期按照Date读取会少一天，例如1899-02-03会变成1899-02-02。所以需要改成按照字符串格式读取
      */
     private java.lang.Boolean _useGetStringForDate ;
     
@@ -607,7 +608,7 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: useAsInFrom
-     *  
+     *  select xx from t as v 这种语句是否允许使用as，oracle不允许使用as
      */
     
     public java.lang.Boolean getUseAsInFrom(){
@@ -626,7 +627,8 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: useGetStringForDate
-     *  
+     *  使用ResultSet.getString来获取日期时间类型的值。
+     * h2数据库的Date类型读取存在问题。1899以前的日期按照Date读取会少一天，例如1899-02-03会变成1899-02-02。所以需要改成按照字符串格式读取
      */
     
     public java.lang.Boolean getUseGetStringForDate(){

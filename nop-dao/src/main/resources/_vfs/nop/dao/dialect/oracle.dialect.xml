@@ -13,7 +13,6 @@
 
     <geometryTypeHandler>io.nop.orm.geo.dialect.oracle.OracleGeometryTypeHandler</geometryTypeHandler>
 
-    <features useAsInFrom="false" />
     <rename>
         ROWID="rowid"
     </rename>
@@ -97,7 +96,8 @@
         </errorCode>
     </errorCodes>
 
-    <features supportSequence="true" supportNullsFirst="true" supportSomeSubQuery="true" supportReturningForUpdate="true" />
+    <features supportSequence="true" supportNullsFirst="true" useAsInFrom="false"
+              supportSomeSubQuery="true" supportReturningForUpdate="true" />
 
     <!--
     Oracle使用minus关键字代替SQL标准中的except
