@@ -192,8 +192,16 @@ public class FilterBeanVisitor<T> {
         return name;
     }
 
+    protected void setName(ITreeBean filter, String name) {
+        filter.setAttr(FILTER_ATTR_NAME, name);
+    }
+
     protected Object getValue(ITreeBean filter) {
         return normalizeValue(filter.getLocation(), FILTER_ATTR_VALUE, filter.getAttr(FILTER_ATTR_VALUE));
+    }
+
+    protected void setValue(ITreeBean filter, Object value) {
+        filter.setAttr(FILTER_ATTR_VALUE, value);
     }
 
     protected Object getMin(ITreeBean filter) {

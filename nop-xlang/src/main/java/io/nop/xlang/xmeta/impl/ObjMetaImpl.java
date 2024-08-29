@@ -29,12 +29,29 @@ public class ObjMetaImpl extends _ObjMetaImpl implements IObjMeta, ISchema {
     private String xdslSchema;
     private String xdslTransform;
 
+    private Boolean hasMapToProp;
+
     @Override
     public String getBizObjName() {
         String bizObjName = super.getBizObjName();
         if (bizObjName == null)
             bizObjName = StringHelper.fileNameNoExt(resourcePath());
         return bizObjName;
+    }
+
+    @Override
+    public boolean hasMapToProp() {
+        if (hasMapToProp == null) {
+            for (IObjPropMeta propMeta : getProps()) {
+                if (propMeta.getMapToProp() != null) {
+                    hasMapToProp = true;
+                    return true;
+                }
+            }
+            hasMapToProp = false;
+            return false;
+        }
+        return hasMapToProp;
     }
 
     @Override

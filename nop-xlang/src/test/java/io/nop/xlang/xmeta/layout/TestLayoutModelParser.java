@@ -7,12 +7,15 @@
  */
 package io.nop.xlang.xmeta.layout;
 
+import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.CommonErrors;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.xlang.xmeta.layout.parse.LayoutModelParser;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestLayoutModelParser extends BaseTestCase {
     @Test
@@ -48,9 +51,20 @@ public class TestLayoutModelParser extends BaseTestCase {
     }
 
     @Test
-    public void testLabel(){
+    public void testLabel() {
         String layout = "===>a b====\n x[1\\n2] y\n ";
         LayoutModel model = parse(layout);
         System.out.println(model.toString());
+    }
+
+    @Test
+    public void testParseSpecialChar() {
+        String layout = "a$b$c\n";
+        try {
+            parse(layout);
+            fail();
+        } catch (NopException e) {
+            assertEquals(CommonErrors.ERR_SCAN_INVALID_XML_NAME.getErrorCode(), e.getErrorCode());
+        }
     }
 }

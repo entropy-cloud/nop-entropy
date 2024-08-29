@@ -13,6 +13,7 @@ import io.nop.api.core.util.ISourceLocationSetter;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public interface ITreeBean extends ISourceLocationGetter, ISourceLocationSetter {
     String getTagName();
@@ -28,6 +29,8 @@ public interface ITreeBean extends ISourceLocationGetter, ISourceLocationSetter 
     }
 
     Object getAttr(String name);
+
+    void setAttr(String name, Object value);
 
     Object getContentValue();
 
@@ -62,5 +65,15 @@ public interface ITreeBean extends ISourceLocationGetter, ISourceLocationSetter 
                 return value;
         }
         return null;
+    }
+
+    default void cascadeVisit(Consumer<ITreeBean> action) {
+        action.accept(this);
+        List<? extends ITreeBean> children = getChildren();
+        if (children != null) {
+            for (ITreeBean child : children) {
+                child.cascadeVisit(action);
+            }
+        }
     }
 }

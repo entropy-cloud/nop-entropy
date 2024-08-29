@@ -592,21 +592,20 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         attributes.put(name, vl);
     }
 
-    public XNode setAttr(String name, Object value) {
-        return this.setAttr(null, name, value);
+    public void setAttr(String name, Object value) {
+        this.setAttr(null, name, value);
     }
 
-    public XNode setAttr(SourceLocation loc, String name, Object value) {
+    public void setAttr(SourceLocation loc, String name, Object value) {
         checkNotReadOnly();
         if (value == null || value == NULL_VALUE) {
             attributes.remove(name);
-            return this;
+            return;
         }
 
         if (attributes == EMPTY_ATTRS)
             attributes = new LinkedHashMap<>();
         attributes.put(name, ValueWithLocation.of(loc, value));
-        return this;
     }
 
     public void attrValueLocs(Map<String, ValueWithLocation> attrs) {

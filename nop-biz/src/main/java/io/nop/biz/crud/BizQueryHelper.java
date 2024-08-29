@@ -1,6 +1,7 @@
 package io.nop.biz.crud;
 
 import io.nop.api.core.beans.FilterBeanConstants;
+import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IEvalContext;
@@ -26,5 +27,31 @@ public class BizQueryHelper {
 
             return fn.call3(null, filter, query, false, ctx.getEvalScope());
         });
+    }
+
+    public static void transformMapToProp(QueryBean query, IObjMeta objMeta) {
+        if (!objMeta.hasMapToProp())
+            return;
+
+        if (query.getFilter() != null) {
+            query.getFilter().cascadeVisit(node -> {
+                String name = (String) node.getAttr(FilterBeanConstants.FILTER_ATTR_NAME);
+                if (name != null) {
+                    IObjPropMeta propMeta = objMeta.getProp(name);
+                    if (propMeta != null && propMeta.getMapToProp() != null) {
+                        node.setAttr(FilterBeanConstants.FILTER_ATTR_NAME, propMeta.getMapToProp());
+                    }
+                }
+            });
+        }
+
+        if (query.getOrderBy() != null) {
+            for (OrderFieldBean orderField : query.getOrderBy()) {
+                IObjPropMeta propMeta = objMeta.getProp(orderField.getName());
+                if (propMeta != null && propMeta.getMapToProp() != null) {
+                    orderField.setName(propMeta.getMapToProp());
+                }
+            }
+        }
     }
 }

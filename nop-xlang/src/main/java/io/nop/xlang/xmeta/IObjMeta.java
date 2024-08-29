@@ -35,6 +35,8 @@ public interface IObjMeta extends IXDslModel, IObjSchema, ITagSetSupport, IExten
 
     Set<String> getPrimaryKey();
 
+    boolean hasMapToProp();
+
     default String getPkProp() {
         Set<String> pk = getPrimaryKey();
         if (pk == null || pk.isEmpty())

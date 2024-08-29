@@ -10,8 +10,6 @@ package io.nop.biz.crud;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.IVariableScope;
-import io.nop.biz.BizConstants;
-import io.nop.biz.api.IBizObjectManager;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.model.query.FilterBeanValidator;
 import io.nop.core.model.query.FilterOp;
@@ -41,16 +39,15 @@ public class ObjMetaBasedFilterValidator extends FilterBeanValidator {
             FilterOp.IN.name(), FilterOp.DATE_BETWEEN.name(), FilterOp.DATETIME_BETWEEN.name());
 
     private final IObjMeta objMeta;
-    private final IBizObjectManager bizObjectManager;
 
-    public ObjMetaBasedFilterValidator(IObjMeta objMeta, IBizObjectManager bizObjectManager) {
+    public ObjMetaBasedFilterValidator(IObjMeta objMeta) {
         this.objMeta = objMeta;
-        this.bizObjectManager = bizObjectManager;
     }
 
     @Override
     protected void validateVarFilter(FilterOp filterOp, String name, ITreeBean filter, IVariableScope scope) {
-        IObjPropMeta propMeta = BizObjMetaHelper.getPropMeta(objMeta, name, BizConstants.TAG_QUERYABLE, bizObjectManager);
+        // 查询字段必须在objMeta上直接定义，不应该支持查询子表关联子表对象，否则可能会无意中暴露过多的可查询字段
+        IObjPropMeta propMeta = objMeta.getProp(name);
         if (propMeta == null) {
             if (OrmConstants.PROP_ID.equals(name)) {
                 propMeta = objMeta.getIdProp();
@@ -84,6 +81,7 @@ public class ObjMetaBasedFilterValidator extends FilterBeanValidator {
                             .param(ARG_BIZ_OBJ_NAME, objMeta.getBizObjName()).param(ARG_PROP_NAME, name)
                             .param(ARG_COUNT, c.size())
                             .param(ARG_MAX_COUNT, CFG_BIZ_QUERY_IN_OP_MAX_ALLOW_VALUE_SIZE.get());
+                setValue(filter, value);
             }
         }
     }

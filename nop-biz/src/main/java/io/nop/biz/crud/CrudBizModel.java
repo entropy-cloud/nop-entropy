@@ -370,6 +370,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         if (queryTransformer != null)
             queryTransformer.transform(query, authObjName, action, this.getThisObj(), context);
 
+        BizQueryHelper.transformMapToProp(query,objMeta);
         BizExprHelper.resolveBizExpr(query.getFilter(), context);
         return query;
     }
@@ -377,12 +378,12 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     protected void checkAllowQuery(QueryBean query, IObjMeta objMeta) {
         if (objMeta != null && query != null) {
             if (query.getFilter() != null)
-                new ObjMetaBasedFilterValidator(objMeta, bizObjectManager).visit(query.getFilter(), DisabledEvalScope.INSTANCE);
+                new ObjMetaBasedFilterValidator(objMeta).visit(query.getFilter(), DisabledEvalScope.INSTANCE);
 
             if (query.getOrderBy() != null) {
                 for (OrderFieldBean field : query.getOrderBy()) {
                     String name = field.getName();
-                    BizObjMetaHelper.checkPropSortable(getBizObjName(), objMeta, name, bizObjectManager);
+                    BizObjMetaHelper.checkPropSortable(getBizObjName(), objMeta, name);
                 }
             }
 

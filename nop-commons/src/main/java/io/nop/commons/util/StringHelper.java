@@ -1717,7 +1717,7 @@ public class StringHelper extends ApiStringHelper {
 
     @Deterministic
     public static boolean isXmlNameStart(int c) {
-        return isJavaIdentifierStart(c);
+        return isJavaIdentifierStart(c) && c != '$';
     }
 
     @Deterministic
