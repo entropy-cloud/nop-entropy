@@ -596,6 +596,11 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         this.setAttr(null, name, value);
     }
 
+    public XNode withAttr(String name, Object value){
+        setAttr(name,value);
+        return this;
+    }
+
     public void setAttr(SourceLocation loc, String name, Object value) {
         checkNotReadOnly();
         if (value == null || value == NULL_VALUE) {

@@ -36,9 +36,9 @@
                            action.makeChild("transition").appendBodyXml("<to-step stepName='"+joinStepName+"'></to-step>");
 
                            steps.addChild("join")
-                                .setAttr("internal",true)
-                                .setAttr("joinType",'and').setAttr("waitStepNames", step.attrText('name'))
-                                .setAttr("name",joinStepName).appendChild(transition);
+                                .withAttr("internal",true)
+                                .withAttr("joinType",'and').withAttr("waitStepNames", step.attrText('name'))
+                                .withAttr("name",joinStepName).appendChild(transition);
                        });
                    });
                 ]]></c:script>
