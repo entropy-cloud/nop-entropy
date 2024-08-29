@@ -419,15 +419,13 @@
         "id": "row-images",
         "body": [
           {
-            "name": "images",
+            "name": "filter_images",
             "label": "imagesLabel",
             "clearValueOnHidden": false,
-            "type": "input-array",
-            "items": {
-              "type": "input-text",
-              "required": true,
-              "placeholder": "输入图片地址"
-            }
+            "type": "input-file",
+            "multiple": true,
+            "receiver": "/f/upload?bizObjName=NopAuthDept&fieldName=images",
+            "useChunk": false
           }
         ]
       },
