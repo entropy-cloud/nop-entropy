@@ -5,6 +5,8 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
+    <bean id="io.nop.sys.service.entity.NopSysCheckerRecordBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
     <bean id="io.nop.sys.service.entity.NopSysClusterLeaderBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.sys.service.entity.NopSysCodeRuleBizModel" ioc:type="@bean:id" ioc:default="true"/>
@@ -18,8 +20,6 @@
     <bean id="io.nop.sys.service.entity.NopSysI18nBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.sys.service.entity.NopSysLockBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="io.nop.sys.service.entity.NopSysMakerCheckerRecordBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.sys.service.entity.NopSysNoticeTemplateBizModel" ioc:type="@bean:id" ioc:default="true"/>
 

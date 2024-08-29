@@ -190,11 +190,10 @@
                         stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
         </entity>
-        <entity className="io.nop.sys.dao.entity.NopSysMakerCheckerRecord" createTimeProp="createTime"
-                createrProp="createdBy" displayName="MakerChecker审批记录"
-                name="io.nop.sys.dao.entity.NopSysMakerCheckerRecord" registerShortName="true"
-                tableName="nop_sys_maker_checker_record" updateTimeProp="updateTime" updaterProp="updatedBy"
-                versionProp="version" i18n-en:displayName="Maker Checker Record">
+        <entity className="io.nop.sys.dao.entity.NopSysCheckerRecord" createTimeProp="createTime"
+                createrProp="createdBy" displayName="MakerChecker审批记录" name="io.nop.sys.dao.entity.NopSysCheckerRecord"
+                registerShortName="true" tableName="nop_sys_checker_record" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Maker Checker Record">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>

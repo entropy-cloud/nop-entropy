@@ -2,7 +2,7 @@
 drop table  if exists  nop_sys_sequence;
 drop table  if exists  nop_sys_dict;
 drop table  if exists  nop_sys_i18n;
-drop table  if exists  nop_sys_maker_checker_record;
+drop table  if exists  nop_sys_checker_record;
 drop table  if exists  nop_sys_code_rule;
 drop table  if exists  nop_sys_notice_template;
 drop table  if exists  nop_sys_user_variable;

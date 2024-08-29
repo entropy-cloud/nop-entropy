@@ -45,7 +45,7 @@ CREATE TABLE nop_sys_i18n(
   constraint PK_nop_sys_i18n primary key (I18N_KEY,I18N_LOCALE)
 );
 
-CREATE TABLE nop_sys_maker_checker_record(
+CREATE TABLE nop_sys_checker_record(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
   BIZ_OBJ_NAME VARCHAR(200) NOT NULL    COMMENT '业务对象名',
   BIZ_OBJ_ID VARCHAR(100) NULL    COMMENT '业务对象ID',
@@ -69,7 +69,7 @@ CREATE TABLE nop_sys_maker_checker_record(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME TIMESTAMP(3) NOT NULL  DEFAULT CURRENT_TIMESTAMP(3)    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
-  constraint PK_nop_sys_maker_checker_record primary key (SID)
+  constraint PK_nop_sys_checker_record primary key (SID)
 );
 
 CREATE TABLE nop_sys_code_rule(
@@ -200,7 +200,7 @@ CREATE TABLE nop_sys_dict_option(
                 
    ALTER TABLE nop_sys_i18n COMMENT '多语言消息';
                 
-   ALTER TABLE nop_sys_maker_checker_record COMMENT 'MakerChecker审批记录';
+   ALTER TABLE nop_sys_checker_record COMMENT 'MakerChecker审批记录';
                 
    ALTER TABLE nop_sys_code_rule COMMENT '编码规则';
                 

@@ -1,5 +1,7 @@
 
-    alter table nop_sys_cluster_leader add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+    alter table nop_sys_checker_record add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_sys_cluster_leader add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_sys_code_rule add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
@@ -13,8 +15,6 @@ alter table nop_sys_i18n add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NU
 
 alter table nop_sys_lock add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_sys_maker_checker_record add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
-
 alter table nop_sys_notice_template add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_sys_sequence add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -22,6 +22,9 @@ alter table nop_sys_sequence add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NO
 alter table nop_sys_user_variable add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_sys_variable add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_sys_checker_record drop constraint PK_nop_sys_checker_record;
+alter table nop_sys_checker_record add constraint PK_nop_sys_checker_record primary key (NOP_TENANT_ID, SID);
 
 alter table nop_sys_cluster_leader drop constraint PK_nop_sys_cluster_leader;
 alter table nop_sys_cluster_leader add constraint PK_nop_sys_cluster_leader primary key (NOP_TENANT_ID, CLUSTER_ID);
@@ -43,9 +46,6 @@ alter table nop_sys_i18n add constraint PK_nop_sys_i18n primary key (NOP_TENANT_
 
 alter table nop_sys_lock drop constraint PK_nop_sys_lock;
 alter table nop_sys_lock add constraint PK_nop_sys_lock primary key (NOP_TENANT_ID, LOCK_GROUP,LOCK_NAME);
-
-alter table nop_sys_maker_checker_record drop constraint PK_nop_sys_maker_checker_record;
-alter table nop_sys_maker_checker_record add constraint PK_nop_sys_maker_checker_record primary key (NOP_TENANT_ID, SID);
 
 alter table nop_sys_notice_template drop constraint PK_nop_sys_notice_template;
 alter table nop_sys_notice_template add constraint PK_nop_sys_notice_template primary key (NOP_TENANT_ID, SID);

@@ -45,7 +45,7 @@ CREATE TABLE nop_sys_i18n(
   constraint PK_nop_sys_i18n primary key (I18N_KEY,I18N_LOCALE)
 );
 
-CREATE TABLE nop_sys_maker_checker_record(
+CREATE TABLE nop_sys_checker_record(
   SID VARCHAR(32) NOT NULL ,
   BIZ_OBJ_NAME VARCHAR(200) NOT NULL ,
   BIZ_OBJ_ID VARCHAR(100)  ,
@@ -69,7 +69,7 @@ CREATE TABLE nop_sys_maker_checker_record(
   UPDATED_BY VARCHAR(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR(200)  ,
-  constraint PK_nop_sys_maker_checker_record primary key (SID)
+  constraint PK_nop_sys_checker_record primary key (SID)
 );
 
 CREATE TABLE nop_sys_code_rule(
@@ -268,53 +268,53 @@ CREATE TABLE nop_sys_dict_option(
                     
       COMMENT ON COLUMN nop_sys_i18n.REMARK IS '备注';
                     
-      COMMENT ON TABLE nop_sys_maker_checker_record IS 'MakerChecker审批记录';
+      COMMENT ON TABLE nop_sys_checker_record IS 'MakerChecker审批记录';
                 
-      COMMENT ON COLUMN nop_sys_maker_checker_record.SID IS '主键';
+      COMMENT ON COLUMN nop_sys_checker_record.SID IS '主键';
                     
-      COMMENT ON COLUMN nop_sys_maker_checker_record.BIZ_OBJ_NAME IS '业务对象名';
+      COMMENT ON COLUMN nop_sys_checker_record.BIZ_OBJ_NAME IS '业务对象名';
                     
-      COMMENT ON COLUMN nop_sys_maker_checker_record.BIZ_OBJ_ID IS '业务对象ID';
+      COMMENT ON COLUMN nop_sys_checker_record.BIZ_OBJ_ID IS '业务对象ID';
                     
-      COMMENT ON COLUMN nop_sys_maker_checker_record.MAKER_ID IS '请求发起人ID';
+      COMMENT ON COLUMN nop_sys_checker_record.MAKER_ID IS '请求发起人ID';
                     
-      COMMENT ON COLUMN nop_sys_maker_checker_record.MAKER_NAME IS '请求发起人';
+      COMMENT ON COLUMN nop_sys_checker_record.MAKER_NAME IS '请求发起人';
                     
-      COMMENT ON COLUMN nop_sys_maker_checker_record.REQUEST_ACTION IS '请求操作';
+      COMMENT ON COLUMN nop_sys_checker_record.REQUEST_ACTION IS '请求操作';
                     
-      COMMENT ON COLUMN nop_sys_maker_checker_record.REQUEST_DATA IS '请求数据';
+      COMMENT ON COLUMN nop_sys_checker_record.REQUEST_DATA IS '请求数据';
                     
-      COMMENT ON COLUMN nop_sys_maker_checker_record.REQUEST_TIME IS '请求时间';
+      COMMENT ON COLUMN nop_sys_checker_record.REQUEST_TIME IS '请求时间';
                     
-      COMMENT ON COLUMN nop_sys_maker_checker_record.CHECKER_ID IS '审批人ID';
+      COMMENT ON COLUMN nop_sys_checker_record.CHECKER_ID IS '审批人ID';
                     
-      COMMENT ON COLUMN nop_sys_maker_checker_record.CHECKER_NAME IS '审批人';
+      COMMENT ON COLUMN nop_sys_checker_record.CHECKER_NAME IS '审批人';
                     
-      COMMENT ON COLUMN nop_sys_maker_checker_record.CHECK_TIME IS '审批时间';
+      COMMENT ON COLUMN nop_sys_checker_record.CHECK_TIME IS '审批时间';
                     
-      COMMENT ON COLUMN nop_sys_maker_checker_record.TRY_RESULT IS '请求结果';
+      COMMENT ON COLUMN nop_sys_checker_record.TRY_RESULT IS '请求结果';
                     
-      COMMENT ON COLUMN nop_sys_maker_checker_record.INPUT_PAGE IS '输入页面';
+      COMMENT ON COLUMN nop_sys_checker_record.INPUT_PAGE IS '输入页面';
                     
-      COMMENT ON COLUMN nop_sys_maker_checker_record.STATUS IS '审批状态';
+      COMMENT ON COLUMN nop_sys_checker_record.STATUS IS '审批状态';
                     
-      COMMENT ON COLUMN nop_sys_maker_checker_record.CANCEL_ACTION IS '取消方法';
+      COMMENT ON COLUMN nop_sys_checker_record.CANCEL_ACTION IS '取消方法';
                     
-      COMMENT ON COLUMN nop_sys_maker_checker_record.CB_ERR_CODE IS '回调错误码';
+      COMMENT ON COLUMN nop_sys_checker_record.CB_ERR_CODE IS '回调错误码';
                     
-      COMMENT ON COLUMN nop_sys_maker_checker_record.CE_ERR_MSG IS '回调错误消息';
+      COMMENT ON COLUMN nop_sys_checker_record.CE_ERR_MSG IS '回调错误消息';
                     
-      COMMENT ON COLUMN nop_sys_maker_checker_record.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_sys_checker_record.VERSION IS '数据版本';
                     
-      COMMENT ON COLUMN nop_sys_maker_checker_record.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_sys_checker_record.CREATED_BY IS '创建人';
                     
-      COMMENT ON COLUMN nop_sys_maker_checker_record.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_sys_checker_record.CREATE_TIME IS '创建时间';
                     
-      COMMENT ON COLUMN nop_sys_maker_checker_record.UPDATED_BY IS '修改人';
+      COMMENT ON COLUMN nop_sys_checker_record.UPDATED_BY IS '修改人';
                     
-      COMMENT ON COLUMN nop_sys_maker_checker_record.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_sys_checker_record.UPDATE_TIME IS '修改时间';
                     
-      COMMENT ON COLUMN nop_sys_maker_checker_record.REMARK IS '备注';
+      COMMENT ON COLUMN nop_sys_checker_record.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_sys_code_rule IS '编码规则';
                 
