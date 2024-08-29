@@ -99,6 +99,8 @@ public interface IDialect extends IComponentModel {
      */
     boolean isUseGetStringForDate();
 
+    boolean isUseAsInFrom();
+
     CharacterCase getTableNameCase();
 
     CharacterCase getColumnNameCase();

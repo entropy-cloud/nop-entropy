@@ -173,6 +173,13 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: useAsInFrom
+     * 
+     */
+    private java.lang.Boolean _useAsInFrom ;
+    
+    /**
+     *  
      * xml name: useGetStringForDate
      * 
      */
@@ -599,6 +606,25 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
     
     /**
      * 
+     * xml name: useAsInFrom
+     *  
+     */
+    
+    public java.lang.Boolean getUseAsInFrom(){
+      return _useAsInFrom;
+    }
+
+    
+    public void setUseAsInFrom(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._useAsInFrom = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: useGetStringForDate
      *  
      */
@@ -653,6 +679,7 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
         out.putNotNull("supportUpdateFromJoin",this.getSupportUpdateFromJoin());
         out.putNotNull("supportUpdateTableAlias",this.getSupportUpdateTableAlias());
         out.putNotNull("supportWithAsClause",this.getSupportWithAsClause());
+        out.putNotNull("useAsInFrom",this.getUseAsInFrom());
         out.putNotNull("useGetStringForDate",this.getUseGetStringForDate());
     }
 
@@ -687,6 +714,7 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
         instance.setSupportUpdateFromJoin(this.getSupportUpdateFromJoin());
         instance.setSupportUpdateTableAlias(this.getSupportUpdateTableAlias());
         instance.setSupportWithAsClause(this.getSupportWithAsClause());
+        instance.setUseAsInFrom(this.getUseAsInFrom());
         instance.setUseGetStringForDate(this.getUseGetStringForDate());
     }
 

@@ -18,7 +18,7 @@
             supportRowValueConstructor="true" supportUpdateFromJoin="false"
             supportQueryTimeout="true" supportWithAsClause="true"
             supportDeleteFromJoin="false" supportILike="false"
-            supportFullJoin="true" supportRightJoin="true"
+            supportFullJoin="true" supportRightJoin="true" useAsInFrom="true"
     />
 
     <sqls insertKeyword="insert" updateKeyword="update" trueString="1" falseString="0" escapeSlash="true">

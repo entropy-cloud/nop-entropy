@@ -829,10 +829,20 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         }
 
         public SqlBuilder markTable(String tableName, String alias, String entityName) {
+            return markTable(tableName, alias, entityName, false);
+        }
+
+        public SqlBuilder markTable(String tableName, String alias, String entityName, boolean useAs) {
             int pos = length();
             append(tableName);
             int end = length();
-            as(alias);
+            if (!StringHelper.isEmpty(alias)) {
+                if (useAs) {
+                    as(alias);
+                } else {
+                    append(' ').append(alias).append(' ');
+                }
+            }
             addMarker(new SyntaxMarker(pos, end, SyntaxMarkerType.TABLE, entityName, alias));
             return this;
         }

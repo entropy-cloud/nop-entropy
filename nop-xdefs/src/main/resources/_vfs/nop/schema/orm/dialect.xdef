@@ -37,6 +37,9 @@
         order by if(isnull(field),0,1), field来模拟
     @supportReturningForUpdate Update语句增加returning子句支持
     @supportOutputForUpdate Update语句支持output子句
+    @useGetStringForDate 使用ResultSet.getString来获取日期时间类型的值。
+        h2数据库的Date类型读取存在问题。1899以前的日期按照Date读取会少一天，例如1899-02-03会变成1899-02-02。所以需要改成按照字符串格式读取
+    @useAsInFrom select xx from t as v 这种语句是否允许使用as，oracle不允许使用as
     -->
     <features xdef:name="DialectFeatures" xdef:mandatory="true"
               supportExecuteLargeUpdate="boolean" supportLargeMaxRows="boolean"
@@ -50,6 +53,7 @@
               supportNullsFirst="boolean" useGetStringForDate="boolean"
               supportFullJoin="boolean" supportRightJoin="boolean" supportSomeSubQuery="boolean"
               supportReturningForUpdate="boolean" supportOutputForUpdate="boolean"
+              useAsInFrom="boolean"
     />
 
     <!--

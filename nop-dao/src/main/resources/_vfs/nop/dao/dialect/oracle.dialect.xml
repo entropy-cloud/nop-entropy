@@ -13,6 +13,7 @@
 
     <geometryTypeHandler>io.nop.orm.geo.dialect.oracle.OracleGeometryTypeHandler</geometryTypeHandler>
 
+    <features useAsInFrom="false" />
     <rename>
         ROWID="rowid"
     </rename>

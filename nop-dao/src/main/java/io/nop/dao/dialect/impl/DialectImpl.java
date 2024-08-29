@@ -311,6 +311,11 @@ public class DialectImpl implements IDialect {
     }
 
     @Override
+    public boolean isUseAsInFrom() {
+        return Boolean.TRUE.equals(dialectModel.getFeatures().getUseAsInFrom());
+    }
+
+    @Override
     public CharacterCase getTableNameCase() {
         return dialectModel.getTableNameCase();
     }

@@ -654,7 +654,7 @@ public class GenSqlHelper {
     }
 
     public static void table(SQL.SqlBuilder sb, IDialect dialect, IEntityModel entityModel, String owner) {
-        sb.markTable(dialect.escapeSQLName(entityModel.getTableName()), owner, entityModel.getName());
+        sb.markTable(dialect.escapeSQLName(entityModel.getTableName()), owner, entityModel.getName(), dialect.isUseAsInFrom());
     }
 
     public static void genIdEq(MutableIntArray params, SQL.SqlBuilder sb, IDialect dialect, String owner,
