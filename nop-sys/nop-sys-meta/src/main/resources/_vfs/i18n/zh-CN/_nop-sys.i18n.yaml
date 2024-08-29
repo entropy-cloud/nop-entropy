@@ -1,5 +1,6 @@
 entity:
   label:
+    NopSysCheckerRecord: MakerChecker审批记录
     NopSysClusterLeader: 集群选举
     NopSysCodeRule: 编码规则
     NopSysDict: 字典表
@@ -7,13 +8,36 @@ entity:
     NopSysExtField: 扩展字段
     NopSysI18n: 多语言消息
     NopSysLock: 资源锁
-    NopSysMakerCheckerRecord: MakerChecker审批记录
     NopSysNoticeTemplate: 通知模板
     NopSysSequence: 序列号
     NopSysUserVariable: 用户变量
     NopSysVariable: 系统变量
 prop:
   label:
+    NopSysCheckerRecord:
+      bizObjId: 业务对象ID
+      bizObjName: 业务对象名
+      cancelAction: 取消方法
+      cbErrCode: 回调错误码
+      ceErrMsg: 回调错误消息
+      checkTime: 审批时间
+      checkerId: 审批人ID
+      checkerName: 审批人
+      createTime: 创建时间
+      createdBy: 创建人
+      inputPage: 输入页面
+      makerId: 请求发起人ID
+      makerName: 请求发起人
+      remark: 备注
+      requestAction: 请求操作
+      requestData: 请求数据
+      requestTime: 请求时间
+      sid: 主键
+      status: 审批状态
+      tryResult: 请求结果
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopSysClusterLeader:
       appId: 应用ID
       clusterId: 集群ID
@@ -101,30 +125,6 @@ prop:
       lockName: 锁名称
       lockReason: 锁定原因
       lockTime: 锁定时间
-    NopSysMakerCheckerRecord:
-      bizObjId: 业务对象ID
-      bizObjName: 业务对象名
-      cancelAction: 取消方法
-      cbErrCode: 回调错误码
-      ceErrMsg: 回调错误消息
-      checkTime: 审批时间
-      checkerId: 审批人ID
-      checkerName: 审批人
-      createTime: 创建时间
-      createdBy: 创建人
-      inputPage: 输入页面
-      makerId: 请求发起人ID
-      makerName: 请求发起人
-      remark: 备注
-      requestAction: 请求操作
-      requestData: 请求数据
-      requestTime: 请求时间
-      sid: 主键
-      status: 审批状态
-      tryResult: 请求结果
-      updateTime: 修改时间
-      updatedBy: 修改人
-      version: 数据版本
     NopSysNoticeTemplate:
       content: 模板内容
       createTime: 创建时间

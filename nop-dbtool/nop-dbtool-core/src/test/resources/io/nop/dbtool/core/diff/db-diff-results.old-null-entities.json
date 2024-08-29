@@ -1,6 +1,6 @@
 [
   {
-    "ddl": "CREATE TABLE dev_app(\n  ID VARCHAR(32) NOT NULL  COMMENT '主键' ,\n  CREATED_AT TIMESTAMP NOT NULL  default CURRENT_TIMESTAMP  COMMENT '创建时间' ,\n  DISPLAY_NAME VARCHAR(100) NOT NULL  COMMENT '名称' ,\n  CODE VARCHAR(50) NOT NULL  COMMENT '编码' ,\n  VERSION VARCHAR(50) NOT NULL  default '1.0.0'  COMMENT '版本号' ,\n  DESCRIPTION VARCHAR(500)   COMMENT '说明' ,\n  constraint uk_dev_app_code unique (CODE),\n  constraint PK_dev_app primary key (ID)\n)",
+    "ddl": "CREATE TABLE dev_app(\n  ID VARCHAR(32) NOT NULL  COMMENT '主键' ,\n  CREATED_AT TIMESTAMP default CURRENT_TIMESTAMP  NOT NULL  COMMENT '创建时间' ,\n  DISPLAY_NAME VARCHAR(100) NOT NULL  COMMENT '名称' ,\n  CODE VARCHAR(50) NOT NULL  COMMENT '编码' ,\n  VERSION VARCHAR(50) default '1.0.0'  NOT NULL  COMMENT '版本号' ,\n  DESCRIPTION VARCHAR(500)   COMMENT '说明' ,\n  constraint uk_dev_app_code unique (CODE),\n  constraint PK_dev_app primary key (ID)\n)",
     "querySpace": "default",
     "target": null,
     "targetTable": "dev_app",

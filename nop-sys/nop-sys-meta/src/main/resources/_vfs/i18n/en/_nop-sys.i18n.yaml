@@ -1,5 +1,6 @@
 entity:
   label:
+    NopSysCheckerRecord: Maker Checker Record
     NopSysClusterLeader: Cluster Leader
     NopSysCodeRule: Code Rule
     NopSysDict: Dictionary
@@ -7,13 +8,36 @@ entity:
     NopSysExtField: Extension Field
     NopSysI18n: I18n Message
     NopSysLock: Lock
-    NopSysMakerCheckerRecord: Maker Checker Record
     NopSysNoticeTemplate: Notice Template
     NopSysSequence: Sequence
     NopSysUserVariable: User Variable
     NopSysVariable: System Variable
 prop:
   label:
+    NopSysCheckerRecord:
+      sid: SID
+      bizObjName: Biz Object Name
+      bizObjId: Biz Object ID
+      makerId: Maker ID
+      makerName: Maker Name
+      requestAction: Request Action
+      requestData: Request Data
+      requestTime: Request Time
+      checkerId: Checker ID
+      checkerName: Checker Name
+      checkTime: Check Time
+      tryResult: Try Result
+      inputPage: Input Page
+      status: Status
+      cancelAction: Cancel Action
+      cbErrCode: Callback Error Code
+      ceErrMsg: Callback Error Message
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
     NopSysClusterLeader:
       clusterId: Cluster ID
       leaderId: Leader ID
@@ -101,30 +125,6 @@ prop:
       holderId: Holder ID
       holderAdder: Holder Addr
       appId: App ID
-    NopSysMakerCheckerRecord:
-      sid: SID
-      bizObjName: Biz Object Name
-      bizObjId: Biz Object ID
-      makerId: Maker ID
-      makerName: Maker Name
-      requestAction: Request Action
-      requestData: Request Data
-      requestTime: Request Time
-      checkerId: Checker ID
-      checkerName: Checker Name
-      checkTime: Check Time
-      tryResult: Try Result
-      inputPage: Input Page
-      status: Status
-      cancelAction: Cancel Action
-      cbErrCode: Callback Error Code
-      ceErrMsg: Callback Error Message
-      version: Version
-      createdBy: Created By
-      createTime: Create Time
-      updatedBy: Updated By
-      updateTime: Update Time
-      remark: Remark
     NopSysNoticeTemplate:
       sid: SID
       name: Name

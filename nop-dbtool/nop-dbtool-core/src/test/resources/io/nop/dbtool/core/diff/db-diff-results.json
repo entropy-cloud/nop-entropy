@@ -8,7 +8,7 @@
     "type": "add"
   },
   {
-    "ddl": "alter table dev_app add column CODE VARCHAR(50) NOT NULL  COMMENT '编码' ",
+    "ddl": "alter table dev_app add CODE VARCHAR(50) NOT NULL  COMMENT '编码' ",
     "querySpace": "default",
     "target": "CODE",
     "targetTable": "dev_app",
@@ -16,7 +16,7 @@
     "type": "add"
   },
   {
-    "ddl": "alter table dev_app add column DESCRIPTION VARCHAR(500)   COMMENT '说明' ",
+    "ddl": "alter table dev_app add DESCRIPTION VARCHAR(500)   COMMENT '说明' ",
     "querySpace": "default",
     "target": "DESCRIPTION",
     "targetTable": "dev_app",
