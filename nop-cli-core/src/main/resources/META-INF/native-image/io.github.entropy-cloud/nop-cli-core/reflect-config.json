@@ -8202,6 +8202,13 @@
         ]
       },
       {
+        "name": "withAttr",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "wrapChildren",
         "parameterTypes": [
           "io.nop.core.lang.xml.XNode"
@@ -10996,6 +11003,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isUseAsInFrom",
+        "parameterTypes": []
+      },
+      {
         "name": "isUseGetStringForDate",
         "parameterTypes": []
       },
@@ -11402,6 +11413,10 @@
       },
       {
         "name": "isSupportWithAsClause",
+        "parameterTypes": []
+      },
+      {
+        "name": "isUseAsInFrom",
         "parameterTypes": []
       },
       {
@@ -12064,6 +12079,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getUseAsInFrom",
+        "parameterTypes": []
+      },
+      {
         "name": "getUseGetStringForDate",
         "parameterTypes": []
       },
@@ -12205,6 +12224,12 @@
       },
       {
         "name": "setSupportWithAsClause",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setUseAsInFrom",
         "parameterTypes": [
           "java.lang.Boolean"
         ]
