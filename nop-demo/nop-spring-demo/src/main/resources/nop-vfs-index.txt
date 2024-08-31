@@ -356,7 +356,6 @@
 /nop/report/xlib/xpt-rt.xlib
 /nop/report/xlib/xpt.xlib
 /nop/rpc/imp/api.imp.xml
-/nop/rpc/imp/api.imp.xml.rej
 /nop/rpc/imp/template.api.xlsx
 /nop/schema/action-auth.xdef
 /nop/schema/api.xdef
@@ -438,6 +437,10 @@
 /nop/sys/beans/_service.beans.xml
 /nop/sys/beans/app-dao.beans.xml
 /nop/sys/beans/app-service.beans.xml
+/nop/sys/model/NopSysCheckerRecord/NopSysCheckerRecord.xbiz
+/nop/sys/model/NopSysCheckerRecord/NopSysCheckerRecord.xmeta
+/nop/sys/model/NopSysCheckerRecord/_NopSysCheckerRecord.xbiz
+/nop/sys/model/NopSysCheckerRecord/_NopSysCheckerRecord.xmeta
 /nop/sys/model/NopSysClusterLeader/NopSysClusterLeader.xbiz
 /nop/sys/model/NopSysClusterLeader/NopSysClusterLeader.xmeta
 /nop/sys/model/NopSysClusterLeader/_NopSysClusterLeader.xbiz
@@ -466,10 +469,6 @@
 /nop/sys/model/NopSysLock/NopSysLock.xmeta
 /nop/sys/model/NopSysLock/_NopSysLock.xbiz
 /nop/sys/model/NopSysLock/_NopSysLock.xmeta
-/nop/sys/model/NopSysMakerCheckerRecord/NopSysMakerCheckerRecord.xbiz
-/nop/sys/model/NopSysMakerCheckerRecord/NopSysMakerCheckerRecord.xmeta
-/nop/sys/model/NopSysMakerCheckerRecord/_NopSysMakerCheckerRecord.xbiz
-/nop/sys/model/NopSysMakerCheckerRecord/_NopSysMakerCheckerRecord.xmeta
 /nop/sys/model/NopSysNoticeTemplate/NopSysNoticeTemplate.xbiz
 /nop/sys/model/NopSysNoticeTemplate/NopSysNoticeTemplate.xmeta
 /nop/sys/model/NopSysNoticeTemplate/_NopSysNoticeTemplate.xbiz
@@ -488,6 +487,11 @@
 /nop/sys/model/NopSysVariable/_NopSysVariable.xmeta
 /nop/sys/orm/_app.orm.xml
 /nop/sys/orm/app.orm.xml
+/nop/sys/pages/NopSysCheckerRecord/NopSysCheckerRecord.lib.xjs
+/nop/sys/pages/NopSysCheckerRecord/NopSysCheckerRecord.view.xml
+/nop/sys/pages/NopSysCheckerRecord/_gen/_NopSysCheckerRecord.view.xml
+/nop/sys/pages/NopSysCheckerRecord/main.page.yaml
+/nop/sys/pages/NopSysCheckerRecord/picker.page.yaml
 /nop/sys/pages/NopSysClusterLeader/NopSysClusterLeader.lib.js
 /nop/sys/pages/NopSysClusterLeader/NopSysClusterLeader.lib.xjs
 /nop/sys/pages/NopSysClusterLeader/NopSysClusterLeader.view.xml
@@ -531,12 +535,6 @@
 /nop/sys/pages/NopSysLock/_gen/_NopSysLock.view.xml
 /nop/sys/pages/NopSysLock/main.page.yaml
 /nop/sys/pages/NopSysLock/picker.page.yaml
-/nop/sys/pages/NopSysMakerCheckerRecord/NopSysMakerCheckerRecord.lib.js
-/nop/sys/pages/NopSysMakerCheckerRecord/NopSysMakerCheckerRecord.lib.xjs
-/nop/sys/pages/NopSysMakerCheckerRecord/NopSysMakerCheckerRecord.view.xml
-/nop/sys/pages/NopSysMakerCheckerRecord/_gen/_NopSysMakerCheckerRecord.view.xml
-/nop/sys/pages/NopSysMakerCheckerRecord/main.page.yaml
-/nop/sys/pages/NopSysMakerCheckerRecord/picker.page.yaml
 /nop/sys/pages/NopSysNoticeTemplate/NopSysNoticeTemplate.lib.js
 /nop/sys/pages/NopSysNoticeTemplate/NopSysNoticeTemplate.lib.xjs
 /nop/sys/pages/NopSysNoticeTemplate/NopSysNoticeTemplate.view.xml

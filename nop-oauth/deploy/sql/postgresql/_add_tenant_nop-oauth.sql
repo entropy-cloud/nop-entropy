@@ -1,9 +1,9 @@
 
-    alter table nop_oauth_authorization add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+    alter table nop_oauth_authorization add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_oauth_authorization_consent add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+alter table nop_oauth_authorization_consent add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_oauth_registered_client add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+alter table nop_oauth_registered_client add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_oauth_authorization drop constraint PK_nop_oauth_authorization;
 alter table nop_oauth_authorization add constraint PK_nop_oauth_authorization primary key (NOP_TENANT_ID, SID);

@@ -6,6 +6,7 @@
         <import name="NodeContent" from="@nop-chaos/plugin-dingflow"/>
         <import name="ContentPlaceholder" from="@nop-chaos/plugin-dingflow"/>
         <import name="NodeTitle" from="@nop-chaos/plugin-dingflow"/>
+        <import name="ConditionNodeTitle" from="@nop-chaos/plugin-dingflow"/>
     </imports>
 
     <nodes>
@@ -46,6 +47,8 @@
         </node>
 
         <node name="notifier" base="approver" label="Notifier"/>
+
+        <node name="audit" base="approver" label="Auditer"/>
 
         <node name="condition" kind="condition" label="Condition">
             <template>

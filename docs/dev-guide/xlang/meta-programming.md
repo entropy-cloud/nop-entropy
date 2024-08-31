@@ -5,7 +5,7 @@
 编程通俗的说就是**写代码**, 而所谓的元编程指的是**写生成代码的代码**。
 Lisp通过宏提供了元编程的能力，而Lisp宏本质上就是一种内嵌在语言中的代码生成器。除了Lisp语言之外，Scala和Rust这些比较现代的程序语言也提供了所谓的宏的设计，但是宏一般被看作是非常复杂的底层技术，很少进入普通程序员的工具箱。
 
-Nop平台的XLang语言是实现可逆计算原理的核心技术之一，为了落实可逆计算理论所提出的 `App = Biz x-extends Generator<DSL>`
+Nop平台的XLang语言是实现可逆计算原理的核心技术之一，为了落实可逆计算理论所提出的 `App = Delta x-extends Generator<DSL>`
 这样一种面向DSL和差量编程的新的编程范式，
 XLang定义了一整套系统化的、覆盖应用系统开发方方面面的Generator方案。Lisp的宏仅仅是提供了生成Lisp
 AST的元编程机制，而XLang除了引入宏函数用于生成XLang AST之外，还提供了面向代码生成的Xpl模板语法，
@@ -65,7 +65,7 @@ let result = linq `select ff from myObject o  where o.value > 3`
 因为宏函数在编译期执行，因此用宏函数来实现解析功能可以优化系统执行性能。例如从XNode中读取子节点a的b属性时
 
 ```
-  node.selectOne(xpath `a/@b`) 
+  node.selectOne(xpath `a/@b`)
 ```
 
 因为xpath是一个宏函数，所以它在编译期就会完成解析，在运行期相当于是传送一个常量对象给selectOne函数。
@@ -91,8 +91,8 @@ Xpl模板语言为了支持代码生成，它提供了多种输出模式：
 
 ```
 <filter:sql>
-  o.id in (select o.id from MyTable o where o.id = ${entity.id}) 
-</filter:sql> 
+  o.id in (select o.id from MyTable o where o.id = ${entity.id})
+</filter:sql>
 ```
 
 实际会生成 `o.id in (select o.id from MyTable o where o.id = ? )`，表达式的值不会直接拼接到SQL文本中，而是会被替换为SQL参数。
@@ -255,7 +255,7 @@ Nop平台中所有的DSL都支持x-extends差量合并机制，通过它实现�
 合并结果为
 
 ```
-F x-extends E x-extends model x-extends D x-extends C x-extends B x-extends A 
+F x-extends E x-extends model x-extends D x-extends C x-extends B x-extends A
 ```
 
 当前模型会覆盖`x:gen-extends`和`x:extends`的结果，而`x:post-extends`会覆盖当前模型。

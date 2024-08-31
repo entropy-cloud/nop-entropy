@@ -19,7 +19,7 @@ toolbar:
       body: 按钮被点击了
 body:
   - type: nop-flow-editor
-    componentLib: /nop/wf/pages/NopWfDefinition/flow.lib.js
+    componentLib: /nop/wf/designer/dingflow.lib.js
     editable: true
     flowEditorSchema:
       editForms:

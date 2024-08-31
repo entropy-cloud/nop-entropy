@@ -9,7 +9,7 @@
         }
     ]]></c:script>
 
-    import {createElement as h} from 'react'
+    import {createElement as h, Fragment} from 'react'
 
     <c:for var="importModel" items="${model.imports}">
         import { ${importModel.name} as ${importModel.as} } from '${importModel.from}';

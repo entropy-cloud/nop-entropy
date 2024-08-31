@@ -1,15 +1,17 @@
 //generate from /nop/wf/designer/dingflow.lib.xjs
 System.register(['react', '@nop-chaos/plugin-dingflow'], (function (exports) {
   'use strict';
-  var createElement, NodeTitleShell, NodeContent, ContentPlaceholder, NodeTitle;
+  var createElement, Fragment, NodeTitleShell, NodeContent, ContentPlaceholder, NodeTitle, ConditionNodeTitle;
   return {
     setters: [module => {
       createElement = module.createElement;
+      Fragment = module.Fragment;
     }, module => {
       NodeTitleShell = module.NodeTitleShell;
       NodeContent = module.NodeContent;
       ContentPlaceholder = module.ContentPlaceholder;
       NodeTitle = module.NodeTitle;
+      ConditionNodeTitle = module.ConditionNodeTitle;
     }],
     execute: (function () {
 
@@ -143,6 +145,8 @@ System.register(['react', '@nop-chaos/plugin-dingflow'], (function (exports) {
               
                   const Node_notifier = Node_approver;
               
+                  const Node_audit = Node_approver;
+              
 
           const NODE_COMPONENTS = exports('default', {
               
@@ -153,6 +157,8 @@ System.register(['react', '@nop-chaos/plugin-dingflow'], (function (exports) {
                   "approver": Node_approver,
               
                   "notifier": Node_notifier,
+              
+                  "audit": Node_audit,
               
                   "condition": Node_condition,
               

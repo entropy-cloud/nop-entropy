@@ -186,3 +186,20 @@ Delta定制代码存放在单独的目录中，可以与程序主应用的代码
 ### 三. Antlr扩展
 
 Nop平台对于自定义程序语法的DSL开发也提供了一定的支持，可以基于Antlr4的g4文件定义直接生成AST的解析器（Antlr内置只支持解析到`ParseTree`，需要手工编写从`ParseTree`到AST的转换代码）。具体参见[antlr.md](antlr.md)
+
+
+## 在任意XML/JSON基础上增加XDSL支持
+任何XML和JSON都可以被自动改造为XDSL。比如说前端AMIS框架本身采用了JSON格式，我们不需要对AMIS引擎进行任何修改，通过统一的DeltaJsonLoader，就可以为AMIS引入可逆计算的分解合并机制。
+
+```json
+{
+  "x:extends": "继承已有的其他AMIS文件，实现页面分解，AMIS并没有内置的分解机制",
+  "title": "在继承的页面基础上可以差量化定制修正",
+  "x:override": "缺省合并运算采用merge方式，可以通过x:override修改为remove/replace/bounded-merge等",
+  "x:gen-extends": "这里可以写xpl模板语言来动态生成基础对象结构",
+  "feature:on": "这里的特性表达式返回true的时候本节点才存在，否则自动删除节点"
+}
+```
+
+具体XDSL使用了哪些语法属性，参见[xdsl.xdef元模型定义](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef).
+`x:override`合并算子的介绍参见[x-override.md](x-override.md)
