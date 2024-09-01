@@ -24,54 +24,54 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class JdbcInsertDuplicateFilter<S> implements IBatchRecordHistoryStore<S> {
+public class JdbcKeyDuplicateFilter<S> implements IBatchRecordHistoryStore<S> {
     private final IJdbcTemplate jdbcTemplate;
     private final String tableName;
-    private final Map<String, IDataParameterBinder> pkBinders;
+    private final Map<String, IDataParameterBinder> keyBinders;
 
-    public JdbcInsertDuplicateFilter(IJdbcTemplate jdbcTemplate, String tableName, Map<String, IDataParameterBinder> pkBinders) {
+    public JdbcKeyDuplicateFilter(IJdbcTemplate jdbcTemplate, String tableName, Map<String, IDataParameterBinder> keyBinders) {
         this.jdbcTemplate = jdbcTemplate;
         this.tableName = tableName;
-        this.pkBinders = pkBinders;
+        this.keyBinders = keyBinders;
     }
 
     @Override
     public List<S> filterProcessed(List<S> records, IBatchChunkContext context) {
-        if (pkBinders.size() == 1) {
-            String pkCol = CollectionHelper.first(pkBinders.keySet());
-            IDataParameterBinder binder = pkBinders.get(pkCol);
+        if (keyBinders.size() == 1) {
+            String keyCol = CollectionHelper.first(keyBinders.keySet());
+            IDataParameterBinder binder = keyBinders.get(keyCol);
             Map<String, S> keyMap = new LinkedHashMap<>();
             records.forEach(record -> {
-                String key = ConvertHelper.toString(BeanTool.getProperty(record, pkCol));
+                String key = ConvertHelper.toString(BeanTool.getProperty(record, keyCol));
                 keyMap.put(key, record);
             });
 
-            SQL sql = buildSelectByIdSql(records, pkCol, binder);
+            SQL sql = buildSelectByKeySql(records, keyCol, binder);
             List<String> list = jdbcTemplate.findAll(sql, StringColumnRowMapper.INSTANCE);
             keyMap.keySet().removeAll(list);
             return new ArrayList<>(keyMap.values());
         } else {
             Map<List<String>, S> keyMap = new LinkedHashMap<>();
             records.forEach(record -> {
-                List<String> key = getCompositePk(record);
+                List<String> key = getCompositeKey(record);
                 keyMap.put(key, record);
             });
 
-            SQL sql = buildSelectByCompositePkSql(records);
+            SQL sql = buildSelectByCompositeKeySql(records);
             List<List<String>> list = jdbcTemplate.findAll(sql, ListStringRowMapper.INSTANCE);
             keyMap.keySet().removeAll(list);
             return new ArrayList<>(keyMap.values());
         }
     }
 
-    private SQL buildSelectByIdSql(List<S> records, String pkCol, IDataParameterBinder binder) {
+    private SQL buildSelectByKeySql(List<S> records, String keyCol, IDataParameterBinder binder) {
         SQL.SqlBuilder sb = SQL.begin();
-        sb.select().append(pkCol);
+        sb.select().append(keyCol);
         sb.from().sql(tableName);
-        sb.where().sql(pkCol).append(" in ");
+        sb.where().sql(keyCol).append(" in ");
         sb.append('(');
         sb.forEach(",", records, (s, record) -> {
-            Object value = BeanTool.getProperty(record, pkCol);
+            Object value = BeanTool.getProperty(record, keyCol);
             value = binder.getStdDataType().convert(value);
             sb.typeParam(binder, value, false);
         });
@@ -80,9 +80,9 @@ public class JdbcInsertDuplicateFilter<S> implements IBatchRecordHistoryStore<S>
         return sb.end();
     }
 
-    private List<String> getCompositePk(S record) {
-        List<String> ret = new ArrayList<>(pkBinders.size());
-        for (Map.Entry<String, IDataParameterBinder> entry : pkBinders.entrySet()) {
+    private List<String> getCompositeKey(S record) {
+        List<String> ret = new ArrayList<>(keyBinders.size());
+        for (Map.Entry<String, IDataParameterBinder> entry : keyBinders.entrySet()) {
             String col = entry.getKey();
             Object value = BeanTool.getProperty(record, col);
             ret.add(StringHelper.toString(value, ""));
@@ -90,11 +90,11 @@ public class JdbcInsertDuplicateFilter<S> implements IBatchRecordHistoryStore<S>
         return ret;
     }
 
-    private SQL buildSelectByCompositePkSql(List<S> records) {
+    private SQL buildSelectByCompositeKeySql(List<S> records) {
         SQL.SqlBuilder sb = SQL.begin();
-        sb.select().fields(null, pkBinders.keySet());
+        sb.select().fields(null, keyBinders.keySet());
         sb.from().sql(tableName);
-        sb.where().append('(').fields(null, pkBinders.keySet()).append(") in ");
+        sb.where().append('(').fields(null, keyBinders.keySet()).append(") in ");
         sb.append('(');
         sb.forEach(",", records, this::appendIdCond);
         sb.append(')');
@@ -103,7 +103,7 @@ public class JdbcInsertDuplicateFilter<S> implements IBatchRecordHistoryStore<S>
 
     private void appendIdCond(SQL.SqlBuilder sb, S record) {
         sb.append('(');
-        sb.forEach(",", pkBinders.entrySet(), (s, entry) -> {
+        sb.forEach(",", keyBinders.entrySet(), (s, entry) -> {
             String pkCol = entry.getKey();
             IDataParameterBinder binder = entry.getValue();
             Object value = BeanTool.getProperty(record, pkCol);

@@ -18,7 +18,7 @@ public class ExportTableConfig extends _ExportTableConfig {
     public ExportTableConfig cloneInstance() {
         ExportTableConfig ret = super.cloneInstance();
         if (ret.getFields() != null) {
-            ret.setFields(ret.getFields().stream().map(ExportTableFieldConfig::cloneInstance).collect(Collectors.toList()));
+            ret.setFields(ret.getFields().stream().map(TableFieldConfig::cloneInstance).collect(Collectors.toList()));
         }
         return ret;
     }
@@ -51,7 +51,7 @@ public class ExportTableConfig extends _ExportTableConfig {
 
     public List<String> getTargetFieldNames() {
         List<String> ret = new ArrayList<>(getFields().size());
-        for (ExportTableFieldConfig field : getFields()) {
+        for (TableFieldConfig field : getFields()) {
             if (field.isIgnore())
                 continue;
             ret.add(field.getName());
@@ -61,7 +61,7 @@ public class ExportTableConfig extends _ExportTableConfig {
 
     public List<String> getSourceFieldNames() {
         List<String> ret = new ArrayList<>(getFields().size());
-        for (ExportTableFieldConfig field : getFields()) {
+        for (TableFieldConfig field : getFields()) {
             if (field.isIgnore())
                 continue;
             ret.add(field.getSourceFieldName());

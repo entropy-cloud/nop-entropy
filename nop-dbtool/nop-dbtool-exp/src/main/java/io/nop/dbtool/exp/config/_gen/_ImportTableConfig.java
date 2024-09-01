@@ -18,10 +18,17 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: allowUpdate
+     * 
+     */
+    private java.lang.Boolean _allowUpdate ;
+    
+    /**
+     *  
      * xml name: fields
      * 
      */
-    private KeyedList<io.nop.dbtool.exp.config.ImportTableFieldConfig> _fields = KeyedList.emptyList();
+    private KeyedList<io.nop.dbtool.exp.config.TableFieldConfig> _fields = KeyedList.emptyList();
     
     /**
      *  
@@ -74,24 +81,43 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
     
     /**
      * 
-     * xml name: fields
+     * xml name: allowUpdate
      *  
      */
     
-    public java.util.List<io.nop.dbtool.exp.config.ImportTableFieldConfig> getFields(){
-      return _fields;
+    public java.lang.Boolean getAllowUpdate(){
+      return _allowUpdate;
     }
 
     
-    public void setFields(java.util.List<io.nop.dbtool.exp.config.ImportTableFieldConfig> value){
+    public void setAllowUpdate(java.lang.Boolean value){
         checkAllowChange();
         
-        this._fields = KeyedList.fromList(value, io.nop.dbtool.exp.config.ImportTableFieldConfig::getName);
+        this._allowUpdate = value;
            
     }
 
     
-    public io.nop.dbtool.exp.config.ImportTableFieldConfig getField(String name){
+    /**
+     * 
+     * xml name: fields
+     *  
+     */
+    
+    public java.util.List<io.nop.dbtool.exp.config.TableFieldConfig> getFields(){
+      return _fields;
+    }
+
+    
+    public void setFields(java.util.List<io.nop.dbtool.exp.config.TableFieldConfig> value){
+        checkAllowChange();
+        
+        this._fields = KeyedList.fromList(value, io.nop.dbtool.exp.config.TableFieldConfig::getName);
+           
+    }
+
+    
+    public io.nop.dbtool.exp.config.TableFieldConfig getField(String name){
         return this._fields.getByKey(name);
     }
 
@@ -99,11 +125,11 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
         return this._fields.containsKey(name);
     }
 
-    public void addField(io.nop.dbtool.exp.config.ImportTableFieldConfig item) {
+    public void addField(io.nop.dbtool.exp.config.TableFieldConfig item) {
         checkAllowChange();
-        java.util.List<io.nop.dbtool.exp.config.ImportTableFieldConfig> list = this.getFields();
+        java.util.List<io.nop.dbtool.exp.config.TableFieldConfig> list = this.getFields();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.dbtool.exp.config.ImportTableFieldConfig::getName);
+            list = new KeyedList<>(io.nop.dbtool.exp.config.TableFieldConfig::getName);
             setFields(list);
         }
         list.add(item);
@@ -269,6 +295,7 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("allowUpdate",this.getAllowUpdate());
         out.putNotNull("fields",this.getFields());
         out.putNotNull("filter",this.getFilter());
         out.putNotNull("format",this.getFormat());
@@ -288,6 +315,7 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
     protected void copyTo(ImportTableConfig instance){
         super.copyTo(instance);
         
+        instance.setAllowUpdate(this.getAllowUpdate());
         instance.setFields(this.getFields());
         instance.setFilter(this.getFilter());
         instance.setFormat(this.getFormat());

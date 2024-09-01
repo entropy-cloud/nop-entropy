@@ -556,6 +556,11 @@ public class DialectImpl implements IDialect {
 
     @Override
     public IDataParameterBinder getDataParameterBinder(StdDataType stdType, StdSqlType sqlType) {
+        if (sqlType == null) {
+            if (stdType == null)
+                stdType = StdDataType.ANY;
+            sqlType = StdSqlType.fromStdDataTYpe(stdType);
+        }
         if (convertStringToNull && sqlType == StdSqlType.VARCHAR)
             return DataParameterBinders.STRING_EX;
 

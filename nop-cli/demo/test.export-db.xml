@@ -12,7 +12,8 @@
 
         <table name="session" from="nop_auth_session" exportAllFields="false">
             <fields>
-                <field name="ID" from="SID"/>
+                <field name="ID" from="SESSION_ID"/>
+                <field name="USER_NAME" />
             </fields>
         </table>
     </tables>

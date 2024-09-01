@@ -18,11 +18,7 @@
             <filter xdef:ref="../query/filter.xdef"/>
             <sql xdef:value="string"/>
             <fields xdef:body-type="list" xdef:key-attr="name">
-                <field name="!string" from="string" stdDataType="std-data-type"
-                       ignore="!boolean=false"
-                       xdef:name="ExportTableFieldConfig">
-                    <transformExpr xdef:value="xpl"/>
-                </field>
+                <field name="!string" xdef:ref="table-field.xdef"/>
             </fields>
             <transformExpr xdef:value="xpl"/>
         </table>

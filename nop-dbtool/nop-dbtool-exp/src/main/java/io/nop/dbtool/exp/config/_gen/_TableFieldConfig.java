@@ -2,19 +2,19 @@ package io.nop.dbtool.exp.config._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
-import io.nop.dbtool.exp.config.ExportTableFieldConfig;
+import io.nop.dbtool.exp.config.TableFieldConfig;
 import io.nop.commons.util.ClassHelper;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from /nop/schema/db/export-db.xdef <p>
+ * generate from /nop/schema/db/table-field.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
-public abstract class _ExportTableFieldConfig extends io.nop.core.resource.component.AbstractComponentModel {
+public abstract class _TableFieldConfig extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
      *  
@@ -43,6 +43,13 @@ public abstract class _ExportTableFieldConfig extends io.nop.core.resource.compo
      * 
      */
     private io.nop.commons.type.StdDataType _stdDataType ;
+    
+    /**
+     *  
+     * xml name: stdSqlType
+     * 
+     */
+    private io.nop.commons.type.StdSqlType _stdSqlType ;
     
     /**
      *  
@@ -129,6 +136,25 @@ public abstract class _ExportTableFieldConfig extends io.nop.core.resource.compo
     
     /**
      * 
+     * xml name: stdSqlType
+     *  
+     */
+    
+    public io.nop.commons.type.StdSqlType getStdSqlType(){
+      return _stdSqlType;
+    }
+
+    
+    public void setStdSqlType(io.nop.commons.type.StdSqlType value){
+        checkAllowChange();
+        
+        this._stdSqlType = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: transformExpr
      *  
      */
@@ -165,27 +191,29 @@ public abstract class _ExportTableFieldConfig extends io.nop.core.resource.compo
         out.putNotNull("ignore",this.isIgnore());
         out.putNotNull("name",this.getName());
         out.putNotNull("stdDataType",this.getStdDataType());
+        out.putNotNull("stdSqlType",this.getStdSqlType());
         out.putNotNull("transformExpr",this.getTransformExpr());
     }
 
-    public ExportTableFieldConfig cloneInstance(){
-        ExportTableFieldConfig instance = newInstance();
+    public TableFieldConfig cloneInstance(){
+        TableFieldConfig instance = newInstance();
         this.copyTo(instance);
         return instance;
     }
 
-    protected void copyTo(ExportTableFieldConfig instance){
+    protected void copyTo(TableFieldConfig instance){
         super.copyTo(instance);
         
         instance.setFrom(this.getFrom());
         instance.setIgnore(this.isIgnore());
         instance.setName(this.getName());
         instance.setStdDataType(this.getStdDataType());
+        instance.setStdSqlType(this.getStdSqlType());
         instance.setTransformExpr(this.getTransformExpr());
     }
 
-    protected ExportTableFieldConfig newInstance(){
-        return (ExportTableFieldConfig) ClassHelper.newInstance(getClass());
+    protected TableFieldConfig newInstance(){
+        return (TableFieldConfig) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

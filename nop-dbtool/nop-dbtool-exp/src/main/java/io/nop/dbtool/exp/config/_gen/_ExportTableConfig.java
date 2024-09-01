@@ -28,7 +28,7 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
      * xml name: fields
      * 
      */
-    private KeyedList<io.nop.dbtool.exp.config.ExportTableFieldConfig> _fields = KeyedList.emptyList();
+    private KeyedList<io.nop.dbtool.exp.config.TableFieldConfig> _fields = KeyedList.emptyList();
     
     /**
      *  
@@ -90,20 +90,20 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
      *  
      */
     
-    public java.util.List<io.nop.dbtool.exp.config.ExportTableFieldConfig> getFields(){
+    public java.util.List<io.nop.dbtool.exp.config.TableFieldConfig> getFields(){
       return _fields;
     }
 
     
-    public void setFields(java.util.List<io.nop.dbtool.exp.config.ExportTableFieldConfig> value){
+    public void setFields(java.util.List<io.nop.dbtool.exp.config.TableFieldConfig> value){
         checkAllowChange();
         
-        this._fields = KeyedList.fromList(value, io.nop.dbtool.exp.config.ExportTableFieldConfig::getName);
+        this._fields = KeyedList.fromList(value, io.nop.dbtool.exp.config.TableFieldConfig::getName);
            
     }
 
     
-    public io.nop.dbtool.exp.config.ExportTableFieldConfig getField(String name){
+    public io.nop.dbtool.exp.config.TableFieldConfig getField(String name){
         return this._fields.getByKey(name);
     }
 
@@ -111,11 +111,11 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
         return this._fields.containsKey(name);
     }
 
-    public void addField(io.nop.dbtool.exp.config.ExportTableFieldConfig item) {
+    public void addField(io.nop.dbtool.exp.config.TableFieldConfig item) {
         checkAllowChange();
-        java.util.List<io.nop.dbtool.exp.config.ExportTableFieldConfig> list = this.getFields();
+        java.util.List<io.nop.dbtool.exp.config.TableFieldConfig> list = this.getFields();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.dbtool.exp.config.ExportTableFieldConfig::getName);
+            list = new KeyedList<>(io.nop.dbtool.exp.config.TableFieldConfig::getName);
             setFields(list);
         }
         list.add(item);

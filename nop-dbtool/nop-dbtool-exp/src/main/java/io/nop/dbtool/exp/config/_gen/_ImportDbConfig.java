@@ -25,17 +25,17 @@ public abstract class _ImportDbConfig extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: checkKeyFields
+     * 
+     */
+    private boolean _checkKeyFields  = true;
+    
+    /**
+     *  
      * xml name: excludeTableNames
      * 
      */
     private java.util.Set<java.lang.String> _excludeTableNames ;
-    
-    /**
-     *  
-     * xml name: ignoreDuplicate
-     * 
-     */
-    private boolean _ignoreDuplicate  = true;
     
     /**
      *  
@@ -60,10 +60,17 @@ public abstract class _ImportDbConfig extends io.nop.core.resource.component.Abs
     
     /**
      *  
-     * xml name: tableNamePrefix
+     * xml name: schemaPattern
      * 
      */
-    private java.lang.String _tableNamePrefix ;
+    private java.lang.String _schemaPattern ;
+    
+    /**
+     *  
+     * xml name: tableNamePattern
+     * 
+     */
+    private java.lang.String _tableNamePattern ;
     
     /**
      *  
@@ -100,6 +107,25 @@ public abstract class _ImportDbConfig extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: checkKeyFields
+     *  
+     */
+    
+    public boolean isCheckKeyFields(){
+      return _checkKeyFields;
+    }
+
+    
+    public void setCheckKeyFields(boolean value){
+        checkAllowChange();
+        
+        this._checkKeyFields = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: excludeTableNames
      *  
      */
@@ -113,25 +139,6 @@ public abstract class _ImportDbConfig extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._excludeTableNames = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: ignoreDuplicate
-     *  
-     */
-    
-    public boolean isIgnoreDuplicate(){
-      return _ignoreDuplicate;
-    }
-
-    
-    public void setIgnoreDuplicate(boolean value){
-        checkAllowChange();
-        
-        this._ignoreDuplicate = value;
            
     }
 
@@ -195,19 +202,38 @@ public abstract class _ImportDbConfig extends io.nop.core.resource.component.Abs
     
     /**
      * 
-     * xml name: tableNamePrefix
+     * xml name: schemaPattern
      *  
      */
     
-    public java.lang.String getTableNamePrefix(){
-      return _tableNamePrefix;
+    public java.lang.String getSchemaPattern(){
+      return _schemaPattern;
     }
 
     
-    public void setTableNamePrefix(java.lang.String value){
+    public void setSchemaPattern(java.lang.String value){
         checkAllowChange();
         
-        this._tableNamePrefix = value;
+        this._schemaPattern = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: tableNamePattern
+     *  
+     */
+    
+    public java.lang.String getTableNamePattern(){
+      return _tableNamePattern;
+    }
+
+    
+    public void setTableNamePattern(java.lang.String value){
+        checkAllowChange();
+        
+        this._tableNamePattern = value;
            
     }
 
@@ -296,12 +322,13 @@ public abstract class _ImportDbConfig extends io.nop.core.resource.component.Abs
         super.outputJson(out);
         
         out.putNotNull("batchSize",this.getBatchSize());
+        out.putNotNull("checkKeyFields",this.isCheckKeyFields());
         out.putNotNull("excludeTableNames",this.getExcludeTableNames());
-        out.putNotNull("ignoreDuplicate",this.isIgnoreDuplicate());
         out.putNotNull("importAllTables",this.isImportAllTables());
         out.putNotNull("inputDir",this.getInputDir());
         out.putNotNull("jdbcConnection",this.getJdbcConnection());
-        out.putNotNull("tableNamePrefix",this.getTableNamePrefix());
+        out.putNotNull("schemaPattern",this.getSchemaPattern());
+        out.putNotNull("tableNamePattern",this.getTableNamePattern());
         out.putNotNull("tables",this.getTables());
         out.putNotNull("threadCount",this.getThreadCount());
     }
@@ -316,12 +343,13 @@ public abstract class _ImportDbConfig extends io.nop.core.resource.component.Abs
         super.copyTo(instance);
         
         instance.setBatchSize(this.getBatchSize());
+        instance.setCheckKeyFields(this.isCheckKeyFields());
         instance.setExcludeTableNames(this.getExcludeTableNames());
-        instance.setIgnoreDuplicate(this.isIgnoreDuplicate());
         instance.setImportAllTables(this.isImportAllTables());
         instance.setInputDir(this.getInputDir());
         instance.setJdbcConnection(this.getJdbcConnection());
-        instance.setTableNamePrefix(this.getTableNamePrefix());
+        instance.setSchemaPattern(this.getSchemaPattern());
+        instance.setTableNamePattern(this.getTableNamePattern());
         instance.setTables(this.getTables());
         instance.setThreadCount(this.getThreadCount());
     }

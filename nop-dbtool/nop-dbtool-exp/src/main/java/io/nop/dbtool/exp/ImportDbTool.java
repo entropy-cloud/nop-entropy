@@ -7,23 +7,27 @@
  */
 package io.nop.dbtool.exp;
 
-import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.batch.core.BatchTaskBuilder;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchConsumer;
 import io.nop.batch.core.IBatchLoader;
+import io.nop.batch.core.IBatchProcessor;
 import io.nop.batch.core.IBatchRecordFilter;
+import io.nop.batch.core.IBatchRecordHistoryStore;
 import io.nop.batch.core.IBatchTask;
 import io.nop.batch.core.IBatchTaskContext;
+import io.nop.batch.core.consumer.WitchHistoryBatchConsumer;
 import io.nop.batch.core.impl.BatchTaskContextImpl;
 import io.nop.batch.core.loader.ResourceRecordLoader;
 import io.nop.batch.jdbc.consumer.JdbcInsertBatchConsumer;
-import io.nop.batch.jdbc.consumer.JdbcInsertDuplicateFilter;
+import io.nop.batch.jdbc.consumer.JdbcKeyDuplicateFilter;
+import io.nop.batch.jdbc.consumer.JdbcUpdateBatchConsumer;
 import io.nop.commons.concurrent.executor.DefaultThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.SyncThreadPoolExecutor;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.model.query.BeanVariableScope;
 import io.nop.core.model.query.QueryBeanHelper;
@@ -40,23 +44,22 @@ import io.nop.dao.jdbc.impl.JdbcFactory;
 import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.dbtool.core.DataBaseMeta;
 import io.nop.dbtool.core.discovery.jdbc.JdbcMetaDiscovery;
+import io.nop.dbtool.exp.config.IFieldConfig;
 import io.nop.dbtool.exp.config.ImportDbConfig;
 import io.nop.dbtool.exp.config.ImportTableConfig;
 import io.nop.dbtool.exp.config.JdbcConnectionConfig;
-import io.nop.orm.eql.utils.OrmDialectHelper;
+import io.nop.dbtool.exp.config.TableFieldConfig;
+import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.OrmEntityModel;
 
 import javax.sql.DataSource;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashMap;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-
-import static io.nop.dbtool.exp.DbToolExpErrors.ARG_TABLE_NAME;
-import static io.nop.dbtool.exp.DbToolExpErrors.ERR_EXP_UNDEFINED_TABLE;
 
 public class ImportDbTool {
     private ImportDbConfig config;
@@ -64,6 +67,7 @@ public class ImportDbTool {
     private IResourceLoader inputResourceLoader;
 
     private IDialect dialect;
+    private DataSource dataSource;
 
     public void setConfig(ImportDbConfig config) {
         this.config = config;
@@ -77,8 +81,93 @@ public class ImportDbTool {
         this.setConfig((ImportDbConfig) ResourceComponentManager.instance().loadComponentModel(configPath));
     }
 
+
+    public void syncConfigWithDb() {
+        JdbcConnectionConfig conn = config.getJdbcConnection();
+        this.dataSource = conn.buildDataSource();
+        if (conn.getDialect() == null) {
+            this.dialect = DialectManager.instance().getDialectForDataSource(dataSource);
+        } else {
+            this.dialect = DialectManager.instance().getDialect(conn.getDialect());
+        }
+        readTableMetas();
+    }
+
+    private void readTableMetas() {
+        Map<String, List<ImportTableConfig>> map = new HashMap<>();
+        if (config.getTables() != null) {
+            config.getTables().forEach(table -> {
+                String name = StringHelper.lowerCase(table.getName());
+                map.computeIfAbsent(name, k -> new ArrayList<>()).add(table);
+            });
+        }
+
+        if (config.getExcludeTableNames() != null) {
+            config.getTables().removeIf(table -> {
+                return config.getExcludeTableNames().contains(table.getName());
+            });
+        }
+
+        JdbcConnectionConfig conn = config.getJdbcConnection();
+
+        String tableNamePattern = config.getTableNamePattern();
+
+        DataBaseMeta meta = JdbcMetaDiscovery.forDataSource(dataSource)
+                .discover(conn.getCatalog(), config.getSchemaPattern(), tableNamePattern);
+
+        for (OrmEntityModel table : meta.getTables().values()) {
+            String name = StringHelper.lowerCase(table.getTableName());
+
+            if (config.getExcludeTableNames() != null && config.getExcludeTableNames().contains(name))
+                continue;
+
+            if (!config.isImportAllTables()) {
+                if (!map.containsKey(name))
+                    continue;
+            }
+
+            mergeTableConfig(map, name, table);
+        }
+    }
+
+    private void mergeTableConfig(Map<String, List<ImportTableConfig>> map, String name, OrmEntityModel table) {
+        List<ImportTableConfig> list = map.get(name);
+        if (list == null) {
+            ImportTableConfig tableConfig = new ImportTableConfig();
+            tableConfig.setName(name);
+            tableConfig.setKeyFields(table.getPkColumnNames());
+            for (IColumnModel col : table.getColumns()) {
+                TableFieldConfig field = new TableFieldConfig();
+                field.setName(col.getCode());
+                field.setStdDataType(col.getStdDataType());
+                field.setStdSqlType(col.getStdSqlType());
+                tableConfig.addField(field);
+            }
+            config.addTable(tableConfig);
+            map.put(name, Collections.singletonList(tableConfig));
+        } else {
+            for (ImportTableConfig old : list) {
+                if (!old.isImportAllFields())
+                    continue;
+
+                List<String> fieldNames = old.getTargetFieldNames();
+                for (IColumnModel col : table.getColumns()) {
+                    if (fieldNames.contains(col.getCode()))
+                        continue;
+
+                    TableFieldConfig field = new TableFieldConfig();
+                    field.setName(col.getCode());
+                    field.setStdDataType(col.getStdDataType());
+                    old.addField(field);
+                }
+            }
+        }
+    }
+
     public void execute() {
         Guard.notEmpty(config.getJdbcConnection(), "jdbc-connection");
+
+        syncConfigWithDb();
 
         this.inputResourceLoader = new FileResource(new File(config.getInputDir()));
 
@@ -89,16 +178,11 @@ public class ImportDbTool {
             executor = SyncThreadPoolExecutor.INSTANCE;
         }
 
-        JdbcConnectionConfig conn = config.getJdbcConnection();
         try {
-            DataSource ds = conn.buildDataSource();
-            this.dialect = DialectManager.instance().getDialectForDataSource(ds);
-
-            DataBaseMeta meta = JdbcMetaDiscovery.forDataSource(ds).discover(conn.getCatalog(), null, null);
 
             List<CompletableFuture<?>> futures = new ArrayList<>();
-            for (ImportTableConfig tableConfig : getAllTables().values()) {
-                futures.add(executor.submit(() -> runTask(tableConfig, ds, meta), null));
+            for (ImportTableConfig tableConfig : config.getTables()) {
+                futures.add(executor.submit(() -> runTask(tableConfig, dataSource), null));
             }
             FutureHelper.getFromFuture(FutureHelper.waitAll(futures));
         } finally {
@@ -106,67 +190,60 @@ public class ImportDbTool {
         }
     }
 
-    private Map<String, ImportTableConfig> getAllTables() {
-        Map<String, ImportTableConfig> map = new LinkedHashMap<>();
-        if (config.getTables() != null) {
-            config.getTables().forEach(table -> map.put(StringHelper.lowerCase(table.getName()), table));
-        }
-
-        Collection<? extends IResource> resources = inputResourceLoader.getChildren(".");
-        if (config.isImportAllTables()) {
-            for (IResource resource : resources) {
-                if (resource.isDirectory())
-                    continue;
-
-                String name = resource.getName();
-                if (name.endsWith(".csv") || name.endsWith(".csv.gz")) {
-                    String tableName = StringHelper.lowerCase(StringHelper.firstPart(name, '.'));
-
-
-                    if (config.getExcludeTableNames() != null && config.getExcludeTableNames().contains(name))
-                        continue;
-
-                    if (!map.containsKey(tableName)) {
-                        ImportTableConfig tableConfig = new ImportTableConfig();
-                        tableConfig.setName(tableName);
-                        map.put(tableName, tableConfig);
-                    }
-                }
-            }
-        }
-        return map;
-    }
-
-    private void runTask(ImportTableConfig tableConfig, DataSource ds, DataBaseMeta meta) {
+    private void runTask(ImportTableConfig tableConfig, DataSource ds) {
         BatchTaskBuilder builder = new BatchTaskBuilder();
         IBatchLoader loader = newLoader(tableConfig);
         if (loader == null) {
             return;
         }
 
-        OrmEntityModel tableModel = meta.getTable(tableConfig.getName());
-        if (tableModel == null)
-            throw new NopException(ERR_EXP_UNDEFINED_TABLE).param(ARG_TABLE_NAME, tableConfig.getName());
-
-
         IJdbcTemplate jdbc = JdbcFactory.newJdbcTemplateFor(ds);
 
         builder.loader(loader);
-        builder.batchSize(config.getBatchSize());
-        builder.consumer(newConsumer(tableModel, jdbc));
+        if (config.getBatchSize() > 0)
+            builder.batchSize(config.getBatchSize());
 
-        if (config.isIgnoreDuplicate()) {
-            Map<String, IDataParameterBinder> colBinders = OrmDialectHelper.getPkColBinders(tableModel, dialect, true);
-            builder.historyStore(new JdbcInsertDuplicateFilter(jdbc, tableConfig.getName(), colBinders));
+        builder.processor(newProcessor(tableConfig));
+        Map<String, IDataParameterBinder> binders = getColBinders(tableConfig.getFields());
+        IBatchConsumer consumer = newConsumer(tableConfig, jdbc, binders);
+
+
+        if (config.isCheckKeyFields() && tableConfig.getKeyFields() != null) {
+            Map<String, IDataParameterBinder> colBinders = getColBinders(tableConfig.getKeyFieldConfigs());
+
+            IBatchConsumer historyConsumer = null;
+            if (Boolean.TRUE.equals(tableConfig.getAllowUpdate())) {
+                historyConsumer = new JdbcUpdateBatchConsumer(jdbc, dialect, tableConfig.getName(), tableConfig.getKeyFields(), binders);
+            }
+
+            IBatchRecordHistoryStore historyStore = new JdbcKeyDuplicateFilter(jdbc, tableConfig.getName(), colBinders);
+            consumer = new WitchHistoryBatchConsumer(historyStore, consumer, historyConsumer);
         }
+
+        builder.consumer(consumer);
 
         IBatchTask task = builder.build();
         IBatchTaskContext context = new BatchTaskContextImpl();
         task.execute(context);
     }
 
+    private IBatchProcessor<Map<String, Object>, Map<String, Object>, IBatchChunkContext> newProcessor(ImportTableConfig tableConfig) {
+        return new FieldsProcessor(tableConfig.getFields());
+    }
+
+    private Map<String, IDataParameterBinder> getColBinders(List<? extends IFieldConfig> cols) {
+        Map<String, IDataParameterBinder> binders = CollectionHelper.newCaseInsensitiveMap(cols.size());
+
+        for (IFieldConfig col : cols) {
+            String key = col.getName();
+            IDataParameterBinder binder = dialect.getDataParameterBinder(col.getStdDataType(), col.getStdSqlType());
+            binders.put(key, binder);
+        }
+        return binders;
+    }
+
     private IBatchLoader<Map<String, Object>, IBatchChunkContext> newLoader(ImportTableConfig tableConfig) {
-        String from = tableConfig.getSourceName();
+        String from = tableConfig.getSourceTableName();
         tableConfig.setFrom(from);
         String format = tableConfig.getFormat();
         if (format == null) {
@@ -185,12 +262,10 @@ public class ImportDbTool {
         return newResourceLoader(recordIO, tableConfig, resourcePath);
     }
 
-    private IBatchConsumer<Map<String, Object>, IBatchChunkContext> newConsumer(OrmEntityModel tableModel,
-                                                                                IJdbcTemplate jdbc) {
-
-        Map<String, IDataParameterBinder> binders = OrmDialectHelper.getEntityColBinders(tableModel, dialect, true);
+    private IBatchConsumer<Map<String, Object>, IBatchChunkContext> newConsumer(ImportTableConfig tableConfig,
+                                                                                IJdbcTemplate jdbc, Map<String, IDataParameterBinder> binders) {
         JdbcInsertBatchConsumer<Map<String, Object>, IBatchChunkContext> consumer =
-                new JdbcInsertBatchConsumer<>(jdbc, this.dialect, tableModel.getTableName(), binders);
+                new JdbcInsertBatchConsumer<>(jdbc, this.dialect, tableConfig.getName(), binders);
         return consumer;
     }
 

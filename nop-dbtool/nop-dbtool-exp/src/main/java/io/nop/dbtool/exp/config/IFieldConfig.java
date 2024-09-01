@@ -2,6 +2,7 @@ package io.nop.dbtool.exp.config;
 
 import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.commons.type.StdDataType;
+import io.nop.commons.type.StdSqlType;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
 
@@ -20,6 +21,8 @@ public interface IFieldConfig extends ISourceLocationGetter {
     boolean isIgnore();
 
     StdDataType getStdDataType();
+
+    StdSqlType getStdSqlType();
 
     IEvalAction getTransformExpr();
 

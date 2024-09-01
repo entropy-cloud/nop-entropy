@@ -36,8 +36,8 @@ import io.nop.dbtool.core.DataBaseMeta;
 import io.nop.dbtool.core.discovery.jdbc.JdbcMetaDiscovery;
 import io.nop.dbtool.exp.config.ExportDbConfig;
 import io.nop.dbtool.exp.config.ExportTableConfig;
-import io.nop.dbtool.exp.config.ExportTableFieldConfig;
 import io.nop.dbtool.exp.config.JdbcConnectionConfig;
+import io.nop.dbtool.exp.config.TableFieldConfig;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.OrmEntityModel;
 
@@ -158,7 +158,7 @@ public class ExportDbTool {
             ExportTableConfig tableConfig = new ExportTableConfig();
             tableConfig.setName(name);
             for (IColumnModel col : table.getColumns()) {
-                ExportTableFieldConfig field = new ExportTableFieldConfig();
+                TableFieldConfig field = new TableFieldConfig();
                 field.setName(col.getCode());
                 field.setStdDataType(col.getStdDataType());
                 tableConfig.addField(field);
@@ -175,7 +175,7 @@ public class ExportDbTool {
                     if (sourceNames.contains(col.getCode()))
                         continue;
 
-                    ExportTableFieldConfig field = new ExportTableFieldConfig();
+                    TableFieldConfig field = new TableFieldConfig();
                     field.setName(col.getCode());
                     field.setStdDataType(col.getStdDataType());
                     old.addField(field);

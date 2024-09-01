@@ -90,6 +90,8 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
 
     private IBatchRecordHistoryStore historyStore;
 
+    private IBatchConsumer historyConsumer;
+
     private Comparator inputComparator;
 
     private IBatchRecordSnapshotBuilder snapshotBuilder;
@@ -200,6 +202,15 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
         addListener(loader);
         return this;
     }
+
+    @PropertySetter
+    public BatchTaskBuilder historyConsumer(IBatchConsumer historyConsumer) {
+        Guard.checkState(this.historyConsumer == null, "history consumer is already set");
+        this.historyConsumer = historyConsumer;
+        addListener(historyConsumer);
+        return this;
+    }
+
 
     @PropertySetter
     public BatchTaskBuilder consumer(IBatchConsumer<?, IBatchChunkContext> consumer) {
@@ -395,7 +406,7 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
 
         // 保存处理历史，避免重复处理
         if (historyStore != null)
-            consumer = new WitchHistoryBatchConsumer(historyStore, consumer);
+            consumer = new WitchHistoryBatchConsumer(historyStore, consumer, historyConsumer);
 
         // 在process和consume阶段打开事务
         if (batchTransactionScope == BatchTransactionScope.process && transactionalInvoker != null) {
