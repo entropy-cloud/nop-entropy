@@ -25,6 +25,7 @@ import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.SyncThreadPoolExecutor;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResourceLoader;
+import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.core.resource.record.IResourceRecordIO;
 import io.nop.core.resource.record.csv.CsvResourceRecordIO;
@@ -34,6 +35,7 @@ import io.nop.dbtool.core.DataBaseMeta;
 import io.nop.dbtool.core.discovery.jdbc.JdbcMetaDiscovery;
 import io.nop.dbtool.exp.config.ExportDbConfig;
 import io.nop.dbtool.exp.config.ExportTableConfig;
+import io.nop.dbtool.exp.config.JdbcConnectionConfig;
 import io.nop.orm.model.OrmEntityModel;
 
 import javax.sql.DataSource;
@@ -55,8 +57,16 @@ public class ExportDbTool {
         this.config = config;
     }
 
+    public ExportDbConfig getConfig() {
+        return config;
+    }
+
+    public void setConfigPath(String configPath) {
+        this.setConfig((ExportDbConfig) ResourceComponentManager.instance().loadComponentModel(configPath));
+    }
+
     public void execute() {
-        Guard.notEmpty(config.getCatalog(),"catalog");
+        Guard.notEmpty(config.getJdbcConnection(), "jdbc-connection");
 
         this.outputResourceLoader = new FileResource(new File(config.getOutputDir()));
 
@@ -67,16 +77,17 @@ public class ExportDbTool {
             executor = SyncThreadPoolExecutor.INSTANCE;
         }
 
+        JdbcConnectionConfig conn = config.getJdbcConnection();
         try {
-            DataSource ds = config.buildDataSource();
-            if (config.getDialect() == null) {
+            DataSource ds = conn.buildDataSource();
+            if (conn.getDialect() == null) {
                 this.dialect = DialectManager.instance().getDialectForDataSource(ds);
             } else {
-                this.dialect = DialectManager.instance().getDialect(config.getDialect());
+                this.dialect = DialectManager.instance().getDialect(conn.getDialect());
             }
 
             List<CompletableFuture<?>> futures = new ArrayList<>();
-            for (ExportTableConfig tableConfig : getAllTables().values()) {
+            for (ExportTableConfig tableConfig : getAllTables(ds).values()) {
                 futures.add(executor.submit(() -> runTask(tableConfig, ds), null));
             }
             FutureHelper.getFromFuture(FutureHelper.waitAll(futures));
@@ -85,7 +96,7 @@ public class ExportDbTool {
         }
     }
 
-    private Map<String, ExportTableConfig> getAllTables() {
+    private Map<String, ExportTableConfig> getAllTables(DataSource dataSource) {
         Map<String, ExportTableConfig> map = new LinkedHashMap<>();
         if (config.getTables() != null) {
             config.getTables().forEach(table -> map.put(StringHelper.lowerCase(table.getName()), table));
@@ -94,8 +105,10 @@ public class ExportDbTool {
         if (config.isExportAllTables() || !StringHelper.isEmpty(config.getTableNamePrefix())) {
             String tableNamePattern = config.isExportAllTables() ? null : config.getTableNamePrefix() + "%";
 
-            DataBaseMeta meta = JdbcMetaDiscovery.forDataSource(config.buildDataSource())
-                                                 .discover(config.getCatalog(), null, tableNamePattern);
+            JdbcConnectionConfig conn = config.getJdbcConnection();
+
+            DataBaseMeta meta = JdbcMetaDiscovery.forDataSource(dataSource)
+                    .discover(conn.getCatalog(), null, tableNamePattern);
 
             for (OrmEntityModel table : meta.getTables().values()) {
                 String name = StringHelper.lowerCase(table.getTableName());

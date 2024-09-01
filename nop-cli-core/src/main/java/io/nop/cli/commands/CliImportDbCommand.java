@@ -7,9 +7,9 @@
  */
 package io.nop.cli.commands;
 
-import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
+import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.dbtool.exp.ImportDbTool;
 import io.nop.dbtool.exp.config.ImportDbConfig;
 import picocli.CommandLine;
@@ -32,7 +32,10 @@ public class CliImportDbCommand implements Callable<Integer> {
     @Override
     public Integer call() {
         IResource resource = ResourceHelper.resolveRelativePathResource(configPath);
-        ImportDbConfig config = JsonTool.parseBeanFromResource(resource, ImportDbConfig.class);
+        ImportDbConfig config = (ImportDbConfig) ResourceComponentManager.instance().loadComponentModel(resource.getPath());
+        // 有可能会修改config的属性，所以需要复制一份
+        config = config.cloneInstance();
+
         if (inputDir != null)
             config.setInputDir(inputDir.getAbsolutePath());
 

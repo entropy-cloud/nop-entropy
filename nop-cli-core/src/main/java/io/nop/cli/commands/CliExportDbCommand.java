@@ -7,9 +7,9 @@
  */
 package io.nop.cli.commands;
 
-import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
+import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.dbtool.exp.ExportDbTool;
 import io.nop.dbtool.exp.config.ExportDbConfig;
 import picocli.CommandLine;
@@ -29,18 +29,23 @@ public class CliExportDbCommand implements Callable<Integer> {
 
     @CommandLine.Parameters(description = "配置文件路径")
     String configPath;
+
     @Override
     public Integer call() {
         IResource resource = ResourceHelper.resolveRelativePathResource(configPath);
-        ExportDbConfig config = JsonTool.parseBeanFromResource(resource, ExportDbConfig.class);
+        ExportDbTool tool = new ExportDbTool();
+        ExportDbConfig config = (ExportDbConfig) ResourceComponentManager.instance().loadComponentModel(resource.getPath());
+        // 有可能会修改config的属性，所以需要复制一份
+        config = config.cloneInstance();
+
+        tool.setConfig(config);
+
         if (outputDir != null)
             config.setOutputDir(outputDir.getAbsolutePath());
 
         if (config.getOutputDir() == null)
             config.setOutputDir(new File("data").getAbsolutePath());
 
-        ExportDbTool tool = new ExportDbTool();
-        tool.setConfig(config);
         tool.execute();
         return 0;
     }

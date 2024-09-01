@@ -29,6 +29,7 @@ import io.nop.core.model.query.BeanVariableScope;
 import io.nop.core.model.query.QueryBeanHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceLoader;
+import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.core.resource.record.IResourceRecordIO;
 import io.nop.core.resource.record.csv.CsvResourceRecordIO;
@@ -41,6 +42,7 @@ import io.nop.dbtool.core.DataBaseMeta;
 import io.nop.dbtool.core.discovery.jdbc.JdbcMetaDiscovery;
 import io.nop.dbtool.exp.config.ImportDbConfig;
 import io.nop.dbtool.exp.config.ImportTableConfig;
+import io.nop.dbtool.exp.config.JdbcConnectionConfig;
 import io.nop.orm.eql.utils.OrmDialectHelper;
 import io.nop.orm.model.OrmEntityModel;
 
@@ -67,8 +69,16 @@ public class ImportDbTool {
         this.config = config;
     }
 
+    public ImportDbConfig getConfig() {
+        return config;
+    }
+
+    public void setConfigPath(String configPath) {
+        this.setConfig((ImportDbConfig) ResourceComponentManager.instance().loadComponentModel(configPath));
+    }
+
     public void execute() {
-        Guard.notEmpty(config.getCatalog(), "catalog");
+        Guard.notEmpty(config.getJdbcConnection(), "jdbc-connection");
 
         this.inputResourceLoader = new FileResource(new File(config.getInputDir()));
 
@@ -79,11 +89,12 @@ public class ImportDbTool {
             executor = SyncThreadPoolExecutor.INSTANCE;
         }
 
+        JdbcConnectionConfig conn = config.getJdbcConnection();
         try {
-            DataSource ds = config.buildDataSource();
+            DataSource ds = conn.buildDataSource();
             this.dialect = DialectManager.instance().getDialectForDataSource(ds);
 
-            DataBaseMeta meta = JdbcMetaDiscovery.forDataSource(ds).discover(config.getCatalog(), null, null);
+            DataBaseMeta meta = JdbcMetaDiscovery.forDataSource(ds).discover(conn.getCatalog(), null, null);
 
             List<CompletableFuture<?>> futures = new ArrayList<>();
             for (ImportTableConfig tableConfig : getAllTables().values()) {
@@ -155,9 +166,7 @@ public class ImportDbTool {
     }
 
     private IBatchLoader<Map<String, Object>, IBatchChunkContext> newLoader(ImportTableConfig tableConfig) {
-        String from = tableConfig.getFrom();
-        if (from == null)
-            from = tableConfig.getName();
+        String from = tableConfig.getSourceName();
         tableConfig.setFrom(from);
         String format = tableConfig.getFormat();
         if (format == null) {
@@ -165,13 +174,15 @@ public class ImportDbTool {
             tableConfig.setFormat(format);
         }
 
-        IResource resource = inputResourceLoader.getResource(from + '.' + format);
+        String resourcePath = from + '.' + format;
+
+        IResource resource = inputResourceLoader.getResource(resourcePath);
         if (!resource.exists())
             return null;
 
         CsvResourceRecordIO<Map<String, Object>> recordIO = new CsvResourceRecordIO<>();
         recordIO.setRecordType(Map.class);
-        return newResourceLoader(recordIO, tableConfig);
+        return newResourceLoader(recordIO, tableConfig, resourcePath);
     }
 
     private IBatchConsumer<Map<String, Object>, IBatchChunkContext> newConsumer(OrmEntityModel tableModel,
@@ -184,13 +195,11 @@ public class ImportDbTool {
     }
 
     private <S, C> ResourceRecordLoader<S, C> newResourceLoader(IResourceRecordIO<S> recordIO,
-                                                                ImportTableConfig tableConfig) {
+                                                                ImportTableConfig tableConfig,
+                                                                String resourcePath) {
         ResourceRecordLoader<S, C> loader = new ResourceRecordLoader<>();
         loader.setRecordIO(recordIO);
-        String from = tableConfig.getName();
-        if (from == null)
-            from = tableConfig.getName();
-        loader.setResourcePath(from + "." + tableConfig.getFormat());
+        loader.setResourcePath(resourcePath);
         loader.setResourceLoader(inputResourceLoader);
 
         if (tableConfig.getFilter() != null) {

@@ -1,0 +1,29 @@
+<export-db x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+           xmlns:xdef="/nop/schema/xdef.xdef"
+
+           threadCount="!int=0" batchSize="!int=0"
+           tableNamePrefix="string" exportAllTables="!boolean=false"
+           xdef:name="ExportDbConfig" xdef:bean-package="io.nop.dbtool.exp.config"
+           exportFormats="csv-set"
+>
+    <jdbc-connection xdef:ref="jdbc-connection.xdef" xdef:support-extends="true"/>
+
+    <outputDir xdef:value="string"/>
+    <excludeTableNames xdef:value="csv-set"/>
+
+    <tables xdef:body-type="list" xdef:key-attr="name">
+        <table name="!string" to="string"
+               xdef:name="ExportTableConfig" exportAllFields="!boolean=true">
+
+            <filter xdef:ref="../query/filter.xdef"/>
+            <sql xdef:value="string"/>
+            <fields xdef:body-type="list" xdef:key-attr="name">
+                <field name="!string" to="string" stdDataType="std-data-type"
+                       xdef:name="ExportTableFieldConfig">
+                    <transformExpr xdef:value="xpl"/>
+                </field>
+            </fields>
+            <transformExpr xdef:value="xpl"/>
+        </table>
+    </tables>
+</export-db>

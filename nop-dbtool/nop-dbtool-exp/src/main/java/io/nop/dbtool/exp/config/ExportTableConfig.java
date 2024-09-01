@@ -1,60 +1,25 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 package io.nop.dbtool.exp.config;
 
-import io.nop.api.core.annotations.data.DataBean;
-import io.nop.api.core.beans.TreeBean;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
+import io.nop.dbtool.exp.config._gen._ExportTableConfig;
 import io.nop.orm.dao.DaoQueryHelper;
 
-@DataBean
-public class ExportTableConfig {
-    private String name;
+public class ExportTableConfig extends _ExportTableConfig {
+    public ExportTableConfig() {
 
-    private String sql;
-
-    private TreeBean filter;
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getSql() {
-        return sql;
-    }
-
-    public void setSql(String sql) {
-        this.sql = sql;
-    }
-
-    public TreeBean getFilter() {
-        return filter;
-    }
-
-    public void setFilter(TreeBean filter) {
-        this.filter = filter;
     }
 
     public SQL buildSQL() {
-        SQL.SqlBuilder sb = SQL.begin().name(name);
-        if (!StringHelper.isEmpty(sql)) {
-            sb.append(sql);
+        SQL.SqlBuilder sb = SQL.begin().name(getName());
+        if (!StringHelper.isEmpty(getSql())) {
+            sb.append(getSql());
         } else {
-            sb.append("select * from ").append(name);
+            sb.append("select * from ").append(getName());
 
-            if (filter != null) {
+            if (getFilter() != null) {
                 sb.where();
-                DaoQueryHelper.appendFilter(sb, null, filter);
+                DaoQueryHelper.appendFilter(sb, null, getFilter());
             }
         }
         return sb.end();

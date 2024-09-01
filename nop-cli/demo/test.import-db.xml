@@ -1,0 +1,19 @@
+<import-db x:schema="/nop/schema/db/import-db.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+           threadCount="4" >
+
+    <jdbc-connection x:extends="jdbc-connection.xml"/>
+
+    <tables>
+        <table name="nop_auth_user" from="user">
+            <fields>
+                <field name="sid"/>
+            </fields>
+        </table>
+
+        <table name="nop_auth_session" from="session" >
+            <fields>
+                <field name="sid" from="id"/>
+            </fields>
+        </table>
+    </tables>
+</import-db>

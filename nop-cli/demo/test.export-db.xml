@@ -1,0 +1,19 @@
+<export-db x:schema="/nop/schema/db/export-db.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+           threadCount="4" exportFormats="csv,sql">
+
+    <jdbc-connection x:extends="jdbc-connection.xml"/>
+
+    <tables>
+        <table name="nop_auth_user" to="user">
+            <fields>
+                <field name="sid"/>
+            </fields>
+        </table>
+
+        <table name="nop_auth_session" to="session" exportAllFields="false">
+            <fields>
+                <field name="sid" to="id"/>
+            </fields>
+        </table>
+    </tables>
+</export-db>

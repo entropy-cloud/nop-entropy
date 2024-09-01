@@ -1,0 +1,6 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="import-db">
+    <loaders>
+        <xdsl-loader fileType="import-db.xml" schemaPath="/nop/schema/db/import-db.xdef"/>
+    </loaders>
+</model>

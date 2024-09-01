@@ -267,7 +267,7 @@ public class JdbcMetaDiscovery {
                 if(defaultValue != null) {
                     if (StringHelper.isNumber(defaultValue)) {
                         col.setDefaultValue(defaultValue);
-                    } else if (defaultValue.startsWith("'") && defaultValue.endsWith("'")) {
+                    } else if (defaultValue.startsWith("'") && defaultValue.endsWith("'") && defaultValue.length() > 2) {
                         defaultValue = defaultValue.substring(1, defaultValue.length() - 1);
                         col.setDefaultValue(defaultValue);
                     }

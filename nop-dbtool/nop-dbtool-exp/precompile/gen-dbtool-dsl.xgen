@@ -1,0 +1,5 @@
+<c:script>
+    codeGenerator.renderModel('/nop/schema/db/jdbc-connection.xdef','/nop/templates/xdsl', '/',$scope);
+    codeGenerator.renderModel('/nop/schema/db/export-db.xdef','/nop/templates/xdsl', '/',$scope);
+    codeGenerator.renderModel('/nop/schema/db/import-db.xdef','/nop/templates/xdsl', '/',$scope);
+</c:script>

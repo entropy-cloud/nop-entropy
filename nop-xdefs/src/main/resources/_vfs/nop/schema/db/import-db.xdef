@@ -1,0 +1,33 @@
+<import-db x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+           xmlns:xdef="/nop/schema/xdef.xdef"
+           threadCount="!int=0" batchSize="!int=0"
+           tableNamePrefix="string" importAllTables="!boolean=true"
+           xdef:name="ImportDbConfig" xdef:bean-package="io.nop.dbtool.exp.config"
+           ignoreDuplicate="!boolean=true"
+>
+    <jdbc-connection xdef:ref="jdbc-connection.xdef" xdef:support-extends="true"/>
+
+    <inputDir xdef:value="!string"/>
+
+    <excludeTableNames xdef:value="csv-set"/>
+
+    <tables xdef:body-type="list" xdef:key-attr="name">
+        <!--
+        @format 导入文件的后缀名
+        -->
+        <table name="!string" from="string" format="string" xdef:name="ImportTableConfig"
+               importAllFields="!boolean=true">
+            <keyFields xdef:value="csv-list"/>
+
+            <filter xdef:ref="../query/filter.xdef"/>
+            <fields xdef:body-type="list" xdef:key-attr="name">
+                <field name="!string" from="string" stdDataType="string" dictName="string"
+                       xdef:name="ImportTableFieldConfig">
+                    <transformExpr xdef:value="xpl"/>
+                </field>
+            </fields>
+
+            <transformExpr xdef:value="xpl"/>
+        </table>
+    </tables>
+</import-db>

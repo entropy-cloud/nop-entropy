@@ -210,8 +210,8 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
                 return this;
             if (list.size() == 1) {
                 consumer = list.first();
+                return consumer(consumer);
             }
-            return consumer(consumer);
         }
 
         this.consumer = consumer;
