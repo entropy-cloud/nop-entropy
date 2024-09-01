@@ -6,13 +6,13 @@
     <tables>
         <table name="nop_auth_user" from="user">
             <fields>
-                <field name="sid"/>
+                <field name="USER_ID"/>
             </fields>
         </table>
 
         <table name="nop_auth_session" from="session" >
             <fields>
-                <field name="sid" from="id"/>
+                <field name="SID" from="ID"/>
             </fields>
         </table>
     </tables>

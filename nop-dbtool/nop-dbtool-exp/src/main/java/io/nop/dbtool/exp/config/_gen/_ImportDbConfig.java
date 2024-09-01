@@ -35,7 +35,7 @@ public abstract class _ImportDbConfig extends io.nop.core.resource.component.Abs
      * xml name: ignoreDuplicate
      * 
      */
-    private boolean _ignoreDuplicate  = false;
+    private boolean _ignoreDuplicate  = true;
     
     /**
      *  

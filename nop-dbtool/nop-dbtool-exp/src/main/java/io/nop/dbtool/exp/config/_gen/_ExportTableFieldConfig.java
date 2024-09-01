@@ -18,6 +18,20 @@ public abstract class _ExportTableFieldConfig extends io.nop.core.resource.compo
     
     /**
      *  
+     * xml name: from
+     * 
+     */
+    private java.lang.String _from ;
+    
+    /**
+     *  
+     * xml name: ignore
+     * 
+     */
+    private boolean _ignore  = false;
+    
+    /**
+     *  
      * xml name: name
      * 
      */
@@ -32,17 +46,48 @@ public abstract class _ExportTableFieldConfig extends io.nop.core.resource.compo
     
     /**
      *  
-     * xml name: to
-     * 
-     */
-    private java.lang.String _to ;
-    
-    /**
-     *  
      * xml name: transformExpr
      * 
      */
     private io.nop.core.lang.eval.IEvalAction _transformExpr ;
+    
+    /**
+     * 
+     * xml name: from
+     *  
+     */
+    
+    public java.lang.String getFrom(){
+      return _from;
+    }
+
+    
+    public void setFrom(java.lang.String value){
+        checkAllowChange();
+        
+        this._from = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: ignore
+     *  
+     */
+    
+    public boolean isIgnore(){
+      return _ignore;
+    }
+
+    
+    public void setIgnore(boolean value){
+        checkAllowChange();
+        
+        this._ignore = value;
+           
+    }
+
     
     /**
      * 
@@ -84,25 +129,6 @@ public abstract class _ExportTableFieldConfig extends io.nop.core.resource.compo
     
     /**
      * 
-     * xml name: to
-     *  
-     */
-    
-    public java.lang.String getTo(){
-      return _to;
-    }
-
-    
-    public void setTo(java.lang.String value){
-        checkAllowChange();
-        
-        this._to = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: transformExpr
      *  
      */
@@ -135,9 +161,10 @@ public abstract class _ExportTableFieldConfig extends io.nop.core.resource.compo
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("from",this.getFrom());
+        out.putNotNull("ignore",this.isIgnore());
         out.putNotNull("name",this.getName());
         out.putNotNull("stdDataType",this.getStdDataType());
-        out.putNotNull("to",this.getTo());
         out.putNotNull("transformExpr",this.getTransformExpr());
     }
 
@@ -150,9 +177,10 @@ public abstract class _ExportTableFieldConfig extends io.nop.core.resource.compo
     protected void copyTo(ExportTableFieldConfig instance){
         super.copyTo(instance);
         
+        instance.setFrom(this.getFrom());
+        instance.setIgnore(this.isIgnore());
         instance.setName(this.getName());
         instance.setStdDataType(this.getStdDataType());
-        instance.setTo(this.getTo());
         instance.setTransformExpr(this.getTransformExpr());
     }
 

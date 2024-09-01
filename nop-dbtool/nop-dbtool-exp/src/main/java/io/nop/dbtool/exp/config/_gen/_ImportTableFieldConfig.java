@@ -32,6 +32,13 @@ public abstract class _ImportTableFieldConfig extends io.nop.core.resource.compo
     
     /**
      *  
+     * xml name: ignore
+     * 
+     */
+    private boolean _ignore  = false;
+    
+    /**
+     *  
      * xml name: name
      * 
      */
@@ -42,7 +49,7 @@ public abstract class _ImportTableFieldConfig extends io.nop.core.resource.compo
      * xml name: stdDataType
      * 
      */
-    private java.lang.String _stdDataType ;
+    private io.nop.commons.type.StdDataType _stdDataType ;
     
     /**
      *  
@@ -91,6 +98,25 @@ public abstract class _ImportTableFieldConfig extends io.nop.core.resource.compo
     
     /**
      * 
+     * xml name: ignore
+     *  
+     */
+    
+    public boolean isIgnore(){
+      return _ignore;
+    }
+
+    
+    public void setIgnore(boolean value){
+        checkAllowChange();
+        
+        this._ignore = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: name
      *  
      */
@@ -114,12 +140,12 @@ public abstract class _ImportTableFieldConfig extends io.nop.core.resource.compo
      *  
      */
     
-    public java.lang.String getStdDataType(){
+    public io.nop.commons.type.StdDataType getStdDataType(){
       return _stdDataType;
     }
 
     
-    public void setStdDataType(java.lang.String value){
+    public void setStdDataType(io.nop.commons.type.StdDataType value){
         checkAllowChange();
         
         this._stdDataType = value;
@@ -163,6 +189,7 @@ public abstract class _ImportTableFieldConfig extends io.nop.core.resource.compo
         
         out.putNotNull("dictName",this.getDictName());
         out.putNotNull("from",this.getFrom());
+        out.putNotNull("ignore",this.isIgnore());
         out.putNotNull("name",this.getName());
         out.putNotNull("stdDataType",this.getStdDataType());
         out.putNotNull("transformExpr",this.getTransformExpr());
@@ -179,6 +206,7 @@ public abstract class _ImportTableFieldConfig extends io.nop.core.resource.compo
         
         instance.setDictName(this.getDictName());
         instance.setFrom(this.getFrom());
+        instance.setIgnore(this.isIgnore());
         instance.setName(this.getName());
         instance.setStdDataType(this.getStdDataType());
         instance.setTransformExpr(this.getTransformExpr());

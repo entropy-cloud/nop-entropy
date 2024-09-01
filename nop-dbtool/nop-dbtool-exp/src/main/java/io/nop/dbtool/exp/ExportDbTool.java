@@ -13,6 +13,7 @@ import io.nop.batch.core.BatchTaskBuilder;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchConsumer;
 import io.nop.batch.core.IBatchLoader;
+import io.nop.batch.core.IBatchProcessor;
 import io.nop.batch.core.IBatchTask;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.consumer.MultiBatchConsumer;
@@ -35,26 +36,40 @@ import io.nop.dbtool.core.DataBaseMeta;
 import io.nop.dbtool.core.discovery.jdbc.JdbcMetaDiscovery;
 import io.nop.dbtool.exp.config.ExportDbConfig;
 import io.nop.dbtool.exp.config.ExportTableConfig;
+import io.nop.dbtool.exp.config.ExportTableFieldConfig;
 import io.nop.dbtool.exp.config.JdbcConnectionConfig;
+import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.OrmEntityModel;
 
 import javax.sql.DataSource;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class ExportDbTool {
     private ExportDbConfig config;
+    private Map<String, Object> args;
 
     private IResourceLoader outputResourceLoader;
 
     private IDialect dialect;
 
+    private DataSource dataSource;
+
     public void setConfig(ExportDbConfig config) {
         this.config = config;
+    }
+
+    public Map<String, Object> getArgs() {
+        return args;
+    }
+
+    public void setArgs(Map<String, Object> args) {
+        this.args = args;
     }
 
     public ExportDbConfig getConfig() {
@@ -65,8 +80,21 @@ public class ExportDbTool {
         this.setConfig((ExportDbConfig) ResourceComponentManager.instance().loadComponentModel(configPath));
     }
 
+    public void syncConfigWithDb() {
+        JdbcConnectionConfig conn = config.getJdbcConnection();
+        this.dataSource = conn.buildDataSource();
+        if (conn.getDialect() == null) {
+            this.dialect = DialectManager.instance().getDialectForDataSource(dataSource);
+        } else {
+            this.dialect = DialectManager.instance().getDialect(conn.getDialect());
+        }
+        readTableMetas();
+    }
+
     public void execute() {
         Guard.notEmpty(config.getJdbcConnection(), "jdbc-connection");
+
+        syncConfigWithDb();
 
         this.outputResourceLoader = new FileResource(new File(config.getOutputDir()));
 
@@ -77,18 +105,11 @@ public class ExportDbTool {
             executor = SyncThreadPoolExecutor.INSTANCE;
         }
 
-        JdbcConnectionConfig conn = config.getJdbcConnection();
         try {
-            DataSource ds = conn.buildDataSource();
-            if (conn.getDialect() == null) {
-                this.dialect = DialectManager.instance().getDialectForDataSource(ds);
-            } else {
-                this.dialect = DialectManager.instance().getDialect(conn.getDialect());
-            }
-
             List<CompletableFuture<?>> futures = new ArrayList<>();
-            for (ExportTableConfig tableConfig : getAllTables(ds).values()) {
-                futures.add(executor.submit(() -> runTask(tableConfig, ds), null));
+
+            for (ExportTableConfig tableConfig : config.getTables()) {
+                futures.add(executor.submit(() -> runTask(tableConfig, dataSource), null));
             }
             FutureHelper.getFromFuture(FutureHelper.waitAll(futures));
         } finally {
@@ -96,45 +117,87 @@ public class ExportDbTool {
         }
     }
 
-    private Map<String, ExportTableConfig> getAllTables(DataSource dataSource) {
-        Map<String, ExportTableConfig> map = new LinkedHashMap<>();
+    private void readTableMetas() {
+        Map<String, List<ExportTableConfig>> map = new HashMap<>();
         if (config.getTables() != null) {
-            config.getTables().forEach(table -> map.put(StringHelper.lowerCase(table.getName()), table));
+            config.getTables().forEach(table -> {
+                String name = StringHelper.lowerCase(table.getSourceTableName());
+                map.computeIfAbsent(name, k -> new ArrayList<>()).add(table);
+            });
         }
 
-        if (config.isExportAllTables() || !StringHelper.isEmpty(config.getTableNamePrefix())) {
-            String tableNamePattern = config.isExportAllTables() ? null : config.getTableNamePrefix() + "%";
+        if (config.getExcludeTableNames() != null) {
+            map.keySet().removeAll(config.getExcludeTableNames());
+        }
 
-            JdbcConnectionConfig conn = config.getJdbcConnection();
+        JdbcConnectionConfig conn = config.getJdbcConnection();
 
-            DataBaseMeta meta = JdbcMetaDiscovery.forDataSource(dataSource)
-                    .discover(conn.getCatalog(), null, tableNamePattern);
+        String tableNamePattern = config.getTableNamePattern();
 
-            for (OrmEntityModel table : meta.getTables().values()) {
-                String name = StringHelper.lowerCase(table.getTableName());
+        DataBaseMeta meta = JdbcMetaDiscovery.forDataSource(dataSource)
+                .discover(conn.getCatalog(), config.getSchemaPattern(), tableNamePattern);
 
-                if (config.getExcludeTableNames() != null && config.getExcludeTableNames().contains(name))
+        for (OrmEntityModel table : meta.getTables().values()) {
+            String name = StringHelper.lowerCase(table.getTableName());
+
+            if (config.getExcludeTableNames() != null && config.getExcludeTableNames().contains(name))
+                continue;
+
+            if (!config.isExportAllTables()) {
+                if (!map.containsKey(name))
+                    continue;
+            }
+
+            mergeTableConfig(map, name, table);
+        }
+    }
+
+    private void mergeTableConfig(Map<String, List<ExportTableConfig>> map, String name, OrmEntityModel table) {
+        List<ExportTableConfig> list = map.get(name);
+        if (list == null) {
+            ExportTableConfig tableConfig = new ExportTableConfig();
+            tableConfig.setName(name);
+            for (IColumnModel col : table.getColumns()) {
+                ExportTableFieldConfig field = new ExportTableFieldConfig();
+                field.setName(col.getCode());
+                field.setStdDataType(col.getStdDataType());
+                tableConfig.addField(field);
+            }
+            config.addTable(tableConfig);
+            map.put(name, Collections.singletonList(tableConfig));
+        } else {
+            for (ExportTableConfig old : list) {
+                if (!old.isExportAllFields())
                     continue;
 
-                if (!map.containsKey(name)) {
-                    ExportTableConfig tableConfig = new ExportTableConfig();
-                    tableConfig.setName(name);
-                    map.put(name, tableConfig);
+                List<String> sourceNames = old.getSourceFieldNames();
+                for (IColumnModel col : table.getColumns()) {
+                    if (sourceNames.contains(col.getCode()))
+                        continue;
+
+                    ExportTableFieldConfig field = new ExportTableFieldConfig();
+                    field.setName(col.getCode());
+                    field.setStdDataType(col.getStdDataType());
+                    old.addField(field);
                 }
             }
         }
-        return map;
     }
 
     private void runTask(ExportTableConfig tableConfig, DataSource ds) {
         BatchTaskBuilder builder = new BatchTaskBuilder();
         builder.loader(newLoader(tableConfig, ds));
         builder.batchSize(config.getBatchSize());
+        builder.addProcessor(newProcessor(tableConfig));
         builder.consumer(newConsumer(tableConfig));
 
         IBatchTask task = builder.build();
         IBatchTaskContext context = new BatchTaskContextImpl();
         task.execute(context);
+    }
+
+    private IBatchProcessor<Map<String, Object>, Map<String, Object>, IBatchChunkContext> newProcessor(ExportTableConfig tableConfig) {
+        return new FieldsProcessor(tableConfig.getFields());
     }
 
     private IBatchLoader<Map<String, Object>, IBatchChunkContext> newLoader(ExportTableConfig tableConfig,
@@ -147,41 +210,47 @@ public class ExportDbTool {
 
     private IBatchConsumer<Map<String, Object>, IBatchChunkContext> newConsumer(ExportTableConfig tableConfig) {
         List<IBatchConsumer<Map<String, Object>, IBatchChunkContext>> list = new ArrayList<>();
+        List<String> fields = tableConfig.getTargetFieldNames();
+
         if (config.getExportFormats() != null) {
             for (String format : config.getExportFormats()) {
+                String fileName = tableConfig.getExportFileName(format);
                 if ("sql".equals(format)) {
-                    list.add(newGenSqlConsumer(tableConfig, format));
+                    list.add(newGenSqlConsumer(fileName, fields));
                 } else if ("csv".equals(format) || "csv.gz".equals(format)) {
-                    list.add(newCsvConsumer(tableConfig, format));
+                    list.add(newCsvConsumer(fileName, fields));
                 } else {
                     throw new IllegalArgumentException("nop.err.dbtool.invalid-exp-format:" + format);
                 }
             }
         }
         if (list.isEmpty())
-            return newCsvConsumer(tableConfig, "csv");
+            return newCsvConsumer(tableConfig.getExportFileName("csv"), fields);
         return new MultiBatchConsumer<>(list);
     }
 
-    private IBatchConsumer<Map<String, Object>, IBatchChunkContext> newCsvConsumer(ExportTableConfig tableConfig, String format) {
+    private IBatchConsumer<Map<String, Object>, IBatchChunkContext> newCsvConsumer(String resourcePath, List<String> fields) {
         CsvResourceRecordIO<Map<String, Object>> recordIO = new CsvResourceRecordIO<>();
         recordIO.setRecordType(Map.class);
         recordIO.setSupportZip(true);
+        recordIO.setHeaders(fields);
 
-        return newResourceConsumer(recordIO, tableConfig, format);
+        return newResourceConsumer(recordIO, resourcePath);
     }
 
-    private IBatchConsumer<Map<String, Object>, IBatchChunkContext> newGenSqlConsumer(ExportTableConfig tableConfig, String format) {
+    private IBatchConsumer<Map<String, Object>, IBatchChunkContext> newGenSqlConsumer(String resourcePath,
+                                                                                      List<String> fields) {
         GenInsertSqlRecordIO recordIO = new GenInsertSqlRecordIO();
         recordIO.setDialect(dialect.getName());
-        return newResourceConsumer(recordIO, tableConfig, format);
+        recordIO.setFields(fields);
+        return newResourceConsumer(recordIO, resourcePath);
     }
 
     private <S, C> ResourceRecordConsumer<S, C> newResourceConsumer(IResourceRecordIO<S> recordIO,
-                                                                    ExportTableConfig tableConfig, String format) {
+                                                                    String resourcePath) {
         ResourceRecordConsumer<S, C> consumer = new ResourceRecordConsumer<>();
         consumer.setRecordIO(recordIO);
-        consumer.setResourcePath(tableConfig.getName() + "." + format);
+        consumer.setResourcePath(resourcePath);
         consumer.setResourceLoader(outputResourceLoader);
         return consumer;
     }

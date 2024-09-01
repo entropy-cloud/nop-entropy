@@ -60,10 +60,17 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
     
     /**
      *  
-     * xml name: tableNamePrefix
+     * xml name: schemaPattern
      * 
      */
-    private java.lang.String _tableNamePrefix ;
+    private java.lang.String _schemaPattern ;
+    
+    /**
+     *  
+     * xml name: tableNamePattern
+     * 
+     */
+    private java.lang.String _tableNamePattern ;
     
     /**
      *  
@@ -195,19 +202,38 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
     
     /**
      * 
-     * xml name: tableNamePrefix
+     * xml name: schemaPattern
      *  
      */
     
-    public java.lang.String getTableNamePrefix(){
-      return _tableNamePrefix;
+    public java.lang.String getSchemaPattern(){
+      return _schemaPattern;
     }
 
     
-    public void setTableNamePrefix(java.lang.String value){
+    public void setSchemaPattern(java.lang.String value){
         checkAllowChange();
         
-        this._tableNamePrefix = value;
+        this._schemaPattern = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: tableNamePattern
+     *  
+     */
+    
+    public java.lang.String getTableNamePattern(){
+      return _tableNamePattern;
+    }
+
+    
+    public void setTableNamePattern(java.lang.String value){
+        checkAllowChange();
+        
+        this._tableNamePattern = value;
            
     }
 
@@ -301,7 +327,8 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
         out.putNotNull("exportFormats",this.getExportFormats());
         out.putNotNull("jdbcConnection",this.getJdbcConnection());
         out.putNotNull("outputDir",this.getOutputDir());
-        out.putNotNull("tableNamePrefix",this.getTableNamePrefix());
+        out.putNotNull("schemaPattern",this.getSchemaPattern());
+        out.putNotNull("tableNamePattern",this.getTableNamePattern());
         out.putNotNull("tables",this.getTables());
         out.putNotNull("threadCount",this.getThreadCount());
     }
@@ -321,7 +348,8 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
         instance.setExportFormats(this.getExportFormats());
         instance.setJdbcConnection(this.getJdbcConnection());
         instance.setOutputDir(this.getOutputDir());
-        instance.setTableNamePrefix(this.getTableNamePrefix());
+        instance.setSchemaPattern(this.getSchemaPattern());
+        instance.setTableNamePattern(this.getTableNamePattern());
         instance.setTables(this.getTables());
         instance.setThreadCount(this.getThreadCount());
     }

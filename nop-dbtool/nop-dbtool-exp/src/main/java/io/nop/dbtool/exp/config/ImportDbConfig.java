@@ -9,6 +9,7 @@ public class ImportDbConfig extends _ImportDbConfig {
 
     }
 
+    @Override
     public ImportDbConfig cloneInstance() {
         ImportDbConfig ret = super.cloneInstance();
         if (ret.getTables() != null) {

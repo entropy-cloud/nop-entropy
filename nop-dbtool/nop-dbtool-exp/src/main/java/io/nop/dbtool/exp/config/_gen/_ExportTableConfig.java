@@ -39,6 +39,13 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: from
+     * 
+     */
+    private java.lang.String _from ;
+    
+    /**
+     *  
      * xml name: name
      * 
      */
@@ -50,13 +57,6 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
      * 
      */
     private java.lang.String _sql ;
-    
-    /**
-     *  
-     * xml name: to
-     * 
-     */
-    private java.lang.String _to ;
     
     /**
      *  
@@ -150,6 +150,25 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
     
     /**
      * 
+     * xml name: from
+     *  
+     */
+    
+    public java.lang.String getFrom(){
+      return _from;
+    }
+
+    
+    public void setFrom(java.lang.String value){
+        checkAllowChange();
+        
+        this._from = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: name
      *  
      */
@@ -182,25 +201,6 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
         checkAllowChange();
         
         this._sql = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: to
-     *  
-     */
-    
-    public java.lang.String getTo(){
-      return _to;
-    }
-
-    
-    public void setTo(java.lang.String value){
-        checkAllowChange();
-        
-        this._to = value;
            
     }
 
@@ -246,9 +246,9 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
         out.putNotNull("exportAllFields",this.isExportAllFields());
         out.putNotNull("fields",this.getFields());
         out.putNotNull("filter",this.getFilter());
+        out.putNotNull("from",this.getFrom());
         out.putNotNull("name",this.getName());
         out.putNotNull("sql",this.getSql());
-        out.putNotNull("to",this.getTo());
         out.putNotNull("transformExpr",this.getTransformExpr());
     }
 
@@ -264,9 +264,9 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
         instance.setExportAllFields(this.isExportAllFields());
         instance.setFields(this.getFields());
         instance.setFilter(this.getFilter());
+        instance.setFrom(this.getFrom());
         instance.setName(this.getName());
         instance.setSql(this.getSql());
-        instance.setTo(this.getTo());
         instance.setTransformExpr(this.getTransformExpr());
     }
 

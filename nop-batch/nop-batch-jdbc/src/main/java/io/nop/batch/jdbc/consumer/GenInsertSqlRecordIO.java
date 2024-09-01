@@ -19,13 +19,19 @@ import io.nop.dataset.record.IRecordOutput;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.List;
 import java.util.Map;
 
 public class GenInsertSqlRecordIO implements IResourceRecordIO<Map<String, Object>> {
     private String dialect = DaoConstants.DIALECT_MYSQL;
+    private List<String> fields;
 
     public void setDialect(String dialect) {
         this.dialect = dialect;
+    }
+
+    public void setFields(List<String> fields) {
+        this.fields = fields;
     }
 
     @Override
@@ -38,17 +44,19 @@ public class GenInsertSqlRecordIO implements IResourceRecordIO<Map<String, Objec
         String tableName = StringHelper.fileNameNoExt(resource.getName());
 
         IDialect dialect = DialectManager.instance().getDialect(this.dialect);
-        return new GenInsertSqlOutput(dialect, tableName, resource.getWriter(null));
+        return new GenInsertSqlOutput(dialect, tableName, fields, resource.getWriter(null));
     }
 
     static class GenInsertSqlOutput implements IRecordOutput<Map<String, Object>> {
         private final IDialect dialect;
         private final String tableName;
+        private final List<String> fields;
         private final Writer out;
 
-        public GenInsertSqlOutput(IDialect dialect, String tableName, Writer out) {
+        public GenInsertSqlOutput(IDialect dialect, String tableName, List<String> fields, Writer out) {
             this.dialect = dialect;
             this.tableName = tableName;
+            this.fields = fields;
             this.out = out;
         }
 
@@ -74,23 +82,46 @@ public class GenInsertSqlRecordIO implements IResourceRecordIO<Map<String, Objec
             sb.append("insert into ").append(tableName);
             sb.append("(");
             boolean first = true;
-            for (String colName : record.keySet()) {
-                if (first) {
-                    first = false;
-                } else {
-                    sb.append(',');
+            if (fields != null) {
+                for (String colName : fields) {
+                    if (first) {
+                        first = false;
+                    } else {
+                        sb.append(',');
+                    }
+                    sb.append(colName);
                 }
-                sb.append(colName);
+            } else {
+                for (String colName : record.keySet()) {
+                    if (first) {
+                        first = false;
+                    } else {
+                        sb.append(',');
+                    }
+                    sb.append(colName);
+                }
             }
             sb.append(") values (");
             first = true;
-            for (Object value : record.values()) {
-                if (first) {
-                    first = false;
-                } else {
-                    sb.append(',');
+            if (fields != null) {
+                for (String colName : fields) {
+                    Object value = record.get(colName);
+                    if (first) {
+                        first = false;
+                    } else {
+                        sb.append(',');
+                    }
+                    sb.append(encode(value));
                 }
-                sb.append(encode(value));
+            } else {
+                for (Object value : record.values()) {
+                    if (first) {
+                        first = false;
+                    } else {
+                        sb.append(',');
+                    }
+                    sb.append(encode(value));
+                }
             }
             sb.append(")");
             sb.append(";\n");

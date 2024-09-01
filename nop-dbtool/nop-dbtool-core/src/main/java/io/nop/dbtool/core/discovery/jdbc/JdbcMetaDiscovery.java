@@ -256,7 +256,7 @@ public class JdbcMetaDiscovery {
                 String remarks = columns.getString("REMARKS");
                 String generated = columns.getString("IS_GENERATEDCOLUMN");
                 String defaultValue = columns.getString("COLUMN_DEF");
-                int ordinal = columns.getInt("ORDINAL_POSITION");
+                //int ordinal = columns.getInt("ORDINAL_POSITION");
 
                 columnName = normalizeColName(columnName);
 
@@ -264,7 +264,7 @@ public class JdbcMetaDiscovery {
                 col.setCode(columnName);
                 col.setName(StringHelper.colCodeToPropName(columnName));
                 // Note：获取到的默认值可能是包含引号的转义值（若值为函数，则不会被转义），在使用时需注意
-                if(defaultValue != null) {
+                if (defaultValue != null) {
                     if (StringHelper.isNumber(defaultValue)) {
                         col.setDefaultValue(defaultValue);
                     } else if (defaultValue.startsWith("'") && defaultValue.endsWith("'") && defaultValue.length() > 2) {
@@ -298,7 +298,7 @@ public class JdbcMetaDiscovery {
                 } else {
                     col.setComment(remarks);
                 }
-                col.setPropId(ordinal);
+                // col.setPropId(ordinal);
                 if ("Yes".equalsIgnoreCase(generated)) {
                     col.setInsertable(false);
                     col.setUpdatable(false);
@@ -323,7 +323,10 @@ public class JdbcMetaDiscovery {
             }
             table.setDbPkName(pk.getConstraint());
 
-            cols.sort(Comparator.comparing(OrmColumnModel::getPropId));
+            // ordinal存在重复的情况
+            for (int i = 0, n = cols.size(); i < n; i++) {
+                cols.get(i).setPropId(i + 1);
+            }
 
             // 没有主键，则这里强制设置第一个字段为主键
             if (pk.getColumns().isEmpty()) {
@@ -335,7 +338,16 @@ public class JdbcMetaDiscovery {
                 }
             }
 
-            // ordinal存在重复的情况
+            // 确保主键排在前面
+            cols.sort((c1, c2) -> {
+                if (c1.isPrimary() && !c2.isPrimary())
+                    return -1;
+                if (!c1.isPrimary() && c2.isPrimary())
+                    return 1;
+                return Integer.compare(c1.getPropId(), c2.getPropId());
+            });
+
+            // 重新设置propId
             for (int i = 0, n = cols.size(); i < n; i++) {
                 cols.get(i).setPropId(i + 1);
             }

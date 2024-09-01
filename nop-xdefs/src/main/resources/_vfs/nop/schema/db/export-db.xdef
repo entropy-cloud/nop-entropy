@@ -2,7 +2,7 @@
            xmlns:xdef="/nop/schema/xdef.xdef"
 
            threadCount="!int=0" batchSize="!int=0"
-           tableNamePrefix="string" exportAllTables="!boolean=false"
+           schemaPattern="string" tableNamePattern="string" exportAllTables="!boolean=false"
            xdef:name="ExportDbConfig" xdef:bean-package="io.nop.dbtool.exp.config"
            exportFormats="csv-set"
 >
@@ -12,13 +12,14 @@
     <excludeTableNames xdef:value="csv-set"/>
 
     <tables xdef:body-type="list" xdef:key-attr="name">
-        <table name="!string" to="string"
+        <table name="!string" from="string"
                xdef:name="ExportTableConfig" exportAllFields="!boolean=true">
 
             <filter xdef:ref="../query/filter.xdef"/>
             <sql xdef:value="string"/>
             <fields xdef:body-type="list" xdef:key-attr="name">
-                <field name="!string" to="string" stdDataType="std-data-type"
+                <field name="!string" from="string" stdDataType="std-data-type"
+                       ignore="!boolean=false"
                        xdef:name="ExportTableFieldConfig">
                     <transformExpr xdef:value="xpl"/>
                 </field>

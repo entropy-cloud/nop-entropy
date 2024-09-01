@@ -4,15 +4,15 @@
     <jdbc-connection x:extends="jdbc-connection.xml"/>
 
     <tables>
-        <table name="nop_auth_user" to="user">
+        <table name="user" from="nop_auth_user">
             <fields>
-                <field name="sid"/>
+                <field name="ID" from="USER_ID"/>
             </fields>
         </table>
 
-        <table name="nop_auth_session" to="session" exportAllFields="false">
+        <table name="session" from="nop_auth_session" exportAllFields="false">
             <fields>
-                <field name="sid" to="id"/>
+                <field name="ID" from="SID"/>
             </fields>
         </table>
     </tables>
