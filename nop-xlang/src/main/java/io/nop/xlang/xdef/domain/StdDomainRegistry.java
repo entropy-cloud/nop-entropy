@@ -141,6 +141,7 @@ public class StdDomainRegistry {
         registerStdDomainHandler(XplStdDomainHandlers.EVAL_CODE_TYPE);
 
         registerStdDomainHandler(new XplStdDomainHandlers.MockReportExprType());
+        registerStdDomainHandler(new XplStdDomainHandlers.MockVueNodeType());
 
         registerStdDomainHandler(new XplStdDomainHandlers.ExprType());
         registerStdDomainHandler(new XplStdDomainHandlers.SingleExprType());

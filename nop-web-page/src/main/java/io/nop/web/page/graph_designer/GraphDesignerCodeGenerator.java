@@ -5,14 +5,14 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.web.page.grapn_designer;
+package io.nop.web.page.graph_designer;
 
 import io.nop.commons.util.StringHelper;
 import io.nop.web.page.WebPageConstants;
 import io.nop.xlang.api.XLang;
-import io.nop.xui.graph_designer.GraphDesignerEdgeModel;
-import io.nop.xui.graph_designer.GraphDesignerModel;
-import io.nop.xui.graph_designer.GraphDesignerNodeModel;
+import io.nop.web.page.graph_designer.model.GraphDesignerEdgeModel;
+import io.nop.web.page.graph_designer.model.GraphDesignerModel;
+import io.nop.web.page.graph_designer.model.GraphDesignerNodeModel;
 import io.nop.xui.model.UiFormModel;
 
 import java.util.HashMap;

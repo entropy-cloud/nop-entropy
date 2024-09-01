@@ -14,6 +14,7 @@ import io.nop.xlang.ast.Expression;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 @DataBean
 public class VueSlot implements IVueNode {
@@ -38,6 +39,25 @@ public class VueSlot implements IVueNode {
             });
         }
         return ret;
+    }
+
+
+    @Override
+    public boolean isSlot() {
+        return true;
+    }
+
+    @Override
+    public String getType() {
+        return VueConstants.TAG_TEMPLATE;
+    }
+
+    public void forEachNode(Consumer<IVueNode> action) {
+        action.accept(this);
+
+        if (children != null) {
+            children.forEach(child -> child.forEachNode(action));
+        }
     }
 
     @Override

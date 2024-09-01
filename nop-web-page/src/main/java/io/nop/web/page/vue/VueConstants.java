@@ -27,4 +27,6 @@ public interface VueConstants {
     String V_ON_PREFIX = "v-on:";
 
     String V_SLOT_PREFIX = "v-slot:";
+
+    String AS_NAME = "as";
 }

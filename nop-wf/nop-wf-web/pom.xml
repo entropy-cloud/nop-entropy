@@ -24,6 +24,11 @@
         </dependency>
 
         <dependency>
+            <artifactId>nop-web-page</artifactId>
+            <groupId>io.github.entropy-cloud</groupId>
+        </dependency>
+
+        <dependency>
             <artifactId>nop-wf-service</artifactId>
             <groupId>io.github.entropy-cloud</groupId>
             <scope>test</scope>

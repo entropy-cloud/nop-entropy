@@ -1,8 +1,8 @@
-package io.nop.xui.graph_designer._gen;
+package io.nop.web.page.graph_designer.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
-import io.nop.xui.graph_designer.GraphDesignerEdgeModel;
+import io.nop.web.page.graph_designer.model.GraphDesignerEdgeModel;
 import io.nop.commons.util.ClassHelper;
 
 
@@ -28,7 +28,7 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
      * xml name: addable
      * 
      */
-    private java.lang.Boolean _addable  = true;
+    private boolean _addable  = true;
     
     /**
      *  
@@ -56,7 +56,7 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
      * xml name: deletable
      * 
      */
-    private java.lang.Boolean _deletable ;
+    private boolean _deletable  = true;
     
     /**
      *  
@@ -126,7 +126,7 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
      * xml name: template
      * 
      */
-    private io.nop.core.lang.xml.XNode _template ;
+    private io.nop.web.page.vue.VueNode _template ;
     
     /**
      *  
@@ -167,12 +167,12 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
      *  
      */
     
-    public java.lang.Boolean getAddable(){
+    public boolean isAddable(){
       return _addable;
     }
 
     
-    public void setAddable(java.lang.Boolean value){
+    public void setAddable(boolean value){
         checkAllowChange();
         
         this._addable = value;
@@ -243,12 +243,12 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
      *  
      */
     
-    public java.lang.Boolean getDeletable(){
+    public boolean isDeletable(){
       return _deletable;
     }
 
     
-    public void setDeletable(java.lang.Boolean value){
+    public void setDeletable(boolean value){
         checkAllowChange();
         
         this._deletable = value;
@@ -433,12 +433,12 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
      *  
      */
     
-    public io.nop.core.lang.xml.XNode getTemplate(){
+    public io.nop.web.page.vue.VueNode getTemplate(){
       return _template;
     }
 
     
-    public void setTemplate(io.nop.core.lang.xml.XNode value){
+    public void setTemplate(io.nop.web.page.vue.VueNode value){
         checkAllowChange();
         
         this._template = value;
@@ -500,11 +500,11 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
         super.outputJson(out);
         
         out.putNotNull("abstract",this.getAbstract());
-        out.putNotNull("addable",this.getAddable());
+        out.putNotNull("addable",this.isAddable());
         out.putNotNull("allowSources",this.getAllowSources());
         out.putNotNull("allowTargets",this.getAllowTargets());
         out.putNotNull("base",this.getBase());
-        out.putNotNull("deletable",this.getDeletable());
+        out.putNotNull("deletable",this.isDeletable());
         out.putNotNull("icon",this.getIcon());
         out.putNotNull("kind",this.getKind());
         out.putNotNull("label",this.getLabel());
@@ -529,11 +529,11 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
         super.copyTo(instance);
         
         instance.setAbstract(this.getAbstract());
-        instance.setAddable(this.getAddable());
+        instance.setAddable(this.isAddable());
         instance.setAllowSources(this.getAllowSources());
         instance.setAllowTargets(this.getAllowTargets());
         instance.setBase(this.getBase());
-        instance.setDeletable(this.getDeletable());
+        instance.setDeletable(this.isDeletable());
         instance.setIcon(this.getIcon());
         instance.setKind(this.getKind());
         instance.setLabel(this.getLabel());

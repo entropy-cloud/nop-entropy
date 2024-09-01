@@ -8,5 +8,4 @@ codeGenerator.renderModel('/nop/schema/xui/action.xdef','/nop/templates/xdsl', '
 codeGenerator.renderModel('/nop/schema/xui/style-component.xdef','/nop/templates/xdsl', '/',$scope);
 codeGenerator.renderModel('/nop/schema/xui/simple-component.xdef','/nop/templates/xdsl', '/',$scope);
 codeGenerator.renderModel('/nop/schema/xui/import.xdef','/nop/templates/xdsl', '/',$scope);
-codeGenerator.renderModel('/nop/schema/designer/graph-designer.xdef','/nop/templates/xdsl', '/',$scope);
 ]]></c:script>

@@ -19,6 +19,7 @@ import io.nop.xlang.ast.TemplateExpression;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * 根据简化的Vue模板语句解析得到的节点对象
@@ -58,16 +59,44 @@ public class VueNode implements IVueNode, ISourceLocationGetter {
         return CoreConstants.DUMMY_TAG_NAME.equals(type);
     }
 
+    public void forEachNode(Consumer<IVueNode> action) {
+        action.accept(this);
+        if (children != null) {
+            children.forEach(child -> child.forEachNode(action));
+        }
+
+        if (slots != null) {
+            slots.forEach((name, slot) -> {
+                slot.forEachNode(action);
+            });
+        }
+    }
+
+    @Override
+    public boolean isSlot() {
+        return false;
+    }
+
+
     /**
      * 如果首字母大写或者包含-，则认为是组件
      */
     public String getComponentName() {
         if (isComponent()) {
-            if(type.indexOf('-') < 0)
+            if (type.indexOf('-') < 0)
                 return type;
             return StringHelper.camelCase(type, '-', true);
         }
         return null;
+    }
+
+
+    public String toVue() {
+        return toNode().xml();
+    }
+
+    public String toReact() {
+        return VueTemplateHelper.vueNodeToReact(this);
     }
 
     public XNode toNode() {

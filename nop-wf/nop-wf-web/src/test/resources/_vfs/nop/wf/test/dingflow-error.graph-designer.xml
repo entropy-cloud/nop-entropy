@@ -1,0 +1,12 @@
+<designer x:schema="/nop/schema/designer/graph-designer.xdef"
+x:extends="/nop/wf/designer/dingflow.graph-designer.xml">
+
+
+    <nodes>
+        <node name="invalid" icon="start-node"  label="Step">
+            <template>
+               <InvalidComponent/>
+            </template>
+        </node>
+    </nodes>
+</designer>

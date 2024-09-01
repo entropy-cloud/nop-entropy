@@ -1,8 +1,8 @@
-package io.nop.xui.graph_designer._gen;
+package io.nop.web.page.graph_designer.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
-import io.nop.xui.graph_designer.GraphDesignerNodeModel;
+import io.nop.web.page.graph_designer.model.GraphDesignerNodeModel;
 import io.nop.commons.util.ClassHelper;
 
 
@@ -28,7 +28,7 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
      * xml name: addable
      * 
      */
-    private java.lang.Boolean _addable  = true;
+    private boolean _addable  = true;
     
     /**
      *  
@@ -49,7 +49,7 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
      * xml name: anchors
      * 
      */
-    private KeyedList<io.nop.xui.graph_designer.GraphDesignerAnchorModel> _anchors = KeyedList.emptyList();
+    private KeyedList<io.nop.web.page.graph_designer.model.GraphDesignerAnchorModel> _anchors = KeyedList.emptyList();
     
     /**
      *  
@@ -63,14 +63,14 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
      * xml name: deletable
      * 
      */
-    private java.lang.Boolean _deletable ;
+    private boolean _deletable  = true;
     
     /**
      *  
      * xml name: draggable
      * 
      */
-    private java.lang.Boolean _draggable ;
+    private boolean _draggable  = true;
     
     /**
      *  
@@ -203,7 +203,7 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
      * xml name: template
      * 
      */
-    private io.nop.core.lang.xml.XNode _template ;
+    private io.nop.web.page.vue.VueNode _template ;
     
     /**
      *  
@@ -251,12 +251,12 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
      *  
      */
     
-    public java.lang.Boolean getAddable(){
+    public boolean isAddable(){
       return _addable;
     }
 
     
-    public void setAddable(java.lang.Boolean value){
+    public void setAddable(boolean value){
         checkAllowChange();
         
         this._addable = value;
@@ -308,20 +308,20 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
      *  
      */
     
-    public java.util.List<io.nop.xui.graph_designer.GraphDesignerAnchorModel> getAnchors(){
+    public java.util.List<io.nop.web.page.graph_designer.model.GraphDesignerAnchorModel> getAnchors(){
       return _anchors;
     }
 
     
-    public void setAnchors(java.util.List<io.nop.xui.graph_designer.GraphDesignerAnchorModel> value){
+    public void setAnchors(java.util.List<io.nop.web.page.graph_designer.model.GraphDesignerAnchorModel> value){
         checkAllowChange();
         
-        this._anchors = KeyedList.fromList(value, io.nop.xui.graph_designer.GraphDesignerAnchorModel::getName);
+        this._anchors = KeyedList.fromList(value, io.nop.web.page.graph_designer.model.GraphDesignerAnchorModel::getName);
            
     }
 
     
-    public io.nop.xui.graph_designer.GraphDesignerAnchorModel getAnchor(String name){
+    public io.nop.web.page.graph_designer.model.GraphDesignerAnchorModel getAnchor(String name){
         return this._anchors.getByKey(name);
     }
 
@@ -329,11 +329,11 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
         return this._anchors.containsKey(name);
     }
 
-    public void addAnchor(io.nop.xui.graph_designer.GraphDesignerAnchorModel item) {
+    public void addAnchor(io.nop.web.page.graph_designer.model.GraphDesignerAnchorModel item) {
         checkAllowChange();
-        java.util.List<io.nop.xui.graph_designer.GraphDesignerAnchorModel> list = this.getAnchors();
+        java.util.List<io.nop.web.page.graph_designer.model.GraphDesignerAnchorModel> list = this.getAnchors();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.xui.graph_designer.GraphDesignerAnchorModel::getName);
+            list = new KeyedList<>(io.nop.web.page.graph_designer.model.GraphDesignerAnchorModel::getName);
             setAnchors(list);
         }
         list.add(item);
@@ -372,12 +372,12 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
      *  
      */
     
-    public java.lang.Boolean getDeletable(){
+    public boolean isDeletable(){
       return _deletable;
     }
 
     
-    public void setDeletable(java.lang.Boolean value){
+    public void setDeletable(boolean value){
         checkAllowChange();
         
         this._deletable = value;
@@ -391,12 +391,12 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
      *  
      */
     
-    public java.lang.Boolean getDraggable(){
+    public boolean isDraggable(){
       return _draggable;
     }
 
     
-    public void setDraggable(java.lang.Boolean value){
+    public void setDraggable(boolean value){
         checkAllowChange();
         
         this._draggable = value;
@@ -752,12 +752,12 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
      *  
      */
     
-    public io.nop.core.lang.xml.XNode getTemplate(){
+    public io.nop.web.page.vue.VueNode getTemplate(){
       return _template;
     }
 
     
-    public void setTemplate(io.nop.core.lang.xml.XNode value){
+    public void setTemplate(io.nop.web.page.vue.VueNode value){
         checkAllowChange();
         
         this._template = value;
@@ -840,13 +840,13 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
         super.outputJson(out);
         
         out.putNotNull("abstract",this.getAbstract());
-        out.putNotNull("addable",this.getAddable());
+        out.putNotNull("addable",this.isAddable());
         out.putNotNull("allowChildren",this.getAllowChildren());
         out.putNotNull("allowParents",this.getAllowParents());
         out.putNotNull("anchors",this.getAnchors());
         out.putNotNull("base",this.getBase());
-        out.putNotNull("deletable",this.getDeletable());
-        out.putNotNull("draggable",this.getDraggable());
+        out.putNotNull("deletable",this.isDeletable());
+        out.putNotNull("draggable",this.isDraggable());
         out.putNotNull("fixedAspectRatio",this.getFixedAspectRatio());
         out.putNotNull("height",this.getHeight());
         out.putNotNull("icon",this.getIcon());
@@ -881,13 +881,13 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
         super.copyTo(instance);
         
         instance.setAbstract(this.getAbstract());
-        instance.setAddable(this.getAddable());
+        instance.setAddable(this.isAddable());
         instance.setAllowChildren(this.getAllowChildren());
         instance.setAllowParents(this.getAllowParents());
         instance.setAnchors(this.getAnchors());
         instance.setBase(this.getBase());
-        instance.setDeletable(this.getDeletable());
-        instance.setDraggable(this.getDraggable());
+        instance.setDeletable(this.isDeletable());
+        instance.setDraggable(this.isDraggable());
         instance.setFixedAspectRatio(this.getFixedAspectRatio());
         instance.setHeight(this.getHeight());
         instance.setIcon(this.getIcon());

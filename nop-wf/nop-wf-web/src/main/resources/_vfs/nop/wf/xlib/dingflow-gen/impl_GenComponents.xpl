@@ -24,7 +24,7 @@
 
                     const tplNode = nodeModel.template;
                 </c:script>
-               return ${VueTemplateHelper.vueTemplateToReact(tplNode)}
+               return ${tplNode.toReact()}
             }
         </c:if>
     </c:for>

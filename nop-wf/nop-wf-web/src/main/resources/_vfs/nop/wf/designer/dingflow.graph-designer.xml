@@ -53,7 +53,7 @@
         <node name="condition" kind="condition" label="Condition">
             <template>
                 <ConditionNodeTitle v:node="node" v:parent="parent" v:index="index" v:editable="editable"/>
-                <NodeContent className="content">
+                <NodeContent class="content">
                     <ContentPlaceholder v:text="t('pleaseSetCondition')"/>
                 </NodeContent>
             </template>

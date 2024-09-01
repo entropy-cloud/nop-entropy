@@ -118,6 +118,10 @@ public interface XDefConstants {
     String STD_DOMAIN_REPORT_EXPR = "report-expr";
     String STD_DOMAIN_T_REPORT_EXPR = "t-report-expr";
 
+    String STD_DOMAIN_VUE_NODE = "vue-node";
+
+    String VUE_NODE_TYPE = "io.nop.web.page.vue.VueNode";
+
     String STD_DOMAIN_EXPR = "expr";
     String STD_DOMAIN_S_EXPR = "s-expr";
     String STD_DOMAIN_T_EXPR = "t-expr";

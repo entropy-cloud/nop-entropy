@@ -1,8 +1,8 @@
-package io.nop.xui.graph_designer._gen;
+package io.nop.web.page.graph_designer.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
-import io.nop.xui.graph_designer.GraphDesignerZoomModel;
+import io.nop.web.page.graph_designer.model.GraphDesignerZoomModel;
 import io.nop.commons.util.ClassHelper;
 
 

@@ -1,8 +1,8 @@
-package io.nop.xui.graph_designer._gen;
+package io.nop.web.page.graph_designer.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
-import io.nop.xui.graph_designer.GraphDesignerModel;
+import io.nop.web.page.graph_designer.model.GraphDesignerModel;
 import io.nop.commons.util.ClassHelper;
 
 
@@ -42,7 +42,7 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
      * xml name: edges
      * 
      */
-    private KeyedList<io.nop.xui.graph_designer.GraphDesignerEdgeModel> _edges = KeyedList.emptyList();
+    private KeyedList<io.nop.web.page.graph_designer.model.GraphDesignerEdgeModel> _edges = KeyedList.emptyList();
     
     /**
      *  编辑器类型
@@ -77,7 +77,7 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
      * xml name: nodes
      * 
      */
-    private KeyedList<io.nop.xui.graph_designer.GraphDesignerNodeModel> _nodes = KeyedList.emptyList();
+    private KeyedList<io.nop.web.page.graph_designer.model.GraphDesignerNodeModel> _nodes = KeyedList.emptyList();
     
     /**
      *  
@@ -105,7 +105,7 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
      * xml name: zoom
      * 
      */
-    private io.nop.xui.graph_designer.GraphDesignerZoomModel _zoom ;
+    private io.nop.web.page.graph_designer.model.GraphDesignerZoomModel _zoom ;
     
     /**
      * 
@@ -196,20 +196,20 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
      *  
      */
     
-    public java.util.List<io.nop.xui.graph_designer.GraphDesignerEdgeModel> getEdges(){
+    public java.util.List<io.nop.web.page.graph_designer.model.GraphDesignerEdgeModel> getEdges(){
       return _edges;
     }
 
     
-    public void setEdges(java.util.List<io.nop.xui.graph_designer.GraphDesignerEdgeModel> value){
+    public void setEdges(java.util.List<io.nop.web.page.graph_designer.model.GraphDesignerEdgeModel> value){
         checkAllowChange();
         
-        this._edges = KeyedList.fromList(value, io.nop.xui.graph_designer.GraphDesignerEdgeModel::getName);
+        this._edges = KeyedList.fromList(value, io.nop.web.page.graph_designer.model.GraphDesignerEdgeModel::getName);
            
     }
 
     
-    public io.nop.xui.graph_designer.GraphDesignerEdgeModel getEdge(String name){
+    public io.nop.web.page.graph_designer.model.GraphDesignerEdgeModel getEdge(String name){
         return this._edges.getByKey(name);
     }
 
@@ -217,11 +217,11 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
         return this._edges.containsKey(name);
     }
 
-    public void addEdge(io.nop.xui.graph_designer.GraphDesignerEdgeModel item) {
+    public void addEdge(io.nop.web.page.graph_designer.model.GraphDesignerEdgeModel item) {
         checkAllowChange();
-        java.util.List<io.nop.xui.graph_designer.GraphDesignerEdgeModel> list = this.getEdges();
+        java.util.List<io.nop.web.page.graph_designer.model.GraphDesignerEdgeModel> list = this.getEdges();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.xui.graph_designer.GraphDesignerEdgeModel::getName);
+            list = new KeyedList<>(io.nop.web.page.graph_designer.model.GraphDesignerEdgeModel::getName);
             setEdges(list);
         }
         list.add(item);
@@ -369,20 +369,20 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
      *  
      */
     
-    public java.util.List<io.nop.xui.graph_designer.GraphDesignerNodeModel> getNodes(){
+    public java.util.List<io.nop.web.page.graph_designer.model.GraphDesignerNodeModel> getNodes(){
       return _nodes;
     }
 
     
-    public void setNodes(java.util.List<io.nop.xui.graph_designer.GraphDesignerNodeModel> value){
+    public void setNodes(java.util.List<io.nop.web.page.graph_designer.model.GraphDesignerNodeModel> value){
         checkAllowChange();
         
-        this._nodes = KeyedList.fromList(value, io.nop.xui.graph_designer.GraphDesignerNodeModel::getName);
+        this._nodes = KeyedList.fromList(value, io.nop.web.page.graph_designer.model.GraphDesignerNodeModel::getName);
            
     }
 
     
-    public io.nop.xui.graph_designer.GraphDesignerNodeModel getNode(String name){
+    public io.nop.web.page.graph_designer.model.GraphDesignerNodeModel getNode(String name){
         return this._nodes.getByKey(name);
     }
 
@@ -390,11 +390,11 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
         return this._nodes.containsKey(name);
     }
 
-    public void addNode(io.nop.xui.graph_designer.GraphDesignerNodeModel item) {
+    public void addNode(io.nop.web.page.graph_designer.model.GraphDesignerNodeModel item) {
         checkAllowChange();
-        java.util.List<io.nop.xui.graph_designer.GraphDesignerNodeModel> list = this.getNodes();
+        java.util.List<io.nop.web.page.graph_designer.model.GraphDesignerNodeModel> list = this.getNodes();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.xui.graph_designer.GraphDesignerNodeModel::getName);
+            list = new KeyedList<>(io.nop.web.page.graph_designer.model.GraphDesignerNodeModel::getName);
             setNodes(list);
         }
         list.add(item);
@@ -497,12 +497,12 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
      *  
      */
     
-    public io.nop.xui.graph_designer.GraphDesignerZoomModel getZoom(){
+    public io.nop.web.page.graph_designer.model.GraphDesignerZoomModel getZoom(){
       return _zoom;
     }
 
     
-    public void setZoom(io.nop.xui.graph_designer.GraphDesignerZoomModel value){
+    public void setZoom(io.nop.web.page.graph_designer.model.GraphDesignerZoomModel value){
         checkAllowChange();
         
         this._zoom = value;

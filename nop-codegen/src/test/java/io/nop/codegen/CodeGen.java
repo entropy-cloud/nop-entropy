@@ -28,6 +28,7 @@ public class CodeGen {
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-ioc"), "", false);
 
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-ui"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-web-page"), "", false);
 
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-task/nop-task-core"), "", false);
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-wf/nop-wf-core"), "", false);

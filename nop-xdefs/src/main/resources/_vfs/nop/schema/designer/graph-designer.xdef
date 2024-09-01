@@ -6,7 +6,7 @@
 <designer x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
           editorType="string" codeGenLib="v-path" framework="var-name"
           xmlns:xdef="/nop/schema/xdef.xdef" xdef:name="GraphDesignerModel"
-          xdef:bean-package="io.nop.xui.graph_designer">
+          xdef:bean-package="io.nop.web.page.graph_designer.model">
 
     <zoom initialValue="int" min="int" max="int" step="int" xdef:name="GraphDesignerZoomModel"/>
 
@@ -37,8 +37,8 @@
         <node name="!token-name" icon="string" label="!string" abstract="boolean" tagSet="csv-set" propsForm="string"
               base="token-name" shape="string" minWidth="int" maxWidth="int" minHeight="int" maxHeight="int"
               width="int" height="int" fixedAspectRatio="boolean" kind="string"
-              draggable="boolean" resizable="boolean"
-              deletable="boolean" addable="boolean=true"
+              draggable="!boolean=true" resizable="boolean"
+              deletable="!boolean=true" addable="!boolean=true"
               textPosition="string" textDraggable="boolean"
               minOccurs="int" maxOccurs="int"
               allowParents="csv-set" xdef:name="GraphDesignerNodeModel"
@@ -46,7 +46,7 @@
         >
             <style xdef:value="string"/>
 
-            <template xdef:value="xml"/>
+            <template xdef:value="vue-node"/>
 
             <anchors xdef:body-type="list" xdef:key-attr="name">
                 <anchor name="!string" position="string" tagSet="csv-set" xdef:name="GraphDesignerAnchorModel"/>
@@ -60,10 +60,10 @@
         -->
         <edge name="!token-name" icon="!string" label="!string" abstract="boolean" tagSet="csv-set" propsForm="string"
               base="token-name" width="int" xdef:name="GraphDesignerEdgeModel" kind="string"
-              deletable="boolean" addable="boolean=true" minOccurs="int" maxOccurs="int"
+              deletable="!boolean=true" addable="!boolean=true" minOccurs="int" maxOccurs="int"
               allowSources="csv-set" allowTargets="csv-set" type="string">
             <style xdef:value="string"/>
-            <template xdef:value="xml"/>
+            <template xdef:value="vue-node"/>
         </edge>
     </edges>
 

@@ -17,6 +17,13 @@ public class VueTemplateHelper {
             return "<></>";
 
         VueNode vueNode = new VueTemplateParser().parseTemplate(template);
+        return vueNodeToReact(vueNode);
+    }
+
+    public static String vueNodeToReact(VueNode vueNode){
+        if (vueNode == null)
+            return "<></>";
+
         IndentPrinter out = new IndentPrinter(100);
         new VueNodeToReact().render(vueNode, out);
         return out.toString();

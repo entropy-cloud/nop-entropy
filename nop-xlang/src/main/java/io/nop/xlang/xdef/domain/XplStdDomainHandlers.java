@@ -21,6 +21,7 @@ import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.type.IFunctionType;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
+import io.nop.core.type.impl.GenericRawTypeReferenceImpl;
 import io.nop.core.type.parse.GenericTypeParser;
 import io.nop.xlang.XLangConstants;
 import io.nop.xlang.api.EvalCode;
@@ -42,6 +43,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
+import static io.nop.core.type.PredefinedGenericTypes.X_NODE_TYPE;
 import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
 import static io.nop.xlang.XLangErrors.ARG_STD_DOMAIN;
 import static io.nop.xlang.XLangErrors.ARG_TAG_NAME;
@@ -294,15 +296,32 @@ public class XplStdDomainHandlers {
         @Override
         public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
                                 XLangCompileTool cp) {
-            LOG.warn("nop.xlang.report-expr-domain-is-not-supported:report-expr domain is defined in rop-report module");
+            LOG.warn("nop.xlang.report-expr-domain-is-not-supported:report-expr domain is defined in nop-report module");
             return null;
         }
 
         @Override
         public Object parseXmlChild(IStdDomainOptions options, XNode body, XLangCompileTool cp) {
-            LOG.warn("nop.xlang.report-expr-domain-is-not-supported:report-expr domain is defined in rop-report module");
+            LOG.warn("nop.xlang.report-expr-domain-is-not-supported:report-expr domain is defined in nop-report module");
             return null;
         }
+    }
+
+    /**
+     * 仅用于占位使用，避免装载graph-designer.xdef时编译报错，具体实现在nop-web-page模块中
+     */
+    public static class MockVueNodeType extends SimpleStdDomainHandlers.XmlType {
+
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_VUE_NODE;
+        }
+
+        @Override
+        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+            return new GenericRawTypeReferenceImpl(XDefConstants.VUE_NODE_TYPE);
+        }
+
     }
 
     public static class XplPredicateType extends XplType {
