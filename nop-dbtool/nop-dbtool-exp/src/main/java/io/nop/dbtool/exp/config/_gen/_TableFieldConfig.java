@@ -26,7 +26,7 @@ public abstract class _TableFieldConfig extends io.nop.core.resource.component.A
     /**
      *  
      * xml name: ignore
-     * 
+     * 如果设置为true，则该字段不会参与导出导出处理
      */
     private boolean _ignore  = false;
     
@@ -54,7 +54,7 @@ public abstract class _TableFieldConfig extends io.nop.core.resource.component.A
     /**
      *  
      * xml name: transformExpr
-     * 
+     * 每个字段也可以配置转换函数，实际导出的是转换以后的值。input对应于当前行，value对应于当前字段值
      */
     private io.nop.core.lang.eval.IEvalAction _transformExpr ;
     
@@ -80,7 +80,7 @@ public abstract class _TableFieldConfig extends io.nop.core.resource.component.A
     /**
      * 
      * xml name: ignore
-     *  
+     *  如果设置为true，则该字段不会参与导出导出处理
      */
     
     public boolean isIgnore(){
@@ -156,7 +156,7 @@ public abstract class _TableFieldConfig extends io.nop.core.resource.component.A
     /**
      * 
      * xml name: transformExpr
-     *  
+     *  每个字段也可以配置转换函数，实际导出的是转换以后的值。input对应于当前行，value对应于当前字段值
      */
     
     public io.nop.core.lang.eval.IEvalAction getTransformExpr(){

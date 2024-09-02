@@ -26,23 +26,30 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
     /**
      *  
      * xml name: excludeTableNames
-     * 
+     * 排除某些表不导出
      */
     private java.util.Set<java.lang.String> _excludeTableNames ;
     
     /**
      *  
      * xml name: exportAllTables
-     * 
+     * 如果设置为true，则导出所有满足tableNamePattern的表。否则以tables配置的表为准，只导出指定的表
      */
     private boolean _exportAllTables  = false;
     
     /**
      *  
      * xml name: exportFormats
-     * 
+     * 导出文件格式，可以是csv, csv.gz和sql
      */
     private java.util.Set<java.lang.String> _exportFormats ;
+    
+    /**
+     *  
+     * xml name: fetchSize
+     * 设置jdbc底层连接使用的fetchSize。MySQL数据库要求fetchSize设置为一个特殊值来启用流数据读取模式
+     */
+    private java.lang.Integer _fetchSize ;
     
     /**
      *  
@@ -68,7 +75,7 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
     /**
      *  
      * xml name: tableNamePattern
-     * 
+     * 查找数据库中所有表名满足模式要求的表，例如nop_%会匹配nop_auth_user等表。
      */
     private java.lang.String _tableNamePattern ;
     
@@ -108,7 +115,7 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
     /**
      * 
      * xml name: excludeTableNames
-     *  
+     *  排除某些表不导出
      */
     
     public java.util.Set<java.lang.String> getExcludeTableNames(){
@@ -127,7 +134,7 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
     /**
      * 
      * xml name: exportAllTables
-     *  
+     *  如果设置为true，则导出所有满足tableNamePattern的表。否则以tables配置的表为准，只导出指定的表
      */
     
     public boolean isExportAllTables(){
@@ -146,7 +153,7 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
     /**
      * 
      * xml name: exportFormats
-     *  
+     *  导出文件格式，可以是csv, csv.gz和sql
      */
     
     public java.util.Set<java.lang.String> getExportFormats(){
@@ -158,6 +165,25 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._exportFormats = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: fetchSize
+     *  设置jdbc底层连接使用的fetchSize。MySQL数据库要求fetchSize设置为一个特殊值来启用流数据读取模式
+     */
+    
+    public java.lang.Integer getFetchSize(){
+      return _fetchSize;
+    }
+
+    
+    public void setFetchSize(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._fetchSize = value;
            
     }
 
@@ -222,7 +248,7 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
     /**
      * 
      * xml name: tableNamePattern
-     *  
+     *  查找数据库中所有表名满足模式要求的表，例如nop_%会匹配nop_auth_user等表。
      */
     
     public java.lang.String getTableNamePattern(){
@@ -325,6 +351,7 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
         out.putNotNull("excludeTableNames",this.getExcludeTableNames());
         out.putNotNull("exportAllTables",this.isExportAllTables());
         out.putNotNull("exportFormats",this.getExportFormats());
+        out.putNotNull("fetchSize",this.getFetchSize());
         out.putNotNull("jdbcConnection",this.getJdbcConnection());
         out.putNotNull("outputDir",this.getOutputDir());
         out.putNotNull("schemaPattern",this.getSchemaPattern());
@@ -346,6 +373,7 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
         instance.setExcludeTableNames(this.getExcludeTableNames());
         instance.setExportAllTables(this.isExportAllTables());
         instance.setExportFormats(this.getExportFormats());
+        instance.setFetchSize(this.getFetchSize());
         instance.setJdbcConnection(this.getJdbcConnection());
         instance.setOutputDir(this.getOutputDir());
         instance.setSchemaPattern(this.getSchemaPattern());

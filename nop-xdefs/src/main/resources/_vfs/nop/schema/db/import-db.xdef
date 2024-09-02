@@ -1,3 +1,7 @@
+<!--
+@importAllTables 导入inputDir目录下的所有表
+@checkKeyFields 导入时是否根据keyFields设置检查记录是否已存在。如果存在，则可以选择更新或者忽略
+-->
 <import-db x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
            xmlns:xdef="/nop/schema/xdef.xdef"
            threadCount="!int=0" batchSize="!int=0"
@@ -14,17 +18,27 @@
     <tables xdef:body-type="list" xdef:key-attr="name">
         <!--
         @format 导入文件的后缀名
+        @importAllFields 导入所有字段，不仅仅是fields指定的字段
+        @allowUpdate 导入的时候如果根据keyFields查询到的记录已存在，在更新行。如果不设置或者设置为false，则数据重复时会忽略该行
         -->
         <table name="!string" from="string" format="string" xdef:name="ImportTableConfig"
                importAllFields="!boolean=true" allowUpdate="boolean">
+
+            <!-- 用于指定记录对应的唯一键 -->
             <keyFields xdef:value="csv-list"/>
 
-            <filter xdef:value="xpl-fn:(record)=>boolean"/>
+            <!--
+             用于过滤导入文件中的记录。input变量对应于每一行数据
+            -->
+            <filter xdef:value="xpl-fn:(input)=>boolean"/>
 
             <fields xdef:body-type="list" xdef:key-attr="name">
                 <field name="!string" xdef:ref="table-field.xdef"/>
             </fields>
 
+            <!--
+            可以对行数据进行转换，input对应于来源行，output对应于转换后的行
+            -->
             <transformExpr xdef:value="xpl"/>
         </table>
     </tables>

@@ -1,25 +1,44 @@
+<!--
+@tableNamePattern 查找数据库中所有表名满足模式要求的表，例如nop_%会匹配nop_auth_user等表。
+@exportAllTables 如果设置为true，则导出所有满足tableNamePattern的表。否则以tables配置的表为准，只导出指定的表
+@exportFormats 导出文件格式，可以是csv, csv.gz和sql
+@fetchSize 设置jdbc底层连接使用的fetchSize。MySQL数据库要求fetchSize设置为一个特殊值来启用流数据读取模式
+-->
 <export-db x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
            xmlns:xdef="/nop/schema/xdef.xdef"
 
            threadCount="!int=0" batchSize="!int=0"
            schemaPattern="string" tableNamePattern="string" exportAllTables="!boolean=false"
            xdef:name="ExportDbConfig" xdef:bean-package="io.nop.dbtool.exp.config"
-           exportFormats="csv-set"
+           exportFormats="csv-set"  fetchSize="int"
 >
     <jdbc-connection xdef:ref="jdbc-connection.xdef" xdef:support-extends="true"/>
 
     <outputDir xdef:value="string"/>
+
+    <!-- 排除某些表不导出 -->
     <excludeTableNames xdef:value="csv-set"/>
 
     <tables xdef:body-type="list" xdef:key-attr="name">
+        <!--
+        @name 导出到文件中的目标表名。所有的表名应该只使用小写字符。
+        @from 来源表名，如果不指定，与name相同。
+        @exportAllFields 如果设置为true，则导出表中所有字段，即使在fields段中没有定义。否则只导出指定的字段
+        -->
         <table name="!string" from="string"
                xdef:name="ExportTableConfig" exportAllFields="!boolean=true">
 
+            <!-- 可以根据过滤条件只导出部分数据 -->
             <filter xdef:value="xpl-node"/>
+
+            <!-- 可以导出sql语句产生的结果，而不是导出已有的表 -->
             <sql xdef:value="xpl-sql"/>
+
             <fields xdef:body-type="list" xdef:key-attr="name">
                 <field name="!string" xdef:ref="table-field.xdef"/>
             </fields>
+
+            <!-- 导出数据时可以对行进行变换，input对应于来源行，output对应于转换后的行 -->
             <transformExpr xdef:value="xpl"/>
         </table>
     </tables>

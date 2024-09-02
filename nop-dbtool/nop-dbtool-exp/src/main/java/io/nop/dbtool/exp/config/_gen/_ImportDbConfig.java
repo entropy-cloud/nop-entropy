@@ -26,7 +26,7 @@ public abstract class _ImportDbConfig extends io.nop.core.resource.component.Abs
     /**
      *  
      * xml name: checkKeyFields
-     * 
+     * 导入时是否根据keyFields设置检查记录是否已存在。如果存在，则可以选择更新或者忽略
      */
     private boolean _checkKeyFields  = true;
     
@@ -40,7 +40,7 @@ public abstract class _ImportDbConfig extends io.nop.core.resource.component.Abs
     /**
      *  
      * xml name: importAllTables
-     * 
+     * 导入inputDir目录下的所有表
      */
     private boolean _importAllTables  = true;
     
@@ -108,7 +108,7 @@ public abstract class _ImportDbConfig extends io.nop.core.resource.component.Abs
     /**
      * 
      * xml name: checkKeyFields
-     *  
+     *  导入时是否根据keyFields设置检查记录是否已存在。如果存在，则可以选择更新或者忽略
      */
     
     public boolean isCheckKeyFields(){
@@ -146,7 +146,7 @@ public abstract class _ImportDbConfig extends io.nop.core.resource.component.Abs
     /**
      * 
      * xml name: importAllTables
-     *  
+     *  导入inputDir目录下的所有表
      */
     
     public boolean isImportAllTables(){

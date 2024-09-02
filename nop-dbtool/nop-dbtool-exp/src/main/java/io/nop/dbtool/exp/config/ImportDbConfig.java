@@ -17,4 +17,18 @@ public class ImportDbConfig extends _ImportDbConfig {
         }
         return ret;
     }
+
+
+    public boolean isNeedDatabaseMeta() {
+        if (isImportAllTables())
+            return true;
+
+        if (this.getTables() != null) {
+            for (ImportTableConfig tableConfig : getTables()) {
+                if (tableConfig.isImportAllFields())
+                    return true;
+            }
+        }
+        return false;
+    }
 }

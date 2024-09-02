@@ -6,7 +6,7 @@
     <excludeTableNames>nop_auth_session</excludeTableNames>
 
     <tables>
-        <table name="nop_auth_user" from="user" importAllFields="true">
+        <table name="nop_auth_user" from="user" importAllFields="true" allowUpdate="true">
             <keyFields>USER_ID</keyFields>
             <fields>
                 <field name="USER_ID" from="ID"/>

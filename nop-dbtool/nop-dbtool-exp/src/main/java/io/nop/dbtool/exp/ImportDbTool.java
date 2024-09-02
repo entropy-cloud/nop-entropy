@@ -105,25 +105,27 @@ public class ImportDbTool {
             });
         }
 
-        JdbcConnectionConfig conn = config.getJdbcConnection();
+        if (config.isNeedDatabaseMeta()) {
+            JdbcConnectionConfig conn = config.getJdbcConnection();
 
-        String tableNamePattern = config.getTableNamePattern();
+            String tableNamePattern = config.getTableNamePattern();
 
-        DataBaseMeta meta = JdbcMetaDiscovery.forDataSource(dataSource)
-                .discover(conn.getCatalog(), config.getSchemaPattern(), tableNamePattern);
+            DataBaseMeta meta = JdbcMetaDiscovery.forDataSource(dataSource)
+                    .discover(conn.getCatalog(), config.getSchemaPattern(), tableNamePattern);
 
-        for (OrmEntityModel table : meta.getTables().values()) {
-            String name = StringHelper.lowerCase(table.getTableName());
+            for (OrmEntityModel table : meta.getTables().values()) {
+                String name = StringHelper.lowerCase(table.getTableName());
 
-            if (config.getExcludeTableNames() != null && config.getExcludeTableNames().contains(name))
-                continue;
-
-            if (!config.isImportAllTables()) {
-                if (!config.hasTable(name))
+                if (config.getExcludeTableNames() != null && config.getExcludeTableNames().contains(name))
                     continue;
-            }
 
-            mergeTableConfig(name, table);
+                if (!config.isImportAllTables()) {
+                    if (!config.hasTable(name))
+                        continue;
+                }
+
+                mergeTableConfig(name, table);
+            }
         }
     }
 
@@ -224,7 +226,7 @@ public class ImportDbTool {
     }
 
     private IBatchProcessor<Map<String, Object>, Map<String, Object>, IBatchChunkContext> newProcessor(ImportTableConfig tableConfig) {
-        return new FieldsProcessor(tableConfig.getFields());
+        return new FieldsProcessor(tableConfig.getFields(), tableConfig.getTransformExpr());
     }
 
     private Map<String, IDataParameterBinder> getColBinders(List<? extends IFieldConfig> cols) {

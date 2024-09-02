@@ -19,7 +19,7 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
     /**
      *  
      * xml name: allowUpdate
-     * 
+     * 导入的时候如果根据keyFields查询到的记录已存在，在更新行。如果不设置或者设置为false，则数据重复时会忽略该行
      */
     private java.lang.Boolean _allowUpdate ;
     
@@ -33,7 +33,7 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
     /**
      *  
      * xml name: filter
-     * 
+     * 用于过滤导入文件中的记录。input变量对应于每一行数据
      */
     private io.nop.core.lang.eval.IEvalFunction _filter ;
     
@@ -54,14 +54,14 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
     /**
      *  
      * xml name: importAllFields
-     * 
+     * 导入所有字段，不仅仅是fields指定的字段
      */
     private boolean _importAllFields  = true;
     
     /**
      *  
      * xml name: keyFields
-     * 
+     * 用于指定记录对应的唯一键
      */
     private java.util.List<java.lang.String> _keyFields ;
     
@@ -75,14 +75,14 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
     /**
      *  
      * xml name: transformExpr
-     * 
+     * 可以对行数据进行转换，input对应于来源行，output对应于转换后的行
      */
     private io.nop.core.lang.eval.IEvalAction _transformExpr ;
     
     /**
      * 
      * xml name: allowUpdate
-     *  
+     *  导入的时候如果根据keyFields查询到的记录已存在，在更新行。如果不设置或者设置为false，则数据重复时会忽略该行
      */
     
     public java.lang.Boolean getAllowUpdate(){
@@ -146,7 +146,7 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
     /**
      * 
      * xml name: filter
-     *  
+     *  用于过滤导入文件中的记录。input变量对应于每一行数据
      */
     
     public io.nop.core.lang.eval.IEvalFunction getFilter(){
@@ -203,7 +203,7 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
     /**
      * 
      * xml name: importAllFields
-     *  
+     *  导入所有字段，不仅仅是fields指定的字段
      */
     
     public boolean isImportAllFields(){
@@ -222,7 +222,7 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
     /**
      * 
      * xml name: keyFields
-     *  
+     *  用于指定记录对应的唯一键
      */
     
     public java.util.List<java.lang.String> getKeyFields(){
@@ -260,7 +260,7 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
     /**
      * 
      * xml name: transformExpr
-     *  
+     *  可以对行数据进行转换，input对应于来源行，output对应于转换后的行
      */
     
     public io.nop.core.lang.eval.IEvalAction getTransformExpr(){

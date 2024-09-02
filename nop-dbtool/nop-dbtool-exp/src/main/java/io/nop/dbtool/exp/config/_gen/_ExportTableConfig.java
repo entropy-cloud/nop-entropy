@@ -19,7 +19,7 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
     /**
      *  
      * xml name: exportAllFields
-     * 
+     * 如果设置为true，则导出表中所有字段，即使在fields段中没有定义。否则只导出指定的字段
      */
     private boolean _exportAllFields  = true;
     
@@ -33,42 +33,42 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
     /**
      *  
      * xml name: filter
-     * 
+     * 可以根据过滤条件只导出部分数据
      */
     private io.nop.core.lang.xml.IXNodeGenerator _filter ;
     
     /**
      *  
      * xml name: from
-     * 
+     * 来源表名，如果不指定，与name相同。
      */
     private java.lang.String _from ;
     
     /**
      *  
      * xml name: name
-     * 
+     * 导出到文件中的目标表名。所有的表名应该只使用小写字符。
      */
     private java.lang.String _name ;
     
     /**
      *  
      * xml name: sql
-     * 
+     * 可以导出sql语句产生的结果，而不是导出已有的表
      */
     private io.nop.core.lang.sql.ISqlGenerator _sql ;
     
     /**
      *  
      * xml name: transformExpr
-     * 
+     * 导出数据时可以对行进行变换，input对应于来源行，output对应于转换后的行
      */
     private io.nop.core.lang.eval.IEvalAction _transformExpr ;
     
     /**
      * 
      * xml name: exportAllFields
-     *  
+     *  如果设置为true，则导出表中所有字段，即使在fields段中没有定义。否则只导出指定的字段
      */
     
     public boolean isExportAllFields(){
@@ -132,7 +132,7 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
     /**
      * 
      * xml name: filter
-     *  
+     *  可以根据过滤条件只导出部分数据
      */
     
     public io.nop.core.lang.xml.IXNodeGenerator getFilter(){
@@ -151,7 +151,7 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
     /**
      * 
      * xml name: from
-     *  
+     *  来源表名，如果不指定，与name相同。
      */
     
     public java.lang.String getFrom(){
@@ -170,7 +170,7 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
     /**
      * 
      * xml name: name
-     *  
+     *  导出到文件中的目标表名。所有的表名应该只使用小写字符。
      */
     
     public java.lang.String getName(){
@@ -189,7 +189,7 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
     /**
      * 
      * xml name: sql
-     *  
+     *  可以导出sql语句产生的结果，而不是导出已有的表
      */
     
     public io.nop.core.lang.sql.ISqlGenerator getSql(){
@@ -208,7 +208,7 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
     /**
      * 
      * xml name: transformExpr
-     *  
+     *  导出数据时可以对行进行变换，input对应于来源行，output对应于转换后的行
      */
     
     public io.nop.core.lang.eval.IEvalAction getTransformExpr(){

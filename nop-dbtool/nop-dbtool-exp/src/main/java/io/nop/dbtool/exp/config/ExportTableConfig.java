@@ -37,11 +37,18 @@ public class ExportTableConfig extends _ExportTableConfig {
         return from;
     }
 
-    public SQL buildSQL(IEvalContext ctx) {
+    public SQL buildSQL(Integer fetchSize, IEvalContext ctx) {
         if (getSql() != null) {
-            return getSql().generateSql(ctx);
+            SQL sql = getSql().generateSql(ctx);
+            if (fetchSize != null) {
+                sql = sql.extend().fetchSize(fetchSize).end();
+            }
+            return sql;
         } else {
             SQL.SqlBuilder sb = SQL.begin().name(getName());
+            if (fetchSize != null)
+                sb.fetchSize(fetchSize);
+
             sb.append("select * from ").append(getSourceTableName());
 
             if (getFilter() != null) {

@@ -3,6 +3,7 @@ package io.nop.dbtool.exp;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchProcessor;
+import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.dbtool.exp.config.IFieldConfig;
 
@@ -15,16 +16,20 @@ import static io.nop.dbtool.exp.DbToolExpErrors.ARG_FIELD_NAME;
 
 public class FieldsProcessor implements IBatchProcessor<Map<String, Object>, Map<String, Object>, IBatchChunkContext> {
     private final List<? extends IFieldConfig> fields;
+    private final IEvalAction transformExpr;
 
-    public FieldsProcessor(List<? extends IFieldConfig> fields) {
+    public FieldsProcessor(List<? extends IFieldConfig> fields, IEvalAction transformExpr) {
         this.fields = fields;
+        this.transformExpr = transformExpr;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void process(Map<String, Object> item, Consumer<Map<String, Object>> consumer, IBatchChunkContext context) {
         Map<String, Object> ret = new LinkedHashMap<>();
         IEvalScope scope = context.getEvalScope();
         scope.setLocalValue(DbToolExpConstants.VAR_INPUT, item);
+        scope.setLocalValue(DbToolExpConstants.VAR_OUTPUT, ret);
 
         for (IFieldConfig field : fields) {
             Object value = item.get(field.getSourceFieldName());
@@ -40,6 +45,13 @@ public class FieldsProcessor implements IBatchProcessor<Map<String, Object>, Map
             value = field.validate(value, scope);
             ret.put(field.getName(), value);
         }
+
+        if (transformExpr != null) {
+            Object result = transformExpr.invoke(scope);
+            if (result instanceof Map)
+                ret = (Map<String, Object>) result;
+        }
+
         consumer.accept(ret);
     }
 }

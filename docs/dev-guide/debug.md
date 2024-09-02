@@ -78,6 +78,9 @@ from nop_sys_sequence as o
 2023-07-11 21:14:40,562 INFO  [io.nop.cor.ini.CoreInitialization] (Quarkus Main Thread) nop.core.end-initialize:usedTime=87286
 ```
 
+### 6. 虚拟文件扫描
+Nop平台启动时会使用类扫描机制查找所有`_vfs`目录下的虚拟文件，在调试模式下启动时扫描结果会输出到nop-vfs-index.txt中。这个文件中记录了所有可访问的虚拟文件路径
+
 ## 日志打印
 
 ### 1. XScript脚本中内置了logInfo/logDebug等函数

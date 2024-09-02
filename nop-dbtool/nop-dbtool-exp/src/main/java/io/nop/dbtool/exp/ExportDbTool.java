@@ -138,21 +138,23 @@ public class ExportDbTool {
 
         String tableNamePattern = config.getTableNamePattern();
 
-        DataBaseMeta meta = JdbcMetaDiscovery.forDataSource(dataSource)
-                .discover(conn.getCatalog(), config.getSchemaPattern(), tableNamePattern);
+        if (config.isNeedDatabaseMeta()) {
+            DataBaseMeta meta = JdbcMetaDiscovery.forDataSource(dataSource)
+                    .discover(conn.getCatalog(), config.getSchemaPattern(), tableNamePattern);
 
-        for (OrmEntityModel table : meta.getTables().values()) {
-            String name = StringHelper.lowerCase(table.getTableName());
+            for (OrmEntityModel table : meta.getTables().values()) {
+                String name = StringHelper.lowerCase(table.getTableName());
 
-            if (config.getExcludeTableNames() != null && config.getExcludeTableNames().contains(name))
-                continue;
-
-            if (!config.isExportAllTables()) {
-                if (!map.containsKey(name))
+                if (config.getExcludeTableNames() != null && config.getExcludeTableNames().contains(name))
                     continue;
-            }
 
-            mergeTableConfig(map, name, table);
+                if (!config.isExportAllTables()) {
+                    if (!map.containsKey(name))
+                        continue;
+                }
+
+                mergeTableConfig(map, name, table);
+            }
         }
     }
 
@@ -205,14 +207,14 @@ public class ExportDbTool {
     }
 
     private IBatchProcessor<Map<String, Object>, Map<String, Object>, IBatchChunkContext> newProcessor(ExportTableConfig tableConfig) {
-        return new FieldsProcessor(tableConfig.getFields());
+        return new FieldsProcessor(tableConfig.getFields(), tableConfig.getTransformExpr());
     }
 
     private IBatchLoader<Map<String, Object>, IBatchChunkContext> newLoader(ExportTableConfig tableConfig,
                                                                             DataSource ds) {
         JdbcBatchLoader<Map<String, Object>> loader = new JdbcBatchLoader<>();
         loader.setDataSource(ds);
-        loader.setSqlGenerator(tableConfig::buildSQL);
+        loader.setSqlGenerator(ctx -> tableConfig.buildSQL(config.getFetchSize(), ctx));
         return loader;
     }
 

@@ -17,4 +17,17 @@ public class ExportDbConfig extends _ExportDbConfig {
         }
         return ret;
     }
+
+    public boolean isNeedDatabaseMeta() {
+        if (isExportAllTables())
+            return true;
+
+        if (this.getTables() != null) {
+            for (ExportTableConfig tableConfig : getTables()) {
+                if (tableConfig.isExportAllFields())
+                    return true;
+            }
+        }
+        return false;
+    }
 }
