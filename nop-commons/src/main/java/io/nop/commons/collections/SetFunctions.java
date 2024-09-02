@@ -44,7 +44,7 @@ public class SetFunctions {
         if (source instanceof Collection) {
             Collection<T> c = (Collection<T>) source;
             List<T> ret = new ArrayList<>(list.size() + c.size());
-            list.addAll(list);
+            ret.addAll(list);
             ret.addAll(c);
             return ret;
         } else {

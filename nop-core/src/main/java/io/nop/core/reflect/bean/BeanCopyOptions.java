@@ -50,6 +50,8 @@ public class BeanCopyOptions extends AbstractFreezable {
      */
     private boolean reuseImmutable = true;
 
+    private boolean reuseFrozen = false;
+
     /**
      * 是否识别Map的继承类上的getXXX方法构成的bean属性
      */
@@ -89,6 +91,14 @@ public class BeanCopyOptions extends AbstractFreezable {
     public void setAllowListExt(boolean allowListExt) {
         checkAllowChange();
         this.allowListExt = allowListExt;
+    }
+
+    public boolean isReuseFrozen() {
+        return reuseFrozen;
+    }
+
+    public void setReuseFrozen(boolean reuseFrozen) {
+        this.reuseFrozen = reuseFrozen;
     }
 
     public boolean isOnlySecureTarget() {

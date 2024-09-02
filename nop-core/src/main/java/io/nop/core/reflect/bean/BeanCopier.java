@@ -412,8 +412,10 @@ public class BeanCopier implements IBeanCopier {
     }
 
     private boolean isImmutable(Object src, BeanCopyOptions options) {
-        if (src instanceof IFreezable && ((IFreezable) src).frozen()) {
-            return true;
+        if (options.isReuseFrozen()) {
+            if (src instanceof IFreezable && ((IFreezable) src).frozen()) {
+                return true;
+            }
         }
         IBeanModel srcModel = options.getBeanModelManager().getBeanModelForClass(src.getClass());
         return srcModel.isImmutable();
