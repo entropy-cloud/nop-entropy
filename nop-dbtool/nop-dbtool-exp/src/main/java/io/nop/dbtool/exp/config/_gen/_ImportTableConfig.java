@@ -35,7 +35,7 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
      * xml name: filter
      * 
      */
-    private io.nop.api.core.beans.TreeBean _filter ;
+    private io.nop.core.lang.eval.IEvalFunction _filter ;
     
     /**
      *  
@@ -149,12 +149,12 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
      *  
      */
     
-    public io.nop.api.core.beans.TreeBean getFilter(){
+    public io.nop.core.lang.eval.IEvalFunction getFilter(){
       return _filter;
     }
 
     
-    public void setFilter(io.nop.api.core.beans.TreeBean value){
+    public void setFilter(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._filter = value;
@@ -285,8 +285,6 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
            this._fields = io.nop.api.core.util.FreezeHelper.deepFreeze(this._fields);
-            
-           this._filter = io.nop.api.core.util.FreezeHelper.deepFreeze(this._filter);
             
         }
     }

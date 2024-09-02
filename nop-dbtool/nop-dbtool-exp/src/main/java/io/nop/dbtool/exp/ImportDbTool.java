@@ -7,6 +7,7 @@
  */
 package io.nop.dbtool.exp;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.batch.core.BatchTaskBuilder;
@@ -29,8 +30,6 @@ import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.SyncThreadPoolExecutor;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.model.query.BeanVariableScope;
-import io.nop.core.model.query.QueryBeanHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceLoader;
 import io.nop.core.resource.component.ResourceComponentManager;
@@ -55,14 +54,13 @@ import io.nop.orm.model.OrmEntityModel;
 import javax.sql.DataSource;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class ImportDbTool {
     private ImportDbConfig config;
+    private Map<String, Object> args;
 
     private IResourceLoader inputResourceLoader;
 
@@ -81,6 +79,13 @@ public class ImportDbTool {
         this.setConfig((ImportDbConfig) ResourceComponentManager.instance().loadComponentModel(configPath));
     }
 
+    public Map<String, Object> getArgs() {
+        return args;
+    }
+
+    public void setArgs(Map<String, Object> args) {
+        this.args = args;
+    }
 
     public void syncConfigWithDb() {
         JdbcConnectionConfig conn = config.getJdbcConnection();
@@ -94,14 +99,6 @@ public class ImportDbTool {
     }
 
     private void readTableMetas() {
-        Map<String, List<ImportTableConfig>> map = new HashMap<>();
-        if (config.getTables() != null) {
-            config.getTables().forEach(table -> {
-                String name = StringHelper.lowerCase(table.getName());
-                map.computeIfAbsent(name, k -> new ArrayList<>()).add(table);
-            });
-        }
-
         if (config.getExcludeTableNames() != null) {
             config.getTables().removeIf(table -> {
                 return config.getExcludeTableNames().contains(table.getName());
@@ -122,17 +119,17 @@ public class ImportDbTool {
                 continue;
 
             if (!config.isImportAllTables()) {
-                if (!map.containsKey(name))
+                if (!config.hasTable(name))
                     continue;
             }
 
-            mergeTableConfig(map, name, table);
+            mergeTableConfig(name, table);
         }
     }
 
-    private void mergeTableConfig(Map<String, List<ImportTableConfig>> map, String name, OrmEntityModel table) {
-        List<ImportTableConfig> list = map.get(name);
-        if (list == null) {
+    private void mergeTableConfig(String name, OrmEntityModel table) {
+        ImportTableConfig old = config.getTable(name);
+        if (old == null) {
             ImportTableConfig tableConfig = new ImportTableConfig();
             tableConfig.setName(name);
             tableConfig.setKeyFields(table.getPkColumnNames());
@@ -144,22 +141,19 @@ public class ImportDbTool {
                 tableConfig.addField(field);
             }
             config.addTable(tableConfig);
-            map.put(name, Collections.singletonList(tableConfig));
         } else {
-            for (ImportTableConfig old : list) {
-                if (!old.isImportAllFields())
+            if (!old.isImportAllFields())
+                return;
+
+            for (IColumnModel col : table.getColumns()) {
+                if (old.hasField(col.getCode()))
                     continue;
 
-                List<String> fieldNames = old.getTargetFieldNames();
-                for (IColumnModel col : table.getColumns()) {
-                    if (fieldNames.contains(col.getCode()))
-                        continue;
-
-                    TableFieldConfig field = new TableFieldConfig();
-                    field.setName(col.getCode());
-                    field.setStdDataType(col.getStdDataType());
-                    old.addField(field);
-                }
+                TableFieldConfig field = new TableFieldConfig();
+                field.setName(col.getCode());
+                field.setStdDataType(col.getStdDataType());
+                field.setStdSqlType(col.getStdSqlType());
+                old.addField(field);
             }
         }
     }
@@ -224,6 +218,8 @@ public class ImportDbTool {
 
         IBatchTask task = builder.build();
         IBatchTaskContext context = new BatchTaskContextImpl();
+        if (args != null)
+            context.getEvalScope().setLocalValues(args);
         task.execute(context);
     }
 
@@ -279,7 +275,7 @@ public class ImportDbTool {
 
         if (tableConfig.getFilter() != null) {
             IBatchRecordFilter<S> filter = (record, ctx) ->
-                    QueryBeanHelper.evaluateFilter(tableConfig.getFilter(), new BeanVariableScope(record));
+                    ConvertHelper.toTruthy(tableConfig.getFilter().call1(null, record, ctx.getEvalScope()));
             loader.setFilter(filter);
         }
         return loader;

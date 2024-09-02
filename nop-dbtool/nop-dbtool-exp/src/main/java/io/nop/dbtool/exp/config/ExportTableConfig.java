@@ -1,12 +1,15 @@
 package io.nop.dbtool.exp.config;
 
-import io.nop.commons.util.StringHelper;
+import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.sql.SQL;
+import io.nop.core.lang.xml.XNode;
 import io.nop.dbtool.exp.config._gen._ExportTableConfig;
 import io.nop.orm.dao.DaoQueryHelper;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ExportTableConfig extends _ExportTableConfig {
@@ -34,19 +37,22 @@ public class ExportTableConfig extends _ExportTableConfig {
         return from;
     }
 
-    public SQL buildSQL() {
-        SQL.SqlBuilder sb = SQL.begin().name(getName());
-        if (!StringHelper.isEmpty(getSql())) {
-            sb.append(getSql());
+    public SQL buildSQL(IEvalContext ctx) {
+        if (getSql() != null) {
+            return getSql().generateSql(ctx);
         } else {
-            sb.append("select * from ").append(getFrom());
+            SQL.SqlBuilder sb = SQL.begin().name(getName());
+            sb.append("select * from ").append(getSourceTableName());
 
             if (getFilter() != null) {
-                sb.where();
-                DaoQueryHelper.appendFilter(sb, null, getFilter());
+                XNode node = getFilter().generateNode(ctx);
+                if (node != null) {
+                    sb.where();
+                    DaoQueryHelper.appendFilter(sb, null, node);
+                }
             }
+            return sb.end();
         }
-        return sb.end();
     }
 
     public List<String> getTargetFieldNames() {
@@ -59,8 +65,8 @@ public class ExportTableConfig extends _ExportTableConfig {
         return ret;
     }
 
-    public List<String> getSourceFieldNames() {
-        List<String> ret = new ArrayList<>(getFields().size());
+    public Set<String> getSourceFieldNames() {
+        Set<String> ret = new LinkedHashSet<>(getFields().size());
         for (TableFieldConfig field : getFields()) {
             if (field.isIgnore())
                 continue;

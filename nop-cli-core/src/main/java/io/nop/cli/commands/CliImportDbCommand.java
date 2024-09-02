@@ -7,6 +7,7 @@
  */
 package io.nop.cli.commands;
 
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.component.ResourceComponentManager;
@@ -15,6 +16,7 @@ import io.nop.dbtool.exp.config.ImportDbConfig;
 import picocli.CommandLine;
 
 import java.io.File;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command(
@@ -26,9 +28,13 @@ public class CliImportDbCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"-i", "--input"}, description = "数据数据目录")
     File inputDir;
 
+    @CommandLine.Option(names = {"-a", "--args"}, description = "输入参数")
+    String args;
+
     @CommandLine.Parameters(description = "配置文件路径")
     String configPath;
 
+    @SuppressWarnings("unchecked")
     @Override
     public Integer call() {
         IResource resource = ResourceHelper.resolveRelativePathResource(configPath);
@@ -44,6 +50,8 @@ public class CliImportDbCommand implements Callable<Integer> {
 
         ImportDbTool tool = new ImportDbTool();
         tool.setConfig(config);
+        if (args != null)
+            tool.setArgs((Map<String, Object>) JsonTool.parseNonStrict(null, args));
         tool.execute();
         return 0;
     }

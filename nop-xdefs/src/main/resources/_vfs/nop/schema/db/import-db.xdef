@@ -19,7 +19,8 @@
                importAllFields="!boolean=true" allowUpdate="boolean">
             <keyFields xdef:value="csv-list"/>
 
-            <filter xdef:ref="../query/filter.xdef"/>
+            <filter xdef:value="xpl-fn:(record)=>boolean"/>
+
             <fields xdef:body-type="list" xdef:key-attr="name">
                 <field name="!string" xdef:ref="table-field.xdef"/>
             </fields>

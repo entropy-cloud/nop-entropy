@@ -48,6 +48,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public class ExportDbTool {
@@ -128,6 +129,9 @@ public class ExportDbTool {
 
         if (config.getExcludeTableNames() != null) {
             map.keySet().removeAll(config.getExcludeTableNames());
+            config.getTables().removeIf(table -> {
+                return config.getExcludeTableNames().contains(table.getName());
+            });
         }
 
         JdbcConnectionConfig conn = config.getJdbcConnection();
@@ -161,6 +165,7 @@ public class ExportDbTool {
                 TableFieldConfig field = new TableFieldConfig();
                 field.setName(col.getCode());
                 field.setStdDataType(col.getStdDataType());
+                field.setStdSqlType(col.getStdSqlType());
                 tableConfig.addField(field);
             }
             config.addTable(tableConfig);
@@ -170,14 +175,15 @@ public class ExportDbTool {
                 if (!old.isExportAllFields())
                     continue;
 
-                List<String> sourceNames = old.getSourceFieldNames();
+                Set<String> sourceNames = old.getSourceFieldNames();
                 for (IColumnModel col : table.getColumns()) {
-                    if (sourceNames.contains(col.getCode()))
+                    if (sourceNames.contains(col.getCode()) || old.hasField(col.getCode()))
                         continue;
 
                     TableFieldConfig field = new TableFieldConfig();
                     field.setName(col.getCode());
                     field.setStdDataType(col.getStdDataType());
+                    field.setStdSqlType(col.getStdSqlType());
                     old.addField(field);
                 }
             }
@@ -193,6 +199,8 @@ public class ExportDbTool {
 
         IBatchTask task = builder.build();
         IBatchTaskContext context = new BatchTaskContextImpl();
+        if (args != null)
+            context.getEvalScope().setLocalValues(args);
         task.execute(context);
     }
 
@@ -204,7 +212,7 @@ public class ExportDbTool {
                                                                             DataSource ds) {
         JdbcBatchLoader<Map<String, Object>> loader = new JdbcBatchLoader<>();
         loader.setDataSource(ds);
-        loader.setSql(tableConfig.buildSQL());
+        loader.setSqlGenerator(tableConfig::buildSQL);
         return loader;
     }
 

@@ -18,6 +18,8 @@ import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.dataset.rowmapper.ListStringRowMapper;
 import io.nop.dataset.rowmapper.StringColumnRowMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -25,6 +27,8 @@ import java.util.List;
 import java.util.Map;
 
 public class JdbcKeyDuplicateFilter<S> implements IBatchRecordHistoryStore<S> {
+    static final Logger LOG = LoggerFactory.getLogger(JdbcKeyDuplicateFilter.class);
+
     private final IJdbcTemplate jdbcTemplate;
     private final String tableName;
     private final Map<String, IDataParameterBinder> keyBinders;
@@ -48,6 +52,9 @@ public class JdbcKeyDuplicateFilter<S> implements IBatchRecordHistoryStore<S> {
 
             SQL sql = buildSelectByKeySql(records, keyCol, binder);
             List<String> list = jdbcTemplate.findAll(sql, StringColumnRowMapper.INSTANCE);
+            if (!list.isEmpty())
+                LOG.info("nop.batch.jdbc.filter-records:table={},ids={}", tableName, StringHelper.join(list, ","));
+
             keyMap.keySet().removeAll(list);
             return new ArrayList<>(keyMap.values());
         } else {
@@ -59,6 +66,9 @@ public class JdbcKeyDuplicateFilter<S> implements IBatchRecordHistoryStore<S> {
 
             SQL sql = buildSelectByCompositeKeySql(records);
             List<List<String>> list = jdbcTemplate.findAll(sql, ListStringRowMapper.INSTANCE);
+            if (!list.isEmpty())
+                LOG.info("nop.batch.jdbc.filter-records-with-multi-key:table={},ids={}", tableName, StringHelper.join(list, ","));
+
             keyMap.keySet().removeAll(list);
             return new ArrayList<>(keyMap.values());
         }

@@ -15,8 +15,8 @@
         <table name="!string" from="string"
                xdef:name="ExportTableConfig" exportAllFields="!boolean=true">
 
-            <filter xdef:ref="../query/filter.xdef"/>
-            <sql xdef:value="string"/>
+            <filter xdef:value="xpl-node"/>
+            <sql xdef:value="xpl-sql"/>
             <fields xdef:body-type="list" xdef:key-attr="name">
                 <field name="!string" xdef:ref="table-field.xdef"/>
             </fields>
