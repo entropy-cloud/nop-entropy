@@ -28,11 +28,10 @@ import io.nop.ooxml.common.output.AbstractOfficeTemplate;
 import io.nop.ooxml.xlsx.XSSFRelation;
 import io.nop.ooxml.xlsx.model.ExcelOfficePackage;
 import io.nop.ooxml.xlsx.model.StylesPart;
-import io.nop.ooxml.xlsx.model.WorkbookPart;
 import io.nop.ooxml.xlsx.model.drawing.DrawingBuilder;
 
 import java.io.File;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static io.nop.ooxml.common.model.PackagingURIHelper.createPartName;
@@ -60,14 +59,6 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         this(workbook, null);
     }
 
-    static class GenState {
-        int nextSheetIndex;
-        Map<ByteString, String[]> images = new HashMap<>();
-        int nextImageIndex;
-
-        int nextDrawingIndex;
-    }
-
     @Override
     public void generateToDir(File dir, IEvalContext context) {
         ExcelOfficePackage pkg = this.modelPkg.copy();
@@ -77,16 +68,17 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         pkg.getWorkbook().clearSheets();
 
         GenState genState = new GenState();
+        genState.pkg = pkg;
 
         if (sheetGenerator != null) {
-            sheetGenerator.generate(context,(sheet,ctx) -> {
+            sheetGenerator.generate(context, (sheet, ctx) -> {
                 int index = genState.nextSheetIndex++;
-                generateSheet(pkg, dir, index, sheet, ctx, genState);
+                generateSheet(dir, index, sheet, ctx, genState);
             });
         } else if (workbook != null) {
             for (ExcelSheet sheet : workbook.getSheets()) {
                 int index = genState.nextSheetIndex++;
-                generateSheet(pkg, dir, index, sheet, context, genState);
+                generateSheet(dir, index, sheet, context, genState);
             }
         }
 
@@ -96,28 +88,23 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         pkg.generateToDir(dir, context.getEvalScope());
     }
 
-    private void generateSheet(ExcelOfficePackage pkg, File dir, int index, IExcelSheet sheet,
+    private void generateSheet(File dir, int index, IExcelSheet sheet,
                                IEvalContext context, GenState genState) {
-        ContentTypesPart contentTypes = pkg.getContentTypes();
-        int sheetId = index + 1;
-        String sheetPath = "/xl/worksheets/sheet" + sheetId + ".xml";
-        contentTypes.addContentType(createPartName(sheetPath), XSSFRelation.WORKSHEET.getType());
 
+        ExcelOfficePackage pkg = genState.pkg;
+        String sheetPath = pkg.addSheet(index, normalizeSheetName(sheet.getName(), index, context));
+
+        int sheetId = index + 1;
+        ContentTypesPart contentTypes = pkg.getContentTypes();
         String commentPath = "/xl/comments" + sheetId + ".xml";
         contentTypes.addContentType(createPartName(commentPath), XSSFRelation.SHEET_COMMENTS.getType());
-
-        WorkbookPart workbook = pkg.getWorkbook();
-        OfficeRelsPart rels = pkg.makeRelsForPart(workbook);
-        String relPath = "worksheets/sheet" + sheetId + ".xml";
-        String relId = rels.addRelationship(XSSFRelation.WORKSHEET.getRelation(), relPath, null);
-        workbook.addSheet(relId, sheetId, normalizeSheetName(sheet.getName(), index, context));
 
         IResource resource = new FileResource(new File(dir, sheetPath));
         ExcelSheetWriter writer = new ExcelSheetWriter(sheet, index == 0, index, this.workbook);
         writer.indent(isIndent()).generateToResource(resource, context);
         IOfficePackagePart sheetPart = pkg.addFile(sheetPath, resource);
 
-        generateDrawings(pkg, sheet, writer.getDrawingRelId(), sheetPart, genState);
+        generateDrawings(sheet.getImages(), writer.getDrawingRelId(), sheetPart, genState);
 
         IResource commentResource = new FileResource(new File(dir, commentPath));
         new ExcelCommentsWriter(sheet).indent(isIndent()).generateToResource(commentResource, context);
@@ -129,7 +116,7 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         sheetRels.addRelationship(XSSFRelation.SHEET_COMMENTS.getRelation(), relCommentsPath, null);
     }
 
-    private String normalizeSheetName(String sheetName, int index, IEvalContext context) {
+    public String normalizeSheetName(String sheetName, int index, IEvalContext context) {
         Map<String, String> mapping = (Map<String, String>) context.getEvalScope().getValue(ExcelConstants.VAR_SHEET_NAME_MAPPING);
         if (mapping != null) {
             String mappedName = mapping.get(sheetName);
@@ -139,10 +126,12 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         return XlsxGenHelper.normalizeSheetName(sheetName, index, workbook);
     }
 
-    private void generateDrawings(ExcelOfficePackage pkg, IExcelSheet sheet, String drawingRelId, IOfficePackagePart sheetPart, GenState genState) {
-        if (sheet.getImages() == null || sheet.getImages().isEmpty())
+    public void generateDrawings(List<ExcelImage> images,
+                                 String drawingRelId, IOfficePackagePart sheetPart, GenState genState) {
+        if (images == null || images.isEmpty())
             return;
 
+        ExcelOfficePackage pkg = genState.pkg;
 
         int drawingIndex = genState.nextDrawingIndex++;
         String drawingPath = "/xl/drawings/drawing" + (drawingIndex + 1) + ".xml";
@@ -155,7 +144,7 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         relPart.addRelationship(drawingRelId, XSSFRelation.DRAWINGS.getRelation(), "../drawings/drawing" + (drawingIndex + 1) + ".xml", null);
 
         OfficeRelsPart drawingRelPart = pkg.makeRelsForPartPath(drawingPath);
-        for (ExcelImage image : sheet.getImages()) {
+        for (ExcelImage image : images) {
             if (image.getData() == null)
                 continue;
             String[] pathAndId = addImageData(pkg, image.getData(), image.getImgType(), genState);
@@ -165,7 +154,7 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
             image.setEmbedId(pathAndId[1]);
         }
 
-        XNode node = new DrawingBuilder().build(sheet.getImages());
+        XNode node = new DrawingBuilder().build(images);
         XmlOfficePackagePart part = new XmlOfficePackagePart(drawingPath.substring(1), node);
         pkg.addFile(part);
 

@@ -17,6 +17,7 @@ import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.CoreConstants;
 import io.nop.core.lang.xml.XNode;
 
+import java.io.Flushable;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
@@ -25,7 +26,7 @@ import static io.nop.core.CoreConfigs.CFG_XML_FORMAT_MAX_CHARS_PER_LINE;
 import static io.nop.core.CoreErrors.ERR_EVAL_OUTPUT_TEXT_FAIL;
 import static io.nop.core.CoreErrors.ERR_XML_INVALID_INSTRUCTION;
 
-public class CollectXmlHandler extends XNodeHandlerAdapter {
+public class CollectXmlHandler extends XNodeHandlerAdapter implements Flushable {
     private final int LINE_MAX_CHARS = CFG_XML_FORMAT_MAX_CHARS_PER_LINE.get();
 
     private final Appendable out;
@@ -55,6 +56,11 @@ public class CollectXmlHandler extends XNodeHandlerAdapter {
     public CollectXmlHandler indent(boolean indent) {
         this.indent = indent;
         return this;
+    }
+
+    public void flush() throws IOException {
+        if (out instanceof Flushable)
+            ((Flushable) out).flush();
     }
 
     public CollectXmlHandler forHtml(boolean forHtml) {

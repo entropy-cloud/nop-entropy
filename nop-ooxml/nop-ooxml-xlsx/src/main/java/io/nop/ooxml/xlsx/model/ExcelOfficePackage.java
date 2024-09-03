@@ -16,14 +16,16 @@ import io.nop.ooxml.common.IOfficePackagePart;
 import io.nop.ooxml.common.OfficePackage;
 import io.nop.ooxml.common.constants.ContentTypes;
 import io.nop.ooxml.common.model.ContentTypesPart;
-import io.nop.ooxml.common.model.OfficeRelationship;
+import io.nop.ooxml.common.model.OfficeRelsPart;
 import io.nop.ooxml.xlsx.XSSFRelation;
 import io.nop.ooxml.xlsx.parse.StylesPartParser;
 
 import java.util.List;
 
-import static io.nop.core.CoreErrors.ARG_FILE_NAME;
-import static io.nop.ooxml.common.OfficeErrors.*;
+import static io.nop.ooxml.common.OfficeErrors.ARG_FILE_EXT;
+import static io.nop.ooxml.common.OfficeErrors.ARG_PATH;
+import static io.nop.ooxml.common.OfficeErrors.ERR_OOXML_UNSUPPORTED_CONTENT_TYPE;
+import static io.nop.ooxml.common.model.PackagingURIHelper.createPartName;
 
 public class ExcelOfficePackage extends OfficePackage {
 
@@ -64,7 +66,7 @@ public class ExcelOfficePackage extends OfficePackage {
     public ThemesPart getTheme1() {
         String path = "xl/theme/theme1.xml";
         IOfficePackagePart part = getFile(path);
-        if(part == null)
+        if (part == null)
             return null;
 
         if (part instanceof ThemesPart)
@@ -82,9 +84,10 @@ public class ExcelOfficePackage extends OfficePackage {
         return CommentsPart.parse(commentsPart);
     }
 
-    public String addImage(IResource resource){
-        return addImage(StringHelper.fileExt(resource.getPath()),resource);
+    public String addImage(IResource resource) {
+        return addImage(StringHelper.fileExt(resource.getPath()), resource);
     }
+
     public String addImage(String fileExt, IResource resource) {
         ContentTypesPart contentTypes = getContentTypes();
         String contentType = ContentTypes.getContentTypeFromFileExtension(fileExt);
@@ -96,5 +99,22 @@ public class ExcelOfficePackage extends OfficePackage {
 
         String target = addNewFile("xl/media/image1." + fileExt, resource);
         return target;
+    }
+
+    public String addSheet(int index, String sheetName) {
+        ContentTypesPart contentTypes = getContentTypes();
+        int sheetId = index + 1;
+        String sheetPath = "/xl/worksheets/sheet" + sheetId + ".xml";
+        contentTypes.addContentType(createPartName(sheetPath), XSSFRelation.WORKSHEET.getType());
+
+        String commentPath = "/xl/comments" + sheetId + ".xml";
+        contentTypes.addContentType(createPartName(commentPath), XSSFRelation.SHEET_COMMENTS.getType());
+
+        WorkbookPart workbook = getWorkbook();
+        OfficeRelsPart rels = makeRelsForPart(workbook);
+        String relPath = "worksheets/sheet" + sheetId + ".xml";
+        String relId = rels.addRelationship(XSSFRelation.WORKSHEET.getRelation(), relPath, null);
+        workbook.addSheet(relId, sheetId, sheetName);
+        return sheetPath;
     }
 }
