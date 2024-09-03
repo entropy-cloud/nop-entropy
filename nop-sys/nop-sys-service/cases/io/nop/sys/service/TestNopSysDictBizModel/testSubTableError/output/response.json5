@@ -1,0 +1,6 @@
+{
+  "bizFatal": false,
+  "code": "nop.err.orm.mandatory-prop-is-null",
+  "msg": "*",
+  "status": -1
+}

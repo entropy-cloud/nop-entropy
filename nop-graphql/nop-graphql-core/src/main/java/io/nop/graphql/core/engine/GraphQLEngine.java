@@ -17,6 +17,7 @@ import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.cache.LocalCache;
 import io.nop.commons.functional.IAsyncFunctionInvoker;
@@ -60,6 +61,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
+import java.util.function.Supplier;
 
 import static io.nop.commons.cache.CacheConfig.newConfig;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAX_DIRECTIVE_PER_REQUEST;
@@ -460,8 +462,8 @@ public class GraphQLEngine implements IGraphQLEngine {
         IGraphQLExecutor executor = new GraphQLExecutor(operationInvoker, graphQLHook, flowControlRunner, this);
         IAsyncFunctionInvoker executionInvoker = getExecutionInvoker(gqlCtx);
 
-        return gqlCtx.getServiceContext().invokeWithBindingCtx(() -> {
-            CompletionStage<ApiResponse<?>> future;
+        Supplier<CompletionStage<Object>> task = () -> {
+            CompletionStage<Object> future;
             if (executionInvoker != null) {
                 future = executionInvoker.invokeAsync(executor::executeOneAsync, gqlCtx);
             } else {
@@ -469,7 +471,25 @@ public class GraphQLEngine implements IGraphQLEngine {
             }
 
             return future;
-        });
+        };
+
+        return gqlCtx.getServiceContext().invokeWithBindingCtx(() -> toRpcResponse(task, gqlCtx));
+    }
+
+    CompletionStage<ApiResponse<?>> toRpcResponse(Supplier<CompletionStage<Object>> task, IGraphQLExecutionContext context) {
+        try {
+            CompletionStage<?> future = task.get();
+            return (CompletionStage) future.thenApply(v -> {
+                ApiResponse<?> ret = buildRpcResponse(v, null, context);
+                return ret;
+            }).exceptionally(err -> {
+                ApiResponse<?> ret = buildRpcResponse(null, err, context);
+                return (ApiResponse)ret;
+            });
+        } catch (Exception e) {
+            ApiResponse<?> ret = buildRpcResponse(null, e, context);
+            return FutureHelper.toCompletionStage(ret);
+        }
     }
 
     @Override
@@ -477,8 +497,8 @@ public class GraphQLEngine implements IGraphQLEngine {
         IGraphQLExecutor executor = new GraphQLExecutor(operationInvoker, graphQLHook, flowControlRunner, this);
         IAsyncFunctionInvoker executionInvoker = getExecutionInvoker(gqlCtx);
 
-        return gqlCtx.getServiceContext().invokeWithBindingCtx(() -> {
-            CompletionStage<GraphQLResponseBean> future;
+        Supplier<CompletionStage<Object>> task = () -> {
+            CompletionStage<Object> future;
             if (executionInvoker != null) {
                 future = executionInvoker.invokeAsync(executor::executeAsync, gqlCtx);
             } else {
@@ -486,7 +506,25 @@ public class GraphQLEngine implements IGraphQLEngine {
             }
 
             return future;
-        });
+        };
+
+        return gqlCtx.getServiceContext().invokeWithBindingCtx(() -> toGraphQLResponse(task, gqlCtx));
+    }
+
+    CompletionStage<GraphQLResponseBean> toGraphQLResponse(Supplier<CompletionStage<Object>> task, IGraphQLExecutionContext context) {
+        try {
+            CompletionStage<?> future = task.get();
+            return future.thenApply(v -> {
+                GraphQLResponseBean ret = buildGraphQLResponse(v, null, context);
+                return ret;
+            }).exceptionally(err -> {
+                GraphQLResponseBean ret = buildGraphQLResponse(null, err, context);
+                return ret;
+            });
+        } catch (Exception e) {
+            GraphQLResponseBean ret = buildGraphQLResponse(null, e, context);
+            return FutureHelper.toCompletionStage(ret);
+        }
     }
 
     @Override

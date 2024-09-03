@@ -1,0 +1,13 @@
+{
+  data: {
+    data: {
+      dictName: "test",
+      displayName: "TEST",
+      dictOptions: [
+        {
+          "value": 3
+        }
+      ],
+    },
+  }
+}

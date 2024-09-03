@@ -7,16 +7,14 @@
  */
 package io.nop.graphql.core.engine;
 
-import io.nop.api.core.beans.ApiResponse;
-import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 
 import java.util.concurrent.CompletionStage;
 
 public interface IGraphQLExecutor {
-    CompletionStage<ApiResponse<?>> executeOneAsync(IGraphQLExecutionContext context);
+    CompletionStage<Object> executeOneAsync(IGraphQLExecutionContext context);
 
-    CompletionStage<GraphQLResponseBean> executeAsync(IGraphQLExecutionContext context);
+    CompletionStage<Object> executeAsync(IGraphQLExecutionContext context);
 
     CompletionStage<Object> fetchResult(Object result, IGraphQLExecutionContext context);
 }

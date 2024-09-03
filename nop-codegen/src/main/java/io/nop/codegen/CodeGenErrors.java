@@ -58,4 +58,8 @@ public interface CodeGenErrors {
     ErrorCode ERR_GEN_AOP_PROXY_FAIL =
             define("nop.err.codegen.gen-aop-proxy-fail",
                     "生成AOP代理类时失败", ARG_MESSAGE);
+
+    ErrorCode ERR_CODE_GEN_PATH_NOT_ALLOW_STARTS_WITH_OR_ENDS_WITH_BLANK =
+            define("nop.err.codegen.path-not-allow-starts-with-or-ends-with-blank",
+                    "路径不允许以空白为起始或结尾");
 }

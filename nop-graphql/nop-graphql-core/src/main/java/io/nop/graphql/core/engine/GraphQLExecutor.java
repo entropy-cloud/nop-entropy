@@ -7,9 +7,7 @@
  */
 package io.nop.graphql.core.engine;
 
-import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.FieldSelectionBean;
-import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
@@ -62,68 +60,53 @@ public class GraphQLExecutor implements IGraphQLExecutor {
     }
 
     @Override
-    public CompletionStage<ApiResponse<?>> executeOneAsync(IGraphQLExecutionContext context) {
-        try {
-            GraphQLActionAuthChecker.INSTANCE.check(context);
-            GraphQLArgumentValidator.INSTANCE.validate(context);
+    public CompletionStage<Object> executeOneAsync(IGraphQLExecutionContext context) {
+        GraphQLActionAuthChecker.INSTANCE.check(context);
+        GraphQLArgumentValidator.INSTANCE.validate(context);
 
-            DataFetchingEnvironment env = new DataFetchingEnvironment();
-            env.setExecutionContext(context);
-            env.setSource(null);
-            env.setRoot(null);
+        DataFetchingEnvironment env = new DataFetchingEnvironment();
+        env.setExecutionContext(context);
+        env.setSource(null);
+        env.setRoot(null);
 
-            GraphQLFieldSelection operation = context.getOperation().getFieldSelection();
-            env.setSelection(operation);
-            env.setOpRequest(operation.getOpRequest());
-            env.setSelectionBean(context.getFieldSelection().getField(operation.getAliasOrName()));
+        GraphQLFieldSelection operation = context.getOperation().getFieldSelection();
+        env.setSelection(operation);
+        env.setOpRequest(operation.getOpRequest());
+        env.setSelectionBean(context.getFieldSelection().getField(operation.getAliasOrName()));
 
-            Object meter = graphQLHook == null ? null : graphQLHook.beginExecute(context);
+        Object meter = graphQLHook == null ? null : graphQLHook.beginExecute(context);
 
 
-            CompletionStage<Object> future = invokeOperation(env);
+        CompletionStage<Object> future = invokeOperation(env);
 
-            if (graphQLHook != null) {
-                future = future.whenComplete((ret, err) -> {
-                    graphQLHook.endExecute(meter, err, context);
-                });
-            }
-
-            dispatchAll(context);
-
-            return (CompletionStage) future.thenApply(v -> {
-                Object ret = engine.buildRpcResponse(v, null, context);
-                return ret;
-            }).exceptionally(err -> {
-                ApiResponse<?> ret = engine.buildRpcResponse(null, err, context);
-                return ret;
+        if (graphQLHook != null) {
+            future = future.whenComplete((ret, err) -> {
+                graphQLHook.endExecute(meter, err, context);
             });
-        } catch (Exception e) {
-            ApiResponse<?> ret = engine.buildRpcResponse(null, e, context);
-            return FutureHelper.toCompletionStage(ret);
         }
+
+        dispatchAll(context);
+
+        return future;
     }
 
 
     @Override
     public CompletionStage<Object> fetchResult(Object result, IGraphQLExecutionContext context) {
-        try {
-            DataFetchingEnvironment env = new DataFetchingEnvironment();
-            env.setExecutionContext(context);
-            env.setSource(result);
-            env.setRoot(result);
+        DataFetchingEnvironment env = new DataFetchingEnvironment();
+        env.setExecutionContext(context);
+        env.setSource(result);
+        env.setRoot(result);
 
-            GraphQLFieldSelection operation = context.getOperation().getFieldSelection();
-            env.setSelection(operation);
-            env.setOpRequest(operation.getOpRequest());
-            env.setSelectionBean(context.getFieldSelection().getField(operation.getAliasOrName()));
+        GraphQLFieldSelection operation = context.getOperation().getFieldSelection();
+        env.setSelection(operation);
+        env.setOpRequest(operation.getOpRequest());
+        env.setSelectionBean(context.getFieldSelection().getField(operation.getAliasOrName()));
 
-            CompletionStage<Object> future = FutureHelper.toCompletionStage(fetchNext(result, env));
+        CompletionStage<Object> future = FutureHelper.toCompletionStage(fetchNext(result, env));
 
-            dispatchAll(context);
-            return future;
-        } catch (Exception e) {
-            return FutureHelper.reject(e);
-        }
+        dispatchAll(context);
+        return future;
     }
 
     private CompletionStage<Object> invokeOperation(DataFetchingEnvironment env) {
@@ -151,33 +134,26 @@ public class GraphQLExecutor implements IGraphQLExecutor {
         });
     }
 
-    public CompletionStage<GraphQLResponseBean> executeAsync(IGraphQLExecutionContext context) {
+    public CompletionStage<Object> executeAsync(IGraphQLExecutionContext context) {
         Guard.notNull(context.getFieldSelection(), "fieldSelection");
 
-        try {
-            GraphQLActionAuthChecker.INSTANCE.check(context);
-            GraphQLArgumentValidator.INSTANCE.validate(context);
 
-            Map<String, Object> response = new LinkedHashMap<>();
-            context.setResponse(response);
+        GraphQLActionAuthChecker.INSTANCE.check(context);
+        GraphQLArgumentValidator.INSTANCE.validate(context);
 
-            DataFetchingEnvironment env = new DataFetchingEnvironment();
-            env.setExecutionContext(context);
-            env.setSource(null);
-            env.setRoot(null);
-            env.setSelectionBean(context.getFieldSelection());
+        Map<String, Object> response = new LinkedHashMap<>();
+        context.setResponse(response);
 
-            CompletionStage<?> future = invokeOperations(env);
+        DataFetchingEnvironment env = new DataFetchingEnvironment();
+        env.setExecutionContext(context);
+        env.setSource(null);
+        env.setRoot(null);
+        env.setSelectionBean(context.getFieldSelection());
 
-            dispatchAll(context);
-            return future.thenApply(v -> {
-                return engine.buildGraphQLResponse(v, null, context);
-            }).exceptionally(err -> {
-                return engine.buildGraphQLResponse(null, err, context);
-            });
-        } catch (Exception e) {
-            return FutureHelper.toCompletionStage(engine.buildGraphQLResponse(null, e, context));
-        }
+        CompletionStage<Object> future = invokeOperations(env);
+
+        dispatchAll(context);
+        return future;
     }
 
     void dispatchAll(IGraphQLExecutionContext context) {
@@ -187,7 +163,7 @@ public class GraphQLExecutor implements IGraphQLExecutor {
         }
     }
 
-    private CompletionStage<?> invokeOperations(DataFetchingEnvironment env) {
+    private CompletionStage<Object> invokeOperations(DataFetchingEnvironment env) {
         Map<String, Object> ret = new LinkedHashMap<>();
 
         // 先执行所有的operation，如果全部成功再调用fetchNext，减少数据库事务的持有时间，并避免

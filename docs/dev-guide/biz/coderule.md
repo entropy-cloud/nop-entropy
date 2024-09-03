@@ -32,6 +32,11 @@ ICodeRule接口支持定义一组变量模式，然后解析编码模板，替�
 |seq|{@seq:3}|根据顺序号递增，取固定3位数字|
 |prop|{@prop:entity.type,3}|表示从上下文对象的哪个属性中获取变量值，可以通过一个可选的长度字段来固定返回的字符串长度|
 
+## 举例
+配置NopSysCodeRule的【编码模式codePattern】为 `D{@year}{@month}{@seq:5}` 则可能生成 D20240912345，其中09对应于9月份，12345是长度为5的顺序生成的序列号。
+
+在NopSysCodeRule对象的【序列号名称seqName】字段中配置`{@seq:5}`这个模式所用到的序列号对象名称，它对应于NopSysSequence中的配置项。
+
 ## 注册扩展变量
 
 可以在beans.xml中定义扩展的编码规则变量。约定bean的名称为 nopCodeRuleVariable\_xxx

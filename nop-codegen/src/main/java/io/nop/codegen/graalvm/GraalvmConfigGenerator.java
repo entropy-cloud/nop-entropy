@@ -7,6 +7,7 @@
  */
 package io.nop.codegen.graalvm;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.codegen.maven.MavenModelHelper;
 import io.nop.codegen.maven.model.PomArtifactKey;
 import io.nop.commons.util.FileHelper;
@@ -20,6 +21,7 @@ import java.util.Set;
 
 import static io.nop.codegen.CodeGenConfigs.CFG_CODEGEN_TRACE_DIR;
 import static io.nop.codegen.CodeGenConfigs.CFG_CODEGEN_TRACE_ENABLED;
+import static io.nop.codegen.CodeGenErrors.ERR_CODE_GEN_PATH_NOT_ALLOW_STARTS_WITH_OR_ENDS_WITH_BLANK;
 
 public class GraalvmConfigGenerator {
     static final GraalvmConfigGenerator _instance = new GraalvmConfigGenerator();
@@ -87,6 +89,11 @@ public class GraalvmConfigGenerator {
 
     public void generateVfsIndex() {
         Set<String> files = VirtualFileSystem.instance().getClassPathResources();
+        for (String file : files) {
+            if (file.startsWith(" ") || file.endsWith(" "))
+                throw new NopException(ERR_CODE_GEN_PATH_NOT_ALLOW_STARTS_WITH_OR_ENDS_WITH_BLANK);
+        }
+
         String text = StringHelper.join(files, "\n");
         File indexPath = new File(getResourceDir(), "nop-vfs-index.txt");
         FileHelper.writeText(indexPath, text, null);
