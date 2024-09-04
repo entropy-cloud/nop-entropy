@@ -11,11 +11,8 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.JwsHeader;
-import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Locator;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.SigningKeyResolver;
 import io.jsonwebtoken.impl.DefaultJwtBuilder;
 import io.jsonwebtoken.impl.DefaultJwtParserBuilder;
 import io.jsonwebtoken.io.DeserializationException;
@@ -96,7 +93,7 @@ public class JwtHelper {
     }
 
     public static String genToken(Key key, String subject, String userName, String sessionId, long expireSeconds) {
-        Guard.notEmpty(sessionId,"sessionId");
+        Guard.notEmpty(sessionId, "sessionId");
 
         long begin = CoreMetrics.currentTimeMillis();
         Map<String, Object> claims = new HashMap<>();

@@ -8,7 +8,24 @@
 
     <forms>
         <form id="view"/>
-        <form id="edit"/>
+        <!--
+        <form id="edit" >
+            <layout>
+                name[名称]
+                remark[备注]
+            </layout>
+            <cells>
+                <cell id="remark">
+                    <gen-control>
+                        return {
+                           type: 'input-text',
+                           value: "${a + b}"
+                        }
+                    </gen-control>
+                </cell>
+            </cells>
+        </form>
+        -->
     </forms>
 
     <pages>

@@ -1371,6 +1371,15 @@ public class StringHelper extends ApiStringHelper {
         return java.util.Base64.getDecoder().decode(str);
     }
 
+    @Deterministic
+    public static byte[] decodeBase64Url(String str) {
+        if (str == null)
+            return null;
+        if (str.indexOf('\n') >= 0)
+            return java.util.Base64.getMimeDecoder().decode(str);
+        return java.util.Base64.getUrlDecoder().decode(str);
+    }
+
     /**
      * <p>
      * Checks whether the String a valid Java number. Valid numbers include hexadecimal marked with the "0x" qualifier,

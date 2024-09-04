@@ -33,8 +33,8 @@
         <docs.main>${project.artifactId}</docs.main>
 
         <!-- Sonar -->
-<!--        <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>-->
-<!--        <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>-->
+        <!--        <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>-->
+        <!--        <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>-->
         <sonar.coverage.jacoco.xmlReportPaths>
             ${maven.multiModuleProjectDirectory}/tests/target/site/jacoco-aggregate/jacoco.xml
         </sonar.coverage.jacoco.xmlReportPaths>
@@ -141,7 +141,6 @@
             <!--            </plugin>-->
 
 
-
             <!-- mvn surefire-report:report指令生成测试报告 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -155,6 +154,7 @@
                     <testFailureIgnore>false</testFailureIgnore>
                     <forkCount>4</forkCount>
                     <reuseForks>true</reuseForks>
+                    <forkedProcessExitTimeoutInSeconds>60</forkedProcessExitTimeoutInSeconds>
                 </configuration>
 
             </plugin>
@@ -180,6 +180,31 @@
                 </executions>
             </plugin>
 
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.5.0</version>
+                <configuration>
+                    <updatePomFile>true</updatePomFile>
+                    <flattenMode>oss</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
 
         </plugins>
 
@@ -302,7 +327,6 @@
                     <artifactId>jacoco-maven-plugin</artifactId>
                     <version>0.8.11</version>
                 </plugin>
-
             </plugins>
 
         </pluginManagement>
@@ -440,5 +464,6 @@
         <module>nop-rpa</module>
         <module>nop-orm-drivers</module>
         <module>nop-cli-jdk11</module>
+        <module>nop-security</module>
     </modules>
 </project>
