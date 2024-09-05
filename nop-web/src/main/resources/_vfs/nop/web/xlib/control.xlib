@@ -389,7 +389,7 @@
         <edit-textarea>
             <attr name="dispMeta"/>
             <attr name="propMeta"/>
-            <attr name="editMode" />
+            <attr name="editMode"/>
 
             <source><![CDATA[
                 return {
@@ -404,7 +404,7 @@
         <edit-html>
             <attr name="dispMeta"/>
             <attr name="propMeta"/>
-            <attr name="editMode" />
+            <attr name="editMode"/>
 
             <source><![CDATA[
                 return {
@@ -416,7 +416,7 @@
         <view-html>
             <attr name="dispMeta"/>
             <attr name="propMeta"/>
-            <attr name="editMode" />
+            <attr name="editMode"/>
 
             <source><![CDATA[
                 return {
@@ -720,7 +720,7 @@
             ]]></source>
         </view-images>
 
-        <edit-images x:prototype="edit-file-list" />
+        <edit-images x:prototype="edit-file-list"/>
 
         <edit-string-array>
             <attr name="dispMeta"/>
@@ -993,6 +993,70 @@
                 }
             ]]></source>
         </view-relation>
+
+        <view-ref-ids x:prototype="view-ref-id" />
+
+        <view-ref-id>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="objMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                  type: 'static',
+                  name: propMeta['graphql:labelProp']
+                }
+            ]]></source>
+        </view-ref-id>
+
+        <edit-ref-ids>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="objMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                  type: 'picker',
+                  'x:extends': propMeta['ui:pickerUrl'],
+                  valueField:'id',
+                  labelField: propMeta['ui:refLabelProp'] || 'id',
+                  source: {
+                     valueField:'id',
+                     labelField: propMeta['ui:refLabelProp'] || 'id'
+                  },
+                  joinValues: false,
+                  extractValue:true,
+                  multiple: true
+                }
+            ]]></source>
+
+        </edit-ref-ids>
+
+        <edit-ref-id>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="objMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                  type: 'picker',
+                  'x:extends': propMeta['ui:pickerUrl'],
+                  valueField:'id',
+                  labelField: propMeta['ui:refLabelProp'] || 'id',
+                  source: {
+                     valueField:'id',
+                     labelField: propMeta['ui:refLabelProp'] || 'id'
+                  },
+                  joinValues: false,
+                  extractValue:true,
+                  multiple: false
+                }
+            ]]></source>
+
+        </edit-ref-id>
 
         <edit-to-one x:prototype="edit-relation"/>
 

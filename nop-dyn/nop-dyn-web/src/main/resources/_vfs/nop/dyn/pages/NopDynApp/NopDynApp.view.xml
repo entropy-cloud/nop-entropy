@@ -8,8 +8,16 @@
 
     <forms>
         <form id="view"/>
-        <form id="edit"/>
-        <form id="add"/>
+        <form id="edit">
+            <layout>
+                appName[应用名]
+                displayName[显示名]
+                appVersion[应用版本]
+                sortOrder[排序]
+                status[状态]
+                relatedModuleList_ids
+            </layout>
+        </form>
     </forms>
 
     <pages>

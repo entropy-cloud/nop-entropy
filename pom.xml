@@ -152,9 +152,9 @@
                         ${jacocoArgLine}
                     </argLine>
                     <testFailureIgnore>false</testFailureIgnore>
-                    <forkCount>4</forkCount>
-                    <reuseForks>true</reuseForks>
-                    <forkedProcessExitTimeoutInSeconds>60</forkedProcessExitTimeoutInSeconds>
+<!--                    <forkCount>4</forkCount>-->
+<!--                    <reuseForks>true</reuseForks>-->
+<!--                    <forkedProcessExitTimeoutInSeconds>60</forkedProcessExitTimeoutInSeconds>-->
                 </configuration>
 
             </plugin>

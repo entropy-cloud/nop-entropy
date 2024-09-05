@@ -13,7 +13,8 @@ nop:
 
     data-auth-config-path: /nop/demo/app.data-auth.xml
     enable-data-auth: false
-    # enable-action-auth: true
+    enable-action-auth: false
+    use-data-auth-table: false
 
     login:
       allow-create-default-user: true # 如果用户表为空，则自动创建缺省账户nop, 密码nop-test

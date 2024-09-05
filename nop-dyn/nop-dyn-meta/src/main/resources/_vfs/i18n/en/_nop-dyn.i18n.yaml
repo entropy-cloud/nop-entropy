@@ -12,6 +12,7 @@ entity:
     NopDynModule: Module Definition
     NopDynModuleDep: Module Dependency
     NopDynPage: Page Definition
+    NopDynPatch: Patch
     NopDynPatchFile: Patch File
     NopDynPropMeta: Property Meta
     NopDynSql: Module SQL
@@ -275,6 +276,18 @@ prop:
       module: Module
       module.displayName: Module
       pageContentComponent: null
+    NopDynPatch:
+      patchId: Patch ID
+      patchName: Patch Name
+      patchOrder: Patch Order
+      displayName: Display Name
+      status: Status
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      patchFiles: Patch Files
     NopDynPatchFile:
       fileId: File ID
       appId: App ID

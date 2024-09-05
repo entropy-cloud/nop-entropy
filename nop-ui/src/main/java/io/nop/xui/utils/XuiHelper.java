@@ -300,6 +300,13 @@ public class XuiHelper {
         return getRelationPickerUrl(propMeta, objMeta);
     }
 
+    public static String getRefPickerUrl(IObjMeta objMeta, IObjPropMeta propMeta, String refObjName) {
+        String moduleId = (String) propMeta.prop_get(BIZ_MODULE_ID);
+        if (StringHelper.isEmpty(moduleId))
+            moduleId = ResourceHelper.getModuleId(objMeta.resourcePath());
+        return '/' + moduleId + "/pages/" + refObjName + "/picker.page.yaml";
+    }
+
     public static String getRelationPickerUrl(IObjPropMeta propMeta, IObjMeta objMeta) {
         IObjPropMeta relProp = getRelationProp(propMeta, objMeta);
         if (relProp == null)

@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopDynApp.xmeta">
 
-    <props/>
+    <props>
+        <prop name="relatedModuleList_ids" displayName="应用模块" insertable="true" updatable="true"/>
+    </props>
 </meta>

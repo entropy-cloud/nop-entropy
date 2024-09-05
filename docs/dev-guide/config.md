@@ -37,6 +37,18 @@
 * 可以通过`nop.profile.parent`来指定多个active的profile，它们的优先级为从左到右。例如`nop.profile=dev`, `nop.profile.parent=mysql,nacos`，则
 对应于如下加载顺序 `application-dev.yaml -> application-mysql.yaml -> application-nacos.yaml -> application.yaml`。
 
+## 远程配置中心
+`nop-config`模块仅仅是提供配置的基础框架和接口，具体的远程配置中心支持需要引入相应的实现包。例如使用nacos需要引入`nop-cluster-nacos`包。
+
+* nop.config.nacos.server-addr=localhost
+* nop.config.nacos.username
+* nop.config.nacos.password
+* nop.config.nacos.timeout
+* nop.config.nacos.group=public
+* nop.config.nacos.namespace=DEFAULT
+
+注意namespace需要配置namespace的id，而不是名称。
+
 ## 自动更新
 
 配置中心下发配置之后，应用程序中的配置项会自动更新。更新过程通过单线程执行，确保按顺序执行更新。

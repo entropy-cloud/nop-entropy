@@ -34,6 +34,7 @@ public class TestKeyManager extends BaseTestCase {
     public void testSign() {
         File store = getTargetFile("test.jks");
         String password = "test";
+
         CertInfo certInfo = new CertInfo();
         certInfo.setCommonName("www.example.com");
         certInfo.setOrganizationUnit("IT Department");
@@ -51,7 +52,7 @@ public class TestKeyManager extends BaseTestCase {
         keyManager.setStorePath(FileHelper.getFileUrl(store));
         keyManager.init();
 
-        PublicKey originalKey = keyManager.getPublicKey("my_pub");
+        //PublicKey originalKey = keyManager.getPublicKey("my_pub");
         PrivateKey privateKey = keyManager.getPrivateKey("my_pri");
         String data = "123";
         byte[] signed = SecurityHelper.sign(SecurityConstants.ALG_SHA256withRSA, privateKey, data.getBytes());

@@ -90,8 +90,10 @@
                         </getter>
         </prop>
         <prop name="relatedModuleList_ids" displayName="relatedModuleList" insertable="false" updatable="false"
-              graphql:labelProp="relatedModuleList_label" lazy="true" internal="true" depends="~moduleMappings">
-            <schema type="List&lt;String&gt;"/>
+              graphql:labelProp="relatedModuleList_label" lazy="true"
+              ui:pickerUrl="/nop/dyn/pages/NopDynModule/picker.page.yaml" ui:refLabelProp="id" internal="true"
+              depends="~moduleMappings">
+            <schema type="List&lt;String&gt;" domain="ref-ids"/>
             <getter>
                             import io.nop.orm.support.OrmEntityHelper;
                             return OrmEntityHelper.getRefIds(

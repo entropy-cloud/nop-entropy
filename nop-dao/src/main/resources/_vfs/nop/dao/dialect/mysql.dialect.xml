@@ -175,6 +175,7 @@
         <sqlDataType name="JSON" stdSqlType="JSON" />
         <sqlDataType name="SET" stdSqlType="ARRAY" deprecated="true"/>
         <sqlDataType name="BINARY" stdSqlType="VARBINARY" />
+        <sqlDataType name="TIMESTAMP(6) WITH TIME ZONE" stdSqlType="TIMESTAMP" alias="TIMESTAMP WITH TIME ZONE"/>
     </sqlDataTypes>
 
 </dialect>

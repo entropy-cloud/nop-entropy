@@ -225,10 +225,11 @@
                   i18n-en:displayName="${mappingPropInfo.enDisplayName}" published="${published}"
                   insertable="${insertable}" updatable="${updatable}"
                   graphql:labelProp="${mappingPropInfo.mappingLabelProp}" lazy="true"
+                  ui:pickerUrl="/${moduleId}/pages/${mappingPropInfo.bizObjName}/picker.page.yaml" ui:refLabelProp="${mappingPropInfo.refLabelProp}"
                   xpl:if="mappingPropInfo" internal="true" depends="~${rel.name}">
                 <c:iif test="${mappingPropInfo.toMany}">
                     <c:unit>
-                        <schema type="List&lt;String>"/>
+                        <schema type="List&lt;String>" domain="ref-ids"/>
                         <getter><![CDATA[
                             import io.nop.orm.support.OrmEntityHelper;
                             return OrmEntityHelper.getRefIds(
@@ -241,7 +242,7 @@
                         ]]></setter>
                     </c:unit>
                     <c:unit>
-                        <schema type="String"/>
+                        <schema type="String" domain="ref-id"/>
                         <getter><![CDATA[
                             import io.nop.orm.support.OrmEntityHelper;
                             return OrmEntityHelper.getRefIdFromSingleton(

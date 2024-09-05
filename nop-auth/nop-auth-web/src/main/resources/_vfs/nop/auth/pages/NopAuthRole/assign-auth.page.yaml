@@ -27,6 +27,7 @@ body:
             data:
               filter_resourceType: TOPM
               filter_siteId: $siteId
+            trackExpression: $siteId
 
       - type: wrapper
         body:

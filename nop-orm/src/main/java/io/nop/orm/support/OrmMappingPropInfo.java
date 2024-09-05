@@ -45,6 +45,13 @@ public class OrmMappingPropInfo {
         return getRefPropNameInMappingTable() + "." + labelProp;
     }
 
+    public String getRefLabelProp(){
+        String labelProp = refPropInMappingTable.getRefEntityModel().getLabelProp();
+        if (StringHelper.isEmpty(labelProp))
+            labelProp = OrmModelConstants.PROP_ID;
+        return labelProp;
+    }
+
     public String getRefClassName() {
         return refPropInMappingTable.getRefEntityModel().getClassName();
     }
