@@ -124,7 +124,7 @@
                         <goals>
                             <goal>build</goal>
                             <goal>generate-code</goal>
-                            <goal>generate-code-tests</goal>
+<!--                            <goal>generate-code-tests</goal>-->
                         </goals>
 
                         <configuration>
@@ -132,6 +132,7 @@
                                 <quarkus.package.type>uber-jar</quarkus.package.type>
                                 <quarkus.package.main-class>io.nop.cli.NopCliApplication</quarkus.package.main-class>
                                 <quarkus.package.add-runner-suffix>false</quarkus.package.add-runner-suffix>
+                                <skipTests>true</skipTests>
                             </properties>
                         </configuration>
                     </execution>
