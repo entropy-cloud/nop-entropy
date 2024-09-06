@@ -34902,6 +34902,20 @@
         "parameterTypes": [
           "io.nop.graphql.core.IGraphQLExecutionContext"
         ]
+      },
+      {
+        "name": "toGraphQLResponse",
+        "parameterTypes": [
+          "java.util.function.Supplier",
+          "io.nop.graphql.core.IGraphQLExecutionContext"
+        ]
+      },
+      {
+        "name": "toRpcResponse",
+        "parameterTypes": [
+          "java.util.function.Supplier",
+          "io.nop.graphql.core.IGraphQLExecutionContext"
+        ]
       }
     ],
     "name": "io.nop.graphql.core.engine.GraphQLEngine",
@@ -50823,6 +50837,16 @@
       }
     ],
     "name": "io.nop.web.page.WebPageHelper",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.web.page.initialize.WebPageCoreInitializer",
     "unsafeAllocated": false
   },
   {

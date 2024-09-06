@@ -242,8 +242,10 @@
                         </getter>
         </prop>
         <prop name="relatedRoleList_ids" displayName="relatedRoleList" insertable="true" updatable="true"
-              graphql:labelProp="relatedRoleList_label" lazy="true" internal="true" depends="~roleMappings">
-            <schema type="List&lt;String&gt;"/>
+              graphql:labelProp="relatedRoleList_label" lazy="true"
+              ui:pickerUrl="/nop/auth/pages/NopAuthRole/picker.page.yaml" ui:refLabelProp="id" internal="true"
+              depends="~roleMappings">
+            <schema type="List&lt;String&gt;" domain="ref-ids"/>
             <getter>
                             import io.nop.orm.support.OrmEntityHelper;
                             return OrmEntityHelper.getRefIds(
@@ -276,8 +278,10 @@
                         </getter>
         </prop>
         <prop name="relatedGroupList_ids" displayName="relatedGroupList" insertable="true" updatable="true"
-              graphql:labelProp="relatedGroupList_label" lazy="true" internal="true" depends="~groupMappings">
-            <schema type="List&lt;String&gt;"/>
+              graphql:labelProp="relatedGroupList_label" lazy="true"
+              ui:pickerUrl="/nop/auth/pages/NopAuthGroup/picker.page.yaml" ui:refLabelProp="id" internal="true"
+              depends="~groupMappings">
+            <schema type="List&lt;String&gt;" domain="ref-ids"/>
             <getter>
                             import io.nop.orm.support.OrmEntityHelper;
                             return OrmEntityHelper.getRefIds(

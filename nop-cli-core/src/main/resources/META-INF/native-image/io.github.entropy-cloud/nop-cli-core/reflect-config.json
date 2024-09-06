@@ -4337,6 +4337,12 @@
         ]
       },
       {
+        "name": "decodeBase64Url",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "decodeDupEscape",
         "parameterTypes": [
           "java.lang.String",

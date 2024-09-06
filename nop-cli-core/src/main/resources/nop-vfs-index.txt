@@ -32,7 +32,9 @@
 /nop/core/registry/api.register-model.xml
 /nop/core/registry/dialect.register-model.xml
 /nop/core/registry/dict.register-model.xml
+/nop/core/registry/export-db.register-model.xml
 /nop/core/registry/imp.register-model.xml
+/nop/core/registry/import-db.register-model.xml
 /nop/core/registry/orm-pdm.register-model.xml
 /nop/core/registry/orm.register-model.xml
 /nop/core/registry/task.register-model.xml
@@ -114,6 +116,10 @@
 /nop/schema/conf.xdef
 /nop/schema/data-auth.xdef
 /nop/schema/datav/chart.xdef
+/nop/schema/db/export-db.xdef
+/nop/schema/db/import-db.xdef
+/nop/schema/db/jdbc-connection.xdef
+/nop/schema/db/table-field.xdef
 /nop/schema/designer/graph-designer.xdef
 /nop/schema/errors.xdef
 /nop/schema/excel/anchor.xdef

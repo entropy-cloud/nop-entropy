@@ -94,8 +94,10 @@
                         </getter>
         </prop>
         <prop name="relatedUserList_ids" displayName="relatedUserList" insertable="true" updatable="true"
-              graphql:labelProp="relatedUserList_label" lazy="true" internal="true" depends="~userMappings">
-            <schema type="List&lt;String&gt;"/>
+              graphql:labelProp="relatedUserList_label" lazy="true"
+              ui:pickerUrl="/nop/auth/pages/NopAuthUser/picker.page.yaml" ui:refLabelProp="id" internal="true"
+              depends="~userMappings">
+            <schema type="List&lt;String&gt;" domain="ref-ids"/>
             <getter>
                             import io.nop.orm.support.OrmEntityHelper;
                             return OrmEntityHelper.getRefIds(
@@ -128,8 +130,10 @@
                         </getter>
         </prop>
         <prop name="relatedResourceList_ids" displayName="relatedResourceList" insertable="true" updatable="true"
-              graphql:labelProp="relatedResourceList_label" lazy="true" internal="true" depends="~resourceMappings">
-            <schema type="List&lt;String&gt;"/>
+              graphql:labelProp="relatedResourceList_label" lazy="true"
+              ui:pickerUrl="/nop/auth/pages/NopAuthResource/picker.page.yaml" ui:refLabelProp="id" internal="true"
+              depends="~resourceMappings">
+            <schema type="List&lt;String&gt;" domain="ref-ids"/>
             <getter>
                             import io.nop.orm.support.OrmEntityHelper;
                             return OrmEntityHelper.getRefIds(

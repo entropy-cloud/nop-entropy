@@ -21,6 +21,8 @@ body:
   - type: nop-flow-editor
     componentLib: /nop/wf/designer/dingflow.lib.js
     editable: true
+    initApi:
+      url: /p/PageProvider__getPage/nop/wf/pages/NopWfDefinition/demo-data.page.json
     flowEditorSchema:
       editForms:
         start:
@@ -42,6 +44,7 @@ body:
               label: Cancel
             - type: action
               label: Submit
+              level: primary
               onEvent:
                 click:
                   actions:
