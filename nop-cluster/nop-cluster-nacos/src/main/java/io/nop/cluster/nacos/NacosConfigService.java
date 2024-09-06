@@ -10,6 +10,7 @@ package io.nop.cluster.nacos;
 import com.alibaba.nacos.api.NacosFactory;
 import com.alibaba.nacos.api.PropertyKeyConst;
 import com.alibaba.nacos.api.config.ConfigService;
+import com.alibaba.nacos.api.config.ConfigType;
 import com.alibaba.nacos.api.config.listener.Listener;
 import com.alibaba.nacos.api.exception.NacosException;
 import io.nop.api.core.config.AppConfig;
@@ -22,6 +23,7 @@ import io.nop.config.source.DynamicTextConfigSourceLoader;
 import io.nop.config.source.IConfigService;
 import io.nop.config.source.IConfigSource;
 import io.nop.config.source.IDynamicTextConfigLoader;
+import io.nop.config.source.IUpdatableConfigService;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceConstants;
 import io.nop.core.resource.ResourceHelper;
@@ -40,8 +42,11 @@ import static io.nop.cluster.nacos.NacosConfigConstants.CFG_NACOS_PASSWORD;
 import static io.nop.cluster.nacos.NacosConfigConstants.CFG_NACOS_SERVER_ADDR;
 import static io.nop.cluster.nacos.NacosConfigConstants.CFG_NACOS_TIMEOUT;
 import static io.nop.cluster.nacos.NacosConfigConstants.CFG_NACOS_USERNAME;
+import static io.nop.config.ConfigConstants.FILE_POSTFIX_PROPERTIES;
+import static io.nop.config.ConfigConstants.FILE_POSTFIX_YAML;
+import static io.nop.config.ConfigConstants.FILE_POSTFIX_YML;
 
-public class NacosConfigService implements IConfigService, IDynamicTextConfigLoader {
+public class NacosConfigService implements IConfigService, IDynamicTextConfigLoader, IUpdatableConfigService {
     private static final Logger LOG = LoggerFactory.getLogger(NacosConfigService.class);
 
     private ConfigService configService;
@@ -158,5 +163,20 @@ public class NacosConfigService implements IConfigService, IDynamicTextConfigLoa
     @Override
     public IConfigSource getConfigSource(IConfigSource baseSource, String dataId) {
         return new DynamicTextConfigSourceLoader(this, dataId).loadConfigSource(baseSource);
+    }
+
+    @Override
+    public void publishConfig(String dataId, String group, String content) {
+        ConfigType type = getConfigType(dataId);
+        configService.publishConfig(dataId, group, content, type.getType());
+    }
+
+    private ConfigType getConfigType(String dataId) {
+        if (dataId.endsWith(FILE_POSTFIX_YML) || dataId.endsWith(FILE_POSTFIX_YAML)) {
+            return ConfigType.YAML;
+        }
+        if (dataId.endsWith(FILE_POSTFIX_PROPERTIES))
+            return ConfigType.PROPERTIES;
+        return ConfigType.TEXT;
     }
 }
