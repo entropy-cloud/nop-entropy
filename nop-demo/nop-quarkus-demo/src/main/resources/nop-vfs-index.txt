@@ -1162,8 +1162,8 @@
 /nop/wf/pages/NopWfDefinition/NopWfDefinition.lib.xjs
 /nop/wf/pages/NopWfDefinition/NopWfDefinition.view.xml
 /nop/wf/pages/NopWfDefinition/_gen/_NopWfDefinition.view.xml
+/nop/wf/pages/NopWfDefinition/demo-data.page.json
 /nop/wf/pages/NopWfDefinition/designer.page.yaml
-/nop/wf/pages/NopWfDefinition/flow.lib.js
 /nop/wf/pages/NopWfDefinition/main.page.yaml
 /nop/wf/pages/NopWfDefinition/ofd-models.lib.css
 /nop/wf/pages/NopWfDefinition/ofd-models.lib.js
