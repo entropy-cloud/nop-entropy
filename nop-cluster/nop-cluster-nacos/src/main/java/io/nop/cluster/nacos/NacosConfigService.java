@@ -168,7 +168,11 @@ public class NacosConfigService implements IConfigService, IDynamicTextConfigLoa
     @Override
     public void publishConfig(String dataId, String group, String content) {
         ConfigType type = getConfigType(dataId);
-        configService.publishConfig(dataId, group, content, type.getType());
+        try {
+            configService.publishConfig(dataId, group, content, type.getType());
+        } catch (Exception e) {
+            throw NopException.adapt(e);
+        }
     }
 
     private ConfigType getConfigType(String dataId) {
