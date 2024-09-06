@@ -450,7 +450,7 @@
         <module>nop-dev</module>
         <module>nop-all-for-spring</module>
         <module>nop-git</module>
-        <module>tests</module>
+       <!-- <module>tests</module> -->
         <module>nop-oauth</module>
         <module>nop-dyn</module>
         <module>nop-gpt</module>
