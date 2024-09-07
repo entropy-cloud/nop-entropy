@@ -21,12 +21,27 @@ import static io.nop.core.CoreErrors.ARG_ROOT_PATH;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_EXCEED_MAX_DEPS_STACK_SIZE;
 
 public class ResourceDependsStack {
-    private Map<String, ResourceDependencySet> depMap = new HashMap<>();
-    // Set<String> depSet = new HashSet<>();
-    private List<ResourceDependencySet> depStack = new ArrayList<>();
+    private final long version = ResourceDependencySet.nextVersion();
+
+    private final Map<String, ResourceDependencySet> depMap = new HashMap<>();
+    private final List<ResourceDependencySet> depStack = new ArrayList<>();
 
     public boolean isEmpty() {
         return depStack.isEmpty();
+    }
+
+    public long getVersion() {
+        return version;
+    }
+
+    public void updateTo(Map<String, ResourceDependencySet> map) {
+        depMap.forEach((path, dep) -> {
+            ResourceDependencySet oldDep = map.putIfAbsent(path, dep);
+            if (oldDep != null && oldDep.getVersion() < dep.getVersion()) {
+                map.remove(path, oldDep);
+                map.putIfAbsent(path, dep);
+            }
+        });
     }
 
     public ResourceDependencySet push(IResourceReference resource) {

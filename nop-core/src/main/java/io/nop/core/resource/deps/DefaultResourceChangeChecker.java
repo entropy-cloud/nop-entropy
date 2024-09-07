@@ -20,16 +20,6 @@ public class DefaultResourceChangeChecker implements IResourceChangeChecker {
         long current = resource.lastModified();
         boolean changed = lastModified != current;
 
-        // 如果文件修改时间变了，但是缓存内容并没有变，则仍然标记为未改变
-//        if (changed && resource instanceof IResource) {
-//            String text = ResourceContentCache.instance().getCachedText((IResource) resource, false);
-//            if (text != null) {
-//                String resText = ((IResource) resource).readText();
-//                if (text.equals(resText)) {
-//                    changed = false;
-//                }
-//            }
-//        }
         return new ResourceChangeCheckResult(changed, current);
     }
 }

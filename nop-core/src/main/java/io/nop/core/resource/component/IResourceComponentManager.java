@@ -14,6 +14,7 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.deps.ResourceDependencySet;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -106,7 +107,7 @@ public interface IResourceComponentManager extends IResourceDependencyManager {
 
     boolean isDependencyChanged(String resourcePath);
 
-    boolean isAnyDependsChange(Map<String, Long> depends);
+    boolean isAnyDependsChange(Collection<String> depends);
 
     /**
      * 根据task处理过程中访问的资源文件情况，把它们收集到依赖集合对象中
@@ -158,4 +159,6 @@ public interface IResourceComponentManager extends IResourceDependencyManager {
     String dumpDependsSet(ResourceDependencySet deps);
 
     void clearAllCache();
+
+    <T> T runWhenDependsChanged(String resourcePath, Supplier<T> task);
 }

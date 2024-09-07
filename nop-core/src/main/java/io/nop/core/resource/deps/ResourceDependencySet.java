@@ -10,8 +10,9 @@ package io.nop.core.resource.deps;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.resource.IResourceReference;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -20,10 +21,14 @@ import java.util.concurrent.atomic.AtomicLong;
 public class ResourceDependencySet {
     static final AtomicLong s_next = new AtomicLong();
 
+    public static long nextVersion() {
+        return s_next.incrementAndGet();
+    }
+
     /**
      * 每次发现修改，重新装载资源文件都会产生一个新版本号
      */
-    private final long version = s_next.incrementAndGet();
+    private final long version = nextVersion();
 
     /**
      * resource和lastModified用于缓存上次IResourceChangeChecker的检查结果
@@ -31,17 +36,20 @@ public class ResourceDependencySet {
     private final IResourceReference resource;
     private long lastModified;
 
-    protected final Map<String, Long> depends = new HashMap<>();
-    private final Map<String, ResourceDependencySet> depSets = new HashMap<>();
+    protected final Set<String> depends = new HashSet<>();
 
     public ResourceDependencySet(IResourceReference resource) {
         this.resource = resource;
         this.lastModified = resource.lastModified();
     }
 
+    public boolean isMock() {
+        return false;
+    }
+
     public ResourceDependencySet copy() {
         ResourceDependencySet ret = new ResourceDependencySet(resource);
-        ret.depends.putAll(depends);
+        ret.depends.addAll(depends);
         return ret;
     }
 
@@ -62,7 +70,7 @@ public class ResourceDependencySet {
         this.lastModified = lastModified;
     }
 
-    public Map<String, Long> getDepends() {
+    public Set<String> getDepends() {
         return depends;
     }
 
@@ -82,17 +90,14 @@ public class ResourceDependencySet {
         depends.clear();
     }
 
-    public void addDependency(ResourceDependencySet resource) {
-        String path = resource.getResourcePath();
-        depends.put(path, resource.getVersion());
-        depSets.put(path, resource);
+    public void addDependency(String path) {
+        this.depends.add(path);
     }
 
-    public ResourceDependencySet getDependsSet(String path) {
-        return depSets.get(path);
-    }
+    public void addDepends(Collection<String> depends) {
+        if (depends == null)
+            return;
 
-    public void addDepends(Map<String, Long> depends) {
-        this.depends.putAll(depends);
+        depends.addAll(depends);
     }
 }

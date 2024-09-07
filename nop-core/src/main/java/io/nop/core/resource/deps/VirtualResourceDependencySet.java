@@ -18,6 +18,10 @@ public class VirtualResourceDependencySet extends ResourceDependencySet {
         super(new MockReference(resourcePath));
     }
 
+    public boolean isMock() {
+        return true;
+    }
+
     static class MockReference implements IResourceReference {
         private final String path;
         private final long lastModified = CoreMetrics.currentTimeMillis();

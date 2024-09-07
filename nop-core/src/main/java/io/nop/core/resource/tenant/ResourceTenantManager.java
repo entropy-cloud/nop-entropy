@@ -19,6 +19,9 @@ import io.nop.core.resource.cache.IResourceCacheEntry;
 import io.nop.core.resource.cache.IResourceLoadingCache;
 import io.nop.core.resource.cache.ResourceCacheEntry;
 import io.nop.core.resource.cache.ResourceLoadingCache;
+import io.nop.core.resource.component.IResourceDependencyManager;
+import io.nop.core.resource.deps.IResourceChangeChecker;
+import io.nop.core.resource.deps.ResourceDependsManager;
 import io.nop.core.resource.store.ITenantResourceStoreSupplier;
 
 import java.time.Duration;
@@ -231,6 +234,12 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
             cache = new ResourceCacheEntry<>(name, listener);
         }
         return new CacheEntryManagement<>(name, cache);
+    }
+
+    public IResourceDependencyManager makeDependencyManager(IResourceChangeChecker checker) {
+        if (isEnableTenantResource())
+            return new TenantAwareDependencyManager(checker);
+        return new ResourceDependsManager(checker);
     }
 
     @Override

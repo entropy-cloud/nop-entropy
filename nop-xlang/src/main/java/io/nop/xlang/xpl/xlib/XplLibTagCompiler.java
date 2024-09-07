@@ -170,7 +170,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
                 ((LazyCompiledFunction) invoker).compile();
             }
             if (deps != null) {
-                ResourceComponentManager.instance().traceAllDepends(deps.getDepends().keySet());
+                ResourceComponentManager.instance().traceAllDepends(deps.getDepends());
             }
             return functionModel;
         }

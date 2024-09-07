@@ -31,16 +31,15 @@ import io.nop.core.resource.cache.IResourceLoadingCache;
 import io.nop.core.resource.component.version.ResourceVersionHelper;
 import io.nop.core.resource.deps.DefaultResourceChangeChecker;
 import io.nop.core.resource.deps.IResourceChangeChecker;
-import io.nop.core.resource.deps.IResourceDependsPersister;
+import io.nop.core.resource.deps.ResourceChangeCheckResult;
 import io.nop.core.resource.deps.ResourceDependencySet;
-import io.nop.core.resource.deps.ResourceDependsManager;
+import io.nop.core.resource.deps.ResourceDependsHelper;
 import io.nop.core.resource.impl.UnknownResource;
 import io.nop.core.resource.tenant.ResourceTenantManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -70,7 +69,7 @@ import static io.nop.core.CoreErrors.ERR_COMPONENT_UNKNOWN_MODEL_FILE_TYPE;
 import static io.nop.core.resource.component.version.ResourceVersionHelper.isVersionFile;
 
 @GlobalInstance
-public class ResourceComponentManager implements IResourceComponentManager, IConfigRefreshable {
+public class ResourceComponentManager implements IResourceComponentManager, IConfigRefreshable, IResourceChangeChecker {
     static final Logger LOG = LoggerFactory.getLogger(ResourceComponentManager.class);
 
     private static IResourceComponentManager _instance = new ResourceComponentManager(true);
@@ -83,7 +82,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         _instance = instance;
     }
 
-    private ResourceDependsManager dependsManager = new ResourceDependsManager();
+    private IResourceDependencyManager dependsManager = ResourceTenantManager.instance().makeDependencyManager(this);
 
     private Map<String, ComponentModelConfig> modelTypeConfigs = new ConcurrentHashMap<>();
     private Map<String, ComponentModelLoader> fileTypeLoaders = new ConcurrentHashMap<>();
@@ -97,7 +96,6 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
     private IResourceChangeChecker changeChecker = DefaultResourceChangeChecker.INSTANCE;
 
-    private IResourceDependsPersister dependsPersister;
     private boolean registerCache;
 
     public ResourceComponentManager(boolean registerCache) {
@@ -178,23 +176,31 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         }
 
         // 清空资源文件的依赖关系缓存
-        this.dependsManager.clear();
-    }
-
-    public void setDependsPersister(IResourceDependsPersister persister) {
-        this.dependsPersister = persister;
+        this.dependsManager.clearDependencies();
     }
 
     public void setChangeChecker(IResourceChangeChecker changeChecker) {
         this.changeChecker = Guard.notNull(changeChecker, "changeChecker");
     }
 
-    public boolean isDependencyChanged(String path) {
-        return dependsManager.isDependencyChanged(path, null, new HashMap<>(), dependsPersister, changeChecker);
+    @Override
+    public void clearDependencies() {
+        dependsManager.clearDependencies();
     }
 
-    public boolean isAnyDependsChange(Map<String, Long> depends) {
-        return dependsManager.isAnyDependsChange(depends, new HashMap<>(), dependsPersister, changeChecker);
+    @Override
+    public ResourceChangeCheckResult checkChanged(IResourceReference resource, long lastModified) {
+        return changeChecker.checkChanged(resource, lastModified);
+    }
+
+    @Override
+    public boolean isDependencyChanged(String path) {
+        return dependsManager.isDependencyChanged(path);
+    }
+
+    @Override
+    public boolean isAnyDependsChange(Collection<String> depends) {
+        return dependsManager.isAnyDependsChange(depends);
     }
 
     Pair<String, IResourceObjectLoader<? extends IComponentModel>> resolveModelLoader(String path, String modelType) {
@@ -601,7 +607,8 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         return (T) ResourceHelper.readObject(resource);
     }
 
-    private IResourceReference resolveResource(String resourcePath) {
+    @Override
+    public IResourceReference resolveResource(String resourcePath) {
         IResourceReference resource = changeChecker.resolveResource(resourcePath);
         if (resource == null)
             resource = new UnknownResource(resourcePath);
@@ -610,12 +617,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
     @Override
     public <T> T collectDepends(String resourcePath, Supplier<T> task) {
-        if (dependsManager.currentDepends() == null || StringHelper.isEmpty(resourcePath)
-                || ResourceConstants.RESOURCE_PATH_TEXT.equals(resourcePath))
-            return task.get();
-
-        IResourceReference resource = resolveResource(resourcePath);
-        return dependsManager.collectDepends(resource, task);
+        return dependsManager.collectDepends(resourcePath, task);
     }
 
     @Override
@@ -630,7 +632,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
     @Override
     public void traceDepends(String depResourcePath) {
-        dependsManager.addDependency(depResourcePath, changeChecker);
+        dependsManager.traceDepends(depResourcePath);
     }
 
     @Override
@@ -643,7 +645,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
     }
 
     public ResourceDependencySet getResourceDepends(String resourcePath) {
-        return dependsManager.getDepends(resourcePath);
+        return dependsManager.getResourceDepends(resourcePath);
     }
 
     public ResourceDependencySet getModelDepends(String resourcePath) {
@@ -654,20 +656,12 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
     @Override
     public String dumpDependsSet(ResourceDependencySet deps) {
-        String info = dependsManager.dumpDependsSet(deps);
+        String info = ResourceDependsHelper.dumpDependsSet(deps, dependsManager);
         return info;
     }
 
     @Override
     public <T> T runWhenDependsChanged(String path, Supplier<T> loader) {
-        String modelType = "__runWithCache__";
-        IResourceLoadingCache<ComponentCacheEntry> cache = makeModelCache(modelType, path);
-        ComponentCacheEntry result = cache.get(path, p -> {
-            T value = loader.get();
-            ComponentCacheEntry entry = new ComponentCacheEntry();
-            entry.model = value;
-            return entry;
-        });
-        return (T) result.model;
+        return dependsManager.runWhenDependsChanged(path, loader);
     }
 }

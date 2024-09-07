@@ -202,14 +202,14 @@ public class ResourceCacheEntry<T> implements IDestroyable, IResourceCacheEntry<
         }
         ResourceDependencySet deps = this.deps;
         if (deps != null)
-            ResourceComponentManager.instance().traceAllDepends(deps.getDepends().keySet());
+            ResourceComponentManager.instance().traceAllDepends(deps.getDepends());
         return normalizeObject(value);
     }
 
     public void traceDepends() {
         ResourceDependencySet deps = this.deps;
         if (deps != null)
-            ResourceComponentManager.instance().traceAllDepends(deps.getDepends().keySet());
+            ResourceComponentManager.instance().traceAllDepends(deps.getDepends());
     }
 
     private Object loadObject(IResourceObjectLoader<T> loader) {

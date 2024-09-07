@@ -7,9 +7,14 @@
  */
 package io.nop.core.resource.component;
 
+import io.nop.core.resource.deps.ResourceDependencySet;
+
+import java.util.Collection;
 import java.util.function.Supplier;
 
 public interface IResourceDependencyManager {
+
+    void clearDependencies();
 
     boolean isDependencyChanged(String resourcePath);
 
@@ -35,4 +40,10 @@ public interface IResourceDependencyManager {
     void traceDepends(String depResourcePath);
 
     <T> T runWhenDependsChanged(String resourcePath, Supplier<T> task);
+
+    boolean isAnyDependsChange(Collection<String> depends);
+
+    <T> T collectDependsTo(ResourceDependencySet dep, Supplier<T> task);
+
+    ResourceDependencySet getResourceDepends(String resourcePath);
 }
