@@ -157,7 +157,7 @@ public class ReflectionBizModelBuilder {
                 if (!isLocalMethod(classModel, func) && !isAllowed(name, disabledActions, inheritActions))
                     continue;
 
-                GraphQLFieldDefinition field = buildFetcherField(bean, loc, name, func, registry);
+                GraphQLFieldDefinition field = buildFetcherField(bizObjName, bean, loc, name, func, registry);
                 field.setSourceClassModel(classModel);
 
                 IGenericType returnType = func.getReturnType();
@@ -357,7 +357,7 @@ public class ReflectionBizModelBuilder {
     /**
      * 识别服务方法上的参数，并把它们对应到GraphQL的loader参数上
      */
-    public GraphQLFieldDefinition buildFetcherField(Object bean, SourceLocation loc, String name, IFunctionModel func,
+    public GraphQLFieldDefinition buildFetcherField(String bizObjName, Object bean, SourceLocation loc, String name, IFunctionModel func,
                                                     TypeRegistry registry) {
         GraphQLFieldDefinition def = new GraphQLFieldDefinition();
         def.setName(name);
@@ -367,15 +367,15 @@ public class ReflectionBizModelBuilder {
         ReflectionGraphQLTypeFactory.INSTANCE.getArgDefinitions(def, func,
                 registry);
 
-        IDataFetcher fetcher = buildFetcher(bean, loc, name, func);
+        IDataFetcher fetcher = buildFetcher(bizObjName, bean, loc, name, func);
         def.setFetcher(fetcher);
-        if(func.isAnnotationPresent(LazyLoad.class))
+        if (func.isAnnotationPresent(LazyLoad.class))
             def.setLazy(true);
 
         return def;
     }
 
-    private IDataFetcher buildFetcher(Object bean, SourceLocation loc, String name, IFunctionModel func) {
+    private IDataFetcher buildFetcher(String bizObjName, Object bean, SourceLocation loc, String name, IFunctionModel func) {
         List<Function<IDataFetchingEnvironment, Object>> argBuilders = new ArrayList<>(func.getArgCount());
 
         int sourceIndex = -1;
@@ -417,11 +417,11 @@ public class ReflectionBizModelBuilder {
             }
         }
 
-        IDataFetcher fetcher = buildFetcher(bean, loc, name, func, argBuilders, sourceIndex);
+        IDataFetcher fetcher = buildFetcher(bizObjName, bean, loc, name, func, argBuilders, sourceIndex);
         return fetcher;
     }
 
-    private IDataFetcher buildFetcher(Object bean, SourceLocation loc, String name, IFunctionModel func,
+    private IDataFetcher buildFetcher(String bizObjName, Object bean, SourceLocation loc, String name, IFunctionModel func,
                                       List<Function<IDataFetchingEnvironment, Object>> argBuilders, int sourceIndex) {
         if (sourceIndex >= 0) {
             IFunctionArgument sourceArg = func.getArgs().get(sourceIndex);
@@ -431,7 +431,7 @@ public class ReflectionBizModelBuilder {
                     throw new NopException(ERR_GRAPHQL_BATCH_LOAD_METHOD_MUST_RETURN_LIST).loc(loc)
                             .param(ARG_OBJ_NAME, name).param(ARG_METHOD_NAME, func.getName());
                 }
-                String loaderName = bean.getClass().getTypeName() + "@" + func.getName();
+                String loaderName = bizObjName + "@" + name;
                 return new BeanMethodBatchFetcher(loaderName, bean, func, argBuilders, sourceIndex);
             }
         }
