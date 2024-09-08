@@ -116,7 +116,16 @@ public class OrmEntityCopier {
                              String baseBizObjName, String action, IEvalScope scope) {
         IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(src.getClass());
 
+        IEntityModel entityModel = target.orm_entityModel();
         Set<String> ignoreAutoExprProps = new HashSet<>();
+        if (entityModel.getTenantPropId() > 0) {
+            String tenantProp = entityModel.getTenantColumn().getName();
+            IObjPropMeta propMeta = objMeta.getProp(tenantProp);
+            if (propMeta != null && (propMeta.getAutoExpr() != null || propMeta.getDefaultValue() != null)) {
+                // 禁用租户id的autoExpr，它的值应该由上下文租户id指定
+                ignoreAutoExprProps.add(entityModel.getTenantColumn().getName());
+            }
+        }
 
         if (selection == null) {
             if (src instanceof Map) {
