@@ -261,6 +261,10 @@ public class DeltaResourceStore implements IDeltaResourceStore {
         }
         // 没有tenant层， 也没有delta层
         if (deltaIndex < 0) {
+            // 只有租户层，没有delta层，则租户层的super对应stdPath
+            if(ResourceHelper.isTenantPath(currentPath))
+                return store.getResource(path, returnNullIfNotExists);
+
             if (returnNullIfNotExists)
                 return null;
             return new UnknownResource(ResourceConstants.SUPER_NS + ':' + path);
