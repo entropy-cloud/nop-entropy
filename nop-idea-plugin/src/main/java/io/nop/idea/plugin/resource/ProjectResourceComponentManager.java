@@ -19,6 +19,7 @@ import io.nop.core.resource.component.IResourceComponentManager;
 import io.nop.core.resource.deps.ResourceDependencySet;
 import io.nop.idea.plugin.services.NopProjectService;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -110,11 +111,6 @@ public class ProjectResourceComponentManager implements IResourceComponentManage
     }
 
     @Override
-    public boolean isAnyDependsChange(Map<String, Long> depends) {
-        return getImpl().isAnyDependsChange(depends);
-    }
-
-    @Override
     public <T> T collectDepends(String resourcePath, Supplier<T> task) {
         return getImpl().collectDepends(resourcePath, task);
     }
@@ -162,5 +158,15 @@ public class ProjectResourceComponentManager implements IResourceComponentManage
     @Override
     public void clearAllCache() {
         getImpl().clearAllCache();
+    }
+
+    @Override
+    public boolean isAnyDependsChange(Collection<String> collection) {
+        return getImpl().isAnyDependsChange(collection);
+    }
+
+    @Override
+    public void clearDependencies() {
+        getImpl().clearDependencies();
     }
 }
