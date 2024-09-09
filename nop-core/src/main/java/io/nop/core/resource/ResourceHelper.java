@@ -271,6 +271,8 @@ public class ResourceHelper {
     }
 
     public static String buildTenantPath(String tenantId, String path) {
+        if(isTenantPath(path))
+            return path;
         return ResourceConstants.TENANT_PATH_PREFIX + tenantId + path;
     }
 
