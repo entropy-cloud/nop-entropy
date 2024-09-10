@@ -47,7 +47,7 @@
                 <actionGroup id="row-more-button">
 
                     <action id="design" label="@i18n:common.design">
-                        <drawer page="designer.page.yaml" size="xl"/>
+                        <drawer page="/nop/wf/designer/designer.page.yaml" size="xl"/>
                     </action>
 
                     <action id="copy-for-new-button" label="@i18n:common.copyForNew">

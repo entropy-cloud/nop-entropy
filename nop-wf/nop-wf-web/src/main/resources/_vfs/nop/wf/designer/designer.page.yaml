@@ -17,27 +17,18 @@ toolbar:
       type: info
       title: 提示
       body: 按钮被点击了
+x:gen-extends: >
+   <dingflow-gen:GenFlowEditorPage modelPath="dingflow.graph-designer.xml" xpl:lib="/nop/wf/xlib/dingflow-gen.xlib" />
 body:
   - type: nop-flow-editor
-    componentLib: /nop/wf/designer/dingflow.lib.js
-    editable: true
+    name: dingflow-editor
     initApi:
-      url: /r/PageProvider__getPage?path=/nop/wf/pages/NopWfDefinition/demo-data.page.json
+      url: /r/PageProvider__getPage?path=/nop/wf/designer/demo-data.page.json
     flowEditorSchema:
       editForms:
-        start:
+        starter:
           type: form
-          name: start
-          id: propsForm
-          panelClassName: nop-full
-          preventEnterSubmit: true
-          body:
-            - type: input-text
-              name: a
-              required: true
-            - type: input-text
-              label: Main
-              name: name
+          name: editForm-starter
           actions:
             - type: action
               actionType: "action:cancel"

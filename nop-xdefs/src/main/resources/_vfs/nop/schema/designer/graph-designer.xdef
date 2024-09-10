@@ -37,7 +37,7 @@
         <node name="!token-name" icon="string" label="!string" abstract="boolean" tagSet="csv-set" propsForm="string"
               base="token-name" shape="string" minWidth="int" maxWidth="int" minHeight="int" maxHeight="int"
               width="int" height="int" fixedAspectRatio="boolean" kind="string"
-              draggable="!boolean=true" resizable="boolean"
+              draggable="!boolean=true" resizable="boolean" color="string"
               deletable="!boolean=true" addable="!boolean=true"
               textPosition="string" textDraggable="boolean"
               minOccurs="int" maxOccurs="int"
@@ -59,7 +59,7 @@
         @propsForm 属性表单
         -->
         <edge name="!token-name" icon="!string" label="!string" abstract="boolean" tagSet="csv-set" propsForm="string"
-              base="token-name" width="int" xdef:name="GraphDesignerEdgeModel" kind="string"
+              base="token-name" shape="string" width="int" xdef:name="GraphDesignerEdgeModel" kind="string" color="string"
               deletable="!boolean=true" addable="!boolean=true" minOccurs="int" maxOccurs="int"
               allowSources="csv-set" allowTargets="csv-set" type="string">
             <style xdef:value="string"/>

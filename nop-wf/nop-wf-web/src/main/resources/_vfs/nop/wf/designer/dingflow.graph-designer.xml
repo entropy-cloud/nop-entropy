@@ -10,15 +10,15 @@
     </imports>
 
     <nodes>
-        <node name="start" icon="start-node" kind="start" label="Start">
+        <node name="start" icon="start-node" kind="start" label="Start" propsForm="start">
             <template>
                 <NodeTitleShell
                         className="node-title start-node-title"
                         v:style="{backgroundColor: material.color}">
-                    {{ t(material.label || '')}}
+                    {{ node.name || t(material.label || '')}}
                 </NodeTitleShell>
                 <NodeContent className="content">
-                    <ContentPlaceholder v:text="t(material.info)"/>
+                    <ContentPlaceholder v:text="node.label || t(material.info)"/>
                     <i class="fas fa-angle-right arrow"/>
                 </NodeContent>
             </template>
@@ -31,7 +31,7 @@
             </template>
         </node>
 
-        <node name="approver" label="Approver">
+        <node name="approver" label="Approver" propsForm="approver">
             <template>
                 <NodeTitle
                         v:node="node"
@@ -60,4 +60,30 @@
         </node>
 
     </nodes>
+
+    <forms>
+        <form id="starter">
+            <layout>
+                name
+                label
+            </layout>
+
+            <cells>
+                <cell id="name" stdDomain="string" label="名称">
+                </cell>
+
+                <cell id="label" stdDomain="string" label="显示文本" />
+            </cells>
+        </form>
+
+        <form id="approver">
+            <layout>
+                data
+            </layout>
+
+            <cells>
+                <cell id="data" stdDomain="string" label="数据" />
+            </cells>
+        </form>
+    </forms>
 </designer>

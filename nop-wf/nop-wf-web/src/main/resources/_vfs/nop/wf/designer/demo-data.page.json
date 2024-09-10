@@ -1,8 +1,9 @@
 {
   "startNode": {
     "id": "start",
-    "name": "StartNode",
+    "name": "启动人",
     "nodeType": "start",
+    "label": "Starter",
     "childNode": {
       "nodeType": "approver",
       "id": "2324fb89-394f-4fa0-a5a5-10dc7306cc94",

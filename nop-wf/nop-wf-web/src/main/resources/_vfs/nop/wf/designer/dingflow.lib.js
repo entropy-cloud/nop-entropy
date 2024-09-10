@@ -26,7 +26,7 @@ System.register(['react', '@nop-chaos/plugin-dingflow'], (function (exports) {
               className:"node-title start-node-title",
               style:{"backgroundColor" : material.color},
             },
-            "\r\n                    "+t(material.label || "")+"\r\n                "
+            "\r\n                    "+node.name || t(material.label || "")+"\r\n                "
           ),
           createElement(NodeContent,
             {
@@ -35,7 +35,7 @@ System.register(['react', '@nop-chaos/plugin-dingflow'], (function (exports) {
             [
               createElement(ContentPlaceholder,
                 {
-                  text:t(material.info),
+                  text:node.label || t(material.info),
                 },
                 null
               ),
