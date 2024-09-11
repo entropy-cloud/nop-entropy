@@ -89,6 +89,8 @@ NopAuthResource按照siteId进行组织，缺省使用siteId=MAIN作为主站点
 在action函数上通过`@Auth`注解来指定需要对应的`permissions`或者允许访问的`roles`。如果不指定，则按照是否是`@BizQuery`
 或者`@BizMutation`自动设置`permissions`为`{BizObjName}:{actionName}|{BizObjName}:query`，以及`{BizObjName}:{actionName}|{BizObjName}:mutation`
 
+* 如果允许所有人都访问，可以配置`roles="user"`， 所有登录用户都具有user角色
+
 在权限分配的时候，如果允许所有读取操作，则可以配置`{BizObjName}:query`，这样就不需要挨个指定`{actionName}`
 
 例如

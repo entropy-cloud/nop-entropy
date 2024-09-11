@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<view-entity x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+             name="!class-name" className="class-name" displayName="string" tagSet="csv-set"
+             xdef:name="OrmViewEntityModel" xdef:bean-package="io.nop.orm.model">
+
+    <comment xdef:value="string"/>
+
+    <member-entity xdef:name="OrmViewMemberEntityModel" name="!class-name" alias="!var-name"
+                   xdef:unique-attr="alias" xdef:bean-prop="memberEntities"/>
+
+    <view-link leftEntityAlias="!var-name" rightEntityAlias="!var-name" xdef:name="OrmViewLinkModel">
+        <join xdef:body-type="list">
+            <on leftProp="prop-name" leftValue="any" operator="string"
+                rightProp="prop-name" rightValue="any"
+                xdef:name="OrmViewJoinOnModel" xdef:allow-multiple="true"/>
+        </join>
+    </view-link>
+
+    <fields xdef:body-type="list" xdef:key-attr="name">
+        <!--
+        如果指定了formula，则相当于是  formula as fieldName, 否则 相当于 func(owner.sourceProp) as fieldName
+        -->
+        <field xdef:name="OrmViewFieldModel" name="!var-name" displayName="string"
+               domain="string" stdDomain="string" stdDataType="std-data-type" tagSet="tag-set"
+               owner="var-name" sourceProp="string" func="var-name">
+            <formula xdef:value="string"/>
+            <comment xdef:value="string"/>
+        </field>
+    </fields>
+
+</view-entity>

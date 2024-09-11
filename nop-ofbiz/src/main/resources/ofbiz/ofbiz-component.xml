@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<ofbiz-component name="datamodel"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://ofbiz.apache.org/dtds/ofbiz-component.xsd">
+    <resource-loader name="main" type="component"/>
+
+    <entity-resource type="model" reader-name="main" loader="main" location="entitydef/accounting-entitymodel.xml"/>
+    <entity-resource type="model" reader-name="main" loader="main" location="entitydef/content-entitymodel.xml"/>
+    <entity-resource type="model" reader-name="main" loader="main" location="entitydef/humanres-entitymodel.xml"/>
+    <entity-resource type="model" reader-name="main" loader="main" location="entitydef/manufacturing-entitymodel.xml"/>
+    <entity-resource type="model" reader-name="main" loader="main" location="entitydef/marketing-entitymodel.xml"/>
+    <entity-resource type="model" reader-name="main" loader="main" location="entitydef/order-entitymodel.xml"/>
+    <entity-resource type="model" reader-name="main" loader="main" location="entitydef/party-entitymodel.xml"/>
+    <entity-resource type="model" reader-name="main" loader="main" location="entitydef/product-entitymodel.xml"/>
+    <entity-resource type="model" reader-name="main" loader="main" location="entitydef/shipment-entitymodel.xml"/>
+    <entity-resource type="model" reader-name="main" loader="main" location="entitydef/workeffort-entitymodel.xml"/>
+
+    <!-- All components seed-initial data -->
+    <entity-resource type="data" reader-name="seed-initial" loader="main" location="data/seed-initial/PartySeedInitialData.xml"/>
+    <entity-resource type="data" reader-name="seed-initial" loader="main" location="data/seed-initial/WorkEffortSeedInitialData.xml"/>
+    
+    <!-- All components seed data -->
+    <entity-resource type="data" reader-name="seed" loader="main" location="data/seed/PartySeedData.xml"/>
+    <entity-resource type="data" reader-name="seed" loader="main" location="data/seed/SecurityExtSeedData.xml"/>
+    <entity-resource type="data" reader-name="seed" loader="main" location="data/seed/ProductSeedData.xml"/>
+    <entity-resource type="data" reader-name="seed" loader="main" location="data/seed/ContentSeedData.xml"/>
+    <entity-resource type="data" reader-name="seed" loader="main" location="data/seed/WorkEffortSeedData.xml"/>
+    <entity-resource type="data" reader-name="seed" loader="main" location="data/seed/ManufacturingSeedData.xml"/>
+    <entity-resource type="data" reader-name="seed" loader="main" location="data/seed/AccountingSeedData.xml"/>
+    <entity-resource type="data" reader-name="seed" loader="main" location="data/seed/HumanResSeedData.xml"/>
+    <entity-resource type="data" reader-name="seed" loader="main" location="data/seed/OrderSeedData.xml"/>
+    <entity-resource type="data" reader-name="seed" loader="main" location="data/seed/MarketingSeedData.xml"/>
+    <entity-resource type="data" reader-name="seed" loader="main" location="data/seed/CommonExtSeedData.xml"/>
+
+    <!-- All components demo data -->
+    <entity-resource type="data" reader-name="demo" loader="main" location="data/demo/PartyDemoData.xml"/>
+    <entity-resource type="data" reader-name="demo" loader="main" location="data/demo/SecurityExtDemoData.xml"/>
+    <entity-resource type="data" reader-name="demo" loader="main" location="data/demo/ContentDemoData.xml"/>
+    <entity-resource type="data" reader-name="demo" loader="main" location="data/demo/WorkEffortDemoData.xml"/>
+    <entity-resource type="data" reader-name="demo" loader="main" location="data/demo/ProductDemoData.xml"/>
+    <entity-resource type="data" reader-name="demo" loader="main" location="data/demo/ManufacturingDemoData.xml"/>
+    <entity-resource type="data" reader-name="demo" loader="main" location="data/demo/GlAccountDemoData.xml"/>
+    <entity-resource type="data" reader-name="demo" loader="main" location="data/demo/AccountingDemoData.xml"/>
+    <entity-resource type="data" reader-name="demo" loader="main" location="data/demo/HumanresDemoData.xml"/>
+    <entity-resource type="data" reader-name="demo" loader="main" location="data/demo/OrderDemoData.xml"/>
+    <entity-resource type="data" reader-name="demo" loader="main" location="data/demo/MarketingDemoData.xml"/>
+    <entity-resource type="data" reader-name="demo" loader="main" location="data/demo/CommonExtDemoData.xml"/>
+
+</ofbiz-component>

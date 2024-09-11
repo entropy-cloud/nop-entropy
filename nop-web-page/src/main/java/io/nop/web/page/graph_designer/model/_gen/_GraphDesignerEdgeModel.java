@@ -53,6 +53,13 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
     
     /**
      *  
+     * xml name: color
+     * 
+     */
+    private java.lang.String _color ;
+    
+    /**
+     *  
      * xml name: deletable
      * 
      */
@@ -106,6 +113,13 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
      * 属性表单
      */
     private java.lang.String _propsForm ;
+    
+    /**
+     *  
+     * xml name: shape
+     * 
+     */
+    private java.lang.String _shape ;
     
     /**
      *  
@@ -233,6 +247,25 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
         checkAllowChange();
         
         this._base = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: color
+     *  
+     */
+    
+    public java.lang.String getColor(){
+      return _color;
+    }
+
+    
+    public void setColor(java.lang.String value){
+        checkAllowChange();
+        
+        this._color = value;
            
     }
 
@@ -391,6 +424,25 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
     
     /**
      * 
+     * xml name: shape
+     *  
+     */
+    
+    public java.lang.String getShape(){
+      return _shape;
+    }
+
+    
+    public void setShape(java.lang.String value){
+        checkAllowChange();
+        
+        this._shape = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: style
      *  
      */
@@ -504,6 +556,7 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
         out.putNotNull("allowSources",this.getAllowSources());
         out.putNotNull("allowTargets",this.getAllowTargets());
         out.putNotNull("base",this.getBase());
+        out.putNotNull("color",this.getColor());
         out.putNotNull("deletable",this.isDeletable());
         out.putNotNull("icon",this.getIcon());
         out.putNotNull("kind",this.getKind());
@@ -512,6 +565,7 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
         out.putNotNull("minOccurs",this.getMinOccurs());
         out.putNotNull("name",this.getName());
         out.putNotNull("propsForm",this.getPropsForm());
+        out.putNotNull("shape",this.getShape());
         out.putNotNull("style",this.getStyle());
         out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("template",this.getTemplate());
@@ -533,6 +587,7 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
         instance.setAllowSources(this.getAllowSources());
         instance.setAllowTargets(this.getAllowTargets());
         instance.setBase(this.getBase());
+        instance.setColor(this.getColor());
         instance.setDeletable(this.isDeletable());
         instance.setIcon(this.getIcon());
         instance.setKind(this.getKind());
@@ -541,6 +596,7 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
         instance.setMinOccurs(this.getMinOccurs());
         instance.setName(this.getName());
         instance.setPropsForm(this.getPropsForm());
+        instance.setShape(this.getShape());
         instance.setStyle(this.getStyle());
         instance.setTagSet(this.getTagSet());
         instance.setTemplate(this.getTemplate());

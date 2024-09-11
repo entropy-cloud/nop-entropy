@@ -1,5 +1,6 @@
 <c:script>
-codeGenerator.renderModel('/nop/schema/orm/entity.xdef','/nop/templates/xdsl', '/',$scope);
-codeGenerator.renderModel('/nop/schema/orm/orm.xdef','/nop/templates/xdsl', '/',$scope);
-codeGenerator.renderModel('/nop/schema/orm/orm-interceptor.xdef','/nop/templates/xdsl', '/',$scope);
+    codeGenerator.renderModel('/nop/schema/orm/entity.xdef','/nop/templates/xdsl', '/',$scope);
+    codeGenerator.renderModel('/nop/schema/orm/view-entity.xdef','/nop/templates/xdsl', '/',$scope);
+    codeGenerator.renderModel('/nop/schema/orm/orm.xdef','/nop/templates/xdsl', '/',$scope);
+    codeGenerator.renderModel('/nop/schema/orm/orm-interceptor.xdef','/nop/templates/xdsl', '/',$scope);
 </c:script>

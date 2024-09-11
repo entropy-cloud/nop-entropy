@@ -60,6 +60,13 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
     
     /**
      *  
+     * xml name: color
+     * 
+     */
+    private java.lang.String _color ;
+    
+    /**
+     *  
      * xml name: deletable
      * 
      */
@@ -362,6 +369,25 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
         checkAllowChange();
         
         this._base = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: color
+     *  
+     */
+    
+    public java.lang.String getColor(){
+      return _color;
+    }
+
+    
+    public void setColor(java.lang.String value){
+        checkAllowChange();
+        
+        this._color = value;
            
     }
 
@@ -845,6 +871,7 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
         out.putNotNull("allowParents",this.getAllowParents());
         out.putNotNull("anchors",this.getAnchors());
         out.putNotNull("base",this.getBase());
+        out.putNotNull("color",this.getColor());
         out.putNotNull("deletable",this.isDeletable());
         out.putNotNull("draggable",this.isDraggable());
         out.putNotNull("fixedAspectRatio",this.getFixedAspectRatio());
@@ -886,6 +913,7 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
         instance.setAllowParents(this.getAllowParents());
         instance.setAnchors(this.getAnchors());
         instance.setBase(this.getBase());
+        instance.setColor(this.getColor());
         instance.setDeletable(this.isDeletable());
         instance.setDraggable(this.isDraggable());
         instance.setFixedAspectRatio(this.getFixedAspectRatio());
