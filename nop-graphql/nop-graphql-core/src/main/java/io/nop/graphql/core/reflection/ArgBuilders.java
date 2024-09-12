@@ -94,7 +94,7 @@ public class ArgBuilders {
             Object data = BeanTool.castBeanToType(args, requestBodyType);
             ApiRequest<Object> req = new ApiRequest<>();
             req.setSelection(env.getSelectionBean());
-            req.setHeaders(env.getGraphQLExecutionContext().getResponseHeaders());
+            req.setHeaders(env.getGraphQLExecutionContext().getRequestHeaders());
             req.setData(data);
             return req;
         };
