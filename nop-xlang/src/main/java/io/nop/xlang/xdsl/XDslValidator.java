@@ -20,6 +20,7 @@ import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdef.XDefBodyType;
 import io.nop.xlang.xdef.XDefOverride;
 import io.nop.xlang.xdef.XDefTypeDecl;
+import io.nop.xlang.xpl.XplConstants;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -80,7 +81,7 @@ public class XDslValidator {
                     i--;
                     n--;
                 } else {
-                    if(!defNode.getChildren().isEmpty()) {
+                    if (!defNode.getChildren().isEmpty()) {
                         // 如果checkNs中指定名字空间需要校验，则不使用unknownAttr来匹配
                         if (!checkNs.isEmpty()
                                 && StringHelper.hasNamespace(child.getTagName())) {
@@ -301,7 +302,14 @@ public class XDslValidator {
     }
 
     private boolean isIgnorableChild(String name) {
-        return name.indexOf(':') > 0;
+        if (name.indexOf(':') > 0) {
+            String ns = name.substring(0, name.indexOf(':'));
+            // 为了防止笔误，禁止c和x名字空间作为扩展节点
+            if (ns.equals(XplConstants.X_NS) || ns.equals(XplConstants.XPL_CORE_NS))
+                return false;
+            return true;
+        }
+        return false;
     }
 
     /**

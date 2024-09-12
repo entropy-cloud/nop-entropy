@@ -1,24 +1,27 @@
 <lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef"
      xmlns:c="c">
     <tags>
-        <TransformXptGenReport>
+        <DefaultPostExtends>
+            <attr name="_dsl_root" implicit="true"/>
+            <source>
+                <thisLib:TransformCustomType/>
+            </source>
+        </DefaultPostExtends>
+
+        <TransformCustomType>
             <attr name="_dsl_root" implicit="true"/>
 
             <source>
                 <c:script><![CDATA[
                     import io.nop.task.utils.TaskGenHelper;
+                    import io.nop.task.builder.TransformCustomStepHelper;
 
                     const steps = _dsl_root.childByTag('steps');
-                    steps?.forEachNode(node=>{
-                        if(node.attrText('extType') == 'xpt:GenReport'){
-                           const child = node.childByTag('xpt:GenReport');
-                           child.setAttr('xpl:lib','/nop/report/xlib/xpt.xlib');
-                           child.setAttr('args','${{' + TaskGenHelper.getInputNames(node).join(',')+'}}');
-                           node.makeChild('source').appendChild(child.detach())
-                        }
-                    })
+                    steps?.transformChild(node=> node.tagName == 'custom', node=>{
+                       return TransformCustomStepHelper.transformCustomStep(_dsl_root, node);
+                    }, true);
                 ]]></c:script>
             </source>
-        </TransformXptGenReport>
+        </TransformCustomType>
     </tags>
 </lib>

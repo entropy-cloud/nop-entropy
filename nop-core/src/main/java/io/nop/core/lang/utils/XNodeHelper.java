@@ -13,6 +13,9 @@ import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.xml.XNode;
 
+import java.util.Iterator;
+import java.util.Map;
+
 import static io.nop.core.CoreErrors.ARG_ALLOWED_NS;
 import static io.nop.core.CoreErrors.ARG_EXPR;
 import static io.nop.core.CoreErrors.ARG_XML_NAME;
@@ -64,6 +67,38 @@ public class XNodeHelper {
                 if (str.indexOf("${") >= 0 && str.indexOf('}') > 0)
                     throw new NopException(ERR_XML_NOT_ALLOW_EXPR)
                             .source(vl).param(ARG_EXPR, str);
+            }
+        }
+    }
+
+    public static void moveAttrWithNs(XNode ret, XNode bodyNode, String ns, boolean removeNs) {
+        // 将所有代码特定名字空间的属性设置到标签节点上
+        Iterator<Map.Entry<String, ValueWithLocation>> it = ret.attrValueLocs().entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, ValueWithLocation> entry = it.next();
+            ValueWithLocation vl = entry.getValue();
+            String name = entry.getKey();
+            if (StringHelper.startsWithNamespace(name, ns)) {
+                it.remove();
+                if (removeNs)
+                    name = name.substring(ns.length() + 1);
+                bodyNode.setAttr(name, vl);
+            }
+        }
+    }
+
+    public static void moveChildWithNs(XNode ret, XNode bodyNode, String ns, boolean removeNs) {
+        for (int i = 0, n = ret.getChildCount(); i < n; i++) {
+            XNode child = ret.child(i);
+            String tagName = child.getTagName();
+            if (StringHelper.startsWithNamespace(tagName, ns)) {
+                child.detach();
+                i--;
+                n--;
+                if (removeNs) {
+                    child.setTagName(tagName.substring(ns.length() + 1));
+                }
+                bodyNode.appendChild(child);
             }
         }
     }

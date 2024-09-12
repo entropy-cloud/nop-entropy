@@ -68,9 +68,13 @@ public class XplLibHelper {
     }
 
     public static IXplTag getTag(String libPath, String tagName) {
+        return getTag(libPath, tagName, false);
+    }
+
+    public static IXplTag getTag(String libPath, String tagName, boolean ignoreUnknown) {
         IXplTagLib lib = loadLib(libPath);
         IXplTag tag = lib.getTag(tagName);
-        if (tag == null)
+        if (tag == null && !ignoreUnknown)
             throw new NopException(ERR_XPL_UNKNOWN_LIB_TAG).param(ARG_LIB_PATH, libPath).param(ARG_TAG_NAME, tagName);
         return tag;
     }

@@ -42,6 +42,8 @@ public interface TaskErrors {
 
     String ARG_WAIT_STEP = "waitStep";
 
+    String ARG_CUSTOM_TYPE = "customType";
+
     ErrorCode ERR_TASK_STEP_NOT_RESTARTABLE = define("nop.err.task.step.not-restartable",
             "步骤[{stepName}]不允许多次执行", ARG_TASK_NAME, ARG_STEP_NAME);
 
@@ -116,5 +118,9 @@ public interface TaskErrors {
                     ARG_TASK_INSTANCE_ID);
 
     ErrorCode ERR_TASK_GRAPH_NO_ACTIVE_STEP =
-            define("nop.err.task.graph-no-active-step", "流程图[{stepPath}]已经没有活跃步骤，但是流程执行还没有结束");
+            define("nop.err.task.graph-no-active-step", "流程图[{stepPath}]已经没有活跃步骤，但是流程执行还没有结束", ARG_STEP_PATH);
+
+
+    ErrorCode ERR_TASK_INVALID_CUSTOM_TYPE =
+            define("nop.err.task.invalid-custom-type", "节点的扩展类型属性必须包含名字空间，例如customType='gpt:simple'", ARG_CUSTOM_TYPE);
 }

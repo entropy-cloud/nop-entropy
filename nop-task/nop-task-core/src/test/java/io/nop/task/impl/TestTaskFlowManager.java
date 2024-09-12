@@ -136,6 +136,11 @@ public class TestTaskFlowManager extends AbstractTaskTestCase {
         runTask("test/json-format-01");
     }
 
+    @Test
+    public void testCustomType() {
+        runTask("test/custom-type-01");
+    }
+
 
     public static class MyHandler {
 

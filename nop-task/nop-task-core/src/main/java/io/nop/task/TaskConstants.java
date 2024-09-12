@@ -11,6 +11,8 @@ public interface TaskConstants {
     String XDEF_PATH_TASK = "/nop/schema/task/task.xdef";
     String TAG_INPUT = "input";
     String TAG_OUTPUT = "output";
+
+    String TAG_SOURCE = "source";
     String ATTR_NAME = "name";
     String MODEL_TYPE_TASK = "task";
 
@@ -81,6 +83,10 @@ public interface TaskConstants {
     int TASK_STATUS_HISTORY_BOUND = TASK_STATUS_COMPLETED;
 
     int TASK_STEP_STATUS_ACTIVE = 10;
+
+    String STEP_TYPE_CUSTOM = "custom";
+
+    String ATTR_CUSTOM_TYPE = "customType";
 
     String STEP_TYPE_XPL = "xpl";
 

@@ -1,0 +1,21 @@
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <tags>
+        <Run>
+            <attr name="a"/>
+            <attr name="b" />
+
+            <!-- slot_exec编译为具有两个参数的函数，参数名为x和y -->
+            <slot name="exec">
+                <arg name="x" implicit="true"/>
+                <arg name="y" implicit="true"/>
+            </slot>
+
+            <source>
+                <c:script>
+                    return slot_exec(a,b);
+                </c:script>
+            </source>
+        </Run>
+    </tags>
+</lib>

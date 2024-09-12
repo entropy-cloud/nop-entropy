@@ -311,6 +311,10 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         return null;
     }
 
+    public String getUrlForXmlns(String ns) {
+        return attrText(CoreConstants.NS_XMLNS_PREFIX + ns);
+    }
+
     /**
      * 占位使用，只有XDocNode具有docType
      */
@@ -596,8 +600,8 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         this.setAttr(null, name, value);
     }
 
-    public XNode withAttr(String name, Object value){
-        setAttr(name,value);
+    public XNode withAttr(String name, Object value) {
+        setAttr(name, value);
         return this;
     }
 
@@ -2529,6 +2533,10 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
     }
 
     public void removeJsonPrefix() {
+        removeJsonPrefix(true);
+    }
+
+    public void removeJsonPrefix(boolean cascade) {
         checkNotReadOnly();
 
         for (Map.Entry<String, ValueWithLocation> entry : attributes.entrySet()) {
@@ -2546,8 +2554,10 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
             content = ValueWithLocation.of(content.getLocation(), json);
         }
 
-        for (XNode child : children) {
-            child.removeJsonPrefix();
+        if (cascade) {
+            for (XNode child : children) {
+                child.removeJsonPrefix(true);
+            }
         }
     }
 

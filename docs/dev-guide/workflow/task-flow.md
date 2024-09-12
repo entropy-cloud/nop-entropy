@@ -1,6 +1,7 @@
 # 逻辑编排
 
-单元测试参见 [TestTaskManager.java]()，测试文件参见[/nop/task/test](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-task/nop-task-core/src/test/resources/_vfs/nop/task/test)
+单元测试参见 [TestTaskManager.java]()
+，测试文件参见[/nop/task/test](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-task/nop-task-core/src/test/resources/_vfs/nop/task/test)
 
 设计原理的介绍，参见[lowcode-task-flow.md](../../theory/lowcode-task-flow.md)
 
@@ -48,36 +49,39 @@ TaskFlow内置了sequential/parallel/loop/choose等通用语法步骤，所有�
 <xdef:define xdef:name="TaskStepModel" executor="bean-name" timeout="!long=0"
              name="var-name" runOnContext="!boolean=false" ignoreResult="!boolean=false"
              next="string" nextOnError="string">
-    <input name="!var-name" xdef:name="TaskInputModel" type="generic-type" mandatory="!boolean=false"
-           fromTaskScope="!boolean=false" xdef:unique-attr="name">
-        <source xdef:value="xpl"/>
-    </input>
+  <input name="!var-name" xdef:name="TaskInputModel" type="generic-type" mandatory="!boolean=false"
+         fromTaskScope="!boolean=false" xdef:unique-attr="name">
+    <source xdef:value="xpl"/>
+  </input>
 
-    <output name="!var-name" xdef:name="TaskOutputModel" toTaskScope="!boolean=false" type="generic-type"
-            xdef:unique-attr="name" exportAs="var-name">
-        <source xdef:value="xpl"/>
-    </output>
+  <output name="!var-name" xdef:name="TaskOutputModel" toTaskScope="!boolean=false" type="generic-type"
+          xdef:unique-attr="name" exportAs="var-name">
+    <source xdef:value="xpl"/>
+  </output>
 
-    <when/>
-    <validator/>
-    <catch/>
-    <finally/>
+  <when/>
+  <validator/>
+  <catch/>
+  <finally/>
 
-    <retry/>
+  <retry/>
 
-    <throttle/>
+  <throttle/>
 
-    <rate-limit/>
+  <rate-limit/>
 </xdef:define>
 ```
 
-* input缺省情况下从parentScope获取变量。如果指定了source，则动态执行表达式获取，否则按照name名称获取。如果设置了`fromTaskScope=true`表示从全局task上下文获取
+*
+input缺省情况下从parentScope获取变量。如果指定了source，则动态执行表达式获取，否则按照name名称获取。如果设置了`fromTaskScope=true`
+表示从全局task上下文获取
 * 当步骤成功执行之后，会根据output配置更新parentScope。如果指定了source，则根据表达式动态计算返回值。如果不指定source，则根据name从步骤的TaskStepReturn.outputs集合中获取。
   如果设置了`toTaskScope=true`，则表示更新全局task上下文，而不是更新parentScope
 * 通过output中的exportAs配置可以改变更新scope时的变量名。例如
 
 ```xml
-<output name="result" exportAs="a" />
+
+<output name="result" exportAs="a"/>
 ```
 
 表示将返回数据中的result变量更新到父scope中，变量名修改为a
@@ -87,10 +91,11 @@ TaskFlow内置了sequential/parallel/loop/choose等通用语法步骤，所有�
 ## Xpl脚本
 
 ```xml
+
 <xpl name="test">
-    <input name="sum" />
-    <source> return sum + 1</source>
-    <output name="sum" />
+  <input name="sum"/>
+  <source>return sum + 1</source>
+  <output name="sum"/>
 </xpl>
 ```
 
@@ -105,21 +110,22 @@ sum = function(sum){
 ## 顺序执行
 
 ```xml
-<sequential name="test">
-    <steps>
-        <xpl name="step1">
-            <source>
-                return 1
-            </source>
-        </xpl>
 
-        <xpl name="step2">
-            <input name="RESULT" />
-            <source>
-                return RESULT + 2
-            </source>
-        </xpl>
-    </steps>
+<sequential name="test">
+  <steps>
+    <xpl name="step1">
+      <source>
+        return 1
+      </source>
+    </xpl>
+
+    <xpl name="step2">
+      <input name="RESULT"/>
+      <source>
+        return RESULT + 2
+      </source>
+    </xpl>
+  </steps>
 </sequential>
 ```
 
@@ -140,18 +146,71 @@ RESULT = function(RESULT){
 通过步骤装饰器可以引入transaction、ormSession等依赖更多的类AOP支持，参见[task-step-decorator.md](task-step-decorator.md)
 
 ## output变量重命名
+
 通过以下方式可以改变输出变量的名称
 
 ### 1. 使用exportAs变量会改变返回到父scope中的变量名
 
 ```xml
-<output name="RESULT" exportAs="value" />
+
+<output name="RESULT" exportAs="value"/>
 ```
+
 ### 2. 执行表达式生成新的返回变量
 
 ```xml
- <output name="value">
+
+<output name="value">
   <source>RESULT</source>
- </output>
+</output>
 ```
+
 根据当前环境中的值执行某个source表达式动态计算得到一个返回值
+
+## 扩展节点类型
+
+NopTaskFlow内置了一个特殊的步骤类型custom，可以通过customType属性和xmlns来指定一个xpl标签，它会被自动翻译为标签实现。
+
+```xml
+
+<task xmlns:test="/nop/test/test.xlib" x:extends="/nop/task/lib/common.task.xml">
+  <steps>
+    <custom name="step1" customType="test:MyFunc" test:a="${1}">
+      <input name="b"/>
+      <test:exec>
+        <c:script>
+          return x + y;
+        </c:script>
+      </test:exec>
+    </custom>
+  </steps>
+</task>
+```
+
+* `common.task.xml`通过`<x:post-extends>`引入了customType的翻译支持，实际会调用`<task-gen:TransformCustomType>`来实现翻译
+  翻译后实际编译的内容为
+
+```xml
+
+<task xmlns:test="/nop/test/test.xlib" x:extends="/nop/task/lib/common.task.xml">
+  <steps>
+    <xpl name="step1">
+      <input name="b"/>
+      <source>
+        <test:MyFunc xpl:lib="/nop/test/test.xlib" a="${1}" b="${b}">
+          <exec>
+            <c:script>
+              return x + y;
+            </c:script>
+          </exec>
+        </test:MyFunc>
+      </source>
+    </xpl>
+  </steps>
+</task>
+```
+
+也就是说customType会被翻译为xpl标签，然后通过xpl标签来实现自定义的逻辑。customType会指定一个名字空间，所有具有此名字空间的属性和子节点会成为标签函数的属性和子节点。
+另外，所有input输入的参数，也会自动成为标签的属性。
+
+通过这种转换机制可以尽量减小自定义扩展步骤和内置步骤之间的形式差异。除了多出一个名字空间之外，基本上与内置标签形式完全一致。

@@ -262,6 +262,10 @@
             <suspend name="!var-name" xdef:ref="TaskStepModel" xdef:name="SuspendTaskStepModel">
                 <resume-when xdef:value="xpl-predicate"/>
             </suspend>
+
+            <custom name="!var-name" customType="!xml-name" xdef:ref="TaskStepModel"
+                    xdef:name="CustomTaskStepModel" />
+
         </steps>
     </xdef:define>
 </task>
