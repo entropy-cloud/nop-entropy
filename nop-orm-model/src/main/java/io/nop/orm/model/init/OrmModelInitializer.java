@@ -71,6 +71,7 @@ import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_ENTITY_NO_PROP;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_ENTITY_PROP_NOT_PRIMARY_KEY;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_PROP_NOT_COLUMN;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_UNKNOWN_ENTITY;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_COLUMN;
 
 public class OrmModelInitializer {
     static final Logger LOG = LoggerFactory.getLogger(OrmModelInitializer.class);
@@ -413,8 +414,8 @@ public class OrmModelInitializer {
         if (keyProp != null) {
             IColumnModel col = refEntityModel.getColumn(keyProp, true);
             if (col == null) {
-                throw new NopException(ERR_ORM_MODEL_REF_PROP_NOT_COLUMN).loc(ref.getLocation())
-                        .param(ARG_PROP_NAME, keyProp).param(ARG_ENTITY_NAME, refEntityModel.getName());
+                throw new NopException(ERR_ORM_UNKNOWN_COLUMN).loc(ref.getLocation())
+                        .param(ARG_COL_NAME, keyProp).param(ARG_ENTITY_NAME, refEntityModel.getName());
             }
         }
 
@@ -424,8 +425,8 @@ public class OrmModelInitializer {
                 String propName = order.getName();
                 IColumnModel col = refEntityModel.getColumn(propName, true);
                 if (col == null) {
-                    throw new NopException(ERR_ORM_MODEL_REF_PROP_NOT_COLUMN).loc(ref.getLocation())
-                            .param(ARG_PROP_NAME, propName).param(ARG_ENTITY_NAME, refEntityModel.getName());
+                    throw new NopException(ERR_ORM_UNKNOWN_COLUMN).loc(ref.getLocation())
+                            .param(ARG_COL_NAME, propName).param(ARG_ENTITY_NAME, refEntityModel.getName());
                 }
             }
         }

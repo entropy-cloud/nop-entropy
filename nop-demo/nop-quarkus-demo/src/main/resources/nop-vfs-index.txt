@@ -735,6 +735,7 @@
 /nop/schema/orm/orm-interceptor.xdef
 /nop/schema/orm/orm.xdef
 /nop/schema/orm/sql-lib.xdef
+/nop/schema/orm/view-entity.xdef
 /nop/schema/query/filter.xdef
 /nop/schema/query/group-by.xdef
 /nop/schema/query/order-by.xdef
@@ -1089,6 +1090,7 @@
 /nop/wf/beans/app-service.beans.xml
 /nop/wf/beans/wf-core.beans.xml
 /nop/wf/beans/wf-dao.beans.xml
+/nop/wf/designer/demo-data.page.json
 /nop/wf/designer/designer.page.yaml
 /nop/wf/designer/dingflow.graph-designer.xml
 /nop/wf/designer/dingflow.lib.js
@@ -1163,7 +1165,6 @@
 /nop/wf/pages/NopWfDefinition/NopWfDefinition.lib.xjs
 /nop/wf/pages/NopWfDefinition/NopWfDefinition.view.xml
 /nop/wf/pages/NopWfDefinition/_gen/_NopWfDefinition.view.xml
-/nop/wf/pages/NopWfDefinition/demo-data.page.json
 /nop/wf/pages/NopWfDefinition/main.page.yaml
 /nop/wf/pages/NopWfDefinition/ofd-models.lib.css
 /nop/wf/pages/NopWfDefinition/ofd-models.lib.js

@@ -156,7 +156,7 @@ public interface OrmModelErrors {
     ErrorCode ERR_ORM_UNKNOWN_COLUMN_PROP_ID = define("nop.err.orm.model.unknown-column-prop-id",
             "实体[{entityName}]上没有定义编号为[{propId}]的列", ARG_ENTITY_NAME, ARG_PROP_ID);
 
-    ErrorCode ERR_ORM_UNKNOWN_COLUMN = define("nop.err.orm.model.unknown-column", "实体[{entityName}]上没有定义列[{colName}]",
+    ErrorCode ERR_ORM_UNKNOWN_COLUMN = define("nop.err.orm.model.unknown-column", "实体[{entityName}]上没有定义列[{colName}]，注意这里是Java属性名而不是数据库字段名",
             ARG_ENTITY_NAME, ARG_COL_NAME);
 
     ErrorCode ERR_ORM_UNKNOWN_COLUMN_CODE = define("nop.err.orm.model.unknown-column-code",
