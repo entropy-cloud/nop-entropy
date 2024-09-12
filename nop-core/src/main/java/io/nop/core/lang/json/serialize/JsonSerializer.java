@@ -13,7 +13,6 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.IJsonString;
 import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.commons.CommonConstants;
 import io.nop.commons.bytes.ByteString;
 import io.nop.commons.text.RawText;
 import io.nop.commons.util.StringHelper;
@@ -77,6 +76,9 @@ public class JsonSerializer implements IJsonSerializer {
             out.booleanValue(loc, (Boolean) o);
         } else if (o instanceof Number) {
             out.numberValue(loc, (Number) o);
+        } else if (o instanceof byte[]) {
+            // 字节数组序列化为base64Url，在前台可以直接拼接为dataUrl。例如 data:audio/wav;base64,xxxxxx
+            out.stringValue(loc, StringHelper.encodeBase64Url((byte[]) o));
         } else if (o.getClass().isArray()) {
             writeArray(loc, o, out);
         } else if (o instanceof RawText) {
@@ -95,9 +97,7 @@ public class JsonSerializer implements IJsonSerializer {
         } else if (o instanceof Class) {
             out.stringValue(loc, ((Class<?>) o).getName());
         } else if (o.getClass() == ByteString.class) {
-            out.stringValue(loc, ((ByteString) o).toEncodedHex());
-        } else if (o.getClass() == byte[].class) {
-            out.stringValue(loc, CommonConstants.HEX_PREFIX + StringHelper.bytesToHex((byte[]) o));
+            out.stringValue(loc, ((ByteString) o).toEncodedBase64());
         } else {
             writeBean(loc, o, out);
         }
