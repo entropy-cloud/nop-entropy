@@ -13,6 +13,7 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.object.DynamicObject;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceObjectLoader;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdsl.json.DslModelToXNodeTransformer;
 import io.nop.xlang.xdsl.json.DslXNodeToJsonTransformer;
@@ -42,6 +43,10 @@ public class DslModelHelper {
      */
     public static IComponentModel loadDslModel(IResource resource) {
         return new DslModelParser().parseFromResource(resource);
+    }
+
+    public static IComponentModel loadDslModelFromPath(String path) {
+        return loadDslModel(VirtualFileSystem.instance().getResource(path));
     }
 
     public static IComponentModel parseDslModelNode(String xdefPath, XNode node) {
@@ -78,7 +83,7 @@ public class DslModelHelper {
     }
 
     public static Object dslNodeToJson(IXDefNode defNode, XNode node) {
-        return new DslXNodeToJsonTransformer(true, null, null).transformToObject(defNode, node,null);
+        return new DslXNodeToJsonTransformer(true, null, null).transformToObject(defNode, node, null);
     }
 
     public static String getXdefPath(Object model, String defaultXdefPath) {

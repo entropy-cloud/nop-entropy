@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+>
+
+    <domains>
+        <domain name="blob" stdSqlType="VARBINARY" precision="100000000"/>
+        <domain name="byte-array" stdSqlType="VARBINARY" precision="10000000"/>
+        <domain name="object" stdSqlType="VARBINARY" precision="10000000"/>
+
+        <domain name="date-time" stdSqlType="DATETIME"/>
+        <domain name="date" stdSqlType="DATE"/>
+        <domain name="time" stdSqlType="TIME"/>
+
+        <domain name="currency-amount" stdSqlType="DECIMAL" precision="18" scale="2"/>
+        <domain name="currency-precise" stdSqlType="DECIMAL" precision="18" scale="3"/>
+        <domain name="fixed-point" stdSqlType="DECIMAL" precision="18" scale="6"/>
+        <domain name="floating-point" stdSqlType="DOUBLE"/>
+        <domain name="integer" stdSqlType="INTEGER"/>
+        <domain name="numeric" stdSqlType="BIGINT"/>
+
+        <domain name="id" stdSqlType="VARCHAR" precision="20"/>
+        <domain name="id-long" stdSqlType="VARCHAR" precision="60"/>
+        <domain name="id-vlong" stdSqlType="VARCHAR" precision="250"/>
+
+        <domain name="indicator" stdSqlType="CHAR" precision="1"/>
+        <domain name="very-short" stdSqlType="VARCHAR" precision="10"/>
+        <domain name="short-varchar" stdSqlType="VARCHAR" precision="60"/>
+        <domain name="long-varchar" stdSqlType="VARCHAR" precision="255"/>
+        <domain name="very-long" stdSqlType="VARCHAR" precision="10000000"/>
+
+        <domain name="comment" stdSqlType="VARCHAR" precision="255"/>
+        <domain name="description" stdSqlType="VARCHAR" precision="255"/>
+        <domain name="name" stdSqlType="VARCHAR" precision="100"/>
+        <domain name="value" stdSqlType="VARCHAR" precision="255"/>
+
+        <domain name="credit-card-number" stdSqlType="VARCHAR" precision="255"/>
+        <domain name="credit-card-date" stdSqlType="VARCHAR" precision="7"/>
+        <domain name="email" stdSqlType="VARCHAR" precision="320"/>
+        <domain name="url" stdSqlType="VARCHAR" precision="2000"/>
+        <domain name="tel-number" stdSqlType="VARCHAR" precision="60"/>
+
+    </domains>
+</orm>
