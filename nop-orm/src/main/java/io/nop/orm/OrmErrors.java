@@ -268,6 +268,9 @@ public interface OrmErrors {
     ErrorCode ERR_ORM_INVALID_COMPOSITE_PK_PART_COUNT = define("nop.err.orm.invalid-composite-pk-part-count",
             "对象[{entityName}]的复合主键[{entityId}]应该由{count}个部分组成", ARG_ENTITY_NAME, ARG_ENTITY_ID, ARG_COUNT);
 
+    ErrorCode ERR_ORM_ENTITY_NO_ID_PROP = define("nop.err.orm.entity-no-id-prop",
+            "对象[{entityName}]没有定义主键属性，不支持根据id加载", ARG_ENTITY_NAME);
+
     ErrorCode ERR_ORM_INVALID_COMPOSITE_PK_PART = define("nop.err.orm.invalid-composite-pk-part",
             "对象[{entityName}]的复合主键[{entityId}]的组成部分[{value}]不是期待的数据类型[{targetType}]", ARG_ENTITY_NAME, ARG_ENTITY_ID,
             ARG_VALUE, ARG_TARGET_TYPE);

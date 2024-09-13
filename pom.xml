@@ -465,6 +465,6 @@
         <module>nop-orm-drivers</module>
         <module>nop-cli-jdk11</module>
         <module>nop-security</module>
-        <module>nop-ofbiz</module>
+        <module>nop-ofbiz-migration</module>
     </modules>
 </project>

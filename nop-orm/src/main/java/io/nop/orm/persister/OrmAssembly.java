@@ -138,6 +138,9 @@ public class OrmAssembly {
      */
     public static Object readId(Object[] values, int fromIndex, IEntityModel entityModel) {
         IEntityPropModel prop = entityModel.getIdProp();
+        if (prop == null)
+            return null;
+
         if (prop.isSingleColumn()) {
             return values[0];
         }

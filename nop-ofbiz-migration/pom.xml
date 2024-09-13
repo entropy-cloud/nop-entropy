@@ -9,7 +9,7 @@
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nop-ofbiz</artifactId>
+    <artifactId>nop-ofbiz-migration</artifactId>
 
     <dependencies>
         <dependency>

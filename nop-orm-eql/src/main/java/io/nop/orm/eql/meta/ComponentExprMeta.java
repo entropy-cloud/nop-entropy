@@ -10,13 +10,13 @@ package io.nop.orm.eql.meta;
 import io.nop.commons.collections.IntArray;
 import io.nop.commons.collections.MutableIntArray;
 import io.nop.dao.api.IDaoEntity;
-import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.dao.dialect.IDialect;
+import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.orm.eql.IEqlQueryContext;
+import io.nop.orm.eql.utils.EqlHelper;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityComponentModel;
 import io.nop.orm.model.IOrmDataType;
-import io.nop.orm.eql.utils.EqlHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,8 +41,9 @@ public class ComponentExprMeta implements ISqlExprMeta {
     }
 
     List<String> buildColumnNames(IDialect dialect, ISqlExprMeta idProp, IEntityComponentModel compModel) {
-        List<String> colNames = new ArrayList<>(idProp.getColumnCount() + compModel.getColumns().size());
-        colNames.addAll(idProp.getColumnNames());
+        List<String> colNames = new ArrayList<>(idProp == null ? null : idProp.getColumnCount() + compModel.getColumns().size());
+        if (idProp != null)
+            colNames.addAll(idProp.getColumnNames());
         for (IColumnModel col : compModel.getColumns()) {
             if (!col.isPrimary()) {
                 colNames.add(EqlHelper.getColumnName(dialect, col));
@@ -94,7 +95,7 @@ public class ComponentExprMeta implements ISqlExprMeta {
 
 //        IOrmEntity entity = session.internalLoad(componentModel.getOwnerEntityModel().getName(), id);
 //        session.internalAssemble(entity, values, propIds);
-        IDaoEntity entity = session.internalMakeEntity(componentModel.getOwnerEntityModel().getName(),id, values, propIds);
+        IDaoEntity entity = session.internalMakeEntity(componentModel.getOwnerEntityModel().getName(), id, values, propIds);
 
         return entity.orm_propValueByName(componentModel.getName());
     }

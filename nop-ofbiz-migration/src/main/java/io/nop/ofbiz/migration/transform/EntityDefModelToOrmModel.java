@@ -1,72 +1,82 @@
-package io.nop.ofbiz.transform;
+package io.nop.ofbiz.migration.transform;
 
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
-import io.nop.core.lang.xml.parse.XNodeParser;
-import io.nop.core.resource.impl.FileResource;
-import io.nop.ofbiz.OfbizConstants;
-import io.nop.orm.model.OrmColumnModel;
+import io.nop.ofbiz.migration.OfbizMigrationConstants;
 import io.nop.orm.model.OrmDomainModel;
-import io.nop.orm.model.OrmEntityModel;
 import io.nop.orm.model.OrmModel;
 import io.nop.xlang.xdsl.DslModelHelper;
 
-import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
 public class EntityDefModelToOrmModel {
-    private final OrmModel baseModel = (OrmModel) DslModelHelper.loadDslModelFromPath(OfbizConstants.PATH_OFBIZ_BASE_ORM);
+    private final OrmModel baseModel = (OrmModel) DslModelHelper.loadDslModelFromPath(OfbizMigrationConstants.PATH_OFBIZ_BASE_ORM);
 
-    public static void transformDefFile(File defFile, File ormFile) {
-        XNode node = XNodeParser.instance().parseFromResource(new FileResource(defFile));
-        XNode ormNode = new EntityDefModelToOrmModel().transform(node);
-        ormNode.saveToResource(new FileResource(ormFile), StringHelper.ENCODING_UTF8);
+    private final Map<String, XNode> entityNodes = new HashMap<>();
+    private final Map<String, List<XNode>> unknownRelations = new HashMap<>();
+
+    public Map<String, XNode> getEntityNodes() {
+        return entityNodes;
+    }
+
+    public Map<String, List<XNode>> getUnknownRelations() {
+        return unknownRelations;
+    }
+
+    public void mergeTo(Map<String, XNode> entityNodes, Map<String, List<XNode>> unknownRelations) {
+        entityNodes.putAll(this.getEntityNodes());
+        this.getUnknownRelations().forEach((name, list) -> {
+            unknownRelations.computeIfAbsent(name, k -> new ArrayList<>()).addAll(list);
+        });
     }
 
     public XNode transform(XNode node) {
         XNode ret = XNode.make("orm");
-        ret.setAttr("x:extends", OfbizConstants.PATH_OFBIZ_BASE_ORM);
+        ret.setAttr("x:extends", OfbizMigrationConstants.PATH_OFBIZ_BASE_ORM);
         ret.setAttr("x:schema", "/nop/schema/orm/orm.xdef");
         ret.setAttr("xmlns:x", "/nop/schema/xdsl.xdef");
 
         XNode entities = ret.addChild("entities");
 
-        Map<String, XNode> nodeMap = new HashMap<>();
-        OrmModel ormModel = new OrmModel();
         for (XNode child : node.getChildren()) {
             if (child.getTagName().equals("entity")) {
-                XNode entityNode = transformEntity(child, ormModel);
+                XNode entityNode = transformEntity(child);
                 String entityName = child.attrText("entity-name");
                 entities.appendChild(entityNode);
-                nodeMap.put(entityName, entityNode);
+                if (entityNodes.containsKey(entityName))
+                    throw new IllegalArgumentException("nop.err.ofbiz.duplicate-entity-name:" + entityName);
+                entityNodes.put(entityName, entityNode);
             }
         }
 
-        Map<String, OrmEntityModel> shortNameMap = new HashMap<>();
-        for (OrmEntityModel entityModel : ormModel.getEntities()) {
-            shortNameMap.put(entityModel.getShortName(), entityModel);
-        }
-
         for (XNode child : node.getChildren()) {
             if (child.getTagName().equals("entity")) {
                 String entityName = child.attrText("entity-name");
-                XNode entityNode = nodeMap.get(entityName);
-                transformRelation(entityNode, child, shortNameMap);
+                XNode entityNode = entityNodes.get(entityName);
+                transformRelation(entityNode, child);
             }
         }
 
         return ret;
     }
 
-    private XNode transformEntity(XNode node, OrmModel ormModel) {
+    private XNode transformEntity(XNode node) {
         XNode ret = XNode.make("entity");
         String packageName = node.attrText("package-name");
         String entityName = node.attrText("entity-name");
         String name = StringHelper.fullClassName(entityName, packageName);
-        String tableName = StringHelper.camelCaseToUnderscore(entityName, true);
+        String tableName = node.attrText("table-name");
+        if (StringHelper.isEmpty(tableName)) {
+            tableName = StringHelper.camelCaseToUnderscore(entityName, true);
+        } else {
+            tableName = tableName.toUpperCase(Locale.ROOT);
+        }
         String title = node.attrText("title");
         ret.setAttr("name", name);
         ret.setAttr("className", name);
@@ -75,19 +85,13 @@ public class EntityDefModelToOrmModel {
 
         XNode columns = ret.addChild("columns");
 
-        OrmEntityModel entityModel = new OrmEntityModel();
-        entityModel.setName(name);
-        entityModel.setClassName(name);
-        entityModel.setTableName(tableName);
-        ormModel.addEntity(entityModel);
-
         Set<String> pkNames = getPrimaryKeys(node);
 
         int propId = 0;
         for (XNode child : node.getChildren()) {
             String tagName = child.getTagName();
             if (tagName.equals("field")) {
-                XNode col = transformField(child, entityModel, pkNames);
+                XNode col = transformField(child, pkNames);
                 col.setAttr("propId", ++propId);
                 columns.appendChild(col);
             }
@@ -96,10 +100,15 @@ public class EntityDefModelToOrmModel {
         return ret;
     }
 
-    private XNode transformField(XNode node, OrmEntityModel entityModel, Set<String> pkNames) {
+    private XNode transformField(XNode node, Set<String> pkNames) {
         String name = node.attrText("name");
         String type = node.attrText("type");
-        String code = StringHelper.camelCaseToUnderscore(name, false);
+        String code = node.attrText("col-name");
+        if (StringHelper.isEmpty(code)) {
+            code = StringHelper.camelCaseToUnderscore(name, false);
+        } else {
+            code = code.toUpperCase(Locale.ROOT);
+        }
         boolean primary = pkNames.contains(name);
 
         XNode ret = XNode.make("column");
@@ -107,35 +116,30 @@ public class EntityDefModelToOrmModel {
         ret.setAttr("displayName", name);
         ret.setAttr("code", code);
         ret.setAttr("domain", type);
-        ret.setAttr("primary", true);
+        if (primary)
+            ret.setAttr("primary", primary);
 
         OrmDomainModel domain = baseModel.getDomain(type);
         ret.setAttr("stdSqlType", domain.getStdSqlType());
         ret.setAttr("precision", domain.getPrecision());
         ret.setAttr("scale", domain.getScale());
 
-        OrmColumnModel col = new OrmColumnModel();
-        col.setName(name);
-        col.setCode(code);
-        col.setStdSqlType(domain.getStdSqlType());
-        col.setPrecision(domain.getPrecision());
-        col.setScale(domain.getScale());
-        col.setPrimary(primary);
-
-        entityModel.addColumn(col);
         return ret;
     }
 
     private Set<String> getPrimaryKeys(XNode node) {
         Set<String> ret = new HashSet<>();
         for (XNode child : node.getChildren()) {
+            if (!child.getTagName().equals("prim-key"))
+                continue;
+
             String field = child.attrText("field");
             ret.add(field);
         }
         return ret;
     }
 
-    private void transformRelation(XNode ret, XNode node, Map<String, OrmEntityModel> shortMap) {
+    private void transformRelation(XNode ret, XNode node) {
         XNode relations = ret.addChild("relations");
         for (XNode child : node.getChildren()) {
             if (child.getTagName().equals("relation")) {
@@ -153,9 +157,11 @@ public class EntityDefModelToOrmModel {
                 if (title.equals("class"))
                     title = "className";
 
-                OrmEntityModel entityModel = shortMap.get(refEntityName);
+                XNode entityModel = entityNodes.get(refEntityName);
                 if (entityModel != null) {
-                    refEntityName = entityModel.getName();
+                    refEntityName = entityModel.attrText("name");
+                } else {
+                    unknownRelations.computeIfAbsent(refEntityName, k -> new ArrayList<>()).add(child);
                 }
 
                 String relType = type.equals("one") || type.equals("one-nopk") ? "to-one" : "to-many";

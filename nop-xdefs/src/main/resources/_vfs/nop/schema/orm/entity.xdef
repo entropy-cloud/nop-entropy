@@ -41,10 +41,11 @@
  @labelProp [标签属性]
  @stateProp [状态属性]
  @entityModeEnabled [是否启用实体模式]
+ @noPrimaryKey [是否没有主键] 视图对象有可能没有主键，此时不支持延迟加载，所有字段都是eager字段，而且在session缓存里也没有记录
  -->
 <entity name="!class-name" className="class-name" displayName="string" tableName="!string"
         readonly="!boolean=false" tableView="!boolean=false" kvTable="!boolean=false" querySpace="string=default"
-        persistDriver="string=jdbc" tagSet="tag-set"
+        persistDriver="string=jdbc" tagSet="tag-set" noPrimaryKey="!boolean=false"
         useShard="!boolean=false" shardProp="var-name" useGlobalCache="!boolean=false"
         useTenant="!boolean=false" tenantProp="var-name"
         useWorkflow="!boolean=false" useRevision="!boolean=false"

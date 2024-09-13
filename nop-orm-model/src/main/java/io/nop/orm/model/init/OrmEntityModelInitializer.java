@@ -126,15 +126,26 @@ public class OrmEntityModelInitializer {
         this.globalUniqueId = entityModel.containsTag(OrmModelConstants.TAG_GID);
 
         if (tenantPropId > 0 && !globalUniqueId) {
+            // 如果主键定义中已经明确包含了租户id，则id必然是跨租户唯一的
             this.globalUniqueId = this.pkColumns.contains(colsByPropId[tenantPropId]);
         }
 
-        for (IEntityPropModel prop : entityModel.getColumns()) {
+        // 没有主键肯定不支持修改
+        if (!entityModel.isNoPrimaryKey())
+            entityModel.setReadonly(true);
+
+        for (OrmColumnModel prop : entityModel.getColumns()) {
             String underscoreName = StringHelper.camelCaseToUnderscore(prop.getName(), true).intern();
             this.propsByUnderscoreName.put(underscoreName.toUpperCase(Locale.ROOT), prop);
             IEntityPropModel oldProp = this.propsByUnderscoreName.put(underscoreName, prop);
             if (oldProp != null && oldProp != prop) {
                 LOG.info("nop.orm.underscore-name-conflicted:propName={},entityName={}", underscoreName, entityModel.getName());
+            }
+
+            // 没有主键的情况下所有字段都必须是非lazy的
+            if (prop.isLazy() && entityModel.isNoPrimaryKey()) {
+                LOG.warn("nop.warn.column-must-be-non-lazy-when-table-has-no-pk:entityName={},col={}", entityModel.getName(), prop.getName());
+                prop.setLazy(false);
             }
         }
     }
@@ -245,9 +256,14 @@ public class OrmEntityModelInitializer {
 
     void initIdProp() {
         if (pkColumns.isEmpty()) {
+            if (entityModel.isNoPrimaryKey())
+                return;
+
             throw new NopException(ERR_ORM_ENTITY_MODEL_NO_PK).source(entityModel).param(ARG_ENTITY_NAME,
                     entityModel.getName());
         }
+
+        entityModel.setNoPrimaryKey(false);
 
         if (pkColumns.size() == 1) {
             idProp = pkColumns.get(0);

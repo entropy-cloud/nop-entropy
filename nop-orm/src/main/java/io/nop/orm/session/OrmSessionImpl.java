@@ -772,6 +772,11 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     IOrmEntity _makeProxy(IEntityPersister persister, Object id) {
         IEntityModel entityModel = persister.getEntityModel();
+        if (entityModel.isNoPrimaryKey()) {
+            IOrmEntity entity = persister.newEntity(this);
+            entity.orm_state(OrmEntityState.PROXY);
+            return entity;
+        }
 
         id = OrmEntityHelper.castId(entityModel, id);
         IOrmEntity entity = cache.get(entityModel.getName(), id);

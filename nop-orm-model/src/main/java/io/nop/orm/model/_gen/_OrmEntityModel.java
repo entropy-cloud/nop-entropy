@@ -180,6 +180,13 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
     private java.lang.String _name ;
     
     /**
+     *  是否没有主键
+     * xml name: noPrimaryKey
+     * 视图对象有可能没有主键，此时不支持延迟加载，所有字段都是eager字段，而且在session缓存里也没有记录
+     */
+    private boolean _noPrimaryKey  = false;
+    
+    /**
      *  是否生成代码
      * xml name: notGenCode
      * 如果设置为true，则代码生成时将跳过本实体对象，不为它生成实体类。当我们引用其他模块的实体类时应该设置此属性，
@@ -939,6 +946,25 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
 
     
     /**
+     * 是否没有主键
+     * xml name: noPrimaryKey
+     *  视图对象有可能没有主键，此时不支持延迟加载，所有字段都是eager字段，而且在session缓存里也没有记录
+     */
+    
+    public boolean isNoPrimaryKey(){
+      return _noPrimaryKey;
+    }
+
+    
+    public void setNoPrimaryKey(boolean value){
+        checkAllowChange();
+        
+        this._noPrimaryKey = value;
+           
+    }
+
+    
+    /**
      * 是否生成代码
      * xml name: notGenCode
      *  如果设置为true，则代码生成时将跳过本实体对象，不为它生成实体类。当我们引用其他模块的实体类时应该设置此属性，
@@ -1484,6 +1510,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
         out.putNotNull("labelProp",this.getLabelProp());
         out.putNotNull("maxBatchLoadSize",this.getMaxBatchLoadSize());
         out.putNotNull("name",this.getName());
+        out.putNotNull("noPrimaryKey",this.isNoPrimaryKey());
         out.putNotNull("notGenCode",this.isNotGenCode());
         out.putNotNull("persistDriver",this.getPersistDriver());
         out.putNotNull("querySpace",this.getQuerySpace());
@@ -1541,6 +1568,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
         instance.setLabelProp(this.getLabelProp());
         instance.setMaxBatchLoadSize(this.getMaxBatchLoadSize());
         instance.setName(this.getName());
+        instance.setNoPrimaryKey(this.isNoPrimaryKey());
         instance.setNotGenCode(this.isNotGenCode());
         instance.setPersistDriver(this.getPersistDriver());
         instance.setQuerySpace(this.getQuerySpace());

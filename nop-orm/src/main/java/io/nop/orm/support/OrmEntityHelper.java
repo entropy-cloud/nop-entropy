@@ -9,6 +9,7 @@ package io.nop.orm.support;
 
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopEvalException;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
@@ -39,6 +40,7 @@ import static io.nop.orm.OrmErrors.ARG_ENTITY_ID;
 import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
 import static io.nop.orm.OrmErrors.ARG_OWNER;
 import static io.nop.orm.OrmErrors.ARG_PROP_NAME;
+import static io.nop.orm.OrmErrors.ERR_ORM_ENTITY_NO_ID_PROP;
 import static io.nop.orm.OrmErrors.ERR_ORM_INVALID_COMPOSITE_PK_PART_COUNT;
 import static io.nop.orm.OrmErrors.ERR_ORM_INVALID_ENTITY_ID;
 import static io.nop.orm.OrmErrors.ERR_ORM_NOT_SINGLETON_SET;
@@ -154,6 +156,10 @@ public class OrmEntityHelper {
             return null;
 
         IEntityPropModel idProp = entityModel.getIdProp();
+        if (idProp == null)
+            throw new NopException(ERR_ORM_ENTITY_NO_ID_PROP)
+                    .param(ARG_ENTITY_NAME, entityModel.getName());
+
         if (idProp.isSingleColumn()) {
             return idProp.getColumns().get(0).getStdDataType().convert(id,
                     err -> new OrmException(err).param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_ENTITY_ID, id)

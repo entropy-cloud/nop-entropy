@@ -59,6 +59,11 @@ public class CollectionPersisterImpl implements ICollectionPersister {
     @Override
     public void init(IEntityRelationModel relation, IPersistEnv env) {
         useGlobalCache = relation.isUseGlobalCache() && CFG_ENTITY_GLOBAL_CACHE_ENABLED.get();
+
+        // 如果关联实体没有主键，目前禁用全局缓存
+        if (relation.getRefEntityModel().isNoPrimaryKey())
+            useGlobalCache = false;
+
         if (useGlobalCache) {
             this.globalCache = env.getGlobalCache().getCache(relation.getCollectionName());
         }

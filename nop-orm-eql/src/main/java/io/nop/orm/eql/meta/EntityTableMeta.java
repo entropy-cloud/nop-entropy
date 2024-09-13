@@ -17,11 +17,26 @@ import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.orm.eql.binder.IOrmColumnBinderEnhancer;
 import io.nop.orm.eql.binder.OrmBinderHelper;
 import io.nop.orm.eql.utils.EqlHelper;
-import io.nop.orm.model.*;
+import io.nop.orm.model.ExprOrmDataType;
+import io.nop.orm.model.IColumnModel;
+import io.nop.orm.model.IEntityComponentModel;
+import io.nop.orm.model.IEntityJoinConditionModel;
+import io.nop.orm.model.IEntityModel;
+import io.nop.orm.model.IEntityPropModel;
+import io.nop.orm.model.IEntityRelationModel;
+import io.nop.orm.model.OrmEntityFilterModel;
+import io.nop.orm.model.OrmModelConstants;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
-import static io.nop.orm.eql.OrmEqlErrors.*;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_ENTITY_NAME;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_PROP_NAME;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_FIELD_IN_ENTITY;
 import static io.nop.orm.eql.utils.EqlHelper.getColumnName;
 
 public class EntityTableMeta implements ISqlTableMeta {
@@ -41,24 +56,33 @@ public class EntityTableMeta implements ISqlTableMeta {
         }
         entityExprMeta = new EntityExprMeta(dialect, entityModel, propIds, binders);
         IEntityPropModel idProp = entityModel.getIdProp();
-        ISqlExprMeta idExprMeta;
-        if (idProp.isSingleColumn()) {
-            idExprMeta = makeColumnMeta(dialect, idProp, colBinders);
-        } else {
-            idExprMeta = makeCompositePkMeta(dialect, idProp, colBinders);
+        ISqlExprMeta idExprMeta = null;
+        if (idProp != null) {
+            if (idProp.isSingleColumn()) {
+                idExprMeta = makeColumnMeta(dialect, idProp, colBinders);
+            } else {
+                idExprMeta = makeCompositePkMeta(dialect, idProp, colBinders);
+            }
+            this.propExprMetas.put(OrmModelConstants.PROP_ID, idExprMeta);
         }
-        this.propExprMetas.put(OrmModelConstants.PROP_ID, idExprMeta);
 
         for (IColumnModel colModel : entityModel.getColumns()) {
             propExprMetas.put(colModel.getName(), makeColumnMeta(dialect, colModel, colBinders));
         }
 
-        for (IEntityComponentModel propModel : entityModel.getComponents()) {
-            propExprMetas.put(propModel.getName(), makeComponentMeta(dialect, idExprMeta, propModel, colBinders));
+        // 无主键的实体不支持查询component，因为component需要知道owner对象， 无主键的情况下无法通过简单的方式获取到owner实体
+        if (entityModel.isNoPrimaryKey()) {
+            for (IEntityComponentModel propModel : entityModel.getComponents()) {
+                propExprMetas.put(propModel.getName(), makeComponentMeta(dialect, idExprMeta, propModel, colBinders));
+            }
         }
 
         for (IEntityRelationModel propModel : entityModel.getRelations()) {
-            propExprMetas.put(propModel.getName(), makePropMeta(dialect, idExprMeta, propModel, colBinders));
+            ISqlExprMeta relMeta = makePropMeta(dialect, idExprMeta, propModel, colBinders);
+            if (relMeta == null)
+                continue;
+
+            propExprMetas.put(propModel.getName(), relMeta);
         }
 
         if (entityModel.isKvTable()) {
@@ -279,7 +303,9 @@ public class EntityTableMeta implements ISqlTableMeta {
     ComponentExprMeta makeComponentMeta(IDialect dialect, ISqlExprMeta idExprMeta, IEntityComponentModel propModel,
                                         IDataParameterBinder[] colBinders) {
         List<IDataParameterBinder> binders = new ArrayList<>();
-        binders.addAll(idExprMeta.getColumnBinders());
+        if (idExprMeta != null) {
+            binders.addAll(idExprMeta.getColumnBinders());
+        }
         for (int propId : propModel.getColumnPropIds()) {
             binders.add(colBinders[propId]);
         }
@@ -288,6 +314,8 @@ public class EntityTableMeta implements ISqlTableMeta {
 
     ISqlExprMeta makePropMeta(IDialect dialect, ISqlExprMeta idExprMeta, IEntityRelationModel propModel,
                               IDataParameterBinder[] colBinders) {
+        if (idExprMeta == null)
+            return makePropMetaNoPk(dialect, propModel, colBinders);
         if (propModel.isToOneRelation()) {
             List<IDataParameterBinder> binders = new ArrayList<>();
             List<String> colNames = new ArrayList<>();
@@ -297,6 +325,8 @@ public class EntityTableMeta implements ISqlTableMeta {
                         colNames.add(getColumnName(dialect, (IColumnModel) join.getLeftPropModel()));
                         binders.add(colBinders[join.getRightPropModel().getColumnPropId()]);
                     } else {
+                        if (idExprMeta == null)
+                            return null;
                         // 基于computed或者alias属性进行关联，
                         return new EntityPropExprMeta(idExprMeta, propModel);
                     }
@@ -306,5 +336,9 @@ public class EntityTableMeta implements ISqlTableMeta {
         } else {
             return new EntityPropExprMeta(idExprMeta, propModel);
         }
+    }
+
+    ISqlExprMeta makePropMetaNoPk(IDialect dialect, IEntityRelationModel propModel, IDataParameterBinder[] colBinders) {
+        return null;
     }
 }

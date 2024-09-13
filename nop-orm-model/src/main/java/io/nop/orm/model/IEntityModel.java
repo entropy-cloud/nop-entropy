@@ -78,6 +78,8 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
 
     boolean isKvTable();
 
+    boolean isNoPrimaryKey();
+
     boolean hasOneToOneRelation();
 
     boolean isDependByOtherEntity();
