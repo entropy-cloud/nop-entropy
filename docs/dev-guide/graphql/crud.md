@@ -16,7 +16,7 @@ POST /r/NopAuthUser__save?@selection=name,status
 
 # GraphQL
 mutation{
-   NopAuthUser__save(data: Map){
+   NopAuthUser__save(data: $data){
       name
       status
    }
@@ -38,7 +38,7 @@ POST /r/NopAuthUser__update?@selection=name,status
 
 # GraphQL
 mutation{
-   NopAuthUser__update(data: Map){
+   NopAuthUser__update(data: $data){
       name
       status
    }
@@ -62,7 +62,7 @@ POST /r/NopAuthUser__save_update?@selection=name,status
 
 # GraphQL
 mutation{
-   NopAuthUser__save_update(data: Map){
+   NopAuthUser__save_update(data: $data){
       name
       status
    }
@@ -76,12 +76,12 @@ mutation{
 POST /r/NopAuthUser__delete?@selection=name,status
 
 {
-  "id”: 主键
+  "id": "主键"
 }
 
 # GraphQL
 mutation{
-   NopAuthUser__delete(id: 主键){
+   NopAuthUser__delete(id: "主键"){
       name
       status
    }

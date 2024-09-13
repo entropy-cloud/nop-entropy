@@ -312,7 +312,7 @@ XXX_findPage(query:QueryBeanInput):PageBean_XXX
 BizModel上的服务方法不需要将返回值类型包装为ApiResponse，框架自身会负责进行ApiResponse包装。而且如果返回String类型，那么对应到前台就是String，不会自动解析为JSON。
 如果返回Map或者其他bean对象，则会按照DataLoader机制进行属性加载然后返回。如果返回的是CompletionStage，则表示异步执行。
 
-```
+```java
 @BizQuery
 public Map<String,Object> myMethod(){
    ...
@@ -375,7 +375,7 @@ class MyBizModel {
 
 基于NopGraphQL引擎编写的服务方法，可以看作具有如下函数签名
 
-```javascript
+```java
 ApiResponse<Object> service(ApiRequest<Map> request);
 
 class ApiRequest<T>{
@@ -451,7 +451,7 @@ ajaxFetch识别的graphql url的格式为
 当我们需要为表单或者表格编写加载函数时，如果字段比较多，则手工编写graphql请求很容易出现字段遗漏。因为Nop平台的前端代码也是自动生成的，所以我们可以利用编译期信息自动生成graphql请求，使得我们恰好只选择表单或者表格中用到的数据。具体做法是引入编译期的变量formSelection,
 pageSelection等。例如
 
-```js
+```java
 @query:NopAuthUser_get/{@formSelection}?id=$id
 ```
 
@@ -465,7 +465,7 @@ GraphQL是一种强类型的框架，它要求所有数据都有明确的类型�
 
 NopGraphQL引入了一个特殊的Scalar类型: Map，可以利用它来描述那些动态数据结构。例如
 
-```
+```js
 type QueryBean{
     filter: Map
     orderBy: [OrderFieldBean]
@@ -476,7 +476,7 @@ type QueryBean{
 
 对于单位树、菜单树这样的树形结构的获取，NopGraphQL通过Directive机制提供了一个扩展语法，可以直接表达递归拉取数据，例如
 
-```
+```js
 NopAuthDept_findList{
     value: id,
     label: displayName
