@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+包含表单定义，表格定义，以及页面框架组织
+-->
+<view bizObjName="string" x:schema="/nop/schema/xdef.xdef" xdef:check-ns="auth"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="xdef" x:extends="super">
+</view>

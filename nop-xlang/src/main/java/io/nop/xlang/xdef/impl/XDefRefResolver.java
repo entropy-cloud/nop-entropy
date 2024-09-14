@@ -122,7 +122,7 @@ public class XDefRefResolver {
         if (node.getRefNode() != null) {
             collectRefPaths(node.getRefNode(), refPaths);
         }
-        refPaths.add(node.resourcePath());
+        refPaths.add(node.resourceStdPath());
     }
 
     private static void visitNode(XDefNode node, Consumer<XDefNode> consumer, Set<XDefNode> visited) {
