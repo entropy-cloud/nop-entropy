@@ -15,7 +15,6 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
-import io.nop.xlang.XLangConstants;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.feature.XModelInclude;
 import io.nop.xlang.xdef.IXDefinition;
@@ -51,7 +50,8 @@ public class DslNodeLoader implements IXDslNodeLoader {
         IXDefinition def = SchemaLoader.loadXDefinition(schemaPath);
 
         if (requiredSchema != null) {
-            if (!requiredSchema.equals(def.getXdefBase()) && !def.getAllRefSchemas().contains(requiredSchema)) {
+            if (!requiredSchema.equals(def.getXdefBase()) && !def.getAllRefSchemas().contains(requiredSchema)
+                    && !requiredSchema.equals(schemaPath)) {
                 throw new NopException(ERR_XDSL_NOT_REQUIRED_SCHEMA).param(ARG_REQUIRED_SCHEMA, requiredSchema)
                         .param(ARG_SCHEMA_PATH, schemaPath);
             }
