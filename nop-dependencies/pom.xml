@@ -22,7 +22,7 @@
         <maven.compiler.encoding>UTF-8</maven.compiler.encoding>
 
         <compiler-plugin.version>3.11.0</compiler-plugin.version>
-        <quarkus.platform.version>3.8.2</quarkus.platform.version>
+        <quarkus.platform.version>3.14.2</quarkus.platform.version>
         <surefire-plugin.version>3.1.2</surefire-plugin.version>
 
         <!--        <vertx.version>4.3.1</vertx.version>-->
@@ -33,7 +33,7 @@
 
         <antlr.version>4.10.1</antlr.version>
 
-        <!--        <graalvm.version>21.3.5</graalvm.version>-->
+        <graalvm.version>23.0.1</graalvm.version>
         <!--        <jackson.version>2.10.2</jackson.version>-->
         <janino.version>3.1.12</janino.version>
         <!--        <junit-jupiter.version>5.7.0</junit-jupiter.version>-->
@@ -46,8 +46,8 @@
         <nacos.version>2.3.0</nacos.version>
         <!--        <testcontainers.version>1.16.3</testcontainers.version>-->
 
-        <spring-boot.version>3.2.3</spring-boot.version>
-        <spring-cloud.version>2023.0.0</spring-cloud.version>
+        <spring-boot.version>3.3.3</spring-boot.version>
+        <spring-cloud.version>2023.0.3</spring-cloud.version>
 
         <tablesaw.version>0.43.1</tablesaw.version>
         <lucene.version>9.9.2</lucene.version>
@@ -360,6 +360,12 @@
                 <artifactId>javase</artifactId>
                 <version>3.5.3</version>
             </dependency>
+
+<!--            <dependency>-->
+<!--                <groupId>org.graalvm.js</groupId>-->
+<!--                <artifactId>js</artifactId>-->
+<!--                <version>${graalvm.version}</version>-->
+<!--            </dependency>-->
 
         </dependencies>
     </dependencyManagement>

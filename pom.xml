@@ -75,7 +75,7 @@
 
         <nop-entropy.version>2.0.0-SNAPSHOT</nop-entropy.version>
 
-        <quarkus.platform.version>3.8.2</quarkus.platform.version>
+        <quarkus.platform.version>3.14.2</quarkus.platform.version>
 
         <surefire-plugin.version>3.0.0-M5</surefire-plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -448,7 +448,7 @@
         <module>nop-netty</module>
         <module>nop-datav</module>
         <module>nop-dev</module>
-        <module>nop-all-for-spring</module>
+<!--        <module>nop-all-for-spring</module>-->
         <module>nop-git</module>
        <!-- <module>tests</module> -->
         <module>nop-oauth</module>

@@ -17,6 +17,13 @@ nop:
 
 在nop-commons, nop-auth-core等模块中，对于用到的第三方库如caffeine,jsonwebtoken等增加了`reflect-config.json`配置
 
+## 版本兼容性
+Truffle languages and other components version 23.1.2 are designed for use with GraalVM for JDK 21.0.2
+
+GraalJS version 24.0.2 is designed for use with Oracle GraalVM for JDK 22.0.2 or GraalVM Community Edition for JDK 22.0.2,
+
+GraalJS version 23.1.2 is designed for use with Oracle GraalVM for JDK 21.0.2 or GraalVM Community Edition for JDK 21.0.2,
+
 ## Solon框架
 
 ### 1. 在pom文件中引入aot支持，引入solon-logging-logback依赖，

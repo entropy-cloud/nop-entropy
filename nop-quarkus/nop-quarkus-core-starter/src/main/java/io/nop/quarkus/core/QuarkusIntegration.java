@@ -15,7 +15,7 @@ import io.nop.api.core.ioc.BeanContainer;
 import io.nop.commons.metrics.GlobalMeterRegistry;
 import io.nop.commons.util.StringHelper;
 import io.nop.quarkus.core.ioc.NopQuarkusBeanContainer;
-import io.quarkus.runtime.configuration.ProfileManager;
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.ConfigProvider;
 
 import java.util.Optional;
@@ -24,7 +24,9 @@ import static io.nop.quarkus.core.QuarkusConstants.CONFIG_KEY_PROFILE_PARENT;
 
 public class QuarkusIntegration {
     public static void start() {
-        String profile = ProfileManager.getActiveProfile();
+        Config config = ConfigProvider.getConfig();
+        String profile = config.getValue("quarkus.profile", String.class);
+
         Optional<String> parentProfile = ConfigProvider.getConfig().getOptionalValue(CONFIG_KEY_PROFILE_PARENT,
                 String.class);
 
@@ -32,8 +34,8 @@ public class QuarkusIntegration {
             System.setProperty(ApiConfigs.CFG_PROFILE.getName(), profile);
             AppConfig.getConfigProvider().updateConfigValue(ApiConfigs.CFG_PROFILE, profile);
 
-            if(profile.equals("dev")){
-                AppConfig.getConfigProvider().updateConfigValue(ApiConfigs.CFG_DEBUG,true);
+            if (profile.equals("dev")) {
+                AppConfig.getConfigProvider().updateConfigValue(ApiConfigs.CFG_DEBUG, true);
             }
         }
 
@@ -43,7 +45,7 @@ public class QuarkusIntegration {
         }
 
         BeanContainer.registerInstance(new NopQuarkusBeanContainer());
-        if(BeanContainer.instance().containsBeanType(MeterRegistry.class)) {
+        if (BeanContainer.instance().containsBeanType(MeterRegistry.class)) {
             MeterRegistry meterRegistry = BeanContainer.instance().getBeanByType(MeterRegistry.class);
             GlobalMeterRegistry.registerInstance(meterRegistry);
         }
