@@ -131,7 +131,7 @@ public class OrmEntityModelInitializer {
         }
 
         // 没有主键肯定不支持修改
-        if (!entityModel.isNoPrimaryKey())
+        if (entityModel.isNoPrimaryKey())
             entityModel.setReadonly(true);
 
         for (OrmColumnModel prop : entityModel.getColumns()) {
