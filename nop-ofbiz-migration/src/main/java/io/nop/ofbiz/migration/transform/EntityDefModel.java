@@ -1,42 +1,67 @@
 package io.nop.ofbiz.migration.transform;
 
 import io.nop.commons.util.StringHelper;
+import io.nop.commons.util.objects.Pair;
 import io.nop.core.lang.xml.XNode;
 import io.nop.ofbiz.migration.OfbizMigrationConstants;
 import io.nop.orm.model.OrmDomainModel;
 import io.nop.orm.model.OrmModel;
-import io.nop.xlang.xdsl.DslModelHelper;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
-public class EntityDefModelToOrmModel {
-    private final OrmModel baseModel = (OrmModel) DslModelHelper.loadDslModelFromPath(OfbizMigrationConstants.PATH_OFBIZ_BASE_ORM);
+public class EntityDefModel {
+    private final OrmModel baseModel;
+    private final XNode node;
+    private final XNode ormNode;
+    private final Map<String, Pair<XNode, XNode>> entityNodes = new HashMap<>();
+    private final Map<String, Pair<XNode, XNode>> viewEntityNodes = new HashMap<>();
+    private final Map<String, XNode> externalNodes = new HashMap<>();
 
-    private final Map<String, XNode> entityNodes = new HashMap<>();
-    private final Map<String, List<XNode>> unknownRelations = new HashMap<>();
-
-    public Map<String, XNode> getEntityNodes() {
-        return entityNodes;
+    public EntityDefModel(XNode node, OrmModel baseModel) {
+        this.node = node;
+        this.baseModel = baseModel;
+        this.ormNode = transform(node);
     }
 
-    public Map<String, List<XNode>> getUnknownRelations() {
-        return unknownRelations;
+    public XNode getDefNode() {
+        return node;
     }
 
-    public void mergeTo(Map<String, XNode> entityNodes, Map<String, List<XNode>> unknownRelations) {
-        entityNodes.putAll(this.getEntityNodes());
-        this.getUnknownRelations().forEach((name, list) -> {
-            unknownRelations.computeIfAbsent(name, k -> new ArrayList<>()).addAll(list);
+    public XNode getOrmNode() {
+        return ormNode;
+    }
+
+    public void collectEntities(Map<String, XNode> map) {
+        entityNodes.forEach((name, pair) -> {
+            if (map.containsKey(name))
+                throw new IllegalArgumentException("nop.err.ofbiz.duplicate-entity-name:name=" + name + "," + pair.getSecond());
+            map.put(name, pair.getSecond());
+        });
+
+        viewEntityNodes.forEach((name, pair) -> {
+            if (map.containsKey(name))
+                throw new IllegalArgumentException("nop.err.ofbiz.duplicate-entity-name:name=" + name + "," + pair.getSecond());
+            map.put(name, pair.getSecond());
         });
     }
 
-    public XNode transform(XNode node) {
+    public void addExternalEntities() {
+        // 缺少external定义
+        XNode entities = ormNode.makeChild("entities");
+        for (XNode node : this.externalNodes.values()) {
+            XNode externalNode = node.cloneInstance();
+            externalNode.getChildren().removeIf(child -> !child.getTagName().equals("columns"));
+            externalNode.setAttr("notGenCode", true);
+            entities.appendChild(externalNode);
+        }
+    }
+
+    private XNode transform(XNode node) {
         XNode ret = XNode.make("orm");
         ret.setAttr("x:extends", OfbizMigrationConstants.PATH_OFBIZ_BASE_ORM);
         ret.setAttr("x:schema", "/nop/schema/orm/orm.xdef");
@@ -51,18 +76,20 @@ public class EntityDefModelToOrmModel {
                 entities.appendChild(entityNode);
                 if (entityNodes.containsKey(entityName))
                     throw new IllegalArgumentException("nop.err.ofbiz.duplicate-entity-name:" + entityName);
-                entityNodes.put(entityName, entityNode);
+                entityNodes.put(entityName, Pair.of(child, entityNode));
             }
         }
 
         for (XNode child : node.getChildren()) {
-            if (child.getTagName().equals("entity")) {
+            if (child.getTagName().equals("view-entity")) {
+                XNode entityNode = transformViewEntity(child);
                 String entityName = child.attrText("entity-name");
-                XNode entityNode = entityNodes.get(entityName);
-                transformRelation(entityNode, child);
+                entities.appendChild(entityNode);
+                if (entityNodes.containsKey(entityName))
+                    throw new IllegalArgumentException("nop.err.ofbiz.duplicate-entity-name:" + entityName);
+                viewEntityNodes.put(entityName, Pair.of(child, entityNode));
             }
         }
-
         return ret;
     }
 
@@ -98,6 +125,42 @@ public class EntityDefModelToOrmModel {
         }
 
         return ret;
+    }
+
+    private XNode transformViewEntity(XNode node) {
+        XNode ret = XNode.make("entity");
+        ret.setAttr("tableView", true);
+        ret.setAttr("noPrimaryKey", true);
+        ret.setAttr("readonly", true);
+
+        String packageName = node.attrText("package-name");
+        String entityName = node.attrText("entity-name");
+        String name = StringHelper.fullClassName(entityName, packageName);
+        String tableName = node.attrText("table-name");
+        if (StringHelper.isEmpty(tableName)) {
+            tableName = StringHelper.camelCaseToUnderscore(entityName, true);
+        } else {
+            tableName = tableName.toUpperCase(Locale.ROOT);
+        }
+        String title = node.attrText("title");
+        ret.setAttr("name", name);
+        ret.setAttr("className", name);
+        ret.setAttr("tableName", tableName);
+        ret.setAttr("displayName", title);
+
+        return ret;
+    }
+
+    private void transformViewAlias(XNode viewEntityNode, XNode entityNode) {
+        Map<String, String> aliasMap = new HashMap<>();
+
+        viewEntityNode.childrenByTag("member-entity").forEach(child -> {
+            String alias = child.attrText("entity-alias");
+            String entityName = child.attrText("entity-name");
+            aliasMap.put(alias, entityName);
+        });
+
+
     }
 
     private XNode transformField(XNode node, Set<String> pkNames) {
@@ -139,7 +202,17 @@ public class EntityDefModelToOrmModel {
         return ret;
     }
 
-    private void transformRelation(XNode ret, XNode node) {
+    public void resolveRelations(Function<String, XNode> refEntityResolver) {
+        entityNodes.values().forEach(pair -> {
+            transformRelation(pair.getSecond(), pair.getFirst(), refEntityResolver);
+        });
+
+        viewEntityNodes.values().forEach(pair -> {
+            transformRelation(pair.getSecond(), pair.getFirst(), refEntityResolver);
+        });
+    }
+
+    private void transformRelation(XNode ret, XNode node, Function<String, XNode> externalEntityResolver) {
         XNode relations = ret.addChild("relations");
         for (XNode child : node.getChildren()) {
             if (child.getTagName().equals("relation")) {
@@ -157,23 +230,30 @@ public class EntityDefModelToOrmModel {
                 if (title.equals("class"))
                     title = "className";
 
-                XNode entityModel = entityNodes.get(refEntityName);
-                if (entityModel != null) {
-                    refEntityName = entityModel.attrText("name");
-                } else {
-                    unknownRelations.computeIfAbsent(refEntityName, k -> new ArrayList<>()).add(child);
-                }
+                String fullName = resolveRefEntity(refEntityName, externalEntityResolver);
 
                 String relType = type.equals("one") || type.equals("one-nopk") ? "to-one" : "to-many";
                 XNode relation = relations.addChild(relType);
 
                 relation.setAttr("name", title);
-                relation.setAttr("refEntityName", refEntityName);
+                relation.setAttr("refEntityName", fullName);
                 if (relType.equals("to-one"))
                     relation.setAttr("constraint", fkName);
                 addJoin(relation, child);
             }
         }
+    }
+
+    private String resolveRefEntity(String refEntityName, Function<String, XNode> externalEntityResolver) {
+        Pair<XNode, XNode> pair = entityNodes.get(refEntityName);
+        if (pair != null)
+            return pair.getSecond().attrText("name");
+        pair = viewEntityNodes.get(refEntityName);
+        if (pair != null)
+            return pair.getSecond().attrText("name");
+        XNode node = externalEntityResolver.apply(refEntityName);
+        externalNodes.put(refEntityName, node);
+        return node.attrText("name");
     }
 
     private void addJoin(XNode relation, XNode bizRel) {

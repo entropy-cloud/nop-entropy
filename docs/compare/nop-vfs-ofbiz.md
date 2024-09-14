@@ -56,7 +56,12 @@ OFBiz使用的xsd语法非常臃肿，而且引入了完全不必要的顺序依
 
 ## 服务引擎(Service Engine)
 
-与程序语言无关
+与程序语言无关。输入是Map，输出也是Map
+
+You can also override a service by using the same name down in the deployment context (which is first framework, then themes, then applications, then specialpurpose, then hot-deploy)
+
+ECA (Event Condition Action) is much like a trigger. When a service is called, a lookup is performed to see if any ECAs are defined for this event.
+
 
 ## 组件系统(Widget System)
 

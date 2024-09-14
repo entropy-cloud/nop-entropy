@@ -269,6 +269,13 @@ transactionTemplate.runInTransaction(txn->{
 })
 ```
 
+## OrmEntity实体属性
+NopORM中的所有实体类都从OrmEntity类继承。OrmEntity不支持JSON序列化，但是提供了帮助函数可以获取实体上的字段值。
+
+实体上当前的字段值是 `entity.orm_initedValues()`, 修改前的值是 `orm_dirtyOldValues()`。
+
+
+
 ## 与MyBatis的区别
 
 NopORM是一个类似JPA的完整的ORM引擎，因此它使用OrmSession来管理所有加载到内存中的实体，整体使用类似于JPA和Hibernate，相比于MyBatis要少很多手工调用步骤。

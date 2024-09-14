@@ -36,7 +36,7 @@ public class NopOrmCodeGen {
     public static void main(String[] args) {
         AppConfig.getConfigProvider().updateConfigValue(CoreConfigs.CFG_CORE_MAX_INITIALIZE_LEVEL,
                 CoreConstants.INITIALIZER_PRIORITY_ANALYZE);
-        
+
         CoreInitialization.initialize();
         try {
             File projectDir = MavenDirHelper.projectDir(NopOrmCodeGen.class);
@@ -186,6 +186,30 @@ if(globalVar){
 
 2. `{data.@mapper}` 属性表达式存在一种特殊的约定。对于HashSet或者LinkedHashSet类型，`@mapper`属性会判断集合中是否存在该文本值。
    相当于 `((Set)data).contains('mapper')`
+
+### xgen模板文件
+xgen本质上就是xpl模板语言，它动态执行输出内容。xpl模板语言中可以通过`<c:for>`，`<c:script>`等标签执行逻辑，并通过`<c:import>`来导入标签库。
+xpl还提供了`<c:print>`这种标签用于原样输出它的body内容，即使其中包含`c:script`等标签。
+
+例如
+```xml
+<c:unit>
+  <c:script>
+    let n = 100; // 设置一个变量，可以执行复杂的XScript代码
+  </c:script>
+
+  <!-- 通过表达式可以使用当前环境中的变量。xpl模板语言提供了c:for等标签用于实现循环逻辑 -->
+  <c:for var="i" begin="${1}" end="${n}">
+    <div/>
+  </c:for>
+</c:unit>
+```
+上面的代码会输出100个`<div>`节点。
+
+`c:script`就是编译成一个Expression，然后`expr.invoke(scope)`， 在当前的scope中执行。scope中的数据就是 `@init.xrun`中准备的。在`@init.xurn`中`assign("x",1")`可以向scope中设置变量。另外`builder.defineGlobalVar('basePackagePath', pkgPath)`等也会设置变量。
+
+xpl模板语言的介绍参见[xpl.md](xlang/xpl.md)
+
 
 ## 二. 差量化的代码生成器
 
