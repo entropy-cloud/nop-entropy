@@ -7,15 +7,11 @@
  */
 package io.nop.auth.core.jwt;
 
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.auth.core.login.AuthToken;
 import io.nop.auth.core.login.IAuthTokenProvider;
-import io.nop.commons.crypto.HashHelper;
 import io.nop.commons.util.StringHelper;
 
-import java.nio.charset.StandardCharsets;
 import java.security.Key;
 
 import static io.nop.auth.core.jwt.JwtHelper.ALG_HMAC_SHA256;
@@ -44,11 +40,9 @@ public class JwtAuthTokenProvider implements IAuthTokenProvider {
     protected synchronized Key getSignKey() {
         if (signKey == null) {
             if (StringHelper.isEmpty(encKey)) {
-                SignatureAlgorithm alg = SignatureAlgorithm.forName(algorithm);
-                signKey = Keys.secretKeyFor(alg);
+                signKey = JwtHelper.hmacKey(StringHelper.generateUUID(), "nop");
             } else {
-                signKey = Keys.hmacShaKeyFor(HashHelper.sha256(encKey.getBytes(StandardCharsets.UTF_8),
-                        "nop".getBytes(StandardCharsets.UTF_8)));
+                signKey = JwtHelper.hmacKey(encKey, "nop");
             }
         }
         return signKey;

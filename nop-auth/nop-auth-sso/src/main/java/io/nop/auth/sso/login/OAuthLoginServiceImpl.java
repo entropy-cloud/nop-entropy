@@ -7,9 +7,6 @@
  */
 package io.nop.auth.sso.login;
 
-import io.jsonwebtoken.Header;
-import io.jsonwebtoken.JwsHeader;
-import io.jsonwebtoken.Locator;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
@@ -35,7 +32,6 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.security.Key;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -211,12 +207,7 @@ public class OAuthLoginServiceImpl extends AbstractLoginService {
 
     @Override
     public AuthToken parseAuthToken(String accessToken) {
-        return JwtHelper.parseToken(accessToken, new Locator<Key>() {
-            @Override
-            public Key locate(Header header) {
-                return keyLocator.getPublicKey(((JwsHeader) header).getKeyId());
-            }
-        });
+        return JwtHelper.parseToken(accessToken, keyId -> keyLocator.getPublicKey(keyId));
     }
 
     @Override

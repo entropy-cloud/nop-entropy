@@ -7,6 +7,7 @@
  */
 package io.nop.auth.core.login;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.Guard;
 
 import java.util.Map;
@@ -25,7 +26,7 @@ public class AuthToken {
                      long expireAt, int expireSeconds, Map<String, Object> claims) {
         this.token = token;
         this.subject = subject;
-        this.sessionId = Guard.notEmpty(sessionId,"sessionId");
+        this.sessionId = Guard.notEmpty(sessionId, "sessionId");
         this.expireAt = expireAt;
         this.userName = userName;
         this.expireSeconds = expireSeconds;
@@ -66,5 +67,9 @@ public class AuthToken {
 
     public long getExpireAt() {
         return expireAt;
+    }
+
+    public boolean isExpired() {
+        return expireAt < CoreMetrics.currentTimeMillis();
     }
 }
