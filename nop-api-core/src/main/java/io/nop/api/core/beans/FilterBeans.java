@@ -50,6 +50,7 @@ import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_DATE_BETWEEN;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_LENGTH_BETWEEN;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_BLANK;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_EMPTY;
+import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_IN;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_NULL;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_TAG_NAME;
 
@@ -76,6 +77,10 @@ public class FilterBeans {
 
     public static TreeBean in(String name, Collection<?> values) {
         return compareOp(FILTER_OP_IN, name, values);
+    }
+
+    public static TreeBean notIn(String name, Collection<?> values) {
+        return compareOp(FILTER_OP_NOT_IN, name, values);
     }
 
     public static TreeBean between(String name, Object min, Object max) {
