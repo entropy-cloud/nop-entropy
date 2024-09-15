@@ -309,10 +309,10 @@
                         if(prepareQuery != null){
                             prepareQuery(query,svcCtx);
                         }
-                    }},(entityData,ctx)=>{
+                    }, prepareUpdate:(entityData,ctx)=>{
                        if(prepareUpdate)
                           prepareUpdate(entityData,svcCtx);
-                    },svcCtx);
+                    }},null, svcCtx);
                     return ret;
                 ]]></c:script>
             </source>
@@ -343,10 +343,10 @@
                         if(prepareQuery != null){
                             prepareQuery(query,svcCtx);
                         }
-                    }},(entity,ctx)=>{
+                    }, prepareDelete: (entity,ctx)=>{
                        if(prepareDelete)
                           prepareDelete(entity,svcCtx);
-                    },svcCtx);
+                    }}, null, svcCtx);
                     return ret;
                 ]]></c:script>
             </source>
@@ -376,7 +376,7 @@
             <attr name="rowType" implicit="true"/>
 
             <source>
-                <c:script>
+                <c:script><![CDATA[
                     import io.nop.core.model.query.QueryBeanHelper;
 
                     const queryNode = queryBuilder();
@@ -384,9 +384,9 @@
                     const ormTemplate = inject('nopOrmTemplate');
                     const mapper = ormTemplate.getRowMapper(rowType,false);
                     if(method == 'findListByQuery')
-                    return ormTemplate.findListByQuery(query,mapper);
+                        return ormTemplate.findListByQuery(query,mapper);
                     return ormTemplate.findFirstByQuery(query, mapper);
-                </c:script>
+                ]]></c:script>
             </source>
         </_DoFindByMdxQuery>
 
@@ -398,7 +398,7 @@
 
             <source>
                 <c:script><![CDATA[
-                    return thisObj.invoke("requireEntity",{id,action: action || 'get'});
+                    return thisObj.invoke("requireEntity",{id,action: action || 'get'},null,svcCtx);
                 ]]></c:script>
             </source>
         </RequireEntity>
