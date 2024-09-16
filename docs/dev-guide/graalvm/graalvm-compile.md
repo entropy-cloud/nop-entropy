@@ -18,11 +18,45 @@ nop:
 在nop-commons, nop-auth-core等模块中，对于用到的第三方库如caffeine,jsonwebtoken等增加了`reflect-config.json`配置
 
 ## 版本兼容性
+https://www.graalvm.org/release-notes/JDK_21/
+
+https://github.com/graalvm/graalvm-ce-builds/releases 下载graalvm 21.0.2
+
+`quarkus-bom`模块的pom文件中定义了quarkus所依赖的graalvm js的版本，然后再在上面的releases页面查找对应graalvm的版本。
+
 Truffle languages and other components version 23.1.2 are designed for use with GraalVM for JDK 21.0.2
 
 GraalJS version 24.0.2 is designed for use with Oracle GraalVM for JDK 22.0.2 or GraalVM Community Edition for JDK 22.0.2,
 
 GraalJS version 23.1.2 is designed for use with Oracle GraalVM for JDK 21.0.2 or GraalVM Community Edition for JDK 21.0.2,
+
+## 类初始化
+
+
+## reflect-config.json
+会自动收集如下目录中的配置 `src/main/resources/META-INF/native-image/<group-id>/<artifact-id>`
+
+```
+[
+  {
+    "name" : "com.acme.MyClass",
+    "allDeclaredConstructors" : true,
+    "allPublicConstructors" : true,
+    "allDeclaredMethods" : true,
+    "allPublicMethods" : true,
+    "allDeclaredFields" : true,
+    "allPublicFields" : true
+  }
+]
+```
+
+## 配置说明
+指定以下选项以分别启用基于 Chrome DevTools 调试器、采样探查器、跟踪探查器和内存分析器的调试器：
+
+--inspect
+--cpusampler
+--cputracer
+--memsampler
 
 ## Solon框架
 

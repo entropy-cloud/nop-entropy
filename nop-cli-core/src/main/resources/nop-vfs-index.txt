@@ -133,6 +133,7 @@
 /nop/schema/orm/orm-interceptor.xdef
 /nop/schema/orm/orm.xdef
 /nop/schema/orm/sql-lib.xdef
+/nop/schema/orm/view-entity.xdef
 /nop/schema/query/filter.xdef
 /nop/schema/query/group-by.xdef
 /nop/schema/query/order-by.xdef

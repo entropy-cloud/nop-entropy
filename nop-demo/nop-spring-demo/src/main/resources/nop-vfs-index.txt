@@ -382,6 +382,7 @@
 /nop/schema/orm/orm-interceptor.xdef
 /nop/schema/orm/orm.xdef
 /nop/schema/orm/sql-lib.xdef
+/nop/schema/orm/view-entity.xdef
 /nop/schema/query/filter.xdef
 /nop/schema/query/group-by.xdef
 /nop/schema/query/order-by.xdef
@@ -714,7 +715,6 @@
 /nop/web/xlib/view-gen.xlib
 /nop/web/xlib/view-gen/impl_GenFromMeta.xpl
 /nop/web/xlib/web.xlib
-/nop/web/xlib/web.xlib.rej
 /nop/web/xlib/web/grid_crud.xpl
 /nop/web/xlib/web/impl_GenForm.xpl
 /nop/web/xlib/web/impl_GenGrid.xpl

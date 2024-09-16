@@ -22,7 +22,7 @@
         <maven.compiler.encoding>UTF-8</maven.compiler.encoding>
 
         <compiler-plugin.version>3.11.0</compiler-plugin.version>
-        <quarkus.platform.version>3.14.2</quarkus.platform.version>
+        <quarkus.platform.version>3.14.4</quarkus.platform.version>
         <surefire-plugin.version>3.1.2</surefire-plugin.version>
 
         <!--        <vertx.version>4.3.1</vertx.version>-->
@@ -33,7 +33,7 @@
 
         <antlr.version>4.10.1</antlr.version>
 
-        <graalvm.version>23.0.1</graalvm.version>
+        <graalvm.version>23.1.2</graalvm.version>
         <!--        <jackson.version>2.10.2</jackson.version>-->
         <janino.version>3.1.12</janino.version>
         <!--        <junit-jupiter.version>5.7.0</junit-jupiter.version>-->
@@ -50,7 +50,7 @@
         <spring-cloud.version>2023.0.3</spring-cloud.version>
 
         <tablesaw.version>0.43.1</tablesaw.version>
-        <lucene.version>9.9.2</lucene.version>
+        <lucene.version>9.7.0</lucene.version>
 <!--        <grpc.version>1.60.0</grpc.version>-->
         <!--        <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>-->
     </properties>
@@ -61,7 +61,7 @@
 
             <!-- quarkus涉及到native编译，它内置的版本基本难以切换，所以尽量以quarkus的版本为准 -->
             <dependency>
-                <groupId>io.quarkus</groupId>
+                <groupId>io.quarkus.platform</groupId>
                 <artifactId>quarkus-bom</artifactId>
                 <version>${quarkus.platform.version}</version>
                 <type>pom</type>

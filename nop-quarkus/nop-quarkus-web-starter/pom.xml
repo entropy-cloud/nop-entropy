@@ -53,16 +53,16 @@
         </dependency>
 
         <!-- 需要排除quarkus-bootstrap-core，否则在IDE中启动Main函数失败，只能用quarkus插件启动 -->
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-vertx-graphql-deployment</artifactId>
-            <exclusions>
-                <exclusion>
-                    <artifactId>quarkus-core-deployment</artifactId>
-                    <groupId>io.quarkus</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>io.quarkus</groupId>-->
+<!--            <artifactId>quarkus-vertx-graphql-deployment</artifactId>-->
+<!--            <exclusions>-->
+<!--                <exclusion>-->
+<!--                    <artifactId>quarkus-core-deployment</artifactId>-->
+<!--                    <groupId>io.quarkus</groupId>-->
+<!--                </exclusion>-->
+<!--            </exclusions>-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
@@ -98,11 +98,6 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-graphql-gateway</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-resteasy</artifactId>
         </dependency>
 
     </dependencies>

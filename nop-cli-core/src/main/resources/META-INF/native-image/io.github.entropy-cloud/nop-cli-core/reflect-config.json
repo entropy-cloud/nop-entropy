@@ -7430,6 +7430,12 @@
         "parameterTypes": []
       },
       {
+        "name": "getUrlForXmlns",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getXmlnsForUrl",
         "parameterTypes": [
           "java.lang.String"
@@ -7886,6 +7892,12 @@
       {
         "name": "removeJsonPrefix",
         "parameterTypes": []
+      },
+      {
+        "name": "removeJsonPrefix",
+        "parameterTypes": [
+          "boolean"
+        ]
       },
       {
         "name": "removeNextSiblings",
@@ -18907,6 +18919,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isNoPrimaryKey",
+        "parameterTypes": []
+      },
+      {
         "name": "isReadonly",
         "parameterTypes": []
       },
@@ -20687,6 +20703,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isNoPrimaryKey",
+        "parameterTypes": []
+      },
+      {
         "name": "isNotGenCode",
         "parameterTypes": []
       },
@@ -20904,6 +20924,12 @@
         "name": "setName",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setNoPrimaryKey",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -25453,6 +25479,12 @@
         "parameterTypes": [
           "io.nop.core.resource.IResource",
           "boolean"
+        ]
+      },
+      {
+        "name": "loadDslModelFromPath",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
