@@ -712,7 +712,23 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "loginSessionStore"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "userContextCache"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "userContextHook"
+      }
+    ],
     "methods": [
       {
         "name": "doGetUserContext",
@@ -748,7 +764,33 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "config"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "loginFailCache"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "userContextCache"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "userSessionCache"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "verifyCodeCache"
+      }
+    ],
     "methods": [],
     "name": "io.nop.auth.core.login.AbstractUserContextCache"
   },
@@ -1290,7 +1332,13 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "daoProvider"
+      }
+    ],
     "methods": [
       {
         "name": "doProcess",
@@ -1363,7 +1411,13 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "loginService"
+      }
+    ],
     "methods": [
       {
         "name": "buildLoginResult",
@@ -1380,7 +1434,13 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "siteMapProvider"
+      }
+    ],
     "methods": [
       {
         "name": "filterForUser",
@@ -1468,7 +1528,13 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "siteMapProvider"
+      }
+    ],
     "methods": [
       {
         "name": "afterEntityChange",
@@ -1576,7 +1642,23 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "passwordEncoder"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "passwordPolicy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "userIdGenerator"
+      }
+    ],
     "methods": [
       {
         "name": "defaultPrepareSave",
@@ -1614,7 +1696,18 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "daoProvider"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "sessionIdGenerator"
+      }
+    ],
     "methods": [
       {
         "name": "loadSession",
@@ -1631,7 +1724,13 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "daoProvider"
+      }
+    ],
     "methods": [],
     "name": "io.nop.auth.service.login.DaoUserContextCache"
   },
@@ -1651,7 +1750,33 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "auditService"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "authTokenProvider"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "daoProvider"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "passwordEncoder"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "verifyCodeGenerator"
+      }
+    ],
     "methods": [
       {
         "name": "auditLogFail",
@@ -1737,7 +1862,18 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "daoProvider"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "siteCache"
+      }
+    ],
     "methods": [],
     "name": "io.nop.auth.service.sitemap.SiteMapProviderImpl"
   },
@@ -2117,7 +2253,13 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "graphQLEngine"
+      }
+    ],
     "methods": [],
     "name": "io.nop.biz.dev.DevDocBizModel"
   },
@@ -2127,7 +2269,13 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "graphQLEngine"
+      }
+    ],
     "methods": [],
     "name": "io.nop.biz.dev.DevToolBizModel"
   },
@@ -4523,7 +4671,38 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "bizObjectManager"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "daoProvider"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "formatGenCode"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "genWebFiles"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "ormSessionFactory"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "ormTemplate"
+      }
+    ],
     "methods": [
       {
         "name": "batchLoadApp",
@@ -4664,7 +4843,13 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "codeGen"
+      }
+    ],
     "methods": [
       {
         "name": "afterEntityChange",
@@ -4682,7 +4867,18 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "dynCodeGen"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "fileStore"
+      }
+    ],
     "methods": [],
     "name": "io.nop.dyn.service.entity.NopDynModuleBizModel"
   },
@@ -4763,7 +4959,18 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "fileStore"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "maxFileSize"
+      }
+    ],
     "methods": [
       {
         "name": "checkBizObjName",
@@ -5076,7 +5283,13 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "graphQLEngine"
+      }
+    ],
     "methods": [],
     "name": "io.nop.graphql.core.web.SysBizModel"
   },
@@ -5127,7 +5340,13 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "ignoreSslCerts"
+      }
+    ],
     "methods": [],
     "name": "io.nop.http.api.client.HttpClientConfig"
   },
@@ -7395,7 +7614,13 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "reportEngine"
+      }
+    ],
     "methods": [],
     "name": "io.nop.report.demo.biz.ReportDemoBizModel"
   },
@@ -7723,7 +7948,13 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "daoProvider"
+      }
+    ],
     "methods": [],
     "name": "io.nop.rule.dao.model.DaoRuleModelLoader"
   },
@@ -7743,7 +7974,13 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "ruleModelLoader"
+      }
+    ],
     "methods": [
       {
         "name": "defaultPrepareSave",
@@ -7790,7 +8027,13 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "ruleModelLoader"
+      }
+    ],
     "methods": [],
     "name": "io.nop.rule.service.entity.NopRuleNodeBizModel"
   },
@@ -7842,7 +8085,13 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "daoProvider"
+      }
+    ],
     "methods": [],
     "name": "io.nop.sys.dao.coderule.SysCodeRuleGenerator"
   },
@@ -7852,7 +8101,13 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "daoProvider"
+      }
+    ],
     "methods": [],
     "name": "io.nop.sys.dao.dict.SysDictLoader"
   },
@@ -8162,7 +8417,13 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "daoProvider"
+      }
+    ],
     "methods": [],
     "name": "io.nop.sys.dao.i18n.SysI18nMessageLoader"
   },
@@ -8617,7 +8878,18 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "editEnabled"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "pageProvider"
+      }
+    ],
     "methods": [],
     "name": "io.nop.web.biz.PageProviderBizModel"
   },
@@ -8627,7 +8899,18 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "editEnabled"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "jsProvider"
+      }
+    ],
     "methods": [],
     "name": "io.nop.web.biz.SystemJsProviderBizModel"
   },
@@ -8664,7 +8947,18 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "cssLoader"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "jsLoader"
+      }
+    ],
     "methods": [],
     "name": "io.nop.web.page.DynamicWebFileProvider"
   },
@@ -8674,7 +8968,13 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "pageProvider"
+      }
+    ],
     "methods": [],
     "name": "io.nop.web.page.PageModelValidator"
   },
@@ -9552,7 +9852,13 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "workflowDOProvider"
+      }
+    ],
     "methods": [
       {
         "name": "defaultPrepareCopyForNew",
@@ -9727,7 +10033,18 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "body"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "sourceType"
+      }
+    ],
     "methods": [
       {
         "name": "serializeFields",
@@ -10310,7 +10627,28 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "baseLoc"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "packageName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "typeAliases"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "typeCache"
+      }
+    ],
     "methods": [
       {
         "name": "buildClassType",

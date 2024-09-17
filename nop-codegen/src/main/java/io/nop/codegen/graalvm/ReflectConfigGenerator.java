@@ -11,6 +11,7 @@ import io.nop.core.initialize.ICoreInitializer;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.reflect.IClassModel;
+import io.nop.core.reflect.IFieldModel;
 import io.nop.core.reflect.IFunctionArgument;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.ReflectionManager;
@@ -134,18 +135,22 @@ public class ReflectConfigGenerator {
         reflectClass.setAllPublicMethods(true);
         reflectClass.setAllPublicFields(true);
 
-//        for (IFieldModel field : classModel.getDeclaredFields().values()) {
-//            if (field.getName().startsWith("$"))
-//                continue;
-//
-//            ReflectField f = new ReflectField();
-//            f.setName(field.getName());
-//            if (field.isWritable()) {
-//                f.setAllowWrite(true);
-//            }
-//            reflectClass.addField(f);
-//        }
-//
+        for (IFieldModel field : classModel.getDeclaredFields().values()) {
+            if (field.getName().startsWith("$"))
+                continue;
+
+            // Inject注解等可能用于package protected字段
+            if (field.isPrivate() || field.isPublic())
+                continue;
+
+            ReflectField f = new ReflectField();
+            f.setName(field.getName());
+            if (field.isWritable()) {
+                f.setAllowWrite(true);
+            }
+            reflectClass.addField(f);
+        }
+
 //        for (IFieldModel field : classModel.getDeclaredStaticFields().values()) {
 //            if (field.getName().startsWith("$"))
 //                continue;
@@ -161,7 +166,7 @@ public class ReflectConfigGenerator {
         for (IFunctionModel method : classModel.getDeclaredMethods()) {
             if (method.getImplName().startsWith("$"))
                 continue;
-            if (method.isProtected() ) {
+            if (method.isProtected()) {
                 ReflectMethod m = new ReflectMethod();
                 m.setName(method.getImplName());
                 m.setParameterTypes(getParamTypes(method));

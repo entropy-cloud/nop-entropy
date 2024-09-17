@@ -7,6 +7,7 @@
  */
 package io.nop.codegen.graalvm;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 
 @DataBean
@@ -28,6 +29,7 @@ public class ReflectField {
         this.name = name;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     public boolean isAllowUnsafeAccess() {
         return allowUnsafeAccess;
     }
@@ -36,6 +38,7 @@ public class ReflectField {
         this.allowUnsafeAccess = allowUnsafeAccess;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     public boolean isAllowWrite() {
         return allowWrite;
     }

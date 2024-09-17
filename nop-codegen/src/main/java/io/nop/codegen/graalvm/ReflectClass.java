@@ -174,20 +174,17 @@ public class ReflectClass {
         this.allPublicMethods = this.allPublicMethods || clazz.allPublicMethods;
         this.allPublicFields = this.allPublicFields || clazz.allPublicFields;
 
-        if (this.allPublicFields) {
-            this.fields = KeyedList.emptyList();
-        } else {
-            if (!clazz.fields.isEmpty()) {
-                if (fields.isEmpty())
-                    fields = new KeyedList<>(ReflectField::getName);
 
-                for (ReflectField field : clazz.fields) {
-                    ReflectField fld = fields.getByKey(field.getName());
-                    if (fld == null) {
-                        fields.add(field);
-                    } else {
-                        fld.merge(field);
-                    }
+        if (!clazz.fields.isEmpty()) {
+            if (fields.isEmpty())
+                fields = new KeyedList<>(ReflectField::getName);
+
+            for (ReflectField field : clazz.fields) {
+                ReflectField fld = fields.getByKey(field.getName());
+                if (fld == null) {
+                    fields.add(field);
+                } else {
+                    fld.merge(field);
                 }
             }
         }
