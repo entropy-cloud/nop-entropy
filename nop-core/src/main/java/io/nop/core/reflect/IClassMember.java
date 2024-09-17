@@ -23,7 +23,7 @@ public interface IClassMember {
     }
 
     default boolean isProtected() {
-        return Modifier.isPublic(getModifiers());
+        return Modifier.isProtected(getModifiers());
     }
 
     default boolean isPrivate() {

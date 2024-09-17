@@ -11,7 +11,6 @@ import io.nop.core.initialize.ICoreInitializer;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.reflect.IClassModel;
-import io.nop.core.reflect.IFieldModel;
 import io.nop.core.reflect.IFunctionArgument;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.ReflectionManager;
@@ -31,6 +30,9 @@ import java.util.List;
 import java.util.ServiceLoader;
 import java.util.Set;
 
+/**
+ * META-INF/native-image/foo_groupID/foo_artifactID
+ */
 public class ReflectConfigGenerator {
     static final Logger LOG = LoggerFactory.getLogger(ReflectConfigGenerator.class);
 
@@ -83,7 +85,7 @@ public class ReflectConfigGenerator {
         }
         List<ReflectClass> list = JsonTool.parseBeanFromResource(resource, new TypeReference<List<ReflectClass>>() {
         }.getType());
-        ret.setClassList(list);
+        list.forEach(clazz -> ret.addClass(clazz));
         return ret;
     }
 
@@ -114,6 +116,8 @@ public class ReflectConfigGenerator {
             // 跳过所有动态生成的代理类
             if (Proxy.class.isAssignableFrom(clazz))
                 continue;
+            if (clazz.isPrimitive())
+                continue;
 
             IClassModel classModel = ReflectionManager.instance().getClassModel(clazz);
             ReflectClass reflectClass = buildReflectClass(classModel);
@@ -126,47 +130,45 @@ public class ReflectConfigGenerator {
     ReflectClass buildReflectClass(IClassModel classModel) {
         ReflectClass reflectClass = new ReflectClass();
         reflectClass.setName(classModel.getRawClass().getName());
-        for (IFieldModel field : classModel.getDeclaredFields().values()) {
-            if (field.getName().startsWith("$"))
-                continue;
+        reflectClass.setAllPublicConstructors(true);
+        reflectClass.setAllPublicMethods(true);
+        reflectClass.setAllPublicFields(true);
 
-            ReflectField f = new ReflectField();
-            f.setName(field.getName());
-            if (field.isWritable()) {
-                f.setAllowWrite(true);
-            }
-            reflectClass.addField(f);
-        }
-
-        for (IFieldModel field : classModel.getDeclaredStaticFields().values()) {
-            if (field.getName().startsWith("$"))
-                continue;
-
-            ReflectField f = new ReflectField();
-            f.setName(field.getName());
-            if (field.isWritable()) {
-                f.setAllowWrite(true);
-            }
-            reflectClass.addField(f);
-        }
-
+//        for (IFieldModel field : classModel.getDeclaredFields().values()) {
+//            if (field.getName().startsWith("$"))
+//                continue;
+//
+//            ReflectField f = new ReflectField();
+//            f.setName(field.getName());
+//            if (field.isWritable()) {
+//                f.setAllowWrite(true);
+//            }
+//            reflectClass.addField(f);
+//        }
+//
+//        for (IFieldModel field : classModel.getDeclaredStaticFields().values()) {
+//            if (field.getName().startsWith("$"))
+//                continue;
+//
+//            ReflectField f = new ReflectField();
+//            f.setName(field.getName());
+//            if (field.isWritable()) {
+//                f.setAllowWrite(true);
+//            }
+//            reflectClass.addField(f);
+//        }
+//
         for (IFunctionModel method : classModel.getDeclaredMethods()) {
             if (method.getImplName().startsWith("$"))
                 continue;
-            ReflectMethod m = new ReflectMethod();
-            m.setName(method.getImplName());
-            m.setParameterTypes(getParamTypes(method));
-            reflectClass.addMethod(m);
+            if (method.isProtected() ) {
+                ReflectMethod m = new ReflectMethod();
+                m.setName(method.getImplName());
+                m.setParameterTypes(getParamTypes(method));
+                reflectClass.addMethod(m);
+            }
         }
 
-        for (IFunctionModel method : classModel.getDeclaredStaticMethods()) {
-            if (method.getImplName().startsWith("$"))
-                continue;
-            ReflectMethod m = new ReflectMethod();
-            m.setName(method.getImplName());
-            m.setParameterTypes(getParamTypes(method));
-            reflectClass.addMethod(m);
-        }
         return reflectClass;
     }
 

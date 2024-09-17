@@ -8,6 +8,8 @@
 package io.nop.codegen.initialize;
 
 import io.nop.codegen.graalvm.GraalvmConfigGenerator;
+import io.nop.codegen.graalvm.ProxyConfigGenerator;
+import io.nop.codegen.graalvm.ReflectConfigGenerator;
 import io.nop.core.initialize.ICoreInitializer;
 
 import static io.nop.codegen.CodeGenConfigs.CFG_CODEGEN_TRACE_ENABLED;
@@ -28,6 +30,7 @@ public class CodeGenAfterInitialization implements ICoreInitializer {
     @Override
     public void initialize() {
         GraalvmConfigGenerator.instance().generateVfsIndex();
+        GraalvmConfigGenerator.instance().generateGraalvmConfig();
     }
 
     @Override

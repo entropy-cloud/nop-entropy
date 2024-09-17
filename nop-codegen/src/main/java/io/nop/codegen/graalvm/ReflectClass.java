@@ -8,6 +8,7 @@
 package io.nop.codegen.graalvm;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.commons.collections.KeyedList;
 
@@ -22,6 +23,7 @@ public class ReflectClass {
     // 允许lookup。methods配置允许通过反射执行
     private boolean allDeclaredMethods = true;
     private boolean allPublicMethods = true;
+    private boolean allPublicFields = true;
 
     // 允许通过Unsafe.allocateInstance来创建
     private boolean unsafeAllocated = false;
@@ -35,6 +37,7 @@ public class ReflectClass {
         methods.sort(ReflectMethod::compareTo);
     }
 
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     public boolean isUnsafeAllocated() {
         return unsafeAllocated;
     }
@@ -62,8 +65,13 @@ public class ReflectClass {
             allPublicMethods = false;
         }
 
-        this.fields.removeAll(reflectClass.fields);
-        this.methods.removeAll(reflectClass.methods);
+        reflectClass.fields.forEach(field -> {
+            this.fields.removeByKey(field.getName());
+        });
+
+        reflectClass.methods.forEach(method -> {
+            this.methods.removeByKey(method.getName());
+        });
     }
 
     @JsonIgnore
@@ -151,25 +159,39 @@ public class ReflectClass {
         methods.add(method);
     }
 
+    public boolean isAllPublicFields() {
+        return allPublicFields;
+    }
+
+    public void setAllPublicFields(boolean allPublicFields) {
+        this.allPublicFields = allPublicFields;
+    }
+
     public void merge(ReflectClass clazz) {
         this.allDeclaredConstructors = this.allDeclaredConstructors || clazz.allDeclaredConstructors;
         this.allPublicConstructors = this.allPublicConstructors || clazz.allPublicConstructors;
         this.allDeclaredMethods = this.allDeclaredMethods || clazz.allDeclaredMethods;
         this.allPublicMethods = this.allPublicMethods || clazz.allPublicMethods;
+        this.allPublicFields = this.allPublicFields || clazz.allPublicFields;
 
-        if (!clazz.fields.isEmpty()) {
-            if (fields.isEmpty())
-                fields = new KeyedList<>(ReflectField::getName);
+        if (this.allPublicFields) {
+            this.fields = KeyedList.emptyList();
+        } else {
+            if (!clazz.fields.isEmpty()) {
+                if (fields.isEmpty())
+                    fields = new KeyedList<>(ReflectField::getName);
 
-            for (ReflectField field : clazz.fields) {
-                ReflectField fld = fields.getByKey(field.getName());
-                if (fld == null) {
-                    fields.add(field);
-                } else {
-                    fld.merge(field);
+                for (ReflectField field : clazz.fields) {
+                    ReflectField fld = fields.getByKey(field.getName());
+                    if (fld == null) {
+                        fields.add(field);
+                    } else {
+                        fld.merge(field);
+                    }
                 }
             }
         }
+
 
         if (!clazz.methods.isEmpty()) {
             if (methods.isEmpty())
