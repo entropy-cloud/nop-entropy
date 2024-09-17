@@ -13,7 +13,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <antlr.plugin.version>4.10.1</antlr.plugin.version>
+        <antlr.plugin.version>4.13.0</antlr.plugin.version>
     </properties>
 
     <dependencies>

@@ -176,3 +176,12 @@ solon.logging.logger:
 ```
 mvn native:compile -DskipTests -Pnative
 ```
+
+## 问题诊断
+1. 报错找不到`/nop/schema/register-model.xdef`
+必须先以调试模式启动应用，并在`bootstrap.yaml`中配置`"nop.codegen.trace.enabled: true`和`nop.debug:true`, 这样才会自动生成`nop-vfs-index.txt`，解决native编译后无法执行类扫描的问题。
+* 只要以IDEA的调试模式启动，quarkus就会自动设置`quarkus.profile=dev`, Nop平台的QuarkusIntegration中就会自动强制设置`nop.debug=true`
+* 启动程序后应该在界面上使用一下应用，从而让需要被记录的反射调用都能够被调用到。在IDEA中关闭应用时会自动生成graalvm配置文件到`src/main/resources`目录下
+
+2. graalm编译报错
+需要确保graalvm版本和程序中引用的quarks版本一致。目前quarkus3.14.4使用的是graalvm js 23.1.2，对应于graalvm版本为`GraalVM CE 21.0.2+13.1 (build 21.0.2+13-jvmci-23.1-b30)`

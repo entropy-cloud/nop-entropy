@@ -31,7 +31,8 @@
 
         <!--        <tcnative.version>2.0.52.Final</tcnative.version>-->
 
-        <antlr.version>4.10.1</antlr.version>
+        <!-- 与quarkus3.14.4中使用版本一致 -->
+        <antlr.version>4.13.0</antlr.version>
 
         <graalvm.version>23.1.2</graalvm.version>
         <!--        <jackson.version>2.10.2</jackson.version>-->

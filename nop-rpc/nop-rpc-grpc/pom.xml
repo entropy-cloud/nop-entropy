@@ -77,6 +77,7 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- protobuf-maven-plugin插件生成的代码会用到 -->
         <dependency>
             <groupId>javax.annotation</groupId>
             <artifactId>javax.annotation-api</artifactId>

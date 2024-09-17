@@ -34,10 +34,10 @@
             <artifactId>quarkus-resteasy</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>javax.annotation</groupId>
-            <artifactId>javax.annotation-api</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>javax.annotation</groupId>-->
+<!--            <artifactId>javax.annotation-api</artifactId>-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>com.h2database</groupId>
