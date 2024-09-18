@@ -14,22 +14,19 @@ XX Driven是软件工程领域的常见黑话之一，翻译过来就是某某�
 
 举几个具体的数据驱动的例子，
 
-1. 一般的代码生成器具体要生成哪些文件，这些文件的目录结构是什么是写在控制代码中的，比如有一个MyBatisCodeGenerator类。而Nop平台中的数据驱动的代码生成器，它的结构是一个通用的XCodeGenerator + 可以自由组织的代码生成模板，由模板数据来驱动XCodeGenerator来生成代码。具体判断某个文件是否生成，以及如何循环可以通过模板路径来表达 \`\`\`  
-   /{packageModel.name}/{enabledWeb}{entityModel.name}BizModel.java
-   
-   ```
+1. 一般的代码生成器具体要生成哪些文件，这些文件的目录结构是什么是写在控制代码中的，比如有一个MyBatisCodeGenerator类。而Nop平台中的数据驱动的代码生成器，它的结构是一个通用的XCodeGenerator + 可以自由组织的代码生成模板，由模板数据来驱动XCodeGenerator来生成代码。具体判断某个文件是否生成，以及如何循环可以通过模板路径来表达
+   `/{packageModel.name}/{enabledWeb}{entityModel.name}BizModel.java`
+
    以上路径形式表示packageModel和entityModel两层循环，同时enabledWeb为true的时候才生成对应的BizModel的java类。 详细介绍可以参见[数据驱动的差量化代码生成器](https://zhuanlan.zhihu.com/p/540022264)
-   
-   ```
 
 2. 在一般的单元测试中具体的测试数据准备和测试结果校验工作都需要在代码中编码进行。Nop平台中的数据驱动的自动化测试框架采用的模式是一个通用的自动化测试引擎 + 一组json和csv数据，然后自动初始化数据库表，并自动进行结果校验。具体的测试用例代码退化为一个简单的函数调用。
-   
+
+   ```java
+   request = input("request.json");
+   response = myService.myMethod(request);
+   output("response.json", response);
    ```
-   request = input("request.json"); 
-   response = myService.myMethod(request); 
-   output("response.json", response); 
-   ```
-   
+
    在用例录制阶段NopAutoTest框架会自动记录response为json数据，并自动将其中的变量替换为变量名，在验证阶段会自动比较录制结果与执行结果是否匹配。  详细介绍参见[低代码平台中的自动化测试](https://zhuanlan.zhihu.com/p/569315603)
 
 ## 二. 什么不是数据驱动？
@@ -52,22 +49,26 @@ XX Driven是软件工程领域的常见黑话之一，翻译过来就是某某�
 
 ## 三. Nop平台中的数据驱动
 
-Nop平台系统化的应用了可逆计算原理，也就是借助`Y=F(X)+Delta`这种通用的计算模式，将大量问题转化为使用DSL来定义和解决。
+Nop平台系统化的应用了可逆计算原理，也就是借助 $Y=F(X)+Delta$ 这种通用的计算模式，将大量问题转化为使用DSL来定义和解决。
 
-```
-App = Delta x-extends Generator<DSL> 
-```
+$$
+\DeclareMathOperator{\extends}{\mathcal{x-extends}}
+App = Delta \extends Generator\langle DSL\rangle
+$$
 
 Nop平台所提供的是一种所谓的面向语言（Language Oriented Programming）的编程范式，即在解决业务问题之前，我们先定义一个针对当前业务领域的DSL，然后再用这个DSL去解决业务问题。
 
 Nop平台中的设计并不是针对某个单一的、低代码专用的DSL，而是系统化的提供一种创建新的DSL，并实现不同DSL之间无缝融合的技术方案。
 
-```
-// 横向分解，产生多个DSL
-App = Delta +  G1<DSL1> + G2<DSL2> + ...
-// 深度分解，产生多个DSL
-App = Delta + G1<Delta2 + G2<Delta3 + G3<DSL3>>> 
-```
+$$
+\begin{aligned}
+& \text{// 横向分解，产生多个 $DSL$} \\
+App &= Delta +  G_1\langle DSL_1\rangle + G_2\langle DSL_2\rangle + ... \\
+\\
+&\text{// 深度分解，产生多个 $DSL$} \\
+App &= Delta + G_1\langle Delta_2 + G_2\langle Delta_3 + G_3\langle DSL_3\rangle\rangle\rangle
+\end{aligned}
+$$
 
 大量的DSL构成DSL森林，然后协同解决问题。
 
