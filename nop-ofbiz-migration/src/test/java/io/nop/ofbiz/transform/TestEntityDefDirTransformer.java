@@ -19,6 +19,6 @@ public class TestEntityDefDirTransformer extends JunitBaseTestCase {
         File dataDir = new File(dir, "ofbiz/entitydef").getCanonicalFile();
         System.out.println(dataDir);
 
-        new EntityDefDirTransformer().transformDir(dataDir, getTargetFile("orm"));
+        new EntityDefDirTransformer().transformDir(dataDir, getTargetFile("nop-ofbiz"));
     }
 }

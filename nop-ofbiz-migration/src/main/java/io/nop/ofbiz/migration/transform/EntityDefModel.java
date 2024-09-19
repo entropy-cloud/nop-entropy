@@ -6,26 +6,33 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.ofbiz.migration.OfbizMigrationConstants;
 import io.nop.orm.model.OrmDomainModel;
 import io.nop.orm.model.OrmModel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
 public class EntityDefModel {
+    static final Logger LOG = LoggerFactory.getLogger(EntityDefModel.class);
+
     private final OrmModel baseModel;
     private final XNode node;
     private final XNode ormNode;
+    // entityName -> [ofbizNode, ormNode]
     private final Map<String, Pair<XNode, XNode>> entityNodes = new HashMap<>();
     private final Map<String, Pair<XNode, XNode>> viewEntityNodes = new HashMap<>();
     private final Map<String, XNode> externalNodes = new HashMap<>();
 
-    public EntityDefModel(XNode node, OrmModel baseModel) {
+    public EntityDefModel(String name, XNode node, OrmModel baseModel) {
         this.node = node;
         this.baseModel = baseModel;
-        this.ormNode = transform(node);
+        this.ormNode = transform(name, node);
     }
 
     public XNode getDefNode() {
@@ -61,11 +68,20 @@ public class EntityDefModel {
         }
     }
 
-    private XNode transform(XNode node) {
+    private XNode transform(String modelName, XNode node) {
         XNode ret = XNode.make("orm");
         ret.setAttr("x:extends", OfbizMigrationConstants.PATH_OFBIZ_BASE_ORM);
         ret.setAttr("x:schema", "/nop/schema/orm/orm.xdef");
         ret.setAttr("xmlns:x", "/nop/schema/xdsl.xdef");
+        ret.setAttr("ext:mavenArtifactId", "nop-ofbiz-" + modelName);
+        ret.setAttr("ext:registerShortName", true);
+        ret.setAttr("ext:mavenGroupId", "io.nop.app");
+        ret.setAttr("ext:appName", "ofbiz-" + modelName);
+        ret.setAttr("ext:platformVersion", "2.0.0-SNAPSHOT");
+        ret.setAttr("ext:dialect", "mysql,oracle,postgresql");
+        ret.setAttr("ext:mavenVersion", "1.0.0-SNAPSHOT");
+        ret.setAttr("xmlns:i18n-en", "i18n-en");
+        ret.setAttr("xmlns:ext", "ext");
 
         XNode entities = ret.addChild("entities");
 
@@ -132,6 +148,7 @@ public class EntityDefModel {
         ret.setAttr("tableView", true);
         ret.setAttr("noPrimaryKey", true);
         ret.setAttr("readonly", true);
+        ret.setAttr("tagSet", "view");
 
         String packageName = node.attrText("package-name");
         String entityName = node.attrText("entity-name");
@@ -151,7 +168,26 @@ public class EntityDefModel {
         return ret;
     }
 
-    private void transformViewAlias(XNode viewEntityNode, XNode entityNode) {
+    public boolean transformViewAlias(String entityName, Function<String, XNode> entityResolver) {
+        Pair<XNode, XNode> pair = viewEntityNodes.get(entityName);
+        if (pair == null)
+            return false;
+        transformViewAlias(pair.getFirst(), pair.getSecond(), entityResolver);
+        return true;
+    }
+
+    public void transformViewAlias(Function<String, XNode> entityResolver) {
+        this.viewEntityNodes.values().forEach(pair -> {
+            transformViewAlias(pair.getFirst(), pair.getSecond(), entityResolver);
+        });
+    }
+
+    private void transformViewAlias(XNode viewEntityNode, XNode entityNode, Function<String, XNode> entityResolver) {
+        XNode columns = entityNode.childByTag("columns");
+        // 如果已经具有columns，则视图对应的alias已经被解析
+        if (columns != null && columns.hasChild())
+            return;
+
         Map<String, String> aliasMap = new HashMap<>();
 
         viewEntityNode.childrenByTag("member-entity").forEach(child -> {
@@ -160,7 +196,148 @@ public class EntityDefModel {
             aliasMap.put(alias, entityName);
         });
 
+        columns = entityNode.addChild("columns");
 
+        for (XNode child : viewEntityNode.getChildren()) {
+            String tagName = child.getTagName();
+            if (tagName.equals("alias")) {
+                // <alias entity-alias="CA" name="contentIdStart" field="contentIdTo"/>
+                XNode colNode = makeAliasColNode(child, columns, aliasMap, entityResolver);
+                if (colNode != null) {
+                    columns.appendChild(colNode);
+                }
+            } else if (tagName.equals("alias-all")) {
+                //  <alias-all entity-alias="CA" prefix="ca"/>
+                makeAliasAll(child, columns, aliasMap, entityResolver);
+            }
+        }
+
+        for (int i = 0, n = columns.getChildCount(); i < n; i++) {
+            XNode col = columns.child(i);
+            col.setAttr("propId", i + 1);
+        }
+    }
+
+    private XNode makeAliasColNode(XNode child, XNode columns, Map<String, String> aliasMap,
+                                   Function<String, XNode> entityResolver) {
+        String entityAlias = child.attrText("entity-alias");
+        String entityName = aliasMap.get(entityAlias);
+        if (entityName == null)
+            throw new IllegalArgumentException("nop.err.ofbiz.unknown-member-alias:" + entityAlias + "," + child);
+
+        String name = child.attrText("name");
+        String field = child.attrText("field");
+        if (field == null)
+            field = name;
+
+        // 如果已经存在同名的列，则跳过
+        if (columns.childWithAttr("name", name) != null)
+            return null;
+
+        XNode entityNode = entityResolver.apply(entityName);
+        if (entityNode == null)
+            return null;
+
+        String type = getAliasType(child);
+        if (type != null) {
+            XNode col = XNode.make("column");
+            col.setAttr("name", name);
+            if (!name.equals(field))
+                col.setAttr("ext:baseName", field);
+            col.setAttr("code", StringHelper.camelCaseToUnderscore(name, false));
+            setType(col, type);
+            return col;
+        }
+
+        XNode refCols = entityNode.childByTag("columns");
+        XNode col = refCols.childWithAttr("name", field);
+        if (col == null)
+            col = refCols.childWithAttr("ext:baseName", field);
+
+        if (col == null) {
+            LOG.error("nop.err.ofbiz.ref-unknown-col:name={},alias={},refEntity={}", name, child, entityNode);
+            return null;
+        }
+
+        col = col.cloneInstance();
+        col.setAttr("name", name);
+        col.setAttr("ext:viewAlias", entityAlias);
+        col.setAttr("code", StringHelper.camelCaseToUnderscore(name, false));
+        if (!name.equals(field))
+            col.setAttr("ext:baseName", field);
+
+        return col;
+    }
+
+    String getAliasType(XNode child) {
+        String func = child.attrText("function");
+        if (func != null) {
+            if (func.equals("sum") || func.equals("avg")) {
+                return "fixed-point";
+            } else if (func.equals("count")) {
+                return "numeric";
+            }
+        }
+
+        if (child.hasChild("complex-alias")) {
+            // 动态表达式计算得到字段
+
+            String operator = getComplexAliasOperator(child);
+            if ("-".equals(operator) || "+".equals(operator) || "*".equals(operator)) {
+                return "fixed-point";
+            } else if ("and".equals(operator) || "or".equals(operator) || "not".equals(operator)) {
+                return "boolean";
+            }
+            return "long-varchar";
+        }
+        return null;
+    }
+
+    String getComplexAliasOperator(XNode node) {
+        XNode complexAlias = node.childByTag("complex-alias");
+        if (complexAlias == null)
+            return null;
+        return complexAlias.attrText("operator");
+    }
+
+    private void makeAliasAll(XNode aliasAll, XNode columns, Map<String, String> aliasMap,
+                              Function<String, XNode> entityResolver) {
+        String alias = aliasAll.attrText("entity-alias");
+        String prefix = aliasAll.attrText("prefix");
+        String entityName = aliasMap.get(alias);
+
+        List<String> excludes = new ArrayList<>();
+        for (XNode child : aliasAll.getChildren()) {
+            if (child.getTagName().equals("exclude")) {
+                String field = child.attrText("field");
+                excludes.add(field);
+            }
+        }
+
+        XNode entityNode = entityResolver.apply(entityName);
+        XNode entityCols = entityNode.childByTag("columns");
+        if (entityCols == null)
+            throw new IllegalArgumentException("nop.err.ofbiz.entity-no-cols::" + entityName);
+
+        for (XNode col : entityCols.getChildren()) {
+            String name = col.attrText("name");
+            if (excludes.contains(name))
+                continue;
+            if (name == null)
+                throw new IllegalArgumentException("nop.err.null-col-name:" + col);
+
+            col = col.cloneInstance();
+            col.setAttr("ext:viewAlias", alias);
+            if (prefix != null) {
+                name = prefix + StringHelper.capitalize(name);
+                col.setAttr("name", name);
+                col.setAttr("code", StringHelper.camelCaseToUnderscore(name, false));
+            }
+            // 如果列已经存在，则跳过处理
+            if (columns.childWithAttr("name", name) != null)
+                continue;
+            columns.appendChild(col);
+        }
     }
 
     private XNode transformField(XNode node, Set<String> pkNames) {
@@ -178,16 +355,20 @@ public class EntityDefModel {
         ret.setAttr("name", name);
         ret.setAttr("displayName", name);
         ret.setAttr("code", code);
-        ret.setAttr("domain", type);
+
         if (primary)
             ret.setAttr("primary", primary);
 
+        setType(ret, type);
+        return ret;
+    }
+
+    private void setType(XNode ret, String type) {
+        ret.setAttr("domain", type);
         OrmDomainModel domain = baseModel.getDomain(type);
         ret.setAttr("stdSqlType", domain.getStdSqlType());
         ret.setAttr("precision", domain.getPrecision());
         ret.setAttr("scale", domain.getScale());
-
-        return ret;
     }
 
     private Set<String> getPrimaryKeys(XNode node) {
@@ -213,6 +394,7 @@ public class EntityDefModel {
     }
 
     private void transformRelation(XNode ret, XNode node, Function<String, XNode> externalEntityResolver) {
+        XNode columns = ret.childByTag("columns");
         XNode relations = ret.addChild("relations");
         for (XNode child : node.getChildren()) {
             if (child.getTagName().equals("relation")) {
@@ -221,24 +403,33 @@ public class EntityDefModel {
                 String refEntityName = child.attrText("rel-entity-name");
                 String title = child.attrText("title");
 
-                if (title != null) {
-                    title = title + StringHelper.simpleClassName(refEntityName);
+                String name = StringHelper.replace(title, " ", "_");
+                if (name != null) {
+                    name = name + StringHelper.simpleClassName(refEntityName);
                 } else {
-                    title = StringHelper.simpleClassName(refEntityName);
+                    name = StringHelper.simpleClassName(refEntityName);
                 }
-                title = StringHelper.beanPropName(title);
-                if (title.equals("class"))
-                    title = "className";
+                name = StringHelper.beanPropName(name);
+                if (name.equals("class"))
+                    name = "className";
 
                 String fullName = resolveRefEntity(refEntityName, externalEntityResolver);
 
                 String relType = type.equals("one") || type.equals("one-nopk") ? "to-one" : "to-many";
                 XNode relation = relations.addChild(relType);
 
-                relation.setAttr("name", title);
+                // 如果关联的名称与字段名相同，则为关联属性增加额外后缀
+                if (columns.childWithAttr("name", name) != null) {
+                    name += "Obj";
+                }
+                relation.setAttr("name", name);
                 relation.setAttr("refEntityName", fullName);
                 if (relType.equals("to-one"))
                     relation.setAttr("constraint", fkName);
+
+                // OFBiz的表之间存在循环依赖
+                if ("to-one".equals(relType))
+                    relation.setAttr("ignoreDepends", true);
                 addJoin(relation, child);
             }
         }
@@ -261,7 +452,9 @@ public class EntityDefModel {
         for (XNode child : bizRel.getChildren()) {
             if (child.getTagName().equals("key-map")) {
                 String fieldName = child.attrText("field-name");
-                String refFieldName = child.attrText("ref-field-name", fieldName);
+                String refFieldName = child.attrText("rel-field-name");
+                if (refFieldName == null)
+                    refFieldName = fieldName;
 
                 XNode on = join.addChild("on");
                 on.setAttr("leftProp", fieldName);

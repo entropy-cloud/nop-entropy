@@ -39,5 +39,7 @@
         <domain name="url" stdSqlType="VARCHAR" precision="2000"/>
         <domain name="tel-number" stdSqlType="VARCHAR" precision="60"/>
 
+        <domain name="boolean" stdSqlType="CHAR" precision="1" />
+
     </domains>
 </orm>
