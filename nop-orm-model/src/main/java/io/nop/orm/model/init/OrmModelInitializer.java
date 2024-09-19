@@ -68,7 +68,6 @@ import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_INVALID_COLUMN_DOMAI
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_JOIN_COLUMN_COUNT_LESS_THAN_PK_COLUMN_COUNT;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_DEPENDS_CONTAINS_LOOP;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_ENTITY_NO_PROP;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_ENTITY_PROP_NOT_PRIMARY_KEY;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_PROP_NOT_COLUMN;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_UNKNOWN_ENTITY;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_COLUMN;
@@ -452,7 +451,7 @@ public class OrmModelInitializer {
                     col = refEntityModel.getIdProp().isColumnModel() ? (OrmColumnModel) refEntityModel.getIdProp() : null;
                 }
                 if (col == null)
-                    throw new NopException(ERR_ORM_MODEL_REF_ENTITY_PROP_NOT_PRIMARY_KEY).loc(join.getLocation())
+                    throw new NopException(ERR_ORM_MODEL_REF_ENTITY_NO_PROP).loc(join.getLocation())
                             .param(ARG_PROP_NAME, join.getRightProp()).param(ARG_REF_ENTITY_NAME, refEntityModel.getName());
                 if (!col.isPrimary())
                     ref.setJoinOnNonPkColumn(true);
