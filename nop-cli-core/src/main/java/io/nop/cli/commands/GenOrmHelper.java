@@ -14,7 +14,12 @@ import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.core.resource.tpl.ITemplateOutput;
+import io.nop.excel.model.ExcelCell;
+import io.nop.excel.model.ExcelRow;
+import io.nop.excel.model.ExcelSheet;
+import io.nop.excel.model.ExcelTable;
 import io.nop.excel.model.ExcelWorkbook;
+import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.OrmModel;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.engine.IReportEngine;
@@ -29,6 +34,7 @@ import io.nop.xlang.xpl.impl.XplModelParser;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class GenOrmHelper {
@@ -55,6 +61,36 @@ public class GenOrmHelper {
 
         ITemplateOutput output = reportEngine.getRendererForXptModel(workbook, "xlsx");
         output.generateToFile(outputFile, scope);
+    }
+
+    public static void addCatalog(ExcelWorkbook workbook, OrmModel ormModel) {
+        ExcelSheet sheet = workbook.getSheet("目录");
+        ExcelTable table = sheet.getTable();
+        List<? extends IEntityModel> tables = ormModel.getEntityModels();
+        int index = 1;
+        String styleId0 = table.getCell(1, 0).getStyleId();
+        String styleId = table.getCell(1, 1).getStyleId();
+        String styleId2 = table.getCell(1, 2).getStyleId();
+        String styleId3 = table.getCell(1,3).getStyleId();
+
+        for (IEntityModel entityModel : tables) {
+            ExcelRow row = table.makeRow(index++);
+            row.makeCell(0).setValue(index);
+            ((ExcelCell) row.makeCell(0)).setStyleId(styleId0);
+
+            ExcelCell cell = (ExcelCell) row.makeCell(1);
+            cell.setValue(entityModel.getTableName());
+            cell.setLinkUrl("ref:" + entityModel.getTableName() + "!A1");
+            cell.setStyleId(styleId);
+
+            ExcelCell cell2 = (ExcelCell) row.makeCell(2);
+            cell2.setStyleId(styleId2);
+            cell2.setValue(entityModel.getDisplayName());
+
+            ExcelCell cell3 = (ExcelCell) row.makeCell(3);
+            cell3.setStyleId(styleId3);
+            cell3.setValue(entityModel.getComment());
+        }
     }
 
     private static IReportEngine newReportEngine() {

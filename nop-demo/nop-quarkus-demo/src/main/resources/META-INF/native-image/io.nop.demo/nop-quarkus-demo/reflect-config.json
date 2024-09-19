@@ -714,17 +714,14 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "loginSessionStore"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "userContextCache"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "userContextHook"
       }
@@ -766,27 +763,22 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "config"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "loginFailCache"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "userContextCache"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "userSessionCache"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "verifyCodeCache"
       }
@@ -1334,7 +1326,6 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "daoProvider"
       }
@@ -1413,7 +1404,6 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "loginService"
       }
@@ -1436,7 +1426,6 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "siteMapProvider"
       }
@@ -1530,7 +1519,6 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "siteMapProvider"
       }
@@ -1644,17 +1632,14 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "passwordEncoder"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "passwordPolicy"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "userIdGenerator"
       }
@@ -1698,12 +1683,10 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "daoProvider"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "sessionIdGenerator"
       }
@@ -1726,7 +1709,6 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "daoProvider"
       }
@@ -1752,27 +1734,22 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "auditService"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "authTokenProvider"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "daoProvider"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "passwordEncoder"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "verifyCodeGenerator"
       }
@@ -1864,12 +1841,10 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "daoProvider"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "siteCache"
       }
@@ -2255,7 +2230,6 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "graphQLEngine"
       }
@@ -2271,7 +2245,6 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "graphQLEngine"
       }
@@ -4673,32 +4646,26 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "bizObjectManager"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "daoProvider"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "formatGenCode"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "genWebFiles"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "ormSessionFactory"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "ormTemplate"
       }
@@ -4845,7 +4812,6 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "codeGen"
       }
@@ -4869,12 +4835,10 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "dynCodeGen"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "fileStore"
       }
@@ -4961,12 +4925,10 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "fileStore"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "maxFileSize"
       }
@@ -5285,7 +5247,6 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "graphQLEngine"
       }
@@ -5342,7 +5303,6 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "ignoreSslCerts"
       }
@@ -7616,7 +7576,6 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "reportEngine"
       }
@@ -7950,7 +7909,6 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "daoProvider"
       }
@@ -7976,7 +7934,6 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "ruleModelLoader"
       }
@@ -8029,7 +7986,6 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "ruleModelLoader"
       }
@@ -8087,7 +8043,6 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "daoProvider"
       }
@@ -8103,7 +8058,6 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "daoProvider"
       }
@@ -8419,7 +8373,6 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "daoProvider"
       }
@@ -8880,12 +8833,10 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "editEnabled"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "pageProvider"
       }
@@ -8901,12 +8852,10 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "editEnabled"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "jsProvider"
       }
@@ -8949,12 +8898,10 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "cssLoader"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "jsLoader"
       }
@@ -8970,7 +8917,6 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "pageProvider"
       }
@@ -9854,7 +9800,6 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "workflowDOProvider"
       }
@@ -10035,12 +9980,10 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "body"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "sourceType"
       }
@@ -10629,22 +10572,18 @@
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "baseLoc"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "packageName"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "typeAliases"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "typeCache"
       }

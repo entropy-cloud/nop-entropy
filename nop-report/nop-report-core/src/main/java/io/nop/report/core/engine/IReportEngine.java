@@ -7,6 +7,7 @@
  */
 package io.nop.report.core.engine;
 
+import io.nop.core.context.IEvalContext;
 import io.nop.core.resource.tpl.ITemplateOutput;
 import io.nop.core.resource.tpl.ITextTemplateOutput;
 import io.nop.excel.model.ExcelWorkbook;
@@ -17,6 +18,8 @@ public interface IReportEngine {
      * 获取xpt报表模型
      */
     ExcelWorkbook getXptModel(String reportPath);
+
+    ExcelWorkbook generateFromXptModel(ExcelWorkbook workbook, IEvalContext ctx);
 
     ITemplateOutput getRendererForXptModel(ExcelWorkbook workbook, String renderType);
 

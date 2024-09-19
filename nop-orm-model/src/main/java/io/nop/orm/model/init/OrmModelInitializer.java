@@ -528,6 +528,10 @@ public class OrmModelInitializer {
                     if (entityModel.getName().equals(rel.getRefEntityName()))
                         continue;
 
+                    // 忽略对于视图的依赖
+                    if(rel.getRefEntityModel().isTableView())
+                        continue;
+
                     // 如果指定了忽略关联依赖
                     OrmToOneReferenceModel toOne = (OrmToOneReferenceModel) rel;
                     if (toOne.isIgnoreDepends())

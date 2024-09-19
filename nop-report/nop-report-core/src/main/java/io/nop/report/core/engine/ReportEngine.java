@@ -9,10 +9,13 @@ package io.nop.report.core.engine;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.context.IEvalContext;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.tpl.ITemplateOutput;
 import io.nop.excel.model.ExcelWorkbook;
+import io.nop.ooxml.xlsx.output.IExcelSheetGenerator;
 import io.nop.report.core.XptConstants;
+import io.nop.report.core.engine.renderer.ReportRenderHelper;
 import io.nop.report.core.util.ExcelReportHelper;
 
 import java.util.Collections;
@@ -48,6 +51,12 @@ public class ReportEngine implements IReportEngine {
     }
 
     @Override
+    public ExcelWorkbook generateFromXptModel(ExcelWorkbook workbook, IEvalContext ctx) {
+        IExcelSheetGenerator sheetGenerator = new ExpandedSheetGenerator(workbook);
+        return ReportRenderHelper.renderModel(workbook, sheetGenerator, ctx);
+    }
+
+    @Override
     public ITemplateOutput getRendererForXptModel(ExcelWorkbook model, String renderType) {
         IReportRendererFactory rendererFactory = renderers.get(renderType);
         if (rendererFactory == null)
@@ -64,7 +73,7 @@ public class ReportEngine implements IReportEngine {
             throw new NopException(ERR_XPT_UNSUPPORTED_RENDER_TYPE)
                     .param(ARG_RENDER_TYPE, renderType);
 
-        return rendererFactory.buildRenderer(model, (ctx, action) -> model.getSheets().forEach(sheet-> action.accept(sheet,ctx)));
+        return rendererFactory.buildRenderer(model, (ctx, action) -> model.getSheets().forEach(sheet -> action.accept(sheet, ctx)));
     }
 
 
