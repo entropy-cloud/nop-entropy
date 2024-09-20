@@ -10,6 +10,8 @@ package io.nop.xlang.xmeta;
 import io.nop.api.core.annotations.core.Label;
 import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.annotations.core.Option;
+import java.util.HashMap;
+import java.util.Map;
 
 @Locale("zh-CN")
 public enum ObjPropKind {
@@ -34,5 +36,17 @@ public enum ObjPropKind {
 
     public String toString() {
         return text;
+    }
+
+    private static final Map<String, ObjPropKind> KIND_MAP = new HashMap<>();
+    
+    static {
+        for (ObjPropKind kind : ObjPropKind.values()) {
+            KIND_MAP.put(kind.text, kind);
+        }
+    }
+
+    public static ObjPropKind fromText(String text) {
+        return KIND_MAP.get(text);
     }
 }
