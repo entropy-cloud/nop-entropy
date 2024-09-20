@@ -48,8 +48,11 @@ import static io.nop.auth.dao.entity._gen._NopAuthRoleResource.PROP_NAME_roleId;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SITE_MAP_CACHE_MAX_SIZE;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SITE_MAP_CACHE_TIMEOUT;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SITE_MAP_STATIC_CONFIG_PATH;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SKIP_CHECK_FOR_ADMIN;
 import static io.nop.auth.service.NopAuthConstants.RESOURCE_TYPE_SUB_MENU;
 import static io.nop.auth.service.NopAuthConstants.RESOURCE_TYPE_TOP_MENU;
+import static io.nop.auth.service.NopAuthConstants.ROLE_ADMIN;
+import static io.nop.auth.service.NopAuthConstants.ROLE_NOP_ADMIN;
 
 public class SiteMapProviderImpl implements ISiteMapProvider {
 
@@ -202,7 +205,9 @@ public class SiteMapProviderImpl implements ISiteMapProvider {
         site.removePermissions();
 
         if (enableActionAuth) {
-            applyAuthFilter(site.getResources(), cache.getResourceToRoles(), roleIds);
+            if (isSkipForAdmin(roleIds))
+                applyAuthFilter(site.getResources(), cache.getResourceToRoles(), roleIds);
+
             if (!includeFunctionPoints)
                 site.removeFunctionPoints();
             site.removeInactive();
@@ -211,6 +216,13 @@ public class SiteMapProviderImpl implements ISiteMapProvider {
                 site.removeFunctionPoints();
         }
         return site;
+    }
+
+    boolean isSkipForAdmin(Set<String> roleIds) {
+        if (!CFG_AUTH_SKIP_CHECK_FOR_ADMIN.get())
+            return false;
+
+        return roleIds.contains(ROLE_ADMIN) || roleIds.contains(ROLE_NOP_ADMIN);
     }
 
     void applyAuthFilter(List<SiteResourceBean> resources, Map<String, Set<String>> resourceToRoles,

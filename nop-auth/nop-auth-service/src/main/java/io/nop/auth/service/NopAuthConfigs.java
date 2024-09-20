@@ -72,4 +72,7 @@ public interface NopAuthConfigs {
     @Description("数据权限缓存的超时时间")
     IConfigReference<Duration> CFG_AUTH_DATA_AUTH_CACHE_TIMEOUT = varRef(s_loc, "nop.auth.data-auth.cache-timeout",
             Duration.class, null);
+
+    @Description("是否跳过对管理员的操作权限检查")
+    IConfigReference<Boolean> CFG_AUTH_SKIP_CHECK_FOR_ADMIN = varRef(s_loc, "nop.auth.skip-check-for-admin", Boolean.class, false);
 }
