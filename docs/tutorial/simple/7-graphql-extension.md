@@ -51,15 +51,17 @@ query{
 
 对于单位树、菜单树这样的树形结构的获取，NopGraphQL通过Directive机制提供了一个扩展语法，可以直接表达递归拉取数据，例如
 
-```
-NopAuthDept_findList{
-    value: id,
-    label: displayName
-    children @TreeChildren(max=5)
+```graphql
+query {
+    NopAuthDept_findList{
+        value: id
+        label: displayName
+        children @TreeChildren(max:5)
+    }
 }
 ```
 
-* `@TreeChildren(max=5)`表示按照本层的结构最多嵌套5层。
+* `@TreeChildren(max:5)`表示按照本层的结构最多嵌套5层。
 
 ## 三. Map类型
 

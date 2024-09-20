@@ -82,11 +82,13 @@ public class TreeEntityHelper {
             DaoQueryHelper.appendFilter(sb, "b", filter);
         }
         if (levelProp != null && rootLevelValue != null) {
+            if (filter != null)
+                sb.and();
             sb.append("\n ").owner("b").append(levelProp).append("=").param(ConvertHelper.toInt(rootLevelValue));
         } else {
-            // 如果 parentProp 属性在 filter 中存在，以传入的属性为准
-            boolean hasParentProp = filter != null && ((TreeBean) filter).nodeWithAttr("name", parentProp) == null;
-            if (filter == null || hasParentProp) {
+            // 如果 parentProp 属性在 filter 中存在，则以传入的属性为准
+            boolean hasParentProp = filter != null && ((TreeBean) filter).nodeWithAttr("name", parentProp) != null;
+            if (!hasParentProp) {
                 if (filter != null)
                     sb.and();
                 sb.append("\n ").owner("b").append(parentProp);

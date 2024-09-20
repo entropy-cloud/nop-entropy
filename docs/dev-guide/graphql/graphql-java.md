@@ -465,7 +465,7 @@ GraphQL是一种强类型的框架，它要求所有数据都有明确的类型�
 
 NopGraphQL引入了一个特殊的Scalar类型: Map，可以利用它来描述那些动态数据结构。例如
 
-```js
+```graphql
 type QueryBean{
     filter: Map
     orderBy: [OrderFieldBean]
@@ -476,15 +476,17 @@ type QueryBean{
 
 对于单位树、菜单树这样的树形结构的获取，NopGraphQL通过Directive机制提供了一个扩展语法，可以直接表达递归拉取数据，例如
 
-```js
-NopAuthDept_findList{
-    value: id,
-    label: displayName
-    children @TreeChildren(max=5)
+```graphql
+query {
+    NopAuthDept_findList{
+        value: id
+        label: displayName
+        children @TreeChildren(max:5)
+    }
 }
 ```
 
-`@TreeChildren(max=5)`表示按照本层的结构最多嵌套5层。
+`@TreeChildren(max:5)`表示按照本层的结构最多嵌套5层。
 
 ## 文件上传下载
 
