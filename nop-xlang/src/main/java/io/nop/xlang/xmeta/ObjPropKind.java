@@ -10,6 +10,8 @@ package io.nop.xlang.xmeta;
 import io.nop.api.core.annotations.core.Label;
 import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.annotations.core.Option;
+import io.nop.api.core.annotations.core.StaticFactoryMethod;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -46,6 +48,7 @@ public enum ObjPropKind {
         }
     }
 
+    @StaticFactoryMethod
     public static ObjPropKind fromText(String text) {
         return KIND_MAP.get(text);
     }
