@@ -205,7 +205,7 @@ public class SiteMapProviderImpl implements ISiteMapProvider {
         site.removePermissions();
 
         if (enableActionAuth) {
-            if (isSkipForAdmin(roleIds))
+            if (!isSkipForAdmin(roleIds))
                 applyAuthFilter(site.getResources(), cache.getResourceToRoles(), roleIds);
 
             if (!includeFunctionPoints)
