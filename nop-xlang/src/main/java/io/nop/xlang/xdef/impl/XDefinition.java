@@ -122,7 +122,7 @@ public class XDefinition extends _XDefinition implements IXDefinition {
         if (checkNs != null && !checkNs.isEmpty())
             node.setAttr(getLocation(), defKeys.CHECK_NS, StringHelper.join(checkNs, ","));
 
-        Set<String> propNs = getXdefCheckNs();
+        Set<String> propNs = getXdefPropNs();
         if (propNs != null && !propNs.isEmpty())
             node.setAttr(getLocation(), defKeys.PROP_NS, StringHelper.join(propNs, ","));
 
