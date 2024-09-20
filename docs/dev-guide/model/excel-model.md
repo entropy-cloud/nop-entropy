@@ -187,3 +187,8 @@ Excel模型中如果定义了`所属模型`这个参数，则会在自动生成`
 前端页面使用的控件缺省由`control.xlib`库根据meta配置来自动推定。`edit-relation`控件会调用`XuiHelper.getRelationPickerUrl`
 函数来生成`picker`页面对应的链接，链接格式为  `"/" + moduleId + "/pages/" + bizObjName + "/picker.page.yaml"`。如果关联子表的meta配置中
 设置了`biz:moduleId`属性，则`moduleId`以设置的值为准，否则会自动根据meta文件的路径推定它所在的模块。
+
+
+## 常见问题诊断
+1. 在Excel模型中定义了关联属性，但是生成的`app.orm.xml`文件中却没有。
+注意关联属性是在【关联列表】中定义，对于列表结构，每一个条目的第一列是序号列，其中必须设置为整数值。![](images/relation.png)

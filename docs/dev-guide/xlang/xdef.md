@@ -187,3 +187,16 @@ XDef元模型定义语言的能力足够强大，它可以被用于描述XDef元
     <join name="b"/>
 </steps>
 ```
+
+## 常见问题解答
+
+1. 使用`<parent> <item xdef:value="string"> </parent>`定义 和`<parent item="string">` 定义有什么区别？
+   生成到java中没有区别，这种只是在xml形式层面有区别
+
+2. 如果指定`xdef:body-type="list"`, 那么它的子节点必须是对象类型吗？如果是int或者string之类的基本类型应该怎么写?
+   我没有处理过这种情况，如果一定要处理。目前的做法大概是 `<list xdef:body-type="list"> <_ xdef:value="int" />` 类似这种。
+   另外对于常用的逗号分隔的列表值，可以直接写 `<list xdef:value="csv-list" />`
+
+3. 如果一个节点已经设置了`xdef:body-type="list"`, 但是还有别的属性 例如
+   `<row name="string" xdef:body-type="list" height="string">`, 这会生成什么结构？
+  缺省情况下body内容会对应于body属性。这是和AMIS的约定保持一致，tagName对应于type, body内容对应于body。

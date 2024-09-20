@@ -7,7 +7,7 @@
 * 配置`nop.auth.use-data-auth-table=true`启用数据权限配置表`NopAuthRoleDataAuth`，数据库中配置的数据权限规则可以和配置文件中的权限规则合并
 * 缺省会加载/nop/main/auth/main.action-auth.xml 静态权限配置文件，可以通过nop.auth.site-map.static-config-path定制为不同的值
 * 在main.action-auth.xml可以通过`x:extends`来引入已有的权限配置文件。
-* 如果配置`nop.auth.skip-check-for-admin=true`,则对于具有admin角色的用户会跳过操作权限检查，缺省为true。
+* 如果配置`nop.auth.skip-check-for-admin=true`,则对于具有admin角色或者`nop-admin`的用户会跳过操作权限检查，缺省为true。
 * 配置`nop.auth.service-public=true`可以开放后台服务，无需登录即可访问后台服务函数
 * 配置`nop.auth.quarkus-dev-public=true`会开放quarkus调试页面，无需登录即可访问/q/graphql-ui等调试页面
 
