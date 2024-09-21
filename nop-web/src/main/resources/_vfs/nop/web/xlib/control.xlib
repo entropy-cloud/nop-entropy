@@ -1062,6 +1062,10 @@
 
         <view-to-one x:prototype="view-relation"/>
 
+        <!-- userId这样的关联属性如果不配置查询控件，缺省会执行这个控件 -->
+        <query-to-one x:prototype="edit-to-one" />
+        <query-to-many x:prototype="edit-to-one" />
+
         <edit-to-many>
             <attr name="dispMeta"/>
             <attr name="propMeta"/>

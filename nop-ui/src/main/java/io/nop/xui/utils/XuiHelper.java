@@ -156,8 +156,8 @@ public class XuiHelper {
             return tag;
 
         if (domain != null) {
-            int pos = domain.indexOf('-');
-            if (pos > 0) {
+            int pos = domain.lastIndexOf('-');
+            if (pos > 0 && StringHelper.isDigit(domain.charAt(pos + 2))) {
                 String baseDomain = domain.substring(0, pos);
                 tag = tryGetControl(lib, baseDomain, mode);
                 if (tag != null)
