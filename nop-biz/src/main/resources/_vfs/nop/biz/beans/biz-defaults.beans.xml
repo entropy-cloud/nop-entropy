@@ -96,9 +96,9 @@
         </ioc:condition>
     </bean>
 
-    <bean id="nopQueryBeanArgsNormalizer" class="io.nop.biz.crud.QueryBeanArgsNormalizer"/>
+    <bean id="nopQueryBeanArgsNormalizer" ioc:default="true" class="io.nop.biz.crud.QueryBeanArgsNormalizer"/>
 
     <bean id="nopFilterArgsNormalizer" class="io.nop.biz.crud.FilterArgsNormalizer"/>
 
-    <bean id="nopGlobalQueryTransformer" ioc:default="true" class="io.nop.biz.impl.EmptyQueryTransformer" />
+    <bean id="nopGlobalQueryTransformer" ioc:default="true" class="io.nop.biz.impl.EmptyQueryTransformer"/>
 </beans>
