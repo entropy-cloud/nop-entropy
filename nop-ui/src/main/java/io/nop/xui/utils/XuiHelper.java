@@ -157,6 +157,7 @@ public class XuiHelper {
 
         if (domain != null) {
             int pos = domain.lastIndexOf('-');
+            // 忽略 json-4k这种后面的长度描述
             if (pos > 0 && StringHelper.isDigit(domain.charAt(pos + 2))) {
                 String baseDomain = domain.substring(0, pos);
                 tag = tryGetControl(lib, baseDomain, mode);
