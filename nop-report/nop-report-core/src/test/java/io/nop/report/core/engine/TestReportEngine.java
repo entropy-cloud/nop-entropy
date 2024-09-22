@@ -18,7 +18,6 @@ import io.nop.core.unittest.BaseTestCase;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
 import io.nop.report.core.XptConstants;
-import io.nop.report.core.build.XptStructureToNode;
 import io.nop.report.core.engine.renderer.HtmlReportRendererFactory;
 import io.nop.report.core.engine.renderer.XlsxReportRendererFactory;
 import io.nop.xlang.api.XLang;
@@ -105,6 +104,16 @@ public class TestReportEngine extends BaseTestCase {
 
         ITemplateOutput output = reportEngine.getRendererForXptModel(workbook, "xlsx");
         output.generateToFile(getTargetFile("test-hidden.xlsx"), XLang.newEvalScope());
+    }
+
+    @Test
+    public void testImageInMultiSheet() {
+        IReportEngine reportEngine = newReportEngine();
+
+
+        ExcelWorkbook workbook = reportEngine.getXptModel("/nop/report/demo/test-image.xpt.xlsx");
+        ITemplateOutput output = reportEngine.getRendererForXptModel(workbook, "xlsx");
+        output.generateToFile(getTargetFile("test-image.xlsx"), XLang.newEvalScope());
     }
 
     private IReportEngine newReportEngine() {

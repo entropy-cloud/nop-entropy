@@ -147,11 +147,9 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         for (ExcelImage image : images) {
             if (image.getData() == null)
                 continue;
-            String[] pathAndId = addImageData(pkg, image.getData(), image.getImgType(), genState);
-            if (pathAndId[1] == null) {
-                pathAndId[1] = drawingRelPart.addImage("/" + pathAndId[0]).getId();
-            }
-            image.setEmbedId(pathAndId[1]);
+            String path = addImageData(pkg, image.getData(), image.getImgType(), genState);
+            String id = drawingRelPart.addImage("/" + path).getId();
+            image.setEmbedId(id);
         }
 
         XNode node = new DrawingBuilder().build(images);
@@ -160,17 +158,17 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
 
     }
 
-    private String[] addImageData(ExcelOfficePackage pkg, ByteString data, String imgType, GenState genState) {
-        String[] pathAndId = genState.images.get(data);
-        if (pathAndId == null) {
+    private String addImageData(ExcelOfficePackage pkg, ByteString data, String imgType, GenState genState) {
+        // 同样的图片数据如果出现多次，则会复用此前添加的图片路径
+        String path = genState.images.get(data);
+        if (path == null) {
             int index = genState.nextImageIndex++;
             if (imgType == null)
                 imgType = ContentTypes.EXTENSION_PNG;
             IResource resource = new ByteArrayResource("/" + index, data.toByteArray(), -1);
-            String path = pkg.addImage(imgType, resource);
-            pathAndId = new String[]{path, null};
-            genState.images.put(data, pathAndId);
+            path = pkg.addImage(imgType, resource);
+            genState.images.put(data, path);
         }
-        return pathAndId;
+        return path;
     }
 }

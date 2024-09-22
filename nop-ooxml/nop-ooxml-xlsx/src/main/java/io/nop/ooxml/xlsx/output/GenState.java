@@ -9,7 +9,7 @@ import java.util.Map;
 public class GenState {
     public ExcelOfficePackage pkg;
     public int nextSheetIndex;
-    public Map<ByteString, String[]> images = new HashMap<>();
+    public Map<ByteString, String> images = new HashMap<>();
     public int nextImageIndex;
 
     public int nextDrawingIndex;

@@ -15,6 +15,7 @@ import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.core.model.table.ICellView;
 import io.nop.excel.ExcelConstants;
 import io.nop.excel.model.ExcelCell;
+import io.nop.excel.model.ExcelClientAnchor;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelWorkbook;
@@ -106,6 +107,9 @@ public class ExcelWorkbookParser extends AbstractXlsxParser {
                     image.setImgType(StringHelper.fileExt(imagePart.getPath()));
                     image.setData(ByteString.of(imagePart.generateBytes(DisabledEvalScope.INSTANCE)));
                     image.calcSize(sheet);
+                    ExcelClientAnchor anchor = image.getAnchor();
+                    sheet.getTable().makeCell(anchor.getRow1(),anchor.getCol1());
+                    sheet.getTable().makeCell(anchor.getRow2(),anchor.getCol2());
                 }
                 sheet.setImages(images);
             }
