@@ -70,7 +70,7 @@ public class DrawingBuilder {
         prstGeom.addChild("a:avLst");
 
         XNode clientData = anchor.addChild("xdr:clientData");
-        clientData.setAttr("fPrintsWithSheet", image.isPrint() ? 0 : 1);
+        clientData.setAttr("fPrintsWithSheet", image.isPrint() ? 1 : 0);
         return anchor;
     }
 
