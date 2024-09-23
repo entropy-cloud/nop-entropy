@@ -15,7 +15,9 @@ import java.util.List;
 
 import static io.nop.core.reflect.impl.FunctionArgument.arg;
 import static io.nop.core.type.PredefinedGenericTypes.INT_TYPE;
+import static io.nop.core.type.PredefinedGenericTypes.STRING_TYPE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestJaninoScriptCompiler extends BaseTestCase {
 
@@ -33,7 +35,7 @@ public class TestJaninoScriptCompiler extends BaseTestCase {
     public void testJanino() throws Exception {
         // 创建一个ScriptEvaluator对象
         ScriptEvaluator scriptEvaluator = new ScriptEvaluator();
-        scriptEvaluator.setParameters(new String[]{"a","b"},new Class[]{int.class,int.class});
+        scriptEvaluator.setParameters(new String[]{"a", "b"}, new Class[]{int.class, int.class});
         scriptEvaluator.setReturnType(int.class);
         scriptEvaluator.cook("return a + b;");
 
@@ -46,5 +48,14 @@ public class TestJaninoScriptCompiler extends BaseTestCase {
         List<FunctionArgument> args = List.of(arg("a", INT_TYPE), arg("b", INT_TYPE));
         IEvalFunction fn = XLang.newCompileTool().compileScript(null, "java", "if(a > 2) {\n return a+b;\n}\nelse{ return 444;} ", args, INT_TYPE);
         assertEquals(444, fn.call2(null, 1, 2, DisabledEvalScope.INSTANCE));
+    }
+
+    @Test
+    public void testImport() {
+        List<FunctionArgument> args = List.of(arg("a", INT_TYPE), arg("b", INT_TYPE));
+        IEvalFunction fn = XLang.newCompileTool().compileScript(null, "java", "import java.util.Date;\n return new Date().toString() + '-'+ a;", args, STRING_TYPE);
+        String ret = (String) fn.call2(null, 1, 2, DisabledEvalScope.INSTANCE);
+        System.out.println(ret);
+        assertTrue(ret.endsWith("-1"));
     }
 }
