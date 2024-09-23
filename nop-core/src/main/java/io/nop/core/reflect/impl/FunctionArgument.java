@@ -33,6 +33,10 @@ public class FunctionArgument extends AnnotatedElement implements IFunctionArgum
         this.setType(type);
     }
 
+    public static FunctionArgument arg(String name, IGenericType type) {
+        return new FunctionArgument(name, type);
+    }
+
     // static FunctionArgument newObjectArgs() {
     // FunctionArgument arg = new FunctionArgument("args", PredefinedGenericTypes.ARRAY_ANY_TYPE);
     // arg.freeze(true);

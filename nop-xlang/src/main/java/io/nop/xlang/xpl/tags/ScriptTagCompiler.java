@@ -13,6 +13,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.impl.FunctionModel;
+import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.xlang.api.IXLangCompileScope;
 import io.nop.xlang.ast.CallExpression;
 import io.nop.xlang.ast.Expression;
@@ -51,7 +52,7 @@ public class ScriptTagCompiler implements IXplTagCompiler {
         if (StringHelper.isEmpty(lang)) {
             try {
                 Program prog = cp.parseFullExpr(node.content().getLocation(), source, scope);
-                if(prog == null)
+                if (prog == null)
                     return null;
                 prog.setShareScope(true);
                 return prog;
@@ -61,7 +62,8 @@ public class ScriptTagCompiler implements IXplTagCompiler {
             }
         }
 
-        IEvalFunction func = cp.compileScript(node.content().getLocation(), lang, source, scope);
+        IEvalFunction func = cp.compileScript(node.content().getLocation(), lang, source,
+                Collections.emptyList(), PredefinedGenericTypes.ANY_TYPE, scope);
         if (func == null)
             return null;
 

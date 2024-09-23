@@ -210,7 +210,8 @@ public class TaskStepBuilder implements ITaskStepBuilder {
     }
 
     private AbstractTaskStep buildScriptStep(ScriptTaskStepModel stepModel) {
-        IEvalAction action = compileTool.compileScript(stepModel.getLocation(), stepModel.getLang(), stepModel.getSource());
+        IEvalAction action = compileTool.compileScriptAction(stepModel.getLocation(), stepModel.getLang(),
+                stepModel.getSource(), stepModel.getInputsAsArgModels(), stepModel.getReturnType());
 
         EvalTaskStep ret = new EvalTaskStep();
         ret.setSource(action);

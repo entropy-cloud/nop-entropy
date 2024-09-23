@@ -24,7 +24,7 @@ public class ScriptCompilerRegistry {
         return _instance;
     }
 
-    private Map<String, IScriptCompiler> compilers = new ConcurrentHashMap<>();
+    private final Map<String, IScriptCompiler> compilers = new ConcurrentHashMap<>();
 
     public void registerCompiler(String lang, IScriptCompiler compiler) {
         this.compilers.put(lang, compiler);

@@ -16,6 +16,8 @@ import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.reflect.IFunctionArgument;
+import io.nop.core.type.IGenericType;
 import io.nop.xlang.XLangConstants;
 import io.nop.xlang.api.IXLangCompileScope;
 import io.nop.xlang.ast.Expression;
@@ -440,12 +442,13 @@ public class XplCompiler extends XLangExprParser implements IXplCompiler {
     }
 
     @Override
-    public IEvalFunction compileScript(SourceLocation loc, String lang, String source, IXLangCompileScope scope) {
+    public IEvalFunction compileScript(SourceLocation loc, String lang, String source,
+                                       List<? extends IFunctionArgument> args, IGenericType returnType, IXLangCompileScope scope) {
         IScriptCompiler compiler = ScriptCompilerRegistry.instance().getCompiler(lang);
         if (compiler == null)
             throw new NopEvalException(ERR_XPL_UNKNOWN_SCRIPT_LANG).param(ARG_LANG, lang).param(ARG_SCRIPT_LANGS,
                     ScriptCompilerRegistry.instance().getRegisteredLanguages());
-        return compiler.compile(loc, source, scope);
+        return compiler.compile(loc, source, args, returnType, scope);
     }
 
     @Override

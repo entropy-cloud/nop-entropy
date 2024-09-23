@@ -10,11 +10,13 @@ package io.nop.xlang.api;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.objects.ValueWithLocation;
+import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.functions.NoopEvalFunction;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
+import io.nop.core.reflect.IFunctionArgument;
 import io.nop.core.type.IFunctionType;
 import io.nop.core.type.IGenericType;
 import io.nop.xlang.ast.ArrowFunctionExpression;
@@ -25,11 +27,11 @@ import io.nop.xlang.ast.Program;
 import io.nop.xlang.ast.XLangASTBuilder;
 import io.nop.xlang.ast.XLangOutputMode;
 import io.nop.xlang.ast.XLangTypeHelper;
-import io.nop.xlang.exec.FunctionExecutable;
 import io.nop.xlang.exec.GenXJsonExecutable;
 import io.nop.xlang.exec.LiteralExecutable;
 import io.nop.xlang.expr.ExprConstants;
 import io.nop.xlang.expr.ExprPhase;
+import io.nop.xlang.script.ScriptEvalAction;
 import io.nop.xlang.xpl.IXplCompiler;
 
 import java.util.ArrayList;
@@ -108,11 +110,18 @@ public class XLangCompileTool {
         return this;
     }
 
-    public ExprEvalAction compileScript(SourceLocation loc, String lang, String script) {
-        IEvalFunction func = cp.compileScript(loc, lang, script, scope);
-        IExecutableExpression executable = FunctionExecutable.build(loc, "<script>", func,
-                IExecutableExpression.EMPTY_EXPRS);
-        return buildAction(executable);
+    public IEvalFunction compileScript(SourceLocation loc, String lang, String script,
+                                       List<? extends IFunctionArgument> args, IGenericType returnType) {
+        IEvalFunction func = cp.compileScript(loc, lang, script, args, returnType, scope);
+        return func;
+    }
+
+    public IEvalAction compileScriptAction(SourceLocation loc, String lang, String script,
+                                           List<? extends IFunctionArgument> args, IGenericType returnType) {
+        IEvalFunction func = compileScript(loc, lang, script, args, returnType);
+        if (func == null)
+            return null;
+        return new ScriptEvalAction(loc, script, args, func);
     }
 
     public Program parseFullExpr(SourceLocation loc, String source) {

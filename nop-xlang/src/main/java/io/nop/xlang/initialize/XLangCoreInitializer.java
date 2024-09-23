@@ -24,6 +24,7 @@ import io.nop.xlang.bind.ExprValueResolver;
 import io.nop.xlang.feature.FeatureConditionEvaluator;
 import io.nop.xlang.functions.GlobalFunctions;
 import io.nop.xlang.functions.LogFunctions;
+import io.nop.xlang.janino.JaninoScriptCompiler;
 import io.nop.xlang.utils.DebugHelper;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdef.impl.XDefToObjMeta;
@@ -55,6 +56,8 @@ public class XLangCoreInitializer implements ICoreInitializer {
         EvalExprProvider.registerDefaultExprParser(this::parseExpr);
         EvalExprProvider.registerFeaturePredicateEvaluator(FeatureConditionEvaluator.INSTANCE);
         EvalExprProvider.registerDeltaExtendsGenerator(DeltaExtendsGenerator.INSTANCE);
+
+        JaninoScriptCompiler.register();
 
 //        registerXpl();
         registerXDef();
@@ -124,6 +127,7 @@ public class XLangCoreInitializer implements ICoreInitializer {
 
     @Override
     public void destroy() {
+        JaninoScriptCompiler.unregister();
         cleanup.cancel();
     }
 }

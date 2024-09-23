@@ -10,9 +10,13 @@ package io.nop.xlang.xpl;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.reflect.IFunctionArgument;
+import io.nop.core.type.IGenericType;
 import io.nop.xlang.api.IXLangCompileScope;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.expr.IXLangExprParser;
+
+import java.util.List;
 
 public interface IXplCompiler extends IXLangExprParser {
 
@@ -31,6 +35,9 @@ public interface IXplCompiler extends IXLangExprParser {
 
     IXplTagLib loadLib(SourceLocation loc, String namespace, String src, IXLangCompileScope scope);
 
-    IEvalFunction compileScript(SourceLocation loc, String lang, String source, IXLangCompileScope scope);
+    IEvalFunction compileScript(SourceLocation loc, String lang, String source,
+                                List<? extends IFunctionArgument> args,
+                                IGenericType returnType,
+                                IXLangCompileScope scope);
 
 }
