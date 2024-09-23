@@ -1,4 +1,4 @@
-// Nop Generated from XLangParser.g4 by ANTLR 4.10.1
+// Nop Generated from XLangParser.g4 by ANTLR 4.13.0
 package io.nop.xlang.parse.antlr;
 import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
@@ -9,10 +9,10 @@ import java.util.List;
 import java.util.Iterator; //NOPMD - suppressed UnusedImports - Auto Gen Code
 import java.util.ArrayList; //NOPMD - suppressed UnusedImports - Auto Gen Code
 
-@SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast"})
+@SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast", "CheckReturnValue"})
 // tell cpd to start ignoring code - CPD-OFF
 public class XLangParser extends XLangParserBase {
-	static { RuntimeMetaData.checkVersion("4.10.1", RuntimeMetaData.VERSION); }
+	static { RuntimeMetaData.checkVersion("4.13.0", RuntimeMetaData.VERSION); }
 
 	protected static final DFA[] _decisionToDFA;
 	protected static final PredictionContextCache _sharedContextCache =
@@ -218,6 +218,7 @@ public class XLangParser extends XLangParserBase {
 		_interp = new ParserATNSimulator(this,_ATN,_decisionToDFA,_sharedContextCache);
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ProgramContext extends ParserRuleContext {
 		public TopLevelStatements_Context body;
 		public TerminalNode EOF() { return getToken(XLangParser.EOF, 0); }
@@ -266,6 +267,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class TopLevelStatements_Context extends ParserRuleContext {
 		public Ast_topLevelStatementContext e;
 		public List<Ast_topLevelStatementContext> ast_topLevelStatement() {
@@ -329,6 +331,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Ast_topLevelStatementContext extends ParserRuleContext {
 		public Ast_topLevelStatementContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -340,6 +343,7 @@ public class XLangParser extends XLangParserBase {
 			super.copyFrom(ctx);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class ExportDeclaration_constContext extends Ast_topLevelStatementContext {
 		public VariableDeclaration_constContext declaration;
 		public TerminalNode Export() { return getToken(XLangParser.Export, 0); }
@@ -361,6 +365,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class Statement_topContext extends Ast_topLevelStatementContext {
 		public StatementContext statement() {
 			return getRuleContext(StatementContext.class,0);
@@ -380,6 +385,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class ExportDeclaration_typeContext extends Ast_topLevelStatementContext {
 		public TypeAliasDeclarationContext declaration;
 		public TerminalNode Export() { return getToken(XLangParser.Export, 0); }
@@ -401,6 +407,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class Ast_exportStatement2Context extends Ast_topLevelStatementContext {
 		public Ast_exportStatementContext ast_exportStatement() {
 			return getRuleContext(Ast_exportStatementContext.class,0);
@@ -420,6 +427,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class ExportDeclaration_funcContext extends Ast_topLevelStatementContext {
 		public FunctionDeclarationContext declaration;
 		public TerminalNode Export() { return getToken(XLangParser.Export, 0); }
@@ -441,6 +449,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class ModuleDeclaration_import2Context extends Ast_topLevelStatementContext {
 		public ModuleDeclaration_importContext moduleDeclaration_import() {
 			return getRuleContext(ModuleDeclaration_importContext.class,0);
@@ -535,6 +544,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class StatementContext extends ParserRuleContext {
 		public BlockStatementContext blockStatement() {
 			return getRuleContext(BlockStatementContext.class,0);
@@ -735,6 +745,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ModuleDeclaration_importContext extends ParserRuleContext {
 		public ImportDeclarationContext importDeclaration() {
 			return getRuleContext(ImportDeclarationContext.class,0);
@@ -795,6 +806,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ImportDeclarationContext extends ParserRuleContext {
 		public ImportSpecifiers_Context specifiers;
 		public Literal_stringContext source;
@@ -863,6 +875,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ImportSpecifiers_Context extends ParserRuleContext {
 		public ImportSpecifierContext e;
 		public List<ImportSpecifierContext> importSpecifier() {
@@ -932,6 +945,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ImportSpecifierContext extends ParserRuleContext {
 		public IdentifierContext imported;
 		public IdentifierContext local;
@@ -995,6 +1009,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ImportAsDeclarationContext extends ParserRuleContext {
 		public Ast_importSourceContext source;
 		public IdentifierContext local;
@@ -1065,6 +1080,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Ast_importSourceContext extends ParserRuleContext {
 		public QualifiedNameContext qualifiedName() {
 			return getRuleContext(QualifiedNameContext.class,0);
@@ -1129,6 +1145,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Ast_exportStatementContext extends ParserRuleContext {
 		public ExportNamedDeclarationContext exportNamedDeclaration() {
 			return getRuleContext(ExportNamedDeclarationContext.class,0);
@@ -1173,6 +1190,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ExportNamedDeclarationContext extends ParserRuleContext {
 		public ExportSpecifiers_Context specifiers;
 		public Literal_stringContext source;
@@ -1241,6 +1259,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ExportSpecifiers_Context extends ParserRuleContext {
 		public ExportSpecifierContext e;
 		public List<ExportSpecifierContext> exportSpecifier() {
@@ -1310,6 +1329,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ExportSpecifierContext extends ParserRuleContext {
 		public IdentifierContext local;
 		public IdentifierContext exported;
@@ -1373,6 +1393,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class BlockStatementContext extends ParserRuleContext {
 		public Statements_Context body;
 		public TerminalNode OpenBrace() { return getToken(XLangParser.OpenBrace, 0); }
@@ -1424,6 +1445,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Statements_Context extends ParserRuleContext {
 		public StatementContext e;
 		public List<StatementContext> statement() {
@@ -1487,6 +1509,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class VariableDeclaration_constContext extends ParserRuleContext {
 		public Token kind;
 		public VariableDeclarators_Context declarators;
@@ -1541,6 +1564,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class VariableDeclarationContext extends ParserRuleContext {
 		public VarModifier_Context kind;
 		public VariableDeclarators_Context declarators;
@@ -1597,6 +1621,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class VarModifier_Context extends ParserRuleContext {
 		public TerminalNode Let() { return getToken(XLangParser.Let, 0); }
 		public TerminalNode Const() { return getToken(XLangParser.Const, 0); }
@@ -1649,6 +1674,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class VariableDeclarators_Context extends ParserRuleContext {
 		public VariableDeclaratorContext e;
 		public List<VariableDeclaratorContext> variableDeclarator() {
@@ -1720,6 +1746,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class VariableDeclaratorContext extends ParserRuleContext {
 		public Ast_identifierOrPatternContext id;
 		public NamedTypeNode_annotationContext varType;
@@ -1793,6 +1820,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class EmptyStatementContext extends ParserRuleContext {
 		public TerminalNode SemiColon() { return getToken(XLangParser.SemiColon, 0); }
 		public EmptyStatementContext(ParserRuleContext parent, int invokingState) {
@@ -1835,6 +1863,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ExpressionStatementContext extends ParserRuleContext {
 		public Expression_singleContext expression;
 		public Eos__Context eos__() {
@@ -1887,6 +1916,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class IfStatementContext extends ParserRuleContext {
 		public Expression_singleContext test;
 		public StatementContext consequent;
@@ -1964,6 +1994,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Statement_iterationContext extends ParserRuleContext {
 		public Statement_iterationContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -1975,6 +2006,7 @@ public class XLangParser extends XLangParserBase {
 			super.copyFrom(ctx);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class WhileStatementContext extends Statement_iterationContext {
 		public Expression_singleContext test;
 		public StatementContext body;
@@ -2002,6 +2034,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class ForStatementContext extends Statement_iterationContext {
 		public Expression_forInitContext init;
 		public Expression_singleContext test;
@@ -2041,6 +2074,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class DoWhileStatementContext extends Statement_iterationContext {
 		public StatementContext body;
 		public Expression_singleContext test;
@@ -2072,6 +2106,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class ForInStatementContext extends Statement_iterationContext {
 		public Expression_iterationLeftContext left;
 		public Expression_singleContext right;
@@ -2104,6 +2139,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class ForOfStatementContext extends Statement_iterationContext {
 		public Expression_iterationLeftContext left;
 		public Expression_singleContext right;
@@ -2192,7 +2228,7 @@ public class XLangParser extends XLangParserBase {
 				setState(403);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
-				if (((((_la - 92)) & ~0x3f) == 0 && ((1L << (_la - 92)) & ((1L << (From - 92)) | (1L << (Const - 92)) | (1L << (Let - 92)) | (1L << (TypeAlias - 92)) | (1L << (Identifier - 92)))) != 0)) {
+				if (((((_la - 92)) & ~0x3f) == 0 && ((1L << (_la - 92)) & 1090523393L) != 0)) {
 					{
 					setState(402);
 					((ForStatementContext)_localctx).init = expression_forInit();
@@ -2204,7 +2240,7 @@ public class XLangParser extends XLangParserBase {
 				setState(407);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
-				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << RegularExpressionLiteral) | (1L << OpenBracket) | (1L << OpenParen) | (1L << OpenBrace) | (1L << PlusPlus) | (1L << MinusMinus) | (1L << Plus) | (1L << Minus) | (1L << BitNot) | (1L << Not) | (1L << NullLiteral) | (1L << BooleanLiteral) | (1L << DecimalIntegerLiteral) | (1L << HexIntegerLiteral) | (1L << BinaryIntegerLiteral))) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & ((1L << (DecimalLiteral - 64)) | (1L << (Typeof - 64)) | (1L << (New - 64)) | (1L << (This - 64)) | (1L << (From - 64)) | (1L << (Super - 64)) | (1L << (TypeAlias - 64)) | (1L << (StringLiteral - 64)) | (1L << (TemplateStringLiteral - 64)) | (1L << (Identifier - 64)) | (1L << (CpExprStart - 64)))) != 0)) {
+				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & -1873497444920065704L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 5120592810948952209L) != 0)) {
 					{
 					setState(406);
 					((ForStatementContext)_localctx).test = expression_single(0);
@@ -2216,7 +2252,7 @@ public class XLangParser extends XLangParserBase {
 				setState(411);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
-				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << RegularExpressionLiteral) | (1L << OpenBracket) | (1L << OpenParen) | (1L << OpenBrace) | (1L << PlusPlus) | (1L << MinusMinus) | (1L << Plus) | (1L << Minus) | (1L << BitNot) | (1L << Not) | (1L << NullLiteral) | (1L << BooleanLiteral) | (1L << DecimalIntegerLiteral) | (1L << HexIntegerLiteral) | (1L << BinaryIntegerLiteral))) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & ((1L << (DecimalLiteral - 64)) | (1L << (Typeof - 64)) | (1L << (New - 64)) | (1L << (This - 64)) | (1L << (From - 64)) | (1L << (Super - 64)) | (1L << (TypeAlias - 64)) | (1L << (StringLiteral - 64)) | (1L << (TemplateStringLiteral - 64)) | (1L << (Identifier - 64)) | (1L << (CpExprStart - 64)))) != 0)) {
+				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & -1873497444920065704L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 5120592810948952209L) != 0)) {
 					{
 					setState(410);
 					((ForStatementContext)_localctx).update = sequenceExpression();
@@ -2284,6 +2320,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Expression_iterationLeftContext extends ParserRuleContext {
 		public Expression_iterationLeftContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -2295,6 +2332,7 @@ public class XLangParser extends XLangParserBase {
 			super.copyFrom(ctx);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class Identifier_forContext extends Expression_iterationLeftContext {
 		public IdentifierContext identifier() {
 			return getRuleContext(IdentifierContext.class,0);
@@ -2314,6 +2352,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class VariableDeclaration_forContext extends Expression_iterationLeftContext {
 		public VarModifier_Context kind;
 		public VariableDeclaratorContext declarators_single;
@@ -2382,6 +2421,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ContinueStatementContext extends ParserRuleContext {
 		public TerminalNode Continue() { return getToken(XLangParser.Continue, 0); }
 		public Eos__Context eos__() {
@@ -2429,6 +2469,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class BreakStatementContext extends ParserRuleContext {
 		public TerminalNode Break() { return getToken(XLangParser.Break, 0); }
 		public Eos__Context eos__() {
@@ -2476,6 +2517,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ReturnStatementContext extends ParserRuleContext {
 		public Expression_singleContext argument;
 		public TerminalNode Return() { return getToken(XLangParser.Return, 0); }
@@ -2539,6 +2581,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class AssignmentExpressionContext extends ParserRuleContext {
 		public Expression_leftHandSideContext left;
 		public AssignmentOperator_Context operator;
@@ -2601,6 +2644,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Expression_leftHandSideContext extends ParserRuleContext {
 		public IdentifierContext identifier() {
 			return getRuleContext(IdentifierContext.class,0);
@@ -2661,6 +2705,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class SwitchStatementContext extends ParserRuleContext {
 		public Expression_singleContext discriminant;
 		public SwitchCases_Context cases;
@@ -2742,6 +2787,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class SwitchCases_Context extends ParserRuleContext {
 		public SwitchCaseContext e;
 		public List<SwitchCaseContext> switchCase() {
@@ -2803,6 +2849,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class SwitchCaseContext extends ParserRuleContext {
 		public Expression_singleContext test;
 		public BlockStatementContext consequent;
@@ -2869,6 +2916,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Statement_defaultClauseContext extends ParserRuleContext {
 		public TerminalNode Default() { return getToken(XLangParser.Default, 0); }
 		public TerminalNode Colon() { return getToken(XLangParser.Colon, 0); }
@@ -2928,6 +2976,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ThrowStatementContext extends ParserRuleContext {
 		public Expression_singleContext argument;
 		public TerminalNode Throw() { return getToken(XLangParser.Throw, 0); }
@@ -2983,6 +3032,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class TryStatementContext extends ParserRuleContext {
 		public BlockStatementContext block;
 		public CatchClauseContext catchHandler;
@@ -3052,6 +3102,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class CatchClauseContext extends ParserRuleContext {
 		public IdentifierContext name;
 		public ParameterizedTypeNodeContext varType;
@@ -3130,6 +3181,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class BlockStatement_finallyContext extends ParserRuleContext {
 		public TerminalNode Finally() { return getToken(XLangParser.Finally, 0); }
 		public BlockStatementContext blockStatement() {
@@ -3177,6 +3229,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class FunctionDeclarationContext extends ParserRuleContext {
 		public DecoratorsContext decorators_;
 		public IdentifierContext name;
@@ -3246,7 +3299,7 @@ public class XLangParser extends XLangParserBase {
 			setState(521);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if (_la==OpenBracket || _la==OpenBrace || ((((_la - 92)) & ~0x3f) == 0 && ((1L << (_la - 92)) & ((1L << (From - 92)) | (1L << (TypeAlias - 92)) | (1L << (At - 92)) | (1L << (Identifier - 92)))) != 0)) {
+			if (_la==OpenBracket || _la==OpenBrace || ((((_la - 92)) & ~0x3f) == 0 && ((1L << (_la - 92)) & 1224736769L) != 0)) {
 				{
 				setState(520);
 				((FunctionDeclarationContext)_localctx).params = parameterList_();
@@ -3280,6 +3333,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ParameterList_Context extends ParserRuleContext {
 		public ParameterDeclarationContext e;
 		public List<ParameterDeclarationContext> parameterDeclaration() {
@@ -3349,6 +3403,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ParameterDeclarationContext extends ParserRuleContext {
 		public DecoratorsContext decorators_;
 		public Ast_identifierOrPatternContext name;
@@ -3437,6 +3492,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Ast_identifierOrPatternContext extends ParserRuleContext {
 		public IdentifierContext identifier() {
 			return getRuleContext(IdentifierContext.class,0);
@@ -3511,6 +3567,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Expression_initializerContext extends ParserRuleContext {
 		public TerminalNode Assign() { return getToken(XLangParser.Assign, 0); }
 		public Expression_singleContext expression_single() {
@@ -3558,6 +3615,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ArrayBindingContext extends ParserRuleContext {
 		public ArrayBindingContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -3569,6 +3627,7 @@ public class XLangParser extends XLangParserBase {
 			super.copyFrom(ctx);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class ArrayBinding_restContext extends ArrayBindingContext {
 		public RestBindingContext restBinding_;
 		public TerminalNode OpenBracket() { return getToken(XLangParser.OpenBracket, 0); }
@@ -3592,6 +3651,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class ArrayBinding_fullContext extends ArrayBindingContext {
 		public ArrayElementBindings_Context elements;
 		public RestBindingContext restBinding_;
@@ -3693,6 +3753,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ArrayElementBindings_Context extends ParserRuleContext {
 		public ArrayElementBindingContext e;
 		public List<ArrayElementBindingContext> arrayElementBinding() {
@@ -3764,6 +3825,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ArrayElementBindingContext extends ParserRuleContext {
 		public IdentifierContext identifier_;
 		public Expression_initializerContext initializer;
@@ -3824,6 +3886,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ObjectBindingContext extends ParserRuleContext {
 		public ObjectBindingContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -3835,6 +3898,7 @@ public class XLangParser extends XLangParserBase {
 			super.copyFrom(ctx);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class ObjectBinding_fullContext extends ObjectBindingContext {
 		public PropertyBindings_Context properties;
 		public RestBindingContext restBinding_;
@@ -3862,6 +3926,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class ObjectBinding_restContext extends ObjectBindingContext {
 		public RestBindingContext restBinding_;
 		public TerminalNode OpenBrace() { return getToken(XLangParser.OpenBrace, 0); }
@@ -3903,7 +3968,7 @@ public class XLangParser extends XLangParserBase {
 				setState(587);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
-				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << NullLiteral) | (1L << BooleanLiteral) | (1L << AndLiteral) | (1L << OrLiteral))) != 0) || ((((_la - 65)) & ~0x3f) == 0 && ((1L << (_la - 65)) & ((1L << (Break - 65)) | (1L << (Do - 65)) | (1L << (Instanceof - 65)) | (1L << (Typeof - 65)) | (1L << (Case - 65)) | (1L << (Else - 65)) | (1L << (New - 65)) | (1L << (Var - 65)) | (1L << (Catch - 65)) | (1L << (Finally - 65)) | (1L << (Return - 65)) | (1L << (Void - 65)) | (1L << (Continue - 65)) | (1L << (For - 65)) | (1L << (Switch - 65)) | (1L << (While - 65)) | (1L << (Debugger - 65)) | (1L << (Function - 65)) | (1L << (This - 65)) | (1L << (With - 65)) | (1L << (Default - 65)) | (1L << (If - 65)) | (1L << (Throw - 65)) | (1L << (Delete - 65)) | (1L << (In - 65)) | (1L << (Try - 65)) | (1L << (As - 65)) | (1L << (From - 65)) | (1L << (ReadOnly - 65)) | (1L << (Class - 65)) | (1L << (Enum - 65)) | (1L << (Extends - 65)) | (1L << (Super - 65)) | (1L << (Const - 65)) | (1L << (Export - 65)) | (1L << (Import - 65)) | (1L << (Implements - 65)) | (1L << (Let - 65)) | (1L << (Private - 65)) | (1L << (Public - 65)) | (1L << (Interface - 65)) | (1L << (Package - 65)) | (1L << (Protected - 65)) | (1L << (Static - 65)) | (1L << (Any - 65)) | (1L << (Number - 65)) | (1L << (Boolean - 65)) | (1L << (String - 65)) | (1L << (Symbol - 65)) | (1L << (TypeAlias - 65)) | (1L << (StringLiteral - 65)) | (1L << (Identifier - 65)))) != 0)) {
+				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 2161727821137838080L) != 0) || ((((_la - 65)) & ~0x3f) == 0 && ((1L << (_la - 65)) & 184647583111577599L) != 0)) {
 					{
 					setState(586);
 					((ObjectBinding_fullContext)_localctx).properties = propertyBindings_();
@@ -3967,6 +4032,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class PropertyBindings_Context extends ParserRuleContext {
 		public PropertyBindingContext e;
 		public List<PropertyBindingContext> propertyBinding() {
@@ -4038,6 +4104,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class PropertyBindingContext extends ParserRuleContext {
 		public PropertyBindingContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -4049,6 +4116,7 @@ public class XLangParser extends XLangParserBase {
 			super.copyFrom(ctx);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class PropertyBinding_fullContext extends PropertyBindingContext {
 		public PropertyName_Context propName;
 		public IdentifierContext identifier_;
@@ -4078,6 +4146,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class PropertyBinding_simpleContext extends PropertyBindingContext {
 		public IdentifierContext identifier_;
 		public Expression_initializerContext initializer;
@@ -4164,6 +4233,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class RestBindingContext extends ParserRuleContext {
 		public IdentifierContext identifier_;
 		public Expression_initializerContext initializer;
@@ -4227,6 +4297,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ArrayExpressionContext extends ParserRuleContext {
 		public ElementList_Context elements;
 		public TerminalNode OpenBracket() { return getToken(XLangParser.OpenBracket, 0); }
@@ -4265,7 +4336,7 @@ public class XLangParser extends XLangParserBase {
 			setState(631);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << RegularExpressionLiteral) | (1L << OpenBracket) | (1L << OpenParen) | (1L << OpenBrace) | (1L << Ellipsis) | (1L << PlusPlus) | (1L << MinusMinus) | (1L << Plus) | (1L << Minus) | (1L << BitNot) | (1L << Not) | (1L << NullLiteral) | (1L << BooleanLiteral) | (1L << DecimalIntegerLiteral) | (1L << HexIntegerLiteral) | (1L << BinaryIntegerLiteral))) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & ((1L << (DecimalLiteral - 64)) | (1L << (Typeof - 64)) | (1L << (New - 64)) | (1L << (This - 64)) | (1L << (From - 64)) | (1L << (Super - 64)) | (1L << (TypeAlias - 64)) | (1L << (StringLiteral - 64)) | (1L << (TemplateStringLiteral - 64)) | (1L << (Identifier - 64)) | (1L << (CpExprStart - 64)))) != 0)) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & -1873497444919803560L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 5120592810948952209L) != 0)) {
 				{
 				setState(630);
 				((ArrayExpressionContext)_localctx).elements = elementList_();
@@ -4287,6 +4358,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ElementList_Context extends ParserRuleContext {
 		public Ast_arrayElementContext e;
 		public List<Ast_arrayElementContext> ast_arrayElement() {
@@ -4369,6 +4441,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Ast_arrayElementContext extends ParserRuleContext {
 		public Expression_singleContext expression_single() {
 			return getRuleContext(Expression_singleContext.class,0);
@@ -4456,6 +4529,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class SpreadElementContext extends ParserRuleContext {
 		public Expression_singleContext argument;
 		public TerminalNode Ellipsis() { return getToken(XLangParser.Ellipsis, 0); }
@@ -4504,6 +4578,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ObjectExpressionContext extends ParserRuleContext {
 		public ObjectProperties_Context properties;
 		public TerminalNode OpenBrace() { return getToken(XLangParser.OpenBrace, 0); }
@@ -4543,7 +4618,7 @@ public class XLangParser extends XLangParserBase {
 			setState(655);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << OpenBracket) | (1L << Ellipsis) | (1L << NullLiteral) | (1L << BooleanLiteral) | (1L << AndLiteral) | (1L << OrLiteral))) != 0) || ((((_la - 65)) & ~0x3f) == 0 && ((1L << (_la - 65)) & ((1L << (Break - 65)) | (1L << (Do - 65)) | (1L << (Instanceof - 65)) | (1L << (Typeof - 65)) | (1L << (Case - 65)) | (1L << (Else - 65)) | (1L << (New - 65)) | (1L << (Var - 65)) | (1L << (Catch - 65)) | (1L << (Finally - 65)) | (1L << (Return - 65)) | (1L << (Void - 65)) | (1L << (Continue - 65)) | (1L << (For - 65)) | (1L << (Switch - 65)) | (1L << (While - 65)) | (1L << (Debugger - 65)) | (1L << (Function - 65)) | (1L << (This - 65)) | (1L << (With - 65)) | (1L << (Default - 65)) | (1L << (If - 65)) | (1L << (Throw - 65)) | (1L << (Delete - 65)) | (1L << (In - 65)) | (1L << (Try - 65)) | (1L << (As - 65)) | (1L << (From - 65)) | (1L << (ReadOnly - 65)) | (1L << (Class - 65)) | (1L << (Enum - 65)) | (1L << (Extends - 65)) | (1L << (Super - 65)) | (1L << (Const - 65)) | (1L << (Export - 65)) | (1L << (Import - 65)) | (1L << (Implements - 65)) | (1L << (Let - 65)) | (1L << (Private - 65)) | (1L << (Public - 65)) | (1L << (Interface - 65)) | (1L << (Package - 65)) | (1L << (Protected - 65)) | (1L << (Static - 65)) | (1L << (Any - 65)) | (1L << (Number - 65)) | (1L << (Boolean - 65)) | (1L << (String - 65)) | (1L << (Symbol - 65)) | (1L << (TypeAlias - 65)) | (1L << (StringLiteral - 65)) | (1L << (Identifier - 65)))) != 0)) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 2161727821138100240L) != 0) || ((((_la - 65)) & ~0x3f) == 0 && ((1L << (_la - 65)) & 184647583111577599L) != 0)) {
 				{
 				setState(654);
 				((ObjectExpressionContext)_localctx).properties = objectProperties_();
@@ -4575,6 +4650,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ObjectProperties_Context extends ParserRuleContext {
 		public Ast_objectPropertyContext e;
 		public List<Ast_objectPropertyContext> ast_objectProperty() {
@@ -4646,6 +4722,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Ast_objectPropertyContext extends ParserRuleContext {
 		public PropertyAssignmentContext propertyAssignment() {
 			return getRuleContext(PropertyAssignmentContext.class,0);
@@ -4764,6 +4841,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class PropertyAssignmentContext extends ParserRuleContext {
 		public PropertyAssignmentContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -4775,6 +4853,7 @@ public class XLangParser extends XLangParserBase {
 			super.copyFrom(ctx);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class PropertyAssignment_shorthandContext extends PropertyAssignmentContext {
 		public Identifier_exContext key;
 		public Identifier_exContext identifier_ex() {
@@ -4795,6 +4874,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class PropertyAssignment_assignContext extends PropertyAssignmentContext {
 		public Expression_propNameContext key;
 		public Expression_singleContext value;
@@ -4820,6 +4900,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class PropertyAssignment_computedContext extends PropertyAssignmentContext {
 		public Expression_singleContext key;
 		public Expression_singleContext value;
@@ -4904,6 +4985,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Arguments_Context extends ParserRuleContext {
 		public Expression_singleContext e;
 		public TerminalNode OpenParen() { return getToken(XLangParser.OpenParen, 0); }
@@ -4950,7 +5032,7 @@ public class XLangParser extends XLangParserBase {
 			setState(699);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << RegularExpressionLiteral) | (1L << OpenBracket) | (1L << OpenParen) | (1L << OpenBrace) | (1L << PlusPlus) | (1L << MinusMinus) | (1L << Plus) | (1L << Minus) | (1L << BitNot) | (1L << Not) | (1L << NullLiteral) | (1L << BooleanLiteral) | (1L << DecimalIntegerLiteral) | (1L << HexIntegerLiteral) | (1L << BinaryIntegerLiteral))) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & ((1L << (DecimalLiteral - 64)) | (1L << (Typeof - 64)) | (1L << (New - 64)) | (1L << (This - 64)) | (1L << (From - 64)) | (1L << (Super - 64)) | (1L << (TypeAlias - 64)) | (1L << (StringLiteral - 64)) | (1L << (TemplateStringLiteral - 64)) | (1L << (Identifier - 64)) | (1L << (CpExprStart - 64)))) != 0)) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & -1873497444920065704L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 5120592810948952209L) != 0)) {
 				{
 				setState(688);
 				((Arguments_Context)_localctx).e = expression_single(0);
@@ -5000,6 +5082,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class SequenceExpressionContext extends ParserRuleContext {
 		public SingleExpressions_Context expressions;
 		public SingleExpressions_Context singleExpressions_() {
@@ -5045,6 +5128,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class SingleExpressions_Context extends ParserRuleContext {
 		public Expression_singleContext e;
 		public List<Expression_singleContext> expression_single() {
@@ -5114,6 +5198,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class AssignmentExpression_initContext extends ParserRuleContext {
 		public IdentifierContext left;
 		public Token operator;
@@ -5169,6 +5254,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Expression_forInitContext extends ParserRuleContext {
 		public Expression_forInitContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -5180,6 +5266,7 @@ public class XLangParser extends XLangParserBase {
 			super.copyFrom(ctx);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class SequenceExpression_initContext extends Expression_forInitContext {
 		public InitExpressions_Context expressions;
 		public InitExpressions_Context initExpressions_() {
@@ -5200,6 +5287,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class VariableDeclaration_initContext extends Expression_forInitContext {
 		public VarModifier_Context kind;
 		public VariableDeclarators_Context declarators;
@@ -5268,6 +5356,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class InitExpressions_Context extends ParserRuleContext {
 		public AssignmentExpression_initContext e;
 		public List<AssignmentExpression_initContext> assignmentExpression_init() {
@@ -5337,6 +5426,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Expression_singleContext extends ParserRuleContext {
 		public Expression_singleContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -5348,6 +5438,7 @@ public class XLangParser extends XLangParserBase {
 			super.copyFrom(ctx);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class TemplateStringExpressionContext extends Expression_singleContext {
 		public IdentifierContext id;
 		public TemplateStringLiteralContext value;
@@ -5372,6 +5463,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class MacroExpressionContext extends Expression_singleContext {
 		public Expression_singleContext expr;
 		public TerminalNode CpExprStart() { return getToken(XLangParser.CpExprStart, 0); }
@@ -5394,6 +5486,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class ChainExpressionContext extends Expression_singleContext {
 		public Expression_singleContext expr;
 		public Token optional;
@@ -5416,6 +5509,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class TypeOfExpressionContext extends Expression_singleContext {
 		public Expression_singleContext argument;
 		public TerminalNode Typeof() { return getToken(XLangParser.Typeof, 0); }
@@ -5437,6 +5531,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class ObjectExpression_exprContext extends Expression_singleContext {
 		public ObjectExpressionContext objectExpression() {
 			return getRuleContext(ObjectExpressionContext.class,0);
@@ -5456,6 +5551,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class NewExpressionContext extends Expression_singleContext {
 		public ParameterizedTypeNodeContext callee;
 		public Arguments_Context arguments;
@@ -5481,6 +5577,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class InExpressionContext extends Expression_singleContext {
 		public Expression_singleContext left;
 		public Expression_singleContext right;
@@ -5506,6 +5603,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class Identifier_exprContext extends Expression_singleContext {
 		public IdentifierContext identifier() {
 			return getRuleContext(IdentifierContext.class,0);
@@ -5525,6 +5623,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class ArrayExpression_exprContext extends Expression_singleContext {
 		public ArrayExpressionContext arrayExpression() {
 			return getRuleContext(ArrayExpressionContext.class,0);
@@ -5544,6 +5643,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class UnaryExpressionContext extends Expression_singleContext {
 		public Token operator;
 		public Expression_singleContext argument;
@@ -5569,6 +5669,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class Literal_exprContext extends Expression_singleContext {
 		public LiteralContext literal() {
 			return getRuleContext(LiteralContext.class,0);
@@ -5588,6 +5689,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class ThisExpressionContext extends Expression_singleContext {
 		public TerminalNode This() { return getToken(XLangParser.This, 0); }
 		public ThisExpressionContext(Expression_singleContext ctx) { copyFrom(ctx); }
@@ -5605,6 +5707,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class BinaryExpressionContext extends Expression_singleContext {
 		public Expression_singleContext left;
 		public Token operator;
@@ -5654,6 +5757,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class IfStatement_exprContext extends Expression_singleContext {
 		public Expression_singleContext test;
 		public Expression_singleContext consequent;
@@ -5681,6 +5785,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class InstanceOfExpressionContext extends Expression_singleContext {
 		public Expression_singleContext value;
 		public NamedTypeNodeContext refType;
@@ -5706,6 +5811,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class CastExpressionContext extends Expression_singleContext {
 		public Expression_singleContext value;
 		public NamedTypeNodeContext asType;
@@ -5731,6 +5837,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class ArrowFunctionExpression_exprContext extends Expression_singleContext {
 		public ArrowFunctionExpressionContext arrowFunctionExpression() {
 			return getRuleContext(ArrowFunctionExpressionContext.class,0);
@@ -5750,6 +5857,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class MemberExpression_dotContext extends Expression_singleContext {
 		public Expression_singleContext object;
 		public Token optional;
@@ -5777,6 +5885,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class UpdateExpressionContext extends Expression_singleContext {
 		public Expression_singleContext argument;
 		public Token operator;
@@ -5800,6 +5909,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class SuperExpressionContext extends Expression_singleContext {
 		public TerminalNode Super() { return getToken(XLangParser.Super, 0); }
 		public SuperExpressionContext(Expression_singleContext ctx) { copyFrom(ctx); }
@@ -5817,6 +5927,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class CallExpressionContext extends Expression_singleContext {
 		public Expression_singleContext callee;
 		public Token optional;
@@ -5843,6 +5954,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class BraceExpressionContext extends Expression_singleContext {
 		public Expression_singleContext expr;
 		public TerminalNode OpenParen() { return getToken(XLangParser.OpenParen, 0); }
@@ -5865,6 +5977,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class MemberExpression_indexContext extends Expression_singleContext {
 		public Expression_singleContext object;
 		public Token optional;
@@ -6139,7 +6252,7 @@ public class XLangParser extends XLangParserBase {
 						setState(774);
 						((BinaryExpressionContext)_localctx).operator = _input.LT(1);
 						_la = _input.LA(1);
-						if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << Multiply) | (1L << Divide) | (1L << Modulus))) != 0)) ) {
+						if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 469762048L) != 0)) ) {
 							((BinaryExpressionContext)_localctx).operator = (Token)_errHandler.recoverInline(this);
 						}
 						else {
@@ -6196,7 +6309,7 @@ public class XLangParser extends XLangParserBase {
 						setState(783);
 						((BinaryExpressionContext)_localctx).operator = _input.LT(1);
 						_la = _input.LA(1);
-						if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << RightShiftArithmetic) | (1L << LeftShiftArithmetic) | (1L << RightShiftLogical))) != 0)) ) {
+						if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 3758096384L) != 0)) ) {
 							((BinaryExpressionContext)_localctx).operator = (Token)_errHandler.recoverInline(this);
 						}
 						else {
@@ -6218,7 +6331,7 @@ public class XLangParser extends XLangParserBase {
 						setState(786);
 						((BinaryExpressionContext)_localctx).operator = _input.LT(1);
 						_la = _input.LA(1);
-						if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << LessThan) | (1L << MoreThan) | (1L << LessThanEquals) | (1L << GreaterThanEquals))) != 0)) ) {
+						if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 64424509440L) != 0)) ) {
 							((BinaryExpressionContext)_localctx).operator = (Token)_errHandler.recoverInline(this);
 						}
 						else {
@@ -6253,7 +6366,7 @@ public class XLangParser extends XLangParserBase {
 						setState(792);
 						((BinaryExpressionContext)_localctx).operator = _input.LT(1);
 						_la = _input.LA(1);
-						if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << Equals_) | (1L << NotEquals) | (1L << IdentityEquals) | (1L << IdentityNotEquals))) != 0)) ) {
+						if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 1030792151040L) != 0)) ) {
 							((BinaryExpressionContext)_localctx).operator = (Token)_errHandler.recoverInline(this);
 						}
 						else {
@@ -6518,6 +6631,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class TemplateStringLiteralContext extends ParserRuleContext {
 		public Token value;
 		public TerminalNode TemplateStringLiteral() { return getToken(XLangParser.TemplateStringLiteral, 0); }
@@ -6561,6 +6675,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ArrowFunctionExpressionContext extends ParserRuleContext {
 		public ArrowFunctionExpressionContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -6572,6 +6687,7 @@ public class XLangParser extends XLangParserBase {
 			super.copyFrom(ctx);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class ArrowFunctionExpression_singleContext extends ArrowFunctionExpressionContext {
 		public ParameterDeclaration_simpleContext params_single;
 		public Expression_functionBodyContext body;
@@ -6597,6 +6713,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class ArrowFunctionExpression_fullContext extends ArrowFunctionExpressionContext {
 		public ParameterList_Context params;
 		public NamedTypeNode_annotationContext returnType;
@@ -6647,7 +6764,7 @@ public class XLangParser extends XLangParserBase {
 				setState(855);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
-				if (_la==OpenBracket || _la==OpenBrace || ((((_la - 92)) & ~0x3f) == 0 && ((1L << (_la - 92)) & ((1L << (From - 92)) | (1L << (TypeAlias - 92)) | (1L << (At - 92)) | (1L << (Identifier - 92)))) != 0)) {
+				if (_la==OpenBracket || _la==OpenBrace || ((((_la - 92)) & ~0x3f) == 0 && ((1L << (_la - 92)) & 1224736769L) != 0)) {
 					{
 					setState(854);
 					((ArrowFunctionExpression_fullContext)_localctx).params = parameterList_();
@@ -6702,6 +6819,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ParameterDeclaration_simpleContext extends ParserRuleContext {
 		public IdentifierContext name;
 		public IdentifierContext identifier() {
@@ -6747,6 +6865,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Expression_functionBodyContext extends ParserRuleContext {
 		public Expression_singleContext expression_single() {
 			return getRuleContext(Expression_singleContext.class,0);
@@ -6807,6 +6926,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class MemberExpressionContext extends ParserRuleContext {
 		public MemberExpressionContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -6818,6 +6938,7 @@ public class XLangParser extends XLangParserBase {
 			super.copyFrom(ctx);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class MemberExpression_index2Context extends MemberExpressionContext {
 		public Expression_singleContext object;
 		public Expression_singleContext property;
@@ -6844,6 +6965,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class MemberExpression_dot2Context extends MemberExpressionContext {
 		public Expression_singleContext object;
 		public Identifier_exContext property;
@@ -6916,6 +7038,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class AssignmentOperator_Context extends ParserRuleContext {
 		public TerminalNode Assign() { return getToken(XLangParser.Assign, 0); }
 		public TerminalNode MultiplyAssign() { return getToken(XLangParser.MultiplyAssign, 0); }
@@ -6957,7 +7080,7 @@ public class XLangParser extends XLangParserBase {
 			{
 			setState(886);
 			_la = _input.LA(1);
-			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << Assign) | (1L << MultiplyAssign) | (1L << DivideAssign) | (1L << ModulusAssign) | (1L << PlusAssign) | (1L << MinusAssign) | (1L << LeftShiftArithmeticAssign) | (1L << RightShiftArithmeticAssign) | (1L << RightShiftLogicalAssign) | (1L << BitAndAssign) | (1L << BitXorAssign) | (1L << BitOrAssign))) != 0)) ) {
+			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 72022409665843200L) != 0)) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {
@@ -6978,6 +7101,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Eos__Context extends ParserRuleContext {
 		public TerminalNode SemiColon() { return getToken(XLangParser.SemiColon, 0); }
 		public TerminalNode EOF() { return getToken(XLangParser.EOF, 0); }
@@ -7048,6 +7172,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class TypeParameters_Context extends ParserRuleContext {
 		public TypeParameterNodeContext e;
 		public TerminalNode LessThan() { return getToken(XLangParser.LessThan, 0); }
@@ -7093,7 +7218,7 @@ public class XLangParser extends XLangParserBase {
 			setState(903);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if (((((_la - 92)) & ~0x3f) == 0 && ((1L << (_la - 92)) & ((1L << (From - 92)) | (1L << (TypeAlias - 92)) | (1L << (Identifier - 92)))) != 0)) {
+			if (((((_la - 92)) & ~0x3f) == 0 && ((1L << (_la - 92)) & 1090519041L) != 0)) {
 				{
 				setState(895);
 				((TypeParameters_Context)_localctx).e = typeParameterNode();
@@ -7131,6 +7256,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class TypeParameterNodeContext extends ParserRuleContext {
 		public IdentifierContext name;
 		public NamedTypeNodeContext upperBound;
@@ -7208,6 +7334,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class TypeArguments_Context extends ParserRuleContext {
 		public NamedTypeNodeContext e;
 		public TerminalNode LessThan() { return getToken(XLangParser.LessThan, 0); }
@@ -7253,7 +7380,7 @@ public class XLangParser extends XLangParserBase {
 			setState(923);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if (((((_la - 76)) & ~0x3f) == 0 && ((1L << (_la - 76)) & ((1L << (Void - 76)) | (1L << (From - 76)) | (1L << (Any - 76)) | (1L << (Number - 76)) | (1L << (Boolean - 76)) | (1L << (String - 76)) | (1L << (Symbol - 76)) | (1L << (TypeAlias - 76)) | (1L << (Identifier - 76)))) != 0)) {
+			if (((((_la - 76)) & ~0x3f) == 0 && ((1L << (_la - 76)) & 72533407760385L) != 0)) {
 				{
 				setState(915);
 				((TypeArguments_Context)_localctx).e = namedTypeNode(0);
@@ -7291,6 +7418,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class StructuredTypeDefContext extends ParserRuleContext {
 		public TypeNode_unionOrIntersectionContext typeNode_unionOrIntersection() {
 			return getRuleContext(TypeNode_unionOrIntersectionContext.class,0);
@@ -7381,6 +7509,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class TypeNode_unionOrIntersectionContext extends ParserRuleContext {
 		public TypeNode_unionOrIntersectionContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -7392,6 +7521,7 @@ public class XLangParser extends XLangParserBase {
 			super.copyFrom(ctx);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class IntersectionTypeDefContext extends TypeNode_unionOrIntersectionContext {
 		public IntersectionTypeDef_Context types;
 		public IntersectionTypeDef_Context intersectionTypeDef_() {
@@ -7412,6 +7542,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class UnionTypeDefContext extends TypeNode_unionOrIntersectionContext {
 		public UnionTypeDef_Context types;
 		public UnionTypeDef_Context unionTypeDef_() {
@@ -7469,6 +7600,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class IntersectionTypeDef_Context extends ParserRuleContext {
 		public NamedTypeNodeContext e;
 		public List<NamedTypeNodeContext> namedTypeNode() {
@@ -7544,6 +7676,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class UnionTypeDef_Context extends ParserRuleContext {
 		public NamedTypeNodeContext e;
 		public List<NamedTypeNodeContext> namedTypeNode() {
@@ -7619,6 +7752,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class TupleTypeDefContext extends ParserRuleContext {
 		public TupleTypeElements_Context types;
 		public TerminalNode OpenBracket() { return getToken(XLangParser.OpenBracket, 0); }
@@ -7670,6 +7804,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class TupleTypeElements_Context extends ParserRuleContext {
 		public StructuredTypeDefContext e;
 		public List<StructuredTypeDefContext> structuredTypeDef() {
@@ -7739,6 +7874,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class NamedTypeNodeContext extends ParserRuleContext {
 		public NamedTypeNodeContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -7750,6 +7886,7 @@ public class XLangParser extends XLangParserBase {
 			super.copyFrom(ctx);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class TypeNameNode_namedContext extends NamedTypeNodeContext {
 		public QualifiedName_Context typeName;
 		public QualifiedName_Context qualifiedName_() {
@@ -7770,6 +7907,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class ArrayTypeNodeContext extends NamedTypeNodeContext {
 		public NamedTypeNodeContext componentType;
 		public TerminalNode OpenBracket() { return getToken(XLangParser.OpenBracket, 0); }
@@ -7792,6 +7930,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class TypeNameNode_predefined_namedContext extends NamedTypeNodeContext {
 		public TypeNameNode_predefinedContext typeNameNode_predefined() {
 			return getRuleContext(TypeNameNode_predefinedContext.class,0);
@@ -7811,6 +7950,7 @@ public class XLangParser extends XLangParserBase {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class ParameterizedTypeNode_namedContext extends NamedTypeNodeContext {
 		public ParameterizedTypeNodeContext parameterizedTypeNode() {
 			return getRuleContext(ParameterizedTypeNodeContext.class,0);
@@ -7919,6 +8059,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class TypeNameNode_predefinedContext extends ParserRuleContext {
 		public TerminalNode Any() { return getToken(XLangParser.Any, 0); }
 		public TerminalNode Number() { return getToken(XLangParser.Number, 0); }
@@ -7954,7 +8095,7 @@ public class XLangParser extends XLangParserBase {
 			{
 			setState(979);
 			_la = _input.LA(1);
-			if ( !(((((_la - 76)) & ~0x3f) == 0 && ((1L << (_la - 76)) & ((1L << (Void - 76)) | (1L << (Any - 76)) | (1L << (Number - 76)) | (1L << (Boolean - 76)) | (1L << (String - 76)) | (1L << (Symbol - 76)))) != 0)) ) {
+			if ( !(((((_la - 76)) & ~0x3f) == 0 && ((1L << (_la - 76)) & 1065151889409L) != 0)) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {
@@ -7975,6 +8116,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ParameterizedTypeNodeContext extends ParserRuleContext {
 		public QualifiedName_Context typeName;
 		public TypeArguments_Context typeArgs;
@@ -8034,6 +8176,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ObjectTypeDefContext extends ParserRuleContext {
 		public ObjectTypeElements_Context types;
 		public TerminalNode OpenBrace() { return getToken(XLangParser.OpenBrace, 0); }
@@ -8097,6 +8240,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ObjectTypeElements_Context extends ParserRuleContext {
 		public PropertyTypeDefContext e;
 		public List<PropertyTypeDefContext> propertyTypeDef() {
@@ -8168,6 +8312,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class FunctionTypeDefContext extends ParserRuleContext {
 		public TypeParameters_Context typeParams;
 		public FunctionParameterTypes_Context args;
@@ -8225,7 +8370,7 @@ public class XLangParser extends XLangParserBase {
 			setState(1005);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if (((((_la - 92)) & ~0x3f) == 0 && ((1L << (_la - 92)) & ((1L << (From - 92)) | (1L << (TypeAlias - 92)) | (1L << (Identifier - 92)))) != 0)) {
+			if (((((_la - 92)) & ~0x3f) == 0 && ((1L << (_la - 92)) & 1090519041L) != 0)) {
 				{
 				setState(1004);
 				((FunctionTypeDefContext)_localctx).args = functionParameterTypes_();
@@ -8251,6 +8396,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class PropertyTypeDefContext extends ParserRuleContext {
 		public Token readonly;
 		public PropertyName_Context name;
@@ -8348,6 +8494,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class NamedTypeNode_annotationContext extends ParserRuleContext {
 		public TerminalNode Colon() { return getToken(XLangParser.Colon, 0); }
 		public NamedTypeNodeContext namedTypeNode() {
@@ -8395,6 +8542,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class StructuredTypeDef_annotationContext extends ParserRuleContext {
 		public TerminalNode Colon() { return getToken(XLangParser.Colon, 0); }
 		public StructuredTypeDefContext structuredTypeDef() {
@@ -8442,6 +8590,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class FunctionParameterTypes_Context extends ParserRuleContext {
 		public FunctionArgTypeDefContext e;
 		public List<FunctionArgTypeDefContext> functionArgTypeDef() {
@@ -8511,6 +8660,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class FunctionArgTypeDefContext extends ParserRuleContext {
 		public IdentifierContext argName;
 		public Token optional;
@@ -8583,6 +8733,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class TypeAliasDeclarationContext extends ParserRuleContext {
 		public IdentifierContext typeName;
 		public TypeParameters_Context typeParams;
@@ -8679,6 +8830,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class EnumDeclarationContext extends ParserRuleContext {
 		public IdentifierContext name;
 		public EnumMembers_Context members;
@@ -8751,6 +8903,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class EnumMembers_Context extends ParserRuleContext {
 		public EnumMemberContext e;
 		public List<EnumMemberContext> enumMember() {
@@ -8822,6 +8975,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class EnumMemberContext extends ParserRuleContext {
 		public IdentifierContext name;
 		public LiteralContext value;
@@ -8885,6 +9039,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class DecoratorsContext extends ParserRuleContext {
 		public DecoratorElements_Context decorators_;
 		public DecoratorElements_Context decoratorElements_() {
@@ -8930,6 +9085,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class DecoratorElements_Context extends ParserRuleContext {
 		public DecoratorContext e;
 		public List<DecoratorContext> decorator() {
@@ -8991,6 +9147,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class DecoratorContext extends ParserRuleContext {
 		public QualifiedNameContext name;
 		public MetaObjectContext value;
@@ -9059,6 +9216,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class MetaObjectContext extends ParserRuleContext {
 		public MetaObjectProperties_Context properties;
 		public TerminalNode OpenBrace() { return getToken(XLangParser.OpenBrace, 0); }
@@ -9098,7 +9256,7 @@ public class XLangParser extends XLangParserBase {
 			setState(1100);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if (((((_la - 92)) & ~0x3f) == 0 && ((1L << (_la - 92)) & ((1L << (From - 92)) | (1L << (TypeAlias - 92)) | (1L << (Identifier - 92)))) != 0)) {
+			if (((((_la - 92)) & ~0x3f) == 0 && ((1L << (_la - 92)) & 1090519041L) != 0)) {
 				{
 				setState(1096);
 				((MetaObjectContext)_localctx).properties = metaObjectProperties_();
@@ -9130,6 +9288,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class MetaObjectProperties_Context extends ParserRuleContext {
 		public MetaPropertyContext e;
 		public List<MetaPropertyContext> metaProperty() {
@@ -9201,6 +9360,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class MetaPropertyContext extends ParserRuleContext {
 		public IdentifierContext name;
 		public Ast_metaValueContext value;
@@ -9255,6 +9415,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class MetaArrayContext extends ParserRuleContext {
 		public MetaArrayElements_Context elements;
 		public TerminalNode OpenBracket() { return getToken(XLangParser.OpenBracket, 0); }
@@ -9294,7 +9455,7 @@ public class XLangParser extends XLangParserBase {
 			setState(1118);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << RegularExpressionLiteral) | (1L << OpenBracket) | (1L << OpenBrace) | (1L << NullLiteral) | (1L << BooleanLiteral) | (1L << DecimalIntegerLiteral) | (1L << HexIntegerLiteral) | (1L << BinaryIntegerLiteral))) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & ((1L << (DecimalLiteral - 64)) | (1L << (From - 64)) | (1L << (TypeAlias - 64)) | (1L << (StringLiteral - 64)) | (1L << (TemplateStringLiteral - 64)) | (1L << (Identifier - 64)))) != 0)) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & -1873497444986126056L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 508906758161301505L) != 0)) {
 				{
 				setState(1117);
 				((MetaArrayContext)_localctx).elements = metaArrayElements_();
@@ -9326,6 +9487,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class MetaArrayElements_Context extends ParserRuleContext {
 		public Ast_metaValueContext e;
 		public List<Ast_metaValueContext> ast_metaValue() {
@@ -9397,6 +9559,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Ast_metaValueContext extends ParserRuleContext {
 		public LiteralContext literal() {
 			return getRuleContext(LiteralContext.class,0);
@@ -9489,6 +9652,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class QualifiedNameContext extends ParserRuleContext {
 		public QualifiedName_name_Context name;
 		public QualifiedNameContext next;
@@ -9551,6 +9715,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class QualifiedName_name_Context extends ParserRuleContext {
 		public IdentifierContext identifier() {
 			return getRuleContext(IdentifierContext.class,0);
@@ -9595,6 +9760,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class QualifiedName_Context extends ParserRuleContext {
 		public QualifiedNameContext qualifiedName() {
 			return getRuleContext(QualifiedNameContext.class,0);
@@ -9639,6 +9805,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class PropertyName_Context extends ParserRuleContext {
 		public IdentifierOrKeyword_Context identifierOrKeyword_() {
 			return getRuleContext(IdentifierOrKeyword_Context.class,0);
@@ -9753,6 +9920,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Expression_propNameContext extends ParserRuleContext {
 		public Identifier_exContext identifier_ex() {
 			return getRuleContext(Identifier_exContext.class,0);
@@ -9869,6 +10037,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Identifier_exContext extends ParserRuleContext {
 		public IdentifierOrKeyword_Context name;
 		public IdentifierOrKeyword_Context identifierOrKeyword_() {
@@ -9914,6 +10083,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class IdentifierContext extends ParserRuleContext {
 		public TerminalNode From() { return getToken(XLangParser.From, 0); }
 		public TerminalNode TypeAlias() { return getToken(XLangParser.TypeAlias, 0); }
@@ -9946,7 +10116,7 @@ public class XLangParser extends XLangParserBase {
 			{
 			setState(1158);
 			_la = _input.LA(1);
-			if ( !(((((_la - 92)) & ~0x3f) == 0 && ((1L << (_la - 92)) & ((1L << (From - 92)) | (1L << (TypeAlias - 92)) | (1L << (Identifier - 92)))) != 0)) ) {
+			if ( !(((((_la - 92)) & ~0x3f) == 0 && ((1L << (_la - 92)) & 1090519041L) != 0)) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {
@@ -9967,6 +10137,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class IdentifierOrKeyword_Context extends ParserRuleContext {
 		public IdentifierContext identifier() {
 			return getRuleContext(IdentifierContext.class,0);
@@ -10027,6 +10198,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class ReservedWord_Context extends ParserRuleContext {
 		public Keyword_Context keyword_() {
 			return getRuleContext(Keyword_Context.class,0);
@@ -10159,6 +10331,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Keyword_Context extends ParserRuleContext {
 		public TerminalNode Break() { return getToken(XLangParser.Break, 0); }
 		public TerminalNode As() { return getToken(XLangParser.As, 0); }
@@ -10237,7 +10410,7 @@ public class XLangParser extends XLangParserBase {
 			{
 			setState(1171);
 			_la = _input.LA(1);
-			if ( !(((((_la - 65)) & ~0x3f) == 0 && ((1L << (_la - 65)) & ((1L << (Break - 65)) | (1L << (Do - 65)) | (1L << (Instanceof - 65)) | (1L << (Typeof - 65)) | (1L << (Case - 65)) | (1L << (Else - 65)) | (1L << (New - 65)) | (1L << (Var - 65)) | (1L << (Catch - 65)) | (1L << (Finally - 65)) | (1L << (Return - 65)) | (1L << (Void - 65)) | (1L << (Continue - 65)) | (1L << (For - 65)) | (1L << (Switch - 65)) | (1L << (While - 65)) | (1L << (Debugger - 65)) | (1L << (Function - 65)) | (1L << (This - 65)) | (1L << (With - 65)) | (1L << (Default - 65)) | (1L << (If - 65)) | (1L << (Throw - 65)) | (1L << (Delete - 65)) | (1L << (In - 65)) | (1L << (Try - 65)) | (1L << (As - 65)) | (1L << (ReadOnly - 65)) | (1L << (Class - 65)) | (1L << (Enum - 65)) | (1L << (Extends - 65)) | (1L << (Super - 65)) | (1L << (Const - 65)) | (1L << (Export - 65)) | (1L << (Import - 65)) | (1L << (Implements - 65)) | (1L << (Let - 65)) | (1L << (Private - 65)) | (1L << (Public - 65)) | (1L << (Interface - 65)) | (1L << (Package - 65)) | (1L << (Protected - 65)) | (1L << (Static - 65)) | (1L << (Any - 65)) | (1L << (Number - 65)) | (1L << (Boolean - 65)) | (1L << (String - 65)) | (1L << (Symbol - 65)) | (1L << (TypeAlias - 65)))) != 0)) ) {
+			if ( !(((((_la - 65)) & ~0x3f) == 0 && ((1L << (_la - 65)) & 4503597882540031L) != 0)) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {
@@ -10258,6 +10431,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class LiteralContext extends ParserRuleContext {
 		public TerminalNode NullLiteral() { return getToken(XLangParser.NullLiteral, 0); }
 		public TerminalNode BooleanLiteral() { return getToken(XLangParser.BooleanLiteral, 0); }
@@ -10355,6 +10529,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Literal_numericContext extends ParserRuleContext {
 		public TerminalNode DecimalIntegerLiteral() { return getToken(XLangParser.DecimalIntegerLiteral, 0); }
 		public TerminalNode HexIntegerLiteral() { return getToken(XLangParser.HexIntegerLiteral, 0); }
@@ -10388,7 +10563,7 @@ public class XLangParser extends XLangParserBase {
 			{
 			setState(1181);
 			_la = _input.LA(1);
-			if ( !(((((_la - 61)) & ~0x3f) == 0 && ((1L << (_la - 61)) & ((1L << (DecimalIntegerLiteral - 61)) | (1L << (HexIntegerLiteral - 61)) | (1L << (BinaryIntegerLiteral - 61)) | (1L << (DecimalLiteral - 61)))) != 0)) ) {
+			if ( !(((((_la - 61)) & ~0x3f) == 0 && ((1L << (_la - 61)) & 15L) != 0)) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {
@@ -10409,6 +10584,7 @@ public class XLangParser extends XLangParserBase {
 		return _localctx;
 	}
 
+	@SuppressWarnings("CheckReturnValue")
 	public static class Literal_stringContext extends ParserRuleContext {
 		public TerminalNode StringLiteral() { return getToken(XLangParser.StringLiteral, 0); }
 		public Literal_stringContext(ParserRuleContext parent, int invokingState) {

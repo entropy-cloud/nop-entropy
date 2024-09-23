@@ -1,4 +1,4 @@
-// Nop Generated from XLangParser.g4 by ANTLR 4.10.1
+// Nop Generated from XLangParser.g4 by ANTLR 4.13.0
 package io.nop.xlang.parse.antlr;
 
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -10,6 +10,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
  * which can be extended to create a listener which only needs to handle a subset
  * of the available methods.
  */
+@SuppressWarnings("CheckReturnValue")
 // tell cpd to start ignoring code - CPD-OFF
 public class XLangParserBaseListener implements XLangParserListener {
 	/**
