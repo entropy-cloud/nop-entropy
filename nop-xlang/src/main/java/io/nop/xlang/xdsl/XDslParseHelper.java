@@ -26,10 +26,12 @@ import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.IBeanModel;
+import io.nop.core.reflect.impl.FunctionArgument;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.IRawTypeResolver;
 import io.nop.core.type.parse.GenericTypeParser;
 import io.nop.xlang.XLangConstants;
+import io.nop.xlang.expr.ArgDeclarationsParser;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdef.parse.XDefTypeDeclParser;
 import io.nop.xlang.xdsl.json.DslModelToXNodeTransformer;
@@ -288,6 +290,19 @@ public class XDslParseHelper {
         SourceLocation loc = node.attrLoc(attrName);
         try {
             return parseGenericType(loc, text, resolver);
+        } catch (Exception e) {
+            throw newAttrError(ERR_XDSL_ATTR_NOT_VALID_GENERIC_TYPE, node, attrName).cause(e);
+        }
+    }
+
+    public static List<FunctionArgument> parseAttrArgs(XNode node, String attrName, IRawTypeResolver resolver) {
+        String text = node.attrText(attrName);
+        if (text == null)
+            return null;
+
+        SourceLocation loc = node.attrLoc(attrName);
+        try {
+            return new ArgDeclarationsParser().rawTypeResolver(resolver).parseArgDeclarations(loc, text);
         } catch (Exception e) {
             throw newAttrError(ERR_XDSL_ATTR_NOT_VALID_GENERIC_TYPE, node, attrName).cause(e);
         }

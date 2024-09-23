@@ -12,6 +12,7 @@ import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.IFunctionArgument;
 import io.nop.core.type.IGenericType;
+import io.nop.core.type.IRawTypeResolver;
 import io.nop.xlang.api.IXLangCompileScope;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.expr.IXLangExprParser;
@@ -39,5 +40,7 @@ public interface IXplCompiler extends IXLangExprParser {
                                 List<? extends IFunctionArgument> args,
                                 IGenericType returnType,
                                 IXLangCompileScope scope);
+
+    IRawTypeResolver getRawTypeResolver();
 
 }

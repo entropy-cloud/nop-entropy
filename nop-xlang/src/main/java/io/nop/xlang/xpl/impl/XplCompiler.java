@@ -17,7 +17,9 @@ import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.IFunctionArgument;
+import io.nop.core.reflect.impl.DefaultClassResolver;
 import io.nop.core.type.IGenericType;
+import io.nop.core.type.IRawTypeResolver;
 import io.nop.xlang.XLangConstants;
 import io.nop.xlang.api.IXLangCompileScope;
 import io.nop.xlang.ast.Expression;
@@ -91,6 +93,17 @@ import static io.nop.xlang.xpl.utils.XplParseHelper.simplifiedIfStatement;
 
 public class XplCompiler extends XLangExprParser implements IXplCompiler {
     static final Logger LOG = LoggerFactory.getLogger(XplCompiler.class);
+
+    private IRawTypeResolver rawTypeResolver = DefaultClassResolver.INSTANCE;
+
+    @Override
+    public IRawTypeResolver getRawTypeResolver() {
+        return rawTypeResolver;
+    }
+
+    public void setRawTypeResolver(IRawTypeResolver rawTypeResolver) {
+        this.rawTypeResolver = rawTypeResolver;
+    }
 
     @Override
     public Expression parseTag(XNode node, IXLangCompileScope scope) {

@@ -399,6 +399,11 @@ public interface XLangErrors {
     ErrorCode ERR_XPL_SCRIPT_NOT_ALLOW_CHILD = define("nop.err.xlang.xpl.script-not-allow-child",
             "script标签不允许包含子节点，只能是文本内容");
 
+    ErrorCode ERR_XPL_EVAL_NOT_ALLOW_CHILD = define("nop.err.xlang.xpl.eval-not-allow-child",
+            "eval标签不允许包含子节点，只能是文本内容");
+
+    ErrorCode ERR_XPL_EVAL_INVALID_LANG = define("nop.err.xlang.xpl.eval-invalid-lang","eval节点的lang属性不合法：{lang}", ARG_LANG);
+
     ErrorCode ERR_XPL_NOT_ALLOW_OUTPUT = define("nop.err.xlang.xpl.not-allow-output",
             "xpl的当前输出模式为[{outputMode}]，不允许输出文本内容", ARG_OUTPUT_MODE);
 

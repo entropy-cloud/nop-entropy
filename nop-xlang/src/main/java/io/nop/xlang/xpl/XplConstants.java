@@ -161,6 +161,9 @@ public interface XplConstants {
 
     String LANG_NAME = "lang";
 
+    String ARGS_NAME = "args";
+    String RETURN_TYPE_NAME = "returnType";
+
     String FROM_NAME = "from";
     String AS_NAME = "as";
     String CLASS_NAME = "class";

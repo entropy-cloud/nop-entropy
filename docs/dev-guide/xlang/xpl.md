@@ -108,6 +108,30 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
 </c:script>
 ```
 
+XLang平台内置了`lang=java`支持, 通过args指定从上下文中获取哪些变量，在脚本代码中可以直接访问这些变量。
+
+```xml
+<c:unit>
+  <c:script>
+    let x = 1;
+    let y = 2;
+  </c:script>
+
+  <c:script lang="java" args="x:int,y:int" returnType="int">
+    return x + y;
+  </c:script>
+</c:unit>
+```
+
+可以通过ScriptCompilerRegistry注册更多的脚本引擎支持。脚本引擎接口如下：
+```java
+public interface IScriptCompiler {
+    IEvalFunction compile(SourceLocation loc, String text,
+                          List<? extends IFunctionArgument> args, IGenericType returnType,
+                          IXLangCompileScope scope);
+}
+```
+
 ### 编译期
 
 * `<c:import>`
