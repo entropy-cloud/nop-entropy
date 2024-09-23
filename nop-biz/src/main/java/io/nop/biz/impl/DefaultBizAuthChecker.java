@@ -11,6 +11,7 @@ import io.nop.api.core.auth.IBizAuthChecker;
 import io.nop.api.core.auth.ISecurityContext;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.auth.api.AuthApiErrors;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObject;
 import io.nop.biz.api.IBizObjectManager;
@@ -25,6 +26,7 @@ import jakarta.inject.Inject;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.nop.auth.api.AuthApiErrors.ARG_OBJ_TYPE_NAME;
 import static io.nop.biz.BizErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.biz.BizErrors.ARG_PROP_NAME;
 import static io.nop.biz.BizErrors.ERR_BIZ_UNKNOWN_PROP;
@@ -38,7 +40,7 @@ public class DefaultBizAuthChecker implements IBizAuthChecker {
     }
 
     @Override
-    public void checkAuth(String bizObjName, String objId, String fieldName, ISecurityContext context) {
+    public boolean checkAuth(String bizObjName, String objId, String fieldName, ISecurityContext context) {
         IBizObject bizObject = bizObjectManager.getBizObject(bizObjName);
         IServiceContext ctx = (IServiceContext) context;
         Map<String, Object> input = new HashMap<>();
@@ -54,8 +56,18 @@ public class DefaultBizAuthChecker implements IBizAuthChecker {
                         .param(ARG_PROP_NAME, fieldName);
 
             if (field.getAuth() != null) {
-                GraphQLActionAuthChecker.checkAuth(bizObjName, fieldName, field.getAuth(), ctx.getActionAuthChecker(), ctx, false);
+                return GraphQLActionAuthChecker.checkAuth(bizObjName, fieldName, field.getAuth(), ctx.getActionAuthChecker(), ctx, false);
             }
         }
+
+        return true;
+    }
+
+    @Override
+    public void forceCheckAuth(String bizObjName, String objId, String fieldName, ISecurityContext context) {
+        if (!checkAuth(bizObjName, objId, fieldName, context))
+            throw new NopException(AuthApiErrors.ERR_AUTH_NO_PERMISSION)
+                    .param(AuthApiErrors.ARG_ACTION_NAME, fieldName)
+                    .param(ARG_OBJ_TYPE_NAME, bizObjName);
     }
 }

@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class ObjPropMetaImpl extends _ObjPropMetaImpl implements IObjPropMeta {
-    static final ActionAuthMeta NULL_AUTH = new ActionAuthMeta(false, null, null);
+    static final ActionAuthMeta NULL_AUTH = new ActionAuthMeta(false, null, null,false);
     private ActionAuthMeta writeAuth;
 
     public ActionAuthMeta getReadAuth() {

@@ -123,14 +123,14 @@ public class NopFileStoreBizModel {
 
     protected void checkUploadAuth(UploadRequestBean record, IServiceContext ctx) {
         if (!StringHelper.isEmpty(record.getBizObjId()) && bizAuthChecker != null) {
-            bizAuthChecker.checkAuth(record.getBizObjName(), record.getBizObjId(), record.getFieldName(), ctx);
+            bizAuthChecker.forceCheckAuth(record.getBizObjName(), record.getBizObjId(), record.getFieldName(), ctx);
         }
     }
 
     protected IFileRecord loadFileRecord(String fileId, IServiceContext ctx) {
         IFileRecord record = fileStore.getFile(fileId);
         if (!record.isPublic() && bizAuthChecker != null) {
-            bizAuthChecker.checkAuth(record.getBizObjName(), record.getBizObjId(), record.getFieldName(), ctx);
+            bizAuthChecker.forceCheckAuth(record.getBizObjName(), record.getBizObjId(), record.getFieldName(), ctx);
         }
         return record;
     }

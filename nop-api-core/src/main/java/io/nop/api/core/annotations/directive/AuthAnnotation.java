@@ -13,9 +13,19 @@ public class AuthAnnotation implements Auth {
     private String roles = "";
     private String permissions = "";
     private boolean publicAccess;
+    private boolean skipWhenNoAuth;
 
     public String roles() {
         return roles;
+    }
+
+    @Override
+    public boolean skipWhenNoAuth() {
+        return skipWhenNoAuth;
+    }
+
+    public void setSkipWhenNoAuth(boolean skipWhenNoAuth) {
+        this.skipWhenNoAuth = skipWhenNoAuth;
     }
 
     @Override

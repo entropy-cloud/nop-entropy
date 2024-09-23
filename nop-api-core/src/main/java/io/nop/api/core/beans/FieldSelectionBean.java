@@ -410,6 +410,12 @@ public class FieldSelectionBean implements Serializable, IDeepCloneable, IFreeza
         addField(name, HIDDEN_SELECTION);
     }
 
+    public FieldSelectionBean removeField(String name) {
+        if (fields == null)
+            return null;
+        return fields.remove(name);
+    }
+
     /**
      * 向当前选择集合中加入复合属性，需要进行递归处理。
      * 例如当前选择集为 a,b:{b1,b2}, 合并b.b1.c1之后的选择集为a,b:{b1: {c1}, b2}

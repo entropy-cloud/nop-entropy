@@ -21,28 +21,31 @@ public class ActionAuthMeta {
     private boolean publicAccess;
     private Set<String> roles;
     private MultiCsvSet permissions;
+    private boolean skipWhenNoAuth;
 
     private boolean frozen;
 
     public ActionAuthMeta(@JsonProperty("publicAccess") boolean publicAccess,
                           @JsonProperty("roles") Set<String> roles,
-                          @JsonProperty("permissions") MultiCsvSet permissions) {
+                          @JsonProperty("permissions") MultiCsvSet permissions,
+                          @JsonProperty("skipWhenNoAuth") boolean skipWhenNoAuth) {
         this.publicAccess = publicAccess;
         this.roles = roles;
         this.permissions = permissions;
+        this.skipWhenNoAuth = skipWhenNoAuth;
         this.frozen = true;
     }
 
     public ActionAuthMeta() {
     }
 
-    public ActionAuthMeta freeze(){
+    public ActionAuthMeta freeze() {
         frozen = true;
         return this;
     }
 
-    private void checkFrozen(){
-        if(frozen)
+    private void checkFrozen() {
+        if (frozen)
             throw new IllegalStateException("action auth meta is frozen");
     }
 
@@ -63,6 +66,15 @@ public class ActionAuthMeta {
     public void setPermissions(MultiCsvSet permissions) {
         checkFrozen();
         this.permissions = permissions;
+    }
+
+    public boolean isSkipWhenNoAuth() {
+        return skipWhenNoAuth;
+    }
+
+    public void setSkipWhenNoAuth(boolean skipWhenNoAuth) {
+        checkFrozen();
+        this.skipWhenNoAuth = skipWhenNoAuth;
     }
 
     public Set<String> getRoles() {

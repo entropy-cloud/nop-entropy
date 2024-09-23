@@ -131,6 +131,8 @@ public boolean delete(@Name("id") @Description("@i18n:biz.id|对象的主键标�
 
 通过这里的配置可以实现字段级别的读写权限控制. `for="read"`表示控制字段读权限，`for="write"`控制字段写权限，而`for="all"`同时允许读和写
 
+auth可以配置`skipWhenNoAuth=true`，它表示当不具有访问权限时自动忽略该字段，而不是报错。
+
 ### 公开访问
 
 如果`@Auth`注解或者xbiz中的auth配置指定了publicAccess=true，则该方法为公开可访问方法，会自动跳过操作权限检查。但是数据权限仍然会应用。

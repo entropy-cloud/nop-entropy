@@ -74,28 +74,33 @@ public class GraphQLActionAuthChecker {
                 if (subSelection == null)
                     continue;
 
-                checkAuth(objTypeName, fieldSelection, checker, context.getServiceContext(), false);
-
-                checkSelectionSet(fieldSelection.getSelectionSet(), subSelection, checker, userContext, context);
+                if (checkAuth(objTypeName, fieldSelection, checker, context.getServiceContext(), false)) {
+                    checkSelectionSet(fieldSelection.getSelectionSet(), subSelection, checker, userContext, context);
+                } else {
+                    selectionBean.removeField(fieldSelection.getAliasOrName());
+                }
             }
         }
     }
 
-    public static void checkAuth(String objTypeName, GraphQLFieldSelection fieldSelection, IActionAuthChecker checker,
-                                 IServiceContext context, boolean action) {
-        checkAuth(objTypeName, fieldSelection.getName(), fieldSelection.getFieldDefinition().getAuth(), checker, context, action);
+    public static boolean checkAuth(String objTypeName, GraphQLFieldSelection fieldSelection, IActionAuthChecker checker,
+                                    IServiceContext context, boolean action) {
+        return checkAuth(objTypeName, fieldSelection.getName(), fieldSelection.getFieldDefinition().getAuth(), checker, context, action);
     }
 
-    public static void checkAuth(String objTypeName, String fieldName, ActionAuthMeta auth, IActionAuthChecker checker,
-                                 IServiceContext context, boolean action) {
+    public static boolean checkAuth(String objTypeName, String fieldName, ActionAuthMeta auth, IActionAuthChecker checker,
+                                    IServiceContext context, boolean action) {
         if (isAllowAccess(auth, context))
-            return;
+            return true;
 
         IUserContext userContext = context.getUserContext();
         if (userContext == null)
             throw new IllegalStateException("nop.err.auth.no-user-context");
 
         if (action) {
+            if (auth.isSkipWhenNoAuth())
+                return false;
+
             throw new NopException(AuthApiErrors.ERR_AUTH_NO_PERMISSION)
                     .param(AuthApiErrors.ARG_ACTION_NAME, fieldName)
                     .param(ARG_PERMISSION, auth.getPermissions())

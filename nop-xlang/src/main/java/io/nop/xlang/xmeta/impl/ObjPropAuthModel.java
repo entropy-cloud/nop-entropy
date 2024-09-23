@@ -21,6 +21,6 @@ public class ObjPropAuthModel extends _ObjPropAuthModel {
             if (getPermissions() == null || getPermissions().isEmpty())
                 return null;
         }
-        return new ActionAuthMeta(isPublicAccess(), getRoles(), getPermissions());
+        return new ActionAuthMeta(isPublicAccess(), getRoles(), getPermissions(),Boolean.TRUE.equals(getSkipWhenNoAuth()));
     }
 }

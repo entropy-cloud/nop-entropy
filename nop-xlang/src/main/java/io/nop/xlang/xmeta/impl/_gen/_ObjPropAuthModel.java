@@ -47,6 +47,13 @@ public abstract class _ObjPropAuthModel extends io.nop.core.resource.component.A
     private java.util.Set<java.lang.String> _roles ;
     
     /**
+     *  
+     * xml name: skipWhenNoAuth
+     * 
+     */
+    private java.lang.Boolean _skipWhenNoAuth ;
+    
+    /**
      * 
      * xml name: for
      *  如果为all，则表示所有操作都可以匹配这个权限约束。
@@ -124,6 +131,25 @@ public abstract class _ObjPropAuthModel extends io.nop.core.resource.component.A
     }
 
     
+    /**
+     * 
+     * xml name: skipWhenNoAuth
+     *  
+     */
+    
+    public java.lang.Boolean getSkipWhenNoAuth(){
+      return _skipWhenNoAuth;
+    }
+
+    
+    public void setSkipWhenNoAuth(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._skipWhenNoAuth = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -143,6 +169,7 @@ public abstract class _ObjPropAuthModel extends io.nop.core.resource.component.A
         out.putNotNull("permissions",this.getPermissions());
         out.putNotNull("publicAccess",this.isPublicAccess());
         out.putNotNull("roles",this.getRoles());
+        out.putNotNull("skipWhenNoAuth",this.getSkipWhenNoAuth());
     }
 
     public ObjPropAuthModel cloneInstance(){
@@ -158,6 +185,7 @@ public abstract class _ObjPropAuthModel extends io.nop.core.resource.component.A
         instance.setPermissions(this.getPermissions());
         instance.setPublicAccess(this.isPublicAccess());
         instance.setRoles(this.getRoles());
+        instance.setSkipWhenNoAuth(this.getSkipWhenNoAuth());
     }
 
     protected ObjPropAuthModel newInstance(){
