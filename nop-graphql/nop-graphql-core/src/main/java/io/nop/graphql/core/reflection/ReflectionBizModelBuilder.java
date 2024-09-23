@@ -275,8 +275,7 @@ public class ReflectionBizModelBuilder {
         GraphQLFieldDefinition field = new GraphQLFieldDefinition();
         field.setFunctionModel(func);
 
-        ReflectionGraphQLTypeFactory.INSTANCE.getArgDefinitions(field, func,
-                registry);
+        ReflectionGraphQLTypeFactory.INSTANCE.getArgDefinitions(field, func, registry);
 
         Description description = func.getAnnotation(Description.class);
         if (description != null)
@@ -296,7 +295,7 @@ public class ReflectionBizModelBuilder {
         }
 
         BizArgsNormalizer argsNormalizer = func.getAnnotation(BizArgsNormalizer.class);
-        if (argsNormalizer != null) {
+        if (argsNormalizer != null && argsNormalizer.value() != null) {
             field.setArgsNormalizer(new LazyGraphQLArgsNormalizer(argsNormalizer.value()));
         }
 
