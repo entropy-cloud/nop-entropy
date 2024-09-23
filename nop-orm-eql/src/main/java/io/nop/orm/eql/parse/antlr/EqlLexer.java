@@ -1,4 +1,4 @@
-// Nop Generated from Eql.g4 by ANTLR 4.10.1
+// Nop Generated from Eql.g4 by ANTLR 4.13.0
 package io.nop.orm.eql.parse.antlr;
 import org.antlr.v4.runtime.Lexer; //NOPMD - suppressed UnusedImports - Auto Gen Code
 import org.antlr.v4.runtime.CharStream;
@@ -9,10 +9,10 @@ import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.misc.*; //NOPMD - suppressed UnusedImports - Auto Gen Code
 
-@SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast"})
+@SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast", "CheckReturnValue"})
 // tell cpd to start ignoring code - CPD-OFF
 public class EqlLexer extends io.nop.antlr4.common.AbstractAntlrLexer {
-	static { RuntimeMetaData.checkVersion("4.10.1", RuntimeMetaData.VERSION); }
+	static { RuntimeMetaData.checkVersion("4.13.0", RuntimeMetaData.VERSION); }
 
 	protected static final DFA[] _decisionToDFA;
 	protected static final PredictionContextCache _sharedContextCache =

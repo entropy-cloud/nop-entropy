@@ -1,4 +1,4 @@
-// Nop Generated from Eql.g4 by ANTLR 4.10.1
+// Nop Generated from Eql.g4 by ANTLR 4.13.0
 package io.nop.orm.eql.parse.antlr;
 import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
 
@@ -10,6 +10,7 @@ import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
  * @param <T> The return type of the visit operation. Use {@link Void} for
  * operations with no return type.
  */
+@SuppressWarnings("CheckReturnValue")
 // tell cpd to start ignoring code - CPD-OFF
 public class EqlBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements EqlVisitor<T> {
 	/**
