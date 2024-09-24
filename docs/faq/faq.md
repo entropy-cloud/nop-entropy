@@ -437,6 +437,9 @@ nop-cli工具用于生成初始程序框架，它并不生成meta。因为XMeta�
 
 这就是为什么xlsx要放到model目录下，因为每次mvn install的时候都会执行代码生成工具来重新生成所有代码。nop-cli工具生成的precompile目录下约定了model目录和xlsx模型文件的名称。
 
+### 37. XScript中如何实现类型转换
+内置了`$toInt`, `$toString`等扩展函数，例如 `a.$toInt()`将会把a转换为Integer类型。实现层面会调用SysConverterRegistry中注册的ITypeConverter，最终会调用到`ConvertHelper.toInt`等函数。
+类型转换函数还支持缺省值，例如 `a.$toInt(10)`, 但a是空值或者null的时候会返回缺省值。
 
 ## 部署问题
 
