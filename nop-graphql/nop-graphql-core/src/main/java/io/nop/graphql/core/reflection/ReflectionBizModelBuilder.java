@@ -283,10 +283,10 @@ public class ReflectionBizModelBuilder {
 
         Auth auth = func.getAnnotation(Auth.class);
         if (auth != null) {
-            field.setAuth(new ActionAuthMeta(auth.publicAccess(), ConvertHelper.toCsvSet(auth.roles()), MultiCsvSet.fromText(auth.permissions())));
+            field.setAuth(new ActionAuthMeta(auth.publicAccess(), ConvertHelper.toCsvSet(auth.roles()), MultiCsvSet.fromText(auth.permissions()),auth.skipWhenNoAuth()));
         } else {
             String permission = bizObjName + ':' + opType + "|" + bizObjName + ':' + name;
-            field.setAuth(new ActionAuthMeta(false, Collections.emptySet(), MultiCsvSet.fromText(permission)));
+            field.setAuth(new ActionAuthMeta(false, Collections.emptySet(), MultiCsvSet.fromText(permission),false));
         }
 
         BizMakerChecker makerChecker = func.getAnnotation(BizMakerChecker.class);
