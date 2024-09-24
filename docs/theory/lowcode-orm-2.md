@@ -123,7 +123,7 @@ NopOrm继承了Hibernate和Spring框架中一些非常优秀的设计：
 8. **敏感数据掩码**：用户的卡号和身份证号等敏感信息字段可以增加mask标签，从而在系统内部打印日志时自动对该字段值进行掩码处理，避免泄露到日志文件中。
 
 9. **组件逻辑复用**：一组相关的字段可能组成一个可以复用的组件，通过OrmComponent机制可以对这些逻辑进行复用。例如，数据库中的Decimal类型精度必须事先指定，但是客户要求必须按照输入时指定的精度来进行显示和计算，这要求我们在记录表中增加一个VALUE\_SCALE字段来保留精度信息，但是当我们从数据库中取出值的时候我们又希望直接得到一个scale已经被设置为指定值的BigDecimal。NopOrm提供了一个FloatingScaleDecimal组件来完成这件工作。对于附件、附件列表等具有复杂关联逻辑的字段可以采用类似的方式进行封装。
-   
+
    [FloatingScaleDecimal](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/support/FloatingScaleDecimal.java)
 
 与外围框架相结合，Nop平台还内置了更多常用的解决方案。比如
@@ -436,7 +436,7 @@ for(Order o: c.getOrders()){
 5. QueryBeanHelper.toPredicate(filter)可以将过滤条件转换为Predicate接口，从而在java中直接过滤。
 
 6. 通过FilterBeans中定义的and,eq等算子，结合代码生成时自动生成的属性名常量，我们可以实现如下编译期安全的构造方式。
-   
+
    filter = and(eq(PROP\_NAME\_myFld,"a"), gt(PROP\_NAME\_otherFld,3))
 
 QueryBuilder本质上是与ORM无关的，因为在完全脱离关系数据库和SQL语句的情况下，我们仍然可以使用Query模型。例如，在业务规则配置中
@@ -840,7 +840,7 @@ GraphQL与ORM本质上提供的是不同层面的信息结构。GraphQL是针对
 <meta>
   <props>
     <prop name="propA" x:override="remove" />
-    <prop name="propB" mapTo="internalProp">
+    <prop name="propB" mapToProp="internalProp">
       <auth roles="admin" />
       <schema dict="/app/my.dict.yaml" />
     </prop>

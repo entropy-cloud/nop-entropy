@@ -26,7 +26,6 @@ import io.nop.commons.functional.Lazy;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
-import io.nop.commons.util.TagsHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.dict.DictProvider;
 import io.nop.core.lang.eval.IEvalAction;
@@ -272,7 +271,7 @@ public class ObjMetaBasedValidator {
     private void setIn(Map<String, Object> ret, ISchema schema, IObjPropMeta propMeta, Object value) {
         // json component 转换为对jsonText的赋值
         String propName = propMeta.getName();
-        if (propName.endsWith("Component") && TagsHelper.contains(propMeta.getTagSet(), OrmConstants.TAG_JSON)) {
+        if (propName.endsWith("Component") && propMeta.containsTag(OrmConstants.TAG_JSON)) {
             String textPropName = propName.substring(0, propName.length() - "Component".length());
             IObjPropMeta textProp = schema.getProp(textPropName);
             if (textProp != null) {
