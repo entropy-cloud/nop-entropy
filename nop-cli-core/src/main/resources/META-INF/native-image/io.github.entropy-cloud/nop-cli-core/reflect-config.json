@@ -3,16 +3,17 @@
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "boolean",
-    "unsafeAllocated": false
+    "name": "boolean"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -395,13 +396,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "com.zaxxer.hikari.HikariConfig",
-    "unsafeAllocated": false
+    "name": "com.zaxxer.hikari.HikariConfig"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -501,509 +502,315 @@
         ]
       }
     ],
-    "name": "com.zaxxer.hikari.HikariDataSource",
-    "unsafeAllocated": false
+    "name": "com.zaxxer.hikari.HikariDataSource"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "API_STATUS_BAD_REQUEST"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "API_STATUS_FAIL"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "API_STATUS_FORBIDDEN"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "API_STATUS_NOT_FOUND"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "API_STATUS_OK"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "API_STATUS_TIMEOUT"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "API_STATUS_UNAUTHORIZED"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "ARG_KEY_PROP"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "ARG_ORDER_PROP"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "ATTR_SERVICE_CONTEXT"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "AUTH_FOR_ALL"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "AUTH_FOR_DELETE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "AUTH_FOR_READ"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "AUTH_FOR_WRITE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "BEAN_PROP_INCLUDE_JSON_IGNORE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "BEAN_PROP_INCLUDE_READABLE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "BEAN_PROP_INCLUDE_WRITABLE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "BEAN_SCOPE_PROTOTYPE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "BEAN_SCOPE_REQUEST"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "BEAN_SCOPE_SINGLETON"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "CONFIG_BEAN_CONTAINER"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "CONFIG_BEAN_ID"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "CONFIG_BEAN_TYPE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "CONFIG_VALUE_NONE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "DELTA_PATH_PREFIX"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "DIRECTIVE_PROP_META"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "EMPTY_STRING_ARRAY"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "ENCODED_PARAM_SELECTION"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "GRAPHQL_EXTENSION_BIZ_FATAL"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "GRAPHQL_EXTENSION_ERROR_CODE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "GRAPHQL_EXTENSION_MSG"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "GRAPHQL_EXTENSION_STATUS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_ACCESS_TOKEN"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_ACTOR"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_APP_ID"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_APP_ZONE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_BIZ_FAIL"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_BIZ_KEY"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_CLIENT_ADDR"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_CONTENT_TYPE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_COOKIE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_DEVICE_ID"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_HOST"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_ID"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_LOCALE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_ONE_WAY"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_REL_ID"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_SELECTION"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_SHARD"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_SVC_ACTION"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_SVC_NAME"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_SVC_ROUTE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_SVC_TAGS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_TAGS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_TASK_ID"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_TENANT"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_TIMEOUT"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_TIMEZONE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_TRACE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_TXN_BRANCH_ID"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_TXN_BRANCH_NO"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_TXN_GROUP"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_TXN_ID"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_USER_ID"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HEADER_VERSION"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HTTP_HEADER_PREFIX"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "INTERCEPTOR_PRIORITY_API_CONTEXT"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "INTERCEPTOR_PRIORITY_AUTH"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "INTERCEPTOR_PRIORITY_CACHE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "INTERCEPTOR_PRIORITY_FLOW_CONTROL"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "INTERCEPTOR_PRIORITY_SINGLE_SESSION"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "INTERCEPTOR_PRIORITY_TCC"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "INTERCEPTOR_PRIORITY_TRANSACTIONAL"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "MDC_NOP_SESSION"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "MDC_NOP_TENANT"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "MDC_NOP_TRACE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "MDC_NOP_USER"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "META_KEY_TAGS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "NO_VALUE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "PARAM_BIZ_OBJ_NAME"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "PARAM_DISPLAY_NAME"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "PARAM_ENTITY_NAME"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "PARAM_FIELD_DISPLAY_NAME"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "PARAM_FIELD_NAME"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "PARAM_OBJ_NAME"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "PARAM_PROP_NAME"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "PARAM_REF_BIZ_OBJ_NAME"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "PARAM_REF_ENTITY_NAME"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "PROP_TARGET_HOST"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "SYS_PARAM_SELECTION"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "TEMP_HEADER_PREFIX"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "TENANT_PATH_PREFIX"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "TREE_BEAN_PROP_BODY"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "TREE_BEAN_PROP_LOC"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "TREE_BEAN_PROP_TYPE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "XML_PROP_TYPE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "YES_VALUE"
       }
     ],
     "methods": [],
-    "name": "io.nop.api.core.ApiConstants",
-    "unsafeAllocated": false
+    "name": "io.nop.api.core.ApiConstants"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -1215,13 +1022,13 @@
         ]
       }
     ],
-    "name": "io.nop.api.core.beans.DictBean",
-    "unsafeAllocated": false
+    "name": "io.nop.api.core.beans.DictBean"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -1327,299 +1134,189 @@
         ]
       }
     ],
-    "name": "io.nop.api.core.beans.DictOptionBean",
-    "unsafeAllocated": false
+    "name": "io.nop.api.core.beans.DictOptionBean"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "BETWEEN_POSTFIX"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "BETWEEN_PREFIX"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "DUMMY_TAG_NAME"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_ATTR_EXCLUDE_MAX"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_ATTR_EXCLUDE_MIN"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_ATTR_MAX"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_ATTR_MAX_NAME"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_ATTR_MIN"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_ATTR_MIN_NAME"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_ATTR_NAME"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_ATTR_OWNER"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_ATTR_VALUE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_ATTR_VALUE_NAME"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_ATTR_VALUE_OWNER"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_ALWAYS_FALSE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_ALWAYS_TRUE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_AND"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_BETWEEN"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_CONTAINS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_DATETIME_BETWEEN"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_DATE_BETWEEN"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_ENDS_WITH"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_EQ"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_EXPR"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_GE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_GT"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_ICONTAINS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_IN"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_IS_BLANK"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_IS_EMPTY"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_IS_FALSE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_IS_NULL"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_IS_NUMBER"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_IS_TRUE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_LE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_LENGTH"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_LENGTH_BETWEEN"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_LIKE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_LT"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_NE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_NOT"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_NOT_BETWEEN"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_NOT_BLANK"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_NOT_CONTAINS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_NOT_EMPTY"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_NOT_FALSE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_NOT_IN"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_NOT_NULL"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_NOT_NUMBER"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_NOT_TRUE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_OR"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_REGEX"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_SQL"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_OP_STARTS_WITH"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FILTER_TAG_NAME"
       }
     ],
     "methods": [],
-    "name": "io.nop.api.core.beans.FilterBeanConstants",
-    "unsafeAllocated": false
+    "name": "io.nop.api.core.beans.FilterBeanConstants"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -1640,48 +1337,36 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.api.core.resource.IResourceReference",
-    "unsafeAllocated": false
+    "name": "io.nop.api.core.resource.IResourceReference"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "CHARSET_ISO_8859_1"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "CHARSET_UTF8"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "ENCODING_UTF8"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "FUTURE_DATE"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "INVALID_DATE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "JAVA_ESCAPE_CHARS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "JAVA_ESCAPE_STRS"
       }
     ],
@@ -1948,23 +1633,23 @@
         ]
       }
     ],
-    "name": "io.nop.api.core.util.ApiStringHelper",
-    "unsafeAllocated": false
+    "name": "io.nop.api.core.util.ApiStringHelper"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.api.core.util.IComponentModel",
-    "unsafeAllocated": false
+    "name": "io.nop.api.core.util.IComponentModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -1979,13 +1664,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.api.core.util.IFreezable",
-    "unsafeAllocated": false
+    "name": "io.nop.api.core.util.IFreezable"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -1994,13 +1679,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.api.core.util.ISourceLocationGetter",
-    "unsafeAllocated": false
+    "name": "io.nop.api.core.util.ISourceLocationGetter"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -2011,23 +1696,19 @@
         ]
       }
     ],
-    "name": "io.nop.api.core.util.ISourceLocationSetter",
-    "unsafeAllocated": false
+    "name": "io.nop.api.core.util.ISourceLocationSetter"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "LOG"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "s_loc"
       }
     ],
@@ -2167,13 +1848,13 @@
         ]
       }
     ],
-    "name": "io.nop.codegen.XCodeGenerator",
-    "unsafeAllocated": false
+    "name": "io.nop.codegen.XCodeGenerator"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -2290,13 +1971,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.codegen.graalvm.ReflectClass",
-    "unsafeAllocated": false
+    "name": "io.nop.codegen.graalvm.ReflectClass"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -2337,13 +2018,13 @@
         ]
       }
     ],
-    "name": "io.nop.codegen.graalvm.ReflectField",
-    "unsafeAllocated": false
+    "name": "io.nop.codegen.graalvm.ReflectField"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -2388,33 +2069,33 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.codegen.graalvm.ReflectMethod",
-    "unsafeAllocated": false
+    "name": "io.nop.codegen.graalvm.ReflectMethod"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.codegen.initialize.CodeGenAfterInitialization",
-    "unsafeAllocated": false
+    "name": "io.nop.codegen.initialize.CodeGenAfterInitialization"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.codegen.initialize.CodeGenCoreInitializer",
-    "unsafeAllocated": false
+    "name": "io.nop.codegen.initialize.CodeGenCoreInitializer"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -2574,13 +2255,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.commons.cache.CacheConfig",
-    "unsafeAllocated": false
+    "name": "io.nop.commons.cache.CacheConfig"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -2615,13 +2296,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.commons.cache.LocalCacheProvider",
-    "unsafeAllocated": false
+    "name": "io.nop.commons.cache.LocalCacheProvider"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -2767,13 +2448,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.commons.collections.KeyedList",
-    "unsafeAllocated": false
+    "name": "io.nop.commons.collections.KeyedList"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -2866,13 +2547,13 @@
         ]
       }
     ],
-    "name": "io.nop.commons.collections.ListFunctions",
-    "unsafeAllocated": false
+    "name": "io.nop.commons.collections.ListFunctions"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -2962,13 +2643,13 @@
         ]
       }
     ],
-    "name": "io.nop.commons.collections.SetFunctions",
-    "unsafeAllocated": false
+    "name": "io.nop.commons.collections.SetFunctions"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -2977,22 +2658,19 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.commons.lang.ITagSetSupport",
-    "unsafeAllocated": false
+    "name": "io.nop.commons.lang.ITagSetSupport"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "LOG"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "s_instance"
       }
@@ -3013,23 +2691,19 @@
         ]
       }
     ],
-    "name": "io.nop.commons.metrics.GlobalMeterRegistry",
-    "unsafeAllocated": false
+    "name": "io.nop.commons.metrics.GlobalMeterRegistry"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "lower"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "upper"
       }
     ],
@@ -3051,123 +2725,79 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.commons.text.CharacterCase",
-    "unsafeAllocated": false
+    "name": "io.nop.commons.text.CharacterCase"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "ANY"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "ARRAY"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "BIGINT"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "BOOLEAN"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "CHAR"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "DATE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "DATETIME"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "DECIMAL"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "DOUBLE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FLOAT"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "GEOMETRY"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "INTEGER"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "JSON"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "NUMERIC"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "OTHER"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "REAL"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "SMALLINT"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "TIME"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "TIMESTAMP"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "TINYINT"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "VARBINARY"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "VARCHAR"
       }
     ],
@@ -3244,68 +2874,46 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.commons.type.StdSqlType",
-    "unsafeAllocated": false
+    "name": "io.nop.commons.type.StdSqlType"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "COMPACT_DATE_FORMATTER"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "COMPACT_DATE_TIME_FORMATTER"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "DATETIME_FORMATTER"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "DATE_FORMATTER"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "INVALID_DATE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "ONE_DAY_TS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "ONE_HOUR_TS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "ONE_MINUTE_TS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "PATTERN_MS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "TIMESTAMP_FORMATTER"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "TIME_FORMATTER"
       }
     ],
@@ -3908,203 +3516,127 @@
         ]
       }
     ],
-    "name": "io.nop.commons.util.DateHelper",
-    "unsafeAllocated": false
+    "name": "io.nop.commons.util.DateHelper"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "CHARSET_1252"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "DIGITS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "EMPTY_BYTES"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "EMPTY_STRING"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "EMPTY_STRINGS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "ENV_ESCAPE_CHARS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "ENV_ESCAPE_STRS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HTML_ESCAPE_CHARS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "HTML_ESCAPE_STRS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "INVALID_FILE_NAME_CHARS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "INVALID_FILE_NAME_CHARS_STR"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "INVALID_FILE_NAME_REPLS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "INVALID_FILE_PATH_CHARS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "INVALID_FILE_PATH_CHARS_STR"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "JAVA_ESCAPE_CHARS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "JAVA_ESCAPE_STRS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "JSON_ESCAPE_CHARS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "JSON_ESCAPE_STRS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "LINE_PATTERN"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "LOG"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "LOWER_CASE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "QUOTE_CN_CHARS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "QUOTE_EN_STRS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "REGEX_BR"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "REGEX_P"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "REGEX_TAG"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "SPECIAL_CHARS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "SQL_ESCAPE_CHARS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "SQL_ESCAPE_CHARS_SLASH"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "SQL_ESCAPE_STRS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "SQL_ESCAPE_STRS_SLASH"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "UPPER_CASE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "XML_ATTR_ESCAPE_CHARS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "XML_ATTR_ESCAPE_STRS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "XML_ESCAPE_CHARS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "XML_ESCAPE_STRS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "XML_VALUE_ESCAPE_CHARS"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "XML_VALUE_ESCAPE_STRS"
       }
     ],
@@ -5857,23 +5389,23 @@
         ]
       }
     ],
-    "name": "io.nop.commons.util.StringHelper",
-    "unsafeAllocated": false
+    "name": "io.nop.commons.util.StringHelper"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.config.initialize.ConfigInitializer",
-    "unsafeAllocated": false
+    "name": "io.nop.config.initialize.ConfigInitializer"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -5953,13 +5485,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.config.source.jdbc.JdbcConfig",
-    "unsafeAllocated": false
+    "name": "io.nop.config.source.jdbc.JdbcConfig"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -5970,43 +5502,43 @@
         ]
       }
     ],
-    "name": "io.nop.core.dict.DictModelParser",
-    "unsafeAllocated": false
+    "name": "io.nop.core.dict.DictModelParser"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.core.initialize.impl.CoreInitializer",
-    "unsafeAllocated": false
+    "name": "io.nop.core.initialize.impl.CoreInitializer"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.core.initialize.impl.ReflectionHelperMethodInitializer",
-    "unsafeAllocated": false
+    "name": "io.nop.core.initialize.impl.ReflectionHelperMethodInitializer"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.core.initialize.impl.VirtualFileSystemInitializer",
-    "unsafeAllocated": false
+    "name": "io.nop.core.initialize.impl.VirtualFileSystemInitializer"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -6017,13 +5549,13 @@
         ]
       }
     ],
-    "name": "io.nop.core.lang.json.IJsonSerializable",
-    "unsafeAllocated": false
+    "name": "io.nop.core.lang.json.IJsonSerializable"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -6153,123 +5685,79 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.core.lang.json.JObject",
-    "unsafeAllocated": false
+    "name": "io.nop.core.lang.json.JObject"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "ANY"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "ARRAY"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "BIGINT"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "BOOLEAN"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "CHAR"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "DATE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "DATETIME"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "DECIMAL"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "DOUBLE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FLOAT"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "GEOMETRY"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "INTEGER"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "JSON"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "NUMERIC"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "OTHER"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "REAL"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "SMALLINT"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "TIME"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "TIMESTAMP"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "TINYINT"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "VARBINARY"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "VARCHAR"
       }
     ],
@@ -6328,13 +5816,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.core.lang.sql.StdSqlType",
-    "unsafeAllocated": false
+    "name": "io.nop.core.lang.sql.StdSqlType"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -6671,13 +6159,13 @@
         ]
       }
     ],
-    "name": "io.nop.core.lang.utils.Underscore",
-    "unsafeAllocated": false
+    "name": "io.nop.core.lang.utils.Underscore"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -6723,18 +6211,16 @@
         ]
       }
     ],
-    "name": "io.nop.core.lang.utils.XNodeMergeHelper",
-    "unsafeAllocated": false
+    "name": "io.nop.core.lang.utils.XNodeMergeHelper"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "LOG"
       }
     ],
@@ -8237,13 +7723,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.core.lang.xml.XNode",
-    "unsafeAllocated": false
+    "name": "io.nop.core.lang.xml.XNode"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -8286,13 +7772,13 @@
         ]
       }
     ],
-    "name": "io.nop.core.model.loop.impl.NestedLoopBuilder",
-    "unsafeAllocated": false
+    "name": "io.nop.core.model.loop.impl.NestedLoopBuilder"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -8429,18 +7915,16 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.core.model.object.DynamicObject",
-    "unsafeAllocated": false
+    "name": "io.nop.core.model.object.DynamicObject"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "INSTANCE"
       }
     ],
@@ -8465,13 +7949,13 @@
         ]
       }
     ],
-    "name": "io.nop.core.model.query.OrderBySqlParser",
-    "unsafeAllocated": false
+    "name": "io.nop.core.model.query.OrderBySqlParser"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -8480,13 +7964,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.core.model.tree.ITreeChildrenStructure",
-    "unsafeAllocated": false
+    "name": "io.nop.core.model.tree.ITreeChildrenStructure"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -8587,23 +8071,23 @@
         ]
       }
     ],
-    "name": "io.nop.core.module.ModuleModel",
-    "unsafeAllocated": false
+    "name": "io.nop.core.module.ModuleModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.core.reflect.hook.IPropGetMissingHook",
-    "unsafeAllocated": false
+    "name": "io.nop.core.reflect.hook.IPropGetMissingHook"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -8698,13 +8182,13 @@
         ]
       }
     ],
-    "name": "io.nop.core.reflect.hook.SerializableExtensibleObject",
-    "unsafeAllocated": false
+    "name": "io.nop.core.reflect.hook.SerializableExtensibleObject"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -8748,13 +8232,13 @@
         ]
       }
     ],
-    "name": "io.nop.core.resource.IFile",
-    "unsafeAllocated": false
+    "name": "io.nop.core.resource.IFile"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -8855,13 +8339,13 @@
         ]
       }
     ],
-    "name": "io.nop.core.resource.IResource",
-    "unsafeAllocated": false
+    "name": "io.nop.core.resource.IResource"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -8878,22 +8362,19 @@
         ]
       }
     ],
-    "name": "io.nop.core.resource.IResourceLoader",
-    "unsafeAllocated": false
+    "name": "io.nop.core.resource.IResourceLoader"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "LOG"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "s_zipTool"
       }
@@ -9633,13 +9114,13 @@
         ]
       }
     ],
-    "name": "io.nop.core.resource.ResourceHelper",
-    "unsafeAllocated": false
+    "name": "io.nop.core.resource.ResourceHelper"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -9690,13 +9171,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.core.resource.component.AbstractComponentModel",
-    "unsafeAllocated": false
+    "name": "io.nop.core.resource.component.AbstractComponentModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -9729,18 +9210,16 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.core.resource.component.AbstractFreezable",
-    "unsafeAllocated": false
+    "name": "io.nop.core.resource.component.AbstractFreezable"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "LOG"
       }
     ],
@@ -9807,13 +9286,13 @@
         ]
       }
     ],
-    "name": "io.nop.core.resource.component.parse.AbstractResourceParser",
-    "unsafeAllocated": false
+    "name": "io.nop.core.resource.component.parse.AbstractResourceParser"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -9848,13 +9327,13 @@
         ]
       }
     ],
-    "name": "io.nop.core.resource.component.parse.AbstractTextResourceParser",
-    "unsafeAllocated": false
+    "name": "io.nop.core.resource.component.parse.AbstractTextResourceParser"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -9866,13 +9345,13 @@
         ]
       }
     ],
-    "name": "io.nop.core.resource.component.parse.IResourceParser",
-    "unsafeAllocated": false
+    "name": "io.nop.core.resource.component.parse.IResourceParser"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -9884,13 +9363,13 @@
         ]
       }
     ],
-    "name": "io.nop.core.resource.component.parse.ITextResourceParser",
-    "unsafeAllocated": false
+    "name": "io.nop.core.resource.component.parse.ITextResourceParser"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -9921,18 +9400,16 @@
         ]
       }
     ],
-    "name": "io.nop.core.resource.impl.AbstractFile",
-    "unsafeAllocated": false
+    "name": "io.nop.core.resource.impl.AbstractFile"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "LOG"
       }
     ],
@@ -10060,13 +9537,13 @@
         ]
       }
     ],
-    "name": "io.nop.core.resource.impl.AbstractResource",
-    "unsafeAllocated": false
+    "name": "io.nop.core.resource.impl.AbstractResource"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -10179,38 +9656,31 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.core.resource.impl.FileResource",
-    "unsafeAllocated": false
+    "name": "io.nop.core.resource.impl.FileResource"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "LOG"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "contentCache"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "dependencyManager"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "resourceLoader"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "s_loc"
       }
     ],
@@ -10467,17 +9937,16 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.core.resource.tpl.TemplateFileGenerator",
-    "unsafeAllocated": false
+    "name": "io.nop.core.resource.tpl.TemplateFileGenerator"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "FIND_FIRST_RANGE"
       }
@@ -10497,13 +9966,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.api.AbstractSqlExecutor",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.api.AbstractSqlExecutor"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -10575,13 +10044,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.api.ISqlExecutor",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.api.ISqlExecutor"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -10632,13 +10101,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.dao.dialect.DialectManager",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.DialectManager"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -10753,13 +10222,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.dialect.DialectSelector",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.DialectSelector"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -11113,13 +10582,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.dialect.IDialect",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.IDialect"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -11130,18 +10599,16 @@
         ]
       }
     ],
-    "name": "io.nop.dao.dialect.IDialectProvider",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.IDialectProvider"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "LOG"
       }
     ],
@@ -11533,13 +11000,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.dialect.impl.DialectImpl",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.impl.DialectImpl"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -11583,13 +11050,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.dialect.json.DefaultJsonTypeHandler",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.json.DefaultJsonTypeHandler"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -11602,13 +11069,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.dialect.json.H2JsonTypeHandler",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.json.H2JsonTypeHandler"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -11621,13 +11088,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.dialect.json.MySqlJsonTypeHandler",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.json.MySqlJsonTypeHandler"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -11640,13 +11107,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.dialect.json.PostgreSqlJsonTypeHandler",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.json.PostgreSqlJsonTypeHandler"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -11657,63 +11124,63 @@
         ]
       }
     ],
-    "name": "io.nop.dao.dialect.loader.DialectModelLoader",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.loader.DialectModelLoader"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.dao.dialect.model.DialectDiscoverySqls",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.model.DialectDiscoverySqls"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.dao.dialect.model.DialectErrorCodeModel",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.model.DialectErrorCodeModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.dao.dialect.model.DialectFeatures",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.model.DialectFeatures"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.dao.dialect.model.DialectModel",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.model.DialectModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.dao.dialect.model.DialectSqls",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.model.DialectSqls"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -11728,13 +11195,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.dialect.model.SqlDataTypeModel",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.model.SqlDataTypeModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -11743,13 +11210,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.dao.dialect.model.SqlNativeFunctionModel",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.model.SqlNativeFunctionModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -11758,13 +11225,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.dao.dialect.model.SqlTemplateModel",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.model.SqlTemplateModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -11915,13 +11382,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.dialect.model._gen._DialectDiscoverySqls",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.model._gen._DialectDiscoverySqls"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -11982,13 +11449,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.dialect.model._gen._DialectErrorCodeModel",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.model._gen._DialectErrorCodeModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -12259,13 +11726,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.dialect.model._gen._DialectFeatures",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.model._gen._DialectFeatures"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -12620,13 +12087,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.dialect.model._gen._DialectModel",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.model._gen._DialectModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -12837,13 +12304,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.dialect.model._gen._DialectSqls",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.model._gen._DialectSqls"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -12980,13 +12447,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.dialect.model._gen._SqlDataTypeModel",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.model._gen._SqlDataTypeModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -13153,13 +12620,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.dialect.model._gen._SqlNativeFunctionModel",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.model._gen._SqlNativeFunctionModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -13286,13 +12753,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.dialect.model._gen._SqlTemplateModel",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.model._gen._SqlTemplateModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -13318,13 +12785,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.dialect.pagination.AbstractPaginationHandler",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.pagination.AbstractPaginationHandler"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -13358,18 +12825,16 @@
         ]
       }
     ],
-    "name": "io.nop.dao.dialect.pagination.IPaginationHandler",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.pagination.IPaginationHandler"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "INSTANCE"
       }
     ],
@@ -13390,18 +12855,16 @@
         ]
       }
     ],
-    "name": "io.nop.dao.dialect.pagination.LimitOffsetPaginationHandler",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.pagination.LimitOffsetPaginationHandler"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "INSTANCE"
       }
     ],
@@ -13422,28 +12885,26 @@
         ]
       }
     ],
-    "name": "io.nop.dao.dialect.pagination.OffsetFetchPaginationHandler",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.dialect.pagination.OffsetFetchPaginationHandler"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.dao.initialize.DaoDialectInitializer",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.initialize.DaoDialectInitializer"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "LOG"
       }
     ],
@@ -13588,13 +13049,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.dao.jdbc.impl.JdbcTemplateImpl",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.jdbc.impl.JdbcTemplateImpl"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -13631,13 +13092,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.jdbc.txn.JdbcTransactionFactory",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.jdbc.txn.JdbcTransactionFactory"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -13713,18 +13174,16 @@
         ]
       }
     ],
-    "name": "io.nop.dao.metrics.DaoMetricsImpl",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.metrics.DaoMetricsImpl"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "INSTANCE"
       }
     ],
@@ -13744,18 +13203,16 @@
         ]
       }
     ],
-    "name": "io.nop.dao.seq.UuidSequenceGenerator",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.seq.UuidSequenceGenerator"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "INSTANCE"
       }
     ],
@@ -13784,18 +13241,16 @@
         ]
       }
     ],
-    "name": "io.nop.dao.shard.EmptyShardSelector",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.shard.EmptyShardSelector"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "LOG"
       }
     ],
@@ -13960,13 +13415,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.txn.impl.DefaultTransactionManager",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.txn.impl.DefaultTransactionManager"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -14028,13 +13483,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.txn.impl.TransactionTemplateImpl",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.txn.impl.TransactionTemplateImpl"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -14045,13 +13500,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.txn.interceptor.TransactionalMethodInterceptor",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.txn.interceptor.TransactionalMethodInterceptor"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -14088,13 +13543,13 @@
         ]
       }
     ],
-    "name": "io.nop.dao.utils.TransactionalFunctionInvoker",
-    "unsafeAllocated": false
+    "name": "io.nop.dao.utils.TransactionalFunctionInvoker"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -14146,13 +13601,13 @@
         ]
       }
     ],
-    "name": "io.nop.excel.imp.model.ImportFieldModel",
-    "unsafeAllocated": false
+    "name": "io.nop.excel.imp.model.ImportFieldModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -14161,13 +13616,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.excel.imp.model.ImportModel",
-    "unsafeAllocated": false
+    "name": "io.nop.excel.imp.model.ImportModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -14210,13 +13665,13 @@
         ]
       }
     ],
-    "name": "io.nop.excel.imp.model.ImportSheetModel",
-    "unsafeAllocated": false
+    "name": "io.nop.excel.imp.model.ImportSheetModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -14503,13 +13958,13 @@
         ]
       }
     ],
-    "name": "io.nop.excel.imp.model._gen._ImportFieldModel",
-    "unsafeAllocated": false
+    "name": "io.nop.excel.imp.model._gen._ImportFieldModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -14672,13 +14127,13 @@
         ]
       }
     ],
-    "name": "io.nop.excel.imp.model._gen._ImportModel",
-    "unsafeAllocated": false
+    "name": "io.nop.excel.imp.model._gen._ImportModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -14945,23 +14400,23 @@
         ]
       }
     ],
-    "name": "io.nop.excel.imp.model._gen._ImportSheetModel",
-    "unsafeAllocated": false
+    "name": "io.nop.excel.imp.model._gen._ImportSheetModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.excel.initializer.ExcelCoreInitializer",
-    "unsafeAllocated": false
+    "name": "io.nop.excel.initializer.ExcelCoreInitializer"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -15182,13 +14637,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.excel.model.XptCellModel",
-    "unsafeAllocated": false
+    "name": "io.nop.excel.model.XptCellModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -15519,23 +14974,19 @@
         ]
       }
     ],
-    "name": "io.nop.excel.model._gen._XptCellModel",
-    "unsafeAllocated": false
+    "name": "io.nop.excel.model._gen._XptCellModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "c"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "r"
       }
     ],
@@ -15551,43 +15002,43 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.excel.model.constants.XptExpandType",
-    "unsafeAllocated": false
+    "name": "io.nop.excel.model.constants.XptExpandType"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.graphql.core.initialize.GraphQLCoreInitializer",
-    "unsafeAllocated": false
+    "name": "io.nop.graphql.core.initialize.GraphQLCoreInitializer"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.ioc.initialize.IocCoreInitializer",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.initialize.IocCoreInitializer"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.ioc.model.BeanAliasModel",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model.BeanAliasModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -15596,13 +15047,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.ioc.model.BeanCollectBeansValue",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model.BeanCollectBeansValue"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -15623,43 +15074,43 @@
         ]
       }
     ],
-    "name": "io.nop.ioc.model.BeanConditionModel",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model.BeanConditionModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.ioc.model.BeanConstantModel",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model.BeanConstantModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.ioc.model.BeanConstructorArgModel",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model.BeanConstructorArgModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.ioc.model.BeanIfPropertyCondition",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model.BeanIfPropertyCondition"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -15680,13 +15131,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.ioc.model.BeanModel",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model.BeanModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -15701,33 +15152,33 @@
         ]
       }
     ],
-    "name": "io.nop.ioc.model.BeanPointcutModel",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model.BeanPointcutModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.ioc.model.BeanPropValue",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model.BeanPropValue"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.ioc.model.BeanPropertyModel",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model.BeanPropertyModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -15766,13 +15217,13 @@
         ]
       }
     ],
-    "name": "io.nop.ioc.model.BeanValue",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model.BeanValue"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -15781,13 +15232,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.ioc.model.BeansModel",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model.BeansModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -15838,13 +15289,13 @@
         ]
       }
     ],
-    "name": "io.nop.ioc.model._gen._BeanAliasModel",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model._gen._BeanAliasModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -15975,13 +15426,13 @@
         ]
       }
     ],
-    "name": "io.nop.ioc.model._gen._BeanCollectBeansValue",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model._gen._BeanCollectBeansValue"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -16102,13 +15553,13 @@
         ]
       }
     ],
-    "name": "io.nop.ioc.model._gen._BeanConditionModel",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model._gen._BeanConditionModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -16199,13 +15650,13 @@
         ]
       }
     ],
-    "name": "io.nop.ioc.model._gen._BeanConstantModel",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model._gen._BeanConstantModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -16276,13 +15727,13 @@
         ]
       }
     ],
-    "name": "io.nop.ioc.model._gen._BeanConstructorArgModel",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model._gen._BeanConstructorArgModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -16353,13 +15804,13 @@
         ]
       }
     ],
-    "name": "io.nop.ioc.model._gen._BeanIfPropertyCondition",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model._gen._BeanIfPropertyCondition"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -16480,13 +15931,13 @@
         ]
       }
     ],
-    "name": "io.nop.ioc.model._gen._BeanModel",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model._gen._BeanModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -16537,13 +15988,13 @@
         ]
       }
     ],
-    "name": "io.nop.ioc.model._gen._BeanPointcutModel",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model._gen._BeanPointcutModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -16584,13 +16035,13 @@
         ]
       }
     ],
-    "name": "io.nop.ioc.model._gen._BeanPropValue",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model._gen._BeanPropValue"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -16671,13 +16122,13 @@
         ]
       }
     ],
-    "name": "io.nop.ioc.model._gen._BeanPropertyModel",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model._gen._BeanPropertyModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -17146,13 +16597,13 @@
         ]
       }
     ],
-    "name": "io.nop.ioc.model._gen._BeanValue",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model._gen._BeanValue"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -17527,13 +16978,13 @@
         ]
       }
     ],
-    "name": "io.nop.ioc.model._gen._BeansModel",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.model._gen._BeansModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -17548,23 +16999,23 @@
         ]
       }
     ],
-    "name": "io.nop.ioc.support.UtilFactoryBean",
-    "unsafeAllocated": false
+    "name": "io.nop.ioc.support.UtilFactoryBean"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.log.java.JavaLoggerConfiguratorInitializer",
-    "unsafeAllocated": false
+    "name": "io.nop.log.java.JavaLoggerConfiguratorInitializer"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -17595,13 +17046,13 @@
         ]
       }
     ],
-    "name": "io.nop.ooxml.xlsx.imp.XlsxBeanParser",
-    "unsafeAllocated": false
+    "name": "io.nop.ooxml.xlsx.imp.XlsxBeanParser"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -17638,13 +17089,13 @@
         ]
       }
     ],
-    "name": "io.nop.ooxml.xlsx.imp.XlsxObjectLoader",
-    "unsafeAllocated": false
+    "name": "io.nop.ooxml.xlsx.imp.XlsxObjectLoader"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -17685,13 +17136,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.orm.dao.OrmDaoProvider",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.dao.OrmDaoProvider"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -17808,13 +17259,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.ddl.DdlSqlCreator",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.ddl.DdlSqlCreator"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -17833,18 +17284,16 @@
         ]
       }
     ],
-    "name": "io.nop.orm.factory.DefaultOrmColumnBinderEnhancer",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.factory.DefaultOrmColumnBinderEnhancer"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "LOG"
       }
     ],
@@ -17880,13 +17329,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.factory.OrmSessionFactoryBean",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.factory.OrmSessionFactoryBean"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -18115,13 +17564,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.factory.SessionFactoryConfig",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.factory.SessionFactoryConfig"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -18134,18 +17583,16 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.orm.factory.XplOrmInterceptorFactoryBean",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.factory.XplOrmInterceptorFactoryBean"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "LOG"
       }
     ],
@@ -18543,23 +17990,23 @@
         ]
       }
     ],
-    "name": "io.nop.orm.impl.OrmTemplateImpl",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.impl.OrmTemplateImpl"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.orm.initialize.OrmCoreInitializer",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.initialize.OrmCoreInitializer"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -18570,13 +18017,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.interceptor.SingleSessionMethodInterceptor",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.interceptor.SingleSessionMethodInterceptor"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -18645,13 +18092,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.orm.model.IColumnModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model.IColumnModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -18965,13 +18412,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.model.IEntityModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model.IEntityModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -19041,13 +18488,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.model.IEntityPropModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model.IEntityPropModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -19132,13 +18579,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.orm.model.IEntityRelationModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model.IEntityRelationModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -19151,13 +18598,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.orm.model.IOrmDataType",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model.IOrmDataType"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -19170,13 +18617,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.orm.model.IPdmElement",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model.IPdmElement"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -19272,23 +18719,23 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.orm.model.OrmColumnModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model.OrmColumnModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.orm.model.OrmDomainModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model.OrmDomainModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -19526,13 +18973,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.orm.model.OrmEntityModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model.OrmEntityModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -19551,23 +18998,23 @@
         ]
       }
     ],
-    "name": "io.nop.orm.model.OrmIndexColumnModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model.OrmIndexColumnModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.orm.model.OrmIndexModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model.OrmIndexModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -19612,13 +19059,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.model.OrmJoinOnModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model.OrmJoinOnModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -19683,23 +19130,23 @@
         ]
       }
     ],
-    "name": "io.nop.orm.model.OrmModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model.OrmModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.orm.model.OrmRefSetModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model.OrmRefSetModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -19849,13 +19296,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.model.OrmReferenceModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model.OrmReferenceModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -19898,13 +19345,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.model.OrmToManyReferenceModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model.OrmToManyReferenceModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -19927,13 +19374,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.model.OrmToOneReferenceModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model.OrmToOneReferenceModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -19960,13 +19407,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.model.OrmUniqueKeyModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model.OrmUniqueKeyModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -20243,13 +19690,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.model._gen._OrmColumnModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model._gen._OrmColumnModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -20356,13 +19803,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.model._gen._OrmDomainModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model._gen._OrmDomainModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -21071,13 +20518,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.model._gen._OrmEntityModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model._gen._OrmEntityModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -21128,13 +20575,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.model._gen._OrmIndexColumnModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model._gen._OrmIndexColumnModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -21261,13 +20708,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.model._gen._OrmIndexModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model._gen._OrmIndexModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -21338,13 +20785,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.model._gen._OrmJoinOnModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model._gen._OrmJoinOnModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -21549,13 +20996,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.model._gen._OrmModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model._gen._OrmModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -21632,13 +21079,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.model._gen._OrmRefSetModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model._gen._OrmRefSetModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -21829,13 +21276,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.model._gen._OrmReferenceModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model._gen._OrmReferenceModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -21932,13 +21379,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.model._gen._OrmToManyReferenceModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model._gen._OrmToManyReferenceModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -22009,13 +21456,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.model._gen._OrmToOneReferenceModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model._gen._OrmToOneReferenceModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -22106,18 +21553,16 @@
         ]
       }
     ],
-    "name": "io.nop.orm.model._gen._OrmUniqueKeyModel",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.model._gen._OrmUniqueKeyModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "LOG"
       }
     ],
@@ -22389,13 +21834,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.orm.pdm.PdmModelParser",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.pdm.PdmModelParser"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -22419,18 +21864,16 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.orm.resource.DaoResourceNamespaceHandler",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.resource.DaoResourceNamespaceHandler"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "LOG"
       }
     ],
@@ -22548,13 +21991,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.sql_lib.SqlLibManager",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.sql_lib.SqlLibManager"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -22599,13 +22042,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.sql_lib.dict.SqlLibDictLoader",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.sql_lib.dict.SqlLibDictLoader"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -22628,13 +22071,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.support.OrmManyToManyHelper",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.support.OrmManyToManyHelper"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -22775,13 +22218,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.orm.support.OrmMappingTableMeta",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.support.OrmMappingTableMeta"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -22806,13 +22249,13 @@
         ]
       }
     ],
-    "name": "io.nop.orm.txn.OrmTransactionListener",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.txn.OrmTransactionListener"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -22837,17 +22280,16 @@
         ]
       }
     ],
-    "name": "io.nop.orm.utils.SingleSessionFunctionInvoker",
-    "unsafeAllocated": false
+    "name": "io.nop.orm.utils.SingleSessionFunctionInvoker"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "_instance"
       }
@@ -22870,13 +22312,13 @@
         ]
       }
     ],
-    "name": "io.nop.report.core.build.XptModelLoader",
-    "unsafeAllocated": false
+    "name": "io.nop.report.core.build.XptModelLoader"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -22913,18 +22355,16 @@
         ]
       }
     ],
-    "name": "io.nop.report.core.engine.ReportEngine",
-    "unsafeAllocated": false
+    "name": "io.nop.report.core.engine.ReportEngine"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "LOG"
       }
     ],
@@ -22937,13 +22377,13 @@
         ]
       }
     ],
-    "name": "io.nop.report.core.engine.renderer.HtmlReportRendererFactory",
-    "unsafeAllocated": false
+    "name": "io.nop.report.core.engine.renderer.HtmlReportRendererFactory"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -22955,13 +22395,13 @@
         ]
       }
     ],
-    "name": "io.nop.report.core.engine.renderer.XlsxReportRendererFactory",
-    "unsafeAllocated": false
+    "name": "io.nop.report.core.engine.renderer.XlsxReportRendererFactory"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -23045,33 +22485,33 @@
         ]
       }
     ],
-    "name": "io.nop.report.core.functions.ReportFunctions",
-    "unsafeAllocated": false
+    "name": "io.nop.report.core.functions.ReportFunctions"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.report.core.initialize.ReportCoreInitializer",
-    "unsafeAllocated": false
+    "name": "io.nop.report.core.initialize.ReportCoreInitializer"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.report.core.initialize.ReportImpModelCoreInitializer",
-    "unsafeAllocated": false
+    "name": "io.nop.report.core.initialize.ReportImpModelCoreInitializer"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -23651,13 +23091,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.report.core.model.ExpandedCell",
-    "unsafeAllocated": false
+    "name": "io.nop.report.core.model.ExpandedCell"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -23669,13 +23109,13 @@
         ]
       }
     ],
-    "name": "io.nop.rpc.model.proto.ProtoFileParser",
-    "unsafeAllocated": false
+    "name": "io.nop.rpc.model.proto.ProtoFileParser"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -23775,13 +23215,13 @@
         ]
       }
     ],
-    "name": "io.nop.task.impl.TaskFlowManagerImpl",
-    "unsafeAllocated": false
+    "name": "io.nop.task.impl.TaskFlowManagerImpl"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -23790,13 +23230,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.task.model.TaskExecutableModel",
-    "unsafeAllocated": false
+    "name": "io.nop.task.model.TaskExecutableModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -23847,13 +23287,13 @@
         ]
       }
     ],
-    "name": "io.nop.task.model.TaskFlowModel",
-    "unsafeAllocated": false
+    "name": "io.nop.task.model.TaskFlowModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -23862,13 +23302,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.task.model.TaskInputModel",
-    "unsafeAllocated": false
+    "name": "io.nop.task.model.TaskInputModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -23915,23 +23355,23 @@
         ]
       }
     ],
-    "name": "io.nop.task.model.TaskStepModel",
-    "unsafeAllocated": false
+    "name": "io.nop.task.model.TaskStepModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.task.model.TaskStepsModel",
-    "unsafeAllocated": false
+    "name": "io.nop.task.model.TaskStepsModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -23940,13 +23380,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.task.model.XplTaskStepModel",
-    "unsafeAllocated": false
+    "name": "io.nop.task.model.XplTaskStepModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -24261,13 +23701,13 @@
         ]
       }
     ],
-    "name": "io.nop.task.model._gen._TaskExecutableModel",
-    "unsafeAllocated": false
+    "name": "io.nop.task.model._gen._TaskExecutableModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -24388,13 +23828,13 @@
         ]
       }
     ],
-    "name": "io.nop.task.model._gen._TaskFlowModel",
-    "unsafeAllocated": false
+    "name": "io.nop.task.model._gen._TaskFlowModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -24525,13 +23965,13 @@
         ]
       }
     ],
-    "name": "io.nop.task.model._gen._TaskInputModel",
-    "unsafeAllocated": false
+    "name": "io.nop.task.model._gen._TaskInputModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -24732,13 +24172,13 @@
         ]
       }
     ],
-    "name": "io.nop.task.model._gen._TaskStepModel",
-    "unsafeAllocated": false
+    "name": "io.nop.task.model._gen._TaskStepModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -24805,13 +24245,13 @@
         ]
       }
     ],
-    "name": "io.nop.task.model._gen._TaskStepsModel",
-    "unsafeAllocated": false
+    "name": "io.nop.task.model._gen._TaskStepsModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -24862,53 +24302,37 @@
         ]
       }
     ],
-    "name": "io.nop.task.model._gen._XplTaskStepModel",
-    "unsafeAllocated": false
+    "name": "io.nop.task.model._gen._XplTaskStepModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "html"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "node"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "none"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "sql"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "text"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "textMap"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "xjson"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "xml"
       }
     ],
@@ -24948,23 +24372,23 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.xlang.ast.XLangOutputMode",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.ast.XLangOutputMode"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.xlang.debugger.initialize.XLangDebuggerInitializer",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.debugger.initialize.XLangDebuggerInitializer"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -25195,13 +24619,13 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.functions.GlobalFunctions",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.functions.GlobalFunctions"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -25241,58 +24665,56 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.functions.LogFunctions",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.functions.LogFunctions"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.xlang.initialize.RegisterModelCoreInitializer",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.initialize.RegisterModelCoreInitializer"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.xlang.initialize.XLangCoreInitializer",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.initialize.XLangCoreInitializer"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.xlang.initialize.XLangDebuggerInitializer",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.initialize.XLangDebuggerInitializer"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.xlang.initialize.XLangInitializer",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.initialize.XLangInitializer"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "LOG"
       }
     ],
@@ -25314,18 +24736,16 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.utils.DebugHelper",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.utils.DebugHelper"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "LOG"
       }
     ],
@@ -25366,13 +24786,13 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.utils.LogHelper",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.utils.LogHelper"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -25407,27 +24827,23 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.xdsl.AbstractDslModel",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xdsl.AbstractDslModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "LOG"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "g_excelModelLoaderClass"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "g_excelModelLoaderFactory"
       }
@@ -25525,13 +24941,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.xlang.xdsl.DslModelHelper",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xdsl.DslModelHelper"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -25556,13 +24972,13 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.xdsl.IXDslModel",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xdsl.IXDslModel"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -25595,13 +25011,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.xlang.xmeta.IListSchema",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xmeta.IListSchema"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -25610,13 +25026,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.xlang.xmeta.IMapSchema",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xmeta.IMapSchema"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -25705,13 +25121,13 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.xmeta.IObjSchema",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xmeta.IObjSchema"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -25720,13 +25136,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.xlang.xmeta.ISchema",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xmeta.ISchema"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -25805,13 +25221,13 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.xmeta.ISchemaNode",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xmeta.ISchemaNode"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -25874,13 +25290,13 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.xmeta.ISimpleSchema",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xmeta.ISimpleSchema"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -25893,13 +25309,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.xlang.xmeta.IUnionSchema",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xmeta.IUnionSchema"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -25910,13 +25326,13 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.xmeta.impl.ObjMetaToXDef",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xmeta.impl.ObjMetaToXDef"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -26305,13 +25721,13 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.xmeta.impl.SchemaImpl",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xmeta.impl.SchemaImpl"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -26340,13 +25756,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "io.nop.xlang.xmeta.impl.SchemaNodeImpl",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xmeta.impl.SchemaNodeImpl"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -26499,32 +25915,28 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.xmeta.impl._gen._SchemaNodeImpl",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xmeta.impl._gen._SchemaNodeImpl"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "baseLoc"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "packageName"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "typeAliases"
       },
       {
-        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "typeCache"
       }
@@ -26609,13 +26021,13 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.xmeta.xjava.JaninoParser",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xmeta.xjava.JaninoParser"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -26639,13 +26051,13 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.xmeta.xjava.JavaObjMetaParser",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xmeta.xjava.JavaObjMetaParser"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -26656,33 +26068,33 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.xpl.impl.XplTaskLoader",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xpl.impl.XplTaskLoader"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.xlang.xpl.loader.HtmlXplModelLoader",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xpl.loader.HtmlXplModelLoader"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.xlang.xpl.loader.NoneXplModelLoader",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xpl.loader.NoneXplModelLoader"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -26693,13 +26105,13 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.xpl.loader.XplModelLoader",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xpl.loader.XplModelLoader"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -26732,23 +26144,23 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.xpl.xlib.XplTag",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xpl.xlib.XplTag"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.xlang.xpl.xlib.XplTagAttribute",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xpl.xlib.XplTagAttribute"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -26783,13 +26195,13 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.xpl.xlib.XplTagLib",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xpl.xlib.XplTagLib"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -26804,23 +26216,23 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.xpl.xlib.XplTagSlot",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xpl.xlib.XplTagSlot"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.xlang.xpl.xlib.XplTagSlotArg",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xpl.xlib.XplTagSlotArg"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -27149,13 +26561,13 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.xpl.xlib._gen._XplTag",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xpl.xlib._gen._XplTag"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -27316,13 +26728,13 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.xpl.xlib._gen._XplTagAttribute",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xpl.xlib._gen._XplTagAttribute"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -27429,13 +26841,13 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.xpl.xlib._gen._XplTagLib",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xpl.xlib._gen._XplTagLib"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -27668,13 +27080,13 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.xpl.xlib._gen._XplTagSlot",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xpl.xlib._gen._XplTagSlot"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -27795,38 +27207,32 @@
         ]
       }
     ],
-    "name": "io.nop.xlang.xpl.xlib._gen._XplTagSlotArg",
-    "unsafeAllocated": false
+    "name": "io.nop.xlang.xpl.xlib._gen._XplTagSlotArg"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "java.io.Serializable",
-    "unsafeAllocated": false
+    "name": "java.io.Serializable"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "FALSE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "TRUE"
       },
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "TYPE"
       }
     ],
@@ -27924,13 +27330,13 @@
         ]
       }
     ],
-    "name": "java.lang.Boolean",
-    "unsafeAllocated": false
+    "name": "java.lang.Boolean"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -27941,13 +27347,13 @@
         ]
       }
     ],
-    "name": "java.lang.Comparable",
-    "unsafeAllocated": false
+    "name": "java.lang.Comparable"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -27995,13 +27401,13 @@
         ]
       }
     ],
-    "name": "java.lang.Enum",
-    "unsafeAllocated": false
+    "name": "java.lang.Enum"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -28010,13 +27416,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "java.lang.Iterable",
-    "unsafeAllocated": false
+    "name": "java.lang.Iterable"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -28035,18 +27441,16 @@
         "parameterTypes": []
       }
     ],
-    "name": "java.lang.Object",
-    "unsafeAllocated": false
+    "name": "java.lang.Object"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [
       {
-        "allowUnsafeAccess": false,
-        "allowWrite": false,
         "name": "CASE_INSENSITIVE_ORDER"
       }
     ],
@@ -28563,13 +27967,13 @@
         ]
       }
     ],
-    "name": "java.lang.String",
-    "unsafeAllocated": false
+    "name": "java.lang.String"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -28578,13 +27982,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "java.lang.constant.Constable",
-    "unsafeAllocated": false
+    "name": "java.lang.constant.Constable"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -28661,13 +28065,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "java.util.AbstractCollection",
-    "unsafeAllocated": false
+    "name": "java.util.AbstractCollection"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -28758,13 +28162,13 @@
         ]
       }
     ],
-    "name": "java.util.AbstractList",
-    "unsafeAllocated": false
+    "name": "java.util.AbstractList"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -28844,13 +28248,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "java.util.AbstractMap",
-    "unsafeAllocated": false
+    "name": "java.util.AbstractMap"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -28871,13 +28275,13 @@
         ]
       }
     ],
-    "name": "java.util.AbstractSet",
-    "unsafeAllocated": false
+    "name": "java.util.AbstractSet"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -29086,13 +28490,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "java.util.ArrayList",
-    "unsafeAllocated": false
+    "name": "java.util.ArrayList"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -29175,13 +28579,13 @@
         ]
       }
     ],
-    "name": "java.util.Collection",
-    "unsafeAllocated": false
+    "name": "java.util.Collection"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -29334,13 +28738,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "java.util.HashMap",
-    "unsafeAllocated": false
+    "name": "java.util.HashMap"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -29403,13 +28807,13 @@
         ]
       }
     ],
-    "name": "java.util.HashSet",
-    "unsafeAllocated": false
+    "name": "java.util.HashSet"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -29497,13 +28901,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "java.util.LinkedHashMap",
-    "unsafeAllocated": false
+    "name": "java.util.LinkedHashMap"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -29578,13 +28982,13 @@
         ]
       }
     ],
-    "name": "java.util.LinkedHashMap$LinkedValues",
-    "unsafeAllocated": false
+    "name": "java.util.LinkedHashMap$LinkedValues"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -29631,13 +29035,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "java.util.LinkedHashSet",
-    "unsafeAllocated": false
+    "name": "java.util.LinkedHashSet"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -29903,13 +29307,13 @@
         ]
       }
     ],
-    "name": "java.util.List",
-    "unsafeAllocated": false
+    "name": "java.util.List"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -30168,13 +29572,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "java.util.Map",
-    "unsafeAllocated": false
+    "name": "java.util.Map"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -30183,13 +29587,13 @@
         "parameterTypes": []
       }
     ],
-    "name": "java.util.SequencedCollection",
-    "unsafeAllocated": false
+    "name": "java.util.SequencedCollection"
   },
   {
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
     "methods": [
@@ -30393,7 +29797,6 @@
         ]
       }
     ],
-    "name": "java.util.Set",
-    "unsafeAllocated": false
+    "name": "java.util.Set"
   }
 ]
