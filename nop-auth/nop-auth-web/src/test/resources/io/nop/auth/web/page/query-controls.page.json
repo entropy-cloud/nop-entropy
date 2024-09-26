@@ -434,11 +434,17 @@
         "id": "row-string-array",
         "body": [
           {
-            "name": "filter_string-array",
+            "name": "string-array",
             "label": "string-arrayLabel",
             "clearValueOnHidden": false,
-            "type": "input-text",
-            "clearable": true
+            "type": "input-array",
+            "items": {
+              "type": "input-text",
+              "required": true,
+              "validations": {
+                "maxLength": 0
+              }
+            }
           }
         ]
       },
