@@ -824,26 +824,28 @@
                         stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="core/active-status"/>
                 <column code="TAGS_TEXT" displayName="标签" name="tagsText" precision="200" propId="9"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Tag Set"/>
+                <column code="SCRIPT_LANG" displayName="脚本语言" name="scriptLang" precision="50" propId="10"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Language"/>
                 <column code="FUNC_META" displayName="函数元数据" domain="json-4K" name="funcMeta" precision="4000"
-                        propId="10" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        propId="11" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Function Meta" ui:show="X"/>
-                <column code="SOURCE" displayName="源码" mandatory="true" name="source" precision="4000" propId="11"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Source" ui:show="S"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="12"
+                <column code="SOURCE" displayName="源码" mandatory="true" name="source" precision="4000" propId="12"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Source" ui:show="SL"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="13"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="14" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By" ui:show="R"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
+                        propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
                         ui:show="R"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="15" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="16" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By" ui:show="R"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="16" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"
+                        propId="17" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"
                         ui:show="R"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="17"
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="18"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>

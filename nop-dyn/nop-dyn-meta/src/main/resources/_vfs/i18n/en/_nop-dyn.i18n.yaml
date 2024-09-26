@@ -203,6 +203,7 @@ prop:
       status: Status
       status_label: null
       tagsText: Tag Set
+      scriptLang: Language
       funcMeta: Function Meta
       source: Source
       version: Version

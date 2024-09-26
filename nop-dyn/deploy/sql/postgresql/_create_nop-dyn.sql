@@ -263,6 +263,7 @@ CREATE TABLE nop_dyn_function_meta(
   RETURN_GQL_TYPE VARCHAR(100)  ,
   STATUS INT4 NOT NULL ,
   TAGS_TEXT VARCHAR(200)  ,
+  SCRIPT_LANG VARCHAR(50)  ,
   FUNC_META VARCHAR(4000)  ,
   SOURCE VARCHAR(4000) NOT NULL ,
   VERSION INT4 NOT NULL ,
@@ -753,6 +754,8 @@ CREATE TABLE nop_dyn_prop_meta(
       COMMENT ON COLUMN nop_dyn_function_meta.STATUS IS '状态';
                     
       COMMENT ON COLUMN nop_dyn_function_meta.TAGS_TEXT IS '标签';
+                    
+      COMMENT ON COLUMN nop_dyn_function_meta.SCRIPT_LANG IS '脚本语言';
                     
       COMMENT ON COLUMN nop_dyn_function_meta.FUNC_META IS '函数元数据';
                     

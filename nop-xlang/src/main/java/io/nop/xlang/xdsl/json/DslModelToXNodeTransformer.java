@@ -50,8 +50,10 @@ import static io.nop.xlang.XLangErrors.ERR_XDEF_UNKNOWN_STD_DOMAIN;
 import static io.nop.xlang.XLangErrors.ERR_XDSL_NOT_SUPPORTED_SCHEMA_KIND;
 import static io.nop.xlang.XLangErrors.ERR_XDSL_NO_SUB_SCHEMA_DEFINITION;
 import static io.nop.xlang.XLangErrors.ERR_XDSL_PROP_LIST_ITEM_NOT_MAP;
+import static io.nop.xlang.XLangErrors.ERR_XDSL_PROP_NO_SUB_SCHEMA_DEFINITION;
 import static io.nop.xlang.XLangErrors.ERR_XDSL_PROP_VALUE_NOT_LIST;
 import static io.nop.xlang.XLangErrors.ERR_XDSL_PROP_VALUE_NOT_MAP;
+import static io.nop.xlang.XLangErrors.ERR_XDSL_SUB_TYPE_PROP_IS_EMPTY;
 import static io.nop.xlang.XLangErrors.ERR_XDSL_SUB_TYPE_PROP_VALUE_NOT_STRING;
 
 /**
@@ -85,7 +87,24 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
         return node;
     }
 
+    private IObjSchema determineObjSchema(IObjSchema schema, Object map) {
+        if (schema.isUnionSchema()) {
+            IUnionSchema unionSchema = (IUnionSchema) schema;
+            String subType = (String) BeanTool.getProperty(map, unionSchema.getSubTypeProp());
+            if (subType == null)
+                throw new NopException(ERR_XDSL_SUB_TYPE_PROP_IS_EMPTY).param(ARG_SUB_TYPE_PROP, unionSchema.getSubTypeProp());
+            IObjSchema subSchema = unionSchema.getSubSchema(subType);
+            if (subSchema == null)
+                throw new NopException(ERR_XDSL_NO_SUB_SCHEMA_DEFINITION).param(ARG_SUB_TYPE_VALUE, subType)
+                        .param(ARG_SUB_TYPE_PROP, unionSchema.getSubTypeProp());
+            return subSchema;
+        }
+        return schema;
+    }
+
     public XNode transformObj(IObjSchema schema, Object map) {
+        IObjSchema objSchema = determineObjSchema(schema, map);
+
         String tagName = CoreConstants.DUMMY_TAG_NAME;
         XNode node = XNode.make(tagName);
         node.setLocation(getLocation(map));
@@ -97,30 +116,30 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
             if (!propModel.isSerializable())
                 return;
             String key = propModel.getName();
-            if (!shouldIncludeProp(schema, key, map, false))
+            if (!shouldIncludeProp(objSchema, key, map, false))
                 return;
 
             Object value = propModel.getPropertyValue(map);
             if (value == null)
                 return;
 
-            addToNode(schema, node, map, key, value);
+            addToNode(objSchema, node, map, key, value);
         });
 
         Set<String> propNames = beanModel.getExtPropertyNames(map);
         if (propNames != null) {
             for (String key : propNames) {
-                if (!shouldIncludeProp(schema, key, map, true))
+                if (!shouldIncludeProp(objSchema, key, map, true))
                     continue;
 
                 Object value = beanModel.getExtProperty(map, key, DisabledEvalScope.INSTANCE);
                 if (value == null)
                     continue;
-                addToNode(schema, node, map, key, value);
+                addToNode(objSchema, node, map, key, value);
             }
         }
 
-        onTransformObj(schema, map, node);
+        onTransformObj(objSchema, map, node);
 
         return node;
     }
@@ -408,7 +427,7 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
 
         ISchema subSchema = getSubSchema(schema.getOneOf(), typeValue.toString());
         if (subSchema == null)
-            throw new NopException(ERR_XDSL_NO_SUB_SCHEMA_DEFINITION).loc(getLocation(value))
+            throw new NopException(ERR_XDSL_PROP_NO_SUB_SCHEMA_DEFINITION).loc(getLocation(value))
                     .param(ARG_PROP_NAME, propName).param(ARG_SUB_TYPE_PROP, subTypeProp)
                     .param(ARG_SUB_TYPE_VALUE, typeValue);
 

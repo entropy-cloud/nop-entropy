@@ -16,6 +16,7 @@
                 returnType[返回类型] returnGqlType[GraphQL返回类型]
                 status[状态] tagsText[标签]
                 args
+                scriptLang
                 source[源码]
                 remark[备注]
             </layout>
@@ -26,6 +27,7 @@
                             <columns j:list="true">
                                 <input-text name="name" label="名称" required="true"/>
                                 <input-text name="type" label="类型" required="true"/>
+                                <input-text name="mandatory" label="是否必填" />
                             </columns>
                         </input-table>
                     </gen-control>

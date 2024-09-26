@@ -37,16 +37,16 @@ import static io.nop.core.CoreErrors.ERR_RESOURCE_IN_MEMORY_STORE_NOT_ALLOW_SAVE
 public class InMemoryResourceStore implements IResourceStore {
     private final ResourceTreeNode root = new ResourceTreeNode("", new InMemoryDirResource("/"));
 
-    private boolean useTextResourceAsUnknown = false;
+    private boolean supportMakeResource = false;
 
     private boolean supportSave = false;
 
-    public boolean isUseTextResourceAsUnknown() {
-        return useTextResourceAsUnknown;
+    public boolean isSupportMakeResource() {
+        return supportMakeResource;
     }
 
-    public void setUseTextResourceAsUnknown(boolean useTextResourceAsUnknown) {
-        this.useTextResourceAsUnknown = useTextResourceAsUnknown;
+    public void setSupportMakeResource(boolean supportMakeResource) {
+        this.supportMakeResource = supportMakeResource;
     }
 
     public void addResource(IResource resource) {
@@ -111,10 +111,16 @@ public class InMemoryResourceStore implements IResourceStore {
     }
 
     protected IResource getNotExistsResource(String path) {
-        if (useTextResourceAsUnknown) {
-            return new InMemoryTextResource(path, null).withResourceStore(this);
-        }
         return new UnknownResource(path);
+    }
+
+    @Override
+    public IResource makeResource(String path) {
+        if (!supportMakeResource)
+            return getResource(path);
+        IResource resource = new InMemoryTextResource(path, "");
+        addResource(resource);
+        return resource;
     }
 
     @Override

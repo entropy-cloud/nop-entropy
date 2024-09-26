@@ -2317,6 +2317,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.biz.crud.DynamicCrudBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.biz.crud.FilterArgsNormalizer"
   },
   {
@@ -2613,6 +2623,24 @@
       }
     ],
     "name": "io.nop.biz.model._gen._BizReturnModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newCodeGenerator",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.codegen.XCodeGenerator"
   },
   {
     "allDeclaredConstructors": true,
@@ -3111,7 +3139,27 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.core.model.loop.impl.NestedLoopBuilder"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.core.model.object.DynamicObject"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.model.query.OrderBySqlParser"
   },
   {
     "allDeclaredConstructors": true,
@@ -3652,7 +3700,119 @@
         "parameterTypes": []
       }
     ],
+    "name": "io.nop.core.resource.impl.InMemoryTextResource"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "internalObj",
+        "parameterTypes": []
+      }
+    ],
     "name": "io.nop.core.resource.impl.UnknownResource"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "contentCache"
+      },
+      {
+        "allowWrite": true,
+        "name": "dependencyManager"
+      }
+    ],
+    "methods": [
+      {
+        "name": "deleteTargetResource",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "getLoader",
+        "parameterTypes": []
+      },
+      {
+        "name": "isAllowWrite",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "io.nop.core.resource.IResource",
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "isNotChange",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isTextFile",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "isTplFile",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "maybeXml",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "normalizeText",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "readTextHeader",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "renderTemplate",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "io.nop.core.resource.IResource",
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "shouldIgnoreTpl",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "shouldKeepEmptyTargetFile",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      }
+    ],
+    "name": "io.nop.core.resource.tpl.TemplateFileGenerator"
   },
   {
     "allDeclaredConstructors": true,
@@ -5033,6 +5193,117 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.dyn.service.entity.NopDynSqlBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.excel.imp.model.ImportFieldModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.excel.imp.model.ImportModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.excel.imp.model.ImportSheetModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.excel.imp.model.ImportFieldModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.excel.imp.model._gen._ImportFieldModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.excel.imp.model.ImportModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.excel.imp.model._gen._ImportModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.excel.imp.model.ImportSheetModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.excel.imp.model._gen._ImportSheetModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -6421,6 +6692,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.component.JsonOrmComponent"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "parseXml",
@@ -6656,6 +6937,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.orm.model.OrmEntityFilterModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.orm.model.OrmEntityModel"
   },
   {
@@ -6872,6 +7163,33 @@
       }
     ],
     "name": "io.nop.orm.model._gen._OrmDomainModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.orm.model.OrmEntityFilterModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.orm.model._gen._OrmEntityFilterModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -7605,6 +7923,26 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.orm.support.OrmEntityHelper"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.support.OrmManyToManyHelper"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.support.OrmMappingTableMeta"
   },
   {
     "allDeclaredConstructors": true,
@@ -10314,6 +10652,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.xlang.xdsl.DslModelHelper"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.xlang.xdsl.IXDslModel"
   },
   {
@@ -11702,6 +12050,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "java.util.ArrayList$SubList"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "java.util.Collection"
   },
   {
@@ -11713,6 +12071,16 @@
     "fields": [],
     "methods": [],
     "name": "java.util.Collections$EmptyList"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.util.Collections$SingletonList"
   },
   {
     "allDeclaredConstructors": true,

@@ -163,7 +163,7 @@ public class InMemoryCodeCache {
         InMemoryResourceStore store = new InMemoryResourceStore();
         XCodeGenerator gen = new XCodeGenerator("/nop/templates/dyn", getTargetDir());
         gen.autoFormat(formatGenCode).forceOverride(true);
-        store.setUseTextResourceAsUnknown(true);
+        store.setSupportMakeResource(true);
 
         gen.targetResourceLoader(store);
         IEvalScope scope = XLang.newEvalScope();
@@ -204,7 +204,7 @@ public class InMemoryCodeCache {
         XCodeGenerator gen = new XCodeGenerator("/nop/templates/dyn-web", getTargetDir());
         gen.autoFormat(formatGenCode).forceOverride(true);
         InMemoryResourceStore store = new InMemoryResourceStore();
-        store.setUseTextResourceAsUnknown(true);
+        store.setSupportMakeResource(true);
         gen.targetResourceLoader(store);
 
         List<IResource> metaResources = new ArrayList<>();

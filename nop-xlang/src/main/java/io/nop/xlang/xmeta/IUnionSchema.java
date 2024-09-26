@@ -16,4 +16,15 @@ public interface IUnionSchema extends ISchemaNode {
     String getSubTypeProp();
 
     List<ISchema> getOneOf();
+
+    default ISchema getSubSchema(String type) {
+        List<ISchema> oneOf = getOneOf();
+        if (oneOf == null)
+            return null;
+        for (ISchema schema : oneOf) {
+            if (type.equals(schema.getTypeValue()))
+                return schema;
+        }
+        return null;
+    }
 }

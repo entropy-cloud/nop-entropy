@@ -202,7 +202,7 @@ public class TemplateFileGenerator {
     }
 
     public IResource getTargetResource(String path) {
-        return targetResourceLoader.getResource(StringHelper.appendPath(targetRootPath, path));
+        return targetResourceLoader.makeResource(StringHelper.appendPath(targetRootPath, path));
     }
 
     void processDirOrFile(TemplateGenPath genPath, IResource resource, INestedLoop loop, IEvalScope scope) {

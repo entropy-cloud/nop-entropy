@@ -402,7 +402,7 @@ public interface XLangErrors {
     ErrorCode ERR_XPL_EVAL_NOT_ALLOW_CHILD = define("nop.err.xlang.xpl.eval-not-allow-child",
             "eval标签不允许包含子节点，只能是文本内容");
 
-    ErrorCode ERR_XPL_EVAL_INVALID_LANG = define("nop.err.xlang.xpl.eval-invalid-lang","eval节点的lang属性不合法：{lang}", ARG_LANG);
+    ErrorCode ERR_XPL_EVAL_INVALID_LANG = define("nop.err.xlang.xpl.eval-invalid-lang", "eval节点的lang属性不合法：{lang}", ARG_LANG);
 
     ErrorCode ERR_XPL_NOT_ALLOW_OUTPUT = define("nop.err.xlang.xpl.not-allow-output",
             "xpl的当前输出模式为[{outputMode}]，不允许输出文本内容", ARG_OUTPUT_MODE);
@@ -656,8 +656,14 @@ public interface XLangErrors {
     ErrorCode ERR_XDSL_SUB_TYPE_PROP_VALUE_NOT_STRING = define("nop.err.xlang.xdsl.sub-type-prop-value-not-string",
             "属性[{propName}]的类型为union，它必须具有文本类型的、非空的子类型属性[{subTypeProp}]", ARG_PROP_NAME, ARG_SUB_TYPE_PROP);
 
-    ErrorCode ERR_XDSL_NO_SUB_SCHEMA_DEFINITION = define("nop.err.xlang.xdsl.no-sub-schema-definition",
+    ErrorCode ERR_XDSL_SUB_TYPE_PROP_IS_EMPTY = define("nop.err.xlang.xdsl.sub-type-prop-is-empty",
+            "子类型属性[{subTypeProp}]的值不能为空", ARG_SUB_TYPE_PROP);
+
+    ErrorCode ERR_XDSL_PROP_NO_SUB_SCHEMA_DEFINITION = define("nop.err.xlang.xdsl.prop-no-sub-schema-definition",
             "属性[{propName}]的类型为union，但是没有找到针对子类型[{subTypeValue}]的子类型定义", ARG_PROP_NAME, ARG_SUB_TYPE_VALUE);
+
+    ErrorCode ERR_XDSL_NO_SUB_SCHEMA_DEFINITION = define("nop.err.xlang.xdsl.no-sub-schema-definition",
+            "没有找到针对子类型[{subTypeValue}]的子对象定义", ARG_SUB_TYPE_VALUE);
 
     ErrorCode ERR_XDSL_NOT_SUPPORTED_SCHEMA_KIND = define("nop.err.xlang.xdsl.not-supported-schema-kind",
             "属性[{propName}]不支持schema类型[{schemaKind}]", ARG_PROP_NAME, ARG_SCHEMA_KIND);

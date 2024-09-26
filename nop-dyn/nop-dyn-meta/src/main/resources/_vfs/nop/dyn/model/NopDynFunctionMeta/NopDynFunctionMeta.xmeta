@@ -4,6 +4,6 @@
     <props>
         <prop name="funcMetaComponent" internal="true" />
 
-        <prop name="args" mapToProp="funcMetaComponent.args" displayName="参数定义" graphql:type="[Map]"/>
+        <prop name="args" mapToProp="funcMetaComponent.args" displayName="参数定义" graphql:type="[Map]" insertable="true" updatable="true"/>
     </props>
 </meta>

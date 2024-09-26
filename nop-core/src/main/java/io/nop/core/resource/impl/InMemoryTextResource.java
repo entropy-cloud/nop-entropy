@@ -12,7 +12,6 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.progress.IStepProgressListener;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
-import io.nop.core.resource.store.InMemoryResourceStore;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -35,26 +34,11 @@ public class InMemoryTextResource extends AbstractResource {
 
     private boolean exists = true;
 
-    private InMemoryResourceStore resourceStore;
-
     public InMemoryTextResource(String path, String text) {
         super(path);
         checkSupportStream();
         this.text = text == null ? "" : text;
         this.exists = text != null;
-    }
-
-    public InMemoryResourceStore getResourceStore() {
-        return resourceStore;
-    }
-
-    public InMemoryTextResource withResourceStore(InMemoryResourceStore resourceStore) {
-        this.setResourceStore(resourceStore);
-        return this;
-    }
-
-    public void setResourceStore(InMemoryResourceStore resourceStore) {
-        this.resourceStore = resourceStore;
     }
 
     private void checkExists() {
@@ -107,10 +91,6 @@ public class InMemoryTextResource extends AbstractResource {
         length = -1;
         text = "";
         lastModified = -1L;
-
-        if (resourceStore != null) {
-            resourceStore.removeResource(this);
-        }
         return true;
     }
 
@@ -148,15 +128,12 @@ public class InMemoryTextResource extends AbstractResource {
     }
 
     @Override
-    public void writeText(String text, String encoding) {
+    public synchronized void writeText(String text, String encoding) {
         checkNotReadonly();
         this.text = text == null ? "" : text;
         this.length = -1;
         this.lastModified = CoreMetrics.currentTimeMillis();
         this.exists = true;
-
-        if (resourceStore != null)
-            resourceStore.addResource(this);
     }
 
     @Override

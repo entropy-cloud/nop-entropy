@@ -26,6 +26,10 @@ import java.util.function.Function;
 public interface IResourceLoader {
     IResource getResource(String path);
 
+    default IResource makeResource(String path){
+        return getResource(path);
+    }
+
     Collection<? extends IResource> getChildren(String path);
 
     default IResourceLoader relativeLoader(String basePath) {

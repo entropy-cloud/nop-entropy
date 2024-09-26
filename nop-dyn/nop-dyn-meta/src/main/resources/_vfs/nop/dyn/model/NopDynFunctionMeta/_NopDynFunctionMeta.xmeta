@@ -57,36 +57,40 @@
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="funcMeta" displayName="函数元数据" propId="10" i18n-en:displayName="Function Meta" queryable="true"
+        <prop name="scriptLang" displayName="脚本语言" propId="10" i18n-en:displayName="Language" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="funcMeta" displayName="函数元数据" propId="11" i18n-en:displayName="Function Meta" queryable="true"
               sortable="true" insertable="true" updatable="true" internal="true"
               graphql:jsonComponentProp="funcMetaComponent" ui:show="X">
             <schema stdDomain="json" domain="json-4K" type="java.lang.String" precision="4000"/>
         </prop>
-        <prop name="source" displayName="源码" propId="11" i18n-en:displayName="Source" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true" ui:show="S">
+        <prop name="source" displayName="源码" propId="12" i18n-en:displayName="Source" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true" ui:show="SL">
             <schema type="java.lang.String" precision="4000"/>
         </prop>
-        <prop name="version" displayName="数据版本" propId="12" i18n-en:displayName="Version" mandatory="true"
+        <prop name="version" displayName="数据版本" propId="13" i18n-en:displayName="Version" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="version" type="java.lang.Integer"/>
         </prop>
-        <prop name="createdBy" displayName="创建人" propId="13" i18n-en:displayName="Created By" mandatory="true"
+        <prop name="createdBy" displayName="创建人" propId="14" i18n-en:displayName="Created By" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" ui:show="R">
             <schema domain="createdBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="createTime" displayName="创建时间" propId="14" i18n-en:displayName="Create Time" mandatory="true"
+        <prop name="createTime" displayName="创建时间" propId="15" i18n-en:displayName="Create Time" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" ui:show="R">
             <schema domain="createTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="updatedBy" displayName="修改人" propId="15" i18n-en:displayName="Updated By" mandatory="true"
+        <prop name="updatedBy" displayName="修改人" propId="16" i18n-en:displayName="Updated By" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" ui:show="R">
             <schema domain="updatedBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="updateTime" displayName="修改时间" propId="16" i18n-en:displayName="Update Time" mandatory="true"
+        <prop name="updateTime" displayName="修改时间" propId="17" i18n-en:displayName="Update Time" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" ui:show="R">
             <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="remark" displayName="备注" propId="17" i18n-en:displayName="Remark" queryable="true" sortable="true"
+        <prop name="remark" displayName="备注" propId="18" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="true" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>

@@ -159,6 +159,7 @@ public class DynCodeGen implements IResourceTenantInitializer, IDynamicBizModelP
     }
 
     public synchronized void generateForModule(NopDynModule module) {
+        batchLoadModule(module);
         getCodeCache().generateForModule(genWebFiles, formatGenCode, module);
     }
 
@@ -177,8 +178,7 @@ public class DynCodeGen implements IResourceTenantInitializer, IDynamicBizModelP
             example.setStatus(NopDynDaoConstants.MODULE_STATUS_PUBLISHED);
             List<NopDynModule> list = dao.findAllByExample(example);
 
-            dao.batchLoadProps(list,
-                    Arrays.asList("entityMetas.propMetas.domain", "entityMetas.functionMetas", "entityMetas.relationMetasForEntity1"));
+            batchLoadModules(list);
 
             for (NopDynModule module : list) {
                 cache.generateForModule(genWebFiles, formatGenCode, module);
