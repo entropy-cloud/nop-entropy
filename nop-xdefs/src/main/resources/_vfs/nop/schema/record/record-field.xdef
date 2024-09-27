@@ -9,26 +9,28 @@
        xmlns:xdef="/nop/schema/xdef.xdef"
        name="!prop-name" xdef:ref="record-simple-field.xdef"
        xdef:name="RecordFieldMeta" xdef:bean-package="io.nop.record.model"
+       repeatKind="enum:io.nop.record.model.FieldRepeatKind"
 >
     <!--
     返回字段的循环次数
     -->
-    <repeatExpr xdef:value="xpl"/>
+    <repeatExpr xdef:value="xpl-fn:(record)=>int"/>
 
     <!--
     返回字段循环的终止条件
     -->
-    <repeatUntil xdef:value="xpl"/>
+    <repeatUntil xdef:value="xpl-fn:(record)=>boolean"/>
 
 
     <!--
     动态确定字段类型
+    @onField 如果指定了onField，则输出时根据从record[onField]上获取到case类型，然后再映射到type类型，从根对象的types集合中再获取具体定义
     -->
-    <switch xdef:name="RecordFieldSwitch">
+    <switch xdef:name="RecordFieldSwitch" onField="string">
         <!--
         类型判断表达式
         -->
-        <on xdef:value="xpl"/>
+        <on xdef:value="xpl-fn:(record)=>string"/>
 
         <!--
         @when 与on表达式的返回值比较，如果相等，则实际类型为type指定的值
@@ -42,6 +44,11 @@
         <field name="!prop-name" xdef:ref="RecordFieldMeta"/>
     </fields>
 
-    <pattern xdef:value="string" />
+    <afterWrite xdef:value="xpl-fn:(record)=>any"/>
 
+    <!-- 在所有子字段都读取到之后执行 -->
+    <afterRead xdef:value="xpl-fn:(record)=>any"/>
+
+    <!-- 文本输出时使用template更加直观  -->
+    <template xdef:value="string"/>
 </field>

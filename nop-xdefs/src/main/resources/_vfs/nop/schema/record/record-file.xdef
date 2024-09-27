@@ -30,42 +30,54 @@
     <xdef:define xdef:name="RecordObjectMeta" type="generic-type">
         <param name="!string" xdef:ref="RecordParamMeta" xdef:unique-attr="name"/>
 
-        <field name="!prop-name" xdef:ref="record-field.xdef" xdef:unique-attr="name"/>
+        <fields xdef:body-type="list" xdef:key-attr="name">
+            <field name="!prop-name" xdef:ref="record-field.xdef"/>
+        </fields>
 
-        <computed-field name="!prop-name" type="!generic-type" xdef:name="RecordComputedFieldMeta"
-                        xdef:unique-attr="name">
-            <source xdef:value="xpl"/>
-        </computed-field>
+        <ifExpr xdef:value="xpl-fn:(record)=>boolean"/>
+
+        <afterWrite xdef:value="xpl-fn:(record)=>any"/>
+
+        <!-- 在所有子字段都读取到之后执行 -->
+        <afterRead xdef:value="xpl-fn:(record)=>any"/>
+
+        <template xdef:value="string"/>
+
     </xdef:define>
 
     <header xdef:ref="RecordObjectMeta"/>
 
-    <!--
-    定长文件的header和footer采用文本模板模式更加直观
-    -->
-    <headerTemplate xdef:value="string"/>
-
-    <trailerTemplate xdef:value="string"/>
-
-    <body xdef:name="RecordFileBodyMeta" repeat="enum:io.nop.record.model.FieldRepeatKind" xdef:ref="RecordObjectMeta">
+    <body xdef:name="RecordFileBodyMeta" repeatKind="enum:io.nop.record.model.FieldRepeatKind"
+          xdef:ref="RecordObjectMeta">
 
         <!--
         返回body行的循环次数
         -->
-        <repeatExpr xdef:value="xpl"/>
+        <repeatExpr xdef:value="xpl-fn:(record)=>int"/>
 
         <!--
         返回body行循环的终止条件
         -->
-        <repeatUntil xdef:value="xpl"/>
+        <repeatUntil xdef:value="xpl-fn:(record)=>boolean"/>
     </body>
 
-    <subGroup keyFields="csv-set" xdef:name="RecordSubGroupMeta">
-        <fields xdef:body-type="list" xdef:key-attr="name">
-            <field name="!prop-name" aggFunc="var-name" xdef:name="RecordAggregateFieldMeta"
-                            xdef:ref="record-simple-field.xdef" />
-        </fields>
-    </subGroup>
+    <!--
+    分页生成，每页包含指定条目数，并且有可能会具有页头和页尾
+    @pageSize 分页条目数
+    -->
+    <pagination pageSize="!int" xdef:name="RecordPaginationMeta">
+        <pageHeader xdef:ref="RecordObjectMeta"/>
+        <pageFooter xdef:ref="RecordObjectMeta"/>
+
+        <aggregates xdef:body-type="list" xdef:key-attr="name">
+            <aggregate name="!prop-name" aggFunc="var-name" xdef:name="RecordAggregateFieldMeta"
+                       xdef:ref="record-simple-field.xdef"/>
+        </aggregates>
+    </pagination>
+
+    <aggregates xdef:body-type="list" xdef:key-attr="name">
+        <aggregate name="!prop-name" xdef:ref="RecordAggregateFieldMeta"/>
+    </aggregates>
 
     <trailer xdef:ref="RecordObjectMeta"/>
 

@@ -89,7 +89,7 @@ public class ResourceRecordConsumer<R, C> extends AbstractBatchResourceHandler
         if (metaProvider != null) {
             // 写入header
             header = metaProvider.getMeta(context);
-            output.setHeaderMeta(header);
+            output.beginWrite(header);
         }
 
         // 用于汇总计算trailer
@@ -105,7 +105,7 @@ public class ResourceRecordConsumer<R, C> extends AbstractBatchResourceHandler
         try {
             if (aggregator != null && output != null) {
                 Map<String, Object> trailer = aggregator.complete(null, combinedValue);
-                output.setTrailerMeta(trailer);
+                output.endWrite(trailer);
                 combinedValue = null;
                 output.flush();
             }

@@ -12,8 +12,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 输出文件由 文件头 + 文件体 + 文件尾构成。 文件体内包含多行数据
+ */
 public interface IRecordOutput<T> extends Closeable {
-    default void setHeaderMeta(Map<String, Object> attributes) {
+
+    default void beginWrite(Map<String, Object> headerMeta) {
 
     }
 
@@ -21,7 +25,7 @@ public interface IRecordOutput<T> extends Closeable {
 
     }
 
-    default void setTrailerMeta(Map<String, Object> trailerMeta) {
+    default void endWrite(Map<String, Object> trailerMeta) {
 
     }
 

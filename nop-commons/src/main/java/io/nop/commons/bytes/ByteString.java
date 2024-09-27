@@ -88,8 +88,12 @@ public final class ByteString implements Serializable, Comparable<ByteString>, I
         return bytes.length == 0;
     }
 
-    public int size() {
+    public int length() {
         return bytes.length;
+    }
+
+    public byte at(int index) {
+        return bytes[index];
     }
 
     @Override
@@ -381,7 +385,7 @@ public final class ByteString implements Serializable, Comparable<ByteString>, I
     }
 
     public boolean startsWith(ByteString prefix) {
-        return rangeEquals(0, prefix, 0, prefix.size());
+        return rangeEquals(0, prefix, 0, prefix.length());
     }
 
     public boolean startsWithBytes(byte[] prefix) {
@@ -389,11 +393,39 @@ public final class ByteString implements Serializable, Comparable<ByteString>, I
     }
 
     public boolean endsWith(ByteString suffix) {
-        return rangeEquals(size() - suffix.size(), suffix, 0, suffix.size());
+        return rangeEquals(length() - suffix.length(), suffix, 0, suffix.length());
     }
 
     public boolean endsWithBytes(byte[] suffix) {
-        return rangeEqualsBytes(size() - suffix.length, suffix, 0, suffix.length);
+        return rangeEqualsBytes(length() - suffix.length, suffix, 0, suffix.length);
+    }
+
+    public ByteString append(ByteString str) {
+        byte[] ret = new byte[length() + str.length()];
+        System.arraycopy(bytes, 0, ret, 0, length());
+        System.arraycopy(str.bytes, 0, ret, length(), str.length());
+        return new ByteString(ret);
+    }
+
+    public ByteString leftPad(int length, byte c) {
+        if (length() >= length)
+            return this;
+        byte[] ret = new byte[length];
+        System.arraycopy(bytes, 0, ret, length - length(), length());
+        for (int i = 0, n = length - length(); i < n; i++) {
+            ret[i] = c;
+        }
+        return new ByteString(ret);
+    }
+
+    public ByteString rightPad(int length, byte c) {
+        if (length() >= length)
+            return this;
+        byte[] ret = new byte[length];
+        System.arraycopy(bytes, 0, ret, 0, length());
+        for (int i = length(), n = length; i < n; i++)
+            ret[i] = c;
+        return new ByteString(ret);
     }
 
     public int indexOf(ByteString other) {
@@ -419,7 +451,7 @@ public final class ByteString implements Serializable, Comparable<ByteString>, I
     }
 
     public int lastIndexOf(ByteString other) {
-        return lastIndexOfBytes(other.bytes, size());
+        return lastIndexOfBytes(other.bytes, length());
     }
 
     public int lastIndexOf(ByteString other, int fromIndex) {
@@ -427,7 +459,7 @@ public final class ByteString implements Serializable, Comparable<ByteString>, I
     }
 
     public int lastIndexOfBytes(byte[] other) {
-        return lastIndexOfBytes(other, size());
+        return lastIndexOfBytes(other, length());
     }
 
     public int lastIndexOfBytes(byte[] other, int fromIndex) {

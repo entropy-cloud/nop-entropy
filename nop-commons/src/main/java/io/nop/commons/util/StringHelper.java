@@ -4433,11 +4433,42 @@ public class StringHelper extends ApiStringHelper {
         return String.format(format, args);
     }
 
+    @Deterministic
     public static String mergeTagSet(String tagSet, String tagSet2) {
         if (tagSet == null)
             return tagSet2;
         if (tagSet2 == null)
             return tagSet;
         return TagsHelper.toString(TagsHelper.merge(ConvertHelper.toCsvSet(tagSet), ConvertHelper.toCsvSet(tagSet2)));
+    }
+
+    /**
+     * 配置文本模板时每行的起始空格和结束空格很容易无法正确解析。规范化的形式以|为开始标记，以|为结束标记
+     */
+    @Deterministic
+    public static String normalizeTemplate(String template) {
+        if (StringHelper.isEmpty(template))
+            return template;
+
+        List<String> lines = stripedSplit(template, '\n', true);
+        StringBuilder sb = new StringBuilder();
+        int index = 0;
+        for (String line : lines) {
+            if (index > 0) {
+                sb.append('\n');
+                index++;
+            }
+
+            if (line == null) {
+                continue;
+            }
+            if (line.startsWith("|")) {
+                line = line.substring(1);
+            }
+            if (line.endsWith("|"))
+                line = line.substring(0, line.length() - 1);
+            sb.append(line);
+        }
+        return sb.toString();
     }
 }

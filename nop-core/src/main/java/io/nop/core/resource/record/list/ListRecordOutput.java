@@ -73,7 +73,7 @@ public class ListRecordOutput<T> implements IRecordOutput<T> {
     }
 
     @Override
-    public void setTrailerMeta(Map<String, Object> trailerMeta) {
+    public void endWrite(Map<String, Object> trailerMeta) {
         this.trailerMeta = trailerMeta;
     }
 
@@ -82,7 +82,7 @@ public class ListRecordOutput<T> implements IRecordOutput<T> {
     }
 
     @Override
-    public void setHeaderMeta(Map<String, Object> headerMeta) {
+    public void beginWrite(Map<String, Object> headerMeta) {
         this.headerMeta = headerMeta;
     }
 }

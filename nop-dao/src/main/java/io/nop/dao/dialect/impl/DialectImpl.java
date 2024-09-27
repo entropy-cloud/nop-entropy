@@ -643,7 +643,7 @@ public class DialectImpl implements IDialect {
         } else if (value instanceof ByteString) {
             ByteString bs = (ByteString) value;
             int maxSize = getMaxBytesSize();
-            if (maxSize > 0 && bs.size() > maxSize) {
+            if (maxSize > 0 && bs.length() > maxSize) {
                 jdbcSetBlob(rs, index, bs);
                 return;
             }
@@ -694,7 +694,7 @@ public class DialectImpl implements IDialect {
         } else if (value instanceof ByteString) {
             ByteString bs = (ByteString) value;
             int maxSize = getMaxBytesSize();
-            if (maxSize > 0 && bs.size() > maxSize) {
+            if (maxSize > 0 && bs.length() > maxSize) {
                 jdbcSetBlob(ps, index, bs);
                 return;
             }

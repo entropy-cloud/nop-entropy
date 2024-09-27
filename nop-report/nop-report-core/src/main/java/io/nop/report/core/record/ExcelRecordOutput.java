@@ -96,13 +96,13 @@ public class ExcelRecordOutput<T> implements IRecordOutput<T> {
     }
 
     @Override
-    public void setHeaderMeta(Map<String, Object> attributes) {
+    public void beginWrite(Map<String, Object> attributes) {
         if (attributes != null)
             this.scope.setLocalValues(attributes);
     }
 
     @Override
-    public void setTrailerMeta(Map<String, Object> trailerMeta) {
+    public void endWrite(Map<String, Object> trailerMeta) {
         this.genTrailer = true;
     }
 }

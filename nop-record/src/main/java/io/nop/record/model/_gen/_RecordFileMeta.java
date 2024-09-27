@@ -18,6 +18,13 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: aggregates
+     * 
+     */
+    private KeyedList<io.nop.record.model.RecordAggregateFieldMeta> _aggregates = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: binary
      * 是否是二进制文件。如果否，则表示是文本文件
      */
@@ -81,10 +88,10 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
     
     /**
      *  
-     * xml name: headerTemplate
-     * 定长文件的header和footer采用文本模板模式更加直观
+     * xml name: pagination
+     * 分页生成，每页包含指定条目数，并且有可能会具有页头和页尾
      */
-    private java.lang.String _headerTemplate ;
+    private io.nop.record.model.RecordPaginationMeta _pagination ;
     
     /**
      *  
@@ -95,13 +102,6 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
     
     /**
      *  
-     * xml name: subGroup
-     * 
-     */
-    private io.nop.record.model.RecordSubGroupMeta _subGroup ;
-    
-    /**
-     *  
      * xml name: trailer
      * 每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
      */
@@ -109,17 +109,55 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
     
     /**
      *  
-     * xml name: trailerTemplate
-     * 
-     */
-    private java.lang.String _trailerTemplate ;
-    
-    /**
-     *  
      * xml name: types
      * 
      */
     private KeyedList<io.nop.record.model.RecordTypeMeta> _types = KeyedList.emptyList();
+    
+    /**
+     * 
+     * xml name: aggregates
+     *  
+     */
+    
+    public java.util.List<io.nop.record.model.RecordAggregateFieldMeta> getAggregates(){
+      return _aggregates;
+    }
+
+    
+    public void setAggregates(java.util.List<io.nop.record.model.RecordAggregateFieldMeta> value){
+        checkAllowChange();
+        
+        this._aggregates = KeyedList.fromList(value, io.nop.record.model.RecordAggregateFieldMeta::getName);
+           
+    }
+
+    
+    public io.nop.record.model.RecordAggregateFieldMeta getAggregate(String name){
+        return this._aggregates.getByKey(name);
+    }
+
+    public boolean hasAggregate(String name){
+        return this._aggregates.containsKey(name);
+    }
+
+    public void addAggregate(io.nop.record.model.RecordAggregateFieldMeta item) {
+        checkAllowChange();
+        java.util.List<io.nop.record.model.RecordAggregateFieldMeta> list = this.getAggregates();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.record.model.RecordAggregateFieldMeta::getName);
+            setAggregates(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_aggregates(){
+        return this._aggregates.keySet();
+    }
+
+    public boolean hasAggregates(){
+        return !this._aggregates.isEmpty();
+    }
     
     /**
      * 
@@ -320,19 +358,19 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
     
     /**
      * 
-     * xml name: headerTemplate
-     *  定长文件的header和footer采用文本模板模式更加直观
+     * xml name: pagination
+     *  分页生成，每页包含指定条目数，并且有可能会具有页头和页尾
      */
     
-    public java.lang.String getHeaderTemplate(){
-      return _headerTemplate;
+    public io.nop.record.model.RecordPaginationMeta getPagination(){
+      return _pagination;
     }
 
     
-    public void setHeaderTemplate(java.lang.String value){
+    public void setPagination(io.nop.record.model.RecordPaginationMeta value){
         checkAllowChange();
         
-        this._headerTemplate = value;
+        this._pagination = value;
            
     }
 
@@ -384,25 +422,6 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
     
     /**
      * 
-     * xml name: subGroup
-     *  
-     */
-    
-    public io.nop.record.model.RecordSubGroupMeta getSubGroup(){
-      return _subGroup;
-    }
-
-    
-    public void setSubGroup(io.nop.record.model.RecordSubGroupMeta value){
-        checkAllowChange();
-        
-        this._subGroup = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: trailer
      *  每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
      */
@@ -416,25 +435,6 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._trailer = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: trailerTemplate
-     *  
-     */
-    
-    public java.lang.String getTrailerTemplate(){
-      return _trailerTemplate;
-    }
-
-    
-    public void setTrailerTemplate(java.lang.String value){
-        checkAllowChange();
-        
-        this._trailerTemplate = value;
            
     }
 
@@ -492,15 +492,17 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._aggregates = io.nop.api.core.util.FreezeHelper.deepFreeze(this._aggregates);
+            
            this._body = io.nop.api.core.util.FreezeHelper.deepFreeze(this._body);
             
            this._enums = io.nop.api.core.util.FreezeHelper.deepFreeze(this._enums);
             
            this._header = io.nop.api.core.util.FreezeHelper.deepFreeze(this._header);
             
-           this._params = io.nop.api.core.util.FreezeHelper.deepFreeze(this._params);
+           this._pagination = io.nop.api.core.util.FreezeHelper.deepFreeze(this._pagination);
             
-           this._subGroup = io.nop.api.core.util.FreezeHelper.deepFreeze(this._subGroup);
+           this._params = io.nop.api.core.util.FreezeHelper.deepFreeze(this._params);
             
            this._trailer = io.nop.api.core.util.FreezeHelper.deepFreeze(this._trailer);
             
@@ -513,6 +515,7 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("aggregates",this.getAggregates());
         out.putNotNull("binary",this.isBinary());
         out.putNotNull("bitEndian",this.getBitEndian());
         out.putNotNull("body",this.getBody());
@@ -522,11 +525,9 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
         out.putNotNull("endian",this.getEndian());
         out.putNotNull("enums",this.getEnums());
         out.putNotNull("header",this.getHeader());
-        out.putNotNull("headerTemplate",this.getHeaderTemplate());
+        out.putNotNull("pagination",this.getPagination());
         out.putNotNull("params",this.getParams());
-        out.putNotNull("subGroup",this.getSubGroup());
         out.putNotNull("trailer",this.getTrailer());
-        out.putNotNull("trailerTemplate",this.getTrailerTemplate());
         out.putNotNull("types",this.getTypes());
     }
 
@@ -539,6 +540,7 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
     protected void copyTo(RecordFileMeta instance){
         super.copyTo(instance);
         
+        instance.setAggregates(this.getAggregates());
         instance.setBinary(this.isBinary());
         instance.setBitEndian(this.getBitEndian());
         instance.setBody(this.getBody());
@@ -548,11 +550,9 @@ public abstract class _RecordFileMeta extends io.nop.core.resource.component.Abs
         instance.setEndian(this.getEndian());
         instance.setEnums(this.getEnums());
         instance.setHeader(this.getHeader());
-        instance.setHeaderTemplate(this.getHeaderTemplate());
+        instance.setPagination(this.getPagination());
         instance.setParams(this.getParams());
-        instance.setSubGroup(this.getSubGroup());
         instance.setTrailer(this.getTrailer());
-        instance.setTrailerTemplate(this.getTrailerTemplate());
         instance.setTypes(this.getTypes());
     }
 
