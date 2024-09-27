@@ -71,7 +71,9 @@
 
         <aggregates xdef:body-type="list" xdef:key-attr="name">
             <aggregate name="!prop-name" aggFunc="var-name" xdef:name="RecordAggregateFieldMeta"
-                       xdef:ref="record-simple-field.xdef"/>
+                       prop="string">
+                <valueExpr xdef:value="xpl-fn:(record)=>any"/>
+            </aggregate>
         </aggregates>
     </pagination>
 

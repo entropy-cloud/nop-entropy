@@ -9,8 +9,12 @@ package io.nop.record.model;
 
 import io.nop.record.model._gen._RecordFileMeta;
 
-public class RecordFileMeta extends _RecordFileMeta{
-    public RecordFileMeta(){
+public class RecordFileMeta extends _RecordFileMeta {
+    public RecordFileMeta() {
 
+    }
+
+    public boolean useAggregate() {
+        return hasAggregates() || getPagination() != null && getPagination().hasAggregates();
     }
 }

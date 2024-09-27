@@ -2,9 +2,13 @@ package io.nop.record.resource;
 
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.IVariableScope;
 import io.nop.api.core.util.Symbol;
+import io.nop.commons.aggregator.CompositeAggregatorProvider;
+import io.nop.commons.aggregator.IAggregatorProvider;
 import io.nop.commons.text.SimpleTextTemplate;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.eval.IBeanVariableScope;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.dataset.record.IRecordOutput;
@@ -16,6 +20,7 @@ import io.nop.record.model.IRecordFieldsMeta;
 import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordFileMeta;
 import io.nop.record.model.RecordObjectMeta;
+import io.nop.record.model.RecordPaginationMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,15 +37,21 @@ public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput
     protected final FieldCodecRegistry registry;
     protected final IFieldCodecContext context;
 
+    private final RecordAggregateState aggregateState;
+
     public AbstractModelBasedRecordOutput(RecordFileMeta fileMeta,
-                                          IFieldCodecContext context, FieldCodecRegistry registry) {
+                                          IFieldCodecContext context, FieldCodecRegistry registry,
+                                          IAggregatorProvider aggregatorProvider) {
         this.fileMeta = fileMeta;
         this.context = context;
         this.registry = registry;
+        this.aggregateState = new RecordAggregateState(fileMeta, aggregatorProvider, context);
+
+        this.context.getEvalScope().setLocalValue(RecordConstants.VAR_AGG_STATE, aggregateState);
     }
 
     public AbstractModelBasedRecordOutput(RecordFileMeta fileMeta) {
-        this(fileMeta, new DefaultFieldCodecContext(), FieldCodecRegistry.DEFAULT);
+        this(fileMeta, new DefaultFieldCodecContext(), FieldCodecRegistry.DEFAULT, CompositeAggregatorProvider.defaultProvider());
     }
 
     @Override
@@ -51,19 +62,34 @@ public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput
     @Override
     public void beginWrite(Map<String, Object> attributes) {
         if (fileMeta.getHeader() != null) {
+            IBeanVariableScope scope = name -> getScopeValue(attributes, name);
             try {
-                writeObject(fileMeta.getHeader(), attributes, RecordConstants.HEADER_NAME);
+                writeObject(fileMeta.getHeader(), scope, RecordConstants.HEADER_NAME);
             } catch (Exception e) {
                 throw NopException.adapt(e);
             }
         }
     }
 
+    private Object getScopeValue(Map<String, Object> vars, String name) {
+        if (name.equals(RecordConstants.VAR_WRITE_COUNT))
+            return writeCount;
+        if (name.equals(RecordConstants.VAR_INDEX_IN_PAGE))
+            return aggregateState.getIndexInPage();
+        if (vars != null) {
+            Object value = vars.get(name);
+            if (value != null)
+                return value;
+        }
+        return context.getEvalScope().getValue(name);
+    }
+
     @Override
     public void endWrite(Map<String, Object> trailerMeta) {
         if (fileMeta.getTrailer() != null) {
+            IBeanVariableScope scope = name -> getScopeValue(trailerMeta, name);
             try {
-                writeObject(fileMeta.getTrailer(), trailerMeta, RecordConstants.TRAILER_NAME);
+                writeObject(fileMeta.getTrailer(), scope, RecordConstants.TRAILER_NAME);
             } catch (Exception e) {
                 throw NopException.adapt(e);
             }
@@ -74,9 +100,34 @@ public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput
     public void write(T record) {
         writeCount++;
         try {
+            beforeWriteRecord(record);
             writeObject(fileMeta.getBody(), record, RecordConstants.BODY_NAME);
+            afterWriteRecord(record);
         } catch (Exception e) {
             throw NopException.adapt(e);
+        }
+    }
+
+    protected void beforeWriteRecord(T record) throws IOException {
+        if (fileMeta.getPagination() != null) {
+            RecordPaginationMeta pagination = fileMeta.getPagination();
+            if (pagination.getPageHeader() != null) {
+                IBeanVariableScope scope = name -> getScopeValue(null, name);
+                writeObject(pagination.getPageHeader(), scope, RecordConstants.PAGE_FOOTER_NAME);
+            }
+        }
+    }
+
+    protected void afterWriteRecord(T record) throws IOException {
+        if (fileMeta.getPagination() != null) {
+            if (aggregateState.isPageEnd()) {
+                RecordPaginationMeta pagination = fileMeta.getPagination();
+                if (pagination.getPageFooter() != null) {
+                    IBeanVariableScope scope = name -> getScopeValue(aggregateState.getPageResults(), name);
+                    writeObject(pagination.getPageFooter(), scope, RecordConstants.PAGE_FOOTER_NAME);
+                }
+                aggregateState.resetPage();
+            }
         }
     }
 
@@ -176,6 +227,9 @@ public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput
             return null;
 
         String propName = field.getPropOrFieldName();
+        if (record instanceof IVariableScope)
+            return ((IVariableScope) record).getValueByPropPath(propName);
+
         return BeanTool.getComplexProperty(record, propName);
     }
 }

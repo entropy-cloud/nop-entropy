@@ -59,7 +59,7 @@
     <content xdef:value="encoded-bytes"/>
 
     <!-- 解析时对已经解析到的value进行转换  -->
-    <valueExpr xdef:value="xpl-fn:(record,value)=>any"/>
+    <transformInExpr xdef:value="xpl-fn:(record,value)=>any"/>
 
     <!-- 输出时不从实体上获取，根据表达式计算得到输出值 -->
     <exportExpr xdef:value="xpl-fn:(record)=>any"/>

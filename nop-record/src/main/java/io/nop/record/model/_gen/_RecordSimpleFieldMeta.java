@@ -256,6 +256,13 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      *  
+     * xml name: transformInExpr
+     * 解析时对已经解析到的value进行转换
+     */
+    private io.nop.core.lang.eval.IEvalFunction _transformInExpr ;
+    
+    /**
+     *  
      * xml name: trim
      * 解析得到值之后是否自动执行trim操作，去除padding字符。如果没有指定padding，则去除空格
      */
@@ -267,13 +274,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
      * 引用已有的字段定义
      */
     private java.lang.String _type ;
-    
-    /**
-     *  
-     * xml name: valueExpr
-     * 解析时对已经解析到的value进行转换
-     */
-    private io.nop.core.lang.eval.IEvalFunction _valueExpr ;
     
     /**
      *  
@@ -930,6 +930,25 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      * 
+     * xml name: transformInExpr
+     *  解析时对已经解析到的value进行转换
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getTransformInExpr(){
+      return _transformInExpr;
+    }
+
+    
+    public void setTransformInExpr(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._transformInExpr = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: trim
      *  解析得到值之后是否自动执行trim操作，去除padding字符。如果没有指定padding，则去除空格
      */
@@ -962,25 +981,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         checkAllowChange();
         
         this._type = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: valueExpr
-     *  解析时对已经解析到的value进行转换
-     */
-    
-    public io.nop.core.lang.eval.IEvalFunction getValueExpr(){
-      return _valueExpr;
-    }
-
-    
-    public void setValueExpr(io.nop.core.lang.eval.IEvalFunction value){
-        checkAllowChange();
-        
-        this._valueExpr = value;
            
     }
 
@@ -1053,9 +1053,9 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         out.putNotNull("stdDomain",this.getStdDomain());
         out.putNotNull("terminator",this.getTerminator());
         out.putNotNull("tillEnd",this.isTillEnd());
+        out.putNotNull("transformInExpr",this.getTransformInExpr());
         out.putNotNull("trim",this.isTrim());
         out.putNotNull("type",this.getType());
-        out.putNotNull("valueExpr",this.getValueExpr());
         out.putNotNull("virtual",this.isVirtual());
     }
 
@@ -1102,9 +1102,9 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         instance.setStdDomain(this.getStdDomain());
         instance.setTerminator(this.getTerminator());
         instance.setTillEnd(this.isTillEnd());
+        instance.setTransformInExpr(this.getTransformInExpr());
         instance.setTrim(this.isTrim());
         instance.setType(this.getType());
-        instance.setValueExpr(this.getValueExpr());
         instance.setVirtual(this.isVirtual());
     }
 
