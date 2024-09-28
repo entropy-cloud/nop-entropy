@@ -9,8 +9,16 @@ package io.nop.record.model;
 
 import io.nop.record.model._gen._RecordFieldSwitch;
 
-public class RecordFieldSwitch extends _RecordFieldSwitch{
-    public RecordFieldSwitch(){
+public class RecordFieldSwitch extends _RecordFieldSwitch {
+    public RecordFieldSwitch() {
 
+    }
+
+    public String getTypeByCaseValue(String caseValue) {
+        RecordFieldSwitchCase caseMeta = getCase(caseValue);
+        if (caseMeta != null) {
+            return caseMeta.getType();
+        }
+        return getDefault();
     }
 }

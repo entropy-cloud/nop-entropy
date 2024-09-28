@@ -7,20 +7,25 @@
  */
 package io.nop.record.model;
 
-import io.nop.commons.util.StringHelper;
+import io.nop.commons.text.SimpleTextTemplate;
 import io.nop.record.model._gen._RecordObjectMeta;
 
 public class RecordObjectMeta extends _RecordObjectMeta implements IRecordFieldsMeta {
-    private String normalizedTemplate;
+    private SimpleTextTemplate normalizedTemplate;
 
     public RecordObjectMeta() {
 
     }
 
-    public String getNormalizedTemplate() {
+    public SimpleTextTemplate getNormalizedTemplate() {
         if (normalizedTemplate == null && getTemplate() != null) {
-            this.normalizedTemplate = StringHelper.normalizeTemplate(getTemplate());
+            this.normalizedTemplate = SimpleTextTemplate.normalize(getTemplate());
         }
         return this.normalizedTemplate;
+    }
+
+    @Override
+    public RecordFieldMeta requireField(String fieldName) {
+        return null;
     }
 }

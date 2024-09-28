@@ -25,6 +25,10 @@ public interface RecordErrors {
 
     String ARG_MAX_LENGTH = "maxLength";
 
+    String ARG_CASE_VALUE = "caseValue";
+
+    String ARG_TYPE_NAME = "typeName";
+
     ErrorCode ERR_RECORD_NO_ENOUGH_DATA =
             define("nop.err.record.no-enough-data", "缺少数据，无法读取");
 
@@ -41,4 +45,16 @@ public interface RecordErrors {
 
     ErrorCode ERR_RECORD_DECODE_LENGTH_IS_TOO_LONG = define("nop.err.record.decode-length-is-too-long",
             ARG_LENGTH, ARG_MAX_LENGTH);
+
+    ErrorCode ERR_RECORD_UNKNOWN_FIELD = define("nop.err.record.unknown-field",
+            "未定义的字段：{fieldName}", ARG_FIELD_NAME);
+
+    ErrorCode ERR_RECORD_NO_SWITCH_ON_FIELD = define("nop.err.record.no-switch-on-field",
+            "条件类型无法确定类型值:{fieldName}", ARG_FIELD_NAME);
+
+    ErrorCode ERR_RECORD_NO_MATCH_FOR_CASE_VALUE = define("nop.err.record.no-match-for-case-value",
+            "字段[{fieldName}]的条件类型没有找到匹配类型:{caseValue}", ARG_FIELD_NAME, ARG_CASE_VALUE);
+
+    ErrorCode ERR_RECORD_CASE_VALUE_MAP_TO_UNKNOWN_TYPE = define("nop.err.record.case-value-map-to-unknown-type",
+            "字段[{fieldName}]的条件类型映射到未定义的类型:{caseValue}=>{typeName}", ARG_FIELD_NAME, ARG_CASE_VALUE, ARG_TYPE_NAME);
 }

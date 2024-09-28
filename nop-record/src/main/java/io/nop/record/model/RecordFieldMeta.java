@@ -12,13 +12,17 @@ import io.nop.commons.util.StringHelper;
 import io.nop.record.codec.IFieldBinaryCodec;
 import io.nop.record.codec.IFieldTextCodec;
 import io.nop.record.model._gen._RecordFieldMeta;
-import io.nop.xlang.expr.simple.SimpleExprParser;
+
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 public class RecordFieldMeta extends _RecordFieldMeta implements IRecordFieldsMeta {
     private IFieldTextCodec resolvedTextCodec;
     private IFieldBinaryCodec resolvedBinaryCodec;
 
     private SimpleTextTemplate normalizedTemplate;
+
+    private Charset charsetObj;
 
     public RecordFieldMeta() {
 
@@ -29,6 +33,18 @@ public class RecordFieldMeta extends _RecordFieldMeta implements IRecordFieldsMe
             this.normalizedTemplate = SimpleTextTemplate.of(StringHelper.normalizeTemplate(getTemplate()));
         }
         return this.normalizedTemplate;
+    }
+
+    public Charset getCharsetObj() {
+        if (charsetObj == null) {
+            String charset = getCharset();
+            if (charset == null) {
+                charsetObj = StandardCharsets.UTF_8;
+            } else {
+                charsetObj = Charset.forName(charset);
+            }
+        }
+        return charsetObj;
     }
 
     public String getPropOrFieldName() {

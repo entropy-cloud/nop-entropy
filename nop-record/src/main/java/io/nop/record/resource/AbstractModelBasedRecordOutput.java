@@ -18,15 +18,24 @@ import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.codec.impl.DefaultFieldCodecContext;
 import io.nop.record.model.IRecordFieldsMeta;
 import io.nop.record.model.RecordFieldMeta;
+import io.nop.record.model.RecordFieldSwitch;
 import io.nop.record.model.RecordFileMeta;
 import io.nop.record.model.RecordObjectMeta;
 import io.nop.record.model.RecordPaginationMeta;
+import io.nop.record.model.RecordTypeMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Map;
+
+import static io.nop.record.RecordErrors.ARG_CASE_VALUE;
+import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
+import static io.nop.record.RecordErrors.ARG_TYPE_NAME;
+import static io.nop.record.RecordErrors.ERR_RECORD_NO_MATCH_FOR_CASE_VALUE;
+import static io.nop.record.RecordErrors.ERR_RECORD_NO_SWITCH_ON_FIELD;
 
 public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput<T> {
     static final Logger LOG = LoggerFactory.getLogger(AbstractModelBasedRecordOutput.class);
@@ -135,7 +144,7 @@ public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput
         if (!runIfExpr(recordMeta.getIfExpr(), record, name))
             return;
 
-        writeTemplateOrFields(recordMeta, record);
+        writeTemplateOrFields(recordMeta, null, record);
 
         if (recordMeta.getAfterWrite() != null)
             recordMeta.getAfterWrite().call1(null, record, context.getEvalScope());
@@ -158,10 +167,10 @@ public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput
         if (record instanceof Collection) {
             Collection<?> c = (Collection<?>) record;
             for (Object o : c) {
-                writeVirtualField(field, o);
+                writeSwitch(field, o);
             }
         } else {
-            writeVirtualField(field, record);
+            writeSwitch(field, record);
         }
     }
 
@@ -177,6 +186,46 @@ public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput
         return true;
     }
 
+    protected void writeSwitch(RecordFieldMeta field, Object record) throws IOException {
+        if (field.getSwitch() != null) {
+            RecordFieldSwitch switchMeta = field.getSwitch();
+            String onField = switchMeta.getOnField();
+            String onValue = null;
+            if (onField != null) {
+                onValue = ConvertHelper.toString(getPropByName(record, onField));
+            } else if (switchMeta.getOn() != null) {
+                onValue = ConvertHelper.toString(switchMeta.getOn().call1(null, record, context.getEvalScope()));
+            }
+
+            if (onValue == null)
+                throw new NopException(ERR_RECORD_NO_SWITCH_ON_FIELD)
+                        .source(field)
+                        .param(ARG_FIELD_NAME, field.getName());
+
+            String caseType = switchMeta.getTypeByCaseValue(onValue);
+            if (caseType == null)
+                throw new NopException(ERR_RECORD_NO_MATCH_FOR_CASE_VALUE)
+                        .source(field)
+                        .param(ARG_FIELD_NAME, field.getName())
+                        .param(ARG_CASE_VALUE, onValue);
+
+            RecordTypeMeta typeMeta = fileMeta.getType(caseType);
+            if (typeMeta == null)
+                throw new NopException(ERR_RECORD_NO_MATCH_FOR_CASE_VALUE)
+                        .source(field)
+                        .param(ARG_FIELD_NAME, field.getName())
+                        .param(ARG_CASE_VALUE, onValue)
+                        .param(ARG_TYPE_NAME, caseType);
+
+            Object value = getProp(field, record);
+            writeTemplateOrFields(typeMeta, field.getCharsetObj(), value);
+
+            return;
+        }
+
+        writeVirtualField(field, record);
+    }
+
     protected void writeVirtualField(RecordFieldMeta field, Object record) throws IOException {
         if (field.isVirtual()) {
             if (field.getFields() != null) {
@@ -186,7 +235,7 @@ public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput
             }
         } else if (field.getFields() != null) {
             Object value = getProp(field, record);
-            writeTemplateOrFields(field, value);
+            writeTemplateOrFields(field, field.getCharsetObj(), value);
         } else {
             writeField0(field, record);
         }
@@ -194,7 +243,7 @@ public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput
             field.getAfterWrite().call1(null, record, context.getEvalScope());
     }
 
-    protected void writeTemplateOrFields(IRecordFieldsMeta fields, Object record) throws IOException {
+    protected void writeTemplateOrFields(IRecordFieldsMeta fields, Charset charset, Object record) throws IOException {
         SimpleTextTemplate template = fields.getNormalizedTemplate();
         if (template != null) {
             for (Object part : template.getParts()) {
@@ -203,7 +252,7 @@ public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput
                     RecordFieldMeta field = fields.requireField(name);
                     writeField(field, record);
                 } else {
-                    writeString(part.toString());
+                    writeString(part.toString(), charset);
                 }
             }
         } else {
@@ -215,7 +264,7 @@ public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput
 
     abstract protected void writeOffset(int offset) throws IOException;
 
-    abstract protected void writeString(String str) throws IOException;
+    abstract protected void writeString(String str, Charset charset) throws IOException;
 
     abstract protected void writeField0(RecordFieldMeta field, Object record) throws IOException;
 
@@ -227,6 +276,10 @@ public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput
             return null;
 
         String propName = field.getPropOrFieldName();
+        return getPropByName(record, propName);
+    }
+
+    protected Object getPropByName(Object record, String propName) {
         if (record instanceof IVariableScope)
             return ((IVariableScope) record).getValueByPropPath(propName);
 

@@ -11,32 +11,31 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.aggregator.CompositeAggregatorProvider;
 import io.nop.commons.aggregator.IAggregatorProvider;
 import io.nop.commons.bytes.ByteString;
-import io.nop.commons.util.StringHelper;
 import io.nop.record.codec.FieldCodecRegistry;
+import io.nop.record.codec.IFieldBinaryCodec;
 import io.nop.record.codec.IFieldCodecContext;
-import io.nop.record.codec.IFieldTextCodec;
 import io.nop.record.codec.impl.DefaultFieldCodecContext;
 import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordFileMeta;
-import io.nop.record.output.IRecordTextOutput;
+import io.nop.record.output.IRecordBinaryOutput;
 import io.nop.record.util.RecordMetaHelper;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
 
-import static io.nop.record.util.RecordMetaHelper.resolveTextCodec;
+import static io.nop.record.util.RecordMetaHelper.resolveBinaryCodec;
 
-public class ModelBasedTextRecordOutput<T> extends AbstractModelBasedRecordOutput<T> {
-    private final IRecordTextOutput out;
+public class ModelBasedBinaryRecordOutput<T> extends AbstractModelBasedRecordOutput<T> {
+    private final IRecordBinaryOutput out;
 
-    public ModelBasedTextRecordOutput(IRecordTextOutput out, RecordFileMeta fileMeta,
-                                      IFieldCodecContext context, FieldCodecRegistry registry,
-                                      IAggregatorProvider aggregatorProvider) {
+    public ModelBasedBinaryRecordOutput(IRecordBinaryOutput out, RecordFileMeta fileMeta,
+                                        IFieldCodecContext context, FieldCodecRegistry registry,
+                                        IAggregatorProvider aggregatorProvider) {
         super(fileMeta, context, registry, aggregatorProvider);
         this.out = out;
     }
 
-    public ModelBasedTextRecordOutput(IRecordTextOutput out, RecordFileMeta fileMeta) {
+    public ModelBasedBinaryRecordOutput(IRecordBinaryOutput out, RecordFileMeta fileMeta) {
         this(out, fileMeta, new DefaultFieldCodecContext(), FieldCodecRegistry.DEFAULT, CompositeAggregatorProvider.defaultProvider());
     }
 
@@ -61,45 +60,55 @@ public class ModelBasedTextRecordOutput<T> extends AbstractModelBasedRecordOutpu
     @Override
     protected void writeOffset(int offset) throws IOException {
         for (int i = 0; i < offset; i++) {
-            out.append(' ');
+            out.writeS1((byte) 0);
         }
     }
 
     @Override
     protected void writeString(String str, Charset charset) throws IOException {
-        out.append(str);
+        out.writeBytes(str.getBytes(charset));
     }
 
     @Override
     protected void writeField0(RecordFieldMeta field, Object record) throws IOException {
         Object value = getFieldValue(field, record);
-        IFieldTextCodec encoder = resolveTextCodec(field, registry);
+        IFieldBinaryCodec encoder = resolveBinaryCodec(field, registry);
         if (encoder != null) {
             context.enterField(field.getName());
             try {
-                encoder.encode(out, value, field.getLength(), context);
+                encoder.encode(out, value, field.getLength(), field.getCharsetObj(), context);
             } finally {
                 context.leaveField(field.getName());
             }
         } else {
             if (value != null)
-                out.append(value.toString());
+                out.writeByteString(toBytes(value, field.getCharsetObj()));
         }
     }
 
     private Object getFieldValue(RecordFieldMeta field, Object record) {
         ByteString bs = field.getContent();
         if (bs != null) {
-            String str = bs.toString(field.getCharset());
-            return RecordMetaHelper.padText(str, field);
+            return RecordMetaHelper.padBinary(bs, field);
         } else {
             Object value = getProp(field, record);
             if (field.getPadding() != null) {
-                String str = StringHelper.toString(value, "");
-                return RecordMetaHelper.padText(str, field);
+                bs = toBytes(value, field.getCharsetObj());
+                return RecordMetaHelper.padBinary(bs, field);
             }
             return value;
         }
+    }
+
+    ByteString toBytes(Object value, Charset charset) {
+        if (value == null)
+            return ByteString.EMPTY;
+        if (value instanceof ByteString)
+            return (ByteString) value;
+        if (value instanceof byte[])
+            return ByteString.of((byte[]) value);
+        String str = value.toString();
+        return ByteString.of(str.getBytes(charset));
     }
 
 }

@@ -10,9 +10,10 @@ package io.nop.record.output;
 import io.nop.commons.bytes.ByteString;
 
 import java.io.Closeable;
+import java.io.Flushable;
 import java.nio.ByteBuffer;
 
-public interface IRecordBinaryOutput extends Closeable {
+public interface IRecordBinaryOutput extends Closeable, Flushable {
     void writeBytes(byte[] bytes);
 
     void writeBytesPart(byte[] str, int start, int end);
