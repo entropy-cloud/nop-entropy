@@ -35,14 +35,7 @@ public abstract class _RecordFieldSwitch extends io.nop.core.resource.component.
      * xml name: on
      * 类型判断表达式
      */
-    private io.nop.core.lang.eval.IEvalFunction _on ;
-    
-    /**
-     *  
-     * xml name: onField
-     * 如果指定了onField，则输出时根据从record[onField]上获取到case类型，然后再映射到type类型，从根对象的types集合中再获取具体定义
-     */
-    private java.lang.String _onField ;
+    private io.nop.core.lang.eval.IEvalAction _on ;
     
     /**
      * 
@@ -114,34 +107,15 @@ public abstract class _RecordFieldSwitch extends io.nop.core.resource.component.
      *  类型判断表达式
      */
     
-    public io.nop.core.lang.eval.IEvalFunction getOn(){
+    public io.nop.core.lang.eval.IEvalAction getOn(){
       return _on;
     }
 
     
-    public void setOn(io.nop.core.lang.eval.IEvalFunction value){
+    public void setOn(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
         this._on = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: onField
-     *  如果指定了onField，则输出时根据从record[onField]上获取到case类型，然后再映射到type类型，从根对象的types集合中再获取具体定义
-     */
-    
-    public java.lang.String getOnField(){
-      return _onField;
-    }
-
-    
-    public void setOnField(java.lang.String value){
-        checkAllowChange();
-        
-        this._onField = value;
            
     }
 
@@ -166,7 +140,6 @@ public abstract class _RecordFieldSwitch extends io.nop.core.resource.component.
         out.putNotNull("cases",this.getCases());
         out.putNotNull("default",this.getDefault());
         out.putNotNull("on",this.getOn());
-        out.putNotNull("onField",this.getOnField());
     }
 
     public RecordFieldSwitch cloneInstance(){
@@ -181,7 +154,6 @@ public abstract class _RecordFieldSwitch extends io.nop.core.resource.component.
         instance.setCases(this.getCases());
         instance.setDefault(this.getDefault());
         instance.setOn(this.getOn());
-        instance.setOnField(this.getOnField());
     }
 
     protected RecordFieldSwitch newInstance(){

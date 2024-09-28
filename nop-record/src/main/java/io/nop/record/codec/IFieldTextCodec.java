@@ -7,11 +7,6 @@
  */
 package io.nop.record.codec;
 
-import io.nop.record.input.IRecordTextInput;
-import io.nop.record.output.IRecordTextOutput;
+public interface IFieldTextCodec extends IFieldTextEncoder, IFieldTextDecoder {
 
-public interface IFieldTextCodec {
-    Object decode(IRecordTextInput input, int length, IFieldCodecContext context);
-
-    void encode(IRecordTextOutput output, Object value, int length, IFieldCodecContext context);
 }

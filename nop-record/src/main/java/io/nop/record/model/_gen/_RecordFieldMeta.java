@@ -18,20 +18,6 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     
     /**
      *  
-     * xml name: afterRead
-     * 在所有子字段都读取到之后执行
-     */
-    private io.nop.core.lang.eval.IEvalFunction _afterRead ;
-    
-    /**
-     *  
-     * xml name: afterWrite
-     * 
-     */
-    private io.nop.core.lang.eval.IEvalFunction _afterWrite ;
-    
-    /**
-     *  
      * xml name: fields
      * 
      */
@@ -42,21 +28,14 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
      * xml name: repeatExpr
      * 返回字段的循环次数
      */
-    private io.nop.core.lang.eval.IEvalFunction _repeatExpr ;
-    
-    /**
-     *  
-     * xml name: repeatKind
-     * 
-     */
-    private io.nop.record.model.FieldRepeatKind _repeatKind ;
+    private io.nop.core.lang.eval.IEvalAction _repeatExpr ;
     
     /**
      *  
      * xml name: repeatUntil
      * 返回字段循环的终止条件
      */
-    private io.nop.core.lang.eval.IEvalFunction _repeatUntil ;
+    private io.nop.core.lang.eval.IEvalAction _repeatUntil ;
     
     /**
      *  
@@ -64,51 +43,6 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
      * 动态确定字段类型
      */
     private io.nop.record.model.RecordFieldSwitch _switch ;
-    
-    /**
-     *  
-     * xml name: template
-     * 文本输出时使用template更加直观
-     */
-    private java.lang.String _template ;
-    
-    /**
-     * 
-     * xml name: afterRead
-     *  在所有子字段都读取到之后执行
-     */
-    
-    public io.nop.core.lang.eval.IEvalFunction getAfterRead(){
-      return _afterRead;
-    }
-
-    
-    public void setAfterRead(io.nop.core.lang.eval.IEvalFunction value){
-        checkAllowChange();
-        
-        this._afterRead = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: afterWrite
-     *  
-     */
-    
-    public io.nop.core.lang.eval.IEvalFunction getAfterWrite(){
-      return _afterWrite;
-    }
-
-    
-    public void setAfterWrite(io.nop.core.lang.eval.IEvalFunction value){
-        checkAllowChange();
-        
-        this._afterWrite = value;
-           
-    }
-
     
     /**
      * 
@@ -161,34 +95,15 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
      *  返回字段的循环次数
      */
     
-    public io.nop.core.lang.eval.IEvalFunction getRepeatExpr(){
+    public io.nop.core.lang.eval.IEvalAction getRepeatExpr(){
       return _repeatExpr;
     }
 
     
-    public void setRepeatExpr(io.nop.core.lang.eval.IEvalFunction value){
+    public void setRepeatExpr(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
         this._repeatExpr = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: repeatKind
-     *  
-     */
-    
-    public io.nop.record.model.FieldRepeatKind getRepeatKind(){
-      return _repeatKind;
-    }
-
-    
-    public void setRepeatKind(io.nop.record.model.FieldRepeatKind value){
-        checkAllowChange();
-        
-        this._repeatKind = value;
            
     }
 
@@ -199,12 +114,12 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
      *  返回字段循环的终止条件
      */
     
-    public io.nop.core.lang.eval.IEvalFunction getRepeatUntil(){
+    public io.nop.core.lang.eval.IEvalAction getRepeatUntil(){
       return _repeatUntil;
     }
 
     
-    public void setRepeatUntil(io.nop.core.lang.eval.IEvalFunction value){
+    public void setRepeatUntil(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
         this._repeatUntil = value;
@@ -231,25 +146,6 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     }
 
     
-    /**
-     * 
-     * xml name: template
-     *  文本输出时使用template更加直观
-     */
-    
-    public java.lang.String getTemplate(){
-      return _template;
-    }
-
-    
-    public void setTemplate(java.lang.String value){
-        checkAllowChange();
-        
-        this._template = value;
-           
-    }
-
-    
 
     @Override
     public void freeze(boolean cascade){
@@ -269,14 +165,10 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("afterRead",this.getAfterRead());
-        out.putNotNull("afterWrite",this.getAfterWrite());
         out.putNotNull("fields",this.getFields());
         out.putNotNull("repeatExpr",this.getRepeatExpr());
-        out.putNotNull("repeatKind",this.getRepeatKind());
         out.putNotNull("repeatUntil",this.getRepeatUntil());
         out.putNotNull("switch",this.getSwitch());
-        out.putNotNull("template",this.getTemplate());
     }
 
     public RecordFieldMeta cloneInstance(){
@@ -288,14 +180,10 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     protected void copyTo(RecordFieldMeta instance){
         super.copyTo(instance);
         
-        instance.setAfterRead(this.getAfterRead());
-        instance.setAfterWrite(this.getAfterWrite());
         instance.setFields(this.getFields());
         instance.setRepeatExpr(this.getRepeatExpr());
-        instance.setRepeatKind(this.getRepeatKind());
         instance.setRepeatUntil(this.getRepeatUntil());
         instance.setSwitch(this.getSwitch());
-        instance.setTemplate(this.getTemplate());
     }
 
     protected RecordFieldMeta newInstance(){

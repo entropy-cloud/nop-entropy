@@ -7,6 +7,7 @@
  */
 package io.nop.record.resource;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.aggregator.CompositeAggregatorProvider;
 import io.nop.commons.aggregator.IAggregatorProvider;
 import io.nop.commons.bytes.ByteString;
@@ -37,6 +38,19 @@ public class ModelBasedBinaryRecordOutput<T> extends AbstractModelBasedRecordOut
     }
 
     @Override
+    protected void writeObjectWithCodec(IRecordBinaryOutput out, RecordFieldMeta field, Object record) throws IOException {
+        IFieldBinaryCodec encoder = resolveBinaryCodec(field, registry);
+        encoder.encode(out, record, field.getLength(), field.getCharsetObj(), context,
+                (output, value, length, charset, ctx, bodyEncoder) -> {
+                    try {
+                        writeSwitch(output, field, value);
+                    } catch (Exception e) {
+                        throw NopException.adapt(e);
+                    }
+                });
+    }
+
+    @Override
     protected void writeOffset(IRecordBinaryOutput out, int offset) throws IOException {
         for (int i = 0; i < offset; i++) {
             out.writeS1((byte) 0);
@@ -55,7 +69,7 @@ public class ModelBasedBinaryRecordOutput<T> extends AbstractModelBasedRecordOut
         if (encoder != null) {
             context.enterField(field.getName());
             try {
-                encoder.encode(out, value, field.getLength(), field.getCharsetObj(), context);
+                encoder.encode(out, value, field.getLength(), field.getCharsetObj(), context, null);
             } finally {
                 context.leaveField(field.getName());
             }

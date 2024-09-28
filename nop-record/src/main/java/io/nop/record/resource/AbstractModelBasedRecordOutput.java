@@ -190,14 +190,22 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IRecordOutpu
             writeOffset(out, field.getOffset());
         }
 
-        if (record instanceof Collection) {
-            Collection<?> c = (Collection<?>) record;
-            for (Object o : c) {
-                writeSwitch(out, field, o);
-            }
+        if (field.getCodec() != null && isUseBodyEncoder(field)) {
+            writeObjectWithCodec(out, field, record);
         } else {
-            writeSwitch(out, field, record);
+            if (record instanceof Collection) {
+                Collection<?> c = (Collection<?>) record;
+                for (Object o : c) {
+                    writeSwitch(out, field, o);
+                }
+            } else {
+                writeSwitch(out, field, record);
+            }
         }
+    }
+
+    protected boolean isUseBodyEncoder(RecordFieldMeta field) {
+        return field.getSwitch() != null || field.hasFields();
     }
 
     boolean runIfExpr(IEvalFunction expr, Object record, String name) {
@@ -288,6 +296,8 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IRecordOutpu
             }
         }
     }
+
+    abstract protected void writeObjectWithCodec(Output out, RecordFieldMeta field, Object record) throws IOException;
 
     abstract protected void writeOffset(Output out, int offset) throws IOException;
 

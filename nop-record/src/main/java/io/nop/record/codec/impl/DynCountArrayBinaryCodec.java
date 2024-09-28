@@ -12,15 +12,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-public class CountArrayBinaryCodec implements IFieldBinaryCodec {
+public class DynCountArrayBinaryCodec implements IFieldBinaryCodec {
     private final IFieldBinaryCodec countCodec;
-    private final IFieldBinaryCodec itemCodec;
 
     private final int itemLength;
 
-    public CountArrayBinaryCodec(IFieldBinaryCodec countCodec, IFieldBinaryCodec itemCodec, int itemLength) {
+    public DynCountArrayBinaryCodec(IFieldBinaryCodec countCodec, int itemLength) {
         this.countCodec = countCodec;
-        this.itemCodec = itemCodec;
         this.itemLength = itemLength;
     }
 
@@ -32,7 +30,7 @@ public class CountArrayBinaryCodec implements IFieldBinaryCodec {
 
         List<Object> ret = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
-            Object item = itemCodec.decode(arrayInput, itemLength, charset, context);
+            Object item = null; // itemCodec.decode(arrayInput, itemLength, charset, context);
             ret.add(item);
         }
         return ret;
@@ -47,7 +45,7 @@ public class CountArrayBinaryCodec implements IFieldBinaryCodec {
 
         countCodec.encode(output, list.size(), -1, charset, context, null);
         for (Object item : list) {
-            itemCodec.encode(output, item, itemLength, charset, context, null);
+            bodyEncoder.encode(output, item, itemLength, charset, context, null);
         }
     }
 }

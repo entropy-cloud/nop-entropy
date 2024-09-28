@@ -7,13 +7,5 @@
  */
 package io.nop.record.codec;
 
-import io.nop.record.input.IRecordBinaryInput;
-import io.nop.record.output.IRecordBinaryOutput;
-
-import java.nio.charset.Charset;
-
-public interface IFieldBinaryCodec {
-    Object decode(IRecordBinaryInput input, int length, Charset charset, IFieldCodecContext context);
-
-    void encode(IRecordBinaryOutput output, Object value, int length, Charset charset, IFieldCodecContext context);
+public interface IFieldBinaryCodec extends IFieldBinaryEncoder, IFieldBinaryDecoder {
 }

@@ -5,6 +5,7 @@ import io.nop.core.reflect.IPropertyGetter;
 import io.nop.core.reflect.IPropertySetter;
 import io.nop.core.reflect.bean.IBeanConstructor;
 import io.nop.record.codec.IFieldBinaryCodec;
+import io.nop.record.codec.IFieldBinaryEncoder;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.input.IRecordBinaryInput;
 import io.nop.record.output.IRecordBinaryOutput;
@@ -54,10 +55,11 @@ public class BeanBinaryCodec implements IFieldBinaryCodec {
     }
 
     @Override
-    public void encode(IRecordBinaryOutput output, Object bean, int length, Charset charset, IFieldCodecContext context) {
+    public void encode(IRecordBinaryOutput output, Object bean, int length, Charset charset,
+                       IFieldCodecContext context, IFieldBinaryEncoder bodyEncoder) {
         for (PropCodec prop : props) {
             Object value = prop.getter.getProperty(bean, prop.name, DisabledEvalScope.INSTANCE);
-            prop.codec.encode(output, value, prop.length, prop.charset, context);
+            prop.codec.encode(output, value, prop.length, prop.charset, context, null);
         }
     }
 }

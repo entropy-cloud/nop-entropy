@@ -7,6 +7,7 @@
  */
 package io.nop.record.resource;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.aggregator.CompositeAggregatorProvider;
 import io.nop.commons.aggregator.IAggregatorProvider;
 import io.nop.commons.bytes.ByteString;
@@ -38,6 +39,20 @@ public class ModelBasedTextRecordOutput<T> extends AbstractModelBasedRecordOutpu
     }
 
     @Override
+    protected void writeObjectWithCodec(IRecordTextOutput out, RecordFieldMeta field, Object record) throws IOException {
+        IFieldTextCodec encoder = resolveTextCodec(field, registry);
+        encoder.encode(out, record, field.getLength(), context,
+                (output, value, length, ctx, bodyEncoder) -> {
+                    try {
+                        writeSwitch(output, field, value);
+                    } catch (Exception e) {
+                        throw NopException.adapt(e);
+                    }
+                });
+    }
+
+
+    @Override
     protected void writeOffset(IRecordTextOutput out, int offset) throws IOException {
         for (int i = 0; i < offset; i++) {
             out.append(' ');
@@ -56,7 +71,7 @@ public class ModelBasedTextRecordOutput<T> extends AbstractModelBasedRecordOutpu
         if (encoder != null) {
             context.enterField(field.getName());
             try {
-                encoder.encode(out, value, field.getLength(), context);
+                encoder.encode(out, value, field.getLength(), context, null);
             } finally {
                 context.leaveField(field.getName());
             }

@@ -2,6 +2,7 @@
 package io.nop.record.codec._gen;
 
 import io.nop.record.codec.IFieldBinaryCodec;
+import io.nop.record.codec.IFieldBinaryEncoder;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.input.IRecordBinaryInput;
 import io.nop.record.output.IRecordBinaryOutput;
@@ -15,7 +16,8 @@ public class FieldBinaryCodec_u8be implements IFieldBinaryCodec{
 	  return input.readU8be();
     }
 
-    public void encode(IRecordBinaryOutput output, Object value, int length, Charset charset, IFieldCodecContext context){
+    public void encode(IRecordBinaryOutput output, Object value, int length, Charset charset,
+	                   IFieldCodecContext context, IFieldBinaryEncoder bodyEncoder){
 	    if(value == null){
 		    output.writeU8be(0L);
 		}else{
