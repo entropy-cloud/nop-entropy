@@ -95,7 +95,7 @@ public class RecordMetaHelper {
 
             ByteString padding = field.getPadding();
             if (padding != null) {
-                String paddingStr = padding.toString(field.getEncoding());
+                String paddingStr = padding.toString(field.getCharset());
                 if (field.isLeftPad()) {
                     str = StringHelper.leftPad(str, expected, paddingStr.charAt(0));
                 } else {

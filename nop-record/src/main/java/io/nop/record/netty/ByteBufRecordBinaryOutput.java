@@ -11,6 +11,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.nop.record.output.IRecordBinaryOutput;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class ByteBufRecordBinaryOutput implements IRecordBinaryOutput {
@@ -137,5 +138,10 @@ public class ByteBufRecordBinaryOutput implements IRecordBinaryOutput {
     // 当不再需要时，释放ByteBuf资源
     public void close() {
         byteBuf.release();
+    }
+
+    @Override
+    public void flush() {
+
     }
 }

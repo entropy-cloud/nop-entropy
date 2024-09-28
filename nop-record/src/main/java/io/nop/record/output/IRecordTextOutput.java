@@ -9,7 +9,7 @@ package io.nop.record.output;
 
 import java.io.IOException;
 
-public interface IRecordTextOutput extends Appendable {
+public interface IRecordTextOutput extends Appendable, IRecordOutputBase {
     int length();
 
     IRecordTextOutput append(CharSequence str) throws IOException;
@@ -22,7 +22,4 @@ public interface IRecordTextOutput extends Appendable {
 
     IRecordTextOutput append(char c) throws IOException;
 
-    void flush() throws IOException;
-
-    void close() throws IOException;
 }

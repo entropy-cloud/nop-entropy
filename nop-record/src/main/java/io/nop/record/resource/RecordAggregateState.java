@@ -94,6 +94,10 @@ public class RecordAggregateState {
         return pageAggregateState.getResults();
     }
 
+    public boolean isPageBegin() {
+        return pageAggregateState != null && indexInPage == 1;
+    }
+
     public boolean isPageEnd() {
         return pageAggregateState != null && indexInPage >= pageSize;
     }

@@ -7,7 +7,6 @@
  */
 package io.nop.record.resource;
 
-import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.aggregator.CompositeAggregatorProvider;
 import io.nop.commons.aggregator.IAggregatorProvider;
 import io.nop.commons.bytes.ByteString;
@@ -26,14 +25,12 @@ import java.nio.charset.Charset;
 
 import static io.nop.record.util.RecordMetaHelper.resolveTextCodec;
 
-public class ModelBasedTextRecordOutput<T> extends AbstractModelBasedRecordOutput<T> {
-    private final IRecordTextOutput out;
+public class ModelBasedTextRecordOutput<T> extends AbstractModelBasedRecordOutput<IRecordTextOutput, T> {
 
     public ModelBasedTextRecordOutput(IRecordTextOutput out, RecordFileMeta fileMeta,
                                       IFieldCodecContext context, FieldCodecRegistry registry,
                                       IAggregatorProvider aggregatorProvider) {
-        super(fileMeta, context, registry, aggregatorProvider);
-        this.out = out;
+        super(out, fileMeta, context, registry, aggregatorProvider);
     }
 
     public ModelBasedTextRecordOutput(IRecordTextOutput out, RecordFileMeta fileMeta) {
@@ -41,37 +38,19 @@ public class ModelBasedTextRecordOutput<T> extends AbstractModelBasedRecordOutpu
     }
 
     @Override
-    public void flush() {
-        try {
-            out.flush();
-        } catch (Exception e) {
-            throw NopException.adapt(e);
-        }
-    }
-
-    @Override
-    public void close() {
-        try {
-            out.close();
-        } catch (IOException e) {
-            throw NopException.adapt(e);
-        }
-    }
-
-    @Override
-    protected void writeOffset(int offset) throws IOException {
+    protected void writeOffset(IRecordTextOutput out, int offset) throws IOException {
         for (int i = 0; i < offset; i++) {
             out.append(' ');
         }
     }
 
     @Override
-    protected void writeString(String str, Charset charset) throws IOException {
+    protected void writeString(IRecordTextOutput out, String str, Charset charset) throws IOException {
         out.append(str);
     }
 
     @Override
-    protected void writeField0(RecordFieldMeta field, Object record) throws IOException {
+    protected void writeField0(IRecordTextOutput out, RecordFieldMeta field, Object record) throws IOException {
         Object value = getFieldValue(field, record);
         IFieldTextCodec encoder = resolveTextCodec(field, registry);
         if (encoder != null) {

@@ -23,6 +23,7 @@ import io.nop.record.model.RecordFileMeta;
 import io.nop.record.model.RecordObjectMeta;
 import io.nop.record.model.RecordPaginationMeta;
 import io.nop.record.model.RecordTypeMeta;
+import io.nop.record.output.IRecordOutputBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,9 +38,10 @@ import static io.nop.record.RecordErrors.ARG_TYPE_NAME;
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_MATCH_FOR_CASE_VALUE;
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_SWITCH_ON_FIELD;
 
-public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput<T> {
+public abstract class AbstractModelBasedRecordOutput<Output extends IRecordOutputBase, T> implements IRecordOutput<T> {
     static final Logger LOG = LoggerFactory.getLogger(AbstractModelBasedRecordOutput.class);
 
+    private final Output baseOut;
     private long writeCount;
     private final RecordFileMeta fileMeta;
 
@@ -48,9 +50,10 @@ public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput
 
     private final RecordAggregateState aggregateState;
 
-    public AbstractModelBasedRecordOutput(RecordFileMeta fileMeta,
+    public AbstractModelBasedRecordOutput(Output out, RecordFileMeta fileMeta,
                                           IFieldCodecContext context, FieldCodecRegistry registry,
                                           IAggregatorProvider aggregatorProvider) {
+        this.baseOut = out;
         this.fileMeta = fileMeta;
         this.context = context;
         this.registry = registry;
@@ -59,8 +62,27 @@ public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput
         this.context.getEvalScope().setLocalValue(RecordConstants.VAR_AGG_STATE, aggregateState);
     }
 
-    public AbstractModelBasedRecordOutput(RecordFileMeta fileMeta) {
-        this(fileMeta, new DefaultFieldCodecContext(), FieldCodecRegistry.DEFAULT, CompositeAggregatorProvider.defaultProvider());
+    public AbstractModelBasedRecordOutput(Output out, RecordFileMeta fileMeta) {
+        this(out, fileMeta, new DefaultFieldCodecContext(), FieldCodecRegistry.DEFAULT, CompositeAggregatorProvider.defaultProvider());
+    }
+
+
+    @Override
+    public void flush() {
+        try {
+            baseOut.flush();
+        } catch (Exception e) {
+            throw NopException.adapt(e);
+        }
+    }
+
+    @Override
+    public void close() {
+        try {
+            baseOut.close();
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        }
     }
 
     @Override
@@ -73,7 +95,7 @@ public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput
         if (fileMeta.getHeader() != null) {
             IBeanVariableScope scope = name -> getScopeValue(attributes, name);
             try {
-                writeObject(fileMeta.getHeader(), scope, RecordConstants.HEADER_NAME);
+                writeObject(baseOut, fileMeta.getHeader(), scope, RecordConstants.HEADER_NAME);
             } catch (Exception e) {
                 throw NopException.adapt(e);
             }
@@ -98,7 +120,7 @@ public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput
         if (fileMeta.getTrailer() != null) {
             IBeanVariableScope scope = name -> getScopeValue(trailerMeta, name);
             try {
-                writeObject(fileMeta.getTrailer(), scope, RecordConstants.TRAILER_NAME);
+                writeObject(baseOut, fileMeta.getTrailer(), scope, RecordConstants.TRAILER_NAME);
             } catch (Exception e) {
                 throw NopException.adapt(e);
             }
@@ -110,7 +132,7 @@ public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput
         writeCount++;
         try {
             beforeWriteRecord(record);
-            writeObject(fileMeta.getBody(), record, RecordConstants.BODY_NAME);
+            writeObject(baseOut, fileMeta.getBody(), record, RecordConstants.BODY_NAME);
             afterWriteRecord(record);
         } catch (Exception e) {
             throw NopException.adapt(e);
@@ -118,11 +140,15 @@ public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput
     }
 
     protected void beforeWriteRecord(T record) throws IOException {
+        aggregateState.onWriteRecord(record);
+
         if (fileMeta.getPagination() != null) {
-            RecordPaginationMeta pagination = fileMeta.getPagination();
-            if (pagination.getPageHeader() != null) {
-                IBeanVariableScope scope = name -> getScopeValue(null, name);
-                writeObject(pagination.getPageHeader(), scope, RecordConstants.PAGE_FOOTER_NAME);
+            if (aggregateState.isPageBegin()) {
+                RecordPaginationMeta pagination = fileMeta.getPagination();
+                if (pagination.getPageHeader() != null) {
+                    IBeanVariableScope scope = name -> getScopeValue(null, name);
+                    writeObject(baseOut, pagination.getPageHeader(), scope, RecordConstants.PAGE_FOOTER_NAME);
+                }
             }
         }
     }
@@ -133,24 +159,24 @@ public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput
                 RecordPaginationMeta pagination = fileMeta.getPagination();
                 if (pagination.getPageFooter() != null) {
                     IBeanVariableScope scope = name -> getScopeValue(aggregateState.getPageResults(), name);
-                    writeObject(pagination.getPageFooter(), scope, RecordConstants.PAGE_FOOTER_NAME);
+                    writeObject(baseOut, pagination.getPageFooter(), scope, RecordConstants.PAGE_FOOTER_NAME);
                 }
                 aggregateState.resetPage();
             }
         }
     }
 
-    public void writeObject(RecordObjectMeta recordMeta, Object record, String name) throws IOException {
+    public void writeObject(Output out, RecordObjectMeta recordMeta, Object record, String name) throws IOException {
         if (!runIfExpr(recordMeta.getIfExpr(), record, name))
             return;
 
-        writeTemplateOrFields(recordMeta, null, record);
+        writeTemplateOrFields(out, recordMeta, null, record);
 
         if (recordMeta.getAfterWrite() != null)
             recordMeta.getAfterWrite().call1(null, record, context.getEvalScope());
     }
 
-    protected void writeField(RecordFieldMeta field, Object record) throws IOException {
+    protected void writeField(Output out, RecordFieldMeta field, Object record) throws IOException {
         if (field.isSkipWhenWrite())
             return;
 
@@ -161,16 +187,16 @@ public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput
             return;
 
         if (field.getOffset() > 0) {
-            writeOffset(field.getOffset());
+            writeOffset(out, field.getOffset());
         }
 
         if (record instanceof Collection) {
             Collection<?> c = (Collection<?>) record;
             for (Object o : c) {
-                writeSwitch(field, o);
+                writeSwitch(out, field, o);
             }
         } else {
-            writeSwitch(field, record);
+            writeSwitch(out, field, record);
         }
     }
 
@@ -186,7 +212,7 @@ public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput
         return true;
     }
 
-    protected void writeSwitch(RecordFieldMeta field, Object record) throws IOException {
+    protected void writeSwitch(Output out, RecordFieldMeta field, Object record) throws IOException {
         if (field.getSwitch() != null) {
             RecordFieldSwitch switchMeta = field.getSwitch();
             String onField = switchMeta.getOnField();
@@ -218,55 +244,56 @@ public abstract class AbstractModelBasedRecordOutput<T> implements IRecordOutput
                         .param(ARG_TYPE_NAME, caseType);
 
             Object value = getProp(field, record);
-            writeTemplateOrFields(typeMeta, field.getCharsetObj(), value);
-
+            writeTemplateOrFields(out, typeMeta, field.getCharsetObj(), value);
+            if (typeMeta.getAfterWrite() != null)
+                typeMeta.getAfterWrite().call1(null, record, context.getEvalScope());
             return;
         }
 
-        writeVirtualField(field, record);
+        writeVirtualField(out, field, record);
     }
 
-    protected void writeVirtualField(RecordFieldMeta field, Object record) throws IOException {
+    protected void writeVirtualField(Output out, RecordFieldMeta field, Object record) throws IOException {
         if (field.isVirtual()) {
             if (field.getFields() != null) {
                 for (RecordFieldMeta subField : field.getFields()) {
-                    writeField(subField, record);
+                    writeField(out, subField, record);
                 }
             }
         } else if (field.getFields() != null) {
             Object value = getProp(field, record);
-            writeTemplateOrFields(field, field.getCharsetObj(), value);
+            writeTemplateOrFields(out, field, field.getCharsetObj(), value);
         } else {
-            writeField0(field, record);
+            writeField0(out, field, record);
         }
         if (field.getAfterWrite() != null)
             field.getAfterWrite().call1(null, record, context.getEvalScope());
     }
 
-    protected void writeTemplateOrFields(IRecordFieldsMeta fields, Charset charset, Object record) throws IOException {
+    protected void writeTemplateOrFields(Output out, IRecordFieldsMeta fields, Charset charset, Object record) throws IOException {
         SimpleTextTemplate template = fields.getNormalizedTemplate();
         if (template != null) {
             for (Object part : template.getParts()) {
                 if (part instanceof Symbol) {
                     String name = ((Symbol) part).getText();
                     RecordFieldMeta field = fields.requireField(name);
-                    writeField(field, record);
+                    writeField(out, field, record);
                 } else {
-                    writeString(part.toString(), charset);
+                    writeString(out, part.toString(), charset);
                 }
             }
         } else {
             for (RecordFieldMeta field : fields.getFields()) {
-                writeField(field, record);
+                writeField(out, field, record);
             }
         }
     }
 
-    abstract protected void writeOffset(int offset) throws IOException;
+    abstract protected void writeOffset(Output out, int offset) throws IOException;
 
-    abstract protected void writeString(String str, Charset charset) throws IOException;
+    abstract protected void writeString(Output out, String str, Charset charset) throws IOException;
 
-    abstract protected void writeField0(RecordFieldMeta field, Object record) throws IOException;
+    abstract protected void writeField0(Output out, RecordFieldMeta field, Object record) throws IOException;
 
     protected Object getProp(RecordFieldMeta field, Object record) {
         if (field.getExportExpr() != null)

@@ -7,7 +7,6 @@
  */
 package io.nop.record.resource;
 
-import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.aggregator.CompositeAggregatorProvider;
 import io.nop.commons.aggregator.IAggregatorProvider;
 import io.nop.commons.bytes.ByteString;
@@ -25,14 +24,12 @@ import java.nio.charset.Charset;
 
 import static io.nop.record.util.RecordMetaHelper.resolveBinaryCodec;
 
-public class ModelBasedBinaryRecordOutput<T> extends AbstractModelBasedRecordOutput<T> {
-    private final IRecordBinaryOutput out;
+public class ModelBasedBinaryRecordOutput<T> extends AbstractModelBasedRecordOutput<IRecordBinaryOutput, T> {
 
     public ModelBasedBinaryRecordOutput(IRecordBinaryOutput out, RecordFileMeta fileMeta,
                                         IFieldCodecContext context, FieldCodecRegistry registry,
                                         IAggregatorProvider aggregatorProvider) {
-        super(fileMeta, context, registry, aggregatorProvider);
-        this.out = out;
+        super(out, fileMeta, context, registry, aggregatorProvider);
     }
 
     public ModelBasedBinaryRecordOutput(IRecordBinaryOutput out, RecordFileMeta fileMeta) {
@@ -40,37 +37,19 @@ public class ModelBasedBinaryRecordOutput<T> extends AbstractModelBasedRecordOut
     }
 
     @Override
-    public void flush() {
-        try {
-            out.flush();
-        } catch (Exception e) {
-            throw NopException.adapt(e);
-        }
-    }
-
-    @Override
-    public void close() {
-        try {
-            out.close();
-        } catch (IOException e) {
-            throw NopException.adapt(e);
-        }
-    }
-
-    @Override
-    protected void writeOffset(int offset) throws IOException {
+    protected void writeOffset(IRecordBinaryOutput out, int offset) throws IOException {
         for (int i = 0; i < offset; i++) {
             out.writeS1((byte) 0);
         }
     }
 
     @Override
-    protected void writeString(String str, Charset charset) throws IOException {
+    protected void writeString(IRecordBinaryOutput out, String str, Charset charset) throws IOException {
         out.writeBytes(str.getBytes(charset));
     }
 
     @Override
-    protected void writeField0(RecordFieldMeta field, Object record) throws IOException {
+    protected void writeField0(IRecordBinaryOutput out, RecordFieldMeta field, Object record) throws IOException {
         Object value = getFieldValue(field, record);
         IFieldBinaryCodec encoder = resolveBinaryCodec(field, registry);
         if (encoder != null) {

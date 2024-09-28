@@ -9,8 +9,9 @@ package io.nop.record.output;
 
 import io.nop.commons.text.MutableString;
 
+import java.io.Closeable;
+import java.io.Flushable;
 import java.io.IOException;
-import java.io.Writer;
 
 public class SimpleTextOutput implements IRecordTextOutput {
     private final Appendable buf;
@@ -67,15 +68,15 @@ public class SimpleTextOutput implements IRecordTextOutput {
 
     @Override
     public void flush() throws IOException {
-        if (buf instanceof Writer) {
-            ((Writer) buf).flush();
+        if (buf instanceof Flushable) {
+            ((Flushable) buf).flush();
         }
     }
 
     @Override
     public void close() throws IOException {
-        if (buf instanceof Writer) {
-            ((Writer) buf).close();
+        if (buf instanceof Closeable) {
+            ((Closeable) buf).close();
         }
     }
 }
