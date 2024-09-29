@@ -4,9 +4,22 @@
 
 ## 1. validator
 
-如果字段配置了validator，则会首先使用`BizValidatorHelper.runValidatorModelForValue`来验证字段值合法
+如果字段配置了validator，它会被编译为IEvalFunction类型，在其中可以使用`<c:check>`标签来进行验证
 
-验证模型详细介绍参见 [validator.md](validator.md)
+```xml
+<props>
+  <prop name="amount">
+    <schema>
+      <validator>
+        <c:check errorCode="test.error" errorDescription="验证错误">
+          <!-- >= 10 -->
+          <ge name="value" value="${100}" />
+        </c:check>
+      </validator>
+    </schema>
+  </prop>
+</props>
+```
 
 ## 2. 字典数据
 

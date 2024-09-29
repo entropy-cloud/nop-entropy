@@ -354,7 +354,7 @@ public class FieldSelectionBean implements Serializable, IDeepCloneable, IFreeza
 
     public void setArg(String name, Object value) {
         checkNotFrozen(this);
-        if (args == null)
+        if (args == null || args.isEmpty())
             args = new LinkedHashMap<>();
         args.put(name, value);
     }
