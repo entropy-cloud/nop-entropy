@@ -29,6 +29,8 @@ public interface RecordErrors {
 
     String ARG_TYPE_NAME = "typeName";
 
+    String ARG_FIELD_PATH = "fieldPath";
+
     ErrorCode ERR_RECORD_NO_ENOUGH_DATA =
             define("nop.err.record.no-enough-data", "缺少数据，无法读取");
 

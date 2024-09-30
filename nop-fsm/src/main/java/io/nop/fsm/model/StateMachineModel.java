@@ -9,7 +9,7 @@ package io.nop.fsm.model;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.INeedInit;
-import io.nop.fsm.FsmConstants;
+import io.nop.commons.type.StdDataType;
 import io.nop.fsm.execution.IStateContainer;
 import io.nop.fsm.model._gen._StateMachineModel;
 
@@ -20,13 +20,14 @@ import static io.nop.fsm.FsmErrors.ARG_OLD_STATE_ID;
 import static io.nop.fsm.FsmErrors.ARG_STATE_ID;
 import static io.nop.fsm.FsmErrors.ARG_STATE_VALUE;
 import static io.nop.fsm.FsmErrors.ERR_FSM_DUPLICATE_STATE_VALUE;
+import static io.nop.fsm.FsmErrors.ERR_FSM_STATE_VALUE_CAN_NOT_CONVERT_TO_TYPE;
 
 public class StateMachineModel extends _StateMachineModel implements INeedInit, IStateContainer {
 
     /**
      * 从stateValue映射到唯一的State模型对象。stateValue为保存到数据库中的值。 如果没有为state指定stateValue，则stateValue为fullStateId
      */
-    private Map<String, StateModel> stateValueMap;
+    private Map<Object, StateModel> stateValueMap;
 
     private Map<String, StateModel> fullStateIdMap;
 
@@ -55,7 +56,8 @@ public class StateMachineModel extends _StateMachineModel implements INeedInit, 
         if (stateValue == null)
             stateValue = stateId;
 
-        StateModel oldState = stateValueMap.put(stateValue.toString(), stateModel);
+        stateValue = normalizeStateValue(stateValue);
+        StateModel oldState = stateValueMap.put(stateValue, stateModel);
         if (oldState != null)
             throw new NopException(ERR_FSM_DUPLICATE_STATE_VALUE)
                     .source(stateModel)
@@ -71,11 +73,17 @@ public class StateMachineModel extends _StateMachineModel implements INeedInit, 
         }
     }
 
-    public StateModel getStateFromStateValue(Object stateValue) {
-        if (stateValue == null)
-            stateValue = FsmConstants.STATE_EMPTY;
+    private Object normalizeStateValue(Object stateValue) {
+        StdDataType dataType = getStateValueType();
+        if (dataType == null)
+            dataType = StdDataType.STRING;
+        return dataType.convert(stateValue, err ->
+                new NopException(ERR_FSM_STATE_VALUE_CAN_NOT_CONVERT_TO_TYPE));
+    }
 
-        return stateValueMap.get(stateValue.toString());
+    public StateModel getStateFromStateValue(Object stateValue) {
+        stateValue = normalizeStateValue(stateValue);
+        return stateValueMap.get(stateValue);
     }
 
     public StateModel getStateFromFullId(StateId stateId) {

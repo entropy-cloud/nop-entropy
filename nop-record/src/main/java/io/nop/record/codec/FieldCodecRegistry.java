@@ -9,6 +9,7 @@ package io.nop.record.codec;
 
 import io.nop.api.core.annotations.core.GlobalInstance;
 import io.nop.record.codec._gen.FieldBinaryCodecRegistrar;
+import io.nop.record.codec.impl.FixedLengthAsciiIntCodec;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,6 +20,8 @@ public class FieldCodecRegistry {
 
     static {
         FieldBinaryCodecRegistrar.registerWordType(DEFAULT);
+        DEFAULT.registerTextCodec("FLAI", FixedLengthAsciiIntCodec.INSTANCE);
+        DEFAULT.registerBinaryCodec("FLAI", FixedLengthAsciiIntCodec.INSTANCE);
     }
 
     private final Map<String, IFieldTextCodec> textEncoders = new ConcurrentHashMap<>();

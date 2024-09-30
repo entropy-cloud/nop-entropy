@@ -25,4 +25,7 @@ public interface NopNettyConstants {
     String HANDLER_CHANNEL_TRAFFIC_SHAPING = "channelTrafficShaping";
 
     String HANDLER_CHANNEL_GROUP = "channelGroup";
+
+    String PREFIX_RECV = "recv_";
+    String PREFIX_SEND = "send_";
 }

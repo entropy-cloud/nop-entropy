@@ -8,7 +8,8 @@
 package io.nop.fsm;
 
 public interface FsmConstants {
-    String STATE_EMPTY = "_";
+    String STATE_EMPTY = "";
 
     String VAR_ENTITY = "entity";
+
 }

@@ -9,8 +9,8 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from /nop/schema/record/record-file.xdef <p>
- * 每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
+ * generate from /nop/schema/record/record-object.xdef <p>
+ * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
@@ -18,24 +18,45 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      *  
-     * xml name: computed-field
-     * 
+     * xml name: afterRead
+     * 在所有子字段都读取到之后执行
      */
-    private KeyedList<io.nop.record.model.RecordComputedFieldMeta> _computedFields = KeyedList.emptyList();
+    private io.nop.core.lang.eval.IEvalFunction _afterRead ;
     
     /**
      *  
-     * xml name: field
-     * 定长记录的定义
+     * xml name: afterWrite
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _afterWrite ;
+    
+    /**
+     *  
+     * xml name: fields
+     * 
      */
     private KeyedList<io.nop.record.model.RecordFieldMeta> _fields = KeyedList.emptyList();
     
     /**
      *  
-     * xml name: param
+     * xml name: ifExpr
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _ifExpr ;
+    
+    /**
+     *  
+     * xml name: params
      * 
      */
     private KeyedList<io.nop.record.model.RecordParamMeta> _params = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: template
+     * 
+     */
+    private java.lang.String _template ;
     
     /**
      *  
@@ -46,53 +67,46 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      * 
-     * xml name: computed-field
-     *  
+     * xml name: afterRead
+     *  在所有子字段都读取到之后执行
      */
     
-    public java.util.List<io.nop.record.model.RecordComputedFieldMeta> getComputedFields(){
-      return _computedFields;
+    public io.nop.core.lang.eval.IEvalFunction getAfterRead(){
+      return _afterRead;
     }
 
     
-    public void setComputedFields(java.util.List<io.nop.record.model.RecordComputedFieldMeta> value){
+    public void setAfterRead(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
-        this._computedFields = KeyedList.fromList(value, io.nop.record.model.RecordComputedFieldMeta::getName);
+        this._afterRead = value;
            
     }
 
     
-    public io.nop.record.model.RecordComputedFieldMeta getComputedField(String name){
-        return this._computedFields.getByKey(name);
-    }
-
-    public boolean hasComputedField(String name){
-        return this._computedFields.containsKey(name);
-    }
-
-    public void addComputedField(io.nop.record.model.RecordComputedFieldMeta item) {
-        checkAllowChange();
-        java.util.List<io.nop.record.model.RecordComputedFieldMeta> list = this.getComputedFields();
-        if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.record.model.RecordComputedFieldMeta::getName);
-            setComputedFields(list);
-        }
-        list.add(item);
-    }
+    /**
+     * 
+     * xml name: afterWrite
+     *  
+     */
     
-    public java.util.Set<String> keySet_computedFields(){
-        return this._computedFields.keySet();
+    public io.nop.core.lang.eval.IEvalFunction getAfterWrite(){
+      return _afterWrite;
     }
 
-    public boolean hasComputedFields(){
-        return !this._computedFields.isEmpty();
+    
+    public void setAfterWrite(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._afterWrite = value;
+           
     }
+
     
     /**
      * 
-     * xml name: field
-     *  定长记录的定义
+     * xml name: fields
+     *  
      */
     
     public java.util.List<io.nop.record.model.RecordFieldMeta> getFields(){
@@ -136,7 +150,26 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      * 
-     * xml name: param
+     * xml name: ifExpr
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getIfExpr(){
+      return _ifExpr;
+    }
+
+    
+    public void setIfExpr(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._ifExpr = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: params
      *  
      */
     
@@ -181,6 +214,25 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: template
+     *  
+     */
+    
+    public java.lang.String getTemplate(){
+      return _template;
+    }
+
+    
+    public void setTemplate(java.lang.String value){
+        checkAllowChange();
+        
+        this._template = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: type
      *  
      */
@@ -206,8 +258,6 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
-           this._computedFields = io.nop.api.core.util.FreezeHelper.deepFreeze(this._computedFields);
-            
            this._fields = io.nop.api.core.util.FreezeHelper.deepFreeze(this._fields);
             
            this._params = io.nop.api.core.util.FreezeHelper.deepFreeze(this._params);
@@ -219,9 +269,12 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("computedFields",this.getComputedFields());
+        out.putNotNull("afterRead",this.getAfterRead());
+        out.putNotNull("afterWrite",this.getAfterWrite());
         out.putNotNull("fields",this.getFields());
+        out.putNotNull("ifExpr",this.getIfExpr());
         out.putNotNull("params",this.getParams());
+        out.putNotNull("template",this.getTemplate());
         out.putNotNull("type",this.getType());
     }
 
@@ -234,9 +287,12 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     protected void copyTo(RecordObjectMeta instance){
         super.copyTo(instance);
         
-        instance.setComputedFields(this.getComputedFields());
+        instance.setAfterRead(this.getAfterRead());
+        instance.setAfterWrite(this.getAfterWrite());
         instance.setFields(this.getFields());
+        instance.setIfExpr(this.getIfExpr());
         instance.setParams(this.getParams());
+        instance.setTemplate(this.getTemplate());
         instance.setType(this.getType());
     }
 

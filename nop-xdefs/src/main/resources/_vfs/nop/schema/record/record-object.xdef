@@ -1,0 +1,24 @@
+<object x:schema="/nop/schema/xdef.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        xmlns:xdef="/nop/schema/xdef.xdef"
+        xdef:name="RecordObjectMeta" xdef:bean-package="io.nop.record.model"
+        type="generic-type">
+
+    <params xdef:body-type="list" xdef:key-attr="name">
+        <param name="!string" xdef:ref="record-param.xdef" />
+    </params>
+
+    <fields xdef:body-type="list" xdef:key-attr="name">
+        <field name="!prop-name" xdef:ref="record-field.xdef"/>
+    </fields>
+
+    <ifExpr xdef:value="xpl-fn:(record)=>boolean"/>
+
+    <afterWrite xdef:value="xpl-fn:(record)=>any"/>
+
+    <!-- 在所有子字段都读取到之后执行 -->
+    <afterRead xdef:value="xpl-fn:(record)=>any"/>
+
+    <template xdef:value="string"/>
+
+</object>

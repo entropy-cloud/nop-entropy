@@ -10,9 +10,7 @@
       xmlns:x="/nop/schema/xdsl.xdef"
       xmlns:xdef="/nop/schema/xdef.xdef"
       xdef:name="RecordFileMeta" xdef:bean-package="io.nop.record.model"
-      binary="!boolean=false" defaultTextEncoding="string=UTF-8"
-      bitEndian="enum:io.nop.commons.bytes.EndianKind"
-      endian="enum:io.nop.commons.bytes.EndianKind"
+      xdef:ref="record-definitions.xdef"
 >
     <doc xdef:value="string"/>
 
@@ -21,34 +19,14 @@
     -->
     <docRef xdef:value="string"/>
 
-    <param name="!string" type="!generic-type" mandatory="!boolean=false" stdDomain="xml-name"
-           xdef:unique-attr="name" xdef:name="RecordParamMeta"/>
+    <params xdef:body-type="list" xdef:key-attr="name">
+        <param name="!string" xdef:ref="record-param.xdef" />
+    </params>
 
-    <!--
-    每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
-    -->
-    <xdef:define xdef:name="RecordObjectMeta" type="generic-type">
-        <param name="!string" xdef:ref="RecordParamMeta" xdef:unique-attr="name"/>
-
-        <fields xdef:body-type="list" xdef:key-attr="name">
-            <field name="!prop-name" xdef:ref="record-field.xdef"/>
-        </fields>
-
-        <ifExpr xdef:value="xpl-fn:(record)=>boolean"/>
-
-        <afterWrite xdef:value="xpl-fn:(record)=>any"/>
-
-        <!-- 在所有子字段都读取到之后执行 -->
-        <afterRead xdef:value="xpl-fn:(record)=>any"/>
-
-        <template xdef:value="string"/>
-
-    </xdef:define>
-
-    <header xdef:ref="RecordObjectMeta"/>
+    <header xdef:ref="record-object.xdef"/>
 
     <body xdef:name="RecordFileBodyMeta" repeatKind="enum:io.nop.record.model.FieldRepeatKind"
-          xdef:ref="RecordObjectMeta">
+          xdef:ref="record-object.xdef">
 
         <!--
         返回body行的循环次数
@@ -66,8 +44,8 @@
     @pageSize 分页条目数
     -->
     <pagination pageSize="!int" xdef:name="RecordPaginationMeta">
-        <pageHeader xdef:ref="RecordObjectMeta"/>
-        <pageFooter xdef:ref="RecordObjectMeta"/>
+        <pageHeader xdef:ref="record-object.xdef"/>
+        <pageFooter xdef:ref="record-object.xdef"/>
 
         <aggregates xdef:body-type="list" xdef:key-attr="name">
             <aggregate name="!prop-name" aggFunc="var-name" xdef:name="RecordAggregateFieldMeta"
@@ -81,22 +59,6 @@
         <aggregate name="!prop-name" xdef:ref="RecordAggregateFieldMeta"/>
     </aggregates>
 
-    <trailer xdef:ref="RecordObjectMeta"/>
+    <trailer xdef:ref="record-object.xdef"/>
 
-    <types xdef:body-type="list" xdef:key-attr="name">
-        <type name="!prop-name" xdef:ref="RecordObjectMeta" xdef:name="RecordTypeMeta"/>
-    </types>
-
-    <enums xdef:body-type="list" xdef:key-attr="name">
-        <enum name="!var-name" valueType="std-data-type" xdef:name="RecordEnum">
-            <doc xdef:value="string"/>
-            <option value="!string" label="!string" xdef:unique-attr="value" xdef:name="RecordEnumOption">
-                <doc xdef:value="string"/>
-                <!--
-                翻译为java doc的@see注释
-                -->
-                <docRef xdef:value="string"/>
-            </option>
-        </enum>
-    </enums>
 </file>

@@ -5,8 +5,8 @@
 @initial 初始状态的id
 @stateProp 实体上的状态属性名
 -->
-<state-machine initial="!var-name" stateProp="!string" ignoreUnknownTransition="!boolean=false"
-               xdef:name="StateMachineModel" xdef:bean-package="io.nop.fsm.model"
+<state-machine initial="!var-name" stateProp="!string" ignoreUnknownTransition="!boolean=false" stateValueType="std-data-type"
+               xdef:name="StateMachineModel" xdef:bean-package="io.nop.fsm.model" messageTypeProp="string"
                x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
 >
 
@@ -45,7 +45,8 @@
             @in 判断当前状态是否为指定状态。格式符合xstate的约定，例如 in="#closed"。 #表示从根路径开始
             @actions 迁移到目标状态之后执行的action的列表
         -->
-        <transition xdef:name="StateTransitionModel" id="!string=@attr:event" xdef:unique-attr="id" event="!string" in="string"
+        <transition xdef:name="StateTransitionModel" id="!string=@attr:event" xdef:unique-attr="id" event="!string"
+                    in="string"
                     target="var-name" internal="!boolean=false" actions="csv-set">
             <when xdef:value="xpl-predicate"/>
 
@@ -89,6 +90,9 @@
 
     <meta xdef:value="xjson"/>
 
-    <invoke-action xdef:value="xpl-fn:(action)=>any" />
+    <invoke-action xdef:value="xpl-fn:(action)=>any"/>
+
+    <!-- 接收到消息对象后可以根据得到消息类型，然后再结合prefix（如`send_`和`recv_`）得到用于触发StateMachine的event -->
+    <message-type-getter xdef:value="xpl-fn:(message)=>string"/>
 
 </state-machine>

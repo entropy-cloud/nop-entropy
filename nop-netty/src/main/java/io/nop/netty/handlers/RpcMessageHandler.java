@@ -45,6 +45,10 @@ public class RpcMessageHandler extends ChannelDuplexHandler implements IRpcMessa
         this.adapter = adapter;
     }
 
+    public RpcMessageHandler(int maxInFlightCount) {
+        this(maxInFlightCount, DefaultRpcMessageAdapter.INSTANCE);
+    }
+
     static class ResponseFuture {
         long expireTime;
         CompletableFuture<Object> future;

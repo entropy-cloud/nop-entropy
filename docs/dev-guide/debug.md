@@ -173,8 +173,9 @@ Quarkus框架内置了`graphql-ui`调试工具。以调试模式启动应用之�
 ```
 
 1. 如果节点路径和前一个兄弟节点的路径不同，则会打印LOC信息。
-2. ext:autowired="true"表示这个属性是通过`@Inject`注解自动注入的。
-3. ext:resolved-loc属性表示了这个对象具体所在的配置文件路径。
+2. `ext:autowired="true"`表示这个属性是通过`@Inject`注解自动注入的。
+3. `ext:resolved-loc`属性表示了这个对象具体所在的配置文件路径。
+4. `ext:resolved-trace="/nop/auth/beans/app-service.beans.xml"`。 `ext:resolved-trace`属性可以表示是哪个beans.xml引入了这个bean所在的xml文件
 
 ### 2. 如何查看当前应用所加载的bean
 

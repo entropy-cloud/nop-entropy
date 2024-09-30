@@ -7,6 +7,7 @@
  */
 package io.nop.fsm.execution;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
@@ -51,6 +52,40 @@ public class StateMachine implements IStateMachine {
 
             BeanTool.setComplexProperty(bean, model.getStateProp(), stateValue);
         }
+    }
+
+    @Override
+    public Object getInitStateValue() {
+        StateModel stateModel = model.getState(model.getInitial());
+        if (stateModel != null) {
+            Object stateValue = stateModel.getStateValue();
+            if (stateValue == null)
+                stateValue = stateModel.getFullStateId().toString();
+
+            return stateValue;
+        }
+        return model.getInitial();
+    }
+
+    @Override
+    public String getEvent(String prefix, Object message, IEvalContext ctx) {
+        if (message instanceof String) {
+            if (prefix == null)
+                return (String) message;
+            return prefix + message;
+        }
+        String type;
+        if (model.getMessageTypeGetter() != null) {
+            type = ConvertHelper.toString(model.getMessageTypeGetter().call1(null, message, ctx.getEvalScope()));
+        } else if (model.getMessageTypeProp() != null) {
+            type = ConvertHelper.toString(BeanTool.getProperty(message, model.getMessageTypeProp()));
+        } else {
+            type = message.getClass().getSimpleName();
+        }
+        if (prefix == null)
+            return String.valueOf(type);
+
+        return prefix + type;
     }
 
     @Override

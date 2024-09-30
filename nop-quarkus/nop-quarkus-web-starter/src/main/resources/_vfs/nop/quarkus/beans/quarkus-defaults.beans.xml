@@ -14,7 +14,7 @@
         </ioc:condition>
 
         <property name="config">
-            <bean class="io.nop.dao.jdbc.datasource.DataSourceConfig">
+            <bean class="io.nop.dao.jdbc.datasource.DataSourceConfig" ioc:config-prefix="nop.datasource">
                 <property name="metricsEnabled" value="@cfg:nop.datasource.metrics-enabled|true"/>
                 <property name="maxSize" value="@cfg:nop.datasource.max-size|8"/>
                 <property name="minSize" value="@cfg:nop.datasource.min-size|4"/>

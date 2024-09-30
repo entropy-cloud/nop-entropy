@@ -20,6 +20,7 @@ import io.netty.channel.group.ChannelGroup;
 
 @Sharable
 public class NettyChannelGroupHandler extends ChannelInboundHandlerAdapter {
+    // channelGroup是线程安全的
     private final ChannelGroup group;
 
     public NettyChannelGroupHandler(ChannelGroup group) {

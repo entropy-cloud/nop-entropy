@@ -26,14 +26,14 @@ public abstract class _RecordPaginationMeta extends io.nop.core.resource.compone
     /**
      *  
      * xml name: pageFooter
-     * 每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
+     * 
      */
     private io.nop.record.model.RecordObjectMeta _pageFooter ;
     
     /**
      *  
      * xml name: pageHeader
-     * 每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
+     * 
      */
     private io.nop.record.model.RecordObjectMeta _pageHeader ;
     
@@ -92,7 +92,7 @@ public abstract class _RecordPaginationMeta extends io.nop.core.resource.compone
     /**
      * 
      * xml name: pageFooter
-     *  每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
+     *  
      */
     
     public io.nop.record.model.RecordObjectMeta getPageFooter(){
@@ -111,7 +111,7 @@ public abstract class _RecordPaginationMeta extends io.nop.core.resource.compone
     /**
      * 
      * xml name: pageHeader
-     *  每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
+     *  
      */
     
     public io.nop.record.model.RecordObjectMeta getPageHeader(){

@@ -20,4 +20,8 @@ public interface NopNettyErrors {
 
     ErrorCode ERR_TOO_MANY_REQUEST_IN_FLIGHT = define("nop.err.netty.too-many-request-in-flight",
             "正在进行的请求数过多，无法接受更多请求");
+
+    ErrorCode ERR_NETTY_NO_AVAILABLE_CHANNEL = define("nop.err.netty.no-available-channel",
+            "没有可用的连接通道");
+
 }

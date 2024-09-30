@@ -1,0 +1,10 @@
+<codec x:schema="/nop/schema/xdef.xdef"
+       xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:xdef="/nop/schema/xdef.xdef"
+       xdef:name="PacketCodecModel" xdef:bean-package="io.nop.record.model"
+       xdef:ref="record-definitions.xdef"
+       lengthFieldLength="!int=0" lengthFieldOffset="!int=0" lengthAdjustment="!int=0"
+       lengthFieldCodec="string"
+>
+
+</codec>

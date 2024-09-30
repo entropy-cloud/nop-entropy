@@ -17,6 +17,10 @@ import java.util.function.Consumer;
  * 有限状态自动机模型
  */
 public interface IStateMachine {
+    Object getInitStateValue();
+
+    String getEvent(String prefix, Object message, IEvalContext context);
+
     /**
      * 当前状态是stateValue的时候触发事件 event，执行迁移逻辑，并迁移到目标状态
      *

@@ -46,6 +46,20 @@ public abstract class _StateMachineModel extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: message-type-getter
+     * 接收到消息对象后可以根据得到消息类型，然后再结合prefix（如`send_`和`recv_`）得到用于触发StateMachine的event
+     */
+    private io.nop.core.lang.eval.IEvalFunction _messageTypeGetter ;
+    
+    /**
+     *  
+     * xml name: messageTypeProp
+     * 
+     */
+    private java.lang.String _messageTypeProp ;
+    
+    /**
+     *  
      * xml name: meta
      * 
      */
@@ -71,6 +85,13 @@ public abstract class _StateMachineModel extends io.nop.core.resource.component.
      * 实体上的状态属性名
      */
     private java.lang.String _stateProp ;
+    
+    /**
+     *  
+     * xml name: stateValueType
+     * 
+     */
+    private io.nop.commons.type.StdDataType _stateValueType ;
     
     /**
      *  
@@ -157,6 +178,44 @@ public abstract class _StateMachineModel extends io.nop.core.resource.component.
     
     /**
      * 
+     * xml name: message-type-getter
+     *  接收到消息对象后可以根据得到消息类型，然后再结合prefix（如`send_`和`recv_`）得到用于触发StateMachine的event
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getMessageTypeGetter(){
+      return _messageTypeGetter;
+    }
+
+    
+    public void setMessageTypeGetter(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._messageTypeGetter = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: messageTypeProp
+     *  
+     */
+    
+    public java.lang.String getMessageTypeProp(){
+      return _messageTypeProp;
+    }
+
+    
+    public void setMessageTypeProp(java.lang.String value){
+        checkAllowChange();
+        
+        this._messageTypeProp = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: meta
      *  
      */
@@ -237,6 +296,25 @@ public abstract class _StateMachineModel extends io.nop.core.resource.component.
     
     /**
      * 
+     * xml name: stateValueType
+     *  
+     */
+    
+    public io.nop.commons.type.StdDataType getStateValueType(){
+      return _stateValueType;
+    }
+
+    
+    public void setStateValueType(io.nop.commons.type.StdDataType value){
+        checkAllowChange();
+        
+        this._stateValueType = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: state
      *  
      */
@@ -301,10 +379,13 @@ public abstract class _StateMachineModel extends io.nop.core.resource.component.
         out.putNotNull("ignoreUnknownTransition",this.isIgnoreUnknownTransition());
         out.putNotNull("initial",this.getInitial());
         out.putNotNull("invokeAction",this.getInvokeAction());
+        out.putNotNull("messageTypeGetter",this.getMessageTypeGetter());
+        out.putNotNull("messageTypeProp",this.getMessageTypeProp());
         out.putNotNull("meta",this.getMeta());
         out.putNotNull("onEntry",this.getOnEntry());
         out.putNotNull("onExit",this.getOnExit());
         out.putNotNull("stateProp",this.getStateProp());
+        out.putNotNull("stateValueType",this.getStateValueType());
         out.putNotNull("states",this.getStates());
     }
 
@@ -321,10 +402,13 @@ public abstract class _StateMachineModel extends io.nop.core.resource.component.
         instance.setIgnoreUnknownTransition(this.isIgnoreUnknownTransition());
         instance.setInitial(this.getInitial());
         instance.setInvokeAction(this.getInvokeAction());
+        instance.setMessageTypeGetter(this.getMessageTypeGetter());
+        instance.setMessageTypeProp(this.getMessageTypeProp());
         instance.setMeta(this.getMeta());
         instance.setOnEntry(this.getOnEntry());
         instance.setOnExit(this.getOnExit());
         instance.setStateProp(this.getStateProp());
+        instance.setStateValueType(this.getStateValueType());
         instance.setStates(this.getStates());
     }
 

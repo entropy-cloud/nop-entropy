@@ -26,12 +26,14 @@ import io.netty.util.concurrent.FutureListener;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.service.LifeCycleSupport;
+import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.NetHelper;
 import io.nop.netty.NopNettyConstants;
 import io.nop.netty.channel.INettyChannelInitializer;
 import io.nop.netty.config.NettyTcpServerConfig;
 import io.nop.netty.config.TrafficShapingConfig;
 import io.nop.netty.handlers.CloseOnErrorHandler;
+import io.nop.netty.handlers.IRpcMessageHandler;
 import io.nop.netty.handlers.NettyChannelGroupHandler;
 import io.nop.netty.ssl.ISslEngineFactory;
 import io.nop.netty.utils.NettyChannelHelper;
@@ -40,6 +42,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+import static io.nop.netty.NopNettyErrors.ERR_NETTY_NO_AVAILABLE_CHANNEL;
 
 public class NettyTcpServer extends LifeCycleSupport {
     static final Logger LOG = LoggerFactory.getLogger(NettyTcpServer.class);
@@ -227,6 +235,44 @@ public class NettyTcpServer extends LifeCycleSupport {
         bootstrap.option(ChannelOption.SO_REUSEADDR, config.isTcpReuseAddress());
         if (config.getTcpAcceptBacklog() > 0)
             bootstrap.option(ChannelOption.SO_BACKLOG, config.getTcpAcceptBacklog());
+    }
+
+    public CompletableFuture<Object> sendToAnyChannel(Object msg, int timeout) {
+        Channel channel = getAnyChannel();
+        return sendToChannel(channel, msg, timeout);
+    }
+
+    public CompletableFuture<Object> sendToFirstChannel(Object msg, int timeout) {
+        Channel channel = getFirstChannel();
+        return sendToChannel(channel, msg, timeout);
+    }
+
+    public Channel getFirstChannel() {
+        Iterator<Channel> it = channelGroup.iterator();
+        if (!it.hasNext()) {
+            throw new NopException(ERR_NETTY_NO_AVAILABLE_CHANNEL);
+        }
+        return it.next();
+    }
+
+    private CompletableFuture<Object> sendToChannel(Channel channel, Object msg, int timeout) {
+        CompletableFuture<Object> ret = new CompletableFuture<>();
+        IRpcMessageHandler handler = channel.pipeline().get(IRpcMessageHandler.class);
+        handler.send(msg, timeout, ret);
+        return ret;
+    }
+
+    public ChannelGroup getChannelGroup() {
+        return channelGroup;
+    }
+
+    public Channel getAnyChannel() {
+        List<Channel> channels = new ArrayList<>(channelGroup);
+        if (channels.isEmpty())
+            throw new NopException(ERR_NETTY_NO_AVAILABLE_CHANNEL);
+
+        // 随机选择一个channel
+        return channels.get(MathHelper.random().nextInt(channels.size()));
     }
 
     @Override

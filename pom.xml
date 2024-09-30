@@ -466,5 +466,6 @@
         <module>nop-cli-jdk11</module>
         <module>nop-security</module>
         <module>nop-ofbiz-migration</module>
+        <module>nop-netty-ext</module>
     </modules>
 </project>
