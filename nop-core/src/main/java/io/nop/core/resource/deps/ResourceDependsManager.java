@@ -86,7 +86,7 @@ public class ResourceDependsManager implements IResourceDependencyManager, Close
         try {
             T ret = task.get();
             if (current != null) {
-                current.addDependency(deps.getResourcePath());
+                current.addDependencySet(deps);
             }
             deps.setLastModified(resource.lastModified());
             success = true;

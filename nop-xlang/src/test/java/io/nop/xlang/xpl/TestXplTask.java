@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Timestamp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -102,11 +103,12 @@ public class TestXplTask extends BaseTestCase {
 
         IResource resource = new FileResource(new File(resultDir, "b.xpl"));
         long lastModified = resource.lastModified();
+        System.out.println("b.xpl:"+new Timestamp(lastModified));
         XNode node = ResourceHelper.readXml(resource);
         node.appendChild(XNode.make("c:unit"));
         ResourceHelper.writeXml(resource, node);
         assertNotEquals(lastModified, resource.lastModified());
-        System.out.println("modify b.xpl");
+        System.out.println("modify b.xpl：" + new Timestamp(resource.lastModified()));
 
         try {
             Thread.sleep(500);

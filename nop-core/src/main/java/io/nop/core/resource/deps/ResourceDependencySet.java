@@ -91,13 +91,27 @@ public class ResourceDependencySet {
     }
 
     public void addDependency(String path) {
+        if (resource.getPath().equals(path))
+            return;
+
         this.depends.add(path);
+    }
+
+    public void addDependencySet(ResourceDependencySet deps) {
+        String path = deps.getResourcePath();
+        if (resource.getPath().equals(path)) {
+            addDepends(deps.getDepends());
+        } else {
+            addDependency(path);
+        }
     }
 
     public void addDepends(Collection<String> depends) {
         if (depends == null)
             return;
 
-        depends.addAll(depends);
+        for (String depend : depends) {
+            addDependency(depend);
+        }
     }
 }
