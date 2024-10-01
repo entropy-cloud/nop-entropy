@@ -67,6 +67,20 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     
     /**
      *  
+     * xml name: tagIndex
+     * 
+     */
+    private int _tagIndex  = 0;
+    
+    /**
+     *  
+     * xml name: tagsCodec
+     * 类似ISO8583协议，支持先输出一个bitmap标记哪些字段需要写出，然后根据tagIndex过滤只写出部分字段
+     */
+    private java.lang.String _tagsCodec ;
+    
+    /**
+     *  
      * xml name: template
      * 文本输出时使用template更加直观
      */
@@ -233,6 +247,44 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     
     /**
      * 
+     * xml name: tagIndex
+     *  
+     */
+    
+    public int getTagIndex(){
+      return _tagIndex;
+    }
+
+    
+    public void setTagIndex(int value){
+        checkAllowChange();
+        
+        this._tagIndex = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: tagsCodec
+     *  类似ISO8583协议，支持先输出一个bitmap标记哪些字段需要写出，然后根据tagIndex过滤只写出部分字段
+     */
+    
+    public java.lang.String getTagsCodec(){
+      return _tagsCodec;
+    }
+
+    
+    public void setTagsCodec(java.lang.String value){
+        checkAllowChange();
+        
+        this._tagsCodec = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: template
      *  文本输出时使用template更加直观
      */
@@ -276,6 +328,8 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
         out.putNotNull("repeatKind",this.getRepeatKind());
         out.putNotNull("repeatUntil",this.getRepeatUntil());
         out.putNotNull("switch",this.getSwitch());
+        out.putNotNull("tagIndex",this.getTagIndex());
+        out.putNotNull("tagsCodec",this.getTagsCodec());
         out.putNotNull("template",this.getTemplate());
     }
 
@@ -295,6 +349,8 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
         instance.setRepeatKind(this.getRepeatKind());
         instance.setRepeatUntil(this.getRepeatUntil());
         instance.setSwitch(this.getSwitch());
+        instance.setTagIndex(this.getTagIndex());
+        instance.setTagsCodec(this.getTagsCodec());
         instance.setTemplate(this.getTemplate());
     }
 

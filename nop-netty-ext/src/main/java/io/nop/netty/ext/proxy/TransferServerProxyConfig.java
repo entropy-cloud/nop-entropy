@@ -13,7 +13,6 @@ import io.nop.record.model.PacketCodecModel;
 public class TransferServerProxyConfig extends NettyTcpServerConfig {
     private String stateMachinePath;
     private String packetModelPath;
-    private boolean useRpcHandler;
 
     public TransferServerProxyConfig() {
         setUseChannelGroup(true);
@@ -34,14 +33,6 @@ public class TransferServerProxyConfig extends NettyTcpServerConfig {
 
     public void setPacketModelPath(String packetModelPath) {
         this.packetModelPath = packetModelPath;
-    }
-
-    public boolean isUseRpcHandler() {
-        return useRpcHandler;
-    }
-
-    public void setUseRpcHandler(boolean useRpcHandler) {
-        this.useRpcHandler = useRpcHandler;
     }
 
     public IStateMachine loadStateMachine() {

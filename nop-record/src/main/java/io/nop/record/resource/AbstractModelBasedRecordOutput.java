@@ -6,6 +6,7 @@ import io.nop.api.core.util.IVariableScope;
 import io.nop.api.core.util.Symbol;
 import io.nop.commons.aggregator.CompositeAggregatorProvider;
 import io.nop.commons.aggregator.IAggregatorProvider;
+import io.nop.commons.collections.bit.IBitSet;
 import io.nop.commons.text.SimpleTextTemplate;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IBeanVariableScope;
@@ -170,7 +171,8 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IRecordOutpu
         if (!runIfExpr(recordMeta.getIfExpr(), record, name))
             return;
 
-        writeTemplateOrFields(out, recordMeta, null, record);
+        IBitSet tags = writeTags(out, null, recordMeta,record);
+        writeTemplateOrFields(out, tags, recordMeta, null, record);
 
         if (recordMeta.getAfterWrite() != null)
             recordMeta.getAfterWrite().call1(null, record, context.getEvalScope());
@@ -252,16 +254,18 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IRecordOutpu
                         .param(ARG_TYPE_NAME, caseType);
 
             Object value = getProp(field, record);
-            writeTemplateOrFields(out, typeMeta, field.getCharsetObj(), value);
+            IBitSet tags = writeTags(out, field, typeMeta, value);
+            writeTemplateOrFields(out, tags, typeMeta, field.getCharsetObj(), value);
             if (typeMeta.getAfterWrite() != null)
                 typeMeta.getAfterWrite().call1(null, record, context.getEvalScope());
             return;
         }
 
-        writeVirtualField(out, field, record);
+        IBitSet tags = writeTags(out, field, null, record);
+        writeVirtualField(out, tags, field, record);
     }
 
-    protected void writeVirtualField(Output out, RecordFieldMeta field, Object record) throws IOException {
+    protected void writeVirtualField(Output out, IBitSet tags, RecordFieldMeta field, Object record) throws IOException {
         if (field.isVirtual()) {
             if (field.getFields() != null) {
                 for (RecordFieldMeta subField : field.getFields()) {
@@ -270,7 +274,7 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IRecordOutpu
             }
         } else if (field.getFields() != null) {
             Object value = getProp(field, record);
-            writeTemplateOrFields(out, field, field.getCharsetObj(), value);
+            writeTemplateOrFields(out, tags, field, field.getCharsetObj(), value);
         } else {
             writeField0(out, field, record);
         }
@@ -278,13 +282,17 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IRecordOutpu
             field.getAfterWrite().call1(null, record, context.getEvalScope());
     }
 
-    protected void writeTemplateOrFields(Output out, IRecordFieldsMeta fields, Charset charset, Object record) throws IOException {
+    protected void writeTemplateOrFields(Output out, IBitSet tags,
+                                         IRecordFieldsMeta fields, Charset charset, Object record) throws IOException {
         SimpleTextTemplate template = fields.getNormalizedTemplate();
         if (template != null) {
             for (Object part : template.getParts()) {
                 if (part instanceof Symbol) {
                     String name = ((Symbol) part).getText();
                     RecordFieldMeta field = fields.requireField(name);
+                    if (!field.isMatchTag(tags))
+                        continue;
+
                     writeField(out, field, record);
                 } else {
                     writeString(out, part.toString(), charset);
@@ -292,10 +300,14 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IRecordOutpu
             }
         } else {
             for (RecordFieldMeta field : fields.getFields()) {
+                if (!field.isMatchTag(tags))
+                    continue;
                 writeField(out, field, record);
             }
         }
     }
+
+    abstract protected IBitSet writeTags(Output out, RecordFieldMeta field, RecordObjectMeta typeMeta, Object value) throws IOException;
 
     abstract protected void writeObjectWithCodec(Output out, RecordFieldMeta field, Object record) throws IOException;
 

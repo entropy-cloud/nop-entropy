@@ -7,9 +7,12 @@
  */
 package io.nop.record.model;
 
+import io.nop.commons.collections.bit.IBitSet;
 import io.nop.commons.text.SimpleTextTemplate;
 import io.nop.commons.util.StringHelper;
 import io.nop.record.codec.IFieldBinaryCodec;
+import io.nop.record.codec.IFieldTagBinaryCodec;
+import io.nop.record.codec.IFieldTagTextCodec;
 import io.nop.record.codec.IFieldTextCodec;
 import io.nop.record.model._gen._RecordFieldMeta;
 
@@ -20,12 +23,26 @@ public class RecordFieldMeta extends _RecordFieldMeta implements IRecordFieldsMe
     private IFieldTextCodec resolvedTextCodec;
     private IFieldBinaryCodec resolvedBinaryCodec;
 
+    private IFieldTagBinaryCodec resolvedTagBinaryCodec;
+    private IFieldTagTextCodec resolvedTagTextCodec;
+
     private SimpleTextTemplate normalizedTemplate;
 
     private Charset charsetObj;
 
     public RecordFieldMeta() {
 
+    }
+
+    public boolean isMatchTag(IBitSet tags) {
+        int tagIndex = getTagIndex();
+        if (tagIndex < 0)
+            return true;
+
+        if (tags == null)
+            return true;
+
+        return tags.get(tagIndex);
     }
 
     public SimpleTextTemplate getNormalizedTemplate() {
@@ -60,6 +77,22 @@ public class RecordFieldMeta extends _RecordFieldMeta implements IRecordFieldsMe
 
     public void setResolvedTextCodec(IFieldTextCodec resolvedTextCodec) {
         this.resolvedTextCodec = resolvedTextCodec;
+    }
+
+    public IFieldTagBinaryCodec getResolvedTagBinaryCodec() {
+        return resolvedTagBinaryCodec;
+    }
+
+    public void setResolvedTagBinaryCodec(IFieldTagBinaryCodec resolvedTagBinaryCodec) {
+        this.resolvedTagBinaryCodec = resolvedTagBinaryCodec;
+    }
+
+    public IFieldTagTextCodec getResolvedTagTextCodec() {
+        return resolvedTagTextCodec;
+    }
+
+    public void setResolvedTagTextCodec(IFieldTagTextCodec resolvedTagTextCodec) {
+        this.resolvedTagTextCodec = resolvedTagTextCodec;
     }
 
     public IFieldBinaryCodec getResolvedBinaryCodec() {

@@ -31,7 +31,7 @@ public class FixedBitSet implements IBitSet, Serializable {
     private final long[] words;
 
     public FixedBitSet(int bits) {
-        this(new long[(bits) + 1]);
+        this(new long[(Guard.positiveInt(bits,"bits") + 63)/64]);
     }
 
     /**

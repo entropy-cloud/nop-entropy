@@ -11,19 +11,23 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.aggregator.CompositeAggregatorProvider;
 import io.nop.commons.aggregator.IAggregatorProvider;
 import io.nop.commons.bytes.ByteString;
+import io.nop.commons.collections.bit.IBitSet;
 import io.nop.commons.util.StringHelper;
 import io.nop.record.codec.FieldCodecRegistry;
 import io.nop.record.codec.IFieldCodecContext;
+import io.nop.record.codec.IFieldTagTextCodec;
 import io.nop.record.codec.IFieldTextCodec;
 import io.nop.record.codec.impl.DefaultFieldCodecContext;
 import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordFileMeta;
+import io.nop.record.model.RecordObjectMeta;
 import io.nop.record.output.IRecordTextOutput;
 import io.nop.record.util.RecordMetaHelper;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
 
+import static io.nop.record.util.RecordMetaHelper.resolveTagTextCodec;
 import static io.nop.record.util.RecordMetaHelper.resolveTextCodec;
 
 public class ModelBasedTextRecordOutput<T> extends AbstractModelBasedRecordOutput<IRecordTextOutput, T> {
@@ -62,6 +66,14 @@ public class ModelBasedTextRecordOutput<T> extends AbstractModelBasedRecordOutpu
     @Override
     protected void writeString(IRecordTextOutput out, String str, Charset charset) throws IOException {
         out.append(str);
+    }
+
+    @Override
+    protected IBitSet writeTags(IRecordTextOutput out, RecordFieldMeta field, RecordObjectMeta typeMeta, Object value) throws IOException {
+        IFieldTagTextCodec codec = resolveTagTextCodec(field, registry);
+        if (codec == null)
+            return null;
+        return codec.encodeTags(out, value, field, typeMeta, context);
     }
 
     @Override

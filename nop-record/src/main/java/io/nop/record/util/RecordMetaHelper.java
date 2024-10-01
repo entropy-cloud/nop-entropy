@@ -12,6 +12,8 @@ import io.nop.commons.bytes.ByteString;
 import io.nop.commons.util.StringHelper;
 import io.nop.record.codec.FieldCodecRegistry;
 import io.nop.record.codec.IFieldBinaryCodec;
+import io.nop.record.codec.IFieldTagBinaryCodec;
+import io.nop.record.codec.IFieldTagTextCodec;
 import io.nop.record.codec.IFieldTextCodec;
 import io.nop.record.model.RecordFieldMeta;
 
@@ -80,6 +82,46 @@ public class RecordMetaHelper {
                     .param(ARG_CODEC, codec);
 
         field.setResolvedBinaryCodec(resolved);
+        return resolved;
+    }
+
+    public static IFieldTagBinaryCodec resolveTagBinaryCodec(RecordFieldMeta field, FieldCodecRegistry registry) {
+        IFieldTagBinaryCodec resolved = field.getResolvedTagBinaryCodec();
+        if (resolved != null)
+            return resolved;
+
+        String codec = field.getTagsCodec();
+        if (codec == null)
+            return null;
+
+        resolved = registry.getTagBinaryCodec(codec);
+        if (resolved == null)
+            throw new NopException(ERR_RECORD_UNKNOWN_FIELD_CODEC)
+                    .source(field)
+                    .param(ARG_FIELD_NAME, field.getName())
+                    .param(ARG_CODEC, codec);
+
+        field.setResolvedTagBinaryCodec(resolved);
+        return resolved;
+    }
+
+    public static IFieldTagTextCodec resolveTagTextCodec(RecordFieldMeta field, FieldCodecRegistry registry) {
+        IFieldTagTextCodec resolved = field.getResolvedTagTextCodec();
+        if (resolved != null)
+            return resolved;
+
+        String codec = field.getTagsCodec();
+        if (codec == null)
+            return null;
+
+        resolved = registry.getTagTextCodec(codec);
+        if (resolved == null)
+            throw new NopException(ERR_RECORD_UNKNOWN_FIELD_CODEC)
+                    .source(field)
+                    .param(ARG_FIELD_NAME, field.getName())
+                    .param(ARG_CODEC, codec);
+
+        field.setResolvedTagTextCodec(resolved);
         return resolved;
     }
 

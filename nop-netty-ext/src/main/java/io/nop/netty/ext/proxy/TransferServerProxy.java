@@ -5,6 +5,7 @@ import io.nop.codec.IPacketCodec;
 import io.nop.commons.service.LifeCycleSupport;
 import io.nop.fsm.execution.IStateMachine;
 import io.nop.netty.ext.handlers.PacketStateMachineHandler;
+import io.nop.netty.ext.handlers.ProxyHandler;
 import io.nop.netty.handlers.PacketCodecHandler;
 import io.nop.netty.handlers.RpcMessageHandler;
 import io.nop.netty.tcp.NettyTcpServer;
@@ -57,10 +58,14 @@ public class TransferServerProxy extends LifeCycleSupport {
 
     private void initServerAChannel(ChannelPipeline pipeline) {
         initServerChannel(pipeline, serverAConfig);
+        // 从serverA接收到消息，然后作为RPC消息转发到连接serverB的客户端，当serverB返回消息时，再返回给连接serverA的客户端。
+        pipeline.addLast(new ProxyHandler(serverB));
     }
 
     private void initServerBChannel(ChannelPipeline pipeline) {
         initServerChannel(pipeline, serverBConfig);
+
+        pipeline.addLast(RPC_NAME, new RpcMessageHandler(serverBConfig.getMaxPendingTasks()));
     }
 
     private void initServerChannel(ChannelPipeline pipeline, TransferServerProxyConfig config) {
@@ -71,10 +76,6 @@ public class TransferServerProxy extends LifeCycleSupport {
         IStateMachine stateMachine = config.loadStateMachine();
         if (stateMachine != null) {
             pipeline.addLast(STATE_MACHINE_NAME, new PacketStateMachineHandler(stateMachine));
-        }
-
-        if (config.isUseRpcHandler()) {
-            pipeline.addLast(RPC_NAME, new RpcMessageHandler(config.getMaxPendingTasks()));
         }
     }
 

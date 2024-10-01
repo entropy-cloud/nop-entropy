@@ -11,12 +11,15 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.aggregator.CompositeAggregatorProvider;
 import io.nop.commons.aggregator.IAggregatorProvider;
 import io.nop.commons.bytes.ByteString;
+import io.nop.commons.collections.bit.IBitSet;
 import io.nop.record.codec.FieldCodecRegistry;
 import io.nop.record.codec.IFieldBinaryCodec;
 import io.nop.record.codec.IFieldCodecContext;
+import io.nop.record.codec.IFieldTagBinaryCodec;
 import io.nop.record.codec.impl.DefaultFieldCodecContext;
 import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordFileMeta;
+import io.nop.record.model.RecordObjectMeta;
 import io.nop.record.output.IRecordBinaryOutput;
 import io.nop.record.util.RecordMetaHelper;
 
@@ -24,6 +27,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 
 import static io.nop.record.util.RecordMetaHelper.resolveBinaryCodec;
+import static io.nop.record.util.RecordMetaHelper.resolveTagBinaryCodec;
 
 public class ModelBasedBinaryRecordOutput<T> extends AbstractModelBasedRecordOutput<IRecordBinaryOutput, T> {
 
@@ -60,6 +64,14 @@ public class ModelBasedBinaryRecordOutput<T> extends AbstractModelBasedRecordOut
     @Override
     protected void writeString(IRecordBinaryOutput out, String str, Charset charset) throws IOException {
         out.writeBytes(str.getBytes(charset));
+    }
+
+    @Override
+    protected IBitSet writeTags(IRecordBinaryOutput out, RecordFieldMeta field, RecordObjectMeta typeMeta, Object value) throws IOException {
+        IFieldTagBinaryCodec codec = resolveTagBinaryCodec(field, registry);
+        if (codec == null)
+            return null;
+        return codec.encodeTags(out, value, field, typeMeta, context);
     }
 
     @Override
