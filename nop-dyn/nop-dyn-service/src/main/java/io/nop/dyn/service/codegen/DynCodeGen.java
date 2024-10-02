@@ -99,7 +99,7 @@ public class DynCodeGen implements IResourceTenantInitializer, IDynamicBizModelP
     }
 
     private InMemoryCodeCache initTenantCache(String tenantId) {
-        return DynOrmModelHolder.runInitializeTask(() -> {
+        return ResourceTenantManager.runInitializeTenantTask(() -> {
             InMemoryCodeCache cache = newInMemoryCodeCache(tenantId);
             generateForAllModules(cache);
             cache.reloadModel(ormSessionFactory, bizObjectManager);
@@ -113,8 +113,9 @@ public class DynCodeGen implements IResourceTenantInitializer, IDynamicBizModelP
 
     public InMemoryCodeCache getCodeCache() {
         String tenantId = ContextProvider.currentTenantId();
-        if (StringHelper.isEmpty(tenantId) || !isUseTenant())
+        if (StringHelper.isEmpty(tenantId) || !isUseTenant()){
             return codeCache;
+        }
         return tenantCache.get(tenantId).updateAndGet(k -> {
             if (k == null) {
                 return initTenantCache(tenantId);
@@ -132,7 +133,7 @@ public class DynCodeGen implements IResourceTenantInitializer, IDynamicBizModelP
     @Override
     public Runnable initializeTenant(String tenantId) {
         InMemoryCodeCache cache = getCodeCache();
-        generateForAllModules(getCodeCache());
+        generateForAllModules(cache);
         return cache::clear;
     }
 
@@ -164,7 +165,9 @@ public class DynCodeGen implements IResourceTenantInitializer, IDynamicBizModelP
     }
 
     public synchronized void generateForAllModules() {
-        generateForAllModules(getCodeCache());
+        InMemoryCodeCache codeCache = getCodeCache();
+        generateForAllModules(codeCache);
+
     }
 
     public synchronized void generateBizModel(NopDynEntityMeta module) {

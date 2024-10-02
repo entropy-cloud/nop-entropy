@@ -10,10 +10,12 @@ import io.nop.commons.cache.GlobalCacheRegistry;
 import io.nop.commons.lang.ICreationListener;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.module.ModuleManager;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.IResourceStore;
 import io.nop.core.resource.ResourceConstants;
 import io.nop.core.resource.ResourceHelper;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.cache.CacheEntryManagement;
 import io.nop.core.resource.cache.IResourceCacheEntry;
 import io.nop.core.resource.cache.IResourceLoadingCache;
@@ -23,6 +25,8 @@ import io.nop.core.resource.component.IResourceDependencyManager;
 import io.nop.core.resource.deps.IResourceChangeChecker;
 import io.nop.core.resource.deps.ResourceDependsManager;
 import io.nop.core.resource.store.ITenantResourceStoreSupplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -34,6 +38,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import static io.nop.core.CoreConfigs.CFG_TENANT_RESOURCE_DISABLED_PATHS;
 import static io.nop.core.CoreConfigs.CFG_TENANT_RESOURCE_ENABLED;
@@ -45,6 +50,8 @@ import static io.nop.core.CoreErrors.ERR_RESOURCE_STORE_NOT_SUPPORT_TENANT_DELTA
  */
 @GlobalInstance
 public class ResourceTenantManager implements ITenantResourceStoreSupplier {
+    static final Logger LOG = LoggerFactory.getLogger(ResourceTenantManager.class);
+
     private static ResourceTenantManager _instance = new ResourceTenantManager();
 
     public static ResourceTenantManager instance() {
@@ -54,8 +61,6 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
     public static void registerInstance(ResourceTenantManager instance) {
         _instance = Guard.notNull(instance, "instance");
     }
-
-    private static final ThreadLocal<Boolean> tenantInitializing = new ThreadLocal<>();
 
     private Set<String> enabledTenantPaths;
     private Set<String> disabledTenantPaths;
@@ -69,6 +74,26 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
      */
     public static boolean supportTenant(String path) {
         return instance().isSupportTenant(path);
+    }
+
+    static final ThreadLocal<Boolean> s_initializingTenant = new ThreadLocal<>();
+
+    public static boolean isInitializingTenant() {
+        return Boolean.TRUE.equals(s_initializingTenant.get());
+    }
+
+    public static <T> T runInitializeTenantTask(Supplier<T> task) {
+        Boolean b = s_initializingTenant.get();
+        if (Boolean.TRUE.equals(b)) {
+            return task.get();
+        } else {
+            s_initializingTenant.set(true);
+            try {
+                return task.get();
+            } finally {
+                s_initializingTenant.set(false);
+            }
+        }
     }
 
     private final Map<String, TenantInitialization> tenantInitializations = new ConcurrentHashMap<>();
@@ -96,7 +121,12 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
         }
 
         public void init() {
+            Boolean b = s_initializingTenant.get();
+            if (Boolean.TRUE.equals(b))
+                return;
+
             if (state.compareAndSet(0, 1)) {
+                s_initializingTenant.set(true);
                 Cancellable cancellable = new Cancellable();
                 try {
                     for (IResourceTenantInitializer initializer : tenantInitializers) {
@@ -105,9 +135,18 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
                     this.cleanup = cancellable;
                     ready.complete(null);
                 } catch (Exception e) {
+                    LOG.error("nop.err.tenant-init-error", e);
                     ready.completeExceptionally(e);
                     cancellable.cancel();
                     throw NopException.adapt(e);
+                } finally {
+                    s_initializingTenant.set(false);
+                }
+            } else {
+                try {
+                    FutureHelper.getFromFuture(ready);
+                } catch (Exception e) {
+                    LOG.info("nop.ignore-tenant-init-error");
                 }
             }
         }

@@ -84,14 +84,19 @@ public class DeltaResourceStore implements IDeltaResourceStore {
 
     @Override
     public void updateInMemoryLayer(IResourceStore store) {
-        Guard.notNull(store, "inMemoryLayer");
-
         if (this.useInMemoryLayer) {
             OverrideResourceStore overrideStore = (OverrideResourceStore) this.store;
-            this.store = new OverrideResourceStore(store, overrideStore.getSecondStore());
+            if (store == null) {
+                this.store = overrideStore.getSecondStore();
+                this.useInMemoryLayer = false;
+            } else {
+                this.store = new OverrideResourceStore(store, overrideStore.getSecondStore());
+            }
         } else {
-            this.useInMemoryLayer = true;
-            this.store = new OverrideResourceStore(store, this.store);
+            if (store != null) {
+                this.store = new OverrideResourceStore(store, this.store);
+                this.useInMemoryLayer = true;
+            }
         }
     }
 
@@ -262,7 +267,7 @@ public class DeltaResourceStore implements IDeltaResourceStore {
         // 没有tenant层， 也没有delta层
         if (deltaIndex < 0) {
             // 只有租户层，没有delta层，则租户层的super对应stdPath
-            if(ResourceHelper.isTenantPath(currentPath))
+            if (ResourceHelper.isTenantPath(currentPath))
                 return store.getResource(path, returnNullIfNotExists);
 
             if (returnNullIfNotExists)

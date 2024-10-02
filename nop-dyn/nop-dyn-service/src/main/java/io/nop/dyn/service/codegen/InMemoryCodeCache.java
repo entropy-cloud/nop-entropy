@@ -72,6 +72,10 @@ public class InMemoryCodeCache {
         dynBizModels.clear();
     }
 
+    public boolean isEmpty() {
+        return moduleCoreStores.isEmpty() && moduleWebStores.isEmpty() && dynBizModels.isEmpty();
+    }
+
     public synchronized void generateForModule(boolean genWebFiles, boolean formatCode,
                                                NopDynModule module) {
         InMemoryResourceStore store = genModuleCoreFiles(formatCode, module);
@@ -255,6 +259,9 @@ public class InMemoryCodeCache {
 
         if (!resource.exists() || !resource.readText().equals(text)) {
             resource.writeText(text, null);
+            if (AppConfig.isDebugMode()) {
+                ResourceHelper.dumpResource(resource, text);
+            }
         }
     }
 

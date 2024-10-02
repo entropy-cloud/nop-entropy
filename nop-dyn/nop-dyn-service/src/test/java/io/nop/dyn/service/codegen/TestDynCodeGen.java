@@ -13,9 +13,12 @@ import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.biz.impl.BizObjectManager;
 import io.nop.commons.type.StdSqlType;
+import io.nop.core.module.ModuleManager;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.core.resource.tenant.ResourceTenantManager;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dyn.dao.NopDynDaoConstants;
@@ -28,7 +31,9 @@ import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.orm.IOrmTemplate;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -50,6 +55,18 @@ public class TestDynCodeGen extends JunitBaseTestCase {
 
     @Inject
     DynOrmModelHolder ormModelHolder; // 单元测试时所有的bean都是延迟初始化，这里引入bean强制要求初始化
+
+    @Inject
+    BizObjectManager bizObjectManager;
+
+    @BeforeEach
+    public void init(TestInfo testInfo) {
+        super.init(testInfo);
+        VirtualFileSystem.instance().updateInMemoryLayer(null);
+        ModuleManager.instance().updateDynamicModules(null);
+        ResourceTenantManager.instance().reset();
+        bizObjectManager.clearCache();
+    }
 
     @Test
     public void testGen() {
@@ -103,7 +120,33 @@ public class TestDynCodeGen extends JunitBaseTestCase {
 
             gqlContext = graphQLEngine.newRpcContext(null, "MyDynEntity__myMethod", ApiRequest.build(null));
             ApiResponse<?> response = FutureHelper.syncGet(graphQLEngine.executeRpcAsync(gqlContext));
-            //assertEquals(321, response.getData());
+            assertEquals(321, response.getData());
+        });
+    }
+
+    @Test
+    public void testJavaMethod() {
+        saveModule();
+
+        ormTemplate.runInSession(() -> {
+            codeGen.generateForAllModules();
+            codeGen.reloadModel();
+        });
+
+        ormTemplate.runInSession(() -> {
+
+            NopDynFunctionMeta func = getFuncMeta("myMethod");
+            func.setScriptLang("java");
+            func.setSource("import java.util.Date; return 334;");
+            ormTemplate.flushSession();
+
+            codeGen.generateBizModel(func.getEntityMeta());
+
+            IGraphQLExecutionContext gqlContext;
+
+            gqlContext = graphQLEngine.newRpcContext(null, "MyDynEntity__myMethod", ApiRequest.build(null));
+            ApiResponse<?> response = FutureHelper.syncGet(graphQLEngine.executeRpcAsync(gqlContext));
+            assertEquals(334, response.getData());
         });
     }
 
@@ -114,7 +157,7 @@ public class TestDynCodeGen extends JunitBaseTestCase {
         return dao.findFirstByExample(example);
     }
 
-    private void saveModule() {
+    private NopDynModule saveModule() {
         NopDynModule module = new NopDynModule();
         module.setModuleName("app-demo");
         module.setDisplayName("Demo Module");
@@ -124,7 +167,7 @@ public class TestDynCodeGen extends JunitBaseTestCase {
         entityMeta.setEntityName("test.MyDynEntity");
         entityMeta.setDisplayName("My Dynamic Entity");
         entityMeta.setModule(module);
-        entityMeta.setStatus(1);
+        entityMeta.setStatus(NopDynDaoConstants.MODULE_STATUS_PUBLISHED);
         entityMeta.setIsExternal(false);
 
         entityMeta.setStoreType(NopDynDaoConstants.ENTITY_STORE_TYPE_VIRTUAL);
@@ -134,12 +177,13 @@ public class TestDynCodeGen extends JunitBaseTestCase {
 
         addProp(entityMeta, "value", StdSqlType.INTEGER, 0);
 
-        addFunc(entityMeta, "myMethod", "return 123", "Int");
-        addFunc(entityMeta, "myMethod2", "<c:unit/>", "Any");
+        addFunc(entityMeta, "myMethod", "return 123", "Integer");
+        addFunc(entityMeta, "myMethod2", "<c:unit/>", "Object");
 
         module.getEntityMetas().add(entityMeta);
 
         daoProvider.daoFor(NopDynModule.class).saveEntity(module);
+        return module;
     }
 
     private NopDynPropMeta addProp(NopDynEntityMeta entityMeta, String propName, StdSqlType sqlType, int precision) {
@@ -156,11 +200,11 @@ public class TestDynCodeGen extends JunitBaseTestCase {
     }
 
     private void addFunc(NopDynEntityMeta entityMeta, String funcName, String source,
-                         String gqlType) {
+                         String type) {
         NopDynFunctionMeta funcMeta = new NopDynFunctionMeta();
         funcMeta.setName(funcName);
         funcMeta.setDisplayName(funcName);
-        funcMeta.setReturnGqlType(gqlType);
+        funcMeta.setReturnType(type);
         funcMeta.setSource(source);
         funcMeta.setEntityMeta(entityMeta);
         funcMeta.setStatus(1);

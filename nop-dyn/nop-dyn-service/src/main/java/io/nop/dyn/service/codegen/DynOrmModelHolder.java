@@ -2,6 +2,7 @@ package io.nop.dyn.service.codegen;
 
 import io.nop.api.core.context.ContextProvider;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.resource.tenant.ResourceTenantManager;
 import io.nop.core.resource.tenant.TenantAwareResourceCacheEntry;
 import io.nop.orm.ILoadedOrmModel;
 import io.nop.orm.IOrmInterceptor;
@@ -12,43 +13,21 @@ import io.nop.orm.model.OrmModel;
 import io.nop.orm.model.loader.OrmModelLoader;
 import io.nop.orm.persister.IPersistEnv;
 
-import java.util.function.Supplier;
-
 import static io.nop.orm.OrmConfigs.CFG_ORM_MODEL_CACHE_CHECK_CHANGE;
 
 public class DynOrmModelHolder implements IOrmModelHolder {
     private TenantAwareResourceCacheEntry<LoadedOrmModel> cache =
             new TenantAwareResourceCacheEntry<>("tenant-loaded-orm-model-cache", null);
 
-    static final ThreadLocal<Boolean> s_initializing = new ThreadLocal<>();
-
     @Override
     public void close() {
         cache.clear();
     }
 
-    public static boolean isInitializing() {
-        return Boolean.TRUE.equals(s_initializing.get());
-    }
-
-    public static <T> T runInitializeTask(Supplier<T> task) {
-        Boolean b = s_initializing.get();
-        if (Boolean.TRUE.equals(b)) {
-            return task.get();
-        } else {
-            s_initializing.set(true);
-            try {
-                return task.get();
-            } finally {
-                s_initializing.set(false);
-            }
-        }
-    }
-
     @Override
     public ILoadedOrmModel getOrmModel(IPersistEnv env) {
         // 避免租户模型初始化的时候重入
-        if (isInitializing())
+        if (ResourceTenantManager.isInitializingTenant())
             return ContextProvider.runWithoutTenantId(() -> doGetOrmModel(env));
         return doGetOrmModel(env);
     }
