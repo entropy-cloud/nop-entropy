@@ -70,7 +70,7 @@ public class ModelBasedTextRecordOutput<T> extends AbstractModelBasedRecordOutpu
 
     @Override
     protected IBitSet writeTags(IRecordTextOutput out, RecordFieldMeta field, RecordObjectMeta typeMeta, Object value) throws IOException {
-        IFieldTagTextCodec codec = resolveTagTextCodec(field, registry);
+        IFieldTagTextCodec codec = field == null ? null : resolveTagTextCodec(field, registry);
         if (codec == null)
             return null;
         return codec.encodeTags(out, value, field, typeMeta, context);

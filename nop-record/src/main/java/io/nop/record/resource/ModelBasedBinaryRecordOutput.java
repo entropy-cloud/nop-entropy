@@ -68,7 +68,7 @@ public class ModelBasedBinaryRecordOutput<T> extends AbstractModelBasedRecordOut
 
     @Override
     protected IBitSet writeTags(IRecordBinaryOutput out, RecordFieldMeta field, RecordObjectMeta typeMeta, Object value) throws IOException {
-        IFieldTagBinaryCodec codec = resolveTagBinaryCodec(field, registry);
+        IFieldTagBinaryCodec codec = field == null ? null : resolveTagBinaryCodec(field, registry);
         if (codec == null)
             return null;
         return codec.encodeTags(out, value, field, typeMeta, context);
