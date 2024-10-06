@@ -370,6 +370,7 @@ public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClas
         const mappingMeta = new OrmMappingTableMeta(rel.refEntityModel);
 
         const mappingPropInfo = mappingMeta.getMappingPropInfo(rel);
+        if(!mappingPropInfo) continue;
     ]]></c:script>
     <c:if test="${mappingPropInfo and !mappingPropInfo.toMany}"><![CDATA[
         public ${mappingPropInfo.refClassName} ${mappingInfo.propName.$methodGet()}(){
