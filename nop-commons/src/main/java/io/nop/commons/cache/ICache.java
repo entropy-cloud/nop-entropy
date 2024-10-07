@@ -12,10 +12,11 @@ import io.nop.commons.collections.IAsyncMap;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-public interface ICache<K, V> extends IAsyncCache<K, V>, IAsyncMap<K, V> , IConfigRefreshable {
+public interface ICache<K, V> extends IAsyncCache<K, V>, IAsyncMap<K, V>, IConfigRefreshable {
     String getName();
 
     long estimatedSize();
@@ -28,7 +29,19 @@ public interface ICache<K, V> extends IAsyncCache<K, V>, IAsyncMap<K, V> , IConf
 
     V getIfPresent(K key);
 
-    V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction);
+    default V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
+        Objects.requireNonNull(mappingFunction);
+        V v;
+        if ((v = get(key)) == null) {
+            V newValue;
+            if ((newValue = mappingFunction.apply(key)) != null) {
+                put(key, newValue);
+                return newValue;
+            }
+        }
+
+        return v;
+    }
 
     default Map<K, V> getAll(Collection<? extends K> keys) {
         return getAllPresent(keys);
@@ -85,4 +98,9 @@ public interface ICache<K, V> extends IAsyncCache<K, V>, IAsyncMap<K, V> , IConf
     void refresh(K key);
 
     void forEachEntry(BiConsumer<? super K, ? super V> consumer);
+
+    @Override
+    default CacheStats stats() {
+        return null;
+    }
 }
