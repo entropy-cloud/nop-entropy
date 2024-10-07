@@ -35,7 +35,7 @@ Nop平台中所有的bean都由NopIoC容器统一管理，它是一个语法类�
 4. `id="$DEFAULT$nopActionAuthChecker"` 表示它定义的是一个default实现，如果存在一个具有相同名称的bean，则会自动替换这个实现。
 
 nopActionAuthChecker的原始定义如下，节点上标记了ioc:default='true'。如果存在另外一个bean的name也是nopActionAuthChecker，则会自动
-覆盖这个缺省定义。ioc:default的作用类似于SpringBoot中的ConditionOnMissingBean
+覆盖这个缺省定义。ioc:default的作用类似于SpringBoot中的ConditionalOnMissingBean
 
 ```xml
     <bean id="nopActionAuthChecker" class="io.nop.auth.service.auth.DefaultActionAuthChecker" ioc:default="true"/>
@@ -60,7 +60,7 @@ nopActionAuthChecker的原始定义如下，节点上标记了ioc:default='true'
 <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        x:extends="super">
     <!-- 这里的定义会和平台中的定义节点进行合并 -->
-    <bean id="nopActionAuthChecker" claass="xxx.MyActionAuthChecker" />
+    <bean id="nopActionAuthChecker" class="xxx.MyActionAuthChecker" />
 </beans>
 ```
 

@@ -140,9 +140,9 @@
 
 ```xml
 <columns>
-  <c:forEach var="col" items="${entityModel.columns}">
+  <c:for var="col" items="${entityModel.columns}">
     <column name="${col.name}" sqlType="${col.sqlType}" />
-  </c:forEach>
+  </c:for>
 </columns>
 ```
 
