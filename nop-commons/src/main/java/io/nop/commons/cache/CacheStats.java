@@ -57,7 +57,7 @@ import java.io.Serializable;
 public final class CacheStats implements Serializable {
     private static final long serialVersionUID = -2802626144795228544L;
 
-    private static final CacheStats EMPTY_STATS = new CacheStats(0, 0, 0, 0, 0, 0, 0);
+    private static final CacheStats EMPTY_STATS = new CacheStats(0, 0, 0, 0, 0, 0, 0, 0, 0);
 
     private long hitCount;
     private long missCount;
@@ -66,6 +66,8 @@ public final class CacheStats implements Serializable {
     private long totalLoadTime;
     private long evictionCount;
     private long evictionWeight;
+    private long cacheGets;
+    private long cachePuts;
 
     public CacheStats() {
     }
@@ -86,7 +88,7 @@ public final class CacheStats implements Serializable {
      */
     public CacheStats(@NonNegative long hitCount, @NonNegative long missCount, @NonNegative long loadSuccessCount,
                       @NonNegative long loadFailureCount, @NonNegative long totalLoadTime, @NonNegative long evictionCount,
-                      @NonNegative long evictionWeight) {
+                      @NonNegative long evictionWeight, long cacheGets, long cachePuts) {
         if ((hitCount < 0) || (missCount < 0) || (loadSuccessCount < 0) || (loadFailureCount < 0) || (totalLoadTime < 0)
                 || (evictionCount < 0) || (evictionWeight < 0)) {
             throw new IllegalArgumentException();
@@ -98,6 +100,24 @@ public final class CacheStats implements Serializable {
         this.totalLoadTime = totalLoadTime;
         this.evictionCount = evictionCount;
         this.evictionWeight = evictionWeight;
+        this.cacheGets = cacheGets;
+        this.cachePuts = cachePuts;
+    }
+
+    public long getCacheGets() {
+        return cacheGets;
+    }
+
+    public void setCacheGets(long cacheGets) {
+        this.cacheGets = cacheGets;
+    }
+
+    public long getCachePuts() {
+        return cachePuts;
+    }
+
+    public void setCachePuts(long cachePuts) {
+        this.cachePuts = cachePuts;
     }
 
     public void setHitCount(long hitCount) {
@@ -309,7 +329,8 @@ public final class CacheStats implements Serializable {
                 Math.max(0L, loadSuccessCount - other.loadSuccessCount),
                 Math.max(0L, loadFailureCount - other.loadFailureCount),
                 Math.max(0L, totalLoadTime - other.totalLoadTime), Math.max(0L, evictionCount - other.evictionCount),
-                Math.max(0L, evictionWeight - other.evictionWeight));
+                Math.max(0L, evictionWeight - other.evictionWeight),
+                Math.max(0L, cacheGets - other.cacheGets), Math.max(0L, cachePuts - other.cachePuts));
     }
 
     /**
@@ -323,7 +344,7 @@ public final class CacheStats implements Serializable {
         return new CacheStats(hitCount + other.hitCount, missCount + other.missCount,
                 loadSuccessCount + other.loadSuccessCount, loadFailureCount + other.loadFailureCount,
                 totalLoadTime + other.totalLoadTime, evictionCount + other.evictionCount,
-                evictionWeight + other.evictionWeight);
+                evictionWeight + other.evictionWeight, other.cacheGets, other.cachePuts);
     }
 
     @Override

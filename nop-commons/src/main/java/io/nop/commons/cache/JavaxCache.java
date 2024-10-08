@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
-public class JavaxCache<K, V> implements ISyncCache<K, V> {
+public class JavaxCache<K, V> implements ISyncCache<K, V>, AutoCloseable {
     private final Cache<K, V> cache;
 
     public JavaxCache(Cache<K, V> cache) {
@@ -18,6 +18,11 @@ public class JavaxCache<K, V> implements ISyncCache<K, V> {
     @Override
     public String getName() {
         return cache.getName();
+    }
+
+    @Override
+    public void close() throws Exception {
+        cache.close();
     }
 
     @Override

@@ -467,5 +467,6 @@
         <module>nop-security</module>
         <module>nop-ofbiz-migration</module>
         <module>nop-netty-ext</module>
+        <module>nop-hazelcast</module>
     </modules>
 </project>
