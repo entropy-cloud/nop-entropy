@@ -266,3 +266,25 @@ where
 
 平台在列表查询中返回子表对象时，会自动启用BatchLoader机制来优化加载，避免产生n+1问题。具体做法是先加载主表对象，然后再批量加载子表对象。目前对于ORM中的
 `to-one`和`to-many`关联属性都做了加载优化。但是`graphql:queryMethod="findList"`这种自己指定关联条件的查询还没有做优化。
+
+### 分组汇总查询
+IEntityDao和CrudBizModel中的方法都是要求返回实体对象，所以不支持直接从前台送QueryBean查询条件过来实现分组汇总查询。在后台可以自己写服务函数，
+调用IOrmTemplate.findListByQuery来实现。通过QueryBean的limit和offset来设置分页参数。如果不设置limit，则会查询全部数据
+
+```javascript
+@BizQuery
+public List<Map<String,Object>> findGroupData(@Name("offset") int offset){
+  QueryBean query = new QueryBean();
+  query.setSourceName(NopAuthGroupUser.class.getName());
+  query.fields(forField("group.name"), forField("id").count());
+  query.addOrderField("group.name", true);
+  query.addGroupField("group.name");
+  query.setOffset(offset);
+  query.setLimit(10);
+
+  List<Map<String, Object>> list = ormTemplate.findListByQuery(query);
+  return list;
+}
+```
+
+更复杂的主子表关联查询，参见[mdx-query.md](../../dev-guide/orm/mdx-query.md)
