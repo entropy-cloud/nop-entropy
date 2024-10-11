@@ -238,7 +238,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         if (query != null)
             query.setDisableLogicalDelete(false);
 
-        return doFindCount0(query, getBizObjName(), this::defaultPrepareQuery, context);
+        return doFindCount0(query, getBizObjName(), this::invokeDefaultPrepareQuery, context);
     }
 
     @BizAction
@@ -265,7 +265,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         if (query != null)
             query.setDisableLogicalDelete(false);
 
-        return doFindPage(query, this::defaultPrepareQuery, selection, context);
+        return doFindPage(query, this::invokeDefaultPrepareQuery, selection, context);
     }
 
     @BizAction
@@ -370,7 +370,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         if (queryTransformer != null)
             queryTransformer.transform(query, authObjName, action, this.getThisObj(), context);
 
-        BizQueryHelper.transformMapToProp(query,objMeta);
+        BizQueryHelper.transformMapToProp(query, objMeta);
         BizExprHelper.resolveBizExpr(query.getFilter(), context);
         return query;
     }
@@ -417,7 +417,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                        @Name(PARAM_SELECTION) FieldSelectionBean selection, IServiceContext context) {
         if (query != null)
             query.setDisableLogicalDelete(false);
-        return doFindFirst(query, this::defaultPrepareQuery, selection, context);
+        return doFindFirst(query, this::invokeDefaultPrepareQuery, selection, context);
     }
 
     @BizAction
@@ -467,7 +467,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
     @BizMakerChecker(tryMethod = METHOD_TRY_SAVE)
     public T save(@Name("data") Map<String, Object> data, IServiceContext context) {
-        return doSave(data, null, this::defaultPrepareSave, context);
+        return doSave(data, null, this::invokeDefaultPrepareSave, context);
     }
 
     @BizAction
@@ -642,7 +642,6 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         return values;
     }
 
-    @BizAction
     protected void checkDataAuth(@Name("action") String action, @Name("entity") T entity, IServiceContext context) {
         IDataAuthChecker dataAuthChecker = context.getDataAuthChecker();
         if (dataAuthChecker == null)
@@ -654,7 +653,6 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         }
     }
 
-    @BizAction
     protected void checkDataAuthAfterUpdate(@Name("entity") T entity, IServiceContext context) {
         IDataAuthChecker dataAuthChecker = context.getDataAuthChecker();
         if (dataAuthChecker == null)
@@ -666,6 +664,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         }
     }
 
+
     @BizAction
     protected void defaultPrepareSave(@Name("entityData") EntityData<T> entityData, IServiceContext context) {
         IStateMachine stm = getThisObj().getStateMachine();
@@ -674,9 +673,10 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         }
     }
 
+
     @BizAction
     protected void defaultPrepareCopyForNew(@Name("entityData") EntityData<T> entityData, IServiceContext context) {
-        this.defaultPrepareSave(entityData, context);
+        this.invokeDefaultPrepareSave(entityData, context);
     }
 
     protected void triggerStateChange(T entity, String event, IServiceContext context) {
@@ -723,7 +723,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
     @BizMakerChecker(tryMethod = METHOD_TRY_UPDATE)
     public T update(@Name("data") Map<String, Object> data, IServiceContext context) {
-        return doUpdate(data, null, this::defaultPrepareUpdate, context);
+        return doUpdate(data, null, this::invokeDefaultPrepareUpdate, context);
     }
 
     @BizAction
@@ -880,7 +880,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @BizMutation
     @BizMakerChecker(tryMethod = METHOD_TRY_DELETE)
     public boolean delete(@Name("id") @Description("@i18n:biz.id|对象的主键标识") String id, IServiceContext context) {
-        return doDelete(id, this.getDefaultRefNamesToCheckExists(), this::defaultPrepareDelete, context);
+        return doDelete(id, this.getDefaultRefNamesToCheckExists(), this::invokeDefaultPrepareDelete, context);
     }
 
     public Set<String> getDefaultRefNamesToCheckExists() {
@@ -1002,6 +1002,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         }
         return refDao.findFirstByExample(example);
     }
+
 
     @BizAction
     protected void defaultPrepareDelete(@Name("entity") T entity, IServiceContext context) {
@@ -1213,7 +1214,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
         query.addFilter(FilterBeans.eq(deleteFlagProp, 1));
 
-        return doFindPage(query, this::defaultPrepareQuery, selection, context);
+        return doFindPage(query, this::invokeDefaultPrepareQuery, selection, context);
     }
 
     @Description("@i18n:biz.recoverDeleted|恢复已删除记录")
@@ -1243,7 +1244,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     public int updateByQuery(@Name("query") QueryBean query, @Name("data") Map<String, Object> data, IServiceContext context) {
         if (query != null)
             query.setDisableLogicalDelete(false);
-        return doUpdateByQuery(query, getBizObjName(), data, null, this::defaultPrepareUpdate, context);
+        return doUpdateByQuery(query, getBizObjName(), data, null, this::invokeDefaultPrepareUpdate, context);
     }
 
     @BizAction
@@ -1284,7 +1285,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
             query.setDisableLogicalDelete(false);
 
         return doDeleteByQuery(query, getBizObjName(), getDefaultRefNamesToCheckExists(),
-                null, this::defaultPrepareDelete, context);
+                null, this::invokeDefaultPrepareDelete, context);
     }
 
     @BizAction
@@ -1348,7 +1349,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     public List<T> findList(@Optional @Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context) {
         if (query != null)
             query.setDisableLogicalDelete(false);
-        return doFindList(query, this::defaultPrepareQuery, selection, context);
+        return doFindList(query, this::invokeDefaultPrepareQuery, selection, context);
     }
 
     @BizAction
@@ -1396,7 +1397,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
             query.addFilter(FilterBeans.eq(treeModel.getParentProp(), rootParentValue));
         }
         query.setDisableLogicalDelete(false);
-        return doFindList(query, this::defaultPrepareQuery, selection, context);
+        return doFindList(query, this::invokeDefaultPrepareQuery, selection, context);
     }
 
 
@@ -1479,7 +1480,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     public T copyForNew(@Name("data") Map<String, Object> data, IServiceContext context) {
         if (CollectionHelper.isEmptyMap(data))
             throw new NopException(ERR_BIZ_EMPTY_DATA_FOR_SAVE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
-        return doCopyForNew(data, BizConstants.SELECTION_COPY_FOR_NEW, this::defaultPrepareCopyForNew, context);
+        return doCopyForNew(data, BizConstants.SELECTION_COPY_FOR_NEW, this::invokeDefaultPrepareCopyForNew, context);
     }
 
     @BizAction
@@ -1716,4 +1717,32 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 //    public List<DictOptionBean> exportableFields(IServiceContext context) {
 //        return BizExportHelper.getExportableFields(getBizObjName(), getThisObj().getObjMeta(), context);
 //    }
+
+
+    protected void invokeDefaultPrepareQuery(@Name("query") QueryBean query, IServiceContext context) {
+        // 通过这种方式调用，允许在xbiz文件中覆盖Java中的方法
+        getThisObj().invoke("defaultPrepareQuery", Map.of("query", query), null, context);
+    }
+
+    protected void invokeDefaultPrepareSave(@Name("entityData") EntityData<T> entityData, IServiceContext context) {
+        // 通过这种方式调用，允许在xbiz文件中覆盖Java中的方法
+        getThisObj().invoke("defaultPrepareSave", Map.of("entityData", entityData), null, context);
+    }
+
+    protected void invokeDefaultPrepareCopyForNew(@Name("entityData") EntityData<T> entityData, IServiceContext context){
+        // 通过这种方式调用，允许在xbiz文件中覆盖Java中的方法
+        getThisObj().invoke("defaultPrepareCopyForNew", Map.of("entityData", entityData), null, context);
+    }
+
+
+    protected void invokeDefaultPrepareUpdate(@Name("entityData") EntityData<T> entityData, IServiceContext context) {
+        // 通过这种方式调用，允许在xbiz文件中覆盖Java中的方法
+        getThisObj().invoke("defaultPrepareUpdate", Map.of("entityData", entityData), null, context);
+    }
+
+
+    protected void invokeDefaultPrepareDelete(@Name("entity") T entity, IServiceContext context) {
+        // 通过这种方式调用，允许在xbiz文件中覆盖Java中的方法
+        getThisObj().invoke("defaultPrepareDelete", Map.of("entity", entity), null, context);
+    }
 }
