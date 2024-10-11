@@ -69,6 +69,8 @@ import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_TRUE;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_OR;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_REGEX;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_STARTS_WITH;
+import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_UTF8_LENGTH;
+import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_UTF8_LENGTH_BETWEEN;
 import static io.nop.commons.util.CollectionHelper.buildImmutableList;
 
 public class FilterOp extends EnumLike<FilterOp> implements IJsonSerializable {
@@ -328,12 +330,13 @@ public class FilterOp extends EnumLike<FilterOp> implements IJsonSerializable {
     public static final FilterOp NOT_CONTAINS = compareOp(FILTER_OP_NOT_CONTAINS, 41, FilterOpHelper::notContains);
 
     public static final FilterOp LENGTH = compareOp(FILTER_OP_LENGTH, 42, FilterOpHelper::length);
-    public static final FilterOp REGEX = compareOp(FILTER_OP_REGEX, 43, FilterOpHelper::regex);
-    public static final FilterOp ICONTAINS = compareOp(FILTER_OP_ICONTAINS, 44, FilterOpHelper::icontains);
-    public static final FilterOp LIKE = compareOp(FILTER_OP_LIKE, 45, FilterOpHelper::like);
+    public static final FilterOp UTF8_LENGTH = compareOp(FILTER_OP_UTF8_LENGTH, 43, FilterOpHelper::length);
+    public static final FilterOp REGEX = compareOp(FILTER_OP_REGEX, 44, FilterOpHelper::regex);
+    public static final FilterOp ICONTAINS = compareOp(FILTER_OP_ICONTAINS, 45, FilterOpHelper::icontains);
+    public static final FilterOp LIKE = compareOp(FILTER_OP_LIKE, 46, FilterOpHelper::like);
 
     public static final List<FilterOp> DEFAULT_COMPARE_OPS = buildImmutableList(EQ, NE, GT, GE, LT, LE, IN, NOT_IN,
-            STARTS_WITH, ENDS_WITH, CONTAINS, NOT_CONTAINS, LENGTH, REGEX, ICONTAINS, LIKE);
+            STARTS_WITH, ENDS_WITH, CONTAINS, NOT_CONTAINS, LENGTH, UTF8_LENGTH, REGEX, ICONTAINS, LIKE);
 
     public static final FilterOp BETWEEN = betweenOp(FILTER_OP_BETWEEN, 50, FilterOpHelper::between);
 
@@ -342,5 +345,7 @@ public class FilterOp extends EnumLike<FilterOp> implements IJsonSerializable {
     public static final FilterOp DATETIME_BETWEEN = betweenOp(FILTER_OP_DATETIME_BETWEEN, 53,
             FilterOpHelper::dateTimeBetween);
     public static final FilterOp LENGTH_BETWEEN = betweenOp(FILTER_OP_LENGTH_BETWEEN, 54,
+            FilterOpHelper::lengthBetween);
+    public static final FilterOp UTF8_LENGTH_BETWEEN = betweenOp(FILTER_OP_UTF8_LENGTH_BETWEEN, 55,
             FilterOpHelper::lengthBetween);
 }

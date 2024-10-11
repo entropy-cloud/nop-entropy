@@ -34,11 +34,13 @@ public interface FilterBeanConstants {
     String FILTER_OP_DATE_BETWEEN = "dateBetween";
     String FILTER_OP_DATETIME_BETWEEN = "dateTimeBetween";
     String FILTER_OP_LENGTH_BETWEEN = "lengthBetween";
+    String FILTER_OP_UTF8_LENGTH_BETWEEN = "utf8LengthBetween";
 
     /**
      * 字符串长度为指定值，或者在指定区间内
      */
     String FILTER_OP_LENGTH = "length";
+    String FILTER_OP_UTF8_LENGTH = "utf8Length";
 
     String FILTER_OP_STARTS_WITH = "startsWith";
     String FILTER_OP_ENDS_WITH = "endsWith";

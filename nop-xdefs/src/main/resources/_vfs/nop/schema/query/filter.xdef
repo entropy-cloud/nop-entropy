@@ -133,12 +133,18 @@
                       xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
 
         <!-- 字段值的长度在指定范围之内 -->
-        <length name="!string" owner="string" min="#int" max="#int" excludeMin="boolean" excludeMax="boolean"
+        <lengthBetween name="!string" owner="string" min="#int" max="#int" excludeMin="boolean" excludeMax="boolean"
                 xdef:allow-multiple="true" minName="string" maxName="string" xdef:bean-tag-prop="$type"/>
 
         <!-- 文本字段值的utf8编码后的长度在指定范围之内 -->
-        <utf8Length name="!string" owner="string" min="#int" max="#int" excludeMin="boolean" excludeMax="boolean"
+        <utf8LengthBetween name="!string" owner="string" min="#int" max="#int" excludeMin="boolean" excludeMax="boolean"
                     xdef:allow-multiple="true" minName="string" maxName="string" xdef:bean-tag-prop="$type"/>
+
+        <length name="!string" owner="string" value="int" valueName="string"
+                       xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+
+        <utf8Length name="!string" owner="string" value="int" valueName="string"
+                xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
 
         <sql value="!sql-obj" xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
 

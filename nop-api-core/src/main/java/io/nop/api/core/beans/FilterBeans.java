@@ -52,6 +52,7 @@ import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_BLANK;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_EMPTY;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_IN;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_NULL;
+import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_UTF8_LENGTH_BETWEEN;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_TAG_NAME;
 
 @SuppressWarnings("PMD.TooManyStaticImports")
@@ -121,6 +122,12 @@ public class FilterBeans {
 
     public static TreeBean lengthBetween(String name, Integer min, Integer max) {
         TreeBean bean = new TreeBean(FILTER_OP_LENGTH_BETWEEN).attr(FILTER_ATTR_NAME, name);
+        bean.attrIgnoreNull(FILTER_ATTR_MIN, min).attrIgnoreNull(FILTER_ATTR_MAX, max);
+        return bean;
+    }
+
+    public static TreeBean utf8LengthBetween(String name, Integer min, Integer max) {
+        TreeBean bean = new TreeBean(FILTER_OP_UTF8_LENGTH_BETWEEN).attr(FILTER_ATTR_NAME, name);
         bean.attrIgnoreNull(FILTER_ATTR_MIN, min).attrIgnoreNull(FILTER_ATTR_MAX, max);
         return bean;
     }

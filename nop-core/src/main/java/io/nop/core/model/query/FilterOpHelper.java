@@ -28,6 +28,14 @@ public class FilterOpHelper {
         return str.length() == len;
     }
 
+    public static boolean utf8Length(Object value, Object length) {
+        Integer len = ConvertHelper.toInt(length, NopException::new);
+        if (len == null)
+            return true;
+        String str = ConvertHelper.toString(value, "");
+        return StringHelper.utf8Length(str) == len;
+    }
+
     public static boolean regex(Object value, Object pattern) {
         String s1 = ConvertHelper.toString(value, "");
         String s2 = ConvertHelper.toString(pattern, "");
@@ -275,7 +283,28 @@ public class FilterOpHelper {
         int d1 = ConvertHelper.toString(value, "").length();
 
         Integer m1 = ConvertHelper.toInt(min, NopException::new);
-        Integer m2 = ConvertHelper.toInt(min, NopException::new);
+        Integer m2 = ConvertHelper.toInt(max, NopException::new);
+
+        if (m1 != null) {
+            int cmp1 = Integer.compare(d1, m1);
+            if (excludeMin ? cmp1 <= 0 : cmp1 < 0) {
+                return false;
+            }
+        }
+        if (m2 != null) {
+            int cmp1 = Integer.compare(d1, m2);
+            if (excludeMax ? cmp1 >= 0 : cmp1 > 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean utf8LengthBetween(Object value, Object min, Object max, boolean excludeMin, boolean excludeMax) {
+        int d1 = StringHelper.utf8Length(ConvertHelper.toString(value, ""));
+
+        Integer m1 = ConvertHelper.toInt(min, NopException::new);
+        Integer m2 = ConvertHelper.toInt(max, NopException::new);
 
         if (m1 != null) {
             int cmp1 = Integer.compare(d1, m1);

@@ -739,8 +739,12 @@
 /nop/schema/query/group-by.xdef
 /nop/schema/query/order-by.xdef
 /nop/schema/query/query.xdef
+/nop/schema/record/packet-codec.xdef
+/nop/schema/record/record-definitions.xdef
 /nop/schema/record/record-field.xdef
 /nop/schema/record/record-file.xdef
+/nop/schema/record/record-object.xdef
+/nop/schema/record/record-param.xdef
 /nop/schema/record/record-simple-field.xdef
 /nop/schema/register-model.xdef
 /nop/schema/registry.xdef
@@ -1237,6 +1241,8 @@
 /nop/wf/xlib/dingflow-gen/impl_GenComponents.xpl
 /nop/wf/xlib/dingflow-gen/impl_GenFlowEditorPage.xpl
 /nop/wf/xlib/dingflow-gen/impl_GenFlowEditorSchema.xpl
+/nop/wf/xlib/dingflow-tran.xlib
+/nop/wf/xlib/dingflow-tran/impl_GenWorkflow.xpl
 /nop/wf/xlib/oa.xlib
 /nop/wf/xlib/wf-actor.xlib
 /nop/wf/xlib/wf-gen.xlib
