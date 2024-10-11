@@ -68,6 +68,12 @@ public class NodeOutputTagCompiler implements IXplUnknownTagCompiler {
         node.forEachAttr((name, value) -> {
             if (xplNs) {
                 if (StringHelper.startsWithNamespace(name, XplConstants.XPL_NS)) {
+                    // ignoreTag时仍然输出xpl:lib。但是此时xpl名字空间时是启用的，所以其他xpl名字空间的属性会被处理掉
+                    if (name.equals(XplConstants.ATTR_XPL_LIB) && node.attrBoolean(XplConstants.ATTR_XPL_IGNORE_TAG)) {
+                        Expression expr = XplParseHelper.parseAttrTemplateExpr(node, name, cp, scope);
+                        ret.add(GenNodeAttrExpression.valueOf(value.getLocation(), name, expr));
+                        return;
+                    }
                     if (!XplConstants.XPL_ATTRS.contains(name))
                         throw new NopEvalException(ERR_XPL_UNKNOWN_TAG_ATTR).loc(node.attrLoc(name))
                                 .param(ARG_ATTR_NAME, name).param(ARG_TAG_NAME, node.getTagName())

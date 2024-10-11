@@ -199,6 +199,11 @@ public class OutputParseHelper {
         try {
             node.forEachAttr((name, value) -> {
                 if (xplNs && StringHelper.startsWithNamespace(name, XplConstants.XPL_NS)) {
+                    // ignoreTag时仍然输出xpl:lib。但是此时xpl名字空间时是启用的，所以其他xpl名字空间的属性会被处理掉
+                    if (name.equals(XplConstants.ATTR_XPL_LIB) && node.attrBoolean(XplConstants.ATTR_XPL_IGNORE_TAG)) {
+                        outputAttrValue(buf, value.getLocation(), name, value.getValue());
+                        return;
+                    }
                     if (!XplConstants.XPL_ATTRS.contains(name))
                         throw new NopEvalException(ERR_XPL_UNKNOWN_TAG_ATTR).loc(node.attrLoc(name))
                                 .param(ARG_ATTR_NAME, name).param(ARG_TAG_NAME, node.getTagName())
