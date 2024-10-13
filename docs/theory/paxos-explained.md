@@ -1,4 +1,4 @@
-# 小学生也能轻松掌握的Paxos/Raft算法奥秘
+讲解视频：https://www.bilibili.com/video/BV1F52aY2EXz/
 
 Paxos算法是分布式领域中一个非常基本的算法，一向以晦涩烧脑著称。但是它之所以让人感到摸不着头脑，主要是因为我们不容易直观地理解它为什么要这样设计。尽管我们可以通过具体例子来验证其正确性，甚至可以用严谨的数学证明来说服自己它是对的，但我们还是很难回答，为什么一定要选择这种方式？这是否是唯一可行的方法？有没有可能不依赖数学推导，就能找到一种解释，让Paxos算法在直觉上显得不言而喻？
 
@@ -46,13 +46,13 @@ FLP本质上是在说，如果一个全知全能的神故意对共识的进程�
 
 ### Paxos算法速览
 
-![](paxos/paxos-diagram.webp)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos-diagram.webp)
 
-![](paxos/phase1.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/phase1.png)
 
-![](paxos/phase2.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/phase2.png)
 
-![](paxos/paxos-algorithm.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos-algorithm.png)
 
 以上图片出自阿里巴巴基础架构事业部何登成的ppt, [PaxosRaft 分布式一致性算法原理剖析及其在实战中的应用.pdf](https://github.com/hedengcheng/tech/blob/master/distributed/PaxosRaft%20%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E5%8F%8A%E5%85%B6%E5%9C%A8%E5%AE%9E%E6%88%98%E4%B8%AD%E7%9A%84%E5%BA%94%E7%94%A8.pdf)
 
@@ -127,7 +127,7 @@ Lamport的关于Paxos的原始论文[The Part-Time Parliament](https://ying-zhan
 
 **在我们这个低魔的世界中模拟魔法，最基本的手段是认知删除**，也就说，将一切不符合魔法学原理的事实从我们的认知中删除就好了，**看不见的就不存在！**  Acceptor一系列看起来古怪的行为只是在忽略那些会导致时间静止魔法穿帮的事实而已。
 
-![](paxos/time_arrow.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/time_arrow.png)
 
 每一个Acceptor都记录了一个只增不减的ProposalID，相当于建立了本地的时间箭头。而整个系统通过ProposalID对齐到同一时间点，相当于是将多个局部的时间箭头对齐后，捆绑为一个粗粒化的、整体性的时间箭头。时间的流逝类似于波阵面扫过整个系统。
 
@@ -155,7 +155,7 @@ Lamport的关于Paxos的原始论文[The Part-Time Parliament](https://ying-zhan
 
 理解Paxos算法的一个关键点是，我们只需要关注那些上升到宏观世界的事件，也就是在主世界的主时间线上发生的事情。主时间线上的每一个时间点对应于小世界中都是一个时间静止开始--时间静止结束的一段过程，在每个时间点上都可能会发生一次值的设置（如果成功设置，则共识达成）。**时间静止的效果最终是在主世界中完全体现**：在主时间线上表现为一个个孤立的时间点，这些点不会重叠，**对应于小世界中的过程区间不会交错**。
 
-![](paxos/paxos_phase2.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_phase2.png)
 
 **大多数小世界中都发生的事件才会上升到主世界中，成为主世界中的事件**。Paxos算法执行的第一步是获取多数派Acceptor的承诺，如果成功获取，则多数派Acceptor的时间会对齐为一个，此时会在主时间线上创建一个新的时间点。也就是说，**获得多数Acceptor认可的时间点才会出现在主时间线上**，它也同时记录主时间线上时间静止的开始。如果多个Proposer并行竞争，则有可能多个Proposer以同样的ProposalID访问不同的Acceptor，结果它们都没有获取到多数派Acceptor认可，则这个时刻实际上会被自动丢弃，并不会在主时间线上被观察到。**在微观层面可能存在多次竞争过程，我们在主时间线上观察到的是竞争成功，获得多数派承认的宏观结果**，在算法分析的过程中我们也只需要考虑主时间线上的结果即可。
 
@@ -185,7 +185,7 @@ Paxos的第二阶段有一个非常令人费解的操作：Proposer 收集到多
 
 这些问题的存在，本质上是因为凡人的局限性所导致的。
 
-![paxos\_consensus](paxos/paxos_consensus.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_consensus.png)
 
 考虑有5个Acceptor，多个Proposer的情况。在ProposalID=t1的时候，提案P1被A1和A2接受，但是没有达到多数派，因此在这一轮处理中值并没有被确定下来。ProposalID=t2的提案P2同样没有达到多数派。ProposalID=t3的提案P3被多数派A2、A3、A4接受，从而达成共识。
 
@@ -195,7 +195,7 @@ Paxos的第二阶段有一个非常令人费解的操作：Proposer 收集到多
 
 > 实际上，在共识的定义中，我们已经排除了共识达成后再被推翻的可能性
 
-![paxos\_consensus\_fail](paxos/paxos_consensus_fail.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_consensus_fail.png)
 
 现在，考虑上图中的情况。假设A3在处理P3的时候直接宕机了。从外部看来，存在两种情况：
 
@@ -232,7 +232,7 @@ Paxos的第二阶段有一个非常令人费解的操作：Proposer 收集到多
 
  当共识被确定时，系统中的参与者是否立即意识到共识已经达成？一个有趣的事实是，当共识达成的那一刹那，系统中所有的参与者，包括Acceptor和Proposer，没有任何人知道共识已经达成！只不过，随着时间的推移，算法的运行会**把共识已经达成这一事实逐步的揭示出来**。
 
-![paxos\_consensus](paxos/paxos_consensus.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_consensus.png)
 
 首先，我们注意到当共识没有达成之前，**Acceptor是有可能改变自己接受的值的**，例如A3先接受了P2，后面又接受了P3。因为Proposer随时有可能失联，所以Acceptor只能选择接受新的值。这导致当A3接受P3的时候，它不可能知道共识已经达成，P3就是最终选定的值。同样的道理，A2和A4也只知道自己局部的情况，无从判断系统整体是否已经达成共识。而在Proposer一端，在接收到多数派Acceptor的成功响应之前，它也不知道自己提交的P3能否被多数Acceptor接受，成为最终的共识。所以说**共识是属于整体的，单个参与者对于共识是否达成需要有一个理解的过程**。这正是学习者（Learner）角色的关键所在。学习者首先识别到共识已经达成，然后将这一信息传播出去，从而避免了每个参与者都需要独立收集和推理信息的过程。
 
@@ -261,8 +261,7 @@ Paxos的第二阶段有一个非常令人费解的操作：Proposer 收集到多
 2PC运行之前，各个Participant都是可以独立选择成功或者失败，也就是说结果是随机的。第一阶段运行完毕之后，如果单独去观察每一个Participant，它仍然是可能成功或者失败，结果仍然是随机的。但是如果我们观察整个状态空间，却会发现状态空间中可行的状态被削减了，只有部分纠缠态存留下来。
 
 $$
-(|成功\rangle + |失败\rangle) (|成功\rangle + |失败\rangle) \\
-  \Downarrow \\
+
 |成功,成功\rangle + |失败,失败\rangle
 $$
 
@@ -276,7 +275,7 @@ $$
 \frac{1}{\sqrt{2}} (|00\rangle + |11\rangle)
 $$
 
-在这个态中，"0" 和 "1" 分别代表粒子的某种量子属性（比如自旋方向）的两个可能状态，而 |00\rangle 表示粒子A处于状态"0"且粒子B处于状态"0"，|11\rangle 则表示粒子A处于状态"1"且粒子B处于状态"1"。
+在这个态中，"0" 和 "1" 分别代表粒子的某种量子属性（比如自旋方向）的两个可能状态，而 $|00\rangle$ 表示粒子A处于状态"0"且粒子B处于状态"0"，$|11\rangle$ 则表示粒子A处于状态"1"且粒子B处于状态"1"。
 
 #### 纠缠粒子的行为
 
@@ -322,7 +321,7 @@ $$
 
 来看一个Grid Quorum的例子，
 
-![paxos\_grid\_quorum](paxos/paxos_grid_quorum.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_grid_quorum.png)
 
 对于上面`3*6`个Acceptor所组成的一个Grid，我们可以规定只要**写入任意一列**所构成的Quorum即可认为共识达成。显然，任意两列都是不相交的。为了避免做出自相矛盾的选择，我们需要横向架设一个桥梁，规定Paxos第一阶段读取的时候必须至少读取一行。假设某个时刻共识已经诞生，则下一个共识必然先经过一个行读取再执行一个列写入。因为任意的行和任意的列都是相交的，行读取必然会读到共识的值，因此写入的新值必然是和此前的共识保持一致的。注意到这个例子中的行Quorum与相交的列Quorum都没有达到多数派，而且它们的总元素个数为3+6-1=8个，也没有构成多数派。所以，读取和写入时候的Quorum既不需要相同，也不需要占据多数，只要能够相交，足以传递信息即可。
 
@@ -436,7 +435,7 @@ Raft的原始论文中提出了单步变更（逐个成员变更）和Join Conse
 
 考虑由abc构成的集群C1迁移到def构成的集群C2
 
-![](paxos/join-consensus.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/join-consensus.png)
 
 **在Paxos系列的算法中，我们只需要考虑主世界时间线上发生的事情，不用理会微观层面的细节。这其中就包括Leader在什么时候切换的问题**。因为Paxos算法的安全性本质上来源于指定时刻t只会有一个Quorum实现写入（Quorum的互斥性），至于这个Quorum写入是否是由某个Leader发起的根本无关紧要。Paxos算法并不依赖于选主，Leader的存在只是一种性能优化手段。
 
@@ -482,7 +481,7 @@ acceptors: 2f+1个
 
 replicas: 至少f+1个
 
-![](paxos/BPaxos.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/BPaxos.png)
 
 $deps(v_x)$是至少f+1个依赖服务节点所计算得到的依赖集合的并集。
 
