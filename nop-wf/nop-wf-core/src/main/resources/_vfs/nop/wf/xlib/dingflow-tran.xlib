@@ -1,0 +1,11 @@
+<lib x:schema="/nop/schema/xlib.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef">
+    <tags>
+        <GenWorkflow>
+            <attr name="flow" />
+            <source>
+                <c:include src="dingflow-tran/impl_GenWorkflow.xpl" />
+            </source>
+        </GenWorkflow>
+    </tags>
+</lib>
